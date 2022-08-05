@@ -1,5 +1,6 @@
 #pragma once
 #include "core/common.h"
+#include "ref.h"
 
 namespace it {
 
@@ -42,4 +43,12 @@ inline std::ostream &operator<<(std::ostream &os, const Object &obj) {
     return os;
 }
 
+// Overload for Ref-wrapped Object
+template <typename T,
+          typename std::enable_if_t<std::is_base_of_v<Object, T>> * = nullptr>
+inline std::ostream &operator<<(std::ostream &os, const Ref<T> &obj) {
+    os << obj->toString();
+    return os;
 }
+
+} // namespace it

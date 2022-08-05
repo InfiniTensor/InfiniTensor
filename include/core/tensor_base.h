@@ -1,33 +1,90 @@
 #pragma once
-#include "core/tensor_base.h"
+#include "core/object.h"
+#include "core/ref.h"
 
 namespace it {
 
-// TODO: how to deal with this
-using ShapeElem = int;
-using Shape = vector<ShapeElem>;
-class TensorNode : public TensorBaseNode {
-  private:
-    Shape shape;
+// class Tensor;
+class TensorBaseNode;
+class TensorNode;
+class OperatorNode;
+class GraphNode;
+
+using TensorBase = Ref<TensorBaseNode>;
+using Tensor = Ref<TensorNode>;
+using Operator = Ref<OperatorNode>;
+using Graph = Ref<GraphNode>;
+
+using TensorVec = vector<Tensor>;
+using OpVec = vector<Operator>;
+
+using VType = uint32_t;
+
+class TensorBaseNode : public Object {
+  public:
+    enum DataType {
+        Float32,
+        Int32,
+    };
+
+    // enum TensorType {
+    //     Input,
+    //     Weight,
+    //     Invalid,
+    //     NotCounted,
+    // };
+
+    // // TODO: is more compute state needed?
+    // enum ComputeState {
+    //     NotComputed,
+    //     // Allocated,
+    //     // Initialized,
+    //     // ComputedPartial,
+    //     ComputedFull,
+    // };
+
+  protected:
+    int dim;
+
+    DataType dtype;
+    vector<WRef<TensorBaseNode>> inputOf;
+    WRef<TensorBaseNode> outputOf;
+    Ref<vector<VType>> data;
+    // ComputeState computed;
+    // static int random_seed[256 * 16];
+    // static bool random_inited;
 
   public:
-    TensorNode(const Shape &shape, DataType dtype = DataType::Float32);
-    virtual ~TensorNode() {}
-    string toString() const override;
+    TensorBaseNode(int dim, DataType dtype);
+    virtual ~TensorBaseNode() {}
 
-    int size();
+    // Ref<vector<VType>> getDataPtr() const { return data; }
+    VType getData(size_t offset) const;
 
-    void dataMalloc(size_t size) {
-        IT_ASSERT(data == nullptr);
-        data = make_ref<vector<VType>>(size);
-    }
+    DataType getDType() const { return dtype; }
 
-    Shape getDims() const { return shape; }
+    // uint64_t getHash() const { return hash; }
 
-    size_t getOffset(const Shape &ds) const;
-    using TensorBaseNode::getData;
-    VType getData(const Shape &pos) const;
-    // void setDims(const Dim &dms) { dims = dms; }
+    //     void setInputOf(const OpVec &ops) {
+    //         inputOf.clear();
+    //         for (const auto &op : ops)
+    //             inputOf.emplace_back(op);
+    //     }
+    //     void addInputOf(Operator op) { inputOf.emplace_back(op); }
+    //     void setOutputOf(Operator op) { outputOf = op; }
+
+    //     const OpVec &getInputOf() { return inputOf; }
+    //     Operator *getOutputOf() { return outputOf; }
+    //     std::pair<Operator *, int> getOutputOfWithIndex();
+
+    //     bool dataMalloc() {
+    //         if (data == nullptr)
+    //             data = new VType[size()];
+    //         return data != nullptr;
+    //     }
+
+    //     const Dim &getDims() const { return dims; }
+    //     void setDims(const Dim &dms) { dims = dms; }
 
     //     bool dataRand(int seed = 0) {
     //         if (data == nullptr)
@@ -80,6 +137,35 @@ class TensorNode : public TensorBaseNode {
     //     }
 
     //     VType getScalar() { return data == nullptr ? 0 : data[0]; }
+
+    //     VType getData(const Dim &ds) {
+    //         assert(data != nullptr);
+    //         auto offset = getOffset(ds);
+    //         return offset == (size_t)-1 ? 0 : data[getOffset(ds)];
+    //     }
+
+    //     VType getData(size_t pos) {
+    //         assert(data != nullptr);
+    //         assert(pos < size());
+    //         return data[pos];
+    //     }
+
+    //     VType *getDataPtr() const { return data; }
+
+    //     size_t getOffset(const Dim &ds) {
+    //         auto nDim = ds.size();
+    //         assert(dims.size() == nDim);
+    //         if (ds.empty())
+    //             return 0;
+    //         for (size_t i = 0; i < nDim; ++i)
+    //             if (ds[i] < 0 || ds[i] >= dims[i])
+    //                 return (size_t)-1;
+    //         size_t idx = ds[0];
+    //         size_t dm = 0;
+    //         while (++dm < nDim)
+    //             idx = idx * dims[dm] + ds[dm];
+    //         return idx;
+    //     }
 
     //     VType getBroadcastData(const Dim &ds) {
     //         assert(data != nullptr);

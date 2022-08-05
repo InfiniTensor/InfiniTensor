@@ -23,6 +23,12 @@ class GraphNode : public Object {
     // TensorVec &getInputs();
     // TensorVec &getOutputs();
 
+    Tensor addTensor(Shape dim) {
+        Tensor tensor = make_ref<TensorNode>(dim);
+        tensors.emplace_back(tensor);
+        return tensor;
+    }
+
     void updateConnection();
 
     // TODO
