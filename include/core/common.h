@@ -29,14 +29,14 @@ using std::vector;
 // Aliases
 using dtype = float;
 
-// Utilities
+// Metaprogramming utilities
 #define _CAT(A, B) A##B
 #define _SELECT(NAME, NUM) _CAT(NAME##_, NUM)
 #define _GET_COUNT(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, COUNT, ...) COUNT
 #define _VA_SIZE(...) _GET_COUNT(__VA_ARGS__, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1)
 #define _VA_SELECT(NAME, ...) _SELECT(NAME, _VA_SIZE(__VA_ARGS__))(__VA_ARGS__)
 
-// Assert
+// Assert: conditions should have no side effect
 #define _IT_ASSERT_2(name, info)                                               \
     (static_cast<bool>(name)                                                   \
          ? void(0)                                                             \
@@ -48,5 +48,12 @@ using dtype = float;
 #define IT_ASSERT(...) _VA_SELECT(_IT_ASSERT, __VA_ARGS__)
 #define IT_TODO_HALT(...) IT_ASSERT(false, "Unimplemented")
 #define IT_TODO_SKIP(...) puts("Unimplemented " __FILE__ ":" __LINE__)
+
+// Other utilities
+
+// std::to_underlying is avaiable since C++23
+template <typename T> auto enum_to_underlying(T e) {
+    return static_cast<std::underlying_type_t<T>>(e);
+}
 
 } // namespace it

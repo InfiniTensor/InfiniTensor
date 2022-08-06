@@ -46,7 +46,6 @@ if(BUILD_TEST)
 endif()
 
 file(GLOB_RECURSE SRC src/*.cc src/*.cu)
-# file(GLOB_RECURSE TEST test/*.cc)
 # file(GLOB_RECURSE FFI src/ffi/ffi_pet.cc)
 # list(REMOVE_ITEM SRC ${TEST} ${FFI})
 
@@ -62,7 +61,6 @@ add_library(InfiniTensor SHARED ${SRC})
 
 if(BUILD_TEST)
   enable_testing()
-  # Build all tests file( GLOB TEST_SOURCES test/test_sg2bmm.cc )
   file(GLOB_RECURSE TEST_SOURCES test/*.cc)
   foreach(testsourcefile ${TEST_SOURCES})
     get_filename_component(testname ${testsourcefile} NAME_WE)

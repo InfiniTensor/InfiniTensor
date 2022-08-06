@@ -20,13 +20,13 @@ using OpVec = vector<Operator>;
 
 using VType = uint32_t;
 
+enum class DataType {
+    Float32,
+    Int32,
+};
+
 class TensorBaseNode : public Object {
   public:
-    enum DataType {
-        Float32,
-        Int32,
-    };
-
     // enum TensorType {
     //     Input,
     //     Weight,
@@ -49,7 +49,8 @@ class TensorBaseNode : public Object {
     DataType dtype;
     vector<WRef<TensorBaseNode>> inputOf;
     WRef<TensorBaseNode> outputOf;
-    Ref<vector<VType>> data;
+    // TODO: use a blob instead of vector
+    Ref<VType[]> data;
     // ComputeState computed;
     // static int random_seed[256 * 16];
     // static bool random_inited;
@@ -58,7 +59,7 @@ class TensorBaseNode : public Object {
     TensorBaseNode(int dim, DataType dtype);
     virtual ~TensorBaseNode() {}
 
-    // Ref<vector<VType>> getDataPtr() const { return data; }
+    Ref<VType[]> getDataPtr() const { return data; }
     VType getData(size_t offset) const;
 
     DataType getDType() const { return dtype; }
@@ -77,12 +78,6 @@ class TensorBaseNode : public Object {
     //     Operator *getOutputOf() { return outputOf; }
     //     std::pair<Operator *, int> getOutputOfWithIndex();
 
-    //     bool dataMalloc() {
-    //         if (data == nullptr)
-    //             data = new VType[size()];
-    //         return data != nullptr;
-    //     }
-
     //     const Dim &getDims() const { return dims; }
     //     void setDims(const Dim &dms) { dims = dms; }
 
@@ -100,17 +95,6 @@ class TensorBaseNode : public Object {
     //             data[i] = fastrand(random_seed[omp_get_thread_num() * 16]) %
     //             10000;
     //         // std::cerr << "Init finished" << std::endl;
-    //         computed = ComputedFull;
-    //         return true;
-    //     }
-
-    //     bool setData(VType *dptr) {
-    //         if (dptr == nullptr)
-    //             return false;
-    //         auto sz = size();
-    // #pragma omp parallel for
-    //         for (size_t i = 0; i < sz; ++i)
-    //             data[i] = dptr[i];
     //         computed = ComputedFull;
     //         return true;
     //     }
@@ -233,49 +217,6 @@ class TensorBaseNode : public Object {
 
     //     TensorType getType() const { return type; }
     //     void setType(TensorType ty) { type = ty; }
-
-    //     void print() {
-    //         if (type == Invalid) {
-    //             std::cout << "Invalid tensor" << std::endl;
-    //             return;
-    //         }
-
-    //         if (data == nullptr || dims.size() == 0) {
-    //             std::cout << "Empty tensor" << std::endl;
-    //             return;
-    //         }
-
-    //         // TODO: can be uncommented after tensor's compute type is
-    //         correctly set if (computed == NotComputed) {
-    //             std::cout << "Uncomputed tensor" << std::endl;
-    //             return;
-    //         }
-
-    //         std::cout << "Tensor: " << guid << std::endl;
-    //         auto numDims = dims.size();
-    //         auto dimSzVec = std::vector<int>(numDims, 1);
-    //         dimSzVec[numDims - 1] = dims[numDims - 1];
-    //         for (int i = numDims - 1; i != 0; --i)
-    //             dimSzVec[i - 1] = dimSzVec[i] * dims[i - 1];
-    //         for (size_t i = 0, iEnd = size(); i < iEnd; ++i) {
-    //             for (size_t j = 0; j < numDims; ++j) {
-    //                 if (i % dimSzVec[j] == 0) {
-    //                     std::cout << "[";
-    //                 }
-    //             }
-    //             std::cout << data[i];
-    //             for (size_t j = 0; j < numDims; ++j) {
-    //                 if ((int)i % dimSzVec[j] == dimSzVec[j] - 1) {
-    //                     std::cout << "]";
-    //                 }
-    //             }
-    //             if (i != size() - 1)
-    //                 std::cout << ", ";
-    //             if ((int)i % dimSzVec[numDims - 1] == dimSzVec[numDims - 1] -
-    //             1)
-    //                 std::cout << std::endl;
-    //         }
-    //     }
 
     //     static inline void initFastrand() {
     //         assert(omp_get_max_threads() <= 256);

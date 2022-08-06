@@ -3,7 +3,7 @@
 
 namespace it {
 
-enum OpType {
+enum class OpType {
     Unknown = 0,
     // linear
     Conv = 100,
@@ -41,7 +41,7 @@ class OpRegistry {
   public:
     std::string getOpName(OpType opType) {
 #define FOP(op)                                                                \
-    case op:                                                                   \
+    case OpType::op:                                                           \
         return #op
 
         switch (opType) {
@@ -83,7 +83,7 @@ class OpRegistry {
     }
 };
 
-enum ActType {
+enum class ActType {
     None,
     Relu,
     Sigmoid,
@@ -100,26 +100,19 @@ class OperatorNode : public Object {
     // vector<WRef<Operator>> successors;
 
   public:
-    OperatorNode(TensorVec inputs, TensorVec outputs)
-        : inputs(inputs), outputs(outputs) {}
+    OperatorNode(OpType opType, TensorVec inputs, TensorVec outputs)
+        : type(opType), inputs(inputs), outputs(outputs) {}
     virtual vector<Shape> computeShape() const = 0;
 
   public: // check Op type
-    bool isLinearOp() const { return type >= 100 && type < 200; }
-    bool isElementWiseOp() const { return type >= 200 && type < 300; }
-    bool isSplitOp() const { return type == Split; }
-    bool isConcatOp() const { return type == Concat; }
-    bool isComputeOp() const {
-        return type == Conv || type == Matmul || type == ConvTrans ||
-               type == G2BMM || type == GBMML;
-    }
-    bool isTransposeOp() const { return type == Transpose; }
-
-    bool isReshapeOp() const { return type == Reshape; }
-
-    bool isMemBoundOp() const {
-        return type == MemBound || type == Activation || type == Transpose;
-    }
+    bool isLinearOp() const;
+    bool isElementWiseOp() const;
+    bool isSplitOp() const;
+    bool isConcatOp() const;
+    bool isComputeOp() const;
+    bool isTransposeOp() const;
+    bool isReshapeOp() const;
+    bool isMemBoundOp() const;
 
   public: // getter and setter
     // TensorVec getInputs() { return inputs; }
@@ -131,6 +124,7 @@ class OperatorNode : public Object {
         IT_ASSERT(outputs.size() == 1, "Unimplemented");
         return outputs[0];
     }
+    OpType getOpType() const { return type; }
 
     virtual int numInputs() const = 0;
     virtual int numOutputs() const = 0;
@@ -152,7 +146,8 @@ class MatmulNode : public OperatorNode {
 
   public:
     MatmulNode(Tensor A, Tensor B, Tensor C, bool transA = false,
-               bool transB = false, Tensor bias = nullptr, ActType act = None);
+               bool transB = false, Tensor bias = nullptr,
+               ActType act = ActType::None);
 
     std::string toString() const override;
     vector<Shape> computeShape() const override;

@@ -23,13 +23,14 @@ class GraphNode : public Object {
     // TensorVec &getInputs();
     // TensorVec &getOutputs();
 
-    Tensor addTensor(Shape dim) {
-        Tensor tensor = make_ref<TensorNode>(dim);
+    Tensor addTensor(Shape dim, DataType dtype = DataType::Int32) {
+        Tensor tensor = make_ref<TensorNode>(dim, dtype);
         tensors.emplace_back(tensor);
         return tensor;
     }
 
     void updateConnection();
+    void dataMalloc();
 
     // TODO
     // bool compute();

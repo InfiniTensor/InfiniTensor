@@ -11,22 +11,21 @@ class TensorNode : public TensorBaseNode {
     Shape shape;
 
   public:
-    TensorNode(const Shape &shape, DataType dtype = DataType::Float32);
+    TensorNode(const Shape &shape, DataType dtype);
     virtual ~TensorNode() {}
     string toString() const override;
 
-    int size();
-
-    void dataMalloc(size_t size) {
-        IT_ASSERT(data == nullptr);
-        data = make_ref<vector<VType>>(size);
-    }
+    size_t size() const;
+    void dataMalloc();
 
     Shape getDims() const { return shape; }
 
     size_t getOffset(const Shape &ds) const;
     using TensorBaseNode::getData;
     VType getData(const Shape &pos) const;
+    void copyData(VType *dptr);
+    void printData() const;
+    bool equalData(const Tensor &rhs) const;
     // void setDims(const Dim &dms) { dims = dms; }
 
     //     bool dataRand(int seed = 0) {
@@ -43,17 +42,6 @@ class TensorNode : public TensorBaseNode {
     //             data[i] = fastrand(random_seed[omp_get_thread_num() * 16]) %
     //             10000;
     //         // std::cerr << "Init finished" << std::endl;
-    //         computed = ComputedFull;
-    //         return true;
-    //     }
-
-    //     bool setData(VType *dptr) {
-    //         if (dptr == nullptr)
-    //             return false;
-    //         auto sz = size();
-    // #pragma omp parallel for
-    //         for (size_t i = 0; i < sz; ++i)
-    //             data[i] = dptr[i];
     //         computed = ComputedFull;
     //         return true;
     //     }
@@ -137,59 +125,8 @@ class TensorNode : public TensorBaseNode {
     //         }
     //     }
 
-    //     size_t size() const {
-    //         size_t sz = 1;
-    //         auto dm = dims.size();
-    //         while (dm > 0)
-    //             sz *= dims[--dm];
-    //         return sz;
-    //     }
-
     //     TensorType getType() const { return type; }
     //     void setType(TensorType ty) { type = ty; }
-
-    //     void print() {
-    //         if (type == Invalid) {
-    //             std::cout << "Invalid tensor" << std::endl;
-    //             return;
-    //         }
-
-    //         if (data == nullptr || dims.size() == 0) {
-    //             std::cout << "Empty tensor" << std::endl;
-    //             return;
-    //         }
-
-    //         // TODO: can be uncommented after tensor's compute type is
-    //         correctly set if (computed == NotComputed) {
-    //             std::cout << "Uncomputed tensor" << std::endl;
-    //             return;
-    //         }
-
-    //         std::cout << "Tensor: " << guid << std::endl;
-    //         auto numDims = dims.size();
-    //         auto dimSzVec = std::vector<int>(numDims, 1);
-    //         dimSzVec[numDims - 1] = dims[numDims - 1];
-    //         for (int i = numDims - 1; i != 0; --i)
-    //             dimSzVec[i - 1] = dimSzVec[i] * dims[i - 1];
-    //         for (size_t i = 0, iEnd = size(); i < iEnd; ++i) {
-    //             for (size_t j = 0; j < numDims; ++j) {
-    //                 if (i % dimSzVec[j] == 0) {
-    //                     std::cout << "[";
-    //                 }
-    //             }
-    //             std::cout << data[i];
-    //             for (size_t j = 0; j < numDims; ++j) {
-    //                 if ((int)i % dimSzVec[j] == dimSzVec[j] - 1) {
-    //                     std::cout << "]";
-    //                 }
-    //             }
-    //             if (i != size() - 1)
-    //                 std::cout << ", ";
-    //             if ((int)i % dimSzVec[numDims - 1] == dimSzVec[numDims - 1] -
-    //             1)
-    //                 std::cout << std::endl;
-    //         }
-    //     }
 
     //     static inline void initFastrand() {
     //         assert(omp_get_max_threads() <= 256);

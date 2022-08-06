@@ -12,4 +12,9 @@ string GraphNode::toString() const {
     return oss.str();
 }
 
+void GraphNode::dataMalloc() {
+    for (auto &tensor : tensors)
+        tensor->dataMalloc();
+}
+
 } // namespace it

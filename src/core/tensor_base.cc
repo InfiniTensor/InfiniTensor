@@ -4,6 +4,6 @@ namespace it {
 TensorBaseNode::TensorBaseNode(int dim, DataType dtype)
     : dim(dim), dtype(dtype) {}
 
-VType TensorBaseNode::getData(size_t offset) const { return data->at(offset); }
+VType TensorBaseNode::getData(size_t offset) const { return data[offset]; }
 
 }; // namespace it

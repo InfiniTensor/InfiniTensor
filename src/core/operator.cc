@@ -2,6 +2,33 @@
 
 namespace it {
 
+bool OperatorNode::isLinearOp() const {
+    return enum_to_underlying(type) >= 100 && enum_to_underlying(type) < 200;
+}
+
+bool OperatorNode::isElementWiseOp() const {
+    return enum_to_underlying(type) >= 200 && enum_to_underlying(type) < 300;
+}
+
+bool OperatorNode::isSplitOp() const { return type == OpType::Split; }
+
+bool OperatorNode::isConcatOp() const { return type == OpType::Concat; }
+
+bool OperatorNode::isComputeOp() const {
+    return type == OpType::Conv || type == OpType::Matmul ||
+           type == OpType::ConvTrans || type == OpType::G2BMM ||
+           type == OpType::GBMML;
+}
+
+bool OperatorNode::isTransposeOp() const { return type == OpType::Transpose; }
+
+bool OperatorNode::isReshapeOp() const { return type == OpType::Reshape; }
+
+bool OperatorNode::isMemBoundOp() const {
+    return type == OpType::MemBound || type == OpType::Activation ||
+           type == OpType::Transpose;
+}
+
 vector<Shape> MatmulNode::computeShape() const {
     Shape ret{args.b, args.m, args.n};
     return {ret};
@@ -9,16 +36,14 @@ vector<Shape> MatmulNode::computeShape() const {
 
 MatmulNode::MatmulNode(Tensor A, Tensor B, Tensor C, bool transA, bool transB,
                        Tensor bias, ActType act)
-    : OperatorNode({A, B, bias}, {C}), args{.b = A->getDims()[0],
-                                            .m = transA ? A->getDims()[2]
-                                                        : A->getDims()[1],
-                                            .n = transB ? B->getDims()[1]
-                                                        : B->getDims()[2],
-                                            .k = transA ? A->getDims()[1]
-                                                        : A->getDims()[2],
-                                            .transA = transA,
-                                            .transB = transB,
-                                            .act = act} {
+    : OperatorNode(OpType::Matmul, {A, B, bias}, {C}),
+      args{.b = A->getDims()[0],
+           .m = transA ? A->getDims()[2] : A->getDims()[1],
+           .n = transB ? B->getDims()[1] : B->getDims()[2],
+           .k = transA ? A->getDims()[1] : A->getDims()[2],
+           .transA = transA,
+           .transB = transB,
+           .act = act} {
     IT_ASSERT(checkValid(inputs));
 }
 
