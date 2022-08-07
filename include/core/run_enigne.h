@@ -1,24 +1,26 @@
+#pragma once
 #include "core/graph.h"
 #include "core/kernel.h"
+#include "core/perf_engine.h"
 
-namespace it {
+namespace infini {
 
 class RunEngine {
+  private:
+    Device device;
+
   public:
     RunEngine(Device device) : device(device) {}
     ~RunEngine() {}
 
-    void run(Graph graph) const {
-        const auto &kernelRegistry = KernelRegistry::getInstance();
-        for (auto &op : graph->getOperators()) {
-            // HACK: set correct data type
-            Kernel *kernel = kernelRegistry.getKernel(device, op->getOpType(),
-                                                      DataType::Int32);
-            kernel->compute(op);
-        }
-    }
+    void run(const Graph &graph, bool tune = false,
+             bool profiling = false) const;
+    double getPerfTime(const Graph &graph, bool profiling = false) const;
 
   private:
-    Device device;
+    void printProfilingData(double totTime,
+                            const std::map<OpType, double> &opTime,
+                            const std::map<OpType, int> &opCnt) const;
 };
-} // namespace it
+
+} // namespace infini

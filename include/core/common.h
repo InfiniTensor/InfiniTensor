@@ -12,7 +12,7 @@
 #include <unordered_set>
 #include <vector>
 
-namespace it {
+namespace infini {
 using std::list;
 using std::map;
 using std::nullopt;
@@ -46,8 +46,8 @@ using dtype = float;
 #define _IT_ASSERT_1(name) _IT_ASSERT_2(name, "");
 
 #define IT_ASSERT(...) _VA_SELECT(_IT_ASSERT, __VA_ARGS__)
-#define IT_TODO_HALT(...) IT_ASSERT(false, "Unimplemented")
-#define IT_TODO_SKIP(...) puts("Unimplemented " __FILE__ ":" __LINE__)
+#define IT_TODO_HALT() IT_ASSERT(false, "Unimplemented")
+#define IT_TODO_SKIP() puts("Unimplemented " __FILE__ ":" __LINE__)
 
 // Other utilities
 
@@ -56,4 +56,6 @@ template <typename T> auto enum_to_underlying(T e) {
     return static_cast<std::underlying_type_t<T>>(e);
 }
 
-} // namespace it
+double timeit(const std::function<void()> &func);
+
+} // namespace infini

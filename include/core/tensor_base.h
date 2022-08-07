@@ -2,7 +2,7 @@
 #include "core/object.h"
 #include "core/ref.h"
 
-namespace it {
+namespace infini {
 
 // class Tensor;
 class TensorBaseNode;
@@ -267,4 +267,4 @@ class TensorBaseNode : public Object {
     //     void printShape();
 };
 
-} // namespace it
+} // namespace infini

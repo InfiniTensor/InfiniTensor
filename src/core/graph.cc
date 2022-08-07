@@ -1,6 +1,6 @@
 #include "core/graph.h"
 
-namespace it {
+namespace infini {
 
 void GraphNode::updateConnection() { IT_TODO_HALT(); }
 
@@ -17,4 +17,4 @@ void GraphNode::dataMalloc() {
         tensor->dataMalloc();
 }
 
-} // namespace it
+} // namespace infini

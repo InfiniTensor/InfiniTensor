@@ -3,7 +3,7 @@
 #include <memory>
 #include <type_traits>
 
-namespace it {
+namespace infini {
 
 template <typename T> using Ref = std::shared_ptr<T>;
 template <typename T> using WRef = std::weak_ptr<T>;
@@ -32,4 +32,4 @@ std::vector<WRef<T>> get_wref_vec(const std::vector<Ref<T>> &vec) {
     return wref_vec;
 }
 
-} // namespace it
+} // namespace infini

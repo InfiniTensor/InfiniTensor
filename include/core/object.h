@@ -2,7 +2,7 @@
 #include "core/common.h"
 #include "ref.h"
 
-namespace it {
+namespace infini {
 
 using GuidBaseType = int;
 
@@ -51,4 +51,4 @@ inline std::ostream &operator<<(std::ostream &os, const Ref<T> &obj) {
     return os;
 }
 
-} // namespace it
+} // namespace infini

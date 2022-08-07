@@ -1,7 +1,7 @@
 #pragma once
 #include "core/tensor_base.h"
 
-namespace it {
+namespace infini {
 
 // TODO: how to deal with this
 using ShapeElem = int;
@@ -177,4 +177,4 @@ class TensorNode : public TensorBaseNode {
     //     void printShape();
 };
 
-} // namespace it
+} // namespace infini

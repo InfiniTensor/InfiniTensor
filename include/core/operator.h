@@ -1,7 +1,7 @@
 #pragma once
 #include "core/tensor.h"
 
-namespace it {
+namespace infini {
 
 enum class OpType {
     Unknown = 0,
@@ -37,9 +37,13 @@ enum class OpType {
     MemBound = 300,
 };
 
+enum class Device { CPU = 1, CUDA };
+
+using KernelAttrs = std::tuple<Device, OpType, DataType>;
+
 class OpRegistry {
   public:
-    std::string getOpName(OpType opType) {
+    static std::string getOpName(OpType opType) {
 #define FOP(op)                                                                \
     case OpType::op:                                                           \
         return #op
@@ -90,6 +94,16 @@ enum class ActType {
     Tanh,
 };
 
+struct OpAttrs {
+  public:
+    virtual bool operator<(const OpAttrs &rhs) const {
+        IT_ASSERT(typeid(*this) == typeid(rhs), "OpAttrs type mismatch.");
+        // Empty OpAttrs are equal
+        return false;
+    }
+    virtual ~OpAttrs() {}
+};
+
 class OperatorNode : public Object {
   public:
   protected:
@@ -103,6 +117,7 @@ class OperatorNode : public Object {
     OperatorNode(OpType opType, TensorVec inputs, TensorVec outputs)
         : type(opType), inputs(inputs), outputs(outputs) {}
     virtual vector<Shape> computeShape() const = 0;
+    virtual OpAttrs getOpAttrs() const = 0;
 
   public: // check Op type
     bool isLinearOp() const;
@@ -132,13 +147,25 @@ class OperatorNode : public Object {
 
 class MatmulNode : public OperatorNode {
   public:
-    struct MatmulArgs {
+    struct MatmulArgs : public OpAttrs {
         int b, m, n, k;
         // PET assume a row-major tensor layout. transA=false means default
         // dims, true means A should be transposed before matmul. This is in
         // oppsite to column-major BLAS.
         bool transA, transB;
         ActType act;
+
+        MatmulArgs(int b, int m, int n, int k, bool transA, bool transB,
+                   ActType act)
+            : b(b), m(m), n(n), k(k), transA(transA), transB(transB), act(act) {
+        }
+
+        bool operator<(const OpAttrs &rhsGeneric) {
+            auto rhs = dynamic_cast<const MatmulArgs &>(rhsGeneric);
+            return std::tie(b, m, n, k, transA, transB, act) <
+                   std::tie(rhs.b, rhs.m, rhs.n, rhs.k, rhs.transA, rhs.transB,
+                            rhs.act);
+        }
     };
 
   private:
@@ -162,6 +189,7 @@ class MatmulNode : public OperatorNode {
     bool getTransB() const { return args.transB; }
 
     MatmulArgs getArgs() const { return args; }
+    OpAttrs getOpAttrs() const override { return args; }
 
   private:
     // Q: whether to check the output? Since we can build an Op first and then
@@ -170,4 +198,4 @@ class MatmulNode : public OperatorNode {
     bool checkValid(const TensorVec &inputs) const;
 };
 
-} // namespace it
+} // namespace infini

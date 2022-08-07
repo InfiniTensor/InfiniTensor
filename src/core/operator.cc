@@ -1,6 +1,6 @@
 #include "core/operator.h"
 
-namespace it {
+namespace infini {
 
 bool OperatorNode::isLinearOp() const {
     return enum_to_underlying(type) >= 100 && enum_to_underlying(type) < 200;
@@ -37,13 +37,9 @@ vector<Shape> MatmulNode::computeShape() const {
 MatmulNode::MatmulNode(Tensor A, Tensor B, Tensor C, bool transA, bool transB,
                        Tensor bias, ActType act)
     : OperatorNode(OpType::Matmul, {A, B, bias}, {C}),
-      args{.b = A->getDims()[0],
-           .m = transA ? A->getDims()[2] : A->getDims()[1],
-           .n = transB ? B->getDims()[1] : B->getDims()[2],
-           .k = transA ? A->getDims()[1] : A->getDims()[2],
-           .transA = transA,
-           .transB = transB,
-           .act = act} {
+      args(A->getDims()[0], transA ? A->getDims()[2] : A->getDims()[1],
+           transB ? B->getDims()[1] : B->getDims()[2],
+           transA ? A->getDims()[1] : A->getDims()[2], transA, transB, act) {
     IT_ASSERT(checkValid(inputs));
 }
 
@@ -78,4 +74,4 @@ bool MatmulNode::checkValid(const TensorVec &inputs) const {
     return true;
 }
 
-} // namespace it
+} // namespace infini

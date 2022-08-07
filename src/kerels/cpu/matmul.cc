@@ -1,6 +1,6 @@
 #include "core/kernel.h"
 
-namespace it {
+namespace infini {
 
 template <typename T> class NaiveMatmul : public Kernel {
     void compute(const Operator &_op) const override {
@@ -14,11 +14,20 @@ template <typename T> class NaiveMatmul : public Kernel {
         const int M = args.m, N = args.n, K = args.k;
         for (int i = 0; i < M; i++) {
             for (int j = 0; j < N; j++) {
+                C[i * N + j] = 0;
                 for (int k = 0; k < K; k++) {
                     C[i * N + j] += A[i * K + k] * B[k * N + j];
                 }
             }
         }
+    }
+
+    void compute(const Operator &op, const PerfRecord &record) const override {
+        compute(op);
+    }
+
+    PerfRecord tune(const Operator &op) const override {
+        return PerfRecord{.time = timeit([this, &op]() { compute(op); })};
     }
 };
 
@@ -27,4 +36,4 @@ REGISTER_KERNEL(Device::CPU, OpType::Matmul, DataType::Int32,
 REGISTER_KERNEL(Device::CPU, OpType::Matmul, DataType::Float32,
                 NaiveMatmul<float>);
 
-} // namespace it
+} // namespace infini

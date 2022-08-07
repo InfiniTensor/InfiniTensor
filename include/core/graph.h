@@ -2,7 +2,7 @@
 #include "core/operator.h"
 #include "core/tensor.h"
 
-namespace it {
+namespace infini {
 
 class GraphNode : public Object {
   protected:
@@ -32,12 +32,9 @@ class GraphNode : public Object {
     void updateConnection();
     void dataMalloc();
 
-    // TODO
-    // bool compute();
-
     // TODO: move to another class
     // bool exportOnnx(const char *path);
     // bool importOnnx(const char *net);
 };
 
-} // namespace it
+} // namespace infini

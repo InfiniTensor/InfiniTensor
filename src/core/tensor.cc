@@ -1,5 +1,5 @@
 #include <core/tensor.h>
-namespace it {
+namespace infini {
 
 TensorNode::TensorNode(const Shape &shape, DataType dtype)
     : TensorBaseNode(shape.size(), dtype), shape(shape) {}
@@ -87,4 +87,4 @@ bool TensorNode::equalData(const Tensor &rhs) const {
     return true;
 }
 
-}; // namespace it
+}; // namespace infini
