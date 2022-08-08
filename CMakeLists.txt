@@ -4,10 +4,10 @@ include(CMakeDependentOption)
 project(InfiniTensor C CXX)
 
 # Do not change these options in this file. Use cmake.config, cmake -DOPTION=VALUE, or ccmake to specify them.
-option(BUILD_TEST "Build tests" OFF)
+option(BUILD_TEST "Build tests" ON)
 cmake_dependent_option(BUILD_TEST_CORE "Build tests for core components" ON BUILD_TEST OFF)
-cmake_dependent_option(BUILD_TEST_PET "Build tests for PET" ON BUILD_TEST OFF)
-cmake_dependent_option(BUILD_TEST_EINNET "Build tests for EINNET" ON BUILD_TEST OFF)
+cmake_dependent_option(BUILD_TEST_PET "Build tests for PET" OFF BUILD_TEST OFF)
+cmake_dependent_option(BUILD_TEST_EINNET "Build tests for EINNET" OFF BUILD_TEST OFF)
 
 set(DEFAULT_BUILD_TYPE "RelWithDebInfo")
 
@@ -31,16 +31,24 @@ if(OpenMP_CXX_FOUND)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
-# add_subdirectory(3rd-party/pybind11)
-# add_subdirectory(3rd-party/nlohmann_json_cmake_fetchcontent)
-
 include_directories(include)
+
+# # Pybind11
+# add_subdirectory(3rd-party/pybind11)
 # include_directories(3rd-party/pybind11/include)
-# include_directories(3rd-party/nlohmann_json_cmake_fetchcontent/single_include)
+
+# nlohmann_json
+add_subdirectory(3rd-party/nlohmann_json_cmake_fetchcontent)
+include_directories(3rd-party/nlohmann_json_cmake_fetchcontent/single_include)
 
 if(BUILD_TEST)
-  set(BUILD_GMOCK off)
-  set(INSTALL_GTEST off)
+  # TODO: chekc set
+  set(BUILD_GMOCK
+      OFF
+      CACHE BOOL "Do not build gmock" FORCE)
+  set(INSTALL_GTEST
+      OFF
+      CACHE BOOL "Do not install gtest" FORCE)
   add_subdirectory(3rd-party/googletest)
   include_directories(3rd-party/googletest/googletest/include)
 endif()
@@ -59,13 +67,26 @@ add_library(InfiniTensor SHARED ${SRC})
 # pybind11_add_module(infini MODULE ${FFI})
 # target_link_libraries(infini PRIVATE infini_cpp)
 
-if(BUILD_TEST)
-  enable_testing()
-  file(GLOB_RECURSE TEST_SOURCES test/*.cc)
+function(build_test files)
+  # Non-recursive glob for skip failed tests
+  file(GLOB TEST_SOURCES ${files})
   foreach(testsourcefile ${TEST_SOURCES})
     get_filename_component(testname ${testsourcefile} NAME_WE)
     add_executable(${testname} ${testsourcefile})
-    target_link_libraries(${testname} InfiniTensor gtest_main gtest)
+    target_link_libraries(${testname} InfiniTensor GTest::gtest_main)
     add_test(NAME ${testname} COMMAND ${testname})
   endforeach(testsourcefile ${TEST_SOURCES})
+endfunction()
+
+if(BUILD_TEST)
+  enable_testing()
+  if(BUILD_TEST_CORE)
+    build_test(test/core/*.cc)
+  endif()
+  if(BUILD_TEST_PET)
+    build_test(test/pet/*.cc)
+  endif()
+  if(BUILD_TEST_EINNET)
+    build_test(test/nnet/*.cc)
+  endif()
 endif()

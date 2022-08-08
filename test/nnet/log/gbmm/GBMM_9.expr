@@ -1,0 +1,746 @@
+{
+    "Version": 1,
+    "Msg": "=== Depth 9 Rule6KenerlMatching: ",
+    "0": {
+        "type": 4,
+        "name": "T5",
+        "shape": [
+            8,
+            10000,
+            512
+        ],
+        "paddings": [
+            0,
+            0,
+            0
+        ],
+        "source": "1"
+    },
+    "1": {
+        "type": 105,
+        "inputs": [
+            "2"
+        ],
+        "expr": "32",
+        "outputShape": [
+            8,
+            10000,
+            512
+        ]
+    },
+    "2": {
+        "type": 4,
+        "name": "T4",
+        "shape": [
+            8,
+            10000,
+            512
+        ],
+        "paddings": [
+            0,
+            0,
+            0
+        ],
+        "source": "3"
+    },
+    "3": {
+        "type": 104,
+        "inputs": [
+            "4",
+            "8"
+        ],
+        "expr": "12",
+        "args": [
+            8,
+            10000,
+            32,
+            512,
+            1
+        ]
+    },
+    "4": {
+        "type": 4,
+        "name": "T1",
+        "shape": [
+            8,
+            10000,
+            65
+        ],
+        "paddings": [
+            0,
+            0,
+            0
+        ],
+        "source": "5"
+    },
+    "5": {
+        "type": 105,
+        "inputs": [
+            "6"
+        ],
+        "expr": "7",
+        "outputShape": [
+            8,
+            10000,
+            65
+        ]
+    },
+    "6": {
+        "type": 4,
+        "name": "A",
+        "shape": [
+            8,
+            10000,
+            65
+        ],
+        "paddings": [
+            0,
+            0,
+            0
+        ],
+        "source": "-1"
+    },
+    "7": {
+        "type": 4,
+        "name": "__DLT",
+        "shape": [],
+        "paddings": [],
+        "source": "-1"
+    },
+    "8": {
+        "type": 4,
+        "name": "T3",
+        "shape": [
+            8,
+            10000,
+            512
+        ],
+        "paddings": [
+            0,
+            128,
+            0
+        ],
+        "source": "9"
+    },
+    "9": {
+        "type": 105,
+        "inputs": [
+            "10"
+        ],
+        "expr": "11",
+        "outputShape": [
+            8,
+            10000,
+            512
+        ]
+    },
+    "10": {
+        "type": 4,
+        "name": "B",
+        "shape": [
+            8,
+            10000,
+            512
+        ],
+        "paddings": [
+            0,
+            128,
+            0
+        ],
+        "source": "-1"
+    },
+    "11": {
+        "type": 4,
+        "name": "__DLT",
+        "shape": [],
+        "paddings": [],
+        "source": "-1"
+    },
+    "12": {
+        "type": 2,
+        "paddings": [
+            0,
+            0,
+            0
+        ],
+        "summand": "13",
+        "loopVarRanges": {
+            "b": [
+                0,
+                8
+            ],
+            "i7": [
+                0,
+                10000
+            ],
+            "n": [
+                0,
+                512
+            ]
+        },
+        "sumVarRanges": {
+            "w": [
+                0,
+                65
+            ]
+        }
+    },
+    "13": {
+        "type": 1,
+        "opType": 2,
+        "lhs": "14",
+        "rhs": "22"
+    },
+    "14": {
+        "type": 3,
+        "subExprsNum": 3,
+        "object": "15",
+        "indexes": [
+            "19",
+            "20",
+            "21"
+        ]
+    },
+    "15": {
+        "type": 4,
+        "name": "T1",
+        "shape": [
+            8,
+            10000,
+            65
+        ],
+        "paddings": [
+            0,
+            0,
+            0
+        ],
+        "source": "16"
+    },
+    "16": {
+        "type": 105,
+        "inputs": [
+            "17"
+        ],
+        "expr": "18",
+        "outputShape": [
+            8,
+            10000,
+            65
+        ]
+    },
+    "17": {
+        "type": 4,
+        "name": "A",
+        "shape": [
+            8,
+            10000,
+            65
+        ],
+        "paddings": [
+            0,
+            0,
+            0
+        ],
+        "source": "-1"
+    },
+    "18": {
+        "type": 4,
+        "name": "__DLT",
+        "shape": [],
+        "paddings": [],
+        "source": "-1"
+    },
+    "19": {
+        "type": 5,
+        "name": "b"
+    },
+    "20": {
+        "type": 5,
+        "name": "i7"
+    },
+    "21": {
+        "type": 5,
+        "name": "w"
+    },
+    "22": {
+        "type": 3,
+        "subExprsNum": 3,
+        "object": "23",
+        "indexes": [
+            "27",
+            "28",
+            "31"
+        ]
+    },
+    "23": {
+        "type": 4,
+        "name": "T3",
+        "shape": [
+            8,
+            10000,
+            512
+        ],
+        "paddings": [
+            0,
+            128,
+            0
+        ],
+        "source": "24"
+    },
+    "24": {
+        "type": 105,
+        "inputs": [
+            "25"
+        ],
+        "expr": "26",
+        "outputShape": [
+            8,
+            10000,
+            512
+        ]
+    },
+    "25": {
+        "type": 4,
+        "name": "B",
+        "shape": [
+            8,
+            10000,
+            512
+        ],
+        "paddings": [
+            0,
+            128,
+            0
+        ],
+        "source": "-1"
+    },
+    "26": {
+        "type": 4,
+        "name": "__DLT",
+        "shape": [],
+        "paddings": [],
+        "source": "-1"
+    },
+    "27": {
+        "type": 5,
+        "name": "b"
+    },
+    "28": {
+        "type": 1,
+        "opType": 1,
+        "lhs": "29",
+        "rhs": "30"
+    },
+    "29": {
+        "type": 5,
+        "name": "i7"
+    },
+    "30": {
+        "type": 5,
+        "name": "w"
+    },
+    "31": {
+        "type": 5,
+        "name": "n"
+    },
+    "32": {
+        "type": 2,
+        "paddings": [
+            0,
+            0,
+            0
+        ],
+        "summand": "33",
+        "loopVarRanges": {
+            "b": [
+                0,
+                8
+            ],
+            "m": [
+                0,
+                10000
+            ],
+            "n": [
+                0,
+                512
+            ]
+        }
+    },
+    "33": {
+        "type": 3,
+        "subExprsNum": 3,
+        "object": "34",
+        "indexes": [
+            "64",
+            "65",
+            "74"
+        ]
+    },
+    "34": {
+        "type": 4,
+        "name": "T4",
+        "shape": [
+            8,
+            10000,
+            512
+        ],
+        "paddings": [
+            0,
+            0,
+            0
+        ],
+        "source": "35"
+    },
+    "35": {
+        "type": 104,
+        "inputs": [
+            "36",
+            "40"
+        ],
+        "expr": "44",
+        "args": [
+            8,
+            10000,
+            32,
+            512,
+            1
+        ]
+    },
+    "36": {
+        "type": 4,
+        "name": "T1",
+        "shape": [
+            8,
+            10000,
+            65
+        ],
+        "paddings": [
+            0,
+            0,
+            0
+        ],
+        "source": "37"
+    },
+    "37": {
+        "type": 105,
+        "inputs": [
+            "38"
+        ],
+        "expr": "39",
+        "outputShape": [
+            8,
+            10000,
+            65
+        ]
+    },
+    "38": {
+        "type": 4,
+        "name": "A",
+        "shape": [
+            8,
+            10000,
+            65
+        ],
+        "paddings": [
+            0,
+            0,
+            0
+        ],
+        "source": "-1"
+    },
+    "39": {
+        "type": 4,
+        "name": "__DLT",
+        "shape": [],
+        "paddings": [],
+        "source": "-1"
+    },
+    "40": {
+        "type": 4,
+        "name": "T3",
+        "shape": [
+            8,
+            10000,
+            512
+        ],
+        "paddings": [
+            0,
+            128,
+            0
+        ],
+        "source": "41"
+    },
+    "41": {
+        "type": 105,
+        "inputs": [
+            "42"
+        ],
+        "expr": "43",
+        "outputShape": [
+            8,
+            10000,
+            512
+        ]
+    },
+    "42": {
+        "type": 4,
+        "name": "B",
+        "shape": [
+            8,
+            10000,
+            512
+        ],
+        "paddings": [
+            0,
+            128,
+            0
+        ],
+        "source": "-1"
+    },
+    "43": {
+        "type": 4,
+        "name": "__DLT",
+        "shape": [],
+        "paddings": [],
+        "source": "-1"
+    },
+    "44": {
+        "type": 2,
+        "paddings": [
+            0,
+            0,
+            0
+        ],
+        "summand": "45",
+        "loopVarRanges": {
+            "b": [
+                0,
+                8
+            ],
+            "i7": [
+                0,
+                10000
+            ],
+            "n": [
+                0,
+                512
+            ]
+        },
+        "sumVarRanges": {
+            "w": [
+                0,
+                65
+            ]
+        }
+    },
+    "45": {
+        "type": 1,
+        "opType": 2,
+        "lhs": "46",
+        "rhs": "54"
+    },
+    "46": {
+        "type": 3,
+        "subExprsNum": 3,
+        "object": "47",
+        "indexes": [
+            "51",
+            "52",
+            "53"
+        ]
+    },
+    "47": {
+        "type": 4,
+        "name": "T1",
+        "shape": [
+            8,
+            10000,
+            65
+        ],
+        "paddings": [
+            0,
+            0,
+            0
+        ],
+        "source": "48"
+    },
+    "48": {
+        "type": 105,
+        "inputs": [
+            "49"
+        ],
+        "expr": "50",
+        "outputShape": [
+            8,
+            10000,
+            65
+        ]
+    },
+    "49": {
+        "type": 4,
+        "name": "A",
+        "shape": [
+            8,
+            10000,
+            65
+        ],
+        "paddings": [
+            0,
+            0,
+            0
+        ],
+        "source": "-1"
+    },
+    "50": {
+        "type": 4,
+        "name": "__DLT",
+        "shape": [],
+        "paddings": [],
+        "source": "-1"
+    },
+    "51": {
+        "type": 5,
+        "name": "b"
+    },
+    "52": {
+        "type": 5,
+        "name": "i7"
+    },
+    "53": {
+        "type": 5,
+        "name": "w"
+    },
+    "54": {
+        "type": 3,
+        "subExprsNum": 3,
+        "object": "55",
+        "indexes": [
+            "59",
+            "60",
+            "63"
+        ]
+    },
+    "55": {
+        "type": 4,
+        "name": "T3",
+        "shape": [
+            8,
+            10000,
+            512
+        ],
+        "paddings": [
+            0,
+            128,
+            0
+        ],
+        "source": "56"
+    },
+    "56": {
+        "type": 105,
+        "inputs": [
+            "57"
+        ],
+        "expr": "58",
+        "outputShape": [
+            8,
+            10000,
+            512
+        ]
+    },
+    "57": {
+        "type": 4,
+        "name": "B",
+        "shape": [
+            8,
+            10000,
+            512
+        ],
+        "paddings": [
+            0,
+            128,
+            0
+        ],
+        "source": "-1"
+    },
+    "58": {
+        "type": 4,
+        "name": "__DLT",
+        "shape": [],
+        "paddings": [],
+        "source": "-1"
+    },
+    "59": {
+        "type": 5,
+        "name": "b"
+    },
+    "60": {
+        "type": 1,
+        "opType": 1,
+        "lhs": "61",
+        "rhs": "62"
+    },
+    "61": {
+        "type": 5,
+        "name": "i7"
+    },
+    "62": {
+        "type": 5,
+        "name": "w"
+    },
+    "63": {
+        "type": 5,
+        "name": "n"
+    },
+    "64": {
+        "type": 5,
+        "name": "b"
+    },
+    "65": {
+        "type": 1,
+        "opType": 1,
+        "lhs": "66",
+        "rhs": "69"
+    },
+    "66": {
+        "type": 1,
+        "opType": 3,
+        "lhs": "67",
+        "rhs": "68"
+    },
+    "67": {
+        "type": 5,
+        "name": "m"
+    },
+    "68": {
+        "type": 0,
+        "val": 4
+    },
+    "69": {
+        "type": 1,
+        "opType": 2,
+        "lhs": "70",
+        "rhs": "71"
+    },
+    "70": {
+        "type": 0,
+        "val": 2500
+    },
+    "71": {
+        "type": 1,
+        "opType": 4,
+        "lhs": "72",
+        "rhs": "73"
+    },
+    "72": {
+        "type": 5,
+        "name": "m"
+    },
+    "73": {
+        "type": 0,
+        "val": 4
+    },
+    "74": {
+        "type": 5,
+        "name": "n"
+    }
+}

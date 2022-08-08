@@ -1,0 +1,258 @@
+{
+    "Version": 1,
+    "Msg": "=== Depth 1 Rule1VariableSplit: Old iters: [m], new iters: [i3,i4] phis: [(m / 4),(m % 4)] psis: [((4 * i3) + i4)]",
+    "0": {
+        "type": 2,
+        "paddings": [
+            0,
+            0,
+            0
+        ],
+        "summand": "1",
+        "loopVarRanges": {
+            "b": [
+                0,
+                8
+            ],
+            "m": [
+                0,
+                10000
+            ],
+            "n": [
+                0,
+                512
+            ]
+        }
+    },
+    "1": {
+        "type": 3,
+        "subExprsNum": 4,
+        "object": "2",
+        "indexes": [
+            "28",
+            "31",
+            "34",
+            "35"
+        ]
+    },
+    "2": {
+        "type": 2,
+        "paddings": [
+            0,
+            0,
+            0,
+            0
+        ],
+        "summand": "3",
+        "loopVarRanges": {
+            "i3": [
+                0,
+                2500
+            ],
+            "i4": [
+                0,
+                4
+            ],
+            "b": [
+                0,
+                8
+            ],
+            "n": [
+                0,
+                512
+            ]
+        },
+        "sumVarRanges": {
+            "w": [
+                0,
+                65
+            ]
+        }
+    },
+    "3": {
+        "type": 1,
+        "opType": 2,
+        "lhs": "4",
+        "rhs": "13"
+    },
+    "4": {
+        "type": 3,
+        "subExprsNum": 3,
+        "object": "5",
+        "indexes": [
+            "6",
+            "7",
+            "12"
+        ]
+    },
+    "5": {
+        "type": 4,
+        "name": "A",
+        "shape": [
+            8,
+            10000,
+            65
+        ],
+        "paddings": [
+            0,
+            0,
+            0
+        ],
+        "source": "-1"
+    },
+    "6": {
+        "type": 5,
+        "name": "b"
+    },
+    "7": {
+        "type": 1,
+        "opType": 1,
+        "lhs": "8",
+        "rhs": "11"
+    },
+    "8": {
+        "type": 1,
+        "opType": 2,
+        "lhs": "9",
+        "rhs": "10"
+    },
+    "9": {
+        "type": 0,
+        "val": 4
+    },
+    "10": {
+        "type": 5,
+        "name": "i3"
+    },
+    "11": {
+        "type": 5,
+        "name": "i4"
+    },
+    "12": {
+        "type": 5,
+        "name": "w"
+    },
+    "13": {
+        "type": 3,
+        "subExprsNum": 3,
+        "object": "14",
+        "indexes": [
+            "15",
+            "16",
+            "27"
+        ]
+    },
+    "14": {
+        "type": 4,
+        "name": "B",
+        "shape": [
+            8,
+            10000,
+            512
+        ],
+        "paddings": [
+            0,
+            128,
+            0
+        ],
+        "source": "-1"
+    },
+    "15": {
+        "type": 5,
+        "name": "b"
+    },
+    "16": {
+        "type": 1,
+        "opType": 1,
+        "lhs": "17",
+        "rhs": "26"
+    },
+    "17": {
+        "type": 1,
+        "opType": 1,
+        "lhs": "18",
+        "rhs": "23"
+    },
+    "18": {
+        "type": 1,
+        "opType": 1,
+        "lhs": "19",
+        "rhs": "22"
+    },
+    "19": {
+        "type": 1,
+        "opType": 2,
+        "lhs": "20",
+        "rhs": "21"
+    },
+    "20": {
+        "type": 0,
+        "val": 4
+    },
+    "21": {
+        "type": 5,
+        "name": "i3"
+    },
+    "22": {
+        "type": 5,
+        "name": "i4"
+    },
+    "23": {
+        "type": 1,
+        "opType": 2,
+        "lhs": "24",
+        "rhs": "25"
+    },
+    "24": {
+        "type": 0,
+        "val": 4
+    },
+    "25": {
+        "type": 5,
+        "name": "w"
+    },
+    "26": {
+        "type": 0,
+        "val": -128
+    },
+    "27": {
+        "type": 5,
+        "name": "n"
+    },
+    "28": {
+        "type": 1,
+        "opType": 3,
+        "lhs": "29",
+        "rhs": "30"
+    },
+    "29": {
+        "type": 5,
+        "name": "m"
+    },
+    "30": {
+        "type": 0,
+        "val": 4
+    },
+    "31": {
+        "type": 1,
+        "opType": 4,
+        "lhs": "32",
+        "rhs": "33"
+    },
+    "32": {
+        "type": 5,
+        "name": "m"
+    },
+    "33": {
+        "type": 0,
+        "val": 4
+    },
+    "34": {
+        "type": 5,
+        "name": "b"
+    },
+    "35": {
+        "type": 5,
+        "name": "n"
+    }
+}
