@@ -1,5 +1,6 @@
 #include "core/graph.h"
 #include "core/run_enigne.h"
+#include "operators/matmul.h"
 #include "test.h"
 
 namespace infini {
