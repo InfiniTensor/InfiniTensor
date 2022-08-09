@@ -4,13 +4,14 @@
 namespace infini {
 
 template <typename T> class NaiveMatmul : public Kernel {
-    void compute(const Operator &_op) const override {
+    void compute(const Operator &_op, const PerfRecord &record) const override {
         auto op = as<MatmulNode>(_op);
         T *A = reinterpret_cast<T *>(op->getInputs(0)->getDataPtr().get());
         T *B = reinterpret_cast<T *>(op->getInputs(1)->getDataPtr().get());
         T *C = reinterpret_cast<T *>(op->getOutput()->getDataPtr().get());
         IT_ASSERT(op->getTransA() == false && op->getTransB() == false);
         IT_ASSERT(op->getAct() == ActType::None);
+        IT_ASSERT(op->getB() == 1);
         const int M = op->getM(), N = op->getN(), K = op->getK();
         for (int i = 0; i < M; i++) {
             for (int j = 0; j < N; j++) {
@@ -22,9 +23,7 @@ template <typename T> class NaiveMatmul : public Kernel {
         }
     }
 
-    void compute(const Operator &op, const PerfRecord &record) const override {
-        compute(op);
-    }
+    void compute(const Operator &op) const override { compute(op, {}); }
 
     PerfRecord tune(const Operator &op) const override {
         return PerfRecord{.time = timeit([this, &op]() { compute(op); })};

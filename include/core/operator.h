@@ -141,7 +141,7 @@ class OperatorNode : public Object {
     OperatorNode(OpType opType, TensorVec inputs, TensorVec outputs)
         : type(opType), inputs(inputs), outputs(outputs) {}
     virtual vector<Shape> computeShape() const = 0;
-    virtual OpPerfKey getOpAttrs() const = 0;
+    virtual OpPerfKey getOpPerfKey() const = 0;
 
   public: // check Op type
     bool isLinearOp() const;

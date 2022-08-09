@@ -35,7 +35,7 @@ class MatmulNode : public OperatorNode {
     int getK() const { return k; }
 
     HashType hashWithShape() const override;
-    OpPerfKey getOpAttrs() const override;
+    OpPerfKey getOpPerfKey() const override;
 
   private:
     // Q: whether to check the output? Since we can build an Op first and then

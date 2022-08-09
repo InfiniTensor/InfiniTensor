@@ -19,7 +19,7 @@ void RunEngine::run(const Graph &graph, bool tune, bool profiling) const {
         auto kernelAttrs =
             KernelAttrs{device, op->getOpType(), DataType::Int32};
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
-        auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpAttrs()};
+        auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
         std::optional<PerfRecord> perfData = perfEngine.getPerfData(perfKey);
 
         // If no record and disable tuning, run with the default argument
@@ -66,7 +66,7 @@ double RunEngine::getPerfTime(const Graph &graph, bool profiling) const {
         auto kernelAttrs =
             KernelAttrs{device, op->getOpType(), DataType::Int32};
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
-        auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpAttrs()};
+        auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
         std::optional<PerfRecord> perfData = perfEngine.getPerfData(perfKey);
 
         PerfRecord record;

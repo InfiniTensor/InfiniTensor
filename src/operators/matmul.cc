@@ -49,7 +49,7 @@ HashType MatmulNode::hashWithShape() const {
     return b + m + n + k + transA + transB + enum_to_underlying(act);
 }
 
-OpPerfKey MatmulNode::getOpAttrs() const {
+OpPerfKey MatmulNode::getOpPerfKey() const {
     return OpPerfKey(hashWithShape(), type,
                      {b, m, n, k, transA, transB, enum_to_underlying(act)});
 }
