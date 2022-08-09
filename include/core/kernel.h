@@ -14,11 +14,19 @@ class Kernel {
     Kernel() {}
     virtual ~Kernel() {}
 
+    /**
+     * @param op The operator to be executed.
+     * @param record The parameters for kernel execution. If extra parameters
+     * are required, inherit from PerfRecord and add extra parameters.
+     * Otherwire, use PerfRecord directly.
+     */
     virtual void compute(const Operator &op,
                          const PerfRecord &record) const = 0;
-    // This function call compute with a default record.
+    /**
+     * @brief Executes an op with a default parameter.
+     */
     virtual void compute(const Operator &op) const = 0;
-    // Tuning should be idempotent since it is called multiple times.
+    // Premise: op is idempotent since it is called multiple times.
     virtual PerfRecord tune(const Operator &op) const = 0;
 };
 
@@ -55,6 +63,8 @@ class KernelRegistry {
     }
 };
 
+} // namespace infini
+
 #define _REGISTER_KERNEL_1(device, opType, dataType, kernel, name, cnt)        \
     namespace infini {                                                         \
     static const bool _CAT(_register_kernel_, cnt) =                           \
@@ -64,5 +74,3 @@ class KernelRegistry {
 
 #define REGISTER_KERNEL(device, opType, dataType, kernel, name)                \
     _REGISTER_KERNEL_1(device, opType, dataType, kernel, name, __COUNTER__)
-
-} // namespace infini
