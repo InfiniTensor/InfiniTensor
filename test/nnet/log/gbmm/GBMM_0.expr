@@ -1,0 +1,143 @@
+{
+    "Version": 1,
+    "Msg": "=== Depth 0 Init: ruleBasedDFS: ",
+    "0": {
+        "type": 2,
+        "paddings": [
+            0,
+            0,
+            0
+        ],
+        "summand": "1",
+        "loopVarRanges": {
+            "b": [
+                0,
+                8
+            ],
+            "m": [
+                0,
+                10000
+            ],
+            "n": [
+                0,
+                512
+            ]
+        },
+        "sumVarRanges": {
+            "w": [
+                0,
+                65
+            ]
+        }
+    },
+    "1": {
+        "type": 1,
+        "opType": 2,
+        "lhs": "2",
+        "rhs": "7"
+    },
+    "2": {
+        "type": 3,
+        "subExprsNum": 3,
+        "object": "3",
+        "indexes": [
+            "4",
+            "5",
+            "6"
+        ]
+    },
+    "3": {
+        "type": 4,
+        "name": "A",
+        "shape": [
+            8,
+            10000,
+            65
+        ],
+        "paddings": [
+            0,
+            0,
+            0
+        ],
+        "source": "-1"
+    },
+    "4": {
+        "type": 5,
+        "name": "b"
+    },
+    "5": {
+        "type": 5,
+        "name": "m"
+    },
+    "6": {
+        "type": 5,
+        "name": "w"
+    },
+    "7": {
+        "type": 3,
+        "subExprsNum": 3,
+        "object": "8",
+        "indexes": [
+            "9",
+            "10",
+            "17"
+        ]
+    },
+    "8": {
+        "type": 4,
+        "name": "B",
+        "shape": [
+            8,
+            10000,
+            512
+        ],
+        "paddings": [
+            0,
+            128,
+            0
+        ],
+        "source": "-1"
+    },
+    "9": {
+        "type": 5,
+        "name": "b"
+    },
+    "10": {
+        "type": 1,
+        "opType": 1,
+        "lhs": "11",
+        "rhs": "16"
+    },
+    "11": {
+        "type": 1,
+        "opType": 1,
+        "lhs": "12",
+        "rhs": "13"
+    },
+    "12": {
+        "type": 5,
+        "name": "m"
+    },
+    "13": {
+        "type": 1,
+        "opType": 2,
+        "lhs": "14",
+        "rhs": "15"
+    },
+    "14": {
+        "type": 0,
+        "val": 4
+    },
+    "15": {
+        "type": 5,
+        "name": "w"
+    },
+    "16": {
+        "type": 0,
+        "val": -128
+    },
+    "17": {
+        "type": 5,
+        "name": "n"
+    }
+}

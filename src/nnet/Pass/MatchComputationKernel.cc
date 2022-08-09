@@ -1,0 +1,25 @@
+#include "nnet/Pass/MatchComputationKernel.h"
+#include "nnet/Visitor/PatternMatcher.h"
+
+namespace nnet {
+
+// RE: is this duplicate with Rule6KenerlMatching?
+void MatchComputationKernel::transform(Formula &origin, int depth, Expr &rCur) {
+    nnet_assert(derivator.getSearchState() == 2, __LINE__);
+    auto cur = as<RangeOpNode>(rCur);
+    // Build wrapper stages for enforce axis starts from 0
+    PatternMatcher patternMatcher(derivator, cur);
+    cur = patternMatcher.getOffsetCur();
+
+    auto matches = patternMatcher.matchWithPattern(
+        cur, getPattern(derivator.getTargetOp()));
+    matches = patternMatcher.applyWrapper(matches);
+
+    for (auto newCur : matches) {
+        derivator.setSearchState(3);
+        nextStep(origin, depth, rCur, newCur);
+        derivator.setSearchState(2);
+    }
+}
+
+} // namespace nnet

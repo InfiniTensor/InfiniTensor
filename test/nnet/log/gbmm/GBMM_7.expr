@@ -1,0 +1,276 @@
+{
+    "Version": 1,
+    "Msg": "=== Depth 7 Rule4StageMerging: ",
+    "0": {
+        "type": 2,
+        "paddings": [
+            0,
+            0,
+            0
+        ],
+        "summand": "1",
+        "loopVarRanges": {
+            "b": [
+                0,
+                8
+            ],
+            "m": [
+                0,
+                10000
+            ],
+            "n": [
+                0,
+                512
+            ]
+        }
+    },
+    "1": {
+        "type": 3,
+        "subExprsNum": 3,
+        "object": "2",
+        "indexes": [
+            "22",
+            "23",
+            "32"
+        ]
+    },
+    "2": {
+        "type": 2,
+        "paddings": [
+            0,
+            0,
+            0
+        ],
+        "summand": "3",
+        "loopVarRanges": {
+            "b": [
+                0,
+                8
+            ],
+            "i7": [
+                0,
+                10000
+            ],
+            "n": [
+                0,
+                512
+            ]
+        },
+        "sumVarRanges": {
+            "w": [
+                0,
+                65
+            ]
+        }
+    },
+    "3": {
+        "type": 1,
+        "opType": 2,
+        "lhs": "4",
+        "rhs": "12"
+    },
+    "4": {
+        "type": 3,
+        "subExprsNum": 3,
+        "object": "5",
+        "indexes": [
+            "9",
+            "10",
+            "11"
+        ]
+    },
+    "5": {
+        "type": 4,
+        "name": "T1",
+        "shape": [
+            8,
+            10000,
+            65
+        ],
+        "paddings": [
+            0,
+            0,
+            0
+        ],
+        "source": "6"
+    },
+    "6": {
+        "type": 105,
+        "inputs": [
+            "7"
+        ],
+        "expr": "8",
+        "outputShape": [
+            8,
+            10000,
+            65
+        ]
+    },
+    "7": {
+        "type": 4,
+        "name": "A",
+        "shape": [
+            8,
+            10000,
+            65
+        ],
+        "paddings": [
+            0,
+            0,
+            0
+        ],
+        "source": "-1"
+    },
+    "8": {
+        "type": 4,
+        "name": "__DLT",
+        "shape": [],
+        "paddings": [],
+        "source": "-1"
+    },
+    "9": {
+        "type": 5,
+        "name": "b"
+    },
+    "10": {
+        "type": 5,
+        "name": "i7"
+    },
+    "11": {
+        "type": 5,
+        "name": "w"
+    },
+    "12": {
+        "type": 3,
+        "subExprsNum": 3,
+        "object": "13",
+        "indexes": [
+            "17",
+            "18",
+            "21"
+        ]
+    },
+    "13": {
+        "type": 4,
+        "name": "T3",
+        "shape": [
+            8,
+            10000,
+            512
+        ],
+        "paddings": [
+            0,
+            128,
+            0
+        ],
+        "source": "14"
+    },
+    "14": {
+        "type": 105,
+        "inputs": [
+            "15"
+        ],
+        "expr": "16",
+        "outputShape": [
+            8,
+            10000,
+            512
+        ]
+    },
+    "15": {
+        "type": 4,
+        "name": "B",
+        "shape": [
+            8,
+            10000,
+            512
+        ],
+        "paddings": [
+            0,
+            128,
+            0
+        ],
+        "source": "-1"
+    },
+    "16": {
+        "type": 4,
+        "name": "__DLT",
+        "shape": [],
+        "paddings": [],
+        "source": "-1"
+    },
+    "17": {
+        "type": 5,
+        "name": "b"
+    },
+    "18": {
+        "type": 1,
+        "opType": 1,
+        "lhs": "19",
+        "rhs": "20"
+    },
+    "19": {
+        "type": 5,
+        "name": "i7"
+    },
+    "20": {
+        "type": 5,
+        "name": "w"
+    },
+    "21": {
+        "type": 5,
+        "name": "n"
+    },
+    "22": {
+        "type": 5,
+        "name": "b"
+    },
+    "23": {
+        "type": 1,
+        "opType": 1,
+        "lhs": "24",
+        "rhs": "27"
+    },
+    "24": {
+        "type": 1,
+        "opType": 3,
+        "lhs": "25",
+        "rhs": "26"
+    },
+    "25": {
+        "type": 5,
+        "name": "m"
+    },
+    "26": {
+        "type": 0,
+        "val": 4
+    },
+    "27": {
+        "type": 1,
+        "opType": 2,
+        "lhs": "28",
+        "rhs": "29"
+    },
+    "28": {
+        "type": 0,
+        "val": 2500
+    },
+    "29": {
+        "type": 1,
+        "opType": 4,
+        "lhs": "30",
+        "rhs": "31"
+    },
+    "30": {
+        "type": 5,
+        "name": "m"
+    },
+    "31": {
+        "type": 0,
+        "val": 4
+    },
+    "32": {
+        "type": 5,
+        "name": "n"
+    }
+}
