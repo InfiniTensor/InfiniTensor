@@ -16,8 +16,6 @@
 namespace infini {
 using std::list;
 using std::map;
-using std::nullopt;
-using std::optional;
 using std::pair;
 using std::set;
 using std::string;
@@ -29,6 +27,7 @@ using std::vector;
 
 // Aliases
 using dtype = float;
+using HashType = size_t; // compatible with std::hash
 
 // Metaprogramming utilities
 #define _CAT(A, B) A##B

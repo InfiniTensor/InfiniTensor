@@ -6,7 +6,9 @@ namespace infini {
 
 class PerfEngine {
   public:
-    using Key = std::pair<KernelAttrs, OpAttrs>;
+    // TODO: Key should be OpPerfKey + Context(maybe implicat) to support
+    // multiple candiate kernels.
+    using Key = std::pair<KernelAttrs, OpPerfKey>;
 
   private:
     map<Key, PerfRecord> data;

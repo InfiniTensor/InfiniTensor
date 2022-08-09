@@ -4,30 +4,15 @@
 namespace infini {
 
 class MatmulNode : public OperatorNode {
-  public:
-    struct MatmulArgs : public OpAttrs {
-        int b, m, n, k;
-        // PET assume a row-major tensor layout. transA=false means default
-        // dims, true means A should be transposed before matmul. This is in
-        // oppsite to column-major BLAS.
-        bool transA, transB;
-        ActType act;
-
-        MatmulArgs(int b, int m, int n, int k, bool transA, bool transB,
-                   ActType act)
-            : b(b), m(m), n(n), k(k), transA(transA), transB(transB), act(act) {
-        }
-
-        bool operator<(const OpAttrs &rhsGeneric) {
-            auto rhs = dynamic_cast<const MatmulArgs &>(rhsGeneric);
-            return std::tie(b, m, n, k, transA, transB, act) <
-                   std::tie(rhs.b, rhs.m, rhs.n, rhs.k, rhs.transA, rhs.transB,
-                            rhs.act);
-        }
-    };
-
   private:
-    MatmulArgs args;
+    // InfiniTensor assume a row-major tensor layout. transA=false means default
+    // dims, true means A should be transposed before matmul. This is in
+    // oppsite to column-major BLAS.
+    bool transA, transB;
+    ActType act;
+
+    // Auxiliary attributes
+    int b, m, n, k;
 
   public:
     MatmulNode(Tensor A, Tensor B, Tensor C, bool transA = false,
@@ -41,18 +26,21 @@ class MatmulNode : public OperatorNode {
     int numOutputs() const override { return 1; }
 
     Tensor getBias() const { return inputs[2]; }
-    void setAct(ActType act) { this->args.act = act; }
-    ActType getAct() const { return args.act; }
-    bool getTransA() const { return args.transA; }
-    bool getTransB() const { return args.transB; }
+    ActType getAct() const { return act; }
+    bool getTransA() const { return transA; }
+    bool getTransB() const { return transB; }
+    int getB() const { return b; }
+    int getM() const { return m; }
+    int getN() const { return n; }
+    int getK() const { return k; }
 
-    MatmulArgs getArgs() const { return args; }
-    OpAttrs getOpAttrs() const override { return args; }
+    HashType hashWithShape() const override;
+    OpPerfKey getOpAttrs() const override;
 
   private:
     // Q: whether to check the output? Since we can build an Op first and then
     // assure output.
-    // Fix 1: make shape inference a static method. But OpAttrs are required.
+    // Fix 1: make shape inference a static method. But OpPerfKey are required.
     bool checkValid(const TensorVec &inputs) const;
 };
 

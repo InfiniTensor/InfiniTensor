@@ -4,6 +4,7 @@
 
 namespace infini {
 
+// TODO: graph should be attached to a context
 class GraphNode : public Object {
   protected:
     TensorVec tensors;
@@ -29,8 +30,14 @@ class GraphNode : public Object {
         return tensor;
     }
 
-    void updateConnection();
     void dataMalloc();
+
+  private:
+    // TODO: updateConnection
+    /**
+     * @brief Add reverse connections and Op relationship in ctor.
+     */
+    void updateConnection();
 
     // TODO: move to another class
     // bool exportOnnx(const char *path);

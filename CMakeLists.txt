@@ -42,7 +42,6 @@ add_subdirectory(3rd-party/nlohmann_json_cmake_fetchcontent)
 include_directories(3rd-party/nlohmann_json_cmake_fetchcontent/single_include)
 
 if(BUILD_TEST)
-  # TODO: chekc set
   set(BUILD_GMOCK
       OFF
       CACHE BOOL "Do not build gmock" FORCE)

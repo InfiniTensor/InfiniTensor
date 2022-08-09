@@ -34,22 +34,13 @@ class TensorBaseNode : public Object {
     //     NotCounted,
     // };
 
-    // // TODO: is more compute state needed?
-    // enum ComputeState {
-    //     NotComputed,
-    //     // Allocated,
-    //     // Initialized,
-    //     // ComputedPartial,
-    //     ComputedFull,
-    // };
-
   protected:
     int dim;
 
     DataType dtype;
     vector<WRef<TensorBaseNode>> inputOf;
     WRef<TensorBaseNode> outputOf;
-    // TODO: use a blob instead of vector
+    // TODO: Ref<void> -> Ref<Blob>
     Ref<VType[]> data;
     // ComputeState computed;
     // static int random_seed[256 * 16];

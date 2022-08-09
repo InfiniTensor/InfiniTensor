@@ -9,10 +9,9 @@ template <typename T> class NaiveMatmul : public Kernel {
         T *A = reinterpret_cast<T *>(op->getInputs(0)->getDataPtr().get());
         T *B = reinterpret_cast<T *>(op->getInputs(1)->getDataPtr().get());
         T *C = reinterpret_cast<T *>(op->getOutput()->getDataPtr().get());
-        const auto args = op->getArgs();
-        IT_ASSERT(args.transA == false && args.transB == false);
-        IT_ASSERT(args.act == ActType::None);
-        const int M = args.m, N = args.n, K = args.k;
+        IT_ASSERT(op->getTransA() == false && op->getTransB() == false);
+        IT_ASSERT(op->getAct() == ActType::None);
+        const int M = op->getM(), N = op->getN(), K = op->getK();
         for (int i = 0; i < M; i++) {
             for (int j = 0; j < N; j++) {
                 C[i * N + j] = 0;
@@ -33,8 +32,8 @@ template <typename T> class NaiveMatmul : public Kernel {
 };
 
 REGISTER_KERNEL(Device::CPU, OpType::Matmul, DataType::Int32,
-                NaiveMatmul<uint32_t>);
+                NaiveMatmul<uint32_t>, "MatmulNaive_CPU_uint32");
 REGISTER_KERNEL(Device::CPU, OpType::Matmul, DataType::Float32,
-                NaiveMatmul<float>);
+                NaiveMatmul<float>, "MatmulNaive_CPU_float32");
 
 } // namespace infini

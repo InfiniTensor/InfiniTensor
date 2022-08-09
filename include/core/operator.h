@@ -94,18 +94,42 @@ enum class ActType {
     Tanh,
 };
 
-struct OpAttrs {
+struct OpPerfKey {
+    HashType hash;
+    OpType opType;
+    vector<int> attrs;
+
   public:
-    virtual bool operator<(const OpAttrs &rhs) const {
-        IT_ASSERT(typeid(*this) == typeid(rhs), "OpAttrs type mismatch.");
-        // Empty OpAttrs are equal
+    OpPerfKey(HashType hash, OpType opType, vector<int> attrs = {})
+        : hash(hash), opType(opType), attrs(attrs) {}
+    bool operator==(const OpPerfKey &rhs) const {
+        if (hash != rhs.hash)
+            return false;
+        if (opType != rhs.opType)
+            return false;
+        if (attrs != rhs.attrs)
+            return false;
+        return true;
+    }
+
+    // TODO: remove this function after we use unordered_map in PerfEngine
+    bool operator<(const OpPerfKey &rhs) const {
+        if (hash != rhs.hash)
+            return hash < rhs.hash;
+        if (opType != rhs.opType)
+            return opType < rhs.opType;
+        if (attrs.size() != rhs.attrs.size())
+            return attrs.size() < rhs.attrs.size();
+        for (size_t i = 0; i < attrs.size(); ++i)
+            if (attrs[i] != rhs.attrs[i])
+                return attrs[i] < rhs.attrs[i];
         return false;
     }
-    virtual ~OpAttrs() {}
 };
 
 class OperatorNode : public Object {
-  public:
+    friend class Kernel;
+
   protected:
     OpType type;
     TensorVec inputs;
@@ -117,7 +141,7 @@ class OperatorNode : public Object {
     OperatorNode(OpType opType, TensorVec inputs, TensorVec outputs)
         : type(opType), inputs(inputs), outputs(outputs) {}
     virtual vector<Shape> computeShape() const = 0;
-    virtual OpAttrs getOpAttrs() const = 0;
+    virtual OpPerfKey getOpAttrs() const = 0;
 
   public: // check Op type
     bool isLinearOp() const;
@@ -143,6 +167,14 @@ class OperatorNode : public Object {
 
     virtual int numInputs() const = 0;
     virtual int numOutputs() const = 0;
+    virtual HashType hash() const { IT_TODO_HALT(); }
+    virtual HashType hashWithShape() const { IT_TODO_HALT(); }
 };
 
 } // namespace infini
+
+namespace std {
+template <> struct hash<infini::OpPerfKey> {
+    size_t operator()(const infini::OpPerfKey &key) const { return key.hash; }
+};
+} // namespace std
