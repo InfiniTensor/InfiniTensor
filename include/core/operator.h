@@ -145,6 +145,11 @@ class OperatorNode : public Object {
     // are required.
     bool checkValid() const;
     OpPerfKey getOpPerfKey() const;
+    /**
+     * @brief Hash operator attributes. Input and output shapes are not
+     * considered.
+     */
+    HashType hash() const;
 
   public: // check Op type
     bool isLinearOp() const;
@@ -170,13 +175,18 @@ class OperatorNode : public Object {
 
     virtual int numInputs() const = 0;
     virtual int numOutputs() const = 0;
-    /**
-     * @brief Hash operator attributes. Input and output shapes are not
-     * considered.
-     */
-    virtual HashType hash() const { IT_TODO_HALT(); }
 
   private:
+    /**
+     * @brief The returned vector includes operator attributes, such as paddings
+     * in Conv and transpose in Matmul. However, the input and output shapes are
+     * not taken into consideration.
+     */
+    virtual vector<int> getOpAttrVector() const { IT_TODO_HALT(); }
+    /**
+     * @brief Besides operator attributes, the returned vector includes input
+     * and output shapes.
+     */
     virtual vector<int> getWorkloadVector() const { IT_TODO_HALT(); }
 };
 

@@ -41,6 +41,13 @@ OpPerfKey OperatorNode::getOpPerfKey() const {
     return OpPerfKey(hash, type, workloadVector);
 }
 
+HashType OperatorNode::hash() const {
+    HashType hash = 0;
+    hash = hashAppend(hash, enum_to_underlying(type));
+    hash = hashAppend(hash, hashVector(getOpAttrVector()));
+    return hash;
+}
+
 bool OperatorNode::checkValid() const {
     if (auto optVecShape = inferShape()) {
         if (!optVecShape)

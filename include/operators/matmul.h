@@ -36,6 +36,7 @@ class MatmulNode : public OperatorNode {
 
   private:
     vector<int> getWorkloadVector() const override;
+    vector<int> getOpAttrVector() const override;
 };
 
 } // namespace infini
