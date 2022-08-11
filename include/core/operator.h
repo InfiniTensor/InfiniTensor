@@ -128,8 +128,6 @@ struct OpPerfKey {
 };
 
 class OperatorNode : public Object {
-    friend class Kernel;
-
   protected:
     OpType type;
     TensorVec inputs;
@@ -140,8 +138,13 @@ class OperatorNode : public Object {
   public:
     OperatorNode(OpType opType, TensorVec inputs, TensorVec outputs)
         : type(opType), inputs(inputs), outputs(outputs) {}
-    virtual vector<Shape> computeShape() const = 0;
-    virtual OpPerfKey getOpPerfKey() const = 0;
+    virtual optional<vector<Shape>> inferShape() const = 0;
+    // Q: whether to check the output? Since we can build an Op first and then
+    // construct output.
+    // Solution 1: make shape inference a static method. But operator attributes
+    // are required.
+    bool checkValid() const;
+    OpPerfKey getOpPerfKey() const;
 
   public: // check Op type
     bool isLinearOp() const;
@@ -167,8 +170,14 @@ class OperatorNode : public Object {
 
     virtual int numInputs() const = 0;
     virtual int numOutputs() const = 0;
+    /**
+     * @brief Hash operator attributes. Input and output shapes are not
+     * considered.
+     */
     virtual HashType hash() const { IT_TODO_HALT(); }
-    virtual HashType hashWithShape() const { IT_TODO_HALT(); }
+
+  private:
+    virtual vector<int> getWorkloadVector() const { IT_TODO_HALT(); }
 };
 
 } // namespace infini

@@ -20,7 +20,7 @@ class MatmulNode : public OperatorNode {
                ActType act = ActType::None);
 
     std::string toString() const override;
-    vector<Shape> computeShape() const override;
+    optional<vector<Shape>> inferShape() const override;
 
     int numInputs() const override { return 2; }
     int numOutputs() const override { return 1; }
@@ -34,14 +34,8 @@ class MatmulNode : public OperatorNode {
     int getN() const { return n; }
     int getK() const { return k; }
 
-    HashType hashWithShape() const override;
-    OpPerfKey getOpPerfKey() const override;
-
   private:
-    // Q: whether to check the output? Since we can build an Op first and then
-    // assure output.
-    // Fix 1: make shape inference a static method. But OpPerfKey are required.
-    bool checkValid(const TensorVec &inputs) const;
+    vector<int> getWorkloadVector() const override;
 };
 
 } // namespace infini
