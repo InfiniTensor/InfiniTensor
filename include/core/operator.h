@@ -138,7 +138,8 @@ class OperatorNode : public Object {
   public:
     OperatorNode(OpType opType, TensorVec inputs, TensorVec outputs)
         : type(opType), inputs(inputs), outputs(outputs) {}
-    virtual optional<vector<Shape>> inferShape() const = 0;
+    virtual optional<vector<Shape>>
+    inferShape(const TensorVec &inputs) const = 0;
     // Q: whether to check the output? Since we can build an Op first and then
     // construct output.
     // Solution 1: make shape inference a static method. But operator attributes
@@ -188,6 +189,7 @@ class OperatorNode : public Object {
      * and output shapes.
      */
     virtual vector<int> getWorkloadVector() const { IT_TODO_HALT(); }
+    optional<vector<Shape>> inferShape() const;
 };
 
 } // namespace infini

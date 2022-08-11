@@ -20,7 +20,7 @@ class MatmulNode : public OperatorNode {
                ActType act = ActType::None);
 
     std::string toString() const override;
-    optional<vector<Shape>> inferShape() const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
     int numInputs() const override { return 2; }
     int numOutputs() const override { return 1; }

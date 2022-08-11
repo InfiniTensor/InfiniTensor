@@ -21,7 +21,7 @@ string MatmulNode::toString() const {
     return os.str();
 }
 
-optional<vector<Shape>> MatmulNode::inferShape() const {
+optional<vector<Shape>> MatmulNode::inferShape(const TensorVec &inputs) const {
     auto A = inputs[0], B = inputs[1];
     // if (A->getType() == Tensor::Weight && B->getType() == Tensor::Weight)
     //     return false;

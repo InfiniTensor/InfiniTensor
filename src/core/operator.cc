@@ -62,4 +62,8 @@ bool OperatorNode::checkValid() const {
     return true;
 }
 
+optional<vector<Shape>> OperatorNode::inferShape() const {
+    return inferShape(inputs);
+}
+
 } // namespace infini
