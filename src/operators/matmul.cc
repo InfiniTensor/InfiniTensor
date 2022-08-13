@@ -38,11 +38,12 @@ optional<vector<Shape>> MatmulNode::inferShape(const TensorVec &inputs) const {
 }
 
 vector<int> MatmulNode::getWorkloadVector() const {
-    return {b, m, n, k, transA, transB, enum_to_underlying(act)};
+    return {enum_to_underlying(type), b, m, n, k, transA, transB,
+            enum_to_underlying(act)};
 }
 
 vector<int> MatmulNode::getOpAttrVector() const {
-    return {transA, transB, enum_to_underlying(act)};
+    return {enum_to_underlying(type), transA, transB, enum_to_underlying(act)};
 }
 
 } // namespace infini
