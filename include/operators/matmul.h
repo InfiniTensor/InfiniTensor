@@ -11,10 +11,21 @@ class MatmulNode : public OperatorNode {
     bool transA, transB;
     ActType act;
 
-    // Auxiliary attributes
+    // Auxiliary attributes which are not a part of operator attributes.
     int b, m, n, k;
 
   public:
+    /**
+     * @brief This comments show how operators is defined in InfiniTensor. The
+     * constructor can create output tensors for the operator or not, which
+     * depends on `_graph`.
+     *
+     * @param _graph If _graph is not empty, create outputs in the constructor.
+     * Otherwise, check the provided shape with the results of `inferShape` in
+     * `checkValid`.
+     * @param C C is the output of Matmul. If outputs are going to be created in
+     * the constructor, C should be an empty Ref.
+     */
     MatmulNode(GraphNode *_graph, Tensor A, Tensor B, Tensor C,
                bool transA = false, bool transB = false, Tensor bias = nullptr,
                ActType act = ActType::None);
