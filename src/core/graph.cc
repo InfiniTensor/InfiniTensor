@@ -17,4 +17,10 @@ void GraphNode::dataMalloc() {
         tensor->dataMalloc();
 }
 
+Tensor GraphNode::addTensor(Shape dim, DataType dtype) {
+    Tensor tensor = make_ref<TensorNode>(dim, dtype);
+    tensors.emplace_back(tensor);
+    return tensor;
+}
+
 } // namespace infini

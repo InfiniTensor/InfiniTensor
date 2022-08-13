@@ -1,4 +1,5 @@
 #include "core/operator.h"
+#include "core/graph.h"
 #include "core/hash.h"
 
 namespace infini {
@@ -48,14 +49,21 @@ HashType OperatorNode::hash() const {
     return hash;
 }
 
-bool OperatorNode::checkValid() const {
-    if (auto optVecShape = inferShape()) {
-        if (!optVecShape)
-            return false;
-        if (optVecShape->size() != outputs.size())
-            return false;
-        for (size_t i = 0; i < optVecShape->size(); ++i) {
-            if ((*optVecShape)[i] != outputs.at(i)->getDims())
+bool OperatorNode::checkValid(GraphNode *graph) {
+    auto optShapes = inferShape();
+    if (!optShapes) // shape inference failed
+        return false;
+    const vector<Shape> &shapes = *optShapes;
+    if (shapes.size() != outputs.size())
+        return false;
+    if (graph) { // if graph != nullptr, outputs should be created
+        for (size_t i = 0; i < outputs.size(); i++) {
+            IT_ASSERT(!outputs[i]);
+            outputs[i] = graph->addTensor(shapes[i]);
+        }
+    } else { // if graph is not empty, check outputs match inferred shapes
+        for (size_t i = 0; i < shapes.size(); ++i) {
+            if (shapes[i] != outputs[i]->getDims())
                 return false;
         }
     }

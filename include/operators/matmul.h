@@ -15,14 +15,14 @@ class MatmulNode : public OperatorNode {
     int b, m, n, k;
 
   public:
-    MatmulNode(Tensor A, Tensor B, Tensor C, bool transA = false,
-               bool transB = false, Tensor bias = nullptr,
+    MatmulNode(GraphNode *_graph, Tensor A, Tensor B, Tensor C,
+               bool transA = false, bool transB = false, Tensor bias = nullptr,
                ActType act = ActType::None);
 
     std::string toString() const override;
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
-    int numInputs() const override { return 2; }
+    int numInputs() const override { return 3; }
     int numOutputs() const override { return 1; }
 
     Tensor getBias() const { return inputs[2]; }

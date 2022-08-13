@@ -140,11 +140,14 @@ class OperatorNode : public Object {
         : type(opType), inputs(inputs), outputs(outputs) {}
     virtual optional<vector<Shape>>
     inferShape(const TensorVec &inputs) const = 0;
-    // Q: whether to check the output? Since we can build an Op first and then
-    // construct output.
-    // Solution 1: make shape inference a static method. But operator attributes
-    // are required.
-    bool checkValid() const;
+    /**
+     * @brief Constructs outputs (if requried) and check whether the operator is
+     * valid.
+     *
+     * @param graph If graph is not nullptr, outputs should be created in this
+     * function.
+     */
+    bool checkValid(GraphNode *graph);
     OpPerfKey getOpPerfKey() const;
     /**
      * @brief Hash operator attributes. Input and output shapes are not
@@ -177,6 +180,9 @@ class OperatorNode : public Object {
     virtual int numInputs() const = 0;
     virtual int numOutputs() const = 0;
 
+  protected:
+    optional<vector<Shape>> inferShape() const;
+
   private:
     /**
      * @brief The returned vector includes operator attributes, such as paddings
@@ -189,7 +195,6 @@ class OperatorNode : public Object {
      * and output shapes.
      */
     virtual vector<int> getWorkloadVector() const { IT_TODO_HALT(); }
-    optional<vector<Shape>> inferShape() const;
 };
 
 } // namespace infini
