@@ -2,19 +2,25 @@
 
 namespace infini {
 
-void GraphNode::updateConnection() { IT_TODO_HALT(); }
+void GraphObj::updateConnection() { IT_TODO_HALT(); }
 
-string GraphNode::toString() const {
+string GraphObj::toString() const {
     std::ostringstream oss;
-    oss << "GraphNode operators:\n";
+    oss << "Graph operators:\n";
     for (const auto &op : ops)
         oss << op << "\n";
     return oss.str();
 }
 
-void GraphNode::dataMalloc() {
+void GraphObj::dataMalloc() {
     for (auto &tensor : tensors)
         tensor->dataMalloc();
+}
+
+Tensor GraphObj::addTensor(Shape dim, DataType dtype) {
+    Tensor tensor = make_ref<TensorObj>(dim, dtype);
+    tensors.emplace_back(tensor);
+    return tensor;
 }
 
 } // namespace infini

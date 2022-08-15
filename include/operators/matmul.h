@@ -3,26 +3,37 @@
 
 namespace infini {
 
-class MatmulNode : public OperatorNode {
+class MatmulObj : public OperatorObj {
   private:
-    // InfiniTensor assume a row-major tensor layout. transA=false means default
-    // dims, true means A should be transposed before matmul. This is in
-    // oppsite to column-major BLAS.
+    // InfiniTensor assumes a row-major tensor layout. `transA`=false means
+    // default dims, true means A should be transposed before matmul. This is in
+    // oppsite to the column-major BLAS.
     bool transA, transB;
     ActType act;
 
-    // Auxiliary attributes
+    // Auxiliary attributes which are not a part of operator attributes.
     int b, m, n, k;
 
   public:
-    MatmulNode(Tensor A, Tensor B, Tensor C, bool transA = false,
-               bool transB = false, Tensor bias = nullptr,
-               ActType act = ActType::None);
+    /**
+     * @brief This comments show how operators is defined in InfiniTensor. The
+     * constructor can create output tensors for the operator or not, which
+     * depends on `graph`.
+     *
+     * @param graph If graph is not empty, create outputs in the constructor.
+     * Otherwise, check the provided shape with the results of `inferShape` in
+     * `checkValid`.
+     * @param C C is the output of Matmul. If outputs are going to be created in
+     * the constructor, C should be an empty Ref.
+     */
+    MatmulObj(GraphObj *graph, Tensor A, Tensor B, Tensor C,
+              bool transA = false, bool transB = false, Tensor bias = nullptr,
+              ActType act = ActType::None);
 
     std::string toString() const override;
-    vector<Shape> computeShape() const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
-    int numInputs() const override { return 2; }
+    int numInputs() const override { return 3; }
     int numOutputs() const override { return 1; }
 
     Tensor getBias() const { return inputs[2]; }
@@ -34,14 +45,9 @@ class MatmulNode : public OperatorNode {
     int getN() const { return n; }
     int getK() const { return k; }
 
-    HashType hashWithShape() const override;
-    OpPerfKey getOpPerfKey() const override;
-
   private:
-    // Q: whether to check the output? Since we can build an Op first and then
-    // assure output.
-    // Fix 1: make shape inference a static method. But OpPerfKey are required.
-    bool checkValid(const TensorVec &inputs) const;
+    vector<int> getWorkloadVector() const override;
+    vector<int> getOpAttrVector() const override;
 };
 
 } // namespace infini

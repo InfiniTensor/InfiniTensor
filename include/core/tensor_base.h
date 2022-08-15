@@ -5,15 +5,15 @@
 namespace infini {
 
 // class Tensor;
-class TensorBaseNode;
-class TensorNode;
-class OperatorNode;
-class GraphNode;
+class TensorBaseObj;
+class TensorObj;
+class OperatorObj;
+class GraphObj;
 
-using TensorBase = Ref<TensorBaseNode>;
-using Tensor = Ref<TensorNode>;
-using Operator = Ref<OperatorNode>;
-using Graph = Ref<GraphNode>;
+using TensorBase = Ref<TensorBaseObj>;
+using Tensor = Ref<TensorObj>;
+using Operator = Ref<OperatorObj>;
+using Graph = Ref<GraphObj>;
 
 using TensorVec = vector<Tensor>;
 using OpVec = vector<Operator>;
@@ -25,7 +25,7 @@ enum class DataType {
     Int32,
 };
 
-class TensorBaseNode : public Object {
+class TensorBaseObj : public Object {
   public:
     // enum TensorType {
     //     Input,
@@ -38,8 +38,8 @@ class TensorBaseNode : public Object {
     int dim;
 
     DataType dtype;
-    vector<WRef<TensorBaseNode>> inputOf;
-    WRef<TensorBaseNode> outputOf;
+    vector<WRef<TensorBaseObj>> inputOf;
+    WRef<TensorBaseObj> outputOf;
     // TODO: Ref<void> -> Ref<Blob>
     Ref<VType[]> data;
     // ComputeState computed;
@@ -47,8 +47,8 @@ class TensorBaseNode : public Object {
     // static bool random_inited;
 
   public:
-    TensorBaseNode(int dim, DataType dtype);
-    virtual ~TensorBaseNode() {}
+    TensorBaseObj(int dim, DataType dtype);
+    virtual ~TensorBaseObj() {}
 
     Ref<VType[]> getDataPtr() const { return data; }
     VType getData(size_t offset) const;

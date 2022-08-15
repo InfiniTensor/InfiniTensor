@@ -127,9 +127,7 @@ struct OpPerfKey {
     }
 };
 
-class OperatorNode : public Object {
-    friend class Kernel;
-
+class OperatorObj : public Object {
   protected:
     OpType type;
     TensorVec inputs;
@@ -138,10 +136,24 @@ class OperatorNode : public Object {
     // vector<WRef<Operator>> successors;
 
   public:
-    OperatorNode(OpType opType, TensorVec inputs, TensorVec outputs)
+    OperatorObj(OpType opType, TensorVec inputs, TensorVec outputs)
         : type(opType), inputs(inputs), outputs(outputs) {}
-    virtual vector<Shape> computeShape() const = 0;
-    virtual OpPerfKey getOpPerfKey() const = 0;
+    virtual optional<vector<Shape>>
+    inferShape(const TensorVec &inputs) const = 0;
+    /**
+     * @brief Constructs outputs (if requried) and check whether the operator is
+     * valid.
+     *
+     * @param graph If graph is not nullptr, outputs should be created in this
+     * function.
+     */
+    bool checkValid(GraphObj *graph);
+    OpPerfKey getOpPerfKey() const;
+    /**
+     * @brief Hash operator attributes. Input and output shapes are not
+     * considered.
+     */
+    HashType hash() const;
 
   public: // check Op type
     bool isLinearOp() const;
@@ -167,8 +179,22 @@ class OperatorNode : public Object {
 
     virtual int numInputs() const = 0;
     virtual int numOutputs() const = 0;
-    virtual HashType hash() const { IT_TODO_HALT(); }
-    virtual HashType hashWithShape() const { IT_TODO_HALT(); }
+
+  protected:
+    optional<vector<Shape>> inferShape() const;
+
+  private:
+    /**
+     * @brief The returned vector includes operator attributes, such as paddings
+     * in Conv and transpose in Matmul. However, the input and output shapes are
+     * not taken into consideration.
+     */
+    virtual vector<int> getOpAttrVector() const { IT_TODO_HALT(); }
+    /**
+     * @brief Besides operator attributes, the returned vector includes input
+     * and output shapes.
+     */
+    virtual vector<int> getWorkloadVector() const { IT_TODO_HALT(); }
 };
 
 } // namespace infini

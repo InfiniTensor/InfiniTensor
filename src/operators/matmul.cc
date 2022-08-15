@@ -2,19 +2,17 @@
 
 namespace infini {
 
-vector<Shape> MatmulNode::computeShape() const { return {{b, m, n}}; }
-
-MatmulNode::MatmulNode(Tensor A, Tensor B, Tensor C, bool transA, bool transB,
-                       Tensor bias, ActType act)
-    : OperatorNode(OpType::Matmul, {A, B, bias}, {C}), transA(transA),
+MatmulObj::MatmulObj(GraphObj *graph, Tensor A, Tensor B, Tensor C, bool transA,
+                     bool transB, Tensor bias, ActType act)
+    : OperatorObj(OpType::Matmul, {A, B, bias}, {C}), transA(transA),
       transB(transB), act(act), b(A->getDims()[0]),
       m(transA ? A->getDims()[2] : A->getDims()[1]),
       n(transB ? B->getDims()[1] : B->getDims()[2]),
       k(transA ? A->getDims()[1] : A->getDims()[2]) {
-    IT_ASSERT(checkValid(inputs));
+    IT_ASSERT(checkValid(graph));
 }
 
-string MatmulNode::toString() const {
+string MatmulObj::toString() const {
     std::ostringstream os;
     os << "Matmul([" << (transA ? "A^T" : "A") << "," << (transB ? "B^T" : "B")
        << ",act=" << enum_to_underlying(act) << "],A=" << inputs[0]->getGuid()
@@ -23,34 +21,29 @@ string MatmulNode::toString() const {
     return os.str();
 }
 
-bool MatmulNode::checkValid(const TensorVec &inputs) const {
+optional<vector<Shape>> MatmulObj::inferShape(const TensorVec &inputs) const {
     auto A = inputs[0], B = inputs[1];
     // if (A->getType() == Tensor::Weight && B->getType() == Tensor::Weight)
     //     return false;
-    IT_ASSERT(A->getDims().size() == 3 && B->getDims().size() == 3);
-    IT_ASSERT(A->getDims()[0] == B->getDims()[0]);
-    IT_ASSERT((transA ? A->getDims()[1] : A->getDims()[2]) ==
-              (transB ? B->getDims()[2] : B->getDims()[1]));
-    // if (A->getDims().size() != 3 || B->getDims().size() != 3) {
-    //     return false;
-    // }
-    // if (A->getDims()[0] != B->getDims()[0]) {
-    //     return false;
-    // }
-    // if ((args.transA ? A->getDims()[1] : A->getDims()[2]) !=
-    //     (args.transB ? B->getDims()[2] : B->getDims()[1])) {
-    //     return false;
-    // }
-    return true;
+    if (!(A->getDims().size() == 3 && B->getDims().size() == 3))
+        return {};
+    if (!(A->getDims()[0] == B->getDims()[0]))
+        return {};
+    if (!((transA ? A->getDims()[1] : A->getDims()[2]) ==
+          (transB ? B->getDims()[2] : B->getDims()[1])))
+        return {};
+    int b(A->getDims()[0]), m(transA ? A->getDims()[2] : A->getDims()[1]),
+        n(transB ? B->getDims()[1] : B->getDims()[2]);
+    return {{{b, m, n}}};
 }
 
-HashType MatmulNode::hashWithShape() const {
-    // TODO: use a real hash
-    return b + m + n + k + transA + transB + enum_to_underlying(act);
+vector<int> MatmulObj::getWorkloadVector() const {
+    return {enum_to_underlying(type), b, m, n, k, transA, transB,
+            enum_to_underlying(act)};
 }
 
-OpPerfKey MatmulNode::getOpPerfKey() const {
-    return OpPerfKey(hashWithShape(), type,
-                     {b, m, n, k, transA, transB, enum_to_underlying(act)});
+vector<int> MatmulObj::getOpAttrVector() const {
+    return {enum_to_underlying(type), transA, transB, enum_to_underlying(act)};
 }
+
 } // namespace infini
