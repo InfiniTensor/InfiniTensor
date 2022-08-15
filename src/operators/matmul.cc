@@ -2,14 +2,14 @@
 
 namespace infini {
 
-MatmulNode::MatmulNode(GraphNode *_graph, Tensor A, Tensor B, Tensor C,
+MatmulNode::MatmulNode(GraphNode *graph, Tensor A, Tensor B, Tensor C,
                        bool transA, bool transB, Tensor bias, ActType act)
     : OperatorNode(OpType::Matmul, {A, B, bias}, {C}), transA(transA),
       transB(transB), act(act), b(A->getDims()[0]),
       m(transA ? A->getDims()[2] : A->getDims()[1]),
       n(transB ? B->getDims()[1] : B->getDims()[2]),
       k(transA ? A->getDims()[1] : A->getDims()[2]) {
-    IT_ASSERT(checkValid(_graph));
+    IT_ASSERT(checkValid(graph));
 }
 
 string MatmulNode::toString() const {

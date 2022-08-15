@@ -5,9 +5,9 @@ namespace infini {
 
 class MatmulNode : public OperatorNode {
   private:
-    // InfiniTensor assume a row-major tensor layout. transA=false means default
-    // dims, true means A should be transposed before matmul. This is in
-    // oppsite to column-major BLAS.
+    // InfiniTensor assumes a row-major tensor layout. `transA`=false means
+    // default dims, true means A should be transposed before matmul. This is in
+    // oppsite to the column-major BLAS.
     bool transA, transB;
     ActType act;
 
@@ -18,15 +18,15 @@ class MatmulNode : public OperatorNode {
     /**
      * @brief This comments show how operators is defined in InfiniTensor. The
      * constructor can create output tensors for the operator or not, which
-     * depends on `_graph`.
+     * depends on `graph`.
      *
-     * @param _graph If _graph is not empty, create outputs in the constructor.
+     * @param graph If graph is not empty, create outputs in the constructor.
      * Otherwise, check the provided shape with the results of `inferShape` in
      * `checkValid`.
      * @param C C is the output of Matmul. If outputs are going to be created in
      * the constructor, C should be an empty Ref.
      */
-    MatmulNode(GraphNode *_graph, Tensor A, Tensor B, Tensor C,
+    MatmulNode(GraphNode *graph, Tensor A, Tensor B, Tensor C,
                bool transA = false, bool transB = false, Tensor bias = nullptr,
                ActType act = ActType::None);
 
