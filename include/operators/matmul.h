@@ -3,7 +3,7 @@
 
 namespace infini {
 
-class MatmulNode : public OperatorNode {
+class MatmulObj : public OperatorObj {
   private:
     // InfiniTensor assumes a row-major tensor layout. `transA`=false means
     // default dims, true means A should be transposed before matmul. This is in
@@ -26,9 +26,9 @@ class MatmulNode : public OperatorNode {
      * @param C C is the output of Matmul. If outputs are going to be created in
      * the constructor, C should be an empty Ref.
      */
-    MatmulNode(GraphNode *graph, Tensor A, Tensor B, Tensor C,
-               bool transA = false, bool transB = false, Tensor bias = nullptr,
-               ActType act = ActType::None);
+    MatmulObj(GraphObj *graph, Tensor A, Tensor B, Tensor C,
+              bool transA = false, bool transB = false, Tensor bias = nullptr,
+              ActType act = ActType::None);
 
     std::string toString() const override;
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;

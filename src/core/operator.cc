@@ -4,34 +4,34 @@
 
 namespace infini {
 
-bool OperatorNode::isLinearOp() const {
+bool OperatorObj::isLinearOp() const {
     return enum_to_underlying(type) >= 100 && enum_to_underlying(type) < 200;
 }
 
-bool OperatorNode::isElementWiseOp() const {
+bool OperatorObj::isElementWiseOp() const {
     return enum_to_underlying(type) >= 200 && enum_to_underlying(type) < 300;
 }
 
-bool OperatorNode::isSplitOp() const { return type == OpType::Split; }
+bool OperatorObj::isSplitOp() const { return type == OpType::Split; }
 
-bool OperatorNode::isConcatOp() const { return type == OpType::Concat; }
+bool OperatorObj::isConcatOp() const { return type == OpType::Concat; }
 
-bool OperatorNode::isComputeOp() const {
+bool OperatorObj::isComputeOp() const {
     return type == OpType::Conv || type == OpType::Matmul ||
            type == OpType::ConvTrans || type == OpType::G2BMM ||
            type == OpType::GBMML;
 }
 
-bool OperatorNode::isTransposeOp() const { return type == OpType::Transpose; }
+bool OperatorObj::isTransposeOp() const { return type == OpType::Transpose; }
 
-bool OperatorNode::isReshapeOp() const { return type == OpType::Reshape; }
+bool OperatorObj::isReshapeOp() const { return type == OpType::Reshape; }
 
-bool OperatorNode::isMemBoundOp() const {
+bool OperatorObj::isMemBoundOp() const {
     return type == OpType::MemBound || type == OpType::Activation ||
            type == OpType::Transpose;
 }
 
-OpPerfKey OperatorNode::getOpPerfKey() const {
+OpPerfKey OperatorObj::getOpPerfKey() const {
     auto workloadVector = getWorkloadVector();
     // Calculate hash of workload, i.e. hash with shape. This is different from
     // Operator::hash, which hashes operator attributes and ignores tensor
@@ -42,14 +42,14 @@ OpPerfKey OperatorNode::getOpPerfKey() const {
     return OpPerfKey(hash, type, workloadVector);
 }
 
-HashType OperatorNode::hash() const {
+HashType OperatorObj::hash() const {
     HashType hash = 0;
     hash = hashAppend(hash, enum_to_underlying(type));
     hash = hashAppend(hash, hashVector(getOpAttrVector()));
     return hash;
 }
 
-bool OperatorNode::checkValid(GraphNode *graph) {
+bool OperatorObj::checkValid(GraphObj *graph) {
     auto optShapes = inferShape();
     if (!optShapes) // shape inference failed
         return false;
@@ -70,7 +70,7 @@ bool OperatorNode::checkValid(GraphNode *graph) {
     return true;
 }
 
-optional<vector<Shape>> OperatorNode::inferShape() const {
+optional<vector<Shape>> OperatorObj::inferShape() const {
     return inferShape(inputs);
 }
 

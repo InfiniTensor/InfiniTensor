@@ -5,7 +5,7 @@ namespace infini {
 
 template <typename T> class NaiveMatmul : public Kernel {
     void compute(const Operator &_op, const PerfRecord &record) const override {
-        auto op = as<MatmulNode>(_op);
+        auto op = as<MatmulObj>(_op);
         T *A = reinterpret_cast<T *>(op->getInputs(0)->getDataPtr().get());
         T *B = reinterpret_cast<T *>(op->getInputs(1)->getDataPtr().get());
         T *C = reinterpret_cast<T *>(op->getOutput()->getDataPtr().get());

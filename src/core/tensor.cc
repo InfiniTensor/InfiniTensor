@@ -1,24 +1,22 @@
 #include <core/tensor.h>
 namespace infini {
 
-TensorNode::TensorNode(const Shape &shape, DataType dtype)
-    : TensorBaseNode(shape.size(), dtype), shape(shape) {}
+TensorObj::TensorObj(const Shape &shape, DataType dtype)
+    : TensorBaseObj(shape.size(), dtype), shape(shape) {}
 
-void TensorNode::dataMalloc() {
+void TensorObj::dataMalloc() {
     IT_ASSERT(data == nullptr);
     // initialized to zero
     data.reset(reinterpret_cast<VType *>(calloc(size(), sizeof(VType))));
 }
 
-VType TensorNode::getData(const Shape &pos) const {
+VType TensorObj::getData(const Shape &pos) const {
     return getData(getOffset(pos));
 }
 
-string TensorNode::toString() const {
-    return "TensorNode " + std::to_string(guid);
-}
+string TensorObj::toString() const { return "Tensor " + std::to_string(guid); }
 
-size_t TensorNode::getOffset(const Shape &pos) const {
+size_t TensorObj::getOffset(const Shape &pos) const {
     auto nDim = pos.size();
     IT_ASSERT(shape.size() == nDim);
     if (pos.empty())
@@ -32,14 +30,14 @@ size_t TensorNode::getOffset(const Shape &pos) const {
     return idx;
 }
 
-size_t TensorNode::size() const {
+size_t TensorObj::size() const {
     size_t ret = 1;
     for (const auto &d : shape)
         ret *= d;
     return ret;
 }
 
-void TensorNode::copyData(VType *dptr) {
+void TensorObj::copyData(VType *dptr) {
     IT_ASSERT(data != nullptr);
     size_t sz = size();
 #pragma omp parallel for
@@ -48,7 +46,7 @@ void TensorNode::copyData(VType *dptr) {
     }
 }
 
-void TensorNode::printData() const {
+void TensorObj::printData() const {
     IT_ASSERT(data != nullptr);
     std::cout << "Tensor: " << guid << std::endl;
     auto numDims = shape.size();
@@ -75,7 +73,7 @@ void TensorNode::printData() const {
     }
 }
 
-bool TensorNode::equalData(const Tensor &rhs) const {
+bool TensorObj::equalData(const Tensor &rhs) const {
     IT_ASSERT(data != nullptr);
     IT_ASSERT(rhs->data != nullptr);
     if (shape != rhs->getDims())

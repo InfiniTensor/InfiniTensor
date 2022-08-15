@@ -127,7 +127,7 @@ struct OpPerfKey {
     }
 };
 
-class OperatorNode : public Object {
+class OperatorObj : public Object {
   protected:
     OpType type;
     TensorVec inputs;
@@ -136,7 +136,7 @@ class OperatorNode : public Object {
     // vector<WRef<Operator>> successors;
 
   public:
-    OperatorNode(OpType opType, TensorVec inputs, TensorVec outputs)
+    OperatorObj(OpType opType, TensorVec inputs, TensorVec outputs)
         : type(opType), inputs(inputs), outputs(outputs) {}
     virtual optional<vector<Shape>>
     inferShape(const TensorVec &inputs) const = 0;
@@ -147,7 +147,7 @@ class OperatorNode : public Object {
      * @param graph If graph is not nullptr, outputs should be created in this
      * function.
      */
-    bool checkValid(GraphNode *graph);
+    bool checkValid(GraphObj *graph);
     OpPerfKey getOpPerfKey() const;
     /**
      * @brief Hash operator attributes. Input and output shapes are not

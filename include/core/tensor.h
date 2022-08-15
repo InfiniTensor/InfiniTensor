@@ -6,13 +6,13 @@ namespace infini {
 // TODO: how to deal with this
 using ShapeElem = int;
 using Shape = vector<ShapeElem>;
-class TensorNode : public TensorBaseNode {
+class TensorObj : public TensorBaseObj {
   private:
     Shape shape;
 
   public:
-    TensorNode(const Shape &shape, DataType dtype);
-    virtual ~TensorNode() {}
+    TensorObj(const Shape &shape, DataType dtype);
+    virtual ~TensorObj() {}
     string toString() const override;
 
     size_t size() const;
@@ -21,7 +21,7 @@ class TensorNode : public TensorBaseNode {
     Shape getDims() const { return shape; }
 
     size_t getOffset(const Shape &ds) const;
-    using TensorBaseNode::getData;
+    using TensorBaseObj::getData;
     VType getData(const Shape &pos) const;
     void copyData(VType *dptr);
     void printData() const;

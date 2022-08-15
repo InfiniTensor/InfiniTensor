@@ -2,9 +2,9 @@
 
 namespace infini {
 
-MatmulNode::MatmulNode(GraphNode *graph, Tensor A, Tensor B, Tensor C,
-                       bool transA, bool transB, Tensor bias, ActType act)
-    : OperatorNode(OpType::Matmul, {A, B, bias}, {C}), transA(transA),
+MatmulObj::MatmulObj(GraphObj *graph, Tensor A, Tensor B, Tensor C, bool transA,
+                     bool transB, Tensor bias, ActType act)
+    : OperatorObj(OpType::Matmul, {A, B, bias}, {C}), transA(transA),
       transB(transB), act(act), b(A->getDims()[0]),
       m(transA ? A->getDims()[2] : A->getDims()[1]),
       n(transB ? B->getDims()[1] : B->getDims()[2]),
@@ -12,7 +12,7 @@ MatmulNode::MatmulNode(GraphNode *graph, Tensor A, Tensor B, Tensor C,
     IT_ASSERT(checkValid(graph));
 }
 
-string MatmulNode::toString() const {
+string MatmulObj::toString() const {
     std::ostringstream os;
     os << "Matmul([" << (transA ? "A^T" : "A") << "," << (transB ? "B^T" : "B")
        << ",act=" << enum_to_underlying(act) << "],A=" << inputs[0]->getGuid()
@@ -21,7 +21,7 @@ string MatmulNode::toString() const {
     return os.str();
 }
 
-optional<vector<Shape>> MatmulNode::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> MatmulObj::inferShape(const TensorVec &inputs) const {
     auto A = inputs[0], B = inputs[1];
     // if (A->getType() == Tensor::Weight && B->getType() == Tensor::Weight)
     //     return false;
@@ -37,12 +37,12 @@ optional<vector<Shape>> MatmulNode::inferShape(const TensorVec &inputs) const {
     return {{{b, m, n}}};
 }
 
-vector<int> MatmulNode::getWorkloadVector() const {
+vector<int> MatmulObj::getWorkloadVector() const {
     return {enum_to_underlying(type), b, m, n, k, transA, transB,
             enum_to_underlying(act)};
 }
 
-vector<int> MatmulNode::getOpAttrVector() const {
+vector<int> MatmulObj::getOpAttrVector() const {
     return {enum_to_underlying(type), transA, transB, enum_to_underlying(act)};
 }
 

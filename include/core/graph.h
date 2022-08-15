@@ -5,7 +5,7 @@
 namespace infini {
 
 // TODO: graph should be attached to a context
-class GraphNode : public Object {
+class GraphObj : public Object {
   protected:
     TensorVec tensors;
     TensorVec inputs;
