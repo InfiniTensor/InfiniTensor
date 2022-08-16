@@ -19,6 +19,8 @@ class ConvObj : public OperatorObj {
     int dh, dw;
     ActType act;
     PaddingMode padding;
+    // auxiliary attributes
+    int n, c, h, w, f, r, s;
 
   public:
     // Constructors for explicitly setting padding size
@@ -27,7 +29,7 @@ class ConvObj : public OperatorObj {
             Tensor bias = nullptr, ActType act = ActType::None);
     // Constructors for setting padding mode
     ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
-            PaddingMode pm = PaddingMode::Same, int sh = 1, int sw = 1,
+            PaddingMode mode = PaddingMode::Same, int sh = 1, int sw = 1,
             int dh = 1, int dw = 1, Tensor bias = nullptr,
             ActType act = ActType::None);
 
@@ -48,10 +50,19 @@ class ConvObj : public OperatorObj {
     int getPw() const { return pw; }
     int getSh() const { return sh; }
     int getSw() const { return sw; }
+    auto getNCHWFRS() const { return tuple(n, c, h, w, f, r, s); }
+    auto getPadStrideDilation() const { return tuple(ph, pw, sh, sw, dh, dw); }
+    int getChannelPerGroup() const { return inputs[1]->getDims()[1]; }
+    int getNumGroups() const { return c / getChannelPerGroup(); }
 
   private:
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;
+    /**
+     * @brief Set the Auxilary Attributes: nchwrfs and padding (ph, pw) if
+     * padding mode is set. This function should be called in constructor.
+     */
+    void setAuxilaryAttributes(PaddingMode mode);
 };
 
 } // namespace infini
