@@ -24,8 +24,13 @@ class TensorObj : public TensorBaseObj {
     using TensorBaseObj::getData;
     VType getData(const Shape &pos) const;
     void copyData(VType *dptr);
+    void copyData(vector<VType> dataVector);
     void printData() const;
     bool equalData(const Tensor &rhs) const;
+    void
+    setData(std::function<void(void *, size_t, DataType)> generator) const {
+        generator((void *)(data.get()), size(), dtype);
+    }
     // void setDims(const Dim &dms) { dims = dms; }
 
     //     bool dataRand(int seed = 0) {

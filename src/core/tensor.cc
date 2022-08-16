@@ -45,6 +45,10 @@ void TensorObj::copyData(VType *dptr) {
         data[i] = dptr[i];
     }
 }
+void TensorObj::copyData(vector<VType> dataVector) {
+    IT_ASSERT(dataVector.size() >= size());
+    copyData(dataVector.data());
+}
 
 void TensorObj::printData() const {
     IT_ASSERT(data != nullptr);
