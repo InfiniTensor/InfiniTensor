@@ -17,7 +17,7 @@ void RunEngine::run(const Graph &graph, bool tune, bool profiling) const {
     for (auto &op : graph->getOperators()) {
         // HACK: set correct data type
         auto kernelAttrs =
-            KernelAttrs{device, op->getOpType(), DataType::Int32};
+            KernelAttrs{device, op->getOpType(), DataType::UInt32};
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
         std::optional<PerfRecord> perfData = perfEngine.getPerfData(perfKey);
@@ -64,7 +64,7 @@ double RunEngine::getPerfTime(const Graph &graph, bool profiling) const {
     for (auto &op : graph->getOperators()) {
         // HACK: set correct data type
         auto kernelAttrs =
-            KernelAttrs{device, op->getOpType(), DataType::Int32};
+            KernelAttrs{device, op->getOpType(), DataType::UInt32};
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
         std::optional<PerfRecord> perfData = perfEngine.getPerfData(perfKey);

@@ -52,8 +52,8 @@ template <typename T> class NaiveConv : public Kernel {
     }
 };
 
-REGISTER_KERNEL(Device::CPU, OpType::Conv, DataType::Int32, NaiveConv<uint32_t>,
-                "ConvNaive_CPU_uint32");
+REGISTER_KERNEL(Device::CPU, OpType::Conv, DataType::UInt32,
+                NaiveConv<uint32_t>, "ConvNaive_CPU_uint32");
 REGISTER_KERNEL(Device::CPU, OpType::Conv, DataType::Float32, NaiveConv<float>,
                 "ConvNaive_CPU_float32");
 

@@ -16,7 +16,7 @@ class GraphObj : public Object {
     // Graph(OpVec oplist);
     string toString() const override;
 
-    Tensor addTensor(Shape dim, DataType dtype = DataType::Int32);
+    Tensor addTensor(Shape dim, DataType dtype = DataType::UInt32);
 
     /**
      * @brief Add an operator and create its outputs. Output tensor arguments

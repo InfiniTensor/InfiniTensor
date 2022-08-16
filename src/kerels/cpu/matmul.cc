@@ -30,7 +30,7 @@ template <typename T> class NaiveMatmul : public Kernel {
     }
 };
 
-REGISTER_KERNEL(Device::CPU, OpType::Matmul, DataType::Int32,
+REGISTER_KERNEL(Device::CPU, OpType::Matmul, DataType::UInt32,
                 NaiveMatmul<uint32_t>, "MatmulNaive_CPU_uint32");
 REGISTER_KERNEL(Device::CPU, OpType::Matmul, DataType::Float32,
                 NaiveMatmul<float>, "MatmulNaive_CPU_float32");

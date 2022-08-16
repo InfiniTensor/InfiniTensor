@@ -22,7 +22,7 @@ using VType = uint32_t;
 
 enum class DataType {
     Float32,
-    Int32,
+    UInt32,
 };
 
 class TensorBaseObj : public Object {

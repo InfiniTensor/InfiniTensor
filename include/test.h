@@ -1,19 +1,20 @@
 #pragma once
 #include "core/common.h"
+#include "core/tensor_base.h"
 #include "gtest/gtest.h"
 
 namespace infini {
 
 class DataGenerator {
   private:
-    virtual void fill(int *data, size_t size) { IT_TODO_HALT(); };
+    virtual void fill(uint32_t *data, size_t size) { IT_TODO_HALT(); };
     virtual void fill(float *data, size_t size) { IT_TODO_HALT(); };
 
   public:
     void operator()(void *data, size_t size, DataType dataType) {
         switch (dataType) {
-        case DataType::Int32:
-            fill(reinterpret_cast<int *>(data), size);
+        case DataType::UInt32:
+            fill(reinterpret_cast<uint32_t *>(data), size);
             break;
         case DataType::Float32:
             fill(reinterpret_cast<float *>(data), size);
@@ -25,7 +26,7 @@ class DataGenerator {
 };
 
 class IncrementalGenerator : public DataGenerator {
-    void fill(int *data, size_t size) override {
+    void fill(uint32_t *data, size_t size) override {
         for (size_t i = 0; i < size; i++) {
             data[i] = i;
         }
