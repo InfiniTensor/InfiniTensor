@@ -57,6 +57,18 @@ template <typename T> auto enum_to_underlying(T e) {
     return static_cast<std::underlying_type_t<T>>(e);
 }
 
+template <typename T> std::string vecToString(const std::vector<T> &vec) {
+    std::string ret;
+    ret.append("[");
+    for (auto d : vec) {
+        ret.append(std::to_string(d));
+        ret.append(", ");
+    }
+    ret.pop_back();
+    ret.append("]");
+    return ret;
+}
+
 double timeit(const std::function<void()> &func);
 
 } // namespace infini
