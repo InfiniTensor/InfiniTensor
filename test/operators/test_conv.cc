@@ -50,9 +50,9 @@ TEST(Conv, NaiveCPU) {
     w0->setData(IncrementalGenerator());
     RunEngine(Device::CPU).run(g, true, true);
     double perfTime = RunEngine(Device::CPU).getPerfTime(g);
-    // The example matmul takes 0.0036ms with one core
+    // The example Conv takes 0.015ms with one core
     EXPECT_GT(perfTime, 0);
-    EXPECT_LT(perfTime, 5);
+    EXPECT_LT(perfTime, 0.1);
     // check answer
     auto ans = make_ref<TensorObj>(Shape{1, 2, 2, 2}, DataType::UInt32);
     ans->dataMalloc();

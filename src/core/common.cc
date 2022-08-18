@@ -4,11 +4,20 @@
 
 namespace infini {
 
-double timeit(const std::function<void()> &func) {
+double timeit(const std::function<void()> &func, int warmupRounds,
+              int timingRounds, const std::function<void(void)> &sync) {
+    for (int i = 0; i < warmupRounds; ++i)
+        func();
+    if (sync)
+        sync();
     auto start = std::chrono::high_resolution_clock::now();
-    func();
+    for (int i = 0; i < timingRounds; ++i)
+        func();
+    if (sync)
+        sync();
     auto end = std::chrono::high_resolution_clock::now();
-    return std::chrono::duration<double, std::milli>(end - start).count();
+    return std::chrono::duration<double, std::milli>(end - start).count() /
+           timingRounds;
 }
 
 } // namespace infini
