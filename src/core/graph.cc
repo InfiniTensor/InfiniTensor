@@ -13,8 +13,9 @@ string GraphObj::toString() const {
 }
 
 void GraphObj::dataMalloc() {
-    for (auto &tensor : tensors)
-        tensor->dataMalloc();
+    for (auto &tensor : tensors) {
+        tensor->dataMalloc(runtime);
+    }
 }
 
 Tensor GraphObj::addTensor(Shape dim, DataType dtype) {

@@ -5,12 +5,14 @@
 
 namespace infini {
 
+// TODO: isolate these class
 class DataGenerator {
   private:
-    virtual void fill(uint32_t *data, size_t size) { IT_TODO_HALT(); };
-    virtual void fill(float *data, size_t size) { IT_TODO_HALT(); };
+    virtual void fill(uint32_t *data, size_t size) { IT_TODO_HALT(); }
+    virtual void fill(float *data, size_t size) { IT_TODO_HALT(); }
 
   public:
+    virtual ~DataGenerator() {}
     void operator()(void *data, size_t size, DataType dataType) {
         switch (dataType) {
         case DataType::UInt32:
@@ -26,10 +28,36 @@ class DataGenerator {
 };
 
 class IncrementalGenerator : public DataGenerator {
-    void fill(uint32_t *data, size_t size) override {
+  public:
+    virtual ~IncrementalGenerator() {}
+
+  private:
+    template <typename T> void fill(T *data, size_t size) {
         for (size_t i = 0; i < size; i++) {
             data[i] = i;
         }
     }
+
+    void fill(uint32_t *data, size_t size) override {
+        fill<uint32_t>(data, size);
+    }
+    void fill(float *data, size_t size) override { fill<float>(data, size); }
+};
+
+class OneGenerator : public DataGenerator {
+  public:
+    virtual ~OneGenerator() {}
+
+  private:
+    template <typename T> void fill(T *data, size_t size) {
+        for (size_t i = 0; i < size; i++) {
+            data[i] = 1;
+        }
+    }
+
+    void fill(uint32_t *data, size_t size) override {
+        fill<uint32_t>(data, size);
+    }
+    void fill(float *data, size_t size) override { fill<float>(data, size); }
 };
 } // namespace infini

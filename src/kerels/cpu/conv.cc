@@ -4,11 +4,12 @@
 namespace infini {
 
 template <typename T> class NaiveConv : public Kernel {
-    void compute(const Operator &_op, const PerfRecord &record) const override {
+    void compute(const Operator &_op, const PerfRecord &record,
+                 const RunEngine *context) const override {
         auto op = as<ConvObj>(_op);
-        T *iptr = reinterpret_cast<T *>(op->getInputs(0)->getDataPtr().get());
-        T *wptr = reinterpret_cast<T *>(op->getInputs(1)->getDataPtr().get());
-        T *optr = reinterpret_cast<T *>(op->getOutput()->getDataPtr().get());
+        T *iptr = op->getInputs(0)->getDataRawPtr<T *>();
+        T *wptr = op->getInputs(1)->getDataRawPtr<T *>();
+        T *optr = op->getOutput()->getDataRawPtr<T *>();
         auto [n, c, h, w, f, r, s] = op->getNCHWFRS();
         auto [ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
         int cpg = op->getChannelPerGroup();
@@ -45,10 +46,13 @@ template <typename T> class NaiveConv : public Kernel {
         }
     }
 
-    void compute(const Operator &op) const override { compute(op, {}); }
+    void compute(const Operator &op, const RunEngine *context) const override {
+        compute(op, {}, context);
+    }
 
-    PerfRecord tune(const Operator &op) const override {
-        return PerfRecord{.time = timeit([this, &op]() { compute(op); })};
+    PerfRecord tune(const Operator &op,
+                    const RunEngine *context) const override {
+        return PerfRecord(timeit([&]() { compute(op, context); }));
     }
 };
 

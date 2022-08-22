@@ -4,16 +4,16 @@
 
 namespace infini {
 
-// TODO: graph should be attached to a context
 class GraphObj : public Object {
   protected:
+    Runtime runtime;
     TensorVec tensors;
     TensorVec inputs;
     TensorVec outputs;
     OpVec ops;
 
   public:
-    // Graph(OpVec oplist);
+    GraphObj(Runtime runtime) : runtime(runtime){};
     string toString() const override;
 
     Tensor addTensor(Shape dim, DataType dtype = DataType::UInt32);

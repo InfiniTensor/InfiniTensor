@@ -1,5 +1,6 @@
 #pragma once
 #include "core/tensor_base.h"
+#include <cmath>
 
 namespace infini {
 
@@ -16,21 +17,46 @@ class TensorObj : public TensorBaseObj {
     string toString() const override;
 
     size_t size() const;
-    void dataMalloc();
 
     Shape getDims() const { return shape; }
 
     size_t getOffset(const Shape &ds) const;
     using TensorBaseObj::getData;
     VType getData(const Shape &pos) const;
-    void copyData(VType *dptr);
+    void dataMalloc(const Runtime &runtime);
+    // void copyData(VType *dptr);
+    template <typename T> void copyData(const T *dptr);
     void copyData(vector<VType> dataVector);
+    void copyData(vector<float> dataVector);
     void printData() const;
+    // TODO: merge these methods
     bool equalData(const Tensor &rhs) const;
-    void
-    setData(std::function<void(void *, size_t, DataType)> generator) const {
-        generator((void *)(data.get()), size(), dtype);
+    template <typename T> bool equalData(const Tensor &rhs) const {
+        IT_ASSERT(data != nullptr);
+        IT_ASSERT(rhs->data != nullptr);
+        // TODO: deal with data type
+        auto ptr = data->getPtr<T *>();
+        auto ptrRhs = rhs->data->getPtr<T *>();
+        if (shape != rhs->getDims())
+            return false;
+        size_t sz = size();
+        for (size_t i = 0; i < sz; ++i)
+            if (fabs(ptr[i] - ptrRhs[i]) /
+                    std::max(fabs(ptr[i]), fabs(ptrRhs[i])) >
+                1e-6) {
+                printf("Error on %lu: %f %f\n", i, ptr[i], ptrRhs[i]);
+                return false;
+            }
+        return true;
     }
+    void setData(
+        const std::function<void(void *, size_t, DataType)> &generator) const {
+        generator(data->getPtr<void *>(), size(), dtype);
+    }
+
+  private:
+    void printDataFloat() const;
+    void printDataUint32_t() const;
     // void setDims(const Dim &dms) { dims = dms; }
 
     //     bool dataRand(int seed = 0) {
