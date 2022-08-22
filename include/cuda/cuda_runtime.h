@@ -1,10 +1,10 @@
 #pragma once
-#include "core/run_enigne.h"
+#include "core/runtime.h"
 #include "cuda/cuda_common.h"
 
 namespace infini {
 
-class CudaRunEngine : public RunEngine {
+class CudaRuntimeObj : public RuntimeObj {
   private:
     cudnnHandle_t cudnn;
     cublasHandle_t cublas;
@@ -12,7 +12,7 @@ class CudaRunEngine : public RunEngine {
     size_t workspaceSize;
 
   public:
-    CudaRunEngine() : RunEngine(Device::CUDA) {
+    CudaRuntimeObj() : RuntimeObj(Device::CUDA) {
         checkCudnnError(cudnnCreate(&cudnn));
         checkCublasError(cublasCreate(&cublas));
         // 10GB for Longformer
@@ -20,12 +20,13 @@ class CudaRunEngine : public RunEngine {
         workspaceSize = 7ll << 30; // 7 GB
         workspace = alloc(workspaceSize);
     }
-    virtual ~CudaRunEngine() {
+    virtual ~CudaRuntimeObj() {
         checkCudnnError(cudnnDestroy(cudnn));
         checkCublasError(cublasDestroy(cublas));
     }
 
-    void run(const Graph &graph) const;
+    void run(const Graph &graph, bool tune = false,
+             bool profiling = false) const;
     // double runEvaluation(const Graph &graph, int nWarmups,
     //                      int nEvaluations) const;
     void sync() const;

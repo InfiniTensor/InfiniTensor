@@ -1,13 +1,13 @@
 #include "core/blob.h"
 #include "core/graph.h"
-#include "core/run_enigne.h"
+#include "core/runtime.h"
 #include "operators/matmul.h"
 #include "test.h"
 
 namespace infini {
 
 TEST(Graph, build_and_run) {
-    Runtime runtime = make_ref<RunEngine>(Device::CPU);
+    Runtime runtime = make_ref<CpuRuntimeObj>();
     Graph g = make_ref<GraphObj>(runtime);
     Tensor i0 = g->addTensor({1, 2, 3}, DataType::UInt32);
     Tensor w0 = g->addTensor({1, 3, 4}, DataType::UInt32);
@@ -25,7 +25,7 @@ TEST(Graph, build_and_run) {
 }
 
 TEST(Graph, perf_engine) {
-    Runtime runtime = make_ref<RunEngine>(Device::CPU);
+    Runtime runtime = make_ref<CpuRuntimeObj>();
     Graph g = make_ref<GraphObj>(runtime);
     Tensor i0 = g->addTensor({1, 2, 3}, DataType::UInt32);
     Tensor w0 = g->addTensor({1, 3, 4}, DataType::UInt32);

@@ -11,15 +11,31 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
   public:
     RuntimeObj(Device device) : device(device) {}
     RuntimeObj(RuntimeObj &other) = delete;
-    RunEngine &operator=(RuntimeObj const &) = delete;
+    RuntimeObj &operator=(RuntimeObj const &) = delete;
     virtual ~RuntimeObj() {}
 
+    /**
+     * @brief Execute a graph.
+     *
+     * @param graph
+     * @param tune If there is no performance record, whether to tune it. These
+     * can be independent method.
+     * @param profiling Whether to print breakdown of time
+     */
     virtual void run(const Graph &graph, bool tune = false,
                      bool profiling = false) const = 0;
-    virtual double getPerfTime(const Graph &graph,
-                               bool profiling = false) const = 0;
     virtual void *alloc(size_t size) = 0;
     virtual void dealloc(void *ptr) = 0;
+
+    /**
+     * @brief Get the execution time of each operator in performance record. No
+     * execution happens.
+     *
+     * @param graph
+     * @param profiling Whether to print breakdown of time
+     * @return double Return the sum of perf time for each operator
+     */
+    double getPerfTime(const Graph &graph, bool profiling = false) const;
     Blob allocBlob(size_t size);
 
   protected:
@@ -29,17 +45,12 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
 };
 
 // TODO: change inheritance relation
-class RunEngine : public RuntimeObj {
+class CpuRuntimeObj : public RuntimeObj {
   public:
-    RunEngine(Device device) : RuntimeObj(device) {}
-    RunEngine(RunEngine &other) = delete;
-    RunEngine &operator=(RunEngine const &) = delete;
-    virtual ~RunEngine() {}
+    CpuRuntimeObj() : RuntimeObj(Device::CPU) {}
 
     void run(const Graph &graph, bool tune = false,
              bool profiling = false) const override;
-    double getPerfTime(const Graph &graph,
-                       bool profiling = false) const override;
     void dealloc(void *ptr) override { return free(ptr); };
 
     void *alloc(size_t size) override {

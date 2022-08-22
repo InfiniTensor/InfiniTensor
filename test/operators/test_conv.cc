@@ -1,5 +1,5 @@
 #include "core/graph.h"
-#include "core/run_enigne.h"
+#include "core/runtime.h"
 #include "cuda/cuda_runtime.h"
 #include "cuda/cuda_utility.h"
 #include "operators/conv.h"
@@ -8,7 +8,7 @@
 namespace infini {
 
 TEST(Conv, ShapeInference) {
-    Runtime runtime = make_ref<RunEngine>(Device::CPU);
+    auto runtime = make_ref<CpuRuntimeObj>();
     // Padding modes
     {
         Graph g = make_ref<GraphObj>(runtime);
@@ -43,7 +43,7 @@ TEST(Conv, ShapeInference) {
 }
 
 TEST(Conv, NaiveCPU) {
-    Runtime runtime = make_ref<RunEngine>(Device::CPU);
+    auto runtime = make_ref<CpuRuntimeObj>();
     Graph g = make_ref<GraphObj>(runtime);
     Tensor i0 = g->addTensor({1, 3, 4, 4}, DataType::UInt32);
     Tensor w0 = g->addTensor({2, 3, 3, 3}, DataType::UInt32);
@@ -68,8 +68,8 @@ TEST(Conv, NaiveCPU) {
 void testConvCudnn(
     const std::function<void(void *, size_t, DataType)> &generator,
     vector<float> ansVec) {
-    auto cpuRuntime = make_ref<RunEngine>(Device::CPU);
-    auto cudaRuntime = make_ref<CudaRunEngine>();
+    auto cpuRuntime = make_ref<CpuRuntimeObj>();
+    auto cudaRuntime = make_ref<CudaRuntimeObj>();
     // Build CUDA graph
     Graph g = make_ref<GraphObj>(cudaRuntime);
     Tensor i0 = g->addTensor({1, 3, 4, 4}, DataType::Float32);

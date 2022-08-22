@@ -5,7 +5,7 @@ namespace infini {
 
 template <typename T> class NaiveConv : public Kernel {
     void compute(const Operator &_op, const PerfRecord &record,
-                 const RunEngine *context) const override {
+                 const RuntimeObj *context) const override {
         auto op = as<ConvObj>(_op);
         T *iptr = op->getInputs(0)->getDataRawPtr<T *>();
         T *wptr = op->getInputs(1)->getDataRawPtr<T *>();
@@ -46,12 +46,12 @@ template <typename T> class NaiveConv : public Kernel {
         }
     }
 
-    void compute(const Operator &op, const RunEngine *context) const override {
+    void compute(const Operator &op, const RuntimeObj *context) const override {
         compute(op, {}, context);
     }
 
     PerfRecord tune(const Operator &op,
-                    const RunEngine *context) const override {
+                    const RuntimeObj *context) const override {
         return PerfRecord(timeit([&]() { compute(op, context); }));
     }
 };

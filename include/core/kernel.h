@@ -5,7 +5,7 @@
 
 namespace infini {
 
-class RunEngine; // Forward declaration for Kernel::compute
+class RuntimeObj; // Forward declaration for Kernel::compute
 
 struct PerfRecord {
     PerfRecord(){};
@@ -27,15 +27,15 @@ class Kernel {
      * Otherwire, use PerfRecord directly.
      */
     virtual void compute(const Operator &op, const PerfRecord &record,
-                         const RunEngine *context) const = 0;
+                         const RuntimeObj *context) const = 0;
     /**
      * @brief Executes an op with a default parameter.
      */
     virtual void compute(const Operator &op,
-                         const RunEngine *context) const = 0;
+                         const RuntimeObj *context) const = 0;
     // Premise: op is idempotent since it is called multiple times.
     virtual PerfRecord tune(const Operator &op,
-                            const RunEngine *context) const = 0;
+                            const RuntimeObj *context) const = 0;
 };
 
 class KernelRegistry {

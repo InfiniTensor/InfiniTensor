@@ -5,7 +5,7 @@ namespace infini {
 
 template <typename T> class NaiveMatmul : public Kernel {
     void compute(const Operator &_op, const PerfRecord &record,
-                 const RunEngine *context) const override {
+                 const RuntimeObj *context) const override {
         auto op = as<MatmulObj>(_op);
         T *A = op->getInputs(0)->getDataRawPtr<T *>();
         T *B = op->getInputs(1)->getDataRawPtr<T *>();
@@ -24,12 +24,12 @@ template <typename T> class NaiveMatmul : public Kernel {
         }
     }
 
-    void compute(const Operator &op, const RunEngine *context) const override {
+    void compute(const Operator &op, const RuntimeObj *context) const override {
         compute(op, {}, context);
     }
 
     PerfRecord tune(const Operator &op,
-                    const RunEngine *context) const override {
+                    const RuntimeObj *context) const override {
         PerfRecord ret;
         ret.time = timeit([&]() { compute(op, context); });
         return ret;

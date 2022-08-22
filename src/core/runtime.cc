@@ -1,5 +1,5 @@
+#include "core/runtime.h"
 #include "core/blob.h"
-#include "core/run_enigne.h"
 #include <chrono>
 #include <cuda.h>
 #include <cuda_profiler_api.h>
@@ -8,7 +8,7 @@
 
 namespace infini {
 
-void RunEngine::run(const Graph &graph, bool tune, bool profiling) const {
+void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
     if (!tune && profiling)
         IT_TODO_HALT();
     const auto &kernelRegistry = KernelRegistry::getInstance();
@@ -59,7 +59,7 @@ void RunEngine::run(const Graph &graph, bool tune, bool profiling) const {
         printProfilingData(totalTime, opTime, opCnt);
 }
 
-double RunEngine::getPerfTime(const Graph &graph, bool profiling) const {
+double RuntimeObj::getPerfTime(const Graph &graph, bool profiling) const {
     const auto &kernelRegistry = KernelRegistry::getInstance();
     auto perfEngine = PerfEngine::getInstance();
     // Statistics

@@ -1,4 +1,4 @@
-#include "core/run_enigne.h"
+#include "core/runtime.h"
 
 namespace infini {
 

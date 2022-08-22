@@ -1,6 +1,6 @@
 #include "core/tensor_base.h"
 #include "core/blob.h"
-#include "core/run_enigne.h"
+#include "core/runtime.h"
 namespace infini {
 
 TensorBaseObj::TensorBaseObj(int dim, DataType dtype)

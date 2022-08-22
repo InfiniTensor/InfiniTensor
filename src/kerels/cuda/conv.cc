@@ -24,7 +24,7 @@ struct ConvCuDnnPerfRecord : public PerfRecord {
 class convCudnn : public Kernel {
 
     bool cuDNNUnfused(const Ref<ConvObj> &op, const ConvCuDnnPerfRecord &record,
-                      const CudaRunEngine *context) const {
+                      const CudaRuntimeObj *context) const {
         cudnnStatus_t stat;
         void *const inData = (op->getInputs(0)->getDataRawPtr<void *>());
         void *const knData = (op->getInputs(1)->getDataRawPtr<void *>());
@@ -179,13 +179,13 @@ class convCudnn : public Kernel {
         return true;
     }
 
-    void compute(const Operator &op, const RunEngine *context) const override {
+    void compute(const Operator &op, const RuntimeObj *context) const override {
         ConvCuDnnPerfRecord record; // with paramters in default ctor
         compute(op, record, context);
     }
 
     PerfRecord tune(const Operator &_op,
-                    const RunEngine *_context) const override {
+                    const RuntimeObj *_context) const override {
         // TODO: real tuning
         ConvCuDnnPerfRecord ret;
         ret.time = timeit([&]() { compute(_op, _context); });
@@ -193,10 +193,10 @@ class convCudnn : public Kernel {
     }
 
     void compute(const Operator &_op, const PerfRecord &_record,
-                 const RunEngine *_context) const override {
+                 const RuntimeObj *_context) const override {
         auto op = as<ConvObj>(_op);
         auto &record = dynamic_cast<const ConvCuDnnPerfRecord &>(_record);
-        auto context = dynamic_cast<const CudaRunEngine *>(_context);
+        auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         bool success = cuDNNUnfused(op, record, context);
         IT_ASSERT(success);
     }

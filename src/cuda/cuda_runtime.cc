@@ -2,7 +2,7 @@
 
 namespace infini {
 
-void CudaRunEngine::runWithoutSync(const Graph &graph) const {
+void CudaRuntimeObj::runWithoutSync(const Graph &graph) const {
     const auto &kernelRegistry = KernelRegistry::getInstance();
     auto perfEngine = PerfEngine::getInstance();
 
@@ -20,11 +20,13 @@ void CudaRunEngine::runWithoutSync(const Graph &graph) const {
     }
 }
 
-void CudaRunEngine::run(const Graph &graph) const {
+void CudaRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
+    if (tune || profiling)
+        IT_TODO_HALT();
     runWithoutSync(graph);
     sync();
 }
 
-void CudaRunEngine::sync() const { cudaDeviceSynchronize(); }
+void CudaRuntimeObj::sync() const { cudaDeviceSynchronize(); }
 
 } // namespace infini
