@@ -49,7 +49,17 @@ class TensorObj : public TensorBaseObj {
     void copyData(const Tensor &src) { copyData(src.get()); }
     void setData(
         const std::function<void(void *, size_t, DataType)> &generator) const {
+        IT_ASSERT(data != nullptr);
+        if (!runtime->isCpu()) {
+            IT_TODO_HALT();
+        }
         generator(data->getPtr<void *>(), size(), dtype);
+    }
+    Tensor clone(Runtime runtime) {
+        auto obj = make_ref<TensorObj>(shape, dtype, runtime);
+        obj->dataMalloc();
+        obj->copyData(this);
+        return obj;
     }
 
     void printData() const;

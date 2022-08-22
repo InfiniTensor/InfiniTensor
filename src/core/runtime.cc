@@ -22,9 +22,7 @@ void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
     std::map<OpType, int> opCnt;
 
     for (auto &op : graph->getOperators()) {
-        // HACK: set correct data type
-        auto kernelAttrs =
-            KernelAttrs{device, op->getOpType(), DataType::UInt32};
+        auto kernelAttrs = KernelAttrs{device, op->getOpType(), op->getDType()};
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
         std::optional<PerfRecord> perfData = perfEngine.getPerfData(perfKey);
@@ -73,8 +71,7 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling) const {
 
     for (auto &op : graph->getOperators()) {
         // HACK: set correct data type
-        auto kernelAttrs =
-            KernelAttrs{device, op->getOpType(), DataType::UInt32};
+        auto kernelAttrs = KernelAttrs{device, op->getOpType(), op->getDType()};
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
         std::optional<PerfRecord> perfData = perfEngine.getPerfData(perfKey);
