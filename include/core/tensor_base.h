@@ -1,19 +1,23 @@
 #pragma once
+#include "core/blob.h"
 #include "core/object.h"
 #include "core/ref.h"
 
 namespace infini {
 
-// class Tensor;
 class TensorBaseObj;
 class TensorObj;
 class OperatorObj;
 class GraphObj;
+class RuntimeObj;
+class BlobObj;
 
 using TensorBase = Ref<TensorBaseObj>;
 using Tensor = Ref<TensorObj>;
 using Operator = Ref<OperatorObj>;
 using Graph = Ref<GraphObj>;
+using Runtime = Ref<RuntimeObj>;
+using Blob = Ref<BlobObj>;
 
 using TensorVec = vector<Tensor>;
 using OpVec = vector<Operator>;
@@ -40,8 +44,7 @@ class TensorBaseObj : public Object {
     DataType dtype;
     vector<WRef<TensorBaseObj>> inputOf;
     WRef<TensorBaseObj> outputOf;
-    // TODO: Ref<void> -> Ref<Blob>
-    Ref<VType[]> data;
+    Blob data;
     // ComputeState computed;
     // static int random_seed[256 * 16];
     // static bool random_inited;
@@ -50,7 +53,15 @@ class TensorBaseObj : public Object {
     TensorBaseObj(int dim, DataType dtype);
     virtual ~TensorBaseObj() {}
 
-    Ref<VType[]> getDataPtr() const { return data; }
+    void dataMalloc(const Blob &blob) {
+        IT_ASSERT(data == nullptr);
+        data = blob;
+    }
+    Blob getDataPtr() const { return data; }
+    template <typename T> T getDataRawPtr() const {
+        IT_ASSERT(data != nullptr);
+        return data->getPtr<T>();
+    }
     VType getData(size_t offset) const;
 
     DataType getDType() const { return dtype; }

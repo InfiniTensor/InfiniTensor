@@ -5,8 +5,14 @@
 
 namespace infini {
 
+class RuntimeObj; // Forward declaration for Kernel::compute
+
 struct PerfRecord {
-    double time; // in milliseconds
+    PerfRecord(){};
+    PerfRecord(double time) : time(time){};
+    virtual ~PerfRecord() {}
+
+    double time = 0; // in milliseconds
 };
 
 class Kernel {
@@ -20,14 +26,16 @@ class Kernel {
      * are required, inherit from PerfRecord and add extra parameters.
      * Otherwire, use PerfRecord directly.
      */
-    virtual void compute(const Operator &op,
-                         const PerfRecord &record) const = 0;
+    virtual void compute(const Operator &op, const PerfRecord &record,
+                         const RuntimeObj *context) const = 0;
     /**
      * @brief Executes an op with a default parameter.
      */
-    virtual void compute(const Operator &op) const = 0;
+    virtual void compute(const Operator &op,
+                         const RuntimeObj *context) const = 0;
     // Premise: op is idempotent since it is called multiple times.
-    virtual PerfRecord tune(const Operator &op) const = 0;
+    virtual PerfRecord tune(const Operator &op,
+                            const RuntimeObj *context) const = 0;
 };
 
 class KernelRegistry {

@@ -4,6 +4,7 @@ include(CMakeDependentOption)
 project(InfiniTensor C CXX)
 
 # Do not change these options in this file. Use cmake.config, cmake -DOPTION=VALUE, or ccmake to specify them.
+option(USE_CUDA "Support CUDA GPU" ON)
 option(BUILD_TEST "Build tests" ON)
 cmake_dependent_option(BUILD_TEST_CORE "Build tests for core components" ON BUILD_TEST OFF)
 cmake_dependent_option(BUILD_TEST_PET "Build tests for PET" OFF BUILD_TEST OFF)
@@ -21,7 +22,6 @@ find_package(
   Python
   COMPONENTS Interpreter Development
   REQUIRED)
-find_package(CUDA REQUIRED)
 # OpenMP
 find_package(OpenMP)
 if(OpenMP_C_FOUND)
@@ -53,14 +53,19 @@ if(BUILD_TEST)
 endif()
 
 file(GLOB_RECURSE SRC src/*.cc src/*.cu)
-# file(GLOB_RECURSE FFI src/ffi/ffi_pet.cc)
-# list(REMOVE_ITEM SRC ${TEST} ${FFI})
 
 add_library(InfiniTensor SHARED ${SRC})
-# Target
-# cuda_add_library(it SHARED ${SRC})
-# cuda_add_cublas_to_target(it) # cublas
-# # target_link_libraries(infini_cpp cudnn curand nlohmann_json::nlohmann_json pybind11::embed)
+
+if(USE_CUDA)
+  # set(CUDA_HOST_COMPILER /home/spack/spack/opt/spack/linux-ubuntu22.04-broadwell/gcc-9.4.0/gcc-9.4.0-st36klijpsnquihiy463hmedsyhoc3g6/bin/gcc)
+  enable_language(CUDA)
+  # TODO: how to set option for CUDA_HOST_COMPILER. Now env var CUDAHOSTCXX=/home/spack/spack/opt/spack/linux-ubuntu22.04-broadwell/gcc-9.4.0/gcc-9.4.0-st36klijpsnquihiy463hmedsyhoc3g6/bin/gcc takes effect.
+  # option(CUDA_HOST_COMPILER "" ${CMAKE_C_COMPILER})
+  # TODO:  find_package seems unnecessary for CMake >= 3.8
+  find_package(CUDA REQUIRED)
+  # message("CUBLAS_LIBRARIES: ${CUDA_LIBRARIES}")
+  target_link_libraries(InfiniTensor cudnn curand cublas ${CUDA_LIBRARIES})
+endif()
 
 # # Python bindings
 # pybind11_add_module(infini MODULE ${FFI})
