@@ -4,8 +4,8 @@
 
 namespace infini {
 
-TensorObj::TensorObj(const Shape &shape, DataType dtype)
-    : TensorBaseObj(shape.size(), dtype), shape(shape) {}
+TensorObj::TensorObj(const Shape &shape, DataType dtype, Runtime runtime)
+    : TensorBaseObj(shape.size(), dtype, runtime), shape(shape) {}
 
 VType TensorObj::getData(const Shape &pos) const {
     return getData(getOffset(pos));
@@ -34,8 +34,12 @@ size_t TensorObj::size() const {
     return ret;
 }
 
+size_t TensorObj::getBytes() const { return size() * dtype.getSize(); }
+
 void TensorObj::printData() const {
     IT_ASSERT(data != nullptr);
+    if (!runtime->isCpu())
+        IT_TODO_HALT();
     if (dtype == DataType::Float32)
         printDataFloat();
     else if (dtype == DataType::UInt32)
@@ -99,12 +103,9 @@ void TensorObj::printDataUint32_t() const {
     }
 }
 
-bool TensorObj::equalData(const Tensor &rhs) const {
-    IT_ASSERT(data != nullptr);
-    IT_ASSERT(rhs->data != nullptr);
-    // TODO: deal with data type
-    auto ptr = data->getPtr<VType *>();
-    auto ptrRhs = rhs->data->getPtr<VType *>();
+template <typename T> bool TensorObj::equalDataInt(const Tensor &rhs) const {
+    auto ptr = data->getPtr<uint32_t *>();
+    auto ptrRhs = rhs->data->getPtr<uint32_t *>();
     if (shape != rhs->getDims())
         return false;
     size_t sz = size();
@@ -112,6 +113,36 @@ bool TensorObj::equalData(const Tensor &rhs) const {
         if (ptr[i] != ptrRhs[i])
             return false;
     return true;
+}
+
+template <typename T> bool TensorObj::equalDataFloat(const Tensor &rhs) const {
+    IT_ASSERT(data != nullptr);
+    IT_ASSERT(rhs->data != nullptr);
+    // TODO: deal with data type
+    auto ptr = data->getPtr<T *>();
+    auto ptrRhs = rhs->data->getPtr<T *>();
+    if (shape != rhs->getDims())
+        return false;
+    size_t sz = size();
+    for (size_t i = 0; i < sz; ++i)
+        if (fabs(ptr[i] - ptrRhs[i]) / std::max(fabs(ptr[i]), fabs(ptrRhs[i])) >
+            1e-6) {
+            printf("Error on %lu: %f %f\n", i, ptr[i], ptrRhs[i]);
+            return false;
+        }
+    return true;
+}
+
+bool TensorObj::equalData(const Tensor &rhs) const {
+    IT_ASSERT(data != nullptr);
+    IT_ASSERT(rhs->data != nullptr);
+    IT_ASSERT(getDType() == rhs->getDType());
+    if (getDType() == DataType::UInt32)
+        return equalDataInt<uint32_t>(rhs);
+    else if (getDType() == DataType::Float32)
+        return equalDataInt<float>(rhs);
+    else
+        IT_TODO_HALT();
 }
 
 void TensorObj::dataMalloc(const Runtime &runtime) {

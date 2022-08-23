@@ -19,7 +19,7 @@ void GraphObj::dataMalloc() {
 }
 
 Tensor GraphObj::addTensor(Shape dim, DataType dtype) {
-    Tensor tensor = make_ref<TensorObj>(dim, dtype);
+    Tensor tensor = make_ref<TensorObj>(dim, dtype, runtime);
     tensors.emplace_back(tensor);
     return tensor;
 }
