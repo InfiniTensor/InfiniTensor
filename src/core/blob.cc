@@ -1,3 +1,4 @@
+#include "core/blob.h"
 #include "core/runtime.h"
 
 namespace infini {

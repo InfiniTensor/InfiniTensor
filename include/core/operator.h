@@ -37,8 +37,6 @@ enum class OpType {
     MemBound = 300,
 };
 
-enum class Device { CPU = 1, CUDA };
-
 using KernelAttrs = std::tuple<Device, OpType, DataType>;
 
 class OpRegistry {

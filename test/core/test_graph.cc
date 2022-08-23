@@ -7,7 +7,7 @@
 namespace infini {
 
 TEST(Graph, build_and_run) {
-    Runtime runtime = make_ref<CpuRuntimeObj>();
+    Runtime runtime = CpuRuntimeObj::getInstance();
     Graph g = make_ref<GraphObj>(runtime);
     Tensor i0 = g->addTensor({1, 2, 3}, DataType::UInt32);
     Tensor w0 = g->addTensor({1, 3, 4}, DataType::UInt32);
@@ -18,14 +18,14 @@ TEST(Graph, build_and_run) {
     g->addOpWithOutputs<MatmulObj>(i0, w0, o0);
     runtime->run(g);
     // check answer
-    auto ans = make_ref<TensorObj>(Shape{1, 2, 4}, DataType::UInt32);
+    auto ans = make_ref<TensorObj>(Shape{1, 2, 4}, DataType::UInt32, runtime);
     ans->dataMalloc(runtime);
     ans->copyData(vector<uint32_t>{38, 44, 50, 56, 83, 98, 113, 128});
     EXPECT_TRUE(o0->equalData(ans));
 }
 
 TEST(Graph, perf_engine) {
-    Runtime runtime = make_ref<CpuRuntimeObj>();
+    Runtime runtime = CpuRuntimeObj::getInstance();
     Graph g = make_ref<GraphObj>(runtime);
     Tensor i0 = g->addTensor({1, 2, 3}, DataType::UInt32);
     Tensor w0 = g->addTensor({1, 3, 4}, DataType::UInt32);
@@ -40,7 +40,7 @@ TEST(Graph, perf_engine) {
     EXPECT_GT(perfTime, 0);
     EXPECT_LT(perfTime, 0.01);
     // check answer
-    auto ans = make_ref<TensorObj>(Shape{1, 2, 4}, DataType::UInt32);
+    auto ans = make_ref<TensorObj>(Shape{1, 2, 4}, DataType::UInt32, runtime);
     ans->dataMalloc(runtime);
     ans->copyData(vector<uint32_t>{38, 44, 50, 56, 83, 98, 113, 128});
     EXPECT_TRUE(matmul->getOutput()->equalData(ans));

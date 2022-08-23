@@ -12,11 +12,12 @@ class TensorObj : public TensorBaseObj {
     Shape shape;
 
   public:
-    TensorObj(const Shape &shape, DataType dtype);
+    TensorObj(const Shape &shape, DataType dtype, Runtime runtime);
     virtual ~TensorObj() {}
     string toString() const override;
 
     size_t size() const;
+    size_t getBytes() const;
 
     Shape getDims() const { return shape; }
 
@@ -24,39 +25,40 @@ class TensorObj : public TensorBaseObj {
     using TensorBaseObj::getData;
     VType getData(const Shape &pos) const;
     void dataMalloc(const Runtime &runtime);
-    // void copyData(VType *dptr);
-    template <typename T> void copyData(const T *dptr);
-    void copyData(vector<VType> dataVector);
-    void copyData(vector<float> dataVector);
-    void printData() const;
-    // TODO: merge these methods
-    bool equalData(const Tensor &rhs) const;
-    template <typename T> bool equalData(const Tensor &rhs) const {
+
+    template <typename T> void copyData(const T *dptr) {
+        IT_ASSERT(DataType::get<T>() == dtype);
         IT_ASSERT(data != nullptr);
-        IT_ASSERT(rhs->data != nullptr);
-        // TODO: deal with data type
+        if (!runtime->isCpu())
+            IT_TODO_HALT();
         auto ptr = data->getPtr<T *>();
-        auto ptrRhs = rhs->data->getPtr<T *>();
-        if (shape != rhs->getDims())
-            return false;
         size_t sz = size();
-        for (size_t i = 0; i < sz; ++i)
-            if (fabs(ptr[i] - ptrRhs[i]) /
-                    std::max(fabs(ptr[i]), fabs(ptrRhs[i])) >
-                1e-6) {
-                printf("Error on %lu: %f %f\n", i, ptr[i], ptrRhs[i]);
-                return false;
-            }
-        return true;
+#pragma omp parallel for
+        for (size_t i = 0; i < sz; ++i) {
+            ptr[i] = dptr[i];
+        }
     }
+
+    template <typename T> void copyData(vector<T> dataVector) {
+        IT_ASSERT(DataType::get<T>() == dtype);
+        IT_ASSERT(dataVector.size() >= size());
+        copyData(dataVector.data());
+    }
+
+    void copyData(const Tensor &src) { runtime->copyBlob(this, src.get()); }
     void setData(
         const std::function<void(void *, size_t, DataType)> &generator) const {
         generator(data->getPtr<void *>(), size(), dtype);
     }
 
+    void printData() const;
+    bool equalData(const Tensor &rhs) const;
+
   private:
     void printDataFloat() const;
     void printDataUint32_t() const;
+    template <typename T> bool equalDataInt(const Tensor &rhs) const;
+    template <typename T> bool equalDataFloat(const Tensor &rhs) const;
     // void setDims(const Dim &dms) { dims = dms; }
 
     //     bool dataRand(int seed = 0) {

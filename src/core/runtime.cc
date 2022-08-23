@@ -1,6 +1,9 @@
 #include "core/runtime.h"
 #include "core/blob.h"
+#include "core/kernel.h"
+#include "core/perf_engine.h"
 #include <chrono>
+#include <cstring>
 #include <cuda.h>
 #include <cuda_profiler_api.h>
 #include <cudnn.h>
@@ -110,6 +113,36 @@ void RuntimeObj::printProfilingData(double totalTime,
 
 Blob RuntimeObj::allocBlob(size_t size) {
     return make_ref<BlobObj>(shared_from_this(), alloc(size));
+}
+
+void RuntimeObj::copyBlob(const TensorObj *dst, const TensorObj *src) const {
+    void *dstPtr = dst->getDataRawPtr<void *>();
+    void *srcPtr = src->getDataRawPtr<void *>();
+    size_t bytes = dst->getBytes();
+    auto dstRuntime = dst->getRuntime();
+    auto srcRuntime = src->getRuntime();
+
+    if (dstRuntime.get() == srcRuntime.get()) {
+        dstRuntime->copyBlobInsideRuntime(dstPtr, srcPtr, bytes);
+    } else if (src->getRuntime()->isCpu()) {
+        dstRuntime->copyBlobFromCPU(dstPtr, srcPtr, bytes);
+    } else if (dst->getRuntime()->isCpu()) {
+        srcRuntime->copyBlobToCPU(dstPtr, srcPtr, bytes);
+    } else
+        IT_TODO_HALT();
+}
+
+void CpuRuntimeObj::copyBlobFromCPU(void *dst, void *src, size_t bytes) const {
+    copyBlobInsideRuntime(dst, src, bytes);
+}
+
+void CpuRuntimeObj::copyBlobToCPU(void *dst, void *src, size_t bytes) const {
+    copyBlobInsideRuntime(dst, src, bytes);
+}
+
+void CpuRuntimeObj::copyBlobInsideRuntime(void *dst, void *src,
+                                          size_t bytes) const {
+    memcpy(dst, src, bytes);
 }
 
 } // namespace infini

@@ -1,33 +1,10 @@
 #pragma once
 #include "core/blob.h"
+#include "core/data_type.h"
 #include "core/object.h"
-#include "core/ref.h"
+#include "core/runtime.h"
 
 namespace infini {
-
-class TensorBaseObj;
-class TensorObj;
-class OperatorObj;
-class GraphObj;
-class RuntimeObj;
-class BlobObj;
-
-using TensorBase = Ref<TensorBaseObj>;
-using Tensor = Ref<TensorObj>;
-using Operator = Ref<OperatorObj>;
-using Graph = Ref<GraphObj>;
-using Runtime = Ref<RuntimeObj>;
-using Blob = Ref<BlobObj>;
-
-using TensorVec = vector<Tensor>;
-using OpVec = vector<Operator>;
-
-using VType = uint32_t;
-
-enum class DataType {
-    Float32,
-    UInt32,
-};
 
 class TensorBaseObj : public Object {
   public:
@@ -45,12 +22,10 @@ class TensorBaseObj : public Object {
     vector<WRef<TensorBaseObj>> inputOf;
     WRef<TensorBaseObj> outputOf;
     Blob data;
-    // ComputeState computed;
-    // static int random_seed[256 * 16];
-    // static bool random_inited;
+    Runtime runtime;
 
   public:
-    TensorBaseObj(int dim, DataType dtype);
+    TensorBaseObj(int dim, DataType dtype, Runtime runtime);
     virtual ~TensorBaseObj() {}
 
     void dataMalloc(const Blob &blob) {
@@ -65,6 +40,7 @@ class TensorBaseObj : public Object {
     VType getData(size_t offset) const;
 
     DataType getDType() const { return dtype; }
+    Runtime getRuntime() const { return runtime; }
 
     // uint64_t getHash() const { return hash; }
 
