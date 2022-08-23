@@ -45,9 +45,10 @@ using HashType = uint64_t; // compatible with std::hash
                std::string("[") + __FILE__ + ":" + std::to_string(__LINE__) +  \
                "] Assertion failed (" + #name + "): " + #info))
 #define _IT_ASSERT_1(name) _IT_ASSERT_2(name, "");
-
 #define IT_ASSERT(...) _VA_SELECT(_IT_ASSERT, __VA_ARGS__)
-#define IT_TODO_HALT() IT_ASSERT(false, "Unimplemented")
+
+#define IT_TODO_HALT() _IT_ASSERT_2(false, "Unimplemented")
+#define IT_TODO_HALT_MSG(msg) _IT_ASSERT_2(false, msg)
 #define IT_TODO_SKIP() puts("Unimplemented " __FILE__ ":" __LINE__)
 
 // Other utilities

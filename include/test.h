@@ -14,16 +14,12 @@ class DataGenerator {
   public:
     virtual ~DataGenerator() {}
     void operator()(void *data, size_t size, DataType dataType) {
-        switch (dataType) {
-        case DataType::UInt32:
+        if (dataType == DataType::UInt32)
             fill(reinterpret_cast<uint32_t *>(data), size);
-            break;
-        case DataType::Float32:
+        else if (dataType == DataType::Float32)
             fill(reinterpret_cast<float *>(data), size);
-            break;
-        default:
+        else
             IT_TODO_HALT();
-        }
     }
 };
 

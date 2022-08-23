@@ -24,10 +24,25 @@ class TensorObj : public TensorBaseObj {
     using TensorBaseObj::getData;
     VType getData(const Shape &pos) const;
     void dataMalloc(const Runtime &runtime);
-    // void copyData(VType *dptr);
-    template <typename T> void copyData(const T *dptr);
-    void copyData(vector<VType> dataVector);
-    void copyData(vector<float> dataVector);
+
+    template <typename T> void copyData(const T *dptr) {
+        // TODO: cuda
+        IT_ASSERT(DataType::get<T>() == dtype);
+        IT_ASSERT(data != nullptr);
+        auto ptr = data->getPtr<T *>();
+        size_t sz = size();
+#pragma omp parallel for
+        for (size_t i = 0; i < sz; ++i) {
+            ptr[i] = dptr[i];
+        }
+    }
+
+    template <typename T> void copyData(vector<T> dataVector) {
+        IT_ASSERT(DataType::get<T>() == dtype);
+        IT_ASSERT(dataVector.size() >= size());
+        copyData(dataVector.data());
+    }
+
     void printData() const;
     // TODO: merge these methods
     bool equalData(const Tensor &rhs) const;

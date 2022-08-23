@@ -34,27 +34,6 @@ size_t TensorObj::size() const {
     return ret;
 }
 
-template <typename T> void TensorObj::copyData(const T *dptr) {
-    // TODO: cuda
-    IT_ASSERT(data != nullptr);
-    auto ptr = data->getPtr<T *>();
-    size_t sz = size();
-#pragma omp parallel for
-    for (size_t i = 0; i < sz; ++i) {
-        ptr[i] = dptr[i];
-    }
-}
-
-void TensorObj::copyData(vector<VType> dataVector) {
-    IT_ASSERT(dataVector.size() >= size());
-    copyData(dataVector.data());
-}
-
-void TensorObj::copyData(vector<float> dataVector) {
-    IT_ASSERT(dataVector.size() >= size());
-    copyData(dataVector.data());
-}
-
 void TensorObj::printData() const {
     IT_ASSERT(data != nullptr);
     if (dtype == DataType::Float32)
