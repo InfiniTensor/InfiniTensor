@@ -70,7 +70,7 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
                             const std::map<OpType, double> &opTime,
                             const std::map<OpType, int> &opCnt) const;
     virtual void copyBlobFromCPU(void *dst, void *src, size_t bytes) const = 0;
-    virtual void copyBlobtoCPU(void *dst, void *src, size_t bytes) const = 0;
+    virtual void copyBlobToCPU(void *dst, void *src, size_t bytes) const = 0;
     virtual void copyBlobInsideRuntime(void *dst, void *src,
                                        size_t bytes) const = 0;
 };
@@ -93,7 +93,7 @@ class CpuRuntimeObj : public RuntimeObj {
     };
 
     void copyBlobFromCPU(void *dst, void *src, size_t bytes) const override;
-    void copyBlobtoCPU(void *dst, void *src, size_t bytes) const override;
+    void copyBlobToCPU(void *dst, void *src, size_t bytes) const override;
     void copyBlobInsideRuntime(void *dst, void *src,
                                size_t bytes) const override;
 };

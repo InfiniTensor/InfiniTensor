@@ -127,7 +127,7 @@ void RuntimeObj::copyBlob(const TensorObj *dst, const TensorObj *src) const {
     } else if (src->getRuntime()->isCpu()) {
         dstRuntime->copyBlobFromCPU(dstPtr, srcPtr, bytes);
     } else if (dst->getRuntime()->isCpu()) {
-        srcRuntime->copyBlobtoCPU(dstPtr, srcPtr, bytes);
+        srcRuntime->copyBlobToCPU(dstPtr, srcPtr, bytes);
     } else
         IT_TODO_HALT();
 }
@@ -136,7 +136,7 @@ void CpuRuntimeObj::copyBlobFromCPU(void *dst, void *src, size_t bytes) const {
     copyBlobInsideRuntime(dst, src, bytes);
 }
 
-void CpuRuntimeObj::copyBlobtoCPU(void *dst, void *src, size_t bytes) const {
+void CpuRuntimeObj::copyBlobToCPU(void *dst, void *src, size_t bytes) const {
     copyBlobInsideRuntime(dst, src, bytes);
 }
 

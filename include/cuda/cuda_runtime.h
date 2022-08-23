@@ -47,7 +47,7 @@ class CudaRuntimeObj : public RuntimeObj {
         checkCudaError(cudaMemcpy(dst, src, bytes, cudaMemcpyHostToDevice));
     }
 
-    void copyBlobtoCPU(void *dst, void *src, size_t bytes) const override {
+    void copyBlobToCPU(void *dst, void *src, size_t bytes) const override {
         checkCudaError(cudaMemcpy(dst, src, bytes, cudaMemcpyDeviceToHost));
     }
 
