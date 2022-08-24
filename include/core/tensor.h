@@ -64,7 +64,6 @@ class TensorObj : public TensorBaseObj {
   private:
     void printDataFloat() const;
     void printDataUint32_t() const;
-    bool equalDataInt(const Tensor &rhs) const;
 
     template <typename T>
     bool equalDataImpl(const T *a, const T *b, size_t size) const {
@@ -79,7 +78,7 @@ class TensorObj : public TensorBaseObj {
                     return false;
                 }
             } else
-                IT_TODO_HALT_MSG("Unsupported data type");
+                static_assert(!sizeof(T), "Unsupported data type");
         }
         return true;
     }
