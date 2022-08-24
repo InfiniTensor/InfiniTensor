@@ -114,11 +114,11 @@ bool TensorObj::equalData(const Tensor &rhs) const {
     if (shape != rhs->getDims())
         return false;
     if (getDType() == DataType::UInt32)
-        return equalDataImpl(getDataRawPtr<uint32_t *>(),
-                             rhs->getDataRawPtr<uint32_t *>(), size());
+        return equalDataImpl(getRawDataPtr<uint32_t *>(),
+                             rhs->getRawDataPtr<uint32_t *>(), size());
     else if (getDType() == DataType::Float32)
-        return equalDataImpl(getDataRawPtr<float *>(),
-                             rhs->getDataRawPtr<float *>(), size());
+        return equalDataImpl(getRawDataPtr<float *>(),
+                             rhs->getRawDataPtr<float *>(), size());
     else
         IT_TODO_HALT();
 }

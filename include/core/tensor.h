@@ -58,7 +58,7 @@ class TensorObj : public TensorBaseObj {
     template <typename T> bool equalData(const vector<T> &dataVector) {
         IT_ASSERT(DataType::get<T>() == dtype);
         IT_ASSERT(size() == dataVector.size());
-        return equalDataImpl(getDataRawPtr<T *>(), dataVector.data(), size());
+        return equalDataImpl(getRawDataPtr<T *>(), dataVector.data(), size());
     }
 
   private:

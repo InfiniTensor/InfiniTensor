@@ -116,8 +116,8 @@ Blob RuntimeObj::allocBlob(size_t size) {
 }
 
 void RuntimeObj::copyBlob(const TensorObj *dst, const TensorObj *src) const {
-    void *dstPtr = dst->getDataRawPtr<void *>();
-    void *srcPtr = src->getDataRawPtr<void *>();
+    void *dstPtr = dst->getRawDataPtr<void *>();
+    void *srcPtr = src->getRawDataPtr<void *>();
     size_t bytes = dst->getBytes();
     auto dstRuntime = dst->getRuntime();
     auto srcRuntime = src->getRuntime();

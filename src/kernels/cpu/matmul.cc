@@ -8,9 +8,9 @@ template <typename T> class NaiveMatmul : public Kernel {
                  const RuntimeObj *context) const override {
         auto op = as<MatmulObj>(_op);
         IT_ASSERT(op->getInputs().size() == 2, "Bias is not supported yet.");
-        T *A = op->getInputs(0)->getDataRawPtr<T *>();
-        T *B = op->getInputs(1)->getDataRawPtr<T *>();
-        T *C = op->getOutput()->getDataRawPtr<T *>();
+        T *A = op->getInputs(0)->getRawDataPtr<T *>();
+        T *B = op->getInputs(1)->getRawDataPtr<T *>();
+        T *C = op->getOutput()->getRawDataPtr<T *>();
         IT_ASSERT(op->getTransA() == false && op->getTransB() == false);
         IT_ASSERT(op->getAct() == ActType::None);
         IT_ASSERT(op->getB() == 1);

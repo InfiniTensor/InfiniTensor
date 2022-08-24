@@ -26,12 +26,12 @@ class convCudnn : public Kernel {
     bool cuDNNUnfused(const Ref<ConvObj> &op, const ConvCuDnnPerfRecord &record,
                       const CudaRuntimeObj *context) const {
         cudnnStatus_t stat;
-        void *const inData = (op->getInputs(0)->getDataRawPtr<void *>());
-        void *const knData = (op->getInputs(1)->getDataRawPtr<void *>());
+        void *const inData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const knData = (op->getInputs(1)->getRawDataPtr<void *>());
         if (op->getInputs().size() > 2) // Bias is not supported yet
             IT_TODO_HALT();
-        // void *const biasData = (op->getInputs(2)->getDataRawPtr<void *>());
-        void *const outData = (op->getOutput()->getDataRawPtr<void *>());
+        // void *const biasData = (op->getInputs(2)->getRawDataPtr<void *>());
+        void *const outData = (op->getOutput()->getRawDataPtr<void *>());
 
         const auto [n, c, h, w, f, r, s] = op->getNCHWFRS();
         const int cpg = op->getChannelPerGroup();
