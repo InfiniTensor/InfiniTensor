@@ -3,20 +3,19 @@
 namespace infini {
 
 ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
-                 int ph, int pw, int sh, int sw, int dh, int dw, Tensor bias,
-                 ActType act)
-    : OperatorObj(OpType::Conv, {input, weight, bias}, {output}), ph(ph),
-      pw(pw), sh(sh), sw(sw), dh(dh), dw(dw), act(act),
-      padding(PaddingMode::Other) {
+                 int ph, int pw, int sh, int sw, int dh, int dw,
+                 [[maybe_unused]] Tensor bias, ActType act)
+    : OperatorObj(OpType::Conv, {input, weight}, {output}), ph(ph), pw(pw),
+      sh(sh), sw(sw), dh(dh), dw(dw), act(act), padding(PaddingMode::Other) {
     setAuxilaryAttributes(PaddingMode::Other);
     IT_ASSERT(checkValid(graph));
 }
 
 ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
-                 PaddingMode mode, int sh, int sw, int dh, int dw, Tensor bias,
-                 ActType act)
-    : OperatorObj(OpType::Conv, {input, weight, bias}, {output}), ph(-1),
-      pw(-1), sh(sh), sw(sw), dh(dh), dw(dw), act(act), padding(mode) {
+                 PaddingMode mode, int sh, int sw, int dh, int dw,
+                 [[maybe_unused]] Tensor bias, ActType act)
+    : OperatorObj(OpType::Conv, {input, weight}, {output}), ph(-1), pw(-1),
+      sh(sh), sw(sw), dh(dh), dw(dw), act(act), padding(mode) {
     IT_ASSERT(mode != PaddingMode::Other);
     setAuxilaryAttributes(mode);
     IT_ASSERT(checkValid(graph));

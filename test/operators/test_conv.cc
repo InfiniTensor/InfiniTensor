@@ -60,7 +60,7 @@ TEST(Conv, NaiveCPU) {
     // check answer
     auto ans =
         make_ref<TensorObj>(Shape{1, 2, 2, 2}, DataType::UInt32, runtime);
-    ans->dataMalloc(runtime);
+    ans->dataMalloc();
     ans->copyData(
         vector<uint32_t>{4794, 4386, 8199, 7506, 11274, 10542, 20835, 19656});
     EXPECT_TRUE(conv->getOutput()->equalData(ans));
@@ -69,52 +69,35 @@ TEST(Conv, NaiveCPU) {
 void testConvCudnn(
     const std::function<void(void *, size_t, DataType)> &generator,
     vector<float> ansVec) {
-    Runtime cpuRuntime = CpuRuntimeObj::getInstance();
-    auto cudaRuntime = make_ref<CudaRuntimeObj>();
+    // Construct Runtime and graph for CPU and CUDA
+    Runtime cpu = CpuRuntimeObj::getInstance(); // CPUruntime is singleton
+    Graph gCpu = make_ref<GraphObj>(cpu);
+    Runtime cuda = make_ref<CudaRuntimeObj>();
+    Graph gCuda = make_ref<GraphObj>(cuda);
+    // Set input data on CPU in a CPU Graph
+    Tensor i0Cpu = gCpu->addTensor({1, 3, 4, 4}, DataType::Float32);
+    Tensor w0Cpu = gCpu->addTensor({2, 3, 3, 3}, DataType::Float32);
+    // Malloc data for all tensors in a graph. Do we need implicit allocation?
+    gCpu->dataMalloc();
+    i0Cpu->setData(generator);
+    w0Cpu->setData(generator);
+
+    // Copy input tensors from CPU to CUDA
+    Tensor i0Cuda = gCuda->cloneTensor(i0Cpu);
+    Tensor w0Cuda = gCuda->cloneTensor(w0Cpu);
     // Build CUDA graph
-    Graph g = make_ref<GraphObj>(cudaRuntime);
-    Tensor i0 = g->addTensor({1, 3, 4, 4}, DataType::Float32);
-    Tensor w0 = g->addTensor({2, 3, 3, 3}, DataType::Float32);
-    auto conv = g->addOp<ConvObj>(i0, w0, nullptr, 1, 1, 2, 1, 1, 2);
-
+    auto conv =
+        gCuda->addOp<ConvObj>(i0Cuda, w0Cuda, nullptr, 1, 1, 2, 1, 1, 2);
     // allocate CUDA memory
-    g->dataMalloc();
-
-    // Build input and output data on CPU
-    auto cpui0 =
-        make_ref<TensorObj>(Shape{1, 3, 4, 4}, DataType::Float32, cpuRuntime);
-    cpui0->dataMalloc(cpuRuntime);
-    cpui0->setData(generator);
-
-    auto cpuw0 =
-        make_ref<TensorObj>(Shape{2, 3, 3, 3}, DataType::Float32, cpuRuntime);
-    cpuw0->dataMalloc(cpuRuntime);
-    cpuw0->setData(generator);
-
-    auto ans =
-        make_ref<TensorObj>(Shape{1, 2, 2, 2}, DataType::Float32, cpuRuntime);
-    ans->dataMalloc(cpuRuntime);
-    ans->copyData(ansVec);
-
-    // Copy inputs from CPU to CUDA
-    i0->copyData(cpui0);
-    w0->copyData(cpuw0);
+    gCuda->dataMalloc();
     // Execute on CUDA
-    cudaRuntime->run(g);
-    // double perfTime = cudaRuntime->getPerfTime(g);
-    // // The example Conv takes 0.015ms with one core
-    // EXPECT_GT(perfTime, 0);
-    // EXPECT_LT(perfTime, 0.1);
-
-    // copy CUDA output to CPU
-    auto o0 = conv->getOutput();
-    auto cpuo0 =
-        make_ref<TensorObj>(Shape{1, 2, 2, 2}, DataType::Float32, cpuRuntime);
-    cpuo0->dataMalloc(cpuRuntime);
-    cpuo0->copyData(o0);
-
+    cuda->run(gCuda);
+    // copy output from CUDA to CPU
+    auto o0Cpu = gCpu->cloneTensor(conv->getOutput());
     // check results on CPU
-    EXPECT_TRUE(cpuo0->equalData(ans));
+    EXPECT_TRUE(o0Cpu->equalData(ansVec));
+    // print a tensor/operator/graph by print()
+    gCuda->print();
 }
 
 TEST(Conv, cuDNN) {

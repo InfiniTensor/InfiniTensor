@@ -24,7 +24,7 @@ class TensorObj : public TensorBaseObj {
     size_t getOffset(const Shape &ds) const;
     using TensorBaseObj::getData;
     VType getData(const Shape &pos) const;
-    void dataMalloc(const Runtime &runtime);
+    void dataMalloc();
 
     template <typename T> void copyData(const T *dptr) {
         IT_ASSERT(DataType::get<T>() == dtype);
@@ -45,7 +45,8 @@ class TensorObj : public TensorBaseObj {
         copyData(dataVector.data());
     }
 
-    void copyData(const Tensor &src) { runtime->copyBlob(this, src.get()); }
+    void copyData(const TensorObj *src);
+    void copyData(const Tensor &src) { copyData(src.get()); }
     void setData(
         const std::function<void(void *, size_t, DataType)> &generator) const {
         generator(data->getPtr<void *>(), size(), dtype);
@@ -54,11 +55,34 @@ class TensorObj : public TensorBaseObj {
     void printData() const;
     bool equalData(const Tensor &rhs) const;
 
+    template <typename T> bool equalData(const vector<T> &dataVector) {
+        IT_ASSERT(DataType::get<T>() == dtype);
+        IT_ASSERT(size() == dataVector.size());
+        return equalDataImpl(getDataRawPtr<T *>(), dataVector.data(), size());
+    }
+
   private:
     void printDataFloat() const;
     void printDataUint32_t() const;
-    template <typename T> bool equalDataInt(const Tensor &rhs) const;
-    template <typename T> bool equalDataFloat(const Tensor &rhs) const;
+    bool equalDataInt(const Tensor &rhs) const;
+
+    template <typename T>
+    bool equalDataImpl(const T *a, const T *b, size_t size) const {
+        for (size_t i = 0; i < size; ++i) {
+            if constexpr (std::is_integral_v<T>) {
+                if (a[i] != b[i])
+                    return false;
+            } else if constexpr (std::is_floating_point_v<T>) {
+                if (fabs(a[i] - b[i]) / std::max(fabs(a[i]), fabs(b[i])) >
+                    1e-6) {
+                    printf("Error on %lu: %f %f\n", i, a[i], b[i]);
+                    return false;
+                }
+            } else
+                IT_TODO_HALT_MSG("Unsupported data type");
+        }
+        return true;
+    }
     // void setDims(const Dim &dms) { dims = dms; }
 
     //     bool dataRand(int seed = 0) {

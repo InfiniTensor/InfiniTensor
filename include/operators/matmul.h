@@ -33,7 +33,7 @@ class MatmulObj : public OperatorObj {
     std::string toString() const override;
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
-    int numInputs() const override { return 3; }
+    int numInputs() const override { return 2; }
     int numOutputs() const override { return 1; }
 
     Tensor getBias() const { return inputs[2]; }

@@ -138,6 +138,7 @@ class OperatorObj : public Object {
         : type(opType), inputs(inputs), outputs(outputs) {}
     virtual optional<vector<Shape>>
     inferShape(const TensorVec &inputs) const = 0;
+    virtual vector<DataType> inferDataType(const TensorVec &inputs) const;
     /**
      * @brief Constructs outputs (if requried) and check whether the operator is
      * valid.
@@ -180,6 +181,7 @@ class OperatorObj : public Object {
 
   protected:
     optional<vector<Shape>> inferShape() const;
+    vector<DataType> inferDataType() const;
 
   private:
     /**

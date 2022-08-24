@@ -7,6 +7,7 @@ template <typename T> class NaiveMatmul : public Kernel {
     void compute(const Operator &_op, const PerfRecord &record,
                  const RuntimeObj *context) const override {
         auto op = as<MatmulObj>(_op);
+        IT_ASSERT(op->getInputs().size() == 2, "Bias is not supported yet.");
         T *A = op->getInputs(0)->getDataRawPtr<T *>();
         T *B = op->getInputs(1)->getDataRawPtr<T *>();
         T *C = op->getOutput()->getDataRawPtr<T *>();

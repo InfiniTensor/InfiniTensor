@@ -6,6 +6,10 @@ void GraphObj::updateConnection() { IT_TODO_HALT(); }
 
 string GraphObj::toString() const {
     std::ostringstream oss;
+    oss << "Graph Tensors:\n";
+    for (const auto &tensor : tensors)
+        oss << tensor << "\n";
+
     oss << "Graph operators:\n";
     for (const auto &op : ops)
         oss << op << "\n";
@@ -14,7 +18,7 @@ string GraphObj::toString() const {
 
 void GraphObj::dataMalloc() {
     for (auto &tensor : tensors) {
-        tensor->dataMalloc(runtime);
+        tensor->dataMalloc();
     }
 }
 

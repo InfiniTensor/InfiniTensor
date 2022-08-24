@@ -28,7 +28,7 @@ class convCudnn : public Kernel {
         cudnnStatus_t stat;
         void *const inData = (op->getInputs(0)->getDataRawPtr<void *>());
         void *const knData = (op->getInputs(1)->getDataRawPtr<void *>());
-        if (op->getInputs(2) != nullptr)
+        if (op->getInputs().size() > 2) // Bias is not supported yet
             IT_TODO_HALT();
         // void *const biasData = (op->getInputs(2)->getDataRawPtr<void *>());
         void *const outData = (op->getOutput()->getDataRawPtr<void *>());
