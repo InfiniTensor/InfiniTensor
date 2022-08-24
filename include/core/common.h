@@ -63,9 +63,10 @@ template <typename T> std::string vecToString(const std::vector<T> &vec) {
     ret.append("[");
     for (auto d : vec) {
         ret.append(std::to_string(d));
-        ret.append(", ");
+        ret.append(",");
     }
-    ret.pop_back();
+    if (!vec.empty())
+        ret.pop_back();
     ret.append("]");
     return ret;
 }
