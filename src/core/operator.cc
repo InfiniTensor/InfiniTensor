@@ -57,9 +57,10 @@ bool OperatorObj::checkValid(GraphObj *graph) {
     if (shapes.size() != outputs.size())
         return false;
     if (graph) { // if graph != nullptr, outputs should be created
+        auto dataTypes = inferDataType();
         for (size_t i = 0; i < outputs.size(); i++) {
             IT_ASSERT(!outputs[i]);
-            outputs[i] = graph->addTensor(shapes[i]);
+            outputs[i] = graph->addTensor(shapes[i], dataTypes[i]);
         }
     } else { // if graph is not empty, check outputs match inferred shapes
         for (size_t i = 0; i < shapes.size(); ++i) {
@@ -72,6 +73,17 @@ bool OperatorObj::checkValid(GraphObj *graph) {
 
 optional<vector<Shape>> OperatorObj::inferShape() const {
     return inferShape(inputs);
+}
+
+vector<DataType> OperatorObj::inferDataType(const TensorVec &inputs) const {
+    auto dataType = inputs[0]->getDType();
+    for (const auto &tensor : inputs)
+        IT_ASSERT(dataType == tensor->getDType());
+    return vector(numOutputs(), dataType);
+}
+
+vector<DataType> OperatorObj::inferDataType() const {
+    return inferDataType(inputs);
 }
 
 } // namespace infini

@@ -7,9 +7,9 @@ template <typename T> class NaiveConv : public Kernel {
     void compute(const Operator &_op, const PerfRecord &record,
                  const RuntimeObj *context) const override {
         auto op = as<ConvObj>(_op);
-        T *iptr = op->getInputs(0)->getDataRawPtr<T *>();
-        T *wptr = op->getInputs(1)->getDataRawPtr<T *>();
-        T *optr = op->getOutput()->getDataRawPtr<T *>();
+        T *iptr = op->getInputs(0)->getRawDataPtr<T *>();
+        T *wptr = op->getInputs(1)->getRawDataPtr<T *>();
+        T *optr = op->getOutput()->getRawDataPtr<T *>();
         auto [n, c, h, w, f, r, s] = op->getNCHWFRS();
         auto [ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
         int cpg = op->getChannelPerGroup();

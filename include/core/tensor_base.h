@@ -32,8 +32,10 @@ class TensorBaseObj : public Object {
         IT_ASSERT(data == nullptr);
         data = blob;
     }
-    Blob getDataPtr() const { return data; }
-    template <typename T> T getDataRawPtr() const {
+    Blob getDataBlob() const { return data; }
+    template <typename T> T getRawDataPtr() const {
+        static_assert(std::is_pointer_v<T>,
+                      "Raw data pointer has a type of pointer");
         IT_ASSERT(data != nullptr);
         return data->getPtr<T>();
     }

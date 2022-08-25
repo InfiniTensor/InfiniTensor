@@ -17,6 +17,12 @@ class GraphObj : public Object {
     string toString() const override;
 
     Tensor addTensor(Shape dim, DataType dtype = DataType::UInt32);
+    Tensor cloneTensor(const Tensor &tensor) {
+        auto ret = addTensor(tensor->getDims(), tensor->getDType());
+        ret->dataMalloc();
+        ret->copyData(tensor);
+        return ret;
+    }
 
     /**
      * @brief Add an operator and create its outputs. Output tensor arguments
