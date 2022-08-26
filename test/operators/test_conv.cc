@@ -131,7 +131,8 @@ TEST(Conv, tune) {
     // allocate CUDA memory
     gCuda->dataMalloc();
     // Execute on CUDA
-    cuda->run(gCuda, true);
+    bool tune = true;
+    cuda->run(gCuda, tune);
     
     
 }
