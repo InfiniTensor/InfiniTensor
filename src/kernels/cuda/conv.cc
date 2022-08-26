@@ -195,32 +195,27 @@ class convCudnn : public Kernel {
         // TODO: real tuning
         ConvCuDnnPerfRecord ret, tmp_ret;
         double tune_perf = -1;
+        // Try every possible data input mode of convolution func
         for (int i = 0; i < N_MODE; i++) {
+            // Try every possible algorithm of convolution func
             for (int j = 0; j < N_ALGO; j++) {
                 tmp_ret.algo = j;
                 tmp_ret.mode = i;
                 double run_time;
-                bool success = true;
-                for (int t = 0; t < 200; t++) {
-                    auto op = as<ConvObj>(_op);
-                    auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
-                    success &= cuDNNUnfused(op, tmp_ret, context);
-                }
-                auto start = std::chrono::high_resolution_clock::now();
-                for (int t = 0; t < 200; t++) {
-                    auto op = as<ConvObj>(_op);
-                    auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
-                    success &= cuDNNUnfused(op, tmp_ret, context);
-                }
-                auto end = std::chrono::high_resolution_clock::now();
-                run_time = success? std::chrono::duration<double, std::milli>(end - start).count() / 200: -1;
+                auto op = as<ConvObj>(_op);
+                auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
+                // Check the validation of the convolution
+                bool success = cuDNNUnfused(op, tmp_ret, context);
+                run_time = success? timeit([&]() { compute(_op, tmp_ret, _context); }): -1;
                 printf("mode:%d algo:%d %.8lf\n", i, j, run_time);
+                // Update the tune result
                 if (success && (tune_perf == -1 || tune_perf > run_time)) {
                     tune_perf = run_time;
                     ret = tmp_ret;
                 } 
             }
         }
+        // Test infomation output
         printf("the best algo is %d, the best conv mode is %d\n", ret.algo, ret.mode);
         ret.time = timeit([&]() { compute(_op, ret, _context); });
         return ret;

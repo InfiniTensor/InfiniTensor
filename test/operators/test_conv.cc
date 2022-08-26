@@ -110,28 +110,28 @@ TEST(Conv, cuDNN) {
 }
 
 TEST(Conv, tune) {
-    auto cudaRuntime = make_ref<CudaRuntimeObj>();
-    Runtime cpuRuntime = CpuRuntimeObj::getInstance();
-    Graph g = make_ref<GraphObj>(cudaRuntime);
-    Tensor i0 = g->addTensor({1, 3, 4, 4}, DataType::Float32);
-    Tensor w0 = g->addTensor({2, 3, 3, 3}, DataType::Float32);
-    auto conv = g->addOp<ConvObj>(i0, w0, nullptr, 1, 1, 1, 1, 1, 1);
+    Runtime cpu = CpuRuntimeObj::getInstance(); // CPUruntime is singleton
+    Graph gCpu = make_ref<GraphObj>(cpu);
+    Runtime cuda = make_ref<CudaRuntimeObj>();
+    Graph gCuda = make_ref<GraphObj>(cuda);
+    // Set input data on CPU in a CPU Graph
+    Tensor i0Cpu = gCpu->addTensor({1, 3, 200, 200}, DataType::Float32);
+    Tensor w0Cpu = gCpu->addTensor({2, 3, 5, 5}, DataType::Float32);
+    // Malloc data for all tensors in a graph. Do we need implicit allocation?
+    gCpu->dataMalloc();
+    i0Cpu->setData(IncrementalGenerator());
+    w0Cpu->setData(IncrementalGenerator());
 
-    g->dataMalloc();
-
-    auto cpui0 = 
-        make_ref<TensorObj>(Shape{1, 3, 4, 4}, DataType::Float32, cpuRuntime);
-    cpui0->dataMalloc(cpuRuntime);
-    cpui0->setData(IncrementalGenerator());
-
-    auto cpuw0 = 
-        make_ref<TensorObj>(Shape{2, 3, 3, 3}, DataType::Float32, cpuRuntime);
-    cpuw0->dataMalloc(cpuRuntime);
-    cpuw0->setData(IncrementalGenerator());
-
-    i0->copyData(cpui0);
-    w0->copyData(cpuw0);
-    cudaRuntime->run(g, true);
+    // Copy input tensors from CPU to CUDA
+    Tensor i0Cuda = gCuda->cloneTensor(i0Cpu);
+    Tensor w0Cuda = gCuda->cloneTensor(w0Cpu);
+    // Build CUDA graph
+    auto conv =
+        gCuda->addOp<ConvObj>(i0Cuda, w0Cuda, nullptr, 1, 1, 1, 1, 1, 1);
+    // allocate CUDA memory
+    gCuda->dataMalloc();
+    // Execute on CUDA
+    cuda->run(gCuda, true);
     
     
 }

@@ -57,6 +57,6 @@ class CudaRuntimeObj : public RuntimeObj {
     }
 
   private:
-    void runWithoutSync(const Graph &graph, bool tune) const;
+    void runWithoutSync(const Graph &graph, bool tune, bool profiling) const;
 };
 } // namespace infini

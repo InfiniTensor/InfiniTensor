@@ -4,10 +4,12 @@
 
 namespace infini {
 
-void CudaRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false) const {
+void CudaRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false, bool profiling = false) const {
     const auto &kernelRegistry = KernelRegistry::getInstance();
     auto perfEngine = PerfEngine::getInstance();
-    
+    double totalTime = 0;
+    std::map<OpType, double> opTime;
+    std::map<OpType, int> opCnt;
     for (auto &op : graph->getOperators()) {
         // HACK: set correct data type
         auto kernelAttrs =
@@ -29,10 +31,10 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false) const
         } else  
             record = *perfData;
         
-        if (!profiling) {
-            kernel->compute(op, record, this);
-            continue;
-        } else {
+        double t = record.time;
+        totalTime += t;
+
+        if (profiling) {
             double t = timeit([&]() { kernel->compute(op, record, this); }, 1, 1);
             op->print();
             printf(" op_time on cuda %lf\n", t);
