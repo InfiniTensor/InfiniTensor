@@ -3,6 +3,7 @@
 #include "cuda/cuda_runtime.h"
 #include "cuda/cuda_utility.h"
 #include "operators/conv.h"
+#include "core/kernel.h"
 #include "test.h"
 
 namespace infini {
@@ -106,5 +107,32 @@ TEST(Conv, cuDNN) {
     testConvCudnn(
         IncrementalGenerator(),
         vector<float>{4794, 4386, 8199, 7506, 11274, 10542, 20835, 19656});
+}
+
+TEST(Conv, tune) {
+    auto cudaRuntime = make_ref<CudaRuntimeObj>();
+    Runtime cpuRuntime = CpuRuntimeObj::getInstance();
+    Graph g = make_ref<GraphObj>(cudaRuntime);
+    Tensor i0 = g->addTensor({1, 3, 4, 4}, DataType::Float32);
+    Tensor w0 = g->addTensor({2, 3, 3, 3}, DataType::Float32);
+    auto conv = g->addOp<ConvObj>(i0, w0, nullptr, 1, 1, 1, 1, 1, 1);
+
+    g->dataMalloc();
+
+    auto cpui0 = 
+        make_ref<TensorObj>(Shape{1, 3, 4, 4}, DataType::Float32, cpuRuntime);
+    cpui0->dataMalloc(cpuRuntime);
+    cpui0->setData(IncrementalGenerator());
+
+    auto cpuw0 = 
+        make_ref<TensorObj>(Shape{2, 3, 3, 3}, DataType::Float32, cpuRuntime);
+    cpuw0->dataMalloc(cpuRuntime);
+    cpuw0->setData(IncrementalGenerator());
+
+    i0->copyData(cpui0);
+    w0->copyData(cpuw0);
+    cudaRuntime->run(g, true);
+    
+    
 }
 } // namespace infini

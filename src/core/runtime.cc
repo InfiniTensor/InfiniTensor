@@ -46,11 +46,11 @@ void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
             record = *perfData;
 
         if (!profiling) {
-            kernel->compute(op, *perfData, this);
+            kernel->compute(op, record, this);
             continue;
         } else {
             double t =
-                timeit([&]() { kernel->compute(op, *perfData, this); }, 1, 1);
+                timeit([&]() { kernel->compute(op, record, this); }, 1, 1);
             op->print();
             printf(" op_time %lf\n", t);
             totalTime += t;
