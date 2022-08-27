@@ -133,7 +133,5 @@ TEST(Conv, tune) {
     // Execute on CUDA
     bool tune = true;
     cuda->run(gCuda, tune);
-    
-    
 }
 } // namespace infini

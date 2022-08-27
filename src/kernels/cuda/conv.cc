@@ -3,6 +3,7 @@
 #include "cuda/cuda_runtime.h"
 #include <chrono>
 #include <functional>
+#include <limits>
 namespace infini {
 
 static constexpr int N_ALGO = 8;
@@ -17,8 +18,7 @@ static constexpr cudnnConvolutionFwdAlgo_t ALGOS[N_ALGO] = {
     CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED};
 static constexpr int N_MODE = 2;
 static constexpr cudnnConvolutionMode_t MODEs[N_MODE] = {
-    CUDNN_CONVOLUTION,
-    CUDNN_CROSS_CORRELATION};
+    CUDNN_CONVOLUTION, CUDNN_CROSS_CORRELATION};
 
 struct ConvCuDnnPerfRecord : public PerfRecord {
     int algo = 0; // cudnnConvolutionFwdAlgo_t
@@ -194,32 +194,31 @@ class convCudnn : public Kernel {
 
     PerfRecord tune(const Operator &_op,
                     const RuntimeObj *_context) const override {
-        // TODO: real tuning
         ConvCuDnnPerfRecord ret, tmp_ret;
-        double tune_perf = -1;
+        ret.time = std::numeric_limits<double>::max();
+        auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
+        auto op = as<ConvObj>(_op);
         // Try every possible data input mode of convolution func
         for (int i = 0; i < N_MODE; i++) {
             // Try every possible algorithm of convolution func
             for (int j = 0; j < N_ALGO; j++) {
                 tmp_ret.algo = j;
                 tmp_ret.mode = i;
-                double run_time;
-                auto op = as<ConvObj>(_op);
-                auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
-                // Check the validation of the convolution
-                bool success = cuDNNUnfused(op, tmp_ret, context);
-                run_time = success? timeit([&]() { compute(_op, tmp_ret, _context); }): -1;
-                printf("mode:%d algo:%d %.8lf\n", i, j, run_time);
+                // Check if the kernel supports the op
+                if (!cuDNNUnfused(op, tmp_ret, context))
+                    continue;
+                tmp_ret.time =
+                    timeit([&]() { compute(_op, tmp_ret, _context); },
+                           [&]() { context->sync(); });
+                printf("mode:%d algo:%d %.8lf\n", i, j, tmp_ret.time);
                 // Update the tune result
-                if (success && (tune_perf == -1 || tune_perf > run_time)) {
-                    tune_perf = run_time;
+                if (ret.time > tmp_ret.time)
                     ret = tmp_ret;
-                } 
             }
         }
         // Test infomation output
-        printf("the best algo is %d, the best conv mode is %d\n", ret.algo, ret.mode);
-        ret.time = timeit([&]() { compute(_op, ret, _context); });
+        printf("the best algo is %d, the best conv mode is %d\n", ret.algo,
+               ret.mode);
         return ret;
     }
 

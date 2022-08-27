@@ -4,7 +4,8 @@
 
 namespace infini {
 
-void CudaRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false, bool profiling = false) const {
+void CudaRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
+                                    bool profiling = false) const {
     const auto &kernelRegistry = KernelRegistry::getInstance();
     auto perfEngine = PerfEngine::getInstance();
     double totalTime = 0;
@@ -21,28 +22,28 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false, bool 
             kernel->compute(op, this);
             continue;
         }
-        
+
         PerfRecord record;
 
         if (!perfData) {
             record = kernel->tune(op, this);
             perfEngine.setPerfData(perfKey, record);
-           
-        } else  
+
+        } else
             record = *perfData;
-        
+
         double t = record.time;
         totalTime += t;
 
         if (profiling) {
-            double t = timeit([&]() { kernel->compute(op, record, this); }, 1, 1);
+            double t = timeit([&]() { kernel->compute(op, record, this); },
+                              [&]() { sync(); }, 1, 1);
             op->print();
             printf(" op_time on cuda %lf\n", t);
             totalTime += t;
             opTime[op->getOpType()] += t;
             opCnt[op->getOpType()]++;
         }
-
     }
 }
 

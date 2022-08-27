@@ -49,8 +49,8 @@ void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
             kernel->compute(op, record, this);
             continue;
         } else {
-            double t =
-                timeit([&]() { kernel->compute(op, record, this); }, 1, 1);
+            double t = timeit([&]() { kernel->compute(op, record, this); },
+                              []() {}, 1, 1);
             op->print();
             printf(" op_time %lf\n", t);
             totalTime += t;
