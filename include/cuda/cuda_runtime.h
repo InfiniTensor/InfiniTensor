@@ -21,6 +21,7 @@ class CudaRuntimeObj : public RuntimeObj {
         workspace = alloc(workspaceSize);
     }
     virtual ~CudaRuntimeObj() {
+        dealloc(workspace);
         checkCudnnError(cudnnDestroy(cudnn));
         checkCublasError(cublasDestroy(cublas));
     }

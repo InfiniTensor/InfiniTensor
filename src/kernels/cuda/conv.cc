@@ -178,10 +178,12 @@ class convCudnn : public Kernel {
 
         // Destories in CUDA does not require sync. But cuDNN does not state
         // whether sync is required before destories.
-        checkCudnnError(cudnnDestroyTensorDescriptor(inDesc));
         checkCudnnError(cudnnDestroyTensorDescriptor(outDesc));
-        checkCudnnError(cudnnDestroyFilterDescriptor(knDesc));
+        checkCudnnError(cudnnDestroyActivationDescriptor(actDesc));
         checkCudnnError(cudnnDestroyConvolutionDescriptor(convDesc));
+        checkCudnnError(cudnnDestroyTensorDescriptor(biasDesc));
+        checkCudnnError(cudnnDestroyFilterDescriptor(knDesc));
+        checkCudnnError(cudnnDestroyTensorDescriptor(inDesc));
         return true;
     }
 
