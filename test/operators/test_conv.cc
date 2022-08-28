@@ -115,7 +115,7 @@ TEST(Conv, tune) {
     Runtime cuda = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cuda);
     // Set input data on CPU in a CPU Graph
-    Tensor i0Cpu = gCpu->addTensor({1, 3, 200, 200}, DataType::Float32);
+    Tensor i0Cpu = gCpu->addTensor({1, 3, 800, 800}, DataType::Float32);
     Tensor w0Cpu = gCpu->addTensor({2, 3, 5, 5}, DataType::Float32);
     // Malloc data for all tensors in a graph. Do we need implicit allocation?
     gCpu->dataMalloc();
