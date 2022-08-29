@@ -40,6 +40,7 @@ void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
         // Tune the kernel if there is no record
         if (!perfData) {
             // TODO: record is not used
+            // printf("no record data\n");
             record = kernel->tune(op, this);
             perfEngine.setPerfData(perfKey, record);
         } else
