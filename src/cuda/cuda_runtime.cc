@@ -4,13 +4,10 @@
 
 namespace infini {
 
-void CudaRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
-                                    bool profiling = false) const {
+void CudaRuntimeObj::runWithoutSync(const Graph &graph) const {
     const auto &kernelRegistry = KernelRegistry::getInstance();
     auto perfEngine = PerfEngine::getInstance();
-    double totalTime = 0;
-    std::map<OpType, double> opTime;
-    std::map<OpType, int> opCnt;
+
     for (auto &op : graph->getOperators()) {
         // HACK: set correct data type
         auto kernelAttrs =
@@ -18,40 +15,17 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
         std::optional<PerfRecord> perfData = perfEngine.getPerfData(perfKey);
-        if (!perfData && !tune) {
+        if (perfData)
+            kernel->compute(op, *perfData, this);
+        else
             kernel->compute(op, this);
-            continue;
-        }
-
-        PerfRecord record;
-
-        if (!perfData) {
-            record = kernel->tune(op, this);
-            perfEngine.setPerfData(perfKey, record);
-
-        } else
-            record = *perfData;
-
-        double t = record.time;
-        totalTime += t;
-
-        if (profiling) {
-            double t = timeit([&]() { kernel->compute(op, record, this); },
-                              [&]() { sync(); }, 1, 1);
-            op->print();
-            printf(" op_time on cuda %lf\n", t);
-            totalTime += t;
-            opTime[op->getOpType()] += t;
-            opCnt[op->getOpType()]++;
-        }
     }
 }
 
 void CudaRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
-    if (profiling)
+    if (tune || profiling)
         IT_TODO_HALT();
-
-    runWithoutSync(graph, tune);
+    runWithoutSync(graph);
     sync();
 }
 
