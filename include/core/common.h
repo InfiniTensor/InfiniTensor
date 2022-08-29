@@ -71,9 +71,8 @@ template <typename T> std::string vecToString(const std::vector<T> &vec) {
     return ret;
 }
 
-double timeit(
-    const std::function<void()> &func,
-    const std::function<void(void)> &sync = []() {}, int warmupRounds = 200,
-    int timingRounds = 200);
+double timeit(const std::function<void()> &func, int warmupRounds = 200,
+              int timingRounds = 200,
+              const std::function<void(void)> &sync = {});
 
 } // namespace infini

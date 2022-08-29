@@ -21,7 +21,6 @@ class CudaRuntimeObj : public RuntimeObj {
         workspace = alloc(workspaceSize);
     }
     virtual ~CudaRuntimeObj() {
-        dealloc(workspace);
         checkCudnnError(cudnnDestroy(cudnn));
         checkCublasError(cublasDestroy(cublas));
     }
@@ -58,6 +57,6 @@ class CudaRuntimeObj : public RuntimeObj {
     }
 
   private:
-    void runWithoutSync(const Graph &graph, bool tune, bool profiling) const;
+    void runWithoutSync(const Graph &graph) const;
 };
 } // namespace infini

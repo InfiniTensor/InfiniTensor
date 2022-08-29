@@ -1,10 +1,8 @@
 #include "core/graph.h"
-#include "core/kernel.h"
 #include "core/runtime.h"
 #include "cuda/cuda_runtime.h"
 #include "cuda/cuda_utility.h"
 #include "operators/conv.h"
-
 #include "test.h"
 
 namespace infini {
@@ -108,31 +106,5 @@ TEST(Conv, cuDNN) {
     testConvCudnn(
         IncrementalGenerator(),
         vector<float>{4794, 4386, 8199, 7506, 11274, 10542, 20835, 19656});
-}
-
-TEST(Conv, tune) {
-    Runtime cpu = CpuRuntimeObj::getInstance(); // CPUruntime is singleton
-    Graph gCpu = make_ref<GraphObj>(cpu);
-    Runtime cuda = make_ref<CudaRuntimeObj>();
-    Graph gCuda = make_ref<GraphObj>(cuda);
-    // Set input data on CPU in a CPU Graph
-    Tensor i0Cpu = gCpu->addTensor({1, 3, 800, 800}, DataType::Float32);
-    Tensor w0Cpu = gCpu->addTensor({2, 3, 5, 5}, DataType::Float32);
-    // Malloc data for all tensors in a graph. Do we need implicit allocation?
-    gCpu->dataMalloc();
-    i0Cpu->setData(IncrementalGenerator());
-    w0Cpu->setData(IncrementalGenerator());
-
-    // Copy input tensors from CPU to CUDA
-    Tensor i0Cuda = gCuda->cloneTensor(i0Cpu);
-    Tensor w0Cuda = gCuda->cloneTensor(w0Cpu);
-    // Build CUDA graph
-    auto conv =
-        gCuda->addOp<ConvObj>(i0Cuda, w0Cuda, nullptr, 1, 1, 1, 1, 1, 1);
-    // allocate CUDA memory
-    gCuda->dataMalloc();
-    // Execute on CUDA
-    bool tune = true;
-    cuda->run(gCuda, tune);
 }
 } // namespace infini
