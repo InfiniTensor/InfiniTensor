@@ -1,9 +1,9 @@
 #include "core/graph.h"
+#include "core/kernel.h"
 #include "core/runtime.h"
 #include "cuda/cuda_runtime.h"
 #include "cuda/cuda_utility.h"
 #include "operators/conv.h"
-#include "core/kernel.h"
 
 #include "test.h"
 
