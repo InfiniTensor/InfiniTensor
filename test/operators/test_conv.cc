@@ -4,6 +4,7 @@
 #include "cuda/cuda_utility.h"
 #include "operators/conv.h"
 #include "core/kernel.h"
+
 #include "test.h"
 
 namespace infini {
