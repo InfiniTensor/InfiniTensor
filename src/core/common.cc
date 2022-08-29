@@ -4,8 +4,9 @@
 
 namespace infini {
 
-double timeit(const std::function<void()> &func, int warmupRounds,
-              int timingRounds, const std::function<void(void)> &sync) {
+double timeit(const std::function<void()> &func,
+              const std::function<void(void)> &sync, int warmupRounds,
+              int timingRounds) {
     for (int i = 0; i < warmupRounds; ++i)
         func();
     if (sync)
