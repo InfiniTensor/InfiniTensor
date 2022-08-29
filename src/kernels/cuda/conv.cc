@@ -28,14 +28,14 @@ struct ConvCuDnnPerfRecord : public PerfRecord {
     bool fuseAct = false;
 };
 
-
-
 class convCudnn : public Kernel {
 
-    std::tuple  <void*, void*, void*, cudnnTensorDescriptor_t, cudnnFilterDescriptor_t, cudnnTensorDescriptor_t, 
-    cudnnConvolutionDescriptor_t, cudnnActivationDescriptor_t, cudnnTensorDescriptor_t> 
-        cuDNNDescriptorAccess(const Ref<ConvObj> &op, const ConvCuDnnPerfRecord &record)
-    const{
+    std::tuple<void *, void *, void *, cudnnTensorDescriptor_t,
+               cudnnFilterDescriptor_t, cudnnTensorDescriptor_t,
+               cudnnConvolutionDescriptor_t, cudnnActivationDescriptor_t,
+               cudnnTensorDescriptor_t>
+    cuDNNDescriptorAccess(const Ref<ConvObj> &op,
+                          const ConvCuDnnPerfRecord &record) const {
         void *const inData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const knData = (op->getInputs(1)->getRawDataPtr<void *>());
         if (op->getInputs().size() > 2) // Bias is not supported yet
@@ -50,7 +50,7 @@ class convCudnn : public Kernel {
 
         int channelsPerGrp = cpg, channels = c;
 
-       // get inputs
+        // get inputs
         cudnnTensorDescriptor_t inDesc;
         checkCudnnError(cudnnCreateTensorDescriptor(&inDesc));
         checkCudnnError(cudnnSetTensor4dDescriptor(
@@ -60,14 +60,14 @@ class convCudnn : public Kernel {
         cudnnFilterDescriptor_t knDesc;
         checkCudnnError(cudnnCreateFilterDescriptor(&knDesc));
         checkCudnnError(cudnnSetFilter4dDescriptor(knDesc, CUDNN_DATA_FLOAT,
-                                                        CUDNN_TENSOR_NCHW, f,
-                                                        channelsPerGrp, r, s));
+                                                   CUDNN_TENSOR_NCHW, f,
+                                                   channelsPerGrp, r, s));
         // get bias
         cudnnTensorDescriptor_t biasDesc;
         checkCudnnError(cudnnCreateTensorDescriptor(&biasDesc));
         checkCudnnError(cudnnSetTensor4dDescriptor(
             biasDesc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, 1, f, 1, 1));
-        
+
         // get convlution descriptor
         cudnnConvolutionDescriptor_t convDesc;
         checkCudnnError(cudnnCreateConvolutionDescriptor(&convDesc));
@@ -96,7 +96,7 @@ class convCudnn : public Kernel {
         case ActType::None:
             checkCudnnError(
                 cudnnSetActivationDescriptor(actDesc, CUDNN_ACTIVATION_IDENTITY,
-                                            CUDNN_NOT_PROPAGATE_NAN, 0));
+                                             CUDNN_NOT_PROPAGATE_NAN, 0));
             break;
         default:
             assert(false);
@@ -108,19 +108,21 @@ class convCudnn : public Kernel {
         cudnnTensorDescriptor_t outDesc;
         checkCudnnError(cudnnCreateTensorDescriptor(&outDesc));
         checkCudnnError(cudnnSetTensor4dDescriptor(outDesc, CUDNN_TENSOR_NCHW,
-                                                CUDNN_DATA_FLOAT, outn, outc,
-                                                outh, outw));
+                                                   CUDNN_DATA_FLOAT, outn, outc,
+                                                   outh, outw));
         IT_ASSERT((vector{outn, outc, outh, outw}) ==
-                    op->getOutput()->getDims(),
-                "cuDNN output shape mismatches with OP output shape");
+                      op->getOutput()->getDims(),
+                  "cuDNN output shape mismatches with OP output shape");
 
-        return tuple(inData, knData, outData, inDesc, knDesc, biasDesc, convDesc, actDesc, outDesc);
+        return tuple(inData, knData, outData, inDesc, knDesc, biasDesc,
+                     convDesc, actDesc, outDesc);
     }
     bool cuDNNUnfused(const Ref<ConvObj> &op, const ConvCuDnnPerfRecord &record,
                       const CudaRuntimeObj *context) const {
         cudnnStatus_t stat;
-        
-        auto [inData, knData, outData, inDesc, knDesc, biasDesc, convDesc, actDesc, outDesc]=cuDNNDescriptorAccess(op, record);
+
+        auto [inData, knData, outData, inDesc, knDesc, biasDesc, convDesc,
+              actDesc, outDesc] = cuDNNDescriptorAccess(op, record);
         // get workspace
         size_t wsSize = record.workspaceSize;
         stat = cudnnGetConvolutionForwardWorkspaceSize(
@@ -193,7 +195,7 @@ class convCudnn : public Kernel {
         checkCudnnError(cudnnDestroyTensorDescriptor(inDesc));
         return true;
     }
-    
+
     void compute(const Operator &op, const RuntimeObj *context) const override {
         ConvCuDnnPerfRecord record; // with paramters in default ctor
         compute(op, record, context);
@@ -213,8 +215,10 @@ class convCudnn : public Kernel {
                 tmp_ret.mode = i;
                 // Check if the kernel supports the op
                 cudnnStatus_t stat;
-                auto [inData, knData, outData, inDesc, knDesc, biasDesc, convDesc, actDesc, outDesc]=cuDNNDescriptorAccess(op, tmp_ret);
-        
+                auto [inData, knData, outData, inDesc, knDesc, biasDesc,
+                      convDesc, actDesc, outDesc] =
+                    cuDNNDescriptorAccess(op, tmp_ret);
+
                 // get workspace
                 size_t wsSize = tmp_ret.workspaceSize;
                 stat = cudnnGetConvolutionForwardWorkspaceSize(
@@ -226,18 +230,20 @@ class convCudnn : public Kernel {
                 CudaPtr wsData = context->getWorkspace(wsSize);
                 float alpha = 1.f, beta = 0.f;
 
-                stat = cudnnConvolutionForward(context->cudnnHandle(), &alpha, inDesc,
-                                            inData, knDesc, knData, convDesc,
-                                            ALGOS[tmp_ret.algo], wsData, wsSize,
-                                            &beta, outDesc, outData);
+                stat = cudnnConvolutionForward(
+                    context->cudnnHandle(), &alpha, inDesc, inData, knDesc,
+                    knData, convDesc, ALGOS[tmp_ret.algo], wsData, wsSize,
+                    &beta, outDesc, outData);
                 if (stat != CUDNN_STATUS_SUCCESS)
                     continue;
-                tmp_ret.time =
-                    timeit([&]() { cudnnConvolutionForward(context->cudnnHandle(), &alpha, inDesc,
-                                            inData, knDesc, knData, convDesc,
-                                            ALGOS[tmp_ret.algo], wsData, wsSize,
-                                            &beta, outDesc, outData); },
-                           [&]() { context->sync(); });
+                tmp_ret.time = timeit(
+                    [&]() {
+                        cudnnConvolutionForward(
+                            context->cudnnHandle(), &alpha, inDesc, inData,
+                            knDesc, knData, convDesc, ALGOS[tmp_ret.algo],
+                            wsData, wsSize, &beta, outDesc, outData);
+                    },
+                    [&]() { context->sync(); });
                 printf("mode:%d algo:%d :%.8lf\n", i, j, tmp_ret.time);
                 // Update the tune result
                 if (ret.time > tmp_ret.time)
@@ -252,7 +258,8 @@ class convCudnn : public Kernel {
             }
         }
         // Test infomation output
-        printf("the best algo is %d, the best conv mode is %d\n", ret.algo, ret.mode);
+        printf("the best algo is %d, the best conv mode is %d\n", ret.algo,
+               ret.mode);
         return ret;
     }
 
