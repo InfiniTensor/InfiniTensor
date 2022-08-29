@@ -24,11 +24,9 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
         }
 
         PerfRecord record;
-
         if (!perfData) {
             record = kernel->tune(op, this);
             perfEngine.setPerfData(perfKey, record);
-
         } else
             record = *perfData;
 

@@ -34,7 +34,7 @@ class convCudnn : public Kernel {
                cudnnFilterDescriptor_t, cudnnTensorDescriptor_t,
                cudnnConvolutionDescriptor_t, cudnnActivationDescriptor_t,
                cudnnTensorDescriptor_t>
-    cuDNNDescriptorAccess(const Ref<ConvObj> &op,
+    createCuDNNDescriptor(const Ref<ConvObj> &op,
                           const ConvCuDnnPerfRecord &record) const {
         void *const inData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const knData = (op->getInputs(1)->getRawDataPtr<void *>());
@@ -117,20 +117,15 @@ class convCudnn : public Kernel {
         return tuple(inData, knData, outData, inDesc, knDesc, biasDesc,
                      convDesc, actDesc, outDesc);
     }
+
     bool cuDNNUnfused(const Ref<ConvObj> &op, const ConvCuDnnPerfRecord &record,
                       const CudaRuntimeObj *context) const {
         cudnnStatus_t stat;
 
-        auto [inData, knData, outData, inDesc, knDesc, biasDesc, convDesc,
-              actDesc, outDesc] = cuDNNDescriptorAccess(op, record);
-        // get workspace
+        const auto &[inData, knData, outData, inDesc, knDesc, biasDesc,
+                     convDesc, actDesc, outDesc] =
+            createCuDNNDescriptor(op, record);
         size_t wsSize = record.workspaceSize;
-        stat = cudnnGetConvolutionForwardWorkspaceSize(
-            context->cudnnHandle(), inDesc, knDesc, convDesc, outDesc,
-            ALGOS[record.algo], &wsSize);
-        if (stat != CUDNN_STATUS_SUCCESS)
-            return false;
-
         CudaPtr wsData = context->getWorkspace(wsSize);
         float alpha = 1.f, beta = 0.f;
 
@@ -203,51 +198,52 @@ class convCudnn : public Kernel {
 
     PerfRecord tune(const Operator &_op,
                     const RuntimeObj *_context) const override {
-        ConvCuDnnPerfRecord ret, tmp_ret;
+        ConvCuDnnPerfRecord ret;
         ret.time = std::numeric_limits<double>::max();
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         auto op = as<ConvObj>(_op);
-        // Try every possible data input mode of convolution func
-        for (int i = 0; i < N_MODE; i++) {
-            // Try every possible algorithm of convolution func
-            for (int j = 0; j < N_ALGO; j++) {
-                tmp_ret.algo = j;
-                tmp_ret.mode = i;
-                // Check if the kernel supports the op
+        // Both modes have the same performance. Only run cross-correlation.
+        for (int mode = 1; mode < 2; mode++) {
+            // Try every possible algorithm of convolution
+            for (int algo = 0; algo < N_ALGO; algo++) {
+                ConvCuDnnPerfRecord record;
+                record.mode = mode;
+                record.algo = algo;
                 cudnnStatus_t stat;
-                auto [inData, knData, outData, inDesc, knDesc, biasDesc,
-                      convDesc, actDesc, outDesc] =
-                    cuDNNDescriptorAccess(op, tmp_ret);
+                const auto &[inData, knData, outData, inDesc, knDesc, biasDesc,
+                             convDesc, actDesc, outDesc] =
+                    createCuDNNDescriptor(op, record);
 
                 // get workspace
-                size_t wsSize = tmp_ret.workspaceSize;
                 stat = cudnnGetConvolutionForwardWorkspaceSize(
                     context->cudnnHandle(), inDesc, knDesc, convDesc, outDesc,
-                    ALGOS[tmp_ret.algo], &wsSize);
+                    ALGOS[record.algo], &record.workspaceSize);
                 if (stat != CUDNN_STATUS_SUCCESS)
                     continue;
 
-                CudaPtr wsData = context->getWorkspace(wsSize);
+                CudaPtr wsData = context->getWorkspace(record.workspaceSize);
                 float alpha = 1.f, beta = 0.f;
 
                 stat = cudnnConvolutionForward(
                     context->cudnnHandle(), &alpha, inDesc, inData, knDesc,
-                    knData, convDesc, ALGOS[tmp_ret.algo], wsData, wsSize,
-                    &beta, outDesc, outData);
+                    knData, convDesc, ALGOS[record.algo], wsData,
+                    record.workspaceSize, &beta, outDesc, outData);
                 if (stat != CUDNN_STATUS_SUCCESS)
                     continue;
-                tmp_ret.time = timeit(
+                record.time = timeit(
                     [&]() {
-                        cudnnConvolutionForward(
-                            context->cudnnHandle(), &alpha, inDesc, inData,
-                            knDesc, knData, convDesc, ALGOS[tmp_ret.algo],
-                            wsData, wsSize, &beta, outDesc, outData);
+                        cudnnConvolutionForward(context->cudnnHandle(), &alpha,
+                                                inDesc, inData, knDesc, knData,
+                                                convDesc, ALGOS[record.algo],
+                                                wsData, record.workspaceSize,
+                                                &beta, outDesc, outData);
                     },
                     [&]() { context->sync(); });
-                printf("mode:%d algo:%d :%.8lf\n", i, j, tmp_ret.time);
+                // printf("mode:%d algo:%d :%.8lf\n", mode, algo, record.time);
+
                 // Update the tune result
-                if (ret.time > tmp_ret.time)
-                    ret = tmp_ret;
+                if (ret.time > record.time)
+                    ret = record;
 
                 checkCudnnError(cudnnDestroyTensorDescriptor(outDesc));
                 checkCudnnError(cudnnDestroyActivationDescriptor(actDesc));
@@ -257,9 +253,11 @@ class convCudnn : public Kernel {
                 checkCudnnError(cudnnDestroyTensorDescriptor(inDesc));
             }
         }
-        // Test infomation output
-        printf("the best algo is %d, the best conv mode is %d\n", ret.algo,
-               ret.mode);
+        // printf("the best algo is %d, the best conv mode is %d\n", ret.algo,
+        //        ret.mode);
+        IT_ASSERT(ret.time < std::numeric_limits<double>::max(), "No valid "
+                                                                 "algorithm "
+                                                                 "found");
         return ret;
     }
 
