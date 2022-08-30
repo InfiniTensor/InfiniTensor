@@ -44,6 +44,7 @@ class MatmulObj : public OperatorObj {
     int getM() const { return m; }
     int getN() const { return n; }
     int getK() const { return k; }
+    auto getBMNK() const { return tuple{b, m, n, k}; }
 
   private:
     vector<int> getWorkloadVector() const override;
