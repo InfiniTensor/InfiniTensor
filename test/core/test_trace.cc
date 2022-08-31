@@ -1,7 +1,9 @@
 #define BACKWARD_HAS_DW 1
 #include "core/backward.hpp"
 #include "test.h"
-
+namespace backward{
+    backward::SignalHandling sh;
+}
 namespace infini {
 
 int func_a( ) {
