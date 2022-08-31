@@ -64,9 +64,9 @@ class KernelRegistry {
         return true;
     }
     Kernel *getKernel(const KernelAttrs &kernelAttrs) const {
-        IT_ASSERT(kernels.find(kernelAttrs) != kernels.end(),
-                  "Kernel hasnot registered");
-        return std::get<0>(kernels.at(kernelAttrs));
+        auto it = kernels.find(kernelAttrs);
+        IT_ASSERT(it != kernels.end(), "Kernel not found.");
+        return std::get<0>(it->second);
     }
     const KernelRecord &getKernelItem(const KernelAttrs &kernelAttrs) const {
         return kernels.at(kernelAttrs);

@@ -70,7 +70,6 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling) const {
     std::map<OpType, int> opCnt;
 
     for (auto &op : graph->getOperators()) {
-        // HACK: set correct data type
         auto kernelAttrs = KernelAttrs{device, op->getOpType(), op->getDType()};
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};

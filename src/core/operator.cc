@@ -62,7 +62,7 @@ bool OperatorObj::checkValid(GraphObj *graph) {
             IT_ASSERT(!outputs[i]);
             outputs[i] = graph->addTensor(shapes[i], dataTypes[i]);
         }
-    } else { // if graph is empty, check outputs match inferred shapes
+    } else { // if outputs have been created, check their shapes
         for (size_t i = 0; i < shapes.size(); ++i) {
             if (shapes[i] != outputs[i]->getDims())
                 return false;

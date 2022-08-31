@@ -2,7 +2,6 @@
 #include "core/kernel.h"
 
 namespace infini {
-// TODO:dh\dw need to be considered.
 template <typename T> class NativePooling : public Kernel {
     virtual T getPoolingValue(int kh, int kw, int posh, int posw, int ih,
                               int iw, T *inptr) const = 0;
@@ -13,6 +12,8 @@ template <typename T> class NativePooling : public Kernel {
         T *outptr = op->getOutput()->getRawDataPtr<T *>();
         const auto [n, c, ih, iw, kh, kw] = op->getNCHWRS();
         const auto [ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
+        if (dh != 1 || dw != 1)
+            IT_TODO_HALT(); // To support dailated pooling
         auto outDim = op->getOutput()->getDims();
         int oh = outDim[2], ow = outDim[3];
         for (auto i = 0; i < n; i++) {
