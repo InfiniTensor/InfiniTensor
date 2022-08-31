@@ -169,7 +169,7 @@ class OperatorObj : public Object {
     const TensorVec &getInputs() const { return inputs; }
     // TensorVec getOutputs() { return outputs; }
     const TensorVec &getOutputs() const { return outputs; }
-    Tensor getInputs(size_t i) { return inputs.at(i); }
+    Tensor getInputs(size_t i) const { return inputs.at(i); }
     Tensor getOutput() const {
         IT_ASSERT(outputs.size() == 1, "Unimplemented");
         return outputs[0];
