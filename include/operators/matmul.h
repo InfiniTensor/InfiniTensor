@@ -38,6 +38,7 @@ class MatmulObj : public OperatorObj {
 
     Tensor getBias() const { return inputs[2]; }
     ActType getAct() const { return act; }
+    auto getBMNKTransAB() const { return tuple(b, m, n, k, transA, transB); }
     bool getTransA() const { return transA; }
     bool getTransB() const { return transB; }
     int getB() const { return b; }

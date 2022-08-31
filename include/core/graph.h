@@ -29,7 +29,7 @@ class GraphObj : public Object {
      * should be empty Refs (e.g., nullptr).
      */
     template <typename T, typename... Args> Ref<T> addOp(Args &&...args) {
-        Ref<T> op = make_ref<T>(this, std::forward<Args>(args)...);
+        Ref<T> op = infini::make_ref<T>(this, std::forward<Args>(args)...);
         ops.push_back(op);
         return op;
     }
@@ -39,7 +39,7 @@ class GraphObj : public Object {
      */
     template <typename T, typename... Args>
     Ref<T> addOpWithOutputs(Args &&...args) {
-        Ref<T> op = make_ref<T>(nullptr, std::forward<Args>(args)...);
+        Ref<T> op = infini::make_ref<T>(nullptr, std::forward<Args>(args)...);
         ops.push_back(op);
         return op;
     }
@@ -48,6 +48,7 @@ class GraphObj : public Object {
     const TensorVec &getInputs() const { return inputs; }
     const TensorVec &getOutputs() const { return outputs; }
     const OpVec &getOperators() const { return ops; }
+    OpVec getComputeOps() const;
     // TensorVec &getInputs();
     // TensorVec &getOutputs();
 

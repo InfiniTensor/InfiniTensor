@@ -28,4 +28,12 @@ Tensor GraphObj::addTensor(Shape dim, DataType dtype) {
     return tensor;
 }
 
+OpVec GraphObj::getComputeOps() const {
+    OpVec opList;
+    for (auto op : ops)
+        if (op->isComputeOp())
+            opList.emplace_back(op);
+    return opList;
+};
+
 } // namespace infini

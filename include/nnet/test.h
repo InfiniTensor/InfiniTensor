@@ -1,6 +1,7 @@
 #pragma once
 #include "common.h"
 #include "derivator.h"
+#include "gtest/gtest.h"
 
 // clang-format off
 #define CAT(A, B) A##B
