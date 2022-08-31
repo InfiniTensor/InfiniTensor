@@ -7,7 +7,9 @@ namespace infini {
 int func_a( ) {
   int a = 123;
   int b = 0;
-  int c = a / b;
+  int c = a * b;
+  char* ptr = (char*)"Hello,World";
+  ptr[1]='H';
   return c;
 }
 

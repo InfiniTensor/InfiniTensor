@@ -55,7 +55,7 @@ endif()
 file(GLOB_RECURSE SRC src/*.cc src/*.cu src/*.cpp)
 
 add_library(InfiniTensor SHARED ${SRC})
-link_directories(/home/wanghailu/lib)
+#link_directories(/home/wanghailu/lib)
 target_link_libraries(InfiniTensor dw)
 
 if(USE_CUDA)
