@@ -5,6 +5,8 @@ project(InfiniTensor C CXX)
 
 # Do not change these options in this file. Use cmake.config, cmake -DOPTION=VALUE, or ccmake to specify them.
 option(USE_CUDA "Support CUDA GPU" ON)
+option(ENABLE_Backtrace "Enable Backtrace" OFF)
+
 option(BUILD_TEST "Build tests" ON)
 cmake_dependent_option(BUILD_TEST_CORE "Build tests for core components" ON BUILD_TEST OFF)
 cmake_dependent_option(BUILD_TEST_PET "Build tests for PET" OFF BUILD_TEST OFF)
@@ -52,11 +54,17 @@ if(BUILD_TEST)
   include_directories(3rd-party/googletest/googletest/include)
 endif()
 
-file(GLOB_RECURSE SRC src/*.cc src/*.cu src/*.cpp)
+file(GLOB_RECURSE SRC src/*.cc src/*.cu)
+file(GLOB_RECURSE TRACESRC src/core/backward.cpp)
 
 add_library(InfiniTensor SHARED ${SRC})
-#link_directories(/home/wanghailu/lib)
-target_link_libraries(InfiniTensor dw)
+
+
+if(ENABLE_Backtrace)
+  add_library(Trace SHARED ${TRACESRC})
+  target_link_libraries(InfiniTensor Trace)
+  target_link_libraries(InfiniTensor dw)
+endif()
 
 if(USE_CUDA)
   # set(CUDA_HOST_COMPILER /home/spack/spack/opt/spack/linux-ubuntu22.04-broadwell/gcc-9.4.0/gcc-9.4.0-st36klijpsnquihiy463hmedsyhoc3g6/bin/gcc)
@@ -86,6 +94,9 @@ endfunction()
 
 if(BUILD_TEST)
   enable_testing()
+  if(ENABLE_Backtrace)
+    build_test(test/trace/*.cc)
+  endif()
   if(BUILD_TEST_CORE)
     build_test(test/core/*.cc)
     build_test(test/operators/*.cc)
