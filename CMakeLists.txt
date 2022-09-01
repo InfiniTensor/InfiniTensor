@@ -5,7 +5,7 @@ project(InfiniTensor C CXX)
 
 # Do not change these options in this file. Use cmake.config, cmake -DOPTION=VALUE, or ccmake to specify them.
 option(USE_CUDA "Support CUDA GPU" ON)
-option(USE_BACKTRACE "Support Backward Trace" ON)
+option(USE_BACKTRACE "Print backtrace on exception and segmentation fault" ON)
 option(BUILD_TEST "Build tests" ON)
 
 cmake_dependent_option(BUILD_TEST_CORE "Build tests for core components" ON BUILD_TEST OFF)
@@ -58,8 +58,7 @@ file(GLOB_RECURSE SRC src/*.cc src/*.cu)
 
 add_library(InfiniTensor SHARED ${SRC})
 
-# backward-cpp
-if(USE_TRACE)
+if(USE_BACKTRACE)
   add_definitions(-D BACKWARD_TRACE)
   add_subdirectory(3rd-party/backward-cpp)
   include_directories(3rd-party/backward-cpp)
