@@ -94,7 +94,25 @@ template <typename T> double computeDifference5(T *baseline, T *test, int num) {
             small += (test[i] < baseline[i] ? 1 : 0);
         }
     }
-    return small / down;
+    return (double)small / (double)down;
 }
+
+template int computeDifference1<int>(int *baseline, int *test, int num);
+template double computeDifference2<float>(float *baseline, float *test,
+                                          int num);
+template double computeDifference2<double>(double *baseline, double *test,
+                                           int num);
+template double computeDifference3<float>(float *baseline, float *test,
+                                          int num);
+template double computeDifference3<double>(double *baseline, double *test,
+                                           int num);
+template double computeDifference4<float>(float *baseline, float *test,
+                                          int num);
+template double computeDifference4<double>(double *baseline, double *test,
+                                           int num);
+template double computeDifference5<float>(float *baseline, float *test,
+                                          int num);
+template double computeDifference5<double>(double *baseline, double *test,
+                                           int num);
 
 } // namespace infini
