@@ -19,10 +19,18 @@ VecExpr MatmulTransposeMutator::transpose(const Tensor &tensor) {
         transa ^= Atrans;
         transb ^= Btrans;
         // build input transpose
-        if (Atrans)
-            inputs[0] = transposeInput(inputs[0]);
-        if (Btrans)
-            inputs[1] = transposeInput(inputs[1]);
+        if (Atrans) {
+            if (auto optExpr = transposeInput(inputs[0]))
+                inputs[0] = *optExpr;
+            else
+                continue;
+        }
+        if (Btrans) {
+            if (auto optExpr = transposeInput(inputs[1]))
+                inputs[1] = *optExpr;
+            else
+                continue;
+        }
         if (ABswap) {
             std::swap(inputs[0], inputs[1]);
             std::swap(m, n);
@@ -65,7 +73,7 @@ VecExpr MatmulTransposeMutator::transpose(const Tensor &tensor) {
     return ret;
 }
 
-Tensor MatmulTransposeMutator::transposeInput(const Tensor &tensor) {
+optional<Tensor> MatmulTransposeMutator::transposeInput(const Tensor &tensor) {
     Tensor ret;
     if (auto ew = as<ElementWiseNode>(tensor->getSource())) {
         auto rangeOp = as<RangeOpNode>(tensor->getSource()->getExpr());
@@ -92,8 +100,10 @@ Tensor MatmulTransposeMutator::transposeInput(const Tensor &tensor) {
         ret = makeTensor(derivator.newTensorName(), tensorShape, tensorPaddings,
                          newElementWise);
         // } else if (!tensor->getSource()) {
-    } else
-        nnet_unimplemented_halt();
+    } else {
+        nnet_unimplemented_continue();
+        return {};
+    }
     return ret;
 }
 

@@ -4,30 +4,13 @@
 #include "nnet/expr.h"
 #include "nnet/iterator_table.h"
 #include "nnet/permutation.h"
-#include "gtest/gtest.h"
+#include "nnet/test.h"
 using namespace nnet;
 using namespace std;
-#define DEFINE_VAR(name) auto name = make_ref<VarNode>(#name);
 
 TEST(GuidedDLT, Permuation) {
-    // auto multiExprVar = {{"c", "i14", "i4"}, {"i17", "i22", "n"}};
-    DEFINE_VAR(_Conv_c);
-    DEFINE_VAR(_Conv_r);
-    DEFINE_VAR(_Conv_s);
-    DEFINE_VAR(_Conv_h);
-    DEFINE_VAR(_Conv_n);
-    DEFINE_VAR(_Conv_w);
-    DEFINE_VAR(c);
-    DEFINE_VAR(i14);
-    DEFINE_VAR(i4);
-    DEFINE_VAR(i17);
-    DEFINE_VAR(i22);
-    DEFINE_VAR(n);
-
-    // PermutationGenerator permutator{
-    //     {{"_Conv_c", "_Conv_r", "_Conv_s"}, {"_Conv_h", "_Conv_n",
-    //     "_Conv_w"}},
-    //     {{"c", "i14", "i4"}, {"i17", "i22", "n"}}};
+    DEFINE_VAR(_Conv_c, _Conv_r, _Conv_s, _Conv_h, _Conv_n, _Conv_w);
+    DEFINE_VAR(c, i14, i4, i17, i22, n);
     PermutationGenerator permutator{
         {{_Conv_c, _Conv_r, _Conv_s}, {_Conv_h, _Conv_n, _Conv_w}},
         {{c, i14, i4}, {i17, i22, n}}};
@@ -41,14 +24,7 @@ TEST(GuidedDLT, Permuation) {
 
 TEST(GuidedDLT, dimFusion_ConvToGemm_1Tensor) {
     int N = 8, K = 16;
-
-    auto r = make_ref<VarNode>("r");
-    auto s = make_ref<VarNode>("s");
-    auto n = make_ref<VarNode>("n");
-    auto t1 = make_ref<VarNode>("t1");
-    auto t2 = make_ref<VarNode>("t2");
-    auto f = make_ref<VarNode>("f");
-    auto c = make_ref<VarNode>("c");
+    DEFINE_VAR(r, s, n, t1, t2, f, c);
     auto A = make_ref<TensorNode>("A", vector<int>({N, N, N, K}));
     auto B = make_ref<TensorNode>("B", vector<int>({N, K}));
 
@@ -85,13 +61,7 @@ TEST(GuidedDLT, dimFusion_ConvToGemm_1Tensor) {
 TEST(GuidedDLT, dimFusion_ConvToGemm_1step) {
     int N = 8, K = 16;
 
-    auto r = make_ref<VarNode>("r");
-    auto s = make_ref<VarNode>("s");
-    auto n = make_ref<VarNode>("n");
-    auto t1 = make_ref<VarNode>("t1");
-    auto t2 = make_ref<VarNode>("t2");
-    auto f = make_ref<VarNode>("f");
-    auto c = make_ref<VarNode>("c");
+    DEFINE_VAR(r, s, n, t1, t2, f, c);
     auto A = make_ref<TensorNode>("A", vector<int>({N, N, N, K}));
     auto B = make_ref<TensorNode>("B", vector<int>({N, N, N, K}));
 
@@ -131,13 +101,7 @@ TEST(GuidedDLT, dimFusion_ConvToGemm_1step) {
 TEST(GuidedDLT, dimFusion_ConvToGemm_real_2tensors) {
     int N = 8, K = 16;
 
-    auto r = make_ref<VarNode>("r");
-    auto s = make_ref<VarNode>("s");
-    auto n = make_ref<VarNode>("n");
-    auto t1 = make_ref<VarNode>("t1");
-    auto t2 = make_ref<VarNode>("t2");
-    auto f = make_ref<VarNode>("f");
-    auto c = make_ref<VarNode>("c");
+    DEFINE_VAR(r, s, n, t1, t2, f, c);
     auto A = make_ref<TensorNode>("A", vector<int>({N, N, N, K}));
     auto B = make_ref<TensorNode>("B", vector<int>({N, N, N, K}));
 
@@ -163,15 +127,7 @@ TEST(GuidedDLT, dimFusion_ConvToGemm_real_2tensors) {
 TEST(GuidedDLT, Conv2Conv_KernelDLT) {
     int N = 8, H = 224, W = 224, C = 16, F = 32;
     int R = 9, S = 9;
-    DEFINE_VAR(i19);
-    DEFINE_VAR(i20);
-    DEFINE_VAR(j15);
-    DEFINE_VAR(j16);
-    DEFINE_VAR(j14);
-    DEFINE_VAR(j4);
-    DEFINE_VAR(n);
-    DEFINE_VAR(f);
-    DEFINE_VAR(c);
+    DEFINE_VAR(i19, i20, j15, j16, j14, j4, n, f, c);
     // auto A =
     //     make_ref<TensorNode>("A", vector<int>({N, C, H, W}),
     //     vector<int>{0, 0, 1, 1});
@@ -266,13 +222,7 @@ TEST(GuidedDLT, Conv2Conv_KernelDLT) {
 TEST(GuidedDLT, dimFusion_ConvToGemm_2Tensor_ruleBased) {
     int N = 8, K = 16;
 
-    auto r = make_ref<VarNode>("r");
-    auto s = make_ref<VarNode>("s");
-    auto n = make_ref<VarNode>("n");
-    auto t1 = make_ref<VarNode>("t1");
-    auto t2 = make_ref<VarNode>("t2");
-    auto f = make_ref<VarNode>("f");
-    auto c = make_ref<VarNode>("c");
+    DEFINE_VAR(r, s, n, t1, t2, f, c);
     auto A = make_ref<TensorNode>("A", vector<int>({N, N, N, K}));
     auto B = make_ref<TensorNode>("B", vector<int>({N, N, N, K}));
 
@@ -309,13 +259,7 @@ TEST(GuidedDLT, dimFusion_ConvToGemm_2Tensor_ruleBased) {
 TEST(GuidedDLT, dimFusion_ConvToGemm_2Tensor_dfs) {
     int N = 8, K = 16;
 
-    auto r = make_ref<VarNode>("r");
-    auto s = make_ref<VarNode>("s");
-    auto n = make_ref<VarNode>("n");
-    auto t1 = make_ref<VarNode>("t1");
-    auto t2 = make_ref<VarNode>("t2");
-    auto f = make_ref<VarNode>("f");
-    auto c = make_ref<VarNode>("c");
+    DEFINE_VAR(r, s, n, t1, t2, f, c);
     auto A = make_ref<TensorNode>("A", vector<int>({N, N, N, K}));
     auto B = make_ref<TensorNode>("B", vector<int>({N, N, N, K}));
 
@@ -360,17 +304,9 @@ TEST(GuidedDLT, dimFusion_ConvToGemm_2Tensor_dfs) {
 //     {K}
 // ==> K : Input Tensor shape=[64,1,9,9] pad=[0,0,0,0]
 
-TEST(GuidedDLT, match_ConvToConv_conv) {
-    auto r = make_ref<VarNode>("r");
-    auto s = make_ref<VarNode>("s");
-    auto n = make_ref<VarNode>("n");
-    auto i22 = make_ref<VarNode>("i22");
-    auto i4 = make_ref<VarNode>("i4");
-    auto i14 = make_ref<VarNode>("i14");
-    auto i17 = make_ref<VarNode>("i17");
-    auto i24 = make_ref<VarNode>("i24");
-    auto f = make_ref<VarNode>("f");
-    auto c = make_ref<VarNode>("c");
+// Disabled since forget the answer
+TEST(GuidedDLT, DISABLED_match_ConvToConv_conv) {
+    DEFINE_VAR(r, s, n, i22, i4, i14, i17, i24, f, c);
     auto A = makeTensor("A", {1, 1, 224, 224}, {0, 0, 4, 4});
     auto B = make_ref<TensorNode>("B", vector<int>({576, 1, 3, 3}));
 

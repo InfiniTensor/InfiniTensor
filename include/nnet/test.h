@@ -19,6 +19,7 @@
 #define _DEFVAR_7(name, ...) _DEFVAR_1(name); _DEFVAR_6(__VA_ARGS__)
 #define _DEFVAR_8(name, ...) _DEFVAR_1(name); _DEFVAR_7(__VA_ARGS__)
 #define _DEFVAR_9(name, ...) _DEFVAR_1(name); _DEFVAR_8(__VA_ARGS__)
+#define _DEFVAR_10(name, ...) _DEFVAR_1(name); _DEFVAR_9(__VA_ARGS__)
 #define DEFINE_VAR(...) VA_SELECT(_DEFVAR, __VA_ARGS__)
 // clang-format on
 
