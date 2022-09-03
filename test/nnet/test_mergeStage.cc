@@ -27,9 +27,7 @@ TEST(FuseMembound, Relu) {
     auto range =
         makeRangeOperator({{b, {0, Batch}}, {m, {0, M}}, {w, {0, 2 * W + 1}}},
                           {{k, {0, K}}}, relu);
-    dbg(range);
-    dbg(MergeMemboundMutator({range, innerRange}).merge());
-    cout << MergeMemboundMutator({range, innerRange}).merge()->toReadable()
+    cout << MergeMemboundMutator({innerRange, range}).merge()->toReadable()
          << endl;
 }
 
@@ -50,11 +48,9 @@ TEST(FuseMembound, MemMemFusion) {
     auto range =
         makeRangeOperator({{b, {0, Batch}}, {m, {0, M}}}, {{k, {0, K}}}, subA);
     auto innerRange =
-        makeRangeOperator({{b, {0, Batch}}, {m, {0, M}}, {k, {0, K}}}, {},
-                          makeSubscript(A, {b, k, m}));
-    dbg(range, innerRange);
-    auto merged = MergeMemboundMutator({range, innerRange}).merge();
-    dbg(merged);
+        makeRangeOperator({{b, {0, Batch}}, {k, {0, K}}, {m, {0, M}}}, {},
+                          makeSubscript(A, {b, m, k}));
+    auto merged = MergeMemboundMutator({innerRange, range}).merge();
     RangeOp ans = makeRangeOperator({{b, {0, Batch}}, {m, {0, M}}},
                                     {{k, {0, K}}}, makeSubscript(A, {b, m, k}));
     EXPECT_EQ(HashVisitor().getHash(merged), HashVisitor().getHash(ans));
