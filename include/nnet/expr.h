@@ -391,14 +391,6 @@ Tensor makeTensor(const string &name, const vector<int> &shape,
 // Pretty output for dbg with shared_ptr
 template <typename T, typename std::enable_if_t<std::is_base_of_v<ExprNode, T>>
                           *_ = nullptr>
-std::ostream &operator<<(std::ostream &os, const shared_ptr<T> &a) {
-    os << ((!a) ? string("nullptr") : a->toReadable());
-    return os;
-}
-
-// Pretty output for dbg with shared_ptr
-template <typename T, typename std::enable_if_t<std::is_base_of_v<ExprNode, T>>
-                          *_ = nullptr>
 std::ostream &operator<<(std::ostream &os, const Ref<T> &a) {
     os << ((!a) ? string("nullptr") : a->toReadable());
     return os;
