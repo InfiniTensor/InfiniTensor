@@ -39,7 +39,8 @@ TEST(Conv2conv, 9x9_NCHW_FCRS) {
         derivator.search(conv_9x9, 0);
 
     int nMatches = matchExprResult(
-        derivator, "../test/nnet/log/conv2conv/Conv2conv_9x9_NCHW_FCRS_14.expr");
+        derivator,
+        "../test/nnet/log/conv2conv/Conv2conv_9x9_NCHW_FCRS_14.expr");
     derivator.print();
     derivator.printStatistics();
     EXPECT_GE(nMatches, 1);
@@ -80,7 +81,8 @@ TEST(Conv2conv, 6x6_RuleBased_NCHW_FCRS) {
 
     ASSERT_GE(derivator.getNumCandidates(), 1);
     int nMatches = matchExprResult(
-        derivator, "../test/nnet/log/conv2conv/Conv2conv_6x6_NCHW_FCRS_14.expr");
+        derivator,
+        "../test/nnet/log/conv2conv/Conv2conv_6x6_NCHW_FCRS_14.expr");
     derivator.print();
     derivator.printStatistics();
     EXPECT_GE(nMatches, 1);
@@ -119,7 +121,8 @@ TEST(Conv2conv, 5x5_RuleBased_NCHW_FCRS) {
         derivator.search(conv_9x9, 0);
 
     int nMatches = matchExprResult(
-        derivator, "../test/nnet/log/conv2conv/Conv2conv_5x5_NCHW_FCRS_15.expr");
+        derivator,
+        "../test/nnet/log/conv2conv/Conv2conv_5x5_NCHW_FCRS_15.expr");
     derivator.print();
     derivator.printStatistics();
     EXPECT_GE(nMatches, 1);

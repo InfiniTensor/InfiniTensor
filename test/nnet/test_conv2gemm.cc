@@ -277,6 +277,7 @@ TEST(Conv2gemm1x7, NCHW_FCRS_search) {
 
     ASSERT_GE(derivator.getNumCandidates(), 1);
     int nMatches = matchExprResult(
-        derivator, "../test/nnet/log/conv2gemm_1x7/Conv2gemm_1x7_NCHW_FCRS_11.expr");
+        derivator,
+        "../test/nnet/log/conv2gemm_1x7/Conv2gemm_1x7_NCHW_FCRS_11.expr");
     EXPECT_GE(nMatches, 1);
 }

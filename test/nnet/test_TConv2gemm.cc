@@ -364,7 +364,8 @@ TEST(TConv2gemm, TConv4x4_NHWF_RSFC_search) {
     //     dbg(CountRoutineVisitor().count(f.root));
     // }
     int nMatches = matchExprResult(
-        derivator, "../test/nnet/log/TConv4x4_NHWF_RSFC/TConv4x4_NHWF_RSFC_18.expr");
+        derivator,
+        "../test/nnet/log/TConv4x4_NHWF_RSFC/TConv4x4_NHWF_RSFC_18.expr");
     EXPECT_GE(nMatches, 1);
     derivator.printStatistics();
 }
