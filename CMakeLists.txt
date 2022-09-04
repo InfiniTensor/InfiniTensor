@@ -5,7 +5,9 @@ project(InfiniTensor C CXX)
 
 # Do not change these options in this file. Use cmake.config, cmake -DOPTION=VALUE, or ccmake to specify them.
 option(USE_CUDA "Support CUDA GPU" ON)
+option(USE_BACKTRACE "Print backtrace on exception and segmentation fault" ON)
 option(BUILD_TEST "Build tests" ON)
+
 cmake_dependent_option(BUILD_TEST_CORE "Build tests for core components" ON BUILD_TEST OFF)
 cmake_dependent_option(BUILD_TEST_PET "Build tests for PET" OFF BUILD_TEST OFF)
 cmake_dependent_option(BUILD_TEST_EINNET "Build tests for EINNET" OFF BUILD_TEST OFF)
@@ -14,7 +16,11 @@ set(DEFAULT_BUILD_TYPE "RelWithDebInfo")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF) # -std=gnu++11 when on, -std=c++11 when off
+<<<<<<< HEAD
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wno-error=deprecated-declarations -Wno-error=sign-compare")
+=======
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Werror -Wno-error=deprecated-declarations")
+>>>>>>> master
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -UNDEBUG") # Enable assertion
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -UNDEBUG") # Enable assertion
 
@@ -56,6 +62,14 @@ file(GLOB_RECURSE SRC src/*.cc src/*.cu)
 
 add_library(InfiniTensor SHARED ${SRC})
 
+if(USE_BACKTRACE)
+  add_definitions(-D BACKWARD_TRACE)
+  add_subdirectory(3rd-party/backward-cpp)
+  include_directories(3rd-party/backward-cpp)
+  add_backward(InfiniTensor)
+  target_link_libraries(InfiniTensor dw)
+endif()
+
 if(USE_CUDA)
   set(CMAKE_CUDA_HOST_COMPILER /home/spack/spack/opt/spack/linux-ubuntu22.04-broadwell/gcc-9.4.0/gcc-9.4.0-st36klijpsnquihiy463hmedsyhoc3g6/bin/gcc)
   enable_language(CUDA)
@@ -84,6 +98,9 @@ endfunction()
 
 if(BUILD_TEST)
   enable_testing()
+  if(USE_TRACE)
+    build_test(test/trace/*.cc)
+  endif()
   if(BUILD_TEST_CORE)
     build_test(test/core/*.cc)
     build_test(test/operators/*.cc)

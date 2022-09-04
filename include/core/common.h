@@ -1,4 +1,5 @@
 #pragma once
+#include "utils/exception.h"
 #include <cassert>
 #include <functional>
 #include <iostream>
@@ -41,7 +42,7 @@ using HashType = uint64_t; // compatible with std::hash
 #define _IT_ASSERT_2(name, info)                                               \
     (static_cast<bool>(name)                                                   \
          ? void(0)                                                             \
-         : throw std::runtime_error(                                           \
+         : throw infini::Exception(                                            \
                std::string("[") + __FILE__ + ":" + std::to_string(__LINE__) +  \
                "] Assertion failed (" + #name + "): " + #info))
 #define _IT_ASSERT_1(name) _IT_ASSERT_2(name, "");

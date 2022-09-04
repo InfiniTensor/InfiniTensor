@@ -14,8 +14,8 @@ TEST(Hash, OperatorHash) {
         Tensor o0 = g->addTensor({1, 2, 4}, DataType::UInt32);
         auto matmul = g->addOpWithOutputs<MatmulObj>(i0, w0, o0);
         key1 = matmul->getOpPerfKey();
-        EXPECT_NE(key1.hash, 0);
-        EXPECT_GT(key1.attrs.size(), 5);
+        EXPECT_NE(key1.hash, (HashType)0);
+        EXPECT_GT(key1.attrs.size(), (size_t)5);
     }
     { // build with addOp
         Graph g = make_ref<GraphObj>(nullptr);
@@ -23,7 +23,7 @@ TEST(Hash, OperatorHash) {
         Tensor w0 = g->addTensor({2, 3, 4}, DataType::UInt32);
         auto matmul = g->addOp<MatmulObj>(i0, w0, nullptr);
         key2 = matmul->getOpPerfKey();
-        EXPECT_NE(key2.hash, 0);
+        EXPECT_NE(key2.hash, (HashType)0);
     }
     EXPECT_NE(key1.hash, key2.hash);
 }
