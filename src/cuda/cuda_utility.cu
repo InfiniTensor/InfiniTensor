@@ -17,4 +17,5 @@ void cudaPrintFloat(float *x, int len) {
     cudaPrintFloatImpl<<<1, 1>>>(x, len);
     cudaDeviceSynchronize();
 }
+
 } // namespace infini

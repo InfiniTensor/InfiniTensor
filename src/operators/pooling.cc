@@ -28,7 +28,7 @@ optional<vector<Shape>> PoolingObj::inferShape(const TensorVec &inputs) const {
 
 std::string PoolingObj::toString() const {
     std::ostringstream os;
-    os << "Maxpool[" << getGuid() << "]";
+    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]";
     os << "(";
     os << "k=[" << kh << "," << kw << "],";
     os << "p=[" << ph << "," << pw << "],";
