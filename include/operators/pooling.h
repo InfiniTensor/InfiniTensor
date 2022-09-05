@@ -35,6 +35,7 @@ class PoolingObj : public OperatorObj {
   private:
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;
+    virtual std::string getOpName() const = 0;
 };
 
 class MaxPoolObj : public PoolingObj {
@@ -43,6 +44,9 @@ class MaxPoolObj : public PoolingObj {
                int dh, int dw, int ph, int pw, int sh, int sw)
         : PoolingObj(graph, OpType::MaxPool, input, output, kh, kw, dh, dw, ph,
                      pw, sh, sw) {}
+
+  private:
+    std::string getOpName() const override { return "Maxpool"; }
 };
 class AvgPoolObj : public PoolingObj {
   public:
@@ -50,5 +54,8 @@ class AvgPoolObj : public PoolingObj {
                int dh, int dw, int ph, int pw, int sh, int sw)
         : PoolingObj(graph, OpType::AvgPool, input, output, kh, kw, dh, dw, ph,
                      pw, sh, sw) {}
+
+  private:
+    std::string getOpName() const override { return "Avgpool"; }
 };
 }; // namespace infini
