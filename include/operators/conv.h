@@ -3,7 +3,7 @@
 
 namespace infini {
 
-class ConvObj : public OperatorObj {
+class ConvBaseObj : public OperatorObj {
   public:
     // When PaddingMode is Other, ConvObj will use padding size (ph, pw)
     // Otherwise, padding size (ph, pw) will be computed by padding mode
@@ -13,34 +13,32 @@ class ConvObj : public OperatorObj {
         Valid,
     };
 
-  private:
+  protected:
     int ph, pw;
     int sh, sw;
     int dh, dw;
-    ActType act;
     PaddingMode padding;
-    // auxiliary attributes
-    int n, c, h, w, f, r, s;
+    // auxiliary attributes.
+    int n;    // batch size
+    int c;    // input/output channel for conv2d/convTransposed2d
+    int h, w; // input shape (same for conv3d and convTranposed2d)
+    int f;    // output/input channel for conv2d/convTransposed2d
+    int r, s; // weight shape
 
   public:
     // Constructors for explicitly setting padding size
-    ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output, int ph,
-            int pw, int sh = 1, int sw = 1, int dh = 1, int dw = 1,
-            Tensor bias = nullptr, ActType act = ActType::None);
-    // Constructors for setting padding mode
-    ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
-            PaddingMode mode = PaddingMode::Same, int sh = 1, int sw = 1,
-            int dh = 1, int dw = 1, Tensor bias = nullptr,
-            ActType act = ActType::None);
-
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    ConvBaseObj(OpType opType, TensorVec inputs, Tensor &output, int ph, int pw,
+                int sh, int sw, int dh, int dw, const Tensor &inputInConvFWD,
+                const Tensor &weightInConvFWD);
+    ConvBaseObj(OpType opType, TensorVec inputs, Tensor &output,
+                PaddingMode mode, int sh, int sw, int dh, int dw,
+                const Tensor &inputInConvFWD, const Tensor &weightInConvFWD);
 
     std::string toString() const override;
     int numInputs() const override { return 2; }
     int numOutputs() const override { return 1; }
 
     Tensor getBias() const { return inputs[2]; }
-    ActType getAct() const { return act; }
     PaddingMode getPaddingMode() const { return padding; }
     pair<int, int> inferPaddingSize() const;
 
@@ -62,7 +60,52 @@ class ConvObj : public OperatorObj {
      * @brief Set the Auxilary Attributes: nchwrfs and padding (ph, pw) if
      * padding mode is set. This function should be called in constructor.
      */
-    void setAuxilaryAttributes(PaddingMode mode);
+    virtual void setAuxilaryAttributes(PaddingMode mode) = 0;
+};
+
+class ConvObj : public ConvBaseObj {
+  private:
+    ActType act;
+
+  public:
+    ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output, int ph,
+            int pw, int sh = 1, int sw = 1, int dh = 1, int dw = 1,
+            Tensor bias = nullptr, ActType act = ActType::None);
+    // Constructors for setting padding mode
+    ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
+            PaddingMode mode = PaddingMode::Same, int sh = 1, int sw = 1,
+            int dh = 1, int dw = 1, Tensor bias = nullptr,
+            ActType act = ActType::None);
+
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    ActType getAct() const { return act; }
+
+  private:
+    void setAuxilaryAttributes(PaddingMode mode) override;
+};
+
+class ConvTransposed2dObj : public ConvBaseObj {
+  private:
+    int oph, opw;
+    ActType act;
+
+  public:
+    ConvTransposed2dObj(GraphObj *graph, Tensor input, Tensor weight,
+                        Tensor output, int ph, int pw, int sh = 1, int sw = 1,
+                        int dh = 1, int dw = 1, int oph = 0, int opw = 0,
+                        Tensor bias = nullptr, ActType act = ActType::None);
+    // Constructors for setting padding mode
+    ConvTransposed2dObj(GraphObj *graph, Tensor input, Tensor weight,
+                        Tensor output, PaddingMode mode = PaddingMode::Same,
+                        int sh = 1, int sw = 1, int dh = 1, int dw = 1,
+                        int oph = 0, int opw = 0, Tensor bias = nullptr,
+                        ActType act = ActType::None);
+
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    ActType getAct() const { return act; }
+
+  private:
+    void setAuxilaryAttributes(PaddingMode mode) override;
 };
 
 } // namespace infini
