@@ -15,7 +15,10 @@ string G2BMMObj::toString() const {
         os << "G2BMM(["
            << "width=" << width << ",act=" << enum_to_underlying(act)
            << "],A=" << inputs[0]->getGuid() << ",B=" << inputs[1]->getGuid()
-           << ",C=" << outputs[0]->getGuid() << ")";
+           << ",C=" << outputs[0]->getGuid() 
+           << ", TTbmnkd: " << this->getB() << ", " << this->getM()
+           << ", " << this->getWidth() << ", " << inputs[1]->getDims()[2] << ", "
+           << this->getDilation() << ")";
         return os.str();
 }
 

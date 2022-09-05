@@ -48,12 +48,7 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
 void CudaRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
     if (profiling)
         IT_TODO_HALT();
-
-<<<<<<< HEAD
     runWithoutSync(graph, tune, profiling);
-=======
-    runWithoutSync(graph, tune);
->>>>>>> master
     sync();
 }
 

@@ -1,15 +1,16 @@
-#pragma once
+#pragma once 
 #include "core/operator.h"
 #include <assert.h>
 namespace infini {
 
-class G2BMMObj : public OperatorObj {
+class GBMMLObj : public OperatorObj {
     private:
-        // to be implemented
-        int width, dilation;
+
+        int dilation;
         ActType act;
 
-        int b, m, k;
+        int b, m, w, n;
+
     public:
         /**
          * @brief This comments show how operators is defined in InfiniTensor. The
@@ -22,7 +23,7 @@ class G2BMMObj : public OperatorObj {
          * @param C C is the output of G2BMM. If outputs are going to be created in
          * the constructor, C should be an empty Ref.
          */
-        G2BMMObj(GraphObj *graph, Tensor A, Tensor B, Tensor C, int width, int dilation,
+        GBMMLObj(GraphObj *graph, Tensor A, Tensor B, Tensor C, int dilation,
                         Tensor bias = nullptr, ActType act = ActType::None);
 
         std::string toString() const override;
@@ -31,18 +32,18 @@ class G2BMMObj : public OperatorObj {
         int numInputs() const override { return 2; }
         int numOutputs() const override { return 1; }
 
-        int getWidth() const { return width; }
         int getDilation() const { return dilation; }
         Tensor getBias() const { return inputs[2]; }
         ActType getAct() const { return act; }
 
         int getB() const { return b; }
         int getM() const { return m; }
-        int getK() const { return k; }
-        auto getBMKWD() const { return tuple{b, m, k, width, dilation}; }
+        int getW() const { return w; }
+        int getN() const { return n; }
+        auto getBMWND() const { return tuple{b, m, w, n, dilation}; }
     private:
         vector<int> getWorkloadVector() const override;
-        vector<int> getOpAttrVector() const override;
+        vector<int> getOpAttrVector() const override; 
 };
 
 } //namespace infini
