@@ -22,7 +22,7 @@ class G2BMMObj : public OperatorObj {
          * @param C C is the output of G2BMM. If outputs are going to be created in
          * the constructor, C should be an empty Ref.
          */
-        G2BMMObj(GraphObj *graph, Tensor A, Tensor B, Tensor C, int width, int dilation,
+        G2BMMObj(GraphObj *graph, Tensor A, Tensor B, Tensor C, const int width = 1000, const int dilation = 4,
                         Tensor bias = nullptr, ActType act = ActType::None);
 
         std::string toString() const override;

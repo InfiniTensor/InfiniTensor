@@ -1,0 +1,37 @@
+#include "core/graph.h"
+#include "core/kernel.h"
+#include "core/runtime.h"
+#include "cuda/cuda_runtime.h"
+#include "cuda/cuda_utility.h"
+#include "operators/G2BMM.h"
+
+#include "test.h"
+
+namespace infini {
+using ExpectOutput = vector<float>;
+
+TEST(G2BMM, ShapeInference) {
+    auto cpuRuntime = CpuRuntimeObj::getInstance();
+    Graph gCpu = make_ref<GraphObj>(cpuRuntime);
+    auto ACpu = gCpu->addTensor(Shape{8, 10000, 64}, DataType::Float32);
+    auto BCpu = gCpu->addTensor(Shape{8, 10000, 64}, DataType::Float32);
+    gCpu->dataMalloc();
+    ACpu->setData(IncrementalGenerator());
+    BCpu->setData(IncrementalGenerator());
+
+    auto cudaRuntime = make_ref<CudaRuntimeObj>();
+    auto gCuda = make_ref<GraphObj>(cudaRuntime);
+    auto ACuda = gCuda->cloneTensor(ACpu);
+    auto BCuda = gCuda->cloneTensor(BCpu);
+    auto G2BMM = gCuda->addOp<G2BMMObj>(ACuda, BCuda, nullptr);
+    for (int i = 0; i < 3; i++)
+        printf("%d ", G2BMM->getOutput()->getDims()[i]);
+    puts("");
+    Runtime cuda = make_ref<CudaRuntimeObj>();
+    gCuda->dataMalloc();
+    cuda->run(gCuda);
+}
+
+
+
+}; //namespace infini
