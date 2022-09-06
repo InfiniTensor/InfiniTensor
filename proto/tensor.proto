@@ -1,0 +1,7 @@
+syntax = "proto2";
+package tensor;
+
+message tensor222 
+{
+  optional string name = 1;
+}

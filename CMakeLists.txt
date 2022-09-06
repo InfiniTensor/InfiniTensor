@@ -32,6 +32,21 @@ endif()
 if(OpenMP_CXX_FOUND)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
+#Protobuf
+find_package(Protobuf REQUIRED)
+message(STATUS "protobuf include: " ${PROTOBUF_INCLUDE_DIRS})
+message(STATUS "protobuf libraries: " ${PROTOBUF_LIBRARIES})
+message(STATUS "protoc executable: " ${PROTOBUF_PROTOC_EXECUTABLE})
+include_directories(${PROTOBUF_INCLUDE_DIR})
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+set(PROTO_PATH "${CMAKE_CURRENT_SOURCE_DIR}/proto")
+file(GLOB PROTO_FILES "${PROTO_PATH}/tensor.proto")
+protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
+message(${PROTO_SRCS} "-----------" ${PROTO_FILES})
+message(${PROTO_HDRS} "-----------" ${PROTO_FILES})
+add_library(tensor_proto SHARED ${PROTO_SRCS} ${PROTO_HDRS})
+target_link_libraries(tensor_proto PUBLIC ${PROTOBUF_LIBRARIES})
+
 
 include_directories(include)
 
@@ -57,6 +72,8 @@ endif()
 file(GLOB_RECURSE SRC src/*.cc src/*.cu)
 
 add_library(InfiniTensor SHARED ${SRC})
+target_link_libraries(InfiniTensor tensor_proto)
+target_link_options(InfiniTensor PUBLIC "-pthread")
 
 if(USE_BACKTRACE)
   add_definitions(-D BACKWARD_TRACE)
