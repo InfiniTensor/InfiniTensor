@@ -11,10 +11,14 @@ namespace infini {
 using ExpectOutput = vector<float>;
 
 TEST(G2BMM, ShapeInference) {
+    const int bs = 1, seqlen = 10000, w = 1000, featlen = 512, heads = 8, d = 4;
+    const int hidden = featlen, hiddenPerHead = hidden / heads;
     auto cpuRuntime = CpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(cpuRuntime);
-    auto ACpu = gCpu->addTensor(Shape{8, 10000, 64}, DataType::Float32);
-    auto BCpu = gCpu->addTensor(Shape{8, 10000, 64}, DataType::Float32);
+    auto ACpu = gCpu->addTensor(Shape{bs * heads, seqlen, hiddenPerHead},
+                                DataType::Float32);
+    auto BCpu = gCpu->addTensor(Shape{bs * heads, seqlen, hiddenPerHead},
+                                DataType::Float32);
     gCpu->dataMalloc();
     ACpu->setData(IncrementalGenerator());
     BCpu->setData(IncrementalGenerator());
@@ -23,15 +27,11 @@ TEST(G2BMM, ShapeInference) {
     auto gCuda = make_ref<GraphObj>(cudaRuntime);
     auto ACuda = gCuda->cloneTensor(ACpu);
     auto BCuda = gCuda->cloneTensor(BCpu);
-    auto G2BMM = gCuda->addOp<G2BMMObj>(ACuda, BCuda, nullptr);
-    for (int i = 0; i < 3; i++)
-        printf("%d ", G2BMM->getOutput()->getDims()[i]);
-    puts("");
-    Runtime cuda = make_ref<CudaRuntimeObj>();
+    auto G2BMM = gCuda->addOp<G2BMMObj>(ACuda, BCuda, nullptr, w, d);
+    EXPECT_EQ(G2BMM->getOutput()->getDims(),
+              (Shape{bs * heads, seqlen, 2 * w + 1}));
     gCuda->dataMalloc();
-    cuda->run(gCuda);
+    cudaRuntime->run(gCuda);
 }
 
-
-
-}; //namespace infini
+}; // namespace infini

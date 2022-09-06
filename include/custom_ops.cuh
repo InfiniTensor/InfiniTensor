@@ -3535,29 +3535,6 @@ inline __global__ void __launch_bounds__(276)
     }
 }
 
-inline void sg2bmm(float *__restrict__ q, float *__restrict__ k,
-                   float *__restrict__ y, int bs, int n, int m, int w, int d) {
-    assert(bs % 8 == 0);
-    assert(n == 10000);
-    assert(m == 64);
-    assert(w == 1000);
-    // FIXME: Batch on the same place
-    if (d == 1) {
-        for (int i = 0; i < bs; i += 8) {
-            sg2bmm_bs1_n10000_m64_w1000_d1_kernel0<<<23000, 58>>>(
-                q + n * m, k + n * m,
-                y + n * (2 * w + 1));
-        }
-    } else if (d == 4) {
-        for (int i = 0; i < bs; i += 8) {
-            sg2bmm_bs1_n10000_m64_w1000_d4_kernel0<<<4000, 276>>>(
-                q + n * m, k + n * m, y + n * (2 * w + 1));
-        }
-    } else {
-        assert(false);
-    }
-}
-
 inline __global__ void __launch_bounds__(256)
     gbmml_bs1_n10000_m64_w1000_d1_kernel0(float *__restrict__ prob,
                                           float *__restrict__ q,
@@ -5775,6 +5752,28 @@ inline __global__ void __launch_bounds__(320)
     }
 }
 
+inline void sg2bmm(float *__restrict__ q, float *__restrict__ k,
+                   float *__restrict__ y, int bs, int n, int m, int w, int d) {
+    assert(bs % 8 == 0);
+    assert(n == 10000);
+    assert(m == 64);
+    assert(w == 1000);
+    if (d == 1) {
+        for (int i = 0; i < bs; i += 8) {
+            sg2bmm_bs1_n10000_m64_w1000_d1_kernel0<<<23000, 58>>>(
+                q + i * n * m, k + i *  n * m,
+                y + i * n * (2 * w + 1));
+        }
+    } else if (d == 4) {
+        for (int i = 0; i < bs; i += 8) {
+            sg2bmm_bs1_n10000_m64_w1000_d4_kernel0<<<4000, 276>>>(
+                q + i * n * m, k + i * n * m, y + i * n * (2 * w + 1));
+        }
+    } else {
+        assert(false);
+    }
+}
+
 inline void sgbmml(float *__restrict__ q, float *__restrict__ k,
                    float *__restrict__ y, int bs, int n, int m, int w, int d) {
     assert(bs % 8 == 0);
@@ -5783,17 +5782,15 @@ inline void sgbmml(float *__restrict__ q, float *__restrict__ k,
     assert(w == 1000);
     if (d == 1) {
         for (int i = 0; i < bs; i += 8) {
-            // Hacks for OOM
             gbmml_bs1_n10000_m64_w1000_d1_kernel0<<<2500, 256>>>(
-                q +  n * (2 * w + 1), k +  n * m,
-                y +  n * m);
+                q + i * n * (2 * w + 1), k + i *  n * m,
+                y + i * n * m);
         }
     } else if (d == 4) {
         for (int i = 0; i < bs; i += 8) {
-            // Hacks for OOM
             gbmml_bs1_n10000_m64_w1000_d4_kernel0<<<800, 320>>>(
-                q + n * (2 * w + 1), k +  n * m,
-                y + n * m);
+                q + i * n * (2 * w + 1), k + i * n * m,
+                y + i * n * m);
         }
     } else {
         assert(false);
