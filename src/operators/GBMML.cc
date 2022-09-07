@@ -25,11 +25,11 @@ string GBMMLObj::toString() const {
 optional<vector<Shape>> GBMMLObj::inferShape(const TensorVec &inputs) const {
     auto A = inputs[0], B = inputs[1];
 
-    if (!(A->getDims().size() == 3 || B->getDims().size() ==3 ))
+    if (!(A->getDims().size() == 3 && B->getDims().size() ==3 ))
         return {};  
-    if (!(A->getDims()[0] != B->getDims()[0]))
+    if (!(A->getDims()[0] == B->getDims()[0]))
         return {};
-    if (!(A->getDims()[1] != B->getDims()[1]))
+    if (!(A->getDims()[1] == B->getDims()[1]))
         return {};
     if (A->getDims()[2] % 2 == 0)
         return {};

@@ -25,7 +25,7 @@ string G2BMMObj::toString() const {
 optional<vector<Shape>> G2BMMObj::inferShape(const TensorVec &inputs) const {
     auto A = inputs[0], B = inputs[1];
 
-    if (!(A->getDims().size() == 3 || B->getDims().size() == 3))
+    if (!(A->getDims().size() == 3 && B->getDims().size() == 3))
         return {};
     if (!(A->getDims()[0] == B->getDims()[0]))
         return {};

@@ -53,6 +53,7 @@ bool OperatorObj::checkValid(GraphObj *graph) {
     auto optShapes = inferShape();
     if (!optShapes) // shape inference failed
         return false;
+    
     const vector<Shape> &shapes = *optShapes;
     if (shapes.size() != outputs.size())
         return false;

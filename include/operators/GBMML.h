@@ -23,11 +23,12 @@ class GBMMLObj : public OperatorObj {
          * @param C C is the output of G2BMM. If outputs are going to be created in
          * the constructor, C should be an empty Ref.
          */
-        GBMMLObj(GraphObj *graph, Tensor A, Tensor B, Tensor C, int dilation,
+        GBMMLObj(GraphObj *graph, Tensor A, Tensor B, Tensor C, const int dilation,
                         Tensor bias = nullptr, ActType act = ActType::None);
 
         std::string toString() const override;
-        optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+        optional<vector<Shape>> 
+        inferShape(const TensorVec &inputs) const override;
 
         int numInputs() const override { return 2; }
         int numOutputs() const override { return 1; }

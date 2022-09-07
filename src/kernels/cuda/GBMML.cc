@@ -19,7 +19,7 @@ class GBMMLCudnn : public Kernel {
         float *const outData = (op->getOutput()->getRawDataPtr<float *>());
         
         const auto [b, m, w, n, dilation] = op->getBMWND();
-
+        // printf("%d %d %d %d %d\n", b, m, n, w, dilation);
         _sgbmml(inAData, inBData, outData, b, m, n, w, dilation); 
         checkCudaError(cudaDeviceSynchronize());
         return true;
