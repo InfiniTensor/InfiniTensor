@@ -23,7 +23,7 @@ class GBMMObj : public OperatorObj {
      * the constructor, C should be an empty Ref.
      */
     GBMMObj(GraphObj *graph, Tensor A, Tensor B, Tensor C, const int dilation,
-             Tensor bias = nullptr, ActType act = ActType::None);
+            Tensor bias = nullptr, ActType act = ActType::None);
 
     std::string toString() const override;
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;

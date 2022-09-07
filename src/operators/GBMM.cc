@@ -4,7 +4,7 @@
 namespace infini {
 
 GBMMObj::GBMMObj(GraphObj *graph, Tensor A, Tensor B, Tensor C, int dilation,
-                   [[maybe_unused]] Tensor bias, ActType act)
+                 [[maybe_unused]] Tensor bias, ActType act)
     : OperatorObj(OpType::GBMM, {A, B}, {C}), dilation(dilation), act(act),
       b(A->getDims()[0]), m(A->getDims()[1]), w((A->getDims()[2] - 1) / 2),
       n(B->getDims()[2]) {

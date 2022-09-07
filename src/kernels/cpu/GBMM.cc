@@ -23,7 +23,7 @@ template <typename T> class NaiveGBMM : public Kernel {
 REGISTER_KERNEL(Device::CPU, OpType::GBMM, DataType::UInt32,
                 NaiveGBMM<uint32_t>, "GBMMNaive_CPU_uint32");
 
-REGISTER_KERNEL(Device::CPU, OpType::GBMM, DataType::Float32,
-                NaiveGBMM<float>, "GBMMNaive_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::GBMM, DataType::Float32, NaiveGBMM<float>,
+                "GBMMNaive_CPU_float32");
 
 } // namespace infini
