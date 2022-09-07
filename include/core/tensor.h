@@ -26,6 +26,9 @@ class TensorObj : public TensorBaseObj {
     VType getData(const Shape &pos) const;
     void dataMalloc();
 
+    void load(std::string file_path);
+    void save(std::string file_path);
+
     template <typename T> void copyData(const T *dptr) {
         IT_ASSERT(DataType::get<T>() == dtype);
         IT_ASSERT(data != nullptr);
