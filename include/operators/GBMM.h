@@ -19,7 +19,7 @@ class GBMMObj : public OperatorObj {
      * @param graph If graph is not empty, create outputs in the constructor.
      * Otherwise, check the provided shape with the results of `inferShape` in
      * `checkValid`.
-     * @param C C is the output of G2BMM. If outputs are going to be created in
+     * @param C C is the output of GBMM. If outputs are going to be created in
      * the constructor, C should be an empty Ref.
      */
     GBMMObj(GraphObj *graph, Tensor A, Tensor B, Tensor C, const int dilation,

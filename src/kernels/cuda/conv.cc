@@ -273,7 +273,4 @@ class convCudnn : public Kernel {
 REGISTER_KERNEL(Device::CUDA, OpType::Conv, DataType::Float32, convCudnn,
                 "Conv_cuDNN_CUDA_Float32");
 
-REGISTER_KERNEL(Device::CUDA, OpType::Conv, DataType::UInt32, convCudnn,
-                "Conv_cuDNN_CUDA_UInt32");
-
 } // namespace infini

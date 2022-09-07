@@ -9,8 +9,8 @@ namespace infini {
 
 class G2BMMCudnn : public Kernel {
 
-    bool cuDNNCustomOp(const Ref<G2BMMObj> &op,
-                       const CudaRuntimeObj *context) const {
+    bool g2bmmKernel(const Ref<G2BMMObj> &op,
+                     const CudaRuntimeObj *context) const {
         float *const inAData = (op->getInputs(0)->getRawDataPtr<float *>());
         float *const inBData = (op->getInputs(1)->getRawDataPtr<float *>());
         if (op->getInputs().size() > 2)
@@ -21,7 +21,7 @@ class G2BMMCudnn : public Kernel {
         const auto [b, n, m, width, dilation] = op->getBMKWD();
 
         _sg2bmm(inAData, inBData, outData, b, n, m, width, dilation);
-        checkCudaError(cudaDeviceSynchronize());
+        // checkCudaError(cudaDeviceSynchronize());
         return true;
     }
 
@@ -40,7 +40,7 @@ class G2BMMCudnn : public Kernel {
         const auto [warmupRounds, timingRounds] =
             op->getB() > 100 ? tuple{1, 3} : tuple{5, 15};
         double tmp =
-            timeit([&]() { cuDNNCustomOp(op, context); },
+            timeit([&]() { g2bmmKernel(op, context); },
                    [&]() { context->sync(); }, warmupRounds, timingRounds);
         if (tmp < record.time)
             record.time = tmp;
@@ -53,7 +53,7 @@ class G2BMMCudnn : public Kernel {
                  const RuntimeObj *_context) const override {
         auto op = as<G2BMMObj>(_op);
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
-        bool success = cuDNNCustomOp(op, context);
+        bool success = g2bmmKernel(op, context);
         IT_ASSERT(success);
     }
 };
