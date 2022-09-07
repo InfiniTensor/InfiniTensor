@@ -10,7 +10,7 @@ enum class OpType {
     Matmul,
     ConvTrans,
     G2BMM,
-    GBMML,
+    GBMM,
     Pad,
     Slice,
     Concat,
@@ -53,7 +53,7 @@ class OpRegistry {
             FOP(Matmul);
             FOP(ConvTrans);
             FOP(G2BMM);
-            FOP(GBMML);
+            FOP(GBMM);
             FOP(Pad);
             FOP(Slice);
             FOP(Concat);

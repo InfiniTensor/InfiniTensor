@@ -3,7 +3,7 @@
 #include <assert.h>
 namespace infini {
 
-class GBMMLObj : public OperatorObj {
+class GBMMObj : public OperatorObj {
   private:
     int dilation;
     ActType act;
@@ -22,7 +22,7 @@ class GBMMLObj : public OperatorObj {
      * @param C C is the output of G2BMM. If outputs are going to be created in
      * the constructor, C should be an empty Ref.
      */
-    GBMMLObj(GraphObj *graph, Tensor A, Tensor B, Tensor C, const int dilation,
+    GBMMObj(GraphObj *graph, Tensor A, Tensor B, Tensor C, const int dilation,
              Tensor bias = nullptr, ActType act = ActType::None);
 
     std::string toString() const override;

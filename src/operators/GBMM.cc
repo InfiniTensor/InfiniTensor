@@ -1,19 +1,19 @@
-#include "operators/GBMML.h"
+#include "operators/GBMM.h"
 #include "custom_ops.h"
 
 namespace infini {
 
-GBMMLObj::GBMMLObj(GraphObj *graph, Tensor A, Tensor B, Tensor C, int dilation,
+GBMMObj::GBMMObj(GraphObj *graph, Tensor A, Tensor B, Tensor C, int dilation,
                    [[maybe_unused]] Tensor bias, ActType act)
-    : OperatorObj(OpType::GBMML, {A, B}, {C}), dilation(dilation), act(act),
+    : OperatorObj(OpType::GBMM, {A, B}, {C}), dilation(dilation), act(act),
       b(A->getDims()[0]), m(A->getDims()[1]), w((A->getDims()[2] - 1) / 2),
       n(B->getDims()[2]) {
     IT_ASSERT(checkValid(graph));
 }
 
-string GBMMLObj::toString() const {
+string GBMMObj::toString() const {
     std::ostringstream os;
-    os << "GBMML(["
+    os << "GBMM(["
        << ",act=" << (int)act << "],A=" << inputs[0]->getGuid()
        << ",B=" << inputs[1]->getGuid() << ",C=" << outputs[0]->getGuid()
        << ", TTbmwnd: " << this->getB() << ", " << this->getM() << ", "
@@ -22,7 +22,7 @@ string GBMMLObj::toString() const {
     return os.str();
 }
 
-optional<vector<Shape>> GBMMLObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> GBMMObj::inferShape(const TensorVec &inputs) const {
     auto A = inputs[0], B = inputs[1];
 
     if (!(A->getDims().size() == 3 && B->getDims().size() == 3))
@@ -37,12 +37,12 @@ optional<vector<Shape>> GBMMLObj::inferShape(const TensorVec &inputs) const {
     return {{{b, m, k}}};
 }
 
-vector<int> GBMMLObj::getWorkloadVector() const {
+vector<int> GBMMObj::getWorkloadVector() const {
     return {enum_to_underlying(type), b, m, w, n, dilation,
             enum_to_underlying(act)};
 }
 
-vector<int> GBMMLObj::getOpAttrVector() const {
+vector<int> GBMMObj::getOpAttrVector() const {
     return {enum_to_underlying(type), dilation, enum_to_underlying(act)};
 }
 } // namespace infini

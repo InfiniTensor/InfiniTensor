@@ -1,13 +1,13 @@
-#include "operators/GBMML.h"
+#include "operators/GBMM.h"
 #include "core/kernel.h"
 #include "custom_ops.h"
 
 namespace infini {
 
-template <typename T> class NaiveGBMML : public Kernel {
+template <typename T> class NaiveGBMM : public Kernel {
     void compute(const Operator &_op, const PerfRecord &record,
                  const RuntimeObj *context) const override {
-        auto op = as<GBMMLObj>(_op);
+        auto op = as<GBMMObj>(_op);
     }
 
     void compute(const Operator &op, const RuntimeObj *context) const override {
@@ -20,10 +20,10 @@ template <typename T> class NaiveGBMML : public Kernel {
     }
 };
 
-REGISTER_KERNEL(Device::CPU, OpType::GBMML, DataType::UInt32,
-                NaiveGBMML<uint32_t>, "GBMMLNaive_CPU_uint32");
+REGISTER_KERNEL(Device::CPU, OpType::GBMM, DataType::UInt32,
+                NaiveGBMM<uint32_t>, "GBMMNaive_CPU_uint32");
 
-REGISTER_KERNEL(Device::CPU, OpType::GBMML, DataType::Float32,
-                NaiveGBMML<float>, "GBMMLNaive_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::GBMM, DataType::Float32,
+                NaiveGBMM<float>, "GBMMNaive_CPU_float32");
 
 } // namespace infini

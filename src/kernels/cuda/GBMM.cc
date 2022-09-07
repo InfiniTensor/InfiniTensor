@@ -1,4 +1,4 @@
-#include "operators/GBMML.h"
+#include "operators/GBMM.h"
 #include "core/kernel.h"
 #include "cuda/cuda_runtime.h"
 #include "custom_ops.h"
@@ -8,9 +8,9 @@
 
 namespace infini {
 
-class GBMMLCudnn : public Kernel {
+class GBMMCudnn : public Kernel {
 
-    bool cuDNNCustomOp(const Ref<GBMMLObj> &op,
+    bool cuDNNCustomOp(const Ref<GBMMObj> &op,
                        const CudaRuntimeObj *context) const {
         float *const inAData = (op->getInputs(0)->getRawDataPtr<float *>());
         float *const inBData = (op->getInputs(1)->getRawDataPtr<float *>());
@@ -33,7 +33,7 @@ class GBMMLCudnn : public Kernel {
     PerfRecord tune(const Operator &_op,
                     const RuntimeObj *_context) const override {
         PerfRecord record;
-        auto op = as<GBMMLObj>(_op);
+        auto op = as<GBMMObj>(_op);
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
 
         record.time = std::numeric_limits<double>::max();
@@ -52,14 +52,14 @@ class GBMMLCudnn : public Kernel {
 
     void compute(const Operator &_op, const PerfRecord &_record,
                  const RuntimeObj *_context) const override {
-        auto op = as<GBMMLObj>(_op);
+        auto op = as<GBMMObj>(_op);
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         bool success = cuDNNCustomOp(op, context);
         IT_ASSERT(success);
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::GBMML, DataType::Float32, GBMMLCudnn,
-                "GBMML_cuDNN_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::GBMM, DataType::Float32, GBMMCudnn,
+                "GBMM_cuDNN_CUDA_Float32");
 
 } // namespace infini
