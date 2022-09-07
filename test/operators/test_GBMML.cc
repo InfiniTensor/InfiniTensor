@@ -25,14 +25,13 @@ TEST(GBMML, ShapeInference) {
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
     auto gCuda = make_ref<GraphObj>(cudaRuntime);
     auto ACuda = gCuda->cloneTensor(ACpu);
-    auto BCuda = gCuda->cloneTensor(BCpu);    
+    auto BCuda = gCuda->cloneTensor(BCpu);
     auto GBMML = gCuda->addOp<GBMMLObj>(ACuda, BCuda, nullptr, d);
     EXPECT_EQ(GBMML->getOutput()->getDims(),
               (Shape{bs * heads, seqlen, hiddenPerHead}));
 
     gCuda->dataMalloc();
     cudaRuntime->run(gCuda);
-
 }
 
-}
+} // namespace infini

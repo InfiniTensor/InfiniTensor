@@ -1,6 +1,6 @@
 #include "operators/G2BMM.h"
-#include "custom_ops.h"
 #include "core/kernel.h"
+#include "custom_ops.h"
 
 namespace infini {
 
@@ -8,7 +8,6 @@ template <typename T> class NaiveG2BMM : public Kernel {
     void compute(const Operator &_op, const PerfRecord &record,
                  const RuntimeObj *context) const override {
         auto op = as<G2BMMObj>(_op);
-        
     }
 
     void compute(const Operator &op, const RuntimeObj *context) const override {
@@ -27,4 +26,4 @@ REGISTER_KERNEL(Device::CPU, OpType::G2BMM, DataType::UInt32,
 REGISTER_KERNEL(Device::CPU, OpType::G2BMM, DataType::Float32,
                 NaiveG2BMM<float>, "G2BMMNaive_CPU_float32");
 
-}
+} // namespace infini
