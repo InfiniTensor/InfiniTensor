@@ -142,13 +142,8 @@ void TensorObj::copyData(const TensorObj *src) {
     runtime->copyBlob(this, src);
 }
 
-void TensorObj::load(std::string file_path) {
-    loadTensorData(this, file_path);
+void TensorObj::load(std::string file_path) { loadTensorData(this, file_path); }
 
-}
-
-void TensorObj::save(std::string file_path) {
-    saveTensorData(this, file_path);
-}
+void TensorObj::save(std::string file_path) { saveTensorData(this, file_path); }
 
 }; // namespace infini
