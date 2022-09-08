@@ -7,7 +7,7 @@ project(InfiniTensor C CXX)
 option(USE_CUDA "Support CUDA GPU" ON)
 option(USE_BACKTRACE "Print backtrace on exception and segmentation fault" ON)
 option(BUILD_TEST "Build tests" ON)
-option(CUDA_HOST_COMPILER "If the cuda require the gcc9 (replace environment virable with ur cuda host complier path)" ON)
+option(CUDA_HOST_COMPILER "Set cuda host compiler path" "")
 
 cmake_dependent_option(BUILD_TEST_CORE "Build tests for core components" ON BUILD_TEST OFF)
 cmake_dependent_option(BUILD_TEST_PET "Build tests for PET" OFF BUILD_TEST OFF)
@@ -68,11 +68,9 @@ if(USE_BACKTRACE)
   target_link_libraries(InfiniTensor dw)
 endif()
 
-if(CUDA_HOST_COMPILER)
-  set(CMAKE_CUDA_HOST_COMPILER /home/spack/spack/opt/spack/linux-ubuntu22.04-broadwell/gcc-9.4.0/gcc-9.4.0-st36klijpsnquihiy463hmedsyhoc3g6/bin/gcc)
-endif()
 
 if(USE_CUDA)
+  set(CMAKE_CUDA_HOST_COMPILER CUDA_HOST_COMPILER)
   enable_language(CUDA)
   # TODO: how to set option for CUDA_HOST_COMPILER. Now env var CUDAHOSTCXX=/home/spack/spack/opt/spack/linux-ubuntu22.04-broadwell/gcc-9.4.0/gcc-9.4.0-st36klijpsnquihiy463hmedsyhoc3g6/bin/gcc takes effect.
   # option(CUDA_HOST_COMPILER "" ${CMAKE_C_COMPILER})
