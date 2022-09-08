@@ -1,5 +1,4 @@
-# TODO: check the minimum cmake version
-cmake_minimum_required(VERSION 3.9) # Required by find_package(OpenMP)
+cmake_minimum_required(VERSION 3.10) # Required by CMAKE_CUDA_HOST_COMPILER
 include(CMakeDependentOption)
 project(InfiniTensor C CXX)
 
@@ -7,7 +6,6 @@ project(InfiniTensor C CXX)
 option(USE_CUDA "Support CUDA GPU" ON)
 option(USE_BACKTRACE "Print backtrace on exception and segmentation fault" ON)
 option(BUILD_TEST "Build tests" ON)
-option(CUDA_HOST_COMPILER "Set cuda host compiler path" "")
 
 cmake_dependent_option(BUILD_TEST_CORE "Build tests for core components" ON BUILD_TEST OFF)
 cmake_dependent_option(BUILD_TEST_PET "Build tests for PET" OFF BUILD_TEST OFF)
@@ -68,13 +66,13 @@ if(USE_BACKTRACE)
   target_link_libraries(InfiniTensor dw)
 endif()
 
-
 if(USE_CUDA)
-  set(CMAKE_CUDA_HOST_COMPILER CUDA_HOST_COMPILER)
+  # Since enable_language only executes once, rerun cmake is required if CMAKE_CUDA_HOST_COMPILER is wrong
+  set(CMAKE_CUDA_HOST_COMPILER
+      ${CMAKE_CXX_COMPILER}
+      CACHE STRING "Set cuda host compiler path")
   enable_language(CUDA)
-  # TODO: how to set option for CUDA_HOST_COMPILER. Now env var CUDAHOSTCXX=/home/spack/spack/opt/spack/linux-ubuntu22.04-broadwell/gcc-9.4.0/gcc-9.4.0-st36klijpsnquihiy463hmedsyhoc3g6/bin/gcc takes effect.
-  # option(CUDA_HOST_COMPILER "" ${CMAKE_C_COMPILER})
-  # TODO:  find_package seems unnecessary for CMake >= 3.8
+  # TODO: find_package seems unnecessary for CMake >= 3.8
   find_package(CUDA REQUIRED)
   # message("CUBLAS_LIBRARIES: ${CUDA_LIBRARIES}")
   target_link_libraries(InfiniTensor cudnn curand cublas ${CUDA_LIBRARIES})
