@@ -10,8 +10,8 @@ namespace infini {
 
 class GBMMCudnn : public Kernel {
 
-    bool cuDNNCustomOp(const Ref<GBMMObj> &op,
-                       const CudaRuntimeObj *context) const {
+    bool gbmmKernel(const Ref<GBMMObj> &op,
+                    const CudaRuntimeObj *context) const {
         float *const inAData = (op->getInputs(0)->getRawDataPtr<float *>());
         float *const inBData = (op->getInputs(1)->getRawDataPtr<float *>());
         if (op->getInputs().size() > 2)
@@ -40,7 +40,7 @@ class GBMMCudnn : public Kernel {
         const auto [warmupRounds, timingRounds] =
             op->getB() > 100 ? tuple{1, 3} : tuple{5, 15};
         double tmp =
-            timeit([&]() { cuDNNCustomOp(op, context); },
+            timeit([&]() { gbmmKernel(op, context); },
                    [&]() { context->sync(); }, warmupRounds, timingRounds);
         if (tmp < record.time)
             record.time = tmp;
@@ -54,7 +54,7 @@ class GBMMCudnn : public Kernel {
                  const RuntimeObj *_context) const override {
         auto op = as<GBMMObj>(_op);
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
-        bool success = cuDNNCustomOp(op, context);
+        bool success = gbmmKernel(op, context);
         IT_ASSERT(success);
     }
 };
