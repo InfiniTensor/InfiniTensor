@@ -15,7 +15,9 @@ TEST(Graph, build_and_run) {
     i0->copyData(vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
     w0->copyData(vector<float>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1});
     i0->save("i0.pb");
+    w0->printData();
     w0->load("i0.pb");
+    w0->printData();
 }
 
 } // namespace infini
