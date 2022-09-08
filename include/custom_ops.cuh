@@ -19,7 +19,7 @@ using uint64_t = unsigned long long;
 #define uint64_t unsigned long long
 #endif
 
-inline __global__ void __launch_bounds__(58)
+__global__ void __launch_bounds__(58)
     sg2bmm_bs1_n10000_m64_w1000_d1_kernel0(float *__restrict__ q,
                                            float *__restrict__ k,
                                            float *__restrict__ SG2BMM) {
@@ -3243,7 +3243,7 @@ inline __global__ void __launch_bounds__(58)
     }
 }
 
-inline __global__ void __launch_bounds__(276)
+__global__ void __launch_bounds__(276)
     sg2bmm_bs1_n10000_m64_w1000_d4_kernel0(float *__restrict__ q,
                                            float *__restrict__ k,
                                            float *__restrict__ SG2BMM) {
@@ -3535,7 +3535,7 @@ inline __global__ void __launch_bounds__(276)
     }
 }
 
-inline __global__ void __launch_bounds__(256)
+__global__ void __launch_bounds__(256)
     gbmml_bs1_n10000_m64_w1000_d1_kernel0(float *__restrict__ prob,
                                           float *__restrict__ q,
                                           float *__restrict__ G2BMM) {
@@ -5124,7 +5124,7 @@ inline __global__ void __launch_bounds__(256)
     }
 }
 
-inline __global__ void __launch_bounds__(320)
+__global__ void __launch_bounds__(320)
     gbmml_bs1_n10000_m64_w1000_d4_kernel0(float *__restrict__ prob,
                                           float *__restrict__ q,
                                           float *__restrict__ G2BMM) {
