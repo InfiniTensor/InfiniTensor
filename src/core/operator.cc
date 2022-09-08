@@ -19,7 +19,7 @@ bool OperatorObj::isConcatOp() const { return type == OpType::Concat; }
 bool OperatorObj::isComputeOp() const {
     return type == OpType::Conv || type == OpType::Matmul ||
            type == OpType::ConvTrans || type == OpType::G2BMM ||
-           type == OpType::GBMML;
+           type == OpType::GBMM;
 }
 
 bool OperatorObj::isTransposeOp() const { return type == OpType::Transpose; }
@@ -53,6 +53,7 @@ bool OperatorObj::checkValid(GraphObj *graph) {
     auto optShapes = inferShape();
     if (!optShapes) // shape inference failed
         return false;
+
     const vector<Shape> &shapes = *optShapes;
     if (shapes.size() != outputs.size())
         return false;

@@ -1,5 +1,4 @@
-# TODO: check the minimum cmake version
-cmake_minimum_required(VERSION 3.9) # Required by find_package(OpenMP)
+cmake_minimum_required(VERSION 3.10) # Required by CMAKE_CUDA_HOST_COMPILER
 include(CMakeDependentOption)
 project(InfiniTensor C CXX)
 
@@ -16,6 +15,7 @@ set(DEFAULT_BUILD_TYPE "RelWithDebInfo")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF) # -std=gnu++11 when on, -std=c++11 when off
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Werror -Wno-error=deprecated-declarations")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -UNDEBUG") # Enable assertion
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -UNDEBUG") # Enable assertion
@@ -67,11 +67,12 @@ if(USE_BACKTRACE)
 endif()
 
 if(USE_CUDA)
-  # set(CUDA_HOST_COMPILER /home/spack/spack/opt/spack/linux-ubuntu22.04-broadwell/gcc-9.4.0/gcc-9.4.0-st36klijpsnquihiy463hmedsyhoc3g6/bin/gcc)
+  # Since enable_language only executes once, rerun cmake is required if CMAKE_CUDA_HOST_COMPILER is wrong
+  set(CMAKE_CUDA_HOST_COMPILER
+      ${CMAKE_CXX_COMPILER}
+      CACHE STRING "Set cuda host compiler path")
   enable_language(CUDA)
-  # TODO: how to set option for CUDA_HOST_COMPILER. Now env var CUDAHOSTCXX=/home/spack/spack/opt/spack/linux-ubuntu22.04-broadwell/gcc-9.4.0/gcc-9.4.0-st36klijpsnquihiy463hmedsyhoc3g6/bin/gcc takes effect.
-  # option(CUDA_HOST_COMPILER "" ${CMAKE_C_COMPILER})
-  # TODO:  find_package seems unnecessary for CMake >= 3.8
+  # TODO: find_package seems unnecessary for CMake >= 3.8
   find_package(CUDA REQUIRED)
   # message("CUBLAS_LIBRARIES: ${CUDA_LIBRARIES}")
   target_link_libraries(InfiniTensor cudnn curand cublas ${CUDA_LIBRARIES})
