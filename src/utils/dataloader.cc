@@ -13,16 +13,19 @@ void saveTensorData(TensorObj *tensor, std::string file_path) {
         temp.add_shape(tensor->getDims()[i]);
     }
     temp.set_layout(data::LAYOUT_NHWC);
-    if(tensor->getDType() == DataType::Float32) {
-    temp.set_dtype(data::DTYPE_FLOAT);
-    for (size_t i = 0; i < tensor->size(); ++i) {
-        temp.add_data_float((tensor->getDataBlob()->getPtr<float *>())[i]);
-    }else if(tensor->getDType() == DataType::UInt32) {
-      temp.set_dtype(data::DTYPE_UINT32);
-    for (size_t i = 0; i < tensor->size(); ++i) {
-        temp.add_data_uint32((tensor->getDataBlob()->getPtr<uint32_t *>())[i]);
+    if (tensor->getDType() == DataType::Float32) {
+        temp.set_dtype(data::DTYPE_FLOAT);
+        for (size_t i = 0; i < tensor->size(); ++i) {
+            temp.add_data_float((tensor->getDataBlob()->getPtr<float *>())[i]);
+        }
+    } else if (tensor->getDType() == DataType::UInt32) {
+        temp.set_dtype(data::DTYPE_UINT32);
+        for (size_t i = 0; i < tensor->size(); ++i) {
+            temp.add_data_uint32(
+                (tensor->getDataBlob()->getPtr<uint32_t *>())[i]);
+        }
     }
-    }
+
     std::ofstream fileout(file_path,
                           std::ios::out | std::ios::trunc | std::ios::binary);
     bool flag = temp.SerializeToOstream(&fileout);
@@ -40,20 +43,19 @@ void loadTensorData(TensorObj *tensor, std::string file_path) {
         std::cout << "Failed to read file " + file_path << std::endl;
     }
 
-    if(tensor->getDType() == DataType::Float32){
-      std::vector<float> data_temp;
-      for (int i = 0; i < temp.data_float_size(); ++i) {
-        data_temp.push_back(temp.data_float(i));
-      }
-      tensor->copyData(data_temp);
-    } else if(tensor->getDType() == DataType::UInt32) {
-      std::vector<uint32_t> data_temp;
-      for (int i = 0; i < temp.data_int32_size(); ++i) {
-        data_temp.push_back(temp.data_int32(i));
-      }
-      tensor->copyData(data_temp);
+    if (tensor->getDType() == DataType::Float32) {
+        std::vector<float> data_temp;
+        for (int i = 0; i < temp.data_float_size(); ++i) {
+            data_temp.push_back(temp.data_float(i));
+        }
+        tensor->copyData(data_temp);
+    } else if (tensor->getDType() == DataType::UInt32) {
+        std::vector<uint32_t> data_temp;
+        for (int i = 0; i < temp.data_uint32_size(); ++i) {
+            data_temp.push_back(temp.data_uint32(i));
+        }
+        tensor->copyData(data_temp);
     }
-
 
     filein.close();
 }
