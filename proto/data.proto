@@ -40,5 +40,6 @@ message Tensor
   required TensorLayout layout = 3 [default = LAYOUT_ARRAY];
   required DataType dtype = 4 [default = DTYPE_FLOAT];
   repeated float data_float = 5;
+  repeated int32 data_int32 = 6;
 
 }
