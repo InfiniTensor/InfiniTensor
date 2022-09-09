@@ -74,6 +74,8 @@ class TensorObj : public TensorBaseObj {
         return equalDataImpl(getRawDataPtr<T *>(), dataVector.data(), size());
     }
 
+    size_t getOffsetByBroadcastOffset(size_t bcOffset, Shape bcShape) const;
+
   private:
     void printDataFloat() const;
     void printDataUint32_t() const;
@@ -95,6 +97,10 @@ class TensorObj : public TensorBaseObj {
         }
         return true;
     }
+
+    Shape getPosByOffset(size_t offset, Shape dim) const;
+    size_t getOffsetByPos(Shape pos, Shape dim) const;
+
     // void setDims(const Dim &dms) { dims = dms; }
 
     //     bool dataRand(int seed = 0) {

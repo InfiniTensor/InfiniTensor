@@ -146,4 +146,35 @@ void TensorObj::load(std::string file_path) { loadTensorData(this, file_path); }
 
 void TensorObj::save(std::string file_path) { saveTensorData(this, file_path); }
 
+Shape TensorObj::getPosByOffset(size_t offset, Shape dim) const {
+    Shape pos = dim;
+    for (int i = dim.size() - 1; i >= 0; i--) {
+        pos[i] = offset % dim.at(i);
+        offset = (offset - pos[i]) / dim.at(i);
+    }
+    return pos;
+}
+
+size_t TensorObj::getOffsetByPos(Shape pos, Shape dim) const {
+    int n = dim.size();
+    size_t offset = pos.at(0);
+    for (auto i = 1; i < n; i++) {
+        offset = offset * dim.at(i) + pos.at(i);
+    }
+    return offset;
+}
+
+size_t TensorObj::getOffsetByBroadcastOffset(size_t bcOffset,
+                                             Shape bcDim) const {
+    Shape bcPos = getPosByOffset(bcOffset, bcDim);
+
+    Shape pos = bcPos;
+    int n = shape.size();
+    for (auto i = 0; i < n; i++) {
+        if (shape.at(i) == 1)
+            pos[i] = 0;
+    }
+    return getOffsetByPos(pos, shape);
+}
+
 }; // namespace infini

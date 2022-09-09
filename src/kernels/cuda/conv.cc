@@ -244,7 +244,6 @@ class convCudnn : public Kernel {
                 // Update the tune result
                 if (ret.time > record.time)
                     ret = record;
-
                 checkCudnnError(cudnnDestroyTensorDescriptor(outDesc));
                 checkCudnnError(cudnnDestroyActivationDescriptor(actDesc));
                 checkCudnnError(cudnnDestroyConvolutionDescriptor(convDesc));
