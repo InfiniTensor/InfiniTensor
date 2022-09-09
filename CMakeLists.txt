@@ -73,7 +73,6 @@ file(GLOB_RECURSE SRC src/*.cc src/*.cu)
 
 add_library(InfiniTensor SHARED ${SRC})
 target_link_libraries(InfiniTensor tensor_proto)
-target_link_options(InfiniTensor PUBLIC "-pthread")
 
 if(USE_BACKTRACE)
   add_definitions(-D BACKWARD_TRACE)

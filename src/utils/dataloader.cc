@@ -9,13 +9,14 @@ namespace infini {
 void saveTensorData(TensorObj *tensor, std::string file_path) {
     data::Tensor temp;
     temp.set_id("tensor_id");
-    temp.mutable_shape()->CopyFrom(
-        {tensor->getDims().begin(), tensor->getDims().end()});
+    for (size_t i = 0; i < tensor->getDims().size(); ++i) {
+        temp.add_shape(tensor->getDims()[i]);
+    }
     temp.set_layout(data::LAYOUT_NHWC);
     temp.set_dtype(data::DTYPE_FLOAT);
-    temp.mutable_data_float()->CopyFrom(
-        {tensor->getDataBlob()->getPtr<float *>(),
-         tensor->getDataBlob()->getPtr<float *>() + tensor->size()});
+    for (size_t i = 0; i < tensor->size(); ++i) {
+        temp.add_data_float((tensor->getDataBlob()->getPtr<float *>())[i]);
+    }
     std::ofstream fileout(file_path,
                           std::ios::out | std::ios::trunc | std::ios::binary);
     bool flag = temp.SerializeToOstream(&fileout);

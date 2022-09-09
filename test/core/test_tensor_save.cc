@@ -18,6 +18,7 @@ TEST(Graph, build_and_run) {
     w0->printData();
     w0->load("i0.pb");
     w0->printData();
+    EXPECT_TRUE(w0->equalData(i0));
 }
 
 } // namespace infini
