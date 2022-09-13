@@ -1,0 +1,45 @@
+syntax = "proto2";
+package data;
+
+enum TensorLayout {
+  LAYOUT_NCHW  = 1;
+  LAYOUT_NHWC  = 2;
+  LAYOUT_HWCN  = 3;
+  LAYOUT_NDHWC = 4;
+  LAYOUT_ARRAY = 5;
+  LAYOUT_TNC   = 6;
+  LAYOUT_NTC   = 7;
+  LAYOUT_NCDHW = 8;
+  LAYOUT_NC    = 9;
+  LAYOUT_NLC   = 10; 
+}
+
+enum DataType {
+  DTYPE_HALF  = 1;
+  DTYPE_FLOAT = 2;
+  DTYPE_INT8  = 3;
+  DTYPE_INT16 = 4;
+  DTYPE_INT31 = 5;
+  DTYPE_INT32 = 6;
+  DTYPE_INT64 = 7; 
+  DTYPE_BFLOAT16 = 8;
+  DTYPE_DOUBLE   = 9;
+  DTYPE_UINT8    = 10;
+  DTYPE_UINT16   = 11; 
+  DTYPE_UINT32   = 12; 
+  DTYPE_UINT64   = 13; 
+  DTYPE_BOOL     = 14; 
+  DTYPE_INVALID = 15; 
+}
+
+
+message Tensor 
+{
+  required string id = 1;
+  repeated int32 shape = 2;
+  required TensorLayout layout = 3 [default = LAYOUT_ARRAY];
+  required DataType dtype = 4 [default = DTYPE_FLOAT];
+  repeated float data_float = 5;
+  repeated int32 data_uint32 = 6;
+
+}

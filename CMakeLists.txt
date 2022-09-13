@@ -5,6 +5,7 @@ project(InfiniTensor C CXX)
 # Do not change these options in this file. Use cmake.config, cmake -DOPTION=VALUE, or ccmake to specify them.
 option(USE_CUDA "Support CUDA GPU" ON)
 option(USE_BACKTRACE "Print backtrace on exception and segmentation fault" ON)
+option(USE_PROTOBUF "Serialize and deserialize tensors" ON)
 option(BUILD_TEST "Build tests" ON)
 
 cmake_dependent_option(BUILD_TEST_CORE "Build tests for core components" ON BUILD_TEST OFF)
@@ -32,6 +33,24 @@ endif()
 if(OpenMP_CXX_FOUND)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
+#Protobuf
+if(USE_PROTOBUF)
+  add_definitions(-D TENSOR_PROTOBUF)
+  find_package(Protobuf REQUIRED)
+  message(STATUS "protobuf include: " ${PROTOBUF_INCLUDE_DIRS})
+  message(STATUS "protobuf libraries: " ${PROTOBUF_LIBRARIES})
+  message(STATUS "protoc executable: " ${PROTOBUF_PROTOC_EXECUTABLE})
+  include_directories(${PROTOBUF_INCLUDE_DIR})
+  include_directories(${CMAKE_CURRENT_BINARY_DIR})
+  set(PROTO_PATH "${CMAKE_CURRENT_SOURCE_DIR}/proto")
+  file(GLOB PROTO_FILES "${PROTO_PATH}/data.proto")
+  protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
+  message(${PROTO_SRCS} "-----------" ${PROTO_FILES})
+  message(${PROTO_HDRS} "-----------" ${PROTO_FILES})
+  add_library(tensor_proto SHARED ${PROTO_SRCS} ${PROTO_HDRS})
+  target_link_libraries(tensor_proto PUBLIC ${PROTOBUF_LIBRARIES})
+endif()
+
 
 include_directories(include)
 
@@ -57,6 +76,9 @@ endif()
 file(GLOB_RECURSE SRC src/*.cc src/*.cu)
 
 add_library(InfiniTensor SHARED ${SRC})
+if(USE_PROTOBUF)
+  target_link_libraries(InfiniTensor tensor_proto)
+endif()
 
 if(USE_BACKTRACE)
   add_definitions(-D BACKWARD_TRACE)

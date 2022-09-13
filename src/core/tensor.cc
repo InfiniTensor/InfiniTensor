@@ -1,6 +1,7 @@
 #include "core/tensor.h"
 #include "core/blob.h"
 #include "core/runtime.h"
+#include "utils/dataloader.h"
 
 namespace infini {
 
@@ -140,6 +141,10 @@ void TensorObj::copyData(const TensorObj *src) {
     IT_ASSERT(size() == src->size());
     runtime->copyBlob(this, src);
 }
+
+void TensorObj::load(std::string file_path) { loadTensorData(this, file_path); }
+
+void TensorObj::save(std::string file_path) { saveTensorData(this, file_path); }
 
 Shape TensorObj::getPosByOffset(size_t offset, Shape dim) const {
     Shape pos = dim;
