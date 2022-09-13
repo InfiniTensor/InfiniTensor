@@ -1,12 +1,15 @@
 #include "utils/dataloader.h"
 #include "core/runtime.h"
 #include "core/tensor.h"
+#ifdef TENSOR_PROTOBUF
 #include "data.pb.h"
+#endif
 #include <fstream>
 
 namespace infini {
 
 void saveTensorData(TensorObj *tensor, std::string file_path) {
+#ifdef TENSOR_PROTOBUF
     data::Tensor temp;
     temp.set_id("tensor_id");
     for (size_t i = 0; i < tensor->getDims().size(); ++i) {
@@ -35,9 +38,15 @@ void saveTensorData(TensorObj *tensor, std::string file_path) {
         std::cout << "Failed to write file " + file_path << std::endl;
     }
     fileout.close();
+#else
+    std::cout << "If you want to use this feature, please turn on USE_PROTOBUF "
+                 "option in the cmake file."
+              << std::endl;
+#endif
 }
 
 void loadTensorData(TensorObj *tensor, std::string file_path) {
+#ifdef TENSOR_PROTOBUF
     data::Tensor temp;
     std::ifstream filein(file_path, std::ios::in | std::ios::binary);
     bool flag = temp.ParseFromIstream(&filein);
@@ -62,6 +71,11 @@ void loadTensorData(TensorObj *tensor, std::string file_path) {
     }
 
     filein.close();
+#else
+    std::cout << "If you want to use this feature, please turn on USE_PROTOBUF "
+                 "option in the cmake file."
+              << std::endl;
+#endif
 }
 
 }; // namespace infini
