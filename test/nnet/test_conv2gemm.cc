@@ -147,7 +147,7 @@ TEST(Conv2gemm, timing_NHWC_RSFC_search) {
 
 // Conv2gemm requires thorough update, this is disabled temporarily
 TEST(Conv2gemm, CheckCorrectness) {
-    const string fnPrefix = "../test/log/conv2gemm/Conv2gemm_NCHW_RSFC_";
+    const string fnPrefix = "../test/nnet/log/conv2gemm/Conv2gemm_NCHW_RSFC_";
     // conv2gemm_7 has T3
     EXPECT_TRUE(checkExprLogSame(fnPrefix, 0, 7));
 }
@@ -182,7 +182,7 @@ TEST(Conv2gemm, NCHW_RSFC_search) {
 
     ASSERT_GE(derivator.getNumCandidates(), 1);
     int nMatches = matchExprResult(
-        derivator, "../test/log/conv2gemm/Conv2gemm_NCHW_RSFC_11.expr");
+        derivator, "../test/nnet/log/conv2gemm/Conv2gemm_NCHW_RSFC_11.expr");
     EXPECT_GE(nMatches, 1);
     // derivator.print();
     derivator.printStatistics();
@@ -277,6 +277,7 @@ TEST(Conv2gemm1x7, NCHW_FCRS_search) {
 
     ASSERT_GE(derivator.getNumCandidates(), 1);
     int nMatches = matchExprResult(
-        derivator, "../test/log/conv2gemm_1x7/Conv2gemm_1x7_NCHW_FCRS_11.expr");
+        derivator,
+        "../test/nnet/log/conv2gemm_1x7/Conv2gemm_1x7_NCHW_FCRS_11.expr");
     EXPECT_GE(nMatches, 1);
 }

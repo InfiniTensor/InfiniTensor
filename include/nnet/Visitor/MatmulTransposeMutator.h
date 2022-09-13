@@ -12,7 +12,7 @@ class MatmulTransposeMutator : public Mutator {
     VecExpr transpose(const Tensor &tensor);
 
   private:
-    Tensor transposeInput(const Tensor &tensor);
+    optional<Tensor> transposeInput(const Tensor &tensor);
 };
 
 } // namespace nnet
