@@ -6,7 +6,7 @@
 
 namespace infini {
 
-TEST(Graph, build_and_run) {
+TEST(Prtotbuf, save_and_load) {
     Runtime runtime = CpuRuntimeObj::getInstance();
     Graph g = make_ref<GraphObj>(runtime);
     Tensor i0 = g->addTensor({1, 3, 4}, DataType::Float32);

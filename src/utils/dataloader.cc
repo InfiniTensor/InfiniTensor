@@ -24,6 +24,8 @@ void saveTensorData(TensorObj *tensor, std::string file_path) {
             temp.add_data_uint32(
                 (tensor->getDataBlob()->getPtr<uint32_t *>())[i]);
         }
+    } else {
+        IT_TODO_HALT();
     }
 
     std::ofstream fileout(file_path,
@@ -55,6 +57,8 @@ void loadTensorData(TensorObj *tensor, std::string file_path) {
             data_temp.push_back(temp.data_uint32(i));
         }
         tensor->copyData(data_temp);
+    } else {
+        IT_TODO_HALT();
     }
 
     filein.close();
