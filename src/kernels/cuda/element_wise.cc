@@ -78,7 +78,19 @@ class MulCudnn : public ElementWiseCudnn {
 class ElementWiseCuda : public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
-        element_wise_kernel(_op);
+        auto op = as<ElementWiseObj>(_op);
+        float *const aData = (op->getInputs(0)->getRawDataPtr<float *>());
+        float *const bData = (op->getInputs(1)->getRawDataPtr<float *>());
+        float *const cData = (op->getOutput()->getRawDataPtr<float *>());
+
+        auto dim = op->getInputs(0)->getDims();
+        int n = dim[0], c = dim[1], h = dim[2], w = dim[3];
+        if (op->getOpType() == OpType::Div)
+            div_kernel(aData, bData, cData, n * c * h * w);
+        else if (op->getOpType() == OpType::Pow)
+            pow_kernel(aData, bData, cData, n * c * h * w);
+        else
+            IT_TODO_HALT();
     }
 };
 
