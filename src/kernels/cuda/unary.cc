@@ -1,7 +1,7 @@
 #include "operators/unary.h"
 #include "core/kernel.h"
-#include "cuda/cuda_unary.h"
 #include "cuda/cuda_runtime.h"
+#include "cuda/cuda_unary.h"
 
 namespace infini {
 

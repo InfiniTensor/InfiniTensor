@@ -12,9 +12,8 @@ namespace infini {
 using ExpectOutput = vector<float>;
 
 template <class T>
-void testUnary(
-    const std::function<void(void *, size_t, DataType)> &generator,
-    const Shape &shape) {
+void testUnary(const std::function<void(void *, size_t, DataType)> &generator,
+               const Shape &shape) {
     // Runtime
     Runtime cpuRuntime = CpuRuntimeObj::getInstance();
     auto cudaRuntime = make_ref<CudaRuntimeObj>();

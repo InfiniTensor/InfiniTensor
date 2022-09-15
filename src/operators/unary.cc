@@ -6,8 +6,7 @@ UnaryObj::UnaryObj(OpType type, GraphObj *graph, Tensor input, Tensor output)
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>>
-UnaryObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> UnaryObj::inferShape(const TensorVec &inputs) const {
     const auto A = inputs[0];
     return {{A->getDims()}};
 }
