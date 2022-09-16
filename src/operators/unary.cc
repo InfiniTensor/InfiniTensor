@@ -21,10 +21,10 @@ std::string UnaryObj::toString() const {
     return os.str();
 }
 
-// use output dim or inputs dim?
 vector<int> UnaryObj::getWorkloadVector() const {
-    vector<int> ret = outputs[0]->getDims();
-    ret.emplace(ret.begin(), enum_to_underlying(type));
+    vector<int> ret{enum_to_underlying(type)};
+    const Shape shape = outputs[0]->getDims();
+    ret.insert(ret.end(), shape.begin(), shape.end());
     return ret;
 }
 

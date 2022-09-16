@@ -68,9 +68,9 @@ class ActivationCudnn : public Kernel {
 
         // Destories in CUDA does not require sync. But cuDNN does not state
         // whether sync is required before destories.
-        checkCudnnError(cudnnDestroyTensorDescriptor(inputDesc));
-        checkCudnnError(cudnnDestroyTensorDescriptor(outputDesc));
         checkCudnnError(cudnnDestroyActivationDescriptor(activationDesc));
+        checkCudnnError(cudnnDestroyTensorDescriptor(outputDesc));
+        checkCudnnError(cudnnDestroyTensorDescriptor(inputDesc));
     }
 
     void compute(const Operator &_op,

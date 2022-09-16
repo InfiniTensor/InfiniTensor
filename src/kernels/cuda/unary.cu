@@ -1,15 +1,17 @@
-#include "cuda/cuda_common.h"
 #include "core/common.h"
+#include "core/constants.h"
+#include "cuda/cuda_common.h"
 #include <math.h>
 
+using infini::E_CONSTANT;
 constexpr unsigned int num_threads() { return 32 * 4; }
 constexpr int thread_work_size() { return 4; }
 constexpr int block_work_size() { return thread_work_size() * num_threads(); }
 
 __global__ void _softmax_kernel1(float *input, float *output, int n) {
     float sum = 0.0f;
-    for(size_t i = 0; i < n; ++i) {
-        sum += pow(E_CONSTANT, input[i]); 
+    for (size_t i = 0; i < n; ++i) {
+        sum += pow(E_CONSTANT, input[i]);
     }
     *output = sum;
 }
@@ -43,7 +45,8 @@ __global__ void _tanh_kernel(float *input, float *output, int n) {
     int index = threadIdx.x + blockIdx.x * blockDim.x;
     int stride = blockDim.x * gridDim.x;
     for (int i = index; i < n; i += stride) {
-        output[i] = (pow(E_CONSTANT, input[i]) - pow(E_CONSTANT, -input[i])) / (pow(E_CONSTANT, input[i]) + pow(E_CONSTANT, -input[i]));
+        output[i] = (pow(E_CONSTANT, input[i]) - pow(E_CONSTANT, -input[i])) /
+                    (pow(E_CONSTANT, input[i]) + pow(E_CONSTANT, -input[i]));
     }
 }
 

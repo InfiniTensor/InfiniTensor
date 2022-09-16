@@ -52,7 +52,6 @@ using HashType = uint64_t; // compatible with std::hash
 #define IT_TODO_HALT_MSG(msg) _IT_ASSERT_2(false, msg)
 #define IT_TODO_SKIP() puts("Unimplemented " __FILE__ ":" __LINE__)
 
-#define E_CONSTANT 2.718281828459
 // Other utilities
 
 // std::to_underlying is avaiable since C++23
