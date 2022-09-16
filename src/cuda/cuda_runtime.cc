@@ -23,23 +23,23 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
             continue;
         }
 
-        PerfRecord record;
+        PerfRecord* record;
         if (!perfData) {
             record = kernel->tune(op, this);
-            // auto record_ = dynamic_cast<const ConvCuDnnPerfRecord &>(tmp);
-            perfEngine.setPerfData(perfKey, record);
-            // json j;
-            // j["233"] = record_.to_json();
-            // std::cout << j << std::endl;
+            auto record_ = dynamic_cast<ConvCuDnnPerfRecord *>(record);
+            perfEngine.setPerfData(perfKey, *record);
+            json j;
+            j["233"] = record_->to_json();
+            std::cout << j << std::endl;
         } else
-            record = *perfData;
+            *record = *perfData;
 
         double t = record->time;
         totalTime += t;
         json j;
     
         if (profiling) {
-            double t = timeit([&]() { kernel->compute(op, record, this); },
+            double t = timeit([&]() { kernel->compute(op, *record, this); },
                               [&]() { sync(); }, 1, 1);
             op->print();
             printf(" op_time on cuda %lf\n", t);

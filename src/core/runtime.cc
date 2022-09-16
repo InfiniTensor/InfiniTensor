@@ -30,21 +30,21 @@ void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
         }
 
         // TODO: The copy of record should be eliminated
-        PerfRecord record;
+        PerfRecord* record;
         // Tune the kernel if there is no record
         if (!perfData) {
             // TODO: record is not used
             // printf("no record data\n");
             record = kernel->tune(op, this);
-            perfEngine.setPerfData(perfKey, record);
+            perfEngine.setPerfData(perfKey, *record);
         } else
-            record = *perfData;
+            *record = *perfData;
 
         if (!profiling) {
-            kernel->compute(op, record, this);
+            kernel->compute(op, *record, this);
             continue;
         } else {
-            double t = timeit([&]() { kernel->compute(op, record, this); },
+            double t = timeit([&]() { kernel->compute(op, *record, this); },
                               []() {}, 1, 1);
             op->print();
             printf(" op_time %lf\n", t);
@@ -71,13 +71,13 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling) const {
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
         std::optional<PerfRecord> perfData = perfEngine.getPerfData(perfKey);
 
-        PerfRecord record;
+        PerfRecord* record;
         // Tune the kernel if there is no record
         if (!perfData) {
             record = kernel->tune(op, this);
-            perfEngine.setPerfData(perfKey, record);
+            perfEngine.setPerfData(perfKey, *record);
         } else
-            record = *perfData;
+            *record = *perfData;
 
         double t = record->time;
         totalTime += t;

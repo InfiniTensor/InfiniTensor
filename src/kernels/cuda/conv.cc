@@ -209,10 +209,15 @@ class convCudnn : public Kernel {
         compute(op, record, context);
     }
 
-    PerfRecord tune(const Operator &_op,
+    PerfRecord* tune(const Operator &_op,
                     const RuntimeObj *_context) const override {
+<<<<<<< HEAD
         ConvCuDnnPerfRecordObj ret;
         ret.time = std::numeric_limits<double>::max();
+=======
+        ConvCuDnnPerfRecord* ret = new ConvCuDnnPerfRecord();
+        ret->time = std::numeric_limits<double>::max();
+>>>>>>> bc7bd0b (modify tune func type to supp derived struct serilization.)
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         auto op = as<ConvObj>(_op);
         // Both modes have the same performance. Only run cross-correlation.
@@ -256,8 +261,8 @@ class convCudnn : public Kernel {
                 // printf("mode:%d algo:%d :%.8lf\n", mode, algo, record.time);
 
                 // Update the tune result
-                if (ret.time > record.time)
-                    ret = record;
+                if (ret->time > record.time)
+                    *ret = record;
                 checkCudnnError(cudnnDestroyTensorDescriptor(outDesc));
                 checkCudnnError(cudnnDestroyActivationDescriptor(actDesc));
                 checkCudnnError(cudnnDestroyConvolutionDescriptor(convDesc));
@@ -268,10 +273,14 @@ class convCudnn : public Kernel {
         }
         // printf("the best algo is %d, the best conv mode is %d\n", ret.algo,
         //        ret.mode);
-        IT_ASSERT(ret.time < std::numeric_limits<double>::max(), "No valid "
+        IT_ASSERT(ret->time < std::numeric_limits<double>::max(), "No valid "
                                                                  "algorithm "
                                                                  "found");
+<<<<<<< HEAD
         return make_ref<ConvCuDnnPerfRecordObj>(ret);
+=======
+        return ret;
+>>>>>>> bc7bd0b (modify tune func type to supp derived struct serilization.)
     }
 
     void compute(const Operator &_op, const PerfRecord &_record,

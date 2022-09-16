@@ -44,7 +44,7 @@ class Kernel {
     virtual void compute(const Operator &op,
                          const RuntimeObj *context) const = 0;
     // Premise: op is idempotent since it is called multiple times.
-    virtual PerfRecord tune(const Operator &op,
+    virtual PerfRecord* tune(const Operator &op,
                             const RuntimeObj *context) const = 0;
 };
 
