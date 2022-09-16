@@ -9,8 +9,6 @@
 
 namespace infini {
 
-using ExpectOutput = vector<float>;
-
 template <class T>
 void testUnary(const std::function<void(void *, size_t, DataType)> &generator,
                const Shape &shape) {
@@ -19,26 +17,26 @@ void testUnary(const std::function<void(void *, size_t, DataType)> &generator,
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
 
     // Build input data on CPU
-    Tensor inputcpu = make_ref<TensorObj>(shape, DataType::Float32, cpuRuntime);
-    inputcpu->dataMalloc();
-    inputcpu->setData(generator);
+    Tensor inputCpu = make_ref<TensorObj>(shape, DataType::Float32, cpuRuntime);
+    inputCpu->dataMalloc();
+    inputCpu->setData(generator);
 
     // GPU
-    Graph cuda_g = make_ref<GraphObj>(cudaRuntime);
-    auto inputgpu = cuda_g->cloneTensor(inputcpu);
-    auto gpu_op = cuda_g->addOp<T>(inputgpu, nullptr);
-    cuda_g->dataMalloc();
-    cudaRuntime->run(cuda_g);
-    auto outputgpu = gpu_op->getOutput();
-    auto outputgpu2cpu = outputgpu->clone(cpuRuntime);
+    Graph cudaGraph = make_ref<GraphObj>(cudaRuntime);
+    auto inputGpu = cudaGraph->cloneTensor(inputCpu);
+    auto gpuOp = cudaGraph->addOp<T>(inputGpu, nullptr);
+    cudaGraph->dataMalloc();
+    cudaRuntime->run(cudaGraph);
+    auto outputGpu = gpuOp->getOutput();
+    auto outputGpu2Cpu = outputGpu->clone(cpuRuntime);
     // CPU
-    Graph cpu_g = make_ref<GraphObj>(cpuRuntime);
-    auto cpu_op = cpu_g->addOp<T>(inputcpu, nullptr);
-    cpu_g->dataMalloc();
-    cpuRuntime->run(cpu_g);
-    auto outputcpu = cpu_op->getOutput();
+    Graph cpuGraph = make_ref<GraphObj>(cpuRuntime);
+    auto cpuOp = cpuGraph->addOp<T>(inputCpu, nullptr);
+    cpuGraph->dataMalloc();
+    cpuRuntime->run(cpuGraph);
+    auto outputCpu = cpuOp->getOutput();
     // Check
-    EXPECT_TRUE(outputcpu->equalData(outputgpu2cpu));
+    EXPECT_TRUE(outputCpu->equalData(outputGpu2Cpu));
 }
 
 TEST(Unary, CuDNN) {
