@@ -35,6 +35,17 @@ class PerfEngine {
         IT_ASSERT(data.find(key) == data.end(), "Perf data already exist");
         data.emplace(key, record);
     }
+
+    map<Key, PerfRecord> get_data() { return data;}
+    void set_data(map<Key, PerfRecord> data) {this->data = data; }
 };
+void to_json(json& j, const OpPerfKey& p);
+void from_json(const json& j, OpPerfKey &p);
+void to_json(json& j,const DataType &p);
+void from_json(const json& j, DataType &p);
+void to_json(json& j, const PerfEngine &p);
+void from_json(const json& j, PerfEngine &p);
+void to_json(json& j, const PerfRecord& p);
+void from_json(const json& j, PerfRecord& p);
 
 } // namespace infini

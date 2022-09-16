@@ -13,6 +13,9 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
+using json = nlohmann::json;
 
 namespace infini {
 using std::list;

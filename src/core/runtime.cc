@@ -138,4 +138,47 @@ void CpuRuntimeObj::copyBlobInsideRuntime(void *dst, void *src,
     memcpy(dst, src, bytes);
 }
 
+void to_json(json& j, const OpPerfKey& p)
+{
+    j = json{{"hashType",p.hash}, {"opType",p.opType}, {"attrs",p.attrs}};
+}
+void from_json(const json& j,OpPerfKey &p)
+{
+    j.at("hashType").get_to(p.hash);
+    j.at("opType").get_to(p.opType);
+    j.at("attrs").get_to(p.attrs);
+}
+void to_json(json& j,const DataType &p)
+{
+    int x = p.toString() == "Float32"? 0:1;
+    j = json{{"index", x}};
+}
+void from_json(const json&j, DataType &p)
+{
+    int x;
+    j.at("index").get_to(x);
+    p = DataType(x);
+}
+
+void to_json(json& j,const PerfRecord& p) {
+    PerfRecord* t =(PerfRecord *) &p;
+    auto t1= dynamic_cast<ConvCuDnnPerfRecord*>(t);
+    ConvCuDnnPerfRecord s;
+
+    if(t1 != nullptr)
+        j = t1->to_json();
+    else j = s.to_json();
+}
+void from_json(const json& j, PerfRecord& p) {
+    p.from_json(j);
+}
+void to_json(json& j, const PerfEngine &p) {
+    PerfEngine t = p;
+    j["data"] = t.get_data();    
+}
+void from_json(const json& j, PerfEngine &p) {
+    // using Key = std::pair<KernelAttrs, OpPerfKey>;
+    // auto tmp=j["data"].get<OpPerfKey>();
+}
+
 } // namespace infini

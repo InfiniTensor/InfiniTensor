@@ -2,8 +2,7 @@
 #include "core/common.h"
 #include "core/operator.h"
 #include "core/tensor.h"
-#include <nlohmann/json.hpp>
-using json = nlohmann::json;
+
 namespace infini {
 
 class RuntimeObj; // Forward declaration for Kernel::compute
@@ -15,6 +14,10 @@ struct PerfRecordObj {
     virtual json to_json() {
         return json {{"time", this->time}};
     }
+    /**
+     * @brief Dump json to perfrecord.
+     * @param j The json to be dumped.
+     **/
     virtual void from_json(json j) {
         j.at("time").get_to(this->time);
     }
