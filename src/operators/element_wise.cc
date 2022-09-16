@@ -12,12 +12,10 @@ ElementWiseObj::inferShape(const TensorVec &inputs) const {
     // For now,we only process the same dims here, broardcast will be considered
     // in the opt layer.
     const auto A = inputs[0], B = inputs[1];
-    if (A->getDims().size() != B->getDims().size() ||
-        A->getDims() != B->getDims())
+    if (A->getDims().size() != B->getDims().size())
         return {};
 
-    return {{A->getDims()}};
-    /*
+    //return {{A->getDims()}};
     int n = A->getDims().size();
     Shape shape;
     for (int i = 0; i < n; i++) {
@@ -28,7 +26,7 @@ ElementWiseObj::inferShape(const TensorVec &inputs) const {
         auto dimI = dimA > dimB ? dimA : dimB;
         shape.emplace_back(dimI);
     }
-    return {{shape}};*/
+    return {{shape}};
 }
 
 std::string ElementWiseObj::toString() const {
