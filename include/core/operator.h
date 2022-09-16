@@ -32,6 +32,10 @@ enum class OpType {
     BatchNorm = 200,
     Softmax,
     Activation,
+    Relu,
+    Sigmoid,
+    Tanh,
+    Abs,
     Resize,
     //
     MemBound = 300,
@@ -75,6 +79,10 @@ class OpRegistry {
             FOP(BatchNorm);
             FOP(Softmax);
             FOP(Activation);
+            FOP(Relu);
+            FOP(Sigmoid);
+            FOP(Tanh);
+            FOP(Abs);
             //
             FOP(MemBound);
         default:
