@@ -7,6 +7,13 @@
 namespace infini {
 struct MatmulCudnnPerfRecordObj : public PerfRecordObj {
     cublasGemmAlgo_t algo = CUBLAS_GEMM_DEFAULT;
+    json to_json () override {
+        return json {{"time", this->time}, {"algo", this->algo}};
+    }
+    void from_json (json j) override {
+        j.at("time").get_to(this->time);
+        j.at("algo").get_to(this->algo);
+    }
 };
 using MatmulCudnnPerfRecord = Ref<MatmulCudnnPerfRecordObj>;
 constexpr int N_ALGO = 24;

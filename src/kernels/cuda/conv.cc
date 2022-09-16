@@ -26,6 +26,17 @@ struct ConvCuDnnPerfRecordObj : public PerfRecordObj {
     int mode = 1;
     size_t workspaceSize = 100000;
     bool fuseAct = false;
+    json to_json () override {
+        return json {{"time", this->time}, {"algo", this->algo}, {"mode", this->mode}, 
+            {"workspaceSize", this->workspaceSize}, {"fuseAct", this->fuseAct} };
+    }
+    void from_json (json j) override {
+        j.at("time").get_to(this->time);
+        j.at("algo").get_to(this->algo);
+        j.at("mode").get_to(this->mode);
+        j.at("workspaceSize").get_to(this->workspaceSize);
+        j.at("fuseAct").get_to(this->fuseAct);
+    }
 };
 using ConvCuDnnPerfRecord = Ref<ConvCuDnnPerfRecordObj>;
 
