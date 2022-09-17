@@ -54,9 +54,9 @@ endif()
 
 include_directories(include)
 
-# # Pybind11
-# add_subdirectory(3rd-party/pybind11)
-# include_directories(3rd-party/pybind11/include)
+# Pybind11
+add_subdirectory(3rd-party/pybind11)
+include_directories(3rd-party/pybind11/include)
 
 # nlohmann_json
 add_subdirectory(3rd-party/nlohmann_json_cmake_fetchcontent)
@@ -86,6 +86,8 @@ add_library(InfiniTensor SHARED ${SRC})
 if(USE_PROTOBUF)
   target_link_libraries(InfiniTensor tensor_proto)
 endif()
+
+target_link_libraries(InfiniTensor pybind11::embed)
 
 if(USE_BACKTRACE)
   add_definitions(-D BACKWARD_TRACE)
