@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10) # Required by CMAKE_CUDA_HOST_COMPILER
+cmake_minimum_required(VERSION 3.17) # FindCUDAToolkit
 include(CMakeDependentOption)
 project(InfiniTensor C CXX)
 
@@ -50,7 +50,6 @@ if(USE_PROTOBUF)
   add_library(tensor_proto SHARED ${PROTO_SRCS} ${PROTO_HDRS})
   target_link_libraries(tensor_proto PUBLIC ${PROTOBUF_LIBRARIES})
 endif()
-
 
 include_directories(include)
 
@@ -105,12 +104,15 @@ if(USE_CUDA)
   # CMP0104 requires CUDA_ARCHITECTURES
   set_target_properties(InfiniTensor PROPERTIES CUDA_ARCHITECTURES "70;80")
   enable_language(CUDA)
-  # TODO: find_package seems unnecessary for CMake >= 3.8
-  find_package(CUDA REQUIRED)
-  # find_package(CUDAToolkit REQUIRED)
-  # target_link_libraries(InfiniTensor nvrtc)
-  # message("CUBLAS_LIBRARIES: ${CUDA_LIBRARIES}")
-  target_link_libraries(InfiniTensor cudnn curand cublas ${CUDA_LIBRARIES})
+  find_package(CUDAToolkit) # For nvrtc and cuda driver
+  target_link_libraries(
+    InfiniTensor
+    cudnn
+    CUDA::curand
+    CUDA::cublas
+    CUDA::nvrtc
+    CUDA::cudart
+    CUDA::cuda_driver)
 endif()
 
 # # Python bindings
