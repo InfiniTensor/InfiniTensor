@@ -125,15 +125,17 @@ void RuntimeObj::copyBlob(const TensorObj *dst, const TensorObj *src) const {
         IT_TODO_HALT();
 }
 
-void CpuRuntimeObj::copyBlobFromCPU(void *dst, void *src, size_t bytes) const {
+void CpuRuntimeObj::copyBlobFromCPU(void *dst, const void *src,
+                                    size_t bytes) const {
     copyBlobInsideRuntime(dst, src, bytes);
 }
 
-void CpuRuntimeObj::copyBlobToCPU(void *dst, void *src, size_t bytes) const {
+void CpuRuntimeObj::copyBlobToCPU(void *dst, const void *src,
+                                  size_t bytes) const {
     copyBlobInsideRuntime(dst, src, bytes);
 }
 
-void CpuRuntimeObj::copyBlobInsideRuntime(void *dst, void *src,
+void CpuRuntimeObj::copyBlobInsideRuntime(void *dst, const void *src,
                                           size_t bytes) const {
     memcpy(dst, src, bytes);
 }

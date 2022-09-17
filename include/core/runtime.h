@@ -64,14 +64,17 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
     bool isCpu() const { return device == Device::CPU; }
     bool isCuda() const { return device == Device::CUDA; }
     void copyBlob(const TensorObj *dst, const TensorObj *src) const;
+    // TODO: unify these copy APIs
+    virtual void copyBlobFromCPU(void *dst, const void *src,
+                                 size_t bytes) const = 0;
 
   protected:
     void printProfilingData(double totTime,
                             const std::map<OpType, double> &opTime,
                             const std::map<OpType, int> &opCnt) const;
-    virtual void copyBlobFromCPU(void *dst, void *src, size_t bytes) const = 0;
-    virtual void copyBlobToCPU(void *dst, void *src, size_t bytes) const = 0;
-    virtual void copyBlobInsideRuntime(void *dst, void *src,
+    virtual void copyBlobToCPU(void *dst, const void *src,
+                               size_t bytes) const = 0;
+    virtual void copyBlobInsideRuntime(void *dst, const void *src,
                                        size_t bytes) const = 0;
 };
 
@@ -92,9 +95,10 @@ class CpuRuntimeObj : public RuntimeObj {
                       sizeof(uint64_t));
     };
 
-    void copyBlobFromCPU(void *dst, void *src, size_t bytes) const override;
-    void copyBlobToCPU(void *dst, void *src, size_t bytes) const override;
-    void copyBlobInsideRuntime(void *dst, void *src,
+    void copyBlobFromCPU(void *dst, const void *src,
+                         size_t bytes) const override;
+    void copyBlobToCPU(void *dst, const void *src, size_t bytes) const override;
+    void copyBlobInsideRuntime(void *dst, const void *src,
                                size_t bytes) const override;
 };
 
