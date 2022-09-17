@@ -63,6 +63,7 @@ class MemboundTVM : public Kernel {
         
         // compile the kernel
         auto funcCode = res.first;
+        std::cout << funcCode << std::endl;
         auto invokeParams = res.second;
         std::string fileName = func + ".cu";
         nvrtcProgram prog;
@@ -122,6 +123,8 @@ class MemboundTVM : public Kernel {
                 cuCtxSynchronize();
             },
             [&]() { context->sync(); });
+        delete[]log;
+        delete[]ptx;
         return ret;
     }
 
