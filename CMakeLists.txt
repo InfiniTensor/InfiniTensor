@@ -107,6 +107,8 @@ if(USE_CUDA)
   enable_language(CUDA)
   # TODO: find_package seems unnecessary for CMake >= 3.8
   find_package(CUDA REQUIRED)
+  # find_package(CUDAToolkit REQUIRED)
+  # target_link_libraries(InfiniTensor nvrtc)
   # message("CUBLAS_LIBRARIES: ${CUDA_LIBRARIES}")
   target_link_libraries(InfiniTensor cudnn curand cublas ${CUDA_LIBRARIES})
 endif()
