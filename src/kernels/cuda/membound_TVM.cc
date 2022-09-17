@@ -12,6 +12,11 @@ namespace infini {
 
 class TVMRecord : public PerfRecord {
     // TODO: Add more attrs
+public:
+    size_t logSize, ptxSize;
+    char *log, *ptx;
+
+    TVMRecord(): logSize(0), ptxSize(0), log(nullptr), ptx(nullptr) { }
 };
 
 class MemboundTVM : public Kernel {
@@ -36,7 +41,7 @@ class MemboundTVM : public Kernel {
     // Premise: op is idempotent since it is called multiple times.
     PerfRecord tune(const Operator &_op,
                     const RuntimeObj *_context) const override {
-        PerfRecord ret;
+        TVMRecord ret;
         auto op = as<MemBoundObj>(_op);
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         // TODO: invoke Ansor to tune a membound kernel
@@ -48,7 +53,6 @@ class MemboundTVM : public Kernel {
         auto &&outShape = visitor.getOutputShape();
 
         std::vector<std::string> inputs;
-        std::vector<std::string> inputs;
         for (auto &&in : op->getInputs()) {
             inputs.emplace_back(getVarName(in));
         }
@@ -57,16 +61,71 @@ class MemboundTVM : public Kernel {
             inShapes, std::vector<std::string>(inShapes.size(), "float32"),
             outShape, "float32", stmts, func, inputs, output);
         
+        // compile the kernel
+        auto funcCode = res.first;
+        auto invokeParams = res.second;
+        std::string fileName = func + ".cu";
+        nvrtcProgram prog;
+        nvrtcCreateProgram(&prog,         // prog
+                        funcCode.c_str(),         // buffer
+                        fileName.c_str(),    // name
+                        0,             // numHeaders
+                        NULL,          // headers
+                        NULL);         // includeNames
+        const char *opts[] = {"--gpu-architecture=compute_80",
+                      "--fmad=false"};
+        nvrtcCompileProgram(prog,     // prog
+                            2,        // numOptions
+                            opts);    // options
+
+        // copy ptx and log to ret
+        size_t logSize;
+        nvrtcGetProgramLogSize(prog, &logSize);
+        char *log = new char[logSize];
+        nvrtcGetProgramLog(prog, log);
+        // Obtain PTX from the program.
+        size_t ptxSize;
+        nvrtcGetPTXSize(prog, &ptxSize);
+        char *ptx = new char[ptxSize];
+        nvrtcGetPTX(prog, ptx);
+
+        // prepare for evaluation
+        CUdevice cuDevice;
+        CUcontext newContext;
+        CUmodule module;
+        CUfunction kernel;
+        cuInit(0);
+        cuDeviceGet(&cuDevice, 0);
+        cuCtxCreate(&newContext, 0, cuDevice);
+        cuModuleLoadDataEx(&module, ptx, 0, 0, 0);
+        cuModuleGetFunction(&kernel, module, func.c_str());
+        std::vector<void *> args;
+        args.push_back(op->getOutput()->getRawDataPtr<void *>());
+        for (auto&& in : op->getInputs()) {
+            args.push_back(in->getRawDataPtr<void *>());
+        }
+        std::vector<void *> argsPtr;
+        for (auto &arg : args) {
+            argsPtr.push_back(&arg);
+        }
+
         // Evaluate the kernel
         ret.time = timeit(
             [&]() {
                 // TODO: run the kernel
+                cuLaunchKernel(kernel,
+                                invokeParams[0], invokeParams[1], invokeParams[2],
+                                invokeParams[3], invokeParams[4], invokeParams[5],
+                                0, NULL,
+                                args.data(),
+                                0);
+                cuCtxSynchronize();
             },
             [&]() { context->sync(); });
         return ret;
     }
 
-    std::pair<std::string, std::string> getAnsorCode(
+    std::pair<std::string, std::vector<int>> getAnsorCode(
         const std::vector<std::vector<int>> &inDims,
         const std::vector<std::string> &inDTypes, const std::vector<int> &outDims,
         const std::string &outDType, const std::string &lambda,
@@ -93,7 +152,7 @@ class MemboundTVM : public Kernel {
             }
             throw;
         }
-        return std::make_pair(funcCode, invokeCode);
+        return std::make_pair(funcCode, invokeParams);
     }
 };
 
