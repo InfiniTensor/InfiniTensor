@@ -2,6 +2,7 @@
 #include "core/common.h"
 #include "core/ref.h"
 #include <memory>
+
 namespace infini {
 
 /***************** Forward declaration begin *****************/
@@ -18,6 +19,7 @@ using Operator = Ref<OperatorObj>;
 using Graph = Ref<GraphObj>;
 using Runtime = Ref<RuntimeObj>;
 using Blob = Ref<BlobObj>;
+// using PerfRecord = Ref<PerfRecordObj>;
 enum class OpType;
 
 using TensorVec = vector<Tensor>;

@@ -4,7 +4,6 @@
 #include "core/perf_engine.h"
 #include <chrono>
 #include <cstring>
-
 namespace infini {
 
 void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
@@ -161,16 +160,33 @@ void from_json(const json&j, DataType &p)
 }
 
 void to_json(json& j,const PerfRecord& p) {
-    PerfRecord* t =(PerfRecord *) &p;
-    auto t1= dynamic_cast<ConvCuDnnPerfRecord*>(t);
-    ConvCuDnnPerfRecord s;
-
-    if(t1 != nullptr)
-        j = t1->to_json();
-    else j = s.to_json();
+    if(dynamic_cast<const ConvCuDnnPerfRecord *>(&p)!=nullptr) {
+        auto& t1= dynamic_cast<const ConvCuDnnPerfRecord &>(p);
+        ConvCuDnnPerfRecord* tmp = (ConvCuDnnPerfRecord *)&t1;
+        j=tmp->to_json();
+    }
+    else if(dynamic_cast<const MatmulCudnnPerfRecord *>(&p)!=nullptr) {
+        auto& t1= dynamic_cast<const MatmulCudnnPerfRecord &>(p);
+        MatmulCudnnPerfRecord* tmp = (MatmulCudnnPerfRecord *)&t1;
+        j=tmp->to_json();
+    }
+    else
+    {
+        PerfRecord* tmp = (PerfRecord* ) &p;
+        j= tmp->to_json();
+    }
+    
 }
 void from_json(const json& j, PerfRecord& p) {
     p.from_json(j);
+    std::cout << p.to_json() << std::endl;
+}
+void to_json(json& j, PerfRecord* p) {
+    j["PerfRecord"] = p->to_json();
+}
+void from_json(const json& j, PerfRecord* p) {
+    p = new PerfRecord(j["PerfRecord"].get<PerfRecord>());
+    std::cout << p->to_json() << std::endl;
 }
 void to_json(json& j, const PerfEngine &p) {
     PerfEngine t = p;
@@ -178,7 +194,11 @@ void to_json(json& j, const PerfEngine &p) {
 }
 void from_json(const json& j, PerfEngine &p) {
     // using Key = std::pair<KernelAttrs, OpPerfKey>;
-    // auto tmp=j["data"].get<OpPerfKey>();
+    // map<PerfEngine::Key, PerfRecord> tmp;
+
+    auto tmp = j["data"].get<map<PerfEngine::Key, PerfRecord*> >();
+    p.set_data(tmp);
+    
 }
 
 } // namespace infini

@@ -2,7 +2,7 @@
 #include "core/kernel.h"
 #include "core/runtime.h"
 #include "operators/conv.h"
-
+#include "core/perf_engine.h"
 #include "test.h"
 
 namespace infini {
@@ -128,13 +128,15 @@ TEST(Conv, tune) {
     auto conv =
         gCuda->addOp<ConvObj>(i0Cuda, w0Cuda, nullptr, 1, 1, 1, 1, 1, 1);
     // allocate CUDA memory
+    // gCuda->addOp<ConvObj>(i0Cuda, w0Cuda, nullptr, 1, 2, 1, 2, 1, 1);
     gCuda->dataMalloc();
     // Execute on CUDA
     bool tune = true;
     cuda->run(gCuda, tune);
-    auto a=OpType::Add;
-    json j;
-    j["OpType"]=a;
+    json j=PerfEngine::getInstance();
+    std::cout << j << std::endl;
+    auto a = j.get<PerfEngine>();
+    // j = a;
     std::cout << j << std::endl;
 }
 } // namespace infini

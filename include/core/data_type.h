@@ -8,12 +8,13 @@ class DataType {
     static const DataType UInt32;
     static constexpr size_t sizePerElement[]{sizeof(float), sizeof(uint32_t)};
     static constexpr std::string_view names[]{"Float32", "UInt32"};
-
+    
   private:
     int index;
 
   public:
     constexpr DataType(int index) : index(index) {}
+    DataType() { index = 0; }
     bool operator==(const DataType &rhs) const { return index == rhs.index; }
     bool operator<(const DataType &rhs) const { return index < rhs.index; }
 

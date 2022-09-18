@@ -4,6 +4,7 @@
 
 namespace infini {
 
+
 class PerfEngine {
   public:
     // TODO: Key should be OpPerfKey + Context(maybe implicat) to support
@@ -15,7 +16,7 @@ class PerfEngine {
     PerfEngine &operator=(PerfEngine const &) = delete;
 
   private:
-    map<Key, PerfRecord> data;
+    map<Key, PerfRecord*> data;
 
   public:
     static PerfEngine &getInstance() {
@@ -26,26 +27,27 @@ class PerfEngine {
     std::optional<PerfRecord> getPerfData(const Key &key) {
         auto it = data.find(key);
         if (it != data.end()) // find previous evaluating results
-            return data.at(key);
+            return *data.at(key);
         else
             return std::nullopt;
     }
 
-    void setPerfData(const Key &key, const PerfRecord &record) {
+    void setPerfData(const Key &key, PerfRecord &record) {
         IT_ASSERT(data.find(key) == data.end(), "Perf data already exist");
-        data.emplace(key, record);
+        data.emplace(key,&record);
     }
 
-    map<Key, PerfRecord> get_data() { return data;}
-    void set_data(map<Key, PerfRecord> data) {this->data = data; }
+    map<Key, PerfRecord*> get_data() { return data;}
+    void set_data(map<Key, PerfRecord*> data) {this->data = data; }
 };
 void to_json(json& j, const OpPerfKey& p);
 void from_json(const json& j, OpPerfKey &p);
 void to_json(json& j,const DataType &p);
 void from_json(const json& j, DataType &p);
-void to_json(json& j, const PerfEngine &p);
-void from_json(const json& j, PerfEngine &p);
 void to_json(json& j, const PerfRecord& p);
 void from_json(const json& j, PerfRecord& p);
-
+void to_json(json& j, PerfRecord* p);
+void from_json(const json& j, PerfRecord* p);
+void to_json(json& j, const PerfEngine &p);
+void from_json(const json& j, PerfEngine &p);
 } // namespace infini

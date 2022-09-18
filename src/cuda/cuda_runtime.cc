@@ -1,7 +1,8 @@
 #include "cuda/cuda_runtime.h"
 #include "core/kernel.h"
 #include "core/perf_engine.h"
-
+#include "operators/matmul.h"
+#include "operators/conv.h"
 namespace infini {
 
 void CudaRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
@@ -26,14 +27,9 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
         PerfRecord* record;
         if (!perfData) {
             record = kernel->tune(op, this);
-            auto record_ = dynamic_cast<ConvCuDnnPerfRecord *>(record);
             perfEngine.setPerfData(perfKey, *record);
-            json j;
-            j["233"] = record_->to_json();
-            std::cout << j << std::endl;
         } else
             *record = *perfData;
-
         double t = record->time;
         totalTime += t;
         json j;
@@ -48,9 +44,7 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
             opCnt[op->getOpType()]++;
         }
     }
-    json j;
-    j["perfEngine"] = perfEngine;
-    std::cout << j << std::endl;
+
 }
 
 void CudaRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
@@ -58,6 +52,7 @@ void CudaRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
         IT_TODO_HALT();
     runWithoutSync(graph, tune, profiling);
     sync();
+
 }
 
 void CudaRuntimeObj::sync() const { cudaDeviceSynchronize(); }
