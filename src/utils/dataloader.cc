@@ -95,5 +95,4 @@ void loadPerfEngineData(PerfEngine perfEngine, std::string file_path) {
     filein.close();
 }
 
-
 }; // namespace infini

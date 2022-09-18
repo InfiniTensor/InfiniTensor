@@ -1,6 +1,6 @@
 #pragma once
-#include "core/operator.h"
 #include "core/kernel.h"
+#include "core/operator.h"
 #include "cuda/cuda_runtime.h"
 #include <chrono>
 #include <functional>
@@ -9,7 +9,19 @@
 
 namespace infini {
 
+<<<<<<< HEAD
 class ConvBaseObj : public OperatorObj {
+=======
+struct ConvCuDnnPerfRecordObj : public PerfRecordObj {
+    int algo = 0; // cudnnConvolutionFwdAlgo_t
+    int mode = 1;
+    size_t workspaceSize = 100000;
+    bool fuseAct = false;
+};
+using ConvCuDnnPerfRecord = Ref<ConvCuDnnPerfRecordObj>;
+
+class ConvObj : public OperatorObj {
+>>>>>>> cf58b99 (clang format)
   public:
     // When PaddingMode is Other, ConvObj will use padding size (ph, pw)
     // Otherwise, padding size (ph, pw) will be computed by padding mode

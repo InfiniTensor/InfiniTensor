@@ -5,6 +5,8 @@
 #include <iostream>
 #include <list>
 #include <map>
+#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 #include <optional>
 #include <set>
 #include <sstream>
@@ -13,8 +15,6 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <nlohmann/json.hpp>
-#include <nlohmann/json_fwd.hpp>
 using json = nlohmann::json;
 
 namespace infini {

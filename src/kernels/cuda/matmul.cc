@@ -1,6 +1,5 @@
 #include "operators/matmul.h"
 
-
 namespace infini {
 
 constexpr int N_ALGO = 24;

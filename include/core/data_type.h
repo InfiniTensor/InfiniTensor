@@ -8,7 +8,7 @@ class DataType {
     static const DataType UInt32;
     static constexpr size_t sizePerElement[]{sizeof(float), sizeof(uint32_t)};
     static constexpr std::string_view names[]{"Float32", "UInt32"};
-    
+
   private:
     int index;
 

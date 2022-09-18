@@ -1,8 +1,8 @@
 #include "core/graph.h"
 #include "core/kernel.h"
+#include "core/perf_engine.h"
 #include "core/runtime.h"
 #include "operators/conv.h"
-#include "core/perf_engine.h"
 #include "utils/dataloader.h"
 
 #include "test.h"
@@ -135,6 +135,5 @@ TEST(Conv, tune) {
     // Execute on CUDA
     bool tune = true;
     cuda->run(gCuda, tune);
-    
 }
 } // namespace infini

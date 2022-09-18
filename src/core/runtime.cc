@@ -2,8 +2,17 @@
 #include "core/blob.h"
 #include "core/kernel.h"
 #include "core/perf_engine.h"
+#include "operators/conv.h"
+#include "operators/matmul.h"
 #include <chrono>
 #include <cstring>
+<<<<<<< HEAD
+=======
+#include <cuda.h>
+#include <cuda_profiler_api.h>
+#include <cudnn.h>
+#include <curand.h>
+>>>>>>> cf58b99 (clang format)
 namespace infini {
 
 void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
@@ -137,75 +146,67 @@ void CpuRuntimeObj::copyBlobInsideRuntime(void *dst, void *src,
     memcpy(dst, src, bytes);
 }
 
-void to_json(json& j, const OpPerfKey& p)
-{
-    j = json{{"hashType",p.hash}, {"opType",p.opType}, {"attrs",p.attrs}};
+void to_json(json &j, const OpPerfKey &p) {
+    j = json{{"hashType", p.hash}, {"opType", p.opType}, {"attrs", p.attrs}};
 }
-void from_json(const json& j,OpPerfKey &p)
-{
+void from_json(const json &j, OpPerfKey &p) {
     j.at("hashType").get_to(p.hash);
     j.at("opType").get_to(p.opType);
     j.at("attrs").get_to(p.attrs);
 }
-void to_json(json& j,const DataType &p)
-{
-    int x = p.toString() == "Float32"? 0:1;
+void to_json(json &j, const DataType &p) {
+    int x = p.toString() == "Float32" ? 0 : 1;
     j = x;
 }
-void from_json(const json&j, DataType &p)
-{
-    p = DataType(j.get<int>());
-}
-void to_json(json& j,const PerfRecord &p) {
-    if(as<ConvCuDnnPerfRecordObj>(p) != nullptr) {
+void from_json(const json &j, DataType &p) { p = DataType(j.get<int>()); }
+void to_json(json &j, const PerfRecord &p) {
+    if (as<ConvCuDnnPerfRecordObj>(p) != nullptr) {
         auto tmp = as<ConvCuDnnPerfRecordObj>(p);
         j["type"] = 1;
-        j["data"] = std::make_tuple(tmp->algo,tmp->mode,tmp->fuseAct,tmp->time,tmp->workspaceSize);
-    }
-    else if(as<MatmulCudnnPerfRecordObj>(p)!=nullptr) {
+        j["data"] = std::make_tuple(tmp->algo, tmp->mode, tmp->fuseAct,
+                                    tmp->time, tmp->workspaceSize);
+    } else if (as<MatmulCudnnPerfRecordObj>(p) != nullptr) {
         auto tmp = as<MatmulCudnnPerfRecordObj>(p);
         j["type"] = 2;
-        j["data"] = std::make_pair(tmp->algo,tmp->time);
-    }
-    else
-    {
+        j["data"] = std::make_pair(tmp->algo, tmp->time);
+    } else {
         j["type"] = 0;
         j["data"] = p->time;
     }
-    
 }
-void from_json(const json& j, PerfRecord& p) {
+void from_json(const json &j, PerfRecord &p) {
     int type = j["type"].get<int>();
-    if(type == 1) {
+    if (type == 1) {
         ConvCuDnnPerfRecordObj tmp;
-        auto [algo, mode, fuseAct, time, workspaceSize] 
-            = j["data"].get<tuple<int, int, bool, double, size_t> >();
-        tmp.algo = (cublasGemmAlgo_t)algo; tmp.mode = mode; tmp.fuseAct = fuseAct;
-        tmp.time = time; tmp.workspaceSize = workspaceSize;
+        auto [algo, mode, fuseAct, time, workspaceSize] =
+            j["data"].get<tuple<int, int, bool, double, size_t>>();
+        tmp.algo = (cublasGemmAlgo_t)algo;
+        tmp.mode = mode;
+        tmp.fuseAct = fuseAct;
+        tmp.time = time;
+        tmp.workspaceSize = workspaceSize;
         p = make_ref<ConvCuDnnPerfRecordObj>(tmp);
-    }
-    else if (type == 2) {
+    } else if (type == 2) {
         MatmulCudnnPerfRecordObj tmp;
         auto pr = j["data"].get<pair<int, double>>();
-        tmp.algo = (cublasGemmAlgo_t)pr.first; tmp.time = pr.second;
+        tmp.algo = (cublasGemmAlgo_t)pr.first;
+        tmp.time = pr.second;
         p = make_ref<MatmulCudnnPerfRecordObj>(tmp);
-    }
-    else {
+    } else {
         p->time = j["data"].get<int>();
     }
 }
 
-void to_json(json& j, const PerfEngine &p) {
+void to_json(json &j, const PerfEngine &p) {
     PerfEngine t = p;
-    j["data"] = t.get_data();    
+    j["data"] = t.get_data();
 }
-void from_json(const json& j, PerfEngine &p) {
+void from_json(const json &j, PerfEngine &p) {
     // using Key = std::pair<KernelAttrs, OpPerfKey>;
     // map<PerfEngine::Key, PerfRecord> tmp;
 
-    auto tmp = j["data"].get<map<PerfEngine::Key, PerfRecord> >();
+    auto tmp = j["data"].get<map<PerfEngine::Key, PerfRecord>>();
     p.set_data(tmp);
-    
 }
 
 } // namespace infini

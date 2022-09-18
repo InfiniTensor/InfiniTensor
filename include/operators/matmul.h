@@ -1,6 +1,6 @@
 #pragma once
-#include "core/operator.h"
 #include "core/kernel.h"
+#include "core/operator.h"
 #include "cuda/cuda_runtime.h"
 #include <chrono>
 #include <functional>
@@ -11,7 +11,6 @@ struct MatmulCudnnPerfRecordObj : public PerfRecordObj {
     cublasGemmAlgo_t algo = CUBLAS_GEMM_DEFAULT;
 };
 using MatmulCudnnPerfRecord = Ref<MatmulCudnnPerfRecordObj>;
-
 
 class MatmulObj : public OperatorObj {
   private:

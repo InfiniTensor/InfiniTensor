@@ -1,8 +1,8 @@
 #include "cuda/cuda_runtime.h"
 #include "core/kernel.h"
 #include "core/perf_engine.h"
-#include "operators/matmul.h"
 #include "operators/conv.h"
+#include "operators/matmul.h"
 namespace infini {
 
 void CudaRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
@@ -17,7 +17,7 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
         auto kernelAttrs =
             KernelAttrs{device, op->getOpType(), DataType::Float32};
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
-        auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()}; 
+        auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
         auto perfData = perfEngine.getPerfData(perfKey);
         if (!perfData && !tune) {
             kernel->compute(op, this);
@@ -33,7 +33,7 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
         double t = record->time;
         totalTime += t;
         json j;
-    
+
         if (profiling) {
             double t = timeit([&]() { kernel->compute(op, record, this); },
                               [&]() { sync(); }, 1, 1);
@@ -44,7 +44,6 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
             opCnt[op->getOpType()]++;
         }
     }
-
 }
 
 void CudaRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
@@ -52,7 +51,6 @@ void CudaRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
         IT_TODO_HALT();
     runWithoutSync(graph, tune, profiling);
     sync();
-
 }
 
 void CudaRuntimeObj::sync() const { cudaDeviceSynchronize(); }

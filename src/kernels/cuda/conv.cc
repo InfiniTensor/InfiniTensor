@@ -7,24 +7,23 @@
 #include <tuple>
 namespace infini {
 
-
 using ConvCuDnnPerfRecord = Ref<ConvCuDnnPerfRecordObj>;
 
 class convCudnn : public Kernel {
     static constexpr int N_ALGO = 8;
     static constexpr int N_MODE = 2;
     static constexpr cudnnConvolutionFwdAlgo_t ALGOS[8] = {
-    CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM,
-    CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM,
-    CUDNN_CONVOLUTION_FWD_ALGO_GEMM,
-    CUDNN_CONVOLUTION_FWD_ALGO_DIRECT,
-    CUDNN_CONVOLUTION_FWD_ALGO_FFT,
-    CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING,
-    CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD,
-    CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED};
+        CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM,
+        CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM,
+        CUDNN_CONVOLUTION_FWD_ALGO_GEMM,
+        CUDNN_CONVOLUTION_FWD_ALGO_DIRECT,
+        CUDNN_CONVOLUTION_FWD_ALGO_FFT,
+        CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING,
+        CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD,
+        CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED};
 
-static constexpr cudnnConvolutionMode_t MODES[2] = {
-    CUDNN_CONVOLUTION, CUDNN_CROSS_CORRELATION};
+    static constexpr cudnnConvolutionMode_t MODES[2] = {
+        CUDNN_CONVOLUTION, CUDNN_CROSS_CORRELATION};
 
     std::tuple<void *, void *, void *, cudnnTensorDescriptor_t,
                cudnnFilterDescriptor_t, cudnnTensorDescriptor_t,

@@ -10,7 +10,7 @@ class RuntimeObj; // Forward declaration for Kernel::compute
 struct PerfRecordObj {
     PerfRecordObj(){};
     PerfRecordObj(double time) : time(time){};
-    virtual ~PerfRecordObj() {};
+    virtual ~PerfRecordObj(){};
     double time = 0; // in milliseconds
 };
 using PerfRecord = Ref<PerfRecordObj>;
