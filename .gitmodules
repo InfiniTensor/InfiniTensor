@@ -3,7 +3,7 @@
 	url = git@github.com:pybind/pybind11.git
 [submodule "3rd-party/nlohmann_json_cmake_fetchcontent"]
 	path = 3rd-party/nlohmann_json_cmake_fetchcontent
-	url = git@github.com:nlohmann/json.git
+	url = git@github.com:ArthurSonzogni/nlohmann_json_cmake_fetchcontent.git
 [submodule "3rd-party/googletest"]
 	path = 3rd-party/googletest
 	url = git@github.com:google/googletest.git
