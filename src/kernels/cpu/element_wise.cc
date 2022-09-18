@@ -24,19 +24,6 @@ template <typename T> class NativeElementWise : public CpuKernelWithoutConfig {
             outptr[offset] = doCompute(inptr0[offset], inptr1[offset]);
         }
     }
-<<<<<<< HEAD
-=======
-
-    void compute(const Operator &op, const RuntimeObj *context) const override {
-        compute(op, {}, context);
-    }
-
-    PerfRecord* tune(const Operator &op,
-                    const RuntimeObj *context) const override {
-        auto perfrcd=new PerfRecord(timeit([&]() { compute(op, context); }));
-        return perfrcd;
-    }
->>>>>>> bc7bd0b (modify tune func type to supp derived struct serilization.)
 };
 
 template <typename T> class NaiveAdd : public NativeElementWise<T> {

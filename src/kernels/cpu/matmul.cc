@@ -24,19 +24,6 @@ template <typename T> class NaiveMatmul : public CpuKernelWithoutConfig {
             }
         }
     }
-<<<<<<< HEAD
-=======
-
-    void compute(const Operator &op, const RuntimeObj *context) const override {
-        compute(op, {}, context);
-    }
-
-    PerfRecord* tune(const Operator &op,
-                    const RuntimeObj *context) const override {
-        auto perfrcd=new PerfRecord(timeit([&]() { compute(op, context); }));
-        return perfrcd;
-    }
->>>>>>> bc7bd0b (modify tune func type to supp derived struct serilization.)
 };
 
 REGISTER_KERNEL(Device::CPU, OpType::Matmul, DataType::UInt32,

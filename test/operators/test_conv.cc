@@ -3,6 +3,8 @@
 #include "core/runtime.h"
 #include "operators/conv.h"
 #include "core/perf_engine.h"
+#include "utils/dataloader.h"
+
 #include "test.h"
 
 namespace infini {
@@ -133,10 +135,6 @@ TEST(Conv, tune) {
     // Execute on CUDA
     bool tune = true;
     cuda->run(gCuda, tune);
-    json j=PerfEngine::getInstance();
-    std::cout << j << std::endl;
-    auto a = j.get<PerfEngine>();
-    // j = a;
-    std::cout << j << std::endl;
+    
 }
 } // namespace infini

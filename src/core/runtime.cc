@@ -20,7 +20,7 @@ void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
         auto kernelAttrs = KernelAttrs{device, op->getOpType(), op->getDType()};
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
-        std::optional<PerfRecord> perfData = perfEngine.getPerfData(perfKey);
+        auto perfData = perfEngine.getPerfData(perfKey);
 
         // If no record and disable tuning, run with the default argument
         if (!perfData && !tune) {
@@ -29,21 +29,21 @@ void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
         }
 
         // TODO: The copy of record should be eliminated
-        PerfRecord* record;
+        PerfRecord record;
         // Tune the kernel if there is no record
         if (!perfData) {
             // TODO: record is not used
             // printf("no record data\n");
             record = kernel->tune(op, this);
-            perfEngine.setPerfData(perfKey, *record);
+            perfEngine.setPerfData(perfKey, record);
         } else
-            *record = *perfData;
+            record = perfData;
 
         if (!profiling) {
-            kernel->compute(op, *record, this);
+            kernel->compute(op, record, this);
             continue;
         } else {
-            double t = timeit([&]() { kernel->compute(op, *record, this); },
+            double t = timeit([&]() { kernel->compute(op, record, this); },
                               []() {}, 1, 1);
             op->print();
             printf(" op_time %lf\n", t);
@@ -68,15 +68,15 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling) const {
         auto kernelAttrs = KernelAttrs{device, op->getOpType(), op->getDType()};
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
-        std::optional<PerfRecord> perfData = perfEngine.getPerfData(perfKey);
+        auto perfData = perfEngine.getPerfData(perfKey);
 
-        PerfRecord* record;
+        PerfRecord record;
         // Tune the kernel if there is no record
         if (!perfData) {
             record = kernel->tune(op, this);
-            perfEngine.setPerfData(perfKey, *record);
+            perfEngine.setPerfData(perfKey, record);
         } else
-            *record = *perfData;
+            record = perfData;
 
         double t = record->time;
         totalTime += t;
@@ -150,44 +150,51 @@ void from_json(const json& j,OpPerfKey &p)
 void to_json(json& j,const DataType &p)
 {
     int x = p.toString() == "Float32"? 0:1;
-    j = json{{"index", x}};
+    j = x;
 }
 void from_json(const json&j, DataType &p)
 {
-    int x;
-    j.at("index").get_to(x);
-    p = DataType(x);
+    p = DataType(j.get<int>());
 }
-
-void to_json(json& j,const PerfRecord& p) {
-    if(dynamic_cast<const ConvCuDnnPerfRecord *>(&p)!=nullptr) {
-        auto& t1= dynamic_cast<const ConvCuDnnPerfRecord &>(p);
-        ConvCuDnnPerfRecord* tmp = (ConvCuDnnPerfRecord *)&t1;
-        j=tmp->to_json();
+void to_json(json& j,const PerfRecord &p) {
+    if(as<ConvCuDnnPerfRecordObj>(p) != nullptr) {
+        auto tmp = as<ConvCuDnnPerfRecordObj>(p);
+        j["type"] = 1;
+        j["data"] = std::make_tuple(tmp->algo,tmp->mode,tmp->fuseAct,tmp->time,tmp->workspaceSize);
     }
-    else if(dynamic_cast<const MatmulCudnnPerfRecord *>(&p)!=nullptr) {
-        auto& t1= dynamic_cast<const MatmulCudnnPerfRecord &>(p);
-        MatmulCudnnPerfRecord* tmp = (MatmulCudnnPerfRecord *)&t1;
-        j=tmp->to_json();
+    else if(as<MatmulCudnnPerfRecordObj>(p)!=nullptr) {
+        auto tmp = as<MatmulCudnnPerfRecordObj>(p);
+        j["type"] = 2;
+        j["data"] = std::make_pair(tmp->algo,tmp->time);
     }
     else
     {
-        PerfRecord* tmp = (PerfRecord* ) &p;
-        j= tmp->to_json();
+        j["type"] = 0;
+        j["data"] = p->time;
     }
     
 }
 void from_json(const json& j, PerfRecord& p) {
-    p.from_json(j);
-    std::cout << p.to_json() << std::endl;
+    int type = j["type"].get<int>();
+    if(type == 1) {
+        ConvCuDnnPerfRecordObj tmp;
+        auto [algo, mode, fuseAct, time, workspaceSize] 
+            = j["data"].get<tuple<int, int, bool, double, size_t> >();
+        tmp.algo = (cublasGemmAlgo_t)algo; tmp.mode = mode; tmp.fuseAct = fuseAct;
+        tmp.time = time; tmp.workspaceSize = workspaceSize;
+        p = make_ref<ConvCuDnnPerfRecordObj>(tmp);
+    }
+    else if (type == 2) {
+        MatmulCudnnPerfRecordObj tmp;
+        auto pr = j["data"].get<pair<int, double>>();
+        tmp.algo = (cublasGemmAlgo_t)pr.first; tmp.time = pr.second;
+        p = make_ref<MatmulCudnnPerfRecordObj>(tmp);
+    }
+    else {
+        p->time = j["data"].get<int>();
+    }
 }
-void to_json(json& j, PerfRecord* p) {
-    j["PerfRecord"] = p->to_json();
-}
-void from_json(const json& j, PerfRecord* p) {
-    p = new PerfRecord(j["PerfRecord"].get<PerfRecord>());
-    std::cout << p->to_json() << std::endl;
-}
+
 void to_json(json& j, const PerfEngine &p) {
     PerfEngine t = p;
     j["data"] = t.get_data();    
@@ -196,7 +203,7 @@ void from_json(const json& j, PerfEngine &p) {
     // using Key = std::pair<KernelAttrs, OpPerfKey>;
     // map<PerfEngine::Key, PerfRecord> tmp;
 
-    auto tmp = j["data"].get<map<PerfEngine::Key, PerfRecord*> >();
+    auto tmp = j["data"].get<map<PerfEngine::Key, PerfRecord> >();
     p.set_data(tmp);
     
 }

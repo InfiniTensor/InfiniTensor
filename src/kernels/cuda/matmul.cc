@@ -2,18 +2,7 @@
 
 
 namespace infini {
-<<<<<<< HEAD
-struct MatmulCudnnPerfRecordObj : public PerfRecordObj {
-    cublasGemmAlgo_t algo = CUBLAS_GEMM_DEFAULT;
-    json to_json () override {
-        return json {{"time", this->time}, {"algo", this->algo}};
-    }
-    void from_json (json j) override {
-        j.at("time").get_to(this->time);
-        j.at("algo").get_to(this->algo);
-    }
-};
-using MatmulCudnnPerfRecord = Ref<MatmulCudnnPerfRecordObj>;
+
 constexpr int N_ALGO = 24;
 constexpr cublasGemmAlgo_t ALGOS[N_ALGO] = {
     CUBLAS_GEMM_ALGO0,  CUBLAS_GEMM_ALGO1,  CUBLAS_GEMM_ALGO2,
@@ -25,9 +14,6 @@ constexpr cublasGemmAlgo_t ALGOS[N_ALGO] = {
     CUBLAS_GEMM_ALGO18, CUBLAS_GEMM_ALGO19, CUBLAS_GEMM_ALGO20,
     CUBLAS_GEMM_ALGO21, CUBLAS_GEMM_ALGO22, CUBLAS_GEMM_ALGO23,
 };
-=======
->>>>>>> ba9f764 (serialization.)
-
 class matmulCublas : public Kernel {
     bool do_compute(const Operator &_op, const PerfRecord &_record,
                     const RuntimeObj *_context) const {

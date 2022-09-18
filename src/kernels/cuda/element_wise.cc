@@ -78,20 +78,7 @@ class MulCudnn : public ElementWiseCudnn {
 class ElementWiseCuda : public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
-<<<<<<< HEAD
         element_wise_kernel(_op);
-=======
-        compute(_op, {}, _context);
-    }
-    // Premise: op is idempotent since it is called multiple times.
-    PerfRecord* tune(const Operator &_op,
-                    const RuntimeObj *_context) const override {
-        PerfRecord* ret = new PerfRecord();
-        auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
-        ret->time = timeit([&]() { compute(_op, _context); },
-                          [&]() { context->sync(); });
-        return ret;
->>>>>>> bc7bd0b (modify tune func type to supp derived struct serilization.)
     }
 };
 

@@ -7,8 +7,13 @@
 #include <tuple>
 namespace infini {
 
-static constexpr int N_ALGO = 8;
-static constexpr cudnnConvolutionFwdAlgo_t ALGOS[N_ALGO] = {
+
+using ConvCuDnnPerfRecord = Ref<ConvCuDnnPerfRecordObj>;
+
+class convCudnn : public Kernel {
+    static constexpr int N_ALGO = 8;
+    static constexpr int N_MODE = 2;
+    static constexpr cudnnConvolutionFwdAlgo_t ALGOS[8] = {
     CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM,
     CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM,
     CUDNN_CONVOLUTION_FWD_ALGO_GEMM,
@@ -17,30 +22,9 @@ static constexpr cudnnConvolutionFwdAlgo_t ALGOS[N_ALGO] = {
     CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING,
     CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD,
     CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED};
-static constexpr int N_MODE = 2;
-static constexpr cudnnConvolutionMode_t MODES[N_MODE] = {
+
+static constexpr cudnnConvolutionMode_t MODES[2] = {
     CUDNN_CONVOLUTION, CUDNN_CROSS_CORRELATION};
-
-struct ConvCuDnnPerfRecordObj : public PerfRecordObj {
-    int algo = 0; // cudnnConvolutionFwdAlgo_t
-    int mode = 1;
-    size_t workspaceSize = 100000;
-    bool fuseAct = false;
-    json to_json () override {
-        return json {{"time", this->time}, {"algo", this->algo}, {"mode", this->mode}, 
-            {"workspaceSize", this->workspaceSize}, {"fuseAct", this->fuseAct} };
-    }
-    void from_json (json j) override {
-        j.at("time").get_to(this->time);
-        j.at("algo").get_to(this->algo);
-        j.at("mode").get_to(this->mode);
-        j.at("workspaceSize").get_to(this->workspaceSize);
-        j.at("fuseAct").get_to(this->fuseAct);
-    }
-};
-using ConvCuDnnPerfRecord = Ref<ConvCuDnnPerfRecordObj>;
-
-class convCudnn : public Kernel {
 
     std::tuple<void *, void *, void *, cudnnTensorDescriptor_t,
                cudnnFilterDescriptor_t, cudnnTensorDescriptor_t,
@@ -209,15 +193,10 @@ class convCudnn : public Kernel {
         compute(op, record, context);
     }
 
-    PerfRecord* tune(const Operator &_op,
+    PerfRecord tune(const Operator &_op,
                     const RuntimeObj *_context) const override {
-<<<<<<< HEAD
         ConvCuDnnPerfRecordObj ret;
         ret.time = std::numeric_limits<double>::max();
-=======
-        ConvCuDnnPerfRecord* ret = new ConvCuDnnPerfRecord();
-        ret->time = std::numeric_limits<double>::max();
->>>>>>> bc7bd0b (modify tune func type to supp derived struct serilization.)
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         auto op = as<ConvObj>(_op);
         // Both modes have the same performance. Only run cross-correlation.
@@ -261,8 +240,8 @@ class convCudnn : public Kernel {
                 // printf("mode:%d algo:%d :%.8lf\n", mode, algo, record.time);
 
                 // Update the tune result
-                if (ret->time > record.time)
-                    *ret = record;
+                if (ret.time > record.time)
+                    ret = record;
                 checkCudnnError(cudnnDestroyTensorDescriptor(outDesc));
                 checkCudnnError(cudnnDestroyActivationDescriptor(actDesc));
                 checkCudnnError(cudnnDestroyConvolutionDescriptor(convDesc));
@@ -273,14 +252,10 @@ class convCudnn : public Kernel {
         }
         // printf("the best algo is %d, the best conv mode is %d\n", ret.algo,
         //        ret.mode);
-        IT_ASSERT(ret->time < std::numeric_limits<double>::max(), "No valid "
+        IT_ASSERT(ret.time < std::numeric_limits<double>::max(), "No valid "
                                                                  "algorithm "
                                                                  "found");
-<<<<<<< HEAD
         return make_ref<ConvCuDnnPerfRecordObj>(ret);
-=======
-        return ret;
->>>>>>> bc7bd0b (modify tune func type to supp derived struct serilization.)
     }
 
     void compute(const Operator &_op, const PerfRecord &_record,

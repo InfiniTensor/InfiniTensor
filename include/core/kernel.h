@@ -10,17 +10,7 @@ class RuntimeObj; // Forward declaration for Kernel::compute
 struct PerfRecordObj {
     PerfRecordObj(){};
     PerfRecordObj(double time) : time(time){};
-    virtual ~PerfRecordObj() {}
-    virtual json to_json() {
-        return json {{"time", this->time}};
-    }
-    /**
-     * @brief Dump json to perfrecord.
-     * @param j The json to be dumped.
-     **/
-    virtual void from_json(json j) {
-        j.at("time").get_to(this->time);
-    }
+    virtual ~PerfRecordObj() {};
     double time = 0; // in milliseconds
 };
 using PerfRecord = Ref<PerfRecordObj>;
@@ -44,7 +34,7 @@ class Kernel {
     virtual void compute(const Operator &op,
                          const RuntimeObj *context) const = 0;
     // Premise: op is idempotent since it is called multiple times.
-    virtual PerfRecord* tune(const Operator &op,
+    virtual PerfRecord tune(const Operator &op,
                             const RuntimeObj *context) const = 0;
 };
 

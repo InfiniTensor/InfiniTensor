@@ -1,7 +1,6 @@
 #pragma once
 #include "core/graph.h"
 #include "core/kernel.h"
-
 namespace infini {
 
 
@@ -16,7 +15,7 @@ class PerfEngine {
     PerfEngine &operator=(PerfEngine const &) = delete;
 
   private:
-    map<Key, PerfRecord*> data;
+    map<Key, PerfRecord> data;
 
   public:
     static PerfEngine &getInstance() {
@@ -24,21 +23,20 @@ class PerfEngine {
         return instance;
     }
 
-    std::optional<PerfRecord> getPerfData(const Key &key) {
+    PerfRecord getPerfData(const Key &key) {
         auto it = data.find(key);
         if (it != data.end()) // find previous evaluating results
-            return *data.at(key);
+            return data.at(key);
         else
-            return std::nullopt;
+            return nullptr;
     }
 
-    void setPerfData(const Key &key, PerfRecord &record) {
+    void setPerfData(const Key &key, PerfRecord record) {
         IT_ASSERT(data.find(key) == data.end(), "Perf data already exist");
-        data.emplace(key,&record);
+        data.emplace(key,record);
     }
-
-    map<Key, PerfRecord*> get_data() { return data;}
-    void set_data(map<Key, PerfRecord*> data) {this->data = data; }
+    map<Key, PerfRecord> get_data() { return data;}
+    void set_data(map<Key, PerfRecord> data) {this->data = data; }
 };
 void to_json(json& j, const OpPerfKey& p);
 void from_json(const json& j, OpPerfKey &p);
