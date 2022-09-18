@@ -52,7 +52,7 @@ template <typename T> class NaiveConv : public Kernel {
 
     PerfRecord tune(const Operator &op,
                     const RuntimeObj *context) const override {
-        return PerfRecord(timeit([&]() { compute(op, context); }));
+        return make_ref<PerfRecordObj>(timeit([&]() { compute(op, context); }));
     }
 };
 

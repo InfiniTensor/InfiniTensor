@@ -35,3 +35,6 @@ build/
 build_debug/
 
 .vscode/
+
+# python
+*.pyc

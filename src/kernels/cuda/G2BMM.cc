@@ -26,25 +26,25 @@ class G2BMMCudnn : public Kernel {
     }
 
     void compute(const Operator &op, const RuntimeObj *context) const override {
-        PerfRecord record;
+        auto record = make_ref<PerfRecordObj>();
         compute(op, record, context);
     }
 
     PerfRecord tune(const Operator &_op,
                     const RuntimeObj *_context) const override {
-        PerfRecord record;
         auto op = as<G2BMMObj>(_op);
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
 
-        record.time = std::numeric_limits<double>::max();
+        auto record =
+            make_ref<PerfRecordObj>(std::numeric_limits<double>::max());
         const auto [warmupRounds, timingRounds] =
             op->getB() > 100 ? tuple{1, 3} : tuple{5, 15};
         double tmp =
             timeit([&]() { g2bmmKernel(op, context); },
                    [&]() { context->sync(); }, warmupRounds, timingRounds);
-        if (tmp < record.time)
-            record.time = tmp;
-        IT_ASSERT(record.time < std::numeric_limits<double>::max(),
+        if (tmp < record->time)
+            record->time = tmp;
+        IT_ASSERT(record->time < std::numeric_limits<double>::max(),
                   "Error occured "
                   "during runtime");
         return record;

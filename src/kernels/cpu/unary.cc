@@ -24,8 +24,7 @@ template <typename T> class NativeUnary : public Kernel {
 
     PerfRecord tune(const Operator &op,
                     const RuntimeObj *context) const override {
-        PerfRecord perfrcd(timeit([&]() { compute(op, context); }));
-        return perfrcd;
+        return make_ref<PerfRecordObj>(timeit([&]() { compute(op, context); }));
     }
 };
 
@@ -53,8 +52,7 @@ template <typename T> class NaiveSoftmax : public Kernel {
 
     PerfRecord tune(const Operator &op,
                     const RuntimeObj *context) const override {
-        PerfRecord perfrcd(timeit([&]() { compute(op, context); }));
-        return perfrcd;
+        return make_ref<PerfRecordObj>(timeit([&]() { compute(op, context); }));
     }
 };
 

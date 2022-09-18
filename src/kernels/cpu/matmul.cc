@@ -31,9 +31,7 @@ template <typename T> class NaiveMatmul : public Kernel {
 
     PerfRecord tune(const Operator &op,
                     const RuntimeObj *context) const override {
-        PerfRecord ret;
-        ret.time = timeit([&]() { compute(op, context); });
-        return ret;
+        return make_ref<PerfRecordObj>(timeit([&]() { compute(op, context); }));
     }
 };
 

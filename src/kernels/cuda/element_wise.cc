@@ -66,11 +66,9 @@ class ElementWiseCudnn : public Kernel {
     // Premise: op is idempotent since it is called multiple times.
     PerfRecord tune(const Operator &_op,
                     const RuntimeObj *_context) const override {
-        PerfRecord ret;
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
-        ret.time = timeit([&]() { compute(_op, _context); },
-                          [&]() { context->sync(); });
-        return ret;
+        return make_ref<PerfRecordObj>(timeit([&]() { compute(_op, _context); },
+                                              [&]() { context->sync(); }));
     }
 };
 
@@ -102,11 +100,9 @@ class ElementWiseCuda : public Kernel {
     // Premise: op is idempotent since it is called multiple times.
     PerfRecord tune(const Operator &_op,
                     const RuntimeObj *_context) const override {
-        PerfRecord ret;
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
-        ret.time = timeit([&]() { compute(_op, _context); },
-                          [&]() { context->sync(); });
-        return ret;
+        return make_ref<PerfRecordObj>(timeit([&]() { compute(_op, _context); },
+                                              [&]() { context->sync(); }));
     }
 };
 

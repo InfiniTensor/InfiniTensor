@@ -83,7 +83,7 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling) const {
         } else
             record = *perfData;
 
-        double t = record.time;
+        double t = record->time;
         totalTime += t;
         if (profiling) {
             op->print();

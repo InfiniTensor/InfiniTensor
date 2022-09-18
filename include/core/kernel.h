@@ -7,13 +7,14 @@ namespace infini {
 
 class RuntimeObj; // Forward declaration for Kernel::compute
 
-struct PerfRecord {
-    PerfRecord(){};
-    PerfRecord(double time) : time(time){};
-    virtual ~PerfRecord() {}
+struct PerfRecordObj {
+    PerfRecordObj(){};
+    PerfRecordObj(double time) : time(time){};
+    virtual ~PerfRecordObj() {}
 
     double time = 0; // in milliseconds
 };
+using PerfRecord = Ref<PerfRecordObj>;
 
 class Kernel {
   public:
