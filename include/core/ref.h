@@ -1,4 +1,5 @@
 #pragma once
+#include "core/common.h"
 #include <functional> // hash
 #include <memory>
 #include <type_traits>
@@ -17,11 +18,21 @@ template <typename T, typename... Params> Ref<T> make_ref(Params &&...params) {
     return std::make_shared<T>(std::forward<Params>(params)...);
 }
 
+#ifdef NDEBUG
 template <class T, class U,
           typename std::enable_if_t<std::is_base_of_v<U, T>> * = nullptr>
 Ref<T> as(const Ref<U> &ref) {
     return std::dynamic_pointer_cast<T>(ref);
 }
+#else
+template <class T, class U,
+          typename std::enable_if_t<std::is_base_of_v<U, T>> * = nullptr>
+Ref<T> as(const Ref<U> &ref) {
+    auto ret = std::dynamic_pointer_cast<T>(ref);
+    IT_ASSERT(ret != nullptr, "nullptr detected in debug mode");
+    return ret;
+}
+#endif
 
 template <typename T>
 std::vector<WRef<T>> get_wref_vec(const std::vector<Ref<T>> &vec) {
