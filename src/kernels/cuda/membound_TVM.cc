@@ -46,6 +46,7 @@ class MemboundTVM : public Kernel {
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         // TODO: invoke Ansor to tune a membound kernel
         std::string func = "mem_bound_" + std::to_string(op->getGuid());
+        std::string kernelName = func + "kernel0";
         nnet::AsTVMVisitor visitor;
         visitor.dispatch(op->getNnetExpr());
         auto &&stmts = visitor.getStmts();
@@ -63,7 +64,8 @@ class MemboundTVM : public Kernel {
         
         // compile the kernel
         auto funcCode = res.first;
-        std::cout << funcCode << std::endl;
+        // std::cout << funcCode << std::endl;
+        std::cout << "get ansor code" << std::endl;
         auto invokeParams = res.second;
         std::string fileName = func + ".cu";
         nvrtcProgram prog;
@@ -89,7 +91,7 @@ class MemboundTVM : public Kernel {
         nvrtcGetPTXSize(prog, &ptxSize);
         char *ptx = new char[ptxSize];
         nvrtcGetPTX(prog, ptx);
-
+        std::cout << "compile and copy" << std::endl;
         // prepare for evaluation
         CUdevice cuDevice;
         CUcontext newContext;
@@ -99,7 +101,7 @@ class MemboundTVM : public Kernel {
         cuDeviceGet(&cuDevice, 0);
         cuCtxCreate(&newContext, 0, cuDevice);
         cuModuleLoadDataEx(&module, ptx, 0, 0, 0);
-        cuModuleGetFunction(&kernel, module, func.c_str());
+        cuModuleGetFunction(&kernel, module, kernelName.c_str());
         std::vector<void *> args;
         args.push_back(op->getOutput()->getRawDataPtr<void *>());
         for (auto&& in : op->getInputs()) {
@@ -109,7 +111,7 @@ class MemboundTVM : public Kernel {
         for (auto &arg : args) {
             argsPtr.push_back(&arg);
         }
-
+        std::cout << "prepare for evaluation" << std::endl;
         // Evaluate the kernel
         ret.time = timeit(
             [&]() {
@@ -123,6 +125,7 @@ class MemboundTVM : public Kernel {
                 cuCtxSynchronize();
             },
             [&]() { context->sync(); });
+        std::cout << "after evaluation, time: " << ret.time << std::endl;
         delete[]log;
         delete[]ptx;
         return ret;
@@ -142,10 +145,17 @@ class MemboundTVM : public Kernel {
             py::tuple code = func(inDims, inDTypes, outDims, outDType, lambda,
                                 funcName, inputNames, outputName);
             funcCode = py::str(code[0]), invokeCode = py::str(code[1]);
-            auto temp = py::list(code[2]);
+            std::cout << "return from python" << std::endl;
+            std::cout << "funcCode: \n" << funcCode << "\n" << "invokeCode: \n" << invokeCode << std::endl;
+            auto temp = py::list(code[3]);
             for (int i = 0; i < 6; ++i) {
                 invokeParams.push_back(temp[i].cast<int>());
             }
+            std::cout << "invoke params: \n";
+            for (auto p : invokeParams) {
+                std::cout << p << ", ";
+            }
+            std::cout << std::endl;
         } catch (py::error_already_set &e) {
             if (e.matches(PyExc_ImportError)) {
                 std::cerr << "Import Error. Don't forget to set environment "
