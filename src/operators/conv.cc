@@ -6,14 +6,14 @@ ConvBaseObj::ConvBaseObj(OpType opType, TensorVec inputs, Tensor &output,
                          int ph, int pw, int sh, int sw, int dh, int dw,
                          const Tensor &inputInConvFWD,
                          const Tensor &weightInConvFWD)
-    : OperatorObj(OpType::Conv, inputs, {output}), ph(ph), pw(pw), sh(sh),
-      sw(sw), dh(dh), dw(dw), padding(PaddingMode::Other) {}
+    : OperatorObj(opType, inputs, {output}), ph(ph), pw(pw), sh(sh), sw(sw),
+      dh(dh), dw(dw), padding(PaddingMode::Other) {}
 ConvBaseObj::ConvBaseObj(OpType opType, TensorVec inputs, Tensor &output,
                          PaddingMode mode, int sh, int sw, int dh, int dw,
                          const Tensor &inputInConvFWD,
                          const Tensor &weightInConvFWD)
-    : OperatorObj(OpType::Conv, inputs, {output}), ph(-1), pw(-1), sh(sh),
-      sw(sw), dh(dh), dw(dw), padding(mode) {
+    : OperatorObj(opType, inputs, {output}), ph(-1), pw(-1), sh(sh), sw(sw),
+      dh(dh), dw(dw), padding(mode) {
     IT_ASSERT(mode != PaddingMode::Other);
 }
 
@@ -119,11 +119,11 @@ optional<vector<Shape>> ConvObj::inferShape(const TensorVec &inputs) const {
 ConvTransposed2dObj::ConvTransposed2dObj(GraphObj *graph, Tensor input,
                                          Tensor weight, Tensor output, int ph,
                                          int pw, int sh, int sw, int dh, int dw,
-                                         int oph, int opw, Tensor bias,
-                                         ActType act)
+                                         int oph, int opw, int group,
+                                         Tensor bias, ActType act)
     : ConvBaseObj(OpType::ConvTrans, {input, weight}, output, ph, pw, sh, sw,
                   dh, dw, output, weight),
-      oph(oph), opw(opw), act(act) {
+      oph(oph), opw(opw), group(group), act(act) {
     if (bias)
         IT_TODO_HALT();
     setAuxilaryAttributes(PaddingMode::Other);
@@ -134,10 +134,10 @@ ConvTransposed2dObj::ConvTransposed2dObj(GraphObj *graph, Tensor input,
                                          Tensor weight, Tensor output,
                                          PaddingMode mode, int sh, int sw,
                                          int dh, int dw, int oph, int opw,
-                                         Tensor bias, ActType act)
+                                         int group, Tensor bias, ActType act)
     : ConvBaseObj(OpType::ConvTrans, {input, weight}, output, mode, sh, sw, dh,
                   dw, output, weight),
-      oph(oph), opw(opw), act(act) {
+      oph(oph), opw(opw), group(group), act(act) {
     if (bias)
         IT_TODO_HALT();
     setAuxilaryAttributes(mode);
@@ -148,7 +148,7 @@ optional<vector<Shape>>
 ConvTransposed2dObj::inferShape(const TensorVec &inputs) const {
     const Tensor &input = inputs[0], &weight = inputs[1];
     auto n = input->getDims()[0];
-    [[maybe_unused]] auto f = input->getDims()[1];
+    auto f = input->getDims()[1];
     auto h = input->getDims()[2];
     auto w = input->getDims()[3];
     auto c = weight->getDims()[1];
@@ -157,7 +157,7 @@ ConvTransposed2dObj::inferShape(const TensorVec &inputs) const {
     if (f != weight->getDims()[0])
         return {};
 
-    int on = n, oc = c;
+    int on = n, oc = c * group;
     int oh = 0, ow = 0;
     oh = (h - 1) * sh - 2 * ph + dh * (r - 1) + oph + 1;
     ow = (w - 1) * sw - 2 * pw + dw * (s - 1) + opw + 1;
