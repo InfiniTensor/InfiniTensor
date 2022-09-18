@@ -30,7 +30,7 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
         } else
             record = *perfData;
 
-        double t = record.time;
+        double t = record->time;
         totalTime += t;
 
         if (profiling) {

@@ -2,10 +2,10 @@
 #include "core/kernel.h"
 
 namespace infini {
-template <typename T> class NativePooling : public Kernel {
+template <typename T> class NativePooling : public CpuKernelWithoutConfig {
     virtual T getPoolingValue(int kh, int kw, int posh, int posw, int ih,
                               int iw, T *inptr) const = 0;
-    void compute(const Operator &_op, const PerfRecord &record,
+    void compute(const Operator &_op,
                  const RuntimeObj *context) const override {
         auto op = as<PoolingObj>(_op);
         T *inptr = op->getInputs(0)->getRawDataPtr<T *>();
@@ -31,16 +31,6 @@ template <typename T> class NativePooling : public Kernel {
                 }
             }
         }
-    }
-
-    void compute(const Operator &op, const RuntimeObj *context) const override {
-        compute(op, {}, context);
-    }
-
-    PerfRecord tune(const Operator &op,
-                    const RuntimeObj *context) const override {
-        PerfRecord perfrcd(timeit([&]() { compute(op, context); }));
-        return perfrcd;
     }
 };
 

@@ -3,8 +3,8 @@
 
 namespace infini {
 
-template <typename T> class NaiveMatmul : public Kernel {
-    void compute(const Operator &_op, const PerfRecord &record,
+template <typename T> class NaiveMatmul : public CpuKernelWithoutConfig {
+    void compute(const Operator &_op,
                  const RuntimeObj *context) const override {
         auto op = as<MatmulObj>(_op);
         IT_ASSERT(op->getInputs().size() == 2, "Bias is not supported yet.");
@@ -23,17 +23,6 @@ template <typename T> class NaiveMatmul : public Kernel {
                 }
             }
         }
-    }
-
-    void compute(const Operator &op, const RuntimeObj *context) const override {
-        compute(op, {}, context);
-    }
-
-    PerfRecord tune(const Operator &op,
-                    const RuntimeObj *context) const override {
-        PerfRecord ret;
-        ret.time = timeit([&]() { compute(op, context); });
-        return ret;
     }
 };
 

@@ -1,6 +1,6 @@
 #include "operators/element_wise.h"
-#include "core/kernel.h"
 #include "cuda/cuda_element_wise.h"
+#include "cuda/cuda_kernel_wihtout_config.h"
 #include "cuda/cuda_runtime.h"
 
 namespace infini {
@@ -66,11 +66,9 @@ class ElementWiseCudnn : public Kernel {
     // Premise: op is idempotent since it is called multiple times.
     PerfRecord tune(const Operator &_op,
                     const RuntimeObj *_context) const override {
-        PerfRecord ret;
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
-        ret.time = timeit([&]() { compute(_op, _context); },
-                          [&]() { context->sync(); });
-        return ret;
+        return make_ref<PerfRecordObj>(timeit([&]() { compute(_op, _context); },
+                                              [&]() { context->sync(); }));
     }
 };
 
@@ -89,24 +87,10 @@ class MulCudnn : public ElementWiseCudnn {
     cudnnOpTensorOp_t getOpType() const override { return CUDNN_OP_TENSOR_MUL; }
 };
 
-class ElementWiseCuda : public Kernel {
-    void compute(const Operator &_op, const PerfRecord &record,
-                 const RuntimeObj *_context) const override {
-        element_wise_kernel(_op);
-    }
-
+class ElementWiseCuda : public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
-        compute(_op, {}, _context);
-    }
-    // Premise: op is idempotent since it is called multiple times.
-    PerfRecord tune(const Operator &_op,
-                    const RuntimeObj *_context) const override {
-        PerfRecord ret;
-        auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
-        ret.time = timeit([&]() { compute(_op, _context); },
-                          [&]() { context->sync(); });
-        return ret;
+        element_wise_kernel(_op);
     }
 };
 

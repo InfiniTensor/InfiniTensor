@@ -21,12 +21,13 @@ static constexpr int N_MODE = 2;
 static constexpr cudnnConvolutionMode_t MODES[N_MODE] = {
     CUDNN_CONVOLUTION, CUDNN_CROSS_CORRELATION};
 
-struct ConvCuDnnPerfRecord : public PerfRecord {
+struct ConvCuDnnPerfRecordObj : public PerfRecordObj {
     int algo = 0; // cudnnConvolutionFwdAlgo_t
     int mode = 1;
     size_t workspaceSize = 100000;
     bool fuseAct = false;
 };
+using ConvCuDnnPerfRecord = Ref<ConvCuDnnPerfRecordObj>;
 
 class convCudnn : public Kernel {
 
@@ -73,7 +74,7 @@ class convCudnn : public Kernel {
         checkCudnnError(cudnnCreateConvolutionDescriptor(&convDesc));
         // TODO: CUDNN_CONVOLUTION is a tunable argument
         checkCudnnError(cudnnSetConvolution2dDescriptor(
-            convDesc, ph, pw, sh, sw, dh, dw, MODES[record.mode],
+            convDesc, ph, pw, sh, sw, dh, dw, MODES[record->mode],
             CUDNN_DATA_FLOAT));
         if (g > 1) {
             checkCudnnError(cudnnSetConvolutionGroupCount(convDesc, g));
@@ -125,13 +126,13 @@ class convCudnn : public Kernel {
         const auto &[inData, knData, outData, inDesc, knDesc, biasDesc,
                      convDesc, actDesc, outDesc] =
             createCuDNNDescriptor(op, record);
-        size_t wsSize = record.workspaceSize;
+        size_t wsSize = record->workspaceSize;
         CudaPtr wsData = context->getWorkspace(wsSize);
         float alpha = 1.f, beta = 0.f;
 
         stat = cudnnConvolutionForward(context->cudnnHandle(), &alpha, inDesc,
                                        inData, knDesc, knData, convDesc,
-                                       ALGOS[record.algo], wsData, wsSize,
+                                       ALGOS[record->algo], wsData, wsSize,
                                        &beta, outDesc, outData);
         if (stat != CUDNN_STATUS_SUCCESS)
             return false;
@@ -192,13 +193,14 @@ class convCudnn : public Kernel {
     }
 
     void compute(const Operator &op, const RuntimeObj *context) const override {
-        ConvCuDnnPerfRecord record; // with paramters in default ctor
+        auto record = make_ref<ConvCuDnnPerfRecordObj>(); // with paramters in
+                                                          // default ctor
         compute(op, record, context);
     }
 
     PerfRecord tune(const Operator &_op,
                     const RuntimeObj *_context) const override {
-        ConvCuDnnPerfRecord ret;
+        ConvCuDnnPerfRecordObj ret;
         ret.time = std::numeric_limits<double>::max();
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         auto op = as<ConvObj>(_op);
@@ -206,13 +208,14 @@ class convCudnn : public Kernel {
         for (int mode = 1; mode < 2; mode++) {
             // Try every possible algorithm of convolution
             for (int algo = 0; algo < N_ALGO; algo++) {
-                ConvCuDnnPerfRecord record;
+                auto recordRef = make_ref<ConvCuDnnPerfRecordObj>();
+                auto &record = *recordRef;
                 record.mode = mode;
                 record.algo = algo;
                 cudnnStatus_t stat;
                 const auto &[inData, knData, outData, inDesc, knDesc, biasDesc,
                              convDesc, actDesc, outDesc] =
-                    createCuDNNDescriptor(op, record);
+                    createCuDNNDescriptor(op, recordRef);
 
                 // get workspace
                 stat = cudnnGetConvolutionForwardWorkspaceSize(
@@ -257,13 +260,13 @@ class convCudnn : public Kernel {
         IT_ASSERT(ret.time < std::numeric_limits<double>::max(), "No valid "
                                                                  "algorithm "
                                                                  "found");
-        return ret;
+        return make_ref<ConvCuDnnPerfRecordObj>(ret);
     }
 
     void compute(const Operator &_op, const PerfRecord &_record,
                  const RuntimeObj *_context) const override {
         auto op = as<ConvObj>(_op);
-        auto &record = dynamic_cast<const ConvCuDnnPerfRecord &>(_record);
+        auto record = as<ConvCuDnnPerfRecordObj>(_record);
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         bool success = cuDNNUnfused(op, record, context);
         IT_ASSERT(success);

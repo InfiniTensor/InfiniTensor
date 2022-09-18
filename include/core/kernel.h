@@ -7,13 +7,14 @@ namespace infini {
 
 class RuntimeObj; // Forward declaration for Kernel::compute
 
-struct PerfRecord {
-    PerfRecord(){};
-    PerfRecord(double time) : time(time){};
-    virtual ~PerfRecord() {}
+struct PerfRecordObj {
+    PerfRecordObj(){};
+    PerfRecordObj(double time) : time(time){};
+    virtual ~PerfRecordObj() {}
 
     double time = 0; // in milliseconds
 };
+using PerfRecord = Ref<PerfRecordObj>;
 
 class Kernel {
   public:
@@ -70,6 +71,21 @@ class KernelRegistry {
     }
     const KernelRecord &getKernelItem(const KernelAttrs &kernelAttrs) const {
         return kernels.at(kernelAttrs);
+    }
+};
+
+class CpuKernelWithoutConfig : public Kernel {
+  public:
+    void compute(const Operator &op, const PerfRecord &record,
+                 const RuntimeObj *context) const override {
+        compute(op, context);
+    }
+    virtual void compute(const Operator &op,
+                         const RuntimeObj *context) const = 0;
+    // Premise: op is idempotent since it is called multiple times.
+    virtual PerfRecord tune(const Operator &op,
+                            const RuntimeObj *context) const override {
+        return make_ref<PerfRecordObj>(timeit([&]() { compute(op, context); }));
     }
 };
 

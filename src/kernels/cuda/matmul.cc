@@ -5,9 +5,10 @@
 #include <functional>
 
 namespace infini {
-struct MatmulCudnnPerfRecord : public PerfRecord {
+struct MatmulCudnnPerfRecordObj : public PerfRecordObj {
     cublasGemmAlgo_t algo = CUBLAS_GEMM_DEFAULT;
 };
+using MatmulCudnnPerfRecord = Ref<MatmulCudnnPerfRecordObj>;
 constexpr int N_ALGO = 24;
 constexpr cublasGemmAlgo_t ALGOS[N_ALGO] = {
     CUBLAS_GEMM_ALGO0,  CUBLAS_GEMM_ALGO1,  CUBLAS_GEMM_ALGO2,
@@ -28,7 +29,7 @@ class matmulCublas : public Kernel {
         void *const inAData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const inBData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const outData = (op->getOutput()->getRawDataPtr<void *>());
-        auto record = dynamic_cast<const MatmulCudnnPerfRecord &>(_record);
+        auto record = as<MatmulCudnnPerfRecordObj>(_record);
 
         const auto [b, m, n, k] = op->getBMNK();
         auto opA =
@@ -43,12 +44,12 @@ class matmulCublas : public Kernel {
             stat = cublasGemmStridedBatchedEx(
                 context->cublasHandle(), opB, opA, n, m, k, &alpha, inBData,
                 CUDA_R_32F, ldb, k * n, inAData, CUDA_R_32F, lda, m * k, &beta,
-                outData, CUDA_R_32F, ldc, m * n, b, CUDA_R_32F, record.algo);
+                outData, CUDA_R_32F, ldc, m * n, b, CUDA_R_32F, record->algo);
         } else {
             stat = cublasGemmEx(context->cublasHandle(), opB, opA, n, m, k,
                                 &alpha, inBData, CUDA_R_32F, ldb, inAData,
                                 CUDA_R_32F, lda, &beta, outData, CUDA_R_32F,
-                                ldc, CUDA_R_32F, record.algo);
+                                ldc, CUDA_R_32F, record->algo);
         }
         return (stat == CUBLAS_STATUS_SUCCESS);
     }
@@ -59,7 +60,8 @@ class matmulCublas : public Kernel {
     }
 
     void compute(const Operator &op, const RuntimeObj *context) const override {
-        MatmulCudnnPerfRecord record; // use default record;
+        auto record =
+            make_ref<MatmulCudnnPerfRecordObj>(); // use default record;
         compute(op, record, context);
     }
 
@@ -67,21 +69,21 @@ class matmulCublas : public Kernel {
                     const RuntimeObj *_context) const override {
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         auto op = as<MatmulObj>(_op);
-        MatmulCudnnPerfRecord ret;
-        ret.time = std::numeric_limits<double>::max();
+        auto ret = make_ref<MatmulCudnnPerfRecordObj>();
+        ret->time = std::numeric_limits<double>::max();
         for (int i = 0; i < N_ALGO; i++) {
-            MatmulCudnnPerfRecord rcd;
-            rcd.algo = ALGOS[i];
+            auto rcd = make_ref<MatmulCudnnPerfRecordObj>();
+            rcd->algo = ALGOS[i];
             if (!do_compute(_op, rcd, _context))
                 continue;
-            rcd.time = timeit([&]() { do_compute(_op, rcd, _context); },
-                              [&]() { context->sync(); });
-            if (rcd.time < ret.time)
+            rcd->time = timeit([&]() { do_compute(_op, rcd, _context); },
+                               [&]() { context->sync(); });
+            if (rcd->time < ret->time)
                 ret = rcd;
         }
-        IT_ASSERT(ret.time < std::numeric_limits<double>::max(), "No valid "
-                                                                 "algorithm "
-                                                                 "found");
+        IT_ASSERT(ret->time < std::numeric_limits<double>::max(), "No valid "
+                                                                  "algorithm "
+                                                                  "found");
         return ret;
     }
 };

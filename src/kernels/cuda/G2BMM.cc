@@ -1,5 +1,5 @@
 #include "operators/G2BMM.h"
-#include "core/kernel.h"
+#include "cuda/cuda_kernel_wihtout_config.h"
 #include "cuda/cuda_runtime.h"
 #include "custom_ops.h"
 #include <chrono>
@@ -7,7 +7,7 @@
 #include <tuple>
 namespace infini {
 
-class G2BMMCudnn : public Kernel {
+class G2BMMCudnn : public CudaKernelWithoutConfig {
 
     bool g2bmmKernel(const Ref<G2BMMObj> &op,
                      const CudaRuntimeObj *context) const {
@@ -25,31 +25,27 @@ class G2BMMCudnn : public Kernel {
         return true;
     }
 
-    void compute(const Operator &op, const RuntimeObj *context) const override {
-        PerfRecord record;
-        compute(op, record, context);
-    }
-
     PerfRecord tune(const Operator &_op,
                     const RuntimeObj *_context) const override {
-        PerfRecord record;
         auto op = as<G2BMMObj>(_op);
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
 
-        record.time = std::numeric_limits<double>::max();
+        auto record =
+            make_ref<PerfRecordObj>(std::numeric_limits<double>::max());
         const auto [warmupRounds, timingRounds] =
             op->getB() > 100 ? tuple{1, 3} : tuple{5, 15};
         double tmp =
             timeit([&]() { g2bmmKernel(op, context); },
                    [&]() { context->sync(); }, warmupRounds, timingRounds);
-        if (tmp < record.time)
-            record.time = tmp;
-        IT_ASSERT(record.time < std::numeric_limits<double>::max(),
+        if (tmp < record->time)
+            record->time = tmp;
+        IT_ASSERT(record->time < std::numeric_limits<double>::max(),
                   "Error occured "
                   "during runtime");
         return record;
     }
-    void compute(const Operator &_op, const PerfRecord &_record,
+
+    void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<G2BMMObj>(_op);
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
