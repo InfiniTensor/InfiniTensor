@@ -1,11 +1,11 @@
 #include "operators/pooling.h"
-#include "core/kernel.h"
+#include "cuda/cuda_kernel_wihtout_config.h"
 #include "cuda/cuda_runtime.h"
 
 namespace infini {
-class poolingCudnn : public Kernel {
+class poolingCudnn : public CudaKernelWithoutConfig {
     virtual cudnnPoolingMode_t getPoolingMode() const = 0;
-    void compute(const Operator &_op, const PerfRecord &record,
+    void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<PoolingObj>(_op);
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
@@ -53,18 +53,6 @@ class poolingCudnn : public Kernel {
         checkCudnnError(cudnnDestroyTensorDescriptor(inDesc));
         checkCudnnError(cudnnDestroyTensorDescriptor(outDesc));
         checkCudnnError(cudnnDestroyPoolingDescriptor(poolingDesc));
-    }
-
-    void compute(const Operator &_op,
-                 const RuntimeObj *_context) const override {
-        compute(_op, {}, _context);
-    }
-    // Premise: op is idempotent since it is called multiple times.
-    PerfRecord tune(const Operator &_op,
-                    const RuntimeObj *_context) const override {
-        auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
-        return make_ref<PerfRecordObj>(timeit([&]() { compute(_op, _context); },
-                                              [&]() { context->sync(); }));
     }
 };
 

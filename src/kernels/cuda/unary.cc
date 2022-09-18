@@ -1,33 +1,21 @@
 #include "operators/unary.h"
-#include "core/kernel.h"
+#include "cuda/cuda_kernel_wihtout_config.h"
 #include "cuda/cuda_runtime.h"
 #include "cuda/cuda_unary.h"
 
 namespace infini {
 
-class UnaryCuda : public Kernel {
-    void compute(const Operator &_op, const PerfRecord &record,
+class UnaryCuda : public CudaKernelWithoutConfig {
+    void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         unary_kernel(_op);
     }
-
-    void compute(const Operator &_op,
-                 const RuntimeObj *_context) const override {
-        compute(_op, {}, _context);
-    }
-    // Premise: op is idempotent since it is called multiple times.
-    PerfRecord tune(const Operator &_op,
-                    const RuntimeObj *_context) const override {
-        auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
-        return make_ref<PerfRecordObj>(timeit([&]() { compute(_op, _context); },
-                                              [&]() { context->sync(); }));
-    }
 };
 
-class ActivationCudnn : public Kernel {
+class ActivationCudnn : public CudaKernelWithoutConfig {
     virtual cudnnActivationMode_t getOpType() const = 0;
     virtual tuple<float, float> getAlphBeta() const { return {1.f, 0.f}; }
-    void compute(const Operator &_op, const PerfRecord &record,
+    void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<UnaryObj>(_op);
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
@@ -70,25 +58,13 @@ class ActivationCudnn : public Kernel {
         checkCudnnError(cudnnDestroyTensorDescriptor(outputDesc));
         checkCudnnError(cudnnDestroyTensorDescriptor(inputDesc));
     }
-
-    void compute(const Operator &_op,
-                 const RuntimeObj *_context) const override {
-        compute(_op, {}, _context);
-    }
-    // Premise: op is idempotent since it is called multiple times.
-    PerfRecord tune(const Operator &_op,
-                    const RuntimeObj *_context) const override {
-        auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
-        return make_ref<PerfRecordObj>(timeit([&]() { compute(_op, _context); },
-                                              [&]() { context->sync(); }));
-    }
 };
 
-class SoftmaxCudnn : public Kernel {
+class SoftmaxCudnn : public CudaKernelWithoutConfig {
     virtual cudnnSoftmaxAlgorithm_t getAlgorithmType() const = 0;
     virtual cudnnSoftmaxMode_t getModeType() const = 0;
     virtual tuple<float, float> getAlphBeta() const { return {1.f, 0.f}; }
-    void compute(const Operator &_op, const PerfRecord &record,
+    void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<UnaryObj>(_op);
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
@@ -123,18 +99,6 @@ class SoftmaxCudnn : public Kernel {
         // whether sync is required before destories.
         checkCudnnError(cudnnDestroyTensorDescriptor(inputDesc));
         checkCudnnError(cudnnDestroyTensorDescriptor(outputDesc));
-    }
-
-    void compute(const Operator &_op,
-                 const RuntimeObj *_context) const override {
-        compute(_op, {}, _context);
-    }
-    // Premise: op is idempotent since it is called multiple times.
-    PerfRecord tune(const Operator &_op,
-                    const RuntimeObj *_context) const override {
-        auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
-        return make_ref<PerfRecordObj>(timeit([&]() { compute(_op, _context); },
-                                              [&]() { context->sync(); }));
     }
 };
 

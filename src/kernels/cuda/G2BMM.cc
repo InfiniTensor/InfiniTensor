@@ -1,5 +1,5 @@
 #include "operators/G2BMM.h"
-#include "core/kernel.h"
+#include "cuda/cuda_kernel_wihtout_config.h"
 #include "cuda/cuda_runtime.h"
 #include "custom_ops.h"
 #include <chrono>
@@ -7,7 +7,7 @@
 #include <tuple>
 namespace infini {
 
-class G2BMMCudnn : public Kernel {
+class G2BMMCudnn : public CudaKernelWithoutConfig {
 
     bool g2bmmKernel(const Ref<G2BMMObj> &op,
                      const CudaRuntimeObj *context) const {
@@ -23,11 +23,6 @@ class G2BMMCudnn : public Kernel {
         _sg2bmm(inAData, inBData, outData, b, n, m, width, dilation);
         // checkCudaError(cudaDeviceSynchronize());
         return true;
-    }
-
-    void compute(const Operator &op, const RuntimeObj *context) const override {
-        auto record = make_ref<PerfRecordObj>();
-        compute(op, record, context);
     }
 
     PerfRecord tune(const Operator &_op,
@@ -49,7 +44,8 @@ class G2BMMCudnn : public Kernel {
                   "during runtime");
         return record;
     }
-    void compute(const Operator &_op, const PerfRecord &_record,
+
+    void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<G2BMMObj>(_op);
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);

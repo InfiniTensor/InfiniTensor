@@ -74,6 +74,21 @@ class KernelRegistry {
     }
 };
 
+class CpuKernelWithoutConfig : public Kernel {
+  public:
+    void compute(const Operator &op, const PerfRecord &record,
+                 const RuntimeObj *context) const override {
+        compute(op, context);
+    }
+    virtual void compute(const Operator &op,
+                         const RuntimeObj *context) const = 0;
+    // Premise: op is idempotent since it is called multiple times.
+    virtual PerfRecord tune(const Operator &op,
+                            const RuntimeObj *context) const override {
+        return make_ref<PerfRecordObj>(timeit([&]() { compute(op, context); }));
+    }
+};
+
 } // namespace infini
 
 #define _REGISTER_KERNEL_1(device, opType, dataType, kernel, name, cnt)        \

@@ -3,8 +3,8 @@
 
 namespace infini {
 
-template <typename T> class NaiveConv : public Kernel {
-    void compute(const Operator &_op, const PerfRecord &record,
+template <typename T> class NaiveConv : public CpuKernelWithoutConfig {
+    void compute(const Operator &_op,
                  const RuntimeObj *context) const override {
         auto op = as<ConvObj>(_op);
         T *iptr = op->getInputs(0)->getRawDataPtr<T *>();
@@ -44,15 +44,6 @@ template <typename T> class NaiveConv : public Kernel {
                     }
             }
         }
-    }
-
-    void compute(const Operator &op, const RuntimeObj *context) const override {
-        compute(op, {}, context);
-    }
-
-    PerfRecord tune(const Operator &op,
-                    const RuntimeObj *context) const override {
-        return make_ref<PerfRecordObj>(timeit([&]() { compute(op, context); }));
     }
 };
 

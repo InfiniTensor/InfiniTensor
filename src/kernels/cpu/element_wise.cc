@@ -2,9 +2,9 @@
 #include "core/kernel.h"
 
 namespace infini {
-template <typename T> class NativeElementWise : public Kernel {
+template <typename T> class NativeElementWise : public CpuKernelWithoutConfig {
     virtual T doCompute(T val0, T val1) const = 0;
-    void compute(const Operator &_op, const PerfRecord &record,
+    void compute(const Operator &_op,
                  const RuntimeObj *context) const override {
         auto op = as<ElementWiseObj>(_op);
         T *inptr0 = op->getInputs(0)->getRawDataPtr<T *>();
@@ -23,15 +23,6 @@ template <typename T> class NativeElementWise : public Kernel {
             outptr[offset] = doCompute(inptr0[offset0], inptr1[offset1]);*/
             outptr[offset] = doCompute(inptr0[offset], inptr1[offset]);
         }
-    }
-
-    void compute(const Operator &op, const RuntimeObj *context) const override {
-        compute(op, {}, context);
-    }
-
-    PerfRecord tune(const Operator &op,
-                    const RuntimeObj *context) const override {
-        return make_ref<PerfRecordObj>(timeit([&]() { compute(op, context); }));
     }
 };
 

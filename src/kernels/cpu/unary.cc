@@ -3,9 +3,9 @@
 #include "core/kernel.h"
 
 namespace infini {
-template <typename T> class NativeUnary : public Kernel {
+template <typename T> class NativeUnary : public CpuKernelWithoutConfig {
     virtual T doCompute(T val) const = 0;
-    void compute(const Operator &_op, const PerfRecord &record,
+    void compute(const Operator &_op,
                  const RuntimeObj *context) const override {
         auto op = as<UnaryObj>(_op);
         T *inptr = op->getInputs(0)->getRawDataPtr<T *>();
@@ -17,19 +17,10 @@ template <typename T> class NativeUnary : public Kernel {
             outptr[offset] = doCompute(inptr[offset]);
         }
     }
-
-    void compute(const Operator &op, const RuntimeObj *context) const override {
-        compute(op, {}, context);
-    }
-
-    PerfRecord tune(const Operator &op,
-                    const RuntimeObj *context) const override {
-        return make_ref<PerfRecordObj>(timeit([&]() { compute(op, context); }));
-    }
 };
 
-template <typename T> class NaiveSoftmax : public Kernel {
-    void compute(const Operator &_op, const PerfRecord &record,
+template <typename T> class NaiveSoftmax : public CpuKernelWithoutConfig {
+    void compute(const Operator &_op,
                  const RuntimeObj *context) const override {
         auto op = as<UnaryObj>(_op);
         T *inptr = op->getInputs(0)->getRawDataPtr<T *>();
@@ -44,15 +35,6 @@ template <typename T> class NaiveSoftmax : public Kernel {
         for (size_t offset = 0; offset < n; offset++) {
             outptr[offset] = pow(E_CONSTANT, inptr[offset]) / sum;
         }
-    }
-
-    void compute(const Operator &op, const RuntimeObj *context) const override {
-        compute(op, {}, context);
-    }
-
-    PerfRecord tune(const Operator &op,
-                    const RuntimeObj *context) const override {
-        return make_ref<PerfRecordObj>(timeit([&]() { compute(op, context); }));
     }
 };
 
