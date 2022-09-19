@@ -7,7 +7,7 @@ namespace infini {
 void CudaRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
                                     bool profiling = false) const {
     const auto &kernelRegistry = KernelRegistry::getInstance();
-    auto perfEngine = PerfEngine::getInstance();
+    auto &perfEngine = PerfEngine::getInstance();
     double totalTime = 0;
     std::map<OpType, double> opTime;
     std::map<OpType, int> opCnt;

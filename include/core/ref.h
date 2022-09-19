@@ -1,4 +1,5 @@
 #pragma once
+#include "core/common.h"
 #include <functional> // hash
 #include <memory>
 #include <type_traits>
