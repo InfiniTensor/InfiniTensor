@@ -36,12 +36,13 @@ class matmulCublas : public Kernel {
             stat = cublasGemmStridedBatchedEx(
                 context->cublasHandle(), opB, opA, n, m, k, &alpha, inBData,
                 CUDA_R_32F, ldb, k * n, inAData, CUDA_R_32F, lda, m * k, &beta,
-                outData, CUDA_R_32F, ldc, m * n, b, CUDA_R_32F, (cublasGemmAlgo_t)record->algo);
+                outData, CUDA_R_32F, ldc, m * n, b, CUDA_R_32F,
+                (cublasGemmAlgo_t)record->algo);
         } else {
-            stat = cublasGemmEx(context->cublasHandle(), opB, opA, n, m, k,
-                                &alpha, inBData, CUDA_R_32F, ldb, inAData,
-                                CUDA_R_32F, lda, &beta, outData, CUDA_R_32F,
-                                ldc, CUDA_R_32F, (cublasGemmAlgo_t)record->algo);
+            stat = cublasGemmEx(
+                context->cublasHandle(), opB, opA, n, m, k, &alpha, inBData,
+                CUDA_R_32F, ldb, inAData, CUDA_R_32F, lda, &beta, outData,
+                CUDA_R_32F, ldc, CUDA_R_32F, (cublasGemmAlgo_t)record->algo);
         }
         return (stat == CUBLAS_STATUS_SUCCESS);
     }

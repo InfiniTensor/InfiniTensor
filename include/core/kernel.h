@@ -3,7 +3,6 @@
 #include "core/operator.h"
 #include "core/tensor.h"
 
-
 namespace infini {
 
 class RuntimeObj; // Forward declaration for Kernel::compute
@@ -13,15 +12,11 @@ struct PerfRecordObj {
     PerfRecordObj(double time) : time(time){};
     virtual ~PerfRecordObj(){};
     double time = 0; // in milliseconds
-    virtual void to_json(json &j)
-    {
+    virtual void to_json(json &j) {
         j["type"] = 0;
         j["data"] = time;
     }
-    virtual void from_json(const json &j)
-    {
-        time = j["data"].get<int>();
-    }
+    virtual void from_json(const json &j) { time = j["data"].get<int>(); }
 };
 using PerfRecord = Ref<PerfRecordObj>;
 
@@ -30,14 +25,11 @@ struct ConvCuDnnPerfRecordObj : public PerfRecordObj {
     int mode = 1;
     size_t workspaceSize = 100000;
     bool fuseAct = false;
-    void to_json(json &j) override
-    {
+    void to_json(json &j) override {
         j["type"] = 1;
-        j["data"] = std::make_tuple(algo, mode, fuseAct,
-                                    time, workspaceSize);
+        j["data"] = std::make_tuple(algo, mode, fuseAct, time, workspaceSize);
     }
-    void from_json(const json &j) override
-    {
+    void from_json(const json &j) override {
         auto [Algo, Mode, FuseAct, Time, WorkspaceSize] =
             j["data"].get<tuple<int, int, bool, double, size_t>>();
         algo = Algo;
@@ -52,20 +44,17 @@ using ConvCuDnnPerfRecord = Ref<ConvCuDnnPerfRecordObj>;
 
 struct MatmulCudnnPerfRecordObj : public PerfRecordObj {
     int algo = -1; // cudnnConvolutionFwdAlgo_t
-    void to_json(json &j) override
-    {
+    void to_json(json &j) override {
         j["type"] = 2;
         j["data"] = std::make_pair(algo, time);
     }
-    void from_json(const json &j) override
-    {
+    void from_json(const json &j) override {
         auto pr = j["data"].get<pair<int, double>>();
         algo = pr.first;
         time = pr.second;
     }
 };
 using MatmulCudnnPerfRecord = Ref<MatmulCudnnPerfRecordObj>;
-
 
 class Kernel {
   public:

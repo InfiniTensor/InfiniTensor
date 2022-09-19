@@ -144,5 +144,4 @@ void CpuRuntimeObj::copyBlobInsideRuntime(void *dst, void *src,
     memcpy(dst, src, bytes);
 }
 
-
 } // namespace infini

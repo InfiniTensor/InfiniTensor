@@ -44,8 +44,8 @@ class PerfEngine {
     }
     map<Key, PerfRecord> get_data() { return data; }
     void set_data(map<Key, PerfRecord> data) { this->data = data; }
-    void savePerfEngineData( std::string file_path);
-    void loadPerfEngineData( std::string file_path);
+    void savePerfEngineData(std::string file_path);
+    void loadPerfEngineData(std::string file_path);
 };
 void to_json(json &j, const PerfEngine &p);
 void from_json(const json &j, PerfEngine &p);

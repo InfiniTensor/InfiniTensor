@@ -10,7 +10,7 @@ void PerfEngine::savePerfEngineData(std::string file_path) {
     fileout.close();
 }
 
-void PerfEngine::loadPerfEngineData( std::string file_path) {
+void PerfEngine::loadPerfEngineData(std::string file_path) {
     std::ifstream filein(file_path, std::ios::in | std::ios::binary);
     string t;
     filein >> t;
@@ -33,9 +33,7 @@ void to_json(json &j, const DataType &p) {
     j = x;
 }
 void from_json(const json &j, DataType &p) { p = DataType(j.get<int>()); }
-void to_json(json &j, const PerfRecord &p) {
-    p->to_json(j);
-}
+void to_json(json &j, const PerfRecord &p) { p->to_json(j); }
 void from_json(const json &j, PerfRecord &p) {
     int type = j["type"].get<int>();
     if (type == 1) {
@@ -58,8 +56,8 @@ void to_json(json &j, const PerfEngine &p) {
 void from_json(const json &j, PerfEngine &p) {
 
     auto tmp = j["data"].get<map<PerfEngine::Key, PerfRecord>>();
-    
+
     p.set_data(tmp);
 }
 
-}
+} // namespace infini

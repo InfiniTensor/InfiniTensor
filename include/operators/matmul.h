@@ -7,7 +7,6 @@
 
 namespace infini {
 
-
 class MatmulObj : public OperatorObj {
   private:
     // InfiniTensor assumes a row-major tensor layout. `transA`=false means

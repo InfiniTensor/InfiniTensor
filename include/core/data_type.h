@@ -13,8 +13,8 @@ class DataType {
     int index;
 
   public:
-    DataType()=default;
-    constexpr DataType(int index) : index(index) {}  
+    DataType() = default;
+    constexpr DataType(int index) : index(index) {}
     bool operator==(const DataType &rhs) const { return index == rhs.index; }
     bool operator<(const DataType &rhs) const { return index < rhs.index; }
 

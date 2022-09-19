@@ -78,6 +78,4 @@ void loadTensorData(TensorObj *tensor, std::string file_path) {
 #endif
 }
 
-
-
 }; // namespace infini
