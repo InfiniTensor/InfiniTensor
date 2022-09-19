@@ -112,7 +112,7 @@ bool TensorObj::equalData(const Tensor &rhs) const {
     IT_ASSERT(getDType() == rhs->getDType());
     IT_ASSERT(runtime->isCpu());
     IT_ASSERT(rhs->getRuntime()->isCpu());
-    if (shape != rhs->getDims())
+    if (size() != rhs->size())
         return false;
     if (getDType() == DataType::UInt32)
         return equalDataImpl(getRawDataPtr<uint32_t *>(),
