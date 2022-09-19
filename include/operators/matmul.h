@@ -7,10 +7,6 @@
 
 namespace infini {
 
-struct MatmulCudnnPerfRecordObj : public PerfRecordObj {
-    cublasGemmAlgo_t algo = CUBLAS_GEMM_DEFAULT;
-};
-using MatmulCudnnPerfRecord = Ref<MatmulCudnnPerfRecordObj>;
 
 class MatmulObj : public OperatorObj {
   private:

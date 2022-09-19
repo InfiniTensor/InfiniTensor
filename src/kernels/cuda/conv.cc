@@ -7,8 +7,6 @@
 #include <tuple>
 namespace infini {
 
-using ConvCuDnnPerfRecord = Ref<ConvCuDnnPerfRecordObj>;
-
 class convCudnn : public Kernel {
     static constexpr int N_ALGO = 8;
     static constexpr int N_MODE = 2;

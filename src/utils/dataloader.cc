@@ -78,21 +78,6 @@ void loadTensorData(TensorObj *tensor, std::string file_path) {
 #endif
 }
 
-void savePerfEngineData(PerfEngine perfEngine, std::string file_path) {
-    std::ofstream fileout(file_path,
-                          std::ios::out | std::ios::trunc | std::ios::binary);
-    json t = perfEngine;
-    fileout << t << std::endl;
-    fileout.close();
-}
 
-void loadPerfEngineData(PerfEngine perfEngine, std::string file_path) {
-    std::ifstream filein(file_path, std::ios::in | std::ios::binary);
-    string t;
-    filein >> t;
-    json j = json::parse(t);
-    perfEngine = j;
-    filein.close();
-}
 
 }; // namespace infini

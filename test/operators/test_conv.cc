@@ -130,7 +130,6 @@ TEST(Conv, tune) {
     auto conv =
         gCuda->addOp<ConvObj>(i0Cuda, w0Cuda, nullptr, 1, 1, 1, 1, 1, 1);
     // allocate CUDA memory
-    // gCuda->addOp<ConvObj>(i0Cuda, w0Cuda, nullptr, 1, 2, 1, 2, 1, 1);
     gCuda->dataMalloc();
     // Execute on CUDA
     bool tune = true;

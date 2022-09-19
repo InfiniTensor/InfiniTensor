@@ -7,7 +7,6 @@
 #include "operators/conv.h"
 #include "operators/matmul.h"
 #include "test.h"
-#include "utils/dataloader.h"
 
 namespace infini {
 
@@ -46,11 +45,12 @@ TEST(PerfEngine, save_and_load) {
     gCuda->dataMalloc();
     cudaRuntime->run(gCuda, true);
     auto perfEngine = PerfEngine::getInstance();
+    
     json j0 = perfEngine;
-    std::cout << "Origin PerfEngine:" << std::endl;
+    std::cout << "PerfEngine saveed:" << std::endl;
     std::cout << j0 << std::endl;
-    savePerfEngineData(perfEngine, "test.json");
-    loadPerfEngineData(perfEngine, "test.json");
+    perfEngine.savePerfEngineData("test.json");
+    perfEngine.loadPerfEngineData("test.json");
     json j1 = perfEngine;
     std::cout << "PerfEngine loaded:" << std::endl;
     std::cout << j1 << std::endl;

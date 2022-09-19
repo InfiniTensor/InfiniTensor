@@ -1,6 +1,9 @@
 #pragma once
 #include "core/graph.h"
 #include "core/kernel.h"
+#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
+using json = nlohmann::json;
 namespace infini {
 
 class PerfEngine {
@@ -41,15 +44,10 @@ class PerfEngine {
     }
     map<Key, PerfRecord> get_data() { return data; }
     void set_data(map<Key, PerfRecord> data) { this->data = data; }
+    void savePerfEngineData( std::string file_path);
+    void loadPerfEngineData( std::string file_path);
 };
-void to_json(json &j, const OpPerfKey &p);
-void from_json(const json &j, OpPerfKey &p);
-void to_json(json &j, const DataType &p);
-void from_json(const json &j, DataType &p);
-void to_json(json &j, const PerfRecord &p);
-void from_json(const json &j, PerfRecord &p);
-void to_json(json &j, PerfRecord *p);
-void from_json(const json &j, PerfRecord *p);
 void to_json(json &j, const PerfEngine &p);
 void from_json(const json &j, PerfEngine &p);
+
 } // namespace infini

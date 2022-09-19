@@ -107,7 +107,7 @@ struct OpPerfKey {
     vector<int> attrs;
 
   public:
-    OpPerfKey(){};
+    OpPerfKey() = default;
     OpPerfKey(HashType hash, OpType opType, vector<int> attrs = {})
         : hash(hash), opType(opType), attrs(attrs) {}
     bool operator==(const OpPerfKey &rhs) const {
