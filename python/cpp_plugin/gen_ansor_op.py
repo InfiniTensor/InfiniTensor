@@ -29,7 +29,7 @@ def gen_ansor_op(input_tensors, input_dtypes, output_tensor, output_dtype, f, fu
     log_file = f"ansor_{func_name}_log.json"
     measure_ctx = auto_scheduler.LocalRPCMeasureContext(min_repeat_ms=300)
     tune_option = auto_scheduler.TuningOptions(
-        num_measure_trials=500,
+        num_measure_trials=10,
         runner=measure_ctx.runner,
         measure_callbacks=[auto_scheduler.RecordToFile(log_file)],
         verbose=2,

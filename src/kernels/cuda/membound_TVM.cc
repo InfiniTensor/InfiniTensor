@@ -10,23 +10,56 @@ namespace py = pybind11;
 
 namespace infini {
 
-class TVMRecord : public PerfRecord {
+class TVMRecordObj : public PerfRecordObj {
     // TODO: Add more attrs
 public:
     size_t logSize, ptxSize;
-    char *log, *ptx;
-
-    TVMRecord(): logSize(0), ptxSize(0), log(nullptr), ptx(nullptr) { }
+    Ref<char[]> log, ptx;
+    std::vector<int> invokeParams;
+    std::string kernelName;
 };
 
+using TVMRecord = Ref<TVMRecordObj>;
+
 class MemboundTVM : public Kernel {
+public:
     void compute(const Operator &_op, const PerfRecord &record,
                  const RuntimeObj *_context) const override {
         auto op = as<MemBoundObj>(_op);
-        // auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
-        // cudnnStatus_t stat;
-        // void *const inData = (op->getInputs(0)->getRawDataPtr<void *>());
-        // void *const outData = (op->getOutput()->getRawDataPtr<void *>());
+        auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
+        auto tvmRecord = std::dynamic_pointer_cast<TVMRecordObj>(record);
+
+        // prepare for evaluation
+        CUdevice cuDevice;
+        CUcontext newContext;
+        CUmodule module;
+        CUfunction kernel;
+        cuInit(0);
+        cuDeviceGet(&cuDevice, 0);
+        cuCtxCreate(&newContext, 0, cuDevice);
+        cuModuleLoadDataEx(&module, tvmRecord->ptx.get(), 0, 0, 0);
+        cuModuleGetFunction(&kernel, module, tvmRecord->kernelName.c_str());
+        std::vector<void *> args;
+        for (auto&& in : op->getInputs()) {
+            args.push_back(in->getRawDataPtr<void *>());
+        }
+        args.push_back(op->getOutput()->getRawDataPtr<void *>());
+        std::vector<void *> argsPtr;
+        for (auto &arg : args) {
+            argsPtr.push_back(&arg);
+        }
+        auto invokeParams = tvmRecord->invokeParams;
+
+        // begin evaluation
+        std::cout << "begin evaluation" << std::endl;
+        cuLaunchKernel(kernel,
+                        invokeParams[0], invokeParams[1], invokeParams[2],
+                        invokeParams[3], invokeParams[4], invokeParams[5],
+                        0, NULL,
+                        argsPtr.data(),
+                        0);
+        cuCtxSynchronize();
+        context->sync();
     }
 
     void compute(const Operator &_op,
@@ -41,12 +74,12 @@ class MemboundTVM : public Kernel {
     // Premise: op is idempotent since it is called multiple times.
     PerfRecord tune(const Operator &_op,
                     const RuntimeObj *_context) const override {
-        TVMRecord ret;
+        TVMRecord ret = std::make_shared<TVMRecordObj>();
         auto op = as<MemBoundObj>(_op);
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         // TODO: invoke Ansor to tune a membound kernel
         std::string func = "mem_bound_" + std::to_string(op->getGuid());
-        std::string kernelName = func + "kernel0";
+        std::string kernelName = func + "_kernel0";
         nnet::AsTVMVisitor visitor;
         visitor.dispatch(op->getNnetExpr());
         auto &&stmts = visitor.getStmts();
@@ -84,14 +117,17 @@ class MemboundTVM : public Kernel {
         // copy ptx and log to ret
         size_t logSize;
         nvrtcGetProgramLogSize(prog, &logSize);
-        char *log = new char[logSize];
-        nvrtcGetProgramLog(prog, log);
-        // Obtain PTX from the program.
         size_t ptxSize;
         nvrtcGetPTXSize(prog, &ptxSize);
-        char *ptx = new char[ptxSize];
-        nvrtcGetPTX(prog, ptx);
-        std::cout << "compile and copy" << std::endl;
+        ret->logSize = logSize;
+        ret->ptxSize = ptxSize;
+        ret->log = std::shared_ptr<char[]>(new char[logSize]);
+        ret->ptx = std::shared_ptr<char[]>(new char[ptxSize]);
+        nvrtcGetProgramLog(prog, ret->log.get());
+        nvrtcGetPTX(prog, ret->ptx.get());
+        ret->invokeParams = invokeParams;
+        ret->kernelName = kernelName;
+
         // prepare for evaluation
         CUdevice cuDevice;
         CUcontext newContext;
@@ -100,35 +136,33 @@ class MemboundTVM : public Kernel {
         cuInit(0);
         cuDeviceGet(&cuDevice, 0);
         cuCtxCreate(&newContext, 0, cuDevice);
-        cuModuleLoadDataEx(&module, ptx, 0, 0, 0);
+        cuModuleLoadDataEx(&module, ret->ptx.get(), 0, 0, 0);
         cuModuleGetFunction(&kernel, module, kernelName.c_str());
         std::vector<void *> args;
-        args.push_back(op->getOutput()->getRawDataPtr<void *>());
         for (auto&& in : op->getInputs()) {
             args.push_back(in->getRawDataPtr<void *>());
         }
+        args.push_back(op->getOutput()->getRawDataPtr<void *>());
         std::vector<void *> argsPtr;
         for (auto &arg : args) {
             argsPtr.push_back(&arg);
         }
         std::cout << "prepare for evaluation" << std::endl;
         // Evaluate the kernel
-        ret.time = timeit(
+        ret->time = timeit(
             [&]() {
                 // TODO: run the kernel
                 cuLaunchKernel(kernel,
                                 invokeParams[0], invokeParams[1], invokeParams[2],
                                 invokeParams[3], invokeParams[4], invokeParams[5],
                                 0, NULL,
-                                args.data(),
+                                argsPtr.data(),
                                 0);
                 cuCtxSynchronize();
             },
             [&]() { context->sync(); });
-        std::cout << "after evaluation, time: " << ret.time << std::endl;
-        delete[]log;
-        delete[]ptx;
-        return ret;
+        std::cout << "after evaluation, time: "<< std::fixed << std::setprecision(10) << ret->time << std::endl;
+        return std::dynamic_pointer_cast<PerfRecordObj>(ret);
     }
 
     std::pair<std::string, std::vector<int>> getAnsorCode(

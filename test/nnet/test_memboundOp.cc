@@ -42,6 +42,8 @@ TEST(nnet, MemboundOpInterpretation) {
 
 TEST(nnet, MemboundOp_Ansor_Codegen) {
     auto runtime = make_ref<CudaRuntimeObj>();
+    Runtime cpu = CpuRuntimeObj::getInstance();
+    Graph gCpu = make_ref<GraphObj>(cpu);
     Graph g = make_ref<GraphObj>(runtime);
     Tensor i0 = g->addTensor({1, 2, 3}, DataType::Float32);
     Tensor w0 = g->addTensor({1, 3, 4}, DataType::Float32);
@@ -63,12 +65,15 @@ TEST(nnet, MemboundOp_Ansor_Codegen) {
     EXPECT_EQ(ops.size(), 1u);
     auto membound = ops[0];
     EXPECT_EQ(membound->getOpType(), OpType::MemBound);
-    auto ans = make_ref<TensorObj>(Shape{1, 2, 4}, DataType::Float32, runtime);
+    auto ans = make_ref<TensorObj>(Shape{1, 2, 4}, DataType::Float32, cpu);
     ans->dataMalloc();
     ans->copyData(vector<float>{38, 44, 50, 56, 83, 98, 113, 128});
-    EXPECT_TRUE(membound->getOutput()->equalData(ans));
+
+    auto oCpu = gCpu->cloneTensor(membound->getOutput());
+    oCpu->printData();
+    EXPECT_TRUE(oCpu->equalData(ans));
 
     // Timing
-    double time = timeit([&]() { runtime->run(gNew, false); }); // tune kernels
-    std::cout << "Time (ms):" << time << std::endl;
+    // double time = timeit([&]() { runtime->run(gNew, false); }); // tune kernels
+    // std::cout << "Time (ms):" << time << std::endl;
 }
