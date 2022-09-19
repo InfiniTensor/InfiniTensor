@@ -9,6 +9,10 @@ class PerfEngine {
     // TODO: Key should be OpPerfKey + Context(maybe implicat) to support
     // multiple candiate kernels.
     using Key = std::pair<KernelAttrs, OpPerfKey>;
+    PerfEngine() = default;
+    // PerfEngine is singleton
+    PerfEngine(PerfEngine &other) = delete;
+    PerfEngine &operator=(PerfEngine const &) = delete;
 
   private:
     map<Key, PerfRecord> data;

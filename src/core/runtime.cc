@@ -15,7 +15,7 @@ void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
     if (!tune && profiling)
         IT_TODO_HALT();
     const auto &kernelRegistry = KernelRegistry::getInstance();
-    auto perfEngine = PerfEngine::getInstance();
+    auto &perfEngine = PerfEngine::getInstance();
     // Statistics
     double totalTime = 0;
     std::map<OpType, double> opTime;
@@ -63,7 +63,7 @@ void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
 
 double RuntimeObj::getPerfTime(const Graph &graph, bool profiling) const {
     const auto &kernelRegistry = KernelRegistry::getInstance();
-    auto perfEngine = PerfEngine::getInstance();
+    auto &perfEngine = PerfEngine::getInstance();
     // Statistics
     double totalTime = 0;
     std::map<OpType, double> opTime;
