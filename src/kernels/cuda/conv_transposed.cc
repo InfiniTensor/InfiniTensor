@@ -7,12 +7,13 @@
 #include <tuple>
 namespace infini {
 
-struct ConvCuDnnPerfRecord : public PerfRecord {
-    int algo = 0; // cudnnConvolutionFwdAlgo_t
+struct ConvTransposedCuDnnPerfRecordObj : public PerfRecordObj {
+    int algo = 0; // cudnnConvolutionBwdDataAlgo_t
     int mode = 1;
     size_t workspaceSize = 100000;
     bool fuseAct = false;
 };
+using ConvTransposedCuDnnPerfRecord = Ref<ConvTransposedCuDnnPerfRecordObj>;
 
 static constexpr int N_ALGO = 6;
 static_assert(N_ALGO == int(CUDNN_CONVOLUTION_BWD_DATA_ALGO_COUNT),
@@ -44,8 +45,9 @@ class convBackwardDataCudnn : public Kernel {
                cudnnFilterDescriptor_t, cudnnTensorDescriptor_t,
                cudnnConvolutionDescriptor_t, cudnnActivationDescriptor_t,
                cudnnTensorDescriptor_t>
-    createCuDNNDescriptor(const Ref<ConvTransposed2dObj> &op,
-                          const ConvCuDnnPerfRecord &record) const {
+    createCuDNNDescriptor(
+        const Ref<ConvTransposed2dObj> &op,
+        const ConvTransposedCuDnnPerfRecordObj &record) const {
         void *const inData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const knData = (op->getInputs(1)->getRawDataPtr<void *>());
         if (op->getInputs().size() > 2) // Bias is not supported yet
@@ -123,7 +125,7 @@ class convBackwardDataCudnn : public Kernel {
     }
 
     bool cuDNNUnfused(const Ref<ConvTransposed2dObj> &op,
-                      const ConvCuDnnPerfRecord &record,
+                      const ConvTransposedCuDnnPerfRecordObj &record,
                       const CudaRuntimeObj *context) const {
         cudnnStatus_t stat;
 
@@ -199,13 +201,14 @@ class convBackwardDataCudnn : public Kernel {
     }
 
     void compute(const Operator &op, const RuntimeObj *context) const override {
-        ConvCuDnnPerfRecord record; // with paramters in default ctor
+        // with paramters in default ctor
+        auto record = make_ref<ConvTransposedCuDnnPerfRecordObj>();
         compute(op, record, context);
     }
 
     PerfRecord tune(const Operator &_op,
                     const RuntimeObj *_context) const override {
-        ConvCuDnnPerfRecord ret;
+        ConvTransposedCuDnnPerfRecordObj ret;
         ret.time = std::numeric_limits<double>::max();
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         auto op = as<ConvTransposed2dObj>(_op);
@@ -214,7 +217,7 @@ class convBackwardDataCudnn : public Kernel {
         for (int mode = 1; mode < 2; mode++) {
             // Try every possible algorithm of convolution
             for (int algo = 0; algo < N_ALGO; algo++) {
-                ConvCuDnnPerfRecord record;
+                ConvTransposedCuDnnPerfRecordObj record;
                 record.mode = mode;
                 record.algo = algo;
                 cudnnStatus_t stat;
@@ -267,15 +270,15 @@ class convBackwardDataCudnn : public Kernel {
         IT_ASSERT(ret.time < std::numeric_limits<double>::max(), "No valid "
                                                                  "algorithm "
                                                                  "found");
-        return ret;
+        return make_ref<ConvTransposedCuDnnPerfRecordObj>(ret);
     }
 
     void compute(const Operator &_op, const PerfRecord &_record,
                  const RuntimeObj *_context) const override {
         auto op = as<ConvTransposed2dObj>(_op);
-        auto &record = dynamic_cast<const ConvCuDnnPerfRecord &>(_record);
+        auto record = as<ConvTransposedCuDnnPerfRecordObj>(_record);
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
-        bool success = cuDNNUnfused(op, record, context);
+        bool success = cuDNNUnfused(op, *record, context);
         IT_ASSERT(success);
     }
 };
