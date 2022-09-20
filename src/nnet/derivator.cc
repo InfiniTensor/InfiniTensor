@@ -20,9 +20,11 @@
 #include "nnet/Visitor/HashVisitor.h"
 #include "nnet/Visitor/MergeMemboundMutator.h"
 #include "nnet/Visitor/Serializer.h"
-#include "nnet/test.h"
 
 namespace nnet {
+
+// avoid dependence of "nnet/test.h"
+bool checkExprsEquvivalence(VecExpr exprs);
 
 class SaveStateGuard {
     Derivator &derivator;

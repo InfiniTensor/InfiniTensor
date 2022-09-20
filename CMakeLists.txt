@@ -73,7 +73,7 @@ if(BUILD_TEST)
   include_directories(3rd-party/googletest/googletest/include)
 endif()
 
-file(GLOB_RECURSE SRC src/*.cc src/*.cu)
+file(GLOB_RECURSE SRC src/core/*.cc src/kenrels/cpu/*.cc src/nnet/*.cc src/operators/*.cc src/utils/*.cc)
 
 add_library(InfiniTensor SHARED ${SRC})
 if(USE_PROTOBUF)
@@ -89,6 +89,8 @@ if(USE_BACKTRACE)
 endif()
 
 if(USE_CUDA)
+  file(GLOB_RECURSE SRC src/cuda/*.cc src/kernels/cuda/*.cc src/kernels/cuda/*.cu)
+  add_library(InfiniTensor SHARED ${SRC})
   # Since enable_language only executes once, rerun cmake is required if CMAKE_CUDA_HOST_COMPILER is wrong
   set(CMAKE_CUDA_HOST_COMPILER
       ${CMAKE_CXX_COMPILER}
