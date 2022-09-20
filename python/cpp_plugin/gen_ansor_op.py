@@ -70,7 +70,7 @@ def gen_ansor_op(input_tensors, input_dtypes, output_tensor, output_dtype, f, fu
         func_name, ", ".join(map(str, block_dim)), ", ".join(
             map(str, thread_dim)),
         output_name, ", ".join(input_names))
-    invoke_params = thread_dim + block_dim
+    invoke_params = block_dim + thread_dim
     
     ctx = tvm.cuda(0)
     input_a = []
