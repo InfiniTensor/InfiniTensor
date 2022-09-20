@@ -1,5 +1,5 @@
-#include "custom_ops.cuh"
-#include "custom_ops.h"
+#include "cuda/gbmm_g2bmm.cuh"
+#include "cuda/gbmm_g2bmm.h"
 
 namespace infini {
 

@@ -1,7 +1,7 @@
 #include "operators/GBMM.h"
 #include "cuda/cuda_kernel_wihtout_config.h"
 #include "cuda/cuda_runtime.h"
-#include "custom_ops.h"
+#include "cuda/gbmm_g2bmm.h"
 #include <chrono>
 #include <functional>
 #include <tuple>

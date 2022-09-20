@@ -1,5 +1,4 @@
-#ifndef CUSTOM_OPS_CUH
-#define CUSTOM_OPS_CUH
+#pragma once
 
 #include <cassert>
 
@@ -5798,5 +5797,3 @@ inline void sgbmml(float *__restrict__ q, float *__restrict__ k,
 }
 
 } // namespace infini
-
-#endif // CUSTOM_OPS_CUH
