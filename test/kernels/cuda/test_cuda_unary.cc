@@ -39,7 +39,7 @@ void testUnary(const std::function<void(void *, size_t, DataType)> &generator,
     EXPECT_TRUE(outputCpu->equalData(outputGpu2Cpu));
 }
 
-TEST(Unary, CuDNN) {
+TEST(cuDNN_Unary, run) {
     testUnary<ReluObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     testUnary<SoftmaxObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     testUnary<AbsObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
