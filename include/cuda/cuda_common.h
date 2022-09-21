@@ -17,14 +17,14 @@
         }                                                                      \
     }
 
-#define checkCUresult(call)                                                   \
+#define checkCUresult(call)                                                    \
     {                                                                          \
         auto err = call;                                                       \
-        const char *errName;                                                    \
-        if (CUDA_SUCCESS != err) {                                              \
-            cuGetErrorString(err, &errName);                                    \
+        const char *errName;                                                   \
+        if (CUDA_SUCCESS != err) {                                             \
+            cuGetErrorString(err, &errName);                                   \
             fprintf(stderr, "Cuda error in %s:%i : %s.\n", __FILE__, __LINE__, \
-                    errName);                                  \
+                    errName);                                                  \
             exit(EXIT_FAILURE);                                                \
         }                                                                      \
     }

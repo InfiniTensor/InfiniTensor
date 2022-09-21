@@ -8,4 +8,4 @@ void start_interpreter() {
         interpretor = new py::scoped_interpreter(); // guard
     }
 }
-} // end of namespace tpm
+} // namespace infini

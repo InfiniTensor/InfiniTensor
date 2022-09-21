@@ -74,6 +74,6 @@ TEST(nnet, MemboundOp_Ansor_Codegen) {
     EXPECT_TRUE(oCpu->equalData(ans));
 
     // Timing
-    // double time = timeit([&]() { runtime->run(gNew, false); }); // tune kernels
-    // std::cout << "Time (ms):" << time << std::endl;
+    // double time = timeit([&]() { runtime->run(gNew, false); }); // tune
+    // kernels std::cout << "Time (ms):" << time << std::endl;
 }
