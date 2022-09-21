@@ -9,7 +9,7 @@
 namespace infini {
 using ExpectOutput = vector<float>;
 
-TEST(GBMM, ShapeInference) {
+TEST(CUDA_GBMM, ShapeInference) {
     const int bs = 1, seqlen = 10000, w = 1000, featlen = 512, heads = 8, d = 4;
     const int hidden = featlen, hiddenPerHead = hidden / heads;
     auto cpuRuntime = CpuRuntimeObj::getInstance();

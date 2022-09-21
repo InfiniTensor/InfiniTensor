@@ -1,5 +1,4 @@
 #include "operators/GBMM.h"
-#include "custom_ops.h"
 
 namespace infini {
 

@@ -73,8 +73,15 @@ if(BUILD_TEST)
   include_directories(3rd-party/googletest/googletest/include)
 endif()
 
-file(GLOB_RECURSE SRC src/*.cc src/*.cu)
+# Source files
+file(GLOB_RECURSE SRC src/core/*.cc src/kernels/cpu/*.cc src/nnet/*.cc src/operators/*.cc src/utils/*.cc)
 
+if(USE_CUDA)
+  file(GLOB_RECURSE SRC_CUDA src/cuda/*.cc src/cuda/*.cu src/kernels/cuda/*.cc src/kernels/cuda/*.cu)
+  list (APPEND SRC ${SRC_CUDA})
+endif()
+
+# Libraries
 add_library(InfiniTensor SHARED ${SRC})
 if(USE_PROTOBUF)
   target_link_libraries(InfiniTensor tensor_proto)
@@ -93,6 +100,8 @@ if(USE_CUDA)
   set(CMAKE_CUDA_HOST_COMPILER
       ${CMAKE_CXX_COMPILER}
       CACHE STRING "Set cuda host compiler path")
+  # CMP0104 requires CUDA_ARCHITECTURES
+  set_target_properties(InfiniTensor PROPERTIES CUDA_ARCHITECTURES "70;80")
   enable_language(CUDA)
   # TODO: find_package seems unnecessary for CMake >= 3.8
   find_package(CUDA REQUIRED)
@@ -123,6 +132,9 @@ if(BUILD_TEST)
   if(BUILD_TEST_CORE)
     build_test(test/core/*.cc)
     build_test(test/operators/*.cc)
+    if (USE_CUDA)
+      build_test(test/kernels/cuda/*.cc)
+    endif()
   endif()
   if(BUILD_TEST_PET)
     build_test(test/pet/*.cc)
