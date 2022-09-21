@@ -14,7 +14,6 @@
 #include <unordered_set>
 #include <vector>
 
-
 namespace infini {
 using std::list;
 using std::map;

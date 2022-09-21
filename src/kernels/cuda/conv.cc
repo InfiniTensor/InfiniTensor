@@ -16,8 +16,7 @@ struct ConvCuDnnPerfRecordObj : public PerfRecordObj {
         j["type"] = 1;
         j["data"] = std::make_tuple(algo, mode, fuseAct, time, workspaceSize);
     }
-    static PerfRecord from_json(const json &j)
-    {
+    static PerfRecord from_json(const json &j) {
         ConvCuDnnPerfRecordObj tmp;
         auto [Algo, Mode, FuseAct, Time, WorkspaceSize] =
             j["data"].get<tuple<int, int, bool, double, size_t>>();
@@ -32,9 +31,8 @@ struct ConvCuDnnPerfRecordObj : public PerfRecordObj {
 
 using ConvCuDnnPerfRecord = Ref<ConvCuDnnPerfRecordObj>;
 
-
 class convCudnn : public Kernel {
-    
+
     static constexpr int N_ALGO = 8;
     static constexpr int N_MODE = 2;
     static constexpr cudnnConvolutionFwdAlgo_t ALGOS[8] = {

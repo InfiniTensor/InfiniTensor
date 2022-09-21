@@ -44,7 +44,7 @@ TEST(PerfEngine, save_and_load) {
 
     gCuda->dataMalloc();
     cudaRuntime->run(gCuda, true);
-    auto perfEngine = PerfEngine::getInstance();
+    auto &perfEngine = PerfEngine::getInstance();
 
     json j0 = perfEngine;
     std::cout << "PerfEngine saveed:" << std::endl;

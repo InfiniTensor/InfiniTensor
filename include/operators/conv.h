@@ -9,7 +9,6 @@
 
 namespace infini {
 
-
 class ConvBaseObj : public OperatorObj {
 
   public:

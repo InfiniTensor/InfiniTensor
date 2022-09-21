@@ -8,8 +8,7 @@ struct MatmulCudnnPerfRecordObj : public PerfRecordObj {
         j["type"] = 2;
         j["data"] = std::make_pair(algo, time);
     }
-    static PerfRecord from_json(const json &j) 
-    {
+    static PerfRecord from_json(const json &j) {
         MatmulCudnnPerfRecordObj tmp;
         auto pr = j["data"].get<pair<int, double>>();
         tmp.algo = pr.first;

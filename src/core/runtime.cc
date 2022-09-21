@@ -4,13 +4,6 @@
 #include "core/perf_engine.h"
 #include <chrono>
 #include <cstring>
-<<<<<<< HEAD
-=======
-#include <cuda.h>
-#include <cuda_profiler_api.h>
-#include <cudnn.h>
-#include <curand.h>
->>>>>>> cf58b99 (clang format)
 namespace infini {
 
 void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {

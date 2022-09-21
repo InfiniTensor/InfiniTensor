@@ -2,7 +2,6 @@
 #include <fstream>
 namespace infini {
 
-
 REGISTER_CONSTRUCTOR(0, PerfRecordObj::from_json);
 
 void PerfEngine::savePerfEngineData(std::string file_path) {
@@ -18,7 +17,7 @@ void PerfEngine::loadPerfEngineData(std::string file_path) {
     string t;
     filein >> t;
     json j = json::parse(t);
-    this->getInstance() = j;
+    from_json(j, this->getInstance());
     filein.close();
 }
 
@@ -38,12 +37,12 @@ void from_json(const json &j, DataType &p) { p = DataType(j.get<int>()); }
 void to_json(json &j, const PerfRecord &p) { p->to_json(j); }
 void from_json(const json &j, PerfRecord &p) {
     int type = j["type"].get<int>();
-    p = PerfRecordRegistry::getInstance().getConstructor(type)(j); 
+    p = PerfRecordRegistry::getInstance().getConstructor(type)(j);
 }
 
 void to_json(json &j, const PerfEngine &p) {
-    PerfEngine t = p;
-    j["data"] = t.get_data();
+    auto &x = p.getInstance();
+    j["data"] = x.get_data();
 }
 void from_json(const json &j, PerfEngine &p) {
     auto tmp = j["data"].get<map<PerfEngine::Key, PerfRecord>>();
