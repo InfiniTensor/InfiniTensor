@@ -27,6 +27,7 @@ enum class OpType {
     Gather,
     ReduceMean,
     Reshape,
+    Flatten,
     Identity,
     // element wise
     BatchNorm = 200,
