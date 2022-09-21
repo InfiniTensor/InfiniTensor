@@ -4,10 +4,6 @@
 #include "core/perf_engine.h"
 #include <chrono>
 #include <cstring>
-#include <cuda.h>
-#include <cuda_profiler_api.h>
-#include <cudnn.h>
-#include <curand.h>
 
 namespace infini {
 
