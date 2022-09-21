@@ -3,7 +3,8 @@ include(CMakeDependentOption)
 project(InfiniTensor C CXX)
 
 # Do not change these options in this file. Use cmake.config, cmake -DOPTION=VALUE, or ccmake to specify them.
-option(USE_CUDA "Support CUDA GPU" ON)
+option(USE_CUDA "Support CUDA GPU" OFF)
+option(USE_BANG "Support BANG MLU" ON)
 option(USE_BACKTRACE "Print backtrace on exception and segmentation fault" ON)
 option(USE_PROTOBUF "Serialize and deserialize tensors" ON)
 option(BUILD_TEST "Build tests" ON)
@@ -81,6 +82,11 @@ if(USE_CUDA)
   list (APPEND SRC ${SRC_CUDA})
 endif()
 
+if(USE_BANG)
+  file(GLOB_RECURSE SRC_BANG src/bang/*.cc src/bang/*.mlu src/kernels/bang/*.cc src/kernels/bang/*.mlu)
+  list (APPEND SRC ${SRC_BANG})
+endif()
+
 # Libraries
 add_library(InfiniTensor SHARED ${SRC})
 if(USE_PROTOBUF)
@@ -109,6 +115,91 @@ if(USE_CUDA)
   target_link_libraries(InfiniTensor cudnn curand cublas ${CUDA_LIBRARIES})
 endif()
 
+if(USE_BANG)
+  ################################################################################
+  # Neuware Evironment
+  ################################################################################
+  # cnrt cndrv cnnl
+  if ((NOT DEFINED NEUWARE_HOME) AND (NOT DEFINED ENV{NEUWARE_HOME}))
+    message(FATAL_ERROR "NEUWARE_HOME is not defined from cmake or env")
+  elseif (DEFINED NEUWARE_HOME)
+    set(NEUWARE_HOME ${NEUWARE_HOME} CACHE STRING "NEUWARE_HOME directory for Cambricon Neuware development")
+  else()
+    set(NEUWARE_HOME $ENV{NEUWARE_HOME} CACHE STRING "NEUWARE_HOME directory for Cambricon Neuware development")
+  endif()
+  message(STATUS "NEUWARE_HOME: ${NEUWARE_HOME}")
+  
+  include_directories("${NEUWARE_HOME}/include")
+  link_directories("${NEUWARE_HOME}/lib64")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lstdc++ -Wall -Werror")
+  
+  set(CNNL_BUILD_SPECIFIC_SAMPLES ${CNNL_BUILD_SPECIFIC_SAMPLES})
+  message("-- CNNL_BUILD_SPECIFIC_SAMPLES=${CNNL_BUILD_SPECIFIC_SAMPLES}")
+  
+  set(EXECUTABLE_OUTPUT_PATH "${CMAKE_CURRENT_BINARY_DIR}/bin")
+  message("-- EXECUTABLE_OUTPUT_PATH=${EXECUTABLE_OUTPUT_PATH}")
+  
+  if ((NOT DEFINED TARGET_CPU_ARCH) AND (NOT DEFINED ENV{TARGET_CPU_ARCH}))
+    execute_process(COMMAND uname -m OUTPUT_VARIABLE _uname_m OUTPUT_STRIP_TRAILING_WHITESPACE)
+    set(TARGET_CPU_ARCH "${_uname_m}" CACHE STRING "Target CPU ARCH")
+  elseif(DEFINED TARGET_CPU_ARCH)
+    set(TARGET_CPU_ARCH ${TARGET_CPU_ARCH} CACHE STRING "Target CPU ARCH")
+  else()
+    set(TARGET_CPU_ARCH $ENV{TARGET_CPU_ARCH} CACHE STRING "Target CPU ARCH")
+  endif()
+  message(STATUS "TARGET_CPU_ARCH: ${TARGET_CPU_ARCH}")
+
+  ################################################################################
+  # Sample Kernels
+  ################################################################################
+  set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "$ENV{NEUWARE_HOME}/cmake" "$ENV{NEUWARE_HOME}/cmake/modules")
+  find_package(BANG)
+  if(NOT BANG_FOUND)
+    message(FATAL_ERROR "BANG cannot be found.")
+  elseif(NOT BANG_CNCC_EXECUTABLE)
+    message(FATAL_ERROR "cncc not found, please ensure cncc is in your PATH env or set variable BANG_CNCC_EXECUTABLE from cmake. Otherwise you should check path used by find_program(BANG_CNCC_EXECUTABLE) in FindBANG.cmake")
+  endif()
+  set(BANG_CNCC_FLAGS "-Wall -Werror -fPIC -std=c++11 --target=${TARGET_CPU_ARCH} -O3")
+  set(BANG_CNCC_FLAGS "${BANG_CNCC_FLAGS}"
+                                             "--bang-arch=compute_20"
+                                             "--bang-arch=compute_30"
+                                             "--bang-mlu-arch=mtp_322"
+                                             "--bang-wram-align64"
+  )
+  
+  if(${TARGET_CPU_ARCH} MATCHES "aarch64-linux-gnu")
+    set(BANG_CNCC_FLAGS "${BANG_CNCC_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=1")
+    add_definitions(-D_GLIBCXX_USE_CXX11_ABI=1)
+    execute_process(
+      COMMAND uname -m
+      OUTPUT_VARIABLE _uname_m
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    if (NOT ("${TARGET_CPU_ARCH}" MATCHES ".*${_uname_m}.*" AND "${_uname_m}" MATCHES "aarch64"))
+      execute_process(
+        COMMAND "${CMAKE_CXX_COMPILER}" "-v" "-c" "-x" "c++" "/dev/null" "-M"
+        ERROR_VARIABLE _cxx_verbose
+      )
+      execute_process(
+        COMMAND "echo" "${_cxx_verbose}"
+        COMMAND "sed" "-n" "/include.*search starts here/,/End of search list/{s/^ //p}"
+        COMMAND "tr" "'\n'" ";"
+        OUTPUT_VARIABLE _cxx_includes
+      )
+      list(REMOVE_ITEM _cxx_includes "/usr/include")
+      foreach(_include ${_cxx_includes})
+        message(STATUS "add include path: ${_include}")
+        set(BANG_CNCC_FLAGS "${BANG_CNCC_FLAGS} -idirafter ${_include}")
+      endforeach()
+    endif()
+  endif()
+
+  include_directories("${NEUWARE_HOME}/include")
+  link_directories("${NEUWARE_HOME}/lib64")
+  target_link_libraries(InfiniTensor cnrt cnnl stdc++)
+
+endif()
+
 # # Python bindings
 # pybind11_add_module(infini MODULE ${FFI})
 # target_link_libraries(infini PRIVATE infini_cpp)
@@ -134,6 +225,9 @@ if(BUILD_TEST)
     build_test(test/operators/*.cc)
     if (USE_CUDA)
       build_test(test/kernels/cuda/*.cc)
+    endif()
+    if (USE_BANG)
+      #build_test(test/kernels/bang/*.cc)
     endif()
   endif()
   if(BUILD_TEST_PET)

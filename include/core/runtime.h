@@ -25,7 +25,7 @@ using OpVec = vector<Operator>;
 
 using VType = uint32_t;
 
-enum class Device { CPU = 1, CUDA };
+enum class Device { CPU = 1, CUDA, BANG};
 /***************** Forward declaration end *****************/
 
 class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
@@ -63,6 +63,7 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
     Blob allocBlob(size_t size);
     bool isCpu() const { return device == Device::CPU; }
     bool isCuda() const { return device == Device::CUDA; }
+    bool isBang() const { return device == Device::BANG; }
     void copyBlob(const TensorObj *dst, const TensorObj *src) const;
 
   protected:
