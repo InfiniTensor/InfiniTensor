@@ -100,7 +100,7 @@ if(USE_CUDA)
   set(CMAKE_CUDA_HOST_COMPILER
       ${CMAKE_CXX_COMPILER}
       CACHE STRING "Set cuda host compiler path")
-  # CMP0104 is required to set CUDA_ARCHITECTURES
+  # CMP0104 requires CUDA_ARCHITECTURES
   set_target_properties(InfiniTensor PROPERTIES CUDA_ARCHITECTURES "70;80")
   enable_language(CUDA)
   # TODO: find_package seems unnecessary for CMake >= 3.8
