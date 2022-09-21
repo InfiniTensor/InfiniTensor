@@ -8,7 +8,7 @@
 namespace infini {
 
 struct ConvCuDnnPerfRecordObj : public PerfRecordObj {
-    int algo = -1; // cudnnConvolutionFwdAlgo_t
+    int algo = 0; // cudnnConvolutionFwdAlgo_t
     int mode = 1;
     size_t workspaceSize = 100000;
     bool fuseAct = false;
