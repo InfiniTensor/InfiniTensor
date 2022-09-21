@@ -2,6 +2,23 @@
 
 namespace infini {
 
+struct MatmulCudnnPerfRecordObj : public PerfRecordObj {
+    int algo = -1; // cudnnConvolutionFwdAlgo_t
+    void to_json(json &j) override {
+        j["type"] = 2;
+        j["data"] = std::make_pair(algo, time);
+    }
+    static PerfRecord from_json(const json &j) 
+    {
+        MatmulCudnnPerfRecordObj tmp;
+        auto pr = j["data"].get<pair<int, double>>();
+        tmp.algo = pr.first;
+        tmp.time = pr.second;
+        return make_ref<MatmulCudnnPerfRecordObj>(tmp);
+    }
+};
+using MatmulCudnnPerfRecord = Ref<MatmulCudnnPerfRecordObj>;
+
 constexpr int N_ALGO = 24;
 constexpr cublasGemmAlgo_t ALGOS[N_ALGO] = {
     CUBLAS_GEMM_ALGO0,  CUBLAS_GEMM_ALGO1,  CUBLAS_GEMM_ALGO2,
@@ -84,4 +101,5 @@ class matmulCublas : public Kernel {
 REGISTER_KERNEL(Device::CUDA, OpType::Matmul, DataType::Float32, matmulCublas,
                 "Matmul_cuBLAS_CUDA_Float32");
 
+REGISTER_CONSTRUCTOR(2, MatmulCudnnPerfRecordObj::from_json);
 }; // namespace infini

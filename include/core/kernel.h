@@ -2,7 +2,9 @@
 #include "core/common.h"
 #include "core/operator.h"
 #include "core/tensor.h"
-
+#include <functional>
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
 namespace infini {
 
 class RuntimeObj; // Forward declaration for Kernel::compute
@@ -16,46 +18,14 @@ struct PerfRecordObj {
         j["type"] = 0;
         j["data"] = time;
     }
-    virtual void from_json(const json &j) { time = j["data"].get<int>(); }
+    static Ref<PerfRecordObj> from_json(const json &j) 
+    {
+        PerfRecordObj tmp;
+        tmp.time=j["data"].get<int>(); 
+        return make_ref<PerfRecordObj>(tmp);
+    }
 };
 using PerfRecord = Ref<PerfRecordObj>;
-
-struct ConvCuDnnPerfRecordObj : public PerfRecordObj {
-    int algo = -1; // cudnnConvolutionFwdAlgo_t
-    int mode = 1;
-    size_t workspaceSize = 100000;
-    bool fuseAct = false;
-    void to_json(json &j) override {
-        j["type"] = 1;
-        j["data"] = std::make_tuple(algo, mode, fuseAct, time, workspaceSize);
-    }
-    void from_json(const json &j) override {
-        auto [Algo, Mode, FuseAct, Time, WorkspaceSize] =
-            j["data"].get<tuple<int, int, bool, double, size_t>>();
-        algo = Algo;
-        mode = Mode;
-        fuseAct = FuseAct;
-        time = Time;
-        workspaceSize = WorkspaceSize;
-    }
-};
-
-using ConvCuDnnPerfRecord = Ref<ConvCuDnnPerfRecordObj>;
-
-struct MatmulCudnnPerfRecordObj : public PerfRecordObj {
-    int algo = -1; // cudnnConvolutionFwdAlgo_t
-    void to_json(json &j) override {
-        j["type"] = 2;
-        j["data"] = std::make_pair(algo, time);
-    }
-    void from_json(const json &j) override {
-        auto pr = j["data"].get<pair<int, double>>();
-        algo = pr.first;
-        time = pr.second;
-    }
-};
-using MatmulCudnnPerfRecord = Ref<MatmulCudnnPerfRecordObj>;
-
 class Kernel {
   public:
     Kernel() {}
@@ -77,6 +47,32 @@ class Kernel {
     // Premise: op is idempotent since it is called multiple times.
     virtual PerfRecord tune(const Operator &op,
                             const RuntimeObj *context) const = 0;
+};
+
+class PerfRecordRegistry {
+
+    private:
+        std::map<int,std::function<PerfRecord(const json&)>> perfrecords;
+        int nperfrecord = 0;
+    public:
+        ~PerfRecordRegistry() = default;
+        static PerfRecordRegistry &getInstance() 
+        {
+            static PerfRecordRegistry instance;
+            return instance;
+        }
+        bool registerPerfRecord(const int type, 
+            std::function<PerfRecord(const json&)> constructor) {
+            IT_ASSERT(perfrecords.find(type) == perfrecords.end(),
+                "Constructor already registered");
+            perfrecords.emplace(type, constructor);
+            nperfrecord ++;
+            return true;
+        }
+        const std::function<PerfRecord(const json&)> &getConstructor(const int type) const
+        {
+            return perfrecords.at(type);
+        }
 };
 
 class KernelRegistry {
@@ -140,3 +136,13 @@ class CpuKernelWithoutConfig : public Kernel {
 
 #define REGISTER_KERNEL(device, opType, dataType, kernel, name)                \
     _REGISTER_KERNEL_1(device, opType, dataType, kernel, name, __COUNTER__)
+
+#define _REGISTER_CONSTRUCTOR_1(type, constructor, cnt)                         \
+    namespace infini {                                                          \
+        static const bool _CAT(_register_constructor_, cnt) =                   \
+            PerfRecordRegistry::getInstance().registerPerfRecord(               \
+                type, constructor);                                             \
+    }
+
+#define REGISTER_CONSTRUCTOR(type, constructor)                                 \
+    _REGISTER_CONSTRUCTOR_1(type, constructor, __COUNTER__)

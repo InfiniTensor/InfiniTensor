@@ -7,7 +7,34 @@
 #include <tuple>
 namespace infini {
 
+struct ConvCuDnnPerfRecordObj : public PerfRecordObj {
+    int algo = -1; // cudnnConvolutionFwdAlgo_t
+    int mode = 1;
+    size_t workspaceSize = 100000;
+    bool fuseAct = false;
+    void to_json(json &j) override {
+        j["type"] = 1;
+        j["data"] = std::make_tuple(algo, mode, fuseAct, time, workspaceSize);
+    }
+    static PerfRecord from_json(const json &j)
+    {
+        ConvCuDnnPerfRecordObj tmp;
+        auto [Algo, Mode, FuseAct, Time, WorkspaceSize] =
+            j["data"].get<tuple<int, int, bool, double, size_t>>();
+        tmp.algo = Algo;
+        tmp.mode = Mode;
+        tmp.fuseAct = FuseAct;
+        tmp.time = Time;
+        tmp.workspaceSize = WorkspaceSize;
+        return make_ref<ConvCuDnnPerfRecordObj>(tmp);
+    }
+};
+
+using ConvCuDnnPerfRecord = Ref<ConvCuDnnPerfRecordObj>;
+
+
 class convCudnn : public Kernel {
+    
     static constexpr int N_ALGO = 8;
     static constexpr int N_MODE = 2;
     static constexpr cudnnConvolutionFwdAlgo_t ALGOS[8] = {
@@ -268,4 +295,5 @@ class convCudnn : public Kernel {
 REGISTER_KERNEL(Device::CUDA, OpType::Conv, DataType::Float32, convCudnn,
                 "Conv_cuDNN_CUDA_Float32");
 
+REGISTER_CONSTRUCTOR(1, ConvCuDnnPerfRecordObj::from_json);
 } // namespace infini

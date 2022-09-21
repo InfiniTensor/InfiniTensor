@@ -2,6 +2,9 @@
 #include <fstream>
 namespace infini {
 
+
+REGISTER_CONSTRUCTOR(0, PerfRecordObj::from_json);
+
 void PerfEngine::savePerfEngineData(std::string file_path) {
     std::ofstream fileout(file_path,
                           std::ios::out | std::ios::trunc | std::ios::binary);
@@ -29,24 +32,13 @@ void from_json(const json &j, OpPerfKey &p) {
     j.at("attrs").get_to(p.attrs);
 }
 void to_json(json &j, const DataType &p) {
-    int x = p.toString() == "Float32" ? 0 : 1;
-    j = x;
+    j = p.toString() == "Float32" ? 0 : 1;
 }
 void from_json(const json &j, DataType &p) { p = DataType(j.get<int>()); }
 void to_json(json &j, const PerfRecord &p) { p->to_json(j); }
 void from_json(const json &j, PerfRecord &p) {
     int type = j["type"].get<int>();
-    if (type == 1) {
-        ConvCuDnnPerfRecordObj tmp;
-        tmp.from_json(j);
-        p = make_ref<ConvCuDnnPerfRecordObj>(tmp);
-    } else if (type == 2) {
-        MatmulCudnnPerfRecordObj tmp;
-        tmp.from_json(j);
-        p = make_ref<MatmulCudnnPerfRecordObj>(tmp);
-    } else {
-        p->from_json(j);
-    }
+    p = PerfRecordRegistry::getInstance().getConstructor(type)(j); 
 }
 
 void to_json(json &j, const PerfEngine &p) {
@@ -54,9 +46,7 @@ void to_json(json &j, const PerfEngine &p) {
     j["data"] = t.get_data();
 }
 void from_json(const json &j, PerfEngine &p) {
-
     auto tmp = j["data"].get<map<PerfEngine::Key, PerfRecord>>();
-
     p.set_data(tmp);
 }
 
