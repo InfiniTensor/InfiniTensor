@@ -1,5 +1,4 @@
 #include "cuda/cuda_kernel_wihtout_config.h"
-#include "cuda/cuda_reshape.h"
 
 namespace infini {
 class CopyCuda : public CudaKernelWithoutConfig {
