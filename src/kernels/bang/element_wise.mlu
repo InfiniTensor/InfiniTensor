@@ -1,0 +1,20 @@
+#include "bang/bang_common.h"
+#include <math.h>
+
+__global__ void _div_kernel(float *x, float *y, float *z, int n) {
+
+}
+
+__global__ void _pow_kernel(float *x, float *y, float *z, int n) {
+
+}
+
+namespace infini {
+void div_kernel(float *a, float *b, float *c, int num) {
+
+}
+void pow_kernel(float *a, float *b, float *c, int num) {
+
+}
+
+}; // namespace infini
