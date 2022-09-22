@@ -1,5 +1,4 @@
 #include "operators/element_wise.h"
-#include "bang/bang_element_wise.h"
 #include "bang/bang_kernel_wihtout_config.h"
 #include "bang/bang_runtime.h"
 
@@ -92,12 +91,12 @@ class MulCnnl : public ElementWiseCnnl {
     cnnlOpTensorDesc_t getOpType() const override { return CNNL_OP_TENSOR_MUL; }
 };
 
-class ElementWiseBang : public BangKernelWithoutConfig {
-    void compute(const Operator &_op,
-                 const RuntimeObj *_context) const override {
-        element_wise_kernel(_op);
-    }
-};
+// class ElementWiseBang : public BangKernelWithoutConfig {
+//     void compute(const Operator &_op,
+//                  const RuntimeObj *_context) const override {
+//         element_wise_kernel(_op);
+//     }
+// };
 
 REGISTER_KERNEL(Device::BANG, OpType::Add, DataType::Float32, AddCnnl,
                 "Add_cnnl_BANG_Float32");

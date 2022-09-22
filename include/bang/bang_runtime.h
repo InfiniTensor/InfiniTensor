@@ -12,7 +12,15 @@ class BangRuntimeObj : public RuntimeObj {
 
   public:
     BangRuntimeObj() : RuntimeObj(Device::BANG) {
+        checkBangError(cnrtInit(0));
+        cnrtDev_t dev;
+        checkBangError(cnrtGetDeviceHandle(&dev, 0));
+        checkBangError(cnrtSetCurrentDevice(dev));
+        cnrtQueue_t queue;
+        checkBangError(cnrtCreateQueue(&queue));
+
         checkCnnlError(cnnlCreate(&cnnl));
+        checkCnnlError(cnnlSetQueue(cnnl, queue));
         // 10GB for Longformer
         // size_t longformerNum = 3lu * (1 << 30);
         workspaceSize = 7ll << 30; // 7 GB
@@ -56,4 +64,5 @@ class BangRuntimeObj : public RuntimeObj {
   private:
     void runWithoutSync(const Graph &graph, bool tune, bool profiling) const;
 };
+
 } // namespace infini
