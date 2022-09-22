@@ -12,6 +12,10 @@ class CudaRuntimeObj : public RuntimeObj {
     size_t workspaceSize;
 
   public:
+    CUdevice cuDevice;
+    CUcontext newContext;
+
+  public:
     CudaRuntimeObj() : RuntimeObj(Device::CUDA) {
         checkCudnnError(cudnnCreate(&cudnn));
         checkCublasError(cublasCreate(&cublas));
@@ -19,11 +23,16 @@ class CudaRuntimeObj : public RuntimeObj {
         // size_t longformerNum = 3lu * (1 << 30);
         workspaceSize = 7ll << 30; // 7 GB
         workspace = alloc(workspaceSize);
+
+        checkCUresult(cuInit(0));
+        checkCUresult(cuDeviceGet(&cuDevice, 0));
+        checkCUresult(cuCtxCreate(&newContext, 0, cuDevice));
     }
     virtual ~CudaRuntimeObj() {
         dealloc(workspace);
         checkCudnnError(cudnnDestroy(cudnn));
         checkCublasError(cublasDestroy(cublas));
+        checkCUresult(cuCtxDestroy(newContext));
     }
 
     void run(const Graph &graph, bool tune = false,
@@ -44,15 +53,17 @@ class CudaRuntimeObj : public RuntimeObj {
         return workspace;
     }
 
-    void copyBlobFromCPU(void *dst, void *src, size_t bytes) const override {
+    void copyBlobFromCPU(void *dst, const void *src,
+                         size_t bytes) const override {
         checkCudaError(cudaMemcpy(dst, src, bytes, cudaMemcpyHostToDevice));
     }
 
-    void copyBlobToCPU(void *dst, void *src, size_t bytes) const override {
+    void copyBlobToCPU(void *dst, const void *src,
+                       size_t bytes) const override {
         checkCudaError(cudaMemcpy(dst, src, bytes, cudaMemcpyDeviceToHost));
     }
 
-    void copyBlobInsideRuntime(void *dst, void *src,
+    void copyBlobInsideRuntime(void *dst, const void *src,
                                size_t bytes) const override {
         checkCudaError(cudaMemcpy(dst, src, bytes, cudaMemcpyDeviceToDevice));
     }

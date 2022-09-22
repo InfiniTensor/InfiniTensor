@@ -32,14 +32,7 @@ class TensorObj : public TensorBaseObj {
     template <typename T> void copyData(const T *dptr) {
         IT_ASSERT(DataType::get<T>() == dtype);
         IT_ASSERT(data != nullptr);
-        if (!runtime->isCpu())
-            IT_TODO_HALT();
-        auto ptr = data->getPtr<T *>();
-        size_t sz = size();
-#pragma omp parallel for
-        for (size_t i = 0; i < sz; ++i) {
-            ptr[i] = dptr[i];
-        }
+        runtime->copyBlobFromCPU(getRawDataPtr<void *>(), dptr, getBytes());
     }
 
     template <typename T> void copyData(vector<T> dataVector) {

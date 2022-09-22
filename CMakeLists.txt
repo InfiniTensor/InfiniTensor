@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10) # Required by CMAKE_CUDA_HOST_COMPILER
+cmake_minimum_required(VERSION 3.17) # FindCUDAToolkit
 include(CMakeDependentOption)
 project(InfiniTensor C CXX)
 
@@ -52,12 +52,11 @@ if(USE_PROTOBUF)
   target_link_libraries(tensor_proto PUBLIC ${PROTOBUF_LIBRARIES})
 endif()
 
-
 include_directories(include)
 
-# # Pybind11
-# add_subdirectory(3rd-party/pybind11)
-# include_directories(3rd-party/pybind11/include)
+# Pybind11
+add_subdirectory(3rd-party/pybind11)
+include_directories(3rd-party/pybind11/include)
 
 # nlohmann_json
 add_subdirectory(3rd-party/nlohmann_json_cmake_fetchcontent)
@@ -75,7 +74,7 @@ if(BUILD_TEST)
 endif()
 
 # Source files
-file(GLOB_RECURSE SRC src/core/*.cc src/kernels/cpu/*.cc src/nnet/*.cc src/operators/*.cc src/utils/*.cc)
+file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/kernels/cpu/*.cc src/nnet/*.cc src/operators/*.cc src/utils/*.cc)
 
 if(USE_CUDA)
   file(GLOB_RECURSE SRC_CUDA src/cuda/*.cc src/cuda/*.cu src/kernels/cuda/*.cc src/kernels/cuda/*.cu)
@@ -93,6 +92,8 @@ if(USE_PROTOBUF)
   target_link_libraries(InfiniTensor tensor_proto)
 endif()
 
+target_link_libraries(InfiniTensor pybind11::embed)
+
 if(USE_BACKTRACE)
   add_definitions(-D BACKWARD_TRACE)
   add_subdirectory(3rd-party/backward-cpp)
@@ -109,10 +110,15 @@ if(USE_CUDA)
   # CMP0104 requires CUDA_ARCHITECTURES
   set_target_properties(InfiniTensor PROPERTIES CUDA_ARCHITECTURES "70;80")
   enable_language(CUDA)
-  # TODO: find_package seems unnecessary for CMake >= 3.8
-  find_package(CUDA REQUIRED)
-  # message("CUBLAS_LIBRARIES: ${CUDA_LIBRARIES}")
-  target_link_libraries(InfiniTensor cudnn curand cublas ${CUDA_LIBRARIES})
+  find_package(CUDAToolkit) # For nvrtc and cuda driver
+  target_link_libraries(
+    InfiniTensor
+    cudnn
+    CUDA::curand
+    CUDA::cublas
+    CUDA::nvrtc
+    CUDA::cudart
+    CUDA::cuda_driver)
 endif()
 
 if(USE_BANG)
