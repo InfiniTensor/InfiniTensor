@@ -5,7 +5,7 @@
 # Enter the root of InfiniTensor
 source test/script/env_lotus.sh 
 mkdir build && cd build
-cmake .. && make -j 12
+cmake -DUSE_CUDA=ON .. && make -j 12
 ```
 
 ## Contributor Guide
