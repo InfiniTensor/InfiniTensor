@@ -130,15 +130,10 @@ if(USE_BANG)
   message(STATUS "NEUWARE_HOME: ${NEUWARE_HOME}")
   
   include_directories("${NEUWARE_HOME}/include")
-  link_directories("${NEUWARE_HOME}/lib64")
+  find_library(CAMBRICON_CNNL libcnnl.so "${NEUWARE_HOME}/lib64")
+  find_library(CAMBRICON_CNRT libcnrt.so "${NEUWARE_HOME}/lib64")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lstdc++ -Wall -Werror")
-  
-  set(CNNL_BUILD_SPECIFIC_SAMPLES ${CNNL_BUILD_SPECIFIC_SAMPLES})
-  message("-- CNNL_BUILD_SPECIFIC_SAMPLES=${CNNL_BUILD_SPECIFIC_SAMPLES}")
-  
-  set(EXECUTABLE_OUTPUT_PATH "${CMAKE_CURRENT_BINARY_DIR}/bin")
-  message("-- EXECUTABLE_OUTPUT_PATH=${EXECUTABLE_OUTPUT_PATH}")
-  
+    
   if ((NOT DEFINED TARGET_CPU_ARCH) AND (NOT DEFINED ENV{TARGET_CPU_ARCH}))
     execute_process(COMMAND uname -m OUTPUT_VARIABLE _uname_m OUTPUT_STRIP_TRAILING_WHITESPACE)
     set(TARGET_CPU_ARCH "${_uname_m}" CACHE STRING "Target CPU ARCH")
@@ -194,9 +189,7 @@ if(USE_BANG)
     endif()
   endif()
 
-  include_directories("${NEUWARE_HOME}/include")
-  link_directories("${NEUWARE_HOME}/lib64")
-  target_link_libraries(InfiniTensor cnrt cnnl stdc++)
+  target_link_libraries(InfiniTensor ${CAMBRICON_CNNL} ${CAMBRICON_CNRT} stdc++)
 
 endif()
 
