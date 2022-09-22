@@ -4,7 +4,6 @@
 #include "core/perf_engine.h"
 #include <chrono>
 #include <cstring>
-
 namespace infini {
 
 void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
@@ -21,7 +20,7 @@ void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
         auto kernelAttrs = KernelAttrs{device, op->getOpType(), op->getDType()};
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
-        std::optional<PerfRecord> perfData = perfEngine.getPerfData(perfKey);
+        auto perfData = perfEngine.getPerfData(perfKey);
 
         // If no record and disable tuning, run with the default argument
         if (!perfData && !tune) {
@@ -38,7 +37,7 @@ void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
             record = kernel->tune(op, this);
             perfEngine.setPerfData(perfKey, record);
         } else
-            record = *perfData;
+            record = perfData;
 
         if (!profiling) {
             kernel->compute(op, record, this);
@@ -69,7 +68,7 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling) const {
         auto kernelAttrs = KernelAttrs{device, op->getOpType(), op->getDType()};
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
-        std::optional<PerfRecord> perfData = perfEngine.getPerfData(perfKey);
+        auto perfData = perfEngine.getPerfData(perfKey);
 
         PerfRecord record;
         // Tune the kernel if there is no record
@@ -77,7 +76,7 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling) const {
             record = kernel->tune(op, this);
             perfEngine.setPerfData(perfKey, record);
         } else
-            record = *perfData;
+            record = perfData;
 
         double t = record->time;
         totalTime += t;
