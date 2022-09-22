@@ -1,5 +1,5 @@
 #include "operators/element_wise.h"
-#include "bang/bang_kernel_wihtout_config.h"
+#include "bang/bang_kernel_without_config.h"
 #include "bang/bang_runtime.h"
 
 namespace infini {
