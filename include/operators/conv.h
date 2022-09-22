@@ -4,7 +4,6 @@
 namespace infini {
 
 class ConvBaseObj : public OperatorObj {
-
   public:
     // When PaddingMode is Other, ConvObj will use padding size (ph, pw)
     // Otherwise, padding size (ph, pw) will be computed by padding mode
