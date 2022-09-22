@@ -1,7 +1,6 @@
 #pragma once
 #include "core/graph.h"
 #include "core/kernel.h"
-#include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
 using json = nlohmann::json;
 namespace infini {
@@ -25,6 +24,11 @@ class PerfEngine {
         return instance;
     }
 
+    /**
+     * @brief Get the Perf Data object
+     *
+     * @return PerfRecord nullptr if no record is fnoud.
+     */
     PerfRecord getPerfData(const Key &key) {
         auto it = data.find(key);
         if (it != data.end()) // find previous evaluating results

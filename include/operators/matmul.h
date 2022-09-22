@@ -1,9 +1,5 @@
 #pragma once
-#include "core/kernel.h"
 #include "core/operator.h"
-#include "cuda/cuda_runtime.h"
-#include <chrono>
-#include <functional>
 
 namespace infini {
 

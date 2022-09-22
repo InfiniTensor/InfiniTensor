@@ -107,6 +107,8 @@ struct OpPerfKey {
     vector<int> attrs;
 
   public:
+    // FIXME: default ctor should be deleted but json requires it. Solution:
+    // https://github.com/nlohmann/json#how-can-i-use-get-for-non-default-constructiblenon-copyable-types
     OpPerfKey() = default;
     OpPerfKey(HashType hash, OpType opType, vector<int> attrs = {})
         : hash(hash), opType(opType), attrs(attrs) {}

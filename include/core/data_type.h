@@ -13,6 +13,8 @@ class DataType {
     int index;
 
   public:
+    // FIXME: default ctor should be deleted but json requires it. Solution:
+    // https://github.com/nlohmann/json#how-can-i-use-get-for-non-default-constructiblenon-copyable-types
     DataType() = default;
     constexpr DataType(int index) : index(index) {}
     bool operator==(const DataType &rhs) const { return index == rhs.index; }
