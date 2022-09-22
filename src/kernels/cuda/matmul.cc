@@ -1,14 +1,24 @@
 #include "operators/matmul.h"
 #include "core/kernel.h"
 #include "cuda/cuda_runtime.h"
-#include <chrono>
-#include <functional>
 
 namespace infini {
-struct MatmulCudnnPerfRecordObj : public PerfRecordObj {
-    cublasGemmAlgo_t algo = CUBLAS_GEMM_DEFAULT;
+
+struct MatmulCublasPerfRecordObj : public PerfRecordObj {
+    int algo = CUBLAS_GEMM_DEFAULT;
+    void to_json(json &j) override {
+        j["type"] = 2;
+        j["data"] = std::make_pair(algo, time);
+    }
+    static PerfRecord from_json(const json &j) {
+        MatmulCublasPerfRecordObj tmp;
+        auto pr = j["data"].get<pair<int, double>>();
+        tmp.algo = pr.first;
+        tmp.time = pr.second;
+        return make_ref<MatmulCublasPerfRecordObj>(tmp);
+    }
 };
-using MatmulCudnnPerfRecord = Ref<MatmulCudnnPerfRecordObj>;
+
 constexpr int N_ALGO = 24;
 constexpr cublasGemmAlgo_t ALGOS[N_ALGO] = {
     CUBLAS_GEMM_ALGO0,  CUBLAS_GEMM_ALGO1,  CUBLAS_GEMM_ALGO2,
@@ -20,7 +30,6 @@ constexpr cublasGemmAlgo_t ALGOS[N_ALGO] = {
     CUBLAS_GEMM_ALGO18, CUBLAS_GEMM_ALGO19, CUBLAS_GEMM_ALGO20,
     CUBLAS_GEMM_ALGO21, CUBLAS_GEMM_ALGO22, CUBLAS_GEMM_ALGO23,
 };
-
 class matmulCublas : public Kernel {
     bool do_compute(const Operator &_op, const PerfRecord &_record,
                     const RuntimeObj *_context) const {
@@ -29,7 +38,7 @@ class matmulCublas : public Kernel {
         void *const inAData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const inBData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const outData = (op->getOutput()->getRawDataPtr<void *>());
-        auto record = as<MatmulCudnnPerfRecordObj>(_record);
+        auto record = as<MatmulCublasPerfRecordObj>(_record);
 
         const auto [b, m, n, k] = op->getBMNK();
         auto opA =
@@ -44,12 +53,13 @@ class matmulCublas : public Kernel {
             stat = cublasGemmStridedBatchedEx(
                 context->cublasHandle(), opB, opA, n, m, k, &alpha, inBData,
                 CUDA_R_32F, ldb, k * n, inAData, CUDA_R_32F, lda, m * k, &beta,
-                outData, CUDA_R_32F, ldc, m * n, b, CUDA_R_32F, record->algo);
+                outData, CUDA_R_32F, ldc, m * n, b, CUDA_R_32F,
+                (cublasGemmAlgo_t)record->algo);
         } else {
-            stat = cublasGemmEx(context->cublasHandle(), opB, opA, n, m, k,
-                                &alpha, inBData, CUDA_R_32F, ldb, inAData,
-                                CUDA_R_32F, lda, &beta, outData, CUDA_R_32F,
-                                ldc, CUDA_R_32F, record->algo);
+            stat = cublasGemmEx(
+                context->cublasHandle(), opB, opA, n, m, k, &alpha, inBData,
+                CUDA_R_32F, ldb, inAData, CUDA_R_32F, lda, &beta, outData,
+                CUDA_R_32F, ldc, CUDA_R_32F, (cublasGemmAlgo_t)record->algo);
         }
         return (stat == CUBLAS_STATUS_SUCCESS);
     }
@@ -61,7 +71,7 @@ class matmulCublas : public Kernel {
 
     void compute(const Operator &op, const RuntimeObj *context) const override {
         auto record =
-            make_ref<MatmulCudnnPerfRecordObj>(); // use default record;
+            make_ref<MatmulCublasPerfRecordObj>(); // use default record;
         compute(op, record, context);
     }
 
@@ -69,10 +79,10 @@ class matmulCublas : public Kernel {
                     const RuntimeObj *_context) const override {
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         auto op = as<MatmulObj>(_op);
-        auto ret = make_ref<MatmulCudnnPerfRecordObj>();
+        auto ret = make_ref<MatmulCublasPerfRecordObj>();
         ret->time = std::numeric_limits<double>::max();
         for (int i = 0; i < N_ALGO; i++) {
-            auto rcd = make_ref<MatmulCudnnPerfRecordObj>();
+            auto rcd = make_ref<MatmulCublasPerfRecordObj>();
             rcd->algo = ALGOS[i];
             if (!do_compute(_op, rcd, _context))
                 continue;
@@ -91,4 +101,5 @@ class matmulCublas : public Kernel {
 REGISTER_KERNEL(Device::CUDA, OpType::Matmul, DataType::Float32, matmulCublas,
                 "Matmul_cuBLAS_CUDA_Float32");
 
+REGISTER_CONSTRUCTOR(2, MatmulCublasPerfRecordObj::from_json);
 }; // namespace infini

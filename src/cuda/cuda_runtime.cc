@@ -1,7 +1,8 @@
 #include "cuda/cuda_runtime.h"
 #include "core/kernel.h"
 #include "core/perf_engine.h"
-
+#include "operators/conv.h"
+#include "operators/matmul.h"
 namespace infini {
 
 void CudaRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
@@ -17,7 +18,7 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
             KernelAttrs{device, op->getOpType(), DataType::Float32};
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
-        std::optional<PerfRecord> perfData = perfEngine.getPerfData(perfKey);
+        auto perfData = perfEngine.getPerfData(perfKey);
         if (!perfData && !tune) {
             kernel->compute(op, this);
             continue;
@@ -28,10 +29,10 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
             record = kernel->tune(op, this);
             perfEngine.setPerfData(perfKey, record);
         } else
-            record = *perfData;
-
+            record = perfData;
         double t = record->time;
         totalTime += t;
+        json j;
 
         if (profiling) {
             double t = timeit([&]() { kernel->compute(op, record, this); },

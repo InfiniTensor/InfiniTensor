@@ -2,6 +2,7 @@
 #include "core/common.h"
 #include "core/ref.h"
 #include <memory>
+
 namespace infini {
 
 /***************** Forward declaration begin *****************/

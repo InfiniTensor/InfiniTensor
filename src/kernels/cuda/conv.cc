@@ -7,29 +7,46 @@
 #include <tuple>
 namespace infini {
 
-static constexpr int N_ALGO = 8;
-static constexpr cudnnConvolutionFwdAlgo_t ALGOS[N_ALGO] = {
-    CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM,
-    CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM,
-    CUDNN_CONVOLUTION_FWD_ALGO_GEMM,
-    CUDNN_CONVOLUTION_FWD_ALGO_DIRECT,
-    CUDNN_CONVOLUTION_FWD_ALGO_FFT,
-    CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING,
-    CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD,
-    CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED};
-static constexpr int N_MODE = 2;
-static constexpr cudnnConvolutionMode_t MODES[N_MODE] = {
-    CUDNN_CONVOLUTION, CUDNN_CROSS_CORRELATION};
-
 struct ConvCuDnnPerfRecordObj : public PerfRecordObj {
     int algo = 0; // cudnnConvolutionFwdAlgo_t
     int mode = 1;
     size_t workspaceSize = 100000;
     bool fuseAct = false;
+    void to_json(json &j) override {
+        j["type"] = 1;
+        j["data"] = std::make_tuple(algo, mode, fuseAct, time, workspaceSize);
+    }
+    static PerfRecord from_json(const json &j) {
+        ConvCuDnnPerfRecordObj tmp;
+        auto [Algo, Mode, FuseAct, Time, WorkspaceSize] =
+            j["data"].get<tuple<int, int, bool, double, size_t>>();
+        tmp.algo = Algo;
+        tmp.mode = Mode;
+        tmp.fuseAct = FuseAct;
+        tmp.time = Time;
+        tmp.workspaceSize = WorkspaceSize;
+        return make_ref<ConvCuDnnPerfRecordObj>(tmp);
+    }
 };
+
 using ConvCuDnnPerfRecord = Ref<ConvCuDnnPerfRecordObj>;
 
 class convCudnn : public Kernel {
+
+    static constexpr int N_ALGO = 8;
+    static constexpr int N_MODE = 2;
+    static constexpr cudnnConvolutionFwdAlgo_t ALGOS[8] = {
+        CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM,
+        CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM,
+        CUDNN_CONVOLUTION_FWD_ALGO_GEMM,
+        CUDNN_CONVOLUTION_FWD_ALGO_DIRECT,
+        CUDNN_CONVOLUTION_FWD_ALGO_FFT,
+        CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING,
+        CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD,
+        CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED};
+
+    static constexpr cudnnConvolutionMode_t MODES[2] = {
+        CUDNN_CONVOLUTION, CUDNN_CROSS_CORRELATION};
 
     std::tuple<void *, void *, void *, cudnnTensorDescriptor_t,
                cudnnFilterDescriptor_t, cudnnTensorDescriptor_t,
@@ -276,4 +293,5 @@ class convCudnn : public Kernel {
 REGISTER_KERNEL(Device::CUDA, OpType::Conv, DataType::Float32, convCudnn,
                 "Conv_cuDNN_CUDA_Float32");
 
+REGISTER_CONSTRUCTOR(1, ConvCuDnnPerfRecordObj::from_json);
 } // namespace infini
