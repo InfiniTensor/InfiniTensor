@@ -17,7 +17,7 @@ void BangRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
             KernelAttrs{device, op->getOpType(), DataType::Float32};
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
-        std::optional<PerfRecord> perfData = perfEngine.getPerfData(perfKey);
+        auto perfData = perfEngine.getPerfData(perfKey);
         if (!perfData && !tune) {
             kernel->compute(op, this);
             continue;
@@ -28,7 +28,7 @@ void BangRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
             record = kernel->tune(op, this);
             perfEngine.setPerfData(perfKey, record);
         } else
-            record = *perfData;
+            record = perfData;
 
         double t = record->time;
         totalTime += t;

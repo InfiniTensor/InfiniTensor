@@ -3,12 +3,12 @@
 #include "bang/bang_runtime.h"
 
 namespace infini {
-class ElementWiseCnnl : public Kernel {
+class ElementWiseCnnl : public BangKernelWithoutConfig {
     virtual cnnlOpTensorDesc_t getOpType() const = 0;
     virtual tuple<float, float, float> getAlphBeta() const {
         return {1.f, 1.f, 0.f};
     }
-    void compute(const Operator &_op, const PerfRecord &record,
+    void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
@@ -61,18 +61,6 @@ class ElementWiseCnnl : public Kernel {
         checkCnnlError(cnnlDestroyTensorDescriptor(bDesc));
         checkCnnlError(cnnlDestroyTensorDescriptor(cDesc));
         checkCnnlError(cnnlDestroyOpTensorDescriptor(opDesc));
-    }
-
-    void compute(const Operator &_op,
-                 const RuntimeObj *_context) const override {
-        compute(_op, {}, _context);
-    }
-    // Premise: op is idempotent since it is called multiple times.
-    PerfRecord tune(const Operator &_op,
-                    const RuntimeObj *_context) const override {
-        auto context = dynamic_cast<const BangRuntimeObj *>(_context);
-        return make_ref<PerfRecordObj>(timeit([&]() { compute(_op, _context); },
-                                              [&]() { context->sync(); }));
     }
 };
 
