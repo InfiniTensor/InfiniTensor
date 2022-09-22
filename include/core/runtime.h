@@ -26,7 +26,7 @@ using OpVec = vector<Operator>;
 
 using VType = uint32_t;
 
-enum class Device { CPU = 1, CUDA, BANG};
+enum class Device { CPU = 1, CUDA, BANG };
 /***************** Forward declaration end *****************/
 
 class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {

@@ -25,17 +25,17 @@ class ElementWiseCnnl : public BangKernelWithoutConfig {
         int dim_array[4] = {dim[0], dim[1], dim[2], dim[3]};
         // get inputs
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(
-            aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, dim_array));
+        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
+                                               CNNL_DTYPE_FLOAT, 4, dim_array));
 
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(
-            bDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, dim_array));
+        checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
+                                               CNNL_DTYPE_FLOAT, 4, dim_array));
 
         // get outputs
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(
-            cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, dim_array));
+        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
+                                               CNNL_DTYPE_FLOAT, 4, dim_array));
 
         // get op descriptor
         cnnlOpTensorDescriptor_t opDesc;
@@ -44,14 +44,15 @@ class ElementWiseCnnl : public BangKernelWithoutConfig {
             opDesc, getOpType(), CNNL_DTYPE_FLOAT, CNNL_NOT_PROPAGATE_NAN));
 
         size_t wsSize;
-        cnnlGetOpTensorWorkspaceSize(context->cnnlHandle(), aDesc, bDesc, cDesc, &wsSize);
+        cnnlGetOpTensorWorkspaceSize(context->cnnlHandle(), aDesc, bDesc, cDesc,
+                                     &wsSize);
 
         BangPtr wsData = context->getWorkspace(wsSize);
 
         auto [aAlpha, bAlpha, beta] = getAlphBeta();
-        cnnlStatus_t stat =
-            cnnlOpTensor(context->cnnlHandle(), opDesc, &aAlpha, aDesc, aData,
-                          &bAlpha, bDesc, bData, wsData, wsSize, &beta, cDesc, cData);
+        cnnlStatus_t stat = cnnlOpTensor(context->cnnlHandle(), opDesc, &aAlpha,
+                                         aDesc, aData, &bAlpha, bDesc, bData,
+                                         wsData, wsSize, &beta, cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
@@ -93,8 +94,10 @@ REGISTER_KERNEL(Device::BANG, OpType::Sub, DataType::Float32, SubCnnl,
 REGISTER_KERNEL(Device::BANG, OpType::Mul, DataType::Float32, MulCnnl,
                 "Mul_cnnl_BANG_Float32");
 
-// REGISTER_KERNEL(Device::BANG, OpType::Div, DataType::Float32, ElementWiseBang,
+// REGISTER_KERNEL(Device::BANG, OpType::Div, DataType::Float32,
+// ElementWiseBang,
 //                 "Div_Bang_Float32");
-// REGISTER_KERNEL(Device::BANG, OpType::Pow, DataType::Float32, ElementWiseBang,
+// REGISTER_KERNEL(Device::BANG, OpType::Pow, DataType::Float32,
+// ElementWiseBang,
 //                 "Pow_Bang_Float32");
 }; // namespace infini

@@ -1,8 +1,7 @@
 #pragma once
-#include "core/common.h"
-#include "cnrt.h"
 #include "cnnl.h"
-
+#include "cnrt.h"
+#include "core/common.h"
 
 #define checkBangError(call)                                                   \
     {                                                                          \
@@ -18,8 +17,8 @@
     {                                                                          \
         auto err = call;                                                       \
         if (CNNL_STATUS_SUCCESS != err) {                                      \
-            fprintf(stderr, "cnnl error in %s:%i : %s.\n", __FILE__,           \
-                    __LINE__, cnnlGetErrorString(err));                        \
+            fprintf(stderr, "cnnl error in %s:%i : %s.\n", __FILE__, __LINE__, \
+                    cnnlGetErrorString(err));                                  \
             exit(EXIT_FAILURE);                                                \
         }                                                                      \
     }

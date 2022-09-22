@@ -1,6 +1,6 @@
 #pragma once
-#include "core/runtime.h"
 #include "bang/bang_common.h"
+#include "core/runtime.h"
 
 namespace infini {
 
@@ -49,16 +49,19 @@ class BangRuntimeObj : public RuntimeObj {
     }
 
     void copyBlobFromCPU(void *dst, void *src, size_t bytes) const override {
-        checkBangError(cnrtMemcpy(dst, src, bytes, CNRT_MEM_TRANS_DIR_HOST2DEV));
+        checkBangError(
+            cnrtMemcpy(dst, src, bytes, CNRT_MEM_TRANS_DIR_HOST2DEV));
     }
 
     void copyBlobToCPU(void *dst, void *src, size_t bytes) const override {
-        checkBangError(cnrtMemcpy(dst, src, bytes, CNRT_MEM_TRANS_DIR_DEV2HOST));
+        checkBangError(
+            cnrtMemcpy(dst, src, bytes, CNRT_MEM_TRANS_DIR_DEV2HOST));
     }
 
     void copyBlobInsideRuntime(void *dst, void *src,
                                size_t bytes) const override {
-        checkBangError(cnrtMemcpy(dst, src, bytes, CNRT_MEM_TRANS_DIR_PEER2PEER));
+        checkBangError(
+            cnrtMemcpy(dst, src, bytes, CNRT_MEM_TRANS_DIR_PEER2PEER));
     }
 
   private:

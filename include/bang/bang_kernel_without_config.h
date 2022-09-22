@@ -1,6 +1,6 @@
 #pragma once
-#include "core/kernel.h"
 #include "bang/bang_runtime.h"
+#include "core/kernel.h"
 
 namespace infini {
 

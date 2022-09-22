@@ -1,7 +1,7 @@
+#include "bang/bang_runtime.h"
 #include "core/graph.h"
 #include "core/kernel.h"
 #include "core/runtime.h"
-#include "bang/bang_runtime.h"
 #include "operators/element_wise.h"
 
 #include "test.h"
