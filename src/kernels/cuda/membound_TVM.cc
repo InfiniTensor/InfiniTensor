@@ -149,6 +149,7 @@ class MemboundTVM : public Kernel {
 
         // free module
         checkCUresult(cuModuleUnload(module));
+        nvrtcDestroyProgram(&prog);
 
         return std::dynamic_pointer_cast<PerfRecordObj>(ret);
     }
