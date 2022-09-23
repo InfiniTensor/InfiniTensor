@@ -20,7 +20,7 @@ class TensorObj : public TensorBaseObj {
     size_t getBytes() const;
 
     Shape getDims() const { return shape; }
-
+    vector<size_t> getStride() const;
     size_t getOffset(const Shape &ds) const;
     using TensorBaseObj::getData;
     VType getData(const Shape &pos) const;

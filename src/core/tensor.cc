@@ -30,6 +30,17 @@ size_t TensorObj::getOffset(const Shape &pos) const {
     return idx;
 }
 
+vector<size_t> TensorObj::getStride() const {
+    vector<size_t> ret;
+    size_t stride = 1;
+    for (int i = shape.size() - 1; i >= 1; i--) {
+        ret.emplace(ret.begin(), stride);
+        stride *= shape.at(i);
+    }
+    ret.emplace(ret.begin(), stride);
+    return ret;
+}
+
 size_t TensorObj::size() const {
     size_t ret = 1;
     for (const auto &d : shape)
