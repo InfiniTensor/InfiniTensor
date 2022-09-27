@@ -4,7 +4,7 @@ project(InfiniTensor C CXX)
 
 # Do not change these options in this file. Use cmake.config, cmake -DOPTION=VALUE, or ccmake to specify them.
 option(USE_CUDA "Support CUDA GPU" OFF)
-option(USE_BANG "Support BANG MLU" OFF)
+option(USE_BANG "Support BANG MLU" ON)
 option(USE_BACKTRACE "Print backtrace on exception and segmentation fault" ON)
 option(USE_PROTOBUF "Serialize and deserialize tensors" ON)
 option(BUILD_TEST "Build tests" ON)
@@ -122,6 +122,7 @@ if(USE_CUDA)
 endif()
 
 if(USE_BANG)
+  include_directories(mlu/include)
   ################################################################################
   # Neuware Evironment
   ################################################################################
@@ -152,53 +153,12 @@ if(USE_BANG)
   message(STATUS "TARGET_CPU_ARCH: ${TARGET_CPU_ARCH}")
 
   ################################################################################
-  # Sample Kernels
+  # BangC Kernels
   ################################################################################
-  set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "$ENV{NEUWARE_HOME}/cmake" "$ENV{NEUWARE_HOME}/cmake/modules")
-  find_package(BANG)
-  if(NOT BANG_FOUND)
-    message(FATAL_ERROR "BANG cannot be found.")
-  elseif(NOT BANG_CNCC_EXECUTABLE)
-    message(FATAL_ERROR "cncc not found, please ensure cncc is in your PATH env or set variable BANG_CNCC_EXECUTABLE from cmake. Otherwise you should check path used by find_program(BANG_CNCC_EXECUTABLE) in FindBANG.cmake")
-  endif()
-  set(BANG_CNCC_FLAGS "-Wall -Werror -fPIC -std=c++11 --target=${TARGET_CPU_ARCH} -O3")
-  set(BANG_CNCC_FLAGS "${BANG_CNCC_FLAGS}"
-                                             "--bang-arch=compute_20"
-                                             "--bang-arch=compute_30"
-                                             "--bang-mlu-arch=mtp_322"
-                                             "--bang-wram-align64"
-  )
-  
-  if(${TARGET_CPU_ARCH} MATCHES "aarch64-linux-gnu")
-    set(BANG_CNCC_FLAGS "${BANG_CNCC_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=1")
-    add_definitions(-D_GLIBCXX_USE_CXX11_ABI=1)
-    execute_process(
-      COMMAND uname -m
-      OUTPUT_VARIABLE _uname_m
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if (NOT ("${TARGET_CPU_ARCH}" MATCHES ".*${_uname_m}.*" AND "${_uname_m}" MATCHES "aarch64"))
-      execute_process(
-        COMMAND "${CMAKE_CXX_COMPILER}" "-v" "-c" "-x" "c++" "/dev/null" "-M"
-        ERROR_VARIABLE _cxx_verbose
-      )
-      execute_process(
-        COMMAND "echo" "${_cxx_verbose}"
-        COMMAND "sed" "-n" "/include.*search starts here/,/End of search list/{s/^ //p}"
-        COMMAND "tr" "'\n'" ";"
-        OUTPUT_VARIABLE _cxx_includes
-      )
-      list(REMOVE_ITEM _cxx_includes "/usr/include")
-      foreach(_include ${_cxx_includes})
-        message(STATUS "add include path: ${_include}")
-        set(BANG_CNCC_FLAGS "${BANG_CNCC_FLAGS} -idirafter ${_include}")
-      endforeach()
-    endif()
-  endif()
-  #bang_add_library(bangops SHARED ${SRC_BANG})
-  #target_link_libraries(bangops ${CAMBRICON_CNDRV})
+  add_subdirectory(mlu)
+
   target_link_libraries(InfiniTensor ${CAMBRICON_CNNL} ${CAMBRICON_CNRT} ${CAMBRICON_CNDRV} stdc++)
-  #target_link_libraries(InfiniTensor bangops)
+  target_link_libraries(InfiniTensor bangops)
 endif()
 
 # # Python bindings
