@@ -94,6 +94,11 @@ endif()
 
 target_link_libraries(InfiniTensor pybind11::embed)
 
+# Python bindings
+file(GLOB_RECURSE FFIS src/ffi/ffi_infinitensor.cc)
+pybind11_add_module(pyinfinitensor MODULE ${FFIS})
+target_link_libraries(pyinfinitensor PRIVATE InfiniTensor)
+
 if(USE_BACKTRACE)
   add_definitions(-D BACKWARD_TRACE)
   add_subdirectory(3rd-party/backward-cpp)
@@ -103,6 +108,7 @@ if(USE_BACKTRACE)
 endif()
 
 if(USE_CUDA)
+  add_compile_definitions(USE_CUDA=1)
   # Since enable_language only executes once, rerun cmake is required if CMAKE_CUDA_HOST_COMPILER is wrong
   set(CMAKE_CUDA_HOST_COMPILER
       ${CMAKE_CXX_COMPILER}
@@ -111,14 +117,7 @@ if(USE_CUDA)
   set_target_properties(InfiniTensor PROPERTIES CUDA_ARCHITECTURES "70;80")
   enable_language(CUDA)
   find_package(CUDAToolkit) # For nvrtc and cuda driver
-  target_link_libraries(
-    InfiniTensor
-    cudnn
-    CUDA::curand
-    CUDA::cublas
-    CUDA::nvrtc
-    CUDA::cudart
-    CUDA::cuda_driver)
+  target_link_libraries(InfiniTensor cudnn CUDA::curand CUDA::cublas CUDA::nvrtc CUDA::cudart CUDA::cuda_driver)
 endif()
 
 if(USE_BANG)
