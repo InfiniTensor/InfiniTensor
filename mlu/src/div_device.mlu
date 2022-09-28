@@ -1,12 +1,12 @@
 #include "div.h"
 
-__nram__ char left[170624];
-__nram__ char right[170624];
-__nram__ char output[170624];
+__nram__ char left[102400];
+__nram__ char right[102400];
+__nram__ char output[102400];
 
 template<typename T>
 __mlu_device__ void DivFunction(T* output1, T* input1, T* input2, int num) {
-  int use_nram_size = 170624;
+  int use_nram_size = 102400;
   int deal_align = use_nram_size / sizeof(T);
   int num_per_core = num / taskDim;
   int num_rem = num % taskDim;
@@ -23,7 +23,8 @@ __mlu_device__ void DivFunction(T* output1, T* input1, T* input2, int num) {
   for(int i = 0; i < my_repeat; ++i) {
     __memcpy(left, input1_start, use_nram_size, GDRAM2NRAM);
     __memcpy(right, input2_start, use_nram_size, GDRAM2NRAM);
-    __bang_add((T*)output, (T*)left, (T*)right, deal_align);
+    __bang_active_recip((T*)right, (T*)right, deal_align);
+    __bang_mul((T*)output, (T*)left, (T*)right, deal_align);
     __memcpy(output_start, output, use_nram_size, NRAM2GDRAM);
     input1_start += use_nram_size;
     input2_start += use_nram_size;
@@ -32,7 +33,8 @@ __mlu_device__ void DivFunction(T* output1, T* input1, T* input2, int num) {
   if(my_rem) {
     __memcpy(left, input1_start, my_rem * sizeof(T), GDRAM2NRAM);
     __memcpy(right, input2_start, my_rem * sizeof(T), GDRAM2NRAM);
-    __bang_add((T*)output, (T*)left, (T*)right, deal_align);
+    __bang_active_recip((T*)right, (T*)right, deal_align);
+    __bang_mul((T*)output, (T*)left, (T*)right, deal_align);
     __memcpy(output_start, output, my_rem * sizeof(T), NRAM2GDRAM);
   }
 }
