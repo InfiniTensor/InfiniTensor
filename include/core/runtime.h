@@ -69,13 +69,13 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
     // TODO: unify these copy APIs
     virtual void copyBlobFromCPU(void *dst, const void *src,
                                  size_t bytes) const = 0;
+    virtual void copyBlobToCPU(void *dst, const void *src,
+                               size_t bytes) const = 0;
 
   protected:
     void printProfilingData(double totTime,
                             const std::map<OpType, double> &opTime,
                             const std::map<OpType, int> &opCnt) const;
-    virtual void copyBlobToCPU(void *dst, const void *src,
-                               size_t bytes) const = 0;
     virtual void copyBlobInsideRuntime(void *dst, const void *src,
                                        size_t bytes) const = 0;
 };
