@@ -27,8 +27,8 @@ void testBangcKernel(
     inputCpu2->dataMalloc();
     inputCpu2->setData(generator);
 
-    inputCpu1->printData();
-    inputCpu2->printData();
+    // inputCpu1->printData();
+    // inputCpu2->printData();
 
     // GPU
     Graph bangGraph = make_ref<GraphObj>(bangRuntime);
@@ -39,16 +39,18 @@ void testBangcKernel(
     bangRuntime->run(bangGraph);
     auto outputGpu = gpuOp->getOutput();
     auto outputGpu2Cpu = outputGpu->clone(cpuRuntime);
-    outputGpu2Cpu->printData();
+    // outputGpu2Cpu->printData();
     // CPU
     Graph cpuGraph = make_ref<GraphObj>(cpuRuntime);
     auto cpuOp = cpuGraph->addOp<T>(inputCpu1, inputCpu2, nullptr);
     cpuGraph->dataMalloc();
     cpuRuntime->run(cpuGraph);
     auto outputCpu = cpuOp->getOutput();
-    outputCpu->printData();
+    // outputCpu->printData();
     // Check
-    EXPECT_LE(computeDifference2((float*)outputCpu->getDataBlob()->getRawPtr(), (float*)outputGpu2Cpu->getDataBlob()->getRawPtr(), outputCpu->size()),0.003);
+    float* const cpu_res = (float*)(outputCpu->getDataBlob()->getRawPtr());
+    float* const mlu_res = (float*)(outputGpu2Cpu->getDataBlob()->getRawPtr());
+    EXPECT_LE(computeDifference2(cpu_res, mlu_res, outputCpu->size()), 0.003);
 }
 
 TEST(BangcKernel_Div, run) {

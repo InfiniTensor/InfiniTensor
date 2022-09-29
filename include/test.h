@@ -30,7 +30,7 @@ class IncrementalGenerator : public DataGenerator {
   private:
     template <typename T> void fill(T *data, size_t size) {
         for (size_t i = 0; i < size; i++) {
-            data[i] = i+1;
+            data[i] = i;
         }
     }
 

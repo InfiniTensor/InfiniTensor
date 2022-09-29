@@ -122,7 +122,7 @@ if(USE_CUDA)
 endif()
 
 if(USE_BANG)
-  include_directories(mlu/include)
+  include_directories(src/kernels/mlu/include)
   ################################################################################
   # Neuware Evironment
   ################################################################################
@@ -155,7 +155,7 @@ if(USE_BANG)
   ################################################################################
   # BangC Kernels
   ################################################################################
-  add_subdirectory(mlu)
+  add_subdirectory(src/kernels/mlu)
 
   target_link_libraries(InfiniTensor ${CAMBRICON_CNNL} ${CAMBRICON_CNRT} ${CAMBRICON_CNDRV} stdc++)
   target_link_libraries(InfiniTensor bangops)
