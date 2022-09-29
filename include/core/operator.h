@@ -186,6 +186,10 @@ class OperatorObj : public Object {
         IT_ASSERT(outputs.size() == 1, "Unimplemented");
         return outputs[0];
     }
+    Tensor getOutput(size_t i) const {
+        IT_ASSERT(i < outputs.size(), "Index exceeded");
+        return outputs.at(i);
+    }
     OpType getOpType() const { return type; }
     // HACK: set correct data type
     DataType getDType() const { return getInputs(0)->getDType(); }
