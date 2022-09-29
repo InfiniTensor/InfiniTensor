@@ -15,7 +15,7 @@ class PadObj : public OperatorObj {
     std::string toString() const override;
     int numInputs() const override { return 1; }
     int numOutputs() const override { return 1; }
-    Shape PadObj::getPads() const { return pads; }
+    Shape getPads() const { return pads; }
 
   private:
     vector<int> getWorkloadVector() const override;
