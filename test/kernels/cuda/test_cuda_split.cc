@@ -24,7 +24,6 @@ TEST(Split, Cuda) {
     gCuda->dataMalloc();
     cudaRuntime->run(gCuda);
 
-    // cudaPrintTensor(op->getOutput());
     //  copy output from CUDA to CPU
     EXPECT_EQ(op->getOutputs().size(), (size_t)3);
     auto o0Cpu = gCpu->cloneTensor(op->getOutput(0));

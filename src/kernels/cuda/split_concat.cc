@@ -65,7 +65,7 @@ class ConcatCuda : private CudaCompute, public CudaKernelWithoutConfig {
     }
 };
 
-class SplitCuda : private SplitConcatCuda, public CudaKernelWithoutConfig {
+class SplitCuda : private CudaCompute, public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         do_compute(_op->getInputs(0), _op->getOutputs(),
