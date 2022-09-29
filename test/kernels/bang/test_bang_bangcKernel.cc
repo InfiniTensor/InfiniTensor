@@ -2,6 +2,7 @@
 #include "core/graph.h"
 #include "core/kernel.h"
 #include "core/runtime.h"
+#include "core/blob.h"
 #include "operators/element_wise.h"
 #include "utils/validation.h"
 
@@ -48,8 +49,8 @@ void testBangcKernel(
     auto outputCpu = cpuOp->getOutput();
     // outputCpu->printData();
     // Check
-    float *const cpuRes = (float *)(outputCpu->getDataBlob()->getRawPtr());
-    float *const mluRes = (float *)(outputGpu2Cpu->getDataBlob()->getRawPtr());
+    float *const cpuRes = (float *)(outputCpu->template getRawDataPtr<float*>());
+    float *const mluRes = (float *)(outputGpu2Cpu->template getRawDataPtr<float*>());
     EXPECT_LE(computeDifference2(cpuRes, mluRes, outputCpu->size()), 0.003);
 }
 

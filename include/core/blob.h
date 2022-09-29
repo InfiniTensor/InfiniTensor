@@ -18,7 +18,6 @@ class BlobObj {
     BlobObj &operator=(BlobObj const &) = delete;
     ~BlobObj();
 
-    void *getRawPtr() const { return ptr; }
     template <typename T> T getPtr() const { return reinterpret_cast<T>(ptr); }
 };
 
