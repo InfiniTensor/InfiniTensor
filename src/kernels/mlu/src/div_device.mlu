@@ -1,12 +1,14 @@
 #include "div.h"
 
-__nram__ char left[102400];
-__nram__ char right[102400];
-__nram__ char output[102400];
+#define NRAM_USE_SIZE 102400
+
+__nram__ char left[NRAM_USE_SIZE];
+__nram__ char right[NRAM_USE_SIZE];
+__nram__ char output[NRAM_USE_SIZE];
 
 template<typename T>
-__mlu_device__ void DivFunction(T* output1, T* input1, T* input2, int num) {
-  int use_nram_size = 102400;
+__mlu_device__ void DivFunction(T* output1, T* input1, T* input2, size_t num) {
+  int use_nram_size = NRAM_USE_SIZE;
   int deal_align = use_nram_size / sizeof(T);
   int num_per_core = num / taskDim;
   int num_rem = num % taskDim;

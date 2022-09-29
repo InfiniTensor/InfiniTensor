@@ -51,19 +51,19 @@ class BangRuntimeObj : public RuntimeObj {
     void copyBlobFromCPU(void *dst, const void *src,
                          size_t bytes) const override {
         checkBangError(
-            cnrtMemcpy(dst, (void *)src, bytes, CNRT_MEM_TRANS_DIR_HOST2DEV));
+            cnrtMemcpy(dst, const_cast<void*>(src), bytes, CNRT_MEM_TRANS_DIR_HOST2DEV));
     }
 
     void copyBlobToCPU(void *dst, const void *src,
                        size_t bytes) const override {
         checkBangError(
-            cnrtMemcpy(dst, (void *)src, bytes, CNRT_MEM_TRANS_DIR_DEV2HOST));
+            cnrtMemcpy(dst, const_cast<void*>(src), bytes, CNRT_MEM_TRANS_DIR_DEV2HOST));
     }
 
     void copyBlobInsideRuntime(void *dst, const void *src,
                                size_t bytes) const override {
         checkBangError(
-            cnrtMemcpy(dst, (void *)src, bytes, CNRT_MEM_TRANS_DIR_PEER2PEER));
+            cnrtMemcpy(dst, const_cast<void*>(src), bytes, CNRT_MEM_TRANS_DIR_PEER2PEER));
     }
 
   private:
