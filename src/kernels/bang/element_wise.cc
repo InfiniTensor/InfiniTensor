@@ -1,6 +1,6 @@
 #include "operators/element_wise.h"
-#include "bang/bang_kernel_without_config.h"
 #include "bang/bang_element_wise.h"
+#include "bang/bang_kernel_without_config.h"
 #include "bang/bang_runtime.h"
 
 namespace infini {
@@ -83,7 +83,7 @@ class MulCnnl : public ElementWiseCnnl {
 
 class ElementWiseBang : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
-                 const RuntimeObj* _context) const override {
+                 const RuntimeObj *_context) const override {
         element_wise_kernel(_context, _op);
     }
 };
@@ -95,8 +95,8 @@ REGISTER_KERNEL(Device::BANG, OpType::Sub, DataType::Float32, SubCnnl,
 REGISTER_KERNEL(Device::BANG, OpType::Mul, DataType::Float32, MulCnnl,
                 "Mul_cnnl_BANG_Float32");
 
-REGISTER_KERNEL(Device::BANG, OpType::Div, DataType::Float32,
-ElementWiseBang, "Div_Bang_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Div, DataType::Float32, ElementWiseBang,
+                "Div_Bang_Float32");
 // REGISTER_KERNEL(Device::BANG, OpType::Pow, DataType::Float32,
 // ElementWiseBang,
 //                 "Pow_Bang_Float32");

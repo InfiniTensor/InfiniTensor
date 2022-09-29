@@ -48,8 +48,8 @@ void testBangcKernel(
     auto outputCpu = cpuOp->getOutput();
     // outputCpu->printData();
     // Check
-    float* const cpu_res = (float*)(outputCpu->getDataBlob()->getRawPtr());
-    float* const mlu_res = (float*)(outputGpu2Cpu->getDataBlob()->getRawPtr());
+    float *const cpu_res = (float *)(outputCpu->getDataBlob()->getRawPtr());
+    float *const mlu_res = (float *)(outputGpu2Cpu->getDataBlob()->getRawPtr());
     EXPECT_LE(computeDifference2(cpu_res, mlu_res, outputCpu->size()), 0.003);
 }
 
