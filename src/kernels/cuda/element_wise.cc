@@ -45,11 +45,10 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
             opDesc, getOpType(), CUDNN_DATA_FLOAT, CUDNN_NOT_PROPAGATE_NAN));
 
         auto [aAlpha, bAlpha, beta] = getAlphBeta();
-        cudnnStatus_t stat =
-            cudnnOpTensor(context->cudnnHandle(), opDesc, &aAlpha, aDesc, aData,
-                          &bAlpha, bDesc, bData, &beta, cDesc, cData);
-        if (stat != CUDNN_STATUS_SUCCESS)
-            return;
+
+        checkCudnnError(cudnnOpTensor(context->cudnnHandle(), opDesc, &aAlpha,
+                                      aDesc, aData, &bAlpha, bDesc, bData,
+                                      &beta, cDesc, cData));
 
         // Destories in CUDA does not require sync. But cuDNN does not state
         // whether sync is required before destories.
