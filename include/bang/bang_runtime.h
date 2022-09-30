@@ -48,20 +48,22 @@ class BangRuntimeObj : public RuntimeObj {
         return workspace;
     }
 
-    void copyBlobFromCPU(void *dst, void *src, size_t bytes) const override {
-        checkBangError(
-            cnrtMemcpy(dst, src, bytes, CNRT_MEM_TRANS_DIR_HOST2DEV));
+    void copyBlobFromCPU(void *dst, const void *src,
+                         size_t bytes) const override {
+        checkBangError(cnrtMemcpy(dst, const_cast<void *>(src), bytes,
+                                  CNRT_MEM_TRANS_DIR_HOST2DEV));
     }
 
-    void copyBlobToCPU(void *dst, void *src, size_t bytes) const override {
-        checkBangError(
-            cnrtMemcpy(dst, src, bytes, CNRT_MEM_TRANS_DIR_DEV2HOST));
+    void copyBlobToCPU(void *dst, const void *src,
+                       size_t bytes) const override {
+        checkBangError(cnrtMemcpy(dst, const_cast<void *>(src), bytes,
+                                  CNRT_MEM_TRANS_DIR_DEV2HOST));
     }
 
-    void copyBlobInsideRuntime(void *dst, void *src,
+    void copyBlobInsideRuntime(void *dst, const void *src,
                                size_t bytes) const override {
-        checkBangError(
-            cnrtMemcpy(dst, src, bytes, CNRT_MEM_TRANS_DIR_PEER2PEER));
+        checkBangError(cnrtMemcpy(dst, const_cast<void *>(src), bytes,
+                                  CNRT_MEM_TRANS_DIR_PEER2PEER));
     }
 
   private:
