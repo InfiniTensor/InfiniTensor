@@ -142,12 +142,11 @@ class OperatorObj : public Object {
     OpType type;
     TensorVec inputs;
     TensorVec outputs;
-    // vector<WRef<Operator>> predecessors;
-    // vector<WRef<Operator>> successors;
+    vector<WRef<OperatorObj>> predecessors;
+    vector<WRef<OperatorObj>> successors;
 
   public:
-    OperatorObj(OpType opType, TensorVec inputs, TensorVec outputs)
-        : type(opType), inputs(inputs), outputs(outputs) {}
+    OperatorObj(OpType opType, TensorVec inputs, TensorVec outputs);
     virtual optional<vector<Shape>>
     inferShape(const TensorVec &inputs) const = 0;
     virtual vector<DataType> inferDataType(const TensorVec &inputs) const;
@@ -177,9 +176,7 @@ class OperatorObj : public Object {
     bool isMemBoundOp() const;
 
   public: // getter and setter
-    // TensorVec getInputs() { return inputs; }
     const TensorVec &getInputs() const { return inputs; }
-    // TensorVec getOutputs() { return outputs; }
     const TensorVec &getOutputs() const { return outputs; }
     Tensor getInputs(size_t i) const { return inputs.at(i); }
     Tensor getOutput() const {
@@ -190,6 +187,10 @@ class OperatorObj : public Object {
         IT_ASSERT(i < outputs.size(), "Index exceeded");
         return outputs.at(i);
     }
+    void addPredecessors(const Operator &op) { predecessors.emplace_back(op); }
+    void addSuccessors(const Operator &op) { successors.emplace_back(op); }
+    OpVec getPredecessors() const { return wrefs_to_refs(predecessors); }
+    OpVec getSuccessors() const { return wrefs_to_refs(successors); }
     OpType getOpType() const { return type; }
     // HACK: set correct data type
     DataType getDType() const { return getInputs(0)->getDType(); }

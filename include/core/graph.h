@@ -31,6 +31,7 @@ class GraphObj : public Object {
     template <typename T, typename... Args> Ref<T> addOp(Args &&...args) {
         Ref<T> op = infini::make_ref<T>(this, std::forward<Args>(args)...);
         ops.push_back(op);
+        updateConnection(op);
         return op;
     }
 
@@ -41,6 +42,7 @@ class GraphObj : public Object {
     Ref<T> addOpWithOutputs(Args &&...args) {
         Ref<T> op = infini::make_ref<T>(nullptr, std::forward<Args>(args)...);
         ops.push_back(op);
+        updateConnection(op);
         return op;
     }
 
@@ -59,7 +61,7 @@ class GraphObj : public Object {
     /**
      * @brief Add reverse connections and Op relationship in ctor.
      */
-    void updateConnection();
+    void updateConnection(const Operator &op);
 
     // TODO: move to another class
     // bool exportOnnx(const char *path);

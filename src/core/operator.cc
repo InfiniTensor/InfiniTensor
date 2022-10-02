@@ -4,6 +4,12 @@
 
 namespace infini {
 
+OperatorObj::OperatorObj(OpType opType, TensorVec inputs, TensorVec outputs)
+    : type(opType), inputs(inputs), outputs(outputs) {
+    for (auto &t : inputs)
+        IT_ASSERT(t != nullptr);
+}
+
 bool OperatorObj::isLinearOp() const {
     return enum_to_underlying(type) >= 100 && enum_to_underlying(type) < 200;
 }

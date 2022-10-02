@@ -35,7 +35,7 @@ class Object {
     virtual ~Object(){};
     virtual string toString() const = 0;
     void print() { std::cout << toString() << std::endl; }
-    Guid getGuid() const { return guid; }
+    GuidBaseType getGuid() const { return guid; }
 };
 
 inline std::ostream &operator<<(std::ostream &os, const Object &obj) {
