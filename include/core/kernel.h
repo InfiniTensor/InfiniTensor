@@ -102,7 +102,11 @@ class KernelRegistry {
     }
     Kernel *getKernel(const KernelAttrs &kernelAttrs) const {
         auto it = kernels.find(kernelAttrs);
-        IT_ASSERT(it != kernels.end(), "Kernel not found.");
+        IT_ASSERT(it != kernels.end(),
+                  "Kernel not found for key {" +
+                      to_string(enum_to_underlying(std::get<0>(kernelAttrs))) +
+                      ", " + OpRegistry::getOpName(std::get<1>(kernelAttrs)) +
+                      ", " + std::get<2>(kernelAttrs).toString());
         return std::get<0>(it->second);
     }
     const KernelRecord &getKernelItem(const KernelAttrs &kernelAttrs) const {

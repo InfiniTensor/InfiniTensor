@@ -250,8 +250,7 @@ class convBackwardDataCudnn : public Kernel {
                             outData);
                     },
                     [&]() { context->sync(); });
-                // printf("mode:%d algo:%d :%.8lf\n", mode, algo,
-                // record.time);
+                // printf("mode:%d algo:%d :%.8lf\n", mode, algo, record.time);
 
                 // Update the tune result
                 if (ret.time > record.time)

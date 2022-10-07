@@ -139,4 +139,6 @@ void CpuRuntimeObj::copyBlobInsideRuntime(void *dst, const void *src,
     memcpy(dst, src, bytes);
 }
 
+string CpuRuntimeObj::toString() const { return "CPU Runtime"; }
+
 } // namespace infini
