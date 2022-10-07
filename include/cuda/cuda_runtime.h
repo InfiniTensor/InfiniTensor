@@ -34,6 +34,7 @@ class CudaRuntimeObj : public RuntimeObj {
         checkCublasError(cublasDestroy(cublas));
         checkCUresult(cuCtxDestroy(newContext));
     }
+    string toString() const override;
 
     void run(const Graph &graph, bool tune = false,
              bool profiling = false) const;
@@ -68,7 +69,9 @@ class CudaRuntimeObj : public RuntimeObj {
         checkCudaError(cudaMemcpy(dst, src, bytes, cudaMemcpyDeviceToDevice));
     }
 
+    void runWithoutSync(const Graph &graph) const;
+
   private:
-    void runWithoutSync(const Graph &graph, bool tune, bool profiling) const;
+    void tune(const Graph &graph, bool profiling) const;
 };
 } // namespace infini

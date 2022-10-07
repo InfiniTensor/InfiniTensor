@@ -22,8 +22,9 @@ double getPerfConvCudnn(int n, int c, int h, int w, int f, int r, int s,
     Runtime cuda = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cuda);
     // Set input data on CPU in a CPU Graph
+    IT_ASSERT(c % group == 0);
     Tensor i0Cpu = gCpu->addTensor({n, c, h, w}, DataType::Float32);
-    Tensor w0Cpu = gCpu->addTensor({f, c, r, s}, DataType::Float32);
+    Tensor w0Cpu = gCpu->addTensor({f, c / group, r, s}, DataType::Float32);
     // Malloc data for all tensors in a graph. Do we need implicit allocation?
     gCpu->dataMalloc();
     i0Cpu->setData(IncrementalGenerator());
@@ -35,6 +36,41 @@ double getPerfConvCudnn(int n, int c, int h, int w, int f, int r, int s,
     // Build CUDA graph
     auto conv = gCuda->addOp<ConvObj>(i0Cuda, w0Cuda, nullptr, padh, padw,
                                       strideh, stridew, dilationh, dilationw);
+    // allocate CUDA memory
+    gCuda->dataMalloc();
+    // Execute on CUDA
+    bool tune = true;
+    cuda->run(gCuda, tune);
+    return cuda->getPerfTime(gCuda);
+}
+
+double getPerfConvTransposed2dCudnn(int n, int c, int h, int w, int f, int r,
+                                    int s, int padh, int padw, int strideh,
+                                    int stridew, int dilationh, int dilationw,
+                                    int oph, int opw, int group) {
+    // const auto &[n, c, h, w, f, r, s, padh, padw, strideh, stridew,
+    // dilationh, dilationw, group] =
+    //     tuple{1, 512, 14, 14, 512, 3, 3, 2, 2, 1, 1, 2, 2, 1};
+    Runtime cpu = CpuRuntimeObj::getInstance(); // CPUruntime is singleton
+    Graph gCpu = make_ref<GraphObj>(cpu);
+    Runtime cuda = make_ref<CudaRuntimeObj>();
+    Graph gCuda = make_ref<GraphObj>(cuda);
+    // Set input data on CPU in a CPU Graph
+    IT_ASSERT(c % group == 0);
+    Tensor i0Cpu = gCpu->addTensor({n, f, h, w}, DataType::Float32);
+    Tensor w0Cpu = gCpu->addTensor({f, c / group, r, s}, DataType::Float32);
+    // Malloc data for all tensors in a graph. Do we need implicit allocation?
+    gCpu->dataMalloc();
+    i0Cpu->setData(IncrementalGenerator());
+    w0Cpu->setData(IncrementalGenerator());
+
+    // Copy input tensors from CPU to CUDA
+    Tensor i0Cuda = gCuda->cloneTensor(i0Cpu);
+    Tensor w0Cuda = gCuda->cloneTensor(w0Cpu);
+    // Build CUDA graph
+    auto conv = gCuda->addOp<ConvTransposed2dObj>(
+        i0Cuda, w0Cuda, nullptr, padh, padw, strideh, stridew, dilationh,
+        dilationw, oph, opw, group);
     // allocate CUDA memory
     gCuda->dataMalloc();
     // Execute on CUDA

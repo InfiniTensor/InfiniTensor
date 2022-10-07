@@ -44,7 +44,7 @@ using HashType = uint64_t; // compatible with std::hash
          ? void(0)                                                             \
          : throw ::infini::Exception(                                          \
                std::string("[") + __FILE__ + ":" + std::to_string(__LINE__) +  \
-               "] Assertion failed (" + #name + "): " + #info))
+               "] Assertion failed (" + #name + "): " + info))
 #define _IT_ASSERT_1(name) _IT_ASSERT_2(name, "");
 #define IT_ASSERT(...) _VA_SELECT(_IT_ASSERT, __VA_ARGS__)
 

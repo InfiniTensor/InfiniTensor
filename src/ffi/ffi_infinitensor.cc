@@ -13,6 +13,7 @@ void register_operator_timer(py::module &m) {
 #ifdef USE_CUDA
     using namespace opTimer;
     m.def("getPerfConvCudnn", &getPerfConvCudnn);
+    m.def("getPerfConvTransposed2dCudnn", &getPerfConvTransposed2dCudnn);
     m.def("getPerfMatmulCublas", &getPerfMatmulCublas);
 #endif
 }

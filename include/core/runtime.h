@@ -71,6 +71,7 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
                                  size_t bytes) const = 0;
     virtual void copyBlobToCPU(void *dst, const void *src,
                                size_t bytes) const = 0;
+    virtual string toString() const = 0;
 
   protected:
     void printProfilingData(double totTime,
@@ -102,6 +103,7 @@ class CpuRuntimeObj : public RuntimeObj {
     void copyBlobToCPU(void *dst, const void *src, size_t bytes) const override;
     void copyBlobInsideRuntime(void *dst, const void *src,
                                size_t bytes) const override;
+    string toString() const override;
 };
 
 } // namespace infini
