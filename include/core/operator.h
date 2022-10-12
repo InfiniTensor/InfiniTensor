@@ -40,6 +40,9 @@ enum class OpType {
     Resize,
     //
     MemBound = 300,
+    //
+    Conv2dReduce = 400,
+    ConvTranspose2dReduce
 };
 
 using KernelAttrs = std::tuple<Device, OpType, DataType>;
@@ -86,6 +89,8 @@ class OpRegistry {
             FOP(Abs);
             //
             FOP(MemBound);
+            FOP(Conv2dReduce);
+            FOP(ConvTranspose2dReduce);
         default:
             IT_ASSERT(false);
             break;

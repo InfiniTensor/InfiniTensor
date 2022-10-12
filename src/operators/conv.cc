@@ -100,8 +100,11 @@ optional<vector<Shape>> ConvObj::inferShape(const TensorVec &inputs) const {
         return {};
     // Set padding size
     if (padding == PaddingMode::Other) {
-        oh = (h - (r - sh) * dh + ph * 2) / sh;
-        ow = (w - (s - sw) * dw + pw * 2) / sw;
+        //! fix this
+        // oh = (h - (r - sh) * dh + ph * 2) / sh;
+        // ow = (w - (s - sw) * dw + pw * 2) / sw;
+        oh = (h + ph * 2 - dh * (r - 1) - 1) / sh + 1;
+        ow = (w + pw * 2 - dw * (s - 1) - 1) / sw + 1;
     } else if (padding == PaddingMode::Same) {
         oh = h / sh;
         ow = w / sw;
