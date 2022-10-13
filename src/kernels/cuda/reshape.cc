@@ -6,8 +6,9 @@ class CopyCuda : public CudaKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto inData = op->getInputs(0)->getRawDataPtr<void *>();
         auto outData = op->getOutputs()[0]->getRawDataPtr<void *>();
+        auto cuda = dynamic_cast<const CudaRuntimeObj *>(_context);
         cudaMemcpyAsync(outData, inData, op->getInputs(0)->getBytes(),
-                        cudaMemcpyDeviceToDevice);
+                        cudaMemcpyDeviceToDevice, cuda->getStream());
     }
 };
 // reshape/flatten/identity all act as copying from input to output.
