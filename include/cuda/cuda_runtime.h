@@ -10,13 +10,14 @@ class CudaRuntimeObj : public RuntimeObj {
     cublasHandle_t cublas;
     CudaPtr workspace;
     size_t workspaceSize;
+    cudaStream_t stream;
 
   public:
     CUdevice cuDevice;
     CUcontext newContext;
 
   public:
-    CudaRuntimeObj() : RuntimeObj(Device::CUDA) {
+    CudaRuntimeObj() : RuntimeObj(Device::CUDA), stream(cudaStreamPerThread) {
         // Prepare for nvrtc. cuCtxCreate should be called befero others.
         // Otherwise it will result in strange failure, such as cuBLAS failed on
         // certian inputs.
@@ -26,6 +27,8 @@ class CudaRuntimeObj : public RuntimeObj {
 
         checkCudnnError(cudnnCreate(&cudnn));
         checkCublasError(cublasCreate(&cublas));
+        checkCublasError(cublasSetStream(cublas, stream));
+        checkCudnnError(cudnnSetStream(cudnn, stream));
         // 10GB for Longformer
         // size_t longformerNum = 3lu * (1 << 30);
         workspaceSize = 7ll << 30; // 7 GB
@@ -53,6 +56,7 @@ class CudaRuntimeObj : public RuntimeObj {
     cudnnHandle_t cudnnHandle() const { return cudnn; }
     cublasHandle_t cublasHandle() const { return cublas; }
     size_t getWorkspaceSize() const { return workspaceSize; }
+    cudaStream_t getStream() const { return stream; }
     CudaPtr getWorkspace(size_t size) const {
         IT_ASSERT(size <= workspaceSize);
         return workspace;

@@ -88,7 +88,8 @@ void conv2dreduce_kernel(float *input, float *bias, float *output,
 {
     dim3 grid(n, f);
     dim3 block(oh, ow);
-    conv2dreduce_kernel_<<<grid, block>>>(input, bias, output, PReLU, n, f, h, w, 
+    cudaStream_t stream(cudaStreamPerThread);
+    conv2dreduce_kernel_<<<grid, block, 0, stream>>>(input, bias, output, PReLU, n, f, h, w, 
                                         oh, ow, r, s, ph, pw, dh, dw, sh, sw);
 }
 
@@ -99,7 +100,8 @@ void convTranspose2dreduce_kernel(float *input, float *bias, float *output,
 {
     dim3 grid(n, f);
     dim3 block(oh, ow);
-    convTranspose2dreduce_kernel_<<<grid, block>>>(input, bias, output, PReLU, n, f, h, w, 
+    cudaStream_t stream(cudaStreamPerThread);
+    convTranspose2dreduce_kernel_<<<grid, block, 0,stream>>>(input, bias, output, PReLU, n, f, h, w, 
                                         oh, ow, r, s, ph, pw, dh, dw, sh, sw);
 }
 }

@@ -101,6 +101,7 @@ void RuntimeObj::printProfilingData(double totalTime,
                OpRegistry::getOpName(type).data(), opCnt.at(type), t,
                t / totalTime * 100, t / opCnt.at(type));
     }
+    printf("Total_perf_time: %.3lf ms\n", totalTime);
 }
 
 Blob RuntimeObj::allocBlob(size_t size) {
