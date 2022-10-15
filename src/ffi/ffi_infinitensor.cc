@@ -20,21 +20,69 @@ void register_operator_timer(py::module &m) {
 }
 
 void init_graph_factory(py::module &m) {
-    py::class_<TensorObj>(m, "TensorObj");
+    py::class_<RuntimeObj, std::shared_ptr<RuntimeObj>>(m, "RuntimeObj");
+    py::class_<CpuRuntimeObj, std::shared_ptr<CpuRuntimeObj>, RuntimeObj>(
+        m, "CpuRuntimeObj")
+        .def(py::init<>())
+        .def("getInstance", py::overload_cast<>(&CpuRuntimeObj::getInstance),
+             policy::reference_internal);
+    py::class_<Shape>(m, "Shape");
+    py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "TensorObj");
     py::class_<Tensor>(m, "Tensor");
-    py::class_<OperatorObj>(m, "OperatorObj");
-    py::class_<Operator>(m, "Operator");
-    py::class_<GraphObj>(m, "GraphObj");
-    py::class_<Graph>(m, "Graph");
     py::class_<TensorVec>(m, "TensorVec");
+    py::class_<OperatorObj, std::shared_ptr<OperatorObj>>(m, "OperatorObj");
+    py::class_<Operator>(m, "Operator");
+    py::class_<ActType>(m, "ActType");
+    py::class_<ConvObj, std::shared_ptr<ConvObj>, OperatorObj>(m, "ConvObj");
+    py::class_<MatmulObj, std::shared_ptr<MatmulObj>, OperatorObj>(m,
+                                                                   "MatmulObj");
+    py::class_<ConvTransposed2dObj, std::shared_ptr<ConvTransposed2dObj>,
+               OperatorObj>(m, "ConvTransposed2dObj");
+    py::class_<G2BMMObj, std::shared_ptr<G2BMMObj>, OperatorObj>(m, "G2BMMObj");
+    py::class_<GBMMObj, std::shared_ptr<GBMMObj>, OperatorObj>(m, "GBMMObj");
+    py::class_<PadObj, std::shared_ptr<PadObj>, OperatorObj>(m, "PadObj");
+    py::class_<SliceObj, std::shared_ptr<SliceObj>, OperatorObj>(m, "SliceObj");
+    py::class_<ConcatObj, std::shared_ptr<ConcatObj>, OperatorObj>(m,
+                                                                   "ConcatObj");
+    py::class_<SplitObj, std::shared_ptr<SplitObj>, OperatorObj>(m, "SplitObj");
+    py::class_<ExtendObj, std::shared_ptr<ExtendObj>, OperatorObj>(m,
+                                                                   "ExtendObj");
+    py::class_<MaxPoolObj, std::shared_ptr<MaxPoolObj>, OperatorObj>(
+        m, "MaxPoolObj");
+    py::class_<AvgPoolObj, std::shared_ptr<AvgPoolObj>, OperatorObj>(
+        m, "AvgPoolObj");
+    py::class_<AddObj, std::shared_ptr<AddObj>, OperatorObj>(m, "AddObj");
+    py::class_<SubObj, std::shared_ptr<SubObj>, OperatorObj>(m, "SubObj");
+    py::class_<MulObj, std::shared_ptr<MulObj>, OperatorObj>(m, "MulObj");
+    py::class_<DivObj, std::shared_ptr<DivObj>, OperatorObj>(m, "DivObj");
+    py::class_<PowObj, std::shared_ptr<PowObj>, OperatorObj>(m, "PowObj");
+    py::class_<GatherObj, std::shared_ptr<GatherObj>, OperatorObj>(m,
+                                                                   "GatherObj");
+    py::class_<ReshapeObj, std::shared_ptr<ReshapeObj>, OperatorObj>(
+        m, "ReshapeObj");
+    py::class_<FlattenObj, std::shared_ptr<FlattenObj>, OperatorObj>(
+        m, "FlattenObj");
+    py::class_<IdentityObj, std::shared_ptr<IdentityObj>, OperatorObj>(
+        m, "IdentityObj");
+    py::class_<SoftmaxObj, std::shared_ptr<SoftmaxObj>, OperatorObj>(
+        m, "SoftmaxObj");
+    py::class_<ReluObj, std::shared_ptr<ReluObj>, OperatorObj>(m, "ReluObj");
+    py::class_<SigmoidObj, std::shared_ptr<SigmoidObj>, OperatorObj>(
+        m, "SigmoidObj");
+    py::class_<TanhObj, std::shared_ptr<TanhObj>, OperatorObj>(m, "TanhObj");
+    py::class_<AbsObj, std::shared_ptr<AbsObj>, OperatorObj>(m, "AbsObj");
+    py::class_<MemBoundObj, std::shared_ptr<MemBoundObj>, OperatorObj>(
+        m, "MemBoundObj");
     py::class_<GraphFactory>(m, "GraphFactory");
     py::class_<GraphFactoryObj>(m, "GraphFactoryObj")
         .def(py::init<Runtime>())
+        .def("tensor",
+             py::overload_cast<Shape, const std::string &>(
+                 &GraphFactoryObj::tensor),
+             policy::reference_internal)
         .def("conv",
              py::overload_cast<Tensor, Tensor, Tensor, int, int, int, int, int,
                                int, Tensor>(&GraphFactoryObj::conv),
-             "input"_a, "weight"_a, "output"_a, "ph"_a, "pw"_a, "sh"_a = 1,
-             "sw"_a = 1, "dh"_a = 1, "dw"_a = 1, "bias"_a = nullptr,
              policy::reference_internal)
         .def("matmul",
              py::overload_cast<Tensor, Tensor, Tensor, bool, bool, Tensor,
@@ -59,13 +107,13 @@ void init_graph_factory(py::module &m) {
                                const optional<const vector<int>> &>(
                  &GraphFactoryObj::pad),
              policy::reference_internal)
-     //    .def("slice",
-     //         py::overload_cast<
-     //             Tensor, Tensor, const vector<int> &, const vector<int> &,
-     //             const optional< const vector<int> > &,
-     //             const optional< const vector<int> > &>(
-     //                &GraphFactoryObj::slice),
-     //         policy::reference_internal)
+        .def("slice",
+             py::overload_cast<Tensor, Tensor, const vector<int> &,
+                               const vector<int> &,
+                               const optional<const vector<int>> &,
+                               const optional<const vector<int>> &>(
+                 &GraphFactoryObj::slice),
+             policy::reference_internal)
         .def(
             "concat",
             py::overload_cast<TensorVec, Tensor, int>(&GraphFactoryObj::concat),
@@ -85,9 +133,6 @@ void init_graph_factory(py::module &m) {
         .def("avgpool",
              py::overload_cast<Tensor, Tensor, int, int, int, int, int, int,
                                int, int>(&GraphFactoryObj::avgpool),
-             policy::reference_internal)
-        .def("add",
-             py::overload_cast<Tensor, Tensor, Tensor>(&GraphFactoryObj::add),
              policy::reference_internal)
         .def("add",
              py::overload_cast<Tensor, Tensor, Tensor>(&GraphFactoryObj::add),

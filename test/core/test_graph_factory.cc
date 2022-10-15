@@ -11,8 +11,7 @@ TEST(GraphFactory, ops) {
             make_ref<TensorObj>(Shape{1, 3, 4, 4}, DataType::UInt32, runtime);
         auto weight =
             make_ref<TensorObj>(Shape{2, 3, 3, 3}, DataType::UInt32, runtime);
-        auto conv =
-                gf->conv(input, weight, 1, 1);
+        auto conv = gf->conv(input, weight, 1, 1);
         EXPECT_EQ(conv->getOutput()->getDims(), (Shape{1, 2, 4, 4}));
     }
     { // conv with output
@@ -21,7 +20,7 @@ TEST(GraphFactory, ops) {
             make_ref<TensorObj>(Shape{1, 3, 4, 4}, DataType::UInt32, runtime);
         auto weight =
             make_ref<TensorObj>(Shape{2, 3, 3, 3}, DataType::UInt32, runtime);
-        auto output = 
+        auto output =
             make_ref<TensorObj>(Shape{1, 2, 4, 4}, DataType::UInt32, runtime);
         auto conv = gf->conv(input, weight, output, 1, 1);
     }
@@ -43,8 +42,8 @@ TEST(GraphFactory, ops) {
         GraphFactory gf = make_ref<GraphFactoryObj>(runtime);
         auto input =
             make_ref<TensorObj>(Shape{1, 228, 1, 1}, DataType::UInt32, runtime);
-        auto weight =
-            make_ref<TensorObj>(Shape{228, 448, 2, 2}, DataType::UInt32, runtime);
+        auto weight = make_ref<TensorObj>(Shape{228, 448, 2, 2},
+                                          DataType::UInt32, runtime);
         auto convtrans = gf->convTrans(input, weight, 0, 0);
         EXPECT_EQ(convtrans->getOutput()->getDims(), (Shape{1, 448, 2, 2}));
     }
@@ -60,8 +59,8 @@ TEST(GraphFactory, ops) {
     }
     { // pad without output
         GraphFactory gf = make_ref<GraphFactoryObj>(runtime);
-        auto input =
-            make_ref<TensorObj>(Shape{1, 64, 162, 162}, DataType::UInt32, runtime);
+        auto input = make_ref<TensorObj>(Shape{1, 64, 162, 162},
+                                         DataType::UInt32, runtime);
         vector<int> pads = {2, 10, 1, 5, 0, 10, 1, 5};
         auto pad = gf->pad(input, pads, std::nullopt);
         EXPECT_EQ(pad->getOutput()->getDims(), (Shape{3, 84, 164, 172}));
@@ -71,7 +70,7 @@ TEST(GraphFactory, ops) {
         auto input = make_ref<TensorObj>(Shape{1, 64, 162, 162},
                                          DataType::UInt32, runtime);
         auto output = make_ref<TensorObj>(Shape{3, 84, 164, 172},
-                                         DataType::UInt32, runtime);
+                                          DataType::UInt32, runtime);
         vector<int> pads = {2, 10, 1, 5, 0, 10, 1, 5};
         auto pad = gf->pad(input, output, pads, std::nullopt);
     }
@@ -89,10 +88,11 @@ TEST(GraphFactory, ops) {
         auto input = make_ref<TensorObj>(Shape{10, 64, 162, 162},
                                          DataType::UInt32, runtime);
         auto output = make_ref<TensorObj>(Shape{2, 1, 100, 96},
-                                         DataType::UInt32, runtime);
+                                          DataType::UInt32, runtime);
         vector<int> starts = {2, 10, 1, 5};
         vector<int> ends = {3, 10, 100, 100};
-        auto slice = gf->slice(input, output, starts, ends, std::nullopt, std::nullopt);
+        auto slice =
+            gf->slice(input, output, starts, ends, std::nullopt, std::nullopt);
     }
     { // concat without output
         GraphFactory gf = make_ref<GraphFactoryObj>(runtime);
@@ -115,7 +115,8 @@ TEST(GraphFactory, ops) {
     }
     { // split without output
         GraphFactory gf = make_ref<GraphFactoryObj>(runtime);
-        auto input = make_ref<TensorObj>(Shape{1, 3, 2, 15}, DataType::Float32, runtime);
+        auto input =
+            make_ref<TensorObj>(Shape{1, 3, 2, 15}, DataType::Float32, runtime);
         auto split = gf->split(input, 3, 4);
         EXPECT_EQ(split->numOutputs(), 4);
         EXPECT_EQ(split->getOutputs().size(), (size_t)4);
@@ -136,7 +137,8 @@ TEST(GraphFactory, ops) {
             make_ref<TensorObj>(Shape{1, 3, 2, 3}, DataType::Float32, runtime);
         auto output3 =
             make_ref<TensorObj>(Shape{1, 3, 2, 6}, DataType::Float32, runtime);
-        auto split = gf->split(input, TensorVec{output0, output1, output2, output3}, 3, 4);
+        auto split = gf->split(
+            input, TensorVec{output0, output1, output2, output3}, 3, 4);
     }
     { // extend without output
         GraphFactory gf = make_ref<GraphFactoryObj>(runtime);
@@ -155,8 +157,8 @@ TEST(GraphFactory, ops) {
     }
     { // maxpool without output
         GraphFactory gf = make_ref<GraphFactoryObj>(runtime);
-        auto input =
-            make_ref<TensorObj>(Shape{1, 64, 162, 162}, DataType::UInt32, runtime);
+        auto input = make_ref<TensorObj>(Shape{1, 64, 162, 162},
+                                         DataType::UInt32, runtime);
         const int kh = 3, kw = 3, dh = 1, dw = 1, ph = 0, pw = 0, sh = 2,
                   sw = 2;
         auto maxpool = gf->maxpool(input, kh, kw, dh, dw, ph, pw, sh, sw);
@@ -167,15 +169,16 @@ TEST(GraphFactory, ops) {
         auto input = make_ref<TensorObj>(Shape{1, 64, 162, 162},
                                          DataType::UInt32, runtime);
         auto output = make_ref<TensorObj>(Shape{1, 64, 80, 80},
-                                         DataType::UInt32, runtime);
+                                          DataType::UInt32, runtime);
         const int kh = 3, kw = 3, dh = 1, dw = 1, ph = 0, pw = 0, sh = 2,
                   sw = 2;
-        auto maxpool = gf->maxpool(input, output, kh, kw, dh, dw, ph, pw, sh, sw);
+        auto maxpool =
+            gf->maxpool(input, output, kh, kw, dh, dw, ph, pw, sh, sw);
     }
     { // add without output
         GraphFactory gf = make_ref<GraphFactoryObj>(runtime);
-        auto input0 = make_ref<TensorObj>(Shape{2, 3, 3, 4},
-                                         DataType::UInt32, runtime);
+        auto input0 =
+            make_ref<TensorObj>(Shape{2, 3, 3, 4}, DataType::UInt32, runtime);
         auto input1 =
             make_ref<TensorObj>(Shape{2, 3, 3, 4}, DataType::UInt32, runtime);
         auto add = gf->add(input0, input1);
@@ -187,7 +190,7 @@ TEST(GraphFactory, ops) {
             make_ref<TensorObj>(Shape{2, 3, 3, 4}, DataType::UInt32, runtime);
         auto input1 =
             make_ref<TensorObj>(Shape{2, 3, 3, 4}, DataType::UInt32, runtime);
-        auto output = 
+        auto output =
             make_ref<TensorObj>(Shape{2, 3, 3, 4}, DataType::UInt32, runtime);
         auto add = gf->add(input0, input1, output);
     }
@@ -206,15 +209,15 @@ TEST(GraphFactory, ops) {
             make_ref<TensorObj>(Shape{1, 3, 4, 4}, DataType::UInt32, runtime);
         auto index =
             make_ref<TensorObj>(Shape{2, 1, 2}, DataType::UInt32, runtime);
-        auto output =
-            make_ref<TensorObj>(Shape{1, 2, 1, 2, 4, 4}, DataType::UInt32, runtime);
+        auto output = make_ref<TensorObj>(Shape{1, 2, 1, 2, 4, 4},
+                                          DataType::UInt32, runtime);
         auto gather = gf->gather(input, index, output, 1);
     }
     { // reshape without output
         GraphFactory gf = make_ref<GraphFactoryObj>(runtime);
         auto input =
             make_ref<TensorObj>(Shape{2, 3, 3, 4}, DataType::Float32, runtime);
-        vector<int> dims = {3, 2, 4, 3}; 
+        vector<int> dims = {3, 2, 4, 3};
         auto reshape = gf->reshape(input, dims);
         EXPECT_EQ(reshape->getOutput()->getDims(), (Shape{3, 2, 4, 3}));
     }
