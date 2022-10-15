@@ -9,7 +9,6 @@ class poolingCudnn : public CudaKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<PoolingObj>(_op);
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
-        cudnnStatus_t stat;
         void *const inData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const outData = (op->getOutput()->getRawDataPtr<void *>());
 
@@ -43,10 +42,9 @@ class poolingCudnn : public CudaKernelWithoutConfig {
                   "cuDNN output shape mismatches with OP output shape");
 
         float alpha = 1.f, beta = 0.f;
-        stat = cudnnPoolingForward(context->cudnnHandle(), poolingDesc, &alpha,
-                                   inDesc, inData, &beta, outDesc, outData);
-        if (stat != CUDNN_STATUS_SUCCESS)
-            return;
+        checkCudnnError(cudnnPoolingForward(context->cudnnHandle(), poolingDesc,
+                                            &alpha, inDesc, inData, &beta,
+                                            outDesc, outData));
 
         // Destories in CUDA does not require sync. But cuDNN does not state
         // whether sync is required before destories.

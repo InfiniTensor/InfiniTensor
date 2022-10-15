@@ -31,7 +31,7 @@ TEST(Pad, Cuda) {
     // clone CUDA output to CPU
     auto o = op->getOutput();
     auto cpuo = o->clone(cpuRuntime);
-    // cudaPrintTensor(o);
+
     //  check results on CPU
     EXPECT_TRUE(cpuo->equalData(
         vector<float>{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,
