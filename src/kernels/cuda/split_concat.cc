@@ -6,35 +6,35 @@
 
 namespace infini {
 
-void initComposedTensorMetadata(ComposedTensorMetadata &metadata,
-                                Tensor tensor) {
-    int nDims = tensor->getDims().size();
-    auto strides = tensor->getStride();
-    IT_ASSERT(strides.size() == (size_t)nDims);
-    for (int i = 0; i < nDims; ++i) {
-        metadata.dimSize[i] = tensor->getDims().at(i);
-        metadata.stride[i] = strides.at(i);
-    }
-    metadata.data = tensor->getRawDataPtr<float *>();
-}
-
-void initElementTensorMetadata(ElementTensorMetadata &metadata,
-                               TensorVec tensors, int idx, int dim,
-                               int &dimBgIdx, int &batchCounter) {
-    int nTensors = tensors.size();
-    for (; batchCounter < BATCH_SIZE && idx + batchCounter < nTensors;
-         ++batchCounter) {
-        auto tensor = tensors.at(idx + batchCounter);
-        auto dimSize = tensor->getDims()[dim];
-        metadata.data[batchCounter] = tensor->getRawDataPtr<float *>();
-        metadata.dimBgNo[batchCounter] = dimBgIdx;
-        metadata.dimSize[batchCounter] = dimSize;
-        metadata.nElements[batchCounter] = tensor->size();
-        dimBgIdx += dimSize;
-    }
-}
-
 class CudaCompute {
+    void initComposedTensorMetadata(ComposedTensorMetadata &metadata,
+                                    Tensor tensor) const {
+        int nDims = tensor->getDims().size();
+        auto strides = tensor->getStride();
+        IT_ASSERT(strides.size() == (size_t)nDims);
+        for (int i = 0; i < nDims; ++i) {
+            metadata.dimSize[i] = tensor->getDims().at(i);
+            metadata.stride[i] = strides.at(i);
+        }
+        metadata.data = tensor->getRawDataPtr<float *>();
+    }
+
+    void initElementTensorMetadata(ElementTensorMetadata &metadata,
+                                   TensorVec tensors, int idx, int dim,
+                                   int &dimBgIdx, int &batchCounter) const {
+        int nTensors = tensors.size();
+        for (; batchCounter < BATCH_SIZE && idx + batchCounter < nTensors;
+             ++batchCounter) {
+            auto tensor = tensors.at(idx + batchCounter);
+            auto dimSize = tensor->getDims()[dim];
+            metadata.data[batchCounter] = tensor->getRawDataPtr<float *>();
+            metadata.dimBgNo[batchCounter] = dimBgIdx;
+            metadata.dimSize[batchCounter] = dimSize;
+            metadata.nElements[batchCounter] = tensor->size();
+            dimBgIdx += dimSize;
+        }
+    }
+
   public:
     void do_compute(Tensor composedTensor, TensorVec elementsTensor, int dim,
                     int nDims, bool isSplit) const {

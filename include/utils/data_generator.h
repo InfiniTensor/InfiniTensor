@@ -38,14 +38,14 @@ class IncrementalGenerator : public DataGenerator {
     void fill(float *data, size_t size) override { fill<float>(data, size); }
 };
 
-class OneGenerator : public DataGenerator {
+template <int val> class ValGenerator : public DataGenerator {
   public:
-    virtual ~OneGenerator() {}
+    virtual ~ValGenerator() {}
 
   private:
     template <typename T> void fill(T *data, size_t size) {
         for (size_t i = 0; i < size; i++) {
-            data[i] = 1;
+            data[i] = val;
         }
     }
 
@@ -54,4 +54,6 @@ class OneGenerator : public DataGenerator {
     }
     void fill(float *data, size_t size) override { fill<float>(data, size); }
 };
+typedef ValGenerator<1> OneGenerator;
+typedef ValGenerator<0> ZeroGenerator;
 } // namespace infini

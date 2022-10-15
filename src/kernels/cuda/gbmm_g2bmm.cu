@@ -14,4 +14,3 @@ void _sgbmml(float *__restrict__ q, float *__restrict__ k,
 }
 
 } // namespace infini
-
