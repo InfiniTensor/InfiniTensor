@@ -2,13 +2,24 @@
 
 namespace infini {
 
+Tensor GraphFactoryObj::tensor(Shape dim, const std::string &dtype) {
+    if (dtype == "FLOAT") {
+        return g->addTensor(dim, DataType::Float32);
+    }
+    if (dtype == "INT32") {
+        return g->addTensor(dim, DataType::UInt32);
+    }
+    IT_TODO_HALT_MSG("Unsupported data type");
+}
+
 Operator GraphFactoryObj::conv(Tensor input, Tensor weight, Tensor output,
                                int ph, int pw, int sh, int sw, int dh, int dw,
                                Tensor bias) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     Tensor w0 = g->addTensor(weight->getDims(), weight->getDType());
     Tensor o0 = g->addTensor(output->getDims(), output->getDType());
-    auto op = g->addOpWithOutputs<ConvObj>(i0, w0, o0, ph, ph, sh, sw, dh, dw, bias);
+    auto op =
+        g->addOpWithOutputs<ConvObj>(i0, w0, o0, ph, ph, sh, sw, dh, dw, bias);
     return op;
 }
 
@@ -26,7 +37,8 @@ Operator GraphFactoryObj::conv(Tensor input, Tensor weight, Tensor output,
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     Tensor w0 = g->addTensor(weight->getDims(), weight->getDType());
     Tensor o0 = g->addTensor(output->getDims(), output->getDType());
-    auto op = g->addOpWithOutputs<ConvObj>(i0, w0, o0, pm, sh, sw, dh, dw, bias);
+    auto op =
+        g->addOpWithOutputs<ConvObj>(i0, w0, o0, pm, sh, sw, dh, dw, bias);
     return op;
 }
 
@@ -44,7 +56,8 @@ Operator GraphFactoryObj::matmul(Tensor A, Tensor B, Tensor C, bool transA,
     Tensor i0 = g->addTensor(A->getDims(), A->getDType());
     Tensor i1 = g->addTensor(B->getDims(), B->getDType());
     Tensor o0 = g->addTensor(C->getDims(), C->getDType());
-    auto op = g->addOpWithOutputs<MatmulObj>(i0, i1, o0, transA, transB, bias, act);
+    auto op =
+        g->addOpWithOutputs<MatmulObj>(i0, i1, o0, transA, transB, bias, act);
     return op;
 }
 
@@ -63,8 +76,8 @@ Operator GraphFactoryObj::convTrans(Tensor input, Tensor weight, Tensor output,
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     Tensor w0 = g->addTensor(weight->getDims(), weight->getDType());
     Tensor o0 = g->addTensor(output->getDims(), output->getDType());
-    auto op = g->addOpWithOutputs<ConvTransposed2dObj>(i0, w0, o0, ph, pw, sh, sw, dh, dw,
-                                            oph, opw, group, bias, act);
+    auto op = g->addOpWithOutputs<ConvTransposed2dObj>(
+        i0, w0, o0, ph, pw, sh, sw, dh, dw, oph, opw, group, bias, act);
     return op;
 }
 
@@ -86,8 +99,8 @@ Operator GraphFactoryObj::convTrans(Tensor input, Tensor weight, Tensor output,
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     Tensor w0 = g->addTensor(weight->getDims(), weight->getDType());
     Tensor o0 = g->addTensor(output->getDims(), output->getDType());
-    auto op = g->addOpWithOutputs<ConvTransposed2dObj>(i0, w0, o0, pm, sh, sw, dh, dw, oph,
-                                            opw, group, bias, act);
+    auto op = g->addOpWithOutputs<ConvTransposed2dObj>(
+        i0, w0, o0, pm, sh, sw, dh, dw, oph, opw, group, bias, act);
     return op;
 }
 
@@ -107,7 +120,8 @@ Operator GraphFactoryObj::g2bmm(Tensor A, Tensor B, Tensor C, const int width,
     Tensor i0 = g->addTensor(A->getDims(), A->getDType());
     Tensor i1 = g->addTensor(B->getDims(), B->getDType());
     Tensor o0 = g->addTensor(C->getDims(), C->getDType());
-    auto op = g->addOpWithOutputs<G2BMMObj>(i0, i1, o0, width, dilation, bias, act);
+    auto op =
+        g->addOpWithOutputs<G2BMMObj>(i0, i1, o0, width, dilation, bias, act);
     return op;
 }
 
@@ -155,8 +169,8 @@ Operator GraphFactoryObj::pad(Tensor input, const vector<int> &pads,
 Operator GraphFactoryObj::slice(Tensor input, Tensor output,
                                 const vector<int> &starts,
                                 const vector<int> &ends,
-                                const optional<vector<int>> &axis,
-                                const optional<vector<int>> &steps) {
+                                const optional<const vector<int>> &axis,
+                                const optional<const vector<int>> &steps) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     Tensor o0 = g->addTensor(output->getDims(), output->getDType());
     auto op = g->addOpWithOutputs<SliceObj>(i0, o0, starts, ends, axis, steps);
@@ -165,8 +179,8 @@ Operator GraphFactoryObj::slice(Tensor input, Tensor output,
 
 Operator GraphFactoryObj::slice(Tensor input, const vector<int> &starts,
                                 const vector<int> &ends,
-                                const optional<vector<int>> &axis,
-                                const optional<vector<int>> &steps) {
+                                const optional<const vector<int>> &axis,
+                                const optional<const vector<int>> &steps) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     auto op = g->addOp<SliceObj>(i0, nullptr, starts, ends, axis, steps);
     return op;
@@ -259,7 +273,8 @@ Operator GraphFactoryObj::maxpool(Tensor input, Tensor output, int kh, int kw,
                                   int sw) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     Tensor o0 = g->addTensor(output->getDims(), output->getDType());
-    auto op = g->addOpWithOutputs<MaxPoolObj>(i0, o0, kh, kw, dh, dw, ph, pw, sh, sw);
+    auto op =
+        g->addOpWithOutputs<MaxPoolObj>(i0, o0, kh, kw, dh, dw, ph, pw, sh, sw);
     return op;
 }
 
@@ -275,7 +290,8 @@ Operator GraphFactoryObj::avgpool(Tensor input, Tensor output, int kh, int kw,
                                   int sw) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     Tensor o0 = g->addTensor(input->getDims(), input->getDType());
-    auto op = g->addOpWithOutputs<AvgPoolObj>(i0, o0, kh, kw, dh, dw, ph, pw, sh, sw);
+    auto op =
+        g->addOpWithOutputs<AvgPoolObj>(i0, o0, kh, kw, dh, dw, ph, pw, sh, sw);
     return op;
 }
 
@@ -495,7 +511,8 @@ Operator GraphFactoryObj::memBound(const TensorVec &inputs,
         auto o = g->addTensor(output->getDims(), output->getDType());
         os.push_back(o);
     }
-    auto op = g->addOpWithOutputs<MemBoundObj>(is, os, nnetInputs, expr, exec_time, hint);
+    auto op = g->addOpWithOutputs<MemBoundObj>(is, os, nnetInputs, expr,
+                                               exec_time, hint);
     return op;
 }
 

@@ -27,6 +27,11 @@ class GraphFactoryObj {
 
   public:
     GraphFactoryObj(Runtime runtime) : g(make_ref<GraphObj>(runtime)) {}
+
+    // tensors
+    Tensor tensor(Shape dim, const std::string &dtype);
+
+    // operators
     // conv op
     Operator conv(Tensor input, Tensor weight, Tensor output, int ph, int pw,
                   int sh = 1, int sw = 1, int dh = 1, int dw = 1,
@@ -82,11 +87,13 @@ class GraphFactoryObj {
                  const optional<const vector<int>> &axis);
     // slice op
     Operator slice(Tensor input, Tensor output, const vector<int> &starts,
-                   const vector<int> &ends, const optional<vector<int>> &axis,
-                   const optional<vector<int>> &steps);
+                   const vector<int> &ends,
+                   const optional<const vector<int>> &axis,
+                   const optional<const vector<int>> &steps);
     Operator slice(Tensor input, const vector<int> &starts,
-                   const vector<int> &ends, const optional<vector<int>> &axis,
-                   const optional<vector<int>> &steps);
+                   const vector<int> &ends,
+                   const optional<const vector<int>> &axis,
+                   const optional<const vector<int>> &steps);
     // concat op
     Operator concat(TensorVec inputs, Tensor output, int dim);
     Operator concat(TensorVec inputs, int dim);
