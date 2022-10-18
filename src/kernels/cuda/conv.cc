@@ -240,7 +240,8 @@ class convCudnn : public Kernel {
                     ALGOS[record.algo], &record.workspaceSize);
                 if (stat != CUDNN_STATUS_SUCCESS)
                     continue;
-
+                if (record.workspaceSize > context->getWorkspaceSize())
+                    continue;
                 CudaPtr wsData = context->getWorkspace(record.workspaceSize);
                 float alpha = 1.f, beta = 0.f;
 

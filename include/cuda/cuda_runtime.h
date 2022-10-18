@@ -17,16 +17,19 @@ class CudaRuntimeObj : public RuntimeObj {
 
   public:
     CudaRuntimeObj() : RuntimeObj(Device::CUDA) {
+        // Prepare for nvrtc. cuCtxCreate should be called befero others.
+        // Otherwise it will result in strange failure, such as cuBLAS failed on
+        // certian inputs.
+        checkCUresult(cuInit(0));
+        checkCUresult(cuDeviceGet(&cuDevice, 0));
+        checkCUresult(cuCtxCreate(&newContext, 0, cuDevice));
+
         checkCudnnError(cudnnCreate(&cudnn));
         checkCublasError(cublasCreate(&cublas));
         // 10GB for Longformer
         // size_t longformerNum = 3lu * (1 << 30);
         workspaceSize = 7ll << 30; // 7 GB
         workspace = alloc(workspaceSize);
-
-        checkCUresult(cuInit(0));
-        checkCUresult(cuDeviceGet(&cuDevice, 0));
-        checkCUresult(cuCtxCreate(&newContext, 0, cuDevice));
     }
     virtual ~CudaRuntimeObj() {
         dealloc(workspace);
@@ -49,6 +52,7 @@ class CudaRuntimeObj : public RuntimeObj {
     void dealloc(void *ptr) override { checkCudaError(cudaFree(ptr)); }
     cudnnHandle_t cudnnHandle() const { return cudnn; }
     cublasHandle_t cublasHandle() const { return cublas; }
+    size_t getWorkspaceSize() const { return workspaceSize; }
     CudaPtr getWorkspace(size_t size) const {
         IT_ASSERT(size <= workspaceSize);
         return workspace;
