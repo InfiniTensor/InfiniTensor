@@ -2,7 +2,23 @@
 
 namespace infini {
 
-void GraphObj::updateConnection() { IT_TODO_HALT(); }
+void GraphObj::addOperatorAndConnect(const Operator &op) {
+    ops.push_back(op);
+    for (auto &input : op->getInputs()) {
+        input->addInputOf(op);
+        if (auto pred = input->getOutputOf()) {
+            pred->addSuccessors(op);
+            op->addPredecessors(pred);
+        }
+    }
+    for (auto &output : op->getOutputs()) {
+        output->setOutputOf(op);
+        for (auto &succ : output->getInputOf()) {
+            succ->addPredecessors(op);
+            op->addSuccessors(succ);
+        }
+    }
+}
 
 string GraphObj::toString() const {
     std::ostringstream oss;
@@ -11,8 +27,17 @@ string GraphObj::toString() const {
         oss << tensor << "\n";
 
     oss << "Graph operators:\n";
-    for (const auto &op : ops)
-        oss << op << "\n";
+    for (const auto &op : ops) {
+        vector<GuidBaseType> preds, succs;
+        for (auto &o : op->getPredecessors())
+            preds.emplace_back(o->getGuid());
+        for (auto &o : op->getSuccessors())
+            succs.emplace_back(o->getGuid());
+        oss << "OP " << op->getGuid();
+        oss << ", pred " << vecToString(preds);
+        oss << ", succ " << vecToString(succs);
+        oss << ", " << op << "\n";
+    }
     return oss.str();
 }
 

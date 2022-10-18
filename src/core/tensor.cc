@@ -1,5 +1,6 @@
 #include "core/tensor.h"
 #include "core/blob.h"
+#include "core/operator.h"
 #include "core/runtime.h"
 #include "utils/dataloader.h"
 
@@ -13,7 +14,17 @@ VType TensorObj::getData(const Shape &pos) const {
 }
 
 string TensorObj::toString() const {
-    return "Tensor " + std::to_string(guid) + " shape " + vecToString(shape);
+    string ret = "Tensor " + std::to_string(guid) + ", shape " +
+                 vecToString(shape) + ", dtype " + dtype.toString();
+    vector<GuidBaseType> inputOfGuid;
+    for (const auto &op : inputOf)
+        inputOfGuid.emplace_back(op.lock()->getGuid());
+    if (auto o = outputOf.lock())
+        ret += ", outputOf " + std::to_string(o->getGuid());
+    else
+        ret += ", outputOf None";
+    ret += ", inputOf " + vecToString(inputOfGuid);
+    return ret;
 }
 
 size_t TensorObj::getOffset(const Shape &pos) const {

@@ -15,9 +15,20 @@ TEST(Graph, build_and_run) {
     g->dataMalloc();
     i0->copyData(vector<uint32_t>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
     w0->copyData(vector<uint32_t>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
-    g->addOpWithOutputs<MatmulObj>(i0, w0, o0);
+    auto matmul = g->addOpWithOutputs<MatmulObj>(i0, w0, o0);
+    g->print();
+    // check inputOf and outputsOf for tensor
+    EXPECT_EQ(i0->getInputOf().size(), 1);
+    EXPECT_EQ(w0->getInputOf().size(), 1);
+    EXPECT_EQ(o0->getInputOf().size(), 0);
+    EXPECT_EQ(i0->getOutputOf(), nullptr);
+    EXPECT_EQ(w0->getOutputOf(), nullptr);
+    EXPECT_NE(o0->getOutputOf(), nullptr);
+    EXPECT_EQ(matmul->getPredecessors().size(), 0);
+    EXPECT_EQ(matmul->getSuccessors().size(), 0);
+
     runtime->run(g);
-    // check answer
+    // check execution results
     auto ans = make_ref<TensorObj>(Shape{1, 2, 4}, DataType::UInt32, runtime);
     ans->dataMalloc();
     ans->copyData(vector<uint32_t>{38, 44, 50, 56, 83, 98, 113, 128});

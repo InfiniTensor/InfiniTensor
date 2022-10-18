@@ -25,12 +25,19 @@ Ref<T> as(const Ref<U> &ref) {
 }
 
 template <typename T>
-std::vector<WRef<T>> get_wref_vec(const std::vector<Ref<T>> &vec) {
-    std::vector<WRef<T>> wref_vec;
-    wref_vec.reserve(vec.size());
-    for (const auto &ref : vec)
-        wref_vec.emplace_back(ref);
-    return wref_vec;
+std::vector<WRef<T>> refs_to_wrefs(const std::vector<Ref<T>> &refs) {
+    std::vector<WRef<T>> wrefs;
+    for (const auto &ref : refs)
+        wrefs.emplace_back(ref);
+    return wrefs;
+}
+
+template <typename T>
+std::vector<Ref<T>> wrefs_to_refs(const std::vector<WRef<T>> &wrefs) {
+    std::vector<Ref<T>> refs;
+    for (const auto &wref : wrefs)
+        refs.emplace_back(wref);
+    return refs;
 }
 
 } // namespace infini
