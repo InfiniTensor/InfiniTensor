@@ -2,7 +2,8 @@
 
 namespace infini {
 
-void GraphObj::updateConnection(const Operator &op) {
+void GraphObj::addOperatorAndConnect(const Operator &op) {
+    ops.push_back(op);
     for (auto &input : op->getInputs()) {
         input->addInputOf(op);
         if (auto pred = input->getOutputOf()) {
