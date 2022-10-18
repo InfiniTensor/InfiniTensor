@@ -65,6 +65,9 @@ class convCudnn : public Kernel {
         const int cpg = op->getChannelPerGroup();
         const int g = c / cpg;
         const auto [ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
+        const auto nhwcLayout = op->getNHWCLayout();
+        const auto inoutLayout =
+            nhwcLayout ? CUDNN_TENSOR_NHWC : CUDNN_TENSOR_NCHW;
 
         int channelsPerGrp = cpg, channels = c;
 
@@ -72,7 +75,7 @@ class convCudnn : public Kernel {
         cudnnTensorDescriptor_t inDesc;
         checkCudnnError(cudnnCreateTensorDescriptor(&inDesc));
         checkCudnnError(cudnnSetTensor4dDescriptor(
-            inDesc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, n, channels, h, w));
+            inDesc, inoutLayout, CUDNN_DATA_FLOAT, n, channels, h, w));
 
         // get kernels
         cudnnFilterDescriptor_t knDesc;
@@ -125,12 +128,17 @@ class convCudnn : public Kernel {
             convDesc, inDesc, knDesc, &outn, &outc, &outh, &outw));
         cudnnTensorDescriptor_t outDesc;
         checkCudnnError(cudnnCreateTensorDescriptor(&outDesc));
-        checkCudnnError(cudnnSetTensor4dDescriptor(outDesc, CUDNN_TENSOR_NCHW,
-                                                   CUDNN_DATA_FLOAT, outn, outc,
-                                                   outh, outw));
-        IT_ASSERT((vector{outn, outc, outh, outw}) ==
-                      op->getOutput()->getDims(),
-                  "cuDNN output shape mismatches with OP output shape");
+        checkCudnnError(cudnnSetTensor4dDescriptor(
+            outDesc, inoutLayout, CUDNN_DATA_FLOAT, outn, outc, outh, outw));
+        if (nhwcLayout) {
+            IT_ASSERT((vector{outn, outh, outw, outc}) ==
+                          op->getOutput()->getDims(),
+                      "cuDNN output shape mismatches with OP output shape");
+        } else {
+            IT_ASSERT((vector{outn, outc, outh, outw}) ==
+                          op->getOutput()->getDims(),
+                      "cuDNN output shape mismatches with OP output shape");
+        }
 
         return tuple(inData, knData, outData, inDesc, knDesc, biasDesc,
                      convDesc, actDesc, outDesc);

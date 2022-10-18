@@ -3,6 +3,7 @@
 #include "core/runtime.h"
 #include "cuda/cuda_runtime.h"
 #include "cuda/cuda_utility.h"
+#include "operators/bias2prelu.h"
 #include "operators/conv.h"
 #include "operators/conv2dreduce.h"
 #include "operators/element_wise.h"
@@ -16,7 +17,7 @@ namespace infini {
 
 Graph createGraph(Ref<CudaRuntimeObj> cuda, int batchSize) {
     Graph g = make_ref<GraphObj>(cuda);
-    auto input = g->addTensor({batchSize, 1, 32, 32}); // NCHW
+    auto input = g->addTensor({batchSize, 32, 32, 1}); // NCHW
     // auto input = g->addTensor({16, 32, 32, 1}); // change to NHWC format
     vector<tuple<string, int, int, bool>> configs = {
         {"Conv", 56, 5, true},  {"Conv", 12, 1, true},
@@ -26,13 +27,17 @@ Graph createGraph(Ref<CudaRuntimeObj> cuda, int batchSize) {
     auto x = input;
     for (auto &[op, f, r, pRelu] : configs) {
         if (r == 5 && op == "Conv") { // for the first conv
-            auto w = g->addTensor({f, x->getDims()[1], r, r});
-            x = g->addOp<ConvObj>(x, w, nullptr, r / 2, r / 2)->getOutput();
-            if (pRelu) {
-                // TODO: Conv_nhwc + Bias+PRelu
-                // Alternative: Conv_nchw + Transpose(NCHW->NHWC)+Bias+PRelu
-                x = g->addOp<ReluObj>(x, nullptr)->getOutput();
-            }
+            auto w = g->addTensor({f, x->getDims()[3], r, r});
+            x = g->addOp<ConvObj>(x, w, nullptr, r / 2, r / 2, 1, 1, 1, 1,
+                                  nullptr, ActType::None, true)
+                    ->getOutput();
+            // if (pRelu) {
+            //     // TODO: Conv_nhwc + Bias+PRelu
+            //     // Alternative: Conv_nchw + Transpose(NCHW->NHWC)+Bias+PRelu
+            //     x = g->addOp<ReluObj>(x, nullptr)->getOutput();
+            // }
+            auto bias = g->addTensor({x->getDims()[3]});
+            x = g->addOp<BiasPReLU>(x, bias, nullptr, pRelu, 0.1)->getOutput();
             continue;
         }
 
@@ -46,7 +51,8 @@ Graph createGraph(Ref<CudaRuntimeObj> cuda, int batchSize) {
                 ->getOutput();
         auto bias = g->addTensor({f});
         if (op == "Conv") {
-            x = g->addOp<Conv2dReduce>(x, bias, nullptr, pRelu, r / 2, r / 2)
+            x = g->addOp<Conv2dReduce>(x, bias, nullptr, pRelu, 0.1, r / 2,
+                                       r / 2)
                     ->getOutput();
         } else if (op == "ConvTranposed") {
             IT_ASSERT(r == 9);
@@ -54,8 +60,8 @@ Graph createGraph(Ref<CudaRuntimeObj> cuda, int batchSize) {
             // 1,
             //                                   1, 1)
             //         ->getOutput();
-            x = g->addOp<Conv2dReduceTranspose>(x, bias, nullptr, pRelu, 3, 3,
-                                                4, 4)
+            x = g->addOp<Conv2dReduceTranspose>(x, bias, nullptr, pRelu, 0.1, 3,
+                                                3, 4, 4)
                     ->getOutput();
         } else
             IT_ASSERT(false);
@@ -69,7 +75,7 @@ Graph createGraph(Ref<CudaRuntimeObj> cuda, int batchSize) {
 
 TEST(Case, fsrcnn_direct_run) {
     auto cuda = make_ref<CudaRuntimeObj>();
-    auto g = createGraph(cuda, 16);
+    auto g = createGraph(cuda, 1);
     cudaProfilerStart();
     printf("E2E time %.3lf\n",
            timeit([&]() { cuda->runWithoutSync(g); }, [&]() { cuda->sync(); }));
@@ -78,7 +84,7 @@ TEST(Case, fsrcnn_direct_run) {
 
 TEST(Case, fsrcnn_cuda_graph) {
     auto cuda = make_ref<CudaRuntimeObj>();
-    auto g = createGraph(cuda, 16);
+    auto g = createGraph(cuda, 11);
 
     cudaGraph_t graph;
     cudaGraphExec_t instance;

@@ -40,12 +40,14 @@ void testConv2dReduce(
     x = gCuda->addOp<ReshapeObj>(x, nullptr, Shape{n, h, w, f, r, r})
             ->getOutput();
     if (mode == "conv") {
-        x = gCuda->addOp<Conv2dReduce>(x, b0Cuda, nullptr, false, r / 2, r / 2)
+        x = gCuda
+                ->addOp<Conv2dReduce>(x, b0Cuda, nullptr, false, 0.1, r / 2,
+                                      r / 2)
                 ->getOutput();
     } else {
         x = gCuda
-                ->addOp<Conv2dReduceTranspose>(x, b0Cuda, nullptr, false, r / 2,
-                                               r / 2, 2, 2)
+                ->addOp<Conv2dReduceTranspose>(x, b0Cuda, nullptr, false, 0.1,
+                                               r / 2, r / 2, 2, 2)
                 ->getOutput();
     }
 

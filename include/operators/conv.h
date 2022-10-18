@@ -67,19 +67,23 @@ class ConvBaseObj : public OperatorObj {
 class ConvObj : public ConvBaseObj {
   private:
     ActType act;
+    bool NHWC_layout;
 
   public:
     ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output, int ph,
             int pw, int sh = 1, int sw = 1, int dh = 1, int dw = 1,
-            Tensor bias = nullptr, ActType act = ActType::None);
+            Tensor bias = nullptr, ActType act = ActType::None,
+            bool nhwc = false);
     // Constructors for setting padding mode
     ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
             PaddingMode mode = PaddingMode::Same, int sh = 1, int sw = 1,
             int dh = 1, int dw = 1, Tensor bias = nullptr,
-            ActType act = ActType::None);
+            ActType act = ActType::None, bool nhwc = false);
 
+    std::string toString() const override;
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
     ActType getAct() const { return act; }
+    bool getNHWCLayout() const { return NHWC_layout; }
     int getNumGroups() const override { return c / getChannelPerGroup(); }
 
   private:

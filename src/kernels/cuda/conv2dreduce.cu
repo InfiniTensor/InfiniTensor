@@ -4,7 +4,7 @@ __global__ void conv2dreduce_kernel_(
     float *__restrict__ input,
     float *__restrict__ bias,
     float *__restrict__ output,
-    const bool PReLU, const int n, const int f, const int h, const int w, 
+    const bool PReLU, const float paramReLU, const int n, const int f, const int h, const int w, 
     const int oh, const int ow, const int r, const int s, const int ph,
     const int pw, const int dh, const int dw, const int sh, const int sw)
 {
@@ -31,7 +31,7 @@ __global__ void conv2dreduce_kernel_(
             imm += bias[fid];
         }
         if (PReLU) {
-            imm = imm > 0.0 ? imm : 0.0;
+            imm = imm > 0.0 ? imm : paramReLU * imm;
         }
         output[nid * (oh * ow * f) + hid * (ow * f) + wid * f + fid] = imm;
     }
@@ -41,7 +41,7 @@ __global__ void convTranspose2dreduce_kernel_(
     float *__restrict__ input,
     float *__restrict__ bias,
     float *__restrict__ output,
-    const bool PReLU, const int n, const int f, const int h, const int w, 
+    const bool PReLU, const float paramReLU, const int n, const int f, const int h, const int w, 
     const int oh, const int ow, const int r, const int s, const int ph,
     const int pw, const int dh, const int dw, const int sh, const int sw)
 {
@@ -73,7 +73,7 @@ __global__ void convTranspose2dreduce_kernel_(
             imm += bias[fid];
         }
         if (PReLU) {
-            imm = imm > 0.0 ? imm : 0.0;
+            imm = imm > 0.0 ? imm : paramReLU * imm;
         }
         output[nid * (oh * ow * f) + hid * (ow * f) + wid * f + fid] = imm;
     }
@@ -82,26 +82,26 @@ __global__ void convTranspose2dreduce_kernel_(
 namespace infini {
 
 void conv2dreduce_kernel(float *input, float *bias, float *output, 
-                          bool PReLU, int n, int h, int w, int f,
+                          bool PReLU, float paramReLU, int n, int h, int w, int f,
                           int r, int s, int oh, int ow, int ph, int pw, int sh,
                           int sw, int dh, int dw)
 {
     dim3 grid(n, f);
     dim3 block(oh, ow);
     cudaStream_t stream(cudaStreamPerThread);
-    conv2dreduce_kernel_<<<grid, block, 0, stream>>>(input, bias, output, PReLU, n, f, h, w, 
+    conv2dreduce_kernel_<<<grid, block, 0, stream>>>(input, bias, output, PReLU, paramReLU, n, f, h, w, 
                                         oh, ow, r, s, ph, pw, dh, dw, sh, sw);
 }
 
 void convTranspose2dreduce_kernel(float *input, float *bias, float *output, 
-                          bool PReLU, int n, int h, int w, int f,
+                          bool PReLU, float paramReLU, int n, int h, int w, int f,
                           int r, int s, int oh, int ow, int ph, int pw, int sh,
                           int sw, int dh, int dw)
 {
     dim3 grid(n, f);
     dim3 block(oh, ow);
     cudaStream_t stream(cudaStreamPerThread);
-    convTranspose2dreduce_kernel_<<<grid, block, 0,stream>>>(input, bias, output, PReLU, n, f, h, w, 
+    convTranspose2dreduce_kernel_<<<grid, block, 0,stream>>>(input, bias, output, PReLU, paramReLU, n, f, h, w, 
                                         oh, ow, r, s, ph, pw, dh, dw, sh, sw);
 }
 }

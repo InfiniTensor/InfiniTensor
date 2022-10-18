@@ -23,15 +23,17 @@ class Conv2dReduceCuda : public CudaKernelWithoutConfig {
         auto odim = op->getOutput()->getDims();
         int oh = odim[1], ow = odim[2];
         bool PReLU = op->getPReLU();
+        float paramReLU = op->getParamReLU();
 
         auto opType = op->getOpType();
 
         if (opType == OpType::Conv2dReduce) {
-            conv2dreduce_kernel(input, bias, output, PReLU, n, h, w, f, r, s,
-                                oh, ow, ph, pw, sh, sw, dh, dw);
+            conv2dreduce_kernel(input, bias, output, PReLU, paramReLU, n, h, w,
+                                f, r, s, oh, ow, ph, pw, sh, sw, dh, dw);
         } else {
-            convTranspose2dreduce_kernel(input, bias, output, PReLU, n, h, w, f,
-                                         r, s, oh, ow, ph, pw, sh, sw, dh, dw);
+            convTranspose2dreduce_kernel(input, bias, output, PReLU, paramReLU,
+                                         n, h, w, f, r, s, oh, ow, ph, pw, sh,
+                                         sw, dh, dw);
         }
     }
 };

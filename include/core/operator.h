@@ -42,7 +42,8 @@ enum class OpType {
     MemBound = 300,
     //
     Conv2dReduce = 400,
-    ConvTranspose2dReduce
+    ConvTranspose2dReduce,
+    BiasPReLU
 };
 
 using KernelAttrs = std::tuple<Device, OpType, DataType>;
@@ -91,6 +92,7 @@ class OpRegistry {
             FOP(MemBound);
             FOP(Conv2dReduce);
             FOP(ConvTranspose2dReduce);
+            FOP(BiasPReLU);
         default:
             IT_ASSERT(false);
             break;

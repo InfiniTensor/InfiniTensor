@@ -10,11 +10,12 @@ class Conv2dReduceBase : public OperatorObj {
     int dh, dw;
     int n, h, w, f, r, s; // c has been reduced
     bool PReLU;
+    float paramReLU;
 
   public:
     Conv2dReduceBase(OpType opType, Tensor input, Tensor bias, Tensor output,
-                     bool PReLU_, int ph_, int pw_, int sh_ = 1, int sw_ = 1,
-                     int dh_ = 1, int dw_ = 1);
+                     bool PReLU_, float paramReLU_, int ph_, int pw_,
+                     int sh_ = 1, int sw_ = 1, int dh_ = 1, int dw_ = 1);
 
     std::string toString() const override;
     int numInputs() const override { return 2; }
@@ -27,6 +28,7 @@ class Conv2dReduceBase : public OperatorObj {
     int getSh() const { return sh; }
     int getSw() const { return sw; }
     bool getPReLU() const { return PReLU; }
+    float getParamReLU() const { return paramReLU; }
 
     Tensor getBias() const { return inputs[1]; }
 
@@ -41,16 +43,17 @@ class Conv2dReduceBase : public OperatorObj {
 class Conv2dReduce : public Conv2dReduceBase {
   public:
     Conv2dReduce(GraphObj *graph, Tensor input, Tensor bias, Tensor output,
-                 bool PReLU_, int ph_, int pw_, int sh_ = 1, int sw_ = 1,
-                 int dh_ = 1, int dw_ = 1);
+                 bool PReLU_, float paramReLU_, int ph_, int pw_, int sh_ = 1,
+                 int sw_ = 1, int dh_ = 1, int dw_ = 1);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 };
 
 class Conv2dReduceTranspose : public Conv2dReduceBase {
   public:
     Conv2dReduceTranspose(GraphObj *graph, Tensor input, Tensor bias,
-                          Tensor output, bool PReLU_, int ph_, int pw_,
-                          int sh_ = 1, int sw_ = 1, int dh_ = 1, int dw_ = 1);
+                          Tensor output, bool PReLU_, float paramReLU_, int ph_,
+                          int pw_, int sh_ = 1, int sw_ = 1, int dh_ = 1,
+                          int dw_ = 1);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 };
 } // namespace infini

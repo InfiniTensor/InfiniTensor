@@ -45,11 +45,25 @@ vector<int> ConvBaseObj::getOpAttrVector() const {
     return {enum_to_underlying(type), c, f, r, s, ph, pw, sh, sw, dh, dw};
 }
 
+std::string ConvObj::toString() const {
+    std::string origin = ConvBaseObj::toString();
+    std::ostringstream os;
+    os << (NHWC_layout ? "NHWC" : "NCHW") << origin;
+    return os.str();
+}
+
 void ConvObj::setAuxilaryAttributes(PaddingMode mode) {
     const Tensor &input = inputs[0];
     const Tensor &weight = inputs[1];
-    n = input->getDims()[0], c = input->getDims()[1], h = input->getDims()[2],
-    w = input->getDims()[3], f = weight->getDims()[0], r = weight->getDims()[2],
+
+    n = input->getDims()[0];
+    if (NHWC_layout)
+        c = input->getDims()[3], h = input->getDims()[1],
+        w = input->getDims()[2];
+    else
+        c = input->getDims()[1], h = input->getDims()[2],
+        w = input->getDims()[3];
+    f = weight->getDims()[0], r = weight->getDims()[2],
     s = weight->getDims()[3];
     if (mode == PaddingMode::Same) {
         int oh = h / sh;
@@ -63,10 +77,10 @@ void ConvObj::setAuxilaryAttributes(PaddingMode mode) {
 
 ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
                  int ph, int pw, int sh, int sw, int dh, int dw, Tensor bias,
-                 ActType act)
+                 ActType act, bool nhwc)
     : ConvBaseObj(OpType::Conv, {input, weight}, output, ph, pw, sh, sw, dh, dw,
                   input, weight),
-      act(act) {
+      act(act), NHWC_layout(nhwc) {
     if (bias)
         IT_TODO_HALT();
     setAuxilaryAttributes(PaddingMode::Other);
@@ -75,10 +89,10 @@ ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
 
 ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
                  PaddingMode mode, int sh, int sw, int dh, int dw, Tensor bias,
-                 ActType act)
+                 ActType act, bool nhwc)
     : ConvBaseObj(OpType::Conv, {input, weight}, output, mode, sh, sw, dh, dw,
                   input, weight),
-      act(act) {
+      act(act), NHWC_layout(nhwc) {
     if (bias)
         IT_TODO_HALT();
     setAuxilaryAttributes(mode);
@@ -87,16 +101,25 @@ ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
 
 optional<vector<Shape>> ConvObj::inferShape(const TensorVec &inputs) const {
     const auto &input = inputs[0], &weight = inputs[1];
-    auto n = input->getDims()[0];
-    auto h = input->getDims()[2];
-    auto w = input->getDims()[3];
+    int n, h, w, ic, wc;
+    n = input->getDims()[0];
+    if (NHWC_layout) {
+        h = input->getDims()[1];
+        w = input->getDims()[2];
+        ic = input->getDims()[3];
+    } else {
+        h = input->getDims()[2];
+        w = input->getDims()[3];
+        ic = input->getDims()[1];
+    }
+    wc = weight->getDims()[1];
     auto f = weight->getDims()[0];
     auto r = weight->getDims()[2];
     auto s = weight->getDims()[3];
     int on = n, oc = f;
     int oh = 0, ow = 0;
     // For NCHW+FCRS layout, C of input is divisable by C of weight
-    if (input->getDims()[1] % weight->getDims()[1] != 0)
+    if (ic % wc != 0)
         return {};
     // Set padding size
     if (padding == PaddingMode::Other) {
@@ -116,6 +139,9 @@ optional<vector<Shape>> ConvObj::inferShape(const TensorVec &inputs) const {
         oh = (h - (r - sh) * dh + ph * 2) / sh;
         ow = (w - (s - sw) * dw + pw * 2) / sw;
     }
+    if (NHWC_layout)
+        return {{{on, oh, ow, oc}}};
+
     return {{{on, oc, oh, ow}}};
 }
 
