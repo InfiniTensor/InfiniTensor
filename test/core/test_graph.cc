@@ -18,14 +18,14 @@ TEST(Graph, build_and_run) {
     auto matmul = g->addOpWithOutputs<MatmulObj>(i0, w0, o0);
     g->print();
     // check inputOf and outputsOf for tensor
-    EXPECT_EQ(i0->getInputOf().size(), 1);
-    EXPECT_EQ(w0->getInputOf().size(), 1);
-    EXPECT_EQ(o0->getInputOf().size(), 0);
+    EXPECT_EQ(i0->getInputOf().size(), 1u);
+    EXPECT_EQ(w0->getInputOf().size(), 1u);
+    EXPECT_EQ(o0->getInputOf().size(), 0u);
     EXPECT_EQ(i0->getOutputOf(), nullptr);
     EXPECT_EQ(w0->getOutputOf(), nullptr);
     EXPECT_NE(o0->getOutputOf(), nullptr);
-    EXPECT_EQ(matmul->getPredecessors().size(), 0);
-    EXPECT_EQ(matmul->getSuccessors().size(), 0);
+    EXPECT_EQ(matmul->getPredecessors().size(), 0u);
+    EXPECT_EQ(matmul->getSuccessors().size(), 0u);
 
     runtime->run(g);
     // check execution results
