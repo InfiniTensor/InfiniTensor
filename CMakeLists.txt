@@ -12,6 +12,7 @@ option(BUILD_TEST "Build tests" ON)
 cmake_dependent_option(BUILD_TEST_CORE "Build tests for core components" ON BUILD_TEST OFF)
 cmake_dependent_option(BUILD_TEST_PET "Build tests for PET" OFF BUILD_TEST OFF)
 cmake_dependent_option(BUILD_TEST_EINNET "Build tests for EINNET" OFF BUILD_TEST OFF)
+cmake_dependent_option(BUILD_TEST_PFUSION "Build tests for EINNET" ON BUILD_TEST OFF)
 
 set(DEFAULT_BUILD_TYPE "RelWithDebInfo")
 
@@ -74,7 +75,7 @@ if(BUILD_TEST)
 endif()
 
 # Source files
-file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/kernels/cpu/*.cc src/nnet/*.cc src/operators/*.cc src/utils/*.cc)
+file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/kernels/cpu/*.cc src/nnet/*.cc src/pfusion/*.cc src/operators/*.cc src/utils/*.cc)
 
 if(USE_CUDA)
   file(GLOB_RECURSE SRC_CUDA src/cuda/*.cc src/cuda/*.cu src/kernels/cuda/*.cc src/kernels/cuda/*.cu)
@@ -195,5 +196,8 @@ if(BUILD_TEST)
   endif()
   if(BUILD_TEST_EINNET)
     build_test(test/nnet/test_*.cc)
+  endif()
+  if(BUILD_TEST_PFUSION)
+    build_test(test/pfusion/test_*.cc)
   endif()
 endif()
