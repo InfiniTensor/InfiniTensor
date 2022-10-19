@@ -17,7 +17,7 @@ string MatmulObj::toString() const {
     os << "Matmul([" << (transA ? "A^T" : "A") << "," << (transB ? "B^T" : "B")
        << ",act=" << enum_to_underlying(act) << "],A=" << inputs[0]->getGuid()
        << ",B=" << inputs[1]->getGuid() << ",C=" << outputs[0]->getGuid()
-       << ")";
+       << ",bmnk=[" << b << "," << m << "," << n << "," << k << "])";
     return os.str();
 }
 
