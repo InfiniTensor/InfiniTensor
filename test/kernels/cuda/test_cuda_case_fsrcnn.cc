@@ -75,34 +75,41 @@ Graph createGraph(Ref<CudaRuntimeObj> cuda, int batchSize) {
 
 TEST(Case, fsrcnn_direct_run) {
     auto cuda = make_ref<CudaRuntimeObj>();
-    auto g = createGraph(cuda, 1);
-    cudaProfilerStart();
-    printf("E2E time %.3lf\n",
-           timeit([&]() { cuda->runWithoutSync(g); }, [&]() { cuda->sync(); }));
-    cudaProfilerStop();
+    for (int batch : {1, 16}) {
+        auto g = createGraph(cuda, batch);
+        cudaProfilerStart();
+        printf("E2E time (batch size %d) %.3lf\n", batch,
+               timeit([&]() { cuda->runWithoutSync(g); },
+                      [&]() { cuda->sync(); }));
+        cudaProfilerStop();
+    }
 };
 
 TEST(Case, fsrcnn_cuda_graph) {
     auto cuda = make_ref<CudaRuntimeObj>();
-    auto g = createGraph(cuda, 11);
+    for (int batch : {1, 16}) {
+        auto g = createGraph(cuda, batch);
 
-    cudaGraph_t graph;
-    cudaGraphExec_t instance;
+        cudaGraph_t graph;
+        cudaGraphExec_t instance;
 
-    checkCudaError(cudaDeviceSynchronize());
-    cudaStream_t stream = cuda->getStream();
-    // cudaStreamCaptureStatus log;
-    // checkCudaError(cudaStreamIsCapturing(stream, &log));
-    // printf("cudaStreamCaptureStatus %d\n", log);
-    checkCudaError(cudaStreamBeginCapture(stream, cudaStreamCaptureModeGlobal));
-    cuda->runWithoutSync(g);
-    checkCudaError(cudaStreamEndCapture(stream, &graph));
-    checkCudaError(cudaGraphInstantiate(&instance, graph, NULL, NULL, 0));
+        checkCudaError(cudaDeviceSynchronize());
+        cudaStream_t stream = cuda->getStream();
+        // cudaStreamCaptureStatus log;
+        // checkCudaError(cudaStreamIsCapturing(stream, &log));
+        // printf("cudaStreamCaptureStatus %d\n", log);
+        checkCudaError(
+            cudaStreamBeginCapture(stream, cudaStreamCaptureModeGlobal));
+        cuda->runWithoutSync(g);
+        checkCudaError(cudaStreamEndCapture(stream, &graph));
+        checkCudaError(cudaGraphInstantiate(&instance, graph, NULL, NULL, 0));
 
-    cudaProfilerStart();
-    printf("CUDA graph time %.3lf ms\n",
-           timeit([&]() { checkCudaError(cudaGraphLaunch(instance, stream)); },
-                  [&]() { cudaStreamSynchronize(stream); }));
-    cudaProfilerStop();
+        cudaProfilerStart();
+        printf(
+            "CUDA graph time (batch size %d): %.3lf ms\n", batch,
+            timeit([&]() { checkCudaError(cudaGraphLaunch(instance, stream)); },
+                   [&]() { cudaStreamSynchronize(stream); }));
+        cudaProfilerStop();
+    }
 };
 } // namespace infini
