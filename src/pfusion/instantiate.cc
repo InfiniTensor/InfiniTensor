@@ -49,4 +49,9 @@ std::vector<std::shared_ptr<MetaOp>> instantiateRelu(std::vector<int> shape) {
     return metaOps;
 }
 
+std::vector<std::shared_ptr<MetaOp>>
+instantiateTranspose(std::vector<int> shape, std::vector<int> perm) {
+    return {};
+}
+
 } // namespace memb

@@ -1,5 +1,6 @@
 #include "pfusion/memory_codegen.h"
 #include "core/graph.h"
+#include "operators/transpose.h"
 #include "pfusion/common.h"
 #include "pfusion/instantiate.h"
 
@@ -34,8 +35,13 @@ memb::MetaGraph instantiateGraph(infini::Graph graph) {
             metaGraph.addNode(
                 memb::instantiateRelu(op->getInputs()[0]->getDims()));
             break;
+        case infini::OpType::Transpose:
+            metaGraph.addNode(memb::instantiateTranspose(
+                op->getInputs()[0]->getDims(),
+                infini::as<infini::TransposeObj>(op)->getPerm()));
+            break;
         default:
-            assert(false);
+            IT_ASSERT(false);
         }
     }
     return metaGraph;
