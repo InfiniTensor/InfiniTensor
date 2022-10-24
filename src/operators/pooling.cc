@@ -45,7 +45,6 @@ vector<int> PoolingObj::getWorkloadVector() const {
 }
 
 vector<int> PoolingObj::getOpAttrVector() const {
-    IT_TODO_HALT();
     return {enum_to_underlying(type), kh, kw, ph, pw, sh, sw, dh, dw};
 }
 

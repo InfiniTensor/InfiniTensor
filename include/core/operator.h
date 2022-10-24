@@ -1,6 +1,5 @@
 #pragma once
 #include "core/tensor.h"
-
 namespace infini {
 
 enum class OpType {
@@ -139,7 +138,10 @@ struct OpPerfKey {
     }
 };
 
+class GraphObj;
 class OperatorObj : public Object {
+    friend class GraphObj;
+
   protected:
     OpType type;
     TensorVec inputs;
@@ -189,8 +191,6 @@ class OperatorObj : public Object {
         IT_ASSERT(i < outputs.size(), "Index exceeded");
         return outputs.at(i);
     }
-    void addPredecessors(const Operator &op) { predecessors.emplace_back(op); }
-    void addSuccessors(const Operator &op) { successors.emplace_back(op); }
     OpVec getPredecessors() const { return wrefs_to_refs(predecessors); }
     OpVec getSuccessors() const { return wrefs_to_refs(successors); }
     OpType getOpType() const { return type; }
@@ -225,6 +225,12 @@ class OperatorObj : public Object {
      * and output shapes.
      */
     virtual vector<int> getWorkloadVector() const { IT_TODO_HALT(); }
+
+    void addPredecessors(const Operator &op) { predecessors.emplace_back(op); }
+    void addSuccessors(const Operator &op) { successors.emplace_back(op); }
+    void removePredecessors(const Operator &op);
+    void removeSuccessors(const Operator &op);
+    void replaceInput(Tensor t1, Tensor t2);
 };
 
 #define OP_CLONE(OpObj)                                                        \

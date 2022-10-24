@@ -3,9 +3,11 @@
 #include "core/data_type.h"
 #include "core/object.h"
 #include "core/runtime.h"
-
 namespace infini {
+class GraphObj;
 class TensorBaseObj : public Object {
+    friend class GraphObj;
+
   public:
     // enum TensorType {
     //     Input,
@@ -44,13 +46,24 @@ class TensorBaseObj : public Object {
     DataType getDType() const { return dtype; }
     Runtime getRuntime() const { return runtime; }
 
-    void addTarget(const Operator &op) { targets.emplace_back(op); }
-    void setSource(const Operator &op) { source = op; }
+    //     std::pair<Operator *, int> getOutputOfWithIndex();
 
     bool hasTarget() const { return !targets.empty(); }
 
     OpVec getTargets() const { return wrefs_to_refs(targets); }
     Operator getSource() const { return source.lock(); }
+
+  private:
+    void addTarget(const Operator &op) { targets.emplace_back(op); }
+    void setSource(const Operator &op) { source = op; }
+    void removeTarget(const Operator &op) {
+        for (auto itr = targets.begin(); itr != targets.end();) {
+            if (itr->lock() == op)
+                itr = targets.erase(itr);
+            else
+                ++itr;
+        }
+    }
     //     std::pair<Operator *, int> getSourceWithIndex();
 
     //     bool setScalar(VType val) {

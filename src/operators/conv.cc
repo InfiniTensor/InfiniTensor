@@ -41,7 +41,7 @@ vector<int> ConvBaseObj::getWorkloadVector() const {
 }
 
 vector<int> ConvBaseObj::getOpAttrVector() const {
-    IT_TODO_HALT(); // should padding mode / ph+pw be in attrs?
+    // IT_TODO_HALT(); // should padding mode / ph+pw be in attrs?
     return {enum_to_underlying(type), c, f, r, s, ph, pw, sh, sw, dh, dw};
 }
 

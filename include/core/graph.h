@@ -22,6 +22,27 @@ class GraphObj : public Object {
     Tensor cloneTensor(const Tensor &tensor) {
         return addTensor(tensor->clone(runtime));
     }
+    void removeOperator(Operator op) {
+        auto it = std::find(ops.begin(), ops.end(), op);
+        if (it != ops.end())
+            ops.erase(it);
+    }
+
+    void removeTensor(Tensor tensor) {
+        auto it = std::find(tensors.begin(), tensors.end(), tensor);
+        if (it != tensors.end())
+            tensors.erase(it);
+    }
+
+    void deleteConnection(Tensor tensor, Operator op);
+    void addConnection(Tensor tensor, Operator op);
+    void replaceConnection(Tensor oldInput, Tensor newInput, Operator op);
+
+    Operator cloneOperator(Operator op, TensorVec inputs, TensorVec outputs) {
+        auto opClone = op->clone(inputs, outputs);
+        addOperatorAndConnect(opClone);
+        return opClone;
+    }
 
     const TensorVec &getTensors() const { return tensors; }
     const OpVec &getOperators() const { return ops; }
@@ -78,6 +99,8 @@ class GraphObj : public Object {
                 ret.emplace_back(t);
         return ret;
     }
+
+    bool checkValid() const;
 
   private:
     /**

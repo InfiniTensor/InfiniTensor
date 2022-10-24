@@ -25,6 +25,7 @@ enum class OpType;
 
 using TensorVec = vector<Tensor>;
 using OpVec = vector<Operator>;
+using OpLists = list<Operator>;
 
 using VType = uint32_t;
 
