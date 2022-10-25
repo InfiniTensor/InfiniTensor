@@ -1,10 +1,14 @@
 #pragma once
 
 #include "pfusion/common.h"
+#include "pfusion/meta_op.h"
 
 namespace memb {
-std::vector<std::shared_ptr<MetaOp>> instantiateAbs(std::vector<int> shape);
-std::vector<std::shared_ptr<MetaOp>> instantiateRelu(std::vector<int> shape);
 std::vector<std::shared_ptr<MetaOp>>
-instantiateTranspose(std::vector<int> shape, std::vector<int> perm);
+instantiateUnary(const std::vector<int> &shape, const OpType opType);
+std::vector<std::shared_ptr<MetaOp>>
+instantiateBinary(const std::vector<int> &shape, const OpType opType);
+std::vector<std::shared_ptr<MetaOp>>
+instantiateTranspose(const std::vector<int> &_shape,
+                     const std::vector<int> &_perm);
 } // namespace memb

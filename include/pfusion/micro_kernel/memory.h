@@ -1,54 +1,23 @@
 #pragma once
 
-#include <string>
-
-#include "pfusion/code.h"
-#include "pfusion/common.h"
+#include "pfusion/micro_op.h"
 
 namespace memb {
 class MemoryOp : public MicroOp {
-  public:
-    enum MemoryType {
-        DRAM = 1,
-        SRAM,
-    };
-
-    enum OpType {
-        READ = 1,
-        WRITE,
-    };
-    MemoryType memoryType;
+  private:
     OpType opType;
-    Ptr ptr;
-    std::string num;
-    std::string reg;
-    std::string offset;
+    std::shared_ptr<Pointer> src, dst;
+    size_t num, width;
 
-    std::string generate();
+  public:
+    MemoryOp(OpType _opType, std::shared_ptr<Pointer> _src,
+             std::shared_ptr<Pointer> _dst, size_t _num, size_t _width)
+        : opType(_opType), src(_src), dst(_dst), num(_num), width(_width) {}
+    // bool checkValid() override;
+    std::string generate() override;
     inline void print() override {
-        std::cout << "memory ";
-        switch (memoryType) {
-        case DRAM:
-            std::cout << "DRAM";
-            break;
-        case SRAM:
-            std::cout << "SRAM";
-            break;
-        default:
-            assert(false);
-        }
-        std::cout << " ";
-        switch (opType) {
-        case READ:
-            std::cout << "READ";
-            break;
-        case WRITE:
-            std::cout << "WRITE";
-            break;
-        default:
-            assert(false);
-        }
-        std::cout << std::endl;
+        std::cout << id << " " << getName(opType) << " "
+                  << getName(src->getType()) << std::endl;
     }
 };
 } // namespace memb
