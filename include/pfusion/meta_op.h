@@ -30,6 +30,9 @@ class MetaOp {
     inline int getLoopSt() { return main_loop_st; }
     inline int getLoopEd() { return main_loop_ed; }
 
+    std::string genKernelFunc();
+    std::string genInvokeFunc();
+
     inline void print() {
         std::cout << "MetaOp: " << id << std::endl;
         for (auto microOp : microOps) {

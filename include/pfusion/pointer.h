@@ -31,9 +31,9 @@ class Pointer {
         return std::make_shared<Pointer>(ptr->getType(), ptr->getName(),
                                          ptr->getOffset() + " + " + offset);
     }
-    static inline std::shared_ptr<Pointer>
-    buildPtrByTensor(std::string tensorName) {
-        return std::make_shared<Pointer>(MemType::DRAM, tensorName, "0");
+    static inline std::shared_ptr<Pointer> buildPtrByTensorGuid(size_t guid) {
+        return std::make_shared<Pointer>(
+            MemType::DRAM, "tensor_ptr_" + std::to_string(guid), "0");
     }
 
     inline const MemType getType() { return memType; }

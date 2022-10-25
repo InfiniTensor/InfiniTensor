@@ -15,7 +15,9 @@ size_t getSize(const std::vector<int> &shape) {
 }
 
 std::vector<std::shared_ptr<MetaOp>>
-instantiateUnary(const std::vector<int> &shape, const OpType opType) {
+instantiateUnary(const OpType opType,
+                 std::vector<std::shared_ptr<Pointer>> ptrs,
+                 const std::vector<int> &shape) {
     std::vector<std::shared_ptr<MetaOp>> metaOps;
     size_t size = getSize(shape);
 
@@ -35,9 +37,7 @@ instantiateUnary(const std::vector<int> &shape, const OpType opType) {
     metaOp->mappingDst->shape = {32 * 8, int(size / 32 / 8)};
     metaOp->mappingDst->map = {1};
 
-    auto &ptrs = metaOp->ptrs;
-    ptrs.emplace_back(Pointer::buildPtr(DRAM, "src", "0"));
-    ptrs.emplace_back(Pointer::buildPtr(DRAM, "dst", "0"));
+    metaOp->ptrs = ptrs;
     auto buf = Pointer::buildPtr(REG, "buf", "inst_idx");
 
     metaOp->microOps.emplace_back(std::make_shared<MemoryOp>(
@@ -55,7 +55,9 @@ instantiateUnary(const std::vector<int> &shape, const OpType opType) {
 }
 
 std::vector<std::shared_ptr<MetaOp>>
-instantiateBinary(const std::vector<int> &shape, const OpType opType) {
+instantiateBinary(const OpType opType,
+                  std::vector<std::shared_ptr<Pointer>> ptrs,
+                  const std::vector<int> &shape) {
     std::vector<std::shared_ptr<MetaOp>> metaOps;
     size_t size = getSize(shape);
 
@@ -75,10 +77,7 @@ instantiateBinary(const std::vector<int> &shape, const OpType opType) {
     metaOp->mappingDst->shape = {32 * 8, int(size / 32 / 8)};
     metaOp->mappingDst->map = {1};
 
-    auto &ptrs = metaOp->ptrs;
-    ptrs.emplace_back(Pointer::buildPtr(DRAM, "src0", "0"));
-    ptrs.emplace_back(Pointer::buildPtr(DRAM, "src1", "0"));
-    ptrs.emplace_back(Pointer::buildPtr(DRAM, "dst", "0"));
+    metaOp->ptrs = ptrs;
     auto buf0 = Pointer::buildPtr(REG, "buf", "inst_idx");
     auto buf1 = Pointer::buildPtr(REG, "buf", "inst_idx + 8");
     auto buf2 = Pointer::buildPtr(REG, "buf", "inst_idx + 16");
@@ -99,9 +98,9 @@ instantiateBinary(const std::vector<int> &shape, const OpType opType) {
     return metaOps;
 }
 
-std::vector<std::shared_ptr<MetaOp>>
-instantiateTranspose(const std::vector<int> &shape,
-                     const std::vector<int> &perm) {
+std::vector<std::shared_ptr<MetaOp>> instantiateTranspose(
+    const OpType opType, std::vector<std::shared_ptr<Pointer>> ptrs,
+    const std::vector<int> &shape, const std::vector<int> &perm) {
     std::vector<std::shared_ptr<MetaOp>> metaOps;
 
     size_t size = 1;
@@ -155,9 +154,7 @@ instantiateTranspose(const std::vector<int> &shape,
 
     // TODO: tiling is a metaOp or microOps?
 
-    auto &ptrs = metaOp->ptrs;
-    ptrs.emplace_back(Pointer::buildPtr(DRAM, "src", "0"));
-    ptrs.emplace_back(Pointer::buildPtr(DRAM, "dst", "0"));
+    metaOp->ptrs = ptrs;
     auto smem = Pointer::buildPtr(SRAM, "smem", "warp_id * 32 * 33");
     auto buf = Pointer::buildPtr(REG, "buf", "inst_idx");
 

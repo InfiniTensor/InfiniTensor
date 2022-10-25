@@ -1,8 +1,10 @@
-#include "pfusion/memory_codegen.h"
 #include "core/graph.h"
 #include "operators/transpose.h"
+
 #include "pfusion/common.h"
 #include "pfusion/instantiate.h"
+#include "pfusion/memory_codegen.h"
+#include "pfusion/pointer.h"
 
 #include <cstdlib>
 #include <filesystem>
@@ -50,23 +52,44 @@ memb::MetaGraph instantiateGraph(infini::Graph graph) {
         switch (op->getOpType()) {
         case infini::OpType::Transpose:
             metaGraph.addNode(memb::instantiateTranspose(
+                memb::TRANSPOSE,
+                {memb::Pointer::buildPtrByTensorGuid(
+                     op->getInputs()[0]->getGuid()),
+                 memb::Pointer::buildPtrByTensorGuid(
+                     op->getOutputs()[0]->getGuid())},
                 convertShape(op->getOutputs()[0]->getDims()),
                 convertPerm(infini::as<infini::TransposeObj>(op)->getPerm())));
             break;
         case infini::OpType::Relu:
             metaGraph.addNode(memb::instantiateUnary(
-                convertShape(op->getInputs()[0]->getDims()),
-                memb::OpType::RELU));
+                memb::RELU,
+                {memb::Pointer::buildPtrByTensorGuid(
+                     op->getInputs()[0]->getGuid()),
+                 memb::Pointer::buildPtrByTensorGuid(
+                     op->getOutputs()[0]->getGuid())},
+                convertShape(op->getOutputs()[0]->getDims())));
             break;
         case infini::OpType::Add:
             metaGraph.addNode(memb::instantiateBinary(
-                convertShape(op->getInputs()[0]->getDims()),
-                memb::OpType::ADD));
+                memb::ADD,
+                {memb::Pointer::buildPtrByTensorGuid(
+                     op->getInputs()[0]->getGuid()),
+                 memb::Pointer::buildPtrByTensorGuid(
+                     op->getInputs()[1]->getGuid()),
+                 memb::Pointer::buildPtrByTensorGuid(
+                     op->getOutputs()[0]->getGuid())},
+                convertShape(op->getOutputs()[0]->getDims())));
             break;
         case infini::OpType::Sub:
             metaGraph.addNode(memb::instantiateBinary(
-                convertShape(op->getInputs()[0]->getDims()),
-                memb::OpType::SUB));
+                memb::SUB,
+                {memb::Pointer::buildPtrByTensorGuid(
+                     op->getInputs()[0]->getGuid()),
+                 memb::Pointer::buildPtrByTensorGuid(
+                     op->getInputs()[1]->getGuid()),
+                 memb::Pointer::buildPtrByTensorGuid(
+                     op->getOutputs()[0]->getGuid())},
+                convertShape(op->getOutputs()[0]->getDims())));
             break;
         default:
             IT_ASSERT(false);

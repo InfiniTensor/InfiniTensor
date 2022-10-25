@@ -33,31 +33,48 @@ std::string MetaGraph::genHeader() {
 }
 
 std::string MetaGraph::genKernelFunc() {
-    auto metaOp = nodes[0].metaOps[0];
+    std::vector<std::shared_ptr<MetaOp>> metaOps;
+    for (auto &node : nodes) {
+        metaOps.emplace_back(node.metaOps[0]);
+    }
+    std::string code = "";
+    for (auto metaOp : metaOps) {
+        code += metaOp->genKernelFunc();
+    }
+    return code;
+}
+
+std::string MetaOp::genKernelFunc() {
     std::string code = "";
     code += "// Kernel\n";
-    code += "__global__ void kernel_func(float *src, float *dst) {\n";
+    code += "__global__ void kernel_func_" + std::to_string(id) + "(";
+    IT_ASSERT(ptrs.size() > 0);
+    code += "float *" + ptrs[0]->getName();
+    for (size_t i = 1; i < ptrs.size(); i++) {
+        code += ", float *" + ptrs[i]->getName();
+    }
+    code += ") {\n";
     code += "int lane_id = threadIdx.x % 32;\n";
     code += "int warp_id = threadIdx.x / 32;\n";
-    code += "int parallel_idx = blockIdx.x * " +
-            std::to_string(metaOp->numWarps) + " + warp_id;\n";
-    if (metaOp->numReg != 0) {
-        code += "float buf[" + std::to_string(metaOp->numReg) + "];\n";
+    code += "int parallel_idx = blockIdx.x * " + std::to_string(numWarps) +
+            " + warp_id;\n";
+    if (numReg != 0) {
+        code += "float buf[" + std::to_string(numReg) + "];\n";
     }
-    if (metaOp->numSmem != 0) {
-        code += "__shared__ float smem[" +
-                std::to_string(metaOp->numSmem * metaOp->numWarps) + "];\n";
+    if (numSmem != 0) {
+        code += "__shared__ float smem[" + std::to_string(numSmem * numWarps) +
+                "];\n";
     }
 
     code += "for (int loop_idx = parallel_idx; loop_idx < " +
-            std::to_string(metaOp->main_loop_ed) + "; loop_idx += " +
-            std::to_string(metaOp->numBlocks * metaOp->numWarps) + ") {\n";
+            std::to_string(main_loop_ed) +
+            "; loop_idx += " + std::to_string(numBlocks * numWarps) + ") {\n";
 
     // gen offset_src
-    code += genOffset("offset_src", metaOp->mappingSrc);
-    code += genOffset("offset_dst", metaOp->mappingDst);
+    code += genOffset("offset_src", mappingSrc);
+    code += genOffset("offset_dst", mappingDst);
 
-    for (auto microOp : metaOp->microOps) {
+    for (auto microOp : microOps) {
         code += microOp->generate();
     }
     code += "}\n}\n";
@@ -65,13 +82,24 @@ std::string MetaGraph::genKernelFunc() {
 }
 
 std::string MetaGraph::genInvokeFunc() {
+    std::vector<std::shared_ptr<MetaOp>> metaOps;
+    for (auto &node : nodes) {
+        metaOps.emplace_back(node.metaOps[0]);
+    }
     std::string code = "";
-    auto metaOp = nodes[0].metaOps[0];
-    code += "void invoke_func(float *src, float *dst) {\n";
-    int numBlocks = metaOp->numBlocks;
-    int numWarps = metaOp->numWarps * 32;
+    for (auto metaOp : metaOps) {
+        code += metaOp->genInvokeFunc();
+    }
+    return code;
+}
+
+std::string MetaOp::genInvokeFunc() {
+    std::string code = "";
+    code += "void invoke_func_" + std::to_string(id) +
+            "(float *src, float *dst) {\n";
+    int numThreads = numWarps * 32;
     code += "dim3 gridDim(" + std::to_string(numBlocks) + ", 1);";
-    code += "dim3 blockDim(" + std::to_string(numWarps) + ", 1);";
+    code += "dim3 blockDim(" + std::to_string(numThreads) + ", 1);";
     code += "kernel_func<<<gridDim, blockDim>>>(src, dst);\n";
     code += "cudaCheckError();\n";
     code += "}\n";

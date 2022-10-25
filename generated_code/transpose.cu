@@ -1,6 +1,6 @@
 #include "cuda_utils.h"
 // Kernel
-__global__ void kernel_func(float *src, float *dst) {
+__global__ void kernel_func(float *tensor_ptr_2, float *tensor_ptr_3) {
     int lane_id = threadIdx.x % 32;
     int warp_id = threadIdx.x / 32;
     int parallel_idx = blockIdx.x * 8 + warp_id;
@@ -21,7 +21,8 @@ __global__ void kernel_func(float *src, float *dst) {
         tmp_offset_dst /= 33;
 #pragma unroll
         for (int inst_idx = 0; inst_idx < 31; inst_idx++) {
-            buf[inst_idx] = src[0 + offset_src + 0 + inst_idx * 1056 + lane_id];
+            buf[inst_idx] =
+                tensor_ptr_2[0 + offset_src + 0 + inst_idx * 1056 + lane_id];
         }
 #pragma unroll
         for (int inst_idx = 0; inst_idx < 31; inst_idx++) {
@@ -37,7 +38,7 @@ __global__ void kernel_func(float *src, float *dst) {
         if (lane_id < 31) {
 #pragma unroll
             for (int inst_idx = 0; inst_idx < 32; inst_idx++) {
-                dst[0 + offset_dst + 0 + inst_idx * 31 + lane_id] =
+                tensor_ptr_3[0 + offset_dst + 0 + inst_idx * 31 + lane_id] =
                     buf[inst_idx];
             }
         }

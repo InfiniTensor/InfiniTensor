@@ -15,6 +15,7 @@ enum OpType {
     RELU,
     ADD,
     SUB,
+    TRANSPOSE,
 };
 
 enum MemType {
