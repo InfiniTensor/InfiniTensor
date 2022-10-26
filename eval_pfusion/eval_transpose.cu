@@ -3,7 +3,7 @@
 
 #include <vector>
 
-void invoke_func(float *src, float *dst);
+void invoke_func_0(float *src, float *dst);
 
 int main() {
     std::vector<int> shape = {31, 32, 32, 33};
@@ -38,7 +38,7 @@ int main() {
         src_host[i] = i;
     }
     cudaSafeCall(cudaMemcpy(src, src_host, size * sizeof(float), cudaMemcpyHostToDevice));
-    invoke_func(src, dst);
+    invoke_func_0(src, dst);
     cudaSafeCall(cudaMemcpy(dst_host, dst, size * sizeof(float), cudaMemcpyDeviceToHost));
     bool flag = 0;
     for (size_t i = 0; i < size; i++) {
@@ -67,11 +67,11 @@ int main() {
     cudaEventCreate(&ed);
     int cnt = 128;
     for (int t = 0; t < cnt; t++) {
-        invoke_func(src, dst);
+        invoke_func_0(src, dst);
     }
     cudaEventRecord(st, 0);
     for (int t = 0; t < cnt; t++) {
-        invoke_func(src, dst);
+        invoke_func_0(src, dst);
     }
     cudaEventRecord(ed, 0);
     cudaEventSynchronize(st);

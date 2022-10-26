@@ -2,45 +2,23 @@
 
 namespace memb {
 
-std::string genOffset(std::string name,
-                      std::shared_ptr<TensorMapping> mapping) {
-    if (mapping == nullptr) {
-        return "";
-    }
-    std::string code = "int " + name + " = 0;\n";
+std::string TensorMapping::genOffset() {
+    std::string code = "int " + offset() + " = 0;\n";
     std::vector<int> stride;
-    auto &map = mapping->map;
-    auto &shape = mapping->shape;
     stride.emplace_back(1);
     for (size_t i = 1; i < shape.size(); i++) {
         stride.emplace_back(stride[i - 1] * shape[i - 1]);
     }
-    std::string tmpName = "tmp_" + name;
-    code += "int " + tmpName + " = loop_idx;\n";
+
+    std::string bufName = name + "_buf";
+    code += "int " + bufName + " = loop_idx;\n";
     for (size_t i = 0; i < map.size(); i++) {
-        code += name + " += " + tmpName + " % " +
+        code += name + " += " + bufName + " % " +
                 std::to_string(shape[map[i]]) + " * " +
                 std::to_string(stride[map[i]]) + ";\n";
-        code += tmpName + " /= " + std::to_string(shape[map[i]]) + ";\n";
+        code += bufName + " /= " + std::to_string(shape[map[i]]) + ";\n";
     }
 
-    return code;
-}
-
-std::string MetaGraph::genHeader() {
-    std::string code = "#include \"cuda_utils.h\"\n";
-    return code;
-}
-
-std::string MetaGraph::genKernelFunc() {
-    std::vector<std::shared_ptr<MetaOp>> metaOps;
-    for (auto &node : nodes) {
-        metaOps.emplace_back(node.metaOps[0]);
-    }
-    std::string code = "";
-    for (auto metaOp : metaOps) {
-        code += metaOp->genKernelFunc();
-    }
     return code;
 }
 
@@ -71,8 +49,9 @@ std::string MetaOp::genKernelFunc() {
             "; loop_idx += " + std::to_string(numBlocks * numWarps) + ") {\n";
 
     // gen offset_src
-    code += genOffset("offset_src", mappingSrc);
-    code += genOffset("offset_dst", mappingDst);
+    for (auto mapping : mappings) {
+        code += mapping->genOffset();
+    }
 
     for (auto microOp : microOps) {
         code += microOp->generate();
@@ -81,29 +60,91 @@ std::string MetaOp::genKernelFunc() {
     return code;
 }
 
-std::string MetaGraph::genInvokeFunc() {
-    std::vector<std::shared_ptr<MetaOp>> metaOps;
-    for (auto &node : nodes) {
-        metaOps.emplace_back(node.metaOps[0]);
-    }
-    std::string code = "";
-    for (auto metaOp : metaOps) {
-        code += metaOp->genInvokeFunc();
-    }
-    return code;
-}
-
 std::string MetaOp::genInvokeFunc() {
     std::string code = "";
-    code += "void invoke_func_" + std::to_string(id) +
-            "(float *src, float *dst) {\n";
+    code += "void invoke_func_" + std::to_string(id) + "(";
+    IT_ASSERT(ptrs.size() > 0);
+    code += "float *" + ptrs[0]->getName();
+    for (size_t i = 1; i < ptrs.size(); i++) {
+        code += ", float *" + ptrs[i]->getName();
+    }
+    code += ") {\n";
     int numThreads = numWarps * 32;
     code += "dim3 gridDim(" + std::to_string(numBlocks) + ", 1);";
     code += "dim3 blockDim(" + std::to_string(numThreads) + ", 1);";
-    code += "kernel_func<<<gridDim, blockDim>>>(src, dst);\n";
+    code += "kernel_func_" + std::to_string(id) + "<<<gridDim, blockDim>>>(";
+    IT_ASSERT(ptrs.size() > 0);
+    code += ptrs[0]->getName();
+    for (size_t i = 1; i < ptrs.size(); i++) {
+        code += ", " + ptrs[i]->getName();
+    }
+    code += ");\n";
     code += "cudaCheckError();\n";
     code += "}\n";
     return code;
+}
+
+std::shared_ptr<MetaOp> MetaOp::buildByMerge(std::shared_ptr<MetaOp> metaOp0,
+                                             std::shared_ptr<MetaOp> metaOp1) {
+    IT_ASSERT(metaOp0->checkValid());
+    IT_ASSERT(metaOp1->checkValid());
+    // Check unmergeable
+    if (metaOp0->main_loop_st != metaOp1->main_loop_st ||
+        metaOp0->main_loop_ed != metaOp1->main_loop_ed ||
+        metaOp0->numBlocks != metaOp1->numBlocks ||
+        metaOp0->numReg != metaOp1->numReg ||
+        metaOp0->numSmem != metaOp1->numSmem) {
+        return nullptr;
+    }
+    auto metaOp = std::make_shared<MetaOp>();
+    metaOp->main_loop_st = metaOp0->main_loop_st;
+    metaOp->main_loop_ed = metaOp0->main_loop_ed;
+    metaOp->numBlocks = metaOp0->numBlocks;
+    metaOp->numReg = metaOp0->numReg;
+    metaOp->numSmem = metaOp0->numSmem;
+
+    // Merge ptr
+    std::unordered_set<size_t> ptrSet;
+    for (auto ptr : metaOp0->ptrs) {
+        IT_ASSERT(ptrSet.find(ptr->getHash()) == ptrSet.end());
+        metaOp->ptrs.emplace_back(ptr);
+        ptrSet.emplace(ptr->getHash());
+    }
+    for (auto ptr : metaOp1->ptrs) {
+        if (ptrSet.find(ptr->getHash()) == ptrSet.end()) {
+            metaOp->ptrs.emplace_back(ptr);
+            ptrSet.emplace(ptr->getHash());
+        }
+    }
+
+    // Merge mapping
+    std::unordered_set<size_t> mappingSet;
+    for (auto mapping : metaOp0->mappings) {
+        IT_ASSERT(mappingSet.find(mapping->getHash()) == mappingSet.end());
+        metaOp->mappings.emplace_back(mapping);
+        mappingSet.emplace(mapping->getHash());
+    }
+    for (auto mapping : metaOp1->mappings) {
+        if (mappingSet.find(mapping->getHash()) == mappingSet.end()) {
+            metaOp->mappings.emplace_back(mapping);
+            mappingSet.emplace(mapping->getHash());
+        }
+    }
+
+    // Merge microOps.
+    // TODO: make it a graph.
+    for (auto microOp : metaOp0->microOps) {
+        metaOp->microOps.emplace_back(microOp);
+    }
+    for (auto microOp : metaOp1->microOps) {
+        metaOp->microOps.emplace_back(microOp);
+    }
+    for (auto microOp : metaOp->microOps) {
+        microOp->print();
+    }
+    // TODO: elimiate microOps.
+
+    return metaOp;
 }
 
 } // namespace memb

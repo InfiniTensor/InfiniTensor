@@ -6,10 +6,40 @@
 
 namespace memb {
 class TensorMapping {
+  private:
+    std::vector<size_t> shape, map;
+    std::string name;
+
   public:
-    TensorMapping() {}
+    TensorMapping(const std::string _name, const std::vector<size_t> &_shape,
+                  const std::vector<size_t> &_map) {
+        name = "offset_" + _name;
+        IT_ASSERT(_shape.size() > 0 && _shape.size() < 10);
+        for (auto x : _shape) {
+            shape.emplace_back(x);
+        }
+        IT_ASSERT(_map.size() > 0 && _map.size() < 10);
+        for (auto x : _map) {
+            map.emplace_back(x);
+        }
+    }
     ~TensorMapping() {}
-    std::vector<int> shape, map;
+    inline std::string offset() { return name; }
+    inline size_t getHash() {
+        std::hash<size_t> hasher;
+        std::hash<std::string> stringHasher;
+        size_t ret = stringHasher(name);
+        ret = hashAppend(ret, hasher(shape.size()));
+        for (auto x : shape) {
+            ret = hashAppend(ret, hasher(x));
+        }
+        ret = hashAppend(ret, hasher(map.size()));
+        for (auto x : map) {
+            ret = hashAppend(ret, hasher(x));
+        }
+        return ret;
+    }
+    std::string genOffset();
 };
 
 class MetaOp {
@@ -18,7 +48,7 @@ class MetaOp {
     int main_loop_st, main_loop_ed, numBlocks, numWarps, numReg, numSmem;
     std::vector<std::shared_ptr<MicroOp>> microOps;
     std::vector<std::shared_ptr<Pointer>> ptrs;
-    std::shared_ptr<TensorMapping> mappingSrc, mappingDst;
+    std::vector<std::shared_ptr<TensorMapping>> mappings;
     MetaOp() {
         static int metaOpId = 0;
         id = metaOpId++;
@@ -33,70 +63,20 @@ class MetaOp {
     std::string genKernelFunc();
     std::string genInvokeFunc();
 
+    static std::shared_ptr<MetaOp>
+    buildByMerge(std::shared_ptr<MetaOp> metaOp0,
+                 std::shared_ptr<MetaOp> metaOp1);
+
     inline void print() {
         std::cout << "MetaOp: " << id << std::endl;
         for (auto microOp : microOps) {
             microOp->print();
         }
     }
-    bool checkValid();
-};
-
-class MetaGraph {
-  private:
-    class Node {
-      public:
-        int id;
-        std::vector<std::shared_ptr<MetaOp>> metaOps;
-        std::vector<int> pred;
-        std::vector<int> succ;
+    bool checkValid() {
+        // TODO: check valid
+        return true;
     };
-    // each node is a vector of metaOps.
-    std::vector<Node> nodes;
-    std::vector<std::pair<int, int>> edges;
-
-  public:
-    MetaGraph() {}
-    ~MetaGraph() {}
-    inline void addNode(std::vector<std::shared_ptr<MetaOp>> metaOps) {
-        Node node;
-        node.id = nodes.size();
-        for (auto metaOp : metaOps) {
-            node.metaOps.emplace_back(metaOp);
-        }
-        nodes.emplace_back(node);
-    }
-    inline void addEdge(int i, int j) {
-        edges.emplace_back(i, j);
-        nodes[i].succ.emplace_back(j);
-        nodes[j].pred.emplace_back(i);
-    }
-    inline void print() {
-        for (auto node : nodes) {
-            std::cout << node.id << "[(";
-            if (node.pred.size() > 0) {
-                std::cout << node.pred[0];
-            }
-            for (size_t i = 1; i < node.pred.size(); i++) {
-                std::cout << ", " << node.pred[i];
-            }
-            std::cout << ")(";
-            if (node.succ.size() > 0) {
-                std::cout << node.succ[0];
-            }
-            for (size_t i = 1; i < node.succ.size(); i++) {
-                std::cout << ", " << node.succ[i];
-            }
-            std::cout << ")]" << std::endl;
-            for (auto metaOp : node.metaOps) {
-                metaOp->print();
-            }
-        }
-    }
-    std::string genHeader();
-    std::string genKernelFunc();
-    std::string genInvokeFunc();
-    bool checkValid();
 };
 
 } // namespace memb

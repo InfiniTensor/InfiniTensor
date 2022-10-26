@@ -21,7 +21,7 @@ TEST(Graph, SAR_DRN_0) {
     g->addOpWithOutputs<ReluObj>(t0, t1);
     g->addOpWithOutputs<AddObj>(t0, t1, t2);
     MemoryCodegen codegen;
-    codegen.export_code(g, "sar_drn_0.cu");
+    codegen.exportCode(g, "sar_drn_0.cu");
 }
 
 TEST(Graph, SAR_DRN_1) {
@@ -33,9 +33,9 @@ TEST(Graph, SAR_DRN_1) {
     Tensor t3 = g->addTensor({1, 1, 512, 512}, DataType::Float32);
     g->dataMalloc();
     g->addOpWithOutputs<ReluObj>(t0, t1);
-    g->addOpWithOutputs<AddObj>(t0, t1, t2);
+    g->addOpWithOutputs<SubObj>(t0, t1, t2);
     MemoryCodegen codegen;
-    codegen.export_code(g, "sar_drn_1.cu");
+    codegen.exportCode(g, "sar_drn_1.cu");
 }
 
 } // namespace infini

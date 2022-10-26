@@ -56,4 +56,8 @@ inline std::string getName(MemType memType) {
     return "";
 }
 
+inline size_t hashAppend(size_t a, size_t b) {
+    return (a * 10000019 + b * 10000079) % 2147483647;
+}
+
 } // namespace memb

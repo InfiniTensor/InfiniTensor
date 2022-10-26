@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common.h"
+#include "pfusion/common.h"
 
 namespace memb {
 class Pointer {
@@ -46,6 +46,14 @@ class Pointer {
             return true;
         }
         return false;
+    }
+    inline const size_t getHash() {
+        std::hash<MemType> memTypeHash;
+        std::hash<std::string> stringHash;
+        size_t ret = memTypeHash(memType);
+        ret = hashAppend(ret, stringHash(name));
+        ret = hashAppend(ret, stringHash(offset));
+        return ret;
     }
 };
 

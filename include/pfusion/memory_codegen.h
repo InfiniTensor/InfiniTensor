@@ -10,6 +10,6 @@ class MemoryCodegen {
   public:
     MemoryCodegen() {}
     ~MemoryCodegen() {}
-    void export_code(Graph graph, std::string filename);
+    void exportCode(Graph graph, std::string filename);
 };
 } // namespace infini

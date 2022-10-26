@@ -16,8 +16,15 @@ class MemoryOp : public MicroOp {
     // bool checkValid() override;
     std::string generate() override;
     inline void print() override {
-        std::cout << id << " " << getName(opType) << " "
-                  << getName(src->getType()) << std::endl;
+        if (opType == READ) {
+            std::cout << id << " " << getName(opType) << " "
+                      << getName(src->getType()) << std::endl;
+        } else if (opType == WRITE) {
+            std::cout << id << " " << getName(opType) << " "
+                      << getName(dst->getType()) << std::endl;
+        } else {
+            IT_ASSERT(false);
+        }
     }
 };
 } // namespace memb

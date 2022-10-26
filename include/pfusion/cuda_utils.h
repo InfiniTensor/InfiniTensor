@@ -1,9 +1,8 @@
 #pragma once
 
-#include <iostream>
-
 #include <cublas.h>
 #include <curand.h>
+#include <iostream>
 
 #define cudaSafeCall(err) __cudaSafeCall(err, __FILE__, __LINE__)
 #define cudaCheckError() __cudaCheckError(__FILE__, __LINE__)

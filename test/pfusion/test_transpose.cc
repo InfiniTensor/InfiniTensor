@@ -17,7 +17,7 @@ TEST(Graph, transpose) {
     g->dataMalloc();
     g->addOpWithOutputs<TransposeObj>(t0, t1, Shape{2, 0, 3, 1});
     MemoryCodegen codegen;
-    codegen.export_code(g, "transpose.cu");
+    codegen.exportCode(g, "transpose.cu");
 }
 
 } // namespace infini

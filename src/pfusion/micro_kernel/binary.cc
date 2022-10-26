@@ -19,7 +19,7 @@ std::string BinaryOp::generate() {
     } else {
         IT_ASSERT(false);
     }
-    opFunc += pSrc1->generate();
+    opFunc += pSrc1->generate() + ";\n";
     code += opFunc;
     code += "}\n";
 

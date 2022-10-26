@@ -19,7 +19,7 @@ TEST(Graph, build_and_run) {
     g->addOpWithOutputs<AbsObj>(t0, t1);
     g->addOpWithOutputs<ReluObj>(t0, t1);
     MemoryCodegen codegen;
-    codegen.export_code(g, "test.cu");
+    codegen.exportCode(g, "test.cu");
 }
 
 TEST(Graph, transpose) {
@@ -32,7 +32,7 @@ TEST(Graph, transpose) {
     g->addOpWithOutputs<TransposeObj>(t0, t1, Shape{2, 0, 3, 1});
     g->addOpWithOutputs<ReluObj>(t1, t2);
     MemoryCodegen codegen;
-    codegen.export_code(g, "transpose.cu");
+    codegen.exportCode(g, "transpose.cu");
 }
 
 } // namespace infini

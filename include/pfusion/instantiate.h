@@ -7,12 +7,12 @@ namespace memb {
 std::vector<std::shared_ptr<MetaOp>>
 instantiateUnary(const OpType opType,
                  std::vector<std::shared_ptr<Pointer>> ptrs,
-                 const std::vector<int> &shape);
+                 const std::vector<size_t> &shape);
 std::vector<std::shared_ptr<MetaOp>>
 instantiateBinary(const OpType opType,
                   std::vector<std::shared_ptr<Pointer>> ptrs,
-                  const std::vector<int> &shape);
+                  const std::vector<size_t> &shape);
 std::vector<std::shared_ptr<MetaOp>> instantiateTranspose(
     const OpType opType, std::vector<std::shared_ptr<Pointer>> ptrs,
-    const std::vector<int> &shape, const std::vector<int> &perm);
+    const std::vector<size_t> &shape, const std::vector<size_t> &perm);
 } // namespace memb
