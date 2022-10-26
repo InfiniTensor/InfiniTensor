@@ -71,14 +71,6 @@ bool OperatorObj::checkValid(GraphObj *graph) {
         }
     } else { // if outputs have been created, check their shapes
         for (size_t i = 0; i < shapes.size(); ++i) {
-            printf("|* i = %ld *|\n", i);
-            printf("shapes:\n");
-            for (auto shape : shapes[i])
-                printf("%d ", shape);
-            printf("\n");
-            for (auto dim : outputs[i]->getDims())
-                printf("%d ", dim);
-            printf("\n");
             if (shapes[i] != outputs[i]->getDims())
                 return false;
         }

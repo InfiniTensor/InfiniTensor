@@ -10,7 +10,7 @@ class TensorBaseObj;
 class TensorObj;
 class OperatorObj;
 class GraphObj;
-class GraphFactoryObj;
+class GraphBuilderObj;
 class RuntimeObj;
 class BlobObj;
 
@@ -18,7 +18,7 @@ using TensorBase = Ref<TensorBaseObj>;
 using Tensor = Ref<TensorObj>;
 using Operator = Ref<OperatorObj>;
 using Graph = Ref<GraphObj>;
-using GraphFactory = Ref<GraphFactoryObj>;
+using GraphBuilder = Ref<GraphBuilderObj>;
 using Runtime = Ref<RuntimeObj>;
 using Blob = Ref<BlobObj>;
 enum class OpType;

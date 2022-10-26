@@ -21,12 +21,12 @@
 
 namespace infini {
 
-class GraphFactoryObj {
+class GraphBuilderObj {
   private:
     Graph g;
 
   public:
-    GraphFactoryObj(Runtime runtime) : g(make_ref<GraphObj>(runtime)) {}
+    GraphBuilderObj(Runtime runtime) : g(make_ref<GraphObj>(runtime)) {}
 
     // tensors
     Tensor tensor(Shape dim, const std::string &dtype);
