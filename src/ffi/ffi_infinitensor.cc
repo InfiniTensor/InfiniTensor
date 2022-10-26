@@ -2,7 +2,7 @@
 #ifdef USE_CUDA
 #include "cuda/operator_timer.h"
 #endif
-#include "core/graph_factory.h"
+#include "core/graph_builder.h"
 namespace py = pybind11;
 
 namespace infini {
@@ -19,7 +19,7 @@ void register_operator_timer(py::module &m) {
 #endif
 }
 
-void init_graph_factory(py::module &m) {
+void init_graph_builder(py::module &m) {
     py::class_<RuntimeObj, std::shared_ptr<RuntimeObj>>(m, "RuntimeObj");
     py::class_<CpuRuntimeObj, std::shared_ptr<CpuRuntimeObj>, RuntimeObj>(
         m, "CpuRuntimeObj")
@@ -73,112 +73,112 @@ void init_graph_factory(py::module &m) {
     py::class_<AbsObj, std::shared_ptr<AbsObj>, OperatorObj>(m, "AbsObj");
     py::class_<MemBoundObj, std::shared_ptr<MemBoundObj>, OperatorObj>(
         m, "MemBoundObj");
-    py::class_<GraphFactory>(m, "GraphFactory");
-    py::class_<GraphFactoryObj>(m, "GraphFactoryObj")
+    py::class_<GraphBuilder>(m, "GraphBuilder");
+    py::class_<GraphBuilderObj>(m, "GraphBuilderObj")
         .def(py::init<Runtime>())
         .def("tensor",
              py::overload_cast<Shape, const std::string &>(
-                 &GraphFactoryObj::tensor),
+                 &GraphBuilderObj::tensor),
              policy::reference_internal)
         .def("conv",
              py::overload_cast<Tensor, Tensor, Tensor, int, int, int, int, int,
-                               int, Tensor>(&GraphFactoryObj::conv),
+                               int, Tensor>(&GraphBuilderObj::conv),
              policy::reference_internal)
         .def("matmul",
              py::overload_cast<Tensor, Tensor, Tensor, bool, bool, Tensor,
-                               ActType>(&GraphFactoryObj::matmul),
+                               ActType>(&GraphBuilderObj::matmul),
              policy::reference_internal)
         .def("convTrans",
              py::overload_cast<Tensor, Tensor, Tensor, int, int, int, int, int,
                                int, int, int, int, Tensor, ActType>(
-                 &GraphFactoryObj::convTrans),
+                 &GraphBuilderObj::convTrans),
              policy::reference_internal)
         .def("g2bmm",
              py::overload_cast<Tensor, Tensor, Tensor, const int, const int,
-                               Tensor, ActType>(&GraphFactoryObj::g2bmm),
+                               Tensor, ActType>(&GraphBuilderObj::g2bmm),
              policy::reference_internal)
         .def("gbmml",
              py::overload_cast<Tensor, Tensor, Tensor, const int, Tensor,
-                               ActType>(&GraphFactoryObj::gbmml),
+                               ActType>(&GraphBuilderObj::gbmml),
              policy::reference_internal)
 
         .def("pad",
              py::overload_cast<Tensor, Tensor, const vector<int> &,
                                const optional<const vector<int>> &>(
-                 &GraphFactoryObj::pad),
+                 &GraphBuilderObj::pad),
              policy::reference_internal)
         .def("slice",
              py::overload_cast<Tensor, Tensor, const vector<int> &,
                                const vector<int> &,
                                const optional<const vector<int>> &,
                                const optional<const vector<int>> &>(
-                 &GraphFactoryObj::slice),
+                 &GraphBuilderObj::slice),
              policy::reference_internal)
         .def(
             "concat",
-            py::overload_cast<TensorVec, Tensor, int>(&GraphFactoryObj::concat),
+            py::overload_cast<TensorVec, Tensor, int>(&GraphBuilderObj::concat),
             policy::reference_internal)
         .def("split",
              py::overload_cast<Tensor, std::optional<TensorVec>, int, int>(
-                 &GraphFactoryObj::split),
+                 &GraphBuilderObj::split),
              policy::reference_internal)
         .def("extend",
              py::overload_cast<Tensor, Tensor, int, int>(
-                 &GraphFactoryObj::extend),
+                 &GraphBuilderObj::extend),
              policy::reference_internal)
         .def("maxpool",
              py::overload_cast<Tensor, Tensor, int, int, int, int, int, int,
-                               int, int>(&GraphFactoryObj::maxpool),
+                               int, int>(&GraphBuilderObj::maxpool),
              policy::reference_internal)
         .def("avgpool",
              py::overload_cast<Tensor, Tensor, int, int, int, int, int, int,
-                               int, int>(&GraphFactoryObj::avgpool),
+                               int, int>(&GraphBuilderObj::avgpool),
              policy::reference_internal)
         .def("add",
-             py::overload_cast<Tensor, Tensor, Tensor>(&GraphFactoryObj::add),
+             py::overload_cast<Tensor, Tensor, Tensor>(&GraphBuilderObj::add),
              policy::reference_internal)
         .def("sub",
-             py::overload_cast<Tensor, Tensor, Tensor>(&GraphFactoryObj::sub),
+             py::overload_cast<Tensor, Tensor, Tensor>(&GraphBuilderObj::sub),
              policy::reference_internal)
         .def("mul",
-             py::overload_cast<Tensor, Tensor, Tensor>(&GraphFactoryObj::mul),
+             py::overload_cast<Tensor, Tensor, Tensor>(&GraphBuilderObj::mul),
              policy::reference_internal)
         .def("div",
-             py::overload_cast<Tensor, Tensor, Tensor>(&GraphFactoryObj::div),
+             py::overload_cast<Tensor, Tensor, Tensor>(&GraphBuilderObj::div),
              policy::reference_internal)
         .def("pow",
-             py::overload_cast<Tensor, Tensor, Tensor>(&GraphFactoryObj::pow),
+             py::overload_cast<Tensor, Tensor, Tensor>(&GraphBuilderObj::pow),
              policy::reference_internal)
         .def("gather",
              py::overload_cast<Tensor, Tensor, Tensor, int>(
-                 &GraphFactoryObj::gather),
+                 &GraphBuilderObj::gather),
              policy::reference_internal)
         .def("reshape",
              py::overload_cast<Tensor, Tensor, const Shape &>(
-                 &GraphFactoryObj::reshape),
+                 &GraphBuilderObj::reshape),
              policy::reference_internal)
         .def("flatten",
-             py::overload_cast<Tensor, Tensor>(&GraphFactoryObj::flatten),
+             py::overload_cast<Tensor, Tensor>(&GraphBuilderObj::flatten),
              policy::reference_internal)
         .def("identity",
-             py::overload_cast<Tensor, Tensor>(&GraphFactoryObj::identity),
+             py::overload_cast<Tensor, Tensor>(&GraphBuilderObj::identity),
              policy::reference_internal)
         .def("softmax",
-             py::overload_cast<Tensor, Tensor>(&GraphFactoryObj::softmax),
+             py::overload_cast<Tensor, Tensor>(&GraphBuilderObj::softmax),
              policy::reference_internal)
-        .def("relu", py::overload_cast<Tensor, Tensor>(&GraphFactoryObj::relu),
+        .def("relu", py::overload_cast<Tensor, Tensor>(&GraphBuilderObj::relu),
              policy::reference_internal)
         .def("sigmoid",
-             py::overload_cast<Tensor, Tensor>(&GraphFactoryObj::sigmoid),
+             py::overload_cast<Tensor, Tensor>(&GraphBuilderObj::sigmoid),
              policy::reference_internal)
-        .def("tanh", py::overload_cast<Tensor, Tensor>(&GraphFactoryObj::tanh),
+        .def("tanh", py::overload_cast<Tensor, Tensor>(&GraphBuilderObj::tanh),
              policy::reference_internal)
-        .def("abs", py::overload_cast<Tensor, Tensor>(&GraphFactoryObj::abs),
+        .def("abs", py::overload_cast<Tensor, Tensor>(&GraphBuilderObj::abs),
              policy::reference_internal)
         .def("memBound",
              py::overload_cast<const TensorVec &, const TensorVec &,
                                const std::vector<nnet::Tensor> &, nnet::Expr,
-                               double, std::string>(&GraphFactoryObj::memBound),
+                               double, std::string>(&GraphBuilderObj::memBound),
              policy::reference_internal);
 }
 
@@ -186,5 +186,5 @@ void init_graph_factory(py::module &m) {
 
 PYBIND11_MODULE(pyinfinitensor, m) {
     infini::register_operator_timer(m);
-    infini::init_graph_factory(m);
+    infini::init_graph_builder(m);
 }

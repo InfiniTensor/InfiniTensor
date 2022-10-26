@@ -5,8 +5,8 @@ import sys
 
 def main(netPath):
     runtime = CpuRuntimeObj.getInstance()
-    graphFactory = GraphFactoryObj(runtime)
-    import_onnx(graphFactory, netPath)
+    graphBuilder = GraphBuilderObj(runtime)
+    import_onnx(graphBuilder, netPath)
 
 if __name__ == "__main__":
     main(sys.argv[1])

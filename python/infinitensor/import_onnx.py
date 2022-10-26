@@ -122,7 +122,7 @@ def _onnx_datatype_tostring(dtype):
         assert False, 'Unknown onnx datatype'
 
 
-def import_onnx(gf: GraphFactory, net: str):
+def import_onnx(gf: GraphBuilder, net: str):
     ts, ds, ops, consts = dict(), dict(), dict(), dict() # (key, value) = (name, class)
     model = onnx.load(net)
 

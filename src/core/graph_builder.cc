@@ -1,8 +1,8 @@
-#include "core/graph_factory.h"
+#include "core/graph_builder.h"
 
 namespace infini {
 
-Tensor GraphFactoryObj::tensor(Shape dim, const std::string &dtype) {
+Tensor GraphBuilderObj::tensor(Shape dim, const std::string &dtype) {
     if (dtype == "FLOAT") {
         return g->addTensor(dim, DataType::Float32);
     }
@@ -12,7 +12,7 @@ Tensor GraphFactoryObj::tensor(Shape dim, const std::string &dtype) {
     IT_TODO_HALT_MSG("Unsupported data type");
 }
 
-Operator GraphFactoryObj::conv(Tensor input, Tensor weight, Tensor output,
+Operator GraphBuilderObj::conv(Tensor input, Tensor weight, Tensor output,
                                int ph, int pw, int sh, int sw, int dh, int dw,
                                Tensor bias) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
@@ -23,7 +23,7 @@ Operator GraphFactoryObj::conv(Tensor input, Tensor weight, Tensor output,
     return op;
 }
 
-Operator GraphFactoryObj::conv(Tensor input, Tensor weight, int ph, int pw,
+Operator GraphBuilderObj::conv(Tensor input, Tensor weight, int ph, int pw,
                                int sh, int sw, int dh, int dw, Tensor bias) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     Tensor w0 = g->addTensor(weight->getDims(), weight->getDType());
@@ -31,7 +31,7 @@ Operator GraphFactoryObj::conv(Tensor input, Tensor weight, int ph, int pw,
     return op;
 }
 
-Operator GraphFactoryObj::conv(Tensor input, Tensor weight, Tensor output,
+Operator GraphBuilderObj::conv(Tensor input, Tensor weight, Tensor output,
                                ConvBaseObj::PaddingMode pm, int sh, int sw,
                                int dh, int dw, Tensor bias) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
@@ -42,7 +42,7 @@ Operator GraphFactoryObj::conv(Tensor input, Tensor weight, Tensor output,
     return op;
 }
 
-Operator GraphFactoryObj::conv(Tensor input, Tensor weight,
+Operator GraphBuilderObj::conv(Tensor input, Tensor weight,
                                ConvBaseObj::PaddingMode pm, int sh, int sw,
                                int dh, int dw, Tensor bias) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
@@ -51,7 +51,7 @@ Operator GraphFactoryObj::conv(Tensor input, Tensor weight,
     return op;
 }
 
-Operator GraphFactoryObj::matmul(Tensor A, Tensor B, Tensor C, bool transA,
+Operator GraphBuilderObj::matmul(Tensor A, Tensor B, Tensor C, bool transA,
                                  bool transB, Tensor bias, ActType act) {
     Tensor i0 = g->addTensor(A->getDims(), A->getDType());
     Tensor i1 = g->addTensor(B->getDims(), B->getDType());
@@ -61,7 +61,7 @@ Operator GraphFactoryObj::matmul(Tensor A, Tensor B, Tensor C, bool transA,
     return op;
 }
 
-Operator GraphFactoryObj::matmul(Tensor A, Tensor B, bool transA, bool transB,
+Operator GraphBuilderObj::matmul(Tensor A, Tensor B, bool transA, bool transB,
                                  Tensor bias, ActType act) {
     Tensor i0 = g->addTensor(A->getDims(), A->getDType());
     Tensor i1 = g->addTensor(B->getDims(), B->getDType());
@@ -69,7 +69,7 @@ Operator GraphFactoryObj::matmul(Tensor A, Tensor B, bool transA, bool transB,
     return op;
 }
 
-Operator GraphFactoryObj::convTrans(Tensor input, Tensor weight, Tensor output,
+Operator GraphBuilderObj::convTrans(Tensor input, Tensor weight, Tensor output,
                                     int ph, int pw, int sh, int sw, int dh,
                                     int dw, int oph, int opw, int group,
                                     Tensor bias, ActType act) {
@@ -81,7 +81,7 @@ Operator GraphFactoryObj::convTrans(Tensor input, Tensor weight, Tensor output,
     return op;
 }
 
-Operator GraphFactoryObj::convTrans(Tensor input, Tensor weight, int ph, int pw,
+Operator GraphBuilderObj::convTrans(Tensor input, Tensor weight, int ph, int pw,
                                     int sh, int sw, int dh, int dw, int oph,
                                     int opw, int group, Tensor bias,
                                     ActType act) {
@@ -92,7 +92,7 @@ Operator GraphFactoryObj::convTrans(Tensor input, Tensor weight, int ph, int pw,
     return op;
 }
 
-Operator GraphFactoryObj::convTrans(Tensor input, Tensor weight, Tensor output,
+Operator GraphBuilderObj::convTrans(Tensor input, Tensor weight, Tensor output,
                                     ConvBaseObj::PaddingMode pm, int sh, int sw,
                                     int dh, int dw, int oph, int opw, int group,
                                     Tensor bias, ActType act) {
@@ -104,7 +104,7 @@ Operator GraphFactoryObj::convTrans(Tensor input, Tensor weight, Tensor output,
     return op;
 }
 
-Operator GraphFactoryObj::convTrans(Tensor input, Tensor weight,
+Operator GraphBuilderObj::convTrans(Tensor input, Tensor weight,
                                     ConvBaseObj::PaddingMode pm, int sh, int sw,
                                     int dh, int dw, int oph, int opw, int group,
                                     Tensor bias, ActType act) {
@@ -115,7 +115,7 @@ Operator GraphFactoryObj::convTrans(Tensor input, Tensor weight,
     return op;
 }
 
-Operator GraphFactoryObj::g2bmm(Tensor A, Tensor B, Tensor C, const int width,
+Operator GraphBuilderObj::g2bmm(Tensor A, Tensor B, Tensor C, const int width,
                                 const int dilation, Tensor bias, ActType act) {
     Tensor i0 = g->addTensor(A->getDims(), A->getDType());
     Tensor i1 = g->addTensor(B->getDims(), B->getDType());
@@ -125,7 +125,7 @@ Operator GraphFactoryObj::g2bmm(Tensor A, Tensor B, Tensor C, const int width,
     return op;
 }
 
-Operator GraphFactoryObj::g2bmm(Tensor A, Tensor B, const int width,
+Operator GraphBuilderObj::g2bmm(Tensor A, Tensor B, const int width,
                                 const int dilation, Tensor bias, ActType act) {
     Tensor i0 = g->addTensor(A->getDims(), A->getDType());
     Tensor i1 = g->addTensor(B->getDims(), B->getDType());
@@ -133,7 +133,7 @@ Operator GraphFactoryObj::g2bmm(Tensor A, Tensor B, const int width,
     return op;
 }
 
-Operator GraphFactoryObj::gbmml(Tensor A, Tensor B, Tensor C,
+Operator GraphBuilderObj::gbmml(Tensor A, Tensor B, Tensor C,
                                 const int dilation, Tensor bias, ActType act) {
     Tensor i0 = g->addTensor(A->getDims(), A->getDType());
     Tensor i1 = g->addTensor(B->getDims(), B->getDType());
@@ -142,7 +142,7 @@ Operator GraphFactoryObj::gbmml(Tensor A, Tensor B, Tensor C,
     return op;
 }
 
-Operator GraphFactoryObj::gbmml(Tensor A, Tensor B, const int dilation,
+Operator GraphBuilderObj::gbmml(Tensor A, Tensor B, const int dilation,
                                 Tensor bias, ActType act) {
     Tensor i0 = g->addTensor(A->getDims(), A->getDType());
     Tensor i1 = g->addTensor(B->getDims(), B->getDType());
@@ -150,7 +150,7 @@ Operator GraphFactoryObj::gbmml(Tensor A, Tensor B, const int dilation,
     return op;
 }
 
-Operator GraphFactoryObj::pad(Tensor input, Tensor output,
+Operator GraphBuilderObj::pad(Tensor input, Tensor output,
                               const vector<int> &pads,
                               const optional<const vector<int>> &axis) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
@@ -159,14 +159,14 @@ Operator GraphFactoryObj::pad(Tensor input, Tensor output,
     return op;
 }
 
-Operator GraphFactoryObj::pad(Tensor input, const vector<int> &pads,
+Operator GraphBuilderObj::pad(Tensor input, const vector<int> &pads,
                               const optional<const vector<int>> &axis) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     auto op = g->addOp<PadObj>(i0, nullptr, pads, axis);
     return op;
 }
 
-Operator GraphFactoryObj::slice(Tensor input, Tensor output,
+Operator GraphBuilderObj::slice(Tensor input, Tensor output,
                                 const vector<int> &starts,
                                 const vector<int> &ends,
                                 const optional<const vector<int>> &axis,
@@ -177,7 +177,7 @@ Operator GraphFactoryObj::slice(Tensor input, Tensor output,
     return op;
 }
 
-Operator GraphFactoryObj::slice(Tensor input, const vector<int> &starts,
+Operator GraphBuilderObj::slice(Tensor input, const vector<int> &starts,
                                 const vector<int> &ends,
                                 const optional<const vector<int>> &axis,
                                 const optional<const vector<int>> &steps) {
@@ -186,7 +186,7 @@ Operator GraphFactoryObj::slice(Tensor input, const vector<int> &starts,
     return op;
 }
 
-Operator GraphFactoryObj::concat(TensorVec inputs, Tensor output, int dim) {
+Operator GraphBuilderObj::concat(TensorVec inputs, Tensor output, int dim) {
     TensorVec is;
     for (auto input : inputs) {
         Tensor i = g->addTensor(input->getDims(), input->getDType());
@@ -197,7 +197,7 @@ Operator GraphFactoryObj::concat(TensorVec inputs, Tensor output, int dim) {
     return op;
 }
 
-Operator GraphFactoryObj::concat(TensorVec inputs, int dim) {
+Operator GraphBuilderObj::concat(TensorVec inputs, int dim) {
     TensorVec is;
     for (auto input : inputs) {
         Tensor i = g->addTensor(input->getDims(), input->getDType());
@@ -207,7 +207,7 @@ Operator GraphFactoryObj::concat(TensorVec inputs, int dim) {
     return op;
 }
 
-Operator GraphFactoryObj::split(Tensor input, std::optional<TensorVec> outputs,
+Operator GraphBuilderObj::split(Tensor input, std::optional<TensorVec> outputs,
                                 int dim, int num) {
     Tensor i = g->addTensor(input->getDims(), input->getDType());
     if (outputs.has_value()) {
@@ -224,13 +224,13 @@ Operator GraphFactoryObj::split(Tensor input, std::optional<TensorVec> outputs,
     }
 }
 
-Operator GraphFactoryObj::split(Tensor input, int dim, int num) {
+Operator GraphBuilderObj::split(Tensor input, int dim, int num) {
     Tensor i = g->addTensor(input->getDims(), input->getDType());
     auto op = g->addOp<SplitObj>(i, std::nullopt, dim, num);
     return op;
 }
 
-Operator GraphFactoryObj::split(Tensor input, std::optional<TensorVec> outputs,
+Operator GraphBuilderObj::split(Tensor input, std::optional<TensorVec> outputs,
                                 int dim, const vector<int> &ratio) {
     Tensor i = g->addTensor(input->getDims(), input->getDType());
     if (outputs.has_value()) {
@@ -247,14 +247,14 @@ Operator GraphFactoryObj::split(Tensor input, std::optional<TensorVec> outputs,
     }
 }
 
-Operator GraphFactoryObj::split(Tensor input, int dim,
+Operator GraphBuilderObj::split(Tensor input, int dim,
                                 const vector<int> &ratio) {
     Tensor i = g->addTensor(input->getDims(), input->getDType());
     auto op = g->addOp<SplitObj>(i, std::nullopt, dim, ratio);
     return op;
 }
 
-Operator GraphFactoryObj::extend(Tensor input, Tensor output, int dim,
+Operator GraphBuilderObj::extend(Tensor input, Tensor output, int dim,
                                  int num) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     Tensor o0 = g->addTensor(output->getDims(), output->getDType());
@@ -262,13 +262,13 @@ Operator GraphFactoryObj::extend(Tensor input, Tensor output, int dim,
     return op;
 }
 
-Operator GraphFactoryObj::extend(Tensor input, int dim, int num) {
+Operator GraphBuilderObj::extend(Tensor input, int dim, int num) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     auto op = g->addOp<ExtendObj>(i0, nullptr, dim, num);
     return op;
 }
 
-Operator GraphFactoryObj::maxpool(Tensor input, Tensor output, int kh, int kw,
+Operator GraphBuilderObj::maxpool(Tensor input, Tensor output, int kh, int kw,
                                   int dh, int dw, int ph, int pw, int sh,
                                   int sw) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
@@ -278,14 +278,14 @@ Operator GraphFactoryObj::maxpool(Tensor input, Tensor output, int kh, int kw,
     return op;
 }
 
-Operator GraphFactoryObj::maxpool(Tensor input, int kh, int kw, int dh, int dw,
+Operator GraphBuilderObj::maxpool(Tensor input, int kh, int kw, int dh, int dw,
                                   int ph, int pw, int sh, int sw) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     auto op = g->addOp<MaxPoolObj>(i0, nullptr, kh, kw, dh, dw, ph, pw, sh, sw);
     return op;
 }
 
-Operator GraphFactoryObj::avgpool(Tensor input, Tensor output, int kh, int kw,
+Operator GraphBuilderObj::avgpool(Tensor input, Tensor output, int kh, int kw,
                                   int dh, int dw, int ph, int pw, int sh,
                                   int sw) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
@@ -295,14 +295,14 @@ Operator GraphFactoryObj::avgpool(Tensor input, Tensor output, int kh, int kw,
     return op;
 }
 
-Operator GraphFactoryObj::avgpool(Tensor input, int kh, int kw, int dh, int dw,
+Operator GraphBuilderObj::avgpool(Tensor input, int kh, int kw, int dh, int dw,
                                   int ph, int pw, int sh, int sw) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     auto op = g->addOp<AvgPoolObj>(i0, nullptr, kh, kw, dh, dw, ph, pw, sh, sw);
     return op;
 }
 
-Operator GraphFactoryObj::add(Tensor input0, Tensor input1, Tensor output) {
+Operator GraphBuilderObj::add(Tensor input0, Tensor input1, Tensor output) {
     Tensor i0 = g->addTensor(input0->getDims(), input0->getDType());
     Tensor i1 = g->addTensor(input1->getDims(), input1->getDType());
     Tensor o0 = g->addTensor(output->getDims(), output->getDType());
@@ -310,14 +310,14 @@ Operator GraphFactoryObj::add(Tensor input0, Tensor input1, Tensor output) {
     return op;
 }
 
-Operator GraphFactoryObj::add(Tensor input0, Tensor input1) {
+Operator GraphBuilderObj::add(Tensor input0, Tensor input1) {
     Tensor i0 = g->addTensor(input0->getDims(), input0->getDType());
     Tensor i1 = g->addTensor(input1->getDims(), input1->getDType());
     auto op = g->addOp<AddObj>(i0, i1, nullptr);
     return op;
 }
 
-Operator GraphFactoryObj::sub(Tensor input0, Tensor input1, Tensor output) {
+Operator GraphBuilderObj::sub(Tensor input0, Tensor input1, Tensor output) {
     Tensor i0 = g->addTensor(input0->getDims(), input0->getDType());
     Tensor i1 = g->addTensor(input1->getDims(), input1->getDType());
     Tensor o0 = g->addTensor(output->getDims(), output->getDType());
@@ -325,14 +325,14 @@ Operator GraphFactoryObj::sub(Tensor input0, Tensor input1, Tensor output) {
     return op;
 }
 
-Operator GraphFactoryObj::sub(Tensor input0, Tensor input1) {
+Operator GraphBuilderObj::sub(Tensor input0, Tensor input1) {
     Tensor i0 = g->addTensor(input0->getDims(), input0->getDType());
     Tensor i1 = g->addTensor(input1->getDims(), input1->getDType());
     auto op = g->addOp<SubObj>(i0, i1, nullptr);
     return op;
 }
 
-Operator GraphFactoryObj::mul(Tensor input0, Tensor input1, Tensor output) {
+Operator GraphBuilderObj::mul(Tensor input0, Tensor input1, Tensor output) {
     Tensor i0 = g->addTensor(input0->getDims(), input0->getDType());
     Tensor i1 = g->addTensor(input1->getDims(), input1->getDType());
     Tensor o0 = g->addTensor(output->getDims(), output->getDType());
@@ -340,14 +340,14 @@ Operator GraphFactoryObj::mul(Tensor input0, Tensor input1, Tensor output) {
     return op;
 }
 
-Operator GraphFactoryObj::mul(Tensor input0, Tensor input1) {
+Operator GraphBuilderObj::mul(Tensor input0, Tensor input1) {
     Tensor i0 = g->addTensor(input0->getDims(), input0->getDType());
     Tensor i1 = g->addTensor(input1->getDims(), input1->getDType());
     auto op = g->addOp<SubObj>(i0, i1, nullptr);
     return op;
 }
 
-Operator GraphFactoryObj::div(Tensor input0, Tensor input1, Tensor output) {
+Operator GraphBuilderObj::div(Tensor input0, Tensor input1, Tensor output) {
     Tensor i0 = g->addTensor(input0->getDims(), input0->getDType());
     Tensor i1 = g->addTensor(input1->getDims(), input1->getDType());
     Tensor o0 = g->addTensor(output->getDims(), output->getDType());
@@ -355,14 +355,14 @@ Operator GraphFactoryObj::div(Tensor input0, Tensor input1, Tensor output) {
     return op;
 }
 
-Operator GraphFactoryObj::div(Tensor input0, Tensor input1) {
+Operator GraphBuilderObj::div(Tensor input0, Tensor input1) {
     Tensor i0 = g->addTensor(input0->getDims(), input0->getDType());
     Tensor i1 = g->addTensor(input1->getDims(), input1->getDType());
     auto op = g->addOp<DivObj>(i0, i1, nullptr);
     return op;
 }
 
-Operator GraphFactoryObj::pow(Tensor input0, Tensor input1, Tensor output) {
+Operator GraphBuilderObj::pow(Tensor input0, Tensor input1, Tensor output) {
     Tensor i0 = g->addTensor(input0->getDims(), input0->getDType());
     Tensor i1 = g->addTensor(input1->getDims(), input1->getDType());
     Tensor o0 = g->addTensor(output->getDims(), output->getDType());
@@ -370,14 +370,14 @@ Operator GraphFactoryObj::pow(Tensor input0, Tensor input1, Tensor output) {
     return op;
 }
 
-Operator GraphFactoryObj::pow(Tensor input0, Tensor input1) {
+Operator GraphBuilderObj::pow(Tensor input0, Tensor input1) {
     Tensor i0 = g->addTensor(input0->getDims(), input0->getDType());
     Tensor i1 = g->addTensor(input1->getDims(), input1->getDType());
     auto op = g->addOp<PowObj>(i0, i1, nullptr);
     return op;
 }
 
-Operator GraphFactoryObj::gather(Tensor input, Tensor index, Tensor output,
+Operator GraphBuilderObj::gather(Tensor input, Tensor index, Tensor output,
                                  int axis) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     Tensor o0 = g->addTensor(output->getDims(), output->getDType());
@@ -385,13 +385,13 @@ Operator GraphFactoryObj::gather(Tensor input, Tensor index, Tensor output,
     return op;
 }
 
-Operator GraphFactoryObj::gather(Tensor input, Tensor index, int axis) {
+Operator GraphBuilderObj::gather(Tensor input, Tensor index, int axis) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     auto op = g->addOp<GatherObj>(i0, index, nullptr, axis);
     return op;
 }
 
-Operator GraphFactoryObj::reshape(Tensor input, Tensor output,
+Operator GraphBuilderObj::reshape(Tensor input, Tensor output,
                                   const Shape &dims) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     Tensor o0 = g->addTensor(output->getDims(), output->getDType());
@@ -399,104 +399,104 @@ Operator GraphFactoryObj::reshape(Tensor input, Tensor output,
     return op;
 }
 
-Operator GraphFactoryObj::reshape(Tensor input, const Shape &dims) {
+Operator GraphBuilderObj::reshape(Tensor input, const Shape &dims) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     auto op = g->addOp<ReshapeObj>(i0, nullptr, dims);
     return op;
 }
 
-Operator GraphFactoryObj::flatten(Tensor input, Tensor output) {
+Operator GraphBuilderObj::flatten(Tensor input, Tensor output) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     Tensor o0 = g->addTensor(output->getDims(), output->getDType());
     auto op = g->addOpWithOutputs<FlattenObj>(i0, o0);
     return op;
 }
 
-Operator GraphFactoryObj::flatten(Tensor input) {
+Operator GraphBuilderObj::flatten(Tensor input) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     auto op = g->addOp<FlattenObj>(i0, nullptr);
     return op;
 }
 
-Operator GraphFactoryObj::identity(Tensor input, Tensor output) {
+Operator GraphBuilderObj::identity(Tensor input, Tensor output) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     Tensor o0 = g->addTensor(output->getDims(), output->getDType());
     auto op = g->addOpWithOutputs<IdentityObj>(i0, o0);
     return op;
 }
 
-Operator GraphFactoryObj::identity(Tensor input) {
+Operator GraphBuilderObj::identity(Tensor input) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     auto op = g->addOp<IdentityObj>(i0, nullptr);
     return op;
 }
 
-Operator GraphFactoryObj::softmax(Tensor input, Tensor output) {
+Operator GraphBuilderObj::softmax(Tensor input, Tensor output) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     Tensor o0 = g->addTensor(output->getDims(), output->getDType());
     auto op = g->addOpWithOutputs<SoftmaxObj>(i0, o0);
     return op;
 }
 
-Operator GraphFactoryObj::softmax(Tensor input) {
+Operator GraphBuilderObj::softmax(Tensor input) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     auto op = g->addOp<SoftmaxObj>(i0, nullptr);
     return op;
 }
 
-Operator GraphFactoryObj::relu(Tensor input, Tensor output) {
+Operator GraphBuilderObj::relu(Tensor input, Tensor output) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     Tensor o0 = g->addTensor(output->getDims(), output->getDType());
     auto op = g->addOpWithOutputs<ReluObj>(i0, o0);
     return op;
 }
 
-Operator GraphFactoryObj::relu(Tensor input) {
+Operator GraphBuilderObj::relu(Tensor input) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     auto op = g->addOp<ReluObj>(i0, nullptr);
     return op;
 }
 
-Operator GraphFactoryObj::sigmoid(Tensor input, Tensor output) {
+Operator GraphBuilderObj::sigmoid(Tensor input, Tensor output) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     Tensor o0 = g->addTensor(output->getDims(), output->getDType());
     auto op = g->addOpWithOutputs<SigmoidObj>(i0, o0);
     return op;
 }
 
-Operator GraphFactoryObj::sigmoid(Tensor input) {
+Operator GraphBuilderObj::sigmoid(Tensor input) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     auto op = g->addOp<SigmoidObj>(i0, nullptr);
     return op;
 }
 
-Operator GraphFactoryObj::tanh(Tensor input, Tensor output) {
+Operator GraphBuilderObj::tanh(Tensor input, Tensor output) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     Tensor o0 = g->addTensor(output->getDims(), output->getDType());
     auto op = g->addOpWithOutputs<TanhObj>(i0, o0);
     return op;
 }
 
-Operator GraphFactoryObj::tanh(Tensor input) {
+Operator GraphBuilderObj::tanh(Tensor input) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     auto op = g->addOp<TanhObj>(i0, nullptr);
     return op;
 }
 
-Operator GraphFactoryObj::abs(Tensor input, Tensor output) {
+Operator GraphBuilderObj::abs(Tensor input, Tensor output) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     Tensor o0 = g->addTensor(output->getDims(), output->getDType());
     auto op = g->addOpWithOutputs<AbsObj>(i0, o0);
     return op;
 }
 
-Operator GraphFactoryObj::abs(Tensor input) {
+Operator GraphBuilderObj::abs(Tensor input) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     auto op = g->addOp<AbsObj>(i0, nullptr);
     return op;
 }
 
-Operator GraphFactoryObj::memBound(const TensorVec &inputs,
+Operator GraphBuilderObj::memBound(const TensorVec &inputs,
                                    const TensorVec &outputs,
                                    const std::vector<nnet::Tensor> &nnetInputs,
                                    nnet::Expr expr, double exec_time,
