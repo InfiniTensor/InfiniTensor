@@ -34,28 +34,6 @@ class SearchGraph {
         nodes[j].pred.emplace_back(i);
     }
     std::shared_ptr<MetaGraph> exportFirstMetaGraph();
-    inline void print() {
-        for (auto node : nodes) {
-            std::cout << node.id << "[(";
-            if (node.pred.size() > 0) {
-                std::cout << node.pred[0];
-            }
-            for (size_t i = 1; i < node.pred.size(); i++) {
-                std::cout << ", " << node.pred[i];
-            }
-            std::cout << ")(";
-            if (node.succ.size() > 0) {
-                std::cout << node.succ[0];
-            }
-            for (size_t i = 1; i < node.succ.size(); i++) {
-                std::cout << ", " << node.succ[i];
-            }
-            std::cout << ")]" << std::endl;
-            for (auto metaOp : node.metaOps) {
-                metaOp->print();
-            }
-        }
-    }
 };
 
 } // namespace memb

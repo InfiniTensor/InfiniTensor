@@ -112,6 +112,11 @@ std::string infini::MemoryCodegen::generate(Graph graph) {
     auto searchGraph = instantiateGraph(graph);
     auto metaGraph = searchGraph->exportFirstMetaGraph();
     std::string code = "";
+    std::cout << "[INFO] before opt." << std::endl;
+    metaGraph->print();
+    metaGraph->optimize();
+    std::cout << "[INFO] after opt." << std::endl;
+    metaGraph->print();
     code += metaGraph->genHeader();
     code += metaGraph->genKernelFuncs();
     code += metaGraph->genInvokeFuncs();

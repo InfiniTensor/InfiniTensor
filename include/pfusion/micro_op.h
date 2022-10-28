@@ -6,28 +6,28 @@
 namespace memb {
 
 class MicroOp {
-  public:
-    enum MicroOpType {
-        memory = 1,
-        kernel,
-    };
-
   protected:
-    MicroOpType type;
-    int id;
+    size_t id;
+    OpType opType;
+    std::vector<std::shared_ptr<Pointer>> ptrs;
 
   public:
     MicroOp() {
         static int microOpId = 0;
         id = microOpId++;
+        opType = OpType(0);
     }
     virtual ~MicroOp() {}
 
-    inline MicroOpType getType() { return type; }
+    inline OpType getType() { return opType; }
+    inline bool isMemoryOp() { return opType == READ || opType == WRITE; }
+    inline std::vector<std::shared_ptr<Pointer>> getPtrs() { return ptrs; }
 
     // virtual bool checkValid() = 0;
     virtual std::string generate() = 0;
     virtual void print() = 0;
+    static std::shared_ptr<MicroOp> merge(std::shared_ptr<MicroOp> op0,
+                                          std::shared_ptr<MicroOp> op1);
 };
 
 class MicroGraph {
@@ -37,7 +37,7 @@ class MicroGraph {
 
   private:
     std::vector<std::shared_ptr<MicroOp>> microOps;
-    std::vector<std::pair<int, int>> deps;
+    std::vector<std::pair<int, int>> edges;
 };
 
 } // namespace memb

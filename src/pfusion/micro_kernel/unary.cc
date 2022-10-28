@@ -12,8 +12,8 @@ std::string UnaryOp::generate() {
     code += "for (int inst_idx = 0; inst_idx < " + std::to_string(num) +
             "; inst_idx++) {\n";
     if (opType == RELU) {
-        code += dst->generate() + " = (" + src->generate() + " > 0) ? " +
-                src->generate() + " : 0;\n";
+        code += getDst()->generate() + " = (" + getSrc()->generate() +
+                " > 0) ? " + getSrc()->generate() + " : 0;\n";
     } else {
         IT_ASSERT(false);
     }

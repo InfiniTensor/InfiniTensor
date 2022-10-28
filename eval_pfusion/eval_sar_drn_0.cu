@@ -3,8 +3,7 @@
 
 #include <vector>
 
-void invoke_func_0(float *tensor_ptr_2, float *tensor_ptr_3);
-void invoke_func_1(float *tensor_ptr_2, float *tensor_ptr_3,
+void invoke_func_2(float *tensor_ptr_2, float *tensor_ptr_3,
     float *tensor_ptr_4);
 
 int main() {
@@ -25,11 +24,11 @@ int main() {
     cudaEventCreate(&ed);
     int cnt = 128;
     for (int t = 0; t < cnt; t++) {
-        invoke_func_0(t0, t1);
+        invoke_func_2(t0, t1, t2);
     }
     cudaEventRecord(st, 0);
     for (int t = 0; t < cnt; t++) {
-        invoke_func_0(t0, t1);
+        invoke_func_2(t0, t1, t2);
     }
     cudaEventRecord(ed, 0);
     cudaEventSynchronize(st);

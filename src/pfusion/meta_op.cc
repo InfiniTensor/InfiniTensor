@@ -22,6 +22,43 @@ std::string TensorMapping::genOffset() {
     return code;
 }
 
+void MetaOp::optimize() {
+    std::vector<std::shared_ptr<MicroOp>> ops;
+    int numOp = microOps.size();
+    int cur = 0;
+    for (int i = 1; i < numOp; i++) {
+        auto next = MicroOp::merge(microOps[cur], microOps[i]);
+        if (next == nullptr) {
+            ops.emplace_back(microOps[cur]);
+            cur = i;
+        } else {
+            cur = microOps.size();
+            microOps.emplace_back(next);
+        }
+    }
+    ops.emplace_back(microOps[cur]);
+    microOps.clear();
+    std::unordered_set<std::string> ptrSet;
+    for (auto op : ops) {
+        for (auto ptr : op->getPtrs()) {
+            ptrSet.emplace(ptr->getName());
+        }
+        if (op->getType() != EMPTY) {
+            microOps.emplace_back(op);
+        }
+    }
+    std::vector<std::shared_ptr<Pointer>> newPtrs;
+    for (auto ptr : ptrs) {
+        if (ptrSet.find(ptr->getName()) != ptrSet.end()) {
+            newPtrs.emplace_back(ptr);
+        }
+    }
+    ptrs.clear();
+    for (auto ptr : newPtrs) {
+        ptrs.emplace_back(ptr);
+    }
+}
+
 std::string MetaOp::genKernelFunc() {
     std::string code = "";
     code += "// Kernel\n";
@@ -84,24 +121,24 @@ std::string MetaOp::genInvokeFunc() {
     return code;
 }
 
-std::shared_ptr<MetaOp> MetaOp::buildByMerge(std::shared_ptr<MetaOp> metaOp0,
-                                             std::shared_ptr<MetaOp> metaOp1) {
+std::shared_ptr<MetaOp> MetaOp::merge(std::shared_ptr<MetaOp> metaOp0,
+                                      std::shared_ptr<MetaOp> metaOp1) {
     IT_ASSERT(metaOp0->checkValid());
     IT_ASSERT(metaOp1->checkValid());
     // Check unmergeable
     if (metaOp0->main_loop_st != metaOp1->main_loop_st ||
         metaOp0->main_loop_ed != metaOp1->main_loop_ed ||
         metaOp0->numBlocks != metaOp1->numBlocks ||
-        metaOp0->numReg != metaOp1->numReg ||
-        metaOp0->numSmem != metaOp1->numSmem) {
+        metaOp0->numWarps != metaOp1->numWarps) {
         return nullptr;
     }
     auto metaOp = std::make_shared<MetaOp>();
     metaOp->main_loop_st = metaOp0->main_loop_st;
     metaOp->main_loop_ed = metaOp0->main_loop_ed;
     metaOp->numBlocks = metaOp0->numBlocks;
-    metaOp->numReg = metaOp0->numReg;
-    metaOp->numSmem = metaOp0->numSmem;
+    metaOp->numWarps = metaOp0->numWarps;
+    metaOp->numReg = metaOp0->numReg + metaOp1->numReg;
+    metaOp->numSmem = metaOp0->numSmem + metaOp1->numSmem;
 
     // Merge ptr
     std::unordered_set<size_t> ptrSet;

@@ -11,7 +11,7 @@ std::string BinaryOp::generate() {
     code += "#pragma unroll\n";
     code += "for (int inst_idx = 0; inst_idx < " + std::to_string(num) +
             "; inst_idx++) {\n";
-    std::string opFunc = pDst->generate() + " = " + pSrc0->generate();
+    std::string opFunc = getDst()->generate() + " = " + getSrc0()->generate();
     if (opType == ADD) {
         opFunc += " + ";
     } else if (opType == SUB) {
@@ -19,7 +19,7 @@ std::string BinaryOp::generate() {
     } else {
         IT_ASSERT(false);
     }
-    opFunc += pSrc1->generate() + ";\n";
+    opFunc += getSrc1()->generate() + ";\n";
     code += opFunc;
     code += "}\n";
 

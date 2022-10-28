@@ -10,7 +10,8 @@
 namespace memb {
 
 enum OpType {
-    READ = 1,
+    EMPTY = 1,
+    READ,
     WRITE,
     RELU,
     ADD,
@@ -26,6 +27,8 @@ enum MemType {
 
 inline std::string getName(OpType opType) {
     switch (opType) {
+    case (OpType::EMPTY):
+        return "EMPTY";
     case (OpType::READ):
         return "READ";
     case (OpType::WRITE):

@@ -23,6 +23,8 @@ class MetaGraph {
         IT_ASSERT(metaOpMap.find(op2->id) != metaOpMap.end());
         edges.emplace_back(metaOpMap[op1->id], metaOpMap[op2->id]);
     }
+    void print();
+    void optimize();
     std::string genHeader();
     std::string genKernelFuncs();
     std::string genInvokeFuncs();

@@ -11,11 +11,11 @@ std::string MemoryOp::generate() {
     code += "#pragma unroll\n";
     code += "for (int inst_idx = 0; inst_idx < " + std::to_string(num) +
             "; inst_idx++) {\n";
-    if ((opType == OpType::READ && src->getType() != MemType::REG &&
-         dst->getType() == MemType::REG) ||
-        (opType == OpType::WRITE && src->getType() == MemType::REG &&
-         dst->getType() != MemType::REG)) {
-        code += dst->generate() + " = " + src->generate() + ";\n";
+    if ((opType == OpType::READ && getSrc()->getType() != MemType::REG &&
+         getDst()->getType() == MemType::REG) ||
+        (opType == OpType::WRITE && getSrc()->getType() == MemType::REG &&
+         getDst()->getType() != MemType::REG)) {
+        code += getDst()->generate() + " = " + getSrc()->generate() + ";\n";
     } else {
         IT_ASSERT(false);
     }

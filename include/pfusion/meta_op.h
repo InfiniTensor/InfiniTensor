@@ -60,12 +60,12 @@ class MetaOp {
     inline int getLoopSt() { return main_loop_st; }
     inline int getLoopEd() { return main_loop_ed; }
 
+    void optimize();
     std::string genKernelFunc();
     std::string genInvokeFunc();
 
-    static std::shared_ptr<MetaOp>
-    buildByMerge(std::shared_ptr<MetaOp> metaOp0,
-                 std::shared_ptr<MetaOp> metaOp1);
+    static std::shared_ptr<MetaOp> merge(std::shared_ptr<MetaOp> metaOp0,
+                                         std::shared_ptr<MetaOp> metaOp1);
 
     inline void print() {
         std::cout << "MetaOp: " << id << std::endl;

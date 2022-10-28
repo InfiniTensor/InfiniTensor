@@ -19,7 +19,7 @@ TEST(Graph, SAR_DRN_0) {
     Tensor t3 = g->addTensor({1, 64, 512, 512}, DataType::Float32);
     g->dataMalloc();
     g->addOpWithOutputs<ReluObj>(t0, t1);
-    g->addOpWithOutputs<AddObj>(t0, t1, t2);
+    g->addOpWithOutputs<AddObj>(t1, t2, t3);
     MemoryCodegen codegen;
     codegen.exportCode(g, "sar_drn_0.cu");
 }
@@ -33,7 +33,7 @@ TEST(Graph, SAR_DRN_1) {
     Tensor t3 = g->addTensor({1, 1, 512, 512}, DataType::Float32);
     g->dataMalloc();
     g->addOpWithOutputs<ReluObj>(t0, t1);
-    g->addOpWithOutputs<SubObj>(t0, t1, t2);
+    g->addOpWithOutputs<SubObj>(t1, t2, t3);
     MemoryCodegen codegen;
     codegen.exportCode(g, "sar_drn_1.cu");
 }
