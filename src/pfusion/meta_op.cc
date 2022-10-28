@@ -23,6 +23,8 @@ std::string TensorMapping::genOffset() {
 }
 
 void MetaOp::optimize() {
+    if (microOps.size() == 0)
+        return;
     std::vector<std::shared_ptr<MicroOp>> ops;
     int numOp = microOps.size();
     int cur = 0;

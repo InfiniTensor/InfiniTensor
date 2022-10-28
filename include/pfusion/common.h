@@ -16,7 +16,11 @@ enum OpType {
     RELU,
     ADD,
     SUB,
+    REDUCEMEAN,
+    REDUCESUM,
+    GATHER,
     TRANSPOSE,
+    BROADCAST,
 };
 
 enum MemType {

@@ -13,7 +13,7 @@ std::shared_ptr<MicroOp> MicroOp::merge(std::shared_ptr<MicroOp> op0,
                 return std::make_shared<EmptyOp>();
             } else {
                 // TODO: gen reg to reg.
-                IT_ASSERT(false);
+                // IT_ASSERT(false);
             }
         }
     }

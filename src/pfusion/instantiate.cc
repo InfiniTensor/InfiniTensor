@@ -191,4 +191,102 @@ std::vector<std::shared_ptr<MetaOp>> instantiateTranspose(
     return metaOps;
 }
 
+std::vector<std::shared_ptr<MetaOp>>
+instantiateGather(const OpType opType,
+                  const std::vector<std::shared_ptr<Pointer>> &ptrs,
+                  const std::vector<size_t> &inputShape,
+                  const std::vector<size_t> &indexShape,
+                  const std::vector<size_t> &outputShape, const size_t axis) {
+    std::vector<std::shared_ptr<MetaOp>> metaOps;
+    size_t par_size = 1;
+    for (size_t i = 0; i < outputShape.size() - 1; i++) {
+        par_size *= inputShape[i];
+    }
+    size_t seq_size = inputShape[outputShape.size() - 1];
+
+    auto metaOp = std::make_shared<MetaOp>();
+    metaOp->main_loop_st = 0;
+    metaOp->main_loop_ed = par_size;
+    metaOp->numBlocks = 108;
+    metaOp->numWarps = 2;
+    metaOp->numReg = 24;
+    metaOp->numSmem = 0;
+
+    metaOp->mappings.emplace_back(std::make_shared<TensorMapping>(
+        std::string("src"), std::vector<size_t>({seq_size, par_size}),
+        std::vector<size_t>({1})));
+
+    metaOp->ptrs = ptrs;
+    auto buf0 = Pointer::buildPtr(REG, "buf", "inst_idx");
+    auto buf1 = Pointer::buildPtr(REG, "buf", "inst_idx + 8");
+    auto buf2 = Pointer::buildPtr(REG, "buf", "inst_idx + 16");
+
+    metaOps.emplace_back(metaOp);
+    return metaOps;
+}
+
+std::vector<std::shared_ptr<MetaOp>>
+instantiateReduce(const OpType opType,
+                  const std::vector<std::shared_ptr<Pointer>> &ptrs,
+                  const std::vector<size_t> &inputShape, const size_t axis) {
+    std::vector<std::shared_ptr<MetaOp>> metaOps;
+    size_t par_size = 1;
+    for (size_t i = 0; i < inputShape.size(); i++) {
+        if (i != axis) {
+            par_size *= inputShape[i];
+        }
+    }
+    size_t seq_size = inputShape[axis];
+
+    auto metaOp = std::make_shared<MetaOp>();
+    metaOp->main_loop_st = 0;
+    metaOp->main_loop_ed = par_size;
+    metaOp->numBlocks = 108;
+    metaOp->numWarps = 2;
+    metaOp->numReg = 24;
+    metaOp->numSmem = 0;
+
+    metaOp->mappings.emplace_back(std::make_shared<TensorMapping>(
+        std::string("src"), std::vector<size_t>({seq_size, par_size}),
+        std::vector<size_t>({1})));
+
+    metaOp->ptrs = ptrs;
+    auto buf0 = Pointer::buildPtr(REG, "buf", "inst_idx");
+    auto buf1 = Pointer::buildPtr(REG, "buf", "inst_idx + 8");
+    auto buf2 = Pointer::buildPtr(REG, "buf", "inst_idx + 16");
+
+    metaOps.emplace_back(metaOp);
+    return metaOps;
+}
+
+std::vector<std::shared_ptr<MetaOp>>
+instantiateBroadcast(const OpType opType,
+                     const std::vector<std::shared_ptr<Pointer>> &ptrs,
+                     const std::vector<size_t> &inputShape, const size_t axis,
+                     const size_t num) {
+    std::vector<std::shared_ptr<MetaOp>> metaOps;
+    size_t par_size = getSize(inputShape);
+    size_t seq_size = num;
+
+    auto metaOp = std::make_shared<MetaOp>();
+    metaOp->main_loop_st = 0;
+    metaOp->main_loop_ed = par_size;
+    metaOp->numBlocks = 108;
+    metaOp->numWarps = 2;
+    metaOp->numReg = 24;
+    metaOp->numSmem = 0;
+
+    metaOp->mappings.emplace_back(std::make_shared<TensorMapping>(
+        std::string("src"), std::vector<size_t>({seq_size, par_size}),
+        std::vector<size_t>({1})));
+
+    metaOp->ptrs = ptrs;
+    auto buf0 = Pointer::buildPtr(REG, "buf", "inst_idx");
+    auto buf1 = Pointer::buildPtr(REG, "buf", "inst_idx + 8");
+    auto buf2 = Pointer::buildPtr(REG, "buf", "inst_idx + 16");
+
+    metaOps.emplace_back(metaOp);
+    return metaOps;
+}
+
 } // namespace memb

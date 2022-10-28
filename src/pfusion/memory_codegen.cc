@@ -1,4 +1,7 @@
 #include "core/graph.h"
+#include "operators/extend.h"
+#include "operators/gather.h"
+#include "operators/reduce_mean.h"
 #include "operators/transpose.h"
 
 #include "pfusion/instantiate.h"
@@ -36,6 +39,8 @@ std::vector<size_t> convertShape(const std::vector<int> &_shape) {
     return shape;
 }
 
+size_t convertIndex(const size_t idx, const size_t size) { return size - idx; }
+
 std::vector<size_t> convertPerm(const std::vector<int> &_perm) {
     std::vector<size_t> perm;
     for (int i = int(_perm.size()); i > 0; i--) {
@@ -44,54 +49,110 @@ std::vector<size_t> convertPerm(const std::vector<int> &_perm) {
     return perm;
 }
 
+void convertTranspose(std::shared_ptr<memb::SearchGraph> searchGraph,
+                      infini::Operator op) {
+    searchGraph->addNode(memb::instantiateTranspose(
+        memb::TRANSPOSE,
+        {memb::Pointer::buildPtrByTensorGuid(op->getInputs()[0]->getGuid()),
+         memb::Pointer::buildPtrByTensorGuid(op->getOutputs()[0]->getGuid())},
+        convertShape(op->getOutputs()[0]->getDims()),
+        convertPerm(infini::as<infini::TransposeObj>(op)->getPerm())));
+}
+
+void convertUnary(std::shared_ptr<memb::SearchGraph> searchGraph,
+                  infini::Operator op, memb::OpType opType) {
+    searchGraph->addNode(memb::instantiateUnary(
+        opType,
+        {memb::Pointer::buildPtrByTensorGuid(op->getInputs()[0]->getGuid()),
+         memb::Pointer::buildPtrByTensorGuid(op->getOutputs()[0]->getGuid())},
+        convertShape(op->getOutputs()[0]->getDims())));
+}
+
+void convertBinary(std::shared_ptr<memb::SearchGraph> searchGraph,
+                   infini::Operator op, memb::OpType opType) {
+    searchGraph->addNode(memb::instantiateBinary(
+        opType,
+        {memb::Pointer::buildPtrByTensorGuid(op->getInputs()[0]->getGuid()),
+         memb::Pointer::buildPtrByTensorGuid(op->getInputs()[1]->getGuid()),
+         memb::Pointer::buildPtrByTensorGuid(op->getOutputs()[0]->getGuid())},
+        convertShape(op->getOutputs()[0]->getDims())));
+}
+void convertGather(std::shared_ptr<memb::SearchGraph> searchGraph,
+                   infini::Operator op) {
+    searchGraph->addNode(memb::instantiateGather(
+        memb::GATHER,
+        {memb::Pointer::buildPtrByTensorGuid(op->getInputs()[0]->getGuid()),
+         memb::Pointer::buildPtrByTensorGuid(op->getInputs()[1]->getGuid()),
+         memb::Pointer::buildPtrByTensorGuid(op->getOutputs()[0]->getGuid())},
+        convertShape(op->getInputs()[0]->getDims()),
+        convertShape(op->getInputs()[1]->getDims()),
+        convertShape(op->getOutputs()[0]->getDims()),
+        convertIndex(infini::as<infini::GatherObj>(op)->getAxis(),
+                     op->getInputs()[0]->getDims().size())));
+}
+void convertReduce(std::shared_ptr<memb::SearchGraph> searchGraph,
+                   infini::Operator op, memb::OpType opType) {
+    auto reduceMeanOp = infini::as<infini::ReduceMeanObj>(op);
+    int axis = -1,
+        dimSize = int(reduceMeanOp->getInputs()[0]->getDims().size());
+    for (int i = 0; i < dimSize; i++) {
+        if (reduceMeanOp->isReduced(i)) {
+            if (axis != -1) {
+                IT_ASSERT(false);
+            } else {
+                axis = dimSize - i - 1;
+            }
+        }
+    }
+    IT_ASSERT(axis != -1);
+    searchGraph->addNode(memb::instantiateReduce(
+        opType,
+        {memb::Pointer::buildPtrByTensorGuid(op->getInputs()[0]->getGuid()),
+         memb::Pointer::buildPtrByTensorGuid(op->getOutputs()[0]->getGuid())},
+        convertShape(op->getInputs()[0]->getDims()), axis));
+}
+
+void convertBroadcast(std::shared_ptr<memb::SearchGraph> searchGraph,
+                      infini::Operator op) {
+    auto extendOp = infini::as<infini::ExtendObj>(op);
+    IT_ASSERT(op->getInputs()[0]->getDims()[extendOp->getDim()] == 1);
+    searchGraph->addNode(memb::instantiateBroadcast(
+        memb::BROADCAST,
+        {memb::Pointer::buildPtrByTensorGuid(op->getInputs()[0]->getGuid()),
+         memb::Pointer::buildPtrByTensorGuid(op->getOutputs()[0]->getGuid())},
+        convertShape(op->getInputs()[0]->getDims()), extendOp->getDim(),
+        extendOp->getNum() + 1));
+}
+
 std::shared_ptr<memb::SearchGraph> instantiateGraph(infini::Graph graph) {
-    auto metaGraph = std::make_shared<memb::SearchGraph>();
+    auto searchGraph = std::make_shared<memb::SearchGraph>();
     std::unordered_map<int, int> opMap;
     int id = 0;
     for (auto op : graph->getOperators()) {
         switch (op->getOpType()) {
         case infini::OpType::Transpose:
-            metaGraph->addNode(memb::instantiateTranspose(
-                memb::TRANSPOSE,
-                {memb::Pointer::buildPtrByTensorGuid(
-                     op->getInputs()[0]->getGuid()),
-                 memb::Pointer::buildPtrByTensorGuid(
-                     op->getOutputs()[0]->getGuid())},
-                convertShape(op->getOutputs()[0]->getDims()),
-                convertPerm(infini::as<infini::TransposeObj>(op)->getPerm())));
+            convertTranspose(searchGraph, op);
             break;
         case infini::OpType::Relu:
-            metaGraph->addNode(memb::instantiateUnary(
-                memb::RELU,
-                {memb::Pointer::buildPtrByTensorGuid(
-                     op->getInputs()[0]->getGuid()),
-                 memb::Pointer::buildPtrByTensorGuid(
-                     op->getOutputs()[0]->getGuid())},
-                convertShape(op->getOutputs()[0]->getDims())));
+            convertUnary(searchGraph, op, memb::RELU);
             break;
         case infini::OpType::Add:
-            metaGraph->addNode(memb::instantiateBinary(
-                memb::ADD,
-                {memb::Pointer::buildPtrByTensorGuid(
-                     op->getInputs()[0]->getGuid()),
-                 memb::Pointer::buildPtrByTensorGuid(
-                     op->getInputs()[1]->getGuid()),
-                 memb::Pointer::buildPtrByTensorGuid(
-                     op->getOutputs()[0]->getGuid())},
-                convertShape(op->getOutputs()[0]->getDims())));
+            convertBinary(searchGraph, op, memb::ADD);
             break;
         case infini::OpType::Sub:
-            metaGraph->addNode(memb::instantiateBinary(
-                memb::SUB,
-                {memb::Pointer::buildPtrByTensorGuid(
-                     op->getInputs()[0]->getGuid()),
-                 memb::Pointer::buildPtrByTensorGuid(
-                     op->getInputs()[1]->getGuid()),
-                 memb::Pointer::buildPtrByTensorGuid(
-                     op->getOutputs()[0]->getGuid())},
-                convertShape(op->getOutputs()[0]->getDims())));
+            convertBinary(searchGraph, op, memb::SUB);
+            break;
+        case infini::OpType::Gather:
+            convertGather(searchGraph, op);
+            break;
+        case infini::OpType::ReduceMean:
+            convertReduce(searchGraph, op, memb::REDUCEMEAN);
+            break;
+        case infini::OpType::Extend:
+            convertBroadcast(searchGraph, op);
             break;
         default:
+            std::cout << int(op->getOpType()) << std::endl;
             IT_ASSERT(false);
         }
         IT_ASSERT(opMap.find(op->getGuid()) == opMap.end());
@@ -102,10 +163,11 @@ std::shared_ptr<memb::SearchGraph> instantiateGraph(infini::Graph graph) {
         for (auto nextOp : op->getSuccessors()) {
             assert(opMap.find(op->getGuid()) != opMap.end());
             assert(opMap.find(nextOp->getGuid()) != opMap.end());
-            metaGraph->addEdge(opMap[op->getGuid()], opMap[nextOp->getGuid()]);
+            searchGraph->addEdge(opMap[op->getGuid()],
+                                 opMap[nextOp->getGuid()]);
         }
     }
-    return metaGraph;
+    return searchGraph;
 }
 
 std::string infini::MemoryCodegen::generate(Graph graph) {
