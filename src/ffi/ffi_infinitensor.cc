@@ -71,6 +71,8 @@ void init_graph_builder(py::module &m) {
         m, "SigmoidObj");
     py::class_<TanhObj, std::shared_ptr<TanhObj>, OperatorObj>(m, "TanhObj");
     py::class_<AbsObj, std::shared_ptr<AbsObj>, OperatorObj>(m, "AbsObj");
+    py::class_<ReduceMeanObj, std::shared_ptr<ReduceMeanObj>, OperatorObj>(
+        m, "ReduceMeanObj");
     py::class_<MemBoundObj, std::shared_ptr<MemBoundObj>, OperatorObj>(
         m, "MemBoundObj");
     py::class_<GraphBuilder>(m, "GraphBuilder");
@@ -174,6 +176,10 @@ void init_graph_builder(py::module &m) {
         .def("tanh", py::overload_cast<Tensor, Tensor>(&GraphBuilderObj::tanh),
              policy::reference_internal)
         .def("abs", py::overload_cast<Tensor, Tensor>(&GraphBuilderObj::abs),
+             policy::reference_internal)
+        .def("reduceMean",
+             py::overload_cast<Tensor, Tensor, int>(
+                 &GraphBuilderObj::reduceMean),
              policy::reference_internal)
         .def("memBound",
              py::overload_cast<const TensorVec &, const TensorVec &,

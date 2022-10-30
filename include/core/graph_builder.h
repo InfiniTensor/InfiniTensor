@@ -14,6 +14,7 @@
 #include "operators/membound.h"
 #include "operators/pad.h"
 #include "operators/pooling.h"
+#include "operators/reduce_mean.h"
 #include "operators/reshape.h"
 #include "operators/slice.h"
 #include "operators/split.h"
@@ -155,6 +156,7 @@ class GraphBuilderObj {
     Operator tanh(Tensor input);
     Operator abs(Tensor input, Tensor output);
     Operator abs(Tensor input);
+    Operator reduceMean(Tensor input, Tensor Output, int axis);
     // resize op
     // TODO
     // membound op

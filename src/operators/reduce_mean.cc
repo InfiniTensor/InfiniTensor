@@ -12,6 +12,7 @@ ReduceMeanObj::ReduceMeanObj(GraphObj *graph, Tensor input, Tensor output,
             int idx = (*_axis)[j];
             if (idx < 0)
                 IT_TODO_HALT();
+            std::cout << idx << " " << input->getDims().size() << std::endl;
             IT_ASSERT((size_t)idx < input->getDims().size());
             axis.emplace(idx);
         }
