@@ -184,45 +184,43 @@ def import_onnx(gf: GraphBuilder, net: str):
                     None if len(node.input) == 2 else ts[node.input[2]])
 
         # https://github.com/onnx/onnx/blob/main/docs/Operators.md#MatMul
-        # elif node.op_type == 'MatMul':
-        #     assert len(node.input) == 2
-        #     assert len(node.output) == 1
-        #     dimA = list(ds[node.input[0]])
-        #     dimB = list(ds[node.input[1]])
-        #     dimO = list(ds[node.output[0]])
+        elif node.op_type == 'MatMul':
+            assert len(node.input) == 2
+            assert len(node.output) == 1
+            dimA = list(ds[node.input[0]])
+            dimB = list(ds[node.input[1]])
+            dimO = list(ds[node.output[0]])
 
-        #     if len(dimA) == 2 and len(dimB) == 2:
-        #         tmpI0 = g.tensor([1] + list(ds[node.input[0]]), "FLOAT")
-        #         tmpI1 = g.tensor([1] + list(ds[node.input[1]]), "FLOAT")
-        #         tmpO = g.tensor([1] + list(ds[node.output[0]]), "FLOAT")
-        #         g.transpose(ts[node.input[0]], tmpI0, 0, Perm([PermItem(-1), PermItem(0), PermItem(1)]), 1)
-        #         g.transpose(ts[node.input[1]], tmpI1, 0, Perm([PermItem(-1), PermItem(0), PermItem(1)]), 1)
-        #         g.matmul(tmpI0, tmpI1, tmpO, False, False, None)
-        #         g.transpose(tmpO, ts[node.output[0]], -1, Perm([PermItem([0, 1]), PermItem(2)]), 0)
+            if len(dimA) == 2 and len(dimB) == 2:
+                tmpI0 = gf.tensor([1] + list(ds[node.input[0]]), "FLOAT")
+                tmpI1 = gf.tensor([1] + list(ds[node.input[1]]), "FLOAT")
+                tmpO = gf.tensor([1] + list(ds[node.output[0]]), "FLOAT")
+                gf.matmul(tmpI0, tmpI1, tmpO, False, False, None)
 
-        #     else:
-        #         assert len(dimO) >= 3
-        #         batch = functools.reduce(lambda x, y: x * y, dimO[:-2])
+            else:
+                assert len(dimO) >= 3
+                batch = functools.reduce(lambda x, y: x * y, dimO[:-2])
 
-        #         if len(dimA) == 3:
-        #             tmpI0 = ts[node.input[0]]
-        #         else:
-        #             tmpI0 = g.tensor([batch, dimA[-2], dimA[-1]], "FLOAT")
-        #             g.reshape(ts[node.input[0]], tmpI0)
+                if len(dimA) == 3:
+                    tmpI0 = ts[node.input[0]]
+                else:
+                    tmpI0 = gf.tensor([batch, dimA[-2], dimA[-1]], "FLOAT")
+                    gf.reshape(ts[node.input[0]], tmpI0, ds[node.input[0]])
 
-        #         if len(dimB) == 3:
-        #             tmpI1 = ts[node.input[1]]
-        #         else:
-        #             tmpI1 = g.tensor([batch, dimB[-2], dimB[-1]], "FLOAT")
-        #             g.reshape(ts[node.input[1]], tmpI1)
+                if len(dimB) == 3:
+                    tmpI1 = ts[node.input[1]]
+                else:
+                    tmpI1 = gf.tensor([batch, dimB[-2], dimB[-1]], "FLOAT")
+                    gf.reshape(ts[node.input[1]], tmpI1, [
+                               batch, dimB[-2], dimB[-1]])
 
-        #         if len(dimO) == 3:
-        #             tmpO = ts[node.output[0]]
-        #             g.matmul(tmpI0, tmpI1, tmpO, False, False, None)
-        #         else:
-        #             tmpO = g.tensor([batch, dimO[-2], dimO[-1]], "FLOAT")
-        #             g.matmul(tmpI0, tmpI1, tmpO, False, False, None)
-        #             g.reshape(tmpO, ts[node.output[0]])
+                if len(dimO) == 3:
+                    tmpO = ts[node.output[0]]
+                    gf.matmul(tmpI0, tmpI1, tmpO, False, False)
+                else:
+                    tmpO = gf.tensor([batch, dimO[-2], dimO[-1]], "FLOAT")
+                    gf.matmul(tmpI0, tmpI1, tmpO, False, False, None)
+                    gf.reshape(tmpO, ts[node.output[0]], ds[node.output[0]])
 
         # https://github.com/onnx/onnx/blob/main/docs/Operators.md#ConvTranspose
         elif node.op_type == 'ConvTranspose':
@@ -333,25 +331,18 @@ def import_onnx(gf: GraphBuilder, net: str):
 
         # https://github.com/onnx/onnx/blob/main/docs/Operators.md#Add
         elif node.op_type == 'Add':
+            print(ds[node.input[0]], ds[node.input[1]], ds[node.output[0]])
             assert len(node.input) == 2
             assert len(node.output) == 1
-            assert ds[node.input[0]] == ds[node.output[0]]
             if ds[node.input[0]] == ds[node.input[1]]:
                 gf.add(ts[node.input[0]], ts[node.input[1]],
                        ts[node.output[0]])
-            elif len(ds[node.input[1]]) == 0:
-                tmp = gf.tensor(ds[node.input[0]], "FLOAT")
-                gf.add(ts[node.input[0]], tmp, ts[node.output[0]])
-            elif ds[node.input[1]][-1] == 1 and ds[node.input[0]][:-1] == ds[node.input[1]][:-1]:
+            elif ds[node.input[0]] == ds[node.output[0]]:
                 tmp = gf.tensor(ds[node.output[0]], "FLOAT")
-                gf.extend(ts[node.input[1]], tmp,
-                          len(ds[node.input[1]]) - 1, ds[node.input[0]][-1] - 1)
                 gf.add(ts[node.input[0]], tmp, ts[node.output[0]])
-            elif len(ds[node.input[1]]) == 1 and ds[node.input[0]][-1] == ds[node.input[1]][0]:
+            elif ds[node.input[1]] == ds[node.output[0]]:
                 tmp = gf.tensor(ds[node.output[0]], "FLOAT")
-                # gf.extend(ts[node.input[1]], tmp,
-                #           len(ds[node.input[1]]) - 1, ds[node.input[0]][-1] - 1)
-                gf.add(ts[node.input[0]], tmp, ts[node.output[0]])
+                gf.add(tmp, ts[node.input[1]], ts[node.output[0]])
             else:
                 assert False
 
@@ -359,18 +350,15 @@ def import_onnx(gf: GraphBuilder, net: str):
         elif node.op_type == 'Sub':
             assert len(node.input) == 2
             assert len(node.output) == 1
-            assert ds[node.input[0]] == ds[node.output[0]]
             if ds[node.input[0]] == ds[node.input[1]]:
                 gf.sub(ts[node.input[0]], ts[node.input[1]],
                        ts[node.output[0]])
-            elif len(ds[node.input[1]]) == 0:
-                tmp = gf.tensor(ds[node.input[0]], "FLOAT")
-                gf.sub(ts[node.input[0]], tmp, ts[node.output[0]])
-            elif ds[node.input[1]][-1] == 1 and ds[node.input[0]][:-1] == ds[node.input[1]][:-1]:
+            elif ds[node.input[0]] == ds[node.output[0]]:
                 tmp = gf.tensor(ds[node.output[0]], "FLOAT")
-                gf.extend(ts[node.input[1]], tmp,
-                          len(ds[node.input[1]]) - 1, ds[node.input[0]][-1] - 1)
                 gf.sub(ts[node.input[0]], tmp, ts[node.output[0]])
+            elif ds[node.input[1]] == ds[node.output[0]]:
+                tmp = gf.tensor(ds[node.output[0]], "FLOAT")
+                gf.sub(tmp, ts[node.input[1]], ts[node.output[0]])
             else:
                 assert False
 
@@ -378,43 +366,31 @@ def import_onnx(gf: GraphBuilder, net: str):
         elif node.op_type == 'Mul':
             assert len(node.input) == 2
             assert len(node.output) == 1
-            assert ds[node.input[0]] == ds[node.output[0]]
             if ds[node.input[0]] == ds[node.input[1]]:
                 gf.mul(ts[node.input[0]], ts[node.input[1]],
                        ts[node.output[0]])
-            elif len(ds[node.input[1]]) == 0:
-                tmp = gf.tensor(ds[node.input[0]], "FLOAT")
-                gf.mul(ts[node.input[0]], tmp, ts[node.output[0]])
-            elif ds[node.input[1]][-1] == 1 and ds[node.input[0]][:-1] == ds[node.input[1]][:-1]:
+            elif ds[node.input[0]] == ds[node.output[0]]:
                 tmp = gf.tensor(ds[node.output[0]], "FLOAT")
-                gf.extend(ts[node.input[1]], tmp,
-                          len(ds[node.input[1]]) - 1, ds[node.input[0]][-1] - 1)
                 gf.mul(ts[node.input[0]], tmp, ts[node.output[0]])
-            elif len(ds[node.input[1]]) == 1 and ds[node.input[0]][-1] == ds[node.input[1]][0]:
+            elif ds[node.input[1]] == ds[node.output[0]]:
                 tmp = gf.tensor(ds[node.output[0]], "FLOAT")
-                # gf.extend(ts[node.input[1]], tmp,
-                #           len(ds[node.input[1]]) - 1, ds[node.input[0]][-1] - 1)
-                gf.mul(ts[node.input[0]], tmp, ts[node.output[0]])
+                gf.mul(tmp, ts[node.input[1]], ts[node.output[0]])
             else:
-                print(ds[node.input[0]], ds[node.input[1]])
                 assert False
 
         # https://github.com/onnx/onnx/blob/main/docs/Operators.md#Div
         elif node.op_type == 'Div':
             assert len(node.input) == 2
             assert len(node.output) == 1
-            assert ds[node.input[0]] == ds[node.output[0]]
             if ds[node.input[0]] == ds[node.input[1]]:
                 gf.div(ts[node.input[0]], ts[node.input[1]],
                        ts[node.output[0]])
-            elif len(ds[node.input[1]]) == 0:
-                tmp = gf.tensor(ds[node.input[0]], "FLOAT")
-                gf.div(ts[node.input[0]], tmp, ts[node.output[0]])
-            elif ds[node.input[1]][-1] == 1 and ds[node.input[0]][:-1] == ds[node.input[1]][:-1]:
+            elif ds[node.input[0]] == ds[node.output[0]]:
                 tmp = gf.tensor(ds[node.output[0]], "FLOAT")
-                gf.extend(ts[node.input[1]], tmp,
-                          len(ds[node.input[1]]) - 1, ds[node.input[0]][-1] - 1)
                 gf.div(ts[node.input[0]], tmp, ts[node.output[0]])
+            elif ds[node.input[1]] == ds[node.output[0]]:
+                tmp = gf.tensor(ds[node.output[0]], "FLOAT")
+                gf.div(tmp, ts[node.input[1]], ts[node.output[0]])
             else:
                 assert False
 
@@ -422,18 +398,15 @@ def import_onnx(gf: GraphBuilder, net: str):
         elif node.op_type == 'Pow':
             assert len(node.input) == 2
             assert len(node.output) == 1
-            assert ds[node.input[0]] == ds[node.output[0]]
             if ds[node.input[0]] == ds[node.input[1]]:
                 gf.pow(ts[node.input[0]], ts[node.input[1]],
                        ts[node.output[0]])
-            elif len(ds[node.input[1]]) == 0:
-                tmp = gf.tensor(ds[node.input[0]], "FLOAT")
-                gf.pow(ts[node.input[0]], tmp, ts[node.output[0]])
-            elif ds[node.input[1]][-1] == 1 and ds[node.input[0]][:-1] == ds[node.input[1]][:-1]:
+            elif ds[node.input[0]] == ds[node.output[0]]:
                 tmp = gf.tensor(ds[node.output[0]], "FLOAT")
-                gf.extend(ts[node.input[1]], tmp,
-                          len(ds[node.input[1]]) - 1, ds[node.input[0]][-1] - 1)
                 gf.pow(ts[node.input[0]], tmp, ts[node.output[0]])
+            elif ds[node.input[1]] == ds[node.output[0]]:
+                tmp = gf.tensor(ds[node.output[0]], "FLOAT")
+                gf.pow(tmp, ts[node.input[1]], ts[node.output[0]])
             else:
                 assert False
 
@@ -451,7 +424,7 @@ def import_onnx(gf: GraphBuilder, net: str):
             assert len(node.input) == 2
             assert len(node.output) == 1
             gf.reshape(ts[node.input[0]],
-                       ts[node.output[0]], ts[node.input[1]])
+                       ts[node.output[0]], ds[node.output[0]])
 
         # https://github.com/onnx/onnx/blob/main/docs/Operators.md#Flatten
         # Output is 2D in ONNX
@@ -568,15 +541,15 @@ def import_onnx(gf: GraphBuilder, net: str):
         #     pass
 
         # https://github.com/onnx/onnx/blob/main/docs/Operators.md#Transpose
-        # elif node.op_type == 'Transpose':
-        #     attrs = _parse_attribute(node.attribute, {})
-        #     assert len(node.input) == 1
-        #     assert len(node.output) == 1
-        #     assert "perm" in attrs
-        #     gf.transpose(ts[node.input[0]], ts[node.output[0]], -1,
-        #             Perm([PermItem(x) for x in attrs["perm"]]), 0)
+        elif node.op_type == 'Transpose':
+            # attrs = _parse_attribute(node.attribute, {})
+            # assert len(node.input) == 1
+            # assert len(node.output) == 1
+            # assert "perm" in attrs
+            # gf.transpose(ts[node.input[0]], ts[node.output[0]], -1,
+            #         Perm([PermItem(x) for x in attrs["perm"]]), 0)
 
-        # https://github.com/onnx/onnx/blob/main/docs/Operators.md#Unsqueeze
+            # https://github.com/onnx/onnx/blob/main/docs/Operators.md#Unsqueeze
         elif node.op_type == 'Unsqueeze':
             assert len(node.input) == 2
             assert len(node.output) == 1

@@ -55,20 +55,18 @@ Operator GraphBuilderObj::conv(Tensor input, Tensor weight,
 }
 
 Operator GraphBuilderObj::matmul(Tensor A, Tensor B, Tensor C, bool transA,
-                                 bool transB, Tensor bias, ActType act) {
+                                 bool transB) {
     Tensor i0 = g->addTensor(A->getDims(), A->getDType());
     Tensor i1 = g->addTensor(B->getDims(), B->getDType());
     Tensor o0 = g->addTensor(C->getDims(), C->getDType());
-    auto op =
-        g->addOpWithOutputs<MatmulObj>(i0, i1, o0, transA, transB, bias, act);
+    auto op = g->addOpWithOutputs<MatmulObj>(i0, i1, o0, transA, transB);
     return op;
 }
 
-Operator GraphBuilderObj::matmul(Tensor A, Tensor B, bool transA, bool transB,
-                                 Tensor bias, ActType act) {
+Operator GraphBuilderObj::matmul(Tensor A, Tensor B, bool transA, bool transB) {
     Tensor i0 = g->addTensor(A->getDims(), A->getDType());
     Tensor i1 = g->addTensor(B->getDims(), B->getDType());
-    auto op = g->addOp<MatmulObj>(i0, i1, nullptr, transA, transB, bias, act);
+    auto op = g->addOp<MatmulObj>(i0, i1, nullptr, transA, transB);
     return op;
 }
 

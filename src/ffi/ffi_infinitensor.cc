@@ -89,8 +89,8 @@ void init_graph_builder(py::module &m) {
                                int, Tensor>(&GraphBuilderObj::conv),
              policy::reference_internal)
         .def("matmul",
-             py::overload_cast<Tensor, Tensor, Tensor, bool, bool, Tensor,
-                               ActType>(&GraphBuilderObj::matmul),
+             py::overload_cast<Tensor, Tensor, Tensor, bool, bool>(
+                 &GraphBuilderObj::matmul),
              policy::reference_internal)
         .def("convTrans",
              py::overload_cast<Tensor, Tensor, Tensor, int, int, int, int, int,

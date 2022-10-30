@@ -47,11 +47,9 @@ class GraphBuilderObj {
                   Tensor bias = nullptr);
     // matmul op
     Operator matmul(Tensor A, Tensor B, Tensor C, bool transA = false,
-                    bool transB = false, Tensor bias = nullptr,
-                    ActType act = ActType::None);
+                    bool transB = false);
     Operator matmul(Tensor A, Tensor B, bool transA = false,
-                    bool transB = false, Tensor bias = nullptr,
-                    ActType act = ActType::None);
+                    bool transB = false);
     // conv trans op
     Operator convTrans(Tensor input, Tensor weight, Tensor output, int ph,
                        int pw, int sh = 1, int sw = 1, int dh = 1, int dw = 1,
