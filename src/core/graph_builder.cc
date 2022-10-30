@@ -9,6 +9,9 @@ Tensor GraphBuilderObj::tensor(Shape dim, const std::string &dtype) {
     if (dtype == "INT32") {
         return g->addTensor(dim, DataType::UInt32);
     }
+    if (dtype == "INT64") {
+        return g->addTensor(dim, DataType::UInt32);
+    }
     IT_TODO_HALT_MSG("Unsupported data type");
 }
 
@@ -318,6 +321,7 @@ Operator GraphBuilderObj::add(Tensor input0, Tensor input1) {
 }
 
 Operator GraphBuilderObj::sub(Tensor input0, Tensor input1, Tensor output) {
+    std::cout << "Sub1" << std::endl;
     Tensor i0 = g->addTensor(input0->getDims(), input0->getDType());
     Tensor i1 = g->addTensor(input1->getDims(), input1->getDType());
     Tensor o0 = g->addTensor(output->getDims(), output->getDType());
@@ -326,6 +330,7 @@ Operator GraphBuilderObj::sub(Tensor input0, Tensor input1, Tensor output) {
 }
 
 Operator GraphBuilderObj::sub(Tensor input0, Tensor input1) {
+    std::cout << "Sub2" << std::endl;
     Tensor i0 = g->addTensor(input0->getDims(), input0->getDType());
     Tensor i1 = g->addTensor(input1->getDims(), input1->getDType());
     auto op = g->addOp<SubObj>(i0, i1, nullptr);
@@ -343,7 +348,7 @@ Operator GraphBuilderObj::mul(Tensor input0, Tensor input1, Tensor output) {
 Operator GraphBuilderObj::mul(Tensor input0, Tensor input1) {
     Tensor i0 = g->addTensor(input0->getDims(), input0->getDType());
     Tensor i1 = g->addTensor(input1->getDims(), input1->getDType());
-    auto op = g->addOp<SubObj>(i0, i1, nullptr);
+    auto op = g->addOp<MulObj>(i0, i1, nullptr);
     return op;
 }
 
@@ -493,6 +498,14 @@ Operator GraphBuilderObj::abs(Tensor input, Tensor output) {
 Operator GraphBuilderObj::abs(Tensor input) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
     auto op = g->addOp<AbsObj>(i0, nullptr);
+    return op;
+}
+
+Operator GraphBuilderObj::reduceMean(Tensor input, Tensor output, int axis) {
+    Tensor i0 = g->addTensor(input->getDims(), input->getDType());
+    Tensor o0 = g->addTensor(output->getDims(), output->getDType());
+    auto op =
+        g->addOpWithOutputs<ReduceMeanObj>(i0, o0, std::vector<int>({axis}));
     return op;
 }
 
