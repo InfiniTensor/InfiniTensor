@@ -47,6 +47,8 @@ void init_graph_builder(py::module &m) {
     py::class_<ConcatObj, std::shared_ptr<ConcatObj>, OperatorObj>(m,
                                                                    "ConcatObj");
     py::class_<SplitObj, std::shared_ptr<SplitObj>, OperatorObj>(m, "SplitObj");
+    py::class_<TransposeObj, std::shared_ptr<TransposeObj>, OperatorObj>(
+        m, "TransposeObj");
     py::class_<ExtendObj, std::shared_ptr<ExtendObj>, OperatorObj>(m,
                                                                    "ExtendObj");
     py::class_<MaxPoolObj, std::shared_ptr<MaxPoolObj>, OperatorObj>(
@@ -126,6 +128,10 @@ void init_graph_builder(py::module &m) {
              py::overload_cast<Tensor, std::optional<TensorVec>, int, int>(
                  &GraphBuilderObj::split),
              policy::reference_internal)
+        .def("transpose",
+             py::overload_cast<Tensor, Tensor, const vector<int> &>(
+                 &GraphBuilderObj::transpose),
+             policy::reference_internal)
         .def("extend",
              py::overload_cast<Tensor, Tensor, int, int>(
                  &GraphBuilderObj::extend),
@@ -182,6 +188,8 @@ void init_graph_builder(py::module &m) {
         .def("reduceMean",
              py::overload_cast<Tensor, Tensor, int>(
                  &GraphBuilderObj::reduceMean),
+             policy::reference_internal)
+        .def("erf", py::overload_cast<Tensor, Tensor>(&GraphBuilderObj::erf),
              policy::reference_internal)
         .def("memBound",
              py::overload_cast<const TensorVec &, const TensorVec &,

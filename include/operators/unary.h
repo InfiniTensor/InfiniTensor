@@ -28,4 +28,5 @@ DEFINE_UNARY_OBJ(Sigmoid, OpType::Sigmoid)
 DEFINE_UNARY_OBJ(Tanh, OpType::Tanh)
 DEFINE_UNARY_OBJ(Softmax, OpType::Softmax)
 DEFINE_UNARY_OBJ(Abs, OpType::Abs)
+DEFINE_UNARY_OBJ(Erf, OpType::Erf)
 }; // namespace infini

@@ -7,3 +7,10 @@ class Test_ImportOnnx:
         runtime = CpuRuntimeObj.getInstance()
         graphBuilder = GraphBuilderObj(runtime)
         import_onnx(graphBuilder, '/home/mazx/git/pf-models/bert.bs1.onnx')
+
+
+class Test_SARDRN:
+    def test_Netname(self):
+        runtime = CpuRuntimeObj.getInstance()
+        graphBuilder = GraphBuilderObj(runtime)
+        import_onnx(graphBuilder, '/home/mazx/git/pf-models/sardrn.bs1.onnx')

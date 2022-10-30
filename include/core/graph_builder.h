@@ -18,6 +18,7 @@
 #include "operators/reshape.h"
 #include "operators/slice.h"
 #include "operators/split.h"
+#include "operators/transpose.h"
 #include "operators/unary.h"
 
 namespace infini {
@@ -104,6 +105,7 @@ class GraphBuilderObj {
                    const vector<int> &ratio);
     Operator split(Tensor input, int dim, const vector<int> &ratio);
     // transpose op
+    Operator transpose(Tensor input, Tensor output, const Shape &perm);
     // TODO
     // extend op
     Operator extend(Tensor input, Tensor output, int dim, int num);
@@ -155,6 +157,7 @@ class GraphBuilderObj {
     Operator abs(Tensor input, Tensor output);
     Operator abs(Tensor input);
     Operator reduceMean(Tensor input, Tensor Output, int axis);
+    Operator erf(Tensor input, Tensor output);
     // resize op
     // TODO
     // membound op

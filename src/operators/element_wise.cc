@@ -4,15 +4,6 @@ namespace infini {
 ElementWiseObj::ElementWiseObj(OpType type, GraphObj *graph, Tensor input0,
                                Tensor input1, Tensor output)
     : OperatorObj(type, {input0, input1}, {output}) {
-    std::cout << "Element: " << int(type) << std::endl;
-            for (auto x : input0->getDims()) {
-        std::cout << x << " ";
-    }
-    std::cout << std::endl;
-    for (auto x : input1->getDims()) {
-        std::cout << x << " ";
-    }
-    std::cout << std::endl;
     IT_ASSERT(checkValid(graph));
 }
 
@@ -22,15 +13,6 @@ ElementWiseObj::inferShape(const TensorVec &inputs) const {
     // in the opt layer.
     std::cout << std::endl;
     const auto A = inputs[0], B = inputs[1];
-    std::cout << "InferShape" << std::endl;
-    for (auto x : A->getDims()) {
-        std::cout << x << " ";
-    }
-    std::cout << std::endl;
-    for (auto x : B->getDims()) {
-        std::cout << x << " ";
-    }
-    std::cout << std::endl;
     if (A->getDims().size() != B->getDims().size() ||
         A->getDims() != B->getDims())
         return {};

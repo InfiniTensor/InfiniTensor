@@ -9,16 +9,20 @@ TransposeObj::TransposeObj(GraphObj *graph, Tensor input, Tensor output,
 
 optional<vector<Shape>>
 TransposeObj::inferShape(const TensorVec &inputs) const {
-    Shape dimsIn = inputs[0]->getDims();
+    const Shape &dimsIn = inputs[0]->getDims();
     Shape dimsOut;
     std::unordered_set<size_t> dimSet;
     for (size_t i = 0; i < perm.size(); ++i) {
         if (size_t(perm[i]) >= dimsIn.size() ||
             dimSet.find(perm[i]) != dimSet.end()) {
+            std::cout << i << " " << perm[i] << " "
+                      << int(dimSet.find(perm[i]) != dimSet.end()) << std::endl;
             return {};
         }
         dimsOut.emplace_back(dimsIn[perm[i]]);
+        dimSet.emplace(perm[i]);
     }
+    std::cout << "transpose Ok" << std::endl;
     return {{dimsOut}};
 }
 

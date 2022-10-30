@@ -38,6 +38,7 @@ enum class OpType {
     Tanh,
     Abs,
     Resize,
+    Erf,
     //
     MemBound = 300,
 };

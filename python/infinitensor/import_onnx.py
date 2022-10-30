@@ -169,7 +169,7 @@ def import_onnx(gf: GraphBuilder, net: str):
                 "dilations": [1, 1],
                 "pads": [0, 0, 0, 0],
                 "strides": [1, 1]})
-            assert len(node.input) == 2  # bias is not implemented yet
+            # assert len(node.input) == 2  # bias is not implemented yet
             assert len(node.output) == 1
             assert attrs["auto_pad"] == "NOTSET"
             assert len(attrs["pads"]) == 4
@@ -181,7 +181,7 @@ def import_onnx(gf: GraphBuilder, net: str):
                     attrs["pads"][0], attrs["pads"][1],
                     attrs["strides"][0], attrs["strides"][1],
                     attrs["dilations"][0], attrs["dilations"][1],
-                    None if len(node.input) == 2 else ts[node.input[2]])
+                    None)
 
         # https://github.com/onnx/onnx/blob/main/docs/Operators.md#MatMul
         elif node.op_type == 'MatMul':
@@ -205,7 +205,8 @@ def import_onnx(gf: GraphBuilder, net: str):
                     tmpI0 = ts[node.input[0]]
                 else:
                     tmpI0 = gf.tensor([batch, dimA[-2], dimA[-1]], "FLOAT")
-                    gf.reshape(ts[node.input[0]], tmpI0, ds[node.input[0]])
+                    gf.reshape(ts[node.input[0]], tmpI0, [
+                               batch, dimA[-2], dimA[-1]])
 
                 if len(dimB) == 3:
                     tmpI1 = ts[node.input[1]]
@@ -219,7 +220,7 @@ def import_onnx(gf: GraphBuilder, net: str):
                     gf.matmul(tmpI0, tmpI1, tmpO, False, False)
                 else:
                     tmpO = gf.tensor([batch, dimO[-2], dimO[-1]], "FLOAT")
-                    gf.matmul(tmpI0, tmpI1, tmpO, False, False, None)
+                    gf.matmul(tmpI0, tmpI1, tmpO, False, False)
                     gf.reshape(tmpO, ts[node.output[0]], ds[node.output[0]])
 
         # https://github.com/onnx/onnx/blob/main/docs/Operators.md#ConvTranspose
@@ -493,25 +494,26 @@ def import_onnx(gf: GraphBuilder, net: str):
             consts[node.output[0]] = c
 
         # https://github.com/onnx/onnx/blob/main/docs/Operators.md#Gemm
-        # elif node.op_type == 'Gemm':
-        #     attrs = _parse_attribute(node.attribute, {
-        #         "alpha": 1.0,
-        #         "beta": 1.0,
-        #         "transA": 0,
-        #         "transB": 0})
-        #     assert len(node.input) == 2 or len(node.input) == 3
-        #     assert len(node.output) == 1
-        #     assert attrs["alpha"] == 1.0
-        #     assert attrs["beta"] == 1.0 or len(node.input) == 2
-        #     tmpI0 = g.tensor([1] + list(ds[node.input[0]]), "FLOAT")
-        #     tmpI1 = g.tensor([1] + list(ds[node.input[1]]), "FLOAT")
-        #     tmpO = g.tensor([1] + list(ds[node.output[0]]), "FLOAT")
-        #     g.transpose(ts[node.input[0]], tmpI0, 0, Perm([PermItem(-1), PermItem(0), PermItem(1)]), 1)
-        #     g.transpose(ts[node.input[1]], tmpI1, 0, Perm([PermItem(-1), PermItem(0), PermItem(1)]), 1)
-        #     g.matmul(tmpI0, tmpI1, tmpO,
-        #             attrs["transA"], attrs["transB"],
-        #             None if len(node.input) == 2 else ts[node.input[2]])
-        #     g.transpose(tmpO, ts[node.output[0]], -1, Perm([PermItem([0, 1]), PermItem(2)]), 0)
+        elif node.op_type == 'Gemm':
+            attrs = _parse_attribute(node.attribute, {
+                "alpha": 1.0,
+                "beta": 1.0,
+                "transA": 0,
+                "transB": 0})
+            assert len(node.input) == 2 or len(node.input) == 3
+            assert len(node.output) == 1
+            assert attrs["alpha"] == 1.0
+            assert attrs["beta"] == 1.0 or len(node.input) == 2
+            i0 = gf.tensor([1] + list(ds[node.input[0]]), "FLOAT")
+            i1 = gf.tensor([1] + list(ds[node.input[1]]), "FLOAT")
+            o0 = gf.tensor([1] + list(ds[node.output[0]]), "FLOAT")
+            gf.reshape(ts[node.input[0]], i0, [1] + list(ds[node.input[0]]))
+            gf.reshape(ts[node.input[1]], i1, [1] + list(ds[node.input[1]]))
+            gf.matmul(i0, i1, o0,  attrs["transA"], attrs["transB"])
+            o1 = gf.tensor(ds[node.output[0]], "FLOAT")
+            a0 = gf.tensor(ds[node.output[0]], "FLOAT")
+            gf.reshape(o0, o1, ds[node.output[0]])
+            gf.add(o1, a0, ts[node.output[0]])
 
         # https://github.com/onnx/onnx/blob/main/docs/Operators.md#GlobalAveragePool
         # elif node.op_type == 'GlobalAveragePool':
@@ -542,19 +544,24 @@ def import_onnx(gf: GraphBuilder, net: str):
 
         # https://github.com/onnx/onnx/blob/main/docs/Operators.md#Transpose
         elif node.op_type == 'Transpose':
-            # attrs = _parse_attribute(node.attribute, {})
-            # assert len(node.input) == 1
-            # assert len(node.output) == 1
-            # assert "perm" in attrs
-            # gf.transpose(ts[node.input[0]], ts[node.output[0]], -1,
-            #         Perm([PermItem(x) for x in attrs["perm"]]), 0)
+            attrs = _parse_attribute(node.attribute, {})
+            assert len(node.input) == 1
+            assert len(node.output) == 1
+            assert "perm" in attrs
+            gf.transpose(ts[node.input[0]], ts[node.output[0]], attrs["perm"])
 
             # https://github.com/onnx/onnx/blob/main/docs/Operators.md#Unsqueeze
         elif node.op_type == 'Unsqueeze':
             assert len(node.input) == 2
             assert len(node.output) == 1
             gf.reshape(ts[node.input[0]],
-                       ts[node.output[0]], ts[node.input[1]])
+                       ts[node.output[0]], ts[node.output[0]])
+
+        # TODO
+        elif node.op_type == 'Erf':
+            assert len(node.input) == 1
+            assert len(node.output) == 1
+            gf.erf(ts[node.input[0]], ts[node.output[0]])
 
         # https://github.com/onnx/onnx/blob/main/docs/Operators.md#BatchNormalization
         # elif node.op_type == "BatchNormalization":

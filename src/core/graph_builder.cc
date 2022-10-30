@@ -255,6 +255,14 @@ Operator GraphBuilderObj::split(Tensor input, int dim,
     return op;
 }
 
+Operator GraphBuilderObj::transpose(Tensor input, Tensor output,
+                                    const Shape &perm) {
+    Tensor i = g->addTensor(input->getDims(), input->getDType());
+    Tensor o = g->addTensor(output->getDims(), output->getDType());
+    auto op = g->addOpWithOutputs<TransposeObj>(i, o, perm);
+    return op;
+}
+
 Operator GraphBuilderObj::extend(Tensor input, Tensor output, int dim,
                                  int num) {
     Tensor i0 = g->addTensor(input->getDims(), input->getDType());
@@ -504,6 +512,13 @@ Operator GraphBuilderObj::reduceMean(Tensor input, Tensor output, int axis) {
     Tensor o0 = g->addTensor(output->getDims(), output->getDType());
     auto op =
         g->addOpWithOutputs<ReduceMeanObj>(i0, o0, std::vector<int>({axis}));
+    return op;
+}
+
+Operator GraphBuilderObj::erf(Tensor input, Tensor output) {
+    Tensor i0 = g->addTensor(input->getDims(), input->getDType());
+    Tensor o0 = g->addTensor(output->getDims(), output->getDType());
+    auto op = g->addOpWithOutputs<ErfObj>(i0, o0);
     return op;
 }
 

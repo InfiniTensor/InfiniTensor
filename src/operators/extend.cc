@@ -5,15 +5,6 @@ namespace infini {
 ExtendObj::ExtendObj(GraphObj *graph, Tensor input, Tensor output, int dim,
                      int num)
     : OperatorObj(OpType::Extend, {input}, {output}), dim(dim), num(num) {
-    std::cout << "Extend" << std::endl;
-            for (auto x : input->getDims()) {
-        std::cout << x << " ";
-    }
-    std::cout << std::endl;
-    for (auto x : output->getDims()) {
-        std::cout << x << " ";
-    }
-
     IT_ASSERT(checkValid(graph));
 }
 
