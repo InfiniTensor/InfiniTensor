@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 from operator_timer import *
+from datetime import datetime
+
 pd.options.display.float_format = '{:,.3f}'.format
 
 df= pd.DataFrame(columns=['n', 'c', 'h', 'w', 'f', 'r', 's', 'ph', 'pw', 'sh', 'sw', 'dh', 'dw', 'oph', 'opw', 'group'])
@@ -72,9 +74,11 @@ def conv_tranpsposed2d_togemm(name, n, c, h, w, f, r, s, ph, pw, sh, sw, dh, dw,
 
 conv_transposed2d_rules=[conv_tranpsposed2d_original, conv_tranpsposed2d_togemm]
 
-def print_result():
+def print_result(model_fn):
+    pd.set_option('display.max_rows', 500)
     df['t_min'] = df.filter(regex=("^t_.*")).min(axis=1)
     print(df)
     print(f'Origin:  {df["t_original"].sum():.3f} ms')
     print(f'Min:     {df["t_min"].sum():.3f} ms') 
     print(f'Speedup: {df["t_original"].sum()/df["t_min"].sum():.3f} x')
+    df.to_pickle(f'optime_{model_fn.split("/")[-1]}_{datetime.now().strftime("%m_%d_%H_%M_%S")}.pkl')

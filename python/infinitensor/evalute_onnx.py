@@ -475,4 +475,4 @@ if __name__ == "__main__":
     # parser.add_argument("--output", help="Output file")
     args = parser.parse_args()
     import_onnx(args.model, args.bs)
-    print_result()
+    print_result(args.model)
