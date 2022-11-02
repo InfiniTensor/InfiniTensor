@@ -1,3 +1,4 @@
+#include "cuda/operator_timer.h"
 #include "core/graph.h"
 #include "core/kernel.h"
 #include "core/runtime.h"
@@ -12,8 +13,23 @@ namespace opTimer {
 
 double getPerfConvCudnn(int n, int c, int h, int w, int f, int r, int s,
                         int padh, int padw, int strideh, int stridew,
-                        int dilationh, int dilationw, int group,
-                        const char *name) {
+                        int dilationh, int dilationw, int group) {
+    return getPerfConvBiasActCudnn(n, c, h, w, f, r, s, padh, padw, strideh,
+                                   stridew, dilationh, dilationw, group, false,
+                                   "None");
+}
+
+double getPerfConvBiasActCudnn(int n, int c, int h, int w, int f, int r, int s,
+                               int padh, int padw, int strideh, int stridew,
+                               int dilationh, int dilationw, int group,
+                               bool bias, string actName) {
+    ActType act = ActType::None;
+    if (actName == "None")
+        act = ActType::None;
+    else if (actName == "Relu")
+        act = ActType::Relu;
+    else
+        IT_ASSERT(false, "Unsupported activation");
     // const auto &[n, c, h, w, f, r, s, padh, padw, strideh, stridew,
     // dilationh, dilationw, group] =
     //     tuple{1, 512, 14, 14, 512, 3, 3, 2, 2, 1, 1, 2, 2, 1};
@@ -25,17 +41,27 @@ double getPerfConvCudnn(int n, int c, int h, int w, int f, int r, int s,
     IT_ASSERT(c % group == 0);
     Tensor i0Cpu = gCpu->addTensor({n, c, h, w}, DataType::Float32);
     Tensor w0Cpu = gCpu->addTensor({f, c / group, r, s}, DataType::Float32);
+    Tensor b0Cpu = gCpu->addTensor({f}, DataType::Float32);
     // Malloc data for all tensors in a graph. Do we need implicit allocation?
     gCpu->dataMalloc();
     i0Cpu->setData(IncrementalGenerator());
     w0Cpu->setData(IncrementalGenerator());
+    b0Cpu->setData(IncrementalGenerator());
 
     // Copy input tensors from CPU to CUDA
     Tensor i0Cuda = gCuda->cloneTensor(i0Cpu);
     Tensor w0Cuda = gCuda->cloneTensor(w0Cpu);
+    Tensor b0Cuda = gCuda->cloneTensor(b0Cpu);
     // Build CUDA graph
-    auto conv = gCuda->addOp<ConvObj>(i0Cuda, w0Cuda, nullptr, padh, padw,
-                                      strideh, stridew, dilationh, dilationw);
+    if (!bias) {
+        auto conv =
+            gCuda->addOp<ConvObj>(i0Cuda, w0Cuda, nullptr, padh, padw, strideh,
+                                  stridew, dilationh, dilationw);
+    } else {
+        auto conv =
+            gCuda->addOp<ConvObj>(i0Cuda, w0Cuda, nullptr, padh, padw, strideh,
+                                  stridew, dilationh, dilationw, b0Cuda, act);
+    }
     // allocate CUDA memory
     gCuda->dataMalloc();
     // Execute on CUDA

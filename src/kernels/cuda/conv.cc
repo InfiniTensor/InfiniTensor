@@ -8,6 +8,8 @@
 namespace infini {
 
 struct ConvCuDnnPerfRecordObj : public PerfRecordObj {
+    int kernel =
+        0; // 0 cudnnConvolutionForward, 1 cudnnConvolutionBiasActivationForward
     int algo = 0; // cudnnConvolutionFwdAlgo_t
     int mode = 1;
     size_t workspaceSize = 100000;
@@ -56,8 +58,6 @@ class convCudnn : public Kernel {
                           const ConvCuDnnPerfRecord &record) const {
         void *const inData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const knData = (op->getInputs(1)->getRawDataPtr<void *>());
-        if (op->getInputs().size() > 2) // Bias is not supported yet
-            IT_TODO_HALT();
         // void *const biasData = (op->getInputs(2)->getRawDataPtr<void *>());
         void *const outData = (op->getOutput()->getRawDataPtr<void *>());
 
@@ -209,6 +209,36 @@ class convCudnn : public Kernel {
         return true;
     }
 
+    bool cuDNNfused(const Ref<ConvObj> &op, const ConvCuDnnPerfRecord &record,
+                    const CudaRuntimeObj *context) const {
+        cudnnStatus_t stat;
+
+        const auto &[inData, knData, outData, inDesc, knDesc, biasDesc,
+                     convDesc, actDesc, outDesc] =
+            createCuDNNDescriptor(op, record);
+        size_t wsSize = record->workspaceSize;
+        CudaPtr wsData = context->getWorkspace(wsSize);
+        float alpha = 1.f, beta = 0.f;
+
+        // w/ bias & act
+        stat = cudnnConvolutionBiasActivationForward(
+            context->cudnnHandle(), &alpha, inDesc, inData, knDesc, knData,
+            convDesc, ALGOS[record->algo], wsData, wsSize, &beta, outDesc,
+            outData, biasDesc, nullptr, actDesc, outDesc, outData);
+        if (stat != CUDNN_STATUS_SUCCESS)
+            return false;
+
+        // Destories in CUDA does not require sync. But cuDNN does not state
+        // whether sync is required before destories.
+        checkCudnnError(cudnnDestroyTensorDescriptor(outDesc));
+        checkCudnnError(cudnnDestroyActivationDescriptor(actDesc));
+        checkCudnnError(cudnnDestroyConvolutionDescriptor(convDesc));
+        checkCudnnError(cudnnDestroyTensorDescriptor(biasDesc));
+        checkCudnnError(cudnnDestroyFilterDescriptor(knDesc));
+        checkCudnnError(cudnnDestroyTensorDescriptor(inDesc));
+        return true;
+    }
+
     void compute(const Operator &op, const RuntimeObj *context) const override {
         auto record = make_ref<ConvCuDnnPerfRecordObj>(); // with paramters in
                                                           // default ctor
@@ -217,10 +247,88 @@ class convCudnn : public Kernel {
 
     PerfRecord tune(const Operator &_op,
                     const RuntimeObj *_context) const override {
-        ConvCuDnnPerfRecordObj ret;
-        ret.time = std::numeric_limits<double>::max();
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         auto op = as<ConvObj>(_op);
+        printf("%s\n", op->toString().c_str());
+        if (op->hasBias() || op->getAct() != ActType::None)
+            return tuneFused(op, context);
+        else
+            return tuneUnfused(op, context);
+    }
+
+    PerfRecord tuneFused(const Ref<ConvObj> &op,
+                         const CudaRuntimeObj *context) const {
+        ConvCuDnnPerfRecordObj ret;
+        ret.time = std::numeric_limits<double>::max();
+
+        // Both modes have the same performance. Only run cross-correlation.
+        for (int mode = 1; mode < 2; mode++) {
+            // Try every possible algorithm of convolution
+            for (int algo = 0; algo < N_ALGO; algo++) {
+                auto recordRef = make_ref<ConvCuDnnPerfRecordObj>();
+                auto &record = *recordRef;
+                record.mode = mode;
+                record.algo = algo;
+                cudnnStatus_t stat;
+                const auto &[inData, knData, outData, inDesc, knDesc, biasDesc,
+                             convDesc, actDesc, outDesc] =
+                    createCuDNNDescriptor(op, recordRef);
+                void *biasData = op->getBias()->getRawDataPtr<void *>();
+
+                // get workspace
+                stat = cudnnGetConvolutionForwardWorkspaceSize(
+                    context->cudnnHandle(), inDesc, knDesc, convDesc, outDesc,
+                    ALGOS[record.algo], &record.workspaceSize);
+                if (stat != CUDNN_STATUS_SUCCESS)
+                    continue;
+                if (record.workspaceSize > context->getWorkspaceSize())
+                    continue;
+                CudaPtr wsData = context->getWorkspace(record.workspaceSize);
+                float alpha = 1.f, beta = 0.f;
+
+                stat = cudnnConvolutionBiasActivationForward(
+                    context->cudnnHandle(), &alpha, inDesc, inData, knDesc,
+                    knData, convDesc, ALGOS[record.algo], wsData,
+                    record.workspaceSize, &beta, outDesc, outData, biasDesc,
+                    biasData, actDesc, outDesc, outData);
+                if (stat != CUDNN_STATUS_SUCCESS)
+                    continue;
+                record.time = timeit(
+                    [&]() {
+                        stat = cudnnConvolutionBiasActivationForward(
+                            context->cudnnHandle(), &alpha, inDesc, inData,
+                            knDesc, knData, convDesc, ALGOS[record.algo],
+                            wsData, record.workspaceSize, &beta, outDesc,
+                            outData, biasDesc, biasData, actDesc, outDesc,
+                            outData);
+                    },
+                    [&]() { context->sync(); });
+                printf("mode %d, algo %d, time %.3lf ms\n", mode, algo,
+                       record.time);
+
+                // Update the tune result
+                if (ret.time > record.time)
+                    ret = record;
+                checkCudnnError(cudnnDestroyTensorDescriptor(outDesc));
+                checkCudnnError(cudnnDestroyActivationDescriptor(actDesc));
+                checkCudnnError(cudnnDestroyConvolutionDescriptor(convDesc));
+                checkCudnnError(cudnnDestroyTensorDescriptor(biasDesc));
+                checkCudnnError(cudnnDestroyFilterDescriptor(knDesc));
+                checkCudnnError(cudnnDestroyTensorDescriptor(inDesc));
+            }
+        }
+        printf("tuneFused: the best algo is %d, the best conv mode is %d\n",
+               ret.algo, ret.mode);
+        IT_ASSERT(ret.time < std::numeric_limits<double>::max(), "No valid "
+                                                                 "algorithm "
+                                                                 "found");
+        return make_ref<ConvCuDnnPerfRecordObj>(ret);
+    }
+
+    PerfRecord tuneUnfused(const Ref<ConvObj> &op,
+                           const CudaRuntimeObj *context) const {
+        ConvCuDnnPerfRecordObj ret;
+        ret.time = std::numeric_limits<double>::max();
         // Both modes have the same performance. Only run cross-correlation.
         for (int mode = 1; mode < 2; mode++) {
             // Try every possible algorithm of convolution
@@ -260,7 +368,8 @@ class convCudnn : public Kernel {
                                                 &beta, outDesc, outData);
                     },
                     [&]() { context->sync(); });
-                // printf("mode:%d algo:%d :%.8lf\n", mode, algo, record.time);
+                printf("mode %d, algo %d, time %.3lf ms\n", mode, algo,
+                       record.time);
 
                 // Update the tune result
                 if (ret.time > record.time)
@@ -273,8 +382,8 @@ class convCudnn : public Kernel {
                 checkCudnnError(cudnnDestroyTensorDescriptor(inDesc));
             }
         }
-        // printf("the best algo is %d, the best conv mode is %d\n", ret.algo,
-        //        ret.mode);
+        printf("tuneUnfused: the best algo is %d, the best conv mode is %d\n",
+               ret.algo, ret.mode);
         IT_ASSERT(ret.time < std::numeric_limits<double>::max(), "No valid "
                                                                  "algorithm "
                                                                  "found");
