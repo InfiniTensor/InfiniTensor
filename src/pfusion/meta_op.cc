@@ -71,21 +71,21 @@ std::string MetaOp::genKernelFunc() {
         code += ", float *" + ptrs[i]->getName();
     }
     code += ") {\n";
-    code += "int lane_id = threadIdx.x % 32;\n";
-    code += "int warp_id = threadIdx.x / 32;\n";
-    code += "int parallel_idx = blockIdx.x * " + std::to_string(numWarps) +
+    code += "int lane_id = threadIdx.x % " + std::to_string(numLanes) + ";\n";
+    code += "int warp_id = threadIdx.x / " + std::to_string(numLanes) + ";\n";
+    code += "int parallel_idx = blockIdx.x * " + std::to_string(numGroups) +
             " + warp_id;\n";
     if (numReg != 0) {
         code += "float buf[" + std::to_string(numReg) + "];\n";
     }
     if (numSmem != 0) {
-        code += "__shared__ float smem[" + std::to_string(numSmem * numWarps) +
+        code += "__shared__ float smem[" + std::to_string(numSmem * numGroups) +
                 "];\n";
     }
 
     code += "for (int loop_idx = parallel_idx; loop_idx < " +
             std::to_string(main_loop_ed) +
-            "; loop_idx += " + std::to_string(numBlocks * numWarps) + ") {\n";
+            "; loop_idx += " + std::to_string(numBlocks * numGroups) + ") {\n";
 
     // gen offset_src
     for (auto mapping : mappings) {
@@ -108,7 +108,7 @@ std::string MetaOp::genInvokeFunc() {
         code += ", float *" + ptrs[i]->getName();
     }
     code += ") {\n";
-    int numThreads = numWarps * 32;
+    int numThreads = numGroups * numLanes;
     code += "dim3 gridDim(" + std::to_string(numBlocks) + ", 1);";
     code += "dim3 blockDim(" + std::to_string(numThreads) + ", 1);";
     code += "kernel_func_" + std::to_string(id) + "<<<gridDim, blockDim>>>(";
@@ -131,14 +131,16 @@ std::shared_ptr<MetaOp> MetaOp::merge(std::shared_ptr<MetaOp> metaOp0,
     if (metaOp0->main_loop_st != metaOp1->main_loop_st ||
         metaOp0->main_loop_ed != metaOp1->main_loop_ed ||
         metaOp0->numBlocks != metaOp1->numBlocks ||
-        metaOp0->numWarps != metaOp1->numWarps) {
+        metaOp0->numGroups != metaOp1->numGroups || 
+        metaOp0->numLanes != metaOp1->numLanes) {
         return nullptr;
     }
     auto metaOp = std::make_shared<MetaOp>();
     metaOp->main_loop_st = metaOp0->main_loop_st;
     metaOp->main_loop_ed = metaOp0->main_loop_ed;
     metaOp->numBlocks = metaOp0->numBlocks;
-    metaOp->numWarps = metaOp0->numWarps;
+    metaOp->numGroups = metaOp0->numGroups;
+    metaOp->numLanes = metaOp0->numLanes;
     metaOp->numReg = metaOp0->numReg + metaOp1->numReg;
     metaOp->numSmem = metaOp0->numSmem + metaOp1->numSmem;
 

@@ -16,7 +16,7 @@ cmake_dependent_option(BUILD_TEST_PFUSION "Build tests for EINNET" ON BUILD_TEST
 
 set(DEFAULT_BUILD_TYPE "RelWithDebInfo")
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF) # -std=gnu++11 when on, -std=c++11 when off
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Werror -Wno-error=deprecated-declarations")
@@ -115,7 +115,7 @@ if(USE_CUDA)
       ${CMAKE_CXX_COMPILER}
       CACHE STRING "Set cuda host compiler path")
   # CMP0104 requires CUDA_ARCHITECTURES
-  set_target_properties(InfiniTensor PROPERTIES CUDA_ARCHITECTURES "70;80")
+  set_target_properties(InfiniTensor PROPERTIES CUDA_ARCHITECTURES "70")
   enable_language(CUDA)
   find_package(CUDAToolkit) # For nvrtc and cuda driver
   target_link_libraries(InfiniTensor cudnn CUDA::curand CUDA::cublas CUDA::nvrtc CUDA::cudart CUDA::cuda_driver)

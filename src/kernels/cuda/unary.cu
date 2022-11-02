@@ -1,4 +1,3 @@
-#include "core/common.h"
 #include "core/constants.h"
 #include "cuda/cuda_common.h"
 #include <math.h>

@@ -13,7 +13,7 @@
 #include <filesystem>
 #include <fstream>
 
-void infini::MemoryCodegen::exportCode(Graph graph, std::string filename) {
+void exportCode(const std::string &filename, const std::string &code) {
     // check dir
     if (std::filesystem::exists("../generated_code")) {
         assert(std::filesystem::is_directory("../generated_code"));
@@ -21,14 +21,47 @@ void infini::MemoryCodegen::exportCode(Graph graph, std::string filename) {
         auto ok = std::filesystem::create_directory("../generated_code");
         assert(ok);
     }
-
-    // generate code
     std::string dir = "../generated_code/" + filename;
     std::ofstream fout(dir);
     assert(fout.is_open());
-    fout << generate(graph);
+    fout << code;
     fout.close();
     system(std::string("clang-format -i " + dir).c_str());
+}
+
+void infini::MemoryCodegen::exportGraph(Graph graph, std::string filename) {
+    std::string code = generate(graph);
+    exportCode(filename, code);
+}
+
+void infini::MemoryCodegen::exportBert_LN(const std::string &filename) {
+    std::string code = "";
+    exportCode(filename, code);
+}
+
+void infini::MemoryCodegen::exportBert_SM(const std::string &filename) {
+    std::string code = "";
+    exportCode(filename, code);
+}
+
+void infini::MemoryCodegen::exportBert_GELU(const std::string &filename) {
+    std::string code = "";
+    exportCode(filename, code);
+}
+
+void infini::MemoryCodegen::exportViT_LN(const std::string &filename) {
+    std::string code = "";
+    exportCode(filename, code);
+}
+
+void infini::MemoryCodegen::exportViT_SM(const std::string &filename) {
+    std::string code = "";
+    exportCode(filename, code);
+}
+
+void infini::MemoryCodegen::exportViT_GELU(const std::string &filename) {
+    std::string code = "";
+    exportCode(filename, code);
 }
 
 std::vector<size_t> convertShape(const std::vector<int> &_shape) {

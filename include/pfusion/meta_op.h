@@ -45,7 +45,7 @@ class TensorMapping {
 class MetaOp {
   public:
     int id;
-    int main_loop_st, main_loop_ed, numBlocks, numWarps, numReg, numSmem;
+    int main_loop_st, main_loop_ed, numBlocks, numGroups, numReg, numSmem, numLanes;
     std::vector<std::shared_ptr<MicroOp>> microOps;
     std::vector<std::shared_ptr<Pointer>> ptrs;
     std::vector<std::shared_ptr<TensorMapping>> mappings;

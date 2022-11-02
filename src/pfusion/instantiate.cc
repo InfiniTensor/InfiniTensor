@@ -28,7 +28,8 @@ instantiateUnary(const OpType opType,
     metaOp->main_loop_st = 0;
     metaOp->main_loop_ed = size / 32 / 8;
     metaOp->numBlocks = 108;
-    metaOp->numWarps = 8;
+    metaOp->numGroups = 8;
+    metaOp->numLanes = 32;
     metaOp->numReg = 8;
     metaOp->numSmem = 0;
 
@@ -66,7 +67,8 @@ instantiateBinary(const OpType opType,
     metaOp->main_loop_st = 0;
     metaOp->main_loop_ed = size / 32 / 8;
     metaOp->numBlocks = 108;
-    metaOp->numWarps = 8;
+    metaOp->numGroups = 8;
+    metaOp->numLanes = 32;
     metaOp->numReg = 24;
     metaOp->numSmem = 0;
 
@@ -135,7 +137,8 @@ std::vector<std::shared_ptr<MetaOp>> instantiateTranspose(
     metaOp->main_loop_st = 0;
     metaOp->main_loop_ed = parallelSize;
     metaOp->numBlocks = 108;
-    metaOp->numWarps = 8;
+    metaOp->numGroups = 8;
+    metaOp->numLanes = 32;
 
     int numTileA = (shape[perm[0]] - 1) / 32 + 1;
     int numTileB = (shape[0] - 1) / 32 + 1;
@@ -157,7 +160,7 @@ std::vector<std::shared_ptr<MetaOp>> instantiateTranspose(
     // TODO: tiling is a metaOp or microOps?
 
     metaOp->ptrs = ptrs;
-    auto smem = Pointer::buildPtr(SRAM, "smem", "warp_id * 32 * 33");
+    auto smem = Pointer::buildPtr(SRAM, "smem", "group_id * " + std::to_string(metaOp->numLanes) +  " * " + std::to_string(metaOp->numLanes + 1));
     auto buf = Pointer::buildPtr(REG, "buf", "inst_idx");
 
     for (int i = 0; i < numTileA; i++) {
@@ -208,7 +211,8 @@ instantiateGather(const OpType opType,
     metaOp->main_loop_st = 0;
     metaOp->main_loop_ed = par_size;
     metaOp->numBlocks = 108;
-    metaOp->numWarps = 2;
+    metaOp->numGroups = 2;
+    metaOp->numLanes = 32;
     metaOp->numReg = 24;
     metaOp->numSmem = 0;
 
@@ -229,6 +233,7 @@ std::vector<std::shared_ptr<MetaOp>>
 instantiateReduce(const OpType opType,
                   const std::vector<std::shared_ptr<Pointer>> &ptrs,
                   const std::vector<size_t> &inputShape, const size_t axis) {
+    IT_ASSERT(axis == 0);
     std::vector<std::shared_ptr<MetaOp>> metaOps;
     size_t par_size = 1;
     for (size_t i = 0; i < inputShape.size(); i++) {
@@ -242,8 +247,9 @@ instantiateReduce(const OpType opType,
     metaOp->main_loop_st = 0;
     metaOp->main_loop_ed = par_size;
     metaOp->numBlocks = 108;
-    metaOp->numWarps = 2;
-    metaOp->numReg = 24;
+    metaOp->numGroups = 1;
+    metaOp->numLanes = 128;
+    metaOp->numReg = inputShape[0] / 128;
     metaOp->numSmem = 0;
 
     metaOp->mappings.emplace_back(std::make_shared<TensorMapping>(
@@ -272,7 +278,8 @@ instantiateBroadcast(const OpType opType,
     metaOp->main_loop_st = 0;
     metaOp->main_loop_ed = par_size;
     metaOp->numBlocks = 108;
-    metaOp->numWarps = 2;
+    metaOp->numGroups = 2;
+    metaOp->numLanes = 32;
     metaOp->numReg = 24;
     metaOp->numSmem = 0;
 

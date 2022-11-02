@@ -1,5 +1,5 @@
 #pragma once
-#include "core/common.h"
+// #include "core/common.h"
 #include <cublas_v2.h>
 #include <cuda.h>
 #include <cuda_profiler_api.h>

@@ -21,7 +21,7 @@ TEST(Graph, SAR_DRN_0) {
     g->addOpWithOutputs<ReluObj>(t0, t1);
     g->addOpWithOutputs<AddObj>(t1, t2, t3);
     MemoryCodegen codegen;
-    codegen.exportCode(g, "sar_drn_0.cu");
+    codegen.exportGraph(g, "sar_drn_0.cu");
 }
 
 TEST(Graph, SAR_DRN_1) {
@@ -35,7 +35,7 @@ TEST(Graph, SAR_DRN_1) {
     g->addOpWithOutputs<ReluObj>(t0, t1);
     g->addOpWithOutputs<SubObj>(t1, t2, t3);
     MemoryCodegen codegen;
-    codegen.exportCode(g, "sar_drn_1.cu");
+    codegen.exportGraph(g, "sar_drn_1.cu");
 }
 
 } // namespace infini

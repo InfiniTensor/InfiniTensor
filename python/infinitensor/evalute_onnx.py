@@ -8,7 +8,8 @@ import onnx.numpy_helper
 import onnx.shape_inference
 from rules import conv_transposed2d_rules, conv_rules, print_result
 
-def _add_value_info_for_constants(model : onnx.ModelProto):
+
+def _add_value_info_for_constants(model: onnx.ModelProto):
     """
     Currently onnx.shape_inference doesn't use the shape of initializers, so add
     that info explicitly as ValueInfoProtos.
@@ -20,7 +21,7 @@ def _add_value_info_for_constants(model : onnx.ModelProto):
     if model.ir_version < 4:
         return
 
-    def add_const_value_infos_to_graph(graph : onnx.GraphProto):
+    def add_const_value_infos_to_graph(graph: onnx.GraphProto):
         inputs = {i.name for i in graph.input}
         existing_info = {vi.name: vi for vi in graph.value_info}
         for init in graph.initializer:
@@ -120,10 +121,9 @@ def _onnx_datatype_tostring(dtype):
     else:
         assert False, 'Unknown onnx datatype'
 
-    
 
-def import_onnx(model_path: str, bs :int):
-    ts, ds, ops, consts = dict(), dict(), dict(), dict() # (key, value) = (name, class)
+def import_onnx(model_path: str, bs: int):
+    ts, ds, ops, consts = dict(), dict(), dict(), dict()  # (key, value) = (name, class)
     model = onnx.load(model_path)
 
     # Tensor_input
@@ -182,14 +182,16 @@ def import_onnx(model_path: str, bs :int):
             assert attrs["pads"][0] == attrs["pads"][2]
             assert attrs["pads"][1] == attrs["pads"][3]
             assert ds[node.input[0]][1] % ds[node.input[1]][1] == 0
-            n, c, h, w, f, r, s, ph, pw, sh, sw, dh, dw = ds[node.input[0]][0], ds[node.input[0]][1], ds[node.input[0]][2], ds[node.input[0]][3],ds[node.input[1]][0], ds[node.input[1]][2], ds[node.input[1]][3],                attrs["pads"][0], attrs["pads"][1],                 attrs["strides"][0], attrs["strides"][1],                attrs["dilations"][0], attrs["dilations"][1]
+            n, c, h, w, f, r, s, ph, pw, sh, sw, dh, dw = ds[node.input[0]][0], ds[node.input[0]][1], ds[node.input[0]][2], ds[node.input[0]][3], ds[node.input[1]][0], ds[node.input[1]][2], ds[node.input[1]
+                                                                                                                                                                                                 ][3],                attrs["pads"][0], attrs["pads"][1],                 attrs["strides"][0], attrs["strides"][1],                attrs["dilations"][0], attrs["dilations"][1]
             group = ds[node.input[0]][1] // ds[node.input[1]][1]
             # t = getPerfConv(n, c, h, w, f, r, s, ph, pw,
             #                 sh, sw, dh, dw, group, "")
             # print(node.name, n, c, h, w, f, r, s, ph, pw, sh, sw, dh, dw, group, f'{t:.3f}')
-            n=n*bs
-            for rule in conv_rules: 
-                rule(node.name, n, c, h, w, f, r, s, ph, pw, sh, sw, dh, dw, group)
+            n = n*bs
+            for rule in conv_rules:
+                rule(node.name, n, c, h, w, f, r, s,
+                     ph, pw, sh, sw, dh, dw, group)
 
         elif node.op_type == 'ConvTranspose':
             attrs = _parse_attribute(node.attribute, {
@@ -208,15 +210,17 @@ def import_onnx(model_path: str, bs :int):
             assert attrs["pads"][1] == attrs["pads"][3]
             n, f, h, w = ds[node.input[0]]
             _, c, r, s = ds[node.input[1]]
-            ph, pw, sh, sw, dh, dw = attrs["pads"][0], attrs["pads"][1], attrs["strides"][0], attrs["strides"][1], attrs["dilations"][0], attrs["dilations"][1]
+            ph, pw, sh, sw, dh, dw = attrs["pads"][0], attrs["pads"][1], attrs["strides"][
+                0], attrs["strides"][1], attrs["dilations"][0], attrs["dilations"][1]
             oph, opw = 0, 0
             if "output_padding" in attrs:
                 oph, opw = attrs["output_padding"][0], attrs["output_padding"][1]
                 assert attrs["output_padding"][0] == attrs["output_padding"][1]
-            group=attrs["group"]
-            n=n*bs
-            for rule in conv_transposed2d_rules: 
-                rule(node.name, n, c, h, w, f, r, s, ph, pw, sh, sw, dh, dw, oph, opw, group)
+            group = attrs["group"]
+            n = n*bs
+            for rule in conv_transposed2d_rules:
+                rule(node.name, n, c, h, w, f, r, s, ph,
+                     pw, sh, sw, dh, dw, oph, opw, group)
 
         elif node.op_type == 'MatMul':
             print(f'{node.name} skipped')
@@ -428,7 +432,7 @@ def import_onnx(model_path: str, bs :int):
         #     assert len(node.input) == 2
         #     assert len(node.output) == 1
         #     g.reshape(ts[node.input[0]], ts[node.output[0]])
-            
+
         # elif node.op_type == "BatchNormalization":
         #     attrs = _parse_attribute(node.attribute, {})
         #     assert len(node.input) == 5
@@ -436,13 +440,13 @@ def import_onnx(model_path: str, bs :int):
         #     epsilon = attrs['epsilon'] if 'epsilon' in attrs else 1e-5
         #     momentum = attrs['momentum'] if 'momentum' in attrs else 0.9
         #     g.batchnorm(ts[node.input[0]], ts[node.input[1]],
-        #                 ts[node.input[2]], ts[node.input[3]], 
+        #                 ts[node.input[2]], ts[node.input[3]],
         #                 ts[node.input[4]], ts[node.output[0]],
         #                 epsilon, momentum)
 
         # elif node.op_type == "Split":
         #     attrs = _parse_attribute(node.attribute, {})
-        #     assert len(node.input) == 1 
+        #     assert len(node.input) == 1
         #     assert len(node.output) > 1
         #     axis = attrs['axis']
         #     split = attrs['split']
@@ -465,6 +469,7 @@ def import_onnx(model_path: str, bs :int):
 
         # else:
         #     assert False, "Unsupported op: " + node.op_type
+
 
 if __name__ == "__main__":
     import sys

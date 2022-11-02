@@ -14,36 +14,19 @@
 
 namespace infini {
 
-TEST(Graph, bert_0) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
-    Graph g = make_ref<GraphObj>(runtime);
-    Tensor t0 = g->addTensor({1, 128}, DataType::Float32);
-    Tensor t1 = g->addTensor({30522, 512}, DataType::Float32);
-    Tensor t2 = g->addTensor({1, 128, 512}, DataType::Float32);
-
-    Tensor t3 = g->addTensor({1, 128, 512}, DataType::Float32);
-    Tensor t4 = g->addTensor({1, 128, 512}, DataType::Float32);
-
-    Tensor t5 = g->addTensor({1, 128, 512}, DataType::Float32);
-    Tensor t6 = g->addTensor({1, 128, 512}, DataType::Float32);
-
-    Tensor t7 = g->addTensor({1, 128, 1}, DataType::Float32);
-
-    Tensor t8 = g->addTensor({1, 128, 512}, DataType::Float32);
-
-    Tensor t9 = g->addTensor({1, 128, 512}, DataType::Float32);
-    Tensor t10 = g->addTensor({1, 128, 512}, DataType::Float32);
-
-    g->dataMalloc();
-    g->addOpWithOutputs<GatherObj>(t1, t0, t2, 0);
-    g->addOpWithOutputs<AddObj>(t2, t3, t4);
-    g->addOpWithOutputs<AddObj>(t4, t5, t6);
-    g->addOpWithOutputs<ReduceMeanObj>(t6, t7, Shape({2}));
-    g->addOpWithOutputs<ExtendObj>(t7, t8, 2, 511);
-    g->addOpWithOutputs<SubObj>(t8, t9, t10);
-
+TEST(Graph, bert_layernorm) {
     MemoryCodegen codegen;
-    codegen.exportCode(g, "bert_0.cu");
+    codegen.exportBert_LN("bert_layernorm.cu");
+}
+
+TEST(Graph, bert_softmax) {
+    MemoryCodegen codegen;
+    codegen.exportBert_SM("bert_softmax.cu");
+}
+
+TEST(Graph, bert_gelu) {
+    MemoryCodegen codegen;
+    codegen.exportBert_GELU("bert_gelu.cu");
 }
 
 } // namespace infini
