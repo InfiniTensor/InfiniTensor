@@ -69,6 +69,7 @@ std::string GatherObj::toString() const {
     os << "output=" << outputs[0]->getGuid() << ")";
     return os.str();
 }
+
 vector<int> GatherObj::getWorkloadVector() const {
     vector<int> ret = inputs[0]->getDims();
     ret.emplace(ret.begin(), enum_to_underlying(type));
