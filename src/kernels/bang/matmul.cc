@@ -4,13 +4,12 @@
 
 namespace infini {
 class MatmulCnnl : public BangKernelWithoutConfig {
-    virtual cnnlOpTensorDesc_t getOpType() const = 0;
-    virtual tuple<float, float, float> getAlphBeta() const {
-        return {1.f, 1.f, 0.f};
+    virtual tuple<float, float> getAlphBeta() const {
+        return {1.f, 0.f};
     }
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
-        auto op = as<ElementWiseObj>(_op);
+        auto op = as<MatmulObj>(_op);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -18,41 +17,38 @@ class MatmulCnnl : public BangKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
 
         cnnlTensorDescriptor_t aDesc, bDesc, cDesc;
-        auto dim = op->getInputs(0)->getDims();
-        if (dim.size() != 4)
+        auto dimInputs0 = op->getInputs(0)->getDims();
+        auto dimInputs1 = op->getInputs(1)->getDims();
+        auto dimOutput = op->getOutput()->getDims();
+        if (dimInputs0.size() != 2)
+            IT_TODO_HALT();
+        if (dimInputs1.size() != 2)
+            IT_TODO_HALT();
+        if (dimOutput.size() != 2)
             IT_TODO_HALT();
 
-        int dim_array[4] = {dim[0], dim[1], dim[2], dim[3]};
+        int inputs0Array[2] = {dimInputs0[0], dimInputs0[1]};
+        int inputs1Array[2] = {dimInputs1[0], dimInputs1[1]};
+        int outputArray[2] = {dimOutput[0], dimOutput[1]};
+
         // get inputs
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_ARRAY,
+                                               CNNL_DTYPE_FLOAT, 2, inputs0Array));
 
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+        checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_ARRAY,
+                                               CNNL_DTYPE_FLOAT, 2, inputs1Array));
 
         // get outputs
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_ARRAY,
+                                               CNNL_DTYPE_FLOAT, 2, outputArray));
 
-        // get op descriptor
-        cnnlOpTensorDescriptor_t opDesc;
-        checkCnnlError(cnnlCreateOpTensorDescriptor(&opDesc));
-        checkCnnlError(cnnlSetOpTensorDescriptor(
-            opDesc, getOpType(), CNNL_DTYPE_FLOAT, CNNL_NOT_PROPAGATE_NAN));
 
-        size_t wsSize;
-        cnnlGetOpTensorWorkspaceSize(context->cnnlHandle(), aDesc, bDesc, cDesc,
-                                     &wsSize);
-
-        BangPtr wsData = context->getWorkspace(wsSize);
-
-        auto [aAlpha, bAlpha, beta] = getAlphBeta();
-        cnnlStatus_t stat = cnnlOpTensor(context->cnnlHandle(), opDesc, &aAlpha,
-                                         aDesc, aData, &bAlpha, bDesc, bData,
-                                         wsData, wsSize, &beta, cDesc, cData);
+        auto [alpha, beta] = getAlphBeta();
+        cnnlStatus_t stat = cnnlMatMul(context->cnnlHandle(), false, false, &alpha,
+                                         aDesc, aData, bDesc, bData, &beta, cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
@@ -61,42 +57,13 @@ class MatmulCnnl : public BangKernelWithoutConfig {
         checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
         checkCnnlError(cnnlDestroyTensorDescriptor(bDesc));
         checkCnnlError(cnnlDestroyTensorDescriptor(cDesc));
-        checkCnnlError(cnnlDestroyOpTensorDescriptor(opDesc));
     }
 };
 
-class AddCnnl : public ElementWiseCnnl {
-    cnnlOpTensorDesc_t getOpType() const override { return CNNL_OP_TENSOR_ADD; }
-};
+// class AddCnnl : public MatmulCnnl {
+//     cnnlOpTensorDesc_t getOpType() const override { return CNNL_OP_TENSOR_ADD; }
+// };
 
-class SubCnnl : public ElementWiseCnnl {
-    cnnlOpTensorDesc_t getOpType() const override { return CNNL_OP_TENSOR_ADD; }
-    tuple<float, float, float> getAlphBeta() const override {
-        return {1.f, -1.f, 0.f};
-    }
-};
-
-class MulCnnl : public ElementWiseCnnl {
-    cnnlOpTensorDesc_t getOpType() const override { return CNNL_OP_TENSOR_MUL; }
-};
-
-class ElementWiseBang : public BangKernelWithoutConfig {
-    void compute(const Operator &_op,
-                 const RuntimeObj *_context) const override {
-        element_wise_kernel(_context, _op);
-    }
-};
-
-REGISTER_KERNEL(Device::BANG, OpType::Add, DataType::Float32, AddCnnl,
-                "Add_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Sub, DataType::Float32, SubCnnl,
-                "Sub_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Mul, DataType::Float32, MulCnnl,
-                "Mul_cnnl_BANG_Float32");
-
-REGISTER_KERNEL(Device::BANG, OpType::Div, DataType::Float32, ElementWiseBang,
-                "Div_Bang_Float32");
-// REGISTER_KERNEL(Device::BANG, OpType::Pow, DataType::Float32,
-// ElementWiseBang,
-//                 "Pow_Bang_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Matmul, DataType::Float32, MatmulCnnl,
+                "Matmul_cnnl_BANG_Float32");
 }; // namespace infini
