@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.17) # FindCUDAToolkit
+cmake_minimum_required(VERSION 3.13) # FindCUDAToolkit
 include(CMakeDependentOption)
 project(InfiniTensor C CXX)
 

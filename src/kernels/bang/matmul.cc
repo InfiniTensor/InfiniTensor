@@ -27,6 +27,9 @@ class MatmulCnnl : public BangKernelWithoutConfig {
         if (dimOutput.size() != 2)
             IT_TODO_HALT();
 
+        bool transA = op->getTransA();
+        bool transB = op->getTransB();
+
         int inputs0Array[2] = {dimInputs0[0], dimInputs0[1]};
         int inputs1Array[2] = {dimInputs1[0], dimInputs1[1]};
         int outputArray[2] = {dimOutput[0], dimOutput[1]};
@@ -47,7 +50,7 @@ class MatmulCnnl : public BangKernelWithoutConfig {
 
 
         auto [alpha, beta] = getAlphBeta();
-        cnnlStatus_t stat = cnnlMatMul(context->cnnlHandle(), false, false, &alpha,
+        cnnlStatus_t stat = cnnlMatMul(context->cnnlHandle(), transA, transB, &alpha,
                                          aDesc, aData, bDesc, bData, &beta, cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
