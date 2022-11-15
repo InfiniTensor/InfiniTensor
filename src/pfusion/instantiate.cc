@@ -33,21 +33,21 @@ instantiateUnary(const OpType opType,
     metaOp->numReg = 8;
     metaOp->numSmem = 0;
 
-    metaOp->mappings.emplace_back(std::make_shared<TensorMapping>(
+    metaOp->mappings.emplace_back(TensorMapping::buildWithMap(
         std::string("src"), std::vector<size_t>({32 * 8, size / 32 / 8}),
         std::vector<size_t>({1})));
 
     metaOp->ptrs = ptrs;
     auto buf = Pointer::buildPtr(REG, "buf", "inst_idx");
 
-    metaOp->microOps.emplace_back(std::make_shared<MemoryOp>(
+    metaOp->microOps.emplace_back(MemoryOp::build(
         READ,
         Pointer::buildPtr(ptrs[0], "offset_src + inst_idx * 32 + lane_id"), buf,
         8, 32));
     metaOp->microOps.emplace_back(
         std::make_shared<UnaryOp>(opType, buf, buf, 8, 32));
 
-    metaOp->microOps.emplace_back(std::make_shared<MemoryOp>(
+    metaOp->microOps.emplace_back(MemoryOp::build(
         WRITE, buf,
         Pointer::buildPtr(ptrs[1], "offset_src + inst_idx * 32 + lane_id"), 8,
         32));
@@ -72,7 +72,7 @@ instantiateBinary(const OpType opType,
     metaOp->numReg = 24;
     metaOp->numSmem = 0;
 
-    metaOp->mappings.emplace_back(std::make_shared<TensorMapping>(
+    metaOp->mappings.emplace_back(TensorMapping::buildWithMap(
         std::string("src"), std::vector<size_t>({32 * 8, size / 32 / 8}),
         std::vector<size_t>({1})));
 
@@ -81,17 +81,17 @@ instantiateBinary(const OpType opType,
     auto buf1 = Pointer::buildPtr(REG, "buf", "inst_idx + 8");
     auto buf2 = Pointer::buildPtr(REG, "buf", "inst_idx + 16");
 
-    metaOp->microOps.emplace_back(std::make_shared<MemoryOp>(
+    metaOp->microOps.emplace_back(MemoryOp::build(
         READ,
         Pointer::buildPtr(ptrs[0], "offset_src + inst_idx * 32 + lane_id"),
         buf0, 8, 32));
-    metaOp->microOps.emplace_back(std::make_shared<MemoryOp>(
+    metaOp->microOps.emplace_back(MemoryOp::build(
         READ,
         Pointer::buildPtr(ptrs[1], "offset_src + inst_idx * 32 + lane_id"),
         buf1, 8, 32));
     metaOp->microOps.emplace_back(
         std::make_shared<BinaryOp>(opType, buf0, buf1, buf2, 8, 32));
-    metaOp->microOps.emplace_back(std::make_shared<MemoryOp>(
+    metaOp->microOps.emplace_back(MemoryOp::build(
         WRITE, buf2,
         Pointer::buildPtr(ptrs[2], "offset_src + inst_idx * 32 + lane_id"), 8,
         32));
@@ -123,7 +123,7 @@ std::vector<std::shared_ptr<MetaOp>> instantiateTranspose(
         }
     }
     metaOp->mappings.emplace_back(
-        std::make_shared<TensorMapping>("src", srcShape, srcMap));
+        TensorMapping::buildWithMap("src", srcShape, srcMap));
 
     std::vector<size_t> dstMap;
     for (size_t i = 0; i < shape.size(); i++) {
@@ -132,7 +132,7 @@ std::vector<std::shared_ptr<MetaOp>> instantiateTranspose(
         }
     }
     metaOp->mappings.emplace_back(
-        std::make_shared<TensorMapping>("dst", shape, dstMap));
+        TensorMapping::buildWithMap("dst", shape, dstMap));
 
     metaOp->main_loop_st = 0;
     metaOp->main_loop_ed = parallelSize;
@@ -160,7 +160,10 @@ std::vector<std::shared_ptr<MetaOp>> instantiateTranspose(
     // TODO: tiling is a metaOp or microOps?
 
     metaOp->ptrs = ptrs;
-    auto smem = Pointer::buildPtr(SRAM, "smem", "group_id * " + std::to_string(metaOp->numLanes) +  " * " + std::to_string(metaOp->numLanes + 1));
+    auto smem =
+        Pointer::buildPtr(SRAM, "smem",
+                          "group_id * " + std::to_string(metaOp->numLanes) +
+                              " * " + std::to_string(metaOp->numLanes + 1));
     auto buf = Pointer::buildPtr(REG, "buf", "inst_idx");
 
     for (int i = 0; i < numTileA; i++) {
@@ -170,13 +173,13 @@ std::vector<std::shared_ptr<MetaOp>> instantiateTranspose(
                              std::to_string(j * 32 * stride_src + i * 32) +
                              "+" + "inst_idx * " + std::to_string(stride_src) +
                              " + lane_id");
-            metaOp->microOps.emplace_back(std::make_shared<MemoryOp>(
-                READ, src_ptr, buf, min(32u, shape[0]),
-                min(32, shape[perm[0]])));
-            metaOp->microOps.emplace_back(std::make_shared<MemoryOp>(
+            metaOp->microOps.emplace_back(
+                MemoryOp::build(READ, src_ptr, buf, min(32u, shape[0]),
+                                min(32, shape[perm[0]])));
+            metaOp->microOps.emplace_back(MemoryOp::build(
                 WRITE, buf, Pointer::buildPtr(smem, "inst_idx * 33 + lane_id"),
                 min(32, shape[0]), min(32, shape[perm[0]])));
-            metaOp->microOps.emplace_back(std::make_shared<MemoryOp>(
+            metaOp->microOps.emplace_back(MemoryOp::build(
                 READ, Pointer::buildPtr(smem, "lane_id * 33 + inst_idx"), buf,
                 min(32, shape[perm[0]]), min(32, shape[0])));
             auto dst_ptr = Pointer::buildPtr(
@@ -184,9 +187,9 @@ std::vector<std::shared_ptr<MetaOp>> instantiateTranspose(
                              std::to_string(i * 32 * stride_dst + j * 32) +
                              "+" + "inst_idx * " + std::to_string(stride_dst) +
                              " + lane_id");
-            metaOp->microOps.emplace_back(std::make_shared<MemoryOp>(
-                WRITE, buf, dst_ptr, min(32, shape[perm[0]]),
-                min(32, shape[0])));
+            metaOp->microOps.emplace_back(
+                MemoryOp::build(WRITE, buf, dst_ptr, min(32, shape[perm[0]]),
+                                min(32, shape[0])));
         }
     }
     metaOps.emplace_back(metaOp);
@@ -216,7 +219,7 @@ instantiateGather(const OpType opType,
     metaOp->numReg = 24;
     metaOp->numSmem = 0;
 
-    metaOp->mappings.emplace_back(std::make_shared<TensorMapping>(
+    metaOp->mappings.emplace_back(TensorMapping::buildWithMap(
         std::string("src"), std::vector<size_t>({seq_size, par_size}),
         std::vector<size_t>({1})));
 
@@ -252,7 +255,7 @@ instantiateReduce(const OpType opType,
     metaOp->numReg = inputShape[0] / 128;
     metaOp->numSmem = 0;
 
-    metaOp->mappings.emplace_back(std::make_shared<TensorMapping>(
+    metaOp->mappings.emplace_back(TensorMapping::buildWithMap(
         std::string("src"), std::vector<size_t>({seq_size, par_size}),
         std::vector<size_t>({1})));
 
@@ -283,7 +286,7 @@ instantiateBroadcast(const OpType opType,
     metaOp->numReg = 24;
     metaOp->numSmem = 0;
 
-    metaOp->mappings.emplace_back(std::make_shared<TensorMapping>(
+    metaOp->mappings.emplace_back(TensorMapping::buildWithMap(
         std::string("src"), std::vector<size_t>({seq_size, par_size}),
         std::vector<size_t>({1})));
 

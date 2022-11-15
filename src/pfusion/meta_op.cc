@@ -1,14 +1,11 @@
 #include "pfusion/meta_op.h"
+#include "pfusion/micro_kernel/binary.h"
+#include "pfusion/micro_kernel/memory.h"
 
 namespace memb {
 
 std::string TensorMapping::genOffset() {
     std::string code = "int " + offset() + " = 0;\n";
-    std::vector<int> stride;
-    stride.emplace_back(1);
-    for (size_t i = 1; i < shape.size(); i++) {
-        stride.emplace_back(stride[i - 1] * shape[i - 1]);
-    }
 
     std::string bufName = name + "_buf";
     code += "int " + bufName + " = loop_idx;\n";
@@ -131,7 +128,7 @@ std::shared_ptr<MetaOp> MetaOp::merge(std::shared_ptr<MetaOp> metaOp0,
     if (metaOp0->main_loop_st != metaOp1->main_loop_st ||
         metaOp0->main_loop_ed != metaOp1->main_loop_ed ||
         metaOp0->numBlocks != metaOp1->numBlocks ||
-        metaOp0->numGroups != metaOp1->numGroups || 
+        metaOp0->numGroups != metaOp1->numGroups ||
         metaOp0->numLanes != metaOp1->numLanes) {
         return nullptr;
     }
@@ -184,6 +181,121 @@ std::shared_ptr<MetaOp> MetaOp::merge(std::shared_ptr<MetaOp> metaOp0,
         microOp->print();
     }
     // TODO: elimiate microOps.
+
+    return metaOp;
+}
+
+std::shared_ptr<MetaOp> MetaOp::buildBiasOp(const std::vector<size_t> &shape) {
+    IT_ASSERT(shape.size() == 2);
+    auto metaOp = std::make_shared<MetaOp>();
+    metaOp->main_loop_st = 0;
+    metaOp->main_loop_ed = shape[1] * (shape[0] / 32 / 4);
+    metaOp->numBlocks = 80;
+    metaOp->numGroups = 4;
+    metaOp->numLanes = 32;
+    metaOp->numReg = 4;
+    metaOp->numSmem = 0;
+
+    metaOp->mappings.emplace_back(TensorMapping::build(
+        std::string("input"),
+        std::vector<size_t>({32 * 4, (shape[0] - 1) / (32 * 4) + 1, shape[1]}),
+        std::vector<size_t>({1, 32 * 4, shape[0]}),
+        std::vector<size_t>({1, 2})));
+    metaOp->mappings.emplace_back(TensorMapping::buildWithMap(
+        std::string("bias"), std::vector<size_t>({shape[0], shape[1]}),
+        std::vector<size_t>({1})));
+
+    metaOp->ptrs = std::vector<std::shared_ptr<Pointer>>();
+    auto &ptrs = metaOp->ptrs;
+    ptrs.emplace_back(Pointer::buildPtr(DRAM, "input"));
+    ptrs.emplace_back(Pointer::buildPtr(DRAM, "bias"));
+    ptrs.emplace_back(Pointer::buildPtr(DRAM, "output"));
+
+    auto buf_input = Pointer::buildPtr(REG, "buf", "inst_idx");
+    auto buf_bias = Pointer::buildPtr(REG, "buf", "4");
+    auto buf_output = Pointer::buildPtr(REG, "buf", "inst_idx");
+
+    // @cond group_id * 4 * 32 + inst_idx * 32 + lane_id < shape[0]
+    metaOp->microOps.emplace_back(MemoryOp::build(
+        READ,
+        Pointer::buildPtr(ptrs[0], "offset_input + inst_idx * 32 + lane_id"),
+        buf_input, 4, 32));
+    metaOp->microOps.emplace_back(MemoryOp::build(
+        READ, Pointer::buildPtr(ptrs[1], "offset_bias"), buf_bias, 1, 32));
+    metaOp->microOps.emplace_back(std::make_shared<BinaryOp>(
+        ADD, buf_input, buf_bias, buf_output, 4, 32));
+    // @cond group_id * 4 * 32 + inst_idx * 32 + lane_id < shape[0]
+    metaOp->microOps.emplace_back(MemoryOp::build(
+        WRITE, buf_output,
+        Pointer::buildPtr(ptrs[1], "offset_input + inst_idx * 32 + lane_id"), 8,
+        32));
+    return metaOp;
+}
+
+std::shared_ptr<MetaOp>
+MetaOp::buildTransposeOp(const std::vector<size_t> &shape,
+                         const std::vector<size_t> &perm) {
+    IT_ASSERT(perm[0] == 0 && shape[0] >= 32);
+    IT_ASSERT(shape.size() == 3);
+    auto metaOp = std::make_shared<MetaOp>();
+    size_t numInst, extraDim;
+    std::vector<size_t> map_shape, map_stride;
+    if (shape[0] <= 4 * 32) {
+        numInst = (shape[0] - 1) / 32 + 1;
+        extraDim = 1;
+        metaOp->mappings.emplace_back(TensorMapping::build(
+            std::string("input"),
+            std::vector<size_t>({shape[0], shape[perm[1]], shape[perm[2]]}),
+            std::vector<size_t>({1, shape[0], shape[0] * shape[perm[1]]}),
+            std::vector<size_t>({perm[1], perm[2]})));
+        metaOp->mappings.emplace_back(TensorMapping::build(
+            std::string("output"),
+            std::vector<size_t>({shape[0], shape[1], shape[2]}),
+            std::vector<size_t>({1, shape[0], shape[0] * shape[1]}),
+            std::vector<size_t>({1, 2})));
+        // cond: local_id < shape[0];
+    } else {
+        numInst = 4;
+        extraDim = (shape[0] - 1) / 128 + 1;
+        metaOp->mappings.emplace_back(TensorMapping::build(
+            std::string("input"),
+            std::vector<size_t>(
+                {128, extraDim, shape[perm[1]], shape[perm[2]]}),
+            std::vector<size_t>({1, 128, shape[0], shape[0] * shape[perm[1]]}),
+            std::vector<size_t>({1, perm[1] + 1, perm[2] + 1})));
+        metaOp->mappings.emplace_back(TensorMapping::build(
+            std::string("output"),
+            std::vector<size_t>({128, extraDim, shape[1], shape[2]}),
+            std::vector<size_t>({1, 128, shape[0], shape[0] * shape[1]}),
+            std::vector<size_t>({1, 2, 3})));
+        // cond loop_idx % extraDim * 128 + local_id < shape[0];
+    }
+    metaOp->main_loop_st = 0;
+    metaOp->main_loop_ed = shape[1] * shape[2] * extraDim;
+    metaOp->numBlocks = 80;
+    metaOp->numGroups = 4;
+    metaOp->numLanes = 32;
+    metaOp->numReg = 4;
+    metaOp->numSmem = 0;
+
+    metaOp->ptrs = std::vector<std::shared_ptr<Pointer>>();
+    auto &ptrs = metaOp->ptrs;
+    ptrs.emplace_back(Pointer::buildPtr(DRAM, "input"));
+    ptrs.emplace_back(Pointer::buildPtr(DRAM, "output"));
+
+    auto buf_input = Pointer::buildPtr(REG, "buf", "inst_idx");
+    auto buf_output = Pointer::buildPtr(REG, "buf", "inst_idx");
+
+    // @cond group_id * 4 * 32 + inst_idx * 32 + lane_id < shape[0]
+    std::vector<size_t> cond = {shape[0], extraDim, 128};
+    auto inPtr =
+        Pointer::buildPtr(ptrs[0], "offset_input + inst_idx * 32 + lane_id");
+    auto opRead = MemoryOp::build(READ, inPtr, buf_input, numInst, 32, cond);
+    auto outPtr =
+        Pointer::buildPtr(ptrs[1], "offset_output + inst_idx * 32 + lane_id");
+    auto opWrite =
+        MemoryOp::build(WRITE, buf_output, outPtr, numInst, 32, cond);
+    metaOp->microOps = std::vector<std::shared_ptr<MicroOp>>({opRead, opWrite});
 
     return metaOp;
 }

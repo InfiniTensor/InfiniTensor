@@ -1,23 +1,21 @@
-#include "core/blob.h"
-#include "core/graph.h"
-#include "core/runtime.h"
-#include "operators/matmul.h"
-#include "operators/transpose.h"
-#include "operators/unary.h"
 #include "pfusion/memory_codegen.h"
 #include "test.h"
 
 namespace infini {
 
-TEST(Graph, transpose) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
-    Graph g = make_ref<GraphObj>(runtime);
-    Tensor t0 = g->addTensor({32, 31, 33, 32}, DataType::Float32);
-    Tensor t1 = g->addTensor({33, 32, 32, 31}, DataType::Float32);
-    g->dataMalloc();
-    g->addOpWithOutputs<TransposeObj>(t0, t1, Shape{2, 0, 3, 1});
+TEST(Graph, transpose_0) {
     MemoryCodegen codegen;
-    codegen.exportGraph(g, "transpose.cu");
+    codegen.exportTranspose("transpose_0.cu", {28 * 28, 58, 2}, {0, 2, 1});
+}
+
+TEST(Graph, transpose_1) {
+    MemoryCodegen codegen;
+    codegen.exportTranspose("transpose_1.cu", {14 * 14, 116, 2}, {0, 2, 1});
+}
+
+TEST(Graph, transpose_2) {
+    MemoryCodegen codegen;
+    codegen.exportTranspose("transpose_2.cu", {7 * 7, 232, 2}, {0, 2, 1});
 }
 
 } // namespace infini

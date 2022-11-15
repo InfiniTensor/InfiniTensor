@@ -40,6 +40,17 @@ class Pointer {
     inline const std::string getName() { return name; }
     inline const std::string getOffset() { return offset; }
     inline const std::string generate() { return name + "[" + offset + "]"; }
+    inline const std::string generateWithInstIdx(std::string idx) {
+        std::string code = generate();
+        size_t pos = 0, lengthA = 8, lengthB = idx.size();
+        while ((pos = code.find("inst_idx", pos)) != std::string::npos) {
+            code.replace(pos, lengthA, idx);
+            pos += lengthB;
+        }
+        std::cout << "[INFO] " << idx << " " << lengthB << " " << code
+                  << std::endl;
+        return code;
+    }
     inline bool equal(std::shared_ptr<Pointer> ptr) {
         if (name == ptr->getName() && offset == ptr->getOffset()) {
             IT_ASSERT(memType == ptr->getType());

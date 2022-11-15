@@ -10,12 +10,12 @@ class MicroOp {
     size_t id;
     OpType opType;
     std::vector<std::shared_ptr<Pointer>> ptrs;
+    std::vector<size_t> cond;
 
   public:
-    MicroOp() {
+    MicroOp() : opType(NONE), cond(0) {
         static int microOpId = 0;
         id = microOpId++;
-        opType = OpType(0);
     }
     virtual ~MicroOp() {}
 

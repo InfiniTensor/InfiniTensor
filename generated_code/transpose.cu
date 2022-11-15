@@ -11,13 +11,13 @@ __global__ void kernel_func_0(float *tensor_ptr_2, float *tensor_ptr_3) {
         int offset_src_buf = loop_idx;
         offset_src += offset_src_buf % 32 * 32736;
         offset_src_buf /= 32;
-        offset_src += offset_src_buf % 33 * 32;
+        offset_src += offset_src_buf % 33 * 33;
         offset_src_buf /= 33;
         int offset_dst = 0;
         int offset_dst_buf = loop_idx;
-        offset_dst += offset_dst_buf % 32 * 992;
+        offset_dst += offset_dst_buf % 32 * 1024;
         offset_dst_buf /= 32;
-        offset_dst += offset_dst_buf % 33 * 31744;
+        offset_dst += offset_dst_buf % 33 * 33792;
         offset_dst_buf /= 33;
 #pragma unroll
         for (int inst_idx = 0; inst_idx < 31; inst_idx++) {
@@ -26,13 +26,13 @@ __global__ void kernel_func_0(float *tensor_ptr_2, float *tensor_ptr_3) {
         }
 #pragma unroll
         for (int inst_idx = 0; inst_idx < 31; inst_idx++) {
-            smem[warp_id * 32 * 33 + inst_idx * 33 + lane_id] = buf[inst_idx];
+            smem[group_id * 32 * 33 + inst_idx * 33 + lane_id] = buf[inst_idx];
         }
         if (lane_id < 31) {
 #pragma unroll
             for (int inst_idx = 0; inst_idx < 32; inst_idx++) {
                 buf[inst_idx] =
-                    smem[warp_id * 32 * 33 + lane_id * 33 + inst_idx];
+                    smem[group_id * 32 * 33 + lane_id * 33 + inst_idx];
             }
         }
         if (lane_id < 31) {

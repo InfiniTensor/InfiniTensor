@@ -10,6 +10,7 @@
 namespace memb {
 
 enum OpType {
+    NONE = 0,
     EMPTY = 1,
     READ,
     WRITE,

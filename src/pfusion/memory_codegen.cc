@@ -30,7 +30,7 @@ void exportCode(const std::string &filename, const std::string &code) {
 }
 
 void infini::MemoryCodegen::exportGraph(Graph graph, std::string filename) {
-    std::string code = generate(graph);
+    std::string code = generateGraph(graph);
     exportCode(filename, code);
 }
 
@@ -61,6 +61,19 @@ void infini::MemoryCodegen::exportViT_SM(const std::string &filename) {
 
 void infini::MemoryCodegen::exportViT_GELU(const std::string &filename) {
     std::string code = "";
+    exportCode(filename, code);
+}
+
+void infini::MemoryCodegen::exportBias(const std::string &filename,
+                                       const std::vector<size_t> &shape) {
+    std::string code = generateBias(shape);
+    exportCode(filename, code);
+}
+
+void infini::MemoryCodegen::exportTranspose(const std::string &filename,
+                                            const std::vector<size_t> &shape,
+                                            const std::vector<size_t> &perm) {
+    std::string code = generateTranspose(shape, perm);
     exportCode(filename, code);
 }
 
@@ -203,7 +216,7 @@ std::shared_ptr<memb::SearchGraph> instantiateGraph(infini::Graph graph) {
     return searchGraph;
 }
 
-std::string infini::MemoryCodegen::generate(Graph graph) {
+std::string infini::MemoryCodegen::generateGraph(Graph graph) {
     auto searchGraph = instantiateGraph(graph);
     auto metaGraph = searchGraph->exportFirstMetaGraph();
     std::string code = "";
@@ -212,6 +225,31 @@ std::string infini::MemoryCodegen::generate(Graph graph) {
     metaGraph->optimize();
     std::cout << "[INFO] after opt." << std::endl;
     metaGraph->print();
+    code += metaGraph->genHeader();
+    code += metaGraph->genKernelFuncs();
+    code += metaGraph->genInvokeFuncs();
+    return code;
+}
+
+std::string
+infini::MemoryCodegen::generateBias(const std::vector<size_t> &shape) {
+    auto metaGraph = std::make_shared<memb::MetaGraph>();
+    metaGraph->addOp(memb::MetaOp::buildBiasOp(shape));
+    metaGraph->print();
+    std::string code = "";
+    code += metaGraph->genHeader();
+    code += metaGraph->genKernelFuncs();
+    code += metaGraph->genInvokeFuncs();
+    return code;
+}
+
+std::string
+infini::MemoryCodegen::generateTranspose(const std::vector<size_t> &shape,
+                                         const std::vector<size_t> &perm) {
+    auto metaGraph = std::make_shared<memb::MetaGraph>();
+    metaGraph->addOp(memb::MetaOp::buildTransposeOp(shape, perm));
+    metaGraph->print();
+    std::string code = "";
     code += metaGraph->genHeader();
     code += metaGraph->genKernelFuncs();
     code += metaGraph->genInvokeFuncs();

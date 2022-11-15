@@ -7,16 +7,21 @@
 namespace memb {
 class TensorMapping {
   private:
-    std::vector<size_t> shape, map;
+    std::vector<size_t> shape, stride, map;
     std::string name;
 
   public:
-    TensorMapping(const std::string _name, const std::vector<size_t> &_shape,
+    TensorMapping(const std::string &_name, const std::vector<size_t> &_shape,
+                  const std::vector<size_t> &_stride,
                   const std::vector<size_t> &_map) {
         name = "offset_" + _name;
         IT_ASSERT(_shape.size() > 0 && _shape.size() < 10);
         for (auto x : _shape) {
             shape.emplace_back(x);
+        }
+        IT_ASSERT(_stride.size() > 0 && _stride.size() < 10);
+        for (auto x : _stride) {
+            stride.emplace_back(x);
         }
         IT_ASSERT(_map.size() > 0 && _map.size() < 10);
         for (auto x : _map) {
@@ -24,6 +29,24 @@ class TensorMapping {
         }
     }
     ~TensorMapping() {}
+
+    static inline std::shared_ptr<TensorMapping>
+    buildWithMap(const std::string &name, const std::vector<size_t> &shape,
+                 const std::vector<size_t> &map) {
+        std::vector<size_t> stride(shape.size());
+        stride[0] = 1;
+        for (size_t i = 1; i < stride.size(); i++) {
+            stride[i] = shape[i] * stride[i - 1];
+        }
+        return std::make_shared<TensorMapping>(name, shape, stride, map);
+    }
+
+    static inline std::shared_ptr<TensorMapping>
+    build(const std::string &name, const std::vector<size_t> &shape,
+          const std::vector<size_t> &stride, const std::vector<size_t> &map) {
+        return std::make_shared<TensorMapping>(name, shape, stride, map);
+    }
+
     inline std::string offset() { return name; }
     inline size_t getHash() {
         std::hash<size_t> hasher;
@@ -45,7 +68,8 @@ class TensorMapping {
 class MetaOp {
   public:
     int id;
-    int main_loop_st, main_loop_ed, numBlocks, numGroups, numReg, numSmem, numLanes;
+    int main_loop_st, main_loop_ed, numBlocks, numGroups, numReg, numSmem,
+        numLanes;
     std::vector<std::shared_ptr<MicroOp>> microOps;
     std::vector<std::shared_ptr<Pointer>> ptrs;
     std::vector<std::shared_ptr<TensorMapping>> mappings;
@@ -77,6 +101,11 @@ class MetaOp {
         // TODO: check valid
         return true;
     };
+    static std::shared_ptr<MetaOp>
+    buildBiasOp(const std::vector<size_t> &shape);
+    static std::shared_ptr<MetaOp>
+    buildTransposeOp(const std::vector<size_t> &shape,
+                     const std::vector<size_t> &perm);
 };
 
 } // namespace memb
