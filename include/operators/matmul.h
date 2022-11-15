@@ -29,6 +29,7 @@ class MatmulObj : public OperatorObj {
     MatmulObj(GraphObj *graph, Tensor A, Tensor B, Tensor C,
               bool transA = false, bool transB = false, Tensor bias = nullptr,
               ActType act = ActType::None);
+    OP_CLONE(MatmulObj);
 
     std::string toString() const override;
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;

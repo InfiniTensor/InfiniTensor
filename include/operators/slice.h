@@ -10,6 +10,7 @@ class SliceObj : public OperatorObj {
              const vector<int> &starts, const vector<int> &ends,
              const optional<vector<int>> &axis,
              const optional<vector<int>> &steps);
+    OP_CLONE(SliceObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
     std::string toString() const override;

@@ -26,6 +26,7 @@ class G2BMMObj : public OperatorObj {
     G2BMMObj(GraphObj *graph, Tensor A, Tensor B, Tensor C, const int width,
              const int dilation, Tensor bias = nullptr,
              ActType act = ActType::None);
+    OP_CLONE(G2BMMObj);
 
     std::string toString() const override;
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;

@@ -51,6 +51,7 @@ class ResizeObj : public OperatorObj {
         GraphObj *graph, Tensor input, Tensor output,
         const std::optional<vector<int>> &axes, Tensor scales, ECoeffMode mode,
         ECoordinateTransMode coordTransMode = ECoordinateTransMode::halfPixel);
+    OP_CLONE(ResizeObj);
 
     vector<DataType> inferDataType(const TensorVec &inputs) const override;
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;

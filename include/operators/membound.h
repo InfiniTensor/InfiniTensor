@@ -17,6 +17,7 @@ class MemBoundObj : public OperatorObj {
                 const TensorVec &output,
                 const std::vector<nnet::Tensor> &nnetInputs, nnet::Expr expr,
                 double exec_time, std::string hint = {});
+    OP_CLONE(MemBoundObj);
 
     std::string toString() const override;
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;

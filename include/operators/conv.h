@@ -77,6 +77,7 @@ class ConvObj : public ConvBaseObj {
             PaddingMode mode = PaddingMode::Same, int sh = 1, int sw = 1,
             int dh = 1, int dw = 1, Tensor bias = nullptr,
             ActType act = ActType::None);
+    OP_CLONE(ConvObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
     ActType getAct() const { return act; }
@@ -104,6 +105,7 @@ class ConvTransposed2dObj : public ConvBaseObj {
                         int sh = 1, int sw = 1, int dh = 1, int dw = 1,
                         int oph = 0, int opw = 0, int group = 1,
                         Tensor bias = nullptr, ActType act = ActType::None);
+    OP_CLONE(ConvTransposed2dObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
     ActType getAct() const { return act; }

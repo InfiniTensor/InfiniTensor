@@ -8,6 +8,7 @@ class ReshapeObj : public OperatorObj {
 
   public:
     ReshapeObj(GraphObj *graph, Tensor input, Tensor output, const Shape &dims);
+    OP_CLONE(ReshapeObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
