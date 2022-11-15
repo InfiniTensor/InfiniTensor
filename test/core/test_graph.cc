@@ -2,6 +2,7 @@
 #include "core/graph.h"
 #include "core/runtime.h"
 #include "operators/matmul.h"
+#include "operators/unary.h"
 #include "test.h"
 
 namespace infini {
@@ -73,6 +74,39 @@ TEST(Graph, test_tensor_id) {
     EXPECT_EQ(i0->getFuid(), i1->getFuid());
     EXPECT_NE(i0->getDataBlob(), nullptr);
     EXPECT_EQ(i1->getDataBlob(), nullptr);
+}
+
+TEST(Graph, test_OpVec_ctor) {
+    Runtime runtime = CpuRuntimeObj::getInstance();
+    Graph g = make_ref<GraphObj>(runtime);
+    Tensor i0 = g->addTensor({1, 2, 3}, DataType::UInt32);
+    Tensor w0 = g->addTensor({1, 3, 4}, DataType::UInt32);
+    Tensor o0 = g->addTensor({1, 2, 4}, DataType::UInt32);
+    g->dataMalloc();
+    i0->copyData(vector<uint32_t>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
+    w0->copyData(vector<uint32_t>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
+    auto o1 = g->addTensor(o0->clone());
+    auto matmul = g->addOpWithOutputs<MatmulObj>(i0, w0, o0);
+    g->addOp<ReluObj>(o1, nullptr);
+    g->print();
+    puts("=========");
+    OpVec ops = g->getOperators();
+    Graph g2 = make_ref<GraphObj>(runtime, ops);
+    g2->print();
+    // Check if the two tensors with the same FUID (o0,o1) remain only one in g2
+    EXPECT_EQ(g2->getTensors().size(), 4u);
+    EXPECT_EQ(g2->getOperators().size(), 2u);
+    map<pair<int, int>, int> inputOutput2Cnt = {
+        {{1, 0}, 2}, {{1, 1}, 1}, {{0, 1}, 1}};
+    for (auto t : g2->getTensors()) {
+        pair<int, int> key = {t->getInputOf().size(),
+                              t->getOutputOf() != nullptr};
+        EXPECT_GE(inputOutput2Cnt[key], 0);
+        inputOutput2Cnt[key]--;
+    }
+    for (auto [u, v] : inputOutput2Cnt) {
+        EXPECT_EQ(v, 0);
+    }
 }
 
 } // namespace infini

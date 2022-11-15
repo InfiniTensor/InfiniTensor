@@ -14,6 +14,7 @@ class GraphObj : public Object {
 
   public:
     GraphObj(Runtime runtime) : runtime(runtime){};
+    GraphObj(Runtime runtime, OpVec ops_in);
     string toString() const override;
 
     Tensor addTensor(Shape dim, DataType dtype = DataType::Float32);
@@ -46,8 +47,14 @@ class GraphObj : public Object {
     }
 
     const TensorVec &getTensors() const { return tensors; }
-    const TensorVec &getInputs() const { return inputs; }
-    const TensorVec &getOutputs() const { return outputs; }
+    const TensorVec &getInputs() const {
+        IT_TODO_HALT();
+        return inputs;
+    }
+    const TensorVec &getOutputs() const {
+        IT_TODO_HALT();
+        return outputs;
+    }
     const OpVec &getOperators() const { return ops; }
     OpVec getComputeOps() const;
     // TensorVec &getInputs();

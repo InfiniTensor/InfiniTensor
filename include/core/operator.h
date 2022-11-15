@@ -197,6 +197,9 @@ class OperatorObj : public Object {
     virtual int numInputs() const = 0;
     virtual int numOutputs() const = 0;
 
+    Operator cloneAndResetConnections(const TensorVec &newInputs,
+                                      const TensorVec &newOutputs);
+
   protected:
     optional<vector<Shape>> inferShape() const;
     vector<DataType> inferDataType() const;
@@ -213,7 +216,16 @@ class OperatorObj : public Object {
      * and output shapes.
      */
     virtual vector<int> getWorkloadVector() const { IT_TODO_HALT(); }
+    virtual Operator clone() const {
+        IT_TODO_HALT();
+        return nullptr;
+    }
 };
+
+#define OP_CLONE(OpObj)                                                        \
+    virtual Operator clone() const override {                                  \
+        return infini::make_ref<OpObj>(*this);                                 \
+    }
 
 } // namespace infini
 
