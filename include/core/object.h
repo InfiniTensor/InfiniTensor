@@ -27,6 +27,27 @@ class Guid {
     operator GuidBaseType() const { return guid; }
 };
 
+class Fuid {
+  private:
+    GuidBaseType fuid;
+
+  private:
+    GuidBaseType generateFuid() {
+        static GuidBaseType guidCnt = 0;
+        return ++guidCnt;
+    }
+
+  public:
+    Fuid() { fuid = generateFuid(); }
+    Fuid(const Guid &rhs) { fuid = generateFuid(); }
+    Fuid &operator=(const Guid &rhs) {
+        fuid = generateFuid();
+        return *this;
+    }
+
+    operator GuidBaseType() const { return fuid; }
+};
+
 class Object {
   protected:
     Guid guid;

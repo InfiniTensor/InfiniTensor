@@ -10,6 +10,8 @@ using Shape = vector<ShapeElem>;
 class TensorObj : public TensorBaseObj {
   private:
     Shape shape;
+    Fuid fuid; // Tensor cloned from a common tensor share the same id. Tensors
+               // constructed from common constructor has a new id.
 
   public:
     TensorObj(const Shape &shape, DataType dtype, Runtime runtime);
@@ -25,6 +27,12 @@ class TensorObj : public TensorBaseObj {
     using TensorBaseObj::getData;
     VType getData(const Shape &pos) const;
     void dataMalloc();
+    GuidBaseType getFuid() const { return fuid; }
+    Tensor clone() const {
+        auto ret = make_ref<TensorObj>(*this);
+        ret->freeData();
+        return ret;
+    }
 
     void load(std::string file_path);
     void save(std::string file_path);

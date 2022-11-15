@@ -57,4 +57,22 @@ TEST(Graph, perf_engine) {
     EXPECT_TRUE(matmul->getOutput()->equalData(ans));
 }
 
+TEST(Graph, test_tensor_id) {
+    Runtime runtime = CpuRuntimeObj::getInstance();
+    Graph g = make_ref<GraphObj>(runtime);
+    Tensor i0 = g->addTensor({1, 2, 3}, DataType::UInt32);
+    Tensor w0 = g->addTensor({1, 3, 4}, DataType::UInt32);
+    Tensor o0 = g->addTensor({1, 2, 4}, DataType::UInt32);
+    g->dataMalloc();
+    i0->copyData(vector<uint32_t>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
+    w0->copyData(vector<uint32_t>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
+    auto i1 = g->addTensor(i0->clone());
+    auto matmul = g->addOpWithOutputs<MatmulObj>(i0, w0, o0);
+    g->print();
+    EXPECT_NE(i0->getGuid(), i1->getGuid());
+    EXPECT_EQ(i0->getFuid(), i1->getFuid());
+    EXPECT_NE(i0->getDataBlob(), nullptr);
+    EXPECT_EQ(i1->getDataBlob(), nullptr);
+}
+
 } // namespace infini

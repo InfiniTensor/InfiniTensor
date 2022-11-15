@@ -53,6 +53,11 @@ Tensor GraphObj::addTensor(Shape dim, DataType dtype) {
     return tensor;
 }
 
+Tensor GraphObj::addTensor(const Tensor &tensor) {
+    tensors.emplace_back(tensor);
+    return tensor;
+}
+
 OpVec GraphObj::getComputeOps() const {
     OpVec opList;
     for (auto op : ops)

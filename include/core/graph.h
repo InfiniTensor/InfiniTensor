@@ -17,6 +17,7 @@ class GraphObj : public Object {
     string toString() const override;
 
     Tensor addTensor(Shape dim, DataType dtype = DataType::Float32);
+    Tensor addTensor(const Tensor &tensor);
     Tensor cloneTensor(const Tensor &tensor) {
         auto ret = addTensor(tensor->getDims(), tensor->getDType());
         ret->dataMalloc();
