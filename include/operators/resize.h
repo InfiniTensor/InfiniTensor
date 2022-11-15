@@ -51,6 +51,7 @@ class ResizeObj : public OperatorObj {
         Tensor roi, ECoeffMode mode,
         EKeepAspectRatioPolicy ratioPolicy = EKeepAspectRatioPolicy::none,
         ECoordinateTransMode coordTransMode = ECoordinateTransMode::halfPixel);
+    OP_CLONE(ResizeObj);
 
     // Operator clone(TensorVec inputs, TensorVec outputs) override;
     vector<DataType> inferDataType(const TensorVec &inputs) const override;

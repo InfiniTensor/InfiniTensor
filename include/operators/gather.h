@@ -9,6 +9,7 @@ class GatherObj : public OperatorObj {
   public:
     GatherObj(GraphObj *graph, Tensor input, Tensor index, Tensor output,
               int axis);
+    OP_CLONE(GatherObj);
     std::string toString() const override;
     int numInputs() const override { return 2; }
     int numOutputs() const override { return 1; }

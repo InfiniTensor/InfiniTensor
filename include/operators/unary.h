@@ -21,6 +21,7 @@ class UnaryObj : public OperatorObj {
       public:                                                                  \
         prefix##Obj(GraphObj *graph, Tensor input, Tensor output)              \
             : UnaryObj(type, graph, input, output) {}                          \
+        OP_CLONE(prefix##Obj);                                                 \
     };
 
 DEFINE_UNARY_OBJ(Relu, OpType::Relu)

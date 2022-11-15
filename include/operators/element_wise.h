@@ -23,6 +23,7 @@ class ElementWiseObj : public OperatorObj {
         prefix##Obj(GraphObj *graph, Tensor input0, Tensor input1,             \
                     Tensor output)                                             \
             : ElementWiseObj(type, graph, input0, input1, output) {}           \
+        OP_CLONE(prefix##Obj);                                                 \
     };
 
 DEFINE_ELEMENT_WISE_OBJ(Add, OpType::Add)

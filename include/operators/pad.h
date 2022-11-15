@@ -10,6 +10,7 @@ class PadObj : public OperatorObj {
     // pad for appointed axises,if axis is empty,then pad for all axises.
     PadObj(GraphObj *graph, Tensor input, Tensor output,
            const vector<int> &pads, const optional<const vector<int>> &axis);
+    OP_CLONE(PadObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
     std::string toString() const override;

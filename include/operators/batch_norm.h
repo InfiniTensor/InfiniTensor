@@ -10,6 +10,7 @@ class BatchNormObj : public OperatorObj {
     BatchNormObj(GraphObj *graph, Tensor input, Tensor output, Tensor mean,
                  Tensor var, Tensor scale, Tensor bias, float momentum = 0.9,
                  float eps = 1e-5, bool training = false);
+    OP_CLONE(BatchNormObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
     std::string toString() const override;

@@ -14,6 +14,7 @@ class PoolingObj : public OperatorObj {
   public:
     PoolingObj(GraphObj *graph, OpType optype, Tensor input, Tensor output,
                int kh, int kw, int dh, int dw, int ph, int pw, int sh, int sw);
+    OP_CLONE(PoolingObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
     std::string toString() const override;
