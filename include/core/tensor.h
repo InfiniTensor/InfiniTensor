@@ -28,11 +28,6 @@ class TensorObj : public TensorBaseObj {
     VType getData(const Shape &pos) const;
     void dataMalloc();
     GuidBaseType getFuid() const { return fuid; }
-    Tensor clone() const {
-        auto ret = make_ref<TensorObj>(*this);
-        ret->freeData();
-        return ret;
-    }
 
     void load(std::string file_path);
     void save(std::string file_path);
@@ -59,7 +54,15 @@ class TensorObj : public TensorBaseObj {
         }
         generator(data->getPtr<void *>(), size(), dtype);
     }
-    Tensor clone(Runtime runtime) {
+    Tensor clone() const {
+        auto obj = make_ref<TensorObj>(*this);
+        obj->freeData();
+        obj->inputOf.clear();
+        obj->outputOf.reset();
+        return obj;
+    }
+    Tensor clone(Runtime runtime) const {
+        // TODO: use copy constructor
         auto obj = make_ref<TensorObj>(shape, dtype, runtime);
         obj->dataMalloc();
         obj->copyData(this);

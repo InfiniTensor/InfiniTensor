@@ -1,6 +1,31 @@
 #include "core/graph.h"
+#include <queue>
 
 namespace infini {
+
+GraphObj::GraphObj(Runtime runtime, OpVec ops_in) : runtime(runtime) {
+    map<GuidBaseType, Tensor> tensorPool;
+    // Clone tensors
+    for (const auto &op : ops_in) {
+        for (const auto &t : op->getInputs())
+            if (tensorPool.find(t->getFuid()) == tensorPool.end())
+                tensorPool[t->getFuid()] = t->clone();
+        for (const auto &t : op->getOutputs())
+            if (tensorPool.find(t->getFuid()) == tensorPool.end())
+                tensorPool[t->getFuid()] = t->clone();
+    }
+    for (const auto &[_, t] : tensorPool)
+        addTensor(t);
+    // Clone operators and add connections
+    for (const auto &op : ops_in) {
+        TensorVec inputs, outputs;
+        for (const auto &t : op->getInputs())
+            inputs.emplace_back(tensorPool.at(t->getFuid()));
+        for (const auto &t : op->getOutputs())
+            outputs.emplace_back(tensorPool.at(t->getFuid()));
+        addOperatorAndConnect(op->cloneAndResetConnections(inputs, outputs));
+    }
+}
 
 void GraphObj::addOperatorAndConnect(const Operator &op) {
     ops.push_back(op);
