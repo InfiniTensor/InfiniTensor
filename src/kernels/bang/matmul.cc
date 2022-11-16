@@ -20,38 +20,37 @@ class MatmulCnnl : public BangKernelWithoutConfig {
         auto dimInputs0 = op->getInputs(0)->getDims();
         auto dimInputs1 = op->getInputs(1)->getDims();
         auto dimOutput = op->getOutput()->getDims();
-        if (dimInputs0.size() != 2)
+        if (dimInputs0.size() != 3)
             IT_TODO_HALT();
-        if (dimInputs1.size() != 2)
+        if (dimInputs1.size() != 3)
             IT_TODO_HALT();
-        if (dimOutput.size() != 2)
+        if (dimOutput.size() != 3)
             IT_TODO_HALT();
 
         bool transA = op->getTransA();
         bool transB = op->getTransB();
 
-        int inputs0Array[2] = {dimInputs0[0], dimInputs0[1]};
-        int inputs1Array[2] = {dimInputs1[0], dimInputs1[1]};
-        int outputArray[2] = {dimOutput[0], dimOutput[1]};
+        int inputs0Array[3] = {dimInputs0[0], dimInputs0[1], dimInputs0[2]};
+        int inputs1Array[3] = {dimInputs1[0], dimInputs1[1], dimInputs1[2]};
+        int outputArray[3] = {dimOutput[0], dimOutput[1], dimOutput[2]};
 
         // get inputs
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, 2, inputs0Array));
+                                               CNNL_DTYPE_FLOAT, 3, inputs0Array));
 
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
         checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, 2, inputs1Array));
+                                               CNNL_DTYPE_FLOAT, 3, inputs1Array));
 
         // get outputs
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, 2, outputArray));
+                                               CNNL_DTYPE_FLOAT, 3, outputArray));
 
 
-        auto [alpha, beta] = getAlphBeta();
-        cnnlStatus_t stat = cnnlMatMul(context->cnnlHandle(), transA, transB, &alpha,
-                                         aDesc, aData, bDesc, bData, &beta, cDesc, cData);
+        cnnlStatus_t stat = cnnlBatchMatMul(context->cnnlHandle(), transA, transB,
+                                         aDesc, aData, bDesc, bData, cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
