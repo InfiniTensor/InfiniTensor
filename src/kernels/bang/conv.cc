@@ -24,19 +24,16 @@ class ConvCnnl : public BangKernelWithoutConfig {
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
-        void *const biasData = (op->getInputs(2)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
 
-        cnnlTensorDescriptor_t aDesc, bDesc, cDesc, biasDesc;
+        cnnlTensorDescriptor_t aDesc, bDesc, cDesc;
         auto dimInputs0 = op->getInputs(0)->getDims();
         auto dimInputs1 = op->getInputs(1)->getDims();
-        auto dimInputs2 = op->getInputs(2)->getDims();
         auto dimOutput = op->getOutput()->getDims();
+
         if (dimInputs0.size() != 4)
             IT_TODO_HALT();
         if (dimInputs1.size() != 4)
-            IT_TODO_HALT();
-        if (dimInputs2.size() != 4)
             IT_TODO_HALT();
         if (dimOutput.size() != 4)
             IT_TODO_HALT();
@@ -48,7 +45,6 @@ class ConvCnnl : public BangKernelWithoutConfig {
         // 如果想要正确的结果，应该在适当的地方插入 Transpose。
         int inputs0Array[4] = {dimInputs0[0], dimInputs0[2], dimInputs0[3], dimInputs0[1]};
         int inputs1Array[4] = {dimInputs1[0], dimInputs1[2], dimInputs1[3], dimInputs1[1]};
-        int inputs2Array[4] = {dimInputs2[0], dimInputs2[2], dimInputs2[3], dimInputs2[1]};
         int outputArray[4] = {dimOutput[0], dimOutput[2], dimOutput[3], dimOutput[1]};
 
         // get inputs
@@ -60,9 +56,6 @@ class ConvCnnl : public BangKernelWithoutConfig {
         checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NHWC,
                                                CNNL_DTYPE_FLOAT, 4, inputs1Array));
 
-        checkCnnlError(cnnlCreateTensorDescriptor(&biasDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(biasDesc, CNNL_LAYOUT_NHWC,
-                                               CNNL_DTYPE_FLOAT, 4, inputs2Array));
         // get outputs
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NHWC,
@@ -72,11 +65,11 @@ class ConvCnnl : public BangKernelWithoutConfig {
         cnnlGetConvolutionForwardAlgorithm(context->cnnlHandle(), convDesc, aDesc, bDesc, cDesc, CNNL_CONVOLUTION_FWD_FASTEST, &algo);
 
         size_t wsSize;
-        cnnlGetConvolutionForwardWorkspaceSize(context->cnnlHandle(), aDesc, bDesc, cDesc, biasDesc, convDesc, algo, &wsSize);
+        cnnlGetConvolutionForwardWorkspaceSize(context->cnnlHandle(), aDesc, bDesc, cDesc, NULL, convDesc, algo, &wsSize);
         BangPtr wsData = context->getWorkspace(wsSize);
 
         cnnlStatus_t stat = cnnlConvolutionForward(context->cnnlHandle(), convDesc, algo, NULL,
-                                                   aDesc, aData, bDesc, bData, biasDesc, biasData, wsData, wsSize, NULL, cDesc, cData);
+                                                   aDesc, aData, bDesc, bData, NULL, NULL, wsData, wsSize, NULL, cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
