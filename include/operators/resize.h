@@ -12,13 +12,21 @@ class ResizeObj : public OperatorObj {
         asymmetric,
         tfCropAndResize
     };
-    enum class ENearestMode { roundPreferFloor, roundPreferCeil, floor, ceil };
-    enum class EKeepAspectRatioPolicy { stretch, notLarger, notSmaller };
+    enum class ENearestMode {
+        roundPreferFloor,
+        roundPreferCeil,
+        floor,
+        ceil,
+        none
+    };
+    enum class EKeepAspectRatioPolicy { stretch, notLarger, notSmaller, none };
     enum class ECoeffMode { nearest, linear, cubic };
 
   private:
     vector<int> axes;
     vector<float> scales;
+    vector<float> roi;
+
     ECoordinateTransMode coMode; // compute src coordinate from dst coordinate
     ECoeffMode mode; // coeff mode,for computing dst value from coordinate src
                      // neighborhood .
@@ -28,34 +36,27 @@ class ResizeObj : public OperatorObj {
         ratioPolicy; // used for computing shape when using "sizes"
 
   public:
-    // nearest mode, not tf_crop_and_resize
+    // nearest mode
     ResizeObj(
         GraphObj *graph, Tensor input, Tensor output,
-        const std::optional<vector<int>> &axes, Tensor sizes,
-        EKeepAspectRatioPolicy ratioPolicy,
-        ENearestMode nearestMode = ENearestMode::roundPreferFloor,
-        ECoordinateTransMode coordTransMode = ECoordinateTransMode::halfPixel);
-    ResizeObj(
-        GraphObj *graph, Tensor input, Tensor output,
-        const std::optional<vector<int>> &axes, Tensor scales,
+        const std::optional<vector<int>> &axes, Tensor sizes, Tensor scales,
+        Tensor roi,
+        EKeepAspectRatioPolicy ratioPolicy = EKeepAspectRatioPolicy::none,
         ENearestMode nearestMode = ENearestMode::roundPreferFloor,
         ECoordinateTransMode coordTransMode = ECoordinateTransMode::halfPixel);
 
-    // linear mode
     ResizeObj(
         GraphObj *graph, Tensor input, Tensor output,
-        const std::optional<vector<int>> &axes, Tensor sizes,
-        EKeepAspectRatioPolicy ratioPolicy, ECoeffMode mode,
-        ECoordinateTransMode coordTransMode = ECoordinateTransMode::halfPixel);
-    ResizeObj(
-        GraphObj *graph, Tensor input, Tensor output,
-        const std::optional<vector<int>> &axes, Tensor scales, ECoeffMode mode,
+        const std::optional<vector<int>> &axes, Tensor sizes, Tensor scales,
+        Tensor roi, ECoeffMode mode,
+        EKeepAspectRatioPolicy ratioPolicy = EKeepAspectRatioPolicy::none,
         ECoordinateTransMode coordTransMode = ECoordinateTransMode::halfPixel);
 
+    // Operator clone(TensorVec inputs, TensorVec outputs) override;
     vector<DataType> inferDataType(const TensorVec &inputs) const override;
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
     std::string toString() const override;
-    int numInputs() const override { return 4; }
+    int numInputs() const override { return inputs.size(); }
     int numOutputs() const override { return 1; }
 
     ECoeffMode getMode() const { return mode; }
@@ -66,7 +67,17 @@ class ResizeObj : public OperatorObj {
     int getCoordinateTransMode() const { return enum_to_underlying(coMode); }
     float getScale(int i) const {
         IT_ASSERT((size_t)i < scales.size());
-        return scales[i];
+        return scales.at(i);
+    }
+    float getRoi(int i) const {
+        if (coMode == ECoordinateTransMode::tfCropAndResize) {
+            IT_ASSERT(size_t(i) < roi.size());
+            return roi.at(i);
+        } else
+            return 0;
+    }
+    bool isResizeBySizes() const {
+        return ratioPolicy != EKeepAspectRatioPolicy::none;
     }
 
   private:
@@ -74,7 +85,8 @@ class ResizeObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 
     float round_int(float x) const;
-    bool checkCoordinateTransValid(int resizedCo, int origiCo) const;
+    void init(const Tensor &input, const Tensor &sizes, const Tensor &scales,
+              const Tensor &roi, const std::optional<vector<int>> &axes);
     void InitBySizes(Tensor input, Tensor sizes,
                      const std::optional<vector<int>> &axes);
     void InitByScales(Tensor input, Tensor sizes,
