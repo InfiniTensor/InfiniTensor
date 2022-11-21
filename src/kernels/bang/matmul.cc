@@ -4,9 +4,7 @@
 
 namespace infini {
 class MatmulCnnl : public BangKernelWithoutConfig {
-    virtual tuple<float, float> getAlphBeta() const {
-        return {1.f, 0.f};
-    }
+    virtual tuple<float, float> getAlphBeta() const { return {1.f, 0.f}; }
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<MatmulObj>(_op);
@@ -36,21 +34,21 @@ class MatmulCnnl : public BangKernelWithoutConfig {
 
         // get inputs
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, 3, inputs0Array));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            aDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT, 3, inputs0Array));
 
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, 3, inputs1Array));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            bDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT, 3, inputs1Array));
 
         // get outputs
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, 3, outputArray));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            cDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT, 3, outputArray));
 
-
-        cnnlStatus_t stat = cnnlBatchMatMul(context->cnnlHandle(), transA, transB,
-                                         aDesc, aData, bDesc, bData, cDesc, cData);
+        cnnlStatus_t stat =
+            cnnlBatchMatMul(context->cnnlHandle(), transA, transB, aDesc, aData,
+                            bDesc, bData, cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
@@ -63,7 +61,8 @@ class MatmulCnnl : public BangKernelWithoutConfig {
 };
 
 // class AddCnnl : public MatmulCnnl {
-//     cnnlOpTensorDesc_t getOpType() const override { return CNNL_OP_TENSOR_ADD; }
+//     cnnlOpTensorDesc_t getOpType() const override { return
+//     CNNL_OP_TENSOR_ADD; }
 // };
 
 REGISTER_KERNEL(Device::BANG, OpType::Matmul, DataType::Float32, MatmulCnnl,

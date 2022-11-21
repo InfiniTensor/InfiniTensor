@@ -9,10 +9,10 @@
 namespace infini {
 
 template <class T>
-void testMatmul(
-    const std::function<void(void *, size_t, DataType)> &generatorA,
-    const std::function<void(void *, size_t, DataType)> &generatorB,
-    bool transA, bool transB, const Shape &shapeA, const Shape &shapeB) {
+void testMatmul(const std::function<void(void *, size_t, DataType)> &generatorA,
+                const std::function<void(void *, size_t, DataType)> &generatorB,
+                bool transA, bool transB, const Shape &shapeA,
+                const Shape &shapeB) {
     // Runtime
     Runtime cpuRuntime = CpuRuntimeObj::getInstance();
     auto bangRuntime = make_ref<BangRuntimeObj>();
@@ -49,8 +49,8 @@ void testMatmul(
 }
 
 TEST(cnnl_Matmul, run) {
-    testMatmul<MatmulObj>(IncrementalGenerator(), IncrementalGenerator(),
-            false, false, Shape{1, 2, 3}, Shape{1, 3, 4});
+    testMatmul<MatmulObj>(IncrementalGenerator(), IncrementalGenerator(), false,
+                          false, Shape{1, 2, 3}, Shape{1, 3, 4});
 }
 
 } // namespace infini

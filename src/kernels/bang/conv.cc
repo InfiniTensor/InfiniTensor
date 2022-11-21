@@ -14,13 +14,14 @@ class ConvCnnl : public BangKernelWithoutConfig {
         const int cpg = op->getChannelPerGroup();
         const int g = c / cpg;
 
-        int pad[4] = {ph,ph,pw,pw};
-        int stride[2] = {sh,sw};
-        int dilation[2] = {dh,dw};
+        int pad[4] = {ph, ph, pw, pw};
+        int stride[2] = {sh, sw};
+        int dilation[2] = {dh, dw};
 
         cnnlConvolutionDescriptor_t convDesc;
         checkCnnlError(cnnlCreateConvolutionDescriptor(&convDesc));
-        checkCnnlError(cnnlSetConvolutionDescriptor(convDesc, 4, pad, stride, dilation, g, CNNL_DTYPE_FLOAT));
+        checkCnnlError(cnnlSetConvolutionDescriptor(
+            convDesc, 4, pad, stride, dilation, g, CNNL_DTYPE_FLOAT));
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
@@ -43,33 +44,41 @@ class ConvCnnl : public BangKernelWithoutConfig {
         // 我这样做，只是为了让程序跑起来，方便掐 conv 性能
         // 使用该算子的用户应当知道，这样做之后，计算结果完全是错误的。
         // 如果想要正确的结果，应该在适当的地方插入 Transpose。
-        int inputs0Array[4] = {dimInputs0[0], dimInputs0[2], dimInputs0[3], dimInputs0[1]};
-        int inputs1Array[4] = {dimInputs1[0], dimInputs1[2], dimInputs1[3], dimInputs1[1]};
-        int outputArray[4] = {dimOutput[0], dimOutput[2], dimOutput[3], dimOutput[1]};
+        int inputs0Array[4] = {dimInputs0[0], dimInputs0[2], dimInputs0[3],
+                               dimInputs0[1]};
+        int inputs1Array[4] = {dimInputs1[0], dimInputs1[2], dimInputs1[3],
+                               dimInputs1[1]};
+        int outputArray[4] = {dimOutput[0], dimOutput[2], dimOutput[3],
+                              dimOutput[1]};
 
         // get inputs
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NHWC,
-                                               CNNL_DTYPE_FLOAT, 4, inputs0Array));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            aDesc, CNNL_LAYOUT_NHWC, CNNL_DTYPE_FLOAT, 4, inputs0Array));
 
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NHWC,
-                                               CNNL_DTYPE_FLOAT, 4, inputs1Array));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            bDesc, CNNL_LAYOUT_NHWC, CNNL_DTYPE_FLOAT, 4, inputs1Array));
 
         // get outputs
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NHWC,
-                                               CNNL_DTYPE_FLOAT, 4, outputArray));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            cDesc, CNNL_LAYOUT_NHWC, CNNL_DTYPE_FLOAT, 4, outputArray));
 
         cnnlConvolutionForwardAlgo_t algo;
-        cnnlGetConvolutionForwardAlgorithm(context->cnnlHandle(), convDesc, aDesc, bDesc, cDesc, CNNL_CONVOLUTION_FWD_FASTEST, &algo);
+        cnnlGetConvolutionForwardAlgorithm(context->cnnlHandle(), convDesc,
+                                           aDesc, bDesc, cDesc,
+                                           CNNL_CONVOLUTION_FWD_FASTEST, &algo);
 
         size_t wsSize;
-        cnnlGetConvolutionForwardWorkspaceSize(context->cnnlHandle(), aDesc, bDesc, cDesc, NULL, convDesc, algo, &wsSize);
+        cnnlGetConvolutionForwardWorkspaceSize(context->cnnlHandle(), aDesc,
+                                               bDesc, cDesc, NULL, convDesc,
+                                               algo, &wsSize);
         BangPtr wsData = context->getWorkspace(wsSize);
 
-        cnnlStatus_t stat = cnnlConvolutionForward(context->cnnlHandle(), convDesc, algo, NULL,
-                                                   aDesc, aData, bDesc, bData, NULL, NULL, wsData, wsSize, NULL, cDesc, cData);
+        cnnlStatus_t stat = cnnlConvolutionForward(
+            context->cnnlHandle(), convDesc, algo, NULL, aDesc, aData, bDesc,
+            bData, NULL, NULL, wsData, wsSize, NULL, cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
