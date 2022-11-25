@@ -16,6 +16,7 @@ class GraphObj : public Object {
     GraphObj(Runtime runtime) : runtime(runtime){};
     GraphObj(Runtime runtime, OpVec ops_in);
     string toString() const override;
+    Runtime getRuntime() const { return runtime; }
 
     Tensor addTensor(Shape dim, DataType dtype = DataType::Float32);
     Tensor addTensor(const Tensor &tensor);

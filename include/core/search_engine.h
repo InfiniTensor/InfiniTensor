@@ -10,19 +10,20 @@
 namespace infini {
 class SearchEngine {
   private:
-    std::vector<Graph> partitionGraph(const Graph graph);
+    Runtime runtimeExec, runtimeVerification;
+    Ref<Mutator> mutator;
 
   public:
-    SearchEngine() = default;
-    // SearchEngine is singleton
-    SearchEngine(SearchEngine &other) = delete;
-    SearchEngine &operator=(SearchEngine const &) = delete;
+    SearchEngine(Runtime _runtime, Ref<Mutator> _mutator) {
+        runtimeExec = _runtime;
+        mutator = _mutator;
+    }
+    ~SearchEngine() {}
 
   private: // Configurations
-    int MUTATION_DEPTH;
-    int MUTATION_SIZE;
-    int partitionThreshold; // cut nodes whose #in + #out >= partitionThreshold
-    int GRAPH_SIZE;
+    size_t
+        partitionThreshold; // cut nodes whose #in + #out >= partitionThreshold
+    size_t GRAPH_SIZE;
     bool enableMetagraphMerging; // searchDfs
     bool enableVerification;     // compare the outputs of replacer and replacee
 
@@ -54,39 +55,12 @@ class SearchEngine {
         }
         static bool cmp(const Candidate &a, const Candidate &b);
     };
-    struct MetaGraph {
-        struct Node {
-            std::shared_ptr<Graph> graph;
-            std::vector<int> suc;
-            std::vector<int> pre;
-            int type, cnt;
-        };
-        MetaGraph() {}
-        ~MetaGraph() {}
-        int print();
-        std::vector<Node> nodes;
-    };
     SearchEngine(const std::shared_ptr<Mutator> &mutationEngine);
     ~SearchEngine();
 
-    std::vector<Graph> run(const Graph graph);
-    int search(const std::shared_ptr<Graph> &graph,
-               std::vector<std::shared_ptr<Graph>> &bestGraphs);
-    // Split a Graph on Non-linear OPs into a MetaGraph
-    int split(const std::shared_ptr<Graph> &graph,
-              std::shared_ptr<MetaGraph> &metaGraph);
-    // Enumerate possible merges of OPs among Metagraph.nodes into new
-    // Metagraphs
-    int searchDfs(const std::shared_ptr<MetaGraph> &metaGraph,
-                  std::vector<std::shared_ptr<MetaGraph>> &metaGraphs);
-    int searchDfs(const std::shared_ptr<MetaGraph> &metaGraph,
-                  std::vector<int> &frontier, std::vector<int> &f,
-                  std::vector<std::vector<int>> &candidates,
-                  std::unordered_set<uint64_t> &candidateSet);
-    int searchBfs(const std::shared_ptr<MetaGraph> &metaGraph,
-                  std::vector<Candidate> &candidates);
+    Graph run(const Graph graph);
+    std::vector<Graph> search(const Graph &graph);
 
-    int isMergeable(const std::shared_ptr<Graph> &graph);
     int isMutatable(const std::shared_ptr<Graph> &graph);
     int isSpecialMutation(Operator *, int depth);
     double getPerf(const std::shared_ptr<Graph> &graph, bool profiling = false,
@@ -98,17 +72,33 @@ class SearchEngine {
                     std::vector<std::shared_ptr<Graph>> &mutatedGraphs);
     int getSingleMutation(std::shared_ptr<Graph> &graph,
                           std::vector<std::shared_ptr<Graph>> &candidates);
-    uint64_t getMutationHash(const Operator *op);
 
-    // Partition a graph into disjoint Graphs
-    std::vector<std::shared_ptr<Graph>>
-        // Fuse activations
-        std::shared_ptr<Graph> fuse(const std::shared_ptr<Graph> &graph);
-    // Remove redundant transpositions
-    std::shared_ptr<Graph> strip(const std::shared_ptr<Graph> &graph);
-    int stripDfs(Operator *op, std::unordered_map<int, int> &f, int flag);
+  private:
+    struct MetaGraph {
+        struct Node {
+            Graph graph;
+            std::vector<int> suc;
+            std::vector<int> pre;
+            int type, cnt;
+        };
+        std::vector<Node> nodes;
+    };
+    std::vector<Graph> partitionGraph(const Graph graph);
+    std::shared_ptr<MetaGraph> buildMetaGraphWithGraph(const Graph graph);
+    std::shared_ptr<MetaGraph>
+    buildMetaGraphWithPlan(const std::shared_ptr<MetaGraph> metaGraph,
+                           const std::vector<int> &plan);
+    // search merge
+    std::vector<std::shared_ptr<MetaGraph>>
+    searchMerge(std::shared_ptr<MetaGraph> &metaGraph);
+    void searchMergeDfs(std::shared_ptr<MetaGraph> &metaGraph,
+                        std::vector<int> &plan, std::vector<int> &frontier,
+                        std::vector<std::vector<int>> &plans,
+                        std::unordered_set<uint64_t> &planSet);
+    std::vector<Graph>
+    searchMutation(const std::shared_ptr<MetaGraph> &metaGraph);
 
-    Operator *FuseMemBoundChain(std::vector<Operator *> chainOps);
+    // TODO: move to cpp
+    bool isMergeable(const Graph graph);
 };
-// nnet::Expr transposeOpToExpression(TransposeOp *transposeOp);
 } // namespace infini

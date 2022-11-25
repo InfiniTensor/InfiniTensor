@@ -1,7 +1,6 @@
 #include "core/blob.h"
 #include "core/graph.h"
 #include "core/runtime.h"
-#include "core/search_engine.h"
 #include "operators/matmul.h"
 #include "operators/unary.h"
 #include "test.h"

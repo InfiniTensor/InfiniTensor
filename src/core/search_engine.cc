@@ -1,4 +1,5 @@
 #include "core/search_engine.h"
+#include "core/hash.h"
 #include "core/runtime.h"
 
 #include <algorithm>
@@ -6,42 +7,6 @@
 #include <unordered_set>
 
 namespace infini {
-
-// SearchEngine::SearchEngine(const std::shared_ptr<Mutator> &mutationEngine)
-//     : enableVerification(false), mutationEngine(mutationEngine) {
-//     if (std::dynamic_pointer_cast<Generator>(mutationEngine)) {
-//         MUTATION_DEPTH = 5;
-//         MUTATION_SIZE = 5;
-//         partitionThreshold = 3;
-//         GRAPH_SIZE = 5;
-//         enableMetagraphMerging = true;
-//     } else if (std::dynamic_pointer_cast<NMutator>(mutationEngine)) {
-//         MUTATION_DEPTH = 1;
-//         MUTATION_SIZE = 99999999;
-//         partitionThreshold = 3;
-//         GRAPH_SIZE = 20;
-//         enableMetagraphMerging = false;
-//     } else {
-//         MUTATION_DEPTH = 5;
-//         MUTATION_SIZE = 5;
-//         partitionThreshold = 3;
-//         GRAPH_SIZE = 5;
-//         enableMetagraphMerging = true;
-//     }
-
-//     auto msenv = getenv("PET_MUTATION_SIZE");
-//     if (msenv != nullptr)
-//         MUTATION_SIZE = atoi(msenv);
-//     auto mdenv = getenv("PET_MUTATION_DEPTH");
-//     if (mdenv != nullptr)
-//         MUTATION_DEPTH = atoi(mdenv);
-// }
-
-SearchEngine::~SearchEngine() {}
-
-bool SearchEngine::Candidate::cmp(const Candidate &a, const Candidate &b) {
-    return a.perf < b.perf;
-};
 
 // int SearchEngine::MetaGraph::print() {
 //     for (size_t i = 0; i < nodes.size(); i++) {
@@ -64,440 +29,291 @@ bool SearchEngine::Candidate::cmp(const Candidate &a, const Candidate &b) {
 //     return 0;
 // }
 
-std::vector<Graph> SearchEngine::run(const Graph graph) {
+Graph SearchEngine::run(const Graph graph) {
+    IT_ASSERT(runtimeExec == graph->getRuntime());
     std::cout << "[INFO] original graph: " << std::endl;
     std::cout << graph->toString();
-    std::cout << "[INFO] perf: "
-              << CpuRuntimeObj::getInstance()->getPerfTime(graph) << std::endl;
+    std::cout << "[INFO] perf: " << runtimeExec->getPerfTime(graph)
+              << std::endl;
 
+    // TODO: partition graph
     std::vector<Graph> partitions = partitionGraph(graph);
 
-    return std::vector<Graph>(0);
+    std::cout << "[INFO] Partition num: " << partitions.size() << std::endl;
+    std::vector<Operator> ops;
+    std::vector<Graph> subGraphCandidates;
+    for (size_t pid = 0; pid < partitions.size(); pid++) {
+        auto &subGraph = partitions[pid];
+        std::cout << "[INFO] Partition: " << pid << std::endl;
+        std::vector<Graph> candidates = search(subGraph);
+        double bestTime = 1e8;
+        double bestId = -1;
+        for (size_t i = 0; i < candidates.size(); i++) {
+            double time = runtimeExec->getPerfTime(candidates[i]);
+            if (time < bestTime) {
+                bestTime = time;
+                bestId = i;
+            }
+        }
+        IT_ASSERT(bestId != -1);
+        for (auto op : candidates[bestId]->getOperators()) {
+            ops.emplace_back(op);
+        }
+    }
 
-    // int err = 0;
-    // double to = 0, t = 0;
-    // to = getPerf(graph, true);
-    // std::cout << "Origin Perf: " << to << std::endl;
-    // graph->printBrief();
-    // std::vector<std::shared_ptr<Graph>> parts;
-    // parts = partition(graph);
-    // std::cout << "Partition size: " << parts.size() << std::endl;
-    // std::vector<Operator *> ops;
-    // std::vector<std::shared_ptr<SubGraph>> bestParts;
-    // int pid = 0;
-    // // Find mutants for each partition of the original graph
-    // for (auto &p : parts) {
-    //     std::cout << "Partition: " << pid << std::endl;
-    //     std::vector<std::shared_ptr<SubGraph>> res;
-    //     err = search(p, res);
-    //     if (err) {
-    //         return 1;
-    //     }
-    //     std::vector<Candidate> candidates(0);
-    //     for (auto g : res) {
-    //         auto tmpGraph = g;
-    //         auto tmpPerf = getPerf(tmpGraph, true);
-    //         // Check for correctness. This is very slow since
-    //         SearchEngine::run
-    //             // is the inner most function. Verify mutants in
-    //             // SearchEngine::getMutation is more efficient.
-    //             // if (enableVerification) {
-    //             //     static int cntVers = 0;
-    //             //     ++cntVers;
-    //             //     p->verification(tmpGraph.get(), true);
-    //             // }
-    //             candidates.emplace_back(Candidate(tmpGraph, tmpPerf));
-    //     }
-    //     std::sort(candidates.begin(), candidates.end(), Candidate::cmp);
-    //     bestParts.emplace_back(candidates[0].graph);
-    //     pid++;
-    // }
-    // for (auto p : bestParts) {
-    //     for (auto op : p->getOperators()) {
-    //         ops.emplace_back(op);
-    //     }
-    // }
-    // bestGraph = std::make_shared<SubGraph>(ops);
-    // t = getPerf(bestGraph, true);
-    // std::cout << "Best Unfused Perf: " << t << std::endl;
-    // for (auto op : bestGraph->getOperators()) {
-    //     if (auto memboundOp = dynamic_cast<MemBoundOp *>(op)) {
-    //         if (memboundOp->getExpr())
-    //             dbg(nnet::FullPrinterVisitor().print(memboundOp->getExpr()));
-    //         else
-    //             dbg("memboundOp NO source expr.");
-    //     }
-    // }
-    // bestGraph->print();
+    auto bestGraph = make_ref<GraphObj>(runtimeExec, ops);
+    std::cout << "[INFO] unfused graph: " << std::endl;
+    std::cout << bestGraph->toString();
+    std::cout << "[INFO] perf: " << runtimeExec->getPerfTime(bestGraph)
+              << std::endl;
 
-    // if (typeid(*mutationEngine) == typeid(Generator) ||
-    //     typeid(*mutationEngine) == typeid(CMutator))
-    //     bestGraph = fuse(bestGraph);
-    // else if (typeid(*mutationEngine) == typeid(NMutator))
-    //     bestGraph = strip(bestGraph);
+    // bestGraph = fuse(bestGraph);
+    // double time = CpuRuntimeObj::getInstance()->getPerfTime(bestGraph);
+    // std::cout << "[INFO] fused graph: " << std::endl;
+    // std::cout << bestGraph->toString();
+    // std::cout << "[INFO] perf: "
+    //           << CpuRuntimeObj::getInstance()->getPerfTime(bestGraph)
+    //           << std::endl;
 
-    // bestGraph->print();
-    // t = getPerf(bestGraph, true, false);
-    // std::cout << "Origin Perf: " << to << std::endl;
-    // std::cout << "Best Perf without correction: " << t << std::endl;
-    // t = getPerf(bestGraph, false, true);
-    // std::cout << "Best Perf with correction: " << t << std::endl;
-    // t = getTransPerf(bestGraph);
-    // std::cout << "Transpose perf: " << t << std::endl;
-    // return 0;
+    return bestGraph;
 }
 
-// int SearchEngine::search(const std::shared_ptr<SubGraph> &graph,
-//                          std::vector<std::shared_ptr<SubGraph>> &bestGraphs)
-//                          {
-//     int err;
-//     std::shared_ptr<MetaGraph> metaGraph;
-//     err = split(graph, metaGraph);
-//     if (err) {
-//         return 1;
-//     }
-//     std::vector<std::shared_ptr<MetaGraph>> metaGraphs;
-//     err = searchDfs(metaGraph, metaGraphs);
-//     if (err) {
-//         return 1;
-//     }
-//     std::cout << metaGraphs.size() << std::endl;
-//     std::vector<Candidate> candidates;
-//     std::vector<Candidate> result;
-//     for (auto meta : metaGraphs) {
-//         err = searchBfs(meta, candidates);
-//         if (err) {
-//             return 1;
-//         }
-//         for (auto &candidate : candidates) {
-//             result.emplace_back(candidate);
-//         }
-//     }
-//     sort(result.begin(), result.end(), Candidate::cmp);
-//     bestGraphs.clear();
-//     for (int i = 0; i < int(result.size()) && i < GRAPH_SIZE; i++) {
-//         bestGraphs.emplace_back(result[i].graph);
-//     }
-//     return 0;
-// }
+std::vector<Graph> SearchEngine::search(const Graph &graph) {
+    auto metaGraph = buildMetaGraphWithGraph(graph);
+    auto mergedGraphs = searchMerge(metaGraph);
+    std::cout << "[INFO] merged graphs: " << mergedGraphs.size() << std::endl;
 
-// int SearchEngine::split(const std::shared_ptr<SubGraph> &graph,
-//                         std::shared_ptr<MetaGraph> &metaGraph) {
-//     int n = graph->getOperators().size();
-//     auto &opList = graph->getOperators();
-//     std::vector<int> cnt(n, 0);
-//     std::unordered_map<int, int> opMap;
-//     metaGraph = std::make_shared<MetaGraph>();
-//     metaGraph->nodes.clear();
-//     std::vector<int> q(0);
-//     for (int i = 0; i < n; i++) {
-//         typename MetaGraph::Node node;
-//         std::vector<Operator *> ops(0);
-//         ops.emplace_back(opList[i]);
-//         node.graph = std::make_shared<SubGraph>(ops);
-//         node.type = opList[i]->isComputeOp();
-//         node.cnt = opList[i]->getPredecessors().size();
-//         opMap.emplace(opList[i]->getGuid(), i);
-//         metaGraph->nodes.emplace_back(node);
-//     }
-//     for (int i = 0; i < n; i++) {
-//         auto &op = opList[i];
-//         std::unordered_set<int> set;
-//         set.clear();
-//         set.emplace(i);
-//         for (auto preOp : op->getPredecessors()) {
-//             int id = opMap[preOp->getGuid()];
-//             if (set.find(id) == set.end()) {
-//                 metaGraph->nodes[i].pre.emplace_back(id);
-//                 set.emplace(id);
-//             }
-//         }
-//         for (auto sucOp : op->getSuccessors()) {
-//             int id = opMap[sucOp->getGuid()];
-//             if (set.find(id) == set.end()) {
-//                 metaGraph->nodes[i].suc.emplace_back(id);
-//                 set.emplace(id);
-//             }
-//         }
-//     }
-//     return 0;
-// }
+    std::vector<Graph> mutatedGraphs;
+    std::vector<Graph> results;
+    for (auto mergedGraph : mergedGraphs) {
+        auto mutatedGraphs = searchMutation(mergedGraph);
+        for (size_t i = 0; i < std::min(mutatedGraphs.size(), GRAPH_SIZE);
+             i++) {
+            results.emplace_back(mutatedGraphs[i]);
+        }
+    }
 
-// int SearchEngine::searchDfs(
-//     const std::shared_ptr<MetaGraph> &metaGraph,
-//     std::vector<std::shared_ptr<MetaGraph>> &metaGraphs) {
-//     int err = 0;
-//     metaGraphs.clear();
-//     int n = metaGraph->nodes.size();
-//     std::vector<int> frontier(0);
-//     std::vector<int> f(n);
-//     for (int i = 0; i < n; i++) {
-//         f[i] = i;
-//     }
-//     for (int i = 0; i < n; i++) {
-//         if (metaGraph->nodes[i].cnt == 0) {
-//             frontier.emplace_back(i);
-//         }
-//     }
-//     std::vector<std::vector<int>> candidates(0);
-//     std::unordered_set<uint64_t> candidateSet;
-//     candidateSet.clear();
-//     err = searchDfs(metaGraph, frontier, f, candidates, candidateSet);
-//     if (err) {
-//         return 1;
-//     }
-//     metaGraphs.clear();
-//     for (auto &candidate : candidates) {
-//         std::vector<std::vector<int>> tmp(n, std::vector<int>(0));
-//         for (int i = 0; i < n; i++) {
-//             tmp[candidate[i]].emplace_back(i);
-//         }
-//         auto meta = std::make_shared<MetaGraph>();
-//         for (int i = 0; i < n; i++) {
-//             if (tmp[i].size() == 0) {
-//                 continue;
-//             }
-//             std::unordered_set<int> set;
-//             std::vector<Operator *> ops;
-//             typename MetaGraph::Node node;
-//             for (auto id : tmp[i]) {
-//                 for (auto op : metaGraph->nodes[id].graph->getOperators()) {
-//                     ops.emplace_back(op);
-//                 }
-//                 for (size_t j = 0; j < metaGraph->nodes[id].suc.size(); j++)
-//                 {
-//                     int suc = candidate[metaGraph->nodes[id].suc[j]];
-//                     if (set.find(suc) == set.end()) {
-//                         node.suc.emplace_back(suc);
-//                         set.emplace(suc);
-//                     }
-//                 }
-//                 for (size_t j = 0; j < metaGraph->nodes[id].pre.size(); j++)
-//                 {
-//                     int pre = candidate[metaGraph->nodes[id].pre[j]];
-//                     if (set.find(pre) == set.end()) {
-//                         node.pre.emplace_back(pre);
-//                         set.emplace(pre);
-//                     }
-//                 }
-//             }
-//             node.graph = std::make_shared<SubGraph>(ops);
-//             node.cnt = node.pre.size();
-//             node.type = ops[0]->isComputeOp();
-//             meta->nodes.emplace_back(node);
-//         }
-//         metaGraphs.emplace_back(meta);
-//     }
+    sort(results.begin(), results.end()); // compare with perf time
+    if (results.size() > GRAPH_SIZE) {
+        results.resize(GRAPH_SIZE);
+    }
+    return results;
+}
 
-//     return 0;
-// }
+std::shared_ptr<SearchEngine::MetaGraph>
+SearchEngine::buildMetaGraphWithGraph(const Graph graph) {
+    auto metaGraph = std::make_shared<MetaGraph>();
 
-// int SearchEngine::searchDfs(const std::shared_ptr<MetaGraph> &metaGraph,
-//                             std::vector<int> &frontier, std::vector<int> &f,
-//                             std::vector<std::vector<int>> &candidates,
-//                             std::unordered_set<uint64_t> &candidateSet) {
-//     int err;
-//     int n = f.size(), m = frontier.size();
-//     if (m == 0) {
-//         std::unordered_map<int, int> map;
-//         map.clear();
-//         int cnt = 0;
-//         for (int i = 0; i < n; i++) {
-//             if (map.find(f[i]) == map.end()) {
-//                 map.emplace(f[i], cnt);
-//                 cnt++;
-//             }
-//             f[i] = map[f[i]];
-//         }
-//         uint64_t hash = 0;
-//         for (int i = 0; i < n; i++) {
-//             hash = hashAppend(hash, f[i]);
-//         }
-//         if (candidateSet.find(hash) != candidateSet.end()) {
-//             return 0;
-//         }
-//         candidateSet.emplace(hash);
-//         int t = candidates.size();
-//         candidates.emplace_back(0);
-//         for (int i = 0; i < n; i++) {
-//             candidates[t].emplace_back(f[i]);
-//         }
-//         return 0;
-//     }
+    int numOps = graph->getOperators().size();
+    std::vector<int> cnt(numOps, 0);
+    std::unordered_map<int, int> opMap;
+    metaGraph->nodes.clear();
+    std::vector<int> q(0);
+    for (size_t i = 0; i < graph->getOperators().size(); i++) {
+        auto &op = graph->getOperators()[i];
+        MetaGraph::Node node;
+        std::vector<Operator> ops;
+        ops.emplace_back(op);
+        node.graph = make_ref<GraphObj>(runtimeExec, ops);
+        node.type = op->isComputeOp();
+        node.cnt = op->getPredecessors().size();
+        opMap.emplace(op->getGuid(), i);
+        metaGraph->nodes.emplace_back(node);
+    }
+    for (size_t i = 0; i < graph->getOperators().size(); i++) {
+        auto &op = graph->getOperators()[i];
+        std::unordered_set<int> set;
+        set.clear();
+        set.emplace(i);
+        for (auto preOp : op->getPredecessors()) {
+            int id = opMap[preOp->getGuid()];
+            if (set.find(id) == set.end()) {
+                metaGraph->nodes[i].pre.emplace_back(id);
+                set.emplace(id);
+            }
+        }
+        for (auto sucOp : op->getSuccessors()) {
+            int id = opMap[sucOp->getGuid()];
+            if (set.find(id) == set.end()) {
+                metaGraph->nodes[i].suc.emplace_back(id);
+                set.emplace(id);
+            }
+        }
+    }
+    return 0;
+}
 
-//     std::vector<int> nextFrontier;
-//     nextFrontier.clear();
-//     int nn = 0;
-//     for (auto x : frontier) {
-//         if (metaGraph->nodes[x].type == 0) {
-//             nn++;
-//             for (auto y : metaGraph->nodes[x].suc) {
-//                 metaGraph->nodes[y].cnt--;
-//                 if (metaGraph->nodes[y].cnt == 0) {
-//                     nextFrontier.emplace_back(y);
-//                 }
-//             }
-//         } else {
-//             nextFrontier.emplace_back(x);
-//         }
-//     }
-//     if (nn > 0) {
-//         err = searchDfs(metaGraph, nextFrontier, f, candidates,
-//         candidateSet); if (err) {
-//             return 1;
-//         }
-//         for (auto x : frontier) {
-//             if (metaGraph->nodes[x].type == 0) {
-//                 for (auto y : metaGraph->nodes[x].suc) {
-//                     metaGraph->nodes[y].cnt++;
-//                 }
-//             }
-//         }
-//         return 0;
-//     }
+std::vector<std::shared_ptr<SearchEngine::MetaGraph>>
+SearchEngine::searchMerge(std::shared_ptr<SearchEngine::MetaGraph> &metaGraph) {
+    std::vector<int> plan(metaGraph->nodes.size());
+    for (size_t i = 0; i < plan.size(); i++) {
+        plan[i] = i;
+    }
+    std::vector<int> frontier;
+    for (size_t i = 0; i < plan.size(); i++) {
+        if (metaGraph->nodes[i].cnt == 0) {
+            frontier.emplace_back(i);
+        }
+    }
+    std::vector<std::vector<int>> plans;
+    std::unordered_set<HashType> planSet;
+    searchMergeDfs(metaGraph, plan, frontier, plans, planSet);
 
-//     std::vector<Operator *> ops;
-//     std::shared_ptr<SubGraph> g;
-//     std::vector<int> fc(n);
-//     for (int i = 0; i < n; i++) {
-//         fc[i] = f[i];
-//     }
+    std::vector<std::shared_ptr<SearchEngine::MetaGraph>> metaGraphs;
+    for (auto &curPlan : plans) {
+        metaGraphs.emplace_back(buildMetaGraphWithPlan(metaGraph, curPlan));
+    }
+    return metaGraphs;
+}
 
-//     for (int mask = (1 << m) - 1; mask > 0; mask--) {
-//         int fa = -1;
-//         nextFrontier.clear();
-//         ops.clear();
-//         for (int i = 0; i < m; i++) {
-//             auto x = frontier[i];
-//             if ((1 << i) & mask) {
-//                 if (fa == -1) {
-//                     fa = f[x];
-//                 } else {
-//                     f[x] = fa;
-//                 }
-//                 for (auto y : metaGraph->nodes[x].suc) {
-//                     metaGraph->nodes[y].cnt--;
-//                     if (metaGraph->nodes[y].cnt == 0) {
-//                         nextFrontier.emplace_back(y);
-//                     }
-//                 }
-//                 for (auto op : metaGraph->nodes[x].graph->getOperators()) {
-//                     ops.emplace_back(op);
-//                 }
-//             } else {
-//                 nextFrontier.emplace_back(x);
-//             }
-//         }
-//         g = std::make_shared<SubGraph>(ops);
-//         if (isMergeable(g)) {
-//             err =
-//                 searchDfs(metaGraph, nextFrontier, f, candidates,
-//                 candidateSet);
-//             if (err) {
-//                 return 1;
-//             }
-//         }
-//         for (int i = 0; i < m; i++) {
-//             auto x = frontier[i];
-//             if ((1 << i) & mask) {
-//                 for (auto y : metaGraph->nodes[x].suc) {
-//                     metaGraph->nodes[y].cnt++;
-//                 }
-//             }
-//         }
-//         for (int i = 0; i < n; i++) {
-//             f[i] = fc[i];
-//         }
-//     }
-//     return 0;
-// }
+void SearchEngine::searchMergeDfs(std::shared_ptr<MetaGraph> &metaGraph,
+                                  std::vector<int> &plan,
+                                  std::vector<int> &frontier,
+                                  std::vector<std::vector<int>> &plans,
+                                  std::unordered_set<uint64_t> &planSet) {
+    if (frontier.size() == 0) {
+        // remark id
+        std::unordered_map<int, int> id_map;
+        int cnt = 0;
+        for (size_t i = 0; i < plan.size(); i++) {
+            if (id_map.find(plan[i]) == id_map.end()) {
+                id_map.emplace(plan[i], cnt++);
+            }
+            plan[i] = id_map[plan[i]];
+        }
+        auto hash = hashVector(plan);
+        if (planSet.find(hash) != planSet.end()) {
+            return;
+        }
+        planSet.emplace(hash);
+        plans.emplace_back(plan);
+        return;
+    }
 
-// int SearchEngine::searchBfs(const std::shared_ptr<MetaGraph> &metaGraph,
-//                             std::vector<Candidate> &candidates) {
-//     int err = 0;
-//     std::cout << "start search bfs." << std::endl;
-//     candidates.clear();
-//     std::vector<Operator *> ops;
-//     candidates.emplace_back(Candidate(nullptr, 0));
-//     // Append a node to all existing candidates
-//     for (auto &node : metaGraph->nodes) {
-//         std::vector<Candidate> tmp(0);
-//         std::vector<std::shared_ptr<SubGraph>> mutatedGraphs;
-//         if (node.type == 1) { // If it has computing OPs
-//             err = getMutation(node.graph, mutatedGraphs);
-//             if (err) {
-//                 return 1;
-//             }
-//             for (auto candidate : candidates) {
-//                 for (auto &g : mutatedGraphs) {
-//                     std::vector<Operator *> ops;
-//                     if (candidate.graph != nullptr) {
-//                         for (auto op : candidate.graph->getOperators()) {
-//                             ops.emplace_back(op);
-//                         }
-//                     }
-//                     for (auto op : g->getOperators()) {
-//                         ops.emplace_back(op);
-//                     }
-//                     auto tmpGraph = std::make_shared<SubGraph>(ops);
-//                     auto tmpPerf = getPerf(tmpGraph);
-//                     tmp.emplace_back(Candidate(tmpGraph, tmpPerf));
-//                 }
-//             }
-//         } else {
-//             for (auto candidate : candidates) {
-//                 std::vector<Operator *> ops;
-//                 if (candidate.graph != nullptr) {
-//                     for (auto op : candidate.graph->getOperators()) {
-//                         ops.emplace_back(op);
-//                     }
-//                 }
-//                 for (auto op : node.graph->getOperators()) {
-//                     ops.emplace_back(op);
-//                 }
-//                 auto tmpGraph = std::make_shared<SubGraph>(ops);
-//                 auto tmpPerf = getPerf(tmpGraph);
-//                 tmp.emplace_back(Candidate(tmpGraph, tmpPerf));
-//             }
-//         }
-//         std::sort(tmp.begin(), tmp.end(), Candidate::cmp);
-//         candidates.clear();
-//         for (int i = 0; i < int(tmp.size()) && i < GRAPH_SIZE; i++) {
-//             candidates.emplace_back(tmp[i]);
-//         }
-//     }
-//     std::cout << "end search bfs." << std::endl;
-//     return 0;
-// }
+    int numNonCompute = 0;
+    for (auto x : frontier) {
+        if (metaGraph->nodes[x].type == 0) {
+            numNonCompute++;
+        }
+    }
 
-// int SearchEngine::isMergeable(const std::shared_ptr<SubGraph> &graph) {
-//     if (graph->getOperators().size() <= 1) {
-//         return 1;
-//     }
-//     auto stat = mutationEngine->statGraph(graph.get());
-//     if (stat == Mutator::GroupConv || stat == Mutator::TransposeGroupConv ||
-//         stat == Mutator::BatchMatmul || stat == Mutator::HetConv) {
-//         return 1;
-//     }
-//     return 0;
-// }
+    auto planBackup = plan;
+    auto metaGraphBackup = metaGraph;
+    // DFS non compute ops.
+    if (numNonCompute > 0) {
+        std::vector<int> nextFrontier;
+        for (auto x : frontier) {
+            if (metaGraph->nodes[x].type == 0) {
+                for (auto y : metaGraph->nodes[x].suc) {
+                    metaGraph->nodes[y].cnt--;
+                    if (metaGraph->nodes[y].cnt == 0) {
+                        nextFrontier.emplace_back(y);
+                    }
+                }
+            } else {
+                nextFrontier.emplace_back(x);
+            }
+        }
+        searchMergeDfs(metaGraph, plan, nextFrontier, plans, planSet);
+        metaGraph = metaGraphBackup;
+        return;
+    }
 
-// int SearchEngine::isMutatable(const std::shared_ptr<SubGraph> &graph) {
-//     std::cout << "[ERROR] search_engine::isMutatable: function not impl."
-//               << std::endl;
-//     return 0;
-// }
+    // DFS compute ops.
+    for (int mask = (1 << frontier.size()) - 1; mask > 0; mask--) {
+        int mergedId = -1;
+        std::vector<int> nextFrontier;
+        std::vector<Operator> ops;
+        for (size_t i = 0; i < frontier.size(); i++) {
+            if ((1 << i) & mask) {
+                if (mergedId == -1) {
+                    mergedId = plan[frontier[i]];
+                } else {
+                    plan[frontier[i]] = mergedId;
+                }
+                for (auto y : metaGraph->nodes[frontier[i]].suc) {
+                    metaGraph->nodes[y].cnt--;
+                    if (metaGraph->nodes[y].cnt == 0) {
+                        nextFrontier.emplace_back(y);
+                    }
+                }
+                for (auto op :
+                     metaGraph->nodes[frontier[i]].graph->getOperators()) {
+                    ops.emplace_back(op);
+                }
+            } else {
+                nextFrontier.emplace_back(frontier[i]);
+            }
+        }
+        auto graph = make_ref<GraphObj>(runtimeExec, ops);
+        if (isMergeable(graph)) {
+            searchMergeDfs(metaGraph, plan, nextFrontier, plans, planSet);
+        }
+        plan = planBackup;
+        metaGraph = metaGraphBackup;
+    }
+    return;
+}
 
-// int SearchEngine::isSpecialMutation(Operator *op, int depth) {
-//     std::vector<Operator *> ops;
-//     ops.emplace_back(op);
-//     auto graph = std::make_shared<SubGraph>(ops);
-//     auto stat = mutationEngine->statGraph(graph.get());
-//     if (stat == Mutator::NormalOddConv && (depth < 3)) {
-//         return 1;
-//     }
-//     return 0;
-// }
+std::vector<Graph> SearchEngine::searchMutation(
+    const std::shared_ptr<SearchEngine::MetaGraph> &metaGraph) {
+    std::vector<Graph> graphs = {nullptr};
+    // Append a node to all existing candidates
+    for (auto &node : metaGraph->nodes) {
+        std::vector<Graph> nextGraphs;
+        if (node.type == 1) { // If it has computing OPs
+            std::vector<Graph> mutatedGraphs = {node.graph};
+            // auto mutatedGraphs = mutator->run(node.graph);
+            for (auto graph : graphs) {
+                for (auto mutatedGraph : mutatedGraphs) {
+                    std::vector<Operator> ops;
+                    if (graph != nullptr) {
+                        for (auto op : graph->getOperators()) {
+                            ops.emplace_back(op);
+                        }
+                    }
+                    for (auto op : mutatedGraph->getOperators()) {
+                        ops.emplace_back(op);
+                    }
+                    nextGraphs.emplace_back(
+                        make_ref<GraphObj>(runtimeExec, ops));
+                }
+            }
+        } else {
+            for (auto graph : graphs) {
+                std::vector<Operator> ops;
+                if (graph != nullptr) {
+                    for (auto op : graph->getOperators()) {
+                        ops.emplace_back(op);
+                    }
+                }
+                for (auto op : node.graph->getOperators()) {
+                    ops.emplace_back(op);
+                }
+                nextGraphs.emplace_back(make_ref<GraphObj>(runtimeExec, ops));
+            }
+        }
+        std::sort(nextGraphs.begin(), nextGraphs.end(), [&](Graph x, Graph y) {
+            return runtimeExec->getPerfTime(x) < runtimeExec->getPerfTime(y);
+        });
+        if (nextGraphs.size() > GRAPH_SIZE) {
+            nextGraphs.resize(GRAPH_SIZE);
+        }
+        graphs = nextGraphs;
+    }
+    return graphs;
+}
+
+bool SearchEngine::isMergeable(const Graph graph) {
+    IT_ASSERT(graph->getOperators().size() <= 1);
+    // TODO: mutator is mergeable()
+    // auto stat = mutationEngine->statGraph(graph.get());
+    // if (stat == Mutator::GroupConv || stat == Mutator::TransposeGroupConv ||
+    //     stat == Mutator::BatchMatmul || stat == Mutator::HetConv) {
+    //     return 1;
+    // }
+    return 0;
+}
 
 // double SearchEngine::getPerf(const std::shared_ptr<SubGraph> &graph,
 //                              bool profiling, bool withPenalty) {
@@ -609,7 +425,8 @@ std::vector<Graph> SearchEngine::partitionGraph(const Graph graph) {
     std::vector<Graph> partitions;
     partitions.emplace_back(graph);
     return partitions;
-    // // reversed DFS post-order is topo-order
+
+    // reversed DFS post-order is topo-order
     // std::unordered_map<const Operator *, int> preOrder, postOrder;
     // std::vector<Operator *> ops;
     // int preCnt = 0, postCnt = 0;
@@ -661,254 +478,5 @@ std::vector<Graph> SearchEngine::partitionGraph(const Graph graph) {
     // }
     // return ret;
 }
-
-// std::shared_ptr<SubGraph>
-// SearchEngine::fuse(const std::shared_ptr<SubGraph> &graph) {
-//     std::shared_ptr<SubGraph> tmpGraph(new SubGraph(graph->getOperators()));
-//     for (Operator *op : tmpGraph->getOperators()) {
-//         if (op->getType() == Operator::Activation) {
-//             while (op->getPredecessor() != nullptr &&
-//                    op->getPredecessor()->getType() == Operator::Transpose &&
-//                    op->getPredecessor()->getSuccessors().size() == 1) {
-//                 auto pred = op->getPredecessor();
-//                 auto a = pred->getInputs()[0];
-//                 auto b = pred->getOutput();
-//                 auto c = op->getOutput();
-//                 b->setDims(a->getDims());
-//                 op->setInputs({a});
-//                 op->setOutputs({b});
-//                 pred->setInputs({b});
-//                 pred->setOutputs({c});
-//                 tmpGraph->cleanConnection();
-//                 tmpGraph->updateConnection();
-//                 b->setPenalty(a->getPenalty());
-//             }
-//         }
-//     }
-
-//     std::vector<Operator *> newOps, removedOps;
-//     for (Operator *op : tmpGraph->getOperators()) {
-//         if (op->getType() == Operator::Conv ||
-//             op->getType() == Operator::Matmul) {
-//             // If there are more than one successors, we should do CSE first
-//             if (op->getSuccessors().size() == 1) {
-//                 Operator *succ = op->getSuccessors().front();
-//                 if (succ->getType() == Operator::Activation) {
-//                     Operator *newOp = op->clone();
-//                     auto actType = ((ActivationOp *)succ)->getActType();
-//                     if (op->getType() == Operator::Conv)
-//                         ((ConvOp *)newOp)->setAct(actType);
-//                     else
-//                         ((MatmulOp *)newOp)->setAct(actType);
-//                     newOp->setInputs(op->getInputs());
-//                     newOp->setOutputs(succ->getOutputs());
-//                     newOps.emplace_back(newOp);
-//                     removedOps.emplace_back(succ);
-//                     continue;
-//                 }
-//             }
-//         }
-//         newOps.emplace_back(op);
-//     }
-//     for (auto &&op : removedOps) {
-//         newOps.resize(std::remove(newOps.begin(), newOps.end(), op) -
-//                       newOps.begin());
-//     }
-//     std::shared_ptr<SubGraph> newGraph(new SubGraph(newOps));
-
-//     return newGraph;
-// }
-
-// int SearchEngine::stripDfs(Operator *op, std::unordered_map<int, int> &f,
-//                            int flag) {
-//     std::cout << "[DEBUG]" << op->getType() << " " << op->getInputs().size()
-//               << " " << op->getOutputs().size() << std::endl;
-//     assert(op->getInputs().size() == 1 && op->getOutputs().size() == 1);
-//     f.emplace(op->getGuid(), flag);
-//     if (op->getPredecessors().size() == 1) {
-//         auto next = op->getPredecessors()[0];
-//         if (next->isTransposeOp() && f.find(next->getGuid()) == f.end()) {
-//             stripDfs(next, f, flag);
-//         }
-//     }
-//     if (op->getSuccessors().size() == 1) {
-//         auto next = op->getSuccessors()[0];
-//         if (next->isTransposeOp() && f.find(next->getGuid()) == f.end()) {
-//             stripDfs(next, f, flag);
-//         }
-//     }
-//     return 0;
-// }
-
-// nnet::Expr transposeOpToExpression(TransposeOp *transposeOp) {
-//     const auto &AT = transposeOp->getInputs()[0];
-//     const auto &[before, after] = transposeOp->getBeforeAndAfter();
-//     for (size_t i = 0; i < before.size(); ++i) {
-//         assert(before[i].isSingle() && before[i].getSingle() == (int)i);
-//     }
-//     const auto A = nnet::makeTensor("A", AT->getDims());
-//     std::vector<nnet::VarRangePair> loopVarsN;
-//     nnet::VecExpr subscriptN(after.size());
-//     for (size_t i = 0; i < after.size(); ++i) {
-//         assert(after[i].isSingle());
-//         const auto loopVar =
-//             nnet::make_ref<nnet::VarNode>("i" + std::to_string(i));
-//         loopVarsN.emplace_back(
-//             loopVar, std::make_pair(0, A->getShape(after[i].getSingle())));
-//         subscriptN[after[i].getSingle()] = loopVar;
-//     }
-//     return nnet::makeRangeOperator(loopVarsN, {},
-//                                    nnet::makeSubscript(A, subscriptN));
-// }
-
-// nnet::Expr toExpr(Operator *op) {
-//     if (op->getType() == Operator::MemBound) {
-//         auto memboundOp = dynamic_cast<MemBoundOp *>(op);
-//         return memboundOp->getExpr();
-//     }
-//     if (op->getType() == Operator::Activation) {
-//         int nDim = op->getInputs()[0]->getDims().size();
-//         std::vector<int> shape = op->getInputs()[0]->getDims();
-//         std::vector<int> paddings(nDim);
-//         std::vector<nnet::Expr> vars(nDim);
-//         std::vector<nnet::VarRangePair> varRangePair(nDim);
-//         for (int i = 0; i < nDim; i++) {
-//             auto var = nnet::make_ref<nnet::VarNode>("var" +
-//             std::to_string(i)); paddings[i] = 0; vars[i] = var;
-//             varRangePair[i] = {var, {0, shape[i]}};
-//         }
-//         auto tensor = nnet::make_ref<nnet::TensorNode>("T", shape, paddings);
-//         auto subscript = makeSubscript(tensor, vars);
-//         if (op->getType() == Operator::Activation) {
-//             auto activationOp = dynamic_cast<ActivationOp *>(op);
-//             if (activationOp->getActType() == Operator::Relu) {
-//                 auto act = nnet::make_ref<nnet::FuncNode>(subscript,
-//                                                           nnet::FuncType::Relu);
-//                 return nnet::makeRangeOperator(varRangePair, {}, act);
-//             } else if (activationOp->getActType() == Operator::Tanh) {
-//                 auto act = nnet::make_ref<nnet::FuncNode>(subscript,
-//                                                           nnet::FuncType::Tanh);
-//                 return nnet::makeRangeOperator(varRangePair, {}, act);
-//             } else
-//                 nnet_unimplemented_halt();
-//         }
-
-//         // if (activationOp->getActType() == Operator::Sigmoid) {
-//         //     auto sigmoid = std::make_shared<nnet::FuncNode>(
-//         //         subscript, nnet::FuncType::Sigmoid);
-//         //     auto range = nnet::makeRangeOperator(varRangePair, sigmoid);
-//         // }
-//     }
-//     if (op->getType() == Operator::Transpose) {
-//         return transposeOpToExpression((TransposeOp *)op);
-//     }
-//     assert(false);
-//     return nullptr;
-// }
-
-// Operator *SearchEngine::FuseMemBoundChain(std::vector<Operator *> chainOps) {
-//     std::cout << "[DEBUG] FuseMemBoundChain" << std::endl;
-//     if (chainOps.size() == 1) {
-//         return chainOps[0];
-//     }
-//     for (auto &op : chainOps) {
-//         op->print();
-//         std::cout << std::endl;
-//     }
-//     std::cout << "[DEBUG] end" << std::endl;
-//     std::vector<nnet::Expr> exprs;
-//     for (const auto &op : chainOps) {
-//         assert(op->isMemBoundOp());
-//         exprs.emplace_back(toExpr(op));
-//     }
-//     double maxTime = getMaxPerf(std::make_shared<SubGraph>(chainOps));
-//     // Fuse a MemboundOp chain
-//     auto expr = nnet::MergeMemboundMutator(exprs).merge(true);
-
-//     // FIXME: use real NNet inputs for verification
-//     printf("Unimplememnted for verification\n");
-//     auto memBoundOp =
-//         new MemBoundOp(chainOps.front()->getInputs(),
-//                        chainOps.back()->getOutputs(), {}, expr, maxTime);
-//     memBoundOp->print();
-//     return memBoundOp;
-// }
-
-// std::shared_ptr<SubGraph>
-// SearchEngine::strip(const std::shared_ptr<SubGraph> &graph) {
-//     std::unordered_map<int, int> f;
-//     std::vector<Operator *> ops;
-//     int cnt = 0;
-//     for (auto op : graph->getOperators()) {
-//         if (f.find(op->getGuid()) != f.end()) {
-//             continue;
-//         }
-//         if (!op->isMemBoundOp() || (op->getPredecessors().size() != 1 &&
-//                                     op->getSuccessors().size() != 1)) {
-//             f.emplace(op->getGuid(), ++cnt);
-//             ops.emplace_back(op);
-//             continue;
-//         }
-//         std::vector<Operator *> chainOps;
-//         f.emplace(op->getGuid(), ++cnt);
-
-//         std::vector<Operator *> tmp;
-//         auto cur = op;
-//         while (cur->getPredecessors().size() == 1 &&
-//                cur->getPredecessors()[0]->isMemBoundOp()) {
-//             cur = cur->getPredecessors()[0];
-//             tmp.emplace_back(cur);
-//             f.emplace(cur->getGuid(), cnt);
-//         }
-//         for (int i = tmp.size() - 1; i >= 0; i--) {
-//             chainOps.emplace_back(tmp[i]);
-//         }
-//         chainOps.emplace_back(op);
-//         cur = op;
-//         while (cur->getSuccessors().size() == 1 &&
-//                cur->getSuccessors()[0]->isMemBoundOp()) {
-//             cur = cur->getSuccessors()[0];
-//             chainOps.emplace_back(cur);
-//             f.emplace(cur->getGuid(), cnt);
-//         }
-//         int len = chainOps.size();
-//         std::cout << "[DEBUG] before swap: begin" << std::endl;
-//         std::make_shared<SubGraph>(chainOps)->print();
-//         std::cout << "[DEBUG] before swap: end" << std::endl;
-
-//         for (int i = 1; i < len; i++) {
-//             if (!chainOps[i]->isElementWiseOp()) {
-//                 continue;
-//             }
-//             int j = i;
-//             while (j > 0 && chainOps[j - 1]->isTransposeOp()) {
-//                 auto a = chainOps[j - 1], b = chainOps[j];
-//                 auto tmp = a->getOutputs();
-//                 a->setOutputs(b->getOutputs());
-//                 b->setInputs(a->getInputs());
-//                 a->setInputs(tmp);
-//                 b->setOutputs(tmp);
-//                 auto tmpa = a->getSuccessors(), tmpb = b->getPredecessors();
-//                 a->setSuccessors(b->getSuccessors());
-//                 b->setPredecessors(a->getPredecessors());
-//                 a->setPredecessors(tmpb);
-//                 b->setSuccessors(tmpa);
-//                 // Re-compute shape
-//                 b->computeShape();
-//                 a->computeShape();
-//                 chainOps[j - 1] = b;
-//                 chainOps[j] = a;
-//                 j--;
-//             }
-//         }
-//         std::cout << "[DEBUG] after swap: begin" << std::endl;
-//         std::make_shared<SubGraph>(chainOps)->print();
-//         std::cout << "[DEBUG] after swap: end" << std::endl;
-
-//         ops.emplace_back(FuseMemBoundChain(chainOps));
-//     }
-
-//     return std::make_shared<SubGraph>(ops);
-// }
 
 } // namespace infini
