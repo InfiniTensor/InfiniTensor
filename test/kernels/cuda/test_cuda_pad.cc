@@ -7,7 +7,7 @@
 
 namespace infini {
 TEST(Pad, Cuda) {
-    Runtime cpuRuntime = CpuRuntimeObj::getInstance();
+    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
 
     // Build input data on CPU

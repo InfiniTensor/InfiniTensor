@@ -12,7 +12,7 @@ using namespace infini;
 using namespace std;
 
 TEST(nnet, MemboundOpInterpretation) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph g = make_ref<GraphObj>(runtime);
     Tensor i0 = g->addTensor({1, 2, 3}, DataType::UInt32);
     Tensor w0 = g->addTensor({1, 3, 4}, DataType::UInt32);
@@ -42,7 +42,7 @@ TEST(nnet, MemboundOpInterpretation) {
 
 TEST(nnet, MemboundOp_Ansor_Codegen) {
     auto runtime = make_ref<CudaRuntimeObj>();
-    Runtime cpu = CpuRuntimeObj::getInstance();
+    Runtime cpu = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(cpu);
     Graph g = make_ref<GraphObj>(runtime);
     Tensor i0 = g->addTensor({1, 2, 3}, DataType::Float32);

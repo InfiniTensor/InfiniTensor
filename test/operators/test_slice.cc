@@ -5,7 +5,7 @@
 
 namespace infini {
 TEST(Slice, ShapeInference) {
-    Runtime cpuRuntime = CpuRuntimeObj::getInstance();
+    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     {
         Graph g = make_ref<GraphObj>(cpuRuntime);
         Tensor i = g->addTensor({10, 64, 162, 162}, DataType::UInt32);

@@ -8,7 +8,7 @@
 namespace infini {
 
 TEST(Conv, ShapeInference) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     // Padding modes
     {
         Graph g = make_ref<GraphObj>(runtime);
@@ -43,7 +43,7 @@ TEST(Conv, ShapeInference) {
 }
 
 TEST(Conv, NaiveCPU) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph g = make_ref<GraphObj>(runtime);
     Tensor i0 = g->addTensor({1, 3, 4, 4}, DataType::UInt32);
     Tensor w0 = g->addTensor({2, 3, 3, 3}, DataType::UInt32);

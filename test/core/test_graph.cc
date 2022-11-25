@@ -9,7 +9,7 @@
 namespace infini {
 
 TEST(Graph, build_and_run) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph g = make_ref<GraphObj>(runtime);
     Tensor i0 = g->addTensor({1, 2, 3}, DataType::UInt32);
     Tensor w0 = g->addTensor({1, 3, 4}, DataType::UInt32);
@@ -38,7 +38,7 @@ TEST(Graph, build_and_run) {
 }
 
 TEST(Graph, topological) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph g = make_ref<GraphObj>(runtime);
     Tensor a = g->addTensor({1, 2, 3}, DataType::UInt32);
     Tensor b = g->addTensor({1, 2, 3}, DataType::UInt32);
@@ -77,7 +77,7 @@ TEST(Graph, topological) {
 } // namespace infini
 
 TEST(Graph, perf_engine) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph g = make_ref<GraphObj>(runtime);
     Tensor i0 = g->addTensor({1, 2, 3}, DataType::UInt32);
     Tensor w0 = g->addTensor({1, 3, 4}, DataType::UInt32);
@@ -99,7 +99,7 @@ TEST(Graph, perf_engine) {
 }
 
 TEST(Graph, test_tensor_id) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph g = make_ref<GraphObj>(runtime);
     Tensor i0 = g->addTensor({1, 2, 3}, DataType::UInt32);
     Tensor w0 = g->addTensor({1, 3, 4}, DataType::UInt32);
@@ -117,7 +117,7 @@ TEST(Graph, test_tensor_id) {
 }
 
 TEST(Graph, test_OpVec_ctor) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph g = make_ref<GraphObj>(runtime);
     Tensor i0 = g->addTensor({1, 2, 3}, DataType::UInt32);
     Tensor w0 = g->addTensor({1, 3, 4}, DataType::UInt32);

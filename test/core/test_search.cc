@@ -13,7 +13,7 @@
 namespace infini {
 
 // TEST(Graph, search) {
-//     Runtime runtime = CpuRuntimeObj::getInstance();
+//     Runtime runtime = NativeCpuRuntimeObj::getInstance();
 //     Graph g = make_ref<GraphObj>(runtime);
 //     Tensor i0 = g->addTensor({1, 2, 3}, DataType::UInt32);
 //     Tensor w0 = g->addTensor({1, 3, 4}, DataType::UInt32);
@@ -30,7 +30,7 @@ namespace infini {
 // }
 
 TEST(Graph, search_withdm) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph g = make_ref<GraphObj>(runtime);
     Tensor t0 = g->addTensor({1, 3, 224, 224});
     Tensor w0 = g->addTensor({3, 3, 3, 3});
@@ -53,7 +53,7 @@ TEST(Graph, search_withdm) {
 }
 
 // TEST(DummyMutator, run) {
-//     Runtime runtime = CpuRuntimeObj::getInstance();
+//     Runtime runtime = NativeCpuRuntimeObj::getInstance();
 //     Graph g = make_ref<GraphObj>(runtime);
 //     Tensor i0 = g->addTensor({1, 3, 224, 224});
 //     Tensor w0 = g->addTensor({2, 3, 3, 3});
@@ -67,7 +67,7 @@ TEST(Graph, search_withdm) {
 // }
 
 // TEST(DummyMutator, fuse) {
-//     Runtime runtime = CpuRuntimeObj::getInstance();
+//     Runtime runtime = NativeCpuRuntimeObj::getInstance();
 //     Graph g = make_ref<GraphObj>(runtime);
 //     Tensor i0 = g->addTensor({1, 2, 3});
 //     Tensor w0 = g->addTensor({1, 3, 4});

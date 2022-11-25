@@ -57,7 +57,7 @@ void ResizeObj::init(const Tensor &input, const Tensor &sizes,
             this->roi.emplace_back(1);
         }
 
-        Runtime runtime = CpuRuntimeObj::getInstance();
+        Runtime runtime = NativeCpuRuntimeObj::getInstance();
         std::shared_ptr<float> dataObj((float *)runtime->alloc(roi->getBytes()),
                                        [&](float *p) { runtime->dealloc(p); });
         auto data = dataObj.get();
@@ -117,7 +117,7 @@ void ResizeObj::InitBySizes(Tensor input, Tensor sizes,
 
     // copy sizes data to host.
     IT_ASSERT(sizes->getDataBlob() != nullptr);
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     std::shared_ptr<int> dataObj((int *)runtime->alloc(sizes->getBytes()),
                                  [&](int *p) { runtime->dealloc(p); });
     auto data = dataObj.get();
@@ -166,7 +166,7 @@ void ResizeObj::InitByScales(Tensor input, Tensor scales,
 
     // copy scales data to host.
     IT_ASSERT(scales->getDataBlob() != nullptr);
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     std::shared_ptr<float> dataObj((float *)runtime->alloc(scales->getBytes()),
                                    [&](float *p) { runtime->dealloc(p); });
     auto data = dataObj.get();

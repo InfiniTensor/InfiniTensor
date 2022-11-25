@@ -11,7 +11,7 @@
 namespace infini {
 
 TEST(PerfEngine, save_and_load) {
-    Runtime cpu = CpuRuntimeObj::getInstance(); // CPUruntime is singleton
+    Runtime cpu = NativeCpuRuntimeObj::getInstance(); // CPUruntime is singleton
     Graph gCpu = make_ref<GraphObj>(cpu);
     Runtime cuda = make_ref<CudaRuntimeObj>();
     { // Conv

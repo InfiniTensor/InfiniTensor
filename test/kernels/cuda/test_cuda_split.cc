@@ -9,7 +9,7 @@
 namespace infini {
 
 TEST(Split, Cuda) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(runtime);
 
     auto input = gCpu->addTensor({2, 10, 2, 1}, DataType::Float32);

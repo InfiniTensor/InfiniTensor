@@ -8,7 +8,7 @@
 namespace infini {
 
 TEST(CUDA_BatchNorm, run) {
-    Runtime cpuRuntime = CpuRuntimeObj::getInstance();
+    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
 
     // Build cpu graph

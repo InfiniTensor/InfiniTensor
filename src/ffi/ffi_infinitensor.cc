@@ -12,7 +12,9 @@
 #include "cuda/cuda_runtime.h"
 #include "cuda/operator_timer.h"
 #endif
-
+#ifdef USE_MKL
+#include "mkl/operator_timer.h"
+#endif
 namespace py = pybind11;
 
 namespace infini {
@@ -26,6 +28,13 @@ void register_operator_timer(py::module &m) {
     m.def("getPerfConvCudnn", &getPerfConvCudnn);
     m.def("getPerfConvTransposed2dCudnn", &getPerfConvTransposed2dCudnn);
     m.def("getPerfMatmulCublas", &getPerfMatmulCublas);
+#endif
+
+#ifdef USE_MKL
+    using namespace opTimer;
+    m.def("getPerfConvMkl", &getPerfConvMkl);
+    m.def("getPerfConvTransposed2dMkl", &getPerfConvTransposed2dMkl);
+    m.def("getPerfMatmulMkl", &getPerfMatmulMkl);
 #endif
 }
 
@@ -149,7 +158,7 @@ static Shape reshape_shape_of(Operator op) {
 
 void export_functions(py::module &m) {
 #define FUNCTION(NAME) def(#NAME, &NAME)
-    m.def("cpu_runtime", &CpuRuntimeObj::getInstance)
+    m.def("cpu_runtime", &NativeCpuRuntimeObj::getInstance)
 #ifdef USE_CUDA
         .FUNCTION(cuda_runtime)
 #endif

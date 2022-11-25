@@ -4,6 +4,7 @@
 #include "core/runtime.h"
 #include "utils/dataloader.h"
 #include <numeric>
+#include <cstring>
 
 namespace infini {
 
@@ -157,7 +158,7 @@ void TensorObj::setData(
         generator(getRawDataPtr<void *>(), size(), dtype);
     } else {
         // Create a CPU buffer for the generetor and copy results to the device
-        auto cpuRuntime = CpuRuntimeObj::getInstance();
+        auto cpuRuntime = NativeCpuRuntimeObj::getInstance();
         size_t nBytes = size() * dtype.getSize();
         Blob buffer = cpuRuntime->allocBlob(nBytes);
         generator(buffer->getPtr<void *>(), size(), dtype);
@@ -201,4 +202,43 @@ size_t TensorObj::getOffsetByBroadcastOffset(size_t bcOffset,
     return getOffsetByPos(pos, shape);
 }
 
+void TensorObj::iohw2oihwData() {
+    if (getMFormat() == MemoryFormat::oihw)
+        return;
+
+    if (getDims().size() != 4)
+        IT_TODO_HALT();
+
+    IT_ASSERT(getMFormat() == MemoryFormat::iohw);
+
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    auto cpuData = runtime->alloc(getBytes());
+    getRuntime()->copyBlobToCPU((void *)cpuData, getRawDataPtr<void *>(),
+                                getBytes());
+
+    auto reorderedData = runtime->alloc(getBytes());
+    auto f = getDims()[0];
+    auto c = getDims()[1];
+    auto r = getDims()[2];
+    auto s = getDims()[3];
+    for (int i = 0; i < f; ++i) {
+        for (int j = 0; j < c; ++j) {
+            int inOffset = j * r * s + i * c * r * s;
+            int outOffset = j * f * r * s + i * r * s;
+            if (dtype == DataType::UInt32)
+                memcpy(((uint32_t *)reorderedData) + outOffset,
+                       ((uint32_t *)cpuData) + inOffset,
+                       r * s * sizeof(uint32_t));
+            else if (dtype == DataType::Float32)
+                memcpy(((float *)reorderedData) + outOffset,
+                       ((float *)cpuData) + inOffset, r * s * sizeof(float));
+            else
+                IT_TODO_HALT();
+        }
+    }
+    copyin(reorderedData, getBytes());
+    setMFormat(MemoryFormat::oihw);
+    runtime->dealloc(cpuData);
+    runtime->dealloc(reorderedData);
+}
 }; // namespace infini

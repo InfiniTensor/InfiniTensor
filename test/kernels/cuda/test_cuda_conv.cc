@@ -13,7 +13,7 @@ void testConvCudnn(
     const std::function<void(void *, size_t, DataType)> &generator,
     vector<float> ansVec) {
     // Construct Runtime and graph for CPU and CUDA
-    Runtime cpu = CpuRuntimeObj::getInstance(); // CPUruntime is singleton
+    Runtime cpu = NativeCpuRuntimeObj::getInstance(); // CPUruntime is singleton
     Graph gCpu = make_ref<GraphObj>(cpu);
     Runtime cuda = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cuda);
@@ -52,7 +52,7 @@ TEST(cuDNN_Conv, run) {
 }
 
 TEST(cuDNN_Conv, tune) {
-    Runtime cpu = CpuRuntimeObj::getInstance(); // CPUruntime is singleton
+    Runtime cpu = NativeCpuRuntimeObj::getInstance(); // CPUruntime is singleton
     Graph gCpu = make_ref<GraphObj>(cpu);
     Runtime cuda = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cuda);

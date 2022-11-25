@@ -10,7 +10,7 @@
 namespace infini {
 
 TEST(CUDA_Reshape, run) {
-    Runtime cpuRuntime = CpuRuntimeObj::getInstance();
+    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
 
     // Build input data on CPU
@@ -39,7 +39,7 @@ TEST(CUDA_Reshape, run) {
 }
 
 TEST(CUDA_Flatten, run) {
-    Runtime cpuRuntime = CpuRuntimeObj::getInstance();
+    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
 
     // Build input data on CPU
@@ -68,7 +68,7 @@ TEST(CUDA_Flatten, run) {
 }
 
 TEST(CUDA_Identity, run) {
-    Runtime cpuRuntime = CpuRuntimeObj::getInstance();
+    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
 
     // Build input data on CPU

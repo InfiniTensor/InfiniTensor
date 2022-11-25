@@ -14,7 +14,7 @@ template <class T>
 void testElementWiseCudnn(
     const std::function<void(void *, size_t, DataType)> &generator,
     const Shape &shape, const ExpectOutput &ansVec) {
-    Runtime cpuRuntime = CpuRuntimeObj::getInstance();
+    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
 
     // Build input data on CPU

@@ -12,7 +12,8 @@ class Mutator {
     Runtime runtime;
 
   public:
-    Mutator(int candidatesLimit, Runtime runtime = CpuRuntimeObj::getInstance())
+    Mutator(int candidatesLimit,
+            Runtime runtime = NativeCpuRuntimeObj::getInstance())
         : candidatesLimit(candidatesLimit), runtime(runtime){};
     virtual ~Mutator(){};
 

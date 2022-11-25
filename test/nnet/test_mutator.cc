@@ -13,7 +13,7 @@ namespace infini {
 TEST(Mutator, NaiveConvWithInterpreter) {
     // verifyNaiveMembound True: subgraph after transformation
     // verifyNaiveMembound False: subgraph of one single membound (eOP)
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph g = make_ref<GraphObj>(runtime);
     // const bool verifyNaiveMembound = false;
 
@@ -61,7 +61,7 @@ TEST(Mutator, InfoGAN_TConv_3_correctness) {
     // const bool verifyNaiveMembound = false;
     Runtime runtime = make_ref<CudaRuntimeObj>();
     Graph g = make_ref<GraphObj>(runtime);
-    Runtime cpu = CpuRuntimeObj::getInstance(); // CPUruntime is singleton
+    Runtime cpu = NativeCpuRuntimeObj::getInstance(); // CPUruntime is singleton
     Graph gCpu = make_ref<GraphObj>(cpu);
 
     // {n, h, w, f} * {f, r, s, c}

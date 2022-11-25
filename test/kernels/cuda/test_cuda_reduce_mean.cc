@@ -12,7 +12,7 @@ namespace infini {
 void test_reducemean(const Shape &shape, const vector<float> &data,
                      const optional<const vector<int>> &axis, bool keepDims,
                      const vector<float> &ExpectData) {
-    Runtime cpuRuntime = CpuRuntimeObj::getInstance();
+    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
 
     // Build input data on CPU

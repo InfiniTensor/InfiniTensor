@@ -101,6 +101,7 @@ class TensorObj : public TensorBaseObj {
     }
 
     size_t getOffsetByBroadcastOffset(size_t bcOffset, Shape bcShape) const;
+    void iohw2oihwData();
 
   private:
     void printDataFloat() const;
