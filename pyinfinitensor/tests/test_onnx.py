@@ -8,16 +8,28 @@ from onnx.helper import (
     make_tensor_value_info,
 )
 from onnx.checker import check_model
-from pyinfinitensor.onnx import from_onnx, backend, cpu_runtime
+from pyinfinitensor.onnx import from_onnx, backend, runtime, run_onnx
 
 
 def make_and_import_model(graph: onnx.GraphProto):
     model = make_model(graph)
     check_model(model)
-    from_onnx(model, cpu_runtime)
+    from_onnx(model, runtime)
 
 
 class TestStringMethods(unittest.TestCase):
+    #def test_run(self):
+    #    model_file = next(
+    #        (name for name in os.listdir() if name.endswith(".onnx")), None
+    #    )
+    #    if model_file != None:
+    #        print(
+    #            "model: {file}({size:.2f} MiB)".format(
+    #                file=model_file, size=os.path.getsize(model_file) / 1024 / 1024
+    #            )
+    #        )
+    #        run_onnx(onnx.load(model_file), runtime)
+
     def test_load(self):
         model_file = next(
             (name for name in os.listdir() if name.endswith(".onnx")), None
@@ -28,7 +40,7 @@ class TestStringMethods(unittest.TestCase):
                     file=model_file, size=os.path.getsize(model_file) / 1024 / 1024
                 )
             )
-            from_onnx(onnx.load(model_file), cpu_runtime)
+            from_onnx(onnx.load(model_file), runtime)
 
     def test_tensor(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 2, 3])
@@ -177,7 +189,7 @@ class TestStringMethods(unittest.TestCase):
     def test_softmax(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
-        softmax = make_node("Softmax", ["x"], ["y"], name="softmax")
+        softmax = make_node("Softmax", ["x"], ["y"], axis=2, name="softmax")
         make_and_import_model(make_graph([softmax], "softmax", [x], [y]))
 
     def test_abs(self):
@@ -194,9 +206,8 @@ class TestStringMethods(unittest.TestCase):
 
     def test_flatten(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
-        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 1 * 3 * 5 * 7])
-        flatten = make_node("Flatten", ["x"], ["y"], name="flatten")
-        # FIXME 后端要求产生 Π(dims) 长的一维张量，onnx 产生 1×Π(dims) 的二维张量
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1*3,  5 * 7])
+        flatten = make_node("Flatten", ["x"], ["y"], axis=2, name="flatten")
         # make_and_import_model(
         make_graph([flatten], "flatten", [x], [y])
         # )
@@ -289,10 +300,10 @@ class TestStringMethods(unittest.TestCase):
         graph = make_graph([matmul, add], "lr", [x, a, b], [y])
         model = make_model(graph)
         check_model(model)
-        from_onnx(model, cpu_runtime)
+        from_onnx(model, runtime)
 
     def test_frontend(self):
-        handler = backend.GraphHandler(cpu_runtime)
+        handler = backend.GraphHandler(runtime)
         a = handler.tensor([1, 2, 3], 12)
         b = handler.tensor([1, 2, 3], 12)
         c = handler.tensor([1, 2, 3], 12)

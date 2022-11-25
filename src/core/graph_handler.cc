@@ -10,6 +10,7 @@
 #include "operators/reduce_mean.h"
 #include "operators/reshape.h"
 #include "operators/slice.h"
+#include "operators/softmax.h"
 #include "operators/unary.h"
 
 namespace infini {
@@ -126,11 +127,29 @@ DEFINE_ELEMENT_WISE_METHOD(pow, Pow)
 DEFINE_UNARY_METHOD(relu, Relu)
 DEFINE_UNARY_METHOD(sigmoid, Sigmoid)
 DEFINE_UNARY_METHOD(tanh, Tanh)
-DEFINE_UNARY_METHOD(softmax, Softmax)
 DEFINE_UNARY_METHOD(abs, Abs)
 // see operators/reshape.h
 DEFINE_UNARY_METHOD(identity, Identity)
-DEFINE_UNARY_METHOD(flatten, Flatten)
+
+Tensor GraphHandlerObj::softmax(Tensor input, Tensor output, int axis) {
+    if (output) {
+        g->addOpWithOutputs<SoftmaxObj>(std::move(input), output, axis);
+        return output;
+    } else {
+        return g->addOp<SoftmaxObj>(std::move(input), output, axis)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::flatten(Tensor input, Tensor output, int axis) {
+    if (output) {
+        g->addOpWithOutputs<FlattenObj>(std::move(input), output, axis);
+        return output;
+    } else {
+        return g->addOp<FlattenObj>(std::move(input), output, axis)
+            ->getOutput();
+    }
+}
 
 Tensor GraphHandlerObj::reshape(Tensor data, Tensor reshaped, Shape shape) {
     if (reshaped) {

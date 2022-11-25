@@ -70,25 +70,6 @@ void ResizeObj::init(const Tensor &input, const Tensor &sizes,
         }
     }
 }
-/*
-Operator ResizeObj::clone(TensorVec inputs, TensorVec outputs) {
-    Tensor roi{nullptr}, sizes{nullptr}, scales{nullptr};
-    if (inputs.size() == 3)
-        roi = inputs[2];
-    if (isResizeBySizes())
-        sizes = inputs[1];
-    else
-        scales = inputs[1];
-
-    if (mode == ECoeffMode::nearest)
-        return make_ref<ResizeObj>(nullptr, inputs[0], outputs[0], axes,
-                                   inputs[1], nullptr, roi, ratioPolicy,
-                                   nearestMode, coMode);
-    else
-        return make_ref<ResizeObj>(nullptr, inputs[0], outputs[0], axes,
-                                   inputs[1], nullptr, roi, mode, ratioPolicy,
-                                   coMode);
-}*/
 
 void ResizeObj::InitBySizes(Tensor input, Tensor sizes,
                             const std::optional<vector<int>> &axes) {

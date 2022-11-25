@@ -30,8 +30,8 @@ class MemboundInterpreter : public Kernel {
         // }
 
         nnet::RangeOp range = nnet::as<nnet::RangeOpNode>(op->getNnetExpr());
-        const auto &rangeShape = range->getOutputShape();
-        const auto &outputShape = output->getDims();
+        // const auto &rangeShape = range->getOutputShape();
+        // const auto &outputShape = output->getDims();
         // rangeShape and outputShape may extra dims of length 1.
         // But their sizes should be the same.
         IT_ASSERT((ssize_t)range->getOutputSize() == (ssize_t)output->size());

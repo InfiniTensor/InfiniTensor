@@ -1,5 +1,5 @@
 #include "core/kernel.h"
-#include "mkl/mkl_runtime.h"
+#include "intelcpu/mkl_runtime.h"
 #include "operators/conv.h"
 
 namespace infini {
@@ -244,7 +244,7 @@ class MklConvTranspose : public Kernel {
         return make_ref<ConvTransposeMklPerfRecordObj>(ret);
     }
 };
-REGISTER_KERNEL(Device::MKL, OpType::ConvTrans, DataType::Float32,
+REGISTER_KERNEL(Device::INTELCPU, OpType::ConvTrans, DataType::Float32,
                 MklConvTranspose, "MklConvTrans_CPU_float32");
 
 } // namespace infini

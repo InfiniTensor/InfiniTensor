@@ -5,7 +5,7 @@ __global__ void cudaPrintFloatImpl(float *x, int len) {
     int start = threadIdx.x + blockDim.x * blockIdx.x;
     if (start == 0) {
         for (int i = 0; i < len; ++i) {
-            printf("%.3f ", x[i]);
+            printf("%.7f ", x[i]);
         }
         printf("\n");
     }
