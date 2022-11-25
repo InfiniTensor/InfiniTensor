@@ -1,7 +1,7 @@
 #include "core/graph.h"
 #include "core/kernel.h"
 #include "core/perf_engine.h"
-#include "mkl/mkl_runtime.h"
+#include "intelcpu/mkl_runtime.h"
 #include "operators/conv.h"
 
 #include "test.h"
@@ -74,7 +74,7 @@ TEST(mkl_ConvTransposed, tune) {
     runtime->prepareAndRun(gMkl, tune);
     // check record
     auto kernelAttrs =
-        KernelAttrs{Device::MKL, conv->getOpType(), DataType::Float32};
+        KernelAttrs{Device::INTELCPU, conv->getOpType(), DataType::Float32};
     auto perfKey = PerfEngine::Key{kernelAttrs, conv->getOpPerfKey()};
     std::optional<PerfRecord> perfData =
         PerfEngine::getInstance().getPerfData(perfKey);

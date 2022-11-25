@@ -1,6 +1,6 @@
 #include "operators/conv.h"
 #include "core/kernel.h"
-#include "mkl/mkl_runtime.h"
+#include "intelcpu/mkl_runtime.h"
 
 namespace infini {
 struct ConvMklPerfRecordObj : public PerfRecordObj {
@@ -167,20 +167,19 @@ class MklConv : public Kernel {
     }
 
     void compute(const Operator &_op, const PerfRecord &_record,
-                 const RuntimeObj *_context) const {
+                 const RuntimeObj *_context) const override {
         auto op = as<ConvObj>(_op);
         auto context = dynamic_cast<const MklRuntimeObj *>(_context);
         auto record = as<ConvMklPerfRecordObj>(_record);
 
-        dnnl::stream stream(context->getEngine());
         std::vector<dnnl::primitive> prims;
         std::vector<std::unordered_map<int, dnnl::memory>> primArgs;
         IT_ASSERT(createPrimitives(op, record, context, true, prims, primArgs));
 
         IT_ASSERT(prims.size() == primArgs.size());
         for (size_t i = 0; i < prims.size(); ++i)
-            prims.at(i).execute(stream, primArgs.at(i));
-        stream.wait();
+            prims.at(i).execute(context->getStream(), primArgs.at(i));
+        context->getStream().wait();
     }
 
     void compute(const Operator &op, const RuntimeObj *context) const override {
@@ -209,17 +208,19 @@ class MklConv : public Kernel {
                 continue;
 
             IT_ASSERT(prims.size() == primArgs.size());
-            dnnl::stream stream(context->getEngine());
+            // does context->getStream() need to be attached to runtime, and
+            // delete after each use?
             for (size_t i = 0; i < prims.size(); ++i)
-                prims.at(i).execute(stream, primArgs.at(i));
-            stream.wait();
+                prims.at(i).execute(context->getStream(), primArgs.at(i));
+            context->getStream().wait();
 
             record.time = timeit(
                 [&]() {
                     for (size_t i = 0; i < prims.size(); ++i)
-                        prims.at(i).execute(stream, primArgs.at(i));
+                        prims.at(i).execute(context->getStream(),
+                                            primArgs.at(i));
                 },
-                [&]() { stream.wait(); });
+                [&]() { context->getStream().wait(); });
 
             // Update the tune result
             if (ret.time > record.time)
@@ -232,6 +233,6 @@ class MklConv : public Kernel {
         return make_ref<ConvMklPerfRecordObj>(ret);
     }
 };
-REGISTER_KERNEL(Device::MKL, OpType::Conv, DataType::Float32, MklConv,
+REGISTER_KERNEL(Device::INTELCPU, OpType::Conv, DataType::Float32, MklConv,
                 "MklConv_CPU_float32");
 } // namespace infini

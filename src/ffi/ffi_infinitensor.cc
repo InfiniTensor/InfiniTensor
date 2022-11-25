@@ -12,8 +12,9 @@
 #include "cuda/cuda_runtime.h"
 #include "cuda/operator_timer.h"
 #endif
-#ifdef USE_MKL
-#include "mkl/operator_timer.h"
+#ifdef USE_INTELCPU
+#include "intelcpu/mkl_runtime.h"
+#include "intelcpu/operator_timer.h"
 #endif
 namespace py = pybind11;
 
@@ -30,7 +31,7 @@ void register_operator_timer(py::module &m) {
     m.def("getPerfMatmulCublas", &getPerfMatmulCublas);
 #endif
 
-#ifdef USE_MKL
+#ifdef USE_INTELCPU
     using namespace opTimer;
     m.def("getPerfConvMkl", &getPerfConvMkl);
     m.def("getPerfConvTransposed2dMkl", &getPerfConvTransposed2dMkl);
@@ -111,6 +112,10 @@ static int tensor_dtype(Tensor t) {
 static Ref<CudaRuntimeObj> cuda_runtime() { return make_ref<CudaRuntimeObj>(); }
 #endif
 
+#ifdef USE_INTELCPU
+static Ref<RuntimeObj> intelcpu_runtime() { return make_ref<MklRuntimeObj>(); }
+#endif
+
 static std::tuple<int, int, int, int, int, int> conv_attrs_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Conv);
     auto conv = dynamic_cast<const ConvObj *>(op.get());
@@ -158,10 +163,14 @@ static Shape reshape_shape_of(Operator op) {
 
 void export_functions(py::module &m) {
 #define FUNCTION(NAME) def(#NAME, &NAME)
-    m.def("cpu_runtime", &NativeCpuRuntimeObj::getInstance)
 #ifdef USE_CUDA
-        .FUNCTION(cuda_runtime)
+    m.def("runtime", cuda_runtime)
+#elif USE_INTELCPU
+    m.def("runtime", intelcpu_runtime)
+#else
+    m.def("runtime", &NativeCpuRuntimeObj::getInstance)
 #endif
+
         .FUNCTION(conv_attrs_of)
         .FUNCTION(batch_norm_attrs_of)
         .FUNCTION(pool_attrs_of)

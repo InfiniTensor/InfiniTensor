@@ -31,6 +31,7 @@ class TensorBaseObj : public Object {
         IT_ASSERT(data == nullptr);
         data = blob;
     }
+    VType getData(size_t offset) const;
     Blob getDataBlob() const { return data; }
     bool hasData() const { return data != nullptr; }
     void freeData() { data = nullptr; }

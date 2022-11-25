@@ -1,11 +1,11 @@
-cmake_minimum_required(VERSION 3.17) # FindCUDAToolkit
+cmake_minimum_required(VERSION 3.20.0) # FindCUDAToolkit
 include(CMakeDependentOption)
 project(InfiniTensor C CXX)
 
 # Do not change these options in this file. Use cmake.config, cmake -DOPTION=VALUE, or ccmake to specify them.
 option(USE_CUDA "Support CUDA GPU" OFF)
 option(USE_BANG "Support BANG MLU" OFF)
-option(USE_MKL "Support MKL" OFF)
+option(USE_INTELCPU "Support INTELCPU" OFF)
 option(USE_BACKTRACE "Print backtrace on exception and segmentation fault" ON)
 option(USE_PROTOBUF "Serialize and deserialize tensors" ON)
 option(BUILD_TEST "Build tests" ON)
@@ -19,10 +19,6 @@ set(DEFAULT_BUILD_TYPE "RelWithDebInfo")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF) # -std=gnu++11 when on, -std=c++11 when off
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Werror -Wno-error=deprecated-declarations")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -UNDEBUG") # Enable assertion
-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -UNDEBUG") # Enable assertion
-
 find_package(
   Python
   COMPONENTS Interpreter Development
@@ -35,6 +31,20 @@ endif()
 if(OpenMP_CXX_FOUND)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
+
+
+if(BUILD_TEST)
+  set(BUILD_GMOCK
+      OFF
+      CACHE BOOL "Do not build gmock" FORCE)
+  set(INSTALL_GTEST
+      OFF
+      CACHE BOOL "Do not install gtest" FORCE)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall ")    
+  add_subdirectory(3rd-party/googletest)
+  include_directories(SYSTEM 3rd-party/googletest/googletest/include)
+endif()
+
 #Protobuf
 if(USE_PROTOBUF)
   add_definitions(-D TENSOR_PROTOBUF)
@@ -47,14 +57,12 @@ if(USE_PROTOBUF)
   set(PROTO_PATH "${CMAKE_CURRENT_SOURCE_DIR}/proto")
   file(GLOB PROTO_FILES "${PROTO_PATH}/data.proto")
   protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
-  message(${PROTO_SRCS} "-----------" ${PROTO_FILES})
-  message(${PROTO_HDRS} "-----------" ${PROTO_FILES})
+  set_source_files_properties (${PROTO_SRCS} PROPERTIES COMPILE_FLAGS -Wno-unused-variable)
   add_library(tensor_proto SHARED ${PROTO_SRCS} ${PROTO_HDRS})
   target_link_libraries(tensor_proto PUBLIC ${PROTOBUF_LIBRARIES})
 endif()
 
 include_directories(include)
-
 # Pybind11
 add_subdirectory(3rd-party/pybind11)
 include_directories(3rd-party/pybind11/include)
@@ -63,16 +71,9 @@ include_directories(3rd-party/pybind11/include)
 add_subdirectory(3rd-party/nlohmann_json_cmake_fetchcontent)
 include_directories(3rd-party/nlohmann_json_cmake_fetchcontent/single_include)
 
-if(BUILD_TEST)
-  set(BUILD_GMOCK
-      OFF
-      CACHE BOOL "Do not build gmock" FORCE)
-  set(INSTALL_GTEST
-      OFF
-      CACHE BOOL "Do not install gtest" FORCE)
-  add_subdirectory(3rd-party/googletest)
-  include_directories(3rd-party/googletest/googletest/include)
-endif()
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Werror -Wno-error=deprecated-declarations")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -UNDEBUG") # Enable assertion
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -UNDEBUG") # Enable assertion
 
 # Source files
 file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/kernels/cpu/*.cc src/nnet/*.cc src/operators/*.cc src/utils/*.cc)
@@ -87,9 +88,9 @@ if(USE_BANG)
   list (APPEND SRC ${SRC_BANG})
 endif()
 
-if(USE_MKL)
-  file(GLOB_RECURSE SRC_MKL src/mkl/*.cc src/kernels/mkl/*.cc )
-  list (APPEND SRC ${SRC_MKL})
+if(USE_INTELCPU)
+  file(GLOB_RECURSE SRC_INTELCPU src/intelcpu/*.cc src/kernels/intelcpu/*.cc )
+  list (APPEND SRC ${SRC_INTELCPU})
 endif()
 
 # Libraries
@@ -113,19 +114,29 @@ if(USE_BACKTRACE)
   target_link_libraries(InfiniTensor dw)
 endif()
 
-if(USE_MKL)
+if(USE_INTELCPU)
+  add_compile_definitions(USE_INTELCPU=1) 
   find_package(MKL CONFIG REQUIRED)
-  target_link_libraries(InfiniTensor  $<LINK_ONLY:MKL::MKL>)
+
+  # Refer to https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl-link-line-advisor.html
+  target_link_libraries(InfiniTensor sycl OpenCL)
+
   set(DNNL_CONFIGURATION "cpu_gomp")
   find_package(dnnl CONFIG REQUIRED)
-  if(dnnl_FOUND)    
-      add_compile_definitions(USE_MKL=1)
+  if(dnnl_FOUND)          
       include_directories(BEFORE ${dnnl_DIR}/../../../cpu_gomp/include/)
       link_directories(${dnnl_DIR}/../../../cpu_gomp/lib)   
-      target_link_libraries(InfiniTensor   dnnl)       
+      target_link_libraries(InfiniTensor  dnnl)       
   else()
-      message(FATAL_ERROR ”dnnl library not found”)
+      message(FATAL_ERROR "dnnl library not found")
   endif()
+  set(WNO_ERRORS "-Wno-error=unused-parameter -Wno-error=unused-function -Wno-error=unused-private-field -Wno-error=ignored-attributes -Wno-error=unused-const-variable -Wno-error=inconsistent-missing-override -Wno-error=unused-variable -Wno-error=tautological-constant-compare")
+ 
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -DMKL_ILP64 -qmkl=parallel -Werror  ${WNO_ERRORS}")
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${WNO_ERRORS}") # Enable assertion
+  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} ${WNO_ERRORS}") # Enable assertion
+  
+  find_package(IntelDPCPP REQUIRED)
 endif()
 
 if(USE_CUDA)
@@ -210,8 +221,8 @@ if(BUILD_TEST)
     if (USE_BANG)
       build_test(test/kernels/bang/*.cc)
     endif()
-    if (USE_MKL)
-      build_test(test/kernels/mkl/*.cc)
+    if (USE_INTELCPU)
+      build_test(test/kernels/intelcpu/*.cc)
     endif()
   endif()
   if(BUILD_TEST_PET)

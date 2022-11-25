@@ -1,9 +1,8 @@
 #include "operators/matmul.h"
 #include "core/kernel.h"
-#include "mkl/mkl_runtime.h"
+#include "intelcpu/mkl_runtime.h"
 
 namespace infini {
-
 template <typename T> class MklMatmul : public CpuKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *context) const override {
@@ -32,7 +31,7 @@ template <typename T> class MklMatmul : public CpuKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::MKL, OpType::Matmul, DataType::Float32,
-                MklMatmul<float>, "MklMatmul_CPU_float32");
+/*REGISTER_KERNEL(Device::INTELCPU, OpType::Matmul, DataType::Float32,
+                MklMatmul<float>, "MklMatmul_CPU_float32");*/
 
 } // namespace infini

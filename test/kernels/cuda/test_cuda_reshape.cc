@@ -51,7 +51,7 @@ TEST(CUDA_Flatten, run) {
     // Build CUDA graph
     Graph g = make_ref<GraphObj>(cudaRuntime);
     auto i = g->cloneTensor(icpu);
-    auto op = g->addOp<FlattenObj>(i, nullptr);
+    auto op = g->addOp<FlattenObj>(i, nullptr, 2);
 
     // allocate CUDA memory
     g->dataMalloc();

@@ -28,7 +28,7 @@ using OpVec = vector<Operator>;
 
 using VType = uint32_t;
 
-enum class Device { CPU = 1, CUDA, BANG, MKL };
+enum class Device { CPU = 1, CUDA, BANG, INTELCPU };
 /***************** Forward declaration end *****************/
 
 class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
@@ -51,6 +51,7 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
      */
     virtual void run(const Graph &graph, bool tune = false,
                      bool profiling = false) const = 0;
+    virtual void preProcess(Graph &graph){};
     virtual void *alloc(size_t size) = 0;
     virtual void dealloc(void *ptr) = 0;
     void prepareAndRun(Graph &graph, bool tune = false, bool profiling = false);
@@ -65,7 +66,7 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
     double getPerfTime(const Graph &graph, bool profiling = false) const;
     Blob allocBlob(size_t size);
     bool isCpu() const {
-        return device == Device::CPU || device == Device::MKL;
+        return device == Device::CPU || device == Device::INTELCPU;
     }
     bool isCuda() const { return device == Device::CUDA; }
     bool isBang() const { return device == Device::BANG; }
