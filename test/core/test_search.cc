@@ -1,8 +1,10 @@
 #include "core/blob.h"
+#include "core/dummy_mutator.h"
 #include "core/graph.h"
 #include "core/runtime.h"
 #include "core/search_engine.h"
 #include "nnet/nmutator.h"
+#include "operators/conv.h"
 #include "operators/matmul.h"
 #include "operators/unary.h"
 #include "test.h"
@@ -24,6 +26,37 @@ TEST(Graph, search) {
     SearchEngine searchEngine(runtime, make_ref<NMutator>());
     searchEngine.run(g);
     // check execution results
+}
+
+TEST(DummyMutator, run) {
+    Runtime runtime = CpuRuntimeObj::getInstance();
+    Graph g = make_ref<GraphObj>(runtime);
+    Tensor i0 = g->addTensor({1, 3, 224, 224});
+    Tensor w0 = g->addTensor({2, 3, 3, 3});
+    auto matmul = g->addOp<ConvObj>(i0, w0, nullptr, 1, 1);
+    DummyMutator m(10);
+    auto mutations = m.run(g);
+    g->print();
+    for (auto gg : mutations) {
+        gg->print();
+    }
+}
+
+TEST(DummyMutator, fuse) {
+    Runtime runtime = CpuRuntimeObj::getInstance();
+    Graph g = make_ref<GraphObj>(runtime);
+    Tensor i0 = g->addTensor({1, 2, 3});
+    Tensor w0 = g->addTensor({1, 3, 4});
+    Tensor i1 = g->addTensor({1, 2, 3});
+    Tensor w1 = g->addTensor({1, 3, 4});
+    auto matmul0 = g->addOp<MatmulObj>(i0, w0, nullptr);
+    auto matmul1 = g->addOp<MatmulObj>(i1, w1, nullptr);
+    DummyMutator m(10);
+    auto mutations = m.fusion(g);
+    g->print();
+    for (auto gg : mutations) {
+        gg->print();
+    }
 }
 
 } // namespace infini

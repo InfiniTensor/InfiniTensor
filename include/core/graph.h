@@ -20,10 +20,9 @@ class GraphObj : public Object {
 
     Tensor addTensor(Shape dim, DataType dtype = DataType::Float32);
     Tensor addTensor(const Tensor &tensor);
+    TensorVec addTensor(const TensorVec &tensors);
     Tensor cloneTensor(const Tensor &tensor) {
-        auto ret = addTensor(tensor->getDims(), tensor->getDType());
-        ret->dataMalloc();
-        ret->copyData(tensor);
+        auto ret = addTensor(tensor->clone(runtime));
         return ret;
     }
 

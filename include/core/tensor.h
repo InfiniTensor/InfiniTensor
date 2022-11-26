@@ -61,11 +61,13 @@ class TensorObj : public TensorBaseObj {
         obj->outputOf.reset();
         return obj;
     }
+    // TODO: clarify whether clone copies data
     Tensor clone(Runtime runtime) const {
-        // TODO: use copy constructor
         auto obj = make_ref<TensorObj>(shape, dtype, runtime);
-        obj->dataMalloc();
-        obj->copyData(this);
+        if (hasData()) {
+            obj->dataMalloc();
+            obj->copyData(this);
+        }
         return obj;
     }
 

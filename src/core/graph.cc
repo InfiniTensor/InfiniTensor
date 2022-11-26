@@ -79,8 +79,15 @@ Tensor GraphObj::addTensor(Shape dim, DataType dtype) {
 }
 
 Tensor GraphObj::addTensor(const Tensor &tensor) {
+    IT_ASSERT(tensor->getRuntime() == runtime, "Tensor runtime mismatch");
     tensors.emplace_back(tensor);
     return tensor;
+}
+
+TensorVec GraphObj::addTensor(const TensorVec &tensors) {
+    for (auto &t : tensors)
+        addTensor(t);
+    return tensors;
 }
 
 OpVec GraphObj::getComputeOps() const {

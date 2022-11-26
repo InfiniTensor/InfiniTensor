@@ -55,8 +55,6 @@ class SearchEngine {
         }
         static bool cmp(const Candidate &a, const Candidate &b);
     };
-    SearchEngine(const std::shared_ptr<Mutator> &mutationEngine);
-    ~SearchEngine();
 
     Graph run(const Graph graph);
     std::vector<Graph> search(const Graph &graph);
@@ -87,7 +85,10 @@ class SearchEngine {
     std::shared_ptr<MetaGraph> buildMetaGraphWithGraph(const Graph graph);
     std::shared_ptr<MetaGraph>
     buildMetaGraphWithPlan(const std::shared_ptr<MetaGraph> metaGraph,
-                           const std::vector<int> &plan);
+                           const std::vector<int> &plan) {
+        IT_TODO_HALT();
+        return nullptr;
+    }
     // search merge
     std::vector<std::shared_ptr<MetaGraph>>
     searchMerge(std::shared_ptr<MetaGraph> &metaGraph);

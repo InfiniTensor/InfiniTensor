@@ -8,14 +8,17 @@ class Mutator {
     int candidatesLimit;
     // // Statistical data
     // int numTotalCandidates;
+  protected:
+    Runtime runtime;
 
   public:
-    Mutator(int candidatesLimit) : candidatesLimit(candidatesLimit){};
+    Mutator(int candidatesLimit, Runtime runtime = CpuRuntimeObj::getInstance())
+        : candidatesLimit(candidatesLimit), runtime(runtime){};
     virtual ~Mutator(){};
 
     virtual vector<Graph> run(const Graph &in_graph) = 0;
-    virtual vector<Graph> fusion(const Graph &in_graph) { IT_ASSERT(false); };
-    virtual bool isFusible() { IT_ASSERT(false); }
+    virtual vector<Graph> fusion(const Graph &in_graph) { IT_TODO_HALT(); }
+    virtual bool isFusible(const Graph &in_graph) { IT_TODO_HALT(); }
 };
 
 } // namespace infini
