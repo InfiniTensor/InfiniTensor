@@ -30,6 +30,7 @@ class BangRuntimeObj : public RuntimeObj {
         dealloc(workspace);
         checkCnnlError(cnnlDestroy(cnnl));
     }
+    string toString() const override;
 
     void run(const Graph &graph, bool tune = false,
              bool profiling = false) const;
