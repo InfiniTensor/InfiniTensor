@@ -34,8 +34,11 @@ enum class OpType {
     Softmax,
     Activation,
     Relu,
+    ReluBackward,
     Sigmoid,
+    SigmoidBackward,
     Tanh,
+    TanhBackward,
     Abs,
     Resize,
     //
@@ -81,8 +84,11 @@ class OpRegistry {
             FOP(Softmax);
             FOP(Activation);
             FOP(Relu);
+            FOP(ReluBackward);
             FOP(Sigmoid);
+            FOP(SigmoidBackward);
             FOP(Tanh);
+            FOP(TanhBackward);
             FOP(Abs);
             FOP(ConvTransNHWC);
             //
