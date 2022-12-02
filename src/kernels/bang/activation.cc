@@ -1,14 +1,12 @@
-#include "operators/unary.h"
 #include "bang/bang_kernel_without_config.h"
 #include "bang/bang_runtime.h"
+#include "operators/unary.h"
 
 namespace infini {
 class UnaryCnnl : public BangKernelWithoutConfig {
     virtual cnnlActivationMode_t getOpType() const = 0;
     virtual float getCoef() const = 0;
-    virtual tuple<float, float> getAlphBeta() const {
-        return {1.f, 0.f};
-    }
+    virtual tuple<float, float> getAlphBeta() const { return {1.f, 0.f}; }
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<UnaryObj>(_op);
@@ -40,8 +38,9 @@ class UnaryCnnl : public BangKernelWithoutConfig {
             opDesc, getOpType(), CNNL_NOT_PROPAGATE_NAN, getCoef()));
 
         auto [alpha, beta] = getAlphBeta();
-        cnnlStatus_t stat = cnnlActivationForward(context->cnnlHandle(), opDesc, &alpha,
-                                         aDesc, aData, &beta, cDesc, cData);
+        cnnlStatus_t stat =
+            cnnlActivationForward(context->cnnlHandle(), opDesc, &alpha, aDesc,
+                                  aData, &beta, cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
@@ -54,20 +53,25 @@ class UnaryCnnl : public BangKernelWithoutConfig {
 };
 
 class ReluCnnl : public UnaryCnnl {
-    cnnlActivationMode_t getOpType() const override { return CNNL_ACTIVATION_RELU; }
+    cnnlActivationMode_t getOpType() const override {
+        return CNNL_ACTIVATION_RELU;
+    }
     float getCoef() const override { return 0.0; }
 };
 
 class SigmoidCnnl : public UnaryCnnl {
-    cnnlActivationMode_t getOpType() const override { return CNNL_ACTIVATION_SIGMOID; }
+    cnnlActivationMode_t getOpType() const override {
+        return CNNL_ACTIVATION_SIGMOID;
+    }
     float getCoef() const override { return 0.0; }
 };
 
 class TanhCnnl : public UnaryCnnl {
-    cnnlActivationMode_t getOpType() const override { return CNNL_ACTIVATION_TANH; }
+    cnnlActivationMode_t getOpType() const override {
+        return CNNL_ACTIVATION_TANH;
+    }
     float getCoef() const override { return 0.0; }
 };
-
 
 REGISTER_KERNEL(Device::BANG, OpType::Relu, DataType::Float32, ReluCnnl,
                 "Relu_cnnl_BANG_Float32");
