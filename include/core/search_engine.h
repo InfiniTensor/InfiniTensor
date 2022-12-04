@@ -72,7 +72,10 @@ class SearchEngine {
                           std::vector<std::shared_ptr<Graph>> &candidates);
 
   private:
-    struct MetaGraph {
+    class MetaGraph {
+      public:
+        MetaGraph() {}
+        ~MetaGraph() {}
         struct Node {
             Graph graph;
             std::vector<int> suc;
@@ -99,6 +102,7 @@ class SearchEngine {
     std::vector<Graph>
     searchMutation(const std::shared_ptr<MetaGraph> &metaGraph);
 
+    void printMetaGraph(Ref<SearchEngine::MetaGraph> metaGraph);
     // TODO: move to cpp
     bool isMergeable(const Graph graph);
 };

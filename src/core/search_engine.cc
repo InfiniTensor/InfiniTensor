@@ -8,26 +8,25 @@
 
 namespace infini {
 
-// int SearchEngine::MetaGraph::print() {
-//     for (size_t i = 0; i < nodes.size(); i++) {
-//         auto &node = nodes[i];
-//         std::cout << "id: " << i << std::endl;
-//         node.graph->print();
-//         std::cout << "type: " << node.type << std::endl;
-//         std::cout << "pre: ";
-//         for (auto &x : node.pre) {
-//             std::cout << x << " ";
-//         }
-//         std::cout << std::endl;
-//         std::cout << "suc: ";
-//         for (auto &x : node.suc) {
-//             std::cout << x << " ";
-//         }
-//         std::cout << std::endl;
-//     }
-//     std::cout << std::endl;
-//     return 0;
-// }
+void SearchEngine::printMetaGraph(Ref<SearchEngine::MetaGraph> metaGraph) {
+    for (size_t i = 0; i < metaGraph->nodes.size(); i++) {
+        auto &node = metaGraph->nodes[i];
+        std::cout << "id: " << i << std::endl;
+        node.graph->print();
+        std::cout << "type: " << node.type << std::endl;
+        std::cout << "pre: ";
+        for (auto &x : node.pre) {
+            std::cout << x << " ";
+        }
+        std::cout << std::endl;
+        std::cout << "suc: ";
+        for (auto &x : node.suc) {
+            std::cout << x << " ";
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
+}
 
 Graph SearchEngine::run(const Graph graph) {
     IT_ASSERT(runtimeExec == graph->getRuntime());
@@ -140,11 +139,58 @@ SearchEngine::buildMetaGraphWithGraph(const Graph graph) {
             }
         }
     }
-    return 0;
+    return metaGraph;
+}
+
+std::shared_ptr<SearchEngine::MetaGraph> SearchEngine::buildMetaGraphWithPlan(
+    const std::shared_ptr<SearchEngine::MetaGraph> metaGraph,
+    const std::vector<int> &plan) {
+    int numGroups = 0;
+    for (auto i : plan) {
+        if (i > numGroups) {
+            numGroups = i;
+        }
+    }
+
+    std::vector<std::vector<int>> groups(numGroups + 1, std::vector<int>(0));
+    for (size_t i = 0; i < plan.size(); i++) {
+        groups[plan[i]].emplace_back(i);
+    }
+
+    auto resultMetaGraph = make_ref<MetaGraph>();
+    for (auto &group : groups) {
+        std::vector<Operator> ops;
+        std::unordered_set<int> preSet, sucSet;
+        for (auto id : group) {
+            MetaGraph::Node node;
+            for (auto op : metaGraph->nodes[id].graph->getOperators()) {
+                ops.emplace_back(op);
+            }
+            for (auto suc : metaGraph->nodes[id].suc) {
+                if (sucSet.find(plan[suc]) == sucSet.end()) {
+                    node.suc.emplace_back(plan[suc]);
+                    sucSet.emplace(plan[suc]);
+                }
+            }
+            for (auto pre : metaGraph->nodes[id].pre) {
+                IT_ASSERT(sucSet.find(plan[pre]) != sucSet.end());
+                if (preSet.find(plan[pre]) == preSet.end()) {
+                    node.pre.emplace_back(plan[pre]);
+                    preSet.emplace(plan[pre]);
+                }
+            }
+            node.graph = make_ref<GraphObj>(runtimeExec, ops);
+            node.cnt = node.pre.size();
+            node.type = ops[0]->isComputeOp();
+            resultMetaGraph->nodes.emplace_back(node);
+        }
+    }
+    return resultMetaGraph;
 }
 
 std::vector<std::shared_ptr<SearchEngine::MetaGraph>>
 SearchEngine::searchMerge(std::shared_ptr<SearchEngine::MetaGraph> &metaGraph) {
+    IT_ASSERT(metaGraph != nullptr);
     std::vector<int> plan(metaGraph->nodes.size());
     for (size_t i = 0; i < plan.size(); i++) {
         plan[i] = i;
@@ -155,6 +201,7 @@ SearchEngine::searchMerge(std::shared_ptr<SearchEngine::MetaGraph> &metaGraph) {
             frontier.emplace_back(i);
         }
     }
+
     std::vector<std::vector<int>> plans;
     std::unordered_set<HashType> planSet;
     searchMergeDfs(metaGraph, plan, frontier, plans, planSet);
@@ -246,7 +293,7 @@ void SearchEngine::searchMergeDfs(std::shared_ptr<MetaGraph> &metaGraph,
             }
         }
         auto graph = make_ref<GraphObj>(runtimeExec, ops);
-        if (isMergeable(graph)) {
+        if (ops.size() == 1 || isMergeable(graph)) {
             searchMergeDfs(metaGraph, plan, nextFrontier, plans, planSet);
         }
         plan = planBackup;
@@ -314,112 +361,6 @@ bool SearchEngine::isMergeable(const Graph graph) {
     // }
     return 0;
 }
-
-// double SearchEngine::getPerf(const std::shared_ptr<SubGraph> &graph,
-//                              bool profiling, bool withPenalty) {
-//     double totTime = 0;
-//     std::map<Operator::OpType, double> opTime; // Statistics
-//     std::map<Operator::OpType, int> opCnt;
-//     getPerfEngine()->setPenalty(withPenalty);
-//     if (profiling)
-//         puts("\n========== PET graph getPerf ============");
-//     for (auto op : graph->getOperators()) {
-//         // double t = op->perf(getPerfEngine().get(), 200, 200);
-//         double t = getPerfEngine()->getOpPerf(*op, 200, 200);
-//         if (profiling) {
-//             op->print();
-//             printf(" op_time %lf\n", t);
-//             opTime[op->getType()] += t;
-//             opCnt[op->getType()]++;
-//         }
-//         totTime += t;
-//     }
-//     if (profiling) {
-//         printf("%11s %3s %7s %7s %7s\n", "Op", "Cnt", "T_tot", "Percent",
-//                "T_mean");
-//         for (const auto &[type, t] : opTime) {
-//             printf("%11s %3d %7.3f %7.1f %7.3f\n",
-//                    Operator::getOpName(type).data(), opCnt[type], t,
-//                    t / totTime * 100, t / opCnt[type]);
-//         }
-//     }
-//     return totTime;
-// }
-
-// double SearchEngine::getMaxPerf(const std::shared_ptr<SubGraph> &graph,
-//                                 bool profiling, bool withPenalty) {
-//     double time = 0;
-//     getPerfEngine()->setPenalty(withPenalty);
-//     for (auto op : graph->getOperators()) {
-//         double t = getPerfEngine()->getOpPerf(*op, 200, 200);
-//         time = std::max(time, t);
-//     }
-//     return time;
-// }
-
-// double SearchEngine::getTransPerf(const std::shared_ptr<SubGraph> &graph) {
-//     double time = 0;
-//     for (auto op : graph->getOperators()) {
-//         if (op->isTransposeOp()) {
-//             double t = getPerfEngine()->getOpPerf(*op, 200, 200);
-//             time += t;
-//         }
-//         // print detailed perf data
-//         // auto t = op->perf(perfEngine.get(), 10);
-//         // time += t;
-//         // printf("%s %f\n", op->toString().data(), t);
-//     }
-//     return time;
-// }
-
-// // get mutation of a subgraph.
-// int SearchEngine::getSingleMutation(
-//     std::shared_ptr<SubGraph> &graph,
-//     std::vector<std::shared_ptr<SubGraph>> &candidates) {
-//     int err = 0;
-//     std::vector<Operator *> computeOps;
-//     err = graph->getComputeOps(computeOps);
-//     if (err) {
-//         return 1;
-//     }
-
-//     std::shared_ptr<SubGraph> rest, corp;
-//     err = graph->split(rest, corp, computeOps);
-//     if (err) {
-//         return 1;
-//     }
-
-//     candidates.clear();
-//     std::vector<SubGraph *> tmp;
-//     mutationEngine->run(corp.get(), tmp);
-//     for (auto g : tmp) {
-//         g->reset(corp->getInputs(), corp->getOutputs());
-//         std::shared_ptr<SubGraph> merged;
-//         std::shared_ptr<SubGraph> frag(g);
-//         rest->merge(merged, frag);
-//         candidates.emplace_back(merged);
-//     }
-//     return 0;
-// }
-
-// uint64_t SearchEngine::getMutationHash(const Operator *op) {
-//     uint64_t hash;
-//     switch (op->getType()) {
-//     case Operator::Conv:
-//     case Operator::ConvTrans:
-//     case Operator::Matmul:
-//     case Operator::G2BMM:
-//     case Operator::GBMML:
-//         hash = mutationEngine->computeHashForSingleComputeOp(op);
-//         break;
-//     default:
-//         std::cout << "[ERROR] search_engine::getMutationHash: invalid input
-//         op."
-//                   << std::endl;
-//         hash = -1;
-//     }
-//     return hash;
-// }
 
 std::vector<Graph> SearchEngine::partitionGraph(const Graph graph) {
     std::vector<Graph> partitions;
