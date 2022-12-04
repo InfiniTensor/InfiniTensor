@@ -22,8 +22,8 @@ class SearchEngine {
 
   private: // Configurations
     size_t
-        partitionThreshold; // cut nodes whose #in + #out >= partitionThreshold
-    size_t GRAPH_SIZE;
+        partitionThreshold = 3; // cut nodes whose #in + #out >= partitionThreshold
+    size_t GRAPH_SIZE = 16;
     bool enableMetagraphMerging; // searchDfs
     bool enableVerification;     // compare the outputs of replacer and replacee
 
@@ -55,6 +55,18 @@ class SearchEngine {
         }
         static bool cmp(const Candidate &a, const Candidate &b);
     };
+    class MetaGraph {
+      public:
+        MetaGraph() {}
+        ~MetaGraph() {}
+        struct Node {
+            Graph graph;
+            std::vector<int> suc;
+            std::vector<int> pre;
+            int type, cnt;
+        };
+        std::vector<Node> nodes;
+    };
 
     Graph run(const Graph graph);
     std::vector<Graph> search(const Graph &graph);
@@ -72,26 +84,12 @@ class SearchEngine {
                           std::vector<std::shared_ptr<Graph>> &candidates);
 
   private:
-    class MetaGraph {
-      public:
-        MetaGraph() {}
-        ~MetaGraph() {}
-        struct Node {
-            Graph graph;
-            std::vector<int> suc;
-            std::vector<int> pre;
-            int type, cnt;
-        };
-        std::vector<Node> nodes;
-    };
+
     std::vector<Graph> partitionGraph(const Graph graph);
     std::shared_ptr<MetaGraph> buildMetaGraphWithGraph(const Graph graph);
     std::shared_ptr<MetaGraph>
     buildMetaGraphWithPlan(const std::shared_ptr<MetaGraph> metaGraph,
-                           const std::vector<int> &plan) {
-        IT_TODO_HALT();
-        return nullptr;
-    }
+                           const std::vector<int> &plan);
     // search merge
     std::vector<std::shared_ptr<MetaGraph>>
     searchMerge(std::shared_ptr<MetaGraph> &metaGraph);

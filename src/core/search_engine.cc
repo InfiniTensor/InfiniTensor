@@ -39,32 +39,52 @@ Graph SearchEngine::run(const Graph graph) {
     std::vector<Graph> partitions = partitionGraph(graph);
 
     std::cout << "[INFO] Partition num: " << partitions.size() << std::endl;
-    std::vector<Operator> ops;
-    std::vector<Graph> subGraphCandidates;
+    std::vector<Graph> bestGraphs = {nullptr};
     for (size_t pid = 0; pid < partitions.size(); pid++) {
         auto &subGraph = partitions[pid];
         std::cout << "[INFO] Partition: " << pid << std::endl;
         std::vector<Graph> candidates = search(subGraph);
-        double bestTime = 1e8;
-        double bestId = -1;
-        for (size_t i = 0; i < candidates.size(); i++) {
-            double time = runtimeExec->getPerfTime(candidates[i]);
-            if (time < bestTime) {
-                bestTime = time;
-                bestId = i;
+        std::cout << "[INFO] size: " << candidates.size() << std::endl;
+        IT_ASSERT(candidates.size() > 0);
+        std::cout << subGraph->toString() << std::endl;
+        std::vector<Graph> nextGraphs;
+        for (auto lastGraph : bestGraphs) {
+            for (auto thisGraph : candidates) {
+                std::vector<Operator> ops;
+                if (lastGraph != nullptr) {
+                    for (auto op : lastGraph->getOperators()) {
+                        ops.emplace_back(op);
+                    }
+                }
+                if (thisGraph != nullptr) {
+                    for (auto op : thisGraph->getOperators()) {
+                        ops.emplace_back(op);
+                    }
+                }
+                auto tmp = make_ref<GraphObj>(runtimeExec, ops);
+                tmp->dataMalloc();
+                nextGraphs.emplace_back(tmp);
             }
         }
-        IT_ASSERT(bestId != -1);
-        for (auto op : candidates[bestId]->getOperators()) {
-            ops.emplace_back(op);
+        std::sort(nextGraphs.begin(), nextGraphs.end(), [&](Graph x, Graph y) {
+            return runtimeExec->getPerfTime(x) < runtimeExec->getPerfTime(y);
+        });
+        if (nextGraphs.size() > GRAPH_SIZE) {
+            nextGraphs.resize(GRAPH_SIZE);
+        }
+        bestGraphs.clear();
+        for (size_t i = 0; i < nextGraphs.size(); i++) {
+            bestGraphs.emplace_back(nextGraphs[i]);
         }
     }
 
-    auto bestGraph = make_ref<GraphObj>(runtimeExec, ops);
     std::cout << "[INFO] unfused graph: " << std::endl;
-    std::cout << bestGraph->toString();
-    std::cout << "[INFO] perf: " << runtimeExec->getPerfTime(bestGraph)
-              << std::endl;
+    for (size_t i = 0; i < bestGraphs.size(); i++) {
+        std::cout << "bestGraph " << i << ":" << std::endl;
+        std::cout << bestGraphs[i]->toString();
+        std::cout << "[INFO] perf: " << runtimeExec->getPerfTime(bestGraphs[i])
+                << std::endl;
+    }
 
     // bestGraph = fuse(bestGraph);
     // double time = CpuRuntimeObj::getInstance()->getPerfTime(bestGraph);
@@ -74,7 +94,7 @@ Graph SearchEngine::run(const Graph graph) {
     //           << CpuRuntimeObj::getInstance()->getPerfTime(bestGraph)
     //           << std::endl;
 
-    return bestGraph;
+    return bestGraphs[0];
 }
 
 std::vector<Graph> SearchEngine::search(const Graph &graph) {
@@ -82,7 +102,6 @@ std::vector<Graph> SearchEngine::search(const Graph &graph) {
     auto mergedGraphs = searchMerge(metaGraph);
     std::cout << "[INFO] merged graphs: " << mergedGraphs.size() << std::endl;
 
-    std::vector<Graph> mutatedGraphs;
     std::vector<Graph> results;
     for (auto mergedGraph : mergedGraphs) {
         auto mutatedGraphs = searchMutation(mergedGraph);
@@ -92,7 +111,9 @@ std::vector<Graph> SearchEngine::search(const Graph &graph) {
         }
     }
 
-    sort(results.begin(), results.end()); // compare with perf time
+    sort(results.begin(), results.end(), [&](Graph x, Graph y) {
+            return runtimeExec->getPerfTime(x) < runtimeExec->getPerfTime(y);
+        }); // compare with perf time
     if (results.size() > GRAPH_SIZE) {
         results.resize(GRAPH_SIZE);
     }
@@ -173,7 +194,7 @@ std::shared_ptr<SearchEngine::MetaGraph> SearchEngine::buildMetaGraphWithPlan(
                 }
             }
             for (auto pre : metaGraph->nodes[id].pre) {
-                IT_ASSERT(sucSet.find(plan[pre]) != sucSet.end());
+                IT_ASSERT(sucSet.find(plan[pre]) == sucSet.end());
                 if (preSet.find(plan[pre]) == preSet.end()) {
                     node.pre.emplace_back(plan[pre]);
                     preSet.emplace(plan[pre]);
@@ -309,8 +330,8 @@ std::vector<Graph> SearchEngine::searchMutation(
     for (auto &node : metaGraph->nodes) {
         std::vector<Graph> nextGraphs;
         if (node.type == 1) { // If it has computing OPs
-            std::vector<Graph> mutatedGraphs = {node.graph};
-            // auto mutatedGraphs = mutator->run(node.graph);
+            // std::vector<Graph> mutatedGraphs = {node.graph};
+            auto mutatedGraphs = mutator->run(node.graph);
             for (auto graph : graphs) {
                 for (auto mutatedGraph : mutatedGraphs) {
                     std::vector<Operator> ops;
@@ -340,6 +361,9 @@ std::vector<Graph> SearchEngine::searchMutation(
                 nextGraphs.emplace_back(make_ref<GraphObj>(runtimeExec, ops));
             }
         }
+        for (auto g : nextGraphs) {
+            g->dataMalloc();
+        }
         std::sort(nextGraphs.begin(), nextGraphs.end(), [&](Graph x, Graph y) {
             return runtimeExec->getPerfTime(x) < runtimeExec->getPerfTime(y);
         });
@@ -364,60 +388,65 @@ bool SearchEngine::isMergeable(const Graph graph) {
 
 std::vector<Graph> SearchEngine::partitionGraph(const Graph graph) {
     std::vector<Graph> partitions;
-    partitions.emplace_back(graph);
-    return partitions;
+    // partitions.emplace_back(graph);
+    // return partitions;
 
     // reversed DFS post-order is topo-order
-    // std::unordered_map<const Operator *, int> preOrder, postOrder;
-    // std::vector<Operator *> ops;
-    // int preCnt = 0, postCnt = 0;
-    // std::function<void(Operator *)> dfs = [&](Operator *op) {
-    //     if (preOrder.count(op)) {
-    //         return;
-    //     }
-    //     preOrder[op] = preCnt++;
-    //     for (auto &&next : op->getSuccessors()) {
-    //         dfs(next);
-    //     }
-    //     postOrder[op] = postCnt++;
-    //     ops.emplace_back(op);
-    // };
-    // for (auto &&op : graph->getOperators()) {
-    //     dfs(op);
-    // }
+    std::unordered_map<size_t, size_t> preOrder, postOrder;
+    std::vector<Operator> ops;
+    int preCnt = 0, postCnt = 0;
+    std::function<void(Operator)> dfs = [&](Operator op) {
+        if (preOrder.count(op->getGuid())) {
+            return;
+        }
+        preOrder[op->getGuid()] = preCnt++;
+        for (auto &&next : op->getSuccessors()) {
+            dfs(next);
+        }
+        postOrder[op->getGuid()] = postCnt++;
+        ops.emplace_back(op);
+    };
+    for (auto &&op : graph->getOperators()) {
+        dfs(op);
+    }
 
-    // std::vector<std::shared_ptr<SubGraph>> ret;
-    // std::vector<Operator *> headOps;
-    // for (auto i = ops.rbegin(); i != ops.rend(); i++) {
-    //     headOps.emplace_back(*i);
-    //     if ((*i)->getPredecessors().size() + (*i)->getSuccessors().size() >=
-    //             (size_t)partitionThreshold &&
-    //         !(*i)->isComputeOp()) {
-    //         auto preOrderI = preOrder.at(*i);
-    //         auto postOrderI = postOrder.at(*i);
-    //         for (auto j = ops.rbegin(); j != i; j++) {
-    //             // True predecessor
-    //             if (preOrder.at(*j) < preOrderI) {
-    //                 for (auto &&k : (*j)->getSuccessors()) {
-    //                     if (postOrder.at(k) < postOrderI) {
-    //                         goto fail;
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //         std::shared_ptr<SubGraph> gRest, gPart;
-    //         graph->split(gRest, gPart, headOps);
-    //         headOps.clear();
-    //         ret.emplace_back(std::move(gPart));
-    //     }
-    // fail:;
-    // }
-    // if (!headOps.empty()) {
-    //     std::shared_ptr<SubGraph> gRest, gPart;
-    //     graph->split(gRest, gPart, headOps);
-    //     ret.emplace_back(std::move(gPart));
-    // }
-    // return ret;
+    std::vector<Operator> headOps;
+    for (size_t i = 0; i < ops.size(); i++) {
+        auto &op = ops[i];
+        headOps.emplace_back(op);
+        if (op->getPredecessors().size() + op->getSuccessors().size() >=
+                (size_t)partitionThreshold &&
+            !op->isComputeOp()) {
+            auto preOrderI = preOrder[op->getGuid()];
+            auto postOrderI = postOrder[op->getGuid()];
+            for (size_t j = 0; j < i; j++) {
+                // True predecessor
+                if (preOrder[ops[j]->getGuid()] < preOrderI) {
+                    for (auto nextOp : ops[j]->getSuccessors()) {
+                        if (postOrder[nextOp->getGuid()] < postOrderI) {
+                            goto fail;
+                        }
+                    }
+                }
+            }
+            std::cout << "partition!!!: " << i << std::endl;
+            for (auto op : headOps) {
+                std::cout << op->toString() << std::endl;
+            }
+            auto tmp = make_ref<GraphObj>(runtimeExec, headOps);
+            tmp->dataMalloc();
+            partitions.emplace_back(tmp);
+            headOps.clear();
+        }
+    fail:;
+    }
+    if (!headOps.empty()) {
+        auto tmp = make_ref<GraphObj>(runtimeExec, headOps);
+        tmp->dataMalloc();
+        partitions.emplace_back(tmp);
+    }
+    std::reverse(partitions.begin(), partitions.end());
+    return partitions;
 }
 
 } // namespace infini
