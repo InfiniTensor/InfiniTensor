@@ -7,6 +7,8 @@ enum class OpType {
     Unknown = 0,
     // linear
     Conv = 100,
+    ConvBackwardFilter,
+    ConvBackwardData,
     Matmul,
     ConvTrans,
     G2BMM,
@@ -58,6 +60,8 @@ class OpRegistry {
             FOP(Unknown);
             // linear
             FOP(Conv);
+            FOP(ConvBackwardFilter);
+            FOP(ConvBackwardData);
             FOP(Matmul);
             FOP(ConvTrans);
             FOP(G2BMM);
