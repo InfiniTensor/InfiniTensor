@@ -91,11 +91,11 @@ class ConvBackwardFilterObj : public ConvBaseObj {
     ActType act;
 
   public:
-    ConvBackwardFilterObj(GraphObj *graph, Tensor inputX, Tensor diffY, Tensor diffX, int ph,
+    ConvBackwardFilterObj(GraphObj *graph, Tensor inputX, Tensor diffY, Tensor diffW, int ph,
             int pw, int sh = 1, int sw = 1, int dh = 1, int dw = 1,
             Tensor bias = nullptr, ActType act = ActType::None);
     // Constructors for setting padding mode
-    ConvBackwardFilterObj(GraphObj *graph, Tensor inputX, Tensor diffY, Tensor diffX,
+    ConvBackwardFilterObj(GraphObj *graph, Tensor inputX, Tensor diffY, Tensor diffW,
             PaddingMode mode = PaddingMode::Same, int sh = 1, int sw = 1,
             int dh = 1, int dw = 1, Tensor bias = nullptr,
             ActType act = ActType::None);

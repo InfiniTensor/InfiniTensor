@@ -196,10 +196,10 @@ void ConvBackwardFilterObj::setAuxilaryAttributes(PaddingMode mode) {
     }
 }
 
-ConvBackwardFilterObj::ConvBackwardFilterObj(GraphObj *graph, Tensor inputX, Tensor diffY, Tensor diffX,
+ConvBackwardFilterObj::ConvBackwardFilterObj(GraphObj *graph, Tensor inputX, Tensor diffY, Tensor diffW,
                  int ph, int pw, int sh, int sw, int dh, int dw, Tensor bias,
                  ActType act)
-    : ConvBaseObj(OpType::Conv, {inputX, diffY}, diffX, ph, pw, sh, sw, dh, dw,
+    : ConvBaseObj(OpType::Conv, {inputX, diffY}, diffW, ph, pw, sh, sw, dh, dw,
                   inputX, diffY),
       act(act) {
     if (bias)
@@ -208,10 +208,10 @@ ConvBackwardFilterObj::ConvBackwardFilterObj(GraphObj *graph, Tensor inputX, Ten
     IT_ASSERT(checkValid(graph));
 }
 
-ConvBackwardFilterObj::ConvBackwardFilterObj(GraphObj *graph, Tensor inputX, Tensor diffY, Tensor diffX,
+ConvBackwardFilterObj::ConvBackwardFilterObj(GraphObj *graph, Tensor inputX, Tensor diffY, Tensor diffW,
                  PaddingMode mode, int sh, int sw, int dh, int dw, Tensor bias,
                  ActType act)
-    : ConvBaseObj(OpType::Conv, {inputX, diffY}, diffX, mode, sh, sw, dh, dw,
+    : ConvBaseObj(OpType::Conv, {inputX, diffY}, diffW, mode, sh, sw, dh, dw,
                   inputX, diffY),
       act(act) {
     if (bias)
@@ -250,5 +250,6 @@ optional<vector<Shape>> ConvBackwardFilterObj::inferShape(const TensorVec &input
     }
     return {{{on, oc, oh, ow}}};
 }
+
 
 } // namespace infini
