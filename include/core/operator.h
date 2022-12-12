@@ -42,6 +42,18 @@ enum class OpType {
     Tanh,
     TanhBackward,
     Abs,
+    Sin,
+    Cos,
+    Tan,
+    ASin,
+    ACos,
+    ATan,
+    SinH,
+    CosH,
+    TanH,
+    ASinH,
+    ACosH,
+    ATanH,
     Resize,
     //
     MemBound = 300,
@@ -94,6 +106,18 @@ class OpRegistry {
             FOP(Tanh);
             FOP(TanhBackward);
             FOP(Abs);
+            FOP(Sin);
+            FOP(Cos);
+            FOP(Tan);
+            FOP(ASin);
+            FOP(ACos);
+            FOP(ATan);
+            FOP(SinH);
+            FOP(CosH);
+            FOP(TanH);
+            FOP(ASinH);
+            FOP(ACosH);
+            FOP(ATanH);
             //
             FOP(MemBound);
         default:
