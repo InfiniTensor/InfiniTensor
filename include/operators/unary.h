@@ -54,4 +54,5 @@ DEFINE_UNARY_OBJ(TanH, OpType::TanH)
 DEFINE_UNARY_OBJ(ASinH, OpType::ASinH)
 DEFINE_UNARY_OBJ(ACosH, OpType::ACosH)
 DEFINE_UNARY_OBJ(ATanH, OpType::ATanH)
+DEFINE_UNARY_OBJ(Copy, OpType::Copy)
 }; // namespace infini
