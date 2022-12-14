@@ -56,6 +56,8 @@ enum class OpType {
     ACosH,
     ATanH,
     Resize,
+    Arange,
+    Copy,
     //
     MemBound = 300,
 };
@@ -119,6 +121,8 @@ class OpRegistry {
             FOP(ASinH);
             FOP(ACosH);
             FOP(ATanH);
+            FOP(Arange);
+            FOP(Copy);
             //
             FOP(MemBound);
         default:
