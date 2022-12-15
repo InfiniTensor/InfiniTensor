@@ -32,4 +32,35 @@ vector<int> UnaryObj::getOpAttrVector() const {
     return {enum_to_underlying(type)};
 }
 
+ClipObj::ClipObj(GraphObj *graph, Tensor input, Tensor output, float min, float max)
+    : OperatorObj(OpType::Clip, {input}, {output}), minValue(min), maxValue(max) {
+    IT_ASSERT(checkValid(graph));
+}
+
+optional<vector<Shape>> ClipObj::inferShape(const TensorVec &inputs) const {
+    const auto A = inputs[0];
+    return {{A->getDims()}};
+}
+
+std::string ClipObj::toString() const {
+    std::ostringstream os;
+    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]";
+    os << "(";
+    os << vecToString(inputs[0]->getDims()) << ",";
+    os << "input=" << inputs[0]->getGuid() << ",";
+    os << "output=" << outputs[0]->getGuid() << ")";
+    return os.str();
+}
+
+vector<int> ClipObj::getWorkloadVector() const {
+    vector<int> ret{enum_to_underlying(type)};
+    const Shape shape = outputs[0]->getDims();
+    ret.insert(ret.end(), shape.begin(), shape.end());
+    return ret;
+}
+
+vector<int> ClipObj::getOpAttrVector() const {
+    return {enum_to_underlying(type)};
+}
+
 }; // namespace infini
