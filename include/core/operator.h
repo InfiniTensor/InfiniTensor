@@ -59,6 +59,7 @@ enum class OpType {
     Copy,
     Ceil,
     Floor,
+    Clip,
     //
     MemBound = 300,
 };
@@ -126,6 +127,7 @@ class OpRegistry {
             FOP(Copy);
             FOP(Ceil);
             FOP(Floor);
+            FOP(Clip);
             //
             FOP(MemBound);
         default:
