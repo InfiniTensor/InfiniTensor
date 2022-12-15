@@ -26,6 +26,7 @@ enum class OpType {
     Sub,
     Mul,
     Div,
+    DivDemo,
     Pow,
     Gather,
     ReduceMean,
@@ -96,6 +97,7 @@ class OpRegistry {
             FOP(Sub);
             FOP(Mul);
             FOP(Div);
+            FOP(DivDemo);
             FOP(Pow);
             FOP(Gather);
             FOP(ReduceMean);
