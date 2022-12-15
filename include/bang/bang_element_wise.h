@@ -13,7 +13,7 @@ void element_wise_kernel(const RuntimeObj *obj, const Operator &_op) {
     auto dim = op->getInputs(0)->getDims();
     auto context = dynamic_cast<const BangRuntimeObj *>(obj);
     int n = dim[0], c = dim[1], h = dim[2], w = dim[3];
-    if (op->getOpType() == OpType::Div)
+    if (op->getOpType() == OpType::DivDemo)
         div_kernel(context->cnnlHandle(), aData, bData, cData, n * c * h * w);
     else
         IT_TODO_HALT();
