@@ -16,6 +16,23 @@ class UnaryObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 };
 
+class ClipObj : public OperatorObj {
+  public:
+    ClipObj(GraphObj *graph, Tensor input, Tensor output, float min, float max);
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+
+    std::string toString() const override;
+    float getMin() const { return minValue; };
+    float getMax() const { return maxValue; };
+    int numInputs() const override { return 1; }
+    int numOutputs() const override { return 1; }
+
+  private:
+    float minValue,maxValue;
+    vector<int> getWorkloadVector() const override;
+    vector<int> getOpAttrVector() const override;
+};
+
 #define DEFINE_UNARY_OBJ(prefix, type)                                         \
     class prefix##Obj : public UnaryObj {                                      \
       public:                                                                  \
