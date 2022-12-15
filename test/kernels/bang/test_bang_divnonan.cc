@@ -9,7 +9,7 @@
 namespace infini {
 
 template <class T>
-void testDivDemo(
+void testDivNoNan(
     const std::function<void(void *, size_t, DataType)> &generator,
     const Shape &shape) {
     // Runtime
@@ -42,8 +42,8 @@ void testDivDemo(
     EXPECT_TRUE(1);
 }
 
-TEST(cnnl_DivDemo, run) {
-    testDivDemo<DivDemoObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+TEST(cnnl_DivNoNan, run) {
+    testDivNoNan<DivNoNanObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
 }
 
 } // namespace infini
