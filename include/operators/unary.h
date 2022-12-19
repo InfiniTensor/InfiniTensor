@@ -33,6 +33,22 @@ class ClipObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 };
 
+class FillObj : public OperatorObj {
+  public:
+    FillObj(GraphObj *graph, Tensor input, Tensor output, float value);
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+
+    std::string toString() const override;
+    float getValue() const { return setValue; };
+    int numInputs() const override { return 1; }
+    int numOutputs() const override { return 1; }
+
+  private:
+    float setValue;
+    vector<int> getWorkloadVector() const override;
+    vector<int> getOpAttrVector() const override;
+};
+
 #define DEFINE_UNARY_OBJ(prefix, type)                                         \
     class prefix##Obj : public UnaryObj {                                      \
       public:                                                                  \
