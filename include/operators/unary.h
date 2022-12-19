@@ -75,4 +75,5 @@ DEFINE_UNARY_OBJ(ATanH, OpType::ATanH)
 DEFINE_UNARY_OBJ(Copy, OpType::Copy)
 DEFINE_UNARY_OBJ(Ceil, OpType::Ceil)
 DEFINE_UNARY_OBJ(Floor, OpType::Floor)
+DEFINE_UNARY_OBJ(Erf, OpType::Erf)
 }; // namespace infini
