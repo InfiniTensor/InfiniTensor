@@ -64,6 +64,7 @@ enum class OpType {
     Clip,
     Erf,
     Exp,
+    Fill,
     //
     MemBound = 300,
 };
@@ -136,6 +137,7 @@ class OpRegistry {
             FOP(Clip);
             FOP(Erf);
             FOP(Exp);
+            FOP(Fill);
             //
             FOP(MemBound);
         default:
