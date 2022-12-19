@@ -63,6 +63,7 @@ enum class OpType {
     Floor,
     Clip,
     Erf,
+    Exp,
     //
     MemBound = 300,
 };
@@ -134,6 +135,7 @@ class OpRegistry {
             FOP(Floor);
             FOP(Clip);
             FOP(Erf);
+            FOP(Exp);
             //
             FOP(MemBound);
         default:
