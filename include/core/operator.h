@@ -66,6 +66,9 @@ enum class OpType {
     Erf,
     Exp,
     Fill,
+    Log_e,
+    Log_2,
+    Log_10,
     //
     MemBound = 300,
 };
@@ -139,6 +142,9 @@ class OpRegistry {
             FOP(Erf);
             FOP(Exp);
             FOP(Fill);
+            FOP(Log_e);
+            FOP(Log_2);
+            FOP(Log_10);
             //
             FOP(MemBound);
         default:
