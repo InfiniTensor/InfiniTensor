@@ -32,4 +32,6 @@ DEFINE_ELEMENT_WISE_OBJ(DivDemo, OpType::DivDemo)
 DEFINE_ELEMENT_WISE_OBJ(DivNoNan, OpType::DivNoNan)
 DEFINE_ELEMENT_WISE_OBJ(Div, OpType::Div)
 DEFINE_ELEMENT_WISE_OBJ(Pow, OpType::Pow)
+DEFINE_ELEMENT_WISE_OBJ(Maximum, OpType::Maximum)
+DEFINE_ELEMENT_WISE_OBJ(Minimum, OpType::Minimum)
 }; // namespace infini
