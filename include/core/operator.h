@@ -69,6 +69,7 @@ enum class OpType {
     Log_e,
     Log_2,
     Log_10,
+    Log1p,
     //
     MemBound = 300,
 };
@@ -145,6 +146,7 @@ class OpRegistry {
             FOP(Log_e);
             FOP(Log_2);
             FOP(Log_10);
+            FOP(Log1p);
             //
             FOP(MemBound);
         default:
