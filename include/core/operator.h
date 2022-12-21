@@ -71,6 +71,8 @@ enum class OpType {
     Log_10,
     Log1p,
     L2Loss,
+    Maximum,
+    Minimum,
     //
     MemBound = 300,
 };
@@ -149,6 +151,8 @@ class OpRegistry {
             FOP(Log_10);
             FOP(Log1p);
             FOP(L2Loss);
+            FOP(Maximum);
+            FOP(Minimum);
             //
             FOP(MemBound);
         default:
