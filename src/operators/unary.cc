@@ -92,4 +92,33 @@ vector<int> FillObj::getOpAttrVector() const {
     return {enum_to_underlying(type)};
 }
 
+L2LossObj::L2LossObj(GraphObj *graph, Tensor input, Tensor output)
+    : OperatorObj(OpType::L2Loss, {input}, {output}) {
+    IT_ASSERT(checkValid(graph));
+}
+
+optional<vector<Shape>> L2LossObj::inferShape(const TensorVec &inputs) const {
+    Shape temp = { 1 };
+    return {{temp}};
+}
+
+std::string L2LossObj::toString() const {
+    std::ostringstream os;
+    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]";
+    os << "(";
+    os << "output=" << outputs[0]->getGuid() << ")";
+    return os.str();
+}
+
+vector<int> L2LossObj::getWorkloadVector() const {
+    vector<int> ret{enum_to_underlying(type)};
+    const Shape shape = outputs[0]->getDims();
+    ret.insert(ret.end(), shape.begin(), shape.end());
+    return ret;
+}
+
+vector<int> L2LossObj::getOpAttrVector() const {
+    return {enum_to_underlying(type)};
+}
+
 }; // namespace infini

@@ -49,6 +49,20 @@ class FillObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 };
 
+class L2LossObj : public OperatorObj {
+  public:
+    L2LossObj(GraphObj *graph, Tensor input, Tensor output);
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+
+    std::string toString() const override;
+    int numInputs() const override { return 1; }
+    int numOutputs() const override { return 1; }
+
+  private:
+    vector<int> getWorkloadVector() const override;
+    vector<int> getOpAttrVector() const override;
+};
+
 #define DEFINE_UNARY_OBJ(prefix, type)                                         \
     class prefix##Obj : public UnaryObj {                                      \
       public:                                                                  \
