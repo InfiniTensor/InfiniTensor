@@ -3,55 +3,92 @@
 namespace infini {
 ResizeObj::ResizeObj(GraphObj *graph, Tensor input, Tensor output,
                      const std::optional<vector<int>> &axes, Tensor sizes,
+                     Tensor scales, Tensor roi,
                      EKeepAspectRatioPolicy ratioPolicy,
                      ENearestMode nearestMode,
                      ECoordinateTransMode coordTransMode)
-    : OperatorObj(OpType::Resize, {input, nullptr, nullptr, sizes}, {output}),
-      coMode(coordTransMode), mode(ECoeffMode::nearest),
-      nearestMode(nearestMode), ratioPolicy(ratioPolicy) {
-    if (coordTransMode == ECoordinateTransMode::tfCropAndResize)
-        IT_TODO_HALT();
-    InitBySizes(input, sizes, axes);
-
-    IT_ASSERT(checkValid(graph));
-}
-
-ResizeObj::ResizeObj(GraphObj *graph, Tensor input, Tensor output,
-                     const std::optional<vector<int>> &axes, Tensor scales,
-                     ENearestMode nearestMode,
-                     ECoordinateTransMode coordTransMode)
-    : OperatorObj(OpType::Resize, {input, nullptr, scales, nullptr}, {output}),
-      coMode(coordTransMode), mode(ECoeffMode::nearest),
-      nearestMode(nearestMode) {
-    InitByScales(input, scales, axes);
-
+    : OperatorObj(OpType::Resize, {input}, {output}), coMode(coordTransMode),
+      mode(ECoeffMode::nearest), nearestMode(nearestMode),
+      ratioPolicy(ratioPolicy) {
+    init(input, sizes, scales, roi, axes);
     IT_ASSERT(checkValid(graph));
 }
 
 ResizeObj::ResizeObj(GraphObj *graph, Tensor input, Tensor output,
                      const std::optional<vector<int>> &axes, Tensor sizes,
-                     EKeepAspectRatioPolicy ratioPolicy, ECoeffMode mode,
+                     Tensor scales, Tensor roi, ECoeffMode mode,
+                     EKeepAspectRatioPolicy ratioPolicy,
                      ECoordinateTransMode coordTransMode)
-    : OperatorObj(OpType::Resize, {input, nullptr, nullptr, sizes}, {output}),
-      coMode(coordTransMode), mode(mode), ratioPolicy(ratioPolicy) {
-    if (coordTransMode == ECoordinateTransMode::tfCropAndResize)
-        IT_TODO_HALT();
-    InitBySizes(input, sizes, axes);
-
+    : OperatorObj(OpType::Resize, {input}, {output}), coMode(coordTransMode),
+      mode(mode), nearestMode(ENearestMode::none), ratioPolicy(ratioPolicy) {
+    init(input, sizes, scales, roi, axes);
     IT_ASSERT(checkValid(graph));
 }
 
-ResizeObj::ResizeObj(GraphObj *graph, Tensor input, Tensor output,
-                     const std::optional<vector<int>> &axes, Tensor scales,
-                     ECoeffMode mode, ECoordinateTransMode coordTransMode)
-    : OperatorObj(OpType::Resize, {input, nullptr, scales, nullptr}, {output}),
-      coMode(coordTransMode), mode(mode) {
-    if (coordTransMode == ECoordinateTransMode::tfCropAndResize)
-        IT_TODO_HALT();
-    InitByScales(input, scales, axes);
+void ResizeObj::init(const Tensor &input, const Tensor &sizes,
+                     const Tensor &scales, const Tensor &roi,
+                     const std::optional<vector<int>> &axes) {
+    IT_ASSERT(!(nullptr != sizes && nullptr != scales));
 
-    IT_ASSERT(checkValid(graph));
+    // inputs of operator must not be nullptr, due to the check in
+    // OperatorObj::OperatorObj
+    if (nullptr != sizes) {
+        IT_ASSERT(isResizeBySizes());
+        inputs.push_back(sizes);
+        InitBySizes(input, sizes, axes);
+    } else if (nullptr != scales) {
+        inputs.push_back(scales);
+        InitByScales(input, scales, axes);
+    }
+
+    // roi
+    if (ECoordinateTransMode::tfCropAndResize == coMode) {
+        IT_ASSERT(nullptr != roi);
+        inputs.push_back(roi);
+        IT_ASSERT(roi->getDims().size() == 1);
+        IT_ASSERT((size_t)roi->getDims()[0] == this->axes.size() * 2);
+
+        // init roi_start = 0;roi_end =1
+        size_t nDims = input->getDims().size();
+        for (size_t i = 0; i < nDims; ++i) {
+            this->roi.emplace_back(0);
+        }
+        for (size_t i = 0; i < nDims; ++i) {
+            this->roi.emplace_back(1);
+        }
+
+        Runtime runtime = CpuRuntimeObj::getInstance();
+        std::shared_ptr<float> dataObj((float *)runtime->alloc(roi->getBytes()),
+                                       [&](float *p) { runtime->dealloc(p); });
+        auto data = dataObj.get();
+        roi->getRuntime()->copyBlobToCPU(
+            (void *)data, roi->getRawDataPtr<void *>(), roi->getBytes());
+
+        for (size_t i = 0; i < this->axes.size(); ++i) {
+            this->roi[this->axes[i]] = data[i];
+            this->roi[this->axes[i] + nDims] = data[i + this->axes.size()];
+        }
+    }
 }
+/*
+Operator ResizeObj::clone(TensorVec inputs, TensorVec outputs) {
+    Tensor roi{nullptr}, sizes{nullptr}, scales{nullptr};
+    if (inputs.size() == 3)
+        roi = inputs[2];
+    if (isResizeBySizes())
+        sizes = inputs[1];
+    else
+        scales = inputs[1];
+
+    if (mode == ECoeffMode::nearest)
+        return make_ref<ResizeObj>(nullptr, inputs[0], outputs[0], axes,
+                                   inputs[1], nullptr, roi, ratioPolicy,
+                                   nearestMode, coMode);
+    else
+        return make_ref<ResizeObj>(nullptr, inputs[0], outputs[0], axes,
+                                   inputs[1], nullptr, roi, mode, ratioPolicy,
+                                   coMode);
+}*/
 
 void ResizeObj::InitBySizes(Tensor input, Tensor sizes,
                             const std::optional<vector<int>> &axes) {
@@ -81,7 +118,9 @@ void ResizeObj::InitBySizes(Tensor input, Tensor sizes,
     // copy sizes data to host.
     IT_ASSERT(sizes->getDataBlob() != nullptr);
     Runtime runtime = CpuRuntimeObj::getInstance();
-    int *data = (int *)runtime->alloc(sizes->getBytes());
+    std::shared_ptr<int> dataObj((int *)runtime->alloc(sizes->getBytes()),
+                                 [&](int *p) { runtime->dealloc(p); });
+    auto data = dataObj.get();
     sizes->getRuntime()->copyBlobToCPU(
         (void *)data, sizes->getRawDataPtr<void *>(), sizes->getBytes());
 
@@ -116,8 +155,6 @@ void ResizeObj::InitBySizes(Tensor input, Tensor sizes,
     default:
         IT_ASSERT(0);
     }
-
-    runtime->dealloc(data);
 }
 
 void ResizeObj::InitByScales(Tensor input, Tensor scales,
@@ -130,7 +167,9 @@ void ResizeObj::InitByScales(Tensor input, Tensor scales,
     // copy scales data to host.
     IT_ASSERT(scales->getDataBlob() != nullptr);
     Runtime runtime = CpuRuntimeObj::getInstance();
-    float *data = (float *)runtime->alloc(scales->getBytes());
+    std::shared_ptr<float> dataObj((float *)runtime->alloc(scales->getBytes()),
+                                   [&](float *p) { runtime->dealloc(p); });
+    auto data = dataObj.get();
     scales->getRuntime()->copyBlobToCPU(
         (void *)data, scales->getRawDataPtr<void *>(), scales->getBytes());
 
@@ -156,26 +195,22 @@ void ResizeObj::InitByScales(Tensor input, Tensor scales,
             IT_ASSERT(data[i] > 0);
             this->scales[val] = data[i];
         }
-
-    runtime->dealloc(data);
 }
 
 vector<DataType> ResizeObj::inferDataType(const TensorVec &inputs) const {
-    IT_ASSERT(inputs.size() == 4);
-    auto roi = inputs[1];
-    auto scales = inputs[2];
-    auto sizes = inputs[3];
-    IT_ASSERT(roi == nullptr || roi->getDType() == DataType::Float32);
-    IT_ASSERT(scales == nullptr || scales->getDType() == DataType::Float32);
-    IT_ASSERT(sizes == nullptr || sizes->getDType() == DataType::UInt32);
-    return {inputs[0]->getDType()};
-}
-
-bool ResizeObj::checkCoordinateTransValid(int resizedX, int origiX) const {
-    if (ECoordinateTransMode::alignCorners == coMode) {
-        return (!(resizedX <= 1 && origiX != resizedX));
+    IT_ASSERT(inputs.size() == 2 || inputs.size() == 3);
+    if (inputs.size() == 3) {
+        auto roi = inputs[2];
+        IT_ASSERT(roi && roi->getDType() == DataType::Float32);
     }
-    return true;
+    if (isResizeBySizes()) {
+        auto sizes = inputs[1];
+        IT_ASSERT(sizes && sizes->getDType() == DataType::UInt32);
+    } else {
+        auto scales = inputs[1];
+        IT_ASSERT(scales && scales->getDType() == DataType::Float32);
+    }
+    return {inputs[0]->getDType()};
 }
 
 float ResizeObj::round_int(float x) const {
@@ -189,7 +224,6 @@ optional<vector<Shape>> ResizeObj::inferShape(const TensorVec &inputs) const {
     int nDim = inDims.size();
     for (int i = 0; i < nDim; ++i) {
         int size = round_int(scales[i] * inDims[i]);
-        IT_ASSERT(checkCoordinateTransValid(size, inDims[i]));
         ret[i] = size;
     }
 
@@ -202,24 +236,21 @@ std::string ResizeObj::toString() const {
        << "[" << getGuid() << "]";
     os << "(";
     os << vecToString(inputs[0]->getDims()) << ",";
-    if (inputs[1] != nullptr)
-        os << "roi=" << vecToString(inputs[1]->getDims()) << ",";
-    if (inputs[2] != nullptr)
-        os << "scales=" << vecToString(inputs[2]->getDims()) << ",";
-    if (inputs[3] != nullptr)
-        os << "sizes=" << vecToString(inputs[3]->getDims()) << ",";
+    if (inputs.size() == 3)
+        os << "roi=" << vecToString(inputs[2]->getDims()) << ",";
+    if (isResizeBySizes())
+        os << "sizes=" << vecToString(inputs[1]->getDims()) << ",";
+    else
+        os << "scales=" << vecToString(inputs[1]->getDims()) << ",";
     os << "axes=" << vecToString(axes) << ",";
     os << "coMode=" << enum_to_underlying(coMode) << ",";
     os << "nearestMode=" << enum_to_underlying(nearestMode) << ",";
     os << "ratioPolicy=" << enum_to_underlying(ratioPolicy) << ",";
 
     os << "input=" << inputs[0]->getGuid() << ",";
-    if (inputs[1] != nullptr)
-        os << inputs[1]->getGuid() << ",";
-    if (inputs[2] != nullptr)
+    os << inputs[1]->getGuid() << ",";
+    if (inputs.size() == 3)
         os << inputs[2]->getGuid() << ",";
-    if (inputs[3] != nullptr)
-        os << inputs[3]->getGuid() << ",";
     os << "output=" << outputs[0]->getGuid() << ")";
     return os.str();
 }

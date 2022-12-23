@@ -21,6 +21,8 @@ class ResizeCuda : public CudaKernelWithoutConfig {
             metaData.oDims[i] = out->getDims()[i];
             metaData.inStride[i] = in->getStride()[i];
             metaData.scale[i] = op->getScale(i);
+            metaData.roiS[i] = op->getRoi(i);
+            metaData.roiE[i] = op->getRoi(i + nDims);
         }
 
         switch (op->getMode()) {
@@ -34,6 +36,11 @@ class ResizeCuda : public CudaKernelWithoutConfig {
             resize_kernel_linear(in->getRawDataPtr<float *>(),
                                  out->getRawDataPtr<float *>(), metaData,
                                  out->size(), op->getCoordinateTransMode());
+            break;
+        case ResizeObj::ECoeffMode::cubic:
+            resize_kernel_cubic(in->getRawDataPtr<float *>(),
+                                out->getRawDataPtr<float *>(), metaData,
+                                out->size(), op->getCoordinateTransMode());
             break;
         default:
             IT_TODO_HALT();
