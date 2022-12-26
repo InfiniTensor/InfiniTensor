@@ -54,4 +54,48 @@ vector<int> ElementWiseObj::getOpAttrVector() const {
     return {enum_to_underlying(type)};
 }
 
+
+MSELossObj::MSELossObj(GraphObj *graph, Tensor input0, Tensor input1, Reduction reduction, Tensor output)
+    : OperatorObj(OpType::MSELoss, {input0, input1}, {output}), reductionMode(reduction) {
+    IT_ASSERT(checkValid(graph));
+}
+
+optional<vector<Shape>>
+MSELossObj::inferShape(const TensorVec &inputs) const {
+    const auto A = inputs[0], B = inputs[1];
+    if (A->getDims().size() != B->getDims().size() ||
+        A->getDims() != B->getDims())
+        return {};
+
+    if (reductionMode == None) {
+      return {{A->getDims()}};
+    } else {
+      Shape temp = { 1 };
+      return {{temp}};
+    }
+}
+
+std::string MSELossObj::toString() const {
+    std::ostringstream os;
+    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]";
+    os << "(";
+    os << vecToString(inputs[0]->getDims()) << ",";
+    os << vecToString(inputs[1]->getDims()) << ",";
+    os << "input0=" << inputs[0]->getGuid() << ",";
+    os << "input1=" << inputs[1]->getGuid() << ",";
+    os << "output=" << outputs[0]->getGuid() << ")";
+    return os.str();
+}
+
+// use output dim or inputs dim?
+vector<int> MSELossObj::getWorkloadVector() const {
+    vector<int> ret = outputs[0]->getDims();
+    ret.emplace(ret.begin(), enum_to_underlying(type));
+    return ret;
+}
+
+vector<int> MSELossObj::getOpAttrVector() const {
+    return {enum_to_underlying(type)};
+}
+
 }; // namespace infini

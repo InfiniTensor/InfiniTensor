@@ -17,6 +17,23 @@ class ElementWiseObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 };
 
+class MSELossObj : public OperatorObj {
+  public:
+    enum Reduction { None = 0, Sum, Mean };
+    MSELossObj(GraphObj *graph, Tensor input0, Tensor input1, Reduction reduction, Tensor output);
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+
+    Reduction getReduction() const { return reductionMode; }
+    std::string toString() const override;
+    int numInputs() const override { return 2; }
+    int numOutputs() const override { return 1; }
+
+  private:
+    Reduction reductionMode;
+    vector<int> getWorkloadVector() const override;
+    vector<int> getOpAttrVector() const override;
+};
+
 #define DEFINE_ELEMENT_WISE_OBJ(prefix, type)                                  \
     class prefix##Obj : public ElementWiseObj {                                \
       public:                                                                  \
