@@ -262,6 +262,64 @@ class MinimumCnnl : public BangKernelWithoutConfig {
     }
 };
 
+class MSELossCnnl : public BangKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<MSELossObj>(_op);
+        auto context = dynamic_cast<const BangRuntimeObj *>(_context);
+
+        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
+        void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+        MSELossObj::Reduction reduction = op->getReduction();
+        cnnlTensorDescriptor_t aDesc, bDesc, cDesc;
+        auto dim = op->getInputs(0)->getDims();
+        if (dim.size() != 4)
+            IT_TODO_HALT();
+
+        int dim_array[4] = {dim[0], dim[1], dim[2], dim[3]};
+        int dim_out[4] ={1,1,1,1};
+        // get inputs
+        checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
+        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
+                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+
+        checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
+        checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
+                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+
+        // get outputs
+        checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
+        if ( reduction == MSELossObj::None ) {
+          checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
+                                                 CNNL_DTYPE_FLOAT, 4, dim_array));
+        } else {
+          checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
+                                                 CNNL_DTYPE_FLOAT, 4, dim_out));
+        }
+        cnnlStatus_t stat;
+        if( reduction == MSELossObj::None ) {
+          stat = cnnlMSELoss(context->cnnlHandle(), CNNL_MSE_LOSS_NONE, aDesc, aData, bDesc, bData,
+                             cDesc, cData);
+        } else if (reduction == MSELossObj::Sum) {
+          stat = cnnlMSELoss(context->cnnlHandle(), CNNL_MSE_LOSS_SUM, aDesc, aData, bDesc, bData,
+                             cDesc, cData);
+        } else {
+          stat = cnnlMSELoss(context->cnnlHandle(), CNNL_MSE_LOSS_MEAN, aDesc, aData, bDesc, bData,
+                             cDesc, cData);
+        }
+
+        if (stat != CNNL_STATUS_SUCCESS)
+            return;
+
+        // Destories in BANG does not require sync. But cnnl does not state
+        // whether sync is required before destories.
+        checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
+        checkCnnlError(cnnlDestroyTensorDescriptor(bDesc));
+        checkCnnlError(cnnlDestroyTensorDescriptor(cDesc));
+    }
+};
+
 class AddCnnl : public ElementWiseCnnl {
     cnnlOpTensorDesc_t getOpType() const override { return CNNL_OP_TENSOR_ADD; }
 };
@@ -301,6 +359,8 @@ REGISTER_KERNEL(Device::BANG, OpType::Maximum, DataType::Float32, MaximumCnnl,
                 "Maximum_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::Minimum, DataType::Float32, MinimumCnnl,
                 "Minimum_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::MSELoss, DataType::Float32, MSELossCnnl,
+                "MSELoss_cnnl_BANG_Float32");
 // REGISTER_KERNEL(Device::BANG, OpType::Pow, DataType::Float32,
 // ElementWiseBang,
 //                 "Pow_Bang_Float32");
