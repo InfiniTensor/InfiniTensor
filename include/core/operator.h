@@ -77,6 +77,8 @@ enum class OpType {
     NegTensor,
     Power,
     Reciprocal,
+    Sqrt,
+    Rsqrt,
     //
     MemBound = 300,
 };
@@ -161,6 +163,8 @@ class OpRegistry {
             FOP(NegTensor);
             FOP(Power);
             FOP(Reciprocal);
+            FOP(Sqrt);
+            FOP(Rsqrt);
             //
             FOP(MemBound);
         default:
