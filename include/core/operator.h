@@ -73,6 +73,7 @@ enum class OpType {
     Maximum,
     Minimum,
     MSELoss,
+    NegTensor,
     //
     MemBound = 300,
 };
@@ -154,6 +155,7 @@ class OpRegistry {
             FOP(Maximum);
             FOP(Minimum);
             FOP(MSELoss);
+            FOP(NegTensor);
             //
             FOP(MemBound);
         default:
