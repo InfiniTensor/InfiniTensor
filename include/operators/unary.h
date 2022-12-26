@@ -112,4 +112,5 @@ DEFINE_UNARY_OBJ(Log_2, OpType::Log_2)
 DEFINE_UNARY_OBJ(Log_10, OpType::Log_10)
 DEFINE_UNARY_OBJ(Log1p, OpType::Log1p)
 DEFINE_UNARY_OBJ(NegTensor, OpType::NegTensor)
+DEFINE_UNARY_OBJ(Reciprocal, OpType::Reciprocal)
 }; // namespace infini

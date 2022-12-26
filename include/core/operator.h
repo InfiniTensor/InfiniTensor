@@ -75,6 +75,7 @@ enum class OpType {
     MSELoss,
     NegTensor,
     Power,
+    Reciprocal,
     //
     MemBound = 300,
 };
@@ -158,6 +159,7 @@ class OpRegistry {
             FOP(MSELoss);
             FOP(NegTensor);
             FOP(Power);
+            FOP(Reciprocal);
             //
             FOP(MemBound);
         default:
