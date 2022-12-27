@@ -79,6 +79,7 @@ enum class OpType {
     Reciprocal,
     Sqrt,
     Rsqrt,
+    Transform,
     //
     MemBound = 300,
 };
@@ -165,6 +166,7 @@ class OpRegistry {
             FOP(Reciprocal);
             FOP(Sqrt);
             FOP(Rsqrt);
+            FOP(Transform);
             //
             FOP(MemBound);
         default:
