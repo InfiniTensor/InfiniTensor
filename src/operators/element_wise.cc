@@ -98,4 +98,48 @@ vector<int> MSELossObj::getOpAttrVector() const {
     return {enum_to_underlying(type)};
 }
 
+AddNObj::AddNObj(GraphObj *graph, int tensorNum, Tensor output, ...)
+    : OperatorObj(OpType::AddN), num(tensorNum) {
+        TensorVec temp;
+        Tensor *start = &output;
+        ++start;
+        for(int i = 0; i < num; ++i) {
+            temp.push_back(*start);
+            start++;
+        }
+        setOutputs({output});
+        setInputs(temp);
+    IT_ASSERT(checkValid(graph));
+}
+
+optional<vector<Shape>>
+AddNObj::inferShape(const TensorVec &inputs) const {
+    // For now,we only process the same dims here, broardcast will be considered
+    // in the opt layer.
+    const auto A = inputs[0];
+    return {{A->getDims()}};
+}
+
+std::string AddNObj::toString() const {
+    std::ostringstream os;
+    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]";
+    os << "(";
+    os << vecToString(inputs[0]->getDims()) << ",";
+    os << vecToString(inputs[1]->getDims()) << ",";
+    os << "input0=" << inputs[0]->getGuid() << ",";
+    os << "output=" << outputs[0]->getGuid() << ")";
+    return os.str();
+}
+
+// use output dim or inputs dim?
+vector<int> AddNObj::getWorkloadVector() const {
+    vector<int> ret = outputs[0]->getDims();
+    ret.emplace(ret.begin(), enum_to_underlying(type));
+    return ret;
+}
+
+vector<int> AddNObj::getOpAttrVector() const {
+    return {enum_to_underlying(type)};
+}
+
 }; // namespace infini

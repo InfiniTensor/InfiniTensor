@@ -79,6 +79,8 @@ enum class OpType {
     Sqrt,
     Rsqrt,
     Transform,
+    AddN,
+    MulN,
     //
     MemBound = 300,
 };
@@ -166,6 +168,8 @@ class OpRegistry {
             FOP(Sqrt);
             FOP(Rsqrt);
             FOP(Transform);
+            FOP(AddN);
+            FOP(MulN);
             //
             FOP(MemBound);
         default:
@@ -232,6 +236,13 @@ class OperatorObj : public Object {
 
   public:
     OperatorObj(OpType opType, TensorVec inputs, TensorVec outputs);
+    OperatorObj(OpType opType);
+    void setInputs(TensorVec inputsTensor) { 
+        inputs = inputsTensor;
+        for (auto &t : inputs)
+            IT_ASSERT(t != nullptr);
+    }
+    void setOutputs(TensorVec outputsTensor) { outputs = outputsTensor; }
     virtual optional<vector<Shape>>
     inferShape(const TensorVec &inputs) const = 0;
     virtual vector<DataType> inferDataType(const TensorVec &inputs) const;

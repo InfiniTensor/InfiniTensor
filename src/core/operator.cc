@@ -10,6 +10,10 @@ OperatorObj::OperatorObj(OpType opType, TensorVec inputs, TensorVec outputs)
         IT_ASSERT(t);
 }
 
+OperatorObj::OperatorObj(OpType opType)
+    : type(opType){
+}
+
 bool OperatorObj::isLinearOp() const {
     return enum_to_underlying(type) >= 100 && enum_to_underlying(type) < 200;
 }
