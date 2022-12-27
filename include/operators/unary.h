@@ -63,6 +63,23 @@ class L2LossObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 };
 
+class TransformObj : public OperatorObj {
+  public:
+    TransformObj(GraphObj *graph, Tensor input, Tensor output, float alpha, float beta);
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+
+    std::string toString() const override;
+    float getAlpha() const { return alphaValue; }
+    float getBeta() const { return betaValue; }
+    int numInputs() const override { return 1; }
+    int numOutputs() const override { return 1; }
+
+  private:
+    float alphaValue, betaValue;
+    vector<int> getWorkloadVector() const override;
+    vector<int> getOpAttrVector() const override;
+};
+
 #define DEFINE_UNARY_OBJ(prefix, type)                                         \
     class prefix##Obj : public UnaryObj {                                      \
       public:                                                                  \
