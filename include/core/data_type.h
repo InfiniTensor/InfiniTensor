@@ -17,7 +17,6 @@ class DataType {
     static constexpr std::string_view names[]{"Float32", "UInt32", "UInt8",
                                               "Int8",    "UInt16", "Int16",
                                               "Int32",   "Int64"};
-
   private:
     int index;
 

@@ -64,27 +64,27 @@ vector<size_t> TensorObj::getStride() const {
 
 void TensorObj::printData() const {
     IT_ASSERT(data != nullptr);
-    void *ptr = nullptr;
     Blob buffer;
     if (!runtime->isCpu()) {
         buffer = NativeCpuRuntimeObj::getInstance()->allocBlob(getBytes());
         runtime->copyBlobToCPU(buffer->getPtr<void *>(),
                                getRawDataPtr<void *>(), getBytes());
-        ptr = buffer->getPtr<void *>();
-    } else
-        ptr = data->getPtr<float *>();
+    }
     if (dtype == DataType::Float32)
-        printDataFloat(static_cast<float *>(ptr));
+        printDataFloat();
     else if (dtype == DataType::UInt32)
-        printDataUint32_t(static_cast<uint32_t *>(ptr));
+        printDataUint32_t();
+    else if (dtype == DataType::Int32)
+        printDataInt32_t();
     else
         IT_TODO_HALT();
 }
 
-void TensorObj::printDataFloat(float *ptr) const {
+void TensorObj::printDataFloat() const {
     std::cout << "Tensor: " << guid << std::endl;
     auto numDims = shape.size();
     auto dimSzVec = std::vector<int>(numDims, 1);
+    auto ptr = data->getPtr<float *>();
     dimSzVec[numDims - 1] = shape[numDims - 1];
     for (int i = numDims - 1; i != 0; --i)
         dimSzVec[i - 1] = dimSzVec[i] * shape[i - 1];
@@ -112,11 +112,40 @@ void TensorObj::printDataFloat(float *ptr) const {
     }
 }
 
-void TensorObj::printDataUint32_t(uint32_t *ptr) const {
+void TensorObj::printDataUint32_t() const {
     IT_ASSERT(data != nullptr);
     std::cout << "Tensor: " << guid << std::endl;
     auto numDims = shape.size();
     auto dimSzVec = std::vector<int>(numDims, 1);
+    auto ptr = data->getPtr<uint32_t *>();
+    dimSzVec[numDims - 1] = shape[numDims - 1];
+    for (int i = numDims - 1; i != 0; --i)
+        dimSzVec[i - 1] = dimSzVec[i] * shape[i - 1];
+    for (size_t i = 0, iEnd = size(); i < iEnd; ++i) {
+        for (size_t j = 0; j < numDims; ++j) {
+            if (i % dimSzVec[j] == 0) {
+                std::cout << "[";
+            }
+        }
+        std::cout << ptr[i];
+        for (size_t j = 0; j < numDims; ++j) {
+            if ((int)i % dimSzVec[j] == dimSzVec[j] - 1) {
+                std::cout << "]";
+            }
+        }
+        if (i != size() - 1)
+            std::cout << ", ";
+        if ((int)i % dimSzVec[numDims - 1] == dimSzVec[numDims - 1] - 1)
+            std::cout << std::endl;
+    }
+}
+
+void TensorObj::printDataInt32_t() const {
+    IT_ASSERT(data != nullptr);
+    std::cout << "Tensor: " << guid << std::endl;
+    auto numDims = shape.size();
+    auto dimSzVec = std::vector<int>(numDims, 1);
+    auto ptr = data->getPtr<int32_t *>();
     dimSzVec[numDims - 1] = shape[numDims - 1];
     for (int i = numDims - 1; i != 0; --i)
         dimSzVec[i - 1] = dimSzVec[i] * shape[i - 1];
@@ -154,6 +183,9 @@ bool TensorObj::equalData(const Tensor &rhs, double relativeError) const {
         return equalDataImpl(getRawDataPtr<float *>(),
                              rhs->getRawDataPtr<float *>(), size(),
                              relativeError);
+    else if (getDType() == DataType::Int32)
+        return equalDataImpl(getRawDataPtr<int32_t *>(),
+                             rhs->getRawDataPtr<int32_t *>(), size(), 0);
     else
         IT_TODO_HALT();
 }

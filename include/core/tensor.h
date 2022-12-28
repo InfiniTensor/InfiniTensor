@@ -107,8 +107,9 @@ class TensorObj : public TensorBaseObj {
     size_t getOffsetByBroadcastOffset(size_t bcOffset, Shape bcShape) const;
 
   private:
-    void printDataFloat(float *ptr) const;
-    void printDataUint32_t(uint32_t *ptr) const;
+    void printDataFloat() const;
+    void printDataUint32_t() const;
+    void printDataInt32_t() const;
 
     template <typename T>
     bool equalDataImpl(const T *a, const T *b, size_t size,

@@ -150,4 +150,33 @@ vector<int> TransformObj::getOpAttrVector() const {
     return {enum_to_underlying(type)};
 }
 
+CastObj::CastObj(GraphObj *graph, Tensor input, Tensor output, CastType type)
+    : OperatorObj(OpType::Cast, {input}, {output}), castType(type) {
+    IT_ASSERT(checkValid(graph, DataType::Int32));
+}
+
+optional<vector<Shape>> CastObj::inferShape(const TensorVec &inputs) const {
+    const auto A = inputs[0];
+    return {{A->getDims()}};
+}
+
+std::string CastObj::toString() const {
+    std::ostringstream os;
+    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]";
+    os << "(";
+    os << "output=" << outputs[0]->getGuid() << ")";
+    return os.str();
+}
+
+vector<int> CastObj::getWorkloadVector() const {
+    vector<int> ret{enum_to_underlying(type)};
+    const Shape shape = outputs[0]->getDims();
+    ret.insert(ret.end(), shape.begin(), shape.end());
+    return ret;
+}
+
+vector<int> CastObj::getOpAttrVector() const {
+    return {enum_to_underlying(type)};
+}
+
 }; // namespace infini
