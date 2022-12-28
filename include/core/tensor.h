@@ -72,6 +72,7 @@ class TensorObj : public TensorBaseObj {
   private:
     void printDataFloat() const;
     void printDataUint32_t() const;
+    void printDataInt32_t() const;
 
     template <typename T>
     bool equalDataImpl(const T *a, const T *b, size_t size) const {
