@@ -82,6 +82,7 @@ enum class OpType {
     Transform,
     AddN,
     MulN,
+    Cast,
     //
     MemBound = 300,
 };
@@ -171,6 +172,7 @@ class OpRegistry {
             FOP(Transform);
             FOP(AddN);
             FOP(MulN);
+            FOP(Cast);
             //
             FOP(MemBound);
         default:
@@ -252,6 +254,7 @@ class OperatorObj : public Object {
      * function.
      */
     bool checkValid(GraphObj *graph);
+    bool checkValid(GraphObj *graph, DataType type);
     OpPerfKey getOpPerfKey() const;
     /**
      * @brief Hash operator attributes. Input and output shapes are not
