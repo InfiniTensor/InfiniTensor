@@ -82,4 +82,8 @@ DEFINE_ELEMENT_WISE_OBJ(Pow, OpType::Pow)
 DEFINE_ELEMENT_WISE_OBJ(Maximum, OpType::Maximum)
 DEFINE_ELEMENT_WISE_OBJ(Minimum, OpType::Minimum)
 DEFINE_ELEMENT_WISE_OBJ(Power, OpType::Power)
+DEFINE_ELEMENT_WISE_OBJ(FloorDiv, OpType::FloorDiv)
+DEFINE_ELEMENT_WISE_OBJ(FloorDivTrunc, OpType::FloorDivTrunc)
+DEFINE_ELEMENT_WISE_OBJ(FloorMod, OpType::FloorMod)
+DEFINE_ELEMENT_WISE_OBJ(FloorModTrunc, OpType::FloorModTrunc)
 }; // namespace infini
