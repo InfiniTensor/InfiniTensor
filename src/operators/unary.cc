@@ -179,4 +179,62 @@ vector<int> CastObj::getOpAttrVector() const {
     return {enum_to_underlying(type)};
 }
 
+CumsumObj::CumsumObj(GraphObj *graph, Tensor input, Tensor output, int axis, bool exclusive, bool reverse)
+    : OperatorObj(OpType::Cumsum, {input}, {output}), axisValue(axis), exclusiveValue(exclusive), reverseValue(reverse)  {
+    IT_ASSERT(checkValid(graph));
+}
+
+optional<vector<Shape>> CumsumObj::inferShape(const TensorVec &inputs) const {
+    const auto A = inputs[0];
+    return {{A->getDims()}};
+}
+
+std::string CumsumObj::toString() const {
+    std::ostringstream os;
+    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]";
+    os << "(";
+    os << "output=" << outputs[0]->getGuid() << ")";
+    return os.str();
+}
+
+vector<int> CumsumObj::getWorkloadVector() const {
+    vector<int> ret{enum_to_underlying(type)};
+    const Shape shape = outputs[0]->getDims();
+    ret.insert(ret.end(), shape.begin(), shape.end());
+    return ret;
+}
+
+vector<int> CumsumObj::getOpAttrVector() const {
+    return {enum_to_underlying(type)};
+}
+
+// CumprodObj::CumprodObj(GraphObj *graph, Tensor input, Tensor output, int axis, bool exclusive, bool reverse)
+//     : OperatorObj(OpType::Cumprod, {input}, {output}), axisValue(axis), exclusiveValue(exclusive), reverseValue(reverse)  {
+//     IT_ASSERT(checkValid(graph));
+// }
+// 
+// optional<vector<Shape>> CumprodObj::inferShape(const TensorVec &inputs) const {
+//     const auto A = inputs[0];
+//     return {{A->getDims()}};
+// }
+// 
+// std::string CumprodObj::toString() const {
+//     std::ostringstream os;
+//     os << OpRegistry::getOpName(type) << "[" << getGuid() << "]";
+//     os << "(";
+//     os << "output=" << outputs[0]->getGuid() << ")";
+//     return os.str();
+// }
+// 
+// vector<int> CumprodObj::getWorkloadVector() const {
+//     vector<int> ret{enum_to_underlying(type)};
+//     const Shape shape = outputs[0]->getDims();
+//     ret.insert(ret.end(), shape.begin(), shape.end());
+//     return ret;
+// }
+// 
+// vector<int> CumprodObj::getOpAttrVector() const {
+//     return {enum_to_underlying(type)};
+// }
+
 }; // namespace infini
