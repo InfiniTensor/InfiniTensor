@@ -82,6 +82,10 @@ enum class OpType {
     AddN,
     MulN,
     Cast,
+    FloorDiv,
+    FloorDivTrunc,
+    FloorMod,
+    FloorModTrunc,
     //
     MemBound = 300,
 };
@@ -172,6 +176,10 @@ class OpRegistry {
             FOP(AddN);
             FOP(MulN);
             FOP(Cast);
+            FOP(FloorDiv);
+            FOP(FloorDivTrunc);
+            FOP(FloorMod);
+            FOP(FloorModTrunc);
             //
             FOP(MemBound);
         default:
