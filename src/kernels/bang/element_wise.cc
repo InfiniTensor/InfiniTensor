@@ -468,6 +468,104 @@ class FloorDivTruncCnnl : public BangKernelWithoutConfig {
     }
 };
 
+class FloorModCnnl : public BangKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<ElementWiseObj>(_op);
+        auto context = dynamic_cast<const BangRuntimeObj *>(_context);
+
+        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
+        void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+
+        cnnlTensorDescriptor_t aDesc, bDesc, cDesc;
+        auto dim = op->getInputs(0)->getDims();
+        if (dim.size() != 4)
+            IT_TODO_HALT();
+
+        int dim_array[4] = {dim[0], dim[1], dim[2], dim[3]};
+        // get inputs
+        checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
+        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
+                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+
+        checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
+        checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
+                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+
+        // get outputs
+        checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
+        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
+                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+
+        size_t wsSize;
+        cnnlGetFloorModWorkspaceSize(context->cnnlHandle(), aDesc, bDesc, cDesc,
+                                     &wsSize);
+
+        BangPtr wsData = context->getWorkspace(wsSize);
+
+        cnnlStatus_t stat = cnnlFloorMod(context->cnnlHandle(),
+                                       aDesc, aData, bDesc, bData, cDesc, cData, wsData, wsSize);
+        if (stat != CNNL_STATUS_SUCCESS)
+            return;
+
+        // Destories in BANG does not require sync. But cnnl does not state
+        // whether sync is required before destories.
+        checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
+        checkCnnlError(cnnlDestroyTensorDescriptor(bDesc));
+        checkCnnlError(cnnlDestroyTensorDescriptor(cDesc));
+    }
+};
+
+// class FloorModTruncCnnl : public BangKernelWithoutConfig {
+//     void compute(const Operator &_op,
+//                  const RuntimeObj *_context) const override {
+//         auto op = as<ElementWiseObj>(_op);
+//         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
+// 
+//         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
+//         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
+//         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+// 
+//         cnnlTensorDescriptor_t aDesc, bDesc, cDesc;
+//         auto dim = op->getInputs(0)->getDims();
+//         if (dim.size() != 4)
+//             IT_TODO_HALT();
+// 
+//         int dim_array[4] = {dim[0], dim[1], dim[2], dim[3]};
+//         // get inputs
+//         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
+//         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
+//                                                CNNL_DTYPE_FLOAT, 4, dim_array));
+// 
+//         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
+//         checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
+//                                                CNNL_DTYPE_FLOAT, 4, dim_array));
+// 
+//         // get outputs
+//         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
+//         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
+//                                                CNNL_DTYPE_FLOAT, 4, dim_array));
+// 
+//         size_t wsSize;
+//         cnnlGetFloorModTruncWorkspaceSize(context->cnnlHandle(), aDesc, bDesc, cDesc,
+//                                      &wsSize);
+// 
+//         BangPtr wsData = context->getWorkspace(wsSize);
+// 
+//         cnnlStatus_t stat = cnnlFloorModTrunc(context->cnnlHandle(),
+//                                        aDesc, aData, bDesc, bData, cDesc, cData, wsData, wsSize);
+//         if (stat != CNNL_STATUS_SUCCESS)
+//             return;
+// 
+//         // Destories in BANG does not require sync. But cnnl does not state
+//         // whether sync is required before destories.
+//         checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
+//         checkCnnlError(cnnlDestroyTensorDescriptor(bDesc));
+//         checkCnnlError(cnnlDestroyTensorDescriptor(cDesc));
+//     }
+// };
+
 class AddCnnl : public ElementWiseCnnl {
     cnnlOpTensorDesc_t getOpType() const override { return CNNL_OP_TENSOR_ADD; }
 };
@@ -515,6 +613,10 @@ REGISTER_KERNEL(Device::BANG, OpType::FloorDiv, DataType::Float32, FloorDivCnnl,
                 "FloorDiv_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::FloorDivTrunc, DataType::Float32, FloorDivTruncCnnl,
                 "FloorDivTrunc_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::FloorMod, DataType::Float32, FloorModCnnl,
+                "FloorMod_cnnl_BANG_Float32");
+// REGISTER_KERNEL(Device::BANG, OpType::FloorModTrunc, DataType::Float32, FloorModTruncCnnl,
+//                 "FloorModTrunc_cnnl_BANG_Float32");
 // REGISTER_KERNEL(Device::BANG, OpType::Pow, DataType::Float32,
 // ElementWiseBang,
 //                 "Pow_Bang_Float32");
