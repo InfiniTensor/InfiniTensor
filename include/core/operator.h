@@ -88,6 +88,7 @@ enum class OpType {
     FloorModTrunc,
     Cumsum,
     Cumprod,
+    Det,
     //
     MemBound = 300,
 };
@@ -184,6 +185,7 @@ class OpRegistry {
             FOP(FloorModTrunc);
             FOP(Cumsum);
             FOP(Cumprod);
+            FOP(Det);
             //
             FOP(MemBound);
         default:
