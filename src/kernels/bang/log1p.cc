@@ -40,7 +40,7 @@ class Log1pCnnl : public BangKernelWithoutConfig {
         checkCnnlError(cnnlDestroyTensorDescriptor(cDesc));
     }
 };
- 
+
 REGISTER_KERNEL(Device::BANG, OpType::Log1p, DataType::Float32, Log1pCnnl,
                 "Log1p_cnnl_BANG_Float32");
 

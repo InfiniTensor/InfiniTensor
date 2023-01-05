@@ -1,17 +1,15 @@
 #include "operators/activation_backward.h"
 
 namespace infini {
-ActivationBackwardObj::ActivationBackwardObj(OpType type,
-                                             GraphObj *graph,
-                                             Tensor y,
-                                             Tensor diff_y,
-                                             Tensor x,
+ActivationBackwardObj::ActivationBackwardObj(OpType type, GraphObj *graph,
+                                             Tensor y, Tensor diff_y, Tensor x,
                                              Tensor diff_x)
     : OperatorObj(type, {y, diff_y, x}, {diff_x}) {
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> ActivationBackwardObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>>
+ActivationBackwardObj::inferShape(const TensorVec &inputs) const {
     const auto A = inputs[0];
     return {{A->getDims()}};
 }

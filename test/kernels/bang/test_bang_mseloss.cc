@@ -9,9 +9,8 @@
 namespace infini {
 
 template <class T>
-void testMSELoss(
-    const std::function<void(void *, size_t, DataType)> &generator,
-    const Shape &shape) {
+void testMSELoss(const std::function<void(void *, size_t, DataType)> &generator,
+                 const Shape &shape) {
     // Runtime
     Runtime cpuRuntime = CpuRuntimeObj::getInstance();
     auto bangRuntime = make_ref<BangRuntimeObj>();
@@ -30,9 +29,12 @@ void testMSELoss(
     Graph bangGraph = make_ref<GraphObj>(bangRuntime);
     auto inputGpu1 = bangGraph->cloneTensor(inputCpu1);
     auto inputGpu2 = bangGraph->cloneTensor(inputCpu2);
-    auto gpuOp1 = bangGraph->addOp<T>(inputGpu1, inputGpu2, MSELossObj::None, nullptr);
-    auto gpuOp2 = bangGraph->addOp<T>(inputGpu1, inputGpu2, MSELossObj::Sum, nullptr);
-    auto gpuOp3 = bangGraph->addOp<T>(inputGpu1, inputGpu2, MSELossObj::Mean, nullptr);
+    auto gpuOp1 =
+        bangGraph->addOp<T>(inputGpu1, inputGpu2, MSELossObj::None, nullptr);
+    auto gpuOp2 =
+        bangGraph->addOp<T>(inputGpu1, inputGpu2, MSELossObj::Sum, nullptr);
+    auto gpuOp3 =
+        bangGraph->addOp<T>(inputGpu1, inputGpu2, MSELossObj::Mean, nullptr);
     bangGraph->dataMalloc();
     bangRuntime->run(bangGraph);
     auto outputGpu1 = gpuOp1->getOutput();

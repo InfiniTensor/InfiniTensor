@@ -1,6 +1,6 @@
+#include "operators/transpose.h"
 #include "bang/bang_kernel_without_config.h"
 #include "bang/bang_runtime.h"
-#include "operators/transpose.h"
 
 namespace infini {
 class TransposeCnnl : public BangKernelWithoutConfig {
@@ -22,13 +22,13 @@ class TransposeCnnl : public BangKernelWithoutConfig {
         int dimout_array[4] = {dimout[0], dimout[1], dimout[2], dimout[3]};
         // get inputs
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, 4, dimin_array));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            aDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT, 4, dimin_array));
 
         // get outputs
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, 4, dimout_array));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            cDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT, 4, dimout_array));
 
         // get op descriptor
         auto permute = op->getPermute();
@@ -37,12 +37,13 @@ class TransposeCnnl : public BangKernelWithoutConfig {
         checkCnnlError(cnnlSetTransposeDescriptor(opDesc, 4, permute));
 
         size_t wsSize;
-        cnnlGetTransposeWorkspaceSize(context->cnnlHandle(), aDesc, opDesc, &wsSize);
+        cnnlGetTransposeWorkspaceSize(context->cnnlHandle(), aDesc, opDesc,
+                                      &wsSize);
         BangPtr wsData = context->getWorkspace(wsSize);
 
-        cnnlStatus_t stat = cnnlTranspose_v2(context->cnnlHandle(), opDesc,
-                                             aDesc, aData, cDesc, cData,
-                                             wsData, wsSize);
+        cnnlStatus_t stat =
+            cnnlTranspose_v2(context->cnnlHandle(), opDesc, aDesc, aData, cDesc,
+                             cData, wsData, wsSize);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
@@ -54,6 +55,6 @@ class TransposeCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Transpose, DataType::Float32, TransposeCnnl,
-                "Transpose_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Transpose, DataType::Float32,
+                TransposeCnnl, "Transpose_cnnl_BANG_Float32");
 }; // namespace infini

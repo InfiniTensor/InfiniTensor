@@ -1,6 +1,6 @@
+#include "operators/pad.h"
 #include "bang/bang_kernel_without_config.h"
 #include "bang/bang_runtime.h"
-#include "operators/pad.h"
 
 namespace infini {
 class PadCnnl : public BangKernelWithoutConfig {
@@ -24,30 +24,31 @@ class PadCnnl : public BangKernelWithoutConfig {
         if (pads.size() == 2 && dim_size != 1) {
             for (int i = 0; i < dim_size * 2; i += 2) {
                 paddings[i] = pads[0];
-                paddings[i+1] = pads[1];
+                paddings[i + 1] = pads[1];
             }
         } else {
             for (int i = 0; i < dim_size * 2; i += 2) {
-                paddings[i] = pads[i/2];
-                paddings[i+1] = pads[i/2 + dim_size];
+                paddings[i] = pads[i / 2];
+                paddings[i + 1] = pads[i / 2 + dim_size];
             }
         }
         int dimout_array[dim_size];
         for (int i = 0; i < dim_size; ++i) {
-            dimout_array[i] = dim[i] + paddings[2*i] + paddings[2*i+1];
+            dimout_array[i] = dim[i] + paddings[2 * i] + paddings[2 * i + 1];
         }
         float paddingValue = 0.0;
         // input
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, dim_size, dim_array));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            aDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT, dim_size, dim_array));
         // output
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, dim_size, dimout_array));
+                                               CNNL_DTYPE_FLOAT, dim_size,
+                                               dimout_array));
 
-        cnnlStatus_t stat =
-            cnnlPad(context->cnnlHandle(), aDesc, aData, paddings, &paddingValue, cDesc, cData);
+        cnnlStatus_t stat = cnnlPad(context->cnnlHandle(), aDesc, aData,
+                                    paddings, &paddingValue, cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 

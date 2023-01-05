@@ -3,16 +3,17 @@
 #include "core/kernel.h"
 #include "core/runtime.h"
 #include "operators/activation_backward.h"
-#include "operators/unary.h"
 #include "operators/element_wise.h"
+#include "operators/unary.h"
 
 #include "test.h"
 
 namespace infini {
 
 template <class T, class D>
-void testActivationBackward(const std::function<void(void *, size_t, DataType)> &generator,
-               const Shape &shape) {
+void testActivationBackward(
+    const std::function<void(void *, size_t, DataType)> &generator,
+    const Shape &shape) {
     // Runtime
     Runtime cpuRuntime = CpuRuntimeObj::getInstance();
     auto bangRuntime = make_ref<BangRuntimeObj>();
@@ -39,14 +40,17 @@ void testActivationBackward(const std::function<void(void *, size_t, DataType)> 
     bangGraph->dataMalloc();
     bangRuntime->run(bangGraph);
     auto diffXGpu = gpuOp->getOutput();
-    
+
     EXPECT_TRUE(1);
 }
 
 TEST(cnnl_ActivationBackward, run) {
-    testActivationBackward<ReluBackwardObj, ReluObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    testActivationBackward<SigmoidBackwardObj, SigmoidObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    testActivationBackward<TanhBackwardObj, TanhObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    testActivationBackward<ReluBackwardObj, ReluObj>(IncrementalGenerator(),
+                                                     Shape{1, 2, 2, 3});
+    testActivationBackward<SigmoidBackwardObj, SigmoidObj>(
+        IncrementalGenerator(), Shape{1, 2, 2, 3});
+    testActivationBackward<TanhBackwardObj, TanhObj>(IncrementalGenerator(),
+                                                     Shape{1, 2, 2, 3});
 }
 
 } // namespace infini

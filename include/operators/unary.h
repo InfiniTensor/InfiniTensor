@@ -40,7 +40,7 @@ class ClipObj : public OperatorObj {
     int numOutputs() const override { return 1; }
 
   private:
-    float minValue,maxValue;
+    float minValue, maxValue;
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;
 };
@@ -77,7 +77,8 @@ class L2LossObj : public OperatorObj {
 
 class TransformObj : public OperatorObj {
   public:
-    TransformObj(GraphObj *graph, Tensor input, Tensor output, float alpha, float beta);
+    TransformObj(GraphObj *graph, Tensor input, Tensor output, float alpha,
+                 float beta);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
     std::string toString() const override;
@@ -94,18 +95,52 @@ class TransformObj : public OperatorObj {
 
 class CastObj : public OperatorObj {
   public:
-    enum CastType { Float2Half = 0, Float2HalfIEEE754, Float2Double, Float2Int64, Float2Int32, Float2Int16, Float2Int8, Float2Bool,
-                    Half2Float, Half2Int32, Half2Int64, Half2Int16, Half2Int8, Half2Uint8, Half2Bool, Half2FloatInf,
-                    Int322Float, Int322Half, Int322Int8, Int322Int16,
-                    Int162Float, Int162Half, Int162Int32,
-                    Int82Float, Int82Half, Int82Int16, Int82Int32,
-                    Uint82Float, Uint82Half, Uint82Int32, Uint82Int64,
-                    Bool2Float, Bool2Half, Bool2Int32,
-                    Int322Int64, Int322Bool,
-                    Int642Int32, Int642Uint32, Int642Float, Int642Half,
-                    Uint642Uint32,
-                    Uint322Int64, Uint322Uint64,
-                    Double2Float};
+    enum CastType {
+        Float2Half = 0,
+        Float2HalfIEEE754,
+        Float2Double,
+        Float2Int64,
+        Float2Int32,
+        Float2Int16,
+        Float2Int8,
+        Float2Bool,
+        Half2Float,
+        Half2Int32,
+        Half2Int64,
+        Half2Int16,
+        Half2Int8,
+        Half2Uint8,
+        Half2Bool,
+        Half2FloatInf,
+        Int322Float,
+        Int322Half,
+        Int322Int8,
+        Int322Int16,
+        Int162Float,
+        Int162Half,
+        Int162Int32,
+        Int82Float,
+        Int82Half,
+        Int82Int16,
+        Int82Int32,
+        Uint82Float,
+        Uint82Half,
+        Uint82Int32,
+        Uint82Int64,
+        Bool2Float,
+        Bool2Half,
+        Bool2Int32,
+        Int322Int64,
+        Int322Bool,
+        Int642Int32,
+        Int642Uint32,
+        Int642Float,
+        Int642Half,
+        Uint642Uint32,
+        Uint322Int64,
+        Uint322Uint64,
+        Double2Float
+    };
     CastObj(GraphObj *graph, Tensor input, Tensor output, CastType type);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
@@ -122,7 +157,8 @@ class CastObj : public OperatorObj {
 
 class CumsumObj : public OperatorObj {
   public:
-    CumsumObj(GraphObj *graph, Tensor input, Tensor output, int axis, bool exclusive, bool reverse);
+    CumsumObj(GraphObj *graph, Tensor input, Tensor output, int axis,
+              bool exclusive, bool reverse);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
     std::string toString() const override;
@@ -141,16 +177,17 @@ class CumsumObj : public OperatorObj {
 
 // class CumprodObj : public OperatorObj {
 //   public:
-//     CumprodObj(GraphObj *graph, Tensor input, Tensor output, int axis, bool exclusive, bool reverse);
-//     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
-// 
+//     CumprodObj(GraphObj *graph, Tensor input, Tensor output, int axis, bool
+//     exclusive, bool reverse); optional<vector<Shape>> inferShape(const
+//     TensorVec &inputs) const override;
+//
 //     std::string toString() const override;
 //     int getAxis() const { return axisValue; }
 //     float getExclusive() const { return exclusiveValue; }
 //     float getReverse() const { return reverseValue; }
 //     int numInputs() const override { return 1; }
 //     int numOutputs() const override { return 1; }
-// 
+//
 //   private:
 //     int axisValue;
 //     bool exclusiveValue, reverseValue;

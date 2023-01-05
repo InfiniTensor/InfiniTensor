@@ -54,24 +54,24 @@ vector<int> ElementWiseObj::getOpAttrVector() const {
     return {enum_to_underlying(type)};
 }
 
-
-MSELossObj::MSELossObj(GraphObj *graph, Tensor input0, Tensor input1, Reduction reduction, Tensor output)
-    : OperatorObj(OpType::MSELoss, {input0, input1}, {output}), reductionMode(reduction) {
+MSELossObj::MSELossObj(GraphObj *graph, Tensor input0, Tensor input1,
+                       Reduction reduction, Tensor output)
+    : OperatorObj(OpType::MSELoss, {input0, input1}, {output}),
+      reductionMode(reduction) {
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>>
-MSELossObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> MSELossObj::inferShape(const TensorVec &inputs) const {
     const auto A = inputs[0], B = inputs[1];
     if (A->getDims().size() != B->getDims().size() ||
         A->getDims() != B->getDims())
         return {};
 
     if (reductionMode == None) {
-      return {{A->getDims()}};
+        return {{A->getDims()}};
     } else {
-      Shape temp = { 1 };
-      return {{temp}};
+        Shape temp = {1};
+        return {{temp}};
     }
 }
 
@@ -100,20 +100,19 @@ vector<int> MSELossObj::getOpAttrVector() const {
 
 AddNObj::AddNObj(GraphObj *graph, int tensorNum, Tensor output, ...)
     : OperatorObj(OpType::AddN), num(tensorNum) {
-        TensorVec temp;
-        Tensor *start = &output;
-        ++start;
-        for(int i = 0; i < num; ++i) {
-            temp.push_back(*start);
-            start++;
-        }
-        setOutputs({output});
-        setInputs(temp);
+    TensorVec temp;
+    Tensor *start = &output;
+    ++start;
+    for (int i = 0; i < num; ++i) {
+        temp.push_back(*start);
+        start++;
+    }
+    setOutputs({output});
+    setInputs(temp);
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>>
-AddNObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> AddNObj::inferShape(const TensorVec &inputs) const {
     // For now,we only process the same dims here, broardcast will be considered
     // in the opt layer.
     const auto A = inputs[0];
@@ -144,20 +143,19 @@ vector<int> AddNObj::getOpAttrVector() const {
 
 MulNObj::MulNObj(GraphObj *graph, int tensorNum, Tensor output, ...)
     : OperatorObj(OpType::MulN), num(tensorNum) {
-        TensorVec temp;
-        Tensor *start = &output;
-        ++start;
-        for(int i = 0; i < num; ++i) {
-            temp.push_back(*start);
-            start++;
-        }
-        setOutputs({output});
-        setInputs(temp);
+    TensorVec temp;
+    Tensor *start = &output;
+    ++start;
+    for (int i = 0; i < num; ++i) {
+        temp.push_back(*start);
+        start++;
+    }
+    setOutputs({output});
+    setInputs(temp);
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>>
-MulNObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> MulNObj::inferShape(const TensorVec &inputs) const {
     // For now,we only process the same dims here, broardcast will be considered
     // in the opt layer.
     const auto A = inputs[0];

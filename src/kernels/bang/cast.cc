@@ -23,83 +23,87 @@ class CastCnnl : public BangKernelWithoutConfig {
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         cnnlCastDataType_t NlCastType;
         CastObj::CastType type = op->getType();
-        switch(type){
-            case CastObj::Float2Half:
-                checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, dim_array));
-                checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_HALF, 4, dim_array));
-                NlCastType = CNNL_CAST_FLOAT_TO_HALF;
-                break;
-            case CastObj::Float2HalfIEEE754:
-            case CastObj::Float2Double:
-            case CastObj::Float2Int64:
-            case CastObj::Float2Int32:
-                checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, dim_array));
-                checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_INT32, 4, dim_array));
-                NlCastType = CNNL_CAST_FLOAT_TO_INT32;
-            case CastObj::Float2Int16:
-            case CastObj::Float2Int8:
-            case CastObj::Float2Bool:
-                //Todo
-                break;
-            case CastObj::Half2Float:
-            case CastObj::Half2Int32:
-            case CastObj::Half2Int64:
-            case CastObj::Half2Int16:
-            case CastObj::Half2Int8:
-            case CastObj::Half2Uint8:
-            case CastObj::Half2Bool:
-            case CastObj::Half2FloatInf:
-                //todo
-                break;
-            case CastObj::Int322Float:
-            case CastObj::Int322Half:
-            case CastObj::Int322Int8:
-            case CastObj::Int322Int16:
-                //todo
-                break;
-            case CastObj::Int162Float:
-            case CastObj::Int162Half:
-            case CastObj::Int162Int32:
-                //todo
-                break;
-            case CastObj::Int82Float:
-            case CastObj::Int82Half:
-            case CastObj::Int82Int16:
-            case CastObj::Int82Int32:
-                //todo
-                break;
-            case CastObj::Uint82Float:
-            case CastObj::Uint82Half:
-            case CastObj::Uint82Int32:
-            case CastObj::Uint82Int64:
-                //todo
-                break;
-            case CastObj::Bool2Float:
-            case CastObj::Bool2Half:
-            case CastObj::Bool2Int32:
-                //todo
-                break;
-            case CastObj::Int322Int64:
-            case CastObj::Int322Bool:
-                //todo
-                break;
-            case CastObj::Int642Int32:
-            case CastObj::Int642Uint32:
-            case CastObj::Int642Float:
-            case CastObj::Int642Half:
-                //todo
-                break;
-            case CastObj::Uint642Uint32:
-            case CastObj::Uint322Int64:
-            case CastObj::Uint322Uint64:
-                //todo
-                break;
-            case CastObj::Double2Float:
-                //todo
-                break;
+        switch (type) {
+        case CastObj::Float2Half:
+            checkCnnlError(cnnlSetTensorDescriptor(
+                aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, dim_array));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_HALF, 4, dim_array));
+            NlCastType = CNNL_CAST_FLOAT_TO_HALF;
+            break;
+        case CastObj::Float2HalfIEEE754:
+        case CastObj::Float2Double:
+        case CastObj::Float2Int64:
+        case CastObj::Float2Int32:
+            checkCnnlError(cnnlSetTensorDescriptor(
+                aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, dim_array));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_INT32, 4, dim_array));
+            NlCastType = CNNL_CAST_FLOAT_TO_INT32;
+        case CastObj::Float2Int16:
+        case CastObj::Float2Int8:
+        case CastObj::Float2Bool:
+            // Todo
+            break;
+        case CastObj::Half2Float:
+        case CastObj::Half2Int32:
+        case CastObj::Half2Int64:
+        case CastObj::Half2Int16:
+        case CastObj::Half2Int8:
+        case CastObj::Half2Uint8:
+        case CastObj::Half2Bool:
+        case CastObj::Half2FloatInf:
+            // todo
+            break;
+        case CastObj::Int322Float:
+        case CastObj::Int322Half:
+        case CastObj::Int322Int8:
+        case CastObj::Int322Int16:
+            // todo
+            break;
+        case CastObj::Int162Float:
+        case CastObj::Int162Half:
+        case CastObj::Int162Int32:
+            // todo
+            break;
+        case CastObj::Int82Float:
+        case CastObj::Int82Half:
+        case CastObj::Int82Int16:
+        case CastObj::Int82Int32:
+            // todo
+            break;
+        case CastObj::Uint82Float:
+        case CastObj::Uint82Half:
+        case CastObj::Uint82Int32:
+        case CastObj::Uint82Int64:
+            // todo
+            break;
+        case CastObj::Bool2Float:
+        case CastObj::Bool2Half:
+        case CastObj::Bool2Int32:
+            // todo
+            break;
+        case CastObj::Int322Int64:
+        case CastObj::Int322Bool:
+            // todo
+            break;
+        case CastObj::Int642Int32:
+        case CastObj::Int642Uint32:
+        case CastObj::Int642Float:
+        case CastObj::Int642Half:
+            // todo
+            break;
+        case CastObj::Uint642Uint32:
+        case CastObj::Uint322Int64:
+        case CastObj::Uint322Uint64:
+            // todo
+            break;
+        case CastObj::Double2Float:
+            // todo
+            break;
         }
-        cnnlStatus_t stat =
-            cnnlCastDataType(context->cnnlHandle(), aDesc, aData, NlCastType, cDesc, cData);
+        cnnlStatus_t stat = cnnlCastDataType(context->cnnlHandle(), aDesc,
+                                             aData, NlCastType, cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
