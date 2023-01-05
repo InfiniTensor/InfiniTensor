@@ -1,6 +1,6 @@
+#include "operators/det.h"
 #include "bang/bang_kernel_without_config.h"
 #include "bang/bang_runtime.h"
-#include "operators/det.h"
 
 namespace infini {
 class DetCnnl : public BangKernelWithoutConfig {
@@ -13,7 +13,7 @@ class DetCnnl : public BangKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         DetObj::Mode mode = op->getMode();
         cnnlDetMode_t nlMode;
-        if(mode == DetObj::LogDet) {
+        if (mode == DetObj::LogDet) {
             nlMode = CNNL_DET_MODE_LOGDET;
         } else {
             nlMode = CNNL_DET_MODE_DET;
@@ -28,15 +28,16 @@ class DetCnnl : public BangKernelWithoutConfig {
         int dimout_array[2] = {dimout[0], dimout[1]};
         // get inputs
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, 4, dimin_array));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            aDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT, 4, dimin_array));
 
         // get outputs
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, 2, dimout_array));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            cDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT, 2, dimout_array));
 
-        cnnlStatus_t stat = cnnlDet(context->cnnlHandle(), nlMode, aDesc, aData, cDesc, cData);
+        cnnlStatus_t stat =
+            cnnlDet(context->cnnlHandle(), nlMode, aDesc, aData, cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 

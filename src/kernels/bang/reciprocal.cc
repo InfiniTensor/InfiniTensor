@@ -40,7 +40,7 @@ class ReciprocalCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Reciprocal, DataType::Float32, ReciprocalCnnl,
-                "Reciprocal_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Reciprocal, DataType::Float32,
+                ReciprocalCnnl, "Reciprocal_cnnl_BANG_Float32");
 
 }; // namespace infini

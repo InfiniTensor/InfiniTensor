@@ -33,12 +33,10 @@ class TrigonCnnl : public BangKernelWithoutConfig {
         // get op descriptor
         cnnlTrigonDescriptor_t opDesc;
         checkCnnlError(cnnlCreateTrigonDescriptor(&opDesc));
-        checkCnnlError(cnnlSetTrigonDescriptor(
-            opDesc, getOpType()));
+        checkCnnlError(cnnlSetTrigonDescriptor(opDesc, getOpType()));
 
-        cnnlStatus_t stat =
-            cnnlTrigonForward(context->cnnlHandle(), opDesc, aDesc,
-                              aData, cDesc, cData);
+        cnnlStatus_t stat = cnnlTrigonForward(context->cnnlHandle(), opDesc,
+                                              aDesc, aData, cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
@@ -55,7 +53,7 @@ class SinCnnl : public TrigonCnnl {
         return CNNL_TRIGON_SIN;
     }
     cnnlComputationPreference_t getPrefer() const override {
-        return CNNL_COMPUTATION_HIGH_PRECISION; 
+        return CNNL_COMPUTATION_HIGH_PRECISION;
     }
 };
 
@@ -64,7 +62,7 @@ class CosCnnl : public TrigonCnnl {
         return CNNL_TRIGON_COS;
     }
     cnnlComputationPreference_t getPrefer() const override {
-        return CNNL_COMPUTATION_HIGH_PRECISION; 
+        return CNNL_COMPUTATION_HIGH_PRECISION;
     }
 };
 
@@ -73,7 +71,7 @@ class TanCnnl : public TrigonCnnl {
         return CNNL_TRIGON_TAN;
     }
     cnnlComputationPreference_t getPrefer() const override {
-        return CNNL_COMPUTATION_HIGH_PRECISION; 
+        return CNNL_COMPUTATION_HIGH_PRECISION;
     }
 };
 
@@ -82,7 +80,7 @@ class ASinCnnl : public TrigonCnnl {
         return CNNL_TRIGON_ASIN;
     }
     cnnlComputationPreference_t getPrefer() const override {
-        return CNNL_COMPUTATION_HIGH_PRECISION; 
+        return CNNL_COMPUTATION_HIGH_PRECISION;
     }
 };
 
@@ -91,7 +89,7 @@ class ACosCnnl : public TrigonCnnl {
         return CNNL_TRIGON_ACOS;
     }
     cnnlComputationPreference_t getPrefer() const override {
-        return CNNL_COMPUTATION_HIGH_PRECISION; 
+        return CNNL_COMPUTATION_HIGH_PRECISION;
     }
 };
 
@@ -100,7 +98,7 @@ class ATanCnnl : public TrigonCnnl {
         return CNNL_TRIGON_ATAN;
     }
     cnnlComputationPreference_t getPrefer() const override {
-        return CNNL_COMPUTATION_HIGH_PRECISION; 
+        return CNNL_COMPUTATION_HIGH_PRECISION;
     }
 };
 
@@ -109,7 +107,7 @@ class SinHCnnl : public TrigonCnnl {
         return CNNL_TRIGON_SINH;
     }
     cnnlComputationPreference_t getPrefer() const override {
-        return CNNL_COMPUTATION_HIGH_PRECISION; 
+        return CNNL_COMPUTATION_HIGH_PRECISION;
     }
 };
 
@@ -118,7 +116,7 @@ class CosHCnnl : public TrigonCnnl {
         return CNNL_TRIGON_COSH;
     }
     cnnlComputationPreference_t getPrefer() const override {
-        return CNNL_COMPUTATION_HIGH_PRECISION; 
+        return CNNL_COMPUTATION_HIGH_PRECISION;
     }
 };
 
@@ -127,7 +125,7 @@ class TanHCnnl : public TrigonCnnl {
         return CNNL_TRIGON_TANH;
     }
     cnnlComputationPreference_t getPrefer() const override {
-        return CNNL_COMPUTATION_HIGH_PRECISION; 
+        return CNNL_COMPUTATION_HIGH_PRECISION;
     }
 };
 
@@ -136,7 +134,7 @@ class ASinHCnnl : public TrigonCnnl {
         return CNNL_TRIGON_ASINH;
     }
     cnnlComputationPreference_t getPrefer() const override {
-        return CNNL_COMPUTATION_HIGH_PRECISION; 
+        return CNNL_COMPUTATION_HIGH_PRECISION;
     }
 };
 
@@ -145,7 +143,7 @@ class ACosHCnnl : public TrigonCnnl {
         return CNNL_TRIGON_ACOSH;
     }
     cnnlComputationPreference_t getPrefer() const override {
-        return CNNL_COMPUTATION_HIGH_PRECISION; 
+        return CNNL_COMPUTATION_HIGH_PRECISION;
     }
 };
 
@@ -154,7 +152,7 @@ class ATanHCnnl : public TrigonCnnl {
         return CNNL_TRIGON_ATANH;
     }
     cnnlComputationPreference_t getPrefer() const override {
-        return CNNL_COMPUTATION_HIGH_PRECISION; 
+        return CNNL_COMPUTATION_HIGH_PRECISION;
     }
 };
 

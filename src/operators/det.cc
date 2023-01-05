@@ -11,7 +11,7 @@ optional<vector<Shape>> DetObj::inferShape(const TensorVec &inputs) const {
     auto input = A->getDims();
     int length = input.size();
     if (length == 2) {
-        std::vector<int> output ={1};
+        std::vector<int> output = {1};
         return {{output}};
     } else {
         std::vector<int> output(input.begin(), input.end() - 2);

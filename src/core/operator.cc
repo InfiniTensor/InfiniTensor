@@ -10,9 +10,7 @@ OperatorObj::OperatorObj(OpType opType, TensorVec inputs, TensorVec outputs)
         IT_ASSERT(t != nullptr);
 }
 
-OperatorObj::OperatorObj(OpType opType)
-    : type(opType){
-}
+OperatorObj::OperatorObj(OpType opType) : type(opType) {}
 
 bool OperatorObj::isLinearOp() const {
     return enum_to_underlying(type) >= 100 && enum_to_underlying(type) < 200;
@@ -91,7 +89,8 @@ bool OperatorObj::checkValid(GraphObj *graph, DataType type) {
     if (shapes.size() != outputs.size())
         return false;
     if (graph) { // if graph != nullptr, outputs should be created
-        auto dataTypes = vector(numOutputs(), type);;
+        auto dataTypes = vector(numOutputs(), type);
+        ;
         for (size_t i = 0; i < outputs.size(); i++) {
             IT_ASSERT(!outputs[i]);
             outputs[i] = graph->addTensor(shapes[i], dataTypes[i]);

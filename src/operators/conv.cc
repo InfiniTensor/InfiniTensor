@@ -183,9 +183,9 @@ void ConvTransposed2dObj::setAuxilaryAttributes(PaddingMode mode) {
 void ConvBackwardFilterObj::setAuxilaryAttributes(PaddingMode mode) {
     const Tensor &inputX = inputs[0];
     const Tensor &diffY = inputs[1];
-    n = inputX->getDims()[0], c = inputX->getDims()[1], h = inputX->getDims()[2],
-    w = inputX->getDims()[3], f = diffY->getDims()[0], r = diffY->getDims()[2],
-    s = diffY->getDims()[3];
+    n = inputX->getDims()[0], c = inputX->getDims()[1],
+    h = inputX->getDims()[2], w = inputX->getDims()[3], f = diffY->getDims()[0],
+    r = diffY->getDims()[2], s = diffY->getDims()[3];
     if (mode == PaddingMode::Same) {
         int oh = h / sh;
         int ow = w / sw;
@@ -196,9 +196,10 @@ void ConvBackwardFilterObj::setAuxilaryAttributes(PaddingMode mode) {
     }
 }
 
-ConvBackwardFilterObj::ConvBackwardFilterObj(GraphObj *graph, Tensor inputX, Tensor diffY, Tensor diffW,
-                 int ph, int pw, int sh, int sw, int dh, int dw, Tensor bias,
-                 ActType act)
+ConvBackwardFilterObj::ConvBackwardFilterObj(GraphObj *graph, Tensor inputX,
+                                             Tensor diffY, Tensor diffW, int ph,
+                                             int pw, int sh, int sw, int dh,
+                                             int dw, Tensor bias, ActType act)
     : ConvBaseObj(OpType::Conv, {inputX, diffY}, diffW, ph, pw, sh, sw, dh, dw,
                   inputX, diffY),
       act(act) {
@@ -208,9 +209,11 @@ ConvBackwardFilterObj::ConvBackwardFilterObj(GraphObj *graph, Tensor inputX, Ten
     IT_ASSERT(checkValid(graph));
 }
 
-ConvBackwardFilterObj::ConvBackwardFilterObj(GraphObj *graph, Tensor inputX, Tensor diffY, Tensor diffW,
-                 PaddingMode mode, int sh, int sw, int dh, int dw, Tensor bias,
-                 ActType act)
+ConvBackwardFilterObj::ConvBackwardFilterObj(GraphObj *graph, Tensor inputX,
+                                             Tensor diffY, Tensor diffW,
+                                             PaddingMode mode, int sh, int sw,
+                                             int dh, int dw, Tensor bias,
+                                             ActType act)
     : ConvBaseObj(OpType::Conv, {inputX, diffY}, diffW, mode, sh, sw, dh, dw,
                   inputX, diffY),
       act(act) {
@@ -220,7 +223,8 @@ ConvBackwardFilterObj::ConvBackwardFilterObj(GraphObj *graph, Tensor inputX, Ten
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> ConvBackwardFilterObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>>
+ConvBackwardFilterObj::inferShape(const TensorVec &inputs) const {
     const auto &inputX = inputs[0], &diffY = inputs[1];
     auto n = inputX->getDims()[0];
     auto h = inputX->getDims()[2];
@@ -250,6 +254,5 @@ optional<vector<Shape>> ConvBackwardFilterObj::inferShape(const TensorVec &input
     }
     return {{{on, oc, oh, ow}}};
 }
-
 
 } // namespace infini

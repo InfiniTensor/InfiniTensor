@@ -1,21 +1,23 @@
 #include "operators/transpose.h"
 
 namespace infini {
-TransposeObj::TransposeObj(GraphObj *graph, Tensor input, Tensor output, int permute[4])
+TransposeObj::TransposeObj(GraphObj *graph, Tensor input, Tensor output,
+                           int permute[4])
     : OperatorObj(OpType::Transpose, {input}, {output}) {
-        transposePermute[0] = permute[0];
-        transposePermute[1] = permute[1];
-        transposePermute[2] = permute[2];
-        transposePermute[3] = permute[3];
+    transposePermute[0] = permute[0];
+    transposePermute[1] = permute[1];
+    transposePermute[2] = permute[2];
+    transposePermute[3] = permute[3];
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> TransposeObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>>
+TransposeObj::inferShape(const TensorVec &inputs) const {
     const auto A = inputs[0];
     auto input = A->getDims();
     auto output = input;
-    
-    for(int i = 0; i < 4; ++i){
+
+    for (int i = 0; i < 4; ++i) {
         output[i] = input[transposePermute[i]];
     }
     return {{output}};
