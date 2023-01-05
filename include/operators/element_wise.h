@@ -35,7 +35,8 @@ class ElementWiseObj : public OperatorObj {
 class MSELossObj : public OperatorObj {
   public:
     enum Reduction { None = 0, Sum, Mean };
-    MSELossObj(GraphObj *graph, Tensor input0, Tensor input1, Reduction reduction, Tensor output);
+    MSELossObj(GraphObj *graph, Tensor input0, Tensor input1,
+               Reduction reduction, Tensor output);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
     Reduction getReduction() const { return reductionMode; }

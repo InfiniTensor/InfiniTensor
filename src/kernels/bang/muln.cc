@@ -1,6 +1,6 @@
-#include "operators/element_wise.h"
 #include "bang/bang_kernel_without_config.h"
 #include "bang/bang_runtime.h"
+#include "operators/element_wise.h"
 
 namespace infini {
 class MulNCnnl : public BangKernelWithoutConfig {
@@ -10,8 +10,8 @@ class MulNCnnl : public BangKernelWithoutConfig {
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
         int num = op->numInputs();
         void *argv[num];
-        for(int i = 0; i < num; ++i) {
-          argv[i] = op->getInputs(i)->getRawDataPtr<void *>();
+        for (int i = 0; i < num; ++i) {
+            argv[i] = op->getInputs(i)->getRawDataPtr<void *>();
         }
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
 
@@ -24,20 +24,22 @@ class MulNCnnl : public BangKernelWithoutConfig {
         checkCnnlError(cnnlCreateTensorDescriptor(&desc));
         checkCnnlError(cnnlSetTensorDescriptor(desc, CNNL_LAYOUT_NCHW,
                                                CNNL_DTYPE_FLOAT, 4, dim_array));
-        cnnlTensorDescriptor_t descArray[num]; 
-        for(int i = 0; i < num; ++i) {
-          checkCnnlError(cnnlCreateTensorDescriptor(&descArray[i]));
-          checkCnnlError(cnnlSetTensorDescriptor(descArray[i], CNNL_LAYOUT_NCHW,
-                                                 CNNL_DTYPE_FLOAT, 4, dim_array));
+        cnnlTensorDescriptor_t descArray[num];
+        for (int i = 0; i < num; ++i) {
+            checkCnnlError(cnnlCreateTensorDescriptor(&descArray[i]));
+            checkCnnlError(
+                cnnlSetTensorDescriptor(descArray[i], CNNL_LAYOUT_NCHW,
+                                        CNNL_DTYPE_FLOAT, 4, dim_array));
         }
 
-        cnnlStatus_t stat = cnnlMulN(context->cnnlHandle(), descArray, argv, num, desc, cData);
+        cnnlStatus_t stat =
+            cnnlMulN(context->cnnlHandle(), descArray, argv, num, desc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
         // Destories in BANG does not require sync. But cnnl does not state
         // whether sync is required before destories.
-        for(int i = 0; i < num; ++i) {
+        for (int i = 0; i < num; ++i) {
             checkCnnlError(cnnlDestroyTensorDescriptor(descArray[i]));
         }
         checkCnnlError(cnnlDestroyTensorDescriptor(desc));

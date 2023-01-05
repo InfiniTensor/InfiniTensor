@@ -1,6 +1,6 @@
+#include "operators/activation_backward.h"
 #include "bang/bang_kernel_without_config.h"
 #include "bang/bang_runtime.h"
-#include "operators/activation_backward.h"
 
 namespace infini {
 class ActivationBackwardCnnl : public BangKernelWithoutConfig {
@@ -47,11 +47,9 @@ class ActivationBackwardCnnl : public BangKernelWithoutConfig {
             opDesc, getOpType(), CNNL_NOT_PROPAGATE_NAN, getCoef()));
 
         auto [alpha, beta] = getAlphBeta();
-        cnnlStatus_t stat =
-            cnnlActivationBackward(context->cnnlHandle(), opDesc, &alpha, yDesc, yData,
-                                                                          diffYDesc, diffYData,
-                                                                          xDesc, xData,
-                                                                          &beta, diffXDesc, diffXData);
+        cnnlStatus_t stat = cnnlActivationBackward(
+            context->cnnlHandle(), opDesc, &alpha, yDesc, yData, diffYDesc,
+            diffYData, xDesc, xData, &beta, diffXDesc, diffXData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
@@ -86,11 +84,11 @@ class TanhBackwardCnnl : public ActivationBackwardCnnl {
     float getCoef() const override { return 0.0; }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::ReluBackward, DataType::Float32, ReluBackwardCnnl,
-                "ReluBackward_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::SigmoidBackward, DataType::Float32, SigmoidBackwardCnnl,
-                "SigmoidBackward_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::TanhBackward, DataType::Float32, TanhBackwardCnnl,
-                "TanhBackward_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::ReluBackward, DataType::Float32,
+                ReluBackwardCnnl, "ReluBackward_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::SigmoidBackward, DataType::Float32,
+                SigmoidBackwardCnnl, "SigmoidBackward_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::TanhBackward, DataType::Float32,
+                TanhBackwardCnnl, "TanhBackward_cnnl_BANG_Float32");
 
 }; // namespace infini

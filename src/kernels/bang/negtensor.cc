@@ -40,7 +40,7 @@ class NegTensorCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::NegTensor, DataType::Float32, NegTensorCnnl,
-                "NegTensor_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::NegTensor, DataType::Float32,
+                NegTensorCnnl, "NegTensor_cnnl_BANG_Float32");
 
 }; // namespace infini

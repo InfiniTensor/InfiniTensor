@@ -251,7 +251,7 @@ class OperatorObj : public Object {
   public:
     OperatorObj(OpType opType, TensorVec inputs, TensorVec outputs);
     OperatorObj(OpType opType);
-    void setInputs(TensorVec inputsTensor) { 
+    void setInputs(TensorVec inputsTensor) {
         inputs = inputsTensor;
         for (auto &t : inputs)
             IT_ASSERT(t != nullptr);

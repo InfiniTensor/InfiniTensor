@@ -10,7 +10,7 @@ namespace infini {
 
 template <class T>
 void testPad(const std::function<void(void *, size_t, DataType)> &generator,
-               const Shape &shape) {
+             const Shape &shape) {
     // Runtime
     Runtime cpuRuntime = CpuRuntimeObj::getInstance();
     auto bangRuntime = make_ref<BangRuntimeObj>();
@@ -23,7 +23,8 @@ void testPad(const std::function<void(void *, size_t, DataType)> &generator,
     // GPU
     Graph bangGraph = make_ref<GraphObj>(bangRuntime);
     auto inputGpu = bangGraph->cloneTensor(inputCpu);
-    auto gpuOp = bangGraph->addOp<T>(inputGpu, nullptr, vector<int>{1,1,1,1}, vector<int>{0,3});
+    auto gpuOp = bangGraph->addOp<T>(inputGpu, nullptr, vector<int>{1, 1, 1, 1},
+                                     vector<int>{0, 3});
     bangGraph->dataMalloc();
     bangRuntime->run(bangGraph);
     auto outputGpu = gpuOp->getOutput();

@@ -4,7 +4,8 @@
 namespace infini {
 class ActivationBackwardObj : public OperatorObj {
   public:
-    ActivationBackwardObj(OpType type, GraphObj *graph, Tensor y, Tensor diff_y, Tensor x, Tensor diff_x);
+    ActivationBackwardObj(OpType type, GraphObj *graph, Tensor y, Tensor diff_y,
+                          Tensor x, Tensor diff_x);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
     std::string toString() const override;
@@ -16,11 +17,12 @@ class ActivationBackwardObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 };
 
-#define DEFINE_ACTIVATION_BACKWARD_OBJ(prefix, type)                                               \
-    class prefix##Obj : public ActivationBackwardObj {                                             \
-      public:                                                                                      \
-        prefix##Obj(GraphObj *graph, Tensor y, Tensor diff_y, Tensor x, Tensor diff_x)              \
-            : ActivationBackwardObj(type, graph, y, diff_y, x, diff_x) {}                          \
+#define DEFINE_ACTIVATION_BACKWARD_OBJ(prefix, type)                           \
+    class prefix##Obj : public ActivationBackwardObj {                         \
+      public:                                                                  \
+        prefix##Obj(GraphObj *graph, Tensor y, Tensor diff_y, Tensor x,        \
+                    Tensor diff_x)                                             \
+            : ActivationBackwardObj(type, graph, y, diff_y, x, diff_x) {}      \
     };
 
 DEFINE_ACTIVATION_BACKWARD_OBJ(ReluBackward, OpType::ReluBackward)

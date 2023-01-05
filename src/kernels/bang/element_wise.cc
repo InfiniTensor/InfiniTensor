@@ -98,13 +98,13 @@ class DivCnnl : public BangKernelWithoutConfig {
 
         size_t wsSize;
         cnnlGetDivWorkspaceSize(context->cnnlHandle(), aDesc, bDesc, cDesc,
-                                     &wsSize);
+                                &wsSize);
 
         BangPtr wsData = context->getWorkspace(wsSize);
 
-        cnnlStatus_t stat = cnnlDiv_v2(context->cnnlHandle(),
-                                       CNNL_COMPUTATION_HIGH_PRECISION,
-                                       aDesc, aData, bDesc, bData, wsData, wsSize, cDesc, cData);
+        cnnlStatus_t stat = cnnlDiv_v2(
+            context->cnnlHandle(), CNNL_COMPUTATION_HIGH_PRECISION, aDesc,
+            aData, bDesc, bData, wsData, wsSize, cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
@@ -152,9 +152,9 @@ class DivNoNanCnnl : public BangKernelWithoutConfig {
 
         BangPtr wsData = context->getWorkspace(wsSize);
 
-        cnnlStatus_t stat = cnnlDivNoNan_v2(context->cnnlHandle(),
-                                       CNNL_COMPUTATION_HIGH_PRECISION,
-                                       aDesc, aData, bDesc, bData, wsData, wsSize, cDesc, cData);
+        cnnlStatus_t stat = cnnlDivNoNan_v2(
+            context->cnnlHandle(), CNNL_COMPUTATION_HIGH_PRECISION, aDesc,
+            aData, bDesc, bData, wsData, wsSize, cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
@@ -201,8 +201,9 @@ class MaximumCnnl : public BangKernelWithoutConfig {
         cnnlGetMaximumWorkspaceSize(context->cnnlHandle(), cDesc, &wsSize);
         BangPtr wsData = context->getWorkspace(wsSize);
 
-        cnnlStatus_t stat = cnnlMaximum(context->cnnlHandle(), aDesc, aData, bDesc, bData,
-                                        cDesc, cData, wsData, wsSize);
+        cnnlStatus_t stat =
+            cnnlMaximum(context->cnnlHandle(), aDesc, aData, bDesc, bData,
+                        cDesc, cData, wsData, wsSize);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
@@ -249,8 +250,9 @@ class MinimumCnnl : public BangKernelWithoutConfig {
         cnnlGetMinimumWorkspaceSize(context->cnnlHandle(), cDesc, &wsSize);
         BangPtr wsData = context->getWorkspace(wsSize);
 
-        cnnlStatus_t stat = cnnlMinimum(context->cnnlHandle(), aDesc, aData, bDesc, bData,
-                                        cDesc, cData, wsData, wsSize);
+        cnnlStatus_t stat =
+            cnnlMinimum(context->cnnlHandle(), aDesc, aData, bDesc, bData,
+                        cDesc, cData, wsData, wsSize);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
@@ -278,7 +280,7 @@ class MSELossCnnl : public BangKernelWithoutConfig {
             IT_TODO_HALT();
 
         int dim_array[4] = {dim[0], dim[1], dim[2], dim[3]};
-        int dim_out[4] ={1,1,1,1};
+        int dim_out[4] = {1, 1, 1, 1};
         // get inputs
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
@@ -290,23 +292,23 @@ class MSELossCnnl : public BangKernelWithoutConfig {
 
         // get outputs
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
-        if ( reduction == MSELossObj::None ) {
-          checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                                 CNNL_DTYPE_FLOAT, 4, dim_array));
+        if (reduction == MSELossObj::None) {
+            checkCnnlError(cnnlSetTensorDescriptor(
+                cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, dim_array));
         } else {
-          checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                                 CNNL_DTYPE_FLOAT, 4, dim_out));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, dim_out));
         }
         cnnlStatus_t stat;
-        if( reduction == MSELossObj::None ) {
-          stat = cnnlMSELoss(context->cnnlHandle(), CNNL_MSE_LOSS_NONE, aDesc, aData, bDesc, bData,
-                             cDesc, cData);
+        if (reduction == MSELossObj::None) {
+            stat = cnnlMSELoss(context->cnnlHandle(), CNNL_MSE_LOSS_NONE, aDesc,
+                               aData, bDesc, bData, cDesc, cData);
         } else if (reduction == MSELossObj::Sum) {
-          stat = cnnlMSELoss(context->cnnlHandle(), CNNL_MSE_LOSS_SUM, aDesc, aData, bDesc, bData,
-                             cDesc, cData);
+            stat = cnnlMSELoss(context->cnnlHandle(), CNNL_MSE_LOSS_SUM, aDesc,
+                               aData, bDesc, bData, cDesc, cData);
         } else {
-          stat = cnnlMSELoss(context->cnnlHandle(), CNNL_MSE_LOSS_MEAN, aDesc, aData, bDesc, bData,
-                             cDesc, cData);
+            stat = cnnlMSELoss(context->cnnlHandle(), CNNL_MSE_LOSS_MEAN, aDesc,
+                               aData, bDesc, bData, cDesc, cData);
         }
 
         if (stat != CNNL_STATUS_SUCCESS)
@@ -352,11 +354,13 @@ class PowerCnnl : public BangKernelWithoutConfig {
 
         // get op descriptor
         size_t wsSize;
-        cnnlGetPowWorkspaceSize(context->cnnlHandle(), aDesc, bDesc, cDesc, &wsSize);
+        cnnlGetPowWorkspaceSize(context->cnnlHandle(), aDesc, bDesc, cDesc,
+                                &wsSize);
         BangPtr wsData = context->getWorkspace(wsSize);
 
-        cnnlStatus_t stat = cnnlPow(context->cnnlHandle(), CNNL_COMPUTATION_HIGH_PRECISION,
-                                    aDesc, aData, bDesc, bData, wsData, wsSize, cDesc, cData);
+        cnnlStatus_t stat =
+            cnnlPow(context->cnnlHandle(), CNNL_COMPUTATION_HIGH_PRECISION,
+                    aDesc, aData, bDesc, bData, wsData, wsSize, cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
@@ -404,9 +408,9 @@ class FloorDivCnnl : public BangKernelWithoutConfig {
 
         BangPtr wsData = context->getWorkspace(wsSize);
 
-        cnnlStatus_t stat = cnnlFloorDiv_v2(context->cnnlHandle(),
-                                       CNNL_COMPUTATION_HIGH_PRECISION,
-                                       aDesc, aData, bDesc, bData, cDesc, cData, wsData, wsSize);
+        cnnlStatus_t stat = cnnlFloorDiv_v2(
+            context->cnnlHandle(), CNNL_COMPUTATION_HIGH_PRECISION, aDesc,
+            aData, bDesc, bData, cDesc, cData, wsData, wsSize);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
@@ -449,14 +453,14 @@ class FloorDivTruncCnnl : public BangKernelWithoutConfig {
                                                CNNL_DTYPE_FLOAT, 4, dim_array));
 
         size_t wsSize;
-        cnnlGetFloorDivTruncWorkspaceSize(context->cnnlHandle(), aDesc, bDesc, cDesc,
-                                     &wsSize);
+        cnnlGetFloorDivTruncWorkspaceSize(context->cnnlHandle(), aDesc, bDesc,
+                                          cDesc, &wsSize);
 
         BangPtr wsData = context->getWorkspace(wsSize);
 
-        cnnlStatus_t stat = cnnlFloorDivTrunc(context->cnnlHandle(),
-                                       CNNL_COMPUTATION_HIGH_PRECISION,
-                                       aDesc, aData, bDesc, bData, cDesc, cData, wsData, wsSize);
+        cnnlStatus_t stat = cnnlFloorDivTrunc(
+            context->cnnlHandle(), CNNL_COMPUTATION_HIGH_PRECISION, aDesc,
+            aData, bDesc, bData, cDesc, cData, wsData, wsSize);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
@@ -504,8 +508,9 @@ class FloorModCnnl : public BangKernelWithoutConfig {
 
         BangPtr wsData = context->getWorkspace(wsSize);
 
-        cnnlStatus_t stat = cnnlFloorMod(context->cnnlHandle(),
-                                       aDesc, aData, bDesc, bData, cDesc, cData, wsData, wsSize);
+        cnnlStatus_t stat =
+            cnnlFloorMod(context->cnnlHandle(), aDesc, aData, bDesc, bData,
+                         cDesc, cData, wsData, wsSize);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
@@ -522,42 +527,47 @@ class FloorModCnnl : public BangKernelWithoutConfig {
 //                  const RuntimeObj *_context) const override {
 //         auto op = as<ElementWiseObj>(_op);
 //         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
-// 
+//
 //         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
 //         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
 //         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
-// 
+//
 //         cnnlTensorDescriptor_t aDesc, bDesc, cDesc;
 //         auto dim = op->getInputs(0)->getDims();
 //         if (dim.size() != 4)
 //             IT_TODO_HALT();
-// 
+//
 //         int dim_array[4] = {dim[0], dim[1], dim[2], dim[3]};
 //         // get inputs
 //         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
 //         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-//                                                CNNL_DTYPE_FLOAT, 4, dim_array));
-// 
+//                                                CNNL_DTYPE_FLOAT, 4,
+//                                                dim_array));
+//
 //         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
 //         checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
-//                                                CNNL_DTYPE_FLOAT, 4, dim_array));
-// 
+//                                                CNNL_DTYPE_FLOAT, 4,
+//                                                dim_array));
+//
 //         // get outputs
 //         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
 //         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-//                                                CNNL_DTYPE_FLOAT, 4, dim_array));
-// 
+//                                                CNNL_DTYPE_FLOAT, 4,
+//                                                dim_array));
+//
 //         size_t wsSize;
-//         cnnlGetFloorModTruncWorkspaceSize(context->cnnlHandle(), aDesc, bDesc, cDesc,
+//         cnnlGetFloorModTruncWorkspaceSize(context->cnnlHandle(), aDesc,
+//         bDesc, cDesc,
 //                                      &wsSize);
-// 
+//
 //         BangPtr wsData = context->getWorkspace(wsSize);
-// 
+//
 //         cnnlStatus_t stat = cnnlFloorModTrunc(context->cnnlHandle(),
-//                                        aDesc, aData, bDesc, bData, cDesc, cData, wsData, wsSize);
+//                                        aDesc, aData, bDesc, bData, cDesc,
+//                                        cData, wsData, wsSize);
 //         if (stat != CNNL_STATUS_SUCCESS)
 //             return;
-// 
+//
 //         // Destories in BANG does not require sync. But cnnl does not state
 //         // whether sync is required before destories.
 //         checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
@@ -595,8 +605,8 @@ REGISTER_KERNEL(Device::BANG, OpType::Sub, DataType::Float32, SubCnnl,
 REGISTER_KERNEL(Device::BANG, OpType::Mul, DataType::Float32, MulCnnl,
                 "Mul_cnnl_BANG_Float32");
 
-REGISTER_KERNEL(Device::BANG, OpType::DivDemo, DataType::Float32, ElementWiseBang,
-                "DivDemo_Bang_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::DivDemo, DataType::Float32,
+                ElementWiseBang, "DivDemo_Bang_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::Div, DataType::Float32, DivCnnl,
                 "Div_cnnl_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::DivNoNan, DataType::Float32, DivNoNanCnnl,
@@ -611,11 +621,12 @@ REGISTER_KERNEL(Device::BANG, OpType::Power, DataType::Float32, PowerCnnl,
                 "Power_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::FloorDiv, DataType::Float32, FloorDivCnnl,
                 "FloorDiv_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::FloorDivTrunc, DataType::Float32, FloorDivTruncCnnl,
-                "FloorDivTrunc_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::FloorDivTrunc, DataType::Float32,
+                FloorDivTruncCnnl, "FloorDivTrunc_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::FloorMod, DataType::Float32, FloorModCnnl,
                 "FloorMod_cnnl_BANG_Float32");
-// REGISTER_KERNEL(Device::BANG, OpType::FloorModTrunc, DataType::Float32, FloorModTruncCnnl,
+// REGISTER_KERNEL(Device::BANG, OpType::FloorModTrunc, DataType::Float32,
+// FloorModTruncCnnl,
 //                 "FloorModTrunc_cnnl_BANG_Float32");
 // REGISTER_KERNEL(Device::BANG, OpType::Pow, DataType::Float32,
 // ElementWiseBang,

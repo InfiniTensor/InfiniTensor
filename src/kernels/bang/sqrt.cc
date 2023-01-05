@@ -29,7 +29,8 @@ class SqrtCnnl : public BangKernelWithoutConfig {
                                                CNNL_DTYPE_FLOAT, 4, dim_array));
 
         cnnlStatus_t stat =
-            cnnlSqrt_v2(context->cnnlHandle(), CNNL_COMPUTATION_HIGH_PRECISION, aDesc, aData, cDesc, cData);
+            cnnlSqrt_v2(context->cnnlHandle(), CNNL_COMPUTATION_HIGH_PRECISION,
+                        aDesc, aData, cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 

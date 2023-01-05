@@ -25,8 +25,8 @@ class TransformCnnl : public BangKernelWithoutConfig {
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
                                                CNNL_DTYPE_FLOAT, 4, dim_array));
 
-        cnnlStatus_t stat =
-            cnnlTransform(context->cnnlHandle(), &alpha, cDesc, aData, &beta, cData);
+        cnnlStatus_t stat = cnnlTransform(context->cnnlHandle(), &alpha, cDesc,
+                                          aData, &beta, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
@@ -36,7 +36,7 @@ class TransformCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Transform, DataType::Float32, TransformCnnl,
-                "Transform_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Transform, DataType::Float32,
+                TransformCnnl, "Transform_cnnl_BANG_Float32");
 
 }; // namespace infini

@@ -32,7 +32,8 @@ class CumsumCnnl : public BangKernelWithoutConfig {
                                                CNNL_DTYPE_FLOAT, 4, dim_array));
 
         cnnlStatus_t stat =
-            cnnlCumsum(context->cnnlHandle(), aDesc, aData, axis, exclusive, reverse, CNNL_NOT_PROPAGATE_NAN, cDesc, cData);
+            cnnlCumsum(context->cnnlHandle(), aDesc, aData, axis, exclusive,
+                       reverse, CNNL_NOT_PROPAGATE_NAN, cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
