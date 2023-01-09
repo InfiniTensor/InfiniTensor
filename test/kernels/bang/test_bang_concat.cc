@@ -10,7 +10,7 @@ namespace infini {
 
 template <class T>
 void testConcat(const std::function<void(void *, size_t, DataType)> &generator,
-              const Shape &shape) {
+                const Shape &shape) {
     // Runtime
     Runtime cpuRuntime = CpuRuntimeObj::getInstance();
     auto bangRuntime = make_ref<BangRuntimeObj>();
@@ -29,7 +29,8 @@ void testConcat(const std::function<void(void *, size_t, DataType)> &generator,
     Graph bangGraph = make_ref<GraphObj>(bangRuntime);
     auto inputGpu1 = bangGraph->cloneTensor(inputCpu1);
     auto inputGpu2 = bangGraph->cloneTensor(inputCpu2);
-    auto gpuOp = bangGraph->addOp<T>(TensorVec{inputGpu1, inputGpu2}, nullptr, 2);
+    auto gpuOp =
+        bangGraph->addOp<T>(TensorVec{inputGpu1, inputGpu2}, nullptr, 2);
     bangGraph->dataMalloc();
     bangRuntime->run(bangGraph);
     auto outputGpu = gpuOp->getOutput();
