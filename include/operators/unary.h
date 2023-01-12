@@ -235,4 +235,5 @@ DEFINE_UNARY_OBJ(NegTensor, OpType::NegTensor)
 DEFINE_UNARY_OBJ(Reciprocal, OpType::Reciprocal)
 DEFINE_UNARY_OBJ(Sqrt, OpType::Sqrt)
 DEFINE_UNARY_OBJ(Rsqrt, OpType::Rsqrt)
+DEFINE_UNARY_OBJ(Round, OpType::Round)
 }; // namespace infini
