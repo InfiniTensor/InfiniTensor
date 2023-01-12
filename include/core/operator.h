@@ -89,6 +89,7 @@ enum class OpType {
     Cumsum,
     Cumprod,
     Det,
+    Round,
     //
     MemBound = 300,
 };
@@ -186,6 +187,7 @@ class OpRegistry {
             FOP(Cumsum);
             FOP(Cumprod);
             FOP(Det);
+            FOP(Round);
             //
             FOP(MemBound);
         default:
