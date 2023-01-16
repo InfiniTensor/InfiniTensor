@@ -236,4 +236,5 @@ DEFINE_UNARY_OBJ(Reciprocal, OpType::Reciprocal)
 DEFINE_UNARY_OBJ(Sqrt, OpType::Sqrt)
 DEFINE_UNARY_OBJ(Rsqrt, OpType::Rsqrt)
 DEFINE_UNARY_OBJ(Round, OpType::Round)
+DEFINE_UNARY_OBJ(Square, OpType::Square)
 }; // namespace infini
