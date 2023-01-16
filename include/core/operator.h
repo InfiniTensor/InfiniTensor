@@ -91,7 +91,7 @@ enum class OpType {
     Det,
     Round,
     Square,
-    SquareDifference,
+    SquaredDifference,
     //
     MemBound = 300,
 };
@@ -191,7 +191,7 @@ class OpRegistry {
             FOP(Det);
             FOP(Round);
             FOP(Square);
-            FOP(SquareDifference);
+            FOP(SquaredDifference);
             //
             FOP(MemBound);
         default:
