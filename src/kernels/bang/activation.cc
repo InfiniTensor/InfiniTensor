@@ -89,6 +89,43 @@ class RoundCnnl : public BangKernelWithoutConfig {
     }
 };
 
+class SquareCnnl : public BangKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<UnaryObj>(_op);
+        auto context = dynamic_cast<const BangRuntimeObj *>(_context);
+
+        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+
+        cnnlTensorDescriptor_t aDesc, cDesc;
+        auto dim = op->getInputs(0)->getDims();
+        if (dim.size() != 4)
+            IT_TODO_HALT();
+
+        int dim_array[4] = {dim[0], dim[1], dim[2], dim[3]};
+        // get inputs
+        checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
+        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
+                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+
+        // get outputs
+        checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
+        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
+                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+
+        cnnlStatus_t stat =
+            cnnlSquare(context->cnnlHandle(), aDesc, aData, cDesc, cData);
+        if (stat != CNNL_STATUS_SUCCESS)
+            return;
+
+        // Destories in BANG does not require sync. But cnnl does not state
+        // whether sync is required before destories.
+        checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
+        checkCnnlError(cnnlDestroyTensorDescriptor(cDesc));
+    }
+};
+
 class ReluCnnl : public UnaryCnnl {
     cnnlActivationMode_t getOpType() const override {
         return CNNL_ACTIVATION_RELU;
@@ -118,5 +155,7 @@ REGISTER_KERNEL(Device::BANG, OpType::Tanh, DataType::Float32, TanhCnnl,
                 "Tanh_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::Round, DataType::Float32, RoundCnnl,
                 "Round_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Square, DataType::Float32, SquareCnnl,
+                "Square_cnnl_BANG_Float32");
 
 }; // namespace infini
