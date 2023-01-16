@@ -553,14 +553,14 @@ class SquaredDifferenceCnnl : public BangKernelWithoutConfig {
                                                CNNL_DTYPE_FLOAT, 4, dim_array));
 
         size_t wsSize;
-        cnnlGetSquaredDifferenceWorkspaceSize(context->cnnlHandle(), aDesc, bDesc, cDesc,
-                                     &wsSize);
+        cnnlGetSquaredDifferenceWorkspaceSize(context->cnnlHandle(), aDesc,
+                                              bDesc, cDesc, &wsSize);
 
         BangPtr wsData = context->getWorkspace(wsSize);
 
         cnnlStatus_t stat =
-            cnnlSquaredDifference(context->cnnlHandle(), aDesc, aData, bDesc, bData,
-                         cDesc, cData, wsData, wsSize);
+            cnnlSquaredDifference(context->cnnlHandle(), aDesc, aData, bDesc,
+                                  bData, cDesc, cData, wsData, wsSize);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
@@ -675,8 +675,8 @@ REGISTER_KERNEL(Device::BANG, OpType::FloorDivTrunc, DataType::Float32,
                 FloorDivTruncCnnl, "FloorDivTrunc_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::FloorMod, DataType::Float32, FloorModCnnl,
                 "FloorMod_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::SquaredDifference, DataType::Float32, SquaredDifferenceCnnl,
-                "SquaredDifference_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::SquaredDifference, DataType::Float32,
+                SquaredDifferenceCnnl, "SquaredDifference_cnnl_BANG_Float32");
 // REGISTER_KERNEL(Device::BANG, OpType::FloorModTrunc, DataType::Float32,
 // FloorModTruncCnnl,
 //                 "FloorModTrunc_cnnl_BANG_Float32");

@@ -9,8 +9,9 @@
 namespace infini {
 
 template <class T>
-void testSquaredDifference(const std::function<void(void *, size_t, DataType)> &generator,
-                 const Shape &shape) {
+void testSquaredDifference(
+    const std::function<void(void *, size_t, DataType)> &generator,
+    const Shape &shape) {
     // Runtime
     Runtime cpuRuntime = CpuRuntimeObj::getInstance();
     auto bangRuntime = make_ref<BangRuntimeObj>();
@@ -40,7 +41,8 @@ void testSquaredDifference(const std::function<void(void *, size_t, DataType)> &
 }
 
 TEST(cnnl_SquaredDifference, run) {
-    testSquaredDifference<SquaredDifferenceObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    testSquaredDifference<SquaredDifferenceObj>(IncrementalGenerator(),
+                                                Shape{1, 2, 2, 3});
 }
 
 } // namespace infini

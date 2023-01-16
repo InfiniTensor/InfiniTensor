@@ -10,7 +10,7 @@ namespace infini {
 
 template <class T>
 void testSplit(const std::function<void(void *, size_t, DataType)> &generator,
-                const Shape &shape) {
+               const Shape &shape) {
     // Runtime
     Runtime cpuRuntime = CpuRuntimeObj::getInstance();
     auto bangRuntime = make_ref<BangRuntimeObj>();
@@ -23,8 +23,7 @@ void testSplit(const std::function<void(void *, size_t, DataType)> &generator,
     // GPU
     Graph bangGraph = make_ref<GraphObj>(bangRuntime);
     auto inputGpu1 = bangGraph->cloneTensor(inputCpu1);
-    auto gpuOp =
-        bangGraph->addOp<T>(inputGpu1, std::nullopt, 3, 3);
+    auto gpuOp = bangGraph->addOp<T>(inputGpu1, std::nullopt, 3, 3);
     bangGraph->dataMalloc();
     bangRuntime->run(bangGraph);
     auto o0Cpu = gpuOp->getOutput(0)->clone(cpuRuntime);
