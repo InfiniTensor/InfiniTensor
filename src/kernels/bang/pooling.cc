@@ -16,26 +16,26 @@ class poolingCnnl : public BangKernelWithoutConfig {
         const auto [ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
 
         // get inputs
-        int inArray[4] = {n,c,h,w};
+        int inArray[4] = {n, c, h, w};
         cnnlTensorDescriptor_t inDesc;
         checkCnnlError(cnnlCreateTensorDescriptor(&inDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(
-            inDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, inArray));
+        checkCnnlError(cnnlSetTensorDescriptor(inDesc, CNNL_LAYOUT_NCHW,
+                                               CNNL_DTYPE_FLOAT, 4, inArray));
 
         // get maxpool descriptor
         cnnlPoolingDescriptor_t poolingDesc;
         checkCnnlError(cnnlCreatePoolingDescriptor(&poolingDesc));
         checkCnnlError(cnnlSetPooling2dDescriptor_v2(
-            poolingDesc, getPoolingMode(), CNNL_NOT_PROPAGATE_NAN, kh, kw, ph, ph,
-            pw, pw, sh, sw, dh, dw, false));
+            poolingDesc, getPoolingMode(), CNNL_NOT_PROPAGATE_NAN, kh, kw, ph,
+            ph, pw, pw, sh, sw, dh, dw, false));
 
         // get outputs
         auto outVec = op->getOutput()->getDims();
-        int outArray[4] = {outVec[0], outVec[1],outVec[2], outVec[3]};
+        int outArray[4] = {outVec[0], outVec[1], outVec[2], outVec[3]};
         cnnlTensorDescriptor_t outDesc;
         checkCnnlError(cnnlCreateTensorDescriptor(&outDesc));
         checkCnnlError(cnnlSetTensorDescriptor(outDesc, CNNL_LAYOUT_NCHW,
-                                                   CNNL_DTYPE_FLOAT, 4, outArray));
+                                               CNNL_DTYPE_FLOAT, 4, outArray));
         size_t wsSize;
         cnnlGetPoolingWorkspaceSize(context->cnnlHandle(), getPoolingMode(),
                                     outVec[3], outVec[2], &wsSize);

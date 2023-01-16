@@ -35,8 +35,8 @@ class SplitCnnl : public BangKernelWithoutConfig {
         }
         int dim_array[4] = {dim[0], dim[1], dim[2], dim[3]};
         checkCnnlError(cnnlCreateTensorDescriptor(&desc));
-        checkCnnlError(cnnlSetTensorDescriptor(
-            desc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, dim_array));
+        checkCnnlError(cnnlSetTensorDescriptor(desc, CNNL_LAYOUT_NCHW,
+                                               CNNL_DTYPE_FLOAT, 4, dim_array));
         cnnlTensorDescriptor_t descArray[num];
         for (int i = 0; i < num; ++i) {
             checkCnnlError(cnnlCreateTensorDescriptor(&descArray[i]));
@@ -50,8 +50,8 @@ class SplitCnnl : public BangKernelWithoutConfig {
         BangPtr wsData = context->getWorkspace(wsSize);
 
         cnnlStatus_t stat =
-            cnnlSplit(context->cnnlHandle(), num, axis, desc, inputData,
-                      wsData, wsSize, descArray, argv);
+            cnnlSplit(context->cnnlHandle(), num, axis, desc, inputData, wsData,
+                      wsSize, descArray, argv);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 

@@ -10,7 +10,7 @@ namespace infini {
 
 template <class T>
 void testPooling(const std::function<void(void *, size_t, DataType)> &generator,
-              const Shape &shape) {
+                 const Shape &shape) {
     // Runtime
     Runtime cpuRuntime = CpuRuntimeObj::getInstance();
     auto bangRuntime = make_ref<BangRuntimeObj>();
@@ -23,7 +23,7 @@ void testPooling(const std::function<void(void *, size_t, DataType)> &generator,
     // GPU
     Graph bangGraph = make_ref<GraphObj>(bangRuntime);
     auto inputGpu = bangGraph->cloneTensor(inputCpu);
-    auto gpuOp = bangGraph->addOp<T>(inputGpu, nullptr, 3,3,1,1,1,1,2,2);
+    auto gpuOp = bangGraph->addOp<T>(inputGpu, nullptr, 3, 3, 1, 1, 1, 1, 2, 2);
     bangGraph->dataMalloc();
     bangRuntime->run(bangGraph);
     auto outputGpu = gpuOp->getOutput();
