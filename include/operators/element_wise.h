@@ -103,4 +103,5 @@ DEFINE_ELEMENT_WISE_OBJ(FloorDiv, OpType::FloorDiv)
 DEFINE_ELEMENT_WISE_OBJ(FloorDivTrunc, OpType::FloorDivTrunc)
 DEFINE_ELEMENT_WISE_OBJ(FloorMod, OpType::FloorMod)
 DEFINE_ELEMENT_WISE_OBJ(FloorModTrunc, OpType::FloorModTrunc)
+DEFINE_ELEMENT_WISE_OBJ(SquaredDifference, OpType::SquaredDifference)
 }; // namespace infini
