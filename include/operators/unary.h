@@ -45,6 +45,22 @@ class ClipObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 };
 
+class FlipObj : public OperatorObj {
+  public:
+    FlipObj(GraphObj *graph, Tensor input, Tensor output, vector<int> axis);
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+
+    std::string toString() const override;
+    vector<int> getAxis() const { return axisValue; };
+    int numInputs() const override { return 1; }
+    int numOutputs() const override { return 1; }
+
+  private:
+    vector<int> axisValue;
+    vector<int> getWorkloadVector() const override;
+    vector<int> getOpAttrVector() const override;
+};
+
 class FillObj : public OperatorObj {
   public:
     FillObj(GraphObj *graph, Tensor input, Tensor output, float value);
