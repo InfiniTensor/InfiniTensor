@@ -24,8 +24,8 @@ class FlipCnnl : public BangKernelWithoutConfig {
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
                                                CNNL_DTYPE_FLOAT, 4, dim_array));
 
-        cnnlStatus_t stat =
-            cnnlFlip(context->cnnlHandle(), axis.data(), axis.size(), aDesc, aData, aDesc, cData);
+        cnnlStatus_t stat = cnnlFlip(context->cnnlHandle(), axis.data(),
+                                     axis.size(), aDesc, aData, aDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
