@@ -92,6 +92,7 @@ enum class OpType {
     Round,
     Square,
     SquaredDifference,
+    Flip,
     //
     MemBound = 300,
 };
@@ -192,6 +193,7 @@ class OpRegistry {
             FOP(Round);
             FOP(Square);
             FOP(SquaredDifference);
+            FOP(Flip);
             //
             FOP(MemBound);
         default:

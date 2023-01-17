@@ -65,6 +65,37 @@ vector<int> ClipObj::getOpAttrVector() const {
     return {enum_to_underlying(type)};
 }
 
+FlipObj::FlipObj(GraphObj *graph, Tensor input, Tensor output, vector<int> axis)
+    : OperatorObj(OpType::Flip, {input}, {output}), axisValue(axis) {
+    IT_ASSERT(checkValid(graph));
+}
+
+optional<vector<Shape>> FlipObj::inferShape(const TensorVec &inputs) const {
+    const auto A = inputs[0];
+    return {{A->getDims()}};
+}
+
+std::string FlipObj::toString() const {
+    std::ostringstream os;
+    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]";
+    os << "(";
+    os << vecToString(inputs[0]->getDims()) << ",";
+    os << "input=" << inputs[0]->getGuid() << ",";
+    os << "output=" << outputs[0]->getGuid() << ")";
+    return os.str();
+}
+
+vector<int> FlipObj::getWorkloadVector() const {
+    vector<int> ret{enum_to_underlying(type)};
+    const Shape shape = outputs[0]->getDims();
+    ret.insert(ret.end(), shape.begin(), shape.end());
+    return ret;
+}
+
+vector<int> FlipObj::getOpAttrVector() const {
+    return {enum_to_underlying(type)};
+}
+
 FillObj::FillObj(GraphObj *graph, Tensor input, Tensor output, float value)
     : OperatorObj(OpType::Fill, {input}, {output}), setValue(value) {
     IT_ASSERT(checkValid(graph));
