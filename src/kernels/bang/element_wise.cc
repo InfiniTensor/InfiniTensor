@@ -66,6 +66,57 @@ class ElementWiseCnnl : public BangKernelWithoutConfig {
     }
 };
 
+class LogicOpCnnl : public BangKernelWithoutConfig {
+    virtual cnnlLogicOp_t getOpType() const = 0;
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<ElementWiseObj>(_op);
+        auto context = dynamic_cast<const BangRuntimeObj *>(_context);
+
+        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
+        void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+
+        cnnlTensorDescriptor_t aDesc, bDesc, cDesc;
+        auto dim = op->getInputs(0)->getDims();
+        if (dim.size() != 4)
+            IT_TODO_HALT();
+
+        int dim_array[4] = {dim[0], dim[1], dim[2], dim[3]};
+        // get inputs
+        checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
+        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
+                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+
+        checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
+        checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
+                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+
+        // get outputs
+        checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
+        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
+                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+
+        size_t wsSize;
+        cnnlGetLogicOpWorkspaceSize(context->cnnlHandle(), aDesc, bDesc, cDesc,
+                                     &wsSize);
+
+        BangPtr wsData = context->getWorkspace(wsSize);
+
+        cnnlStatus_t stat = cnnlLogicOp(context->cnnlHandle(), getOpType(),
+                                         aDesc, aData, bDesc, bData,
+                                         wsData, wsSize, cDesc, cData);
+        if (stat != CNNL_STATUS_SUCCESS)
+            return;
+
+        // Destories in BANG does not require sync. But cnnl does not state
+        // whether sync is required before destories.
+        checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
+        checkCnnlError(cnnlDestroyTensorDescriptor(bDesc));
+        checkCnnlError(cnnlDestroyTensorDescriptor(cDesc));
+    }
+};
+
 class DivCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
@@ -648,6 +699,37 @@ class ElementWiseBang : public BangKernelWithoutConfig {
     }
 };
 
+class EqualCnnl : public LogicOpCnnl {
+    cnnlLogicOp_t getOpType() const override { return CNNL_LOGIC_OP_EQ; }
+};
+class NotEqualCnnl : public LogicOpCnnl {
+    cnnlLogicOp_t getOpType() const override { return CNNL_LOGIC_OP_NE; }
+};
+class GreaterThanCnnl : public LogicOpCnnl {
+    cnnlLogicOp_t getOpType() const override { return CNNL_LOGIC_OP_GT; }
+};
+class GreaterEqualCnnl : public LogicOpCnnl {
+    cnnlLogicOp_t getOpType() const override { return CNNL_LOGIC_OP_GE; }
+};
+class LessThanCnnl : public LogicOpCnnl {
+    cnnlLogicOp_t getOpType() const override { return CNNL_LOGIC_OP_LT; }
+};
+class LessEqualCnnl : public LogicOpCnnl {
+    cnnlLogicOp_t getOpType() const override { return CNNL_LOGIC_OP_LE; }
+};
+class AndCnnl : public LogicOpCnnl {
+    cnnlLogicOp_t getOpType() const override { return CNNL_LOGIC_OP_AND; }
+};
+class OrCnnl : public LogicOpCnnl {
+    cnnlLogicOp_t getOpType() const override { return CNNL_LOGIC_OP_OR; }
+};
+class XorCnnl : public LogicOpCnnl {
+    cnnlLogicOp_t getOpType() const override { return CNNL_LOGIC_OP_XOR; }
+};
+class NotCnnl : public LogicOpCnnl {
+    cnnlLogicOp_t getOpType() const override { return CNNL_LOGIC_OP_NOT; }
+};
+
 REGISTER_KERNEL(Device::BANG, OpType::Add, DataType::Float32, AddCnnl,
                 "Add_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::Sub, DataType::Float32, SubCnnl,
@@ -677,6 +759,26 @@ REGISTER_KERNEL(Device::BANG, OpType::FloorMod, DataType::Float32, FloorModCnnl,
                 "FloorMod_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::SquaredDifference, DataType::Float32,
                 SquaredDifferenceCnnl, "SquaredDifference_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Equal, DataType::Float32, EqualCnnl,
+                "Equal_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::NotEqual, DataType::Float32, NotEqualCnnl,
+                "NotEqual_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::GreaterThan, DataType::Float32, GreaterThanCnnl,
+                "GreaterThan_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::GreaterEqual, DataType::Float32, GreaterEqualCnnl,
+                "GreaterEqual_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::LessThan, DataType::Float32, LessThanCnnl,
+                "LessThan_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::LessEqual, DataType::Float32, LessEqualCnnl,
+                "LessEqual_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::And, DataType::Float32, AndCnnl,
+                "And_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Or, DataType::Float32, OrCnnl,
+                "Or_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Xor, DataType::Float32, XorCnnl,
+                "Xor_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Not, DataType::Float32, NotCnnl,
+                "Not_cnnl_BANG_Float32");
 // REGISTER_KERNEL(Device::BANG, OpType::FloorModTrunc, DataType::Float32,
 // FloorModTruncCnnl,
 //                 "FloorModTrunc_cnnl_BANG_Float32");

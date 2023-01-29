@@ -95,6 +95,16 @@ enum class OpType {
     SquaredDifference,
     Flip,
     Hardtanh,
+    Equal,
+    NotEqual,
+    GreaterThan,
+    GreaterEqual,
+    LessThan,
+    LessEqual,
+    And,
+    Or,
+    Xor,
+    Not,
     //
     MemBound = 300,
 };
@@ -197,6 +207,16 @@ class OpRegistry {
             FOP(SquaredDifference);
             FOP(Flip);
             FOP(Hardtanh);
+            FOP(Equal);
+            FOP(NotEqual);
+            FOP(GreaterThan);
+            FOP(GreaterEqual);
+            FOP(LessThan);
+            FOP(LessEqual);
+            FOP(And);
+            FOP(Or);
+            FOP(Xor);
+            FOP(Not);
             //
             FOP(MemBound);
         default:
