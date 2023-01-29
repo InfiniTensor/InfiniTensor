@@ -65,6 +65,39 @@ vector<int> ClipObj::getOpAttrVector() const {
     return {enum_to_underlying(type)};
 }
 
+HardtanhObj::HardtanhObj(GraphObj *graph, Tensor input, Tensor output, float min,
+                 float max)
+    : OperatorObj(OpType::Hardtanh, {input}, {output}), minValue(min),
+      maxValue(max) {
+    IT_ASSERT(checkValid(graph));
+}
+
+optional<vector<Shape>> HardtanhObj::inferShape(const TensorVec &inputs) const {
+    const auto A = inputs[0];
+    return {{A->getDims()}};
+}
+
+std::string HardtanhObj::toString() const {
+    std::ostringstream os;
+    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]";
+    os << "(";
+    os << vecToString(inputs[0]->getDims()) << ",";
+    os << "input=" << inputs[0]->getGuid() << ",";
+    os << "output=" << outputs[0]->getGuid() << ")";
+    return os.str();
+}
+
+vector<int> HardtanhObj::getWorkloadVector() const {
+    vector<int> ret{enum_to_underlying(type)};
+    const Shape shape = outputs[0]->getDims();
+    ret.insert(ret.end(), shape.begin(), shape.end());
+    return ret;
+}
+
+vector<int> HardtanhObj::getOpAttrVector() const {
+    return {enum_to_underlying(type)};
+}
+
 FlipObj::FlipObj(GraphObj *graph, Tensor input, Tensor output, vector<int> axis)
     : OperatorObj(OpType::Flip, {input}, {output}), axisValue(axis) {
     IT_ASSERT(checkValid(graph));

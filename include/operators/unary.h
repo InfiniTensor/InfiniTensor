@@ -33,6 +33,23 @@ class ClipObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 };
 
+class HardtanhObj : public OperatorObj {
+  public:
+    HardtanhObj(GraphObj *graph, Tensor input, Tensor output, float min, float max);
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+
+    std::string toString() const override;
+    float getMin() const { return minValue; };
+    float getMax() const { return maxValue; };
+    int numInputs() const override { return 1; }
+    int numOutputs() const override { return 1; }
+
+  private:
+    float minValue, maxValue;
+    vector<int> getWorkloadVector() const override;
+    vector<int> getOpAttrVector() const override;
+};
+
 class FlipObj : public OperatorObj {
   public:
     FlipObj(GraphObj *graph, Tensor input, Tensor output, vector<int> axis);
