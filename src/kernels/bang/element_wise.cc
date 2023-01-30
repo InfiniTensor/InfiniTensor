@@ -623,6 +623,110 @@ class SquaredDifferenceCnnl : public BangKernelWithoutConfig {
     }
 };
 
+class AddcdivCnnl : public BangKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<AddcdivObj>(_op);
+        auto context = dynamic_cast<const BangRuntimeObj *>(_context);
+
+        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
+        void *const cData = (op->getInputs(2)->getRawDataPtr<void *>());
+        void *const oData = (op->getOutput()->getRawDataPtr<void *>());
+        float alpha = op->getAlpha();
+
+        cnnlTensorDescriptor_t aDesc, bDesc, cDesc, oDesc;
+        auto dim = op->getInputs(0)->getDims();
+        if (dim.size() != 4)
+            IT_TODO_HALT();
+
+        int dim_array[4] = {dim[0], dim[1], dim[2], dim[3]};
+        // get inputs
+        checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
+        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
+                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+        checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
+        checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
+                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+        checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
+        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
+                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+        // get outputs
+        checkCnnlError(cnnlCreateTensorDescriptor(&oDesc));
+        checkCnnlError(cnnlSetTensorDescriptor(oDesc, CNNL_LAYOUT_NCHW,
+                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+
+        size_t wsSize;
+        cnnlGetAddcdivWorkspaceSize(context->cnnlHandle(), aDesc, bDesc, cDesc,
+                                    &wsSize);
+        BangPtr wsData = context->getWorkspace(wsSize);
+
+        cnnlStatus_t stat = cnnlAddcdiv(context->cnnlHandle(), aDesc, aData, &alpha,
+                                        bDesc, bData, cDesc, cData, wsData, wsSize, oDesc, oData);
+        if (stat != CNNL_STATUS_SUCCESS)
+            return;
+
+        // Destories in BANG does not require sync. But cnnl does not state
+        // whether sync is required before destories.
+        checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
+        checkCnnlError(cnnlDestroyTensorDescriptor(bDesc));
+        checkCnnlError(cnnlDestroyTensorDescriptor(cDesc));
+        checkCnnlError(cnnlDestroyTensorDescriptor(oDesc));
+    }
+};
+
+class AddcmulCnnl : public BangKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<AddcmulObj>(_op);
+        auto context = dynamic_cast<const BangRuntimeObj *>(_context);
+
+        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
+        void *const cData = (op->getInputs(2)->getRawDataPtr<void *>());
+        void *const oData = (op->getOutput()->getRawDataPtr<void *>());
+        float alpha = op->getAlpha();
+
+        cnnlTensorDescriptor_t aDesc, bDesc, cDesc, oDesc;
+        auto dim = op->getInputs(0)->getDims();
+        if (dim.size() != 4)
+            IT_TODO_HALT();
+
+        int dim_array[4] = {dim[0], dim[1], dim[2], dim[3]};
+        // get inputs
+        checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
+        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
+                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+        checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
+        checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
+                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+        checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
+        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
+                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+        // get outputs
+        checkCnnlError(cnnlCreateTensorDescriptor(&oDesc));
+        checkCnnlError(cnnlSetTensorDescriptor(oDesc, CNNL_LAYOUT_NCHW,
+                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+
+        size_t wsSize;
+        cnnlGetAddcmulWorkspaceSize(context->cnnlHandle(), aDesc, bDesc, cDesc,
+                                    &wsSize);
+        BangPtr wsData = context->getWorkspace(wsSize);
+
+        cnnlStatus_t stat = cnnlAddcmul(context->cnnlHandle(), aDesc, aData, &alpha,
+                                        bDesc, bData, cDesc, cData, wsData, wsSize, oDesc, oData);
+        if (stat != CNNL_STATUS_SUCCESS)
+            return;
+
+        // Destories in BANG does not require sync. But cnnl does not state
+        // whether sync is required before destories.
+        checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
+        checkCnnlError(cnnlDestroyTensorDescriptor(bDesc));
+        checkCnnlError(cnnlDestroyTensorDescriptor(cDesc));
+        checkCnnlError(cnnlDestroyTensorDescriptor(oDesc));
+    }
+};
+
 // class FloorModTruncCnnl : public BangKernelWithoutConfig {
 //     void compute(const Operator &_op,
 //                  const RuntimeObj *_context) const override {
@@ -779,6 +883,11 @@ REGISTER_KERNEL(Device::BANG, OpType::Xor, DataType::Float32, XorCnnl,
                 "Xor_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::Not, DataType::Float32, NotCnnl,
                 "Not_cnnl_BANG_Float32");
+
+REGISTER_KERNEL(Device::BANG, OpType::Addcdiv, DataType::Float32, AddcdivCnnl,
+                "Addcdiv_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Addcmul, DataType::Float32, AddcmulCnnl,
+                "Addcmul_cnnl_BANG_Float32");
 // REGISTER_KERNEL(Device::BANG, OpType::FloorModTrunc, DataType::Float32,
 // FloorModTruncCnnl,
 //                 "FloorModTrunc_cnnl_BANG_Float32");

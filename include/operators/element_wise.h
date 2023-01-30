@@ -65,6 +65,40 @@ class MulNObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 };
 
+class AddcdivObj : public OperatorObj {
+  public:
+    AddcdivObj(GraphObj *graph, float alpha, Tensor input0,
+               Tensor input1, Tensor input2, Tensor output);
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+
+    std::string toString() const override;
+    int numInputs() const override { return 3; }
+    int numOutputs() const override { return 1; }
+    float getAlpha() { return alphaValue; }
+
+  private:
+    float alphaValue;
+    vector<int> getWorkloadVector() const override;
+    vector<int> getOpAttrVector() const override;
+};
+
+class AddcmulObj : public OperatorObj {
+  public:
+    AddcmulObj(GraphObj *graph, float alpha, Tensor input0,
+               Tensor input1, Tensor input2, Tensor output);
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+
+    std::string toString() const override;
+    int numInputs() const override { return 3; }
+    int numOutputs() const override { return 1; }
+    float getAlpha() { return alphaValue; }
+
+  private:
+    float alphaValue;
+    vector<int> getWorkloadVector() const override;
+    vector<int> getOpAttrVector() const override;
+};
+
 #define DEFINE_ELEMENT_WISE_OBJ(prefix, type)                                  \
     class prefix##Obj : public ElementWiseObj {                                \
       public:                                                                  \
