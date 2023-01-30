@@ -104,6 +104,8 @@ enum class OpType {
     Or,
     Xor,
     Not,
+    Addcdiv,
+    Addcmul,
     //
     MemBound = 300,
 };
@@ -216,6 +218,8 @@ class OpRegistry {
             FOP(Or);
             FOP(Xor);
             FOP(Not);
+            FOP(Addcdiv);
+            FOP(Addcmul);
             //
             FOP(MemBound);
         default:

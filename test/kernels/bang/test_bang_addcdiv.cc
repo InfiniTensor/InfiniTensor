@@ -9,7 +9,7 @@
 namespace infini {
 
 template <class T>
-void testLogicOp(
+void testAddcdiv(
     const std::function<void(void *, size_t, DataType)> &generator,
     const Shape &shape) {
     // Runtime
@@ -25,33 +25,30 @@ void testLogicOp(
         make_ref<TensorObj>(shape, DataType::Float32, cpuRuntime);
     inputCpu2->dataMalloc();
     inputCpu2->setData(generator);
+    Tensor inputCpu3 =
+        make_ref<TensorObj>(shape, DataType::Float32, cpuRuntime);
+    inputCpu3->dataMalloc();
+    inputCpu3->setData(generator);
 
     // GPU
     Graph bangGraph = make_ref<GraphObj>(bangRuntime);
     auto inputGpu1 = bangGraph->cloneTensor(inputCpu1);
     auto inputGpu2 = bangGraph->cloneTensor(inputCpu2);
-    auto gpuOp = bangGraph->addOp<T>(inputGpu1, inputGpu2, nullptr);
+    auto inputGpu3 = bangGraph->cloneTensor(inputCpu3);
+    float alpha = 1.1;
+    auto gpuOp = bangGraph->addOp<T>(alpha, inputGpu1, inputGpu2, inputGpu3, nullptr);
     bangGraph->dataMalloc();
     bangRuntime->run(bangGraph);
     auto outputGpu = gpuOp->getOutput();
     auto outputGpu2Cpu = outputGpu->clone(cpuRuntime);
+    // Check
     inputCpu1->printData();
-    inputCpu2->printData();
     outputGpu2Cpu->printData();
     EXPECT_TRUE(1);
 }
 
-TEST(cnnl_LogicOp, run) {
-    testLogicOp<EqualObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    testLogicOp<NotEqualObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    testLogicOp<GreaterThanObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    testLogicOp<GreaterEqualObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    testLogicOp<LessThanObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    testLogicOp<LessEqualObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    testLogicOp<AndObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    testLogicOp<OrObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    testLogicOp<XorObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    testLogicOp<NotObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+TEST(cnnl_addcdiv, run) {
+    testAddcdiv<AddcdivObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
 }
 
 } // namespace infini
