@@ -311,4 +311,34 @@ vector<int> CumsumObj::getOpAttrVector() const {
 //     return {enum_to_underlying(type)};
 // }
 
+ArangeObj::ArangeObj(GraphObj *graph, float start, float step, int length, Tensor output)
+    : OperatorObj(OpType::Arange, {}, {output}), startValue(start), stepValue(step), lengthValue(length) {
+    IT_ASSERT(checkValid(graph, DataType::Float32));
+}
+
+optional<vector<Shape>> ArangeObj::inferShape(const TensorVec &inputs) const {
+    Shape temp = { lengthValue };
+    return {{temp}};
+}
+
+std::string ArangeObj::toString() const {
+    std::ostringstream os;
+    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]";
+    os << "(";
+    os << vecToString(outputs[0]->getDims()) << ",";
+    os << "output=" << outputs[0]->getGuid() << ")";
+    return os.str();
+}
+
+vector<int> ArangeObj::getWorkloadVector() const {
+    vector<int> ret{enum_to_underlying(type)};
+    const Shape shape = outputs[0]->getDims();
+    ret.insert(ret.end(), shape.begin(), shape.end());
+    return ret;
+}
+
+vector<int> ArangeObj::getOpAttrVector() const {
+    return {enum_to_underlying(type)};
+}
+
 }; // namespace infini
