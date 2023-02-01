@@ -13,7 +13,7 @@ cmake -DUSE_CUDA=ON .. && make -j 12
 
 There are several configurable CMake options, see the [CMakeList.txt file](/CMakeLists.txt#L5).
 
-> If `USE_BACKTRACE` is on, the `libdw-dev` should be installed. See the README of [backward-cpp](https://github.com/bombela/backward-cpp) for detail.
+> If `USE_BACKTRACE` is on, `libdw-dev` have to be installed. See the README of [backward-cpp](https://github.com/bombela/backward-cpp) for details.
 
 ## Contributor Guide
 
