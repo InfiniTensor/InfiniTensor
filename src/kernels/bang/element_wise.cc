@@ -117,6 +117,57 @@ class LogicOpCnnl : public BangKernelWithoutConfig {
     }
 };
 
+class BitComputeCnnl : public BangKernelWithoutConfig {
+    virtual cnnlBitComputeOp_t getOpType() const = 0;
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<ElementWiseObj>(_op);
+        auto context = dynamic_cast<const BangRuntimeObj *>(_context);
+
+        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
+        void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+
+        cnnlTensorDescriptor_t aDesc, bDesc, cDesc;
+        auto dim = op->getInputs(0)->getDims();
+        if (dim.size() != 4)
+            IT_TODO_HALT();
+
+        int dim_array[4] = {dim[0], dim[1], dim[2], dim[3]};
+        // get inputs
+        checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
+        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
+                                               CNNL_DTYPE_INT32, 4, dim_array));
+
+        checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
+        checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
+                                               CNNL_DTYPE_INT32, 4, dim_array));
+
+        // get outputs
+        checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
+        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
+                                               CNNL_DTYPE_INT32, 4, dim_array));
+
+        size_t wsSize;
+        cnnlGetBitComputeWorkspaceSize(context->cnnlHandle(), aDesc, bDesc, cDesc,
+                                     &wsSize);
+
+        BangPtr wsData = context->getWorkspace(wsSize);
+
+        cnnlStatus_t stat = cnnlBitCompute_v2(context->cnnlHandle(), getOpType(),
+                                              aDesc, aData, bDesc, bData,
+                                              cDesc, cData, wsData, wsSize);
+        if (stat != CNNL_STATUS_SUCCESS)
+            return;
+
+        // Destories in BANG does not require sync. But cnnl does not state
+        // whether sync is required before destories.
+        checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
+        checkCnnlError(cnnlDestroyTensorDescriptor(bDesc));
+        checkCnnlError(cnnlDestroyTensorDescriptor(cDesc));
+    }
+};
+
 class DivCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
@@ -834,6 +885,25 @@ class NotCnnl : public LogicOpCnnl {
     cnnlLogicOp_t getOpType() const override { return CNNL_LOGIC_OP_NOT; }
 };
 
+class BitAndCnnl : public BitComputeCnnl {
+    cnnlBitComputeOp_t getOpType() const override { return CNNL_CYCLE_BAND_OP; }
+};
+class BitOrCnnl : public BitComputeCnnl {
+    cnnlBitComputeOp_t getOpType() const override { return CNNL_CYCLE_BOR_OP; }
+};
+class BitXorCnnl : public BitComputeCnnl {
+    cnnlBitComputeOp_t getOpType() const override { return CNNL_CYCLE_BXOR_OP; }
+};
+class BitNotCnnl : public BitComputeCnnl {
+    cnnlBitComputeOp_t getOpType() const override { return CNNL_BNOT_OP; }
+};
+// class BitLeftShiftCnnl : public BitComputeCnnl {
+//     cnnlBitComputeOp_t getOpType() const override { return CNNL_BLEFT_SHIFT_OP_V2; }
+// };
+// class BitRightShiftCnnl : public BitComputeCnnl {
+//     cnnlBitComputeOp_t getOpType() const override { return CNNL_BLEFT_SHIFT_OP_V2; }
+// };
+
 REGISTER_KERNEL(Device::BANG, OpType::Add, DataType::Float32, AddCnnl,
                 "Add_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::Sub, DataType::Float32, SubCnnl,
@@ -888,6 +958,19 @@ REGISTER_KERNEL(Device::BANG, OpType::Addcdiv, DataType::Float32, AddcdivCnnl,
                 "Addcdiv_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::Addcmul, DataType::Float32, AddcmulCnnl,
                 "Addcmul_cnnl_BANG_Float32");
+
+REGISTER_KERNEL(Device::BANG, OpType::BitAnd, DataType::Float32, BitAndCnnl,
+                "BitAnd_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::BitOr, DataType::Float32, BitOrCnnl,
+                "BitOr_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::BitXor, DataType::Float32, BitXorCnnl,
+                "BitXor_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::BitNot, DataType::Float32, BitNotCnnl,
+                "BitNot_cnnl_BANG_Float32");
+// REGISTER_KERNEL(Device::BANG, OpType::BitLeftShift, DataType::Float32, BitLeftShiftCnnl,
+//                 "BitLeftShift_cnnl_BANG_Float32");
+// REGISTER_KERNEL(Device::BANG, OpType::BitRightShift, DataType::Float32, BitRightShiftCnnl,
+//                 "BitRightShift_cnnl_BANG_Float32");
 // REGISTER_KERNEL(Device::BANG, OpType::FloorModTrunc, DataType::Float32,
 // FloorModTruncCnnl,
 //                 "FloorModTrunc_cnnl_BANG_Float32");

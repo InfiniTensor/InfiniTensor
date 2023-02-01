@@ -107,6 +107,12 @@ enum class OpType {
     Not,
     Addcdiv,
     Addcmul,
+    BitAnd,
+    BitOr,
+    BitXor,
+    BitNot,
+    BitLeftShift,
+    BitRightShift,
     //
     MemBound = 300,
 };
@@ -221,6 +227,12 @@ class OpRegistry {
             FOP(Not);
             FOP(Addcdiv);
             FOP(Addcmul);
+            FOP(BitAnd);
+            FOP(BitOr);
+            FOP(BitXor);
+            FOP(BitNot);
+            FOP(BitLeftShift);
+            FOP(BitRightShift);
             //
             FOP(MemBound);
         default:
