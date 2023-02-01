@@ -1,0 +1,25 @@
+name: Build
+on:
+  pull_request:
+    path:
+      - 'include'
+      - 'src'
+      - 'test'
+      - '.gitmodules'
+      - 'CMakeLists.txt'
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+    - name: Install libdw
+      run: sudo apt-get update && sudo apt-get install libdw-dev
+
+    - name: Build
+      run: |
+        mkdir build
+        cd build && cmake .. -DUSE_PROTOBUF=OFF && make -j
