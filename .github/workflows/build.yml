@@ -1,4 +1,4 @@
-name: Build
+name: Build and test cpu
 on:
   pull_request:
     paths:
@@ -53,3 +53,8 @@ jobs:
         cd build
         cmake ..
         make -j2
+
+    - name: Test cpu
+      run: |
+        cd build
+        make test
