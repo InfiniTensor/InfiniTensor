@@ -2,6 +2,7 @@ name: clang-format Check
 on:
   pull_request:
     paths:
+      - '.github/workflows/clang-format-check.yml'
       - '.clang-format'
       - 'include'
       - 'src'

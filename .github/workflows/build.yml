@@ -2,11 +2,17 @@ name: Build
 on:
   pull_request:
     paths:
+      - '.github/workflows/build.yml'
       - 'include'
       - 'src'
       - 'test'
       - '.gitmodules'
       - 'CMakeLists.txt'
+
+env:
+  protobuf_download: https://github.com/protocolbuffers/protobuf/releases/download/v21.12/protobuf-cpp-3.21.12.tar.gz
+  protobuf_version: 3.21.12
+
 jobs:
   build:
     name: Build
@@ -19,7 +25,18 @@ jobs:
     - name: Install libdw
       run: sudo apt-get update && sudo apt-get install libdw-dev
 
+    - name: Install protobuf
+      run: |
+        wget ${{ env.protobuf_download }}
+        tar xf protobuf-cpp-${{ env.protobuf_version }}.tar.gz
+        cd protobuf-${{ env.protobuf_version }}
+        ./autogen.sh
+        ./configure CFLAGS="-fPIC" CXXFLAGS="-fPIC"
+        make -j
+        sudo make install
+        sudo ldconfig
+
     - name: Build
       run: |
         mkdir build
-        cd build && cmake .. -DUSE_PROTOBUF=OFF && make -j
+        cd build && cmake .. && make -j
