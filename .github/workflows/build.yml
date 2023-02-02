@@ -25,18 +25,32 @@ jobs:
     - name: Install libdw
       run: sudo apt-get update && sudo apt-get install libdw-dev
 
-    - name: Install protobuf
+    - name: Cache protobuf
+      id: cache-protobuf
+      uses: actions/cache@v3
+      with:
+        path: protobuf-${{ env.protobuf_version }}
+        key: protobuf-${{ env.protobuf_version }}
+
+    - name: Download and compile protobuf
+      if: steps.cache-protobuf.outputs.cache-hit != 'true'
       run: |
         wget ${{ env.protobuf_download }}
         tar xf protobuf-cpp-${{ env.protobuf_version }}.tar.gz
         cd protobuf-${{ env.protobuf_version }}
         ./autogen.sh
         ./configure CFLAGS="-fPIC" CXXFLAGS="-fPIC"
-        make -j
+        make -j2
+
+    - name: Install protobuf
+      run: |
+        cd protobuf-${{ env.protobuf_version }}
         sudo make install
         sudo ldconfig
 
     - name: Build
       run: |
         mkdir build
-        cd build && cmake .. && make -j
+        cd build
+        cmake ..
+        make -j2
