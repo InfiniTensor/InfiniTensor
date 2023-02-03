@@ -46,7 +46,7 @@ void testConv(const std::function<void(void *, size_t, DataType)> &generatorA,
     outputCpu->print();
     outputMlu2Cpu->print();
     // Check
-    //EXPECT_TRUE(outputCpu->equalData(outputMlu2Cpu));
+    // EXPECT_TRUE(outputCpu->equalData(outputMlu2Cpu));
     EXPECT_TRUE(true);
 }
 
