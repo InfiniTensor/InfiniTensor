@@ -2,9 +2,9 @@ name: Build and test cpu
 on:
   pull_request:
     paths:
-      - 'include'
-      - 'src'
-      - 'test'
+      - 'include/**'
+      - 'src/**'
+      - 'test/**'
       - '.gitmodules'
       - 'CMakeLists.txt'
 

@@ -2,10 +2,10 @@ name: clang-format Check
 on:
   pull_request:
     paths:
+      - 'include/**'
+      - 'src/**'
+      - 'test/**'
       - '.clang-format'
-      - 'include'
-      - 'src'
-      - 'test'
 jobs:
   formatting-check:
     name: Formatting Check
