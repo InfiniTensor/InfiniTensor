@@ -5,6 +5,7 @@ on:
       - 'include/**'
       - 'src/**'
       - 'test/**'
+      - '3rd-party/**'
       - '.gitmodules'
       - 'CMakeLists.txt'
 
