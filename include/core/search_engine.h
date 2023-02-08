@@ -3,7 +3,6 @@
 #include "common.h"
 #include "graph.h"
 #include "mutator.h"
-#include "operator.h"
 
 #include <unordered_map>
 
@@ -21,17 +20,12 @@ class SearchEngine {
     ~SearchEngine() {}
 
   private: // Configurations
-    size_t
-        partitionThreshold = 3; // cut nodes whose #in + #out >= partitionThreshold
-    size_t GRAPH_SIZE = 16;
-    bool enableMetagraphMerging; // searchDfs
-    bool enableVerification;     // compare the outputs of replacer and replacee
+    size_t partitionThreshold =
+        3;                  // cut nodes whose #in + #out >= partitionThreshold
+    size_t GRAPH_SIZE = 16; // num of best graphs.
 
   private: // Composed objects
     std::shared_ptr<Mutator> mutationEngine;
-    // std::shared_ptr<TransEliminator> eliminateEngine;
-    std::unordered_map<uint64_t, std::vector<std::shared_ptr<Graph>>>
-        mutationArchive;
 
   public:
     std::shared_ptr<Mutator> getMutationEngine() { return mutationEngine; };
@@ -42,7 +36,7 @@ class SearchEngine {
             next = next_;
         }
     };
-    struct Candidate {
+    struct Candidate { // a graph with perf
         std::shared_ptr<Graph> graph;
         double perf;
         Candidate() {
@@ -53,9 +47,8 @@ class SearchEngine {
             graph = graph_;
             perf = perf_;
         }
-        static bool cmp(const Candidate &a, const Candidate &b);
     };
-    class MetaGraph {
+    class MetaGraph { // a graph of subgraphs, for searching.
       public:
         MetaGraph() {}
         ~MetaGraph() {}
@@ -68,23 +61,10 @@ class SearchEngine {
         std::vector<Node> nodes;
     };
 
-    Graph run(const Graph graph);
-    std::vector<Graph> search(const Graph &graph);
-
-    int isMutatable(const std::shared_ptr<Graph> &graph);
-    int isSpecialMutation(Operator *, int depth);
-    double getPerf(const std::shared_ptr<Graph> &graph, bool profiling = false,
-                   bool withPenalty = true);
-    double getMaxPerf(const std::shared_ptr<Graph> &graph,
-                      bool profiling = false, bool withPenalty = true);
-    double getTransPerf(const std::shared_ptr<Graph> &graph);
-    int getMutation(std::shared_ptr<Graph> &graph,
-                    std::vector<std::shared_ptr<Graph>> &mutatedGraphs);
-    int getSingleMutation(std::shared_ptr<Graph> &graph,
-                          std::vector<std::shared_ptr<Graph>> &candidates);
+    Graph run(const Graph graph);                  // entrance of search engine.
+    std::vector<Graph> search(const Graph &graph); // search for a partition.
 
   private:
-
     std::vector<Graph> partitionGraph(const Graph graph);
     std::shared_ptr<MetaGraph> buildMetaGraphWithGraph(const Graph graph);
     std::shared_ptr<MetaGraph>

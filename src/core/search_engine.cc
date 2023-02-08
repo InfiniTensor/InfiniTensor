@@ -83,7 +83,7 @@ Graph SearchEngine::run(const Graph graph) {
         std::cout << "bestGraph " << i << ":" << std::endl;
         std::cout << bestGraphs[i]->toString();
         std::cout << "[INFO] perf: " << runtimeExec->getPerfTime(bestGraphs[i])
-                << std::endl;
+                  << std::endl;
     }
 
     // bestGraph = fuse(bestGraph);
@@ -112,14 +112,15 @@ std::vector<Graph> SearchEngine::search(const Graph &graph) {
     }
 
     sort(results.begin(), results.end(), [&](Graph x, Graph y) {
-            return runtimeExec->getPerfTime(x) < runtimeExec->getPerfTime(y);
-        }); // compare with perf time
+        return runtimeExec->getPerfTime(x) < runtimeExec->getPerfTime(y);
+    }); // compare with perf time
     if (results.size() > GRAPH_SIZE) {
         results.resize(GRAPH_SIZE);
     }
     return results;
 }
 
+// Build metagraph with a graph, each operator is a node.
 std::shared_ptr<SearchEngine::MetaGraph>
 SearchEngine::buildMetaGraphWithGraph(const Graph graph) {
     auto metaGraph = std::make_shared<MetaGraph>();
@@ -163,6 +164,8 @@ SearchEngine::buildMetaGraphWithGraph(const Graph graph) {
     return metaGraph;
 }
 
+// build a metagraph with graph and a plan, a plan is which ops should be a
+// node.
 std::shared_ptr<SearchEngine::MetaGraph> SearchEngine::buildMetaGraphWithPlan(
     const std::shared_ptr<SearchEngine::MetaGraph> metaGraph,
     const std::vector<int> &plan) {
@@ -209,6 +212,7 @@ std::shared_ptr<SearchEngine::MetaGraph> SearchEngine::buildMetaGraphWithPlan(
     return resultMetaGraph;
 }
 
+// search how to merge multiple ops.
 std::vector<std::shared_ptr<SearchEngine::MetaGraph>>
 SearchEngine::searchMerge(std::shared_ptr<SearchEngine::MetaGraph> &metaGraph) {
     IT_ASSERT(metaGraph != nullptr);
@@ -234,6 +238,7 @@ SearchEngine::searchMerge(std::shared_ptr<SearchEngine::MetaGraph> &metaGraph) {
     return metaGraphs;
 }
 
+// DFS impl for search merge.
 void SearchEngine::searchMergeDfs(std::shared_ptr<MetaGraph> &metaGraph,
                                   std::vector<int> &plan,
                                   std::vector<int> &frontier,
@@ -323,6 +328,7 @@ void SearchEngine::searchMergeDfs(std::shared_ptr<MetaGraph> &metaGraph,
     return;
 }
 
+// search mutation for each compute op.
 std::vector<Graph> SearchEngine::searchMutation(
     const std::shared_ptr<SearchEngine::MetaGraph> &metaGraph) {
     std::vector<Graph> graphs = {nullptr};
@@ -375,6 +381,7 @@ std::vector<Graph> SearchEngine::searchMutation(
     return graphs;
 }
 
+// check merge for a graph.
 bool SearchEngine::isMergeable(const Graph graph) {
     IT_ASSERT(graph->getOperators().size() <= 1);
     // TODO: mutator is mergeable()
@@ -386,6 +393,8 @@ bool SearchEngine::isMergeable(const Graph graph) {
     return 0;
 }
 
+// Split a graph into multiple independt graphs. Search engine will search for
+// each one.
 std::vector<Graph> SearchEngine::partitionGraph(const Graph graph) {
     std::vector<Graph> partitions;
     // partitions.emplace_back(graph);
