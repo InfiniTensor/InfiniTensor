@@ -11,7 +11,7 @@ cmake -DUSE_CUDA=ON .. && make -j 12
 
 ### CMake Options
 
-There are several configurable CMake options, see the [CMakeList.txt file](/CMakeLists.txt#L5).
+There are several configurable CMake options, see the [CMakeLists.txt file](/CMakeLists.txt#L5).
 
 - If `USE_BACKTRACE` is `ON`, `libdw-dev` have to be installed. See the README of [backward-cpp](https://github.com/bombela/backward-cpp) for details.
 - If `USE_PROTOBUF` is `ON`, `protobuf` have to be installed. See the README of [protobuf](https://github.com/protocolbuffers/protobuf) for details.
