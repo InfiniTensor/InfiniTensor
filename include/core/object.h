@@ -39,11 +39,6 @@ class Fuid {
 
   public:
     Fuid() { fuid = generateFuid(); }
-    Fuid(const Guid &rhs) { fuid = generateFuid(); }
-    Fuid &operator=(const Guid &rhs) {
-        fuid = generateFuid();
-        return *this;
-    }
 
     operator GuidBaseType() const { return fuid; }
 };

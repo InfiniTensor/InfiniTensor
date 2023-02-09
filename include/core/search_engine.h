@@ -70,7 +70,7 @@ class SearchEngine {
     std::shared_ptr<MetaGraph>
     buildMetaGraphWithPlan(const std::shared_ptr<MetaGraph> metaGraph,
                            const std::vector<int> &plan);
-    // search merge
+    // search horizontal merges
     std::vector<std::shared_ptr<MetaGraph>>
     searchMerge(std::shared_ptr<MetaGraph> &metaGraph);
     void searchMergeDfs(std::shared_ptr<MetaGraph> &metaGraph,

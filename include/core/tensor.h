@@ -10,8 +10,8 @@ using Shape = vector<ShapeElem>;
 class TensorObj : public TensorBaseObj {
   private:
     Shape shape;
-    Fuid fuid; // Tensor cloned from a common tensor share the same id. Tensors
-               // constructed from common constructor has a new id.
+    Fuid fuid; // Cloned tensors share the same id. Tensors constructed from
+               // scratch have a new id.
 
   public:
     TensorObj(const Shape &shape, DataType dtype, Runtime runtime);
@@ -63,7 +63,11 @@ class TensorObj : public TensorBaseObj {
     }
     // TODO: clarify whether clone copies data
     Tensor clone(Runtime runtime) const {
-        auto obj = make_ref<TensorObj>(shape, dtype, runtime);
+        auto obj = make_ref<TensorObj>(*this);
+        obj->runtime = runtime;
+        obj->freeData();
+        obj->inputOf.clear();
+        obj->outputOf.reset();
         if (hasData()) {
             obj->dataMalloc();
             obj->copyData(this);
