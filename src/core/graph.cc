@@ -4,7 +4,7 @@
 namespace infini {
 
 GraphObj::GraphObj(Runtime runtime, OpVec ops_in) : runtime(runtime) {
-    map<GuidBaseType, Tensor> tensorPool;
+    map<UidBaseType, Tensor> tensorPool;
     // Clone tensors
     for (const auto &op : ops_in) {
         for (const auto &t : op->getInputs())
@@ -53,7 +53,7 @@ string GraphObj::toString() const {
 
     oss << "Graph operators:\n";
     for (const auto &op : ops) {
-        vector<GuidBaseType> preds, succs;
+        vector<UidBaseType> preds, succs;
         for (auto &o : op->getPredecessors())
             preds.emplace_back(o->getGuid());
         for (auto &o : op->getSuccessors())

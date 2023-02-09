@@ -27,7 +27,7 @@ class TensorObj : public TensorBaseObj {
     using TensorBaseObj::getData;
     VType getData(const Shape &pos) const;
     void dataMalloc();
-    GuidBaseType getFuid() const { return fuid; }
+    UidBaseType getFuid() const { return fuid; }
 
     void load(std::string file_path);
     void save(std::string file_path);

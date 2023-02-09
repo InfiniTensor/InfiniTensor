@@ -4,15 +4,15 @@
 
 namespace infini {
 
-using GuidBaseType = int;
+using UidBaseType = int;
 
 class Guid {
   private:
-    GuidBaseType guid;
+    UidBaseType guid;
 
   private:
-    GuidBaseType generateGuid() {
-        static GuidBaseType guidCnt = 0;
+    UidBaseType generateGuid() {
+        static UidBaseType guidCnt = 0;
         return ++guidCnt;
     }
 
@@ -24,23 +24,23 @@ class Guid {
         return *this;
     }
 
-    operator GuidBaseType() const { return guid; }
+    operator UidBaseType() const { return guid; }
 };
 
 class Fuid {
   private:
-    GuidBaseType fuid;
+    UidBaseType fuid;
 
   private:
-    GuidBaseType generateFuid() {
-        static GuidBaseType guidCnt = 0;
+    UidBaseType generateFuid() {
+        static UidBaseType guidCnt = 0;
         return ++guidCnt;
     }
 
   public:
     Fuid() { fuid = generateFuid(); }
 
-    operator GuidBaseType() const { return fuid; }
+    operator UidBaseType() const { return fuid; }
 };
 
 class Object {
@@ -51,7 +51,7 @@ class Object {
     virtual ~Object(){};
     virtual string toString() const = 0;
     void print() { std::cout << toString() << std::endl; }
-    GuidBaseType getGuid() const { return guid; }
+    UidBaseType getGuid() const { return guid; }
 };
 
 inline std::ostream &operator<<(std::ostream &os, const Object &obj) {
