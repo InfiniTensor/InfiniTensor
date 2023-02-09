@@ -1,12 +1,10 @@
 name: clang-format Check
 on:
   pull_request:
-    paths:
-      - 'include/**'
-      - 'src/**'
-      - 'test/**'
-      - '3rd-party/**'
-      - '.clang-format'
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+
 jobs:
   formatting-check:
     name: Formatting Check

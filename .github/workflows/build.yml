@@ -1,13 +1,9 @@
 name: Build and test cpu
 on:
   pull_request:
-    paths:
-      - 'include/**'
-      - 'src/**'
-      - 'test/**'
-      - '3rd-party/**'
-      - '.gitmodules'
-      - 'CMakeLists.txt'
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
 
 env:
   protobuf_download: https://github.com/protocolbuffers/protobuf/releases/download/v21.12/protobuf-cpp-3.21.12.tar.gz
