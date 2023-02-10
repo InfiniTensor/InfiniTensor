@@ -23,8 +23,8 @@ TEST(nnet, MemboundOpInterpretation) {
     g->addOpWithOutputs<MatmulObj>(i0, w0, o0);
     NMutator nmutator(NMutator::Mode::ToNaiveMembound);
     auto mutations = nmutator.run(g);
-    ASSERT_EQ(mutations.size(), 1u);
-    Graph gNew = mutations[0];
+    ASSERT_EQ(mutations.size(), 2u);
+    Graph gNew = mutations[1];
     gNew->print();
 
     gNew->dataMalloc();
@@ -54,8 +54,8 @@ TEST(nnet, MemboundOp_Ansor_Codegen) {
     g->addOpWithOutputs<MatmulObj>(i0, w0, o0);
     NMutator nmutator(NMutator::Mode::ToNaiveMembound);
     auto mutations = nmutator.run(g);
-    ASSERT_EQ(mutations.size(), 1u);
-    Graph gNew = mutations[0];
+    ASSERT_EQ(mutations.size(), 2u);
+    Graph gNew = mutations[1];
     gNew->print();
     gNew->dataMalloc();
     runtime->run(gNew, true); // tune kernels

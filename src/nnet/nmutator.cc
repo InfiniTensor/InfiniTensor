@@ -22,11 +22,10 @@ NMutator::~NMutator() {}
 void NMutator::setToNaiveMembound() { mode = Mode::ToNaiveMembound; }
 
 vector<Graph> NMutator::run(const Graph &in_graph) {
-    vector<Graph> out_graphs;
+    vector<Graph> out_graphs{in_graph};
     // Test helper: naively transform one Op to Membound
     if (mode == Mode::ToNaiveMembound) {
         runSingleOpToNaiveMembound(in_graph, out_graphs);
-        dbg(out_graphs.size());
         return out_graphs;
     }
     // // Hack for HetConv fusion
@@ -54,12 +53,22 @@ void NMutator::runSingleOpToNaiveMembound(Graph in_graph,
     auto g = infini::make_ref<GraphObj>(CpuRuntimeObj::getInstance());
     auto expr = opToExpression(computeOp);
     auto inputsN = nnet::GetTensorsVisitor().get(expr);
-    dbg(inputsN);
-    dbg(expr);
-    // FIXME: tensors should be copied?
-    g->addOpWithOutputs<MemBoundObj>(
-        computeOp->getInputs(), computeOp->getOutputs(),
-        vector<nnet::Tensor>{inputsN.at("A"), inputsN.at("B")}, expr, 0.);
+    dbg(inputsN, expr);
+    IT_ASSERT(inputsN.count("B") + inputsN.count("K") == 1,
+              "Which one is the second input tensor?");
+    vector<nnet::Tensor> inputsVectorN = {inputsN.at("A")};
+    if (inputsN.count("B"))
+        inputsVectorN.emplace_back(inputsN["B"]);
+    else
+        inputsVectorN.emplace_back(inputsN["K"]);
+    // clone IF inputs and outputs into the new graph
+    TensorVec inputsT, outputsT;
+    for (auto t : computeOp->getInputs())
+        inputsT.emplace_back(g->cloneTensor(t));
+    for (auto t : computeOp->getOutputs())
+        outputsT.emplace_back(g->cloneTensor(t));
+    g->addOpWithOutputs<MemBoundObj>(inputsT, outputsT, inputsVectorN, expr,
+                                     0.);
     g->print();
     out_graphs.emplace_back(g);
 }
@@ -226,62 +235,62 @@ void NMutator::runMultipleOps(Graph in_graph, std::vector<Graph> &out_graphs) {
 
 nnet::Expr NMutator::opToExpression(Operator op) {
     // IT_TODO_HALT();
-    // if (auto convOp = dynamic_cast<ConvOp *>(op)) {
-    //     const auto &inputs = convOp->getInputs();
-    //     const auto &AT = inputs[0];
-    //     const auto &KT = inputs[1];
-    //     const auto &[n, c, h, w, f, r, s, ph, pw, sh, sw, dh, dw, g, bi, ac]
-    //     =
-    //         convOp->getArgs(0);
-    //     dbg(n, c, h, w, f, r, s, ph, pw, sh, sw, dh, dw);
-    //     if (!(sh == 1 && sw == 1 && dh == 1 && dw == 1))
-    //         return nullptr;
-    //     assert(sh == 1 && sw == 1 && dh == 1 && dw == 1);
-    //     inputsNameNToTensorT["A"] = AT;
-    //     inputsNameNToTensorT["K"] = KT;
-    //     const auto A = nnet::makeTensor("A", AT->getDims(),
-    //                                     std::vector<int>{0, 0, ph, pw});
-    //     const auto K = nnet::makeTensor("K", KT->getDims());
-    //     return nnet::ConvPattern::getExpr(A, K, n, c, h, w, f, r, s);
-    // } else if (auto convOp = dynamic_cast<ConvTransOp *>(op)) {
-    //     const auto &AT = convOp->getInputs()[0];
-    //     const auto &KT = convOp->getInputs()[1];
-    //     inputsNameNToTensorT["A"] = AT;
-    //     inputsNameNToTensorT["K"] = KT;
-    //     const auto &[n, c, h, w, f, r, s, ph, pw, sh, sw, dh, dw, g, bi, ac]
-    //     =
-    //         convOp->getArgs(0);
-    //     if (r != 4) {
-    //         dbg("ConvTranspose R!=4. Skipped.", r);
-    //         return nullptr;
-    //     }
-    //     int padding = 1 * (r - 1) - 1;
-    //     const auto A = nnet::makeTensor(
-    //         "A", AT->getDims(), std::vector<int>{0, padding, padding, 0});
-    //     const auto K = nnet::makeTensor("K", KT->getDims());
-    //     return nnet::ConvTransPattern::getExpr(A, K, n, c, h, w, f, r, s);
-    // } else if (auto g2bmmOp = dynamic_cast<G2BMMOp *>(op)) {
-    //     const auto &AT = g2bmmOp->getInputs()[0];
-    //     const auto &BT = g2bmmOp->getInputs()[1];
-    //     const auto [b, m, k, width, dilation] = g2bmmOp->getArgs();
+    if (auto convOp = as<ConvObj>(op)) {
+        const auto &inputs = convOp->getInputs();
+        const auto &AT = inputs[0];
+        const auto &KT = inputs[1];
+        const auto &[n, c, h, w, f, r, s] = convOp->getNCHWFRS();
+        const auto &[ph, pw, sh, sw, dh, dw] = convOp->getPadStrideDilation();
+        if (!(sh == 1 && sw == 1 && dh == 1 && dw == 1))
+            return nullptr;
+        assert(sh == 1 && sw == 1 && dh == 1 && dw == 1);
+        inputsNameNToTensorT["A"] = AT;
+        inputsNameNToTensorT["K"] = KT;
+        const auto A = nnet::makeTensor("A", AT->getDims(),
+                                        std::vector<int>{0, 0, ph, pw});
+        const auto K = nnet::makeTensor("K", KT->getDims());
+        return nnet::ConvPattern::getExpr(A, K, n, c, h, w, f, r, s);
+        // } else if (auto convOp = dynamic_cast<ConvTransOp *>(op)) {
+        //     const auto &AT = convOp->getInputs()[0];
+        //     const auto &KT = convOp->getInputs()[1];
+        //     inputsNameNToTensorT["A"] = AT;
+        //     inputsNameNToTensorT["K"] = KT;
+        //     const auto &[n, c, h, w, f, r, s, ph, pw, sh, sw, dh, dw, g, bi,
+        //     ac]
+        //     =
+        //         convOp->getArgs(0);
+        //     if (r != 4) {
+        //         dbg("ConvTranspose R!=4. Skipped.", r);
+        //         return nullptr;
+        //     }
+        //     int padding = 1 * (r - 1) - 1;
+        //     const auto A = nnet::makeTensor(
+        //         "A", AT->getDims(), std::vector<int>{0, padding, padding,
+        //         0});
+        //     const auto K = nnet::makeTensor("K", KT->getDims());
+        //     return nnet::ConvTransPattern::getExpr(A, K, n, c, h, w, f, r,
+        //     s);
+        // } else if (auto g2bmmOp = dynamic_cast<G2BMMOp *>(op)) {
+        //     const auto &AT = g2bmmOp->getInputs()[0];
+        //     const auto &BT = g2bmmOp->getInputs()[1];
+        //     const auto [b, m, k, width, dilation] = g2bmmOp->getArgs();
 
-    //     const auto &[expr, inputsN] =
-    //         nnet::Sg2bmmPattern::getExpr(b, m, k, width, dilation);
-    //     inputsNameNToTensorT[inputsN.first->getName()] = AT;
-    //     inputsNameNToTensorT[inputsN.second->getName()] = BT;
-    //     return expr;
-    // } else if (auto gbmmlOp = dynamic_cast<GBMMLOp *>(op)) {
-    //     const auto &AT = gbmmlOp->getInputs()[0];
-    //     const auto &BT = gbmmlOp->getInputs()[1];
-    //     const auto [b, m, w, k, dilation] = gbmmlOp->getArgs();
-    //     const auto &[expr, inputsN] =
-    //         nnet::LongformerGBMMPattern::getExpr(b, m, w, k, dilation);
-    //     inputsNameNToTensorT[inputsN.first->getName()] = AT;
-    //     inputsNameNToTensorT[inputsN.second->getName()] = BT;
-    //     dbg(b, m, w, k, dilation, expr);
-    //     return expr;
-    // } else
-    if (auto matmulOp = as<MatmulObj>(op)) {
+        //     const auto &[expr, inputsN] =
+        //         nnet::Sg2bmmPattern::getExpr(b, m, k, width, dilation);
+        //     inputsNameNToTensorT[inputsN.first->getName()] = AT;
+        //     inputsNameNToTensorT[inputsN.second->getName()] = BT;
+        //     return expr;
+        // } else if (auto gbmmlOp = dynamic_cast<GBMMLOp *>(op)) {
+        //     const auto &AT = gbmmlOp->getInputs()[0];
+        //     const auto &BT = gbmmlOp->getInputs()[1];
+        //     const auto [b, m, w, k, dilation] = gbmmlOp->getArgs();
+        //     const auto &[expr, inputsN] =
+        //         nnet::LongformerGBMMPattern::getExpr(b, m, w, k, dilation);
+        //     inputsNameNToTensorT[inputsN.first->getName()] = AT;
+        //     inputsNameNToTensorT[inputsN.second->getName()] = BT;
+        //     dbg(b, m, w, k, dilation, expr);
+        //     return expr;
+    } else if (auto matmulOp = as<MatmulObj>(op)) {
         const auto &AT = matmulOp->getInputs()[0];
         const auto &BT = matmulOp->getInputs()[1];
         const auto [b, m, n, k, transA, transB] = matmulOp->getBMNKTransAB();

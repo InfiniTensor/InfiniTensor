@@ -8,8 +8,9 @@ class GraphObj : public Object {
   protected:
     Runtime runtime;
     TensorVec tensors;
-    TensorVec inputs;
-    TensorVec outputs;
+    // TODO: whether to record input and output tensors
+    // TensorVec inputs;
+    // TensorVec outputs;
     OpVec ops;
 
   public:
@@ -47,18 +48,22 @@ class GraphObj : public Object {
     }
 
     const TensorVec &getTensors() const { return tensors; }
-    const TensorVec &getInputs() const {
-        IT_TODO_HALT();
-        return inputs;
+    const TensorVec getInputsAndWeights() const {
+        TensorVec ret;
+        for (auto t : tensors)
+            if (!t->getOutputOf())
+                ret.emplace_back(t);
+        return ret;
     }
-    const TensorVec &getOutputs() const {
-        IT_TODO_HALT();
-        return outputs;
+    const TensorVec getOutputs() const {
+        TensorVec ret;
+        for (auto t : tensors)
+            if (t->getInputOf().empty())
+                ret.emplace_back(t);
+        return ret;
     }
     const OpVec &getOperators() const { return ops; }
     OpVec getComputeOps() const;
-    // TensorVec &getInputs();
-    // TensorVec &getOutputs();
 
     void dataMalloc();
 

@@ -2,6 +2,7 @@
 #include "core/blob.h"
 #include "core/kernel.h"
 #include "core/perf_engine.h"
+#include "utils/data_generator.h"
 #include <chrono>
 #include <cstring>
 namespace infini {
@@ -73,8 +74,27 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling) const {
         PerfRecord record;
         // Tune the kernel if there is no record
         if (!perfData) {
+            // TODO: should tenosrs automatically allocate when access data?
+            // allocate memory for empty tensors and release it after profiling
+            TensorVec allocatedTensors;
+            for (auto t : op->getInputs())
+                if (!t->hasData())
+                    allocatedTensors.emplace_back(t);
+            for (auto t : op->getOutputs())
+                if (!t->hasData())
+                    allocatedTensors.emplace_back(t);
+            for (auto t : allocatedTensors) {
+                t->dataMalloc();
+                t->setData(IncrementalGenerator());
+            }
+
+            // Profile operators and record the results
             record = kernel->tune(op, this);
             perfEngine.setPerfData(perfKey, record);
+
+            // Free allocated memory
+            for (auto t : allocatedTensors)
+                t->freeData();
         } else
             record = perfData;
 
