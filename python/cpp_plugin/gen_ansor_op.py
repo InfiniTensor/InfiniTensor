@@ -68,10 +68,9 @@ def gen_ansor_op(input_tensors, input_dtypes, output_tensor, output_dtype, f, fu
     func_code = func.imported_modules[0].get_source()
     invoke_code = "%s_kernel0<<<dim3(%s), dim3(%s)>>>(%s, %s);" % (
         func_name, ", ".join(map(str, block_dim)), ", ".join(
-            map(str, thread_dim)),
-        output_name, ", ".join(input_names))
+            map(str, thread_dim)), ", ".join(input_names), output_name)
     invoke_params = block_dim + thread_dim
-    
+
     ctx = tvm.cuda(0)
     input_a = []
     for i, (shape, dtype) in enumerate(zip(input_tensors, input_dtypes)):
@@ -91,4 +90,4 @@ def gen_ansor_op(input_tensors, input_dtypes, output_tensor, output_dtype, f, fu
     print("Time")
     print(conv_time)
 
-    return func_code, invoke_code, conv_time, invoke_params # ms
+    return func_code, invoke_code, conv_time, invoke_params  # ms

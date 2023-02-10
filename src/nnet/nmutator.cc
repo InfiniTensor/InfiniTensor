@@ -50,7 +50,7 @@ void NMutator::runSingleOpToNaiveMembound(Graph in_graph,
     OpVec computeOps = in_graph->getComputeOps();
     assert(computeOps.size() == 1);
     const auto &computeOp = computeOps[0];
-    auto g = infini::make_ref<GraphObj>(CpuRuntimeObj::getInstance());
+    auto g = infini::make_ref<GraphObj>(in_graph->getRuntime());
     auto expr = opToExpression(computeOp);
     auto inputsN = nnet::GetTensorsVisitor().get(expr);
     dbg(inputsN, expr);

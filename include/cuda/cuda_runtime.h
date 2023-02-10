@@ -47,6 +47,7 @@ class CudaRuntimeObj : public RuntimeObj {
     CudaPtr alloc(size_t size) override {
         void *ptr;
         checkCudaError(cudaMalloc(&ptr, size));
+        // printf("cuda malloc: %p %lu bytes\n", ptr, size);
         return ptr;
     }
     void dealloc(void *ptr) override { checkCudaError(cudaFree(ptr)); }
