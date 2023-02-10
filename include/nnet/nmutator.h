@@ -39,8 +39,8 @@ class NMutator : public Mutator {
      * @brief Test helper. Converting a single OP to Membound Op for
      * corretness check.
      */
-    void
-    runSingleOpToNaiveMembound(Graph in_graph, std::vector<Graph> &out_graphs);
+    void runSingleOpToNaiveMembound(Graph in_graph,
+                                    std::vector<Graph> &out_graphs);
     void runMultipleOps(Graph in_graph, std::vector<Graph> &out_graphs);
     Graph expressionToGraph(nnet::Expr expr, Graph in_graph);
     double memboundTime(ssize_t cnt);
