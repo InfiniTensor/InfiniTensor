@@ -5,9 +5,9 @@
 #include "core/search_engine.h"
 #include "nnet/nmutator.h"
 #include "operators/conv.h"
+#include "operators/element_wise.h"
 #include "operators/matmul.h"
 #include "operators/unary.h"
-#include "operators/element_wise.h"
 #include "test.h"
 
 namespace infini {
