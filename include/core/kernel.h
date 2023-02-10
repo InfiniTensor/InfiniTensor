@@ -106,7 +106,7 @@ class KernelRegistry {
                   "Kernel not found for key {" +
                       to_string(enum_to_underlying(std::get<0>(kernelAttrs))) +
                       ", " + OpRegistry::getOpName(std::get<1>(kernelAttrs)) +
-                      ", " + std::get<2>(kernelAttrs).toString());
+                      ", " + std::get<2>(kernelAttrs).toString() + "}");
         return std::get<0>(it->second);
     }
     const KernelRecord &getKernelItem(const KernelAttrs &kernelAttrs) const {
