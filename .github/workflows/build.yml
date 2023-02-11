@@ -1,0 +1,57 @@
+name: Build and test cpu
+on:
+  pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+
+env:
+  protobuf_download: https://github.com/protocolbuffers/protobuf/releases/download/v21.12/protobuf-cpp-3.21.12.tar.gz
+  protobuf_version: 3.21.12
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+    - name: Install libdw
+      run: sudo apt-get update && sudo apt-get install libdw-dev
+
+    - name: Cache protobuf
+      id: cache-protobuf
+      uses: actions/cache@v3
+      with:
+        path: protobuf-${{ env.protobuf_version }}
+        key: protobuf-${{ env.protobuf_version }}
+
+    - name: Download and compile protobuf
+      if: steps.cache-protobuf.outputs.cache-hit != 'true'
+      run: |
+        wget ${{ env.protobuf_download }}
+        tar xf protobuf-cpp-${{ env.protobuf_version }}.tar.gz
+        cd protobuf-${{ env.protobuf_version }}
+        ./autogen.sh
+        ./configure CFLAGS="-fPIC" CXXFLAGS="-fPIC"
+        make -j2
+
+    - name: Install protobuf
+      run: |
+        cd protobuf-${{ env.protobuf_version }}
+        sudo make install
+        sudo ldconfig
+
+    - name: Build
+      run: |
+        mkdir build
+        cd build
+        cmake ..
+        make -j2
+
+    - name: Test cpu
+      run: |
+        cd build
+        make test

@@ -1,5 +1,10 @@
 name: clang-format Check
-on: [pull_request]
+on:
+  pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+
 jobs:
   formatting-check:
     name: Formatting Check
@@ -11,7 +16,7 @@ jobs:
           - 'src'
           - 'test'
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Run clang-format style check for C/C++/Protobuf programs.
       uses: jidicula/clang-format-action@v4.8.0
       with:
