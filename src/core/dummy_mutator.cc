@@ -7,11 +7,11 @@
 
 namespace infini {
 
-vector<Graph> DummyMutator::run(const Graph &in_graph) {
-    if (in_graph->getOperators().size() > 1)
-        return {in_graph};
+vector<Graph> DummyMutator::run(const Graph &inGraph) {
+    if (inGraph->getOperators().size() > 1)
+        return {inGraph};
     // Conv -> Conv + Relu
-    auto op0 = as<ConvObj>(in_graph->getOperators()[0]);
+    auto op0 = as<ConvObj>(inGraph->getOperators()[0]);
     auto g = make_ref<GraphObj>(runtime);
     auto a0 = g->cloneTensor(op0->getInputs()[0]),
          w0 = g->cloneTensor(op0->getInputs()[1]),
@@ -20,15 +20,15 @@ vector<Graph> DummyMutator::run(const Graph &in_graph) {
     auto t =
         g->addOp<ConvObj>(a0, w0, nullptr, ph, pw, sh, sw, dh, dw)->getOutput();
     g->addOpWithOutputs<ReluObj>(t, o0);
-    return {in_graph, g};
+    return {inGraph, g};
 }
 
-vector<Graph> DummyMutator::fusion(const Graph &in_graph) {
+vector<Graph> DummyMutator::mergeMultiBranch(const Graph &inGraph) {
     // Two Mamtul of the same shapes -> One Batched Matmul
-    if (!isFusible(in_graph))
+    if (!isMultiBranchMergable(inGraph))
         return {};
-    auto op0 = as<MatmulObj>(in_graph->getOperators()[0]);
-    auto op1 = as<MatmulObj>(in_graph->getOperators()[1]);
+    auto op0 = as<MatmulObj>(inGraph->getOperators()[0]);
+    auto op1 = as<MatmulObj>(inGraph->getOperators()[1]);
     auto [b, m, n, k, transA, transB] = op0->getBMNKTransAB();
     auto g = make_ref<GraphObj>(runtime);
     auto a0 = g->cloneTensor(op0->getInputs()[0]),
@@ -44,10 +44,10 @@ vector<Graph> DummyMutator::fusion(const Graph &in_graph) {
     return {g};
 }
 
-bool DummyMutator::isFusible(const Graph &in_graph) {
-    if (in_graph->getOperators().size() != 2)
+bool DummyMutator::isMultiBranchMergable(const Graph &inGraph) {
+    if (inGraph->getOperators().size() != 2)
         return false;
-    for (auto op : in_graph->getOperators()) {
+    for (auto op : inGraph->getOperators()) {
         if (op->getOpType() != OpType::Matmul)
             return false;
         if (op->getPredecessors().size() > 0)
@@ -55,8 +55,8 @@ bool DummyMutator::isFusible(const Graph &in_graph) {
         if (op->getSuccessors().size() > 0)
             return false;
     }
-    auto op0 = as<MatmulObj>(in_graph->getOperators()[0]);
-    auto op1 = as<MatmulObj>(in_graph->getOperators()[1]);
+    auto op0 = as<MatmulObj>(inGraph->getOperators()[0]);
+    auto op1 = as<MatmulObj>(inGraph->getOperators()[1]);
     auto args0 = op0->getBMNKTransAB();
     auto args1 = op1->getBMNKTransAB();
     return args0 == args1;

@@ -17,8 +17,18 @@ class Mutator {
     virtual ~Mutator(){};
 
     virtual vector<Graph> run(const Graph &in_graph) = 0;
-    virtual vector<Graph> fusion(const Graph &in_graph) { IT_TODO_HALT(); }
-    virtual bool isFusible(const Graph &in_graph) { IT_TODO_HALT(); }
+    /**
+     * @brief Merge a multi-branch graph into single branch graphs
+     *
+     * @param in_graph
+     * @return vector<Graph> Transformed graphs except the orignal one.
+     */
+    virtual vector<Graph> mergeMultiBranch(const Graph &in_graph) {
+        IT_TODO_HALT();
+    }
+    virtual bool isMultiBranchMergable(const Graph &in_graph) {
+        IT_TODO_HALT();
+    }
 };
 
 } // namespace infini

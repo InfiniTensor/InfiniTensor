@@ -35,7 +35,6 @@ Graph SearchEngine::run(const Graph graph) {
     std::cout << "[INFO] perf: " << runtimeExec->getPerfTime(graph)
               << std::endl;
 
-    // TODO: partition graph
     std::vector<Graph> partitions = partitionGraph(graph);
 
     std::cout << "[INFO] Partition num: " << partitions.size() << std::endl;
@@ -85,14 +84,6 @@ Graph SearchEngine::run(const Graph graph) {
         std::cout << "[INFO] perf: " << runtimeExec->getPerfTime(bestGraphs[i])
                   << std::endl;
     }
-
-    // bestGraph = fuse(bestGraph);
-    // double time = CpuRuntimeObj::getInstance()->getPerfTime(bestGraph);
-    // std::cout << "[INFO] fused graph: " << std::endl;
-    // std::cout << bestGraph->toString();
-    // std::cout << "[INFO] perf: "
-    //           << CpuRuntimeObj::getInstance()->getPerfTime(bestGraph)
-    //           << std::endl;
 
     return bestGraphs[0];
 }
@@ -164,7 +155,7 @@ SearchEngine::buildMetaGraphWithGraph(const Graph graph) {
     return metaGraph;
 }
 
-// build a metagraph with graph and a plan, a plan is which ops should be a
+// Build a metagraph with graph and a plan, a plan is which ops should be a
 // node.
 std::shared_ptr<SearchEngine::MetaGraph> SearchEngine::buildMetaGraphWithPlan(
     const std::shared_ptr<SearchEngine::MetaGraph> metaGraph,
@@ -212,7 +203,7 @@ std::shared_ptr<SearchEngine::MetaGraph> SearchEngine::buildMetaGraphWithPlan(
     return resultMetaGraph;
 }
 
-// search how to merge multiple ops.
+// Search how to merge multiple ops.
 std::vector<std::shared_ptr<SearchEngine::MetaGraph>>
 SearchEngine::searchMerge(std::shared_ptr<SearchEngine::MetaGraph> &metaGraph) {
     IT_ASSERT(metaGraph != nullptr);
@@ -319,7 +310,7 @@ void SearchEngine::searchMergeDfs(std::shared_ptr<MetaGraph> &metaGraph,
             }
         }
         auto graph = make_ref<GraphObj>(runtimeExec, ops);
-        if (ops.size() == 1 || isMergeable(graph)) {
+        if (ops.size() == 1 || isMultiBranchMergable(graph)) {
             searchMergeDfs(metaGraph, plan, nextFrontier, plans, planSet);
         }
         plan = planBackup;
@@ -328,7 +319,7 @@ void SearchEngine::searchMergeDfs(std::shared_ptr<MetaGraph> &metaGraph,
     return;
 }
 
-// search mutation for each compute op.
+// Search mutation for each compute op.
 std::vector<Graph> SearchEngine::searchMutation(
     const std::shared_ptr<SearchEngine::MetaGraph> &metaGraph) {
     std::vector<Graph> graphs = {nullptr};
@@ -336,7 +327,6 @@ std::vector<Graph> SearchEngine::searchMutation(
     for (auto &node : metaGraph->nodes) {
         std::vector<Graph> nextGraphs;
         if (node.type == 1) { // If it has computing OPs
-            // std::vector<Graph> mutatedGraphs = {node.graph};
             auto mutatedGraphs = mutator->run(node.graph);
             for (auto graph : graphs) {
                 for (auto mutatedGraph : mutatedGraphs) {
@@ -381,26 +371,15 @@ std::vector<Graph> SearchEngine::searchMutation(
     return graphs;
 }
 
-// check merge for a graph.
-bool SearchEngine::isMergeable(const Graph graph) {
-    IT_ASSERT(graph->getOperators().size() <= 1);
-    // TODO: mutator is mergeable()
-    // auto stat = mutationEngine->statGraph(graph.get());
-    // if (stat == Mutator::GroupConv || stat == Mutator::TransposeGroupConv ||
-    //     stat == Mutator::BatchMatmul || stat == Mutator::HetConv) {
-    //     return 1;
-    // }
-    return 0;
+bool SearchEngine::isMultiBranchMergable(const Graph graph) {
+    return mutationEngine->isMultiBranchMergable(graph);
 }
 
 // Split a graph into multiple independt graphs. Search engine will search for
 // each one.
 std::vector<Graph> SearchEngine::partitionGraph(const Graph graph) {
     std::vector<Graph> partitions;
-    // partitions.emplace_back(graph);
-    // return partitions;
-
-    // reversed DFS post-order is topo-order
+    // Reversed DFS post-order is topo-order.
     std::unordered_map<size_t, size_t> preOrder, postOrder;
     std::vector<Operator> ops;
     int preCnt = 0, postCnt = 0;
@@ -433,6 +412,7 @@ std::vector<Graph> SearchEngine::partitionGraph(const Graph graph) {
                 if (preOrder[ops[j]->getGuid()] < preOrderI) {
                     for (auto nextOp : ops[j]->getSuccessors()) {
                         if (postOrder[nextOp->getGuid()] < postOrderI) {
+                            // FIXME: DO NOT USE goto
                             goto fail;
                         }
                     }

@@ -6,10 +6,18 @@ namespace infini {
 
 using UidBaseType = int;
 
-class Guid {
+class Uid {
   private:
-    UidBaseType guid;
+    UidBaseType uid;
 
+  public:
+    Uid(UidBaseType uid) : uid(uid) {}
+    Uid &operator=(const Uid &rhs) = delete;
+
+    operator UidBaseType() const { return uid; }
+};
+
+class Guid : public Uid {
   private:
     UidBaseType generateGuid() {
         static UidBaseType guidCnt = 0;
@@ -17,30 +25,23 @@ class Guid {
     }
 
   public:
-    Guid() { guid = generateGuid(); }
-    Guid(const Guid &rhs) { guid = generateGuid(); }
-    Guid &operator=(const Guid &rhs) {
-        guid = generateGuid();
-        return *this;
-    }
-
-    operator UidBaseType() const { return guid; }
+    Guid() : Uid(generateGuid()) {}
+    Guid(const Guid &rhs) : Uid(generateGuid()) {}
 };
 
-class Fuid {
-  private:
-    UidBaseType fuid;
-
+/**
+ * @brief Family unique ID. Cloned tensors shared the same FUID.
+ */
+class Fuid : public Uid {
   private:
     UidBaseType generateFuid() {
-        static UidBaseType guidCnt = 0;
-        return ++guidCnt;
+        static UidBaseType fuidCnt = 0;
+        return ++fuidCnt;
     }
 
   public:
-    Fuid() { fuid = generateFuid(); }
-
-    operator UidBaseType() const { return fuid; }
+    Fuid() : Uid(generateFuid()) {}
+    Fuid(const Fuid &fuid) : Uid(fuid) {}
 };
 
 class Object {

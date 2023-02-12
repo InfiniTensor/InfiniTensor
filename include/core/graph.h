@@ -48,7 +48,7 @@ class GraphObj : public Object {
     }
 
     const TensorVec &getTensors() const { return tensors; }
-    const TensorVec getInputsAndWeights() const {
+    const TensorVec getInputs() const {
         TensorVec ret;
         for (auto t : tensors)
             if (!t->getOutputOf())

@@ -7,6 +7,7 @@ class ConcatObj : public OperatorObj {
 
   public:
     ConcatObj(GraphObj *graph, TensorVec inputs, Tensor output, int dim);
+    OP_CLONE(ConcatObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 

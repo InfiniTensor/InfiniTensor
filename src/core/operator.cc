@@ -93,15 +93,4 @@ vector<DataType> OperatorObj::inferDataType() const {
     return inferDataType(inputs);
 }
 
-Operator OperatorObj::cloneAndResetConnections(const TensorVec &newInputs,
-                                               const TensorVec &newOutputs) {
-    Operator op = clone();
-    op->inputs = newInputs;
-    op->outputs = newOutputs;
-    op->predecessors.clear();
-    op->successors.clear();
-    IT_ASSERT(op->checkValid(nullptr));
-    return op;
-}
-
 } // namespace infini

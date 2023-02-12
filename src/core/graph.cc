@@ -23,7 +23,7 @@ GraphObj::GraphObj(Runtime runtime, OpVec ops_in) : runtime(runtime) {
             inputs.emplace_back(tensorPool.at(t->getFuid()));
         for (const auto &t : op->getOutputs())
             outputs.emplace_back(tensorPool.at(t->getFuid()));
-        addOperatorAndConnect(op->cloneAndResetConnections(inputs, outputs));
+        addOperatorAndConnect(op->clone(inputs, outputs));
     }
 }
 

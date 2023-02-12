@@ -25,6 +25,7 @@ class FlattenObj : public OperatorObj {
 
   public:
     FlattenObj(GraphObj *graph, Tensor input, Tensor output);
+    OP_CLONE(FlattenObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
@@ -41,6 +42,7 @@ class IdentityObj : public OperatorObj {
 
   public:
     IdentityObj(GraphObj *graph, Tensor input, Tensor output);
+    OP_CLONE(IdentityObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 

@@ -28,11 +28,6 @@ vector<Graph> NMutator::run(const Graph &in_graph) {
         runSingleOpToNaiveMembound(in_graph, out_graphs);
         return out_graphs;
     }
-    // // Hack for HetConv fusion
-    // if (statGraph(in_graph) == NMutator::SGType::HetConv) {
-    //     dbg("Start fuse HetConv");
-    //     out_graphs.emplace_back(fuseHetConv(nullptr, in_graph));
-    // }
     // Clear input names maps with tensor
     inputsNameNToTensorT.clear();
     OpVec computeOps = in_graph->getComputeOps();

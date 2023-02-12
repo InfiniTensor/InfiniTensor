@@ -76,7 +76,7 @@ TEST(Graph, search_withdm) {
 //     auto matmul0 = g->addOp<MatmulObj>(i0, w0, nullptr);
 //     auto matmul1 = g->addOp<MatmulObj>(i1, w1, nullptr);
 //     DummyMutator m(10);
-//     auto mutations = m.fusion(g);
+//     auto mutations = m.mergeMultiBranch(g);
 //     g->print();
 //     for (auto gg : mutations) {
 //         gg->print();

@@ -9,7 +9,7 @@
 namespace infini {
 class SearchEngine {
   private:
-    Runtime runtimeExec, runtimeVerification;
+    Runtime runtimeExec;
     Ref<Mutator> mutator;
 
   public:
@@ -31,22 +31,12 @@ class SearchEngine {
     std::shared_ptr<Mutator> getMutationEngine() { return mutationEngine; };
     struct GroupEdge {
         int v, next;
-        GroupEdge(int v_, int next_) {
-            v = v_;
-            next = next_;
-        }
+        GroupEdge() = delete;
     };
+
     struct Candidate { // a graph with perf
         std::shared_ptr<Graph> graph;
-        double perf;
-        Candidate() {
-            graph = nullptr;
-            perf = INFINITY;
-        }
-        Candidate(std::shared_ptr<Graph> graph_, double perf_) {
-            graph = graph_;
-            perf = perf_;
-        }
+        double perf = INFINITY;
     };
     class MetaGraph { // a graph of subgraphs, for searching.
       public:
@@ -81,7 +71,10 @@ class SearchEngine {
     searchMutation(const std::shared_ptr<MetaGraph> &metaGraph);
 
     void printMetaGraph(Ref<SearchEngine::MetaGraph> metaGraph);
-    // TODO: move to cpp
-    bool isMergeable(const Graph graph);
+    /**
+     * @brief Check whether a multi-brach graph can be merged into a single
+     * branch.
+     */
+    bool isMultiBranchMergable(const Graph graph);
 };
 } // namespace infini
