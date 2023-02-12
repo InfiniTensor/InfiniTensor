@@ -37,4 +37,8 @@ build_debug/
 .vscode/
 
 # python
+*.egg-info
 *.pyc
+
+# onnx model
+*.onnx

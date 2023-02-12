@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyinfinitensor"
+version = "0.0.0"
+authors = [{ name = "YdrMaster", email = "ydrml@hotmail.com" }]
+description = "Python frontend of InfiniTensor"
+readme = "README.md"
+requires-python = ">=3.8"
+keywords = ["optimizer"]
+license = { text = "Apache" }
+classifiers = ["Programming Language :: Python :: 3"]
+dependencies = ["onnx"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+pyinfinitensor = ["*.so"]

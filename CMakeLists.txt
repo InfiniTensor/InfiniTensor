@@ -96,8 +96,8 @@ target_link_libraries(InfiniTensor pybind11::embed)
 
 # Python bindings
 file(GLOB_RECURSE FFIS src/ffi/ffi_infinitensor.cc)
-pybind11_add_module(pyinfinitensor MODULE ${FFIS})
-target_link_libraries(pyinfinitensor PRIVATE InfiniTensor)
+pybind11_add_module(backend MODULE ${FFIS})
+target_link_libraries(backend PRIVATE InfiniTensor)
 
 if(USE_BACKTRACE)
   add_definitions(-D BACKWARD_TRACE)
@@ -134,13 +134,13 @@ if(USE_BANG)
     set(NEUWARE_HOME $ENV{NEUWARE_HOME} CACHE STRING "NEUWARE_HOME directory for Cambricon Neuware development")
   endif()
   message(STATUS "NEUWARE_HOME: ${NEUWARE_HOME}")
-  
+
   include_directories("${NEUWARE_HOME}/include")
   find_library(CAMBRICON_CNNL libcnnl.so "${NEUWARE_HOME}/lib64")
   find_library(CAMBRICON_CNRT libcnrt.so "${NEUWARE_HOME}/lib64")
   find_library(CAMBRICON_CNDRV libcndrv.so "${NEUWARE_HOME}/lib64")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lstdc++ -Wall -Werror")
-    
+
   if ((NOT DEFINED TARGET_CPU_ARCH) AND (NOT DEFINED ENV{TARGET_CPU_ARCH}))
     execute_process(COMMAND uname -m OUTPUT_VARIABLE _uname_m OUTPUT_STRIP_TRAILING_WHITESPACE)
     set(TARGET_CPU_ARCH "${_uname_m}" CACHE STRING "Target CPU ARCH")
