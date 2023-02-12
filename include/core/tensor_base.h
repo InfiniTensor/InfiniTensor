@@ -33,6 +33,8 @@ class TensorBaseObj : public Object {
         data = blob;
     }
     Blob getDataBlob() const { return data; }
+    bool hasData() const { return data != nullptr; }
+    void freeData() { data = nullptr; }
     template <typename T> T getRawDataPtr() const {
         static_assert(std::is_pointer_v<T>,
                       "Raw data pointer has a type of pointer");

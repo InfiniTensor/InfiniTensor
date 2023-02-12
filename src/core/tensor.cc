@@ -14,9 +14,10 @@ VType TensorObj::getData(const Shape &pos) const {
 }
 
 string TensorObj::toString() const {
-    string ret = "Tensor " + std::to_string(guid) + ", shape " +
-                 vecToString(shape) + ", dtype " + dtype.toString();
-    vector<GuidBaseType> inputOfGuid;
+    string ret = "Tensor " + std::to_string(guid) + ", Fuid " +
+                 std::to_string(fuid) + ", shape " + vecToString(shape) +
+                 ", dtype " + dtype.toString();
+    vector<UidBaseType> inputOfGuid;
     for (const auto &op : inputOf)
         inputOfGuid.emplace_back(op.lock()->getGuid());
     if (auto o = outputOf.lock())

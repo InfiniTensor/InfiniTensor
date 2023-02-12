@@ -4,27 +4,44 @@
 
 namespace infini {
 
-using GuidBaseType = int;
+using UidBaseType = int;
 
-class Guid {
+class Uid {
   private:
-    GuidBaseType guid;
+    UidBaseType uid;
 
+  public:
+    Uid(UidBaseType uid) : uid(uid) {}
+    Uid &operator=(const Uid &rhs) = delete;
+
+    operator UidBaseType() const { return uid; }
+};
+
+class Guid : public Uid {
   private:
-    GuidBaseType generateGuid() {
-        static GuidBaseType guidCnt = 0;
+    UidBaseType generateGuid() {
+        static UidBaseType guidCnt = 0;
         return ++guidCnt;
     }
 
   public:
-    Guid() { guid = generateGuid(); }
-    Guid(const Guid &rhs) { guid = generateGuid(); }
-    Guid &operator=(const Guid &rhs) {
-        guid = generateGuid();
-        return *this;
+    Guid() : Uid(generateGuid()) {}
+    Guid(const Guid &rhs) : Uid(generateGuid()) {}
+};
+
+/**
+ * @brief Family unique ID. Cloned tensors shared the same FUID.
+ */
+class Fuid : public Uid {
+  private:
+    UidBaseType generateFuid() {
+        static UidBaseType fuidCnt = 0;
+        return ++fuidCnt;
     }
 
-    operator GuidBaseType() const { return guid; }
+  public:
+    Fuid() : Uid(generateFuid()) {}
+    Fuid(const Fuid &fuid) : Uid(fuid) {}
 };
 
 class Object {
@@ -35,7 +52,7 @@ class Object {
     virtual ~Object(){};
     virtual string toString() const = 0;
     void print() { std::cout << toString() << std::endl; }
-    GuidBaseType getGuid() const { return guid; }
+    UidBaseType getGuid() const { return guid; }
 };
 
 inline std::ostream &operator<<(std::ostream &os, const Object &obj) {

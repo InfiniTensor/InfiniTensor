@@ -1,6 +1,31 @@
 #include "core/graph.h"
+#include <queue>
 
 namespace infini {
+
+GraphObj::GraphObj(Runtime runtime, OpVec ops_in) : runtime(runtime) {
+    map<UidBaseType, Tensor> tensorPool;
+    // Clone tensors
+    for (const auto &op : ops_in) {
+        for (const auto &t : op->getInputs())
+            if (tensorPool.find(t->getFuid()) == tensorPool.end())
+                tensorPool[t->getFuid()] = t->clone();
+        for (const auto &t : op->getOutputs())
+            if (tensorPool.find(t->getFuid()) == tensorPool.end())
+                tensorPool[t->getFuid()] = t->clone();
+    }
+    for (const auto &[_, t] : tensorPool)
+        addTensor(t);
+    // Clone operators and add connections
+    for (const auto &op : ops_in) {
+        TensorVec inputs, outputs;
+        for (const auto &t : op->getInputs())
+            inputs.emplace_back(tensorPool.at(t->getFuid()));
+        for (const auto &t : op->getOutputs())
+            outputs.emplace_back(tensorPool.at(t->getFuid()));
+        addOperatorAndConnect(op->clone(inputs, outputs));
+    }
+}
 
 void GraphObj::addOperatorAndConnect(const Operator &op) {
     ops.push_back(op);
@@ -28,7 +53,7 @@ string GraphObj::toString() const {
 
     oss << "Graph operators:\n";
     for (const auto &op : ops) {
-        vector<GuidBaseType> preds, succs;
+        vector<UidBaseType> preds, succs;
         for (auto &o : op->getPredecessors())
             preds.emplace_back(o->getGuid());
         for (auto &o : op->getSuccessors())
@@ -51,6 +76,18 @@ Tensor GraphObj::addTensor(Shape dim, DataType dtype) {
     Tensor tensor = make_ref<TensorObj>(dim, dtype, runtime);
     tensors.emplace_back(tensor);
     return tensor;
+}
+
+Tensor GraphObj::addTensor(const Tensor &tensor) {
+    IT_ASSERT(tensor->getRuntime() == runtime, "Tensor runtime mismatch");
+    tensors.emplace_back(tensor);
+    return tensor;
+}
+
+TensorVec GraphObj::addTensor(const TensorVec &tensors) {
+    for (auto &t : tensors)
+        addTensor(t);
+    return tensors;
 }
 
 OpVec GraphObj::getComputeOps() const {

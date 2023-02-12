@@ -69,7 +69,7 @@ void CudaRuntimeObj::run(const Graph &graph, bool runTune,
     sync();
 }
 
-void CudaRuntimeObj::sync() const { cudaDeviceSynchronize(); }
+void CudaRuntimeObj::sync() const { checkCudaError(cudaDeviceSynchronize()); }
 
 string CudaRuntimeObj::toString() const { return "CUDA Runtime"; }
 

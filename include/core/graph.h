@@ -8,19 +8,22 @@ class GraphObj : public Object {
   protected:
     Runtime runtime;
     TensorVec tensors;
-    TensorVec inputs;
-    TensorVec outputs;
+    // TODO: whether to record input and output tensors
+    // TensorVec inputs;
+    // TensorVec outputs;
     OpVec ops;
 
   public:
     GraphObj(Runtime runtime) : runtime(runtime){};
+    GraphObj(Runtime runtime, OpVec ops_in);
     string toString() const override;
+    Runtime getRuntime() const { return runtime; }
 
     Tensor addTensor(Shape dim, DataType dtype = DataType::Float32);
+    Tensor addTensor(const Tensor &tensor);
+    TensorVec addTensor(const TensorVec &tensors);
     Tensor cloneTensor(const Tensor &tensor) {
-        auto ret = addTensor(tensor->getDims(), tensor->getDType());
-        ret->dataMalloc();
-        ret->copyData(tensor);
+        auto ret = addTensor(tensor->clone(runtime));
         return ret;
     }
 
@@ -45,12 +48,22 @@ class GraphObj : public Object {
     }
 
     const TensorVec &getTensors() const { return tensors; }
-    const TensorVec &getInputs() const { return inputs; }
-    const TensorVec &getOutputs() const { return outputs; }
+    const TensorVec getInputs() const {
+        TensorVec ret;
+        for (auto t : tensors)
+            if (!t->getOutputOf())
+                ret.emplace_back(t);
+        return ret;
+    }
+    const TensorVec getOutputs() const {
+        TensorVec ret;
+        for (auto t : tensors)
+            if (t->getInputOf().empty())
+                ret.emplace_back(t);
+        return ret;
+    }
     const OpVec &getOperators() const { return ops; }
     OpVec getComputeOps() const;
-    // TensorVec &getInputs();
-    // TensorVec &getOutputs();
 
     void dataMalloc();
 

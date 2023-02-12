@@ -10,6 +10,8 @@ using Shape = vector<ShapeElem>;
 class TensorObj : public TensorBaseObj {
   private:
     Shape shape;
+    Fuid fuid; // Cloned tensors share the same id. Tensors constructed from
+               // scratch have a new id.
 
   public:
     TensorObj(const Shape &shape, DataType dtype, Runtime runtime);
@@ -25,6 +27,7 @@ class TensorObj : public TensorBaseObj {
     using TensorBaseObj::getData;
     VType getData(const Shape &pos) const;
     void dataMalloc();
+    UidBaseType getFuid() const { return fuid; }
 
     void load(std::string file_path);
     void save(std::string file_path);
@@ -51,10 +54,24 @@ class TensorObj : public TensorBaseObj {
         }
         generator(data->getPtr<void *>(), size(), dtype);
     }
-    Tensor clone(Runtime runtime) {
-        auto obj = make_ref<TensorObj>(shape, dtype, runtime);
-        obj->dataMalloc();
-        obj->copyData(this);
+    Tensor clone() const {
+        auto obj = make_ref<TensorObj>(*this);
+        obj->freeData();
+        obj->inputOf.clear();
+        obj->outputOf.reset();
+        return obj;
+    }
+    // TODO: clarify whether clone copies data
+    Tensor clone(Runtime runtime) const {
+        auto obj = make_ref<TensorObj>(*this);
+        obj->runtime = runtime;
+        obj->freeData();
+        obj->inputOf.clear();
+        obj->outputOf.reset();
+        if (hasData()) {
+            obj->dataMalloc();
+            obj->copyData(this);
+        }
         return obj;
     }
 

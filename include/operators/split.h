@@ -10,6 +10,7 @@ class SplitObj : public OperatorObj {
              int dim, int num);
     SplitObj(GraphObj *graph, Tensor input, std::optional<TensorVec> outputs,
              int dim, const vector<int> &ratio);
+    OP_CLONE(SplitObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 

@@ -197,6 +197,16 @@ class OperatorObj : public Object {
     virtual int numInputs() const = 0;
     virtual int numOutputs() const = 0;
 
+    /**
+     * @brief Clone this operator and replace its inputs and outputs.
+     *
+     * @param newInputs
+     * @param newOutputs
+     * @return Operator
+     */
+    virtual Operator clone(const TensorVec &newInputs,
+                           const TensorVec &newOutputs) const = 0;
+
   protected:
     optional<vector<Shape>> inferShape() const;
     vector<DataType> inferDataType() const;
@@ -214,6 +224,18 @@ class OperatorObj : public Object {
      */
     virtual vector<int> getWorkloadVector() const { IT_TODO_HALT(); }
 };
+
+#define OP_CLONE(OpObj)                                                        \
+    virtual Operator clone(const TensorVec &newInputs,                         \
+                           const TensorVec &newOutputs) const override {       \
+        auto op = infini::make_ref<OpObj>(*this);                              \
+        op->inputs = newInputs;                                                \
+        op->outputs = newOutputs;                                              \
+        op->predecessors.clear();                                              \
+        op->successors.clear();                                                \
+        IT_ASSERT(op->checkValid(nullptr));                                    \
+        return op;                                                             \
+    }
 
 } // namespace infini
 

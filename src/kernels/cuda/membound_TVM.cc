@@ -127,19 +127,16 @@ class MemboundTVM : public Kernel {
             cuModuleLoadDataEx(&module, ret->ptx.data(), 0, nullptr, nullptr));
         checkCUresult(cuModuleGetFunction(&kernel, module, kernelName.c_str()));
         std::vector<void *> args;
-        for (auto &&in : op->getInputs()) {
+        for (auto &&in : op->getInputs())
             args.push_back(in->getRawDataPtr<void *>());
-        }
         args.push_back(op->getOutput()->getRawDataPtr<void *>());
         std::vector<void *> argsPtr;
-        for (auto &arg : args) {
+        for (auto &arg : args)
             argsPtr.push_back(&arg);
-        }
 
         // Evaluate the kernel
         ret->time = timeit(
             [&]() {
-                // TODO: run the kernel
                 cuLaunchKernel(kernel, invokeParams[0], invokeParams[1],
                                invokeParams[2], invokeParams[3],
                                invokeParams[4], invokeParams[5], 0, NULL,

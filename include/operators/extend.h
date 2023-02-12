@@ -8,6 +8,7 @@ class ExtendObj : public OperatorObj {
   public:
     ExtendObj(GraphObj *graph, Tensor input, Tensor output, int dim,
               int num = 1);
+    OP_CLONE(ExtendObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
     std::string toString() const override;

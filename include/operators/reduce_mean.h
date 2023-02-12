@@ -10,6 +10,7 @@ class ReduceMeanObj : public OperatorObj {
     ReduceMeanObj(GraphObj *graph, Tensor input, Tensor output,
                   const optional<const vector<int>> &axis,
                   bool keepDims = true);
+    OP_CLONE(ReduceMeanObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
     std::string toString() const override;
