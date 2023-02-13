@@ -1,4 +1,5 @@
 ﻿#include "core/graph_handler.h"
+#include "operators/batch_norm.h"
 #include "operators/element_wise.h"
 #include "operators/matmul.h"
 #include "operators/reshape.h"
@@ -26,14 +27,32 @@ Tensor GraphHandlerObj::matmul(Tensor a, Tensor b, Tensor y, bool transA,
     }
 }
 
+Tensor GraphHandlerObj::batchNorm(Tensor input, Tensor output, Tensor mean,
+                                  Tensor var, Tensor scale, Tensor bias,
+                                  float momentum, float eps, bool training) {
+    if (output) {
+        g->addOpWithOutputs<BatchNormObj>(
+            std::move(input), output, std::move(mean), std::move(var),
+            std::move(scale), std::move(bias), momentum, eps, training);
+        return output;
+    } else {
+        return g
+            ->addOp<BatchNormObj>(std::move(input), output, std::move(mean),
+                                  std::move(var), std::move(scale),
+                                  std::move(bias), momentum, eps, training)
+            ->getOutput();
+    }
+}
+
 // see operators/element_wise.h
 #define DEFINE_ELEMENT_WISE_METHOD(name, obj)                                  \
     Tensor GraphHandlerObj::name(Tensor a, Tensor b, Tensor c) {               \
         if (c) {                                                               \
-            g->addOpWithOutputs<obj##Obj>(a, b, c);                            \
+            g->addOpWithOutputs<obj##Obj>(std::move(a), std::move(b), c);      \
             return c;                                                          \
         } else {                                                               \
-            return g->addOp<obj##Obj>(a, b, c)->getOutput();                   \
+            return g->addOp<obj##Obj>(std::move(a), std::move(b), c)           \
+                ->getOutput();                                                 \
         }                                                                      \
     }
 
@@ -47,10 +66,10 @@ DEFINE_ELEMENT_WISE_METHOD(pow, Pow)
 #define DEFINE_UNARY_METHOD(name, obj)                                         \
     Tensor GraphHandlerObj::name(Tensor x, Tensor y) {                         \
         if (y) {                                                               \
-            g->addOpWithOutputs<obj##Obj>(x, y);                               \
+            g->addOpWithOutputs<obj##Obj>(std::move(x), y);                    \
             return y;                                                          \
         } else {                                                               \
-            return g->addOp<obj##Obj>(x, y)->getOutput();                      \
+            return g->addOp<obj##Obj>(std::move(x), y)->getOutput();           \
         }                                                                      \
     }
 

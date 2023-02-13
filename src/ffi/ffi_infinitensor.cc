@@ -46,6 +46,10 @@ void init_graph_builder(py::module &m) {
              py::overload_cast<Tensor, Tensor, Tensor, bool, bool, Tensor,
                                ActType>(&Handler::matmul),
              policy::move)
+        .def("batchNorm",
+             py::overload_cast<Tensor, Tensor, Tensor, Tensor, Tensor, Tensor,
+                               float, float, bool>(&Handler::batchNorm),
+             policy::move)
         .def("add", py::overload_cast<Tensor, Tensor, Tensor>(&Handler::add),
              policy::move)
         .def("sub", py::overload_cast<Tensor, Tensor, Tensor>(&Handler::sub),

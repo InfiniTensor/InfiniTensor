@@ -40,6 +40,10 @@ class GraphHandlerObj {
     Tensor matmul(Tensor a, Tensor b, Tensor y, bool transA, bool transB,
                   Tensor bias, ActType act);
 
+    Tensor batchNorm(Tensor input, Tensor output, Tensor mean, Tensor var,
+                     Tensor scale, Tensor bias, float momentum, float eps,
+                     bool training);
+
     Tensor add(Tensor a, Tensor b, Tensor c);
     Tensor sub(Tensor a, Tensor b, Tensor c);
     Tensor mul(Tensor a, Tensor b, Tensor c);

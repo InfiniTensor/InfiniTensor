@@ -1,5 +1,4 @@
-﻿import onnx
-import backend
+﻿import typing, onnx, backend
 
 runtime = backend.cpu_runtime()
 
@@ -27,6 +26,20 @@ def from_onnx(model: onnx.ModelProto):
                 False,
                 None,
                 backend.ActType.Linear,
+            )
+        elif node.op_type == "BatchNormalization":
+            (input, mean, var, scale, bias) = (
+                tensors[node.input[i]] for i in [0, 3, 4, 1, 2]
+            )
+            output = tensors.get(node.output[0], None)
+            attributes = _parse_attribute(
+                node, {"momentum": 0.9, "epsilon": 1e-05, "training_mode": 0}
+            )
+            (momentum, eps, training) = (
+                attributes[name] for name in ["momentum", "epsilon", "training_mode"]
+            )
+            tensors[node.output[0]] = handler.batchNorm(
+                input, output, mean, var, scale, bias, momentum, eps, training != 0
             )
         elif node.op_type == "Add":
             tensors[node.output[0]] = handler.add(
@@ -136,3 +149,21 @@ def parse_onnx(model: onnx.ModelProto):
     print("weight:")
     for node in model.graph.initializer:
         print("   {}".format(node.name))
+
+
+def _parse_attribute(node: onnx.NodeProto, attrs: dict = dict()):
+    for attr in node.attribute:
+        if attr.name in attrs:
+            if attr.type == onnx.AttributeProto.INT:
+                attrs[attr.name] = attr.i
+            elif attr.type == onnx.AttributeProto.INTS:
+                attrs[attr.name] = attr.ints
+            elif attr.type == onnx.AttributeProto.FLOAT:
+                attrs[attr.name] = attr.f
+            elif attr.type == onnx.AttributeProto.STRING:
+                attrs[attr.name] = attr.s
+            elif attr.type == onnx.AttributeProto.TENSOR:
+                attrs[attr.name] = attr.t
+            else:
+                assert False, "Unsupported Attribute Type: {}".format(attr.type)
+    return attrs
