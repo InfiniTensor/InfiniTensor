@@ -18,12 +18,82 @@ class TestStringMethods(unittest.TestCase):
             )
             parse_onnx(onnx.load(model_file))
 
-    def test_import(self):
-        i = make_tensor_value_info("i", TensorProto.FLOAT, [1, 2, 3])
-        w = make_tensor_value_info("w", TensorProto.FLOAT, [1, 3, 4])
-        o = make_tensor_value_info("o", TensorProto.FLOAT, [1, 2, 4])
-        matmul = make_node("MatMul", ["i", "w"], ["o"], name="matmul")
-        graph = make_graph([matmul], "mm", [i, w], [o])
+    def test_tensor(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 2, 3])
+        graph = make_graph([], "tensor", [x], [x])
+        model = make_model(graph)
+        check_model(model)
+        from_onnx(model)
+
+    def test_matmul(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 2, 3])
+        a = make_tensor_value_info("a", TensorProto.FLOAT, [1, 3, 4])
+        xa = make_tensor_value_info("b", TensorProto.FLOAT, [1, 2, 4])
+        matmul = make_node("MatMul", ["x", "a"], ["xa"], name="matmul")
+        graph = make_graph([matmul], "matmul", [x, a], [xa])
+        model = make_model(graph)
+        check_model(model)
+        from_onnx(model)
+
+    def test_add(self):
+        a = make_tensor_value_info("a", TensorProto.FLOAT, [1, 3, 5, 7])
+        b = make_tensor_value_info("b", TensorProto.FLOAT, [1, 3, 5, 7])
+        c = make_tensor_value_info("c", TensorProto.FLOAT, [1, 3, 5, 7])
+        add = make_node("Add", ["a", "b"], ["c"], name="add")
+        graph = make_graph([add], "add", [a, b], [c])
+        model = make_model(graph)
+        check_model(model)
+        from_onnx(model)
+
+    def test_sub(self):
+        a = make_tensor_value_info("a", TensorProto.FLOAT, [1, 3, 5, 7])
+        b = make_tensor_value_info("b", TensorProto.FLOAT, [1, 3, 5, 7])
+        c = make_tensor_value_info("c", TensorProto.FLOAT, [1, 3, 5, 7])
+        sub = make_node("Sub", ["a", "b"], ["c"], name="sub")
+        graph = make_graph([sub], "sub", [a, b], [c])
+        model = make_model(graph)
+        check_model(model)
+        from_onnx(model)
+
+    def test_mul(self):
+        a = make_tensor_value_info("a", TensorProto.FLOAT, [1, 3, 5, 7])
+        b = make_tensor_value_info("b", TensorProto.FLOAT, [1, 3, 5, 7])
+        c = make_tensor_value_info("c", TensorProto.FLOAT, [1, 3, 5, 7])
+        mul = make_node("Mul", ["a", "b"], ["c"], name="mul")
+        graph = make_graph([mul], "mul", [a, b], [c])
+        model = make_model(graph)
+        check_model(model)
+        from_onnx(model)
+
+    def test_div(self):
+        a = make_tensor_value_info("a", TensorProto.FLOAT, [1, 3, 5, 7])
+        b = make_tensor_value_info("b", TensorProto.FLOAT, [1, 3, 5, 7])
+        c = make_tensor_value_info("c", TensorProto.FLOAT, [1, 3, 5, 7])
+        div = make_node("Div", ["a", "b"], ["c"], name="div")
+        graph = make_graph([div], "div", [a, b], [c])
+        model = make_model(graph)
+        check_model(model)
+        from_onnx(model)
+
+    def test_pow(self):
+        a = make_tensor_value_info("a", TensorProto.FLOAT, [1, 3, 5, 7])
+        b = make_tensor_value_info("b", TensorProto.FLOAT, [1, 3, 5, 7])
+        c = make_tensor_value_info("c", TensorProto.FLOAT, [1, 3, 5, 7])
+        pow = make_node("Pow", ["a", "b"], ["c"], name="pow")
+        graph = make_graph([pow], "pow", [a, b], [c])
+        model = make_model(graph)
+        check_model(model)
+        from_onnx(model)
+
+    # see <https://onnx.ai/onnx/intro/python.html#a-simple-example-a-linear-regression>
+    def test_linear(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 2, 3])
+        a = make_tensor_value_info("a", TensorProto.FLOAT, [1, 3, 4])
+        b = make_tensor_value_info("b", TensorProto.FLOAT, [1, 2, 4])
+        y = make_tensor_value_info("b", TensorProto.FLOAT, [1, 2, 4])
+        matmul = make_node("MatMul", ["x", "a"], ["xa"], name="matmul")
+        add = make_node("Add", ["xa", "b"], ["y"], name="add")
+        graph = make_graph([matmul, add], "lr", [x, a, b], [y])
         model = make_model(graph)
         check_model(model)
         print(model)

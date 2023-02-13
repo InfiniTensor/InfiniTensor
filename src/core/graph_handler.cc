@@ -1,4 +1,5 @@
 ﻿#include "core/graph_handler.h"
+#include "operators/element_wise.h"
 #include "operators/matmul.h"
 
 namespace infini {
@@ -22,6 +23,22 @@ Tensor GraphHandlerObj::matmul(Tensor a, Tensor b, Tensor y, bool transA,
             ->getOutput();
     }
 }
+
+#define DEFINE_ELEMENT_WISE_METHOD(name, obj)                                  \
+    Tensor GraphHandlerObj::name(Tensor a, Tensor b, Tensor c) {               \
+        if (c) {                                                               \
+            g->addOpWithOutputs<obj##Obj>(a, b, c);                            \
+            return c;                                                          \
+        } else {                                                               \
+            return g->addOp<obj##Obj>(a, b, c)->getOutput();                   \
+        }                                                                      \
+    }
+
+DEFINE_ELEMENT_WISE_METHOD(add, Add)
+DEFINE_ELEMENT_WISE_METHOD(sub, Sub)
+DEFINE_ELEMENT_WISE_METHOD(mul, Mul)
+DEFINE_ELEMENT_WISE_METHOD(div, Div)
+DEFINE_ELEMENT_WISE_METHOD(pow, Pow)
 
 static DataType dtype_repr_convert(int dtype) {
     switch ((OnnxDType)dtype) {

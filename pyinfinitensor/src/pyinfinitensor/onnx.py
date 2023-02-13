@@ -19,14 +19,44 @@ def from_onnx(model: onnx.ModelProto):
 
     for node in model.graph.node:
         if node.op_type == "MatMul":
-            handler.matmul(
+            tensors[node.output[0]] = handler.matmul(
                 tensors[node.input[0]],
                 tensors[node.input[1]],
-                tensors[node.output[0]],
+                tensors.get(node.output[0], None),
                 False,
                 False,
                 None,
                 backend.ActType.Linear,
+            )
+        elif node.op_type == "Add":
+            tensors[node.output[0]] = handler.add(
+                tensors[node.input[0]],
+                tensors[node.input[1]],
+                tensors.get(node.output[0], None),
+            )
+        elif node.op_type == "Sub":
+            tensors[node.output[0]] = handler.sub(
+                tensors[node.input[0]],
+                tensors[node.input[1]],
+                tensors.get(node.output[0], None),
+            )
+        elif node.op_type == "Mul":
+            tensors[node.output[0]] = handler.mul(
+                tensors[node.input[0]],
+                tensors[node.input[1]],
+                tensors.get(node.output[0], None),
+            )
+        elif node.op_type == "Div":
+            tensors[node.output[0]] = handler.div(
+                tensors[node.input[0]],
+                tensors[node.input[1]],
+                tensors.get(node.output[0], None),
+            )
+        elif node.op_type == "Pow":
+            tensors[node.output[0]] = handler.pow(
+                tensors[node.input[0]],
+                tensors[node.input[1]],
+                tensors.get(node.output[0], None),
             )
 
 

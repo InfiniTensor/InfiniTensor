@@ -39,6 +39,12 @@ class GraphHandlerObj {
 
     Tensor matmul(Tensor a, Tensor b, Tensor y, bool transA, bool transB,
                   Tensor bias, ActType act);
+
+    Tensor add(Tensor a, Tensor b, Tensor c);
+    Tensor sub(Tensor a, Tensor b, Tensor c);
+    Tensor mul(Tensor a, Tensor b, Tensor c);
+    Tensor div(Tensor a, Tensor b, Tensor c);
+    Tensor pow(Tensor a, Tensor b, Tensor c);
 };
 
 } // namespace infini

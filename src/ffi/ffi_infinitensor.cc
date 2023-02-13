@@ -43,6 +43,21 @@ void init_graph_builder(py::module &m) {
         .def("matmul",
              py::overload_cast<Tensor, Tensor, Tensor, bool, bool, Tensor,
                                ActType>(&GraphHandlerObj::matmul),
+             policy::reference_internal)
+        .def("add",
+             py::overload_cast<Tensor, Tensor, Tensor>(&GraphHandlerObj::add),
+             policy::reference_internal)
+        .def("sub",
+             py::overload_cast<Tensor, Tensor, Tensor>(&GraphHandlerObj::sub),
+             policy::reference_internal)
+        .def("mul",
+             py::overload_cast<Tensor, Tensor, Tensor>(&GraphHandlerObj::mul),
+             policy::reference_internal)
+        .def("div",
+             py::overload_cast<Tensor, Tensor, Tensor>(&GraphHandlerObj::div),
+             policy::reference_internal)
+        .def("pow",
+             py::overload_cast<Tensor, Tensor, Tensor>(&GraphHandlerObj::pow),
              policy::reference_internal);
 }
 
