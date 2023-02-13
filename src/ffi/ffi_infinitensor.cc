@@ -43,22 +43,34 @@ void init_graph_builder(py::module &m) {
         .def("matmul",
              py::overload_cast<Tensor, Tensor, Tensor, bool, bool, Tensor,
                                ActType>(&GraphHandlerObj::matmul),
-             policy::reference_internal)
+             policy::move)
         .def("add",
              py::overload_cast<Tensor, Tensor, Tensor>(&GraphHandlerObj::add),
-             policy::reference_internal)
+             policy::move)
         .def("sub",
              py::overload_cast<Tensor, Tensor, Tensor>(&GraphHandlerObj::sub),
-             policy::reference_internal)
+             policy::move)
         .def("mul",
              py::overload_cast<Tensor, Tensor, Tensor>(&GraphHandlerObj::mul),
-             policy::reference_internal)
+             policy::move)
         .def("div",
              py::overload_cast<Tensor, Tensor, Tensor>(&GraphHandlerObj::div),
-             policy::reference_internal)
+             policy::move)
         .def("pow",
              py::overload_cast<Tensor, Tensor, Tensor>(&GraphHandlerObj::pow),
-             policy::reference_internal);
+             policy::move)
+        .def("relu", py::overload_cast<Tensor, Tensor>(&GraphHandlerObj::relu),
+             policy::move)
+        .def("sigmoid",
+             py::overload_cast<Tensor, Tensor>(&GraphHandlerObj::sigmoid),
+             policy::move)
+        .def("tanh", py::overload_cast<Tensor, Tensor>(&GraphHandlerObj::tanh),
+             policy::reference_internal)
+        .def("softmax",
+             py::overload_cast<Tensor, Tensor>(&GraphHandlerObj::softmax),
+             policy::move)
+        .def("abs", py::overload_cast<Tensor, Tensor>(&GraphHandlerObj::abs),
+             policy::move);
 }
 
 } // namespace infini

@@ -85,6 +85,51 @@ class TestStringMethods(unittest.TestCase):
         check_model(model)
         from_onnx(model)
 
+    def test_relu(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        relu = make_node("Relu", ["x"], ["y"], name="relu")
+        graph = make_graph([relu], "relu", [x], [y])
+        model = make_model(graph)
+        check_model(model)
+        from_onnx(model)
+
+    def test_sigmoid(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        sigmoid = make_node("Sigmoid", ["x"], ["y"], name="sigmoid")
+        graph = make_graph([sigmoid], "sigmoid", [x], [y])
+        model = make_model(graph)
+        check_model(model)
+        from_onnx(model)
+
+    def test_tanh(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        tanh = make_node("Tanh", ["x"], ["y"], name="tanh")
+        graph = make_graph([tanh], "tanh", [x], [y])
+        model = make_model(graph)
+        check_model(model)
+        from_onnx(model)
+
+    def test_softmax(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        softmax = make_node("Softmax", ["x"], ["y"], name="softmax")
+        graph = make_graph([softmax], "softmax", [x], [y])
+        model = make_model(graph)
+        check_model(model)
+        from_onnx(model)
+
+    def test_abs(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        abs = make_node("Abs", ["x"], ["y"], name="abs")
+        graph = make_graph([abs], "abs", [x], [y])
+        model = make_model(graph)
+        check_model(model)
+        from_onnx(model)
+
     # see <https://onnx.ai/onnx/intro/python.html#a-simple-example-a-linear-regression>
     def test_linear(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 2, 3])

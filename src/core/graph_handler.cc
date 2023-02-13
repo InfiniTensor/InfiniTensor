@@ -1,6 +1,7 @@
 ﻿#include "core/graph_handler.h"
 #include "operators/element_wise.h"
 #include "operators/matmul.h"
+#include "operators/unary.h"
 
 namespace infini {
 
@@ -24,6 +25,7 @@ Tensor GraphHandlerObj::matmul(Tensor a, Tensor b, Tensor y, bool transA,
     }
 }
 
+// see operators/element_wise.h
 #define DEFINE_ELEMENT_WISE_METHOD(name, obj)                                  \
     Tensor GraphHandlerObj::name(Tensor a, Tensor b, Tensor c) {               \
         if (c) {                                                               \
@@ -39,6 +41,23 @@ DEFINE_ELEMENT_WISE_METHOD(sub, Sub)
 DEFINE_ELEMENT_WISE_METHOD(mul, Mul)
 DEFINE_ELEMENT_WISE_METHOD(div, Div)
 DEFINE_ELEMENT_WISE_METHOD(pow, Pow)
+
+// see operators/unary.h
+#define DEFINE_UNARY_METHOD(name, obj)                                         \
+    Tensor GraphHandlerObj::name(Tensor x, Tensor y) {                         \
+        if (y) {                                                               \
+            g->addOpWithOutputs<obj##Obj>(x, y);                               \
+            return y;                                                          \
+        } else {                                                               \
+            return g->addOp<obj##Obj>(x, y)->getOutput();                      \
+        }                                                                      \
+    }
+
+DEFINE_UNARY_METHOD(relu, Relu)
+DEFINE_UNARY_METHOD(sigmoid, Sigmoid)
+DEFINE_UNARY_METHOD(tanh, Tanh)
+DEFINE_UNARY_METHOD(softmax, Softmax)
+DEFINE_UNARY_METHOD(abs, Abs)
 
 static DataType dtype_repr_convert(int dtype) {
     switch ((OnnxDType)dtype) {

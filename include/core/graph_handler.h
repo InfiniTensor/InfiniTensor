@@ -45,6 +45,12 @@ class GraphHandlerObj {
     Tensor mul(Tensor a, Tensor b, Tensor c);
     Tensor div(Tensor a, Tensor b, Tensor c);
     Tensor pow(Tensor a, Tensor b, Tensor c);
+
+    Tensor relu(Tensor x, Tensor y);
+    Tensor sigmoid(Tensor x, Tensor y);
+    Tensor tanh(Tensor x, Tensor y);
+    Tensor softmax(Tensor x, Tensor y);
+    Tensor abs(Tensor x, Tensor y);
 };
 
 } // namespace infini
