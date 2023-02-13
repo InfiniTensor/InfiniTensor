@@ -2,7 +2,12 @@
 #include "core/operator.h"
 #include <assert.h>
 namespace infini {
-
+/**
+ * @brief General band matrix multiplication. See
+ * https://cscproxy.mpi-magdeburg.mpg.de/mpcsc/benner/pub/brdeq-cle2014.pdf for
+ * detail.
+ *
+ */
 class GBMMObj : public OperatorObj {
   private:
     int dilation;
@@ -12,15 +17,16 @@ class GBMMObj : public OperatorObj {
 
   public:
     /**
-     * @brief This comments show how operators is defined in InfiniTensor. The
-     * constructor can create output tensors for the operator or not, which
-     * depends on `graph`.
+     * @brief Construct a new GBMM object.
      *
-     * @param graph If graph is not empty, create outputs in the constructor.
-     * Otherwise, check the provided shape with the results of `inferShape` in
-     * `checkValid`.
-     * @param C C is the output of GBMM. If outputs are going to be created in
+     * @param graph The computation graph that this operator belongs to.
+     * @param A The input tensor.
+     * @param B The input tensor.
+     * @param C C is the output of G2BMM. If outputs are going to be created in
      * the constructor, C should be an empty Ref.
+     * @param dilation The dilation of the attention window.
+     * @param bias The bias tensor.
+     * @param act The activation.
      */
     GBMMObj(GraphObj *graph, Tensor A, Tensor B, Tensor C, const int dilation,
             Tensor bias = nullptr, ActType act = ActType::None);

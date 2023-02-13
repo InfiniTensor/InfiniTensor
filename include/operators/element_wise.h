@@ -2,8 +2,23 @@
 #include "core/operator.h"
 
 namespace infini {
+/**
+ * @brief Base class of **binary** element-wise operators.
+ * Unary operators like activations are not the derived classes of
+ * ElementWiseObj.
+ *
+ */
 class ElementWiseObj : public OperatorObj {
   public:
+    /**
+     * @brief Construct a new ElementWise object
+     *
+     * @param type Operator type.
+     * @param graph The computation graph that this operator belongs to.
+     * @param input0 The first input tensor.
+     * @param input1 The second input tensor.
+     * @param output The output tensor.
+     */
     ElementWiseObj(OpType type, GraphObj *graph, Tensor input0, Tensor input1,
                    Tensor output);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;

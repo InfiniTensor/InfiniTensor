@@ -2,11 +2,24 @@
 #include "core/operator.h"
 
 namespace infini {
+/**
+ * @brief Compute the mean of input tensor's elements along certain axes.
+ *
+ */
 class ReduceMeanObj : public OperatorObj {
     set<int> axis; // axis to reduce
     bool keepDims;
 
   public:
+    /**
+     * @brief Construct a new ReduceMean object.
+     *
+     * @param graph The computation graph that this operator belongs to.
+     * @param input The input tensor.
+     * @param output The output tensor.
+     * @param axis Axes to reduce.
+     * @param keepDims Keep the reduced dimensions or not.
+     */
     ReduceMeanObj(GraphObj *graph, Tensor input, Tensor output,
                   const optional<const vector<int>> &axis,
                   bool keepDims = true);

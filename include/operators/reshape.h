@@ -3,10 +3,22 @@
 #include "core/operator.h"
 
 namespace infini {
+/**
+ * @brief Change the shape of the input tensor.
+ *
+ */
 class ReshapeObj : public OperatorObj {
     Shape dims;
 
   public:
+    /**
+     * @brief Construct a new Reshape object.
+     *
+     * @param graph The computation graph that this operator belongs to.
+     * @param input The input tensor.
+     * @param output The output tensor.
+     * @param dims The shape of the output tensor.
+     */
     ReshapeObj(GraphObj *graph, Tensor input, Tensor output, const Shape &dims);
     OP_CLONE(ReshapeObj);
 
@@ -21,9 +33,22 @@ class ReshapeObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 };
 
+/**
+ * @brief Reshape the input tensor into a one-dimensional tensor.
+ * FIXME: Move to an independent file.
+ * FIXME: Different parameter list with ONNX and Pytorch.
+ *
+ */
 class FlattenObj : public OperatorObj {
 
   public:
+    /**
+     * @brief Construct a new Flatten object.
+     *
+     * @param graph The computation graph that this operator belongs to.
+     * @param input The input tensor.
+     * @param output The output one-dimensional tensor.
+     */
     FlattenObj(GraphObj *graph, Tensor input, Tensor output);
     OP_CLONE(FlattenObj);
 
@@ -38,9 +63,21 @@ class FlattenObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 };
 
+/**
+ * @brief Copy the input tensor.
+ * FIXME: Move to an independent file.
+ *
+ */
 class IdentityObj : public OperatorObj {
 
   public:
+    /**
+     * @brief Construct a new Identity object.
+     *
+     * @param graph The computation graph that this operator belongs to.
+     * @param input The input tensor.
+     * @param output The output tensor, which is the same as the input tensor.
+     */
     IdentityObj(GraphObj *graph, Tensor input, Tensor output);
     OP_CLONE(IdentityObj);
 

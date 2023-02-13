@@ -3,10 +3,24 @@
 #include "core/operator.h"
 
 namespace infini {
+/**
+ * @brief Gather and concatenate given positions on a certain dimension of the
+ * input tensor using an index tensor.
+ *
+ */
 class GatherObj : public OperatorObj {
     int axis;
 
   public:
+    /**
+     * @brief Construct a new Gather object.
+     *
+     * @param graph The computation graph that this operator belongs to.
+     * @param input The input tensor.
+     * @param index The index tensor.
+     * @param output The output tensor.
+     * @param axis The axis to gather on.
+     */
     GatherObj(GraphObj *graph, Tensor input, Tensor index, Tensor output,
               int axis);
     OP_CLONE(GatherObj);

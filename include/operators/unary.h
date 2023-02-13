@@ -2,8 +2,20 @@
 #include "core/operator.h"
 
 namespace infini {
+/**
+ * @brief The base class for unary operators.
+ *
+ */
 class UnaryObj : public OperatorObj {
   public:
+    /**
+     * @brief Construct a new Unary object.
+     *
+     * @param type Operator type.
+     * @param graph The computation graph that this operator belongs to.
+     * @param input The input tensor.
+     * @param output The output tensor.
+     */
     UnaryObj(OpType type, GraphObj *graph, Tensor input, Tensor output);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 

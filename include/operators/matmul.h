@@ -2,7 +2,10 @@
 #include "core/operator.h"
 
 namespace infini {
-
+/**
+ * @brief Matrix multiplication.
+ *
+ */
 class MatmulObj : public OperatorObj {
   private:
     // InfiniTensor assumes a row-major tensor layout. `transA`=false means
@@ -16,15 +19,19 @@ class MatmulObj : public OperatorObj {
 
   public:
     /**
-     * @brief This comments show how operators is defined in InfiniTensor. The
-     * constructor can create output tensors for the operator or not, which
-     * depends on `graph`.
+     * @brief Construct a new Matmul object. This comments show how operators is
+     * defined in InfiniTensor. The constructor can create output tensors for
+     * the operator or not, which depends on `graph`.
      *
-     * @param graph If graph is not empty, create outputs in the constructor.
-     * Otherwise, check the provided shape with the results of `inferShape` in
-     * `checkValid`.
+     * @param graph The computation graph that this operator belongs to.
+     * @param A The input tensor.
+     * @param B The input tensor.
      * @param C C is the output of Matmul. If outputs are going to be created in
      * the constructor, C should be an empty Ref.
+     * @param transA If matrix A should be transposed when computing.
+     * @param transB If matrix B should be transposed when computing.
+     * @param bias The bias tensor.
+     * @param act The activation function.
      */
     MatmulObj(GraphObj *graph, Tensor A, Tensor B, Tensor C,
               bool transA = false, bool transB = false, Tensor bias = nullptr,

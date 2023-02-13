@@ -3,6 +3,11 @@
 #include "core/operator.h"
 
 namespace infini {
+/**
+ * @brief Resize the input tensor. See
+ * https://github.com/onnx/onnx/blob/main/docs/Operators.md#Resize for detail.
+ *
+ */
 class ResizeObj : public OperatorObj {
   public:
     enum class ECoordinateTransMode {

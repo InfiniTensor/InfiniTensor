@@ -2,7 +2,10 @@
 #include "core/operator.h"
 
 namespace infini {
-
+/**
+ * @brief The base class for AvgPool and MaxPool.
+ *
+ */
 class PoolingObj : public OperatorObj {
   private:
     int kh, kw;
@@ -12,6 +15,24 @@ class PoolingObj : public OperatorObj {
     int n, c, h, w;
 
   public:
+    /**
+     * @brief Construct a new Pooling object.
+     *
+     * @param graph The computation graph that this operator belongs to.
+     * @param optype Operator type of this pooling operator.
+     * @param input The input tensor.
+     * @param output The output tensor.
+     * @param kh Kernel height.
+     * @param kw Kernel width.
+     * FIXME: Dilated pooling is not supported for many frameworks?
+     * @param dh Dilation at the height dimension.
+     * @param dw Dilation at the width dimension.
+     * FIXME: Auto padding using padding mode.
+     * @param ph Padding at the height dimension.
+     * @param pw Padding at the width dimension.
+     * @param sh Stride at the height dimension.
+     * @param sw Stride at the width dimension.
+     */
     PoolingObj(GraphObj *graph, OpType optype, Tensor input, Tensor output,
                int kh, int kw, int dh, int dw, int ph, int pw, int sh, int sw);
     OP_CLONE(PoolingObj);

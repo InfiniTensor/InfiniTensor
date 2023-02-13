@@ -2,7 +2,30 @@
 #include "core/operator.h"
 
 namespace infini {
-
+/**
+ * @brief Convolution. Currently this operator only supports 2-D convolution.
+ * This is the base class for convolution and transposed convolution.
+ * The input tensor has four dimensions, called N (batch), C (channel), H
+ * (height), and W (width) respectively; The weight tensor has four dimensions,
+ * called F (number of filters), C (channel), R (height of weight), and S (width
+ * of weight) respectively; The output tensor has four dimensions, called N, F,
+ * H, and W respectively. By default, we take NCHW layout for the input and
+ * output tensors, and FCRS layout for the weight tensor.
+ * Convolutions have three attributes, called padding, stride, and dilation.
+ * Padding is assigned by padding mode or padding size. Padding mode must be
+ * Other, Same, or Valid (see the definition of enum class PaddingMode). Same
+ * means the output has the same shape as the input. Valid means padding size is
+ * 0. Other means padding size is assigned by value ph and pw, denoting the
+ * padding size along height dimension and weight dimension, respectively.
+ * Stride is assigned by sh and sw, denoting the stride along height dimension
+ * and weight dimension, respectively.
+ * Dilation is assigned by dh and dw, denoting the dilation along height
+ * dimension and weight dimension, respectively.
+ * See
+ * https://towardsdatascience.com/types-of-convolutions-in-deep-learning-717013397f4d
+ * for a detailed explanation of convolution.
+ *
+ */
 class ConvBaseObj : public OperatorObj {
   public:
     // When PaddingMode is Other, ConvObj will use padding size (ph, pw)
@@ -18,7 +41,7 @@ class ConvBaseObj : public OperatorObj {
     int sh, sw;
     int dh, dw;
     PaddingMode padding;
-    // auxiliary attributes. Descripitions stand on a forward perspective,
+    // Auxiliary attributes. Descripitions stand on a forward perspective,
     // i.e., convTransposed2d is not regarded as the backward of conv2d.
     int n;    // batch size
     int c;    // input/output channel for conv2d/convTransposed2d
@@ -27,10 +50,43 @@ class ConvBaseObj : public OperatorObj {
     int r, s; // weight shape
 
   public:
-    // Constructors for explicitly setting padding size
+    /**
+     * @brief Construct a new ConvBase object by explicitly setting padding
+     * size.
+     *
+     * @param opType Indicate if this is a convolution or transposed
+     * convolution.
+     * @param inputs The input, weight and bias tensors. Bias is optional.
+     * FIXME: Split inputs into three parameters, input, weight, and bias.
+     * @param output The output tensor.
+     * @param ph Padding along height dimension.
+     * @param pw Padding along weight dimension.
+     * @param sh Stride along height dimension.
+     * @param sw Stride along weight dimension.
+     * @param dh Dilation along height dimension.
+     * @param dw Dilation along weight dimension.
+     * @param inputInConvFWD To be removed.
+     * @param weightInConvFWD To be removed.
+     */
     ConvBaseObj(OpType opType, TensorVec inputs, Tensor &output, int ph, int pw,
                 int sh, int sw, int dh, int dw, const Tensor &inputInConvFWD,
                 const Tensor &weightInConvFWD);
+    /**
+     * @brief Construct a new ConvBase object by setting padding mode.
+     *
+     * @param opType Indicate if this is a convolution or transposed
+     * convolution.
+     * @param inputs The input, weight and bias tensors. Bias is optional.
+     * FIXME: Split inputs into three parameters, input, weight, and bias.
+     * @param output The output tensor.
+     * @param mode Padding mode, which is set to Other, Same, or Valid.
+     * @param sh Stride along height dimension.
+     * @param sw Stride along weight dimension.
+     * @param dh Dilation along height dimension.
+     * @param dw Dilation along weight dimension.
+     * @param inputInConvFWD To be removed.
+     * @param weightInConvFWD To be removed.
+     */
     ConvBaseObj(OpType opType, TensorVec inputs, Tensor &output,
                 PaddingMode mode, int sh, int sw, int dh, int dw,
                 const Tensor &inputInConvFWD, const Tensor &weightInConvFWD);

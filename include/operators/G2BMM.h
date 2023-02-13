@@ -2,7 +2,11 @@
 #include "core/operator.h"
 #include <assert.h>
 namespace infini {
-
+/**
+ * @brief General to band matrix multiplication, which is used for Longformer
+ * model. See https://arxiv.org/pdf/2004.05150.pdf for detail.
+ *
+ */
 class G2BMMObj : public OperatorObj {
   private:
     // to be implemented
@@ -13,15 +17,17 @@ class G2BMMObj : public OperatorObj {
 
   public:
     /**
-     * @brief This comments show how operators is defined in InfiniTensor. The
-     * constructor can create output tensors for the operator or not, which
-     * depends on `graph`.
+     * @brief Construct a new G2BMM object.
      *
-     * @param graph If graph is not empty, create outputs in the constructor.
-     * Otherwise, check the provided shape with the results of `inferShape` in
-     * `checkValid`.
+     * @param graph The computation graph that this operator belongs to.
+     * @param A The input tensor.
+     * @param B The input tensor.
      * @param C C is the output of G2BMM. If outputs are going to be created in
      * the constructor, C should be an empty Ref.
+     * @param width The width of the attention window.
+     * @param dilation The dilation of the attention window.
+     * @param bias The bias tensor.
+     * @param act The activation.
      */
     G2BMMObj(GraphObj *graph, Tensor A, Tensor B, Tensor C, const int width,
              const int dilation, Tensor bias = nullptr,
