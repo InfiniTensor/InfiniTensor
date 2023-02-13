@@ -67,6 +67,8 @@ void init_graph_builder(py::module &m) {
         .def("abs", py::overload_cast<Tensor, Tensor>(&Handler::abs),
              policy::move)
         .def("identity", py::overload_cast<Tensor, Tensor>(&Handler::identity),
+             policy::move)
+        .def("flatten", py::overload_cast<Tensor, Tensor>(&Handler::flatten),
              policy::move);
 }
 

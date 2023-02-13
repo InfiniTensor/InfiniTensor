@@ -61,6 +61,7 @@ DEFINE_UNARY_METHOD(softmax, Softmax)
 DEFINE_UNARY_METHOD(abs, Abs)
 // see operators/reshape.h
 DEFINE_UNARY_METHOD(identity, Identity)
+DEFINE_UNARY_METHOD(flatten, Flatten)
 
 static DataType dtype_repr_convert(int dtype) {
     switch ((OnnxDType)dtype) {

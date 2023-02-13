@@ -52,6 +52,7 @@ class GraphHandlerObj {
     Tensor softmax(Tensor x, Tensor y);
     Tensor abs(Tensor x, Tensor y);
     Tensor identity(Tensor x, Tensor y);
+    Tensor flatten(Tensor s, Tensor y);
 };
 
 } // namespace infini

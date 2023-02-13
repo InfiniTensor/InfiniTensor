@@ -5,6 +5,12 @@ from onnx.checker import check_model
 from pyinfinitensor.onnx import from_onnx, parse_onnx, backend, runtime
 
 
+def make_and_import_model(graph: onnx.GraphProto):
+    model = make_model(graph)
+    check_model(model)
+    from_onnx(model)
+
+
 class TestStringMethods(unittest.TestCase):
     def test_load(self):
         model_file = next(
@@ -20,115 +26,91 @@ class TestStringMethods(unittest.TestCase):
 
     def test_tensor(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 2, 3])
-        graph = make_graph([], "tensor", [x], [x])
-        model = make_model(graph)
-        check_model(model)
-        from_onnx(model)
+        make_and_import_model(make_graph([], "tensor", [x], [x]))
 
     def test_matmul(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 2, 3])
         a = make_tensor_value_info("a", TensorProto.FLOAT, [1, 3, 4])
         xa = make_tensor_value_info("b", TensorProto.FLOAT, [1, 2, 4])
         matmul = make_node("MatMul", ["x", "a"], ["xa"], name="matmul")
-        graph = make_graph([matmul], "matmul", [x, a], [xa])
-        model = make_model(graph)
-        check_model(model)
-        from_onnx(model)
+        make_and_import_model(make_graph([matmul], "matmul", [x, a], [xa]))
 
     def test_add(self):
         a = make_tensor_value_info("a", TensorProto.FLOAT, [1, 3, 5, 7])
         b = make_tensor_value_info("b", TensorProto.FLOAT, [1, 3, 5, 7])
         c = make_tensor_value_info("c", TensorProto.FLOAT, [1, 3, 5, 7])
         add = make_node("Add", ["a", "b"], ["c"], name="add")
-        graph = make_graph([add], "add", [a, b], [c])
-        model = make_model(graph)
-        check_model(model)
-        from_onnx(model)
+        make_and_import_model(make_graph([add], "add", [a, b], [c]))
 
     def test_sub(self):
         a = make_tensor_value_info("a", TensorProto.FLOAT, [1, 3, 5, 7])
         b = make_tensor_value_info("b", TensorProto.FLOAT, [1, 3, 5, 7])
         c = make_tensor_value_info("c", TensorProto.FLOAT, [1, 3, 5, 7])
         sub = make_node("Sub", ["a", "b"], ["c"], name="sub")
-        graph = make_graph([sub], "sub", [a, b], [c])
-        model = make_model(graph)
-        check_model(model)
-        from_onnx(model)
+        make_and_import_model(make_graph([sub], "sub", [a, b], [c]))
 
     def test_mul(self):
         a = make_tensor_value_info("a", TensorProto.FLOAT, [1, 3, 5, 7])
         b = make_tensor_value_info("b", TensorProto.FLOAT, [1, 3, 5, 7])
         c = make_tensor_value_info("c", TensorProto.FLOAT, [1, 3, 5, 7])
         mul = make_node("Mul", ["a", "b"], ["c"], name="mul")
-        graph = make_graph([mul], "mul", [a, b], [c])
-        model = make_model(graph)
-        check_model(model)
-        from_onnx(model)
+        make_and_import_model(make_graph([mul], "mul", [a, b], [c]))
 
     def test_div(self):
         a = make_tensor_value_info("a", TensorProto.FLOAT, [1, 3, 5, 7])
         b = make_tensor_value_info("b", TensorProto.FLOAT, [1, 3, 5, 7])
         c = make_tensor_value_info("c", TensorProto.FLOAT, [1, 3, 5, 7])
         div = make_node("Div", ["a", "b"], ["c"], name="div")
-        graph = make_graph([div], "div", [a, b], [c])
-        model = make_model(graph)
-        check_model(model)
-        from_onnx(model)
+        make_and_import_model(make_graph([div], "div", [a, b], [c]))
 
     def test_pow(self):
         a = make_tensor_value_info("a", TensorProto.FLOAT, [1, 3, 5, 7])
         b = make_tensor_value_info("b", TensorProto.FLOAT, [1, 3, 5, 7])
         c = make_tensor_value_info("c", TensorProto.FLOAT, [1, 3, 5, 7])
         pow = make_node("Pow", ["a", "b"], ["c"], name="pow")
-        graph = make_graph([pow], "pow", [a, b], [c])
-        model = make_model(graph)
-        check_model(model)
-        from_onnx(model)
+        make_and_import_model(make_graph([pow], "pow", [a, b], [c]))
 
     def test_relu(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
         relu = make_node("Relu", ["x"], ["y"], name="relu")
-        graph = make_graph([relu], "relu", [x], [y])
-        model = make_model(graph)
-        check_model(model)
-        from_onnx(model)
+        make_and_import_model(make_graph([relu], "relu", [x], [y]))
 
     def test_sigmoid(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
         sigmoid = make_node("Sigmoid", ["x"], ["y"], name="sigmoid")
-        graph = make_graph([sigmoid], "sigmoid", [x], [y])
-        model = make_model(graph)
-        check_model(model)
-        from_onnx(model)
+        make_and_import_model(make_graph([sigmoid], "sigmoid", [x], [y]))
 
     def test_tanh(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
         tanh = make_node("Tanh", ["x"], ["y"], name="tanh")
-        graph = make_graph([tanh], "tanh", [x], [y])
-        model = make_model(graph)
-        check_model(model)
-        from_onnx(model)
+        make_and_import_model(make_graph([tanh], "tanh", [x], [y]))
 
     def test_softmax(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
         softmax = make_node("Softmax", ["x"], ["y"], name="softmax")
-        graph = make_graph([softmax], "softmax", [x], [y])
-        model = make_model(graph)
-        check_model(model)
-        from_onnx(model)
+        make_and_import_model(make_graph([softmax], "softmax", [x], [y]))
 
     def test_abs(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
         abs = make_node("Abs", ["x"], ["y"], name="abs")
-        graph = make_graph([abs], "abs", [x], [y])
-        model = make_model(graph)
-        check_model(model)
-        from_onnx(model)
+        make_and_import_model(make_graph([abs], "abs", [x], [y]))
+
+    def test_identity(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        identity = make_node("Identity", ["x"], ["y"], name="identity")
+        make_and_import_model(make_graph([identity], "identity", [x], [y]))
+
+    def test_flatten(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1 * 3 * 5 * 7])
+        flatten = make_node("Flatten", ["x"], ["y"], name="flatten")
+        make_and_import_model(make_graph([flatten], "flatten", [x], [y]))
 
     # see <https://onnx.ai/onnx/intro/python.html#a-simple-example-a-linear-regression>
     def test_linear(self):
@@ -141,8 +123,6 @@ class TestStringMethods(unittest.TestCase):
         graph = make_graph([matmul, add], "lr", [x, a, b], [y])
         model = make_model(graph)
         check_model(model)
-        print(model)
-
         from_onnx(model)
         parse_onnx(model)
 
