@@ -51,6 +51,7 @@ class GraphHandlerObj {
     Tensor tanh(Tensor x, Tensor y);
     Tensor softmax(Tensor x, Tensor y);
     Tensor abs(Tensor x, Tensor y);
+    Tensor identity(Tensor x, Tensor y);
 };
 
 } // namespace infini

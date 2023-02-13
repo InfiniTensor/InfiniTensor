@@ -1,6 +1,7 @@
 ﻿#include "core/graph_handler.h"
 #include "operators/element_wise.h"
 #include "operators/matmul.h"
+#include "operators/reshape.h"
 #include "operators/unary.h"
 
 namespace infini {
@@ -58,6 +59,8 @@ DEFINE_UNARY_METHOD(sigmoid, Sigmoid)
 DEFINE_UNARY_METHOD(tanh, Tanh)
 DEFINE_UNARY_METHOD(softmax, Softmax)
 DEFINE_UNARY_METHOD(abs, Abs)
+// see operators/reshape.h
+DEFINE_UNARY_METHOD(identity, Identity)
 
 static DataType dtype_repr_convert(int dtype) {
     switch ((OnnxDType)dtype) {

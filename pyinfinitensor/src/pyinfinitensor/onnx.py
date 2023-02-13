@@ -58,6 +58,38 @@ def from_onnx(model: onnx.ModelProto):
                 tensors[node.input[1]],
                 tensors.get(node.output[0], None),
             )
+        elif node.op_type == "Relu":
+            tensors[node.output[0]] = handler.relu(
+                tensors[node.input[0]],
+                tensors.get(node.output[0], None),
+            )
+        elif node.op_type == "Sigmoid":
+            tensors[node.output[0]] = handler.sigmoid(
+                tensors[node.input[0]],
+                tensors.get(node.output[0], None),
+            )
+        elif node.op_type == "Tanh":
+            tensors[node.output[0]] = handler.tanh(
+                tensors[node.input[0]],
+                tensors.get(node.output[0], None),
+            )
+        elif node.op_type == "Softmax":
+            tensors[node.output[0]] = handler.softmax(
+                tensors[node.input[0]],
+                tensors.get(node.output[0], None),
+            )
+        elif node.op_type == "Abs":
+            tensors[node.output[0]] = handler.abs(
+                tensors[node.input[0]],
+                tensors.get(node.output[0], None),
+            )
+        elif node.op_type == "Identity":
+            tensors[node.output[0]] = handler.identity(
+                tensors[node.input[0]],
+                tensors.get(node.output[0], None),
+            )
+        else:
+            raise Exception('Unsupported operator "{}"'.format(node.op_type))
 
 
 def parse_onnx(model: onnx.ModelProto):

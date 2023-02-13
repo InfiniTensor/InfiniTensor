@@ -135,7 +135,7 @@ class TestStringMethods(unittest.TestCase):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 2, 3])
         a = make_tensor_value_info("a", TensorProto.FLOAT, [1, 3, 4])
         b = make_tensor_value_info("b", TensorProto.FLOAT, [1, 2, 4])
-        y = make_tensor_value_info("b", TensorProto.FLOAT, [1, 2, 4])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 2, 4])
         matmul = make_node("MatMul", ["x", "a"], ["xa"], name="matmul")
         add = make_node("Add", ["xa", "b"], ["y"], name="add")
         graph = make_graph([matmul, add], "lr", [x, a, b], [y])

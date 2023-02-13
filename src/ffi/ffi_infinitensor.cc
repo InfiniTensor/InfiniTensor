@@ -22,6 +22,8 @@ void register_operator_timer(py::module &m) {
 }
 
 void init_graph_builder(py::module &m) {
+    using Handler = GraphHandlerObj;
+
     m.def("cpu_runtime", &CpuRuntimeObj::getInstance);
     py::class_<RuntimeObj, std::shared_ptr<RuntimeObj>>(m, "RuntimeObj");
     py::class_<CpuRuntimeObj, std::shared_ptr<CpuRuntimeObj>, RuntimeObj>(
@@ -36,40 +38,35 @@ void init_graph_builder(py::module &m) {
         .value("Tanh", ActType::Tanh)
         .export_values();
     py::class_<GraphHandler>(m, "GraphHandler");
-    py::class_<GraphHandlerObj>(m, "GraphHandlerObj")
+    py::class_<Handler>(m, "GraphHandlerObj")
         .def(py::init<Runtime>())
-        .def("tensor", py::overload_cast<Shape, int>(&GraphHandlerObj::tensor),
-             policy::reference_internal)
+        .def("tensor", py::overload_cast<Shape, int>(&Handler::tensor),
+             policy::move)
         .def("matmul",
              py::overload_cast<Tensor, Tensor, Tensor, bool, bool, Tensor,
-                               ActType>(&GraphHandlerObj::matmul),
+                               ActType>(&Handler::matmul),
              policy::move)
-        .def("add",
-             py::overload_cast<Tensor, Tensor, Tensor>(&GraphHandlerObj::add),
+        .def("add", py::overload_cast<Tensor, Tensor, Tensor>(&Handler::add),
              policy::move)
-        .def("sub",
-             py::overload_cast<Tensor, Tensor, Tensor>(&GraphHandlerObj::sub),
+        .def("sub", py::overload_cast<Tensor, Tensor, Tensor>(&Handler::sub),
              policy::move)
-        .def("mul",
-             py::overload_cast<Tensor, Tensor, Tensor>(&GraphHandlerObj::mul),
+        .def("mul", py::overload_cast<Tensor, Tensor, Tensor>(&Handler::mul),
              policy::move)
-        .def("div",
-             py::overload_cast<Tensor, Tensor, Tensor>(&GraphHandlerObj::div),
+        .def("div", py::overload_cast<Tensor, Tensor, Tensor>(&Handler::div),
              policy::move)
-        .def("pow",
-             py::overload_cast<Tensor, Tensor, Tensor>(&GraphHandlerObj::pow),
+        .def("pow", py::overload_cast<Tensor, Tensor, Tensor>(&Handler::pow),
              policy::move)
-        .def("relu", py::overload_cast<Tensor, Tensor>(&GraphHandlerObj::relu),
+        .def("relu", py::overload_cast<Tensor, Tensor>(&Handler::relu),
              policy::move)
-        .def("sigmoid",
-             py::overload_cast<Tensor, Tensor>(&GraphHandlerObj::sigmoid),
+        .def("sigmoid", py::overload_cast<Tensor, Tensor>(&Handler::sigmoid),
              policy::move)
-        .def("tanh", py::overload_cast<Tensor, Tensor>(&GraphHandlerObj::tanh),
-             policy::reference_internal)
-        .def("softmax",
-             py::overload_cast<Tensor, Tensor>(&GraphHandlerObj::softmax),
+        .def("tanh", py::overload_cast<Tensor, Tensor>(&Handler::tanh),
              policy::move)
-        .def("abs", py::overload_cast<Tensor, Tensor>(&GraphHandlerObj::abs),
+        .def("softmax", py::overload_cast<Tensor, Tensor>(&Handler::softmax),
+             policy::move)
+        .def("abs", py::overload_cast<Tensor, Tensor>(&Handler::abs),
+             policy::move)
+        .def("identity", py::overload_cast<Tensor, Tensor>(&Handler::identity),
              policy::move);
 }
 
