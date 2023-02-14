@@ -1,4 +1,5 @@
 ﻿import onnx, backend
+from typing import Dict
 
 runtime = backend.cpu_runtime()
 
@@ -6,8 +7,8 @@ runtime = backend.cpu_runtime()
 def from_onnx(model: onnx.ModelProto):
     handler = backend.GraphHandlerObj(runtime)
 
-    tensors = dict()
-    data = dict()
+    tensors: Dict[str, backend.TensorObj] = dict()
+    data: Dict[str, onnx.TensorProto] = dict()
 
     for input in model.graph.input:
         dims = [d.dim_value for d in input.type.tensor_type.shape.dim]
@@ -120,6 +121,12 @@ def from_onnx(model: onnx.ModelProto):
                 tensors[node.input[0]],
                 tensors.get(node.output[0]),
                 [int(i) for i in data[node.input[1]].int64_data],
+            )
+        elif node.op_type == "Concat":
+            tensors[node.output[0]] = handler.concat(
+                [tensors[name] for name in node.input],
+                tensors.get(node.output[0]),
+                next((attr.i for attr in node.attribute if attr.name == "axis")),
             )
         else:
             raise Exception('Unsupported operator "{}"'.format(node.op_type))

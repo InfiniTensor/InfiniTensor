@@ -58,6 +58,7 @@ class GraphHandlerObj {
     Tensor identity(Tensor x, Tensor y);
     Tensor flatten(Tensor s, Tensor y);
     Tensor reshape(Tensor data, Tensor reshaped, Shape shape);
+    Tensor concat(TensorVec inputs, Tensor output, int dim);
 };
 
 } // namespace infini

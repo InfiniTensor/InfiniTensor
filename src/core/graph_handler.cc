@@ -1,5 +1,6 @@
 ﻿#include "core/graph_handler.h"
 #include "operators/batch_norm.h"
+#include "operators/concat.h"
 #include "operators/element_wise.h"
 #include "operators/matmul.h"
 #include "operators/reshape.h"
@@ -90,6 +91,15 @@ Tensor GraphHandlerObj::reshape(Tensor data, Tensor reshaped, Shape shape) {
     } else {
         return g->addOp<ReshapeObj>(std::move(data), reshaped, std::move(shape))
             ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::concat(TensorVec inputs, Tensor output, int dim) {
+    if (output) {
+        g->addOpWithOutputs<ConcatObj>(std::move(inputs), output, dim);
+        return output;
+    } else {
+        return g->addOp<ConcatObj>(std::move(inputs), output, dim)->getOutput();
     }
 }
 

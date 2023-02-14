@@ -136,11 +136,11 @@ class TestStringMethods(unittest.TestCase):
         make_and_import_model(make_graph([flatten], "flatten", [x], [y]))
 
     def test_reshape(self):
-        data = make_tensor_value_info("data", TensorProto.FLOAT, [2, 3, 3, 4])
+        data = make_tensor_value_info("data", TensorProto.FLOAT, [2, 3, 4, 5])
         # shape 对于后端来说并不是一个张量，然而转换中可能没有办法分辨
         # 不知道怎么把 ValueInfoProto 转换成 TensorProto
-        shape = make_tensor_value_info("shape", TensorProto.INT64, [4])
-        shape_data = make_tensor("shape", TensorProto.INT64, [4], [3, 2, 4, 3])
+        shape = make_tensor_value_info("shape", TensorProto.INT64, [3])
+        shape_data = make_tensor("shape", TensorProto.INT64, [3], [5, 3, 8])
         reshaped = make_tensor_value_info(
             "reshaped", TensorProto.FLOAT, shape_data.int64_data
         )
@@ -149,6 +149,17 @@ class TestStringMethods(unittest.TestCase):
         # 但实际上的图中 initializer 里的必然会出现在 input 里，不知道为什么这样设计
         make_and_import_model(
             make_graph([reshape], "reshape", [data, shape], [reshaped], [shape_data])
+        )
+
+    def test_concat(self):
+        input1 = make_tensor_value_info("input1", TensorProto.FLOAT, [1, 3, 2, 4])
+        input2 = make_tensor_value_info("input2", TensorProto.FLOAT, [1, 3, 2, 5])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 2, 9])
+        concat = make_node(
+            "Concat", ["input1", "input2"], ["output"], axis=3, name="concat"
+        )
+        make_and_import_model(
+            make_graph([concat], "concat", [input1, input2], [output])
         )
 
     # see <https://onnx.ai/onnx/intro/python.html#a-simple-example-a-linear-regression>
