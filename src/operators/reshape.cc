@@ -1,9 +1,8 @@
 #include "operators/reshape.h"
 
 namespace infini {
-ReshapeObj::ReshapeObj(GraphObj *graph, Tensor input, Tensor output,
-                       const Shape &dims)
-    : OperatorObj(OpType::Reshape, {input}, {output}), dims(dims) {
+ReshapeObj::ReshapeObj(GraphObj *graph, Tensor input, Tensor output, Shape dims)
+    : OperatorObj(OpType::Reshape, {input}, {output}), dims(std::move(dims)) {
     IT_ASSERT(checkValid(graph));
 }
 

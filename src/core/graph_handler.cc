@@ -82,6 +82,19 @@ DEFINE_UNARY_METHOD(abs, Abs)
 DEFINE_UNARY_METHOD(identity, Identity)
 DEFINE_UNARY_METHOD(flatten, Flatten)
 
+Tensor GraphHandlerObj::reshape(Tensor data, Tensor reshaped, Shape shape) {
+    if (reshaped) {
+        g->addOpWithOutputs<ReshapeObj>(std::move(data), reshaped,
+                                        std::move(shape));
+        return reshaped;
+    } else {
+        return g
+            ->addOpWithOutputs<ReshapeObj>(std::move(data), reshaped,
+                                           std::move(shape))
+            ->getOutput();
+    }
+}
+
 static DataType dtype_repr_convert(int dtype) {
     switch ((OnnxDType)dtype) {
     case OnnxDType::FLOAT:

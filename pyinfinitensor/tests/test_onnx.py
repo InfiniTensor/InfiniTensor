@@ -129,6 +129,16 @@ class TestStringMethods(unittest.TestCase):
         flatten = make_node("Flatten", ["x"], ["y"], name="flatten")
         make_and_import_model(make_graph([flatten], "flatten", [x], [y]))
 
+    # FIXME INT64 类型不支持
+    # def test_reshape(self):
+    #     data = make_tensor_value_info("data", TensorProto.FLOAT, [2, 3, 4, 5])
+    #     shape = make_tensor_value_info("shape", TensorProto.INT64, [3, 5, 8])
+    #     reshaped = make_tensor_value_info("reshaped", TensorProto.FLOAT, [3, 5, 8])
+    #     reshape = make_node("Reshape", ["data", "shape"], ["reshaped"], name="reshape")
+    #     make_and_import_model(
+    #         make_graph([reshape], "reshape", [data, shape], [reshaped])
+    #     )
+
     # see <https://onnx.ai/onnx/intro/python.html#a-simple-example-a-linear-regression>
     def test_linear(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 2, 3])

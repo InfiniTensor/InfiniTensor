@@ -1,4 +1,4 @@
-﻿import typing, onnx, backend
+﻿import onnx, backend
 
 runtime = backend.cpu_runtime()
 
@@ -21,7 +21,7 @@ def from_onnx(model: onnx.ModelProto):
             tensors[node.output[0]] = handler.matmul(
                 tensors[node.input[0]],
                 tensors[node.input[1]],
-                tensors.get(node.output[0], None),
+                tensors.get(node.output[0]),
                 False,
                 False,
                 None,
@@ -31,7 +31,7 @@ def from_onnx(model: onnx.ModelProto):
             (input, mean, var, scale, bias) = (
                 tensors[node.input[i]] for i in [0, 3, 4, 1, 2]
             )
-            output = tensors.get(node.output[0], None)
+            output = tensors.get(node.output[0])
             attributes = _parse_attribute(
                 node, {"momentum": 0.9, "epsilon": 1e-05, "training_mode": 0}
             )
@@ -45,61 +45,61 @@ def from_onnx(model: onnx.ModelProto):
             tensors[node.output[0]] = handler.add(
                 tensors[node.input[0]],
                 tensors[node.input[1]],
-                tensors.get(node.output[0], None),
+                tensors.get(node.output[0]),
             )
         elif node.op_type == "Sub":
             tensors[node.output[0]] = handler.sub(
                 tensors[node.input[0]],
                 tensors[node.input[1]],
-                tensors.get(node.output[0], None),
+                tensors.get(node.output[0]),
             )
         elif node.op_type == "Mul":
             tensors[node.output[0]] = handler.mul(
                 tensors[node.input[0]],
                 tensors[node.input[1]],
-                tensors.get(node.output[0], None),
+                tensors.get(node.output[0]),
             )
         elif node.op_type == "Div":
             tensors[node.output[0]] = handler.div(
                 tensors[node.input[0]],
                 tensors[node.input[1]],
-                tensors.get(node.output[0], None),
+                tensors.get(node.output[0]),
             )
         elif node.op_type == "Pow":
             tensors[node.output[0]] = handler.pow(
                 tensors[node.input[0]],
                 tensors[node.input[1]],
-                tensors.get(node.output[0], None),
+                tensors.get(node.output[0]),
             )
         elif node.op_type == "Relu":
             tensors[node.output[0]] = handler.relu(
                 tensors[node.input[0]],
-                tensors.get(node.output[0], None),
+                tensors.get(node.output[0]),
             )
         elif node.op_type == "Sigmoid":
             tensors[node.output[0]] = handler.sigmoid(
                 tensors[node.input[0]],
-                tensors.get(node.output[0], None),
+                tensors.get(node.output[0]),
             )
         elif node.op_type == "Tanh":
             tensors[node.output[0]] = handler.tanh(
                 tensors[node.input[0]],
-                tensors.get(node.output[0], None),
+                tensors.get(node.output[0]),
             )
         elif node.op_type == "Softmax":
             tensors[node.output[0]] = handler.softmax(
                 tensors[node.input[0]],
-                tensors.get(node.output[0], None),
+                tensors.get(node.output[0]),
             )
         elif node.op_type == "Abs":
             tensors[node.output[0]] = handler.abs(
                 tensors[node.input[0]],
-                tensors.get(node.output[0], None),
+                tensors.get(node.output[0]),
             )
         elif node.op_type == "Identity":
             tensors[node.output[0]] = handler.identity(
                 tensors[node.input[0]],
-                tensors.get(node.output[0], None),
+                tensors.get(node.output[0]),
             )
         elif node.op_type == "Flatten":
             # TODO 后端算子不支持沿任意轴展开
@@ -109,7 +109,13 @@ def from_onnx(model: onnx.ModelProto):
             assert axis == None or axis == 1
             tensors[node.output[0]] = handler.flatten(
                 tensors[node.input[0]],
-                tensors.get(node.output[0], None),
+                tensors.get(node.output[0]),
+            )
+        elif node.op_type == "Reshape":
+            tensors[node.output[0]] = handler.reshape(
+                tensors[node.input[0]],
+                tensors.get(node.output[0]),
+                [int(i) for i in tensors[node.input[1]]],
             )
         else:
             raise Exception('Unsupported operator "{}"'.format(node.op_type))

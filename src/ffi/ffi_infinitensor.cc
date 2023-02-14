@@ -73,6 +73,9 @@ void init_graph_builder(py::module &m) {
         .def("identity", py::overload_cast<Tensor, Tensor>(&Handler::identity),
              policy::move)
         .def("flatten", py::overload_cast<Tensor, Tensor>(&Handler::flatten),
+             policy::move)
+        .def("reshape",
+             py::overload_cast<Tensor, Tensor, Shape>(&Handler::reshape),
              policy::move);
 }
 

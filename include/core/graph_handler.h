@@ -57,6 +57,7 @@ class GraphHandlerObj {
     Tensor abs(Tensor x, Tensor y);
     Tensor identity(Tensor x, Tensor y);
     Tensor flatten(Tensor s, Tensor y);
+    Tensor reshape(Tensor data, Tensor reshaped, Shape shape);
 };
 
 } // namespace infini
