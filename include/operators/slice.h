@@ -20,14 +20,14 @@ class SliceObj : public OperatorObj {
      * list which has the same length with axis.
      * @param ends The end position to slice at certain axes. `ends` is a list
      * which has the same length with axis.
-     * @param axis The dimensions to slice. If `axis` is empty, it is set to [0,
+     * @param axes The dimensions to slice. If `axis` is empty, it is set to [0,
      * 1, ..., d-1], where d is the number of dimensions of the input tensor.
      * @param steps The step to slice at certain axes. `step` is a list which
      * has the same length with axis.
      */
     SliceObj(GraphObj *graph, Tensor input, Tensor output,
              const vector<int> &starts, const vector<int> &ends,
-             const optional<vector<int>> &axis,
+             const optional<vector<int>> &axes,
              const optional<vector<int>> &steps);
     OP_CLONE(SliceObj);
 

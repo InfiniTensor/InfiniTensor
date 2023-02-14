@@ -3,34 +3,33 @@
 namespace infini {
 SliceObj::SliceObj(GraphObj *graph, Tensor input, Tensor output,
                    const vector<int> &starts, const vector<int> &ends,
-                   const optional<vector<int>> &axis,
+                   const optional<vector<int>> &axes,
                    const optional<vector<int>> &steps)
     : OperatorObj(OpType::Slice, {input}, {output}) {
-    if (steps != std::nullopt)
+    if (steps)
         IT_TODO_HALT();
     IT_ASSERT(starts.size() == ends.size());
 
-    if (axis == std::nullopt) {
+    if (!axes) {
         this->starts = starts;
         this->ends = ends;
     } else {
-        int nAxis = (*axis).size();
-        IT_ASSERT((int)starts.size() == nAxis);
+        auto nAxis = (*axes).size();
+        IT_ASSERT(starts.size() == nAxis);
 
-        int nDims = input->getDims().size();
-        vector<int> tmpS(nDims, 0), tmpE;
-        for (int i = 0; i < nDims; ++i) {
-            tmpE.emplace_back(input->getDims()[i] - 1);
-        }
+        auto dims = input->getDims();
+        this->starts = vector<int>(dims.size(), 0);
+        this->ends.resize(dims.size());
+        std::transform(dims.begin(), dims.end(), this->ends.begin(),
+                       [](auto x) { return x - 1; });
 
-        for (int i = 0; i < nAxis; ++i) {
-            if ((*axis)[i] < 0)
+        for (size_t j = 0; j < nAxis; ++j) {
+            auto i = (*axes)[j];
+            if (i < 0)
                 IT_TODO_HALT();
-            tmpS[(*axis)[i]] = starts[i];
-            tmpE[(*axis)[i]] = ends[i];
+            this->starts[i] = starts[j];
+            this->ends[i] = ends[j];
         }
-        this->starts = tmpS;
-        this->ends = tmpE;
     }
     IT_ASSERT(checkValid(graph));
 }
