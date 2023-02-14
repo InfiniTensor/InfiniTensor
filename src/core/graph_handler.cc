@@ -4,9 +4,11 @@
 #include "operators/element_wise.h"
 #include "operators/gather.h"
 #include "operators/matmul.h"
+#include "operators/pooling.h"
 #include "operators/reduce_mean.h"
 #include "operators/reshape.h"
 #include "operators/unary.h"
+
 namespace infini {
 
 static DataType dtype_repr_convert(int);
@@ -42,6 +44,35 @@ Tensor GraphHandlerObj::batchNorm(Tensor input, Tensor output, Tensor mean,
             ->addOp<BatchNormObj>(std::move(input), output, std::move(mean),
                                   std::move(var), std::move(scale),
                                   std::move(bias), momentum, eps, training)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::maxPool(Tensor input, Tensor output, int kh, int kw,
+                                int dh, int dw, int ph, int pw, int sh,
+                                int sw) {
+    if (output) {
+        g->addOpWithOutputs<MaxPoolObj>(std::move(input), output, kh, kw, dh,
+                                        dw, ph, pw, sh, sw);
+        return output;
+    } else {
+        return g
+            ->addOp<MaxPoolObj>(std::move(input), output, kh, kw, dh, dw, ph,
+                                pw, sh, sw)
+            ->getOutput();
+    }
+}
+Tensor GraphHandlerObj::avgPool(Tensor input, Tensor output, int kh, int kw,
+                                int dh, int dw, int ph, int pw, int sh,
+                                int sw) {
+    if (output) {
+        g->addOpWithOutputs<AvgPoolObj>(std::move(input), output, kh, kw, dh,
+                                        dw, ph, pw, sh, sw);
+        return output;
+    } else {
+        return g
+            ->addOp<AvgPoolObj>(std::move(input), output, kh, kw, dh, dw, ph,
+                                pw, sh, sw)
             ->getOutput();
     }
 }

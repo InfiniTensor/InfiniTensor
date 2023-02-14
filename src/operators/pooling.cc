@@ -5,12 +5,12 @@ namespace infini {
 PoolingObj::PoolingObj(GraphObj *graph, OpType optype, Tensor input,
                        Tensor output, int kh, int kw, int dh, int dw, int ph,
                        int pw, int sh, int sw)
-    : OperatorObj(optype, {input}, {output}), kh(kh), kw(kw), dh(dh), dw(dw),
-      ph(ph), pw(pw), sh(sh), sw(sw) {
-    n = input->getDims()[0];
-    c = input->getDims()[1];
-    h = input->getDims()[2], w = input->getDims()[3];
+    : OperatorObj(optype, {input}, {output}),
 
+      kh(kh), kw(kw), dh(dh), dw(dw), ph(ph), pw(pw), sh(sh), sw(sw),
+
+      n(input->getDims()[0]), c(input->getDims()[1]), h(input->getDims()[2]),
+      w(input->getDims()[3]) {
     IT_ASSERT(checkValid(graph));
 }
 

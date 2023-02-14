@@ -46,6 +46,56 @@ def from_onnx(model: onnx.ModelProto):
             tensors[node.output[0]] = handler.batchNorm(
                 input, output, mean, var, scale, bias, momentum, eps, training != 0
             )
+        elif node.op_type == "MaxPool":
+            attributes = _parse_attribute(
+                node,
+                {
+                    "kernel_shape": None,
+                    "dilations": [1, 1],
+                    "pads": [0, 0],
+                    "strides": [1, 1],
+                },
+            )
+            (k, d, p, s) = (
+                attributes[name]
+                for name in ["kernel_shape", "dilations", "pads", "strides"]
+            )
+            tensors[node.output[0]] = handler.maxPool(
+                tensors[node.input[0]],
+                tensors.get(node.output[0]),
+                k[0],
+                k[1],
+                d[0],
+                d[1],
+                p[0],
+                p[1],
+                s[0],
+                s[1],
+            )
+        elif node.op_type == "AveragePool":
+            attributes = _parse_attribute(
+                node,
+                {
+                    "kernel_shape": None,
+                    "pads": [0, 0],
+                    "strides": [1, 1],
+                },
+            )
+            (k, p, s) = (
+                attributes[name] for name in ["kernel_shape", "pads", "strides"]
+            )
+            tensors[node.output[0]] = handler.maxPool(
+                tensors[node.input[0]],
+                tensors.get(node.output[0]),
+                k[0],
+                k[1],
+                1,
+                1,
+                p[0],
+                p[1],
+                s[0],
+                s[1],
+            )
         elif node.op_type == "Add":
             tensors[node.output[0]] = handler.add(
                 tensors[node.input[0]],

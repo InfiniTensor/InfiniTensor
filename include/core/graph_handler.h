@@ -44,6 +44,11 @@ class GraphHandlerObj {
                      Tensor scale, Tensor bias, float momentum, float eps,
                      bool training);
 
+    Tensor maxPool(Tensor input, Tensor output, int kh, int kw, int dh, int dw,
+                   int ph, int pw, int sh, int sw);
+    Tensor avgPool(Tensor input, Tensor output, int kh, int kw, int dh, int dw,
+                   int ph, int pw, int sh, int sw);
+
     Tensor add(Tensor a, Tensor b, Tensor c);
     Tensor sub(Tensor a, Tensor b, Tensor c);
     Tensor mul(Tensor a, Tensor b, Tensor c);

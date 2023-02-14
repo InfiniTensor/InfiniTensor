@@ -55,8 +55,37 @@ class TestStringMethods(unittest.TestCase):
             name="batchNormalization",
         )
         make_and_import_model(
-            make_graph([batch_norm], "batch_norm", [x, scale, b, mean, var], [y])
+            make_graph([batch_norm], "batchNorm", [x, scale, b, mean, var], [y])
         )
+
+    def test_max_pool(self):
+        x = make_tensor_value_info("x", TensorProto.UINT32, [1, 64, 162, 162])
+        y = make_tensor_value_info("y", TensorProto.UINT32, [1, 64, 80, 80])
+        pool = make_node(
+            "MaxPool",
+            ["x"],
+            ["y"],
+            kernel_shape=[3, 3],
+            dilations=[1, 1],
+            pads=[0, 0],
+            strides=[2, 2],
+            name="maxPool",
+        )
+        make_and_import_model(make_graph([pool], "maxPool", [x], [y]))
+
+    def test_avg_pool(self):
+        x = make_tensor_value_info("x", TensorProto.UINT32, [1, 64, 162, 162])
+        y = make_tensor_value_info("y", TensorProto.UINT32, [1, 64, 80, 80])
+        pool = make_node(
+            "AveragePool",
+            ["x"],
+            ["y"],
+            kernel_shape=[3, 3],
+            pads=[0, 0],
+            strides=[2, 2],
+            name="avgPool",
+        )
+        make_and_import_model(make_graph([pool], "avgPool", [x], [y]))
 
     def test_add(self):
         a = make_tensor_value_info("a", TensorProto.FLOAT, [1, 3, 5, 7])
