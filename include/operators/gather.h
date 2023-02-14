@@ -17,11 +17,11 @@ class GatherObj : public OperatorObj {
      *
      * @param graph The computation graph that this operator belongs to.
      * @param input The input tensor.
-     * @param index The index tensor.
+     * @param indices The index tensor.
      * @param output The output tensor.
      * @param axis The axis to gather on.
      */
-    GatherObj(GraphObj *graph, Tensor input, Tensor index, Tensor output,
+    GatherObj(GraphObj *graph, Tensor input, Tensor indices, Tensor output,
               int axis);
     OP_CLONE(GatherObj);
     std::string toString() const override;

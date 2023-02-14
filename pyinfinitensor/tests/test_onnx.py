@@ -162,6 +162,15 @@ class TestStringMethods(unittest.TestCase):
             make_graph([concat], "concat", [input1, input2], [output])
         )
 
+    def test_gather(self):
+        data = make_tensor_value_info("data", TensorProto.FLOAT, [1, 3, 4, 4])
+        indices = make_tensor_value_info("indices", TensorProto.FLOAT, [2, 1, 2])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 2, 1, 2, 4, 4])
+        gather = make_node(
+            "Gather", ["data", "indices"], ["output"], axis=1, name="gather"
+        )
+        make_and_import_model(make_graph([gather], "gather", [data, indices], [output]))
+
     # see <https://onnx.ai/onnx/intro/python.html#a-simple-example-a-linear-regression>
     def test_linear(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 2, 3])

@@ -79,6 +79,9 @@ void init_graph_builder(py::module &m) {
              policy::move)
         .def("concat",
              py::overload_cast<TensorVec, Tensor, int>(&Handler::concat),
+             policy::move)
+        .def("gather",
+             py::overload_cast<Tensor, Tensor, Tensor, int>(&Handler::gather),
              policy::move);
 }
 

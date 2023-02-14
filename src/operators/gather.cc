@@ -1,9 +1,9 @@
 #include "operators/gather.h"
 
 namespace infini {
-GatherObj::GatherObj(GraphObj *graph, Tensor input, Tensor index, Tensor output,
-                     int axis)
-    : OperatorObj(OpType::Gather, {input, index}, {output}), axis(axis) {
+GatherObj::GatherObj(GraphObj *graph, Tensor input, Tensor indices,
+                     Tensor output, int axis)
+    : OperatorObj(OpType::Gather, {input, indices}, {output}), axis(axis) {
     IT_ASSERT(checkValid(graph));
 }
 

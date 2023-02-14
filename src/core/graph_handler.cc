@@ -2,6 +2,7 @@
 #include "operators/batch_norm.h"
 #include "operators/concat.h"
 #include "operators/element_wise.h"
+#include "operators/gather.h"
 #include "operators/matmul.h"
 #include "operators/reshape.h"
 #include "operators/unary.h"
@@ -100,6 +101,20 @@ Tensor GraphHandlerObj::concat(TensorVec inputs, Tensor output, int dim) {
         return output;
     } else {
         return g->addOp<ConcatObj>(std::move(inputs), output, dim)->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::gather(Tensor input, Tensor indices, Tensor output,
+                               int axis) {
+    if (output) {
+        g->addOpWithOutputs<GatherObj>(std::move(input), std::move(indices),
+                                       output, axis);
+        return output;
+    } else {
+        return g
+            ->addOp<GatherObj>(std::move(input), std::move(indices), output,
+                               axis)
+            ->getOutput();
     }
 }
 
