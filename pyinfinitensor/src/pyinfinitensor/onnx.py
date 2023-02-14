@@ -1,5 +1,5 @@
 ﻿import onnx, backend
-from typing import Dict
+from typing import Dict, List, Any
 
 runtime = backend.cpu_runtime()
 
@@ -193,6 +193,15 @@ def from_onnx(model: onnx.ModelProto):
                 next((attr.i for attr in node.attribute if attr.name == "keepdims"))
                 != 0,
             )
+        elif node.op_type == "Slice":
+            tensors[node.output[0]] = handler.slice(
+                tensors[node.input[0]],
+                tensors.get(node.output[0]),
+                _parse_data(data[node.input[1]]),
+                _parse_data(data[node.input[2]]),
+                _parse_data(data[node.input[3]]) if len(node.input) > 3 else None,
+                _parse_data(data[node.input[4]]) if len(node.input) > 4 else None,
+            )
         else:
             raise Exception('Unsupported operator "{}"'.format(node.op_type))
 
@@ -233,7 +242,9 @@ def parse_onnx(model: onnx.ModelProto):
         print("   {}".format(node.name))
 
 
-def _parse_attribute(node: onnx.NodeProto, attrs: dict = dict()):
+def _parse_attribute(
+    node: onnx.NodeProto, attrs: Dict[str, Any] = dict()
+) -> Dict[str, Any]:
     for attr in node.attribute:
         if attr.name in attrs:
             if attr.type == onnx.AttributeProto.INT:
@@ -249,3 +260,12 @@ def _parse_attribute(node: onnx.NodeProto, attrs: dict = dict()):
             else:
                 assert False, "Unsupported Attribute Type: {}".format(attr.type)
     return attrs
+
+
+def _parse_data(tensor: onnx.TensorProto) -> List[int]:
+    if tensor.data_type == onnx.TensorProto.INT32:
+        return [int(i) for i in tensor.int32_data]
+    elif tensor.data_type == onnx.TensorProto.INT64:
+        return [int(i) for i in tensor.int64_data]
+    else:
+        assert False, "Unsupported Tensor Type: {}".format(tensor.data_type)

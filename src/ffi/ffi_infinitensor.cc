@@ -94,6 +94,12 @@ void init_graph_builder(py::module &m) {
         .def("reduceMean",
              py::overload_cast<Tensor, Tensor, const optional<vector<int>> &,
                                bool>(&Handler::reduceMean),
+             policy::move)
+        .def("slice",
+             py::overload_cast<
+                 Tensor, Tensor, const vector<int> &, const vector<int> &,
+                 const optional<vector<int>> &, const optional<vector<int>> &>(
+                 &Handler::slice),
              policy::move);
 }
 

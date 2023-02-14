@@ -7,6 +7,7 @@
 #include "operators/pooling.h"
 #include "operators/reduce_mean.h"
 #include "operators/reshape.h"
+#include "operators/slice.h"
 #include "operators/unary.h"
 
 namespace infini {
@@ -158,6 +159,23 @@ Tensor GraphHandlerObj::reduceMean(Tensor data, Tensor reduced,
         return reduced;
     } else {
         return g->addOp<ReduceMeanObj>(std::move(data), reduced, axes, keepdims)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::slice(Tensor input, Tensor output,
+                              const vector<int> &starts,
+                              const vector<int> &ends,
+                              const optional<vector<int>> &axes,
+                              const optional<vector<int>> &steps) {
+    if (output) {
+        g->addOpWithOutputs<SliceObj>(std::move(input), output, starts, ends,
+                                      axes, steps);
+        return output;
+    } else {
+        return g
+            ->addOp<SliceObj>(std::move(input), output, starts, ends, axes,
+                              steps)
             ->getOutput();
     }
 }

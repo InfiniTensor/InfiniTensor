@@ -208,6 +208,26 @@ class TestStringMethods(unittest.TestCase):
         )
         make_and_import_model(make_graph([reduceMean], "reduceMean", [data], [reduced]))
 
+    def test_slice(self):
+        data = make_tensor_value_info("data", TensorProto.UINT32, [10, 64, 162, 162])
+        output = make_tensor_value_info("output", TensorProto.UINT32, [2, 1, 100, 96])
+        starts = make_tensor_value_info("starts", TensorProto.INT64, [4])
+        starts_data = make_tensor("starts", TensorProto.INT64, [4], [2, 10, 1, 5])
+        ends = make_tensor_value_info("ends", TensorProto.INT64, [4])
+        ends_data = make_tensor("ends", TensorProto.INT64, [4], [3, 10, 100, 100])
+        slice = make_node(
+            "Slice", ["data", "starts", "ends"], ["output"], name="gather"
+        )
+        make_and_import_model(
+            make_graph(
+                [slice],
+                "slice",
+                [data, starts, ends],
+                [output],
+                [starts_data, ends_data],
+            )
+        )
+
     # see <https://onnx.ai/onnx/intro/python.html#a-simple-example-a-linear-regression>
     def test_linear(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 2, 3])
