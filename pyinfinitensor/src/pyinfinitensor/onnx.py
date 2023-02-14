@@ -7,6 +7,7 @@ def from_onnx(model: onnx.ModelProto):
     handler = backend.GraphHandlerObj(runtime)
 
     tensors = dict()
+    data = dict()
 
     for input in model.graph.input:
         dims = [d.dim_value for d in input.type.tensor_type.shape.dim]
@@ -15,6 +16,9 @@ def from_onnx(model: onnx.ModelProto):
     for output in model.graph.output:
         dims = [d.dim_value for d in output.type.tensor_type.shape.dim]
         tensors[output.name] = handler.tensor(dims, output.type.tensor_type.elem_type)
+
+    for initializer in model.graph.initializer:
+        data[initializer.name] = initializer
 
     for node in model.graph.node:
         if node.op_type == "MatMul":
@@ -115,7 +119,7 @@ def from_onnx(model: onnx.ModelProto):
             tensors[node.output[0]] = handler.reshape(
                 tensors[node.input[0]],
                 tensors.get(node.output[0]),
-                [int(i) for i in tensors[node.input[1]]],
+                data[node.input[1]].int32_data,
             )
         else:
             raise Exception('Unsupported operator "{}"'.format(node.op_type))

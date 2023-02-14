@@ -129,15 +129,17 @@ class TestStringMethods(unittest.TestCase):
         flatten = make_node("Flatten", ["x"], ["y"], name="flatten")
         make_and_import_model(make_graph([flatten], "flatten", [x], [y]))
 
-    # FIXME INT64 类型不支持
-    # def test_reshape(self):
-    #     data = make_tensor_value_info("data", TensorProto.FLOAT, [2, 3, 4, 5])
-    #     shape = make_tensor_value_info("shape", TensorProto.INT64, [3, 5, 8])
-    #     reshaped = make_tensor_value_info("reshaped", TensorProto.FLOAT, [3, 5, 8])
-    #     reshape = make_node("Reshape", ["data", "shape"], ["reshaped"], name="reshape")
-    #     make_and_import_model(
-    #         make_graph([reshape], "reshape", [data, shape], [reshaped])
-    #     )
+    def test_reshape(self):
+        data = make_tensor_value_info("data", TensorProto.FLOAT, [2, 3, 4, 5])
+        shape = make_tensor_value_info("shape", TensorProto.INT64, [3, 5, 8])
+        reshaped = make_tensor_value_info("reshaped", TensorProto.FLOAT, [3, 5, 8])
+        reshape = make_node("Reshape", ["data", "shape"], ["reshaped"], name="reshape")
+        # FIXME shape 对于 onnx 来说是输入张量，但对于后端来说不是，导入时无法分辨这个情况。
+        #       tensor 的类型又不支持 INT64，所以这里会报一个错。
+        #       如何分辨 onnx 的张量是不是需要作为张量注册？
+        # make_and_import_model(
+        #     make_graph([reshape], "reshape", [data, shape], [reshaped])
+        # )
 
     # see <https://onnx.ai/onnx/intro/python.html#a-simple-example-a-linear-regression>
     def test_linear(self):
