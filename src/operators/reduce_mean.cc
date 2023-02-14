@@ -2,8 +2,7 @@
 
 namespace infini {
 ReduceMeanObj::ReduceMeanObj(GraphObj *graph, Tensor input, Tensor output,
-                             const optional<const vector<int>> &_axes,
-                             bool keepDims)
+                             const optional<vector<int>> &_axes, bool keepDims)
     : OperatorObj(OpType::ReduceMean, {input}, {output}), keepDims(keepDims) {
     const auto size = input->getDims().size();
     if (_axes) {

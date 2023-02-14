@@ -135,6 +135,14 @@ def from_onnx(model: onnx.ModelProto):
                 tensors.get(node.output[0]),
                 next((attr.i for attr in node.attribute if attr.name == "axis")),
             )
+        elif node.op_type == "ReduceMean":
+            tensors[node.output[0]] = handler.reduceMean(
+                tensors[node.input[0]],
+                tensors.get(node.output[0]),
+                tensors[node.input[1]] if len(node.input) > 1 else None,
+                next((attr.i for attr in node.attribute if attr.name == "keepdims"))
+                != 0,
+            )
         else:
             raise Exception('Unsupported operator "{}"'.format(node.op_type))
 

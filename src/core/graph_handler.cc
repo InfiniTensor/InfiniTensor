@@ -4,9 +4,9 @@
 #include "operators/element_wise.h"
 #include "operators/gather.h"
 #include "operators/matmul.h"
+#include "operators/reduce_mean.h"
 #include "operators/reshape.h"
 #include "operators/unary.h"
-
 namespace infini {
 
 static DataType dtype_repr_convert(int);
@@ -104,16 +104,29 @@ Tensor GraphHandlerObj::concat(TensorVec inputs, Tensor output, int dim) {
     }
 }
 
-Tensor GraphHandlerObj::gather(Tensor input, Tensor indices, Tensor output,
+Tensor GraphHandlerObj::gather(Tensor data, Tensor indices, Tensor output,
                                int axis) {
     if (output) {
-        g->addOpWithOutputs<GatherObj>(std::move(input), std::move(indices),
+        g->addOpWithOutputs<GatherObj>(std::move(data), std::move(indices),
                                        output, axis);
         return output;
     } else {
         return g
-            ->addOp<GatherObj>(std::move(input), std::move(indices), output,
+            ->addOp<GatherObj>(std::move(data), std::move(indices), output,
                                axis)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::reduceMean(Tensor data, Tensor reduced,
+                                   const optional<vector<int>> &axes,
+                                   bool keepdims) {
+    if (reduced) {
+        g->addOpWithOutputs<ReduceMeanObj>(std::move(data), reduced, axes,
+                                           keepdims);
+        return reduced;
+    } else {
+        return g->addOp<ReduceMeanObj>(std::move(data), reduced, axes, keepdims)
             ->getOutput();
     }
 }

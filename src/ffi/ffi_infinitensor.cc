@@ -82,6 +82,10 @@ void init_graph_builder(py::module &m) {
              policy::move)
         .def("gather",
              py::overload_cast<Tensor, Tensor, Tensor, int>(&Handler::gather),
+             policy::move)
+        .def("reduceMean",
+             py::overload_cast<Tensor, Tensor, const optional<vector<int>> &,
+                               bool>(&Handler::reduceMean),
              policy::move);
 }
 

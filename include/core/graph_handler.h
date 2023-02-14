@@ -59,7 +59,9 @@ class GraphHandlerObj {
     Tensor flatten(Tensor s, Tensor y);
     Tensor reshape(Tensor data, Tensor reshaped, Shape shape);
     Tensor concat(TensorVec inputs, Tensor output, int dim);
-    Tensor gather(Tensor input, Tensor indices, Tensor output, int axis);
+    Tensor gather(Tensor data, Tensor indices, Tensor output, int axis);
+    Tensor reduceMean(Tensor data, Tensor reduced,
+                      const optional<vector<int>> &axes, bool keepdims);
 };
 
 } // namespace infini

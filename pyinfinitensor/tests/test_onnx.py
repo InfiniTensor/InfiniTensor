@@ -171,6 +171,14 @@ class TestStringMethods(unittest.TestCase):
         )
         make_and_import_model(make_graph([gather], "gather", [data, indices], [output]))
 
+    def test_reduce_mean(self):
+        data = make_tensor_value_info("data", TensorProto.FLOAT, [2, 3, 3, 4])
+        reduced = make_tensor_value_info("reduced", TensorProto.FLOAT, [1, 1, 1, 1])
+        reduceMean = make_node(
+            "ReduceMean", ["data"], ["reduced"], keepdims=1, name="reduceMean"
+        )
+        make_and_import_model(make_graph([reduceMean], "reduceMean", [data], [reduced]))
+
     # see <https://onnx.ai/onnx/intro/python.html#a-simple-example-a-linear-regression>
     def test_linear(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 2, 3])
