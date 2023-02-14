@@ -7,7 +7,7 @@ namespace infini {
  *
  */
 class ReduceMeanObj : public OperatorObj {
-    set<int> axis; // axis to reduce
+    set<int> axes; // axis to reduce
     bool keepDims;
 
   public:
@@ -17,11 +17,11 @@ class ReduceMeanObj : public OperatorObj {
      * @param graph The computation graph that this operator belongs to.
      * @param input The input tensor.
      * @param output The output tensor.
-     * @param axis Axes to reduce.
+     * @param axes Axes to reduce.
      * @param keepDims Keep the reduced dimensions or not.
      */
     ReduceMeanObj(GraphObj *graph, Tensor input, Tensor output,
-                  const optional<const vector<int>> &axis,
+                  const optional<const vector<int>> &axes,
                   bool keepDims = true);
     OP_CLONE(ReduceMeanObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
