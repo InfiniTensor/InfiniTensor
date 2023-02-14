@@ -119,7 +119,7 @@ def from_onnx(model: onnx.ModelProto):
             tensors[node.output[0]] = handler.reshape(
                 tensors[node.input[0]],
                 tensors.get(node.output[0]),
-                data[node.input[1]].int32_data,
+                [int(i) for i in data[node.input[1]].int64_data],
             )
         else:
             raise Exception('Unsupported operator "{}"'.format(node.op_type))

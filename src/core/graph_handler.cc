@@ -88,9 +88,7 @@ Tensor GraphHandlerObj::reshape(Tensor data, Tensor reshaped, Shape shape) {
                                         std::move(shape));
         return reshaped;
     } else {
-        return g
-            ->addOpWithOutputs<ReshapeObj>(std::move(data), reshaped,
-                                           std::move(shape))
+        return g->addOp<ReshapeObj>(std::move(data), reshaped, std::move(shape))
             ->getOutput();
     }
 }
@@ -101,6 +99,18 @@ static DataType dtype_repr_convert(int dtype) {
         return DataType::Float32;
     case OnnxDType::UINT32:
         return DataType::UInt32;
+    case OnnxDType::UINT8:
+        return DataType::UInt8;
+    case OnnxDType::INT8:
+        return DataType::Int8;
+    case OnnxDType::UINT16:
+        return DataType::UInt16;
+    case OnnxDType::INT16:
+        return DataType::Int16;
+    case OnnxDType::INT32:
+        return DataType::Int32;
+    case OnnxDType::INT64:
+        return DataType::Int64;
     default:
         IT_ASSERT(false, "Unsupported data type");
     }

@@ -1,6 +1,12 @@
 ﻿import os, onnx, unittest
 from onnx import TensorProto
-from onnx.helper import make_model, make_node, make_graph, make_tensor_value_info
+from onnx.helper import (
+    make_model,
+    make_node,
+    make_tensor,
+    make_graph,
+    make_tensor_value_info,
+)
 from onnx.checker import check_model
 from pyinfinitensor.onnx import from_onnx, parse_onnx, backend, runtime
 
@@ -130,16 +136,20 @@ class TestStringMethods(unittest.TestCase):
         make_and_import_model(make_graph([flatten], "flatten", [x], [y]))
 
     def test_reshape(self):
-        data = make_tensor_value_info("data", TensorProto.FLOAT, [2, 3, 4, 5])
-        shape = make_tensor_value_info("shape", TensorProto.INT64, [3, 5, 8])
-        reshaped = make_tensor_value_info("reshaped", TensorProto.FLOAT, [3, 5, 8])
+        data = make_tensor_value_info("data", TensorProto.FLOAT, [2, 3, 3, 4])
+        # shape 对于后端来说并不是一个张量，然而转换中可能没有办法分辨
+        # 不知道怎么把 ValueInfoProto 转换成 TensorProto
+        shape = make_tensor_value_info("shape", TensorProto.INT64, [4])
+        shape_data = make_tensor("shape", TensorProto.INT64, [4], [3, 2, 4, 3])
+        reshaped = make_tensor_value_info(
+            "reshaped", TensorProto.FLOAT, shape_data.int64_data
+        )
         reshape = make_node("Reshape", ["data", "shape"], ["reshaped"], name="reshape")
-        # FIXME shape 对于 onnx 来说是输入张量，但对于后端来说不是，导入时无法分辨这个情况。
-        #       tensor 的类型又不支持 INT64，所以这里会报一个错。
-        #       如何分辨 onnx 的张量是不是需要作为张量注册？
-        # make_and_import_model(
-        #     make_graph([reshape], "reshape", [data, shape], [reshaped])
-        # )
+        # 可以构造一个 shape 只出现在 initializer 里而不出现在 input 里的图，
+        # 但实际上的图中 initializer 里的必然会出现在 input 里，不知道为什么这样设计
+        make_and_import_model(
+            make_graph([reshape], "reshape", [data, shape], [reshaped], [shape_data])
+        )
 
     # see <https://onnx.ai/onnx/intro/python.html#a-simple-example-a-linear-regression>
     def test_linear(self):
