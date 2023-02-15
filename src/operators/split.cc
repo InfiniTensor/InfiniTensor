@@ -5,7 +5,7 @@ namespace infini {
 SplitObj::SplitObj(GraphObj *graph, Tensor input,
                    std::optional<TensorVec> outputs, int dim, int num)
     : OperatorObj(OpType::Split, {input},
-                  ((!outputs) ? TensorVec{nullptr} : (*outputs))),
+                  ((!outputs) ? TensorVec(num, nullptr) : std::move(*outputs))),
       dim(dim), num(num), ratio({}) {
     int dimSize = input->getDims().at(dim);
     int pieceSize = dimSize / num;
@@ -17,10 +17,6 @@ SplitObj::SplitObj(GraphObj *graph, Tensor input,
     } else
         ratio = std::vector<int>(num, pieceSize);
 
-    if (!outputs) {
-        TensorVec tmp(num, nullptr);
-        this->outputs = tmp;
-    }
     IT_ASSERT(checkValid(graph));
 }
 

@@ -5,19 +5,19 @@ PadObj::PadObj(GraphObj *graph, Tensor input, Tensor output,
                const vector<int> &_pads,
                const optional<const vector<int>> &axis)
     : OperatorObj(OpType::Pad, {input}, {output}) {
-    if (axis == std::nullopt)
+    if (!axis)
         pads = _pads;
     else {
-        int nAxis = (*axis).size();
-        IT_ASSERT((int)_pads.size() == nAxis * 2);
-        int nDims = input->getDims().size();
-        vector<int> tmp(nDims * 2, 0);
+        auto nAxis = (*axis).size();
+        IT_ASSERT(_pads.size() == nAxis * 2);
+        auto nDims = input->getDims().size();
+        pads = vector<int>(nDims * 2, 0);
 
-        for (int i = 0; i < nAxis; ++i) {
-            tmp[(*axis)[i]] = _pads[i];
-            tmp[(*axis)[i] + nDims] = _pads[i + nAxis];
+        for (size_t i = 0; i < nAxis; ++i) {
+            auto j = (*axis)[i];
+            pads[j] = _pads[i];
+            pads[j + nDims] = _pads[i + nAxis];
         }
-        pads = tmp;
     }
     IT_ASSERT(checkValid(graph));
 }
