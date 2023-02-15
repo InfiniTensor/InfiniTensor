@@ -70,6 +70,8 @@ class GraphHandlerObj {
     Tensor slice(Tensor input, Tensor output, const vector<int> &starts,
                  const vector<int> &ends, const optional<vector<int>> &axes,
                  const optional<vector<int>> &steps);
+    Tensor pad(Tensor input, Tensor output, const vector<int> &pads,
+               const optional<vector<int>> &axes);
 };
 
 } // namespace infini

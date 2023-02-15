@@ -100,6 +100,10 @@ void init_graph_builder(py::module &m) {
                  Tensor, Tensor, const vector<int> &, const vector<int> &,
                  const optional<vector<int>> &, const optional<vector<int>> &>(
                  &Handler::slice),
+             policy::move)
+        .def("pad",
+             py::overload_cast<Tensor, Tensor, const vector<int> &,
+                               const optional<vector<int>> &>(&Handler::pad),
              policy::move);
 }
 

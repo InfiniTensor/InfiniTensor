@@ -4,6 +4,7 @@
 #include "operators/element_wise.h"
 #include "operators/gather.h"
 #include "operators/matmul.h"
+#include "operators/pad.h"
 #include "operators/pooling.h"
 #include "operators/reduce_mean.h"
 #include "operators/reshape.h"
@@ -176,6 +177,18 @@ Tensor GraphHandlerObj::slice(Tensor input, Tensor output,
         return g
             ->addOp<SliceObj>(std::move(input), output, starts, ends, axes,
                               steps)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::pad(Tensor input, Tensor output,
+                            const vector<int> &pads,
+                            const optional<vector<int>> &axes) {
+    if (output) {
+        g->addOpWithOutputs<PadObj>(std::move(input), output, pads, axes);
+        return output;
+    } else {
+        return g->addOp<PadObj>(std::move(input), output, pads, axes)
             ->getOutput();
     }
 }

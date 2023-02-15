@@ -215,9 +215,7 @@ class TestStringMethods(unittest.TestCase):
         starts_data = make_tensor("starts", TensorProto.INT64, [4], [2, 10, 1, 5])
         ends = make_tensor_value_info("ends", TensorProto.INT64, [4])
         ends_data = make_tensor("ends", TensorProto.INT64, [4], [3, 10, 100, 100])
-        slice = make_node(
-            "Slice", ["data", "starts", "ends"], ["output"], name="gather"
-        )
+        slice = make_node("Slice", ["data", "starts", "ends"], ["output"], name="slice")
         make_and_import_model(
             make_graph(
                 [slice],
@@ -225,6 +223,24 @@ class TestStringMethods(unittest.TestCase):
                 [data, starts, ends],
                 [output],
                 [starts_data, ends_data],
+            )
+        )
+
+    def test_pad(self):
+        data = make_tensor_value_info("data", TensorProto.UINT32, [1, 64, 162, 162])
+        output = make_tensor_value_info("output", TensorProto.UINT32, [3, 84, 164, 172])
+        pads = make_tensor_value_info("pads", TensorProto.INT64, [8])
+        pads_data = make_tensor(
+            "pads", TensorProto.INT64, [8], [2, 10, 1, 5, 0, 10, 1, 5]
+        )
+        pad = make_node("Pad", ["data", "pads"], ["output"], name="pad")
+        make_and_import_model(
+            make_graph(
+                [pad],
+                "pad",
+                [data, pads],
+                [output],
+                [pads_data],
             )
         )
 

@@ -202,6 +202,13 @@ def from_onnx(model: onnx.ModelProto):
                 _parse_data(data[node.input[3]]) if len(node.input) > 3 else None,
                 _parse_data(data[node.input[4]]) if len(node.input) > 4 else None,
             )
+        elif node.op_type == "Pad":
+            tensors[node.output[0]] = handler.pad(
+                tensors[node.input[0]],
+                tensors.get(node.output[0]),
+                _parse_data(data[node.input[1]]),
+                _parse_data(data[node.input[3]]) if len(node.input) > 3 else None,
+            )
         else:
             raise Exception('Unsupported operator "{}"'.format(node.op_type))
 

@@ -21,10 +21,10 @@ class PadObj : public OperatorObj {
      * @param pads Add padding elements at the begining and end of each axis.
      * Suppose that padding axes are [x1, x2, ...], then pads's format is
      * [x1_begin, x2_begin, ..., x1_end, x2_end, ...]
-     * @param axis Pad for appointed axes. If axis is empty, pad for all axes.
+     * @param axes Pad for appointed axes. If axis is empty, pad for all axes.
      */
     PadObj(GraphObj *graph, Tensor input, Tensor output,
-           const vector<int> &pads, const optional<const vector<int>> &axis);
+           const vector<int> &pads, const optional<vector<int>> &axes);
     OP_CLONE(PadObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
