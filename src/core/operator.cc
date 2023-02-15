@@ -6,8 +6,8 @@ namespace infini {
 
 OperatorObj::OperatorObj(OpType opType, TensorVec inputs, TensorVec outputs)
     : type(opType), inputs(inputs), outputs(outputs) {
-    for (auto &t : inputs)
-        IT_ASSERT(t != nullptr);
+    for (const auto &t : inputs)
+        IT_ASSERT(t);
 }
 
 bool OperatorObj::isLinearOp() const {

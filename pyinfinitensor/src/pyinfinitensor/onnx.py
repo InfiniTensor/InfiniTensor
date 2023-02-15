@@ -32,6 +32,25 @@ def from_onnx(model: onnx.ModelProto):
                 None,
                 backend.ActType.Linear,
             )
+        elif node.op_type == "Gemm":
+            attributes = _parse_attribute(
+                node, {"alpha": 1.0, "beta": 1.0, "transA": 0, "transB": 0}
+            )
+            (alpha, beta, transA, transB) = (
+                attributes[name] for name in ["alpha", "beta", "transA", "transB"]
+            )
+            # TODO 不支持这些参数
+            assert alpha == 1.0
+            assert beta == 1.0
+            tensors[node.output[0]] = handler.matmul(
+                tensors[node.input[0]],
+                tensors[node.input[1]],
+                tensors.get(node.output[0]),
+                transA == 1,
+                transB == 1,
+                tensors[node.input[2]] if len(node.input) > 2 else None,
+                backend.ActType.Linear,
+            )
         elif node.op_type == "BatchNormalization":
             (input, mean, var, scale, bias) = (
                 tensors[node.input[i]] for i in [0, 3, 4, 1, 2]

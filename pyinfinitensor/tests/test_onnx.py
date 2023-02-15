@@ -37,9 +37,17 @@ class TestStringMethods(unittest.TestCase):
     def test_matmul(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 2, 3])
         a = make_tensor_value_info("a", TensorProto.FLOAT, [1, 3, 4])
-        xa = make_tensor_value_info("b", TensorProto.FLOAT, [1, 2, 4])
+        xa = make_tensor_value_info("xa", TensorProto.FLOAT, [1, 2, 4])
         matmul = make_node("MatMul", ["x", "a"], ["xa"], name="matmul")
         make_and_import_model(make_graph([matmul], "matmul", [x, a], [xa]))
+
+    def test_gemm(self):
+        a = make_tensor_value_info("a", TensorProto.FLOAT, [1, 2, 3])
+        b = make_tensor_value_info("b", TensorProto.FLOAT, [1, 4, 3])
+        c = make_tensor_value_info("c", TensorProto.FLOAT, [1, 2, 4])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 2, 4])
+        gemm = make_node("Gemm", ["a", "b", "c"], ["y"], transB=1, name="gemm")
+        make_and_import_model(make_graph([gemm], "gemm", [a, b, c], [y]))
 
     def test_batch_norm(self):
         x = make_tensor_value_info("x", TensorProto.UINT32, [1, 3, 2, 2])
