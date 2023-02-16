@@ -1,21 +1,23 @@
 ﻿import onnx, backend
+from onnx.shape_inference import infer_shapes
 from typing import Dict, List, Any
 
 runtime = backend.cpu_runtime()
 
 
 def from_onnx(model: onnx.ModelProto):
+    model = infer_shapes(model)
     handler = backend.GraphHandlerObj(runtime)
 
     tensors: Dict[str, backend.TensorObj] = dict()
     data: Dict[str, onnx.TensorProto] = dict()
 
     for input in model.graph.input:
-        dims = [d.dim_value for d in input.type.tensor_type.shape.dim]
+        dims = _take_shape_dim(input.type.tensor_type.shape)
         tensors[input.name] = handler.tensor(dims, input.type.tensor_type.elem_type)
 
     for output in model.graph.output:
-        dims = [d.dim_value for d in output.type.tensor_type.shape.dim]
+        dims = _take_shape_dim(output.type.tensor_type.shape)
         tensors[output.name] = handler.tensor(dims, output.type.tensor_type.elem_type)
 
     for initializer in model.graph.initializer:
@@ -103,7 +105,7 @@ def from_onnx(model: onnx.ModelProto):
             (k, p, s) = (
                 attributes[name] for name in ["kernel_shape", "pads", "strides"]
             )
-            tensors[node.output[0]] = handler.maxPool(
+            tensors[node.output[0]] = handler.avgPool(
                 tensors[node.input[0]],
                 tensors.get(node.output[0]),
                 k[0],
@@ -114,6 +116,33 @@ def from_onnx(model: onnx.ModelProto):
                 p[1],
                 s[0],
                 s[1],
+            )
+        elif node.op_type == "GlobalAveragePool":
+            shape = next(
+                (
+                    value.type.tensor_type.shape
+                    for value in model.graph.value_info
+                    if value.name == node.output[0]
+                ),
+                None,
+            ) or next(
+                output.type.tensor_type.shape
+                for output in model.graph.output
+                if output.name == node.output[0]
+            )
+            dims = _take_shape_dim(shape)
+
+            tensors[node.output[0]] = handler.avgPool(
+                tensors[node.input[0]],
+                tensors.get(node.output[0]),
+                dims[0],
+                dims[1],
+                1,
+                1,
+                0,
+                0,
+                1,
+                1,
             )
         elif node.op_type == "Add":
             tensors[node.output[0]] = handler.add(
@@ -295,3 +324,7 @@ def _parse_data(tensor: onnx.TensorProto) -> List[int]:
         return [int(i) for i in tensor.int64_data]
     else:
         assert False, "Unsupported Tensor Type: {}".format(tensor.data_type)
+
+
+def _take_shape_dim(shape: onnx.TensorShapeProto) -> List[int]:
+    return [(d.dim_value if d.dim_value > 0 else 1) for d in shape.dim]
