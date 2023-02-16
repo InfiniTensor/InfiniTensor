@@ -73,15 +73,12 @@ void GraphObj::dataMalloc() {
 }
 
 Tensor GraphObj::addTensor(Shape dim, DataType dtype) {
-    Tensor tensor = make_ref<TensorObj>(dim, dtype, runtime);
-    tensors.emplace_back(tensor);
-    return tensor;
+    return tensors.emplace_back(make_ref<TensorObj>(dim, dtype, runtime));
 }
 
 Tensor GraphObj::addTensor(const Tensor &tensor) {
     IT_ASSERT(tensor->getRuntime() == runtime, "Tensor runtime mismatch");
-    tensors.emplace_back(tensor);
-    return tensor;
+    return tensors.emplace_back(tensor);
 }
 
 TensorVec GraphObj::addTensor(const TensorVec &tensors) {
