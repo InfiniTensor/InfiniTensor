@@ -5,7 +5,8 @@
 
 namespace infini {
 
-// 借用 onnx 的定义减小传递开销，来自 onnx 但不只用于 onnx。
+// Use the indices from onnx to reduce delivery overhead,
+// which comes from onnx but may be not only used for onnx.
 //
 // see https://onnx.ai/onnx/intro/concepts.html#element-type
 enum OnnxDType : int {

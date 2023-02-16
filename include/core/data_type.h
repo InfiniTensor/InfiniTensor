@@ -7,7 +7,7 @@ class DataType {
     // legacy
     static const DataType Float32;
     static const DataType UInt32;
-    // 这一组恰好与 onnx 的类型对齐：
+    // These are just aligned with the type and index of onnx:
     // <https://onnx.ai/onnx/intro/concepts.html#element-type>
     static const DataType UInt8, Int8, UInt16, Int16, Int32, Int64;
     static constexpr size_t sizePerElement[]{
