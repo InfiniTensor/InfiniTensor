@@ -6,11 +6,11 @@ from functools import reduce
 runtime = backend.cpu_runtime()
 
 
-def from_onnx(model: onnx.ModelProto):
+def from_onnx(model: onnx.ModelProto) -> backend.GraphHandler:
     model = infer_shapes(model)
-    handler = backend.GraphHandlerObj(runtime)
+    handler = backend.GraphHandler(runtime)
 
-    tensors: Dict[str, backend.TensorObj] = dict()
+    tensors: Dict[str, backend.Tensor] = dict()
     data: Dict[str, onnx.TensorProto] = dict()
 
     for input in model.graph.input:
@@ -301,6 +301,13 @@ def from_onnx(model: onnx.ModelProto):
             )
         else:
             raise Exception('Unsupported operator "{}"'.format(node.op_type))
+
+
+def to_onnx(graph: backend.GraphHandler):
+    if not graph.topo_sort():
+        raise Exception("Sorting fails")
+
+    ops = graph.operators()
 
 
 def parse_onnx(model: onnx.ModelProto):

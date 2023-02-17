@@ -25,17 +25,18 @@ void init_graph_builder(py::module &m) {
     using Handler = GraphHandlerObj;
 
     m.def("cpu_runtime", &CpuRuntimeObj::getInstance);
-    py::class_<RuntimeObj, std::shared_ptr<RuntimeObj>>(m, "RuntimeObj");
+    py::class_<RuntimeObj, std::shared_ptr<RuntimeObj>>(m, "Runtime");
     py::class_<CpuRuntimeObj, std::shared_ptr<CpuRuntimeObj>, RuntimeObj>(
-        m, "CpuRuntimeObj");
+        m, "CpuRuntime");
     py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "TensorObj");
+    py::class_<OperatorObj, std::shared_ptr<OperatorObj>>(m, "Operator");
     py::enum_<ActType>(m, "ActType")
         .value("Linear", ActType::None) // `None` is Python keyword
         .value("Relu", ActType::Relu)
         .value("Sigmoid", ActType::Sigmoid)
         .value("Tanh", ActType::Tanh)
         .export_values();
-    py::class_<Handler>(m, "GraphHandlerObj")
+    py::class_<Handler>(m, "GraphHandler")
         .def(py::init<Runtime>())
         .def("tensor", py::overload_cast<Shape, int>(&Handler::tensor),
              policy::move)
@@ -102,6 +103,10 @@ void init_graph_builder(py::module &m) {
         .def("pad",
              py::overload_cast<Tensor, Tensor, const vector<int> &,
                                const optional<vector<int>> &>(&Handler::pad),
+             policy::move)
+        .def("topo_sort", py::overload_cast<>(&Handler::topo_sort),
+             policy::automatic)
+        .def("operators", py::overload_cast<>(&Handler::operators),
              policy::move)
         .def("data_malloc", &Handler::data_malloc, policy::automatic)
         .def("run", &Handler::run, policy::automatic);

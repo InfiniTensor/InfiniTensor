@@ -8,7 +8,7 @@ from onnx.helper import (
     make_tensor_value_info,
 )
 from onnx.checker import check_model
-from pyinfinitensor.onnx import from_onnx, parse_onnx, backend, runtime
+from pyinfinitensor.onnx import from_onnx, parse_onnx, backend, runtime, to_onnx
 
 
 def make_and_import_model(graph: onnx.GraphProto):
@@ -293,11 +293,13 @@ class TestStringMethods(unittest.TestCase):
         parse_onnx(model)
 
     def test_frontend(self):
-        handler = backend.GraphHandlerObj(runtime)
+        handler = backend.GraphHandler(runtime)
         i = handler.tensor([1, 2, 3], 12)
         w = handler.tensor([1, 3, 4], 12)
         o = handler.tensor([1, 2, 4], 12)
         handler.matmul(i, w, o, False, False, None, backend.ActType.Relu)
+
+        to_onnx(handler)
 
 
 if __name__ == "__main__":
