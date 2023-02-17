@@ -80,75 +80,38 @@ void init_graph_builder(py::module &m) {
     py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "TensorObj")
         .def("src", &TensorObj::getOutputOf, policy::move);
     py::class_<OperatorObj, std::shared_ptr<OperatorObj>>(m, "Operator")
-        .def("op_type", &OperatorObj::getOpType, policy::move);
+        .def("op_type", &OperatorObj::getOpType, policy::automatic)
+        .def("inputs", py::overload_cast<>(&OperatorObj::getInputs, py::const_),
+             policy::reference)
+        .def("outputs",
+             py::overload_cast<>(&OperatorObj::getOutputs, py::const_),
+             policy::reference);
     py::class_<Handler>(m, "GraphHandler")
         .def(py::init<Runtime>())
-        .def("tensor", py::overload_cast<Shape, int>(&Handler::tensor),
-             policy::move)
+        .def("tensor", &Handler::tensor, policy::move)
         .def("conv", &Handler::conv, policy::move)
-        .def("matmul",
-             py::overload_cast<Tensor, Tensor, Tensor, bool, bool, Tensor,
-                               ActType>(&Handler::matmul),
-             policy::move)
-        .def("batchNorm",
-             py::overload_cast<Tensor, Tensor, Tensor, Tensor, Tensor, Tensor,
-                               float, float, bool>(&Handler::batchNorm),
-             policy::move)
-        .def("maxPool",
-             py::overload_cast<Tensor, Tensor, int, int, int, int, int, int,
-                               int, int>(&Handler::maxPool),
-             policy::move)
-        .def("avgPool",
-             py::overload_cast<Tensor, Tensor, int, int, int, int, int, int,
-                               int, int>(&Handler::avgPool),
-             policy::move)
-        .def("add", py::overload_cast<Tensor, Tensor, Tensor>(&Handler::add),
-             policy::move)
-        .def("sub", py::overload_cast<Tensor, Tensor, Tensor>(&Handler::sub),
-             policy::move)
-        .def("mul", py::overload_cast<Tensor, Tensor, Tensor>(&Handler::mul),
-             policy::move)
-        .def("div", py::overload_cast<Tensor, Tensor, Tensor>(&Handler::div),
-             policy::move)
-        .def("pow", py::overload_cast<Tensor, Tensor, Tensor>(&Handler::pow),
-             policy::move)
-        .def("relu", py::overload_cast<Tensor, Tensor>(&Handler::relu),
-             policy::move)
-        .def("sigmoid", py::overload_cast<Tensor, Tensor>(&Handler::sigmoid),
-             policy::move)
-        .def("tanh", py::overload_cast<Tensor, Tensor>(&Handler::tanh),
-             policy::move)
-        .def("softmax", py::overload_cast<Tensor, Tensor>(&Handler::softmax),
-             policy::move)
-        .def("abs", py::overload_cast<Tensor, Tensor>(&Handler::abs),
-             policy::move)
-        .def("identity", py::overload_cast<Tensor, Tensor>(&Handler::identity),
-             policy::move)
-        .def("flatten", py::overload_cast<Tensor, Tensor>(&Handler::flatten),
-             policy::move)
-        .def("reshape",
-             py::overload_cast<Tensor, Tensor, Shape>(&Handler::reshape),
-             policy::move)
-        .def("concat",
-             py::overload_cast<TensorVec, Tensor, int>(&Handler::concat),
-             policy::move)
-        .def("gather",
-             py::overload_cast<Tensor, Tensor, Tensor, int>(&Handler::gather),
-             policy::move)
-        .def("reduceMean",
-             py::overload_cast<Tensor, Tensor, const optional<vector<int>> &,
-                               bool>(&Handler::reduceMean),
-             policy::move)
-        .def("slice",
-             py::overload_cast<
-                 Tensor, Tensor, const vector<int> &, const vector<int> &,
-                 const optional<vector<int>> &, const optional<vector<int>> &>(
-                 &Handler::slice),
-             policy::move)
-        .def("pad",
-             py::overload_cast<Tensor, Tensor, const vector<int> &,
-                               const optional<vector<int>> &>(&Handler::pad),
-             policy::move)
+        .def("matmul", &Handler::matmul, policy::move)
+        .def("batchNorm", &Handler::batchNorm, policy::move)
+        .def("maxPool", &Handler::maxPool, policy::move)
+        .def("avgPool", &Handler::avgPool, policy::move)
+        .def("add", &Handler::add, policy::move)
+        .def("sub", &Handler::sub, policy::move)
+        .def("mul", &Handler::mul, policy::move)
+        .def("div", &Handler::div, policy::move)
+        .def("pow", &Handler::pow, policy::move)
+        .def("relu", &Handler::relu, policy::move)
+        .def("sigmoid", &Handler::sigmoid, policy::move)
+        .def("tanh", &Handler::tanh, policy::move)
+        .def("softmax", &Handler::softmax, policy::move)
+        .def("abs", &Handler::abs, policy::move)
+        .def("identity", &Handler::identity, policy::move)
+        .def("flatten", &Handler::flatten, policy::move)
+        .def("reshape", &Handler::reshape, policy::move)
+        .def("concat", &Handler::concat, policy::move)
+        .def("gather", &Handler::gather, policy::move)
+        .def("reduceMean", &Handler::reduceMean, policy::move)
+        .def("slice", &Handler::slice, policy::move)
+        .def("pad", &Handler::pad, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)
         .def("operators", &Handler::operators, policy::move)
         .def("data_malloc", &Handler::data_malloc, policy::automatic)

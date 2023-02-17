@@ -1,4 +1,6 @@
-﻿import onnx, backend
+﻿import backend
+from onnx import ModelProto, TensorProto, NodeProto, AttributeProto, TensorShapeProto
+from onnx.helper import make_node
 from onnx.shape_inference import infer_shapes
 from typing import Dict, List, Any
 from functools import reduce
@@ -6,12 +8,12 @@ from functools import reduce
 runtime = backend.cpu_runtime()
 
 
-def from_onnx(model: onnx.ModelProto) -> backend.GraphHandler:
+def from_onnx(model: ModelProto) -> backend.GraphHandler:
     model = infer_shapes(model)
     handler = backend.GraphHandler(runtime)
 
     tensors: Dict[str, backend.Tensor] = dict()
-    data: Dict[str, onnx.TensorProto] = dict()
+    data: Dict[str, TensorProto] = dict()
 
     for input in model.graph.input:
         dims = _take_shape_dim(input.type.tensor_type.shape)
@@ -310,16 +312,123 @@ def to_onnx(graph: backend.GraphHandler):
     ops = graph.operators()
 
     names: Dict[Any, str] = dict()
-    count: Dict[backend.OpType, int] = dict()
+    nodes: List[NodeProto] = []
+    count_op: Dict[backend.OpType, int] = dict()
+    count_in = 0
 
     for op in ops:
         ty = op.op_type()
-        names[op] = "{}{}".format(ty.name, count.setdefault(ty, 0) + 1)
-        count[ty] += 1
+        name = "{}{}".format(ty.name, count_op.setdefault(ty, 0) + 1)
+        inputs = op.inputs()
+        outputs = op.outputs()
+        names[op] = name
+        count_op[ty] += 1
+        if ty == backend.OpType.Matmul:
+            raise Exception("TODO")
+        elif ty == backend.OpType.BatchNorm:
+            raise Exception("TODO")
+        elif ty == backend.OpType.MaxPool:
+            raise Exception("TODO")
+        elif ty == backend.OpType.AvgPool:
+            raise Exception("TODO")
+        elif ty == backend.OpType.Add:
+            names[outputs[0]] = name
+            if inputs[0] in names:
+                a = names[inputs[0]]
+            else:
+                count_in += 1
+                a = "input{}".format(count_in)
+            if inputs[1] in names:
+                b = names[inputs[1]]
+            else:
+                count_in += 1
+                b = "input{}".format(count_in)
+            nodes.append(make_node("Add", [a, b], [name], name))
+        elif ty == backend.OpType.Sub:
+            names[outputs[0]] = name
+            if inputs[0] in names:
+                a = names[inputs[0]]
+            else:
+                count_in += 1
+                a = "input{}".format(count_in)
+            if inputs[1] in names:
+                b = names[inputs[1]]
+            else:
+                count_in += 1
+                b = "input{}".format(count_in)
+            nodes.append(make_node("Sub", [a, b], [name], name))
+        elif ty == backend.OpType.Mul:
+            names[outputs[0]] = name
+            if inputs[0] in names:
+                a = names[inputs[0]]
+            else:
+                count_in += 1
+                a = "input{}".format(count_in)
+            if inputs[1] in names:
+                b = names[inputs[1]]
+            else:
+                count_in += 1
+                b = "input{}".format(count_in)
+            nodes.append(make_node("Mul", [a, b], [name], name))
+        elif ty == backend.OpType.Div:
+            names[outputs[0]] = name
+            if inputs[0] in names:
+                a = names[inputs[0]]
+            else:
+                count_in += 1
+                a = "input{}".format(count_in)
+            if inputs[1] in names:
+                b = names[inputs[1]]
+            else:
+                count_in += 1
+                b = "input{}".format(count_in)
+            nodes.append(make_node("Div", [a, b], [name], name))
+        elif ty == backend.OpType.Pow:
+            names[outputs[0]] = name
+            if inputs[0] in names:
+                a = names[inputs[0]]
+            else:
+                count_in += 1
+                a = "input{}".format(count_in)
+            if inputs[1] in names:
+                b = names[inputs[1]]
+            else:
+                count_in += 1
+                b = "input{}".format(count_in)
+            nodes.append(make_node("Pow", [a, b], [name], name))
+        elif ty == backend.OpType.Relu:
+            raise Exception("TODO")
+        elif ty == backend.OpType.Sigmoid:
+            raise Exception("TODO")
+        elif ty == backend.OpType.Tanh:
+            raise Exception("TODO")
+        elif ty == backend.OpType.Softmax:
+            raise Exception("TODO")
+        elif ty == backend.OpType.Abs:
+            raise Exception("TODO")
+        elif ty == backend.OpType.Identity:
+            raise Exception("TODO")
+        elif ty == backend.OpType.Flatten:
+            raise Exception("TODO")
+        elif ty == backend.OpType.Reshape:
+            raise Exception("TODO")
+        elif ty == backend.OpType.Concat:
+            raise Exception("TODO")
+        elif ty == backend.OpType.Gather:
+            raise Exception("TODO")
+        elif ty == backend.OpType.ReduceMean:
+            raise Exception("TODO")
+        elif ty == backend.OpType.Slice:
+            raise Exception("TODO")
+        elif ty == backend.OpType.Pad:
+            raise Exception("TODO")
+        else:
+            raise Exception("Unsupported OpType {}".format(ty.name))
+
     print(names)
 
 
-def parse_onnx(model: onnx.ModelProto):
+def parse_onnx(model: ModelProto):
     print()
 
     for field in [
@@ -355,34 +464,32 @@ def parse_onnx(model: onnx.ModelProto):
         print("   {}".format(node.name))
 
 
-def _parse_attribute(
-    node: onnx.NodeProto, attrs: Dict[str, Any] = dict()
-) -> Dict[str, Any]:
+def _parse_attribute(node: NodeProto, attrs: Dict[str, Any] = dict()) -> Dict[str, Any]:
     for attr in node.attribute:
         if attr.name in attrs:
-            if attr.type == onnx.AttributeProto.INT:
+            if attr.type == AttributeProto.INT:
                 attrs[attr.name] = attr.i
-            elif attr.type == onnx.AttributeProto.INTS:
+            elif attr.type == AttributeProto.INTS:
                 attrs[attr.name] = attr.ints
-            elif attr.type == onnx.AttributeProto.FLOAT:
+            elif attr.type == AttributeProto.FLOAT:
                 attrs[attr.name] = attr.f
-            elif attr.type == onnx.AttributeProto.STRING:
+            elif attr.type == AttributeProto.STRING:
                 attrs[attr.name] = attr.s
-            elif attr.type == onnx.AttributeProto.TENSOR:
+            elif attr.type == AttributeProto.TENSOR:
                 attrs[attr.name] = attr.t
             else:
                 assert False, "Unsupported Attribute Type: {}".format(attr.type)
     return attrs
 
 
-def _parse_data(tensor: onnx.TensorProto) -> List[int]:
-    if tensor.data_type == onnx.TensorProto.INT32:
+def _parse_data(tensor: TensorProto) -> List[int]:
+    if tensor.data_type == TensorProto.INT32:
         return [int(i) for i in tensor.int32_data]
-    elif tensor.data_type == onnx.TensorProto.INT64:
+    elif tensor.data_type == TensorProto.INT64:
         return [int(i) for i in tensor.int64_data]
     else:
         assert False, "Unsupported Tensor Type: {}".format(tensor.data_type)
 
 
-def _take_shape_dim(shape: onnx.TensorShapeProto) -> List[int]:
+def _take_shape_dim(shape: TensorShapeProto) -> List[int]:
     return [(d.dim_value if d.dim_value > 0 else 1) for d in shape.dim]

@@ -294,10 +294,20 @@ class TestStringMethods(unittest.TestCase):
 
     def test_frontend(self):
         handler = backend.GraphHandler(runtime)
-        i = handler.tensor([1, 2, 3], 12)
-        w = handler.tensor([1, 3, 4], 12)
-        o = handler.tensor([1, 2, 4], 12)
-        handler.matmul(i, w, o, False, False, None, backend.ActType.Relu)
+        a = handler.tensor([1, 2, 3], 12)
+        b = handler.tensor([1, 2, 3], 12)
+        ab = handler.tensor([1, 2, 3], 12)
+        c = handler.tensor([1, 2, 3], 12)
+        abc = handler.tensor([1, 2, 3], 12)
+        d = handler.tensor([1, 2, 3], 12)
+        abcd = handler.tensor([1, 2, 3], 12)
+        e = handler.tensor([1, 2, 3], 12)
+        abcde = handler.tensor([1, 2, 3], 12)
+
+        handler.add(a, b, ab)
+        handler.add(ab, c, abc)
+        handler.add(abc, d, abcd)
+        handler.add(abcd, e, abcde)
 
         to_onnx(handler)
 
