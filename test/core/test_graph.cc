@@ -1,6 +1,7 @@
 #include "core/blob.h"
 #include "core/graph.h"
 #include "core/runtime.h"
+#include "operators/element_wise.h"
 #include "operators/matmul.h"
 #include "operators/unary.h"
 #include "test.h"
@@ -35,6 +36,45 @@ TEST(Graph, build_and_run) {
     ans->copyData(vector<uint32_t>{38, 44, 50, 56, 83, 98, 113, 128});
     EXPECT_TRUE(o0->equalData(ans));
 }
+
+TEST(Graph, topological) {
+    Runtime runtime = CpuRuntimeObj::getInstance();
+    Graph g = make_ref<GraphObj>(runtime);
+    Tensor a = g->addTensor({1, 2, 3}, DataType::UInt32);
+    Tensor b = g->addTensor({1, 2, 3}, DataType::UInt32);
+    Tensor ab = g->addTensor({1, 2, 3}, DataType::UInt32);
+    Tensor c = g->addTensor({1, 2, 3}, DataType::UInt32);
+    Tensor abc = g->addTensor({1, 2, 3}, DataType::UInt32);
+    Tensor d = g->addTensor({1, 2, 3}, DataType::UInt32);
+    Tensor abcd = g->addTensor({1, 2, 3}, DataType::UInt32);
+    Tensor e = g->addTensor({1, 2, 3}, DataType::UInt32);
+    Tensor abcde = g->addTensor({1, 2, 3}, DataType::UInt32);
+
+    auto ops = std::vector{
+        g->addOpWithOutputs<AddObj>(abcd, e, abcde),
+        g->addOpWithOutputs<AddObj>(abc, d, abcd),
+        g->addOpWithOutputs<AddObj>(ab, c, abc),
+        g->addOpWithOutputs<AddObj>(a, b, ab),
+    };
+
+    {
+        auto p = ops.begin();
+        auto q = g->getOperators().begin();
+        while (p != ops.end()) {
+            EXPECT_EQ(*p++, *q++);
+        }
+    }
+
+    EXPECT_TRUE(g->topo_sort());
+
+    {
+        auto p = ops.rbegin();
+        auto q = g->getOperators().begin();
+        while (p != ops.rend()) {
+            EXPECT_EQ(*p++, *q++);
+        }
+    }
+} // namespace infini
 
 TEST(Graph, perf_engine) {
     Runtime runtime = CpuRuntimeObj::getInstance();

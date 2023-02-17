@@ -11,7 +11,7 @@ class GraphObj : public Object {
     OpVec ops;
 
   public:
-    explicit GraphObj(Runtime runtime) : runtime(runtime){};
+    explicit GraphObj(Runtime runtime) : runtime(runtime), sorted(false){};
     GraphObj(Runtime runtime, OpVec ops_in);
     string toString() const override;
     Runtime getRuntime() const { return runtime; }
@@ -26,6 +26,14 @@ class GraphObj : public Object {
     const TensorVec &getTensors() const { return tensors; }
     const OpVec &getOperators() const { return ops; }
     OpVec getComputeOps() const;
+
+    /**
+     * Sort the nodes in topological order.
+     * It returns true if the sorting is successful.
+     * Otherwise false is returned, means that there are rings in the graph,
+     * so the topological sorting fails.
+     */
+    bool topo_sort();
 
     void dataMalloc();
 
@@ -76,6 +84,11 @@ class GraphObj : public Object {
      * @brief Add reverse connections and Op relationship in ctor.
      */
     void addOperatorAndConnect(const Operator &op);
+
+    /**
+     * @brief If the nodes is sorted in topological order.
+     */
+    bool sorted;
 };
 
 } // namespace infini

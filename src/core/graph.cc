@@ -1,9 +1,11 @@
 #include "core/graph.h"
+#include <algorithm>
 #include <queue>
 
 namespace infini {
 
-GraphObj::GraphObj(Runtime runtime, OpVec ops_in) : runtime(runtime) {
+GraphObj::GraphObj(Runtime runtime, OpVec ops_in)
+    : runtime(runtime), sorted(false) {
     map<UidBaseType, Tensor> tensorPool;
     // Clone tensors
     for (const auto &op : ops_in) {
@@ -28,6 +30,7 @@ GraphObj::GraphObj(Runtime runtime, OpVec ops_in) : runtime(runtime) {
 }
 
 void GraphObj::addOperatorAndConnect(const Operator &op) {
+    sorted = false;
     ops.push_back(op);
     for (auto &input : op->getInputs()) {
         input->addInputOf(op);
@@ -64,6 +67,53 @@ string GraphObj::toString() const {
         oss << ", " << op << "\n";
     }
     return oss.str();
+}
+
+bool GraphObj::topo_sort() {
+    if (this->sorted)
+        return true;
+
+    // std::unordered_set<Tensor> inputs;
+    std::unordered_set<Operator> waiting(this->ops.begin(), this->ops.end());
+    std::vector<Operator> sorted;
+
+    while (!waiting.empty()) {
+        // Any node is move to sorted in this loop.
+        auto modified = false;
+        // Find head nodes.
+        for (auto it = waiting.begin(); it != waiting.end();) {
+            const auto &this_inputs = (*it)->getInputs();
+            // If none of the input tensors is in waiting list,
+            // this node is a head node.
+            const auto is_head = std::all_of(
+                this_inputs.begin(), this_inputs.end(), [&](const auto &input) {
+                    auto src = input->getOutputOf();
+                    return src // If the source node is in the waiting list,
+                               // means that this node is not the head node.
+                               ? waiting.find(src) == waiting.end()
+                               // This tensor has no source node,
+                               // it must be a input tensor.
+                               : (/*inputs.insert(input),*/ true);
+                });
+            // Moves head node to sorted.
+            if (is_head) {
+                modified = true;
+                sorted.emplace_back(std::move(*it));
+                it = waiting.erase(it);
+            } else {
+                ++it;
+            }
+        }
+        // Waiting list never modifies during a pass,
+        // sorting fails.
+        if (!modified) {
+            return false;
+        }
+    }
+
+    // Done.
+    this->ops = std::move(sorted);
+    return this->sorted = true;
 }
 
 void GraphObj::dataMalloc() {
