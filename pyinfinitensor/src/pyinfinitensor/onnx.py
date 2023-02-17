@@ -309,6 +309,15 @@ def to_onnx(graph: backend.GraphHandler):
 
     ops = graph.operators()
 
+    names: Dict[Any, str] = dict()
+    count: Dict[backend.OpType, int] = dict()
+
+    for op in ops:
+        ty = op.op_type()
+        names[op] = "{}{}".format(ty.name, count.setdefault(ty, 0) + 1)
+        count[ty] += 1
+    print(names)
+
 
 def parse_onnx(model: onnx.ModelProto):
     print()
