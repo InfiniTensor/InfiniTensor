@@ -70,14 +70,37 @@ void init_values(py::module &m) {
 #undef VALUE
 }
 
+static int tensor_dtype(Tensor t) {
+    if (t->getDType() == DataType::Float32)
+        return OnnxDType::FLOAT;
+    if (t->getDType() == DataType::UInt32)
+        return OnnxDType::UINT32;
+    if (t->getDType() == DataType::UInt8)
+        return OnnxDType::UINT8;
+    if (t->getDType() == DataType::Int8)
+        return OnnxDType::INT8;
+    if (t->getDType() == DataType::UInt16)
+        return OnnxDType::UINT16;
+    if (t->getDType() == DataType::Int16)
+        return OnnxDType::INT16;
+    if (t->getDType() == DataType::Int32)
+        return OnnxDType::INT32;
+    if (t->getDType() == DataType::Int64)
+        return OnnxDType::INT64;
+    IT_ASSERT(false, "Unsupported data type");
+}
+
 void init_graph_builder(py::module &m) {
+
     using Handler = GraphHandlerObj;
 
-    m.def("cpu_runtime", &CpuRuntimeObj::getInstance);
+    m.def("cpu_runtime", &CpuRuntimeObj::getInstance)
+        .def("tensor_dtype", &tensor_dtype);
     py::class_<RuntimeObj, std::shared_ptr<RuntimeObj>>(m, "Runtime");
     py::class_<CpuRuntimeObj, std::shared_ptr<CpuRuntimeObj>, RuntimeObj>(
         m, "CpuRuntime");
     py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "Tensor")
+        .def("shape", &TensorObj::getDims, policy::move)
         .def("src", &TensorObj::getOutputOf, policy::move);
     py::class_<OperatorObj, std::shared_ptr<OperatorObj>>(m, "Operator")
         .def("op_type", &OperatorObj::getOpType, policy::automatic)
