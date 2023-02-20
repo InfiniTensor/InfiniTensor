@@ -77,7 +77,7 @@ void init_graph_builder(py::module &m) {
     py::class_<RuntimeObj, std::shared_ptr<RuntimeObj>>(m, "Runtime");
     py::class_<CpuRuntimeObj, std::shared_ptr<CpuRuntimeObj>, RuntimeObj>(
         m, "CpuRuntime");
-    py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "TensorObj")
+    py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "Tensor")
         .def("src", &TensorObj::getOutputOf, policy::move);
     py::class_<OperatorObj, std::shared_ptr<OperatorObj>>(m, "Operator")
         .def("op_type", &OperatorObj::getOpType, policy::automatic)
