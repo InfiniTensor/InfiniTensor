@@ -296,20 +296,17 @@ class TestStringMethods(unittest.TestCase):
         handler = backend.GraphHandler(runtime)
         a = handler.tensor([1, 2, 3], 12)
         b = handler.tensor([1, 2, 3], 12)
-        ab = handler.tensor([1, 2, 3], 12)
         c = handler.tensor([1, 2, 3], 12)
-        abc = handler.tensor([1, 2, 3], 12)
         d = handler.tensor([1, 2, 3], 12)
-        abcd = handler.tensor([1, 2, 3], 12)
         e = handler.tensor([1, 2, 3], 12)
-        abcde = handler.tensor([1, 2, 3], 12)
 
-        handler.add(a, b, ab)
-        handler.add(ab, c, abc)
-        handler.add(abc, d, abcd)
-        handler.add(abcd, e, abcde)
+        x = handler.add(
+            handler.add(handler.add(handler.add(a, b, None), c, None), d, None), e, None
+        )
+        y = handler.tensor([3, 2, 1], 12)
+        handler.reshape(x, y, [3, 2, 1])
 
-        to_onnx(handler, "add")
+        to_onnx(handler, "test_frontend")
 
 
 if __name__ == "__main__":

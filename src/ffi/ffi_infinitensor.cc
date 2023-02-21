@@ -1,6 +1,7 @@
 #include "core/graph_handler.h"
 #include "operators/concat.h"
 #include "operators/gather.h"
+#include "operators/reshape.h"
 #include <pybind11/stl.h>
 
 #ifdef USE_CUDA
@@ -102,12 +103,18 @@ static int gather_axis_of(Operator op) {
     return reinterpret_cast<const GatherObj *>(op.get())->getAxis();
 }
 
+static Shape reshape_shape_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Reshape);
+    return reinterpret_cast<const ReshapeObj *>(op.get())->getShape();
+}
+
 void init_graph_builder(py::module &m) {
 
     using Handler = GraphHandlerObj;
 
     m.def("cpu_runtime", &CpuRuntimeObj::getInstance)
         .def("tensor_dtype", &tensor_dtype)
+        .def("reshape_shape_of", &reshape_shape_of)
         .def("concat_axis_of", &concat_axis_of)
         .def("gather_axis_of", &gather_axis_of);
     py::class_<RuntimeObj, std::shared_ptr<RuntimeObj>>(m, "Runtime");

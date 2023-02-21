@@ -450,16 +450,17 @@ def to_onnx(graph: backend.GraphHandler, name: str) -> ModelProto:
         elif ty == backend.OpType.Flatten:
             raise Exception("TODO")
         elif ty == backend.OpType.Reshape:
-            data = ctx.push_input(inputs[0])
-            # shape = context.push_data_input(
-            #     name,
-            #     "shape",
-            #     TensorProto.INT32,
-            #     shape=[len(vals)],
-            #     vals=1,
-            # )
-            # context.push_node(make_node(ty.name, [data, shape], [name], name))
-            raise Exception("TODO")
+            shape = backend.reshape_shape_of(op)
+            inputs.append(
+                ctx.push_data_input(
+                    name,
+                    "shape",
+                    TensorProto.INT32,
+                    shape=[len(shape)],
+                    vals=shape,
+                )
+            )
+            ctx.push_node(make_node(ty.name, inputs, outputs, name))
         elif ty == backend.OpType.Concat:
             axis = backend.concat_axis_of(op)
             ctx.push_node(make_node(ty.name, inputs, outputs, name, axis=axis))
