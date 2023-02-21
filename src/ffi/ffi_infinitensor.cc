@@ -1,5 +1,6 @@
 #include "core/graph_handler.h"
 #include "operators/concat.h"
+#include "operators/gather.h"
 #include <pybind11/stl.h>
 
 #ifdef USE_CUDA
@@ -91,9 +92,14 @@ static int tensor_dtype(Tensor t) {
     IT_ASSERT(false, "Unsupported data type");
 }
 
-static int concat_dim_of(Operator op) {
+static int concat_axis_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Concat);
     return reinterpret_cast<const ConcatObj *>(op.get())->getDim();
+}
+
+static int gather_axis_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Gather);
+    return reinterpret_cast<const GatherObj *>(op.get())->getAxis();
 }
 
 void init_graph_builder(py::module &m) {
@@ -102,7 +108,8 @@ void init_graph_builder(py::module &m) {
 
     m.def("cpu_runtime", &CpuRuntimeObj::getInstance)
         .def("tensor_dtype", &tensor_dtype)
-        .def("concat_dim_of", &concat_dim_of);
+        .def("concat_axis_of", &concat_axis_of)
+        .def("gather_axis_of", &gather_axis_of);
     py::class_<RuntimeObj, std::shared_ptr<RuntimeObj>>(m, "Runtime");
     py::class_<CpuRuntimeObj, std::shared_ptr<CpuRuntimeObj>, RuntimeObj>(
         m, "CpuRuntime");
