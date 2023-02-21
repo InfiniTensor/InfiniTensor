@@ -309,7 +309,7 @@ class TestStringMethods(unittest.TestCase):
         handler.add(abc, d, abcd)
         handler.add(abcd, e, abcde)
 
-        to_onnx(handler)
+        to_onnx(handler, "add")
 
 
 if __name__ == "__main__":
