@@ -1,4 +1,5 @@
 #include "core/graph_handler.h"
+#include "operators/concat.h"
 #include <pybind11/stl.h>
 
 #ifdef USE_CUDA
@@ -90,12 +91,18 @@ static int tensor_dtype(Tensor t) {
     IT_ASSERT(false, "Unsupported data type");
 }
 
+static int concat_dim_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Concat);
+    return reinterpret_cast<const ConcatObj *>(op.get())->getDim();
+}
+
 void init_graph_builder(py::module &m) {
 
     using Handler = GraphHandlerObj;
 
     m.def("cpu_runtime", &CpuRuntimeObj::getInstance)
-        .def("tensor_dtype", &tensor_dtype);
+        .def("tensor_dtype", &tensor_dtype)
+        .def("concat_dim_of", &concat_dim_of);
     py::class_<RuntimeObj, std::shared_ptr<RuntimeObj>>(m, "Runtime");
     py::class_<CpuRuntimeObj, std::shared_ptr<CpuRuntimeObj>, RuntimeObj>(
         m, "CpuRuntime");
