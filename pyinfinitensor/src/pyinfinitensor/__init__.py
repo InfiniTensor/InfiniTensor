@@ -1,7 +1,6 @@
 ﻿import sys
-from pathlib import Path
 
-sys.path.append(str(Path(str(__file__)).parent))
+sys.path.extend(__path__)
 
 import backend
 
