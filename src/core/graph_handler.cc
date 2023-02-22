@@ -1,6 +1,7 @@
 ﻿#include "core/graph_handler.h"
 #include "operators/batch_norm.h"
 #include "operators/concat.h"
+#include "operators/conv.h"
 #include "operators/element_wise.h"
 #include "operators/gather.h"
 #include "operators/matmul.h"
@@ -17,6 +18,20 @@ static DataType dtype_repr_convert(int);
 
 Tensor GraphHandlerObj::tensor(Shape dims, int dtype) {
     return g->addTensor(std::move(dims), dtype_repr_convert(dtype));
+}
+
+Tensor GraphHandlerObj::conv(Tensor input, Tensor weight, Tensor output, int ph,
+                             int pw, int sh, int sw, int dh, int dw) {
+    if (output) {
+        g->addOpWithOutputs<ConvObj>(std::move(input), std::move(weight),
+                                     output, ph, pw, sh, sw, dh, dw);
+        return output;
+    } else {
+        return g
+            ->addOp<ConvObj>(std::move(input), std::move(weight), output, ph,
+                             pw, sh, sw, dh, dw)
+            ->getOutput();
+    }
 }
 
 Tensor GraphHandlerObj::matmul(Tensor a, Tensor b, Tensor y, bool transA,

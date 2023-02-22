@@ -24,7 +24,28 @@ def from_onnx(model: onnx.ModelProto):
         data[initializer.name] = initializer
 
     for node in model.graph.node:
-        if node.op_type == "MatMul":
+        if node.op_type == "Conv":
+            attributes = _parse_attribute(
+                node,
+                {
+                    "dilations": [1, 1],
+                    "pads": [0, 0],
+                    "strides": [1, 1],
+                },
+            )
+            (d, p, s) = (attributes[name] for name in ["dilations", "pads", "strides"])
+            tensors[node.output[0]] = handler.conv(
+                tensors[node.input[0]],
+                tensors[node.input[1]],
+                tensors.get(node.output[0]),
+                p[0],
+                p[1],
+                s[0],
+                s[1],
+                d[0],
+                d[1],
+            )
+        elif node.op_type == "MatMul":
             tensors[node.output[0]] = handler.matmul(
                 tensors[node.input[0]],
                 tensors[node.input[1]],

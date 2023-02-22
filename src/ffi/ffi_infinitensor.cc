@@ -39,6 +39,7 @@ void init_graph_builder(py::module &m) {
         .def(py::init<Runtime>())
         .def("tensor", py::overload_cast<Shape, int>(&Handler::tensor),
              policy::move)
+        .def("conv", &Handler::conv, policy::move)
         .def("matmul",
              py::overload_cast<Tensor, Tensor, Tensor, bool, bool, Tensor,
                                ActType>(&Handler::matmul),

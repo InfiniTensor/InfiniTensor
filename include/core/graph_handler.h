@@ -38,6 +38,9 @@ class GraphHandlerObj {
 
     Tensor tensor(Shape dims, int dtype);
 
+    Tensor conv(Tensor input, Tensor weight, Tensor output, int ph, int pw,
+                int sh, int sw, int dh, int dw);
+
     Tensor matmul(Tensor a, Tensor b, Tensor y, bool transA, bool transB,
                   Tensor bias, ActType act);
 
