@@ -3,11 +3,94 @@
 #include "core/graph.h"
 #include "core/runtime.h"
 #include "core/search_engine.h"
+#include "cuda/cuda_runtime.h"
 #include "nnet/nmutator.h"
 #include "operators/conv.h"
 #include "test.h"
 
 namespace infini {
+
+TEST(Mutator, NaiveConvWithInterpreter) {
+    // verifyNaiveMembound True: subgraph after transformation
+    // verifyNaiveMembound False: subgraph of one single membound (eOP)
+    Runtime runtime = CpuRuntimeObj::getInstance();
+    Graph g = make_ref<GraphObj>(runtime);
+    // const bool verifyNaiveMembound = false;
+
+    auto i0 = g->addTensor({1, 3, 32, 32}, DataType::UInt32);
+    auto w1 = g->addTensor({2, 3, 3, 3}, DataType::UInt32);
+    g->addOp<ConvObj>(i0, w1, nullptr, 1, 1);
+    printf("--- Init Finished ---\n");
+
+    auto mutator = make_ref<NMutator>();
+    mutator->setToNaiveMembound();
+    SearchEngine searchEngine(runtime, mutator);
+    // g->dataMalloc();
+    auto bestGraph = searchEngine.run(g);
+    bestGraph->print();
+    printf("--- SearchEngine Finished ---\n");
+
+    auto mutatedGraphs = mutator->run(g);
+    IT_ASSERT(mutatedGraphs.size() == 2);
+    printf("--- Mutator Finished ---\n");
+
+    auto gg = mutatedGraphs[1];
+    g->dataMalloc();
+    gg->dataMalloc();
+    for (auto t : g->getTensors()) {
+        if (t->getFuid() <= 2)
+            t->setData(IncrementalGenerator());
+    }
+    for (auto t : gg->getTensors()) {
+        if (t->getFuid() <= 2)
+            t->setData(IncrementalGenerator());
+    }
+    runtime->run(g);
+    runtime->run(gg);
+    gg->print();
+
+    EXPECT_TRUE(g->getOutputs()[0]->equalData(gg->getOutputs()[0]));
+    EXPECT_TRUE(g->getOutputs()[0]->getRawDataPtr<void *>() !=
+                gg->getOutputs()[0]->getRawDataPtr<void *>());
+}
+
+// FIXME: failed since implicit transpose for DLT
+TEST(Mutator, InfoGAN_TConv_3_correctness) {
+    // verifyNaiveMembound True: subgraph after transformation
+    // verifyNaiveMembound False: subgraph of one single membound (eOP)
+    // const bool verifyNaiveMembound = false;
+    Runtime runtime = make_ref<CudaRuntimeObj>();
+    Graph g = make_ref<GraphObj>(runtime);
+
+    // {n, f, h, w} * {f, c, r, s}
+    auto i0 = g->addTensor({1, 448, 2, 2});
+    auto w0 = g->addTensor({448, 256, 4, 4});
+    g->addOp<ConvTransposed2dObj>(i0, w0, nullptr, 1, 1, 2, 2, 1, 1);
+
+    auto mutator = make_ref<NMutator>();
+    mutator->setToNaiveMembound();
+    SearchEngine searchEngine(runtime, mutator);
+    auto bestGraph = searchEngine.run(g);
+    bestGraph->print();
+    printf("--- SearchEngine Finished ---\n");
+
+    g->dataMalloc();
+    bestGraph->dataMalloc();
+    for (auto t : g->getTensors()) {
+        if (t->getFuid() <= 2)
+            t->setData(IncrementalGenerator());
+    }
+    for (auto t : bestGraph->getTensors()) {
+        if (t->getFuid() <= 2)
+            t->setData(IncrementalGenerator());
+    }
+    runtime->run(g);
+    runtime->run(bestGraph);
+
+    EXPECT_TRUE(g->getOutputs()[0]->equalData(bestGraph->getOutputs()[0]));
+    EXPECT_TRUE(g->getOutputs()[0]->getRawDataPtr<void *>() !=
+                bestGraph->getOutputs()[0]->getRawDataPtr<void *>());
+}
 
 // TEST(Mutator, Conv9x9) {
 //     auto g = new tpm::Graph();
@@ -70,63 +153,6 @@ namespace infini {
 //     codeEngine.importPerfEngine(perfEngine);
 //     codeEngine.genCode(bestGraph, "res.cu");
 // }
-
-// // FIXME: failed since implicit transpose for DLT
-// TEST(Mutator, InfoGAN_TConv_3_correctness) {
-//     // verifyNaiveMembound True: subgraph after transformation
-//     // verifyNaiveMembound False: subgraph of one single membound (eOP)
-//     const bool verifyNaiveMembound = false;
-//     auto g = new tpm::Graph();
-//     // {n, h, w, f} * {r, s, f, c}
-//     // {n, f, h, w} * {f, c, r, s}
-//     auto i0 = g->tensor({1, 448, 2, 2});
-//     auto w1 = g->tensor({448, 256, 4, 4});
-//     g->convTrans(i0, w1, 1, 1, 2, 2, 1, 1);
-// }
-
-TEST(Mutator, NaiveConvWithInterpreter) {
-    // verifyNaiveMembound True: subgraph after transformation
-    // verifyNaiveMembound False: subgraph of one single membound (eOP)
-    Runtime runtime = CpuRuntimeObj::getInstance();
-    Graph g = make_ref<GraphObj>(runtime);
-    // const bool verifyNaiveMembound = false;
-
-    auto i0 = g->addTensor({1, 3, 32, 32}, DataType::UInt32);
-    auto w1 = g->addTensor({2, 3, 3, 3}, DataType::UInt32);
-    g->addOp<ConvObj>(i0, w1, nullptr, 1, 1);
-    printf("--- Init Finished ---\n");
-
-    auto mutator = make_ref<NMutator>();
-    mutator->setToNaiveMembound();
-    SearchEngine searchEngine(runtime, mutator);
-    // g->dataMalloc();
-    auto bestGraph = searchEngine.run(g);
-    bestGraph->print();
-    printf("--- SearchEngine Finished ---\n");
-
-    auto mutatedGraphs = mutator->run(g);
-    IT_ASSERT(mutatedGraphs.size() == 2);
-    printf("--- Mutator Finished ---\n");
-
-    auto gg = mutatedGraphs[1];
-    g->dataMalloc();
-    gg->dataMalloc();
-    for (auto t : g->getTensors()) {
-        if (t->getFuid() <= 2)
-            t->setData(IncrementalGenerator());
-    }
-    for (auto t : gg->getTensors()) {
-        if (t->getFuid() <= 2)
-            t->setData(IncrementalGenerator());
-    }
-    runtime->run(g);
-    runtime->run(gg);
-    gg->print();
-
-    EXPECT_TRUE(g->getOutputs()[0]->equalData(gg->getOutputs()[0]));
-    EXPECT_TRUE(g->getOutputs()[0]->getRawDataPtr<void *>() !=
-                gg->getOutputs()[0]->getRawDataPtr<void *>());
-}
 
 // TEST(Mutator, G2BMM) {
 //     auto g = new tpm::Graph();
