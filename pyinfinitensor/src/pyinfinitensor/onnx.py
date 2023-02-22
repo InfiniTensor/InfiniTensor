@@ -456,8 +456,8 @@ def to_onnx(graph: backend.GraphHandler, name: str) -> ModelProto:
                     name,
                     "shape",
                     TensorProto.INT32,
-                    shape=[len(shape)],
-                    vals=shape,
+                    [len(shape)],
+                    shape,
                 )
             )
             ctx.push_node(make_node(ty.name, inputs, outputs, name))
@@ -468,7 +468,11 @@ def to_onnx(graph: backend.GraphHandler, name: str) -> ModelProto:
             axis = backend.gather_axis_of(op)
             ctx.push_node(make_node(ty.name, inputs, outputs, name, axis=axis))
         elif ty == backend.OpType.ReduceMean:
-            raise Exception("TODO")
+            axes = backend.reduce_mean_axes_of(op)
+            inputs.append(
+                ctx.push_data_input(name, "axes", TensorProto.INT32, [len(axes)], axes)
+            )
+            ctx.push_node(make_node(ty.name, inputs, outputs, name, keepdims=1))
         elif ty == backend.OpType.Slice:
             raise Exception("TODO")
         elif ty == backend.OpType.Pad:

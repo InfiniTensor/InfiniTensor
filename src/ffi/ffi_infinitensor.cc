@@ -1,6 +1,7 @@
 #include "core/graph_handler.h"
 #include "operators/concat.h"
 #include "operators/gather.h"
+#include "operators/reduce_mean.h"
 #include "operators/reshape.h"
 #include <pybind11/stl.h>
 
@@ -24,7 +25,7 @@ void register_operator_timer(py::module &m) {
 #endif
 }
 
-void init_values(py::module &m) {
+void export_values(py::module &m) {
 #define VALUE(TYPE, NAME) value(#NAME, TYPE::NAME)
 
     py::enum_<ActType>(m, "ActType")
@@ -103,20 +104,31 @@ static int gather_axis_of(Operator op) {
     return dynamic_cast<const GatherObj *>(op.get())->getAxis();
 }
 
+static vector<int> reduce_mean_axes_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::ReduceMean);
+    auto &set = dynamic_cast<const ReduceMeanObj *>(op.get())->getAxes();
+    return vector(set.begin(), set.end());
+}
+
 static Shape reshape_shape_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Reshape);
     return dynamic_cast<const ReshapeObj *>(op.get())->getShape();
 }
 
-void init_graph_builder(py::module &m) {
+void export_functions(py::module &m) {
+#define FUNCTION(NAME) def(#NAME, &NAME)
+    m.def("cpu_runtime", &CpuRuntimeObj::getInstance)
+        .FUNCTION(tensor_dtype)
+        .FUNCTION(reshape_shape_of)
+        .FUNCTION(concat_axis_of)
+        .FUNCTION(gather_axis_of)
+        .FUNCTION(reduce_mean_axes_of);
+#undef FUNCTION
+}
 
+void init_graph_builder(py::module &m) {
     using Handler = GraphHandlerObj;
 
-    m.def("cpu_runtime", &CpuRuntimeObj::getInstance)
-        .def("tensor_dtype", &tensor_dtype)
-        .def("reshape_shape_of", &reshape_shape_of)
-        .def("concat_axis_of", &concat_axis_of)
-        .def("gather_axis_of", &gather_axis_of);
     py::class_<RuntimeObj, std::shared_ptr<RuntimeObj>>(m, "Runtime");
     py::class_<CpuRuntimeObj, std::shared_ptr<CpuRuntimeObj>, RuntimeObj>(
         m, "CpuRuntime");
@@ -166,6 +178,7 @@ void init_graph_builder(py::module &m) {
 
 PYBIND11_MODULE(backend, m) {
     infini::register_operator_timer(m);
-    infini::init_values(m);
+    infini::export_values(m);
+    infini::export_functions(m);
     infini::init_graph_builder(m);
 }
