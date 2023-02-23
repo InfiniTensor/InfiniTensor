@@ -66,10 +66,10 @@ class TestStringMethods(unittest.TestCase):
 
     def test_batch_norm(self):
         x = make_tensor_value_info("x", TensorProto.UINT32, [1, 3, 2, 2])
-        scale = make_tensor_value_info("scale", TensorProto.FLOAT, [1, 3, 1, 1])
-        b = make_tensor_value_info("b", TensorProto.FLOAT, [1, 3, 1, 1])
-        mean = make_tensor_value_info("mean", TensorProto.FLOAT, [1, 3, 1, 1])
-        var = make_tensor_value_info("var", TensorProto.FLOAT, [1, 3, 1, 1])
+        scale = make_tensor_value_info("scale", TensorProto.FLOAT, [3])
+        b = make_tensor_value_info("b", TensorProto.FLOAT, [3])
+        mean = make_tensor_value_info("mean", TensorProto.FLOAT, [3])
+        var = make_tensor_value_info("var", TensorProto.FLOAT, [3])
         y = make_tensor_value_info("y", TensorProto.UINT32, [1, 3, 2, 2])
         batch_norm = make_node(
             "BatchNormalization",
