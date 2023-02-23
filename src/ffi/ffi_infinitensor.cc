@@ -102,7 +102,9 @@ void init_graph_builder(py::module &m) {
         .def("pad",
              py::overload_cast<Tensor, Tensor, const vector<int> &,
                                const optional<vector<int>> &>(&Handler::pad),
-             policy::move);
+             policy::move)
+        .def("data_malloc", &Handler::data_malloc, policy::automatic)
+        .def("run", &Handler::run, policy::automatic);
 }
 
 } // namespace infini

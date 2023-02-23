@@ -76,6 +76,12 @@ class GraphHandlerObj {
                  const optional<vector<int>> &steps);
     Tensor pad(Tensor input, Tensor output, const vector<int> &pads,
                const optional<vector<int>> &axes);
+
+    //------ runtime
+
+    inline void data_malloc() { g->dataMalloc(); }
+
+    inline void run() { g->getRuntime()->run(g); }
 };
 
 } // namespace infini
