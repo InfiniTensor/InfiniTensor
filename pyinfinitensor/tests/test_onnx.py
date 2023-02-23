@@ -8,7 +8,7 @@ from onnx.helper import (
     make_tensor_value_info,
 )
 from onnx.checker import check_model
-from pyinfinitensor.onnx import from_onnx, parse_onnx, backend, runtime, to_onnx
+from pyinfinitensor.onnx import from_onnx, backend, runtime, to_onnx
 
 
 def make_and_import_model(graph: onnx.GraphProto):
@@ -28,7 +28,7 @@ class TestStringMethods(unittest.TestCase):
                     file=model_file, size=os.path.getsize(model_file) / 1024 / 1024
                 )
             )
-            parse_onnx(onnx.load(model_file))
+            from_onnx(onnx.load(model_file))
 
     def test_tensor(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 2, 3])
@@ -290,7 +290,6 @@ class TestStringMethods(unittest.TestCase):
         model = make_model(graph)
         check_model(model)
         from_onnx(model)
-        parse_onnx(model)
 
     def test_frontend(self):
         handler = backend.GraphHandler(runtime)

@@ -5,10 +5,26 @@ namespace infini {
 MatmulObj::MatmulObj(GraphObj *graph, Tensor A, Tensor B, Tensor C, bool transA,
                      bool transB, [[maybe_unused]] Tensor bias, ActType act)
     : OperatorObj(OpType::Matmul, {A, B}, {C}), transA(transA), transB(transB),
-      act(act), b(A->getDims()[0]),
-      m(transA ? A->getDims()[2] : A->getDims()[1]),
-      n(transB ? B->getDims()[1] : B->getDims()[2]),
-      k(transA ? A->getDims()[1] : A->getDims()[2]) {
+      act(act), b(1) {
+    auto shape_a = A->getDims();
+    auto shape_b = B->getDims();
+    IT_ASSERT(shape_a.size() == shape_b.size());
+    switch (shape_a.size()) {
+    case 0:
+    case 1:
+        IT_ASSERT(false);
+    case 2:
+        break;
+    default:
+        for (size_t i = 0; i < shape_a.size() - 2; ++i) {
+            IT_ASSERT(shape_a[i] == shape_b[i]);
+            b *= shape_a[i];
+        }
+        break;
+    }
+    m = *(transA ? shape_a.rbegin() : shape_a.rbegin() + 1);
+    n = *(transB ? shape_b.rbegin() + 1 : shape_b.rbegin());
+    k = *(transA ? shape_a.rbegin() + 1 : shape_a.rbegin());
     IT_ASSERT(checkValid(graph));
 }
 
@@ -22,19 +38,11 @@ string MatmulObj::toString() const {
 }
 
 optional<vector<Shape>> MatmulObj::inferShape(const TensorVec &inputs) const {
-    auto A = inputs[0], B = inputs[1];
-    // if (A->getType() == Tensor::Weight && B->getType() == Tensor::Weight)
-    //     return false;
-    if (!(A->getDims().size() == 3 && B->getDims().size() == 3))
-        return {};
-    if (!(A->getDims()[0] == B->getDims()[0]))
-        return {};
-    if (!((transA ? A->getDims()[1] : A->getDims()[2]) ==
-          (transB ? B->getDims()[2] : B->getDims()[1])))
-        return {};
-    int b(A->getDims()[0]), m(transA ? A->getDims()[2] : A->getDims()[1]),
-        n(transB ? B->getDims()[1] : B->getDims()[2]);
-    return {{{b, m, n}}};
+    auto shape_a = inputs[0]->getDims();
+    auto it = shape_a.rbegin();
+    *it++ = n;
+    *it++ = m;
+    return {{std::move(shape_a)}};
 }
 
 vector<int> MatmulObj::getWorkloadVector() const {
