@@ -28,6 +28,10 @@ from functools import reduce
 cpu_runtime = backend.cpu_runtime()
 
 
+def cuda_runtime():
+    return backend.cuda_runtime()
+
+
 def from_onnx(model: ModelProto, runtime) -> backend.GraphHandler:
     model = infer_shapes(model)
     handler = backend.GraphHandler(runtime)
