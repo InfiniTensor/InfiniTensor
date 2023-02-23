@@ -25,10 +25,10 @@ from onnx.shape_inference import infer_shapes
 from typing import Dict, List, Any, Tuple, Sequence, Union
 from functools import reduce
 
-runtime = backend.cpu_runtime()
+cpu_runtime = backend.cpu_runtime()
 
 
-def from_onnx(model: ModelProto) -> backend.GraphHandler:
+def from_onnx(model: ModelProto, runtime) -> backend.GraphHandler:
     model = infer_shapes(model)
     handler = backend.GraphHandler(runtime)
 
