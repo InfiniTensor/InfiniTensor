@@ -171,6 +171,9 @@ void init_graph_builder(py::module &m) {
         .def("topo_sort", &Handler::topo_sort, policy::automatic)
         .def("operators", &Handler::operators, policy::move)
         .def("data_malloc", &Handler::data_malloc, policy::automatic)
+        .def("copy_int32", &Handler::copy_int32, policy::automatic)
+        .def("copy_int64", &Handler::copy_int64, policy::automatic)
+        .def("copy_float", &Handler::copy_float, policy::automatic)
         .def("run", &Handler::run, policy::automatic);
 }
 

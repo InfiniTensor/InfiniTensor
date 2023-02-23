@@ -2,6 +2,8 @@
 
 #include "core/graph.h"
 #include "core/runtime.h"
+#include <cstdint>
+#include <iostream>
 
 namespace infini {
 
@@ -86,6 +88,24 @@ class GraphHandlerObj {
     //------ runtime
 
     inline void data_malloc() { g->dataMalloc(); }
+
+    inline void copy_int32(Tensor tensor, std::vector<int32_t> list) {
+        std::cout << "copy " << list.size() << " ints to (" << tensor->size()
+                  << ")" << std::endl;
+        tensor->copyData(list);
+    }
+
+    inline void copy_int64(Tensor tensor, std::vector<int64_t> list) {
+        std::cout << "copy " << list.size() << " ints to (" << tensor->size()
+                  << ")" << std::endl;
+        tensor->copyData(list);
+    }
+
+    inline void copy_float(Tensor tensor, std::vector<float> list) {
+        std::cout << "copy " << list.size() << " floats to (" << tensor->size()
+                  << ")" << std::endl;
+        tensor->copyData(list);
+    }
 
     inline void run() { g->getRuntime()->run(g); }
 };
