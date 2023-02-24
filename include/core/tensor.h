@@ -1,6 +1,11 @@
 #pragma once
 #include "core/tensor_base.h"
 #include <cmath>
+#include <cstring>
+
+#if USE_CUDA
+#include "cuda/cuda_runtime.h"
+#endif
 
 namespace infini {
 
@@ -55,7 +60,6 @@ class TensorObj : public TensorBaseObj {
         obj->outputOf.reset();
         return obj;
     }
-    // TODO: clarify whether clone copies data
     Tensor clone(Runtime runtime) const {
         auto obj = make_ref<TensorObj>(*this);
         obj->runtime = runtime;
@@ -67,6 +71,24 @@ class TensorObj : public TensorBaseObj {
             obj->copyData(this);
         }
         return obj;
+    }
+    inline std::vector<float> cloneFloats() const {
+        IT_ASSERT(data != nullptr);
+        IT_ASSERT(getDType() == DataType::Float32);
+        std::vector<float> ans(size());
+        auto src = getRawDataPtr<void *>();
+        auto dst = ans.data();
+        auto bytes = getBytes();
+        if (runtime->isCpu()) {
+            memcpy(dst, src, bytes);
+        } else {
+#if USE_CUDA
+            cudaMemcpy(dst, src, bytes, cudaMemcpyDeviceToHost);
+#else
+            IT_TODO_HALT();
+#endif
+        }
+        return ans;
     }
 
     void printData() const;
