@@ -148,15 +148,8 @@ bool TensorObj::equalData(const Tensor &rhs) const {
 }
 
 void TensorObj::dataMalloc() {
-    if (data != nullptr)
-        return;
-    // IT_ASSERT(data == nullptr);
-    size_t bytesPerElement;
-    if (getDType() == DataType::Float32)
-        bytesPerElement = sizeof(float);
-    else if (getDType() == DataType::UInt32)
-        bytesPerElement = sizeof(uint32_t);
-    data = runtime->allocBlob(size() * bytesPerElement);
+    if (data == nullptr)
+        data = runtime->allocBlob(getBytes());
 }
 
 void TensorObj::copyData(const TensorObj *src) {

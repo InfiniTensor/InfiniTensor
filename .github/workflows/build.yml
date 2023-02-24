@@ -66,5 +66,5 @@ jobs:
     - name: Download test model
       run: wget ${{ env.resnet-download }}
 
-    # - name: Test onnx frontend
-    #   run: make test-onnx
+    - name: Test onnx frontend
+      run: make test-onnx
