@@ -2,6 +2,7 @@
 #include "core/kernel.h"
 #include "cuda/cuda_kernel_wihtout_config.h"
 #include "cuda/cuda_runtime.h"
+
 namespace infini {
 class BatchNormCudnn : public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
@@ -29,7 +30,7 @@ class BatchNormCudnn : public CudaKernelWithoutConfig {
             dimArray[i] = dims[i];
             strideArray[i] = op->getInputs(0)->getStride()[i];
             dimPArray[i] = 1;
-            stridePArray[i] = 1; 
+            stridePArray[i] = 1;
         }
         dimPArray[1] = op->getInputs(0)->getDims()[1];
         stridePArray[1] = op->getInputs(0)->getStride()[1];
