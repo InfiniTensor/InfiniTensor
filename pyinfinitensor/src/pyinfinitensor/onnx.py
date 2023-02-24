@@ -34,7 +34,7 @@ def cuda_runtime():
 
 def from_onnx(
     model: ModelProto, runtime
-) -> Tuple[Dict[str, backend.Tensor], backend.GraphHandler]:
+) -> Tuple[Dict[str, backend.Tensor], Dict[str, backend.Tensor], backend.GraphHandler]:
     model = infer_shapes(model)
     handler = backend.GraphHandler(runtime)
 
@@ -349,7 +349,11 @@ def from_onnx(
             else:
                 assert False, "Unsupported Tensor Type: {}".format(tensor.data_type)
 
-    return inputs, handler
+    outputs: Dict[str, backend.Tensor] = {}
+    for output in model.graph.output:
+        outputs[output.name] = tensors[output.name]
+
+    return inputs, outputs, handler
 
 
 def to_onnx(graph: backend.GraphHandler, name: str) -> ModelProto:
