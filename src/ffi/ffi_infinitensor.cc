@@ -1,4 +1,5 @@
 #include "core/graph_handler.h"
+#include "operators/batch_norm.h"
 #include "operators/concat.h"
 #include "operators/gather.h"
 #include "operators/reduce_mean.h"
@@ -120,6 +121,13 @@ static Shape reshape_shape_of(Operator op) {
     return dynamic_cast<const ReshapeObj *>(op.get())->getShape();
 }
 
+static std::tuple<float, float, bool> batch_norm_attrs_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::BatchNorm);
+    auto batchnorm = dynamic_cast<const BatchNormObj *>(op.get());
+    return std::make_tuple(batchnorm->getMomentum(), batchnorm->getEps(),
+                           batchnorm->getTraining());
+}
+
 void export_functions(py::module &m) {
 #define FUNCTION(NAME) def(#NAME, &NAME)
     m.def("cpu_runtime", &CpuRuntimeObj::getInstance)
@@ -130,7 +138,8 @@ void export_functions(py::module &m) {
         .FUNCTION(reshape_shape_of)
         .FUNCTION(concat_axis_of)
         .FUNCTION(gather_axis_of)
-        .FUNCTION(reduce_mean_axes_of);
+        .FUNCTION(reduce_mean_axes_of)
+        .FUNCTION(batch_norm_attrs_of);
 #undef FUNCTION
 }
 

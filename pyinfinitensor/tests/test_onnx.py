@@ -8,7 +8,7 @@ from onnx.helper import (
     make_tensor_value_info,
 )
 from onnx.checker import check_model
-from pyinfinitensor.onnx import from_onnx, backend, to_onnx, cpu_runtime
+from pyinfinitensor.onnx import from_onnx, backend, cpu_runtime
 
 
 def make_and_import_model(graph: onnx.GraphProto):
@@ -304,8 +304,6 @@ class TestStringMethods(unittest.TestCase):
         )
         y = handler.tensor([3, 2, 1], 12)
         handler.reshape(x, y, [3, 2, 1])
-
-        to_onnx(handler, "test_frontend")
 
 
 if __name__ == "__main__":

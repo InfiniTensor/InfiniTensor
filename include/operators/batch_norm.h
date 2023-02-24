@@ -39,9 +39,11 @@ class BatchNormObj : public OperatorObj {
     std::string toString() const override;
 
     // output size will be 3 when training
-    int numInputs() const override { return 5; }
-    int numOutputs() const override { return outputs.size(); }
-    float getEps() const { return eps; }
+    inline int numInputs() const override { return 5; }
+    inline int numOutputs() const override { return outputs.size(); }
+    inline float getMomentum() const { return momentum; }
+    inline float getEps() const { return eps; }
+    inline bool getTraining() const { return training; }
 
   private:
     vector<int> getWorkloadVector() const override;
