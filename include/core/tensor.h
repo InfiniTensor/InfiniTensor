@@ -56,16 +56,16 @@ class TensorObj : public TensorBaseObj {
     Tensor clone() const {
         auto obj = make_ref<TensorObj>(*this);
         obj->freeData();
-        obj->inputOf.clear();
-        obj->outputOf.reset();
+        obj->targets.clear();
+        obj->source.reset();
         return obj;
     }
     Tensor clone(Runtime runtime) const {
         auto obj = make_ref<TensorObj>(*this);
         obj->runtime = runtime;
         obj->freeData();
-        obj->inputOf.clear();
-        obj->outputOf.reset();
+        obj->targets.clear();
+        obj->source.reset();
         if (hasData()) {
             obj->dataMalloc();
             obj->copyData(this);

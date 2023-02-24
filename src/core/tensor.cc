@@ -18,13 +18,13 @@ string TensorObj::toString() const {
                  std::to_string(fuid) + ", shape " + vecToString(shape) +
                  ", dtype " + dtype.toString();
     vector<UidBaseType> inputOfGuid;
-    for (const auto &op : inputOf)
+    for (const auto &op : targets)
         inputOfGuid.emplace_back(op.lock()->getGuid());
-    if (auto o = outputOf.lock())
-        ret += ", outputOf " + std::to_string(o->getGuid());
+    if (auto o = source.lock())
+        ret += ", source " + std::to_string(o->getGuid());
     else
-        ret += ", outputOf None";
-    ret += ", inputOf " + vecToString(inputOfGuid);
+        ret += ", source None";
+    ret += ", targets " + vecToString(inputOfGuid);
     return ret;
 }
 

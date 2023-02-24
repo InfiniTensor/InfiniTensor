@@ -334,7 +334,6 @@ def from_onnx(
 
     inputs: Dict[str, backend.Tensor] = {}
     for name, obj in tensors.items():
-        print("{}: {}".format(name, obj))
         tensor = data.get(name)
         if tensor == None:
             if any(input.name == name for input in model.graph.input):
@@ -382,6 +381,12 @@ def to_onnx(graph: backend.GraphHandler, name: str) -> ModelProto:
 
         def push_output(self, name: str, tensor: backend.Tensor) -> str:
             self.names[tensor] = name
+            if not tensor.has_target():
+                shape = tensor.shape()
+                dtype = backend.tensor_dtype(tensor)
+                value_info = make_tensor_value_info(name, dtype, shape)
+                check_value_info(value_info)
+                self.outputs.append(value_info)
             return name
 
         def push_input(self, tensor: backend.Tensor) -> str:
