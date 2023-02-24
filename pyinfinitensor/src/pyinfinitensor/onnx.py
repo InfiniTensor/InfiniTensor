@@ -35,6 +35,7 @@ def cuda_runtime():
 class OnnxStub:
     inputs: Dict[str, backend.Tensor] = {}
     outputs: Dict[str, backend.Tensor] = {}
+    initializer: Dict[int, TensorProto] = {}
     handler: backend.GraphHandler
 
     def __init__(self, model: ModelProto, runtime):
@@ -348,6 +349,7 @@ class OnnxStub:
                 if any(input.name == name for input in model.graph.input):
                     self.inputs[name] = obj
             else:
+                self.initializer[obj.fuid()] = tensor
                 if tensor.data_type == TensorProto.INT32:
                     self.handler.copy_int32(obj, [int(i) for i in tensor.int32_data])
                 elif tensor.data_type == TensorProto.INT64:

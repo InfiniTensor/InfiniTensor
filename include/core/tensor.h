@@ -32,7 +32,7 @@ class TensorObj : public TensorBaseObj {
     using TensorBaseObj::getData;
     VType getData(const Shape &pos) const;
     void dataMalloc();
-    UidBaseType getFuid() const { return fuid; }
+    inline UidBaseType getFuid() const { return fuid; }
 
     void load(std::string file_path);
     void save(std::string file_path);

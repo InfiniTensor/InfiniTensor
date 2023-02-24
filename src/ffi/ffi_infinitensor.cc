@@ -154,6 +154,7 @@ void init_graph_builder(py::module &m) {
         m, "CudaRuntime");
 #endif
     py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "Tensor")
+        .def("fuid", &TensorObj::getFuid, policy::automatic)
         .def("shape", &TensorObj::getDims, policy::move)
         .def("cloneFloats", &TensorObj::cloneFloats, policy::move)
         .def("has_target", &TensorObj::hasTarget, policy::automatic)
