@@ -5,7 +5,7 @@ CUDA ?= off
 
 CMAKE_OPT = -DCMAKE_BUILD_TYPE=$(TYPE)
 
-ifeq ($(CUDA), on)
+ifeq ($(CUDA), ON)
 	CMAKE_OPT += -DUSE_CUDA=ON
 endif
 
