@@ -437,15 +437,6 @@ class OnnxStub:
                 self.nodes.append(node)
 
             def build(self, name: str) -> ModelProto:
-                print()
-                print(ctx.names)
-                print()
-                print(ctx.inputs)
-                print()
-                print(ctx.outputs)
-                print()
-                print(ctx.nodes)
-
                 graph = make_graph(
                     self.nodes, name, self.inputs, self.outputs, self.initializers
                 )
