@@ -475,7 +475,18 @@ class OnnxStub:
                 for (i, it) in enumerate(op.outputs())
             ]
             if ty == backend.OpType.Conv:
-                raise Exception("TODO")
+                ph, pw, sh, sw, dh, dw = backend.conv_attrs_of(op)
+                ctx.push_node(
+                    make_node(
+                        ty.name,
+                        inputs,
+                        outputs,
+                        name,
+                        pads=[ph, pw],
+                        strides=[sh, sw],
+                        dilations=[dh, dw],
+                    )
+                )
             elif ty == backend.OpType.Matmul:
                 ctx.push_node(make_node("MatMul", inputs, outputs, name))
             elif ty == backend.OpType.BatchNorm:
