@@ -588,7 +588,7 @@ class OnnxStub:
         self.handler.copy_float(self.inputs[name], data)
 
     def take_float(self) -> List[float]:
-        return next(iter(self.handler.outputs.values())).copyFloats()
+        return next(iter(self.outputs.values())).cloneFloats()
 
 
 def from_onnx(model: ModelProto, runtime):
