@@ -578,17 +578,17 @@ class OnnxStub:
     def run(self) -> None:
         self.handler.run()
 
-    def put_int32(self, name: str) -> None:
-        self.handler.copy_int32(self.inputs[name])
+    def put_int32(self, name: str, data: List[int]) -> None:
+        self.handler.copy_int32(self.inputs[name], data)
 
-    def put_int64(self, name: str) -> None:
-        self.handler.copy_int64(self.inputs[name])
+    def put_int64(self, name: str, data: List[int]) -> None:
+        self.handler.copy_int64(self.inputs[name], data)
 
-    def put_float(self, name: str) -> None:
-        self.handler.copy_float(self.inputs[name])
+    def put_float(self, name: str, data: List[int]) -> None:
+        self.handler.copy_float(self.inputs[name], data)
 
     def take_float(self) -> List[float]:
-        return next(self.handler.outputs.values()).copyFloats()
+        return next(iter(self.handler.outputs.values())).copyFloats()
 
 
 def from_onnx(model: ModelProto, runtime):
