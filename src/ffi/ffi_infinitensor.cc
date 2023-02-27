@@ -3,6 +3,7 @@
 #include "operators/concat.h"
 #include "operators/conv.h"
 #include "operators/gather.h"
+#include "operators/pooling.h"
 #include "operators/reduce_mean.h"
 #include "operators/reshape.h"
 #include <pybind11/stl.h>
@@ -115,6 +116,16 @@ static std::tuple<float, float, bool> batch_norm_attrs_of(Operator op) {
                            batchnorm->getTraining());
 }
 
+static std::tuple<int, int, int, int, int, int, int, int>
+pool_attrs_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::MaxPool ||
+              op->getOpType() == OpType::AvgPool);
+    auto pool = dynamic_cast<const PoolingObj *>(op.get());
+    return std::make_tuple(pool->getKh(), pool->getKw(), pool->getDh(),
+                           pool->getDw(), pool->getPh(), pool->getPw(),
+                           pool->getSh(), pool->getSw());
+}
+
 static int concat_axis_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Concat);
     return dynamic_cast<const ConcatObj *>(op.get())->getDim();
@@ -144,6 +155,7 @@ void export_functions(py::module &m) {
 #endif
         .FUNCTION(conv_attrs_of)
         .FUNCTION(batch_norm_attrs_of)
+        .FUNCTION(pool_attrs_of)
         .FUNCTION(tensor_dtype)
         .FUNCTION(reshape_shape_of)
         .FUNCTION(concat_axis_of)

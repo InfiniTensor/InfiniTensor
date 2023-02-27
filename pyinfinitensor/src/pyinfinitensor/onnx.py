@@ -504,9 +504,32 @@ class OnnxStub:
                     )
                 )
             elif ty == backend.OpType.MaxPool:
-                raise Exception("TODO")
+                kh, kw, dh, dw, ph, pw, sh, sw = backend.pool_attrs_of(op)
+                ctx.push_node(
+                    make_node(
+                        ty.name,
+                        inputs,
+                        outputs,
+                        name,
+                        kernel_shape=[kh, kw],
+                        pads=[ph, pw],
+                        dilations=[dh, dw],
+                        strides=[sh, sw],
+                    )
+                )
             elif ty == backend.OpType.AvgPool:
-                raise Exception("TODO")
+                kh, kw, dh, dw, ph, pw, sh, sw = backend.pool_attrs_of(op)
+                ctx.push_node(
+                    make_node(
+                        "AveragePool",
+                        inputs,
+                        outputs,
+                        name,
+                        kernel_shape=[kh, kw],
+                        pads=[ph, pw],
+                        strides=[sh, sw],
+                    )
+                )
             elif ty in [
                 backend.OpType.Add,
                 backend.OpType.Sub,
