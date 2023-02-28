@@ -44,8 +44,50 @@ void testConvTransposedCudnn(
     EXPECT_TRUE(o0Cpu->equalData(ansVec));
 }
 
+void testConvTransposedNHWCCudnn(
+    const std::function<void(void *, size_t, DataType)> &generator,
+    vector<float> ansVec) {
+    const auto &[N, C, H, W, F, R, S] = tuple{1, 1, 2, 2, 1, 4, 4};
+    const int stride = 1, padding = 0, dilation = 1;
+    // Construct Runtime and graph for CPU and CUDA
+    Runtime cpu = CpuRuntimeObj::getInstance(); // CPUruntime is singleton
+    Graph gCpu = make_ref<GraphObj>(cpu);
+    Runtime cuda = make_ref<CudaRuntimeObj>();
+    Graph gCuda = make_ref<GraphObj>(cuda);
+    // Set input data on CPU in a CPU Graph
+    Tensor i0Cpu = gCpu->addTensor({N, H, H, F}, DataType::Float32);
+    Tensor w0Cpu = gCpu->addTensor({F, R, S, C}, DataType::Float32);
+    // Malloc data for all tensors in a graph. Do we need implicit allocation?
+    gCpu->dataMalloc();
+    i0Cpu->setData(generator);
+    w0Cpu->setData(generator);
+
+    // Copy input tensors from CPU to CUDA
+    Tensor i0Cuda = gCuda->cloneTensor(i0Cpu);
+    Tensor w0Cuda = gCuda->cloneTensor(w0Cpu);
+    // Build CUDA graph
+    auto conv = gCuda->addOp<ConvTransposed2dNHWCObj>(i0Cuda, w0Cuda, nullptr,
+                                                  padding, padding, stride,
+                                                  stride, dilation, dilation);
+    gCuda->dataMalloc();
+    // Execute on CUDA
+    cuda->run(gCuda);
+    // copy output from CUDA to CPU
+    auto o0Cpu = gCpu->cloneTensor(conv->getOutput());
+    // check results on CPU
+    EXPECT_TRUE(o0Cpu->equalData(ansVec));
+}
+
 TEST(cuDNN_ConvTransposed, run) {
     testConvTransposedCudnn(IncrementalGenerator(),
+                            vector<float>{0.,  0.,  1.,  2.,  3.,  0.,  6.,
+                                          12., 18., 16., 8.,  30., 36., 42.,
+                                          32., 16., 54., 60., 66., 48., 24.,
+                                          62., 67., 72., 45.});
+}
+
+TEST(cuDNN_ConvTransposedNHWC, run) {
+    testConvTransposedNHWCCudnn(IncrementalGenerator(),
                             vector<float>{0.,  0.,  1.,  2.,  3.,  0.,  6.,
                                           12., 18., 16., 8.,  30., 36., 42.,
                                           32., 16., 54., 60., 66., 48., 24.,

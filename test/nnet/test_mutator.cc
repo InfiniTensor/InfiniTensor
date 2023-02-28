@@ -61,11 +61,13 @@ TEST(Mutator, InfoGAN_TConv_3_correctness) {
     // const bool verifyNaiveMembound = false;
     Runtime runtime = make_ref<CudaRuntimeObj>();
     Graph g = make_ref<GraphObj>(runtime);
+    Runtime cpu = CpuRuntimeObj::getInstance(); // CPUruntime is singleton
+    Graph gCpu = make_ref<GraphObj>(cpu);
 
-    // {n, f, h, w} * {f, c, r, s}
-    auto i0 = g->addTensor({1, 448, 2, 2});
-    auto w0 = g->addTensor({448, 256, 4, 4});
-    g->addOp<ConvTransposed2dObj>(i0, w0, nullptr, 1, 1, 2, 2, 1, 1);
+    // {n, h, w, f} * {f, r, s, c}
+    auto i0 = g->addTensor({1, 2, 2, 448});
+    auto w0 = g->addTensor({448, 4, 4, 256});
+    g->addOp<ConvTransposed2dNHWCObj>(i0, w0, nullptr, 1, 1, 2, 2, 1, 1);
 
     auto mutator = make_ref<NMutator>();
     mutator->setToNaiveMembound();
@@ -87,7 +89,10 @@ TEST(Mutator, InfoGAN_TConv_3_correctness) {
     runtime->run(g);
     runtime->run(bestGraph);
 
-    EXPECT_TRUE(g->getOutputs()[0]->equalData(bestGraph->getOutputs()[0]));
+    auto go0 = gCpu->cloneTensor(g->getOutputs()[0]);
+    auto bgo0 = gCpu->cloneTensor(bestGraph->getOutputs()[0]);
+
+    EXPECT_TRUE(go0->equalData(bgo0));
     EXPECT_TRUE(g->getOutputs()[0]->getRawDataPtr<void *>() !=
                 bestGraph->getOutputs()[0]->getRawDataPtr<void *>());
 }
