@@ -165,6 +165,22 @@ void TensorObj::copyData(const TensorObj *src) {
     runtime->copyBlob(this, src);
 }
 
+void TensorObj::setData(
+    const std::function<void(void *, size_t, DataType)> &generator) const {
+    IT_ASSERT(data != nullptr);
+    if (runtime->isCpu()) {
+        generator(getRawDataPtr<void *>(), size(), dtype);
+    } else {
+        // Create a CPU buffer for the generetor and copy results to the device
+        auto cpuRuntime = CpuRuntimeObj::getInstance();
+        size_t nBytes = size() * dtype.getSize();
+        Blob buffer = cpuRuntime->allocBlob(nBytes);
+        generator(buffer->getPtr<void *>(), size(), dtype);
+        runtime->copyBlobFromCPU(getRawDataPtr<void *>(),
+                                 buffer->getPtr<void *>(), nBytes);
+    }
+}
+
 void TensorObj::load(std::string file_path) { loadTensorData(this, file_path); }
 
 void TensorObj::save(std::string file_path) { saveTensorData(this, file_path); }

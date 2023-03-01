@@ -47,13 +47,7 @@ class TensorObj : public TensorBaseObj {
     void copyData(const TensorObj *src);
     void copyData(const Tensor &src) { copyData(src.get()); }
     void setData(
-        const std::function<void(void *, size_t, DataType)> &generator) const {
-        IT_ASSERT(data != nullptr);
-        if (!runtime->isCpu()) {
-            IT_TODO_HALT();
-        }
-        generator(data->getPtr<void *>(), size(), dtype);
-    }
+        const std::function<void(void *, size_t, DataType)> &generator) const;
     Tensor clone() const {
         auto obj = make_ref<TensorObj>(*this);
         obj->freeData();

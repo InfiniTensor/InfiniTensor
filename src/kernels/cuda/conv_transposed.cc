@@ -26,6 +26,7 @@ static const cudnnConvolutionBwdDataAlgo_t ALGOS[N_ALGO] = {
     CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD,
     CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED};
 static const char algo_name[N_ALGO][50] = {
+    // only first two can be used for NHWC format
     "CUDNN_CONVOLUTION_BWD_DATA_ALGO_0", /* non-deterministic */
     "CUDNN_CONVOLUTION_BWD_DATA_ALGO_1",
     "CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT",
@@ -46,7 +47,7 @@ class convBackwardDataCudnn : public Kernel {
                cudnnConvolutionDescriptor_t, cudnnActivationDescriptor_t,
                cudnnTensorDescriptor_t>
     createCuDNNDescriptor(
-        const Ref<ConvTransposed2dObj> &op,
+        const Ref<ConvBaseObj> &op,
         const ConvTransposedCuDnnPerfRecordObj &record) const {
         void *const inData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const knData = (op->getInputs(1)->getRawDataPtr<void *>());
@@ -62,23 +63,27 @@ class convBackwardDataCudnn : public Kernel {
         const auto [ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
         // IT_ASSERT(g == 1, "Group convolution is not supported yet");
 
+        // set input format
+        cudnnTensorFormat_t tensorFormat =
+            (op->getOpType() == OpType::ConvTransNHWC) ? CUDNN_TENSOR_NHWC
+                                                       : CUDNN_TENSOR_NCHW;
+
         // get inputs
         cudnnTensorDescriptor_t inDesc;
         checkCudnnError(cudnnCreateTensorDescriptor(&inDesc));
         checkCudnnError(cudnnSetTensor4dDescriptor(
-            inDesc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, n, f, h, w));
+            inDesc, tensorFormat, CUDNN_DATA_FLOAT, n, f, h, w));
 
         // get kernels
         cudnnFilterDescriptor_t knDesc;
         checkCudnnError(cudnnCreateFilterDescriptor(&knDesc));
-        checkCudnnError(cudnnSetFilter4dDescriptor(knDesc, CUDNN_DATA_FLOAT,
-                                                   CUDNN_TENSOR_NCHW, f,
-                                                   channelsPerGrp, r, s));
+        checkCudnnError(cudnnSetFilter4dDescriptor(
+            knDesc, CUDNN_DATA_FLOAT, tensorFormat, f, channelsPerGrp, r, s));
         // get bias
         cudnnTensorDescriptor_t biasDesc;
         checkCudnnError(cudnnCreateTensorDescriptor(&biasDesc));
         checkCudnnError(cudnnSetTensor4dDescriptor(
-            biasDesc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, 1, f, 1, 1));
+            biasDesc, tensorFormat, CUDNN_DATA_FLOAT, 1, f, 1, 1));
 
         // get convlution descriptor
         cudnnConvolutionDescriptor_t convDesc;
@@ -115,16 +120,27 @@ class convBackwardDataCudnn : public Kernel {
         }
 
         const auto &outputShape = op->getOutput()->getDims();
+        int on, oh, ow, oc;
+        if (op->getOpType() == OpType::ConvTransNHWC) {
+            on = outputShape[0];
+            oh = outputShape[1];
+            ow = outputShape[2];
+            oc = outputShape[3];
+        } else {
+            on = outputShape[0];
+            oh = outputShape[2];
+            ow = outputShape[3];
+            oc = outputShape[1];
+        }
         cudnnTensorDescriptor_t outDesc;
         checkCudnnError(cudnnCreateTensorDescriptor(&outDesc));
         checkCudnnError(cudnnSetTensor4dDescriptor(
-            outDesc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, outputShape[0],
-            outputShape[1], outputShape[2], outputShape[3]));
+            outDesc, tensorFormat, CUDNN_DATA_FLOAT, on, oc, oh, ow));
         return tuple(inData, knData, outData, inDesc, knDesc, biasDesc,
                      convDesc, actDesc, outDesc);
     }
 
-    bool cuDNNUnfused(const Ref<ConvTransposed2dObj> &op,
+    bool cuDNNUnfused(const Ref<ConvBaseObj> &op,
                       const ConvTransposedCuDnnPerfRecordObj &record,
                       const CudaRuntimeObj *context) const {
         cudnnStatus_t stat;
@@ -211,12 +227,14 @@ class convBackwardDataCudnn : public Kernel {
         ConvTransposedCuDnnPerfRecordObj ret;
         ret.time = std::numeric_limits<double>::max();
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
-        auto op = as<ConvTransposed2dObj>(_op);
+        auto op = as<ConvBaseObj>(_op);
         // Both modes have the same performance. Only run
         // cross-correlation.
+        int algo_to_run =
+            (op->getOpType() == OpType::ConvTransNHWC) ? 2 : N_ALGO;
         for (int mode = 1; mode < 2; mode++) {
             // Try every possible algorithm of convolution
-            for (int algo = 0; algo < N_ALGO; algo++) {
+            for (int algo = 0; algo < algo_to_run; algo++) {
                 ConvTransposedCuDnnPerfRecordObj record;
                 record.mode = mode;
                 record.algo = algo;
@@ -274,7 +292,7 @@ class convBackwardDataCudnn : public Kernel {
 
     void compute(const Operator &_op, const PerfRecord &_record,
                  const RuntimeObj *_context) const override {
-        auto op = as<ConvTransposed2dObj>(_op);
+        auto op = as<ConvBaseObj>(_op);
         auto record = as<ConvTransposedCuDnnPerfRecordObj>(_record);
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         bool success = cuDNNUnfused(op, *record, context);
@@ -284,5 +302,6 @@ class convBackwardDataCudnn : public Kernel {
 
 REGISTER_KERNEL(Device::CUDA, OpType::ConvTrans, DataType::Float32,
                 convBackwardDataCudnn, "ConvTranposed_cuDNN_CUDA_Float32");
-
+REGISTER_KERNEL(Device::CUDA, OpType::ConvTransNHWC, DataType::Float32,
+                convBackwardDataCudnn, "ConvTranposedNHWC_cuDNN_CUDA_Float32");
 } // namespace infini

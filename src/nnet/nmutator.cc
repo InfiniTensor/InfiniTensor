@@ -245,26 +245,26 @@ nnet::Expr NMutator::opToExpression(Operator op) {
                                         std::vector<int>{0, 0, ph, pw});
         const auto K = nnet::makeTensor("K", KT->getDims());
         return nnet::ConvPattern::getExpr(A, K, n, c, h, w, f, r, s);
-        // } else if (auto convOp = dynamic_cast<ConvTransOp *>(op)) {
-        //     const auto &AT = convOp->getInputs()[0];
-        //     const auto &KT = convOp->getInputs()[1];
-        //     inputsNameNToTensorT["A"] = AT;
-        //     inputsNameNToTensorT["K"] = KT;
-        //     const auto &[n, c, h, w, f, r, s, ph, pw, sh, sw, dh, dw, g, bi,
-        //     ac]
-        //     =
-        //         convOp->getArgs(0);
-        //     if (r != 4) {
-        //         dbg("ConvTranspose R!=4. Skipped.", r);
-        //         return nullptr;
-        //     }
-        //     int padding = 1 * (r - 1) - 1;
-        //     const auto A = nnet::makeTensor(
-        //         "A", AT->getDims(), std::vector<int>{0, padding, padding,
-        //         0});
-        //     const auto K = nnet::makeTensor("K", KT->getDims());
-        //     return nnet::ConvTransPattern::getExpr(A, K, n, c, h, w, f, r,
-        //     s);
+    } else if (auto convOp = as<ConvTransposed2dObj>(op)) {
+        const auto &AT = convOp->getInputs()[0];
+        const auto &KT = convOp->getInputs()[1];
+        inputsNameNToTensorT["A"] = AT;
+        inputsNameNToTensorT["K"] = KT;
+        const auto &[n, c, h, w, f, r, s] = convOp->getNCHWFRS();
+        const auto &[ph, pw, sh, sw, dh, dw] = convOp->getPadStrideDilation();
+        IT_ASSERT_TODO(convOp->getNumGroups() == 1);
+        IT_ASSERT_TODO(r == 4);
+        IT_ASSERT_TODO(ph == pw);
+        IT_ASSERT_TODO(tie(sh, sw) == tuple(2, 2));
+        IT_ASSERT_TODO(tie(dh, dw) == tuple(1, 1));
+
+        // https://pytorch.org/docs/stable/generated/torch.nn.ConvTranspose2d.html
+        // Real padding = dilation * (kernel_size - 1) - padding
+        int padding = dh * (r - 1) - ph;
+        const auto A = nnet::makeTensor(
+            "A", AT->getDims(), std::vector<int>{0, padding, padding, 0});
+        const auto K = nnet::makeTensor("K", KT->getDims());
+        return nnet::ConvTransPattern::getExpr(A, K, n, c, h, w, f, r, s);
         // } else if (auto g2bmmOp = dynamic_cast<G2BMMOp *>(op)) {
         //     const auto &AT = g2bmmOp->getInputs()[0];
         //     const auto &BT = g2bmmOp->getInputs()[1];

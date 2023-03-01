@@ -5,15 +5,15 @@ namespace infini {
 ConvBaseObj::ConvBaseObj(OpType opType, TensorVec inputs, Tensor &output,
                          int ph, int pw, int sh, int sw, int dh, int dw,
                          const Tensor &inputInConvFWD,
-                         const Tensor &weightInConvFWD)
+                         const Tensor &weightInConvFWD, ActType act)
     : OperatorObj(opType, inputs, {output}), ph(ph), pw(pw), sh(sh), sw(sw),
-      dh(dh), dw(dw), padding(PaddingMode::Other) {}
+      dh(dh), dw(dw), padding(PaddingMode::Other), act(act) {}
 ConvBaseObj::ConvBaseObj(OpType opType, TensorVec inputs, Tensor &output,
                          PaddingMode mode, int sh, int sw, int dh, int dw,
                          const Tensor &inputInConvFWD,
-                         const Tensor &weightInConvFWD)
+                         const Tensor &weightInConvFWD, ActType act)
     : OperatorObj(opType, inputs, {output}), ph(-1), pw(-1), sh(sh), sw(sw),
-      dh(dh), dw(dw), padding(mode) {
+      dh(dh), dw(dw), padding(mode), act(act) {
     IT_ASSERT(mode != PaddingMode::Other);
 }
 
@@ -65,8 +65,7 @@ ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
                  int ph, int pw, int sh, int sw, int dh, int dw, Tensor bias,
                  ActType act)
     : ConvBaseObj(OpType::Conv, {input, weight}, output, ph, pw, sh, sw, dh, dw,
-                  input, weight),
-      act(act) {
+                  input, weight, act) {
     if (bias)
         IT_TODO_HALT();
     setAuxilaryAttributes(PaddingMode::Other);
@@ -77,8 +76,7 @@ ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
                  PaddingMode mode, int sh, int sw, int dh, int dw, Tensor bias,
                  ActType act)
     : ConvBaseObj(OpType::Conv, {input, weight}, output, mode, sh, sw, dh, dw,
-                  input, weight),
-      act(act) {
+                  input, weight, act) {
     if (bias)
         IT_TODO_HALT();
     setAuxilaryAttributes(mode);
@@ -122,8 +120,8 @@ ConvTransposed2dObj::ConvTransposed2dObj(GraphObj *graph, Tensor input,
                                          int oph, int opw, int group,
                                          Tensor bias, ActType act)
     : ConvBaseObj(OpType::ConvTrans, {input, weight}, output, ph, pw, sh, sw,
-                  dh, dw, output, weight),
-      oph(oph), opw(opw), group(group), act(act) {
+                  dh, dw, output, weight, act),
+      oph(oph), opw(opw), group(group) {
     if (bias)
         IT_TODO_HALT();
     setAuxilaryAttributes(PaddingMode::Other);
@@ -136,8 +134,8 @@ ConvTransposed2dObj::ConvTransposed2dObj(GraphObj *graph, Tensor input,
                                          int dh, int dw, int oph, int opw,
                                          int group, Tensor bias, ActType act)
     : ConvBaseObj(OpType::ConvTrans, {input, weight}, output, mode, sh, sw, dh,
-                  dw, output, weight),
-      oph(oph), opw(opw), group(group), act(act) {
+                  dw, output, weight, act),
+      oph(oph), opw(opw), group(group) {
     if (bias)
         IT_TODO_HALT();
     setAuxilaryAttributes(mode);
@@ -168,8 +166,74 @@ void ConvTransposed2dObj::setAuxilaryAttributes(PaddingMode mode) {
     const Tensor &input = inputs[0];
     const Tensor &weight = inputs[1];
     n = input->getDims()[0], f = input->getDims()[1], h = input->getDims()[2],
-    w = input->getDims()[3], c = weight->getDims()[0], r = weight->getDims()[2],
+    w = input->getDims()[3], c = weight->getDims()[1], r = weight->getDims()[2],
     s = weight->getDims()[3];
+    if (mode == PaddingMode::Same) {
+        int oh = h / sh;
+        int ow = w / sw;
+        ph = (h - oh * sh + (r - sh) * dh) / 2;
+        pw = (w - ow * sw + (s - sw) * dw) / 2;
+    } else if (mode == PaddingMode::Valid) {
+        ph = pw = 0;
+    }
+}
+
+ConvTransposed2dNHWCObj::ConvTransposed2dNHWCObj(GraphObj *graph, Tensor input,
+                                                 Tensor weight, Tensor output,
+                                                 int ph, int pw, int sh, int sw,
+                                                 int dh, int dw, int oph,
+                                                 int opw, int group,
+                                                 Tensor bias, ActType act)
+    : ConvBaseObj(OpType::ConvTransNHWC, {input, weight}, output, ph, pw, sh,
+                  sw, dh, dw, output, weight, act),
+      oph(oph), opw(opw), group(group) {
+    if (bias)
+        IT_TODO_HALT();
+    setAuxilaryAttributes(PaddingMode::Other);
+    IT_ASSERT(checkValid(graph));
+}
+
+ConvTransposed2dNHWCObj::ConvTransposed2dNHWCObj(GraphObj *graph, Tensor input,
+                                                 Tensor weight, Tensor output,
+                                                 PaddingMode mode, int sh,
+                                                 int sw, int dh, int dw,
+                                                 int oph, int opw, int group,
+                                                 Tensor bias, ActType act)
+    : ConvBaseObj(OpType::ConvTrans, {input, weight}, output, mode, sh, sw, dh,
+                  dw, output, weight, act),
+      oph(oph), opw(opw), group(group) {
+    if (bias)
+        IT_TODO_HALT();
+    setAuxilaryAttributes(mode);
+    IT_ASSERT(checkValid(graph));
+}
+
+optional<vector<Shape>>
+ConvTransposed2dNHWCObj::inferShape(const TensorVec &inputs) const {
+    const Tensor &input = inputs[0], &weight = inputs[1];
+    auto n = input->getDims()[0];
+    auto f = input->getDims()[3];
+    auto h = input->getDims()[1];
+    auto w = input->getDims()[2];
+    auto c = weight->getDims()[3];
+    auto r = weight->getDims()[1];
+    auto s = weight->getDims()[2];
+    if (f != weight->getDims()[0])
+        return {};
+
+    int on = n, oc = c * group;
+    int oh = 0, ow = 0;
+    oh = (h - 1) * sh - 2 * ph + dh * (r - 1) + oph + 1;
+    ow = (w - 1) * sw - 2 * pw + dw * (s - 1) + opw + 1;
+    return {{{on, oh, ow, oc}}};
+}
+
+void ConvTransposed2dNHWCObj::setAuxilaryAttributes(PaddingMode mode) {
+    const Tensor &input = inputs[0];
+    const Tensor &weight = inputs[1];
+    n = input->getDims()[0], f = input->getDims()[3], h = input->getDims()[1],
+    w = input->getDims()[2], c = weight->getDims()[3], r = weight->getDims()[1],
+    s = weight->getDims()[2];
     if (mode == PaddingMode::Same) {
         int oh = h / sh;
         int ow = w / sw;
