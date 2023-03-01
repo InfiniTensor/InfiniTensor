@@ -65,8 +65,7 @@ ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
                  int ph, int pw, int sh, int sw, int dh, int dw, Tensor bias,
                  ActType act)
     : ConvBaseObj(OpType::Conv, {input, weight}, output, ph, pw, sh, sw, dh, dw,
-                  input, weight, act)
-{
+                  input, weight, act) {
     if (bias)
         IT_TODO_HALT();
     setAuxilaryAttributes(PaddingMode::Other);
@@ -77,8 +76,7 @@ ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
                  PaddingMode mode, int sh, int sw, int dh, int dw, Tensor bias,
                  ActType act)
     : ConvBaseObj(OpType::Conv, {input, weight}, output, mode, sh, sw, dh, dw,
-                  input, weight, act)
-{
+                  input, weight, act) {
     if (bias)
         IT_TODO_HALT();
     setAuxilaryAttributes(mode);
@@ -181,12 +179,13 @@ void ConvTransposed2dObj::setAuxilaryAttributes(PaddingMode mode) {
 }
 
 ConvTransposed2dNHWCObj::ConvTransposed2dNHWCObj(GraphObj *graph, Tensor input,
-                                         Tensor weight, Tensor output, int ph,
-                                         int pw, int sh, int sw, int dh, int dw,
-                                         int oph, int opw, int group,
-                                         Tensor bias, ActType act)
-    : ConvBaseObj(OpType::ConvTransNHWC, {input, weight}, output, ph, pw, sh, sw,
-                  dh, dw, output, weight, act),
+                                                 Tensor weight, Tensor output,
+                                                 int ph, int pw, int sh, int sw,
+                                                 int dh, int dw, int oph,
+                                                 int opw, int group,
+                                                 Tensor bias, ActType act)
+    : ConvBaseObj(OpType::ConvTransNHWC, {input, weight}, output, ph, pw, sh,
+                  sw, dh, dw, output, weight, act),
       oph(oph), opw(opw), group(group) {
     if (bias)
         IT_TODO_HALT();
@@ -195,10 +194,11 @@ ConvTransposed2dNHWCObj::ConvTransposed2dNHWCObj(GraphObj *graph, Tensor input,
 }
 
 ConvTransposed2dNHWCObj::ConvTransposed2dNHWCObj(GraphObj *graph, Tensor input,
-                                         Tensor weight, Tensor output,
-                                         PaddingMode mode, int sh, int sw,
-                                         int dh, int dw, int oph, int opw,
-                                         int group, Tensor bias, ActType act)
+                                                 Tensor weight, Tensor output,
+                                                 PaddingMode mode, int sh,
+                                                 int sw, int dh, int dw,
+                                                 int oph, int opw, int group,
+                                                 Tensor bias, ActType act)
     : ConvBaseObj(OpType::ConvTrans, {input, weight}, output, mode, sh, sw, dh,
                   dw, output, weight, act),
       oph(oph), opw(opw), group(group) {

@@ -62,10 +62,11 @@ class convBackwardDataCudnn : public Kernel {
         const int g = op->getNumGroups();
         const auto [ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
         // IT_ASSERT(g == 1, "Group convolution is not supported yet");
-        
+
         // set input format
-        cudnnTensorFormat_t tensorFormat = (op->getOpType() == OpType::ConvTransNHWC) ? 
-                                            CUDNN_TENSOR_NHWC : CUDNN_TENSOR_NCHW;
+        cudnnTensorFormat_t tensorFormat =
+            (op->getOpType() == OpType::ConvTransNHWC) ? CUDNN_TENSOR_NHWC
+                                                       : CUDNN_TENSOR_NCHW;
 
         // get inputs
         cudnnTensorDescriptor_t inDesc;
@@ -76,9 +77,8 @@ class convBackwardDataCudnn : public Kernel {
         // get kernels
         cudnnFilterDescriptor_t knDesc;
         checkCudnnError(cudnnCreateFilterDescriptor(&knDesc));
-        checkCudnnError(cudnnSetFilter4dDescriptor(knDesc, CUDNN_DATA_FLOAT,
-                                                   tensorFormat, f,
-                                                   channelsPerGrp, r, s));
+        checkCudnnError(cudnnSetFilter4dDescriptor(
+            knDesc, CUDNN_DATA_FLOAT, tensorFormat, f, channelsPerGrp, r, s));
         // get bias
         cudnnTensorDescriptor_t biasDesc;
         checkCudnnError(cudnnCreateTensorDescriptor(&biasDesc));
@@ -122,17 +122,20 @@ class convBackwardDataCudnn : public Kernel {
         const auto &outputShape = op->getOutput()->getDims();
         int on, oh, ow, oc;
         if (op->getOpType() == OpType::ConvTransNHWC) {
-            on = outputShape[0]; oh = outputShape[1];
-            ow = outputShape[2]; oc = outputShape[3];
+            on = outputShape[0];
+            oh = outputShape[1];
+            ow = outputShape[2];
+            oc = outputShape[3];
         } else {
-            on = outputShape[0]; oh = outputShape[2];
-            ow = outputShape[3]; oc = outputShape[1];
+            on = outputShape[0];
+            oh = outputShape[2];
+            ow = outputShape[3];
+            oc = outputShape[1];
         }
         cudnnTensorDescriptor_t outDesc;
         checkCudnnError(cudnnCreateTensorDescriptor(&outDesc));
         checkCudnnError(cudnnSetTensor4dDescriptor(
-            outDesc, tensorFormat, CUDNN_DATA_FLOAT, on,
-            oc, oh, ow));
+            outDesc, tensorFormat, CUDNN_DATA_FLOAT, on, oc, oh, ow));
         return tuple(inData, knData, outData, inDesc, knDesc, biasDesc,
                      convDesc, actDesc, outDesc);
     }
@@ -227,7 +230,8 @@ class convBackwardDataCudnn : public Kernel {
         auto op = as<ConvBaseObj>(_op);
         // Both modes have the same performance. Only run
         // cross-correlation.
-        int algo_to_run = (op->getOpType() == OpType::ConvTransNHWC) ? 2 : N_ALGO;
+        int algo_to_run =
+            (op->getOpType() == OpType::ConvTransNHWC) ? 2 : N_ALGO;
         for (int mode = 1; mode < 2; mode++) {
             // Try every possible algorithm of convolution
             for (int algo = 0; algo < algo_to_run; algo++) {

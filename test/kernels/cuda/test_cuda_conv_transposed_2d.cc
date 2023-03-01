@@ -47,7 +47,7 @@ void testConvTransposedCudnn(
 void testConvTransposedNHWCCudnn(
     const std::function<void(void *, size_t, DataType)> &generator,
     vector<float> ansVec) {
-    const auto &[N, C, H, W, F, R, S] = tuple{1, 1, 2, 2, 1, 4, 4};
+    const auto &[N, C, H, W, F, R, S] = tuple{1, 1, 2, 2, 2, 4, 4};
     const int stride = 1, padding = 0, dilation = 1;
     // Construct Runtime and graph for CPU and CUDA
     Runtime cpu = CpuRuntimeObj::getInstance(); // CPUruntime is singleton
@@ -55,7 +55,7 @@ void testConvTransposedNHWCCudnn(
     Runtime cuda = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cuda);
     // Set input data on CPU in a CPU Graph
-    Tensor i0Cpu = gCpu->addTensor({N, H, H, F}, DataType::Float32);
+    Tensor i0Cpu = gCpu->addTensor({N, H, W, F}, DataType::Float32);
     Tensor w0Cpu = gCpu->addTensor({F, R, S, C}, DataType::Float32);
     // Malloc data for all tensors in a graph. Do we need implicit allocation?
     gCpu->dataMalloc();
@@ -66,9 +66,9 @@ void testConvTransposedNHWCCudnn(
     Tensor i0Cuda = gCuda->cloneTensor(i0Cpu);
     Tensor w0Cuda = gCuda->cloneTensor(w0Cpu);
     // Build CUDA graph
-    auto conv = gCuda->addOp<ConvTransposed2dNHWCObj>(i0Cuda, w0Cuda, nullptr,
-                                                  padding, padding, stride,
-                                                  stride, dilation, dilation);
+    auto conv = gCuda->addOp<ConvTransposed2dNHWCObj>(
+        i0Cuda, w0Cuda, nullptr, padding, padding, stride, stride, dilation,
+        dilation);
     gCuda->dataMalloc();
     // Execute on CUDA
     cuda->run(gCuda);
@@ -88,10 +88,10 @@ TEST(cuDNN_ConvTransposed, run) {
 
 TEST(cuDNN_ConvTransposedNHWC, run) {
     testConvTransposedNHWCCudnn(IncrementalGenerator(),
-                            vector<float>{0.,  0.,  1.,  2.,  3.,  0.,  6.,
-                                          12., 18., 16., 8.,  30., 36., 42.,
-                                          32., 16., 54., 60., 66., 48., 24.,
-                                          62., 67., 72., 45.});
+                                vector<float>{16,  65,  71,  77,  63,  100, 290,
+                                              318, 346, 234, 140, 402, 430, 458,
+                                              306, 180, 514, 542, 570, 378, 188,
+                                              465, 487, 509, 307});
 }
 
 TEST(cuDNN_ConvTransposed, tune) {
