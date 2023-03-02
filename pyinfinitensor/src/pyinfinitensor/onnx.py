@@ -459,20 +459,25 @@ class OnnxStub:
                 for (i, it) in enumerate(op.outputs())
             ]
             if ty == backend.OpType.Conv:
-                ph, pw, sh, sw, dh, dw = backend.conv_attrs_of(op)
+                ph, pw, dh, dw, sh, sw = backend.conv_attrs_of(op)
                 ctx.push_node(
                     make_node(
                         ty.name,
                         inputs,
                         outputs,
                         name,
-                        pads=[ph, pw],
+                        pads=[ph, pw, ph, pw],
                         strides=[sh, sw],
                         dilations=[dh, dw],
                     )
                 )
             elif ty == backend.OpType.Matmul:
-                ctx.push_node(make_node("MatMul", inputs, outputs, name))
+                transA, transB = backend.matmul_attrs_of(op)
+                ctx.push_node(
+                    make_node(
+                        "Gemm", inputs, outputs, name, transA=transA, transB=transB
+                    )
+                )
             elif ty == backend.OpType.BatchNorm:
                 inputs = [inputs[i] for i in [0, 3, 4, 1, 2]]
                 momentum, eps, training = backend.batch_norm_attrs_of(op)
@@ -496,7 +501,7 @@ class OnnxStub:
                         outputs,
                         name,
                         kernel_shape=[kh, kw],
-                        pads=[ph, pw],
+                        pads=[ph, pw, ph, pw],
                         dilations=[dh, dw],
                         strides=[sh, sw],
                     )
@@ -510,7 +515,7 @@ class OnnxStub:
                         outputs,
                         name,
                         kernel_shape=[kh, kw],
-                        pads=[ph, pw],
+                        pads=[ph, pw, ph, pw],
                         strides=[sh, sw],
                     )
                 )
@@ -536,7 +541,7 @@ class OnnxStub:
                     ctx.push_data_input(
                         name,
                         "shape",
-                        TensorProto.INT32,
+                        TensorProto.INT64,
                         [len(shape)],
                         shape,
                     )

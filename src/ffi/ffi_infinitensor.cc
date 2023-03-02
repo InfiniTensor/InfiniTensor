@@ -3,9 +3,11 @@
 #include "operators/concat.h"
 #include "operators/conv.h"
 #include "operators/gather.h"
+#include "operators/matmul.h"
 #include "operators/pooling.h"
 #include "operators/reduce_mean.h"
 #include "operators/reshape.h"
+#include <algorithm>
 #include <pybind11/stl.h>
 
 #ifdef USE_CUDA
@@ -123,6 +125,12 @@ static std::tuple<int, int, int, int, int, int> conv_attrs_of(Operator op) {
                            conv->getDw(), conv->getSh(), conv->getSw());
 }
 
+static std::tuple<bool, bool> matmul_attrs_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Matmul);
+    auto matmul = dynamic_cast<const MatmulObj *>(op.get());
+    return std::make_tuple(matmul->getTransA(), matmul->getTransB());
+}
+
 static std::tuple<float, float, bool> batch_norm_attrs_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::BatchNorm);
     auto batchnorm = dynamic_cast<const BatchNormObj *>(op.get());
@@ -156,9 +164,13 @@ static vector<int> reduce_mean_axes_of(Operator op) {
     return vector(set.begin(), set.end());
 }
 
-static Shape reshape_shape_of(Operator op) {
+static vector<int64_t> reshape_shape_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Reshape);
-    return dynamic_cast<const ReshapeObj *>(op.get())->getShape();
+    auto shape = dynamic_cast<const ReshapeObj *>(op.get())->getShape();
+    vector<int64_t> ans(shape.size());
+    std::transform(shape.begin(), shape.end(), ans.begin(),
+                   [](auto x) { return static_cast<int64_t>(x); });
+    return ans;
 }
 
 void export_functions(py::module &m) {
@@ -172,6 +184,7 @@ void export_functions(py::module &m) {
 #endif
 
         .FUNCTION(conv_attrs_of)
+        .FUNCTION(matmul_attrs_of)
         .FUNCTION(batch_norm_attrs_of)
         .FUNCTION(pool_attrs_of)
         .FUNCTION(tensor_dtype)
