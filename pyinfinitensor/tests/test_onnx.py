@@ -7,18 +7,20 @@ from onnx.helper import (
     make_graph,
     make_tensor_value_info,
 )
-from onnx.checker import check_model
-from pyinfinitensor.onnx import from_onnx, backend, runtime, run_onnx
+from onnx.checker import check_model, check_graph
+from onnx.shape_inference import infer_shapes
+from pyinfinitensor.onnx import from_onnx, OnnxStub, backend
 
 
 def make_and_import_model(graph: onnx.GraphProto):
+    check_graph(graph)
     model = make_model(graph)
     check_model(model)
-    from_onnx(model, runtime)
+    from_onnx(model, backend.cpu_runtime())
 
 
 class TestStringMethods(unittest.TestCase):
-    #def test_run(self):
+    # def test_run(self):
     #    model_file = next(
     #        (name for name in os.listdir() if name.endswith(".onnx")), None
     #    )
@@ -31,16 +33,17 @@ class TestStringMethods(unittest.TestCase):
     #        run_onnx(onnx.load(model_file), runtime)
 
     def test_load(self):
-        model_file = next(
-            (name for name in os.listdir() if name.endswith(".onnx")), None
-        )
-        if model_file != None:
-            print(
-                "model: {file}({size:.2f} MiB)".format(
-                    file=model_file, size=os.path.getsize(model_file) / 1024 / 1024
+        for model_file in os.listdir():
+            if model_file.endswith(".onnx"):
+                print(
+                    "model: {file}({size:.2f} MiB)".format(
+                        file=model_file, size=os.path.getsize(model_file) / 1024 / 1024
+                    )
                 )
-            )
-            from_onnx(onnx.load(model_file), runtime)
+                model = OnnxStub(onnx.load(model_file), backend.cpu_runtime()).to_onnx(
+                    "new"
+                )
+                model = infer_shapes(model)
 
     def test_tensor(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 2, 3])
@@ -206,7 +209,7 @@ class TestStringMethods(unittest.TestCase):
 
     def test_flatten(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
-        y = make_tensor_value_info("y", TensorProto.FLOAT, [1*3,  5 * 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1 * 3, 5 * 7])
         flatten = make_node("Flatten", ["x"], ["y"], axis=2, name="flatten")
         # make_and_import_model(
         make_graph([flatten], "flatten", [x], [y])

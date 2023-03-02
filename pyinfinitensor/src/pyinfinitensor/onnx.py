@@ -25,7 +25,6 @@ from onnx.shape_inference import infer_shapes
 from typing import Dict, List, Any, Tuple, Sequence, Union, Optional
 from functools import reduce
 
-runtime = backend.runtime()
 
 class OnnxStub:
     inputs: Dict[str, backend.Tensor] = {}
@@ -270,7 +269,6 @@ class OnnxStub:
                     tensors.get(node.output[0]),
                 )
             elif node.op_type == "Flatten":
-                
                 tensors[node.output[0]] = self.handler.flatten(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
@@ -593,9 +591,11 @@ def from_onnx(model: ModelProto, runtime):
     stub = OnnxStub(model, runtime)
     return stub.inputs, stub.outputs, stub.handler
 
+
 def run_onnx(model: ModelProto, runtime):
     stub = OnnxStub(model, runtime)
     stub.run()
+
 
 def _parse_attribute(node: NodeProto, attrs: Dict[str, Any] = dict()) -> Dict[str, Any]:
     for attr in node.attribute:
