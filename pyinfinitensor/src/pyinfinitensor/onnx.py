@@ -53,6 +53,8 @@ class OnnxStub:
             )
 
         for initializer in model.graph.initializer:
+            dims = [d for d in initializer.dims]
+            tensors[initializer.name] = self.handler.tensor(dims, initializer.data_type)
             data[initializer.name] = initializer
 
         for node in model.graph.node:
@@ -254,6 +256,13 @@ class OnnxStub:
                 tensors[node.output[0]] = self.handler.abs(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
+                )
+            elif node.op_type == "Clip":
+                tensors[node.output[0]] = self.handler.clip(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                    _parse_data(data[node.input[1]])[0],
+                    _parse_data(data[node.input[2]])[0],
                 )
             elif node.op_type == "Identity":
                 tensors[node.output[0]] = self.handler.identity(

@@ -128,6 +128,16 @@ DEFINE_UNARY_METHOD(relu, Relu)
 DEFINE_UNARY_METHOD(sigmoid, Sigmoid)
 DEFINE_UNARY_METHOD(tanh, Tanh)
 DEFINE_UNARY_METHOD(abs, Abs)
+
+Tensor GraphHandlerObj::clip(Tensor x, Tensor y, float min, float max) {
+    if (y) {
+        g->addOpWithOutputs<ClipObj>(std::move(x), y, min, max);
+        return y;
+    } else {
+        return g->addOp<ClipObj>(std::move(x), y, min, max)->getOutput();
+    }
+}
+
 // see operators/reshape.h
 DEFINE_UNARY_METHOD(identity, Identity)
 

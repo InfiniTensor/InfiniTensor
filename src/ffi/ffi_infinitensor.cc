@@ -242,6 +242,7 @@ void init_graph_builder(py::module &m) {
         .def("tanh", &Handler::tanh, policy::move)
         .def("softmax", &Handler::softmax, policy::move)
         .def("abs", &Handler::abs, policy::move)
+        .def("clip", &Handler::clip, policy::move)
         .def("identity", &Handler::identity, policy::move)
         .def("flatten", &Handler::flatten, policy::move)
         .def("reshape", &Handler::reshape, policy::move)
