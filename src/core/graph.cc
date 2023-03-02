@@ -114,6 +114,15 @@ bool GraphObj::topo_sort() {
     return this->sorted = true;
 }
 
+void GraphObj::optimize() {
+    for (auto &op : ops) {
+        switch (op->getOpType()) {
+        default:
+            break;
+        }
+    }
+}
+
 void GraphObj::dataMalloc() {
     for (auto &tensor : tensors) {
         tensor->dataMalloc();

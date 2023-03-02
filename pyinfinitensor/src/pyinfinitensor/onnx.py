@@ -573,6 +573,9 @@ class OnnxStub:
     def init(self) -> None:
         self.handler.data_malloc()
 
+    def optimize(self) -> None:
+        self.handler.optimize()
+
     def run(self) -> None:
         self.handler.run()
 

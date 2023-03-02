@@ -2,6 +2,9 @@ name: Build and test cpu
 on:
   push:
     branch: 'master'
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
   pull_request:
     paths-ignore:
       - '**.md'
