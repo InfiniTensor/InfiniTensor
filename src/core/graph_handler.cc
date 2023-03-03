@@ -128,6 +128,7 @@ DEFINE_UNARY_METHOD(relu, Relu)
 DEFINE_UNARY_METHOD(sigmoid, Sigmoid)
 DEFINE_UNARY_METHOD(tanh, Tanh)
 DEFINE_UNARY_METHOD(abs, Abs)
+DEFINE_UNARY_METHOD(shape, Shape)
 
 Tensor GraphHandlerObj::clip(Tensor x, Tensor y, float min, float max) {
     if (y) {

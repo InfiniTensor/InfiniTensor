@@ -217,6 +217,17 @@ class ArangeObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 };
 
+class ShapeObj : public OperatorObj {
+  public:
+    ShapeObj(GraphObj *graph, Tensor input, Tensor output);
+    OP_CLONE(ShapeObj);
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+
+    std::string toString() const override;
+    int numInputs() const override { return 1; }
+    int numOutputs() const override { return 1; }
+};
+
 // class CumprodObj : public OperatorObj {
 //   public:
 //     CumprodObj(GraphObj *graph, Tensor input, Tensor output, int axis, bool

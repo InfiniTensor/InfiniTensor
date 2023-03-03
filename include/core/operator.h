@@ -31,6 +31,7 @@ enum class OpType {
     Reshape,
     Flatten,
     Identity,
+    Shape,
     // element wise
     BatchNorm = 200,
     Softmax,
@@ -139,6 +140,7 @@ class OpRegistry {
             FOP(ReduceMean);
             FOP(Reshape);
             FOP(Identity);
+            FOP(Shape);
             // element wise
             FOP(BatchNorm);
             FOP(Softmax);

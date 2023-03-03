@@ -240,4 +240,20 @@ DataType CastObj::getOutputDataType() const {
     }
 }
 
+ShapeObj::ShapeObj(GraphObj *graph, Tensor input, Tensor output)
+    : OperatorObj(OpType::Shape, {input}, {output}) {
+    IT_ASSERT(checkValid(graph));
+}
+
+optional<vector<Shape>> ShapeObj::inferShape(const TensorVec &inputs) const {
+    return {{{static_cast<int>(inputs[0]->getDims().size())}}};
+}
+
+std::string ShapeObj::toString() const {
+    std::ostringstream os;
+    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]("
+       << "output=" << outputs[0]->getGuid() << ")";
+    return os.str();
+}
+
 }; // namespace infini
