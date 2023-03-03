@@ -20,18 +20,18 @@ class BatchNormCudnn : public CudaKernelWithoutConfig {
         auto dims = op->getInputs(0)->getDims();
         // Only 4D and 5D tensors are supported by
         // cudnnBatchNormalizationForwardInference
-        IT_ASSERT(dims.size() == 4 || dims.size() == 5);
+        IT_ASSERT(dims.size() == 4);
 
-        int dimArray[CUDNN_DIM_MAX], strideArray[CUDNN_DIM_MAX],
-            dimPArray[CUDNN_DIM_MAX], stridePArray[CUDNN_DIM_MAX];
+        int dimArray[4], strideArray[4],
+            dimPArray[4], stridePArray[4];
         for (size_t i = 0; i < dims.size(); ++i) {
             dimArray[i] = dims[i];
             strideArray[i] = op->getInputs(0)->getStride()[i];
             dimPArray[i] = 1;
             stridePArray[i] = 1;
         }
-        dimPArray[1] = op->getInputs(0)->getDims()[1];
-        stridePArray[1] = op->getInputs(0)->getStride()[1];
+        dimPArray[1] = op->getInputs(1)->getDims()[0];
+        stridePArray[0] = op->getInputs(1)->getDims()[0];
         // get inputs
         cudnnTensorDescriptor_t inDesc;
         checkCudnnError(cudnnCreateTensorDescriptor(&inDesc));
