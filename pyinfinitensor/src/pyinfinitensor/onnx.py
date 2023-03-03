@@ -306,6 +306,32 @@ class OnnxStub:
                     tensors.get(node.output[0]),
                     output_shape,
                 )
+            elif node.op_type == "Unsqueeze":
+                input_shape = next(
+                    (
+                        value.type.tensor_type.shape
+                        for value in model.graph.value_info
+                        if value.name == node.input[0]
+                    ),
+                    None,
+                ) or next(
+                    input.type.tensor_type.shape
+                    for input in model.graph.input
+                    if input.name == node.input[0]
+                )
+                output_shape = _take_shape_dim(input_shape)
+                axes = (
+                    [int(i) for i in data[node.input[1]].int64_data]
+                    if len(node.input) > 1
+                    else _parse_attribute(node, {"axes": None})["axes"]
+                )
+                for i in axes:
+                    output_shape.insert(i, 1)
+                tensors[node.output[0]] = self.handler.reshape(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                    output_shape,
+                )
             elif node.op_type == "Concat":
                 tensors[node.output[0]] = self.handler.concat(
                     [tensors[name] for name in node.input],

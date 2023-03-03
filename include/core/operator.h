@@ -31,7 +31,6 @@ enum class OpType {
     Reshape,
     Flatten,
     Identity,
-    Shape,
     // element wise
     BatchNorm = 200,
     Softmax,
@@ -56,6 +55,8 @@ enum class OpType {
     ACosH,
     ATanH,
     Resize,
+    Arange,
+    Shape,
     Copy,
     Ceil,
     Floor,
