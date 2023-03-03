@@ -574,7 +574,8 @@ Expr ConvTransPattern::getExpr(Tensor A, Tensor K, int N, int C, int H, int W,
 
     auto subA = makeSubscript(A, {n, x1 + r - 1, y1 + s - 1, f});
     auto subK =
-        makeSubscript(K, {(R - 2) - 2 * r + x2, (S - 2) - 2 * s + y2, f, c});
+        // makeSubscript(K, {(R - 2) - 2 * r + x2, (S - 2) - 2 * s + y2, f, c});
+        makeSubscript(K, {f, (R - 2) - 2 * r + x2, (S - 2) - 2 * s + y2, c});
     // x1=(h+1)//2, x2=(h+1)%2, y1=(w+1)//2
 
     auto range1 = makeRangeOperator(

@@ -245,7 +245,7 @@ nnet::Expr NMutator::opToExpression(Operator op) {
                                         std::vector<int>{0, 0, ph, pw});
         const auto K = nnet::makeTensor("K", KT->getDims());
         return nnet::ConvPattern::getExpr(A, K, n, c, h, w, f, r, s);
-    } else if (auto convOp = as<ConvTransposed2dObj>(op)) {
+    } else if (auto convOp = as<ConvTransposed2dNHWCObj>(op)) {
         const auto &AT = convOp->getInputs()[0];
         const auto &KT = convOp->getInputs()[1];
         inputsNameNToTensorT["A"] = AT;

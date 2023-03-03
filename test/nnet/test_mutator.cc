@@ -64,10 +64,14 @@ TEST(Mutator, InfoGAN_TConv_3_correctness) {
     Runtime cpu = NativeCpuRuntimeObj::getInstance(); // CPUruntime is singleton
     Graph gCpu = make_ref<GraphObj>(cpu);
 
-    // {n, h, w, f} * {f, r, s, c}
-    auto i0 = g->addTensor({1, 2, 2, 448});
-    auto w0 = g->addTensor({448, 4, 4, 256});
+    // TODO: recover me for InfoGAN
+    // const int n = 1, c = 256, h = 2, w = 2, f = 448, r = 4, s = 4;
+    // Minimum config for test
+    const int n = 1, c = 1, h = 2, w = 2, f = 1, r = 4, s = 4;
+    auto i0 = g->addTensor({n, h, w, f});
+    auto w0 = g->addTensor({f, r, s, c});
     g->addOp<ConvTransposed2dNHWCObj>(i0, w0, nullptr, 1, 1, 2, 2, 1, 1);
+    g->print();
 
     auto mutator = make_ref<NMutator>();
     mutator->setToNaiveMembound();
@@ -78,16 +82,19 @@ TEST(Mutator, InfoGAN_TConv_3_correctness) {
 
     g->dataMalloc();
     bestGraph->dataMalloc();
-    for (auto t : g->getTensors()) {
-        if (t->getFuid() <= 2)
-            t->setData(IncrementalGenerator());
+    for (auto t : g->getInputs()) {
+        t->setData(IncrementalGenerator());
     }
     for (auto t : bestGraph->getTensors()) {
         if (t->getFuid() <= 2)
             t->setData(IncrementalGenerator());
     }
     runtime->run(g);
+    puts("cuDNN");
+    g->getOutputs()[0]->printData();
     runtime->run(bestGraph);
+    puts("Output");
+    bestGraph->getOutputs()[0]->printData();
 
     auto go0 = gCpu->cloneTensor(g->getOutputs()[0]);
     auto bgo0 = gCpu->cloneTensor(bestGraph->getOutputs()[0]);

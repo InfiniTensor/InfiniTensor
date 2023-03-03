@@ -2,6 +2,7 @@
 #include "cuda/cuda_runtime.h"
 #include "ffi/ffi_embed.h"
 #include "nnet/Visitor/AsTVMVisitor.h"
+#include "nnet/Visitor/CheckOOBVisitor.h"
 #include "nvrtc.h"
 #include "operators/membound.h"
 #include "operators/pooling.h"
@@ -65,6 +66,11 @@ class MemboundTVM : public Kernel {
         return "var_" + std::to_string(t->getGuid());
     }
 
+    bool checkOOB(nnet::Expr expr) const {
+        return nnet::CheckOOBVisitor().checkRangeOp(
+            nnet::as<nnet::RangeOpNode>(expr));
+    }
+
     // Premise: op is idempotent since it is called multiple times.
     PerfRecord tune(const Operator &_op,
                     const RuntimeObj *_context) const override {
@@ -76,6 +82,7 @@ class MemboundTVM : public Kernel {
         std::string func = "mem_bound_" + std::to_string(op->getGuid());
         std::string kernelName = func + "_kernel0";
         nnet::AsTVMVisitor visitor;
+        IT_ASSERT(!checkOOB(op->getNnetExpr()));
         visitor.dispatch(op->getNnetExpr());
         auto &&stmts = visitor.getStmts();
         auto &&inShapes = visitor.getInputShapes();
