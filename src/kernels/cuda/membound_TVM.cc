@@ -3,6 +3,7 @@
 #include "ffi/ffi_embed.h"
 #include "nnet/Visitor/AsTVMVisitor.h"
 #include "nnet/Visitor/CheckOOBVisitor.h"
+#include "nnet/Visitor/HashVisitor.h"
 #include "nvrtc.h"
 #include "operators/membound.h"
 #include "operators/pooling.h"
@@ -83,7 +84,12 @@ class MemboundTVM : public Kernel {
         std::string kernelName = func + "_kernel0";
         nnet::AsTVMVisitor visitor;
         IT_ASSERT(!checkOOB(op->getNnetExpr()));
-        visitor.dispatch(op->getNnetExpr());
+        
+        auto expr = op->getNnetExpr();
+        nnet::HashVisitor hashVisitor;
+        auto hashCode = hashVisitor.dispatch(expr);
+
+        visitor.dispatch(expr);
         auto &&stmts = visitor.getStmts();
         auto &&inShapes = visitor.getInputShapes();
         auto &&outShape = visitor.getOutputShape();
@@ -95,7 +101,7 @@ class MemboundTVM : public Kernel {
         std::string output = getVarName(op->getOutput());
         auto res = getAnsorCode(
             inShapes, std::vector<std::string>(inShapes.size(), "float32"),
-            outShape, "float32", stmts, func, inputs, output);
+            outShape, "float32", stmts, func, inputs, output, hashCode);
 
         // compile the kernel
         auto funcCode = res.first;
@@ -164,14 +170,15 @@ class MemboundTVM : public Kernel {
                  const std::vector<int> &outDims, const std::string &outDType,
                  const std::string &lambda, const std::string &funcName,
                  const std::vector<std::string> &inputNames,
-                 const std::string &outputName) const {
+                 const std::string &outputName,
+                 const HashType hashCode) const {
         std::string funcCode;
         std::vector<int> invokeParams;
         try {
             start_interpreter();
             auto func = py::module::import("cpp_plugin").attr("gen_ansor_op");
             py::tuple code = func(inDims, inDTypes, outDims, outDType, lambda,
-                                  funcName, inputNames, outputName);
+                                  funcName, inputNames, outputName, hashCode);
             funcCode = py::str(code[0]);
             auto temp = py::list(code[3]);
             for (int i = 0; i < 6; ++i) {

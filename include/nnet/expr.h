@@ -174,6 +174,7 @@ class TensorNode : public ExprNode {
     const Routine &getSource() const { return source; }
     int getData(const Ref<vector<int>> &data, const vector<int> &idx);
     size_t getOffset(const vector<int> &idx);
+    bool hasPadding();
 };
 
 enum class OpType { Range, Add, Mul, Div, Mod, Sub };

@@ -90,6 +90,14 @@ size_t TensorNode::getOffset(const vector<int> &idx) {
     return offset;
 }
 
+bool TensorNode::hasPadding() {
+    for (auto pad : paddings) {
+        if (pad > 0)
+            return true;
+    }
+    return false;
+}
+
 string RangeOpNode::toReadable() const {
     string ret;
     for (int i = 0; i < IterationType::NumIterationType; ++i) {
