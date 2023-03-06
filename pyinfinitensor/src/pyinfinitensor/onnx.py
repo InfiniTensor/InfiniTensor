@@ -22,6 +22,7 @@ from onnx.checker import (
     check_tensor,
 )
 from onnx.shape_inference import infer_shapes
+from onnx.numpy_helper import to_array
 from typing import Dict, List, Any, Tuple, Sequence, Union, Optional
 from functools import reduce
 
@@ -138,18 +139,36 @@ class OnnxStub:
                     attributes[name]
                     for name in ["kernel_shape", "dilations", "pads", "strides"]
                 )
-                tensors[node.output[0]] = self.handler.maxPool(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    k[0],
-                    k[1],
-                    d[0],
-                    d[1],
-                    p[0],
-                    p[1],
-                    s[0],
-                    s[1],
-                )
+                if p[0] != p[2] or p[1] != p[3]:
+                    adapt = "{}-adapt".format(node.output[0])
+                    tensors[adapt] = self.handler.pad(
+                        tensors.get(node.input[0]), None, p, [-2, -1]
+                    )
+                    tensors[node.output[0]] = self.handler.maxPool(
+                        tensors[adapt],
+                        tensors.get(node.output[0]),
+                        k[0],
+                        k[1],
+                        d[0],
+                        d[1],
+                        0,
+                        0,
+                        s[0],
+                        s[1],
+                    )
+                else:
+                    tensors[node.output[0]] = self.handler.maxPool(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        k[0],
+                        k[1],
+                        d[0],
+                        d[1],
+                        p[0],
+                        p[1],
+                        s[0],
+                        s[1],
+                    )
             elif node.op_type == "AveragePool":
                 attributes = _parse_attribute(
                     node,
@@ -307,7 +326,7 @@ class OnnxStub:
                 )
                 dims = _take_shape_dim(input_shape)
                 size = reduce(lambda acc, x: acc * x, dims)
-                output_shape = [int(i) for i in data[node.input[1]].int64_data]
+                output_shape = _parse_data(data[node.input[1]])
                 for i, x in enumerate(output_shape):
                     if x == 0:
                         output_shape[i] = dims[i]
@@ -661,15 +680,8 @@ def _parse_attribute(node: NodeProto, attrs: Dict[str, Any] = dict()) -> Dict[st
     return attrs
 
 
-def _parse_data(tensor: TensorProto) -> List[Union[int, float]]:
-    if tensor.data_type == TensorProto.INT32:
-        return [int(i) for i in tensor.int32_data]
-    elif tensor.data_type == TensorProto.INT64:
-        return [int(i) for i in tensor.int64_data]
-    elif tensor.data_type == TensorProto.FLOAT:
-        return [float(i) for i in tensor.float_data]
-    else:
-        assert False, "Unsupported Tensor Type: {}".format(tensor.data_type)
+def _parse_data(tensor: TensorProto) -> List[Any]:
+    return to_array(tensor).flatten().tolist()
 
 
 def _take_shape_dim(shape: TensorShapeProto) -> List[int]:
