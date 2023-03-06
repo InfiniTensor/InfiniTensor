@@ -245,6 +245,7 @@ void init_graph_builder(py::module &m) {
         .def("clip", &Handler::clip, policy::move)
         .def("identity", &Handler::identity, policy::move)
         .def("flatten", &Handler::flatten, policy::move)
+        .def("transpose", &Handler::transpose, policy::move)
         .def("reshape", &Handler::reshape, policy::move)
         .def("concat", &Handler::concat, policy::move)
         .def("gather", &Handler::gather, policy::move)

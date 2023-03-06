@@ -11,6 +11,7 @@
 #include "operators/reshape.h"
 #include "operators/slice.h"
 #include "operators/softmax.h"
+#include "operators/transpose.h"
 #include "operators/unary.h"
 
 namespace infini {
@@ -130,7 +131,8 @@ DEFINE_UNARY_METHOD(tanh, Tanh)
 DEFINE_UNARY_METHOD(abs, Abs)
 DEFINE_UNARY_METHOD(shape, Shape)
 
-Tensor GraphHandlerObj::clip(Tensor x, Tensor y, float min, float max) {
+Tensor GraphHandlerObj::clip(Tensor x, Tensor y, std::optional<float> min,
+                             std::optional<float> max) {
     if (y) {
         g->addOpWithOutputs<ClipObj>(std::move(x), y, min, max);
         return y;
@@ -158,6 +160,17 @@ Tensor GraphHandlerObj::flatten(Tensor input, Tensor output, int axis) {
         return output;
     } else {
         return g->addOp<FlattenObj>(std::move(input), output, axis)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::transpose(Tensor data, Tensor transposed, Shape perm) {
+    if (transposed) {
+        g->addOpWithOutputs<TransposeObj>(std::move(data), transposed,
+                                          perm.data());
+        return transposed;
+    } else {
+        return g->addOp<TransposeObj>(std::move(data), transposed, perm.data())
             ->getOutput();
     }
 }

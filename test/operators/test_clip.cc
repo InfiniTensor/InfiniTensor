@@ -11,7 +11,7 @@ template <class T>
 void testClip(const std::function<void(void *, size_t, DataType)> &generator,
               const Shape &shape) {
     // Runtime
-    Runtime cpuRuntime = CpuRuntimeObj::getInstance();
+    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
 
     // Build input data on CPU
     Tensor inputCpu = make_ref<TensorObj>(shape, DataType::Float32, cpuRuntime);

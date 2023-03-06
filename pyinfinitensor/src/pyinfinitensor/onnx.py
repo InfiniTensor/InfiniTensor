@@ -265,8 +265,12 @@ class OnnxStub:
                 tensors[node.output[0]] = self.handler.clip(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
-                    _parse_data(data[node.input[1]])[0],
-                    _parse_data(data[node.input[2]])[0],
+                    next(_parse_data(data[node.input[1]]).__iter__(), None)
+                    if len(node.input) > 1
+                    else None,
+                    next(_parse_data(data[node.input[2]]).__iter__(), None)
+                    if len(node.input) > 2
+                    else None,
                 )
             elif node.op_type == "Identity":
                 tensors[node.output[0]] = self.handler.identity(
@@ -278,6 +282,15 @@ class OnnxStub:
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
                     next((attr.i for attr in node.attribute if attr.name == "axis")),
+                )
+            elif node.op_type == "Transpose":
+                perm = next(
+                    (attr.ints for attr in node.attribute if attr.name == "perm"), None
+                )
+                tensors[node.output[0]] = self.handler.transpose(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                    perm,
                 )
             elif node.op_type == "Reshape":
                 input_shape = next(
@@ -298,7 +311,7 @@ class OnnxStub:
                 for i, x in enumerate(output_shape):
                     if x == 0:
                         output_shape[i] = dims[i]
-                temp = reduce(lambda acc, x: acc * x, output_shape)
+                temp = reduce(lambda acc, x: acc * x, output_shape, 1)
                 if temp < 0:
                     output_shape[output_shape.index(-1)] = size // -temp
                 tensors[node.output[0]] = self.handler.reshape(
@@ -572,6 +585,8 @@ class OnnxStub:
             ]:
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpType.Flatten:
+                raise Exception("TODO")
+            elif ty == backend.OpType.Transpose:
                 raise Exception("TODO")
             elif ty == backend.OpType.Reshape:
                 shape = backend.reshape_shape_of(op)

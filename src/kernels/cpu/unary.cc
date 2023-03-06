@@ -62,12 +62,15 @@ template <typename T> class Clip : public CpuKernelWithoutConfig {
         auto op = as<ClipObj>(_op);
         T *inptr = op->getInputs(0)->getRawDataPtr<T *>();
         T *outptr = op->getOutput()->getRawDataPtr<T *>();
-        float minValue = op->getMin();
-        float maxValue = op->getMax();
+        auto minValue = op->getMin();
+        auto maxValue = op->getMax();
 
         auto n = op->getOutput()->size();
         for (size_t offset = 0; offset < n; offset++) {
-            outptr[offset] =  std::min(maxValue, std::max(minValue, inptr[offset]));
+            auto val = *inptr++;
+            *outptr++ = (minValue && val < *minValue)   ? *minValue
+                        : (maxValue && val > *maxValue) ? *maxValue
+                                                        : val;
         }
     }
 };
@@ -92,6 +95,6 @@ REGISTER_KERNEL(Device::CPU, OpType::Softmax, DataType::UInt32,
                 NaiveSoftmax<uint32_t>, "softmaxNaive_CPU_uint32");
 REGISTER_KERNEL(Device::CPU, OpType::Softmax, DataType::Float32,
                 NaiveSoftmax<float>, "softmaxNaive_CPU_float32");
-REGISTER_KERNEL(Device::CPU, OpType::Clip, DataType::Float32,
-                Clip<float>, "Clip_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::Clip, DataType::Float32, Clip<float>,
+                "Clip_CPU_float32");
 }; // namespace infini

@@ -32,8 +32,8 @@ vector<int> UnaryObj::getOpAttrVector() const {
     return {enum_to_underlying(type)};
 }
 
-ClipObj::ClipObj(GraphObj *graph, Tensor input, Tensor output, float min,
-                 float max)
+ClipObj::ClipObj(GraphObj *graph, Tensor input, Tensor output,
+                 std::optional<float> min, std::optional<float> max)
     : OperatorObj(OpType::Clip, {input}, {output}), minValue(min),
       maxValue(max) {
     IT_ASSERT(checkValid(graph));

@@ -303,10 +303,10 @@ class TestStringMethods(unittest.TestCase):
         graph = make_graph([matmul, add], "lr", [x, a, b], [y])
         model = make_model(graph)
         check_model(model)
-        from_onnx(model, runtime)
+        from_onnx(model, backend.cpu_runtime())
 
     def test_frontend(self):
-        handler = backend.GraphHandler(runtime)
+        handler = backend.GraphHandler(backend.cpu_runtime())
         a = handler.tensor([1, 2, 3], 12)
         b = handler.tensor([1, 2, 3], 12)
         c = handler.tensor([1, 2, 3], 12)
