@@ -219,5 +219,9 @@ if(BUILD_TEST)
   endif()
   if(BUILD_TEST_EINNET)
     build_test(test/nnet/test_*.cc)
+
+    # Build expression reader
+    add_executable(nnet_reader test/nnet/readlog.cc)
+    target_link_libraries(nnet_reader InfiniTensor)
   endif()
 endif()
