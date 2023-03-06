@@ -14,9 +14,12 @@ template <typename T> class NativeElementWise : public CpuKernelWithoutConfig {
         int a[4] = {1,1,1,1};
         int b[4] = {1,1,1,1};
         int c[4] = {1,1,1,1};
-        std::copy(op->getInputs(0)->getDims().begin(), op->getInputs(0)->getDims().end(), a+(4 - op->getInputs(0)->getDims().size()));
-        std::copy(op->getInputs(1)->getDims().begin(), op->getInputs(1)->getDims().end(), b+(4 - op->getInputs(1)->getDims().size()));
-        std::copy(op->getOutput()->getDims().begin(), op->getOutput()->getDims().end(), c+(4 - op->getOutput()->getDims().size()));
+        auto a_input = op->getInputs(0)->getDims();
+        auto b_input = op->getInputs(1)->getDims();
+        auto c_output = op->getOutput()->getDims();
+        std::copy(a_input.begin(), a_input.end(), a+(4 - a_input.size()));
+        std::copy(b_input.begin(), b_input.end(), b+(4 - b_input.size()));
+        std::copy(c_output.begin(), c_output.end(), c+(4 - c_output.size()));
 
         auto n = op->getOutput()->size();
         for (size_t i = 0; i < n; ++i) {
