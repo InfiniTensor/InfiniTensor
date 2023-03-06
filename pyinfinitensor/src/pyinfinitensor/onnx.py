@@ -131,7 +131,7 @@ class OnnxStub:
                     {
                         "kernel_shape": None,
                         "dilations": [1, 1],
-                        "pads": [0, 0],
+                        "pads": [0, 0, 0, 0],
                         "strides": [1, 1],
                     },
                 )
@@ -174,25 +174,43 @@ class OnnxStub:
                     node,
                     {
                         "kernel_shape": None,
-                        "pads": [0, 0],
+                        "pads": [0, 0, 0, 0],
                         "strides": [1, 1],
                     },
                 )
                 (k, p, s) = (
                     attributes[name] for name in ["kernel_shape", "pads", "strides"]
                 )
-                tensors[node.output[0]] = self.handler.avgPool(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    k[0],
-                    k[1],
-                    1,
-                    1,
-                    p[0],
-                    p[1],
-                    s[0],
-                    s[1],
-                )
+                if p[0] != p[2] or p[1] != p[3]:
+                    adapt = "{}-adapt".format(node.output[0])
+                    tensors[adapt] = self.handler.pad(
+                        tensors.get(node.input[0]), None, p, [-2, -1]
+                    )
+                    tensors[node.output[0]] = self.handler.avgPool(
+                        tensors[adapt],
+                        tensors.get(node.output[0]),
+                        k[0],
+                        k[1],
+                        1,
+                        1,
+                        0,
+                        0,
+                        s[0],
+                        s[1],
+                    )
+                else:
+                    tensors[node.output[0]] = self.handler.avgPool(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        k[0],
+                        k[1],
+                        1,
+                        1,
+                        p[0],
+                        p[1],
+                        s[0],
+                        s[1],
+                    )
             elif node.op_type == "GlobalAveragePool":
                 shape = next(
                     (

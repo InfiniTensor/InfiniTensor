@@ -105,7 +105,7 @@ class TestStringMethods(unittest.TestCase):
             ["y"],
             kernel_shape=[3, 3],
             dilations=[1, 1],
-            pads=[0, 0],
+            pads=[0, 0, 0, 0],
             strides=[2, 2],
             name="maxPool",
         )
@@ -119,7 +119,7 @@ class TestStringMethods(unittest.TestCase):
             ["x"],
             ["y"],
             kernel_shape=[3, 3],
-            pads=[0, 0],
+            pads=[0, 0, 0, 0],
             strides=[2, 2],
             name="avgPool",
         )
