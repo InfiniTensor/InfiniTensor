@@ -16,7 +16,7 @@ __global__ void _clip_kernel(float *input, float *output, int n, float minValue,
         output[i] = (!isnan(minValue) && input[i] < minValue)
                         ? minValue
                         : (!isnan(maxValue) && input[i] > maxValue)
-                        ? maxValue ?: input[i];
+                        ? maxValue : input[i];
     }
 }
 
