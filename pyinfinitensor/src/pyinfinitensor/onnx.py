@@ -96,7 +96,15 @@ class OnnxStub:
                     tensors[reshape] = self.handler.reshape(
                         tensors[node.input[2]],
                         None,
-                        tensors[bias].shape(),
+                        [
+                            1,
+                            reduce(
+                                lambda acc, x: acc * x,
+                                _search_shape(model, node.input[2]),
+                            ),
+                            1,
+                            1,
+                        ],
                     )
                     tensors[node.output[0]] = self.handler.add(
                         tensors[bias],
