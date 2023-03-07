@@ -4,6 +4,7 @@
 #include "operators/conv.h"
 #include "operators/gather.h"
 #include "operators/matmul.h"
+#include "operators/pad.h"
 #include "operators/pooling.h"
 #include "operators/reduce_mean.h"
 #include "operators/reshape.h"
@@ -173,6 +174,15 @@ static vector<int64_t> reshape_shape_of(Operator op) {
     return ans;
 }
 
+static vector<int64_t> pad_pads_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Pad);
+    auto shape = dynamic_cast<const PadObj *>(op.get())->getPads();
+    vector<int64_t> ans(shape.size());
+    std::transform(shape.begin(), shape.end(), ans.begin(),
+                   [](auto x) { return static_cast<int64_t>(x); });
+    return ans;
+}
+
 void export_functions(py::module &m) {
 #define FUNCTION(NAME) def(#NAME, &NAME)
 #ifdef USE_CUDA
@@ -188,6 +198,7 @@ void export_functions(py::module &m) {
         .FUNCTION(pool_attrs_of)
         .FUNCTION(tensor_dtype)
         .FUNCTION(reshape_shape_of)
+        .FUNCTION(pad_pads_of)
         .FUNCTION(concat_axis_of)
         .FUNCTION(gather_axis_of)
         .FUNCTION(reduce_mean_axes_of);

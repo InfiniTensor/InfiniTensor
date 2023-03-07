@@ -486,14 +486,15 @@ class OnnxStub:
                     self.count_in += 1
                     name = "input{}".format(self.count_in)
                     self.names[tensor] = name
-                    shape = tensor.shape()
-                    dtype = backend.tensor_dtype(tensor)
-                    value_info = make_tensor_value_info(name, dtype, shape)
-                    check_value_info(value_info)
-                    self.inputs.append(value_info)
                     if init != None:
                         init.name = name
                         self.initializers.append(init)
+                    else:
+                        shape = tensor.shape()
+                        dtype = backend.tensor_dtype(tensor)
+                        value_info = make_tensor_value_info(name, dtype, shape)
+                        check_value_info(value_info)
+                        self.inputs.append(value_info)
                 return name
 
             def push_data_input(
@@ -505,11 +506,8 @@ class OnnxStub:
                 vals: Any,
             ) -> str:
                 name = "{}_{}".format(node_name, attr_name)
-                value_info = make_tensor_value_info(name, elem_type, shape)
                 tensor = make_tensor(name, elem_type, shape, vals)
-                check_value_info(value_info)
                 check_tensor(tensor)
-                self.inputs.append(value_info)
                 self.initializers.append(tensor)
                 return name
 
@@ -654,7 +652,13 @@ class OnnxStub:
             elif ty == backend.OpType.Slice:
                 raise Exception("TODO")
             elif ty == backend.OpType.Pad:
-                raise Exception("TODO")
+                pads = backend.pad_pads_of(op)
+                inputs.append(
+                    ctx.push_data_input(
+                        name, "pads", TensorProto.INT64, [len(pads)], pads
+                    )
+                )
+                ctx.push_node(make_node(ty.name, inputs, outputs, name))
             else:
                 raise Exception("Unsupported OpType {}".format(ty.name))
 
