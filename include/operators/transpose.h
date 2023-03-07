@@ -11,7 +11,14 @@ class TransposeObj : public OperatorObj {
     std::string toString() const override;
     int numInputs() const override { return 1; }
     int numOutputs() const override { return 1; }
-    auto getPermute() { return transposePermute; }
+    std::vector<int> getPermute() const {
+        return std::vector<int>{
+            transposePermute[0],
+            transposePermute[1],
+            transposePermute[2],
+            transposePermute[3],
+        };
+    }
 
   private:
     int transposePermute[4];

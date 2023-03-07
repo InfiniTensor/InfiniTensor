@@ -63,24 +63,41 @@ class OnnxStub:
                     node,
                     {
                         "dilations": [1, 1],
-                        "pads": [0, 0],
+                        "pads": [0, 0, 0, 0],
                         "strides": [1, 1],
                     },
                 )
                 (d, p, s) = (
                     attributes[name] for name in ["dilations", "pads", "strides"]
                 )
-                tensors[node.output[0]] = self.handler.conv(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                    p[0],
-                    p[1],
-                    s[0],
-                    s[1],
-                    d[0],
-                    d[1],
-                )
+                if p[0] != p[2] or p[1] != p[3]:
+                    adapt = "{}-adapt".format(node.output[0])
+                    tensors[adapt] = self.handler.pad(
+                        tensors.get(node.input[0]), None, p, [-2, -1]
+                    )
+                    tensors[node.output[0]] = self.handler.conv(
+                        tensors[adapt],
+                        tensors[node.input[1]],
+                        tensors.get(node.output[0]),
+                        0,
+                        0,
+                        s[0],
+                        s[1],
+                        d[0],
+                        d[1],
+                    )
+                else:
+                    tensors[node.output[0]] = self.handler.conv(
+                        tensors[node.input[0]],
+                        tensors[node.input[1]],
+                        tensors.get(node.output[0]),
+                        p[0],
+                        p[1],
+                        s[0],
+                        s[1],
+                        d[0],
+                        d[1],
+                    )
             elif node.op_type == "MatMul":
                 tensors[node.output[0]] = self.handler.matmul(
                     tensors[node.input[0]],
@@ -603,7 +620,8 @@ class OnnxStub:
             elif ty == backend.OpType.Flatten:
                 raise Exception("TODO")
             elif ty == backend.OpType.Transpose:
-                raise Exception("TODO")
+                perm = backend.transpose_permute_of(op)
+                ctx.push_node(make_node(ty.name, inputs, outputs, name, perm=perm))
             elif ty == backend.OpType.Reshape:
                 shape = backend.reshape_shape_of(op)
                 inputs.append(
@@ -640,8 +658,27 @@ class OnnxStub:
                     )
                 )
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
+            elif ty == backend.OpType.Clip:
+                min, max = backend.clip_attrs_of(op)
+                if min != None:
+                    inputs.append(
+                        ctx.push_data_input(name, "min", TensorProto.FLOAT, [], [min])
+                    )
+                else:
+                    inputs.append(
+                        ctx.push_data_input(name, "min", TensorProto.FLOAT, [], [])
+                    )
+                if max != None:
+                    inputs.append(
+                        ctx.push_data_input(name, "max", TensorProto.FLOAT, [], [max])
+                    )
+                else:
+                    inputs.append(
+                        ctx.push_data_input(name, "max", TensorProto.FLOAT, [], [])
+                    )
+                ctx.push_node(make_node(ty.name, inputs, outputs, name))
             else:
-                raise Exception("Unsupported OpType {}".format(ty.name))
+                raise Exception("Unsupported OpType", ty)
 
         return ctx.build(name)
 

@@ -34,7 +34,7 @@ class TransposeCnnl : public BangKernelWithoutConfig {
         auto permute = op->getPermute();
         cnnlTransposeDescriptor_t opDesc;
         checkCnnlError(cnnlCreateTransposeDescriptor(&opDesc));
-        checkCnnlError(cnnlSetTransposeDescriptor(opDesc, 4, permute));
+        checkCnnlError(cnnlSetTransposeDescriptor(opDesc, 4, permute.data()));
 
         size_t wsSize;
         cnnlGetTransposeWorkspaceSize(context->cnnlHandle(), aDesc, opDesc,

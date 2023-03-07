@@ -8,6 +8,8 @@
 #include "operators/pooling.h"
 #include "operators/reduce_mean.h"
 #include "operators/reshape.h"
+#include "operators/transpose.h"
+#include "operators/unary.h"
 #include <algorithm>
 #include <pybind11/stl.h>
 
@@ -60,6 +62,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, G2BMM)
         .VALUE(OpType, GBMM)
         .VALUE(OpType, Pad)
+        .VALUE(OpType, Clip)
         .VALUE(OpType, Slice)
         .VALUE(OpType, Concat)
         .VALUE(OpType, Split)
@@ -149,6 +152,13 @@ pool_attrs_of(Operator op) {
                            pool->getSh(), pool->getSw());
 }
 
+static std::tuple<std::optional<float>, std::optional<float>>
+clip_attrs_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Clip);
+    auto clip = dynamic_cast<const ClipObj *>(op.get());
+    return std::make_tuple(clip->getMin(), clip->getMax());
+}
+
 static int concat_axis_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Concat);
     return dynamic_cast<const ConcatObj *>(op.get())->getDim();
@@ -183,6 +193,11 @@ static vector<int64_t> pad_pads_of(Operator op) {
     return ans;
 }
 
+static vector<int> transpose_permute_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Transpose);
+    return dynamic_cast<const TransposeObj *>(op.get())->getPermute();
+}
+
 void export_functions(py::module &m) {
 #define FUNCTION(NAME) def(#NAME, &NAME)
 #ifdef USE_CUDA
@@ -196,9 +211,11 @@ void export_functions(py::module &m) {
         .FUNCTION(matmul_attrs_of)
         .FUNCTION(batch_norm_attrs_of)
         .FUNCTION(pool_attrs_of)
+        .FUNCTION(clip_attrs_of)
         .FUNCTION(tensor_dtype)
         .FUNCTION(reshape_shape_of)
         .FUNCTION(pad_pads_of)
+        .FUNCTION(transpose_permute_of)
         .FUNCTION(concat_axis_of)
         .FUNCTION(gather_axis_of)
         .FUNCTION(reduce_mean_axes_of);
