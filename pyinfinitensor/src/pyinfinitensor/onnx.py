@@ -212,19 +212,7 @@ class OnnxStub:
                         s[1],
                     )
             elif node.op_type == "GlobalAveragePool":
-                shape = next(
-                    (
-                        value.type.tensor_type.shape
-                        for value in model.graph.value_info
-                        if value.name == node.input[0]
-                    ),
-                    None,
-                ) or next(
-                    input.type.tensor_type.shape
-                    for input in model.graph.input
-                    if input.name == node.input[0]
-                )
-                [_, _, h, w] = _take_shape_dim(shape)
+                [_, _, h, w] = _search_shape(model, node.input[0])
                 tensors[node.output[0]] = self.handler.avgPool(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
@@ -330,19 +318,7 @@ class OnnxStub:
                     perm,
                 )
             elif node.op_type == "Reshape":
-                input_shape = next(
-                    (
-                        value.type.tensor_type.shape
-                        for value in model.graph.value_info
-                        if value.name == node.input[0]
-                    ),
-                    None,
-                ) or next(
-                    input.type.tensor_type.shape
-                    for input in model.graph.input
-                    if input.name == node.input[0]
-                )
-                dims = _take_shape_dim(input_shape)
+                dims = _search_shape(model, node.input[0])
                 size = reduce(lambda acc, x: acc * x, dims)
                 output_shape = _parse_data(data[node.input[1]])
                 for i, x in enumerate(output_shape):
@@ -357,19 +333,7 @@ class OnnxStub:
                     output_shape,
                 )
             elif node.op_type == "Unsqueeze":
-                input_shape = next(
-                    (
-                        value.type.tensor_type.shape
-                        for value in model.graph.value_info
-                        if value.name == node.input[0]
-                    ),
-                    None,
-                ) or next(
-                    input.type.tensor_type.shape
-                    for input in model.graph.input
-                    if input.name == node.input[0]
-                )
-                output_shape = _take_shape_dim(input_shape)
+                output_shape = _search_shape(model, node.input[0])
                 axes = (
                     [int(i) for i in data[node.input[1]].int64_data]
                     if len(node.input) > 1
@@ -679,9 +643,37 @@ def from_onnx(model: ModelProto, runtime):
     return stub.inputs, stub.outputs, stub.handler
 
 
-def run_onnx(model: ModelProto, runtime):
-    stub = OnnxStub(model, runtime)
-    stub.run()
+def _search_shape(model: ModelProto, name: str) -> List[int]:
+    ans = (
+        next(
+            (
+                [
+                    (d.dim_value if d.dim_value > 0 else 1)
+                    for d in tensor.type.tensor_type.shape.dim
+                ]
+                for tensor in model.graph.value_info
+                if tensor.name == name
+            ),
+            None,
+        )
+        or next(
+            (
+                [
+                    (d.dim_value if d.dim_value > 0 else 1)
+                    for d in tensor.type.tensor_type.shape.dim
+                ]
+                for tensor in model.graph.input
+                if tensor.name == name
+            ),
+            None,
+        )
+        or next(
+            [int(d) for d in tensor.dims]
+            for tensor in model.graph.initializer
+            if tensor.name == name
+        )
+    )
+    return ans
 
 
 def _parse_attribute(node: NodeProto, attrs: Dict[str, Any] = dict()) -> Dict[str, Any]:

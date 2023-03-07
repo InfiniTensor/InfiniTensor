@@ -19,9 +19,9 @@ env:
   resnet-file: resnet18-v2-7.onnx
   inception-download: https://media.githubusercontent.com/media/onnx/models/main/vision/classification/inception_and_googlenet/inception_v2/model/inception-v2-9.onnx
   inception-file: inception-v2-9.onnx
-
   densenet-download: https://github.com/onnx/models/raw/main/vision/classification/densenet-121/model/densenet-12.onnx
   densenet-file: densenet-12.onnx
+
   googlenet-download: https://github.com/onnx/models/raw/main/vision/classification/inception_and_googlenet/googlenet/model/googlenet-12.onnx
   googlenet-file: googlenet-12.onnx
   mobilenet-download: https://media.githubusercontent.com/media/onnx/models/main/vision/classification/mobilenet/model/mobilenetv2-12.onnx
@@ -82,6 +82,7 @@ jobs:
       run: |
         wget ${{ env.resnet-download }}
         wget ${{ env.inception-download }}
+        wget ${{ env.densenet-download }}
 
     - name: Test onnx frontend
       run: make test-onnx
