@@ -72,10 +72,10 @@ class OnnxStub:
                 )
                 if p[0] != p[2] or p[1] != p[3]:
                     adapt = "{}-adapt".format(node.output[0])
-                    p = [0, 0, 0, 0]
                     tensors[adapt] = self.handler.pad(
                         tensors[node.input[0]], None, p, [-2, -1]
                     )
+                    p = [0, 0, 0, 0]
                 else:
                     adapt = node.input[0]
 
