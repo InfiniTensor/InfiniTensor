@@ -320,31 +320,48 @@ class OnnxStub:
             elif node.op_type == "Reshape":
                 dims = _search_shape(model, node.input[0])
                 size = reduce(lambda acc, x: acc * x, dims)
-                output_shape = _parse_data(data[node.input[1]])
-                for i, x in enumerate(output_shape):
+                input_shape = _parse_data(data[node.input[1]])
+                for i, x in enumerate(input_shape):
                     if x == 0:
-                        output_shape[i] = dims[i]
-                temp = reduce(lambda acc, x: acc * x, output_shape, 1)
+                        input_shape[i] = dims[i]
+                temp = reduce(lambda acc, x: acc * x, input_shape, 1)
                 if temp < 0:
-                    output_shape[output_shape.index(-1)] = size // -temp
+                    input_shape[input_shape.index(-1)] = size // -temp
+                tensors[node.output[0]] = self.handler.reshape(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                    input_shape,
+                )
+            elif node.op_type == "Squeeze":
+                input_shape = _search_shape(model, node.input[0])
+                axes = set(
+                    [int(i) for i in data[node.input[1]].int64_data]
+                    if len(node.input) > 1
+                    else _parse_attribute(node, {"axes": None})["axes"]
+                )
+                assert all(input_shape[d] == 1 for d in axes)
+                output_shape = []
+                for i, x in enumerate(input_shape):
+                    if i not in axes:
+                        output_shape.append(x)
                 tensors[node.output[0]] = self.handler.reshape(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
                     output_shape,
                 )
             elif node.op_type == "Unsqueeze":
-                output_shape = _search_shape(model, node.input[0])
+                input_shape = _search_shape(model, node.input[0])
                 axes = (
                     [int(i) for i in data[node.input[1]].int64_data]
                     if len(node.input) > 1
                     else _parse_attribute(node, {"axes": None})["axes"]
                 )
                 for i in axes:
-                    output_shape.insert(i, 1)
+                    input_shape.insert(i, 1)
                 tensors[node.output[0]] = self.handler.reshape(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
-                    output_shape,
+                    input_shape,
                 )
             elif node.op_type == "Concat":
                 tensors[node.output[0]] = self.handler.concat(
