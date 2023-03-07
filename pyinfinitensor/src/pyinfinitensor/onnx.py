@@ -72,23 +72,34 @@ class OnnxStub:
                 )
                 if p[0] != p[2] or p[1] != p[3]:
                     adapt = "{}-adapt".format(node.output[0])
+                    p = [0, 0, 0, 0]
                     tensors[adapt] = self.handler.pad(
-                        tensors.get(node.input[0]), None, p, [-2, -1]
+                        tensors[node.input[0]], None, p, [-2, -1]
                     )
-                    tensors[node.output[0]] = self.handler.conv(
+                else:
+                    adapt = node.input[0]
+
+                if len(node.input) > 2:
+                    bias = "{}-bias".format(node.output[0])
+                    tensors[bias] = self.handler.conv(
                         tensors[adapt],
                         tensors[node.input[1]],
-                        tensors.get(node.output[0]),
-                        0,
-                        0,
+                        None,
+                        p[0],
+                        p[1],
                         s[0],
                         s[1],
                         d[0],
                         d[1],
                     )
+                    tensors[node.output[0]] = self.handler.add(
+                        tensors[bias],
+                        tensors[node.input[2]],
+                        tensors.get(node.output[0]),
+                    )
                 else:
                     tensors[node.output[0]] = self.handler.conv(
-                        tensors[node.input[0]],
+                        tensors[adapt],
                         tensors[node.input[1]],
                         tensors.get(node.output[0]),
                         p[0],

@@ -58,7 +58,7 @@ class TestStringMethods(unittest.TestCase):
             ["i", "w"],
             ["o"],
             "conv",
-            pads=[1, 1],
+            pads=[1, 1, 1, 1],
             strides=[2, 1],
             dilations=[1, 2],
         )
