@@ -37,9 +37,10 @@ ReduceMeanObj::inferShape(const TensorVec &inputs) const {
             if (!isReduced(i))
                 ret.emplace_back(dims[i]);
         }
-        if (ret.size() == (size_t)0)
-            ret.emplace_back(1);
-        return {{ret}};
+        if (ret.empty())
+            return {{{1}}};
+        else
+            return {{ret}};
     }
 }
 

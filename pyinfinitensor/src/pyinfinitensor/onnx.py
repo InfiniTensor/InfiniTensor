@@ -411,6 +411,20 @@ class OnnxStub:
                     tensors.get(node.output[0]),
                     next((attr.i for attr in node.attribute if attr.name == "axis")),
                 )
+            elif node.op_type == "Split":
+                for name, tensor in zip(
+                    node.output,
+                    self.handler.split(
+                        tensors[node.input[0]],
+                        None,
+                        next(
+                            (attr.i for attr in node.attribute if attr.name == "axis"),
+                            0,
+                        ),
+                        len(node.output),
+                    ),
+                ):
+                    tensors[name] = tensor
             elif node.op_type == "Gather":
                 tensors[node.output[0]] = self.handler.gather(
                     tensors[node.input[0]],

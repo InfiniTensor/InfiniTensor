@@ -76,6 +76,8 @@ class GraphHandlerObj {
     Tensor transpose(Tensor data, Tensor transposed, Shape perm);
     Tensor reshape(Tensor data, Tensor reshaped, Shape shape);
     Tensor concat(TensorVec inputs, Tensor output, int dim);
+    TensorVec split(Tensor input, std::optional<TensorVec> outputs, int axis,
+                    int num_outputs);
     Tensor gather(Tensor data, Tensor indices, Tensor output, int axis);
     Tensor reduceMean(Tensor data, Tensor reduced,
                       const optional<vector<int>> &axes, bool keepdims);

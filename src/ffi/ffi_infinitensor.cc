@@ -276,6 +276,7 @@ void init_graph_builder(py::module &m) {
         .def("transpose", &Handler::transpose, policy::move)
         .def("reshape", &Handler::reshape, policy::move)
         .def("concat", &Handler::concat, policy::move)
+        .def("split", &Handler::split, policy::move)
         .def("gather", &Handler::gather, policy::move)
         .def("reduce_mean", &Handler::reduceMean, policy::move)
         .def("slice", &Handler::slice, policy::move)

@@ -11,6 +11,7 @@
 #include "operators/reshape.h"
 #include "operators/slice.h"
 #include "operators/softmax.h"
+#include "operators/split.h"
 #include "operators/transpose.h"
 #include "operators/unary.h"
 
@@ -192,6 +193,18 @@ Tensor GraphHandlerObj::concat(TensorVec inputs, Tensor output, int dim) {
         return output;
     } else {
         return g->addOp<ConcatObj>(std::move(inputs), output, dim)->getOutput();
+    }
+}
+
+TensorVec GraphHandlerObj::split(Tensor input, std::optional<TensorVec> outputs,
+                                 int axis, int num_outputs) {
+    if (outputs) {
+        g->addOpWithOutputs<SplitObj>(std::move(input), outputs, axis,
+                                      num_outputs);
+        return *outputs;
+    } else {
+        return g->addOp<SplitObj>(std::move(input), outputs, axis, num_outputs)
+            ->getOutputs();
     }
 }
 
