@@ -81,6 +81,7 @@ class OnnxStub:
 
                 if len(node.input) > 2:
                     bias = "{}-bias".format(node.output[0])
+                    reshape = "{}-reshape".format(node.output[0])
                     tensors[bias] = self.handler.conv(
                         tensors[adapt],
                         tensors[node.input[1]],
@@ -92,9 +93,14 @@ class OnnxStub:
                         d[0],
                         d[1],
                     )
+                    tensors[reshape] = self.handler.reshape(
+                        tensors[node.input[2]],
+                        None,
+                        tensors[bias].shape(),
+                    )
                     tensors[node.output[0]] = self.handler.add(
                         tensors[bias],
-                        tensors[node.input[2]],
+                        tensors[reshape],
                         tensors.get(node.output[0]),
                     )
                 else:
