@@ -592,6 +592,7 @@ class OnnxStub:
                         pads=[ph, pw, ph, pw],
                         strides=[sh, sw],
                         dilations=[dh, dw],
+                        group=op.inputs()[0].shape()[1] // op.inputs()[1].shape()[1],
                     )
                 )
             elif ty == backend.OpType.Matmul:
