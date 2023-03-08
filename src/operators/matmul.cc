@@ -4,8 +4,9 @@ namespace infini {
 
 MatmulObj::MatmulObj(GraphObj *graph, Tensor A, Tensor B, Tensor C, bool transA,
                      bool transB, [[maybe_unused]] Tensor bias, ActType act)
-    : OperatorObj(OpType::Matmul, {A, B}, {C}), transA(transA), transB(transB),
-      act(act) {
+    : OperatorObj(OpType::Matmul,
+                  bias ? TensorVec{A, B, bias} : TensorVec{A, B}, {C}),
+      transA(transA), transB(transB), act(act), b(1) {
     auto shape_a = A->getDims();
     auto shape_b = B->getDims();
     int dimA = shape_a.size(), dimB = shape_b.size();
