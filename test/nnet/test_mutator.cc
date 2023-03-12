@@ -65,16 +65,18 @@ TEST(Mutator, InfoGAN_TConv_3_correctness) {
     Graph gCpu = make_ref<GraphObj>(cpu);
 
     // TODO: recover me for InfoGAN
-    // const int n = 1, c = 256, h = 2, w = 2, f = 448, r = 4, s = 4;
-    // Minimum config for test
-    const int n = 1, c = 1, h = 2, w = 2, f = 1, r = 4, s = 4;
+    const int n = 1, c = 256, h = 2, w = 2, f = 448, r = 4, s = 4;
+    // // Minimum config for test
+    // const int n = 1, c = 1, h = 2, w = 2, f = 1, r = 4, s = 4;
     auto i0 = g->addTensor({n, h, w, f});
     auto w0 = g->addTensor({f, r, s, c});
     g->addOp<ConvTransposed2dNHWCObj>(i0, w0, nullptr, 1, 1, 2, 2, 1, 1);
     g->print();
 
-    auto mutator = make_ref<NMutator>();
-    mutator->setToNaiveMembound();
+    auto mutator =
+        make_ref<NMutator>(NMutator::Mode::RuleBased,
+                           vector<int>{3, 2, 2, 2, 2, 5, 8, 8, 6, 91, 90});
+    // mutator->setToNaiveMembound();
     SearchEngine searchEngine(runtime, mutator);
     auto bestGraph = searchEngine.run(g);
     bestGraph->print();
@@ -85,16 +87,21 @@ TEST(Mutator, InfoGAN_TConv_3_correctness) {
     for (auto t : g->getInputs()) {
         t->setData(IncrementalGenerator());
     }
-    for (auto t : bestGraph->getTensors()) {
-        if (t->getFuid() <= 2)
-            t->setData(IncrementalGenerator());
+    for (auto t : bestGraph->getInputs()) {
+        t->setData(IncrementalGenerator());
+    }
+    for (auto t : g->getOutputs()) {
+        t->setData(IncrementalGenerator());
+    }
+    for (auto t : bestGraph->getOutputs()) {
+        t->setData(IncrementalGenerator());
     }
     runtime->run(g);
-    puts("cuDNN");
-    g->getOutputs()[0]->printData();
+    // puts("cuDNN");
+    // g->getOutputs()[0]->printData();
     runtime->run(bestGraph);
-    puts("Output");
-    bestGraph->getOutputs()[0]->printData();
+    // puts("Output");
+    // bestGraph->getOutputs()[0]->printData();
 
     auto go0 = gCpu->cloneTensor(g->getOutputs()[0]);
     auto bgo0 = gCpu->cloneTensor(bestGraph->getOutputs()[0]);

@@ -20,7 +20,7 @@ class NMutator : public Mutator {
 
   public:
     NMutator(Mode mode = Mode::Normal);
-    NMutator(const std::vector<int> &derivationRules);
+    NMutator(Mode mode, const std::vector<int> &derivationRules);
     ~NMutator();
 
     vector<Graph> run(const Graph &in_graph) override;
