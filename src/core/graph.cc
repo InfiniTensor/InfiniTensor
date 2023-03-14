@@ -11,10 +11,10 @@ GraphObj::GraphObj(Runtime runtime, OpVec ops_in)
     for (const auto &op : ops_in) {
         for (const auto &t : op->getInputs())
             if (tensorPool.find(t->getFuid()) == tensorPool.end())
-                tensorPool[t->getFuid()] = t->clone();
+                tensorPool[t->getFuid()] = cloneTensor(t);
         for (const auto &t : op->getOutputs())
             if (tensorPool.find(t->getFuid()) == tensorPool.end())
-                tensorPool[t->getFuid()] = t->clone();
+                tensorPool[t->getFuid()] = cloneTensor(t);
     }
     for (const auto &[_, t] : tensorPool)
         addTensor(t);
@@ -127,8 +127,12 @@ Tensor GraphObj::addTensor(Shape dim, DataType dtype) {
 }
 
 Tensor GraphObj::addTensor(const Tensor &tensor) {
-    IT_ASSERT(tensor->getRuntime() == runtime, "Tensor runtime mismatch");
-    return tensors.emplace_back(tensor);
+    IT_ASSERT(tensor->getRuntime() == runtime,
+              std::string("Tensor runtime mismatch: cannot add a tenosr in ") +
+                  tensor->getRuntime()->toString() + " to " +
+                  runtime->toString());
+    tensors.emplace_back(tensor);
+    return tensor;
 }
 
 TensorVec GraphObj::addTensor(const TensorVec &tensors) {
