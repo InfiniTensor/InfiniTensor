@@ -60,7 +60,7 @@ void TensorObj::printData() const {
     void *ptr = nullptr;
     Blob buffer;
     if (!runtime->isCpu()) {
-        buffer = CpuRuntimeObj::getInstance()->allocBlob(getBytes());
+        buffer = NativeCpuRuntimeObj::getInstance()->allocBlob(getBytes());
         runtime->copyBlobToCPU(buffer->getPtr<void *>(),
                                getRawDataPtr<void *>(), getBytes());
         ptr = buffer->getPtr<void *>();

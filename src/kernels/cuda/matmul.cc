@@ -50,9 +50,20 @@ class matmulCublas : public Kernel {
         // TODO:use compute type
         cublasStatus_t stat;
         if (b > 1) {
+            // use stride trick
+            int dimA = op->getInputs(0)->getDims().size();
+            int dimB = op->getInputs(1)->getDims().size();
+            long long strideA, strideB;
+            if (dimA <= 3 && dimB <= 3) {
+                strideA = dimA == 2 || op->getInputs(0)->getDims()[0] == 1 ? 0 : m * k;
+                strideB = dimB == 2 || op->getInputs(1)->getDims()[0] == 1 ? 0 : n * k;
+            } else {
+                strideA = m * k;
+                strideB = n * k;
+            }
             stat = cublasGemmStridedBatchedEx(
                 context->cublasHandle(), opB, opA, n, m, k, &alpha, inBData,
-                CUDA_R_32F, ldb, k * n, inAData, CUDA_R_32F, lda, m * k, &beta,
+                CUDA_R_32F, ldb, strideB, inAData, CUDA_R_32F, lda, strideA, &beta,
                 outData, CUDA_R_32F, ldc, m * n, b, CUDA_R_32F,
                 (cublasGemmAlgo_t)record->algo);
         } else {

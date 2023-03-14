@@ -51,6 +51,15 @@ TEST(cuBLAS_Matmul, run) {
                    Shape{2, 3, 4}, Shape{2, 3, 2},
                    ExpectOutput{40, 52, 46, 61, 52, 70, 58, 79, 400, 448, 424,
                                 475, 448, 502, 472, 529});
+    testMatmulCuda(IncrementalGenerator(), IncrementalGenerator(), false, false,
+                   Shape{2, 3, 5}, Shape{5, 2},
+                   ExpectOutput{60, 70, 160, 195, 260, 320, 360, 445, 460, 570, 560, 695});
+    testMatmulCuda(IncrementalGenerator(), IncrementalGenerator(), true, false,
+                   Shape{2, 5, 3}, Shape{5, 2},
+                   ExpectOutput{180, 210, 200, 235, 220, 260, 480, 585, 500, 610, 520, 635});
+    testMatmulCuda(IncrementalGenerator(), IncrementalGenerator(), false, false,
+                   Shape{3, 5}, Shape{5, 2},
+                   ExpectOutput{60,  70, 160, 195, 260, 320});
 }
 
 TEST(cuBLAS_Matmul, tune) {
