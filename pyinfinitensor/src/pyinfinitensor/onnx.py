@@ -63,7 +63,7 @@ def from_onnx(model: onnx.ModelProto):
             (alpha, beta, transA, transB) = (
                 attributes[name] for name in ["alpha", "beta", "transA", "transB"]
             )
-            # TODO 不支持这些参数
+            # FIXME 不支持 `alpha` `beta`
             assert alpha == 1.0
             assert beta == 1.0
             tensors[node.output[0]] = handler.matmul(
@@ -226,7 +226,7 @@ def from_onnx(model: onnx.ModelProto):
                 tensors.get(node.output[0]),
             )
         elif node.op_type == "Flatten":
-            # TODO 后端算子不支持沿任意轴展开
+            # FIXME 后端算子不支持沿任意轴展开
             axis = next(
                 (attr.i for attr in node.attribute if attr.name == "axis"), None
             )

@@ -30,7 +30,7 @@ void init_graph_builder(py::module &m) {
         m, "CpuRuntimeObj");
     py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "TensorObj");
     py::enum_<ActType>(m, "ActType")
-        .value("Linear", ActType::None) // None 是 Python 关键字，不能用
+        .value("Linear", ActType::None) // `None` is Python keyword
         .value("Relu", ActType::Relu)
         .value("Sigmoid", ActType::Sigmoid)
         .value("Tanh", ActType::Tanh)

@@ -6,8 +6,6 @@ ReduceMeanObj::ReduceMeanObj(GraphObj *graph, Tensor input, Tensor output,
     : OperatorObj(OpType::ReduceMean, {input}, {output}), keepDims(keepDims) {
     const auto size = input->getDims().size();
     if (_axes) {
-        // TODO 不需要这个，但需要处理负数，一对相反数应该不能同时出现。
-        // IT_ASSERT((*_axes).size() <= input->getDims().size());
         for (auto idx : *_axes) {
             if (idx < 0)
                 IT_TODO_HALT();
