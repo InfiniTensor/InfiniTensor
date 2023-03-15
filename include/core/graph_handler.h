@@ -38,12 +38,14 @@ class GraphHandlerObj {
 
     Tensor tensor(Shape dims, int dtype);
 
+    //------ operators
+
+    inline OpVec operators() { return g->getOperators(); }
+
     Tensor conv(Tensor input, Tensor weight, Tensor output, int ph, int pw,
                 int sh, int sw, int dh, int dw);
-
     Tensor matmul(Tensor a, Tensor b, Tensor y, bool transA, bool transB,
                   Tensor bias, ActType act);
-
     Tensor batchNorm(Tensor input, Tensor output, Tensor mean, Tensor var,
                      Tensor scale, Tensor bias, float momentum, float eps,
                      bool training);
@@ -76,6 +78,10 @@ class GraphHandlerObj {
                  const optional<vector<int>> &steps);
     Tensor pad(Tensor input, Tensor output, const vector<int> &pads,
                const optional<vector<int>> &axes);
+
+    //------ modifiers
+
+    inline bool topo_sort() { return g->topo_sort(); }
 
     //------ runtime
 

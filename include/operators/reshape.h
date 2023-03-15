@@ -28,6 +28,8 @@ class ReshapeObj : public OperatorObj {
     int numInputs() const override { return 1; }
     int numOutputs() const override { return 1; }
 
+    inline Shape getShape() const { return dims; }
+
   private:
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;

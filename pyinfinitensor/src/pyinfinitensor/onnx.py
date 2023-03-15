@@ -1,17 +1,39 @@
-﻿import onnx, backend
+﻿import backend
+from onnx import (
+    ModelProto,
+    TensorProto,
+    NodeProto,
+    AttributeProto,
+    TensorShapeProto,
+    ValueInfoProto,
+)
+from onnx.helper import (
+    make_node,
+    make_tensor_value_info,
+    make_tensor,
+    make_graph,
+    make_model,
+)
+from onnx.checker import (
+    check_graph,
+    check_model,
+    check_node,
+    check_value_info,
+    check_tensor,
+)
 from onnx.shape_inference import infer_shapes
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Tuple, Sequence
 from functools import reduce
 
 runtime = backend.cpu_runtime()
 
 
-def from_onnx(model: onnx.ModelProto):
+def from_onnx(model: ModelProto) -> backend.GraphHandler:
     model = infer_shapes(model)
-    handler = backend.GraphHandlerObj(runtime)
+    handler = backend.GraphHandler(runtime)
 
-    tensors: Dict[str, backend.TensorObj] = dict()
-    data: Dict[str, onnx.TensorProto] = dict()
+    tensors: Dict[str, backend.Tensor] = dict()
+    data: Dict[str, TensorProto] = dict()
 
     for input in model.graph.input:
         dims = _take_shape_dim(input.type.tensor_type.shape)
@@ -303,7 +325,164 @@ def from_onnx(model: onnx.ModelProto):
             raise Exception('Unsupported operator "{}"'.format(node.op_type))
 
 
-def parse_onnx(model: onnx.ModelProto):
+def to_onnx(graph: backend.GraphHandler, name: str) -> ModelProto:
+    class Context:
+        # saves object names, including tensors and operators
+        names: Dict[Any, str] = dict()
+        # counts the occurrence times of each operator for naming
+        count_op: Dict[backend.OpType, int] = dict()
+        # counts input and output tensors for naming
+        count_in, count_out = 0, 0
+        # saves nodes (operators)
+        nodes: List[NodeProto] = []
+        # saves global input tensors
+        inputs: List[ValueInfoProto] = []
+        # saves global output tensors
+        outputs: List[ValueInfoProto] = []
+        # saves global input tensors
+        initializers: List[TensorProto] = []
+
+        def name_op(self, op: backend.Operator) -> Tuple[backend.OpType, str]:
+            ty = op.op_type()
+            name = "{}{}".format(ty.name, self.count_op.setdefault(ty, 0) + 1)
+            self.names[op] = name
+            self.count_op[ty] += 1
+            return ty, name
+
+        def push_output(self, name: str, tensor: backend.Tensor) -> str:
+            self.names[tensor] = name
+            return name
+
+        def push_input(self, tensor: backend.Tensor) -> str:
+            name = self.names.get(tensor)
+            # means that this input is a global input
+            if name is None:
+                self.count_in += 1
+                name = "input{}".format(self.count_in)
+                self.names[tensor] = name
+                shape = tensor.shape()
+                dtype = backend.tensor_dtype(tensor)
+                value_info = make_tensor_value_info(name, dtype, shape)
+                check_value_info(value_info)
+                self.inputs.append(value_info)
+
+            return name
+
+        def push_data_input(
+            self,
+            node_name: str,
+            attr_name: str,
+            elem_type: int,
+            shape: Sequence[int],
+            vals: Any,
+        ) -> str:
+            name = "{}_{}".format(node_name, attr_name)
+            value_info = make_tensor_value_info(name, elem_type, shape)
+            tensor = make_tensor(name, elem_type, shape, vals)
+            check_value_info(value_info)
+            check_tensor(tensor)
+            self.inputs.append(value_info)
+            self.initializers.append(tensor)
+            return name
+
+        def push_node(self, node: NodeProto) -> None:
+            check_node(node)
+            self.nodes.append(node)
+
+        def build(self, name: str) -> ModelProto:
+            print()
+            print(ctx.names)
+            print()
+            print(ctx.inputs)
+            print()
+            print(ctx.outputs)
+            print()
+            print(ctx.nodes)
+
+            graph = make_graph(
+                self.nodes, name, self.inputs, self.outputs, self.initializers
+            )
+            check_graph(graph)
+
+            model = make_model(graph)
+            check_model(model)
+
+            return model
+
+    # 拓扑排序
+    if not graph.topo_sort():
+        raise Exception("Sorting fails")
+
+    ops = graph.operators()  # 图中所有算子（节点）
+
+    ctx = Context()
+
+    for op in ops:
+        ty, name = ctx.name_op(op)
+        inputs = [ctx.push_input(it) for it in op.inputs()]
+        outputs = [
+            ctx.push_output("{}_{}".format(name, i), it)
+            for (i, it) in enumerate(op.outputs())
+        ]
+        if ty == backend.OpType.Matmul:
+            ctx.push_node(make_node("MatMul", inputs, outputs, name))
+        elif ty == backend.OpType.BatchNorm:
+            raise Exception("TODO")
+        elif ty == backend.OpType.MaxPool:
+            raise Exception("TODO")
+        elif ty == backend.OpType.AvgPool:
+            raise Exception("TODO")
+        elif ty in [
+            backend.OpType.Add,
+            backend.OpType.Sub,
+            backend.OpType.Mul,
+            backend.OpType.Div,
+            backend.OpType.Pow,
+            backend.OpType.Relu,
+            backend.OpType.Sigmoid,
+            backend.OpType.Tanh,
+            backend.OpType.Softmax,
+            backend.OpType.Abs,
+            backend.OpType.Identity,
+        ]:
+            ctx.push_node(make_node(ty.name, inputs, outputs, name))
+        elif ty == backend.OpType.Flatten:
+            raise Exception("TODO")
+        elif ty == backend.OpType.Reshape:
+            shape = backend.reshape_shape_of(op)
+            inputs.append(
+                ctx.push_data_input(
+                    name,
+                    "shape",
+                    TensorProto.INT32,
+                    [len(shape)],
+                    shape,
+                )
+            )
+            ctx.push_node(make_node(ty.name, inputs, outputs, name))
+        elif ty == backend.OpType.Concat:
+            axis = backend.concat_axis_of(op)
+            ctx.push_node(make_node(ty.name, inputs, outputs, name, axis=axis))
+        elif ty == backend.OpType.Gather:
+            axis = backend.gather_axis_of(op)
+            ctx.push_node(make_node(ty.name, inputs, outputs, name, axis=axis))
+        elif ty == backend.OpType.ReduceMean:
+            axes = backend.reduce_mean_axes_of(op)
+            inputs.append(
+                ctx.push_data_input(name, "axes", TensorProto.INT32, [len(axes)], axes)
+            )
+            ctx.push_node(make_node(ty.name, inputs, outputs, name, keepdims=1))
+        elif ty == backend.OpType.Slice:
+            raise Exception("TODO")
+        elif ty == backend.OpType.Pad:
+            raise Exception("TODO")
+        else:
+            raise Exception("Unsupported OpType {}".format(ty.name))
+
+    return ctx.build(name)
+
+
+def parse_onnx(model: ModelProto):
     print()
 
     for field in [
@@ -339,34 +518,32 @@ def parse_onnx(model: onnx.ModelProto):
         print("   {}".format(node.name))
 
 
-def _parse_attribute(
-    node: onnx.NodeProto, attrs: Dict[str, Any] = dict()
-) -> Dict[str, Any]:
+def _parse_attribute(node: NodeProto, attrs: Dict[str, Any] = dict()) -> Dict[str, Any]:
     for attr in node.attribute:
         if attr.name in attrs:
-            if attr.type == onnx.AttributeProto.INT:
+            if attr.type == AttributeProto.INT:
                 attrs[attr.name] = attr.i
-            elif attr.type == onnx.AttributeProto.INTS:
+            elif attr.type == AttributeProto.INTS:
                 attrs[attr.name] = attr.ints
-            elif attr.type == onnx.AttributeProto.FLOAT:
+            elif attr.type == AttributeProto.FLOAT:
                 attrs[attr.name] = attr.f
-            elif attr.type == onnx.AttributeProto.STRING:
+            elif attr.type == AttributeProto.STRING:
                 attrs[attr.name] = attr.s
-            elif attr.type == onnx.AttributeProto.TENSOR:
+            elif attr.type == AttributeProto.TENSOR:
                 attrs[attr.name] = attr.t
             else:
                 assert False, "Unsupported Attribute Type: {}".format(attr.type)
     return attrs
 
 
-def _parse_data(tensor: onnx.TensorProto) -> List[int]:
-    if tensor.data_type == onnx.TensorProto.INT32:
+def _parse_data(tensor: TensorProto) -> List[int]:
+    if tensor.data_type == TensorProto.INT32:
         return [int(i) for i in tensor.int32_data]
-    elif tensor.data_type == onnx.TensorProto.INT64:
+    elif tensor.data_type == TensorProto.INT64:
         return [int(i) for i in tensor.int64_data]
     else:
         assert False, "Unsupported Tensor Type: {}".format(tensor.data_type)
 
 
-def _take_shape_dim(shape: onnx.TensorShapeProto) -> List[int]:
+def _take_shape_dim(shape: TensorShapeProto) -> List[int]:
     return [(d.dim_value if d.dim_value > 0 else 1) for d in shape.dim]

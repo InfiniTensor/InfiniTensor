@@ -30,6 +30,7 @@ class ReduceMeanObj : public OperatorObj {
     int numOutputs() const override { return 1; }
 
     bool isReduced(int idx) const;
+    const set<int> &getAxes() const { return axes; }
     bool getKeepDims() const { return keepDims; }
 
   private:
