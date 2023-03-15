@@ -49,6 +49,8 @@ class ConvBaseObj : public OperatorObj {
     int f;    // output/input channel for conv2d/convTransposed2d
     int r, s; // weight shape
 
+    ActType act;
+
   public:
     /**
      * @brief Construct a new ConvBase object by explicitly setting padding
@@ -70,7 +72,7 @@ class ConvBaseObj : public OperatorObj {
      */
     ConvBaseObj(OpType opType, TensorVec inputs, Tensor &output, int ph, int pw,
                 int sh, int sw, int dh, int dw, const Tensor &inputInConvFWD,
-                const Tensor &weightInConvFWD);
+                const Tensor &weightInConvFWD, ActType act = ActType::None);
     /**
      * @brief Construct a new ConvBase object by setting padding mode.
      *
@@ -89,7 +91,8 @@ class ConvBaseObj : public OperatorObj {
      */
     ConvBaseObj(OpType opType, TensorVec inputs, Tensor &output,
                 PaddingMode mode, int sh, int sw, int dh, int dw,
-                const Tensor &inputInConvFWD, const Tensor &weightInConvFWD);
+                const Tensor &inputInConvFWD, const Tensor &weightInConvFWD,
+                ActType act = ActType::None);
 
     std::string toString() const override;
     int numInputs() const override { return 2; }
@@ -107,7 +110,14 @@ class ConvBaseObj : public OperatorObj {
     int getSw() const { return sw; }
     auto getNCHWFRS() const { return tuple(n, c, h, w, f, r, s); }
     auto getPadStrideDilation() const { return tuple(ph, pw, sh, sw, dh, dw); }
-    int getChannelPerGroup() const { return inputs[1]->getDims()[1]; }
+    int getChannelPerGroup() const {
+        if (type == OpType::ConvTransNHWC) {
+            return inputs[1]->getDims()[3];
+        } else {
+            return inputs[1]->getDims()[1];
+        }
+    }
+    ActType getAct() const { return act; }
     virtual int getNumGroups() const = 0;
 
   private:
@@ -121,9 +131,6 @@ class ConvBaseObj : public OperatorObj {
 };
 
 class ConvObj : public ConvBaseObj {
-  private:
-    ActType act;
-
   public:
     ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output, int ph,
             int pw, int sh = 1, int sw = 1, int dh = 1, int dw = 1,
@@ -136,7 +143,6 @@ class ConvObj : public ConvBaseObj {
     OP_CLONE(ConvObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
-    ActType getAct() const { return act; }
     int getNumGroups() const override { return c / getChannelPerGroup(); }
 
   private:
@@ -147,7 +153,6 @@ class ConvTransposed2dObj : public ConvBaseObj {
   private:
     int oph, opw;
     int group;
-    ActType act;
 
   public:
     ConvTransposed2dObj(GraphObj *graph, Tensor input, Tensor weight,
@@ -164,7 +169,32 @@ class ConvTransposed2dObj : public ConvBaseObj {
     OP_CLONE(ConvTransposed2dObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
-    ActType getAct() const { return act; }
+    int getNumGroups() const override { return group; }
+
+  private:
+    void setAuxilaryAttributes(PaddingMode mode) override;
+};
+
+class ConvTransposed2dNHWCObj : public ConvBaseObj {
+  private:
+    int oph, opw;
+    int group;
+
+  public:
+    ConvTransposed2dNHWCObj(GraphObj *graph, Tensor input, Tensor weight,
+                            Tensor output, int ph, int pw, int sh = 1,
+                            int sw = 1, int dh = 1, int dw = 1, int oph = 0,
+                            int opw = 0, int group = 1, Tensor bias = nullptr,
+                            ActType act = ActType::None);
+    // Constructors for setting padding mode
+    ConvTransposed2dNHWCObj(GraphObj *graph, Tensor input, Tensor weight,
+                            Tensor output, PaddingMode mode = PaddingMode::Same,
+                            int sh = 1, int sw = 1, int dh = 1, int dw = 1,
+                            int oph = 0, int opw = 0, int group = 1,
+                            Tensor bias = nullptr, ActType act = ActType::None);
+    OP_CLONE(ConvTransposed2dNHWCObj);
+
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
     int getNumGroups() const override { return group; }
 
   private:

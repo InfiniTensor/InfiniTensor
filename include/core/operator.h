@@ -9,6 +9,7 @@ enum class OpType {
     Conv = 100,
     Matmul,
     ConvTrans,
+    ConvTransNHWC,
     G2BMM,
     GBMM,
     Pad,
@@ -84,6 +85,7 @@ class OpRegistry {
             FOP(Sigmoid);
             FOP(Tanh);
             FOP(Abs);
+            FOP(ConvTransNHWC);
             //
             FOP(MemBound);
         default:
