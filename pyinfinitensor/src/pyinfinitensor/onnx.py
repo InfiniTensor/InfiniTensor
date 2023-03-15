@@ -351,7 +351,6 @@ def to_onnx(graph: backend.GraphHandler, name: str) -> ModelProto:
 
         def push_output(self, name: str, tensor: backend.Tensor) -> str:
             self.names[tensor] = name
-            # TODO 需要判断全图输出并保存到 outputs
             return name
 
         def push_input(self, tensor: backend.Tensor) -> str:

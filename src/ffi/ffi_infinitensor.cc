@@ -29,7 +29,7 @@ void export_values(py::module &m) {
 #define VALUE(TYPE, NAME) value(#NAME, TYPE::NAME)
 
     py::enum_<ActType>(m, "ActType")
-        .value("Linear", ActType::None) // None 是 Python 关键字，不能用
+        .value("Linear", ActType::None) // `None` is Python keyword
         .VALUE(ActType, Relu)
         .VALUE(ActType, Sigmoid)
         .VALUE(ActType, Tanh)
