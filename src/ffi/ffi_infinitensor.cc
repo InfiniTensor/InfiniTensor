@@ -160,6 +160,14 @@ clip_attrs_of(Operator op) {
     return std::make_tuple(clip->getMin(), clip->getMax());
 }
 
+static std::tuple<vector<int>, bool> reduce_mean_attrs_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::ReduceMean);
+    auto reduce_mean = dynamic_cast<const ReduceMeanObj *>(op.get());
+    auto &set = reduce_mean->getAxes();
+    return std::make_tuple(vector(set.begin(), set.end()),
+                           reduce_mean->getKeepDims());
+}
+
 static int concat_axis_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Concat);
     return dynamic_cast<const ConcatObj *>(op.get())->getDim();
@@ -173,12 +181,6 @@ static int split_axis_of(Operator op) {
 static int gather_axis_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Gather);
     return dynamic_cast<const GatherObj *>(op.get())->getAxis();
-}
-
-static vector<int> reduce_mean_axes_of(Operator op) {
-    IT_ASSERT(op->getOpType() == OpType::ReduceMean);
-    auto &set = dynamic_cast<const ReduceMeanObj *>(op.get())->getAxes();
-    return vector(set.begin(), set.end());
 }
 
 static vector<int64_t> reshape_shape_of(Operator op) {
@@ -218,14 +220,14 @@ void export_functions(py::module &m) {
         .FUNCTION(batch_norm_attrs_of)
         .FUNCTION(pool_attrs_of)
         .FUNCTION(clip_attrs_of)
+        .FUNCTION(reduce_mean_attrs_of)
         .FUNCTION(tensor_dtype)
         .FUNCTION(reshape_shape_of)
         .FUNCTION(pad_pads_of)
         .FUNCTION(transpose_permute_of)
         .FUNCTION(concat_axis_of)
         .FUNCTION(split_axis_of)
-        .FUNCTION(gather_axis_of)
-        .FUNCTION(reduce_mean_axes_of);
+        .FUNCTION(gather_axis_of);
 #undef FUNCTION
 }
 

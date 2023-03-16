@@ -703,13 +703,15 @@ class OnnxStub:
                 axis = backend.gather_axis_of(op)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, axis=axis))
             elif ty == backend.OpType.ReduceMean:
-                axes = backend.reduce_mean_axes_of(op)
+                axes, keepdims = backend.reduce_mean_attrs_of(op)
                 inputs.append(
                     ctx.push_data_input(
                         name, "axes", TensorProto.INT64, [len(axes)], axes
                     )
                 )
-                ctx.push_node(make_node(ty.name, inputs, outputs, name, keepdims=1))
+                ctx.push_node(
+                    make_node(ty.name, inputs, outputs, name, keepdims=keepdims)
+                )
             elif ty == backend.OpType.Slice:
                 raise Exception("TODO")
             elif ty == backend.OpType.Pad:
