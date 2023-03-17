@@ -7,7 +7,10 @@ namespace infini {
  *
  */
 class SliceObj : public OperatorObj {
-    vector<int> starts, ends; // the start no. and end no. for all dims.
+    template <class t> struct range_t {
+        t start, end, step;
+    };
+    vector<range_t<int>> axes;
 
   public:
     /**
@@ -33,9 +36,26 @@ class SliceObj : public OperatorObj {
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
     std::string toString() const override;
-    int numInputs() const override { return 1; }
-    int numOutputs() const override { return 1; }
-    Shape getStart() const { return starts; }
+    inline int numInputs() const override { return 1; }
+    inline int numOutputs() const override { return 1; }
+    inline Shape getStarts() const {
+        Shape ans(axes.size());
+        std::transform(axes.begin(), axes.end(), ans.begin(),
+                       [](auto x) { return x.start; });
+        return ans;
+    }
+    inline Shape getEnds() const {
+        Shape ans(axes.size());
+        std::transform(axes.begin(), axes.end(), ans.begin(),
+                       [](auto x) { return x.end; });
+        return ans;
+    }
+    inline Shape getSteps() const {
+        Shape ans(axes.size());
+        std::transform(axes.begin(), axes.end(), ans.begin(),
+                       [](auto x) { return x.step; });
+        return ans;
+    }
 
   private:
     vector<int> getWorkloadVector() const override;

@@ -257,22 +257,19 @@ class TestStringMethods(unittest.TestCase):
 
     def test_slice(self):
         data = make_tensor_value_info("data", TensorProto.UINT32, [10, 64, 162, 162])
-        output = make_tensor_value_info("output", TensorProto.UINT32, [1, 0, 99, 95])
-        starts = make_tensor_value_info("starts", TensorProto.INT64, [4])
-        starts_data = make_tensor("starts", TensorProto.INT64, [4], [2, 10, 1, 5])
-        ends = make_tensor_value_info("ends", TensorProto.INT64, [4])
-        ends_data = make_tensor("ends", TensorProto.INT64, [4], [3, 10, 100, 100])
+        output = make_tensor_value_info("output", TensorProto.UINT32, [1, 1, 99, 95])
+        starts = make_tensor("starts", TensorProto.INT64, [4], [2, 9, 1, 5])
+        ends = make_tensor("ends", TensorProto.INT64, [4], [3, 10, 100, 100])
         slice = make_node("Slice", ["data", "starts", "ends"], ["output"], name="slice")
-        # FIXME 后端的实现是 axis:[start,end]，onnx 的实现是 axis:[start,end)
-        # make_and_import_model(
-        make_graph(
-            [slice],
-            "slice",
-            [data, starts, ends],
-            [output],
-            [starts_data, ends_data],
+        make_and_import_model(
+            make_graph(
+                [slice],
+                "slice",
+                [data],
+                [output],
+                [starts, ends],
+            )
         )
-        # )
 
     def test_pad(self):
         data = make_tensor_value_info("data", TensorProto.UINT32, [1, 64, 162, 162])

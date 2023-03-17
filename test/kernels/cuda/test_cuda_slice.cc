@@ -20,7 +20,7 @@ TEST(CUDA_Slice, run) {
     Graph g = make_ref<GraphObj>(cudaRuntime);
     auto i = g->cloneTensor(icpu);
     auto op =
-        g->addOp<SliceObj>(i, nullptr, vector<int>{1, 1}, vector<int>{1, 4},
+        g->addOp<SliceObj>(i, nullptr, vector<int>{1, 1}, vector<int>{2, 5},
                            vector<int>{0, 3}, std::nullopt);
 
     // allocate CUDA memory

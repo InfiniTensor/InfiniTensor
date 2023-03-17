@@ -112,7 +112,7 @@ bool TensorObj::equalData(const Tensor &rhs, double relativeError) const {
 }
 
 void TensorObj::dataMalloc() {
-    if (data == nullptr)
+    if (!data)
         data = runtime->allocBlob(getBytes());
 }
 
