@@ -178,6 +178,8 @@ void init_graph_builder(py::module &m) {
         .def("fuid", &TensorObj::getFuid, policy::automatic)
         .def("shape", &TensorObj::getDims, policy::move)
         .def("copyoutFloat", &TensorObj::copyoutFloat, policy::move)
+        .def("copyoutInt32", &TensorObj::copyoutInt32, policy::move)
+        .def("copyoutInt64", &TensorObj::copyoutInt64, policy::move)
         .def("has_target", &TensorObj::hasTarget, policy::automatic)
         .def("src", &TensorObj::getOutputOf, policy::move);
     py::class_<OperatorObj, std::shared_ptr<OperatorObj>>(m, "Operator")
