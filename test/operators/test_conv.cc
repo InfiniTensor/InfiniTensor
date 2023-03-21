@@ -61,7 +61,7 @@ TEST(Conv, NaiveCPU) {
     auto ans =
         make_ref<TensorObj>(Shape{1, 2, 2, 2}, DataType::UInt32, runtime);
     ans->dataMalloc();
-    ans->copyData(
+    ans->copyin(
         vector<uint32_t>{4794, 4386, 8199, 7506, 11274, 10542, 20835, 19656});
     EXPECT_TRUE(conv->getOutput()->equalData(ans));
 }

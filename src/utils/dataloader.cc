@@ -59,13 +59,13 @@ void loadTensorData(TensorObj *tensor, std::string file_path) {
         for (int i = 0; i < temp.data_float_size(); ++i) {
             data_temp.push_back(temp.data_float(i));
         }
-        tensor->copyData(data_temp);
+        tensor->copyin(data_temp);
     } else if (tensor->getDType() == DataType::UInt32) {
         std::vector<uint32_t> data_temp;
         for (int i = 0; i < temp.data_uint32_size(); ++i) {
             data_temp.push_back(temp.data_uint32(i));
         }
-        tensor->copyData(data_temp);
+        tensor->copyin(data_temp);
     } else {
         IT_TODO_HALT();
     }

@@ -15,39 +15,61 @@ using Shape = vector<ShapeElem>;
 class TensorObj : public TensorBaseObj {
   private:
     Shape shape;
-    Fuid fuid; // Cloned tensors share the same id. Tensors constructed from
-               // scratch have a new id.
+    size_t _size; // Cache of Π(shape).
+    Fuid fuid;    // Cloned tensors share the same id. Tensors constructed from
+                  // scratch have a new id.
+
+    inline void copyin(const void *ptr, size_t size) {
+        runtime->copyBlobFromCPU(getRawDataPtr<void *>(), ptr, size);
+    }
+    inline void copyout(void *ptr, size_t size) const {
+        runtime->copyBlobToCPU(ptr, getRawDataPtr<void *>(), size);
+    }
 
   public:
-    TensorObj(const Shape &shape, DataType dtype, Runtime runtime);
+    TensorObj(Shape shape, DataType dtype, Runtime runtime);
     virtual ~TensorObj() {}
     string toString() const override;
 
-    size_t size() const;
-    size_t getBytes() const;
+    inline size_t size() const { return _size; }
+    inline size_t getBytes() const { return _size * dtype.getSize(); }
 
     Shape getDims() const { return shape; }
     vector<size_t> getStride() const;
-    size_t getOffset(const Shape &ds) const;
-    using TensorBaseObj::getData;
-    VType getData(const Shape &pos) const;
+    size_t getOffset(const vector<int> &ds) const;
     void dataMalloc();
     inline UidBaseType getFuid() const { return fuid; }
 
     void load(std::string file_path);
     void save(std::string file_path);
 
-    template <typename T> void copyData(const T *dptr) {
+    // Copy elements from `data`.
+    template <typename T> inline void copyin(const vector<T> &data) {
         IT_ASSERT(DataType::get<T>() == dtype);
-        IT_ASSERT(data != nullptr);
-        runtime->copyBlobFromCPU(getRawDataPtr<void *>(), dptr, getBytes());
+        IT_ASSERT(data.size() >= _size);
+        copyin(data.data(), getBytes());
+    }
+    // Copy all the elements to a vector.
+    template <typename T> inline auto copyout() const {
+        IT_ASSERT(DataType::get<T>() == dtype);
+        std::vector<T> ans(_size);
+        copyout(ans.data(), getBytes());
+        return ans;
+    }
+    // Copy the element at `pos`.
+    template <typename T> inline auto copyout(const vector<int> &pos) const {
+        IT_ASSERT(DataType::get<T>() == dtype);
+        auto offset = getOffset(pos);
+        auto bytes = dtype.getSize();
+        T ans;
+        runtime->copyBlobToCPU(&ans, getRawDataPtr<void *>() + offset * bytes,
+                               bytes);
+        return ans;
     }
 
-    template <typename T> void copyData(vector<T> dataVector) {
-        IT_ASSERT(DataType::get<T>() == dtype);
-        IT_ASSERT(dataVector.size() >= size());
-        copyData(dataVector.data());
-    }
+    inline auto copyoutFloat() const { return copyout<float>(); }
+    inline auto copyoutInt32() const { return copyout<int32_t>(); }
+    inline auto copyoutInt64() const { return copyout<int64_t>(); }
 
     void copyData(const TensorObj *src);
     void copyData(const Tensor &src) { copyData(src.get()); }
@@ -71,24 +93,6 @@ class TensorObj : public TensorBaseObj {
             obj->copyData(this);
         }
         return obj;
-    }
-    inline std::vector<float> cloneFloats() const {
-        IT_ASSERT(data != nullptr);
-        IT_ASSERT(getDType() == DataType::Float32);
-        std::vector<float> ans(size());
-        auto src = getRawDataPtr<void *>();
-        auto dst = ans.data();
-        auto bytes = getBytes();
-        if (runtime->isCpu()) {
-            memcpy(dst, src, bytes);
-        } else {
-#if USE_CUDA
-            cudaMemcpy(dst, src, bytes, cudaMemcpyDeviceToHost);
-#else
-            IT_TODO_HALT();
-#endif
-        }
-        return ans;
     }
 
     void printData() const;

@@ -90,15 +90,15 @@ class GraphHandlerObj {
     inline void data_malloc() { g->dataMalloc(); }
 
     inline void copy_int32(Tensor tensor, std::vector<int32_t> list) {
-        tensor->copyData(list);
+        tensor->copyin(list);
     }
 
     inline void copy_int64(Tensor tensor, std::vector<int64_t> list) {
-        tensor->copyData(list);
+        tensor->copyin(list);
     }
 
     inline void copy_float(Tensor tensor, std::vector<float> list) {
-        tensor->copyData(list);
+        tensor->copyin(list);
     }
 
     inline void run() { g->getRuntime()->run(g); }

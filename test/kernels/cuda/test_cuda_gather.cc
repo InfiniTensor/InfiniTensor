@@ -181,8 +181,8 @@ TEST(Gather, Cuda) {
         auto input = gCpu->addTensor({3, 2}, DataType::Float32);
         auto index = gCpu->addTensor({2, 2}, DataType::UInt32);
         gCpu->dataMalloc();
-        input->copyData(vector<float>{1, 2, 3, 4, 5, 6});
-        index->copyData(vector<uint32_t>{0, 1, 1, 2});
+        input->copyin(vector<float>{1, 2, 3, 4, 5, 6});
+        index->copyin(vector<uint32_t>{0, 1, 1, 2});
         auto cudaRuntime = make_ref<CudaRuntimeObj>();
         Graph gCuda = make_ref<GraphObj>(cudaRuntime);
 
@@ -203,7 +203,7 @@ TEST(Gather, Cuda) {
         auto index = gCpu->addTensor({1, 2}, DataType::UInt32);
         gCpu->dataMalloc();
         input->setData(IncrementalGenerator());
-        index->copyData(vector<uint32_t>{0, 2});
+        index->copyin(vector<uint32_t>{0, 2});
         auto cudaRuntime = make_ref<CudaRuntimeObj>();
         Graph gCuda = make_ref<GraphObj>(cudaRuntime);
 
@@ -224,7 +224,7 @@ TEST(Gather, Cuda) {
         auto index = gCpu->addTensor({3, 1}, DataType::UInt32);
         gCpu->dataMalloc();
         input->setData(IncrementalGenerator());
-        index->copyData(vector<uint32_t>{0, 3, 1});
+        index->copyin(vector<uint32_t>{0, 3, 1});
         auto cudaRuntime = make_ref<CudaRuntimeObj>();
         Graph gCuda = make_ref<GraphObj>(cudaRuntime);
 

@@ -22,8 +22,8 @@ TEST(CUDA_BatchNorm, run) {
     // Build input data on CPU
     gCpu->dataMalloc();
     iCpu->setData(IncrementalGenerator());
-    meanCpu->copyData(vector<float>{1, 6, 9});
-    varCpu->copyData(vector<float>{4, 1, 9});
+    meanCpu->copyin(vector<float>{1, 6, 9});
+    varCpu->copyin(vector<float>{4, 1, 9});
     scaleCpu->setData(OneGenerator());
     biasCpu->setData(ZeroGenerator());
 

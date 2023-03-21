@@ -41,7 +41,6 @@ class TensorBaseObj : public Object {
         IT_ASSERT(data != nullptr);
         return data->getPtr<T>();
     }
-    VType getData(size_t offset) const;
 
     DataType getDType() const { return dtype; }
     Runtime getRuntime() const { return runtime; }

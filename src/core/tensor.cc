@@ -3,15 +3,16 @@
 #include "core/operator.h"
 #include "core/runtime.h"
 #include "utils/dataloader.h"
+#include <numeric>
 
 namespace infini {
 
-TensorObj::TensorObj(const Shape &shape, DataType dtype, Runtime runtime)
-    : TensorBaseObj(shape.size(), dtype, runtime), shape(shape) {}
-
-VType TensorObj::getData(const Shape &pos) const {
-    return getData(getOffset(pos));
-}
+TensorObj::TensorObj(Shape shape_, DataType dtype, Runtime runtime)
+    : TensorBaseObj(shape.size(), dtype, runtime), shape(std::move(shape_)),
+      _size(shape.empty()
+                ? 0
+                : std::accumulate(shape.begin(), shape.end(), 1,
+                                  [](auto acc, auto x) { return acc * x; })) {}
 
 string TensorObj::toString() const {
     string ret = "Tensor " + std::to_string(guid) + ", Fuid " +
@@ -28,7 +29,7 @@ string TensorObj::toString() const {
     return ret;
 }
 
-size_t TensorObj::getOffset(const Shape &pos) const {
+size_t TensorObj::getOffset(const vector<int> &pos) const {
     auto nDim = pos.size();
     IT_ASSERT(shape.size() == nDim);
     if (pos.empty())
@@ -52,15 +53,6 @@ vector<size_t> TensorObj::getStride() const {
     ret.emplace(ret.begin(), stride);
     return ret;
 }
-
-size_t TensorObj::size() const {
-    size_t ret = 1;
-    for (const auto &d : shape)
-        ret *= d;
-    return ret;
-}
-
-size_t TensorObj::getBytes() const { return size() * dtype.getSize(); }
 
 void TensorObj::printData() const {
     IT_ASSERT(data != nullptr);
