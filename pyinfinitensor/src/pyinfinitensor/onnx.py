@@ -28,6 +28,11 @@ from functools import reduce
 
 
 class OnnxStub:
+    """
+    The Onnx model imported into infinitensor.
+    It can be generated from an Onnx model object.
+    """
+
     inputs: Dict[str, backend.Tensor] = {}
     outputs: Dict[str, backend.Tensor] = {}
     initializer: Dict[int, TensorProto] = {}
