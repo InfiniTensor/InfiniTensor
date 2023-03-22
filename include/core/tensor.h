@@ -57,19 +57,15 @@ class TensorObj : public TensorBaseObj {
         return ans;
     }
     // Copy the element at `pos`.
-    template <typename T> inline auto copyout(const vector<int> &pos) const {
+    template <typename T> inline auto copyOne(const vector<int> &pos) const {
         IT_ASSERT(DataType::get<T>() == dtype);
         auto offset = getOffset(pos);
         auto bytes = dtype.getSize();
         T ans;
-        runtime->copyBlobToCPU(&ans, getRawDataPtr<void *>() + offset * bytes,
-                               bytes);
+        runtime->copyBlobToCPU(
+            &ans, getRawDataPtr<uint8_t *>() + offset * bytes, bytes);
         return ans;
     }
-
-    inline auto copyoutFloat() const { return copyout<float>(); }
-    inline auto copyoutInt32() const { return copyout<int32_t>(); }
-    inline auto copyoutInt64() const { return copyout<int64_t>(); }
 
     void copyData(const TensorObj *src);
     void copyData(const Tensor &src) { copyData(src.get()); }

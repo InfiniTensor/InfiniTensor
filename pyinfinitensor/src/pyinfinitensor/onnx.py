@@ -101,7 +101,7 @@ class OnnxStub:
                 (alpha, beta, transA, transB) = (
                     attributes[name] for name in ["alpha", "beta", "transA", "transB"]
                 )
-                # TODO 不支持这些参数
+                # FIXME unsupport attributes: `alpha` `beta`
                 assert alpha == 1.0
                 assert beta == 1.0
                 tensors[node.output[0]] = self.handler.matmul(
@@ -265,7 +265,7 @@ class OnnxStub:
                     tensors.get(node.output[0]),
                 )
             elif node.op_type == "Flatten":
-                # TODO 后端算子不支持沿任意轴展开
+                # FIXME axis must be 1
                 axis = next(
                     (attr.i for attr in node.attribute if attr.name == "axis"), None
                 )
@@ -315,7 +315,7 @@ class OnnxStub:
                     next((attr.i for attr in node.attribute if attr.name == "axis")),
                 )
             elif node.op_type == "ReduceMean":
-                tensors[node.output[0]] = self.handler.reduceMean(
+                tensors[node.output[0]] = self.handler.reduce_mean(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
                     tensors[node.input[1]] if len(node.input) > 1 else None,
@@ -351,11 +351,11 @@ class OnnxStub:
             else:
                 self.initializer[obj.fuid()] = tensor
                 if tensor.data_type == TensorProto.INT32:
-                    self.handler.copy_int32(obj, [int(i) for i in tensor.int32_data])
+                    obj.copyin_int32([int(i) for i in tensor.int32_data])
                 elif tensor.data_type == TensorProto.INT64:
-                    self.handler.copy_int64(obj, [int(i) for i in tensor.int64_data])
+                    obj.copyin_int64([int(i) for i in tensor.int64_data])
                 elif tensor.data_type == TensorProto.FLOAT:
-                    self.handler.copy_float(obj, [float(i) for i in tensor.float_data])
+                    obj.copyin_float([int(i) for i in tensor.float_data])
                 else:
                     assert False, "Unsupported Tensor Type: {}".format(tensor.data_type)
 

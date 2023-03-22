@@ -177,9 +177,12 @@ void init_graph_builder(py::module &m) {
     py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "Tensor")
         .def("fuid", &TensorObj::getFuid, policy::automatic)
         .def("shape", &TensorObj::getDims, policy::move)
-        .def("copyoutFloat", &TensorObj::copyoutFloat, policy::move)
-        .def("copyoutInt32", &TensorObj::copyoutInt32, policy::move)
-        .def("copyoutInt64", &TensorObj::copyoutInt64, policy::move)
+        .def("copyin_float", &TensorObj::copyin<float>, policy::move)
+        .def("copyin_int32", &TensorObj::copyin<int32_t>, policy::move)
+        .def("copyin_int64", &TensorObj::copyin<int64_t>, policy::move)
+        .def("copyout_float", &TensorObj::copyout<float>, policy::move)
+        .def("copyout_int32", &TensorObj::copyout<int32_t>, policy::move)
+        .def("copyout_int64", &TensorObj::copyout<int64_t>, policy::move)
         .def("has_target", &TensorObj::hasTarget, policy::automatic)
         .def("src", &TensorObj::getOutputOf, policy::move);
     py::class_<OperatorObj, std::shared_ptr<OperatorObj>>(m, "Operator")
@@ -212,15 +215,12 @@ void init_graph_builder(py::module &m) {
         .def("reshape", &Handler::reshape, policy::move)
         .def("concat", &Handler::concat, policy::move)
         .def("gather", &Handler::gather, policy::move)
-        .def("reduceMean", &Handler::reduceMean, policy::move)
+        .def("reduce_mean", &Handler::reduceMean, policy::move)
         .def("slice", &Handler::slice, policy::move)
         .def("pad", &Handler::pad, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)
         .def("operators", &Handler::operators, policy::move)
         .def("data_malloc", &Handler::data_malloc, policy::automatic)
-        .def("copy_int32", &Handler::copy_int32, policy::automatic)
-        .def("copy_int64", &Handler::copy_int64, policy::automatic)
-        .def("copy_float", &Handler::copy_float, policy::automatic)
         .def("run", &Handler::run, policy::automatic);
 }
 
