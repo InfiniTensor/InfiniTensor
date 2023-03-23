@@ -186,12 +186,12 @@ vector<int> MulNObj::getOpAttrVector() const {
 
 AddcdivObj::AddcdivObj(GraphObj *graph, float alpha, Tensor input0,
                        Tensor input1, Tensor input2, Tensor output)
-    : OperatorObj(OpType::Addcdiv, {input0, input1, input2}, {output}), alphaValue(alpha) {
+    : OperatorObj(OpType::Addcdiv, {input0, input1, input2}, {output}),
+      alphaValue(alpha) {
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>>
-AddcdivObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> AddcdivObj::inferShape(const TensorVec &inputs) const {
     // For now,we only process the same dims here, broardcast will be considered
     // in the opt layer.
     const auto A = inputs[0], B = inputs[1];
@@ -229,12 +229,12 @@ vector<int> AddcdivObj::getOpAttrVector() const {
 
 AddcmulObj::AddcmulObj(GraphObj *graph, float alpha, Tensor input0,
                        Tensor input1, Tensor input2, Tensor output)
-    : OperatorObj(OpType::Addcmul, {input0, input1, input2}, {output}), alphaValue(alpha) {
+    : OperatorObj(OpType::Addcmul, {input0, input1, input2}, {output}),
+      alphaValue(alpha) {
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>>
-AddcmulObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> AddcmulObj::inferShape(const TensorVec &inputs) const {
     // For now,we only process the same dims here, broardcast will be considered
     // in the opt layer.
     const auto A = inputs[0], B = inputs[1];

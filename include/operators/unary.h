@@ -47,7 +47,8 @@ class ClipObj : public OperatorObj {
 
 class HardtanhObj : public OperatorObj {
   public:
-    HardtanhObj(GraphObj *graph, Tensor input, Tensor output, float min, float max);
+    HardtanhObj(GraphObj *graph, Tensor input, Tensor output, float min,
+                float max);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
     std::string toString() const override;
@@ -210,7 +211,8 @@ class CumsumObj : public OperatorObj {
 
 class ArangeObj : public OperatorObj {
   public:
-    ArangeObj(GraphObj *graph, float start, float step, int length, Tensor output);
+    ArangeObj(GraphObj *graph, float start, float step, int length,
+              Tensor output);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
     std::string toString() const override;

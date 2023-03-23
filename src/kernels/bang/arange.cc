@@ -22,9 +22,9 @@ class ArangeCnnl : public BangKernelWithoutConfig {
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_ARRAY,
                                                CNNL_DTYPE_FLOAT, 1, dim_array));
 
-        cnnlStatus_t stat =
-            cnnlArange_v2(context->cnnlHandle(), CNNL_COMPUTATION_HIGH_PRECISION,
-                          &start, &step, cDesc, cData);
+        cnnlStatus_t stat = cnnlArange_v2(context->cnnlHandle(),
+                                          CNNL_COMPUTATION_HIGH_PRECISION,
+                                          &start, &step, cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 

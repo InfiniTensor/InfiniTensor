@@ -8,8 +8,7 @@
 
 namespace infini {
 
-template <class T>
-void testArange() {
+template <class T> void testArange() {
     // Runtime
     Runtime cpuRuntime = CpuRuntimeObj::getInstance();
     auto bangRuntime = make_ref<BangRuntimeObj>();
@@ -28,8 +27,6 @@ void testArange() {
     EXPECT_TRUE(1);
 }
 
-TEST(cnnl_Arange, run) {
-    testArange<ArangeObj>();
-}
+TEST(cnnl_Arange, run) { testArange<ArangeObj>(); }
 
 } // namespace infini
