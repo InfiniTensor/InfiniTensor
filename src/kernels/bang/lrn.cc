@@ -16,10 +16,8 @@ class LrnCnnl : public BangKernelWithoutConfig {
         float beta = op->getBeta();
         float bias = op->getBias();
 
-        cnnlTensorDescriptor_t aDes, cDesc;
+        cnnlTensorDescriptor_t aDesc, cDesc;
         auto dim = op->getOutput()->getDims();
-        float alpha = op->getAlpha();
-        float beta = op->getBeta();
         if (dim.size() != 4)
             IT_TODO_HALT();
 
@@ -32,12 +30,12 @@ class LrnCnnl : public BangKernelWithoutConfig {
                                                CNNL_DTYPE_FLOAT, 4, dim_array));
 
         size_t wsSize;
-        cnnlGetLrnWorkspaceSize_v2(context->cnnlHandle(), aDesc, cDesc, CNNL_LRN_CROSS_CHANNEL, lrn_n, 
+        cnnlGetLrnWorkspaceSize(context->cnnlHandle(), aDesc, cDesc, lrn_n, 
                                      &wsSize);
 
         BangPtr wsData = context->getWorkspace(wsSize);
 
-        cnnlStatus_t stat = cnnlLrn(context->cnnlHandle(), CNNL_LRN_CROSS_CHANNEL, lrn_n, double(alpha),
+        cnnlStatus_t stat = cnnlLrn(context->cnnlHandle(), CNNL_LRN_CROSS_CHANNEL, (unsigned int)lrn_n, double(alpha),
                                     double(beta), double(bias), wsData, wsSize, aDesc,
                                           aData, cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
