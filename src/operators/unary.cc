@@ -341,4 +341,33 @@ vector<int> ArangeObj::getOpAttrVector() const {
     return {enum_to_underlying(type)};
 }
 
+LrnObj::LrnObj(GraphObj *graph, Tensor input, Tensor output, int feature_num, float alpha, float beta, float bias)
+    : OperatorObj(OpType::Lrn, {input}, {output}), featureNumValue(feature_num), alphaValue(alpha), betaValue(beta), biasValue(bias) {
+    IT_ASSERT(checkValid(graph));
+}
+
+optional<vector<Shape>> LrnObj::inferShape(const TensorVec &inputs) const {
+    const auto A = inputs[0];
+    return {{A->getDims()}};
+}
+
+std::string LrnObj::toString() const {
+    std::ostringstream os;
+    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]";
+    os << "(";
+    os << "output=" << outputs[0]->getGuid() << ")";
+    return os.str();
+}
+
+vector<int> LrnObj::getWorkloadVector() const {
+    vector<int> ret{enum_to_underlying(type)};
+    const Shape shape = outputs[0]->getDims();
+    ret.insert(ret.end(), shape.begin(), shape.end());
+    return ret;
+}
+
+vector<int> LrnObj::getOpAttrVector() const {
+    return {enum_to_underlying(type)};
+}
+
 }; // namespace infini

@@ -112,6 +112,8 @@ enum class OpType {
     BitNot,
     BitLeftShift,
     BitRightShift,
+    Dropout,
+    Lrn,
     //
     MemBound = 300,
 };
@@ -232,6 +234,8 @@ class OpRegistry {
             FOP(BitNot);
             FOP(BitLeftShift);
             FOP(BitRightShift);
+            FOP(Dropout);
+            FOP(Lrn);
             //
             FOP(MemBound);
         default:

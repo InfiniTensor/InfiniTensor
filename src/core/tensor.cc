@@ -89,7 +89,7 @@ void TensorObj::printDataFloat() const {
                 std::cout << "[";
             }
         }
-        printf("%.1f", ptr[i]);
+        printf("%.6f", ptr[i]);
         for (size_t j = 0; j < numDims; ++j) {
             if ((int)i % dimSzVec[j] == dimSzVec[j] - 1) {
                 std::cout << "]";

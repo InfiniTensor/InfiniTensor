@@ -114,6 +114,27 @@ class TransformObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 };
 
+class LrnObj : public OperatorObj {
+    public:
+        LrnObj(GraphObj *graph, Tensor input, Tensor output, int feature_num, float alpha, float beta, float bias);
+        optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+        std::string toString() const override;
+        float getFeatureNum() const { return featureNumValue; }
+        float getAlpha() const { return alphaValue; }
+        float getBeta() const { return betaValue; }
+        float getBias() const { return biasValue; }
+        int numInputs() const override { return 1; }
+        int numOutputs() const override { return 1; }
+
+    private:
+        int featureNumValue;
+        float alphaValue;
+        float betaValue;
+        float biasValue;
+        vector<int> getWorkloadVector() const override;
+        vector<int> getOpAttrVector() const override;
+};
+
 class CastObj : public OperatorObj {
   public:
     enum CastType {
