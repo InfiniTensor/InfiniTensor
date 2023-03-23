@@ -9,9 +9,8 @@
 namespace infini {
 
 template <class T>
-void testAddcdiv(
-    const std::function<void(void *, size_t, DataType)> &generator,
-    const Shape &shape) {
+void testAddcdiv(const std::function<void(void *, size_t, DataType)> &generator,
+                 const Shape &shape) {
     // Runtime
     Runtime cpuRuntime = CpuRuntimeObj::getInstance();
     auto bangRuntime = make_ref<BangRuntimeObj>();
@@ -36,7 +35,8 @@ void testAddcdiv(
     auto inputGpu2 = bangGraph->cloneTensor(inputCpu2);
     auto inputGpu3 = bangGraph->cloneTensor(inputCpu3);
     float alpha = 1.1;
-    auto gpuOp = bangGraph->addOp<T>(alpha, inputGpu1, inputGpu2, inputGpu3, nullptr);
+    auto gpuOp =
+        bangGraph->addOp<T>(alpha, inputGpu1, inputGpu2, inputGpu3, nullptr);
     bangGraph->dataMalloc();
     bangRuntime->run(bangGraph);
     auto outputGpu = gpuOp->getOutput();

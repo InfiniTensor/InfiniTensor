@@ -82,8 +82,8 @@ class MulNObj : public OperatorObj {
 
 class AddcdivObj : public OperatorObj {
   public:
-    AddcdivObj(GraphObj *graph, float alpha, Tensor input0,
-               Tensor input1, Tensor input2, Tensor output);
+    AddcdivObj(GraphObj *graph, float alpha, Tensor input0, Tensor input1,
+               Tensor input2, Tensor output);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
     std::string toString() const override;
@@ -99,8 +99,8 @@ class AddcdivObj : public OperatorObj {
 
 class AddcmulObj : public OperatorObj {
   public:
-    AddcmulObj(GraphObj *graph, float alpha, Tensor input0,
-               Tensor input1, Tensor input2, Tensor output);
+    AddcmulObj(GraphObj *graph, float alpha, Tensor input0, Tensor input1,
+               Tensor input2, Tensor output);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
     std::string toString() const override;

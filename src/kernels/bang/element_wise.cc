@@ -99,13 +99,13 @@ class LogicOpCnnl : public BangKernelWithoutConfig {
 
         size_t wsSize;
         cnnlGetLogicOpWorkspaceSize(context->cnnlHandle(), aDesc, bDesc, cDesc,
-                                     &wsSize);
+                                    &wsSize);
 
         BangPtr wsData = context->getWorkspace(wsSize);
 
-        cnnlStatus_t stat = cnnlLogicOp(context->cnnlHandle(), getOpType(),
-                                         aDesc, aData, bDesc, bData,
-                                         wsData, wsSize, cDesc, cData);
+        cnnlStatus_t stat =
+            cnnlLogicOp(context->cnnlHandle(), getOpType(), aDesc, aData, bDesc,
+                        bData, wsData, wsSize, cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
@@ -149,14 +149,14 @@ class BitComputeCnnl : public BangKernelWithoutConfig {
                                                CNNL_DTYPE_INT32, 4, dim_array));
 
         size_t wsSize;
-        cnnlGetBitComputeWorkspaceSize(context->cnnlHandle(), aDesc, bDesc, cDesc,
-                                     &wsSize);
+        cnnlGetBitComputeWorkspaceSize(context->cnnlHandle(), aDesc, bDesc,
+                                       cDesc, &wsSize);
 
         BangPtr wsData = context->getWorkspace(wsSize);
 
-        cnnlStatus_t stat = cnnlBitCompute_v2(context->cnnlHandle(), getOpType(),
-                                              aDesc, aData, bDesc, bData,
-                                              cDesc, cData, wsData, wsSize);
+        cnnlStatus_t stat =
+            cnnlBitCompute_v2(context->cnnlHandle(), getOpType(), aDesc, aData,
+                              bDesc, bData, cDesc, cData, wsData, wsSize);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
@@ -712,8 +712,9 @@ class AddcdivCnnl : public BangKernelWithoutConfig {
                                     &wsSize);
         BangPtr wsData = context->getWorkspace(wsSize);
 
-        cnnlStatus_t stat = cnnlAddcdiv(context->cnnlHandle(), aDesc, aData, &alpha,
-                                        bDesc, bData, cDesc, cData, wsData, wsSize, oDesc, oData);
+        cnnlStatus_t stat =
+            cnnlAddcdiv(context->cnnlHandle(), aDesc, aData, &alpha, bDesc,
+                        bData, cDesc, cData, wsData, wsSize, oDesc, oData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
@@ -764,8 +765,9 @@ class AddcmulCnnl : public BangKernelWithoutConfig {
                                     &wsSize);
         BangPtr wsData = context->getWorkspace(wsSize);
 
-        cnnlStatus_t stat = cnnlAddcmul(context->cnnlHandle(), aDesc, aData, &alpha,
-                                        bDesc, bData, cDesc, cData, wsData, wsSize, oDesc, oData);
+        cnnlStatus_t stat =
+            cnnlAddcmul(context->cnnlHandle(), aDesc, aData, &alpha, bDesc,
+                        bData, cDesc, cData, wsData, wsSize, oDesc, oData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
@@ -898,10 +900,12 @@ class BitNotCnnl : public BitComputeCnnl {
     cnnlBitComputeOp_t getOpType() const override { return CNNL_BNOT_OP; }
 };
 // class BitLeftShiftCnnl : public BitComputeCnnl {
-//     cnnlBitComputeOp_t getOpType() const override { return CNNL_BLEFT_SHIFT_OP_V2; }
+//     cnnlBitComputeOp_t getOpType() const override { return
+//     CNNL_BLEFT_SHIFT_OP_V2; }
 // };
 // class BitRightShiftCnnl : public BitComputeCnnl {
-//     cnnlBitComputeOp_t getOpType() const override { return CNNL_BLEFT_SHIFT_OP_V2; }
+//     cnnlBitComputeOp_t getOpType() const override { return
+//     CNNL_BLEFT_SHIFT_OP_V2; }
 // };
 
 REGISTER_KERNEL(Device::BANG, OpType::Add, DataType::Float32, AddCnnl,
@@ -937,14 +941,14 @@ REGISTER_KERNEL(Device::BANG, OpType::Equal, DataType::Float32, EqualCnnl,
                 "Equal_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::NotEqual, DataType::Float32, NotEqualCnnl,
                 "NotEqual_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::GreaterThan, DataType::Float32, GreaterThanCnnl,
-                "GreaterThan_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::GreaterEqual, DataType::Float32, GreaterEqualCnnl,
-                "GreaterEqual_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::GreaterThan, DataType::Float32,
+                GreaterThanCnnl, "GreaterThan_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::GreaterEqual, DataType::Float32,
+                GreaterEqualCnnl, "GreaterEqual_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::LessThan, DataType::Float32, LessThanCnnl,
                 "LessThan_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::LessEqual, DataType::Float32, LessEqualCnnl,
-                "LessEqual_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::LessEqual, DataType::Float32,
+                LessEqualCnnl, "LessEqual_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::And, DataType::Float32, AndCnnl,
                 "And_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::Or, DataType::Float32, OrCnnl,
@@ -967,9 +971,11 @@ REGISTER_KERNEL(Device::BANG, OpType::BitXor, DataType::Float32, BitXorCnnl,
                 "BitXor_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::BitNot, DataType::Float32, BitNotCnnl,
                 "BitNot_cnnl_BANG_Float32");
-// REGISTER_KERNEL(Device::BANG, OpType::BitLeftShift, DataType::Float32, BitLeftShiftCnnl,
+// REGISTER_KERNEL(Device::BANG, OpType::BitLeftShift, DataType::Float32,
+// BitLeftShiftCnnl,
 //                 "BitLeftShift_cnnl_BANG_Float32");
-// REGISTER_KERNEL(Device::BANG, OpType::BitRightShift, DataType::Float32, BitRightShiftCnnl,
+// REGISTER_KERNEL(Device::BANG, OpType::BitRightShift, DataType::Float32,
+// BitRightShiftCnnl,
 //                 "BitRightShift_cnnl_BANG_Float32");
 // REGISTER_KERNEL(Device::BANG, OpType::FloorModTrunc, DataType::Float32,
 // FloorModTruncCnnl,

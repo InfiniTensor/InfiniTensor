@@ -9,9 +9,8 @@
 namespace infini {
 
 template <class T>
-void testLogicOp(
-    const std::function<void(void *, size_t, DataType)> &generator,
-    const Shape &shape) {
+void testLogicOp(const std::function<void(void *, size_t, DataType)> &generator,
+                 const Shape &shape) {
     // Runtime
     Runtime cpuRuntime = CpuRuntimeObj::getInstance();
     auto bangRuntime = make_ref<BangRuntimeObj>();

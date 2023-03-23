@@ -65,8 +65,8 @@ vector<int> ClipObj::getOpAttrVector() const {
     return {enum_to_underlying(type)};
 }
 
-HardtanhObj::HardtanhObj(GraphObj *graph, Tensor input, Tensor output, float min,
-                 float max)
+HardtanhObj::HardtanhObj(GraphObj *graph, Tensor input, Tensor output,
+                         float min, float max)
     : OperatorObj(OpType::Hardtanh, {input}, {output}), minValue(min),
       maxValue(max) {
     IT_ASSERT(checkValid(graph));
@@ -311,13 +311,15 @@ vector<int> CumsumObj::getOpAttrVector() const {
 //     return {enum_to_underlying(type)};
 // }
 
-ArangeObj::ArangeObj(GraphObj *graph, float start, float step, int length, Tensor output)
-    : OperatorObj(OpType::Arange, {}, {output}), startValue(start), stepValue(step), lengthValue(length) {
+ArangeObj::ArangeObj(GraphObj *graph, float start, float step, int length,
+                     Tensor output)
+    : OperatorObj(OpType::Arange, {}, {output}), startValue(start),
+      stepValue(step), lengthValue(length) {
     IT_ASSERT(checkValid(graph, DataType::Float32));
 }
 
 optional<vector<Shape>> ArangeObj::inferShape(const TensorVec &inputs) const {
-    Shape temp = { lengthValue };
+    Shape temp = {lengthValue};
     return {{temp}};
 }
 
