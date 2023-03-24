@@ -1,7 +1,7 @@
 #include "cuda/cuda_runtime.h"
 #include "core/kernel.h"
-#include "core/runtime.h"
 #include "core/perf_engine.h"
+#include "core/runtime.h"
 #include "operators/conv.h"
 #include "operators/matmul.h"
 namespace infini {

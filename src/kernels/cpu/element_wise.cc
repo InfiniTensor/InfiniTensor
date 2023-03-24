@@ -11,19 +11,19 @@ template <typename T> class NativeElementWise : public CpuKernelWithoutConfig {
         T *inptr1 = op->getInputs(1)->getRawDataPtr<T *>();
         T *outptr = op->getOutput()->getRawDataPtr<T *>();
 
-        int a[4] = {1,1,1,1};
-        int b[4] = {1,1,1,1};
-        int c[4] = {1,1,1,1};
+        int a[4] = {1, 1, 1, 1};
+        int b[4] = {1, 1, 1, 1};
+        int c[4] = {1, 1, 1, 1};
         auto a_input = op->getInputs(0)->getDims();
         auto b_input = op->getInputs(1)->getDims();
         auto c_output = op->getOutput()->getDims();
-        std::copy(a_input.begin(), a_input.end(), a+(4 - a_input.size()));
-        std::copy(b_input.begin(), b_input.end(), b+(4 - b_input.size()));
-        std::copy(c_output.begin(), c_output.end(), c+(4 - c_output.size()));
+        std::copy(a_input.begin(), a_input.end(), a + (4 - a_input.size()));
+        std::copy(b_input.begin(), b_input.end(), b + (4 - b_input.size()));
+        std::copy(c_output.begin(), c_output.end(), c + (4 - c_output.size()));
 
         auto n = op->getOutput()->size();
         for (size_t i = 0; i < n; ++i) {
-            int c0_index = i/ (c[1] * c[2] * c[3]);
+            int c0_index = i / (c[1] * c[2] * c[3]);
             int c1_index = (i % (c[1] * c[2] * c[3])) / (c[2] * c[3]);
             int c2_index = ((i % (c[1] * c[2] * c[3])) % (c[2] * c[3])) / c[3];
             int c3_index = ((i % (c[1] * c[2] * c[3])) % (c[2] * c[3])) % c[3];
@@ -37,7 +37,11 @@ template <typename T> class NativeElementWise : public CpuKernelWithoutConfig {
             int b1_index = c1_index % b[1];
             int b2_index = c2_index % b[2];
             int b3_index = c3_index % b[3];
-            outptr[i] = doCompute(inptr0[a0_index*a[1]*a[2]*a[3] + a1_index*a[2]*a[3] + a2_index*a[3] + a3_index], inptr1[b0_index*b[1]*b[2]*b[3] + b1_index*b[2]*b[3] + b2_index*b[3] + b3_index]);
+            outptr[i] = doCompute(
+                inptr0[a0_index * a[1] * a[2] * a[3] + a1_index * a[2] * a[3] +
+                       a2_index * a[3] + a3_index],
+                inptr1[b0_index * b[1] * b[2] * b[3] + b1_index * b[2] * b[3] +
+                       b2_index * b[3] + b3_index]);
         }
     }
 };

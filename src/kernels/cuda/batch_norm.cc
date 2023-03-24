@@ -22,8 +22,7 @@ class BatchNormCudnn : public CudaKernelWithoutConfig {
         // cudnnBatchNormalizationForwardInference
         IT_ASSERT(dims.size() == 4);
 
-        int dimArray[4], strideArray[4],
-            dimPArray[4], stridePArray[4];
+        int dimArray[4], strideArray[4], dimPArray[4], stridePArray[4];
         for (size_t i = 0; i < dims.size(); ++i) {
             dimArray[i] = dims[i];
             strideArray[i] = op->getInputs(0)->getStride()[i];
