@@ -101,6 +101,7 @@ enum class OpType {
     BitNot,
     BitLeftShift,
     BitRightShift,
+    Dropout,
     //
     MemBound = 300,
 };
