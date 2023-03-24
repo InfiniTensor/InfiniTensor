@@ -474,11 +474,11 @@ class OnnxStub:
             else:
                 self.initializer[obj.fuid()] = tensor
                 if tensor.data_type == TensorProto.INT32:
-                    obj.copyin_int32([int(i) for i in tensor.int32_data])
+                    obj.copyin_int32(_parse_data(tensor))
                 elif tensor.data_type == TensorProto.INT64:
-                    obj.copyin_int64([int(i) for i in tensor.int64_data])
+                    obj.copyin_int64(_parse_data(tensor))
                 elif tensor.data_type == TensorProto.FLOAT:
-                    obj.copyin_float([int(i) for i in tensor.float_data])
+                    obj.copyin_float(_parse_data(tensor))
                 else:
                     assert False, "Unsupported Tensor Type: {}".format(tensor.data_type)
 
