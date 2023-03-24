@@ -91,6 +91,8 @@ class GraphHandlerObj {
 
     inline bool topo_sort() { return g->topo_sort(); }
 
+    inline void optimize() { g->optimize(); }
+
     //------ runtime
 
     inline void data_malloc() { g->dataMalloc(); }

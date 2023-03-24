@@ -89,7 +89,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, Tanh)
         .VALUE(OpType, Abs)
         .VALUE(OpType, Resize)
-        .VALUE(OpType, MemBound)
+        .VALUE(OpType, Dropout)
         .export_values();
 
 #undef VALUE
@@ -291,6 +291,7 @@ void init_graph_builder(py::module &m) {
         .def("slice", &Handler::slice, policy::move)
         .def("pad", &Handler::pad, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)
+        .def("optimize", &Handler::optimize, policy::automatic)
         .def("operators", &Handler::operators, policy::move)
         .def("data_malloc", &Handler::data_malloc, policy::automatic)
         .def("run", &Handler::run, policy::automatic);

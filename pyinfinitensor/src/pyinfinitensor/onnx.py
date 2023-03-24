@@ -461,6 +461,22 @@ class OnnxStub:
                     _parse_data(data[node.input[1]]),
                     _parse_data(data[node.input[3]]) if len(node.input) > 3 else None,
                 )
+            elif node.op_type == "Dropout":
+                for name, tensor in zip(
+                    node.output,
+                    self.handler.dropout(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        tensors.get(node.output[1]) if len(node.output) > 1 else None,
+                        _parse_data(data[node.input[1]])[0]
+                        if len(node.input) > 1
+                        else 0.5,
+                        _parse_data(data[node.input[2]])[0]
+                        if len(node.input) > 2
+                        else False,
+                    ),
+                ):
+                    tensors[name] = tensor
             else:
                 raise Exception('Unsupported operator "{}"'.format(node.op_type))
 
