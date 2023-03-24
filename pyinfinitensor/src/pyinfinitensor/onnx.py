@@ -676,6 +676,28 @@ class OnnxStub:
             elif ty == backend.OpType.Concat:
                 axis = backend.concat_axis_of(op)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, axis=axis))
+            elif ty == backend.OpType.Split:
+                axis = backend.split_axis_of(op)
+                num_outputs = len(outputs)
+                split = op.inputs()[0].shape()[axis] // num_outputs
+                inputs.append(
+                    ctx.push_data_input(
+                        name,
+                        "split",
+                        TensorProto.INT64,
+                        [len(outputs)],
+                        [split for _ in range(0, num_outputs)],
+                    )
+                )
+                ctx.push_node(
+                    make_node(
+                        ty.name,
+                        inputs,
+                        outputs,
+                        name,
+                        axis=axis,
+                    )
+                )
             elif ty == backend.OpType.Gather:
                 axis = backend.gather_axis_of(op)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, axis=axis))
@@ -683,7 +705,7 @@ class OnnxStub:
                 axes = backend.reduce_mean_axes_of(op)
                 inputs.append(
                     ctx.push_data_input(
-                        name, "axes", TensorProto.INT32, [len(axes)], axes
+                        name, "axes", TensorProto.INT64, [len(axes)], axes
                     )
                 )
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, keepdims=1))

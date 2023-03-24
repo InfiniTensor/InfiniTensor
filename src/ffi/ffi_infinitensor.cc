@@ -8,6 +8,7 @@
 #include "operators/pooling.h"
 #include "operators/reduce_mean.h"
 #include "operators/reshape.h"
+#include "operators/split.h"
 #include "operators/transpose.h"
 #include "operators/unary.h"
 #include <algorithm>
@@ -164,6 +165,11 @@ static int concat_axis_of(Operator op) {
     return dynamic_cast<const ConcatObj *>(op.get())->getDim();
 }
 
+static int split_axis_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Split);
+    return dynamic_cast<const SplitObj *>(op.get())->getDim();
+}
+
 static int gather_axis_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Gather);
     return dynamic_cast<const GatherObj *>(op.get())->getAxis();
@@ -217,6 +223,7 @@ void export_functions(py::module &m) {
         .FUNCTION(pad_pads_of)
         .FUNCTION(transpose_permute_of)
         .FUNCTION(concat_axis_of)
+        .FUNCTION(split_axis_of)
         .FUNCTION(gather_axis_of)
         .FUNCTION(reduce_mean_axes_of);
 #undef FUNCTION
