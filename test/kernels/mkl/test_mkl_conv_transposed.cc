@@ -47,8 +47,8 @@ TEST(mkl_ConvTransposed, run2) {
     auto conv = gMkl->addOp<ConvTransposed2dObj>(i0, w0, nullptr, 0, 0);
 
     gMkl->dataMalloc();
-    i0->copyData(vector<float>{0, 1, 2, 3, 4, 5, 6, 7, 8});
-    w0->copyData(
+    i0->copyin(vector<float>{0, 1, 2, 3, 4, 5, 6, 7, 8});
+    w0->copyin(
         vector<float>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1});
 
     runtime->prepareAndRun(gMkl);
