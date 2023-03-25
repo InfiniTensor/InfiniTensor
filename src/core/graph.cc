@@ -33,15 +33,15 @@ void GraphObj::addOperatorAndConnect(const Operator &op) {
     sorted = false;
     ops.push_back(op);
     for (auto &input : op->getInputs()) {
-        input->addInputOf(op);
-        if (auto pred = input->getOutputOf()) {
+        input->addTarget(op);
+        if (auto pred = input->getSource()) {
             pred->addSuccessors(op);
             op->addPredecessors(pred);
         }
     }
     for (auto &output : op->getOutputs()) {
-        output->setOutputOf(op);
-        for (auto &succ : output->getInputOf()) {
+        output->setSource(op);
+        for (auto &succ : output->getTargets()) {
             succ->addPredecessors(op);
             op->addSuccessors(succ);
         }
@@ -87,7 +87,7 @@ bool GraphObj::topo_sort() {
             // this node is a head node.
             const auto is_head = std::all_of(
                 this_inputs.begin(), this_inputs.end(), [&](const auto &input) {
-                    auto src = input->getOutputOf();
+                    auto src = input->getSource();
                     return src // If the source node is in the waiting list,
                                // means that this node is not the head node.
                                ? waiting.find(src) == waiting.end()

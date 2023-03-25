@@ -19,10 +19,10 @@ class TensorObj : public TensorBaseObj {
     Fuid fuid;    // Cloned tensors share the same id. Tensors constructed from
                   // scratch have a new id.
 
-    inline void copyin(const void *ptr, size_t size) {
+    void copyin(const void *ptr, size_t size) {
         runtime->copyBlobFromCPU(getRawDataPtr<void *>(), ptr, size);
     }
-    inline void copyout(void *ptr, size_t size) const {
+    void copyout(void *ptr, size_t size) const {
         runtime->copyBlobToCPU(ptr, getRawDataPtr<void *>(), size);
     }
 
@@ -31,33 +31,33 @@ class TensorObj : public TensorBaseObj {
     virtual ~TensorObj() {}
     string toString() const override;
 
-    inline size_t size() const { return _size; }
-    inline size_t getBytes() const { return _size * dtype.getSize(); }
+    size_t size() const { return _size; }
+    size_t getBytes() const { return _size * dtype.getSize(); }
 
     Shape getDims() const { return shape; }
     vector<size_t> getStride() const;
     size_t getOffset(const vector<int> &ds) const;
     void dataMalloc();
-    inline UidBaseType getFuid() const { return fuid; }
+    UidBaseType getFuid() const { return fuid; }
 
     void load(std::string file_path);
     void save(std::string file_path);
 
     // Copy elements from `data`.
-    template <typename T> inline void copyin(const vector<T> &data) {
+    template <typename T> void copyin(const vector<T> &data) {
         IT_ASSERT(DataType::get<T>() == dtype);
         IT_ASSERT(data.size() >= _size);
         copyin(data.data(), getBytes());
     }
     // Copy all the elements to a vector.
-    template <typename T> inline auto copyout() const {
+    template <typename T> auto copyout() const {
         IT_ASSERT(DataType::get<T>() == dtype);
         std::vector<T> ans(_size);
         copyout(ans.data(), getBytes());
         return ans;
     }
     // Copy the element at `pos`.
-    template <typename T> inline auto copyOne(const vector<int> &pos) const {
+    template <typename T> auto copyOne(const vector<int> &pos) const {
         IT_ASSERT(DataType::get<T>() == dtype);
         auto offset = getOffset(pos);
         auto bytes = dtype.getSize();

@@ -19,13 +19,13 @@ TEST(Graph, build_and_run) {
     w0->copyin(vector<uint32_t>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
     auto matmul = g->addOpWithOutputs<MatmulObj>(i0, w0, o0);
     g->print();
-    // check inputOf and outputsOf for tensor
-    EXPECT_EQ(i0->getInputOf().size(), 1u);
-    EXPECT_EQ(w0->getInputOf().size(), 1u);
-    EXPECT_EQ(o0->getInputOf().size(), 0u);
-    EXPECT_EQ(i0->getOutputOf(), nullptr);
-    EXPECT_EQ(w0->getOutputOf(), nullptr);
-    EXPECT_NE(o0->getOutputOf(), nullptr);
+    // check targets and source for tensor
+    EXPECT_EQ(i0->getTargets().size(), 1u);
+    EXPECT_EQ(w0->getTargets().size(), 1u);
+    EXPECT_EQ(o0->getTargets().size(), 0u);
+    EXPECT_EQ(i0->getSource(), nullptr);
+    EXPECT_EQ(w0->getSource(), nullptr);
+    EXPECT_NE(o0->getSource(), nullptr);
     EXPECT_EQ(matmul->getPredecessors().size(), 0u);
     EXPECT_EQ(matmul->getSuccessors().size(), 0u);
 
@@ -139,8 +139,8 @@ TEST(Graph, test_OpVec_ctor) {
     map<pair<int, int>, int> inputOutput2Cnt = {
         {{1, 0}, 2}, {{1, 1}, 1}, {{0, 1}, 1}};
     for (auto t : g2->getTensors()) {
-        pair<int, int> key = {t->getInputOf().size(),
-                              t->getOutputOf() != nullptr};
+        pair<int, int> key = {t->getTargets().size(),
+                              t->getSource() != nullptr};
         EXPECT_GE(inputOutput2Cnt[key], 0);
         inputOutput2Cnt[key]--;
     }

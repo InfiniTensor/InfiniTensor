@@ -39,22 +39,20 @@ class PoolingObj : public OperatorObj {
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
     std::string toString() const override;
-    inline int numInputs() const override { return 1; }
-    inline int numOutputs() const override { return 1; }
+    int numInputs() const override { return 1; }
+    int numOutputs() const override { return 1; }
 
-    inline int getKh() const { return kh; }
-    inline int getKw() const { return kw; }
-    inline int getDh() const { return dh; }
-    inline int getDw() const { return dw; }
-    inline int getPh() const { return ph; }
-    inline int getPw() const { return pw; }
-    inline int getSh() const { return sh; }
-    inline int getSw() const { return sw; }
+    int getKh() const { return kh; }
+    int getKw() const { return kw; }
+    int getDh() const { return dh; }
+    int getDw() const { return dw; }
+    int getPh() const { return ph; }
+    int getPw() const { return pw; }
+    int getSh() const { return sh; }
+    int getSw() const { return sw; }
 
-    inline auto getPadStrideDilation() const {
-        return tuple(ph, pw, sh, sw, dh, dw);
-    }
-    inline auto getNCHWRS() const { return tuple(n, c, h, w, kh, kw); }
+    auto getPadStrideDilation() const { return tuple(ph, pw, sh, sw, dh, dw); }
+    auto getNCHWRS() const { return tuple(n, c, h, w, kh, kw); }
 
   private:
     vector<int> getWorkloadVector() const override;

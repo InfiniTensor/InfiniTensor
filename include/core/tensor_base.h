@@ -45,14 +45,14 @@ class TensorBaseObj : public Object {
     DataType getDType() const { return dtype; }
     Runtime getRuntime() const { return runtime; }
 
-    void addInputOf(const Operator &op) { targets.emplace_back(op); }
-    void setOutputOf(const Operator &op) { source = op; }
+    void addTarget(const Operator &op) { targets.emplace_back(op); }
+    void setSource(const Operator &op) { source = op; }
 
     bool hasTarget() const { return !targets.empty(); }
 
-    OpVec getInputOf() const { return wrefs_to_refs(targets); }
-    Operator getOutputOf() const { return source.lock(); }
-    //     std::pair<Operator *, int> getOutputOfWithIndex();
+    OpVec getTargets() const { return wrefs_to_refs(targets); }
+    Operator getSource() const { return source.lock(); }
+    //     std::pair<Operator *, int> getSourceWithIndex();
 
     //     bool setScalar(VType val) {
     //         if (data == nullptr || !dims.empty())

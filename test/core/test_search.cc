@@ -23,7 +23,7 @@ namespace infini {
 //     w0->copyin(vector<uint32_t>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
 //     auto matmul = g->addOpWithOutputs<MatmulObj>(i0, w0, o0);
 //     g->print();
-//     // check inputOf and outputsOf for tensor
+//     // check targets and source for tensor
 //     SearchEngine searchEngine(runtime, make_ref<NMutator>());
 //     searchEngine.run(g);
 //     // check execution results
@@ -46,7 +46,7 @@ TEST(Graph, search_withdm) {
     auto conv1 = g->addOpWithOutputs<ConvObj>(t3, w3, t4, 1, 1);
     auto add1 = g->addOpWithOutputs<AddObj>(t4, t5, t6);
     g->dataMalloc();
-    // check inputOf and outputsOf for tensor
+    // check targets and source for tensor
     SearchEngine searchEngine(runtime, make_ref<DummyMutator>(10));
     searchEngine.run(g);
     // check execution results

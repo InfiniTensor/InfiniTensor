@@ -64,7 +64,7 @@ TEST(CUDA_Inception_v3_block, run) {
 
     // check connection
     EXPECT_EQ(maxpool->getSuccessors().size(), 4u);
-    EXPECT_EQ(chainInput->getInputOf().size(), 4u);
+    EXPECT_EQ(chainInput->getTargets().size(), 4u);
     for (const auto &chainOps : ops) {
         for (size_t i = 1; i < chainOps.size(); i++) {
             auto prev = chainOps[i - 1];

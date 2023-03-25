@@ -184,7 +184,7 @@ void init_graph_builder(py::module &m) {
         .def("copyout_int32", &TensorObj::copyout<int32_t>, policy::move)
         .def("copyout_int64", &TensorObj::copyout<int64_t>, policy::move)
         .def("has_target", &TensorObj::hasTarget, policy::automatic)
-        .def("src", &TensorObj::getOutputOf, policy::move);
+        .def("src", &TensorObj::getSource, policy::move);
     py::class_<OperatorObj, std::shared_ptr<OperatorObj>>(m, "Operator")
         .def("op_type", &OperatorObj::getOpType, policy::automatic)
         .def("inputs", py::overload_cast<>(&OperatorObj::getInputs, py::const_),
