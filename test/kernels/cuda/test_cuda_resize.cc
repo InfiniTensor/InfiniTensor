@@ -13,8 +13,8 @@ TEST(Resize, Cuda_downsample_sizes_nearest) {
     auto input = gCpu->addTensor({1, 1, 2, 4}, DataType::Float32);
     auto sizes = gCpu->addTensor({4}, DataType::UInt32);
     gCpu->dataMalloc();
-    input->copyData(vector<float>{1, 2, 3, 4, 5, 6, 7, 8});
-    sizes->copyData(vector<uint32_t>{1, 1, 1, 3});
+    input->copyin(vector<float>{1, 2, 3, 4, 5, 6, 7, 8});
+    sizes->copyin(vector<uint32_t>{1, 1, 1, 3});
 
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cudaRuntime);
@@ -38,8 +38,8 @@ TEST(Resize, Cuda_upsample_sizes_nearest_notlarger) {
     auto input = gCpu->addTensor({1, 1, 2, 2}, DataType::Float32);
     auto sizes = gCpu->addTensor({2}, DataType::UInt32);
     gCpu->dataMalloc();
-    input->copyData(vector<float>{1, 2, 3, 4});
-    sizes->copyData(vector<uint32_t>{7, 8});
+    input->copyin(vector<float>{1, 2, 3, 4});
+    sizes->copyin(vector<uint32_t>{7, 8});
 
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cudaRuntime);
@@ -68,8 +68,8 @@ TEST(Resize, Cuda_upsample_sizes_nearest_notsmaller) {
     auto input = gCpu->addTensor({1, 1, 2, 2}, DataType::Float32);
     auto sizes = gCpu->addTensor({2}, DataType::UInt32);
     gCpu->dataMalloc();
-    input->copyData(vector<float>{1, 2, 3, 4});
-    sizes->copyData(vector<uint32_t>{7, 8});
+    input->copyin(vector<float>{1, 2, 3, 4});
+    sizes->copyin(vector<uint32_t>{7, 8});
 
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cudaRuntime);
@@ -98,9 +98,9 @@ TEST(Resize, Cuda_upsample_sizes_nearest_ceil_half_pixel) {
     auto input = gCpu->addTensor({1, 1, 4, 4}, DataType::Float32);
     auto sizes = gCpu->addTensor({4}, DataType::UInt32);
     gCpu->dataMalloc();
-    input->copyData(
+    input->copyin(
         vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16});
-    sizes->copyData(vector<uint32_t>{1, 1, 8, 8});
+    sizes->copyin(vector<uint32_t>{1, 1, 8, 8});
 
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cudaRuntime);
@@ -131,9 +131,9 @@ TEST(Resize, Cuda_upsample_sizes_nearest_floor_align_corners) {
     auto input = gCpu->addTensor({1, 1, 4, 4}, DataType::Float32);
     auto sizes = gCpu->addTensor({2}, DataType::UInt32);
     gCpu->dataMalloc();
-    input->copyData(
+    input->copyin(
         vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16});
-    sizes->copyData(vector<uint32_t>{8, 8});
+    sizes->copyin(vector<uint32_t>{8, 8});
 
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cudaRuntime);
@@ -164,9 +164,9 @@ TEST(Resize, Cuda_upsample_sizes_nearest_round_prefer_ceil_asymmetri) {
     auto input = gCpu->addTensor({1, 1, 4, 4}, DataType::Float32);
     auto sizes = gCpu->addTensor({4}, DataType::UInt32);
     gCpu->dataMalloc();
-    input->copyData(
+    input->copyin(
         vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16});
-    sizes->copyData(vector<uint32_t>{1, 1, 8, 8});
+    sizes->copyin(vector<uint32_t>{1, 1, 8, 8});
 
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cudaRuntime);
@@ -197,8 +197,8 @@ TEST(Resize, Cuda_downsample_scales_nearest) {
     auto input = gCpu->addTensor({1, 1, 2, 4}, DataType::Float32);
     auto scales = gCpu->addTensor({4}, DataType::Float32);
     gCpu->dataMalloc();
-    input->copyData(vector<float>{1, 2, 3, 4, 5, 6, 7, 8});
-    scales->copyData(vector<float>{1, 1, 0.6, 0.6});
+    input->copyin(vector<float>{1, 2, 3, 4, 5, 6, 7, 8});
+    scales->copyin(vector<float>{1, 1, 0.6, 0.6});
 
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cudaRuntime);
@@ -221,8 +221,8 @@ TEST(Resize, Cuda_upsample_scales_nearest) {
     auto input = gCpu->addTensor({1, 1, 2, 2}, DataType::Float32);
     auto scales = gCpu->addTensor({4}, DataType::Float32);
     gCpu->dataMalloc();
-    input->copyData(vector<float>{1, 2, 3, 4});
-    scales->copyData(vector<float>{1, 1, 2, 3});
+    input->copyin(vector<float>{1, 2, 3, 4});
+    scales->copyin(vector<float>{1, 1, 2, 3});
 
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cudaRuntime);
@@ -247,8 +247,8 @@ TEST(Resize, Cuda_upsample_scales_nearest_axes_3_2) {
     auto input = gCpu->addTensor({1, 1, 2, 2}, DataType::Float32);
     auto scales = gCpu->addTensor({2}, DataType::Float32);
     gCpu->dataMalloc();
-    input->copyData(vector<float>{1, 2, 3, 4});
-    scales->copyData(vector<float>{3, 2});
+    input->copyin(vector<float>{1, 2, 3, 4});
+    scales->copyin(vector<float>{3, 2});
 
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cudaRuntime);
@@ -273,8 +273,8 @@ TEST(Resize, Cuda_downsample_scales_linear) {
     auto input = gCpu->addTensor({1, 1, 2, 4}, DataType::Float32);
     auto scales = gCpu->addTensor({4}, DataType::Float32);
     gCpu->dataMalloc();
-    input->copyData(vector<float>{1, 2, 3, 4, 5, 6, 7, 8});
-    scales->copyData(vector<float>{1, 1, 0.6, 0.6});
+    input->copyin(vector<float>{1, 2, 3, 4, 5, 6, 7, 8});
+    scales->copyin(vector<float>{1, 1, 0.6, 0.6});
 
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cudaRuntime);
@@ -297,8 +297,8 @@ TEST(Resize, Cuda_downsample_scales_linear_aligncorners) {
     auto input = gCpu->addTensor({1, 1, 2, 4}, DataType::Float32);
     auto scales = gCpu->addTensor({4}, DataType::Float32);
     gCpu->dataMalloc();
-    input->copyData(vector<float>{1, 2, 3, 4, 5, 6, 7, 8});
-    scales->copyData(vector<float>{1, 1, 0.6, 0.6});
+    input->copyin(vector<float>{1, 2, 3, 4, 5, 6, 7, 8});
+    scales->copyin(vector<float>{1, 1, 0.6, 0.6});
 
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cudaRuntime);
@@ -323,8 +323,8 @@ TEST(Resize, Cuda_upsample_scales_linear) {
     auto input = gCpu->addTensor({1, 1, 2, 2}, DataType::Float32);
     auto scales = gCpu->addTensor({4}, DataType::Float32);
     gCpu->dataMalloc();
-    input->copyData(vector<float>{1, 2, 3, 4});
-    scales->copyData(vector<float>{1, 1, 2, 2});
+    input->copyin(vector<float>{1, 2, 3, 4});
+    scales->copyin(vector<float>{1, 1, 2, 2});
 
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cudaRuntime);
@@ -349,8 +349,8 @@ TEST(Resize, Cuda_upsample_scales_linear_align_corners) {
     auto input = gCpu->addTensor({1, 1, 2, 2}, DataType::Float32);
     auto scales = gCpu->addTensor({4}, DataType::Float32);
     gCpu->dataMalloc();
-    input->copyData(vector<float>{1, 2, 3, 4});
-    scales->copyData(vector<float>{1, 1, 2, 2});
+    input->copyin(vector<float>{1, 2, 3, 4});
+    scales->copyin(vector<float>{1, 1, 2, 2});
 
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cudaRuntime);
@@ -377,9 +377,9 @@ TEST(Resize, Cuda_downsample_sizes_linear_pytorchhalfpixel) {
     auto input = gCpu->addTensor({1, 1, 4, 4}, DataType::Float32);
     auto sizes = gCpu->addTensor({4}, DataType::UInt32);
     gCpu->dataMalloc();
-    input->copyData(
+    input->copyin(
         vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16});
-    sizes->copyData(vector<uint32_t>{1, 1, 3, 1});
+    sizes->copyin(vector<uint32_t>{1, 1, 3, 1});
 
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cudaRuntime);
@@ -406,10 +406,10 @@ TEST(Resize, Cuda_tf_crop_and_resize) {
     auto sizes = gCpu->addTensor({4}, DataType::UInt32);
     auto roi = gCpu->addTensor({8}, DataType::Float32);
     gCpu->dataMalloc();
-    input->copyData(
+    input->copyin(
         vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16});
-    sizes->copyData(vector<uint32_t>{1, 1, 3, 3});
-    roi->copyData(vector<float>{0, 0, 0.4, 0.6, 1, 1, 0.6, 0.8});
+    sizes->copyin(vector<uint32_t>{1, 1, 3, 3});
+    roi->copyin(vector<float>{0, 0, 0.4, 0.6, 1, 1, 0.6, 0.8});
 
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cudaRuntime);
@@ -437,10 +437,10 @@ TEST(Resize, Cuda_tf_crop_and_resize_axes_3_2) {
     auto sizes = gCpu->addTensor({2}, DataType::UInt32);
     auto roi = gCpu->addTensor({4}, DataType::Float32);
     gCpu->dataMalloc();
-    input->copyData(
+    input->copyin(
         vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16});
-    sizes->copyData(vector<uint32_t>{3, 3});
-    roi->copyData(vector<float>{0.6, 0.4, 0.8, 0.6});
+    sizes->copyin(vector<uint32_t>{3, 3});
+    roi->copyin(vector<float>{0.6, 0.4, 0.8, 0.6});
 
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cudaRuntime);
@@ -467,9 +467,9 @@ TEST(Resize, Cuda_downsample_scales_cubic) {
     auto input = gCpu->addTensor({1, 1, 4, 4}, DataType::Float32);
     auto scales = gCpu->addTensor({4}, DataType::Float32);
     gCpu->dataMalloc();
-    input->copyData(
+    input->copyin(
         vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16});
-    scales->copyData(vector<float>{1.0, 1.0, 0.8, 0.8});
+    scales->copyin(vector<float>{1.0, 1.0, 0.8, 0.8});
 
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cudaRuntime);
@@ -494,9 +494,9 @@ TEST(Resize, Cuda_downsample_scales_cubic_align_corners) {
     auto input = gCpu->addTensor({1, 1, 4, 4}, DataType::Float32);
     auto scales = gCpu->addTensor({4}, DataType::Float32);
     gCpu->dataMalloc();
-    input->copyData(
+    input->copyin(
         vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16});
-    scales->copyData(vector<float>{1.0, 1.0, 0.8, 0.8});
+    scales->copyin(vector<float>{1.0, 1.0, 0.8, 0.8});
 
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cudaRuntime);
@@ -522,9 +522,9 @@ TEST(Resize, Cuda_upsample_scales_cubic) {
     auto input = gCpu->addTensor({1, 1, 4, 4}, DataType::Float32);
     auto scales = gCpu->addTensor({4}, DataType::Float32);
     gCpu->dataMalloc();
-    input->copyData(
+    input->copyin(
         vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16});
-    scales->copyData(vector<float>{1.0, 1.0, 2, 2});
+    scales->copyin(vector<float>{1.0, 1.0, 2, 2});
 
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cudaRuntime);
@@ -559,9 +559,9 @@ TEST(Resize, Cuda_upsample_scales_cubic_align_corners) {
     auto input = gCpu->addTensor({1, 1, 4, 4}, DataType::Float32);
     auto scales = gCpu->addTensor({4}, DataType::Float32);
     gCpu->dataMalloc();
-    input->copyData(
+    input->copyin(
         vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16});
-    scales->copyData(vector<float>{1.0, 1.0, 2, 2});
+    scales->copyin(vector<float>{1.0, 1.0, 2, 2});
 
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cudaRuntime);
@@ -598,9 +598,9 @@ TEST(Resize, Cuda_upsample_scales_cubic_asymmetric) {
     auto input = gCpu->addTensor({1, 1, 4, 4}, DataType::Float32);
     auto scales = gCpu->addTensor({4}, DataType::Float32);
     gCpu->dataMalloc();
-    input->copyData(
+    input->copyin(
         vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16});
-    scales->copyData(vector<float>{1.0, 1.0, 2, 2});
+    scales->copyin(vector<float>{1.0, 1.0, 2, 2});
 
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cudaRuntime);
@@ -633,9 +633,9 @@ TEST(Resize, Cuda_downsample_sizes_cubic) {
     auto input = gCpu->addTensor({1, 1, 4, 4}, DataType::Float32);
     auto sizes = gCpu->addTensor({4}, DataType::UInt32);
     gCpu->dataMalloc();
-    input->copyData(
+    input->copyin(
         vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16});
-    sizes->copyData(vector<uint32_t>{1, 1, 3, 3});
+    sizes->copyin(vector<uint32_t>{1, 1, 3, 3});
 
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cudaRuntime);
@@ -667,9 +667,9 @@ TEST(Resize, Cuda_upsample_sizes_cubic) {
     auto input = gCpu->addTensor({1, 1, 4, 4}, DataType::Float32);
     auto sizes = gCpu->addTensor({4}, DataType::UInt32);
     gCpu->dataMalloc();
-    input->copyData(
+    input->copyin(
         vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16});
-    sizes->copyData(vector<uint32_t>{1, 1, 9, 10});
+    sizes->copyin(vector<uint32_t>{1, 1, 9, 10});
 
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cudaRuntime);

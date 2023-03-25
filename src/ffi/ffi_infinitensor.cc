@@ -1,11 +1,15 @@
 #include "core/graph_handler.h"
+#include "operators/batch_norm.h"
 #include "operators/concat.h"
+#include "operators/conv.h"
 #include "operators/gather.h"
+#include "operators/pooling.h"
 #include "operators/reduce_mean.h"
 #include "operators/reshape.h"
 #include <pybind11/stl.h>
 
 #ifdef USE_CUDA
+#include "cuda/cuda_runtime.h"
 #include "cuda/operator_timer.h"
 #endif
 
@@ -94,6 +98,34 @@ static int tensor_dtype(Tensor t) {
     IT_ASSERT(false, "Unsupported data type");
 }
 
+#ifdef USE_CUDA
+static Ref<CudaRuntimeObj> cuda_runtime() { return make_ref<CudaRuntimeObj>(); }
+#endif
+
+static std::tuple<int, int, int, int, int, int> conv_attrs_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Conv);
+    auto conv = dynamic_cast<const ConvObj *>(op.get());
+    return std::make_tuple(conv->getPh(), conv->getPw(), conv->getDh(),
+                           conv->getDw(), conv->getSh(), conv->getSw());
+}
+
+static std::tuple<float, float, bool> batch_norm_attrs_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::BatchNorm);
+    auto batchnorm = dynamic_cast<const BatchNormObj *>(op.get());
+    return std::make_tuple(batchnorm->getMomentum(), batchnorm->getEps(),
+                           batchnorm->getTraining());
+}
+
+static std::tuple<int, int, int, int, int, int, int, int>
+pool_attrs_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::MaxPool ||
+              op->getOpType() == OpType::AvgPool);
+    auto pool = dynamic_cast<const PoolingObj *>(op.get());
+    return std::make_tuple(pool->getKh(), pool->getKw(), pool->getDh(),
+                           pool->getDw(), pool->getPh(), pool->getPw(),
+                           pool->getSh(), pool->getSw());
+}
+
 static int concat_axis_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Concat);
     return dynamic_cast<const ConcatObj *>(op.get())->getDim();
@@ -118,6 +150,12 @@ static Shape reshape_shape_of(Operator op) {
 void export_functions(py::module &m) {
 #define FUNCTION(NAME) def(#NAME, &NAME)
     m.def("cpu_runtime", &CpuRuntimeObj::getInstance)
+#ifdef USE_CUDA
+        .FUNCTION(cuda_runtime)
+#endif
+        .FUNCTION(conv_attrs_of)
+        .FUNCTION(batch_norm_attrs_of)
+        .FUNCTION(pool_attrs_of)
         .FUNCTION(tensor_dtype)
         .FUNCTION(reshape_shape_of)
         .FUNCTION(concat_axis_of)
@@ -132,9 +170,21 @@ void init_graph_builder(py::module &m) {
     py::class_<RuntimeObj, std::shared_ptr<RuntimeObj>>(m, "Runtime");
     py::class_<CpuRuntimeObj, std::shared_ptr<CpuRuntimeObj>, RuntimeObj>(
         m, "CpuRuntime");
+#ifdef USE_CUDA
+    py::class_<CudaRuntimeObj, std::shared_ptr<CudaRuntimeObj>, RuntimeObj>(
+        m, "CudaRuntime");
+#endif
     py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "Tensor")
+        .def("fuid", &TensorObj::getFuid, policy::automatic)
         .def("shape", &TensorObj::getDims, policy::move)
-        .def("src", &TensorObj::getOutputOf, policy::move);
+        .def("copyin_float", &TensorObj::copyin<float>, policy::move)
+        .def("copyin_int32", &TensorObj::copyin<int32_t>, policy::move)
+        .def("copyin_int64", &TensorObj::copyin<int64_t>, policy::move)
+        .def("copyout_float", &TensorObj::copyout<float>, policy::move)
+        .def("copyout_int32", &TensorObj::copyout<int32_t>, policy::move)
+        .def("copyout_int64", &TensorObj::copyout<int64_t>, policy::move)
+        .def("has_target", &TensorObj::hasTarget, policy::automatic)
+        .def("src", &TensorObj::getSource, policy::move);
     py::class_<OperatorObj, std::shared_ptr<OperatorObj>>(m, "Operator")
         .def("op_type", &OperatorObj::getOpType, policy::automatic)
         .def("inputs", py::overload_cast<>(&OperatorObj::getInputs, py::const_),
@@ -165,7 +215,7 @@ void init_graph_builder(py::module &m) {
         .def("reshape", &Handler::reshape, policy::move)
         .def("concat", &Handler::concat, policy::move)
         .def("gather", &Handler::gather, policy::move)
-        .def("reduceMean", &Handler::reduceMean, policy::move)
+        .def("reduce_mean", &Handler::reduceMean, policy::move)
         .def("slice", &Handler::slice, policy::move)
         .def("pad", &Handler::pad, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)

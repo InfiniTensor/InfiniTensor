@@ -5,9 +5,19 @@
 ``` bash
 # Enter the root of InfiniTensor
 source test/script/env_lotus.sh
-mkdir build && cd build
-cmake -DUSE_CUDA=ON .. && make -j 12
+make CUDA=ON
 ```
+
+### Make Commands
+
+- `make`/`make build`: Builds the project;
+- `make install-python`: Builds the project then install the python frontend;
+- `make test-cpp`: Builds the project then run cpp unit tests;
+- `make test-onnx`: Run python unit tests;
+
+---
+
+> Sets env: `CUDA=ON` to enable cuda.
 
 ### CMake Options
 
@@ -15,6 +25,7 @@ There are several configurable CMake options, see the [CMakeLists.txt file](/CMa
 
 - If `USE_BACKTRACE` is `ON`, `libdw-dev` have to be installed. See the README of [backward-cpp](https://github.com/bombela/backward-cpp) for details.
 - If `USE_PROTOBUF` is `ON`, `protobuf` have to be installed. See the README of [protobuf](https://github.com/protocolbuffers/protobuf) for details.
+- If `USE_CUDA` is `ON`, `cuda` have to be installed.
 
 ## Contributor Guide
 

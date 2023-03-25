@@ -19,8 +19,8 @@ class TensorBaseObj : public Object {
     int dim;
 
     DataType dtype;
-    vector<WRef<OperatorObj>> inputOf;
-    WRef<OperatorObj> outputOf;
+    vector<WRef<OperatorObj>> targets;
+    WRef<OperatorObj> source;
     Blob data;
     Runtime runtime;
 
@@ -41,16 +41,18 @@ class TensorBaseObj : public Object {
         IT_ASSERT(data != nullptr);
         return data->getPtr<T>();
     }
-    VType getData(size_t offset) const;
 
     DataType getDType() const { return dtype; }
     Runtime getRuntime() const { return runtime; }
 
-    void addInputOf(const Operator &op) { inputOf.emplace_back(op); }
-    void setOutputOf(const Operator &op) { outputOf = op; }
-    OpVec getInputOf() { return wrefs_to_refs(inputOf); }
-    Operator getOutputOf() { return outputOf.lock(); }
-    //     std::pair<Operator *, int> getOutputOfWithIndex();
+    void addTarget(const Operator &op) { targets.emplace_back(op); }
+    void setSource(const Operator &op) { source = op; }
+
+    bool hasTarget() const { return !targets.empty(); }
+
+    OpVec getTargets() const { return wrefs_to_refs(targets); }
+    Operator getSource() const { return source.lock(); }
+    //     std::pair<Operator *, int> getSourceWithIndex();
 
     //     bool setScalar(VType val) {
     //         if (data == nullptr || !dims.empty())

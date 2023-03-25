@@ -12,7 +12,7 @@ TEST(Resize, ShapeInference) {
         Tensor i = g->addTensor({1, 1, 2, 4}, DataType::UInt32);
         Tensor sizes = g->addTensor({4}, DataType::UInt32);
         sizes->dataMalloc();
-        sizes->copyData(vector<uint32_t>{1, 1, 1, 3});
+        sizes->copyin(vector<uint32_t>{1, 1, 1, 3});
         auto op = g->addOp<ResizeObj>(
             i, nullptr, std::nullopt, sizes, nullptr, nullptr,
             ResizeObj::EKeepAspectRatioPolicy::stretch);
@@ -24,7 +24,7 @@ TEST(Resize, ShapeInference) {
         Tensor i = g->addTensor({1, 1, 2, 4}, DataType::UInt32);
         Tensor sizes = g->addTensor({2}, DataType::UInt32);
         sizes->dataMalloc();
-        sizes->copyData(vector<uint32_t>{1, 3});
+        sizes->copyin(vector<uint32_t>{1, 3});
         auto op = g->addOp<ResizeObj>(
             i, nullptr, vector<int>{2, 3}, sizes, nullptr, nullptr,
             ResizeObj::EKeepAspectRatioPolicy::stretch);
@@ -36,7 +36,7 @@ TEST(Resize, ShapeInference) {
         Tensor i = g->addTensor({1, 3, 2, 4}, DataType::UInt32);
         Tensor sizes = g->addTensor({2}, DataType::UInt32);
         sizes->dataMalloc();
-        sizes->copyData(vector<uint32_t>{7, 8});
+        sizes->copyin(vector<uint32_t>{7, 8});
         auto op = g->addOp<ResizeObj>(
             i, nullptr, vector<int>{2, 3}, sizes, nullptr, nullptr,
             ResizeObj::EKeepAspectRatioPolicy::notLarger);
@@ -48,7 +48,7 @@ TEST(Resize, ShapeInference) {
         Tensor i = g->addTensor({1, 3, 2, 4}, DataType::UInt32);
         Tensor sizes = g->addTensor({3}, DataType::UInt32);
         sizes->dataMalloc();
-        sizes->copyData(vector<uint32_t>{2, 6, 8});
+        sizes->copyin(vector<uint32_t>{2, 6, 8});
         auto op = g->addOp<ResizeObj>(
             i, nullptr, vector<int>{1, 2, 3}, sizes, nullptr, nullptr,
             ResizeObj::EKeepAspectRatioPolicy::notSmaller);
@@ -60,7 +60,7 @@ TEST(Resize, ShapeInference) {
         Tensor i = g->addTensor({1, 1, 4, 4}, DataType::UInt32);
         Tensor scales = g->addTensor({3}, DataType::Float32);
         scales->dataMalloc();
-        scales->copyData(vector<float>{1, 0.8, 0.8});
+        scales->copyin(vector<float>{1, 0.8, 0.8});
         auto op = g->addOp<ResizeObj>(i, nullptr, vector<int>{1, 2, 3}, nullptr,
                                       scales, nullptr);
         EXPECT_EQ(op->getOutput()->getDims(), (Shape{1, 1, 3, 3}));
@@ -71,7 +71,7 @@ TEST(Resize, ShapeInference) {
         Tensor i = g->addTensor({1, 1, 2, 2}, DataType::UInt32);
         Tensor scales = g->addTensor({4}, DataType::Float32);
         scales->dataMalloc();
-        scales->copyData(vector<float>{1, 1, 2, 2});
+        scales->copyin(vector<float>{1, 1, 2, 2});
         auto op = g->addOp<ResizeObj>(i, nullptr, std::nullopt, nullptr, scales,
                                       nullptr);
         EXPECT_EQ(op->getOutput()->getDims(), (Shape{1, 1, 4, 4}));

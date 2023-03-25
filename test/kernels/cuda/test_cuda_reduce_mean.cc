@@ -18,7 +18,7 @@ void test_reducemean(const Shape &shape, const vector<float> &data,
     // Build input data on CPU
     Tensor icpu = make_ref<TensorObj>(shape, DataType::Float32, cpuRuntime);
     icpu->dataMalloc();
-    icpu->copyData(data);
+    icpu->copyin(data);
 
     // Build CUDA graph
     Graph g = make_ref<GraphObj>(cudaRuntime);

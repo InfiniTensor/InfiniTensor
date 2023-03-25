@@ -1,10 +1,17 @@
 ﻿.PHONY : build clean install-python test-cpp test-onnx
 
 TYPE ?= release
+CUDA ?= off
+
+CMAKE_OPT = -DCMAKE_BUILD_TYPE=$(TYPE)
+
+ifeq ($(CUDA), ON)
+	CMAKE_OPT += -DUSE_CUDA=ON
+endif
 
 build:
 	mkdir -p build/$(TYPE)
-	cd build/$(TYPE) && cmake -DCMAKE_BUILD_TYPE=$(TYPE) ../.. && make -j8
+	cd build/$(TYPE) && cmake $(CMAKE_OPT) ../.. && make -j8
 
 clean:
 	rm -rf build

@@ -8,13 +8,13 @@ from onnx.helper import (
     make_tensor_value_info,
 )
 from onnx.checker import check_model
-from pyinfinitensor.onnx import from_onnx, parse_onnx, backend, runtime, to_onnx
+from pyinfinitensor.onnx import from_onnx, backend, cpu_runtime
 
 
 def make_and_import_model(graph: onnx.GraphProto):
     model = make_model(graph)
     check_model(model)
-    from_onnx(model)
+    from_onnx(model, cpu_runtime)
 
 
 class TestStringMethods(unittest.TestCase):
@@ -28,7 +28,7 @@ class TestStringMethods(unittest.TestCase):
                     file=model_file, size=os.path.getsize(model_file) / 1024 / 1024
                 )
             )
-            parse_onnx(onnx.load(model_file))
+            from_onnx(onnx.load(model_file), cpu_runtime)
 
     def test_tensor(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 2, 3])
@@ -66,10 +66,10 @@ class TestStringMethods(unittest.TestCase):
 
     def test_batch_norm(self):
         x = make_tensor_value_info("x", TensorProto.UINT32, [1, 3, 2, 2])
-        scale = make_tensor_value_info("scale", TensorProto.FLOAT, [1, 3, 1, 1])
-        b = make_tensor_value_info("b", TensorProto.FLOAT, [1, 3, 1, 1])
-        mean = make_tensor_value_info("mean", TensorProto.FLOAT, [1, 3, 1, 1])
-        var = make_tensor_value_info("var", TensorProto.FLOAT, [1, 3, 1, 1])
+        scale = make_tensor_value_info("scale", TensorProto.FLOAT, [3])
+        b = make_tensor_value_info("b", TensorProto.FLOAT, [3])
+        mean = make_tensor_value_info("mean", TensorProto.FLOAT, [3])
+        var = make_tensor_value_info("var", TensorProto.FLOAT, [3])
         y = make_tensor_value_info("y", TensorProto.UINT32, [1, 3, 2, 2])
         batch_norm = make_node(
             "BatchNormalization",
@@ -289,11 +289,10 @@ class TestStringMethods(unittest.TestCase):
         graph = make_graph([matmul, add], "lr", [x, a, b], [y])
         model = make_model(graph)
         check_model(model)
-        from_onnx(model)
-        parse_onnx(model)
+        from_onnx(model, cpu_runtime)
 
     def test_frontend(self):
-        handler = backend.GraphHandler(runtime)
+        handler = backend.GraphHandler(cpu_runtime)
         a = handler.tensor([1, 2, 3], 12)
         b = handler.tensor([1, 2, 3], 12)
         c = handler.tensor([1, 2, 3], 12)
@@ -305,8 +304,6 @@ class TestStringMethods(unittest.TestCase):
         )
         y = handler.tensor([3, 2, 1], 12)
         handler.reshape(x, y, [3, 2, 1])
-
-        to_onnx(handler, "test_frontend")
 
 
 if __name__ == "__main__":

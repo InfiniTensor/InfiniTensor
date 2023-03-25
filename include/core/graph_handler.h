@@ -2,6 +2,8 @@
 
 #include "core/graph.h"
 #include "core/runtime.h"
+#include <cstdint>
+#include <iostream>
 
 namespace infini {
 

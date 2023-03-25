@@ -63,7 +63,7 @@ class GraphObj : public Object {
     inline TensorVec getInputs() const {
         TensorVec ret;
         for (const auto &t : tensors)
-            if (!t->getOutputOf())
+            if (!t->getSource())
                 ret.emplace_back(t);
         return ret;
     }
@@ -74,7 +74,7 @@ class GraphObj : public Object {
     inline TensorVec getOutputs() const {
         TensorVec ret;
         for (const auto &t : tensors)
-            if (t->getInputOf().empty())
+            if (t->getTargets().empty())
                 ret.emplace_back(t);
         return ret;
     }

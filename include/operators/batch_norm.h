@@ -41,7 +41,9 @@ class BatchNormObj : public OperatorObj {
     // output size will be 3 when training
     int numInputs() const override { return 5; }
     int numOutputs() const override { return outputs.size(); }
+    float getMomentum() const { return momentum; }
     float getEps() const { return eps; }
+    bool getTraining() const { return training; }
 
   private:
     vector<int> getWorkloadVector() const override;

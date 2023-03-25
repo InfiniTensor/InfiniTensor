@@ -64,7 +64,7 @@ class MemboundInterpreter : public Kernel {
         vector<uint32_t> valsUint(vals.size());
         for (size_t i = 0; i < vals.size(); ++i)
             valsUint[i] = (uint32_t)vals[i];
-        output->copyData(valsUint);
+        output->copyin(valsUint);
     }
 
     void compute(const Operator &op, const RuntimeObj *context) const override {

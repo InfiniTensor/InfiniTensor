@@ -3,32 +3,33 @@
 #include "core/operator.h"
 #include "core/runtime.h"
 #include "utils/dataloader.h"
+#include <numeric>
 
 namespace infini {
 
-TensorObj::TensorObj(const Shape &shape, DataType dtype, Runtime runtime)
-    : TensorBaseObj(shape.size(), dtype, runtime), shape(shape) {}
-
-VType TensorObj::getData(const Shape &pos) const {
-    return getData(getOffset(pos));
-}
+TensorObj::TensorObj(Shape shape_, DataType dtype, Runtime runtime)
+    : TensorBaseObj(shape.size(), dtype, runtime), shape(std::move(shape_)),
+      _size(shape.empty()
+                ? 0
+                : std::accumulate(shape.begin(), shape.end(), 1,
+                                  [](auto acc, auto x) { return acc * x; })) {}
 
 string TensorObj::toString() const {
     string ret = "Tensor " + std::to_string(guid) + ", Fuid " +
                  std::to_string(fuid) + ", shape " + vecToString(shape) +
                  ", dtype " + dtype.toString();
-    vector<UidBaseType> inputOfGuid;
-    for (const auto &op : inputOf)
-        inputOfGuid.emplace_back(op.lock()->getGuid());
-    if (auto o = outputOf.lock())
-        ret += ", outputOf " + std::to_string(o->getGuid());
+    vector<UidBaseType> targetGuids;
+    for (const auto &op : targets)
+        targetGuids.emplace_back(op.lock()->getGuid());
+    if (auto o = source.lock())
+        ret += ", source " + std::to_string(o->getGuid());
     else
-        ret += ", outputOf None";
-    ret += ", inputOf " + vecToString(inputOfGuid);
+        ret += ", source None";
+    ret += ", targets " + vecToString(targetGuids);
     return ret;
 }
 
-size_t TensorObj::getOffset(const Shape &pos) const {
+size_t TensorObj::getOffset(const vector<int> &pos) const {
     auto nDim = pos.size();
     IT_ASSERT(shape.size() == nDim);
     if (pos.empty())
@@ -52,15 +53,6 @@ vector<size_t> TensorObj::getStride() const {
     ret.emplace(ret.begin(), stride);
     return ret;
 }
-
-size_t TensorObj::size() const {
-    size_t ret = 1;
-    for (const auto &d : shape)
-        ret *= d;
-    return ret;
-}
-
-size_t TensorObj::getBytes() const { return size() * dtype.getSize(); }
 
 void TensorObj::printData() const {
     IT_ASSERT(data != nullptr);
@@ -148,15 +140,8 @@ bool TensorObj::equalData(const Tensor &rhs) const {
 }
 
 void TensorObj::dataMalloc() {
-    if (data != nullptr)
-        return;
-    // IT_ASSERT(data == nullptr);
-    size_t bytesPerElement;
-    if (getDType() == DataType::Float32)
-        bytesPerElement = sizeof(float);
-    else if (getDType() == DataType::UInt32)
-        bytesPerElement = sizeof(uint32_t);
-    data = runtime->allocBlob(size() * bytesPerElement);
+    if (data == nullptr)
+        data = runtime->allocBlob(getBytes());
 }
 
 void TensorObj::copyData(const TensorObj *src) {

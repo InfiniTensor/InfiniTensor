@@ -14,10 +14,10 @@ TEST(Prtotbuf, save_and_load) {
     Tensor u0 = g->addTensor({1, 3, 4}, DataType::UInt32);
     Tensor u1 = g->addTensor({1, 3, 4}, DataType::UInt32);
     g->dataMalloc();
-    i0->copyData(vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
-    w0->copyData(vector<float>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1});
-    u0->copyData(vector<uint32_t>{1, 3, 5, 7, 9, 2, 4, 6, 8, 10, 0, 0});
-    u1->copyData(vector<uint32_t>{1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0});
+    i0->copyin(vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
+    w0->copyin(vector<float>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1});
+    u0->copyin(vector<uint32_t>{1, 3, 5, 7, 9, 2, 4, 6, 8, 10, 0, 0});
+    u1->copyin(vector<uint32_t>{1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0});
     i0->save("i0.pb");
     w0->printData();
     w0->load("i0.pb");
