@@ -9,7 +9,7 @@ namespace infini {
  */
 class BatchNormObj : public OperatorObj {
     float momentum, eps;
-    bool training;
+    bool training_mode;
 
   public:
     /**
@@ -28,11 +28,11 @@ class BatchNormObj : public OperatorObj {
      * Default is 0.9.
      * @param eps The epsilon value to use to avoid division by zero. Default is
      * 1e-5.
-     * @param training Set to true when used for training.
+     * @param training_mode Set to true when used for training.
      */
     BatchNormObj(GraphObj *graph, Tensor input, Tensor output, Tensor mean,
                  Tensor var, Tensor scale, Tensor bias, float momentum = 0.9,
-                 float eps = 1e-5, bool training = false);
+                 float eps = 1e-5, bool training_mode = false);
     OP_CLONE(BatchNormObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
@@ -43,7 +43,7 @@ class BatchNormObj : public OperatorObj {
     int numOutputs() const override { return outputs.size(); }
     float getMomentum() const { return momentum; }
     float getEps() const { return eps; }
-    bool getTraining() const { return training; }
+    bool getTrainingMode() const { return training_mode; }
 
   private:
     vector<int> getWorkloadVector() const override;

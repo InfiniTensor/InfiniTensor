@@ -90,7 +90,6 @@ bool OperatorObj::checkValid(GraphObj *graph, DataType type) {
         return false;
     if (graph) { // if graph != nullptr, outputs should be created
         auto dataTypes = vector(numOutputs(), type);
-        ;
         for (size_t i = 0; i < outputs.size(); i++) {
             IT_ASSERT(!outputs[i]);
             outputs[i] = graph->addTensor(shapes[i], dataTypes[i]);

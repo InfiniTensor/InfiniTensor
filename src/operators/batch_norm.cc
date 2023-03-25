@@ -3,10 +3,10 @@
 namespace infini {
 BatchNormObj::BatchNormObj(GraphObj *graph, Tensor input, Tensor output,
                            Tensor mean, Tensor var, Tensor scale, Tensor bias,
-                           float momentum, float eps, bool training)
+                           float momentum, float eps, bool training_mode)
     : OperatorObj(OpType::BatchNorm, {input, mean, var, scale, bias}, {output}),
-      momentum(momentum), eps(eps), training(training) {
-    if (training)
+      momentum(momentum), eps(eps), training_mode(training_mode) {
+    if (training_mode)
         IT_TODO_HALT();
 
     IT_ASSERT(checkValid(graph));

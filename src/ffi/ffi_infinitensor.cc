@@ -122,7 +122,7 @@ static std::tuple<float, float, bool> batch_norm_attrs_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::BatchNorm);
     auto batchnorm = dynamic_cast<const BatchNormObj *>(op.get());
     return std::make_tuple(batchnorm->getMomentum(), batchnorm->getEps(),
-                           batchnorm->getTraining());
+                           batchnorm->getTrainingMode());
 }
 
 static std::tuple<int, int, int, int, int, int, int, int>
