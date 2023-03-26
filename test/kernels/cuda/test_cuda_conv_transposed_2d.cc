@@ -50,7 +50,7 @@ void testConvTransposedNHWCCudnn(
     const auto &[N, C, H, W, F, R, S] = tuple{1, 1, 2, 2, 2, 4, 4};
     const int stride = 1, padding = 0, dilation = 1;
     // Construct Runtime and graph for CPU and CUDA
-    Runtime cpu = CpuRuntimeObj::getInstance(); // CPUruntime is singleton
+    Runtime cpu = NativeCpuRuntimeObj::getInstance(); // CPUruntime is singleton
     Graph gCpu = make_ref<GraphObj>(cpu);
     Runtime cuda = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cuda);
@@ -105,8 +105,8 @@ TEST(cuDNN_ConvTransposed, run1) {
     Tensor w0Cpu = gCpu->addTensor({1, 2, 3, 3}, DataType::Float32);
     // Malloc data for all tensors in a graph. Do we need implicit allocation?
     gCpu->dataMalloc();
-    i0Cpu->copyData(vector<float>{0, 1, 2, 3, 4, 5, 6, 7, 8});
-    w0Cpu->copyData(
+    i0Cpu->copyin(vector<float>{0, 1, 2, 3, 4, 5, 6, 7, 8});
+    w0Cpu->copyin(
         vector<float>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1});
 
     // Copy input tensors from CPU to CUDA
