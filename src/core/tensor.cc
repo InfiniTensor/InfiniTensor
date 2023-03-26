@@ -3,8 +3,8 @@
 #include "core/operator.h"
 #include "core/runtime.h"
 #include "utils/dataloader.h"
-#include <numeric>
 #include <cstring>
+#include <numeric>
 
 namespace infini {
 

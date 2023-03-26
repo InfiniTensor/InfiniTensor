@@ -5,7 +5,7 @@ project(InfiniTensor C CXX)
 # Do not change these options in this file. Use cmake.config, cmake -DOPTION=VALUE, or ccmake to specify them.
 option(USE_CUDA "Support CUDA GPU" OFF)
 option(USE_BANG "Support BANG MLU" OFF)
-option(USE_MKL "Support  MKL" OFF)
+option(USE_MKL "Support MKL" OFF)
 option(USE_BACKTRACE "Print backtrace on exception and segmentation fault" ON)
 option(USE_PROTOBUF "Serialize and deserialize tensors" ON)
 option(BUILD_TEST "Build tests" ON)

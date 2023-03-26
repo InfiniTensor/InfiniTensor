@@ -177,7 +177,7 @@ void init_graph_builder(py::module &m) {
     using Handler = GraphHandlerObj;
 
     py::class_<RuntimeObj, std::shared_ptr<RuntimeObj>>(m, "Runtime");
-    py::class_<CpuRuntimeObj, std::shared_ptr<CpuRuntimeObj>, RuntimeObj>(
+    py::class_<NativeCpuRuntimeObj, std::shared_ptr<NativeCpuRuntimeObj>, RuntimeObj>(
         m, "CpuRuntime");
 #ifdef USE_CUDA
     py::class_<CudaRuntimeObj, std::shared_ptr<CudaRuntimeObj>, RuntimeObj>(
