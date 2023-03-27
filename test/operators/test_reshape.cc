@@ -8,7 +8,7 @@
 namespace infini {
 
 TEST(Reshape, ShapeInference) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     {
         Graph g = make_ref<GraphObj>(runtime);
         Tensor i = g->addTensor({2, 3, 3, 4}, DataType::Float32);
@@ -17,7 +17,7 @@ TEST(Reshape, ShapeInference) {
     }
 }
 TEST(Flatten, ShapeInference) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     {
         Graph g = make_ref<GraphObj>(runtime);
         Tensor i = g->addTensor({2, 3, 3, 4}, DataType::Float32);
@@ -27,7 +27,7 @@ TEST(Flatten, ShapeInference) {
 }
 
 TEST(Identity, ShapeInference) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     {
         Graph g = make_ref<GraphObj>(runtime);
         Tensor i = g->addTensor({2, 3, 3, 4}, DataType::Float32);

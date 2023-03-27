@@ -7,7 +7,7 @@
 #include "test.h"
 namespace infini {
 TEST(Resize, Cuda_downsample_sizes_nearest) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(runtime);
 
     auto input = gCpu->addTensor({1, 1, 2, 4}, DataType::Float32);
@@ -32,7 +32,7 @@ TEST(Resize, Cuda_downsample_sizes_nearest) {
 }
 
 TEST(Resize, Cuda_upsample_sizes_nearest_notlarger) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(runtime);
 
     auto input = gCpu->addTensor({1, 1, 2, 2}, DataType::Float32);
@@ -62,7 +62,7 @@ TEST(Resize, Cuda_upsample_sizes_nearest_notlarger) {
 }
 
 TEST(Resize, Cuda_upsample_sizes_nearest_notsmaller) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(runtime);
 
     auto input = gCpu->addTensor({1, 1, 2, 2}, DataType::Float32);
@@ -92,7 +92,7 @@ TEST(Resize, Cuda_upsample_sizes_nearest_notsmaller) {
 }
 
 TEST(Resize, Cuda_upsample_sizes_nearest_ceil_half_pixel) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(runtime);
 
     auto input = gCpu->addTensor({1, 1, 4, 4}, DataType::Float32);
@@ -125,7 +125,7 @@ TEST(Resize, Cuda_upsample_sizes_nearest_ceil_half_pixel) {
 }
 
 TEST(Resize, Cuda_upsample_sizes_nearest_floor_align_corners) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(runtime);
 
     auto input = gCpu->addTensor({1, 1, 4, 4}, DataType::Float32);
@@ -158,7 +158,7 @@ TEST(Resize, Cuda_upsample_sizes_nearest_floor_align_corners) {
 }
 
 TEST(Resize, Cuda_upsample_sizes_nearest_round_prefer_ceil_asymmetri) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(runtime);
 
     auto input = gCpu->addTensor({1, 1, 4, 4}, DataType::Float32);
@@ -191,7 +191,7 @@ TEST(Resize, Cuda_upsample_sizes_nearest_round_prefer_ceil_asymmetri) {
 }
 
 TEST(Resize, Cuda_downsample_scales_nearest) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(runtime);
 
     auto input = gCpu->addTensor({1, 1, 2, 4}, DataType::Float32);
@@ -215,7 +215,7 @@ TEST(Resize, Cuda_downsample_scales_nearest) {
 }
 
 TEST(Resize, Cuda_upsample_scales_nearest) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(runtime);
 
     auto input = gCpu->addTensor({1, 1, 2, 2}, DataType::Float32);
@@ -241,7 +241,7 @@ TEST(Resize, Cuda_upsample_scales_nearest) {
 }
 
 TEST(Resize, Cuda_upsample_scales_nearest_axes_3_2) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(runtime);
 
     auto input = gCpu->addTensor({1, 1, 2, 2}, DataType::Float32);
@@ -267,7 +267,7 @@ TEST(Resize, Cuda_upsample_scales_nearest_axes_3_2) {
 }
 
 TEST(Resize, Cuda_downsample_scales_linear) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(runtime);
 
     auto input = gCpu->addTensor({1, 1, 2, 4}, DataType::Float32);
@@ -291,7 +291,7 @@ TEST(Resize, Cuda_downsample_scales_linear) {
 }
 
 TEST(Resize, Cuda_downsample_scales_linear_aligncorners) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(runtime);
 
     auto input = gCpu->addTensor({1, 1, 2, 4}, DataType::Float32);
@@ -317,7 +317,7 @@ TEST(Resize, Cuda_downsample_scales_linear_aligncorners) {
 }
 
 TEST(Resize, Cuda_upsample_scales_linear) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(runtime);
 
     auto input = gCpu->addTensor({1, 1, 2, 2}, DataType::Float32);
@@ -343,7 +343,7 @@ TEST(Resize, Cuda_upsample_scales_linear) {
 }
 
 TEST(Resize, Cuda_upsample_scales_linear_align_corners) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(runtime);
 
     auto input = gCpu->addTensor({1, 1, 2, 2}, DataType::Float32);
@@ -371,7 +371,7 @@ TEST(Resize, Cuda_upsample_scales_linear_align_corners) {
 }
 
 TEST(Resize, Cuda_downsample_sizes_linear_pytorchhalfpixel) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(runtime);
 
     auto input = gCpu->addTensor({1, 1, 4, 4}, DataType::Float32);
@@ -399,7 +399,7 @@ TEST(Resize, Cuda_downsample_sizes_linear_pytorchhalfpixel) {
 }
 
 TEST(Resize, Cuda_tf_crop_and_resize) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(runtime);
 
     auto input = gCpu->addTensor({1, 1, 4, 4}, DataType::Float32);
@@ -430,7 +430,7 @@ TEST(Resize, Cuda_tf_crop_and_resize) {
 }
 
 TEST(Resize, Cuda_tf_crop_and_resize_axes_3_2) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(runtime);
 
     auto input = gCpu->addTensor({1, 1, 4, 4}, DataType::Float32);
@@ -461,7 +461,7 @@ TEST(Resize, Cuda_tf_crop_and_resize_axes_3_2) {
 }
 
 TEST(Resize, Cuda_downsample_scales_cubic) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(runtime);
 
     auto input = gCpu->addTensor({1, 1, 4, 4}, DataType::Float32);
@@ -488,7 +488,7 @@ TEST(Resize, Cuda_downsample_scales_cubic) {
 }
 
 TEST(Resize, Cuda_downsample_scales_cubic_align_corners) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(runtime);
 
     auto input = gCpu->addTensor({1, 1, 4, 4}, DataType::Float32);
@@ -516,7 +516,7 @@ TEST(Resize, Cuda_downsample_scales_cubic_align_corners) {
 }
 
 TEST(Resize, Cuda_upsample_scales_cubic) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(runtime);
 
     auto input = gCpu->addTensor({1, 1, 4, 4}, DataType::Float32);
@@ -553,7 +553,7 @@ TEST(Resize, Cuda_upsample_scales_cubic) {
 }
 
 TEST(Resize, Cuda_upsample_scales_cubic_align_corners) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(runtime);
 
     auto input = gCpu->addTensor({1, 1, 4, 4}, DataType::Float32);
@@ -592,7 +592,7 @@ TEST(Resize, Cuda_upsample_scales_cubic_align_corners) {
 }
 
 TEST(Resize, Cuda_upsample_scales_cubic_asymmetric) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(runtime);
 
     auto input = gCpu->addTensor({1, 1, 4, 4}, DataType::Float32);
@@ -627,7 +627,7 @@ TEST(Resize, Cuda_upsample_scales_cubic_asymmetric) {
 
 //
 TEST(Resize, Cuda_downsample_sizes_cubic) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(runtime);
 
     auto input = gCpu->addTensor({1, 1, 4, 4}, DataType::Float32);
@@ -661,7 +661,7 @@ TEST(Resize, Cuda_downsample_sizes_cubic) {
 }
 
 TEST(Resize, Cuda_upsample_sizes_cubic) {
-    Runtime runtime = CpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(runtime);
 
     auto input = gCpu->addTensor({1, 1, 4, 4}, DataType::Float32);

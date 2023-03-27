@@ -10,7 +10,7 @@ namespace infini {
 using ExpectOutput = vector<float>;
 
 TEST(Matmul, ShapeInference) {
-    auto runtime = CpuRuntimeObj::getInstance();
+    auto runtime = NativeCpuRuntimeObj::getInstance();
     {
         Graph g = make_ref<GraphObj>(runtime);
         auto A = g->addTensor(Shape{1, 3, 5});

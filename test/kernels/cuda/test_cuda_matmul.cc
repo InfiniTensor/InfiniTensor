@@ -16,7 +16,7 @@ void testMatmulCuda(
     const std::function<void(void *, size_t, DataType)> &generatorB,
     bool transA, bool transB, const Shape &shapeA, const Shape &shapeB,
     const ExpectOutput &ansVec) {
-    auto cpuRuntime = CpuRuntimeObj::getInstance();
+    auto cpuRuntime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(cpuRuntime);
     auto ACpu = gCpu->addTensor(shapeA, DataType::Float32);
     auto BCpu = gCpu->addTensor(shapeB, DataType::Float32);
@@ -54,7 +54,7 @@ TEST(cuBLAS_Matmul, run) {
 }
 
 TEST(cuBLAS_Matmul, tune) {
-    auto cpuRuntime = CpuRuntimeObj::getInstance();
+    auto cpuRuntime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(cpuRuntime);
     auto ACpu = gCpu->addTensor(Shape{1, 3, 5}, DataType::Float32);
     auto BCpu = gCpu->addTensor(Shape{1, 5, 2}, DataType::Float32);

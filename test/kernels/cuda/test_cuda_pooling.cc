@@ -14,7 +14,7 @@ void testPoolCudnn(
     const std::function<void(void *, size_t, DataType)> &generator,
     const Shape &shape, const KDPS &kdps, const ExpectOutput &ansVec) {
     EXPECT_TRUE(kdps.size() == 8);
-    Runtime cpuRuntime = CpuRuntimeObj::getInstance();
+    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
 
     // Build input data on CPU

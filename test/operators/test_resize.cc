@@ -5,7 +5,7 @@
 
 namespace infini {
 TEST(Resize, ShapeInference) {
-    Runtime cpuRuntime = CpuRuntimeObj::getInstance();
+    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     // downsample_sizes_nearest no axes
     {
         Graph g = make_ref<GraphObj>(cpuRuntime);

@@ -7,7 +7,7 @@ namespace infini {
 using KDPS = vector<int>;
 using ExpectOutput = vector<float>;
 TEST(MaxPool, ShapeInference) {
-    Runtime cpuRuntime = CpuRuntimeObj::getInstance();
+    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     {
         Graph g = make_ref<GraphObj>(cpuRuntime);
         Tensor i = g->addTensor({1, 64, 162, 162}, DataType::UInt32);
@@ -27,7 +27,7 @@ TEST(MaxPool, ShapeInference) {
 }
 
 TEST(MaxPool, NaiveCPU) {
-    Runtime cpuRuntime = CpuRuntimeObj::getInstance();
+    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     Graph g = make_ref<GraphObj>(cpuRuntime);
     Tensor i = g->addTensor({1, 2, 5, 5}, DataType::UInt32);
     auto op = g->addOp<MaxPoolObj>(i, nullptr, 3, 3, 1, 1, 1, 1, 2, 2);
@@ -46,7 +46,7 @@ TEST(MaxPool, NaiveCPU) {
 }
 
 TEST(AvgPool, NaiveCPU) {
-    Runtime cpuRuntime = CpuRuntimeObj::getInstance();
+    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     Graph g = make_ref<GraphObj>(cpuRuntime);
     Tensor i = g->addTensor({1, 2, 5, 5}, DataType::Float32);
     auto op = g->addOp<AvgPoolObj>(i, nullptr, 3, 3, 1, 1, 1, 1, 2, 2);

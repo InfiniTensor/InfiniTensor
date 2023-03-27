@@ -18,8 +18,6 @@ class BatchNormCudnn : public CudaKernelWithoutConfig {
         void *const biasData = (op->getInputs(4)->getRawDataPtr<void *>());
 
         auto dims = op->getInputs(0)->getDims();
-        if (dims.size() == 2)
-            IT_TODO_HALT();
         // Only 4D and 5D tensors are supported by
         // cudnnBatchNormalizationForwardInference
         IT_ASSERT(dims.size() == 4 || dims.size() == 5);

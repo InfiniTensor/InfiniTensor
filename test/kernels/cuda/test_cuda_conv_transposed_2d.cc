@@ -16,7 +16,7 @@ void testConvTransposedCudnn(
     const auto &[N, C, H, W, F, R, S] = tuple{1, 1, 2, 2, 1, 4, 4};
     const int stride = 1, padding = 0, dilation = 1;
     // Construct Runtime and graph for CPU and CUDA
-    Runtime cpu = CpuRuntimeObj::getInstance(); // CPUruntime is singleton
+    Runtime cpu = NativeCpuRuntimeObj::getInstance(); // CPUruntime is singleton
     Graph gCpu = make_ref<GraphObj>(cpu);
     Runtime cuda = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cuda);
@@ -50,7 +50,7 @@ void testConvTransposedNHWCCudnn(
     const auto &[N, C, H, W, F, R, S] = tuple{1, 1, 2, 2, 2, 4, 4};
     const int stride = 1, padding = 0, dilation = 1;
     // Construct Runtime and graph for CPU and CUDA
-    Runtime cpu = CpuRuntimeObj::getInstance(); // CPUruntime is singleton
+    Runtime cpu = NativeCpuRuntimeObj::getInstance(); // CPUruntime is singleton
     Graph gCpu = make_ref<GraphObj>(cpu);
     Runtime cuda = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cuda);
@@ -94,8 +94,42 @@ TEST(cuDNN_ConvTransposedNHWC, run) {
                                               465, 487, 509, 307});
 }
 
+TEST(cuDNN_ConvTransposed, run1) {
+    // Construct Runtime and graph for CPU and CUDA
+    Runtime cpu = NativeCpuRuntimeObj::getInstance(); // CPUruntime is singleton
+    Graph gCpu = make_ref<GraphObj>(cpu);
+    Runtime cuda = make_ref<CudaRuntimeObj>();
+    Graph gCuda = make_ref<GraphObj>(cuda);
+    // Set input data on CPU in a CPU Graph
+    Tensor i0Cpu = gCpu->addTensor({1, 2, 3, 3}, DataType::Float32);
+    Tensor w0Cpu = gCpu->addTensor({2, 2, 3, 3}, DataType::Float32);
+    // Malloc data for all tensors in a graph. Do we need implicit allocation?
+    gCpu->dataMalloc();
+    i0Cpu->setData(IncrementalGenerator());
+    w0Cpu->setData(IncrementalGenerator());
+
+    // Copy input tensors from CPU to CUDA
+    Tensor i0Cuda = gCuda->cloneTensor(i0Cpu);
+    Tensor w0Cuda = gCuda->cloneTensor(w0Cpu);
+    // Build CUDA graph
+    auto conv =
+        gCuda->addOp<ConvTransposed2dObj>(i0Cuda, w0Cuda, nullptr, 0, 0);
+    gCuda->dataMalloc();
+    // Execute on CUDA
+    cuda->run(gCuda);
+    // copy output from CUDA to CPU
+    auto o0Cpu = gCpu->cloneTensor(conv->getOutput());
+    // check results on CPU
+    EXPECT_TRUE(o0Cpu->equalData(vector<float>{
+        162, 351,  569,  413,  224,  405,  876,  1417, 1024, 553,
+        747, 1611, 2598, 1869, 1005, 639,  1368, 2191, 1564, 835,
+        396, 843,  1343, 953,  506,  243,  531,  866,  629,  341,
+        621, 1344, 2173, 1564, 841,  1152, 2475, 3975, 2841, 1518,
+        963, 2052, 3271, 2320, 1231, 585,  1239, 1964, 1385, 731}));
+}
+
 TEST(cuDNN_ConvTransposed, tune) {
-    Runtime cpu = CpuRuntimeObj::getInstance(); // CPUruntime is singleton
+    Runtime cpu = NativeCpuRuntimeObj::getInstance(); // CPUruntime is singleton
     Graph gCpu = make_ref<GraphObj>(cpu);
     Runtime cuda = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cuda);
@@ -117,8 +151,6 @@ TEST(cuDNN_ConvTransposed, tune) {
     // Execute on CUDA
     bool tune = true;
     cuda->run(gCuda, tune);
-    // print a tensor/operator/graph by print()
-    gCuda->print();
     // check record
     auto kernelAttrs =
         KernelAttrs{Device::CUDA, conv->getOpType(), DataType::Float32};

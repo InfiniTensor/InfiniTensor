@@ -12,7 +12,7 @@ using ExpectOutput = vector<float>;
 TEST(CUDA_GBMM, ShapeInference) {
     const int bs = 1, seqlen = 10000, w = 1000, featlen = 512, heads = 8, d = 4;
     const int hidden = featlen, hiddenPerHead = hidden / heads;
-    auto cpuRuntime = CpuRuntimeObj::getInstance();
+    auto cpuRuntime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(cpuRuntime);
     auto ACpu = gCpu->addTensor(Shape{bs * heads, seqlen, w * 2 + 1},
                                 DataType::Float32);

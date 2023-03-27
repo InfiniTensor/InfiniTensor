@@ -12,7 +12,9 @@
 #include "cuda/cuda_runtime.h"
 #include "cuda/operator_timer.h"
 #endif
-
+#ifdef USE_MKL
+#include "mkl/operator_timer.h"
+#endif
 namespace py = pybind11;
 
 namespace infini {
@@ -26,6 +28,13 @@ void register_operator_timer(py::module &m) {
     m.def("getPerfConvCudnn", &getPerfConvCudnn);
     m.def("getPerfConvTransposed2dCudnn", &getPerfConvTransposed2dCudnn);
     m.def("getPerfMatmulCublas", &getPerfMatmulCublas);
+#endif
+
+#ifdef USE_MKL
+    using namespace opTimer;
+    m.def("getPerfConvMkl", &getPerfConvMkl);
+    m.def("getPerfConvTransposed2dMkl", &getPerfConvTransposed2dMkl);
+    m.def("getPerfMatmulMkl", &getPerfMatmulMkl);
 #endif
 }
 
@@ -149,7 +158,7 @@ static Shape reshape_shape_of(Operator op) {
 
 void export_functions(py::module &m) {
 #define FUNCTION(NAME) def(#NAME, &NAME)
-    m.def("cpu_runtime", &CpuRuntimeObj::getInstance)
+    m.def("cpu_runtime", &NativeCpuRuntimeObj::getInstance)
 #ifdef USE_CUDA
         .FUNCTION(cuda_runtime)
 #endif
@@ -168,8 +177,8 @@ void init_graph_builder(py::module &m) {
     using Handler = GraphHandlerObj;
 
     py::class_<RuntimeObj, std::shared_ptr<RuntimeObj>>(m, "Runtime");
-    py::class_<CpuRuntimeObj, std::shared_ptr<CpuRuntimeObj>, RuntimeObj>(
-        m, "CpuRuntime");
+    py::class_<NativeCpuRuntimeObj, std::shared_ptr<NativeCpuRuntimeObj>,
+               RuntimeObj>(m, "CpuRuntime");
 #ifdef USE_CUDA
     py::class_<CudaRuntimeObj, std::shared_ptr<CudaRuntimeObj>, RuntimeObj>(
         m, "CudaRuntime");
@@ -184,7 +193,8 @@ void init_graph_builder(py::module &m) {
         .def("copyout_int32", &TensorObj::copyout<int32_t>, policy::move)
         .def("copyout_int64", &TensorObj::copyout<int64_t>, policy::move)
         .def("has_target", &TensorObj::hasTarget, policy::automatic)
-        .def("src", &TensorObj::getSource, policy::move);
+        .def("src", &TensorObj::getSource, policy::move)
+        .def("printData", &TensorObj::printData, policy::automatic);
     py::class_<OperatorObj, std::shared_ptr<OperatorObj>>(m, "Operator")
         .def("op_type", &OperatorObj::getOpType, policy::automatic)
         .def("inputs", py::overload_cast<>(&OperatorObj::getInputs, py::const_),

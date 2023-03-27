@@ -28,7 +28,7 @@ using OpVec = vector<Operator>;
 
 using VType = uint32_t;
 
-enum class Device { CPU = 1, CUDA, BANG };
+enum class Device { CPU = 1, CUDA, BANG, MKL };
 /***************** Forward declaration end *****************/
 
 class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
@@ -53,7 +53,7 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
                      bool profiling = false) const = 0;
     virtual void *alloc(size_t size) = 0;
     virtual void dealloc(void *ptr) = 0;
-
+    void prepareAndRun(Graph &graph, bool tune = false, bool profiling = false);
     /**
      * @brief Get the execution time of each operator in performance record. No
      * execution happens.
@@ -64,7 +64,9 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
      */
     double getPerfTime(const Graph &graph, bool profiling = false) const;
     Blob allocBlob(size_t size);
-    bool isCpu() const { return device == Device::CPU; }
+    bool isCpu() const {
+        return device == Device::CPU || device == Device::MKL;
+    }
     bool isCuda() const { return device == Device::CUDA; }
     bool isBang() const { return device == Device::BANG; }
     void copyBlob(const TensorObj *dst, const TensorObj *src) const;
@@ -85,26 +87,33 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
 
 class CpuRuntimeObj : public RuntimeObj {
   public:
-    CpuRuntimeObj() : RuntimeObj(Device::CPU) {}
-    static Ref<CpuRuntimeObj> &getInstance() {
-        static Ref<CpuRuntimeObj> instance = make_ref<CpuRuntimeObj>();
-        return instance;
-    }
+    CpuRuntimeObj(Device dev) : RuntimeObj(dev) {}
 
     void run(const Graph &graph, bool tune = false,
              bool profiling = false) const override;
-    void dealloc(void *ptr) override { return free(ptr); };
-
-    void *alloc(size_t size) override {
-        return calloc((size + sizeof(uint64_t) - 1) / sizeof(uint64_t),
-                      sizeof(uint64_t));
-    };
 
     void copyBlobFromCPU(void *dst, const void *src,
                          size_t bytes) const override;
     void copyBlobToCPU(void *dst, const void *src, size_t bytes) const override;
     void copyBlobInsideRuntime(void *dst, const void *src,
                                size_t bytes) const override;
+};
+
+class NativeCpuRuntimeObj : public CpuRuntimeObj {
+  public:
+    NativeCpuRuntimeObj() : CpuRuntimeObj(Device::CPU) {}
+
+    static Ref<NativeCpuRuntimeObj> &getInstance() {
+        static Ref<NativeCpuRuntimeObj> instance =
+            make_ref<NativeCpuRuntimeObj>();
+        return instance;
+    }
+    void dealloc(void *ptr) override { return free(ptr); };
+
+    void *alloc(size_t size) override {
+        return calloc((size + sizeof(uint64_t) - 1) / sizeof(uint64_t),
+                      sizeof(uint64_t));
+    };
     string toString() const override;
 };
 

@@ -8,16 +8,16 @@
 namespace infini {
 
 TEST(CUDA_BatchNorm, run) {
-    Runtime cpuRuntime = CpuRuntimeObj::getInstance();
+    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
 
     // Build cpu graph
     Graph gCpu = make_ref<GraphObj>(cpuRuntime);
     auto iCpu = gCpu->addTensor(Shape{1, 3, 2, 2}, DataType::Float32);
-    auto meanCpu = gCpu->addTensor(Shape{1, 3, 1, 1}, DataType::Float32);
-    auto varCpu = gCpu->addTensor(Shape{1, 3, 1, 1}, DataType::Float32);
-    auto scaleCpu = gCpu->addTensor(Shape{1, 3, 1, 1}, DataType::Float32);
-    auto biasCpu = gCpu->addTensor(Shape{1, 3, 1, 1}, DataType::Float32);
+    auto meanCpu = gCpu->addTensor(Shape{3}, DataType::Float32);
+    auto varCpu = gCpu->addTensor(Shape{3}, DataType::Float32);
+    auto scaleCpu = gCpu->addTensor(Shape{3}, DataType::Float32);
+    auto biasCpu = gCpu->addTensor(Shape{3}, DataType::Float32);
 
     // Build input data on CPU
     gCpu->dataMalloc();

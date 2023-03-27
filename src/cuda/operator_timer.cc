@@ -17,7 +17,7 @@ double getPerfConvCudnn(int n, int c, int h, int w, int f, int r, int s,
     // const auto &[n, c, h, w, f, r, s, padh, padw, strideh, stridew,
     // dilationh, dilationw, group] =
     //     tuple{1, 512, 14, 14, 512, 3, 3, 2, 2, 1, 1, 2, 2, 1};
-    Runtime cpu = CpuRuntimeObj::getInstance(); // CPUruntime is singleton
+    Runtime cpu = NativeCpuRuntimeObj::getInstance(); // CPUruntime is singleton
     Graph gCpu = make_ref<GraphObj>(cpu);
     Runtime cuda = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cuda);
@@ -51,7 +51,7 @@ double getPerfConvTransposed2dCudnn(int n, int c, int h, int w, int f, int r,
     // const auto &[n, c, h, w, f, r, s, padh, padw, strideh, stridew,
     // dilationh, dilationw, group] =
     //     tuple{1, 512, 14, 14, 512, 3, 3, 2, 2, 1, 1, 2, 2, 1};
-    Runtime cpu = CpuRuntimeObj::getInstance(); // CPUruntime is singleton
+    Runtime cpu = NativeCpuRuntimeObj::getInstance(); // CPUruntime is singleton
     Graph gCpu = make_ref<GraphObj>(cpu);
     Runtime cuda = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cuda);
@@ -83,7 +83,7 @@ double getPerfMatmulCublas(int b, int m, int n, int k, const char *name) {
     // const auto &[n, c, h, w, f, r, s, padh, padw, strideh, stridew,
     // dilationh, dilationw, group] =
     //     tuple{1, 512, 14, 14, 512, 3, 3, 2, 2, 1, 1, 2, 2, 1};
-    Runtime cpu = CpuRuntimeObj::getInstance(); // CPUruntime is singleton
+    Runtime cpu = NativeCpuRuntimeObj::getInstance(); // CPUruntime is singleton
     Graph gCpu = make_ref<GraphObj>(cpu);
     Runtime cuda = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cuda);

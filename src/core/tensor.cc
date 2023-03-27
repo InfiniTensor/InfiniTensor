@@ -3,6 +3,7 @@
 #include "core/operator.h"
 #include "core/runtime.h"
 #include "utils/dataloader.h"
+#include <cstring>
 #include <numeric>
 
 namespace infini {
@@ -157,7 +158,7 @@ void TensorObj::setData(
         generator(getRawDataPtr<void *>(), size(), dtype);
     } else {
         // Create a CPU buffer for the generetor and copy results to the device
-        auto cpuRuntime = CpuRuntimeObj::getInstance();
+        auto cpuRuntime = NativeCpuRuntimeObj::getInstance();
         size_t nBytes = size() * dtype.getSize();
         Blob buffer = cpuRuntime->allocBlob(nBytes);
         generator(buffer->getPtr<void *>(), size(), dtype);
@@ -200,5 +201,4 @@ size_t TensorObj::getOffsetByBroadcastOffset(size_t bcOffset,
     }
     return getOffsetByPos(pos, shape);
 }
-
 }; // namespace infini

@@ -176,7 +176,7 @@ TEST(Gather, offsetTrans) {
 
 TEST(Gather, Cuda) {
     {
-        Runtime runtime = CpuRuntimeObj::getInstance();
+        Runtime runtime = NativeCpuRuntimeObj::getInstance();
         Graph gCpu = make_ref<GraphObj>(runtime);
         auto input = gCpu->addTensor({3, 2}, DataType::Float32);
         auto index = gCpu->addTensor({2, 2}, DataType::UInt32);
@@ -197,7 +197,7 @@ TEST(Gather, Cuda) {
         EXPECT_TRUE(oCpu->equalData(vector<float>{1, 2, 3, 4, 3, 4, 5, 6}));
     }
     {
-        Runtime runtime = CpuRuntimeObj::getInstance();
+        Runtime runtime = NativeCpuRuntimeObj::getInstance();
         Graph gCpu = make_ref<GraphObj>(runtime);
         auto input = gCpu->addTensor({3, 3}, DataType::Float32);
         auto index = gCpu->addTensor({1, 2}, DataType::UInt32);
@@ -218,7 +218,7 @@ TEST(Gather, Cuda) {
         EXPECT_TRUE(oCpu->equalData(vector<float>{0, 2, 3, 5, 6, 8}));
     }
     {
-        Runtime runtime = CpuRuntimeObj::getInstance();
+        Runtime runtime = NativeCpuRuntimeObj::getInstance();
         Graph gCpu = make_ref<GraphObj>(runtime);
         auto input = gCpu->addTensor({2, 4, 2}, DataType::Float32);
         auto index = gCpu->addTensor({3, 1}, DataType::UInt32);

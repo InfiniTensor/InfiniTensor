@@ -5,7 +5,6 @@
 #include "core/runtime.h"
 
 namespace infini {
-
 class TensorBaseObj : public Object {
   public:
     // enum TensorType {

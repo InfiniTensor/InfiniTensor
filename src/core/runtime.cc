@@ -6,6 +6,9 @@
 #include <chrono>
 #include <cstring>
 namespace infini {
+void RuntimeObj::prepareAndRun(Graph &graph, bool tune, bool profiling) {
+    run(graph, tune, profiling);
+}
 
 void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
     if (!tune && profiling)
@@ -159,6 +162,6 @@ void CpuRuntimeObj::copyBlobInsideRuntime(void *dst, const void *src,
     memcpy(dst, src, bytes);
 }
 
-string CpuRuntimeObj::toString() const { return "CPU Runtime"; }
+string NativeCpuRuntimeObj::toString() const { return "CPU Runtime"; }
 
 } // namespace infini
