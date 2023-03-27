@@ -10,14 +10,4 @@ MklRuntimeObj::~MklRuntimeObj() {
     mkl_free_buffers();
     dnnl_engine_destroy(engine);
 }
-
-void MklRuntimeObj::preProcess(Graph &graph) {
-    const auto &kernelRegistry = KernelRegistry::getInstance();
-    for (auto &op : graph->getOperators()) {
-        auto kernelAttrs = KernelAttrs{device, op->getOpType(), op->getDType()};
-        Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
-
-        kernel->preProcess(op, this, false);
-    }
-}
 } // namespace infini

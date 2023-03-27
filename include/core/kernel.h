@@ -46,8 +46,6 @@ class Kernel {
     // Premise: op is idempotent since it is called multiple times.
     virtual PerfRecord tune(const Operator &op,
                             const RuntimeObj *context) const = 0;
-
-    virtual void preProcess(Operator op, RuntimeObj *context, bool isTrain) {}
 };
 
 class PerfRecordRegistry {

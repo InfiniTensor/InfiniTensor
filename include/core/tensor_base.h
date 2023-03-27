@@ -5,13 +5,6 @@
 #include "core/runtime.h"
 
 namespace infini {
-
-enum class MemoryFormat {
-    nchw,        // default memory format for src and dst.
-    iohw = nchw, // default memory format for weights
-    oihw         // memory format for weights
-};
-
 class TensorBaseObj : public Object {
   public:
     // enum TensorType {
@@ -29,10 +22,6 @@ class TensorBaseObj : public Object {
     WRef<OperatorObj> source;
     Blob data;
     Runtime runtime;
-    MemoryFormat mFormat;
-
-  protected:
-    void setMFormat(MemoryFormat f) { mFormat = f; }
 
   public:
     TensorBaseObj(int dim, DataType dtype, Runtime runtime);
@@ -54,7 +43,6 @@ class TensorBaseObj : public Object {
 
     DataType getDType() const { return dtype; }
     Runtime getRuntime() const { return runtime; }
-    MemoryFormat getMFormat() const { return mFormat; }
 
     void addTarget(const Operator &op) { targets.emplace_back(op); }
     void setSource(const Operator &op) { source = op; }

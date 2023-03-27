@@ -20,15 +20,6 @@ struct ConvTransposeMklPerfRecordObj : public PerfRecordObj {
 
 using ConvTransposeMklPerfRecord = Ref<ConvTransposeMklPerfRecordObj>;
 class MklConvTranspose : public Kernel {
-  public:
-    void preProcess(Operator op, RuntimeObj *context, bool isTrain) override {
-        if (isTrain)
-            return;
-
-        auto t = op->getInputs(1);
-        t->iohw2oihwData();
-    }
-
   private:
     bool createPrimitives(
         const Ref<ConvTransposed2dObj> &op,
@@ -37,6 +28,7 @@ class MklConvTranspose : public Kernel {
         std::vector<std::unordered_map<int, dnnl::memory>> &primArgs) const {
         auto srcData = op->getInputs(0)->getRawDataPtr<float *>();
         auto wData = op->getInputs(1)->getRawDataPtr<float *>();
+        // FIXME: iohw2iohwData
         auto dstData = op->getOutput(0)->getRawDataPtr<float *>();
 
         auto [n, c, h, w, f, r, s] = op->getNCHWFRS();
@@ -60,9 +52,11 @@ class MklConvTranspose : public Kernel {
         // dimensions to be in order {o, i, h, w}. So need to reorder wData.
         // TODO: to make reorder happen only once when inference (because
         // weights are fixed).
+        // TODO: Fix by whj, change memory format tag from oihw to iohw to
+        // remove extra transpose. Correctness to be confirmed.
         auto userWMd =
             dnnl::memory::desc({cpg, f, r, s}, dnnl::memory::data_type::f32,
-                               dnnl::memory::format_tag::oihw);
+                               dnnl::memory::format_tag::iohw);
 
         auto userWMemory = dnnl::memory(userWMd, context->getEngine(), wData);
 

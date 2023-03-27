@@ -7,7 +7,6 @@
 #include <cstring>
 namespace infini {
 void RuntimeObj::prepareAndRun(Graph &graph, bool tune, bool profiling) {
-    preProcess(graph);
     run(graph, tune, profiling);
 }
 

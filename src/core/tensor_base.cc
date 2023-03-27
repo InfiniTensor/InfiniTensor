@@ -4,6 +4,6 @@
 namespace infini {
 
 TensorBaseObj::TensorBaseObj(int dim, DataType dtype, Runtime runtime)
-    : dim(dim), dtype(dtype), runtime(runtime), mFormat(MemoryFormat::nchw) {}
+    : dim(dim), dtype(dtype), runtime(runtime) {}
 
 }; // namespace infini

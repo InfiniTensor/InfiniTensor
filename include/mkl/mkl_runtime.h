@@ -28,8 +28,6 @@ class MklRuntimeObj : public CpuRuntimeObj {
 
     string toString() const override { return "CPU MKL Runtime"; };
     dnnl::engine getEngine() const { return dnnl::engine(engine, true); }
-
-    void preProcess(Graph &graph) override;
 };
 
 } // namespace infini

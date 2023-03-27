@@ -101,8 +101,8 @@ TEST(cuDNN_ConvTransposed, run1) {
     Runtime cuda = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cuda);
     // Set input data on CPU in a CPU Graph
-    Tensor i0Cpu = gCpu->addTensor({1, 1, 3, 3}, DataType::Float32);
-    Tensor w0Cpu = gCpu->addTensor({1, 2, 3, 3}, DataType::Float32);
+    Tensor i0Cpu = gCpu->addTensor({1, 2, 3, 3}, DataType::Float32);
+    Tensor w0Cpu = gCpu->addTensor({2, 2, 3, 3}, DataType::Float32);
     // Malloc data for all tensors in a graph. Do we need implicit allocation?
     gCpu->dataMalloc();
     i0Cpu->setData(IncrementalGenerator());
@@ -121,10 +121,11 @@ TEST(cuDNN_ConvTransposed, run1) {
     auto o0Cpu = gCpu->cloneTensor(conv->getOutput());
     // check results on CPU
     EXPECT_TRUE(o0Cpu->equalData(vector<float>{
-        0,   0,   1,   4,   4,   0,   6,   20,  26,  20,  9,   36,  84,
-        84,  57,  36,  90,  164, 134, 80,  36,  84,  145, 112, 64,  0,
-        9,   28,  31,  22,  27,  78,  155, 134, 83,  90,  225, 408, 327,
-        192, 117, 270, 461, 350, 197, 90,  201, 334, 247, 136}));
+        162, 351,  569,  413,  224,  405,  876,  1417, 1024, 553,
+        747, 1611, 2598, 1869, 1005, 639,  1368, 2191, 1564, 835,
+        396, 843,  1343, 953,  506,  243,  531,  866,  629,  341,
+        621, 1344, 2173, 1564, 841,  1152, 2475, 3975, 2841, 1518,
+        963, 2052, 3271, 2320, 1231, 585,  1239, 1964, 1385, 731}));
 }
 
 TEST(cuDNN_ConvTransposed, tune) {
