@@ -1,14 +1,13 @@
 ﻿.PHONY : build clean install-python test-cpp test-onnx
 
 TYPE ?= release
-CUDA ?= off
+CUDA ?= OFF
+BANG ?= OFF
 INTELCPU ?= off
 
-CMAKE_OPT = -DCMAKE_BUILD_TYPE=$(TYPE) 
-
-ifeq ($(CUDA), ON)
-	CMAKE_OPT += -DUSE_CUDA=ON
-endif
+CMAKE_OPT = -DCMAKE_BUILD_TYPE=$(TYPE)
+CMAKE_OPT += -DUSE_CUDA=$(CUDA)
+CMAKE_OPT += -DUSE_BANG=$(BANG)
 
 ifeq ($(INTELCPU), ON)
 	CMAKE_OPT += -DUSE_INTELCPU=ON -DCMAKE_CXX_COMPILER=dpcpp
