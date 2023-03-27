@@ -2,6 +2,7 @@ from tokenize import Double
 import pyinfinitensor  # import getPerfConv, getPerfMatmul
 
 
+# FIXME: change API from getPerfOpDevice(...) to getPerfOp(device='dev', ...)
 def getPerfConvCuda(n, c, h, w, f, r, s, padh, padw, strideh, stridew, dilationh, dilationw, group, name=""):
     return pyinfinitensor.getPerfConvCuda(n, c, h, w, f, r, s, padh, padw,
                                            strideh, stridew, dilationh, dilationw, group, name)
