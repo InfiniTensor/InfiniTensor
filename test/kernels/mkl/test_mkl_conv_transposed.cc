@@ -38,7 +38,7 @@ TEST(mkl_ConvTransposed, run) {
                                         62., 67., 72., 45.});
 }
 
-TEST(mkl_ConvTransposed, run2) {
+TEST(mkl_ConvTransposed, run1) {
     Runtime runtime = MklRuntimeObj::getInstance();
     Graph gMkl = make_ref<GraphObj>(runtime);
     // Set input data on CPU in a CPU Graph
@@ -47,15 +47,15 @@ TEST(mkl_ConvTransposed, run2) {
     auto conv = gMkl->addOp<ConvTransposed2dObj>(i0, w0, nullptr, 0, 0);
 
     gMkl->dataMalloc();
-    i0->copyin(vector<float>{0, 1, 2, 3, 4, 5, 6, 7, 8});
-    w0->copyin(
-        vector<float>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1});
+    i0->setData(IncrementalGenerator());
+    w0->setData(IncrementalGenerator());
 
     runtime->prepareAndRun(gMkl);
     EXPECT_TRUE(conv->getOutput()->equalData(vector<float>{
-        0,  1,  3,  3,  2,  3,  8,  15, 12, 7,  9,  21, 36, 27, 15, 9,  20,
-        33, 24, 13, 6,  13, 21, 15, 8,  0,  1,  3,  3,  2,  3,  8,  15, 12,
-        7,  9,  21, 36, 27, 15, 9,  20, 33, 24, 13, 6,  13, 21, 15, 8}));
+        0,   0,   1,   4,   4,   0,   6,   20,  26,  20,  9,   36,  84,
+        84,  57,  36,  90,  164, 134, 80,  36,  84,  145, 112, 64,  0,
+        9,   28,  31,  22,  27,  78,  155, 134, 83,  90,  225, 408, 327,
+        192, 117, 270, 461, 350, 197, 90,  201, 334, 247, 136}));
 }
 
 TEST(mkl_ConvTransposed, tune) {
