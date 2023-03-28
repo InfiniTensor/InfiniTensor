@@ -151,9 +151,10 @@ if(USE_INTELCPU)
   set(DNNL_CONFIGURATION "cpu_gomp")
   find_package(dnnl CONFIG REQUIRED)
   if(dnnl_FOUND)
+      add_compile_definitions(USE_MKL=1)
       include_directories(BEFORE ${dnnl_DIR}/../../../cpu_gomp/include/)
       link_directories(${dnnl_DIR}/../../../cpu_gomp/lib)
-      target_link_libraries(InfiniTensor  dnnl)
+      target_link_libraries(InfiniTensor   dnnl)
   else()
       message(FATAL_ERROR "dnnl library not found")
   endif()
@@ -180,6 +181,7 @@ endif()
 
 if(USE_BANG)
   add_compile_definitions(USE_BANG=1)
+  include_directories(src/kernels/mlu/include)
   ################################################################################
   # Neuware Evironment
   ################################################################################
