@@ -92,7 +92,7 @@ stub = OnnxStub(onnx.load("model_file"), backend.cpu_runtime())
 
 [`onnx.load`](https://onnx.ai/onnx/api/serialization.html#load-a-model) 是 onnx 提供的加载函数，将 onnx 文件读取为保存在内存中的 onnx 模型。
 
-`OnnxStub` 是 onnx 模型在项目中的表示，通过构造这个对象，将 onnx 模型导入到项目中。其构造器的第一个参数是 onnx 模型文件；第二个参数是模型运行的后端运行时，可以是 `backend.cpu_runtime()` 或 `backend.cuda_runtime()`。
+`OnnxStub` 是 onnx 模型在项目中的表示，通过构造这个对象，将 onnx 模型导入到项目中。其构造器的第一个参数是 onnx 模型文件；第二个参数是模型运行的后端运行时，可以是 `backend.cpu_runtime()`、`backend.cuda_runtime()` 或 `backend.bang_runtime()`。
 
 构造出的 stub 对象可以用于操作项目中的模型和运行时。
 

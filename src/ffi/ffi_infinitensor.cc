@@ -18,6 +18,9 @@
 #include "cuda/cuda_runtime.h"
 #include "cuda/operator_timer.h"
 #endif
+#ifdef USE_BANG
+#include "bang/bang_runtime.h"
+#endif
 #ifdef USE_INTELCPU
 #include "intelcpu/mkl_runtime.h"
 #include "intelcpu/operator_timer.h"
@@ -119,6 +122,10 @@ static int tensor_dtype(Tensor t) {
 static Ref<CudaRuntimeObj> cuda_runtime() { return make_ref<CudaRuntimeObj>(); }
 #endif
 
+#ifdef USE_BANG
+static Ref<BangRuntimeObj> bang_runtime() { return make_ref<BangRuntimeObj>(); }
+#endif
+
 #ifdef USE_INTELCPU
 static Ref<RuntimeObj> intelcpu_runtime() { return make_ref<MklRuntimeObj>(); }
 #endif
@@ -214,6 +221,11 @@ void export_functions(py::module &m) {
     m.def("intelcpu_runtime", intelcpu_runtime)
 #else
     m.def("cpu_runtime", &NativeCpuRuntimeObj::getInstance)
+#ifdef USE_CUDA
+        .FUNCTION(cuda_runtime)
+#endif
+#ifdef USE_BANG
+        .FUNCTION(bang_runtime)
 #endif
         .FUNCTION(conv_attrs_of)
         .FUNCTION(matmul_attrs_of)
@@ -240,6 +252,10 @@ void init_graph_builder(py::module &m) {
 #ifdef USE_CUDA
     py::class_<CudaRuntimeObj, std::shared_ptr<CudaRuntimeObj>, RuntimeObj>(
         m, "CudaRuntime");
+#endif
+#ifdef USE_BANG
+    py::class_<BangRuntimeObj, std::shared_ptr<BangRuntimeObj>, RuntimeObj>(
+        m, "BangRuntime");
 #endif
     py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "Tensor")
         .def("fuid", &TensorObj::getFuid, policy::automatic)
