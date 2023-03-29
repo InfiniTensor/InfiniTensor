@@ -12,7 +12,7 @@ template <class T>
 void testMinimum(const std::function<void(void *, size_t, DataType)> &generator,
                  const Shape &shape) {
     // Runtime
-    Runtime cpuRuntime = CpuRuntimeObj::getInstance();
+    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     auto bangRuntime = make_ref<BangRuntimeObj>();
 
     // Build input data on CPU

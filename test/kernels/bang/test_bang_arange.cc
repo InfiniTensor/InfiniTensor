@@ -10,7 +10,7 @@ namespace infini {
 
 template <class T> void testArange() {
     // Runtime
-    Runtime cpuRuntime = CpuRuntimeObj::getInstance();
+    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     auto bangRuntime = make_ref<BangRuntimeObj>();
 
     float start = 0.0;
