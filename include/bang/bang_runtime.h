@@ -12,12 +12,12 @@ class BangRuntimeObj : public RuntimeObj {
 
   public:
     BangRuntimeObj() : RuntimeObj(Device::BANG) {
-        checkBangError(cnrtInit(0));
-        cnrtDev_t dev;
-        checkBangError(cnrtGetDeviceHandle(&dev, 0));
-        checkBangError(cnrtSetCurrentDevice(dev));
+        cnInit(0);
+        CNdev dev;
+        cnDeviceGet(&dev, 0);
+        checkBangError(cnrtSetDevice(dev));
         cnrtQueue_t queue;
-        checkBangError(cnrtCreateQueue(&queue));
+        checkBangError(cnrtQueueCreate(&queue));
 
         checkCnnlError(cnnlCreate(&cnnl));
         checkCnnlError(cnnlSetQueue(cnnl, queue));
