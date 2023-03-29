@@ -13,7 +13,7 @@ void testConv(const std::function<void(void *, size_t, DataType)> &generatorA,
               const std::function<void(void *, size_t, DataType)> &generatorB,
               const Shape &shapeA, const Shape &shapeB) {
     // Runtime
-    Runtime cpuRuntime = CpuRuntimeObj::getInstance();
+    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     auto bangRuntime = make_ref<BangRuntimeObj>();
 
     // Build input data on CPU

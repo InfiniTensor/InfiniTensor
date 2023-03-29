@@ -14,7 +14,7 @@ void testMatmul(const std::function<void(void *, size_t, DataType)> &generatorA,
                 bool transA, bool transB, const Shape &shapeA,
                 const Shape &shapeB) {
     // Runtime
-    Runtime cpuRuntime = CpuRuntimeObj::getInstance();
+    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     auto bangRuntime = make_ref<BangRuntimeObj>();
 
     // Build input data on CPU
