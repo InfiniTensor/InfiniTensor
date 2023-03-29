@@ -10,13 +10,10 @@
 namespace infini {
 namespace opTimer {
 
-double getPerfConvCudnn(int n, int c, int h, int w, int f, int r, int s,
+double getPerfConvCnnl(int n, int c, int h, int w, int f, int r, int s,
                         int padh, int padw, int strideh, int stridew,
                         int dilationh, int dilationw, int group,
                         const char *name) {
-    // const auto &[n, c, h, w, f, r, s, padh, padw, strideh, stridew,
-    // dilationh, dilationw, group] =
-    //     tuple{1, 512, 14, 14, 512, 3, 3, 2, 2, 1, 1, 2, 2, 1};
     Runtime cpu = CpuRuntimeObj::getInstance(); // CPUruntime is singleton
     Graph gCpu = make_ref<GraphObj>(cpu);
     Runtime bang = make_ref<BangRuntimeObj>();
@@ -44,10 +41,7 @@ double getPerfConvCudnn(int n, int c, int h, int w, int f, int r, int s,
     return bang->getPerfTime(gBang);
 }
 
-double getPerfMatmulCublas(int b, int m, int n, int k, const char *name) {
-    // const auto &[n, c, h, w, f, r, s, padh, padw, strideh, stridew,
-    // dilationh, dilationw, group] =
-    //     tuple{1, 512, 14, 14, 512, 3, 3, 2, 2, 1, 1, 2, 2, 1};
+double getPerfMatmulCnnl(int b, int m, int n, int k, const char *name) {
     Runtime cpu = CpuRuntimeObj::getInstance(); // CPUruntime is singleton
     Graph gCpu = make_ref<GraphObj>(cpu);
     Runtime bang = make_ref<BangRuntimeObj>();

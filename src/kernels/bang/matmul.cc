@@ -60,11 +60,6 @@ class MatmulCnnl : public BangKernelWithoutConfig {
     }
 };
 
-// class AddCnnl : public MatmulCnnl {
-//     cnnlOpTensorDesc_t getOpType() const override { return
-//     CNNL_OP_TENSOR_ADD; }
-// };
-
 REGISTER_KERNEL(Device::BANG, OpType::Matmul, DataType::Float32, MatmulCnnl,
                 "Matmul_cnnl_BANG_Float32");
 }; // namespace infini
