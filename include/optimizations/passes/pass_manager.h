@@ -8,9 +8,7 @@ class PassManager {
 
     Graph run(const Graph graph);
 
-    bool addPass(Ref<Partition> partition, Ref<Transformation> transformation);
-
-    bool addPass(Ref<Transformation> transformation);
+    bool addPass(Ref<Partition>, Ref<Transformation>, Ref<Rating>);
 
     string toString();
 

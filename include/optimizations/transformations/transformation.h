@@ -1,3 +1,5 @@
+#pragma once
+
 #include "core/common.h"
 #include "core/graph.h"
 #include "core/runtime.h"
@@ -5,8 +7,8 @@
 namespace infini {
 class Transformation {
   public:
-    Transformation() {}
-
-    virtual vector<Graph> run(const Graph graph) { return {Graph(graph)}; };
+    virtual vector<Graph> run(const GraphObj &graph) const {
+        return {make_ref<GraphObj>(graph)};
+    };
 };
 } // namespace infini

@@ -1,33 +1,23 @@
+#pragma once
+
 #include "core/graph.h"
+#include "optimizations/rate/rate.h"
 #include "optimizations/transformations/transformation.h"
 
 namespace infini {
 class Partition {
   public:
-    Partition() {}
+    virtual Graph run(const GraphObj &graph,
+                      const Transformation &transformation) const = 0;
 
   protected:
-    enum RankingMetrics {
-        RankByExecTime,
-        RankByMemoryUsage,
-    };
+    std::unique_ptr<Rating> rating;
 
-    vector<Graph> runTransformation(const Graph graph,
-                                    Ref<Transformation> transformation) {
-        return transformation->run(graph);
-    }
-
-    Graph getBestTransformation(const Graph graph,
-                                Ref<Transformation> transformation,
-                                RankingMetrics metrics = RankByExecTime) {
-        return getTopKTransformations(graph, transformation, 1, metrics);
-    }
-
-    Graph getTopKTransformations(const Graph graph,
-                                 Ref<Transformation> transformation, size_t k,
-                                 RankingMetrics metrics = RankByExecTime);
-
-    virtual Graph run(const Graph graph,
-                      Ref<Transformation> transformation) = 0;
+    /// @brief Rank the subgraph substitutes.
+    /// @param subgraph The subgraph to transform.
+    /// @param tr Transformation object.
+    /// @return Ranked substitutes.
+    vector<Graph> rankSubstitutes(const GraphObj &subgraph,
+                                  const Transformation &tr) const;
 };
 } // namespace infini

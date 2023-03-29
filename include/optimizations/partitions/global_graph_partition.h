@@ -1,7 +1,7 @@
-#include "optimizations/partitions/partition.h"
+﻿#include "optimizations/partitions/partition.h"
 
 namespace infini {
-class SingleOperatorPartition : public Partition {
+class GlobalGraphPartition : public Partition {
     Graph run(const GraphObj &graph,
               const Transformation &transformation) const override;
 };
