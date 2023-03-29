@@ -11,9 +11,9 @@ namespace infini {
 namespace opTimer {
 
 double getPerfConvCnnl(int n, int c, int h, int w, int f, int r, int s,
-                        int padh, int padw, int strideh, int stridew,
-                        int dilationh, int dilationw, int group,
-                        const char *name) {
+                       int padh, int padw, int strideh, int stridew,
+                       int dilationh, int dilationw, int group,
+                       const char *name) {
     Runtime cpu = CpuRuntimeObj::getInstance(); // CPUruntime is singleton
     Graph gCpu = make_ref<GraphObj>(cpu);
     Runtime bang = make_ref<BangRuntimeObj>();
