@@ -170,13 +170,15 @@ class MemboundTVM : public Kernel {
                  const std::vector<int> &outDims, const std::string &outDType,
                  const std::string &lambda, const std::string &funcName,
                  const std::vector<std::string> &inputNames,
-                 const std::string &outputName,
-                 const HashType hashCode) const {
+                 const std::string &outputName, const HashType hashCode) const {
         std::string funcCode;
         std::vector<int> invokeParams;
         try {
             start_interpreter();
-            auto func = py::module::import("cpp_plugin").attr("gen_ansor_op");
+            // Use static to avoid re-importing the module. Re-importing results
+            // in cuBLAS failure, whose root cause is not identified yet.
+            static auto func =
+                py::module::import("cpp_plugin").attr("gen_ansor_op");
             py::tuple code = func(inDims, inDTypes, outDims, outDType, lambda,
                                   funcName, inputNames, outputName, hashCode);
             funcCode = py::str(code[0]);
