@@ -78,9 +78,7 @@ enum class OpType {
     Rsqrt,
     Cast,
     FloorDiv,
-    FloorDivTrunc,
     FloorMod,
-    FloorModTrunc,
     Det,
     Round,
     Square,
@@ -96,8 +94,6 @@ enum class OpType {
     Or,
     Xor,
     Not,
-    Addcdiv,
-    Addcmul,
     BitAnd,
     BitOr,
     BitXor,
@@ -189,9 +185,7 @@ class OpRegistry {
             FOP(Rsqrt);
             FOP(Cast);
             FOP(FloorDiv);
-            FOP(FloorDivTrunc);
             FOP(FloorMod);
-            FOP(FloorModTrunc);
             FOP(Det);
             FOP(Round);
             FOP(Square);
@@ -207,8 +201,6 @@ class OpRegistry {
             FOP(Or);
             FOP(Xor);
             FOP(Not);
-            FOP(Addcdiv);
-            FOP(Addcmul);
             FOP(BitAnd);
             FOP(BitOr);
             FOP(BitXor);
