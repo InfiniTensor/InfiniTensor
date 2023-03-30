@@ -78,7 +78,7 @@ if(BUILD_TEST_EINNET)
   include_directories(${DMLC_INCLUDE_DIR})
   include_directories(${DLPACK_INCLUDE_DIR})
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDMLC_USE_LOGGING_LIBRARY=\\\<${TVM_INCLUDE_DIR}/tvm/runtime/logging.h\\\> ")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DINFINI_USE_TVM=1") # Enable TVM codegen kernels 
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DINFINI_USE_TVM=1") # Enable TVM codegen kernels
 endif()
 
 if(BUILD_TEST)
@@ -142,7 +142,7 @@ if(USE_BACKTRACE)
 endif()
 
 if(USE_INTELCPU)
-  add_compile_definitions(USE_INTELCPU=1) 
+  add_compile_definitions(USE_INTELCPU=1)
   find_package(MKL CONFIG REQUIRED)
 
   # Refer to https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl-link-line-advisor.html
@@ -150,10 +150,10 @@ if(USE_INTELCPU)
 
   set(DNNL_CONFIGURATION "cpu_gomp")
   find_package(dnnl CONFIG REQUIRED)
-  if(dnnl_FOUND)          
+  if(dnnl_FOUND)
       include_directories(BEFORE ${dnnl_DIR}/../../../cpu_gomp/include/)
-      link_directories(${dnnl_DIR}/../../../cpu_gomp/lib)   
-      target_link_libraries(InfiniTensor  dnnl)       
+      link_directories(${dnnl_DIR}/../../../cpu_gomp/lib)
+      target_link_libraries(InfiniTensor  dnnl)
   else()
       message(FATAL_ERROR "dnnl library not found")
   endif()
@@ -161,7 +161,7 @@ if(USE_INTELCPU)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMKL_ILP64 -qmkl=parallel -Werror  ${WNO_ERRORS}")
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DMKL_ILP64 -qmkl=parallel ${WNO_ERRORS}") # Enable assertion
   set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -DMKL_ILP64 -qmkl=parallel ${WNO_ERRORS}") # Enable assertion
-  
+
   find_package(IntelDPCPP REQUIRED)
 endif()
 
@@ -180,7 +180,6 @@ endif()
 
 if(USE_BANG)
   add_compile_definitions(USE_BANG=1)
-  include_directories(src/kernels/mlu/include)
   ################################################################################
   # Neuware Evironment
   ################################################################################
@@ -213,10 +212,8 @@ if(USE_BANG)
   ################################################################################
   # BangC Kernels
   ################################################################################
-  add_subdirectory(src/kernels/mlu)
 
   target_link_libraries(InfiniTensor ${CAMBRICON_CNNL} ${CAMBRICON_CNRT} ${CAMBRICON_CNDRV} stdc++)
-  target_link_libraries(InfiniTensor bangops)
 endif()
 
 # # Python bindings
