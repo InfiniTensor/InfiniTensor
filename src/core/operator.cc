@@ -78,7 +78,6 @@ bool OperatorObj::checkValid(GraphObj *graph) {
     return true;
 }
 
-
 optional<vector<Shape>> OperatorObj::inferShape() const {
     return inferShape(inputs);
 }

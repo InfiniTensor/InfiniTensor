@@ -195,48 +195,48 @@ vector<int> CastObj::getOpAttrVector() const {
 
 DataType CastObj::getOutputDataType() const {
     switch (castType) {
-        case CastObj::Float2Int64:
-            return DataType::Int64;
-        case CastObj::Float2Int32:
-            return DataType::Int32;
-        case CastObj::Float2Int16:
-            return DataType::Int16;
-        case CastObj::Float2Int8:
-            return DataType::Int8;
-        case CastObj::Int322Float:
-            return DataType::Float32;
-        case CastObj::Int322Int8:
-            return DataType::Int8;
-        case CastObj::Int322Int16:
-            return DataType::Int16;
-        case CastObj::Int162Float:
-            return DataType::Float32;
-        case CastObj::Int162Int32:
-            return DataType::Int32;
-        case CastObj::Int82Float:
-            return DataType::Float32;
-        case CastObj::Int82Int16:
-            return DataType::Int16;
-        case CastObj::Int82Int32:
-            return DataType::Int32;
-        case CastObj::Uint82Float:
-            return DataType::Float32;
-        case CastObj::Uint82Int32:
-            return DataType::Int32;
-        case CastObj::Uint82Int64:
-            return DataType::Int64;
-        case CastObj::Int322Int64:
-            return DataType::Int64;
-        case CastObj::Int642Int32:
-            return DataType::Int32;
-        case CastObj::Int642Uint32:
-            return DataType::UInt32;
-        case CastObj::Int642Float:
-            return DataType::Float32;
-        case CastObj::Uint322Int64:
-            return DataType::Int64;
-        default:
-            IT_TODO_HALT();
+    case CastObj::Float2Int64:
+        return DataType::Int64;
+    case CastObj::Float2Int32:
+        return DataType::Int32;
+    case CastObj::Float2Int16:
+        return DataType::Int16;
+    case CastObj::Float2Int8:
+        return DataType::Int8;
+    case CastObj::Int322Float:
+        return DataType::Float32;
+    case CastObj::Int322Int8:
+        return DataType::Int8;
+    case CastObj::Int322Int16:
+        return DataType::Int16;
+    case CastObj::Int162Float:
+        return DataType::Float32;
+    case CastObj::Int162Int32:
+        return DataType::Int32;
+    case CastObj::Int82Float:
+        return DataType::Float32;
+    case CastObj::Int82Int16:
+        return DataType::Int16;
+    case CastObj::Int82Int32:
+        return DataType::Int32;
+    case CastObj::Uint82Float:
+        return DataType::Float32;
+    case CastObj::Uint82Int32:
+        return DataType::Int32;
+    case CastObj::Uint82Int64:
+        return DataType::Int64;
+    case CastObj::Int322Int64:
+        return DataType::Int64;
+    case CastObj::Int642Int32:
+        return DataType::Int32;
+    case CastObj::Int642Uint32:
+        return DataType::UInt32;
+    case CastObj::Int642Float:
+        return DataType::Float32;
+    case CastObj::Uint322Int64:
+        return DataType::Int64;
+    default:
+        IT_TODO_HALT();
     }
 }
 

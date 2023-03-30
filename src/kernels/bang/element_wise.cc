@@ -473,7 +473,6 @@ class FloorDivCnnl : public BangKernelWithoutConfig {
     }
 };
 
-
 class FloorModCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
