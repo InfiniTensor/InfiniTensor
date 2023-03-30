@@ -3,7 +3,8 @@
 
 namespace infini {
 vector<Graph> Partition::rankSubstitutes(const GraphObj &subgraph,
-                                         const Transformation &tr) const {
+                                         const Transformation &tr,
+                                         const Rating &rating) const {
     struct RatedGraph {
         size_t index;
         float rate;
@@ -15,7 +16,7 @@ vector<Graph> Partition::rankSubstitutes(const GraphObj &subgraph,
     vector<RatedGraph> rank(size);
     vector<Graph> ans(size);
     for (size_t i = 0; i < size; ++i)
-        rank[i] = {i, rating->run(*substitutes[i])};
+        rank[i] = {i, rating.run(*substitutes[i])};
     std::sort(rank.begin(), rank.end());
     std::transform(rank.begin(), rank.end(), ans.begin(),
                    [&substitutes](auto x) { return substitutes[x.index]; });
