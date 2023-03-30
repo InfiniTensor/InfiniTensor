@@ -2,7 +2,6 @@
 
 namespace infini {
 class SingleOperatorPartition : public Partition {
-    Graph run(const GraphObj &graph,
-              const Transformation &transformation) const override;
+    Graph run(const GraphObj &, const Transformation &) const override;
 };
 } // namespace infini

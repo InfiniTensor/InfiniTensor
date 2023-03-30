@@ -11,6 +11,6 @@ class Rating {
     /**
      * Run the `Rating` on the graph.
      */
-    virtual float run(const GraphObj &graph) = 0;
+    virtual float run(const GraphObj &graph) const = 0;
 };
 } // namespace infini
