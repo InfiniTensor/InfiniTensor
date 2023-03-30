@@ -31,6 +31,7 @@ class UnaryObj : public OperatorObj {
 class ClipObj : public OperatorObj {
   public:
     ClipObj(GraphObj *graph, Tensor input, Tensor output, float min, float max);
+    OP_CLONE(ClipObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
     std::string toString() const override;
@@ -49,6 +50,7 @@ class HardtanhObj : public OperatorObj {
   public:
     HardtanhObj(GraphObj *graph, Tensor input, Tensor output, float min,
                 float max);
+    OP_CLONE(HardtanhObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
     std::string toString() const override;
@@ -66,6 +68,7 @@ class HardtanhObj : public OperatorObj {
 class FlipObj : public OperatorObj {
   public:
     FlipObj(GraphObj *graph, Tensor input, Tensor output, vector<int> axis);
+    OP_CLONE(FlipObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
     std::string toString() const override;
@@ -82,6 +85,7 @@ class FlipObj : public OperatorObj {
 class FillObj : public OperatorObj {
   public:
     FillObj(GraphObj *graph, Tensor input, Tensor output, float value);
+    OP_CLONE(FillObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
     std::string toString() const override;
@@ -98,6 +102,7 @@ class FillObj : public OperatorObj {
 class L2LossObj : public OperatorObj {
   public:
     L2LossObj(GraphObj *graph, Tensor input, Tensor output);
+    OP_CLONE(L2LossObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
     std::string toString() const override;
@@ -113,6 +118,7 @@ class TransformObj : public OperatorObj {
   public:
     TransformObj(GraphObj *graph, Tensor input, Tensor output, float alpha,
                  float beta);
+    OP_CLONE(TransformObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
     std::string toString() const override;
@@ -176,6 +182,7 @@ class CastObj : public OperatorObj {
         Double2Float
     };
     CastObj(GraphObj *graph, Tensor input, Tensor output, CastType type);
+    OP_CLONE(CastObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
     std::string toString() const override;
@@ -193,6 +200,7 @@ class CumsumObj : public OperatorObj {
   public:
     CumsumObj(GraphObj *graph, Tensor input, Tensor output, int axis,
               bool exclusive, bool reverse);
+    OP_CLONE(CumsumObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
     std::string toString() const override;
@@ -213,6 +221,7 @@ class ArangeObj : public OperatorObj {
   public:
     ArangeObj(GraphObj *graph, float start, float step, int length,
               Tensor output);
+    OP_CLONE(ArangeObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
     std::string toString() const override;
