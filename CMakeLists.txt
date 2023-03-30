@@ -4,7 +4,7 @@ project(InfiniTensor C CXX)
 
 # Do not change these options in this file. Use cmake.config, cmake -DOPTION=VALUE, or ccmake to specify them.
 option(USE_CUDA "Support CUDA GPU" OFF)
-option(USE_BANG "Support BANG MLU" OFF)
+option(USE_BANG "Support BANG MLU" ON)
 option(USE_MKL "Support MKL" OFF)
 option(USE_BACKTRACE "Print backtrace on exception and segmentation fault" ON)
 option(USE_PROTOBUF "Serialize and deserialize tensors" ON)
@@ -143,7 +143,6 @@ endif()
 
 if(USE_BANG)
   add_compile_definitions(USE_BANG=1)
-  include_directories(src/kernels/mlu/include)
   ################################################################################
   # Neuware Evironment
   ################################################################################
@@ -176,10 +175,8 @@ if(USE_BANG)
   ################################################################################
   # BangC Kernels
   ################################################################################
-  add_subdirectory(src/kernels/mlu)
 
   target_link_libraries(InfiniTensor ${CAMBRICON_CNNL} ${CAMBRICON_CNRT} ${CAMBRICON_CNDRV} stdc++)
-  target_link_libraries(InfiniTensor bangops)
 endif()
 
 # # Python bindings
