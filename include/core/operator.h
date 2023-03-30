@@ -55,7 +55,6 @@ enum class OpType {
     ACosH,
     ATanH,
     Resize,
-    Arange,
     Copy,
     Ceil,
     Floor,
@@ -76,21 +75,15 @@ enum class OpType {
     Reciprocal,
     Sqrt,
     Rsqrt,
-    Transform,
-    AddN,
-    MulN,
     Cast,
     FloorDiv,
     FloorDivTrunc,
     FloorMod,
     FloorModTrunc,
-    Cumsum,
-    Cumprod,
     Det,
     Round,
     Square,
     SquaredDifference,
-    Flip,
     Hardtanh,
     Equal,
     NotEqual,
@@ -173,7 +166,6 @@ class OpRegistry {
             FOP(ASinH);
             FOP(ACosH);
             FOP(ATanH);
-            FOP(Arange);
             FOP(Copy);
             FOP(Ceil);
             FOP(Floor);
@@ -194,21 +186,15 @@ class OpRegistry {
             FOP(Reciprocal);
             FOP(Sqrt);
             FOP(Rsqrt);
-            FOP(Transform);
-            FOP(AddN);
-            FOP(MulN);
             FOP(Cast);
             FOP(FloorDiv);
             FOP(FloorDivTrunc);
             FOP(FloorMod);
             FOP(FloorModTrunc);
-            FOP(Cumsum);
-            FOP(Cumprod);
             FOP(Det);
             FOP(Round);
             FOP(Square);
             FOP(SquaredDifference);
-            FOP(Flip);
             FOP(Hardtanh);
             FOP(Equal);
             FOP(NotEqual);
@@ -294,13 +280,6 @@ class OperatorObj : public Object {
 
   public:
     OperatorObj(OpType opType, TensorVec inputs, TensorVec outputs);
-    OperatorObj(OpType opType);
-    void setInputs(TensorVec inputsTensor) {
-        inputs = inputsTensor;
-        for (auto &t : inputs)
-            IT_ASSERT(t != nullptr);
-    }
-    void setOutputs(TensorVec outputsTensor) { outputs = outputsTensor; }
     virtual optional<vector<Shape>>
     inferShape(const TensorVec &inputs) const = 0;
     virtual vector<DataType> inferDataType(const TensorVec &inputs) const;
@@ -312,7 +291,6 @@ class OperatorObj : public Object {
      * function.
      */
     bool checkValid(GraphObj *graph);
-    bool checkValid(GraphObj *graph, DataType type);
     OpPerfKey getOpPerfKey() const;
     /**
      * @brief Hash operator attributes. Input and output shapes are not

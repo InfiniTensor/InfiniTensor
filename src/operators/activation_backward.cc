@@ -10,8 +10,7 @@ ActivationBackwardObj::ActivationBackwardObj(OpType type, GraphObj *graph,
 
 optional<vector<Shape>>
 ActivationBackwardObj::inferShape(const TensorVec &inputs) const {
-    const auto A = inputs[0];
-    return {{A->getDims()}};
+    return {{inputs[0]->getDims()}};
 }
 
 std::string ActivationBackwardObj::toString() const {
