@@ -5,6 +5,7 @@ namespace infini {
 class TransposeObj : public OperatorObj {
   public:
     TransposeObj(GraphObj *graph, Tensor input, Tensor output, int permute[4]);
+    OP_CLONE(TransposeObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
     std::string toString() const override;

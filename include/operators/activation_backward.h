@@ -6,6 +6,7 @@ class ActivationBackwardObj : public OperatorObj {
   public:
     ActivationBackwardObj(OpType type, GraphObj *graph, Tensor y, Tensor diff_y,
                           Tensor x, Tensor diff_x);
+    OP_CLONE(ActivationBackwardObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
     std::string toString() const override;
