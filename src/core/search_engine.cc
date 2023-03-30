@@ -29,64 +29,96 @@ void SearchEngine::printMetaGraph(Ref<SearchEngine::MetaGraph> metaGraph) {
 }
 
 Graph SearchEngine::run(const Graph graph) {
-    IT_ASSERT(runtimeExec == graph->getRuntime());
-    std::cout << "[INFO] original graph: " << std::endl;
-    std::cout << graph->toString();
-    std::cout << "[INFO] perf: " << runtimeExec->getPerfTime(graph)
-              << std::endl;
-
-    std::vector<Graph> partitions = partitionGraph(graph);
-
-    std::cout << "[INFO] Partition num: " << partitions.size() << std::endl;
-    std::vector<Graph> bestGraphs = {nullptr};
-    for (size_t pid = 0; pid < partitions.size(); pid++) {
-        auto &subGraph = partitions[pid];
-        std::cout << "[INFO] Partition: " << pid << std::endl;
-        std::vector<Graph> candidates = search(subGraph);
-        std::cout << "[INFO] size: " << candidates.size() << std::endl;
-        IT_ASSERT(candidates.size() > 0);
-        std::cout << subGraph->toString() << std::endl;
+    vector<Graph> bestGraphs{nullptr};
+    for (auto &subGraph : partitionGraph(graph)) {
         std::vector<Graph> nextGraphs;
-        for (auto lastGraph : bestGraphs) {
-            for (auto thisGraph : candidates) {
+        for (auto lastGraph : bestGraphs)
+            for (auto thisGraph : search(subGraph)) {
                 std::vector<Operator> ops;
-                if (lastGraph != nullptr) {
-                    for (auto op : lastGraph->getOperators()) {
+                if (lastGraph != nullptr)
+                    for (auto op : lastGraph->getOperators())
                         ops.emplace_back(op);
-                    }
-                }
-                if (thisGraph != nullptr) {
-                    for (auto op : thisGraph->getOperators()) {
+
+                if (thisGraph != nullptr)
+                    for (auto op : thisGraph->getOperators())
                         ops.emplace_back(op);
-                    }
-                }
+
                 auto tmp = make_ref<GraphObj>(runtimeExec, ops);
                 tmp->dataMalloc();
                 nextGraphs.emplace_back(tmp);
             }
-        }
         std::sort(nextGraphs.begin(), nextGraphs.end(), [&](Graph x, Graph y) {
             return runtimeExec->getPerfTime(x) < runtimeExec->getPerfTime(y);
         });
-        if (nextGraphs.size() > GRAPH_SIZE) {
+        if (nextGraphs.size() > GRAPH_SIZE)
             nextGraphs.resize(GRAPH_SIZE);
-        }
-        bestGraphs.clear();
-        for (size_t i = 0; i < nextGraphs.size(); i++) {
-            bestGraphs.emplace_back(nextGraphs[i]);
-        }
-    }
-
-    std::cout << "[INFO] unfused graph: " << std::endl;
-    for (size_t i = 0; i < bestGraphs.size(); i++) {
-        std::cout << "bestGraph " << i << ":" << std::endl;
-        std::cout << bestGraphs[i]->toString();
-        std::cout << "[INFO] perf: " << runtimeExec->getPerfTime(bestGraphs[i])
-                  << std::endl;
+        bestGraphs = nextGraphs;
     }
 
     return bestGraphs[0];
 }
+
+// Graph SearchEngine::run(const Graph graph) {
+//     IT_ASSERT(runtimeExec == graph->getRuntime());
+//     std::cout << "[INFO] original graph: " << std::endl;
+//     std::cout << graph->toString();
+//     std::cout << "[INFO] perf: " << runtimeExec->getPerfTime(graph)
+//               << std::endl;
+
+//     std::vector<Graph> partitions = partitionGraph(graph);
+
+//     std::cout << "[INFO] Partition num: " << partitions.size() << std::endl;
+//     std::vector<Graph> bestGraphs = {nullptr};
+//     for (size_t pid = 0; pid < partitions.size(); pid++) {
+//         auto &subGraph = partitions[pid];
+//         std::cout << "[INFO] Partition: " << pid << std::endl;
+//         std::vector<Graph> candidates = search(subGraph);
+//         std::cout << "[INFO] size: " << candidates.size() << std::endl;
+//         IT_ASSERT(candidates.size() > 0);
+//         std::cout << subGraph->toString() << std::endl;
+//         std::vector<Graph> nextGraphs;
+//         for (auto lastGraph : bestGraphs) {
+//             for (auto thisGraph : candidates) {
+//                 std::vector<Operator> ops;
+//                 if (lastGraph != nullptr) {
+//                     for (auto op : lastGraph->getOperators()) {
+//                         ops.emplace_back(op);
+//                     }
+//                 }
+//                 if (thisGraph != nullptr) {
+//                     for (auto op : thisGraph->getOperators()) {
+//                         ops.emplace_back(op);
+//                     }
+//                 }
+//                 auto tmp = make_ref<GraphObj>(runtimeExec, ops);
+//                 tmp->dataMalloc();
+//                 nextGraphs.emplace_back(tmp);
+//             }
+//         }
+//         std::sort(nextGraphs.begin(), nextGraphs.end(), [&](Graph x, Graph y)
+//         {
+//             return runtimeExec->getPerfTime(x) < runtimeExec->getPerfTime(y);
+//         });
+//         if (nextGraphs.size() > GRAPH_SIZE) {
+//             nextGraphs.resize(GRAPH_SIZE);
+//         }
+//         bestGraphs.clear();
+//         for (size_t i = 0; i < nextGraphs.size(); i++) {
+//             bestGraphs.emplace_back(nextGraphs[i]);
+//         }
+//     }
+
+//     std::cout << "[INFO] unfused graph: " << std::endl;
+//     for (size_t i = 0; i < bestGraphs.size(); i++) {
+//         std::cout << "bestGraph " << i << ":" << std::endl;
+//         std::cout << bestGraphs[i]->toString();
+//         std::cout << "[INFO] perf: " <<
+//         runtimeExec->getPerfTime(bestGraphs[i])
+//                   << std::endl;
+//     }
+
+//     return bestGraphs[0];
+// }
 
 std::vector<Graph> SearchEngine::search(const Graph &graph) {
     auto metaGraph = buildMetaGraphWithGraph(graph);

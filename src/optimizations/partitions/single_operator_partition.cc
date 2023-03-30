@@ -2,7 +2,8 @@
 
 namespace infini {
 Graph SingleOperatorPartition::run(const GraphObj &graph,
-                                   const Transformation &tr) const {
+                                   const Transformation &tr,
+                                   const Rating &rating) const {
     IT_TODO_HALT();
     return make_ref<GraphObj>(graph);
 }

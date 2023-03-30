@@ -98,7 +98,7 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -UNDEBUG")
 
 
 # Source files
-file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/kernels/cpu/*.cc src/nnet/*.cc src/operators/*.cc src/utils/*.cc)
+file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/kernels/cpu/*.cc src/nnet/*.cc src/operators/*.cc src/optimizations/*.cc src/utils/*.cc)
 
 if(USE_CUDA)
   file(GLOB_RECURSE SRC_CUDA src/cuda/*.cc src/cuda/*.cu src/kernels/cuda/*.cc src/kernels/cuda/*.cu)
@@ -151,10 +151,9 @@ if(USE_INTELCPU)
   set(DNNL_CONFIGURATION "cpu_gomp")
   find_package(dnnl CONFIG REQUIRED)
   if(dnnl_FOUND)
-      add_compile_definitions(USE_MKL=1)
       include_directories(BEFORE ${dnnl_DIR}/../../../cpu_gomp/include/)
       link_directories(${dnnl_DIR}/../../../cpu_gomp/lib)
-      target_link_libraries(InfiniTensor   dnnl)
+      target_link_libraries(InfiniTensor  dnnl)
   else()
       message(FATAL_ERROR "dnnl library not found")
   endif()
