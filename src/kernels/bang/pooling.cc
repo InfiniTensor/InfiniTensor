@@ -3,7 +3,7 @@
 #include "bang/bang_runtime.h"
 
 namespace infini {
-class poolingCnnl : public BangKernelWithoutConfig {
+class PoolingCnnl : public BangKernelWithoutConfig {
     virtual cnnlPoolingMode_t getPoolingMode() const = 0;
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
@@ -54,13 +54,13 @@ class poolingCnnl : public BangKernelWithoutConfig {
     }
 };
 
-class maxPoolCnnl : public poolingCnnl {
+class maxPoolCnnl : public PoolingCnnl {
     cnnlPoolingMode_t getPoolingMode() const override {
         return CNNL_POOLING_MAX;
     }
 };
 
-class avgPoolCnnl : public poolingCnnl {
+class avgPoolCnnl : public PoolingCnnl {
     cnnlPoolingMode_t getPoolingMode() const override {
         return CNNL_POOLING_AVERAGE_COUNT_INCLUDE_PADDING;
     }

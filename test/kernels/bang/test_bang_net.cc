@@ -29,7 +29,7 @@ void testNet(const std::function<void(void *, size_t, DataType)> &generator,
     Graph bangGraph = make_ref<GraphObj>(bangRuntime);
     auto inputGpu1 = bangGraph->cloneTensor(inputCpu1);
     auto inputGpu2 = bangGraph->cloneTensor(inputCpu2);
-    auto gpuOp = bangGraph->addOp<MulNObj>(2, nullptr, inputGpu1, inputGpu2);
+    auto gpuOp = bangGraph->addOp<AddObj>(inputGpu1, inputGpu2, nullptr);
     auto outputGpu = gpuOp->getOutput();
     auto gpuOp2 = bangGraph->addOp<SigmoidObj>(outputGpu, nullptr);
     bangGraph->dataMalloc();

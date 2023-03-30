@@ -24,83 +24,148 @@ class CastCnnl : public BangKernelWithoutConfig {
         cnnlCastDataType_t NlCastType;
         CastObj::CastType type = op->getType();
         switch (type) {
-        case CastObj::Float2Half:
+        case CastObj::Float2Int64:
             checkCnnlError(cnnlSetTensorDescriptor(
                 aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, dim_array));
             checkCnnlError(cnnlSetTensorDescriptor(
-                cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_HALF, 4, dim_array));
-            NlCastType = CNNL_CAST_FLOAT_TO_HALF;
+                cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_INT64, 4, dim_array));
+            NlCastType = CNNL_CAST_FLOAT_TO_INT64;
             break;
-        case CastObj::Float2HalfIEEE754:
-        case CastObj::Float2Double:
-        case CastObj::Float2Int64:
         case CastObj::Float2Int32:
             checkCnnlError(cnnlSetTensorDescriptor(
                 aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, dim_array));
             checkCnnlError(cnnlSetTensorDescriptor(
                 cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_INT32, 4, dim_array));
             NlCastType = CNNL_CAST_FLOAT_TO_INT32;
-        case CastObj::Float2Int16:
-        case CastObj::Float2Int8:
-        case CastObj::Float2Bool:
-            // Todo
             break;
-        case CastObj::Half2Float:
-        case CastObj::Half2Int32:
-        case CastObj::Half2Int64:
-        case CastObj::Half2Int16:
-        case CastObj::Half2Int8:
-        case CastObj::Half2Uint8:
-        case CastObj::Half2Bool:
-        case CastObj::Half2FloatInf:
-            // todo
+        case CastObj::Float2Int16:
+            checkCnnlError(cnnlSetTensorDescriptor(
+                aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, dim_array));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_INT16, 4, dim_array));
+            NlCastType = CNNL_CAST_FLOAT_TO_INT16;
+            break;
+        case CastObj::Float2Int8:
+            checkCnnlError(cnnlSetTensorDescriptor(
+                aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, dim_array));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_INT8, 4, dim_array));
+            NlCastType = CNNL_CAST_FLOAT_TO_INT8;
             break;
         case CastObj::Int322Float:
-        case CastObj::Int322Half:
+            checkCnnlError(cnnlSetTensorDescriptor(
+                aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_INT32, 4, dim_array));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, dim_array));
+            NlCastType = CNNL_CAST_INT32_TO_FLOAT;
+            break;
         case CastObj::Int322Int8:
+            checkCnnlError(cnnlSetTensorDescriptor(
+                aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_INT32, 4, dim_array));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_INT8, 4, dim_array));
+            NlCastType = CNNL_CAST_INT32_TO_INT8;
+            break;
         case CastObj::Int322Int16:
-            // todo
+            checkCnnlError(cnnlSetTensorDescriptor(
+                aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_INT32, 4, dim_array));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_INT16, 4, dim_array));
+            NlCastType = CNNL_CAST_INT32_TO_INT16;
             break;
         case CastObj::Int162Float:
-        case CastObj::Int162Half:
+            checkCnnlError(cnnlSetTensorDescriptor(
+                aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_INT16, 4, dim_array));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, dim_array));
+            NlCastType = CNNL_CAST_INT16_TO_FLOAT;
+            break;
         case CastObj::Int162Int32:
-            // todo
+            checkCnnlError(cnnlSetTensorDescriptor(
+                aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_INT16, 4, dim_array));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_INT32, 4, dim_array));
+            NlCastType = CNNL_CAST_INT16_TO_INT32;
             break;
         case CastObj::Int82Float:
-        case CastObj::Int82Half:
+            checkCnnlError(cnnlSetTensorDescriptor(
+                aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_INT8, 4, dim_array));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, dim_array));
+            NlCastType = CNNL_CAST_INT8_TO_FLOAT;
+            break;
         case CastObj::Int82Int16:
+            checkCnnlError(cnnlSetTensorDescriptor(
+                aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_INT8, 4, dim_array));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_INT16, 4, dim_array));
+            NlCastType = CNNL_CAST_INT8_TO_INT16;
+            break;
         case CastObj::Int82Int32:
-            // todo
+            checkCnnlError(cnnlSetTensorDescriptor(
+                aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_INT8, 4, dim_array));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_INT32, 4, dim_array));
+            NlCastType = CNNL_CAST_INT8_TO_INT32;
             break;
         case CastObj::Uint82Float:
-        case CastObj::Uint82Half:
-        case CastObj::Uint82Int32:
-        case CastObj::Uint82Int64:
-            // todo
+            checkCnnlError(cnnlSetTensorDescriptor(
+                aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_UINT8, 4, dim_array));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, dim_array));
+            NlCastType = CNNL_CAST_UINT8_TO_FLOAT;
             break;
-        case CastObj::Bool2Float:
-        case CastObj::Bool2Half:
-        case CastObj::Bool2Int32:
-            // todo
+        case CastObj::Uint82Int32:
+            checkCnnlError(cnnlSetTensorDescriptor(
+                aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_UINT8, 4, dim_array));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_INT32, 4, dim_array));
+            NlCastType = CNNL_CAST_UINT8_TO_INT32;
+            break;
+        case CastObj::Uint82Int64:
+            checkCnnlError(cnnlSetTensorDescriptor(
+                aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_UINT8, 4, dim_array));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_INT64, 4, dim_array));
+            NlCastType = CNNL_CAST_UINT8_TO_INT64;
             break;
         case CastObj::Int322Int64:
-        case CastObj::Int322Bool:
-            // todo
+            checkCnnlError(cnnlSetTensorDescriptor(
+                aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_INT32, 4, dim_array));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_INT64, 4, dim_array));
+            NlCastType = CNNL_CAST_INT32_TO_INT64;
             break;
         case CastObj::Int642Int32:
+            checkCnnlError(cnnlSetTensorDescriptor(
+                aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_INT64, 4, dim_array));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_INT32, 4, dim_array));
+            NlCastType = CNNL_CAST_INT64_TO_INT32;
+            break;
         case CastObj::Int642Uint32:
+            checkCnnlError(cnnlSetTensorDescriptor(
+                aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_INT64, 4, dim_array));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_UINT32, 4, dim_array));
+            NlCastType = CNNL_CAST_INT64_TO_UINT32;
+            break;
         case CastObj::Int642Float:
-        case CastObj::Int642Half:
-            // todo
+            checkCnnlError(cnnlSetTensorDescriptor(
+                aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_INT64, 4, dim_array));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, dim_array));
+            NlCastType = CNNL_CAST_INT64_TO_FLOAT;
             break;
-        case CastObj::Uint642Uint32:
         case CastObj::Uint322Int64:
-        case CastObj::Uint322Uint64:
-            // todo
+            checkCnnlError(cnnlSetTensorDescriptor(
+                aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_UINT32, 4, dim_array));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_INT64, 4, dim_array));
+            NlCastType = CNNL_CAST_UINT32_TO_INT64;
             break;
-        case CastObj::Double2Float:
-            // todo
-            break;
+        default:
+            IT_TODO_HALT();
         }
         cnnlStatus_t stat = cnnlCastDataType(context->cnnlHandle(), aDesc,
                                              aData, NlCastType, cDesc, cData);
