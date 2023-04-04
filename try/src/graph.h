@@ -34,6 +34,8 @@ struct OutletPosHash {
 template <class Tensor> struct Outlet {
     Tensor info;
     std::vector<InletPos> targets;
+
+    explicit Outlet(Tensor info) : info(info), targets({}) {}
 };
 
 /// @brief The specific tensor information excludes all unknowns.

@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-enum class OpType {
+enum class OpType : uint16_t {
     Input,
     Output,
 
