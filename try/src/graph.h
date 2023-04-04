@@ -118,8 +118,9 @@ template <class Tensor> class Graph {
     std::vector<size_t> inputs() const {
         std::vector<size_t> ans;
         size_t i = 0;
-        for (const auto &node : operators) {
-            if (node.op_type == OpType::Input && !node.outputs[0].data.cpu_data)
+        for (const auto &node : _operators) {
+            if (node.op_type == OpType::Input &&
+                node.outputs.front().info.data.cpu_data.empty())
                 ans.push_back(i);
             ++i;
         }
@@ -131,7 +132,7 @@ template <class Tensor> class Graph {
     std::vector<size_t> outputs() const {
         std::vector<size_t> ans;
         size_t i = 0;
-        for (const auto &node : operators) {
+        for (const auto &node : _operators) {
             if (node.op_type == OpType::Output)
                 ans.push_back(i);
             ++i;
