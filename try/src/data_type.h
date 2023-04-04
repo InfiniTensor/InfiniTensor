@@ -26,5 +26,5 @@ enum class DataTypeId {
 struct DataType {
     DataTypeId id;
 
-    constexpr size_t size() const;
+    size_t size() const;
 };

@@ -1,6 +1,6 @@
 ﻿#include "data_type.h"
 
-constexpr size_t DataType::size() const {
+size_t DataType::size() const {
     switch (id) {
     case DataTypeId::FLOAT:
         return sizeof(float);
