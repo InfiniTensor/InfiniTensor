@@ -16,8 +16,6 @@ GraphObj::GraphObj(Runtime runtime, OpVec ops_in)
             if (tensorPool.find(t->getFuid()) == tensorPool.end())
                 tensorPool[t->getFuid()] = cloneTensor(t);
     }
-    for (const auto &[_, t] : tensorPool)
-        addTensor(t);
     // Clone operators and add connections
     for (const auto &op : ops_in) {
         TensorVec inputs, outputs;
