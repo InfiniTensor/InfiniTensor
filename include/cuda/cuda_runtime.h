@@ -32,10 +32,14 @@ class CudaRuntimeObj : public RuntimeObj {
         workspace = alloc(workspaceSize);
     }
     virtual ~CudaRuntimeObj() {
-        dealloc(workspace);
-        checkCudnnError(cudnnDestroy(cudnn));
-        checkCublasError(cublasDestroy(cublas));
-        checkCUresult(cuCtxDestroy(newContext));
+        try {
+            dealloc(workspace);
+            checkCudnnError(cudnnDestroy(cudnn));
+            checkCublasError(cublasDestroy(cublas));
+            checkCUresult(cuCtxDestroy(newContext));
+        } catch (const std::exception &e) {
+            std::cerr << "Error in ~CudaRuntimeObj: " << e.what() << std::endl;
+        }
     }
     string toString() const override;
 
