@@ -4,17 +4,15 @@
 int main() {
     try {
         Graph<TensorInfo> g;
-        auto a = g.push_operator(                           // fmt: new line
-            OpType::Input,                                  // op_type
-            {},                                             // inputs
-            {Outlet(TensorInfo{{1, 1, 2, 3}, ty<float>()})} // outputs
+        auto a = g.push_input(                             // fmt: new line
+            Outlet(TensorInfo{{1, 1, 2, 3}, ty<float>()}), // output
+            std::nullopt                                   // id
         );
         g.push_data(a, Data::cpu<float>({1, 2, 3, 4, 5, 6}));
 
-        auto b = g.push_operator(                           // fmt: new line
-            OpType::Input,                                  // op_type
-            {},                                             // inputs
-            {Outlet(TensorInfo{{1, 1, 3, 1}, ty<float>()})} // outputs
+        auto b = g.push_input(                             // fmt: new line
+            Outlet(TensorInfo{{1, 1, 3, 1}, ty<float>()}), // output
+            std::nullopt                                   // id
         );
         g.push_data(b, Data::cpu<float>({1, 2, 3}));
 
@@ -24,10 +22,9 @@ int main() {
             {Outlet(TensorInfo{{1, 1, 2, 1}, ty<float>()})} // outputs
         );
 
-        g.push_operator(    // fmt: new line
-            OpType::Output, // op_type
-            {matmul[0]},    // inputs
-            {}              // outputs
+        g.push_output(   // fmt: new line
+            matmul[0],   // input
+            std::nullopt // id
         );
 
         std::cout << "inputs: ";

@@ -44,8 +44,8 @@ struct TensorInfo {
     std::vector<size_t> shape;
     DataType data_type;
 
-    /// @brief size of tensor
-    /// @return
+    /// @brief Tensor memory usage.
+    /// @return Memory bytes.
     size_t size() const {
         return shape.empty() // fmt: new line
                    ? 0
@@ -87,6 +87,11 @@ template <class Tensor> class Graph {
     /// and the value is data.
     std::unordered_map<size_t, Data> _data;
 
+    /// @brief
+    std::unordered_map<size_t, size_t> _io_id;
+
+    static size_t IO_ID;
+
   public:
     /// @brief Pushs a new operator `Node` into `Graph`.
     /// @param op_type Operator type.
@@ -98,6 +103,11 @@ template <class Tensor> class Graph {
         std::vector<OutletPos> inputs,      //
         std::vector<Outlet<Tensor>> outputs //
     ) {
+        if (op_type == OpType::Input)
+            throw "use `push_input` instead";
+        else if (op_type == OpType::Output)
+            throw "use `push_output` instead";
+
         auto index = _operators.size();
 
         for (const auto &input : inputs)
@@ -112,6 +122,28 @@ template <class Tensor> class Graph {
                 .push_back({index, ++i});
 
         _operators.push_back({op_type, std::move(inputs), std::move(outputs)});
+        return {index};
+    }
+
+    /// @brief Pushs a new `Input` `Node` into `Graph`.
+    /// @param output Tensor from `Input`.
+    /// @param id IO id of `Input`.
+    /// @return A reference to the `Node` in `Graph`.
+    OpRef push_input(Outlet<Tensor> output, std::optional<size_t> id) {
+        auto index = _operators.size();
+        _io_id[index] = id ? *id : IO_ID++;
+        _operators.push_back({OpType::Input, {}, {output}});
+        return {index};
+    }
+
+    /// @brief Pushs a new `Output` `Node` into `Graph`.
+    /// @param input Tensor to `Output`.
+    /// @param id IO id of `Output`.
+    /// @return A reference to the `Node` in `Graph`.
+    OpRef push_output(OutletPos input, std::optional<size_t> id) {
+        auto index = _operators.size();
+        _io_id[index] = id ? *id : IO_ID++;
+        _operators.push_back({OpType::Output, {input}, {}});
         return {index};
     }
 
@@ -160,3 +192,5 @@ template <class Tensor> class Graph {
         return ans;
     }
 };
+
+template <class Tensor> size_t Graph<Tensor>::IO_ID = 0;
