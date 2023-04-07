@@ -10,6 +10,7 @@ MemBoundObj::MemBoundObj(GraphObj *graph, const TensorVec &input,
     : OperatorObj(OpType::MemBound, input, output), nnetInputs(nnetInputs),
       expr(expr), exec_time(exec_time), hint(hint) {
     IT_ASSERT(checkValid(graph));
+    hash = getHash();
 }
 
 string MemBoundObj::toString() const {
@@ -31,7 +32,8 @@ string MemBoundObj::toString() const {
     os << "NNet Inputs=[";
     for (const auto &tensor : nnetInputs)
         os << tensor->toReadable() << ",";
-    os << "])";
+    os << "]";
+    os << ", ExprHash=" << hash << ")";
     os << "\n" << (expr ? expr->toReadable() : "Empty expression") << "\n";
     return os.str();
 }
@@ -47,7 +49,7 @@ optional<vector<Shape>> MemBoundObj::inferShape(const TensorVec &inputs) const {
 }
 
 vector<int> MemBoundObj::getWorkloadVector() const {
-    return {enum_to_underlying(type), (int)getHash()};
+    return {enum_to_underlying(type), (int)hash};
 }
 
 vector<int> MemBoundObj::getOpAttrVector() const { return getWorkloadVector(); }

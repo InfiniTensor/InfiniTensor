@@ -10,6 +10,7 @@ class MemBoundObj : public OperatorObj {
     nnet::Expr expr;
     double exec_time;
     std::string hint;
+    HashType hash;
     int n, f, h, w;
 
   public:

@@ -19,6 +19,9 @@ class GraphObj : public Object {
     Tensor addTensor(Shape dim, DataType dtype = DataType::Float32);
     Tensor addTensor(const Tensor &tensor);
     TensorVec addTensor(const TensorVec &tensors);
+    /**
+     * @brief Clone a tensor and add it to the graph.
+     */
     Tensor cloneTensor(const Tensor &tensor) {
         return addTensor(tensor->clone(runtime));
     }
@@ -78,6 +81,8 @@ class GraphObj : public Object {
                 ret.emplace_back(t);
         return ret;
     }
+
+    bool selfCheck(bool assert = false) const;
 
   private:
     /**

@@ -82,6 +82,11 @@ void TensorObj::printDataFloat(float *ptr) const {
     for (int i = numDims - 1; i != 0; --i)
         dimSzVec[i - 1] = dimSzVec[i] * shape[i - 1];
     for (size_t i = 0, iEnd = size(); i < iEnd; ++i) {
+        if (iEnd > 1000 && i > 20 && i < iEnd - 20) {
+            printf("... , ");
+            i = iEnd - 20;
+            continue;
+        }
         for (size_t j = 0; j < numDims; ++j) {
             if (i % dimSzVec[j] == 0) {
                 std::cout << "[";
