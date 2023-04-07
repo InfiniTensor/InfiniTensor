@@ -2,6 +2,11 @@
 #include <numeric>
 #include <unordered_set>
 
+Arc<Tensor> Tensor::share(Vec<size_t> shape, DataType data_type, Data data) {
+    return Arc<Tensor>(
+        new Tensor(std::move(shape), std::move(data_type), std::move(data)));
+}
+
 size_t Tensor::size() const {
     return shape.empty() // fmt: new line
                ? 0
@@ -9,14 +14,19 @@ size_t Tensor::size() const {
                                  [](auto acc, auto it) { return acc * it; });
 }
 
+Tensor::Tensor(Vec<size_t> &&shape, DataType &&data_type, Data &&data)
+    : shape(std::move(shape)),         // fmt: new line
+      data_type(std::move(data_type)), //
+      data(std::move(data)) {}
+
 static size_t GRAPH_ID = 1;
 
-UniGraph::UniGraph() : id(GRAPH_ID++) {}
+Unigraph::Unigraph() : id(GRAPH_ID++) {}
 
-UniGraph::UniGraph(UniGraph &&others)
+Unigraph::Unigraph(Unigraph &&others)
     : id(std::exchange(others.id, 0)), operators(std::move(others.operators)) {}
 
-UniGraph::~UniGraph() {
+Unigraph::~Unigraph() {
     for (auto &op : operators) {
         for (auto &i : op.inputs)
             i->target.erase(i->target.find(this->id));
@@ -25,7 +35,7 @@ UniGraph::~UniGraph() {
     }
 }
 
-UniGraph &UniGraph::operator=(UniGraph &&others) {
+Unigraph &Unigraph::operator=(Unigraph &&others) {
     if (this == &others)
         return *this;
 
@@ -42,7 +52,7 @@ UniGraph &UniGraph::operator=(UniGraph &&others) {
     return *this;
 }
 
-OpRef UniGraph::push_operator( // fmt: new line
+OpRef Unigraph::push_operator( // fmt: new line
     OpType op_type,            //
     Vec<Arc<Tensor>> inputs,   //
     Vec<Arc<Tensor>> outputs   //
@@ -74,23 +84,23 @@ OpRef UniGraph::push_operator( // fmt: new line
     return ans;
 }
 
-bool Candidate::operator<(Candidate const &others) const {
+bool Mutant::operator<(Mutant const &others) const {
     return this->score < others.score;
 }
 
-bool Candidate::operator>(Candidate const &others) const {
+bool Mutant::operator>(Mutant const &others) const {
     return this->score > others.score;
 }
 
-Candidate::Candidate(UniGraph &&g) : graph(std::move(g)) {}
-Candidate::Candidate(Candidate &&others) : graph(std::move(others.graph)) {}
-Candidate &Candidate::operator=(Candidate &&others) {
+Mutant::Mutant(Unigraph &&g) : graph(std::move(g)) {}
+Mutant::Mutant(Mutant &&others) : graph(std::move(others.graph)) {}
+Mutant &Mutant::operator=(Mutant &&others) {
     if (this != &others)
         this->graph = std::move(others.graph);
     return *this;
 }
 
-Partition::Partition(UniGraph &&g, Func const &f) {
+Partition::Partition(Unigraph &&g, Func const &f) {
     auto graph = f(std::move(g));
     for (auto &sub : graph)
         this->graph.emplace_back().emplace_back(std::move(sub));
@@ -110,14 +120,14 @@ Rating::Rating(Mutation &&m, Func const &f) : graph(std::move(m.graph)) {
     }
 }
 
-Vec<UniGraph> split_each(UniGraph &&g) {
-    Vec<UniGraph> ans;
+Vec<Unigraph> split_each(Unigraph &&g) {
+    Vec<Unigraph> ans;
     for (auto &op : g.operators)
         ans.emplace_back().push_operator(op.op_type, op.inputs, op.outputs);
     return ans;
 }
 
-float memory_usage(UniGraph const &g) {
+float memory_usage(Unigraph const &g) {
     std::unordered_set<size_t> mark;
     uintptr_t memory;
     for (const auto &op : g.operators)
