@@ -17,19 +17,22 @@ class UnaryCnnl : public BangKernelWithoutConfig {
 
         cnnlTensorDescriptor_t aDesc, cDesc;
         auto dim = op->getInputs(0)->getDims();
-        if (dim.size() != 4)
-            IT_TODO_HALT();
+	int len = dim.size();
+	int size = 1;
+	for(int i = 0; i < len; ++i) {
+		size *= dim[i];
+	}
 
-        int dim_array[4] = {dim[0], dim[1], dim[2], dim[3]};
+        int dim_array[1] = {size};
         // get inputs
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_ARRAY,
+                                               CNNL_DTYPE_FLOAT, 1, dim_array));
 
         // get outputs
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_ARRAY,
+                                               CNNL_DTYPE_FLOAT, 1, dim_array));
 
         // get op descriptor
         cnnlActivationDescriptor_t opDesc;
