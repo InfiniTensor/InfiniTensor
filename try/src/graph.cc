@@ -1,4 +1,6 @@
 ﻿#include "graph.h"
+#include <numeric>
+#include <unordered_set>
 
 size_t Tensor::size() const {
     return shape.empty() // fmt: new line
@@ -7,7 +9,9 @@ size_t Tensor::size() const {
                                  [](auto acc, auto it) { return acc * it; });
 }
 
-size_t UniGraph::ID = 1;
+static size_t GRAPH_ID = 1;
+
+UniGraph::UniGraph() : id(GRAPH_ID++) {}
 
 UniGraph::UniGraph(UniGraph &&others)
     : id(std::exchange(others.id, 0)), operators(std::move(others.operators)) {}
@@ -19,6 +23,23 @@ UniGraph::~UniGraph() {
         for (auto &o : op.outputs)
             o->source.erase(o->source.find(this->id));
     }
+}
+
+UniGraph &UniGraph::operator=(UniGraph &&others) {
+    if (this == &others)
+        return *this;
+
+    for (auto &op : operators) {
+        for (auto &i : op.inputs)
+            i->target.erase(i->target.find(this->id));
+        for (auto &o : op.outputs)
+            o->source.erase(o->source.find(this->id));
+    }
+
+    this->id = std::exchange(others.id, 0);
+    this->operators = std::move(others.operators);
+
+    return *this;
 }
 
 OpRef UniGraph::push_operator( // fmt: new line
@@ -53,13 +74,55 @@ OpRef UniGraph::push_operator( // fmt: new line
     return ans;
 }
 
-void Candidates::push(UniGraph g, float score) {
-    sorter.push({inner.size(), score});
-    inner.push_back(std::move(g));
+bool Candidate::operator<(Candidate const &others) const {
+    return this->score < others.score;
 }
 
-UniGraph Candidates::pop() {
-    auto first = sorter.top().index;
-    sorter.pop();
-    return std::move(inner.at(first));
+bool Candidate::operator>(Candidate const &others) const {
+    return this->score > others.score;
+}
+
+Candidate::Candidate(UniGraph &&g) : graph(std::move(g)) {}
+Candidate::Candidate(Candidate &&others) : graph(std::move(others.graph)) {}
+Candidate &Candidate::operator=(Candidate &&others) {
+    if (this != &others)
+        this->graph = std::move(others.graph);
+    return *this;
+}
+
+Partition::Partition(UniGraph &&g, Func const &f) {
+    auto graph = f(std::move(g));
+    for (auto &sub : graph)
+        this->graph.emplace_back().emplace_back(std::move(sub));
+}
+
+Mutation::Mutation(Partition &&p, Func const &f) : graph(std::move(p.graph)) {
+    for (auto &sub : graph)
+        for (auto &m : f(sub.front().graph))
+            sub.emplace_back(std::move(m));
+}
+
+Rating::Rating(Mutation &&m, Func const &f) : graph(std::move(m.graph)) {
+    for (auto &sub : graph) {
+        for (auto &c : sub)
+            c.score = f(c.graph);
+        std::sort(sub.begin(), sub.end());
+    }
+}
+
+Vec<UniGraph> split_each(UniGraph &&g) {
+    Vec<UniGraph> ans;
+    for (auto &op : g.operators)
+        ans.emplace_back().push_operator(op.op_type, op.inputs, op.outputs);
+    return ans;
+}
+
+float memory_usage(UniGraph const &g) {
+    std::unordered_set<size_t> mark;
+    uintptr_t memory;
+    for (const auto &op : g.operators)
+        for (const auto &t : op.outputs)
+            if (mark.insert(reinterpret_cast<uintptr_t>(t.get())).second)
+                memory += t->size();
+    return static_cast<float>(memory);
 }

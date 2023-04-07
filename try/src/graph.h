@@ -5,16 +5,13 @@
 #include "op_type.h"
 #include <functional>
 #include <memory>
-#include <numeric>
-#include <queue>
 #include <unordered_map>
 #include <vector>
 
 template <class t> using Vec = std::vector<t>;
 template <class t> using Arc = std::shared_ptr<t>;
-template <class t>
-using MaxQueue = std::priority_queue<t, Vec<t>, std::greater<t>>;
 
+/// @brief A tensor represented by its position in `UniGraph`.
 struct TensorPos {
     size_t op, idx;
 };
@@ -44,43 +41,64 @@ struct UniGraph {
     size_t id;
     Vec<Operator> operators;
 
-    UniGraph() : id(ID++) {}
+    UniGraph();
     UniGraph(UniGraph const &) = delete;
     UniGraph(UniGraph &&others);
     ~UniGraph();
+
+    UniGraph &operator=(UniGraph const &) = delete;
+    UniGraph &operator=(UniGraph &&);
 
     OpRef push_operator(         // fmt: new line
         OpType op_type,          //
         Vec<Arc<Tensor>> inputs, //
         Vec<Arc<Tensor>> outputs //
     );
-
-  private:
-    static size_t ID;
 };
 
-struct Candidates {
-    void push(UniGraph, float);
-    UniGraph pop();
+struct Candidate {
+    UniGraph graph;
+    float score;
 
-  private:
-    struct Candidate {
-        size_t index;
-        float score;
+    Candidate(UniGraph &&);
+    Candidate(Candidate const &) = delete;
+    Candidate(Candidate &&);
 
-        bool operator<(Candidate const &others) const {
-            return this->score < others.score;
-        }
+    Candidate &operator=(Candidate const &) = delete;
+    Candidate &operator=(Candidate &&);
 
-        bool operator>(Candidate const &others) const {
-            return this->score > others.score;
-        }
-    };
-
-    Vec<UniGraph> inner;
-    MaxQueue<Candidate> sorter;
+    bool operator<(Candidate const &others) const;
+    bool operator>(Candidate const &others) const;
 };
 
-struct Graph {
-    Vec<Candidates> subgraphs;
+class Mutation;
+class Rating;
+
+struct Partition {
+    Vec<Vec<Candidate>> graph;
+    friend Mutation;
+
+  public:
+    using Func = std::function<Vec<UniGraph>(UniGraph &&)>;
+    Partition(UniGraph &&, Func const &);
 };
+
+class Mutation {
+    Vec<Vec<Candidate>> graph;
+    friend Rating;
+
+  public:
+    using Func = std::function<Vec<UniGraph>(UniGraph const &)>;
+    Mutation(Partition &&, Func const &);
+};
+
+class Rating {
+    Vec<Vec<Candidate>> graph;
+
+  public:
+    using Func = std::function<float(UniGraph const &)>;
+    Rating(Mutation &&, Func const &);
+};
+
+Vec<UniGraph> split_each(UniGraph &&);
+float memory_usage(UniGraph const &);

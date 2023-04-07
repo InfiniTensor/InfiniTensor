@@ -1,5 +1,4 @@
 ﻿#include "../src/graph.h"
-#include "../src/partitions.h"
 #include <iostream>
 #include <unordered_set>
 
@@ -29,23 +28,10 @@ int main() {
             {c}                        // outputs
         );
 
-        auto graph = split_each(std::move(g), [](UniGraph const &g) {
-            std::unordered_set<size_t> mark;
-            uintptr_t memory;
-            for (const auto &op : g.operators) {
-                for (const auto &t : op.inputs)
-                    if (mark.insert(reinterpret_cast<uintptr_t>(t.get()))
-                            .second) {
-                        memory += t->size();
-                    }
-                for (const auto &t : op.outputs)
-                    if (mark.insert(reinterpret_cast<uintptr_t>(t.get()))
-                            .second) {
-                        memory += t->size();
-                    }
-            }
-            return static_cast<float>(memory);
-        });
+        auto p = Partition(std::move(g), split_each);
+        auto m = Mutation(std::move(p),
+                          [](const auto &g) { return Vec<UniGraph>{}; });
+        auto r = Rating(std::move(m), memory_usage);
 
         return 0;
     } catch (const char *e) {
