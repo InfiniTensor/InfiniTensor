@@ -8,7 +8,7 @@ version = "0.0.0"
 authors = [{ name = "YdrMaster", email = "ydrml@hotmail.com" }]
 description = "Python frontend of InfiniTensor"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.7"
 keywords = ["optimizer"]
 license = { text = "Apache" }
 classifiers = ["Programming Language :: Python :: 3"]
