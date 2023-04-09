@@ -7,10 +7,10 @@ namespace infini {
 class MemBoundObj : public OperatorObj {
   private:
     std::vector<nnet::Tensor> nnetInputs;
-    nnet::Expr expr;
+    nnet::Expr expr, simplifiedExpr;
     double exec_time;
     std::string hint;
-    HashType hash;
+    HashType hash, simplifiedHash;
     int n, f, h, w;
 
   public:
@@ -27,11 +27,15 @@ class MemBoundObj : public OperatorObj {
     int numOutputs() const override { return outputs.size(); }
     const vector<nnet::Tensor> &getNnetInputs() const { return nnetInputs; }
     const nnet::Expr getNnetExpr() const { return expr; }
+    pair<const nnet::Expr, HashType> getSimplifiedNnetExpr() const {
+        return {expr, hash};
+    }
 
   private:
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;
-    HashType getHash() const;
+    static HashType calcHash(nnet::Expr expr);
+    static bool checkOOB(nnet::Expr expr);
 };
 
 } // namespace infini

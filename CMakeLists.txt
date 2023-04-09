@@ -16,6 +16,16 @@ cmake_dependent_option(BUILD_TEST_EINNET "Build tests for EINNET" OFF BUILD_TEST
 
 set(DEFAULT_BUILD_TYPE "RelWithDebInfo")
 
+if(EXISTS ${CMAKE_CURRENT_BINARY_DIR}/config.cmake)
+  message(STATUS "Using config.cmake in CMAKE_CURRENT_BINARY_DIR directory")
+  include(${CMAKE_CURRENT_BINARY_DIR}/config.cmake)
+else()
+  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/config.cmake)
+    message(STATUS "Using config.cmake in CMAKE_CURRENT_SOURCE_DIR directory")
+    include(${CMAKE_CURRENT_SOURCE_DIR}/config.cmake)
+  endif()
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF) # -std=gnu++11 when on, -std=c++11 when off
 
@@ -62,6 +72,12 @@ include_directories(3rd-party/pybind11/include)
 # nlohmann_json
 add_subdirectory(3rd-party/nlohmann_json_cmake_fetchcontent)
 include_directories(3rd-party/nlohmann_json_cmake_fetchcontent/single_include)
+
+# TVM and DMLC for invoking TVM packed functions
+include_directories(${TVM_INCLUDE_DIR})
+include_directories(${DMLC_INCLUDE_DIR})
+include_directories(${DLPACK_INCLUDE_DIR})
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDMLC_USE_LOGGING_LIBRARY=\\\<${TVM_INCLUDE_DIR}/tvm/runtime/logging.h\\\> ")
 
 if(BUILD_TEST)
   set(BUILD_GMOCK

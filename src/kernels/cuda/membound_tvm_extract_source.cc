@@ -26,7 +26,7 @@ class TVMRecordObj : public PerfRecordObj {
 
 using TVMRecord = Ref<TVMRecordObj>;
 
-class MemboundTVM : public Kernel {
+class MemboundTVMExtractSource : public Kernel {
   public:
     void compute(const Operator &_op, const PerfRecord &record,
                  const RuntimeObj *_context) const override {
@@ -236,6 +236,6 @@ class MemboundTVM : public Kernel {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::MemBound, DataType::Float32, MemboundTVM,
-                "Memobund_TVM_Ansor");
+// REGISTER_KERNEL(Device::CUDA, OpType::MemBound, DataType::Float32, MemboundTVMExtractSource,
+//                 "Memobund_TVM_Ansor_extract_source");
 }; // namespace infini
