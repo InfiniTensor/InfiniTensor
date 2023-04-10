@@ -52,4 +52,14 @@ template <> inline DataType DataType::get<int16_t>() { return Int16; }
 template <> inline DataType DataType::get<int32_t>() { return Int32; }
 template <> inline DataType DataType::get<int64_t>() { return Int64; }
 
+template <int index> struct DT {};
+template <> struct DT<0> { using t = float; };
+template <> struct DT<1> { using t = uint32_t; };
+template <> struct DT<2> { using t = uint8_t; };
+template <> struct DT<3> { using t = int8_t; };
+template <> struct DT<4> { using t = uint16_t; };
+template <> struct DT<5> { using t = int16_t; };
+template <> struct DT<6> { using t = int32_t; };
+template <> struct DT<7> { using t = int64_t; };
+
 } // namespace infini

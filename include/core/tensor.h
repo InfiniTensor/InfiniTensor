@@ -73,7 +73,7 @@ class TensorObj : public TensorBaseObj {
     // FIXME: std::fucntion copies the generator instead of passing it by ref.
     // Thus the internal state of generator cannot be updated.
     void setData(
-        const std::function<void(void *, size_t, DataType)> &generator) const;
+        std::function<void(void *, size_t, DataType)> const &generator) const;
     Tensor clone() const {
         auto obj = make_ref<TensorObj>(*this);
         obj->freeData();
@@ -107,20 +107,47 @@ class TensorObj : public TensorBaseObj {
     size_t getOffsetByBroadcastOffset(size_t bcOffset, Shape bcShape) const;
 
   private:
-    void printDataFloat() const;
-    void printDataUint32_t() const;
-    void printDataInt32_t() const;
+    template <class t> string dataToString() const {
+        std::stringstream builder;
+        builder << "Tensor: " << guid << std::endl;
+
+        auto numDims = shape.size();
+        auto dimSzVec = vector<int>(numDims, 1);
+        auto ptr = data->getPtr<t *>();
+        dimSzVec[numDims - 1] = shape[numDims - 1];
+
+        for (int i = numDims - 1; i != 0; --i)
+            dimSzVec[i - 1] = dimSzVec[i] * shape[i - 1];
+
+        for (size_t i = 0, iEnd = size(); i < iEnd; ++i) {
+            for (size_t j = 0; j < numDims; ++j)
+                if (i % dimSzVec[j] == 0)
+                    builder << "[";
+
+            builder << ptr[i];
+            for (size_t j = 0; j < numDims; ++j)
+                if ((int)i % dimSzVec[j] == dimSzVec[j] - 1)
+                    builder << "]";
+
+            if (i != size() - 1)
+                builder << ", ";
+
+            auto column = (size_t)dimSzVec[numDims - 1];
+            if (i % column == column - 1)
+                builder << std::endl;
+        }
+        return builder.str();
+    }
 
     template <typename T>
-    bool equalDataImpl(const T *a, const T *b, size_t size,
-                       double relativeError) const {
+    bool equalDataImpl(const T *a, const T *b, size_t size) const {
         for (size_t i = 0; i < size; ++i) {
             if constexpr (std::is_integral_v<T>) {
                 if (a[i] != b[i])
                     return false;
             } else if constexpr (std::is_floating_point_v<T>) {
                 if (fabs(a[i] - b[i]) / std::max(fabs(a[i]), fabs(b[i])) >
-                    relativeError) {
+                    1e-6) {
                     printf("Error on %lu: %f %f\n", i, a[i], b[i]);
                     return false;
                 }
