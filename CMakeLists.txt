@@ -15,6 +15,7 @@ cmake_dependent_option(BUILD_TEST_PET "Build tests for PET" OFF BUILD_TEST OFF)
 cmake_dependent_option(BUILD_TEST_EINNET "Build tests for EINNET" OFF BUILD_TEST OFF)
 
 set(DEFAULT_BUILD_TYPE "RelWithDebInfo")
+set(TVM_HOME "/home/zly/Apps/tvm-v0.10.0")
 
 if(EXISTS ${CMAKE_CURRENT_BINARY_DIR}/config.cmake)
   message(STATUS "Using config.cmake in CMAKE_CURRENT_BINARY_DIR directory")
@@ -115,6 +116,8 @@ if(USE_PROTOBUF)
 endif()
 
 target_link_libraries(InfiniTensor pybind11::embed)
+# target_link_libraries(InfiniTensor /home/zly/Apps/tvm-v0.10.0/build/libtvm_runtime.so)
+target_link_libraries(InfiniTensor /home/zly/Apps/tvm-v0.10.0/build/libtvm.so)
 
 # Python bindings
 file(GLOB_RECURSE FFIS src/ffi/ffi_infinitensor.cc)

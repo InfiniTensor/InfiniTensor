@@ -1,7 +1,9 @@
 import re
 
 import numpy as np
+print("before import tvm")
 import tvm
+print("after import tvm")
 from tvm import te, tir, auto_scheduler, topi
 import os
 import json
