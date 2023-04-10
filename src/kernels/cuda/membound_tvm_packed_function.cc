@@ -53,6 +53,17 @@ class MemboundTVMPackedFunction : public Kernel {
         tvm::runtime::TVMArgs args(preArgs.first.data(), preArgs.second.data(), preArgs.first.size());
 
         packedFunc.CallPacked(args, &rv);
+
+        // std::cout << "MemboundTVMPackedFunction::compute " << tvmRecord->dllPath << " "
+        //             << tvmRecord->funcName << " " << tvmRecord->kernelName << std::endl;
+        // std::cout << "Inputs: " << std::endl;
+        // for (auto &in : op->getInputs()) {
+        //     in->print();
+        //     in->printData();
+        // }
+        // std::cout << "Output: " << std::endl;
+        // op->getOutput()->print();
+        // op->getOutput()->printData();
     }
 
     void compute(const Operator &_op,
@@ -81,6 +92,7 @@ class MemboundTVMPackedFunction : public Kernel {
 
         const std::string func = "membound_" + std::to_string(hash);
         const std::string kernelName = func + "_kernel0";
+	// string dllPath = "/home/hsh/InfiniTensor/build/.cache/generated_kernels/22494746/membound_22494746.so";
         auto dllPath = getAnsorDLL(
             inShapes, std::vector<std::string>(inShapes.size(), "float32"),
             outShape, "float32", stmts, func, op->toString(),
@@ -121,9 +133,9 @@ class MemboundTVMPackedFunction : public Kernel {
         tvm::runtime::TVMArgs args(preArgs.first.data(), preArgs.second.data(), preArgs.first.size());
 
         // assert(inputsHolder.size() == 2);
-        op->getOutput()->print();
-        op->getInputs()[0]->print();
-        op->getInputs()[1]->print();
+        // op->getOutput()->print();
+        // op->getInputs()[0]->print();
+        // op->getInputs()[1]->print();
         // std::cout << inputsHolder[0].first.shape[0] << " " << inputsHolder[0].first.shape[1]
         //     << " " << inputsHolder[0].first.shape[2] << std::endl;
         // assert(inputsHolder[0].first.shape[1] == 3);
@@ -139,6 +151,17 @@ class MemboundTVMPackedFunction : public Kernel {
         ret->dllPath = dllPath;
         ret->funcName = func;
         ret->inputIdx = inputIdx;
+
+        // std::cout << "MemboundTVMPackedFunction::tune " << ret->dllPath << " "
+        //             << ret->funcName << " " << ret->kernelName << std::endl;
+        // std::cout << "Inputs: " << std::endl;
+        // for (auto &in : op->getInputs()) {
+        //     in->print();
+        //     in->printData();
+        // }
+        // std::cout << "Output: " << std::endl;
+        // op->getOutput()->print();
+        // op->getOutput()->printData();
 
         return std::dynamic_pointer_cast<PerfRecordObj>(ret);
     }

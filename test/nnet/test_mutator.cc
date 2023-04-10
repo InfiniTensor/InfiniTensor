@@ -83,7 +83,8 @@ TEST(Mutator, InfoGAN_TConv_3_correctness) {
     } else {
         bestGraphs = mutator->run(g);
     }
-
+    puts("====== Origin graph");
+    g->print();
     for (auto bestGraph : bestGraphs) {
         puts("====== New best graph");
         bestGraph->print();
@@ -102,7 +103,7 @@ TEST(Mutator, InfoGAN_TConv_3_correctness) {
         for (auto t : bestGraph->getOutputs()) {
             t->setData(IncrementalGenerator());
         }
-        const bool tuningOp = true; // FIXME: some eOps are not tuned
+        const bool tuningOp = false; // FIXME: some eOps are not tuned
         runtime->run(g);
         // puts("cuDNN");
         // g->getOutputs()[0]->printData();
