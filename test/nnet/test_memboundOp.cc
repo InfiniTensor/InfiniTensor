@@ -7,6 +7,8 @@
 #include "nnet/routine.h"
 #include "nnet/test.h"
 #include "operators/matmul.h"
+#include "operators/membound.h"
+#include "test.h"
 #include <chrono>
 using namespace infini;
 using namespace std;
@@ -76,4 +78,43 @@ TEST(nnet, MemboundOp_Ansor_Codegen) {
     // Timing
     // double time = timeit([&]() { runtime->run(gNew, false); }); // tune
     // kernels std::cout << "Time (ms):" << time << std::endl;
+}
+
+pair<std::vector<nnet::Tensor>, nnet::Expr> getPReluExpr(int size) {
+    using namespace nnet;
+    using nnet::make_ref;
+    DEFINE_VAR(i);
+    auto A = make_ref<TensorNode>("A", vector{size});
+    auto B = make_ref<TensorNode>("B", vector{size});
+    Expr e = make_ref<FuncNode>(makeSubscript(A, {i}) - makeSubscript(B, {i}),
+                                FuncType::PRelu);
+    Expr ret = makeRangeOperator({{i, {0, size}}}, {}, e);
+    return {{A, B}, ret};
+}
+
+TEST(nnet, PRelu_Ansor_Codegen) {
+    auto cuda = make_ref<CudaRuntimeObj>();
+    Runtime cpu = NativeCpuRuntimeObj::getInstance();
+    Graph g = make_ref<GraphObj>(cuda);
+    Tensor i0 = g->addTensor(vector{12});
+    Tensor w0 = g->addTensor(vector{12});
+    Tensor o0 = g->addTensor(vector{12});
+    auto [nnetInputs, expr] = getPReluExpr(12);
+    dbg(expr);
+    g->addOpWithOutputs<MemBoundObj>(vector{i0, w0}, vector{o0}, nnetInputs,
+                                     expr, -1);
+    g->dataMalloc();
+    i0->setData(IncrementalGenerator());
+    w0->setData(ValGenerator<5>());
+    cuda->run(g, true); // tune kernels
+
+    // check answer
+    auto ans = make_ref<TensorObj>(Shape{12}, DataType::Float32, cpu);
+    ans->dataMalloc();
+    ans->copyin(
+        vector<float>{-1.25, -1., -0.75, -0.5, -0.25, 0, 1, 2, 3, 4, 5, 6});
+
+    Graph gCpu = make_ref<GraphObj>(cpu);
+    auto oCpu = gCpu->cloneTensor(o0);
+    EXPECT_TRUE(oCpu->equalData(ans));
 }

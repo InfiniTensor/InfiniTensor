@@ -38,8 +38,13 @@ Expr MergeMemboundMutator::merge(bool allowEmptyMembound, bool allowFailure) {
                 curExpr = subscriptOp->getObjectPtr();
                 nnet_assert(*curExpr != nullptr, __LINE__);
             } else if (auto funcOp = as<FuncNode>(summand)) {
-                // Relu({...}[i,j])
-                curExpr = funcOp->getObject()->getObjectPtr();
+                // If the object of FuncNode is a subscript, like
+                // Relu({...}[i,j]), we can further merge it. Otherwise, like
+                // Relu(A[i]+B[j]), we cannot.
+                if (auto sub = as<SubscriptNode>(funcOp->getObject()))
+                    curExpr = sub->getObjectPtr();
+                else
+                    break;
             } else {
                 if (allowFailure)
                     return nullptr;

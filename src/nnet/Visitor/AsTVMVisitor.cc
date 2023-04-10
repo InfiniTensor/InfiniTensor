@@ -27,13 +27,16 @@ std::string AsTVMVisitor::visit_(const BinaryOp &c) {
     }
 }
 std::string AsTVMVisitor::visit_(const Func &c) {
+    string nested = dispatch(c->getObject());
     switch (c->getFuncType()) {
     case FuncType::Relu:
         // TODO: Deduce the dtype
-        return "te.max(" + dispatch(c->getObject()) +
-               ", tvm.tir.const(0, 'float32'))";
+        return "te.max(" + nested + ", tvm.tir.const(0, 'float32'))";
     case FuncType::Tanh:
-        return "te.tanh(" + dispatch(c->getObject()) + ")";
+        return "te.tanh(" + nested + ")";
+    case FuncType::PRelu:
+        return "tir.if_then_else(0.0 < " + nested + ", " + nested +
+               ", (0.25 * " + nested + "))";
     default:
         assert(false);
     }
@@ -154,10 +157,9 @@ std::string AsTVMVisitor::visit_(const Tensor &c) {
         }
         pad_tuple += ")";
 
-        std::string pad_stmt = name_after_pad + " = " + \
-                                "topi.nn.pad(" + c->getName() + \
-                                ", " + pad_tuple + ", " + pad_tuple + \
-                                ", 0.0, \"" + name_after_pad + "\")";
+        std::string pad_stmt = name_after_pad + " = " + "topi.nn.pad(" +
+                               c->getName() + ", " + pad_tuple + ", " +
+                               pad_tuple + ", 0.0, \"" + name_after_pad + "\")";
         stmts += pad_stmt + "\n";
         return name_after_pad;
     }

@@ -104,10 +104,11 @@ enum class NodeType {
     FuncNodeType
 };
 
-enum class FuncType { Relu, Tanh };
+enum class FuncType { Relu, Tanh, PRelu };
 
-#define DEFINE_GETTYPE(CLASS)                                                  \
-    NodeType getType() const override { return NodeType::CLASS##Type; }
+#define DEFINE_GETTYPE(CLASS, isScalar_v)                                      \
+    NodeType getType() const override { return NodeType::CLASS##Type; }        \
+    bool isScalar() const override { return isScalar_v; }
 
 class ExprNode {
   public:
@@ -119,6 +120,7 @@ class ExprNode {
     friend std::ostream &operator<<(std::ostream &ios, const ExprNode &expr);
 
     virtual NodeType getType() const = 0;
+    virtual bool isScalar() const = 0;
 };
 
 class VarNode : public ExprNode {
@@ -127,7 +129,7 @@ class VarNode : public ExprNode {
   public:
     VarNode(std::string _name) : name(_name){};
     virtual ~VarNode() {}
-    DEFINE_GETTYPE(VarNode);
+    DEFINE_GETTYPE(VarNode, true);
 
     const std::string &getName() const { return name; }
     HashType hash() const override { return genhash(name); };
@@ -152,7 +154,7 @@ class TensorNode : public ExprNode {
     TensorNode(string _name, vector<int> _shape, vector<int> _paddings = {},
                Routine _source = nullptr);
     virtual ~TensorNode() {}
-    DEFINE_GETTYPE(TensorNode);
+    DEFINE_GETTYPE(TensorNode, false);
 
     bool operator==(const string &rhs) { return name == rhs; }
     friend bool operator==(const string &lhs, const TensorNode &rhs) {
@@ -221,7 +223,7 @@ class RangeOpNode : public OperatorNode {
                 const vector<int> &paddings)
         : OperatorNode(OpType::Range, {_summand}), vars{_loopIters, _sumIters},
           paddings(paddings){};
-    DEFINE_GETTYPE(RangeOpNode);
+    DEFINE_GETTYPE(RangeOpNode, false);
 
     virtual HashType hash() const override {
         nnet_unimplemented_halt();
@@ -290,7 +292,7 @@ class BinaryOpNode : public OperatorNode {
     BinaryOpNode(OpType _opType, Expr _lhs, Expr _rhs)
         : OperatorNode(_opType, {_lhs, _rhs}){};
     virtual ~BinaryOpNode() {}
-    DEFINE_GETTYPE(BinaryOpNode);
+    DEFINE_GETTYPE(BinaryOpNode, true);
 
     virtual HashType hash() const override {
         return genhash((HashType)opType,
@@ -315,7 +317,7 @@ class ConstantNode : public ExprNode {
     ConstantNode(int _val) : val(_val){};
     ConstantNode(const ConstantNode &rhs) : ExprNode(rhs), val(rhs.val){};
     virtual ~ConstantNode() {}
-    DEFINE_GETTYPE(ConstantNode);
+    DEFINE_GETTYPE(ConstantNode, true);
 
     int getValue() const { return val; }
     virtual HashType hash() const override { return genhash(val, 6214587); };
@@ -335,7 +337,7 @@ class SubscriptNode : public ExprNode {
     SubscriptNode(Expr _indexed, vector<Expr> _subExprs) : subExprs(_subExprs) {
         setObject(_indexed);
     };
-    DEFINE_GETTYPE(SubscriptNode);
+    DEFINE_GETTYPE(SubscriptNode, true);
 
     virtual HashType hash() const override {
         nnet_unimplemented_continue();
@@ -359,14 +361,15 @@ class SubscriptNode : public ExprNode {
 
 class FuncNode : public ExprNode {
   protected:
-    Subscript object;
+    Expr object;
     FuncType funcType;
 
   public:
-    FuncNode(Expr object, FuncType funcType) : funcType(funcType) {
-        setObject(object);
+    FuncNode(Expr object, FuncType funcType)
+        : object(object), funcType(funcType) {
+        nnet_assert(object->isScalar(), "FuncNode operates on a scalar");
     }
-    DEFINE_GETTYPE(FuncNode);
+    DEFINE_GETTYPE(FuncNode, true);
 
     virtual HashType hash() const override {
         nnet_unimplemented_continue();
@@ -374,7 +377,7 @@ class FuncNode : public ExprNode {
     };
     virtual string toReadable() const override;
 
-    const Subscript &getObject() const { return object; }
+    const Expr &getObject() const { return object; }
     void setObject(Expr e);
 
     FuncType getFuncType() const { return funcType; }
