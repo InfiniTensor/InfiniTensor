@@ -1,9 +1,6 @@
 ﻿#pragma once
 
 enum class OpType : uint16_t {
-    Input,
-    Output,
-
     Abs,
     Acos,
     Acosh,

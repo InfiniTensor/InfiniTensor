@@ -1,23 +1,5 @@
 ﻿#include "graph.h"
-#include <numeric>
 #include <unordered_set>
-
-Arc<Tensor> Tensor::share(Vec<size_t> shape, DataType data_type, Data data) {
-    return Arc<Tensor>(
-        new Tensor(std::move(shape), std::move(data_type), std::move(data)));
-}
-
-size_t Tensor::size() const {
-    return shape.empty() // fmt: new line
-               ? 0
-               : std::accumulate(shape.begin(), shape.end(), data_type.size(),
-                                 [](auto acc, auto it) { return acc * it; });
-}
-
-Tensor::Tensor(Vec<size_t> &&shape, DataType &&data_type, Data &&data)
-    : shape(std::move(shape)),         // fmt: new line
-      data_type(std::move(data_type)), //
-      data(std::move(data)) {}
 
 static size_t GRAPH_ID = 1;
 
@@ -134,5 +116,5 @@ float memory_usage(Unigraph const &g) {
         for (const auto &t : op.outputs)
             if (mark.insert(reinterpret_cast<uintptr_t>(t.get())).second)
                 memory += t->size();
-    return static_cast<float>(memory);
+    return 1.0f / static_cast<float>(memory);
 }

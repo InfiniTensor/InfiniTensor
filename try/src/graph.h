@@ -1,60 +1,9 @@
 ﻿#pragma once
 
 #include "data.h"
-#include "data_type.h"
 #include "op_type.h"
+#include "tensor.h"
 #include <functional>
-#include <memory>
-#include <unordered_map>
-#include <vector>
-
-/// @brief Defines a template alias for `std::vector`.
-template <class t> using Vec = std::vector<t>;
-
-/// @brief Defines a template alias for std::shared_ptr
-template <class t> using Arc = std::shared_ptr<t>;
-
-/// @brief A tensor represented by its position in `Unigraph`.
-struct TensorPos {
-    /// @brief `op` for `Operator` index in `Unigraph`.
-    ///        `idx` for index in `Operator` inputs or outputs.
-    size_t op, idx;
-};
-
-/// @brief A struct to represent a tensor in the computation graph.
-///        The ownership of a `Tensor` belongs to all the operators
-///        that generate it or it passed to.
-struct Tensor {
-    /// @brief Tensor shape.
-    Vec<size_t> shape;
-
-    /// @brief Element data type.
-    DataType data_type;
-
-    /// @brief Data of tensor.
-    Data data;
-
-    /// @brief Operators in different `Unigraph` that generate this tensor.
-    std::unordered_map<size_t, TensorPos> source;
-
-    /// @brief Operators in different `Unigraph` that take this tensor as input.
-    std::unordered_map<size_t, Vec<TensorPos>> target;
-
-    /// @brief A static factory method to create a `shared_ptr<Tensor>`.
-    /// @param shape Tensor shape.
-    /// @param data_type Element data type.
-    /// @param data Data.
-    /// @return A `shared_ptr<Tensor>`.
-    static Arc<Tensor> share(Vec<size_t> shape, DataType data_type, Data data);
-
-    /// @brief Calculates the size of the tensor in bytes.
-    /// @return Memory bytes.
-    size_t size() const;
-
-  private:
-    /// @brief Constructor is private and only accessible by the factory method.
-    Tensor(Vec<size_t> &&, DataType &&, Data &&);
-};
 
 /// @brief a struct to represent an operator in the computation graph.
 ///        The ownership of an `Operator` belongs to one `Unigraph`.
@@ -91,7 +40,7 @@ struct Unigraph {
     Unigraph &operator=(Unigraph &&);
 
     /// @brief Pushs an `Operator` into graph.
-    /// Every `Operator` must be pushed in topological order.
+    ///        Every `Operator` must be pushed in topological order.
     /// @param op_type Operator type.
     /// @param inputs Input tensors.
     /// @param outputs Output tensors.
@@ -105,7 +54,10 @@ struct Unigraph {
 
 /// @brief A candidate subgraph mutant.
 struct Mutant {
+    /// @brief The mutated subgraph.
     Unigraph graph;
+
+    /// @brief A score representing the quality of the mutant.
     float score;
 
     Mutant(Unigraph &&);
@@ -124,32 +76,67 @@ class Rating;
 
 /// @brief Partitioned subgraphs.
 struct Partition {
+    /// @brief 2D vector of Mutant instances for each partitioned subgraph.
     Vec<Vec<Mutant>> graph;
+
     friend Mutation;
 
   public:
+    /// @brief A functional object that takes an unpartitioned graph as input
+    ///        and returns a vector of partitioned subgraphs.
     using Func = std::function<Vec<Unigraph>(Unigraph &&)>;
+
+    /// @brief Constructs a partitioned graph from an unpartitioned graph
+    ///        using a partitioning function.
+    /// @param arg0 An unpartitioned graph.
+    /// @param arg1 A function that takes an unpartitioned graph as input
+    /// and returns a vector of partitioned subgraphs.
     Partition(Unigraph &&, Func const &);
 };
 
 /// @brief Generates mutants for every subgraph.
 class Mutation {
+    /// @brief 2D vector of Mutant instances for each partitioned subgraph.
     Vec<Vec<Mutant>> graph;
+
     friend Rating;
 
   public:
+    /// @brief A functional object that takes a subgraph as input
+    ///        and returns a vector of mutated graphs.
     using Func = std::function<Vec<Unigraph>(Unigraph const &)>;
+
+    /// @brief Mutates every subgraph in a partitioned graph.
+    /// @param arg0 The partitioned graph to be mutated.
+    /// @param arg1 A function that takes a subgraph as input
+    /// and returns a vector of mutated graphs.
     Mutation(Partition &&, Func const &);
 };
 
 /// @brief Rates each subgraph mutant.
 class Rating {
+    /// @brief 2D vector of Mutant instances for each partitioned subgraph.
     Vec<Vec<Mutant>> graph;
 
   public:
+    /// @brief A functional object that takes a mutated subgraph as input
+    ///        and returns its score.
     using Func = std::function<float(Unigraph const &)>;
+
+    /// @brief Rates every mutated subgraph with a `Rating::Func`.
+    /// @param arg0 The mutated subgraphs to be rated.
+    /// @param arg1 A function that takes a mutated subgraph as input
+    ///             and returns its score.
     Rating(Mutation &&, Func const &);
 };
 
+/// @brief Splits a graph into subgraphs, where each subgraph contains
+///        only one operator.
+/// @param arg0 An unpartitioned graph.
+/// @return A vector of individual subgraphs.
 Vec<Unigraph> split_each(Unigraph &&);
+
+/// @brief Calculates the memory usage of a graph.
+/// @param arg0 The graph.
+/// @return The reciprocal of the total memory usage of the graph in bytes.
 float memory_usage(Unigraph const &);
