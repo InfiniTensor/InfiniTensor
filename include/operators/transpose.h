@@ -4,19 +4,18 @@
 namespace infini {
 class TransposeObj : public OperatorObj {
   public:
-    TransposeObj(GraphObj *graph, Tensor input, Tensor output, vector<int> permute);
+    TransposeObj(GraphObj *graph, Tensor input, Tensor output,
+                 vector<int> permute);
     OP_CLONE(TransposeObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
     std::string toString() const override;
     int numInputs() const override { return 1; }
     int numOutputs() const override { return 1; }
-    std::vector<int> getPermute() const {
-        return transposePermute;
-    }
+    std::vector<int> getPermute() const { return transposePermute; }
 
   private:
-    vector<int> transposePermute = {1,1,1,1};
+    vector<int> transposePermute = {1, 1, 1, 1};
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;
 };

@@ -167,8 +167,7 @@ Tensor GraphHandlerObj::flatten(Tensor input, Tensor output, int axis) {
 
 Tensor GraphHandlerObj::transpose(Tensor data, Tensor transposed, Shape perm) {
     if (transposed) {
-        g->addOpWithOutputs<TransposeObj>(std::move(data), transposed,
-                                          perm);
+        g->addOpWithOutputs<TransposeObj>(std::move(data), transposed, perm);
         return transposed;
     } else {
         return g->addOp<TransposeObj>(std::move(data), transposed, perm)

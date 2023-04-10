@@ -17,11 +17,11 @@ class UnaryCnnl : public BangKernelWithoutConfig {
 
         cnnlTensorDescriptor_t aDesc, cDesc;
         auto dim = op->getInputs(0)->getDims();
-	int len = dim.size();
-	int size = 1;
-	for(int i = 0; i < len; ++i) {
-		size *= dim[i];
-	}
+        int len = dim.size();
+        int size = 1;
+        for (int i = 0; i < len; ++i) {
+            size *= dim[i];
+        }
 
         int dim_array[1] = {size};
         // get inputs

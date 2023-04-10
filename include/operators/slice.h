@@ -7,7 +7,9 @@ namespace infini {
  *
  */
 class SliceObj : public OperatorObj {
-    template <class t> struct range_t { t start, end, step; };
+    template <class t> struct range_t {
+        t start, end, step;
+    };
     vector<range_t<int>> axes;
 
   public:
