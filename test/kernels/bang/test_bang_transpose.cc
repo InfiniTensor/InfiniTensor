@@ -24,7 +24,7 @@ void testTranspose(
     // GPU
     Graph bangGraph = make_ref<GraphObj>(bangRuntime);
     auto inputGpu = bangGraph->cloneTensor(inputCpu);
-    int permute[4] = {0, 1, 3, 2};
+    vector<int> permute = {0, 1, 3, 2};
     auto gpuOp = bangGraph->addOp<T>(inputGpu, nullptr, permute);
     bangGraph->dataMalloc();
     bangRuntime->run(bangGraph);

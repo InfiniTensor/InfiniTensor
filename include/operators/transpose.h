@@ -4,7 +4,7 @@
 namespace infini {
 class TransposeObj : public OperatorObj {
   public:
-    TransposeObj(GraphObj *graph, Tensor input, Tensor output, int permute[4]);
+    TransposeObj(GraphObj *graph, Tensor input, Tensor output, vector<int> permute);
     OP_CLONE(TransposeObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
@@ -12,16 +12,11 @@ class TransposeObj : public OperatorObj {
     int numInputs() const override { return 1; }
     int numOutputs() const override { return 1; }
     std::vector<int> getPermute() const {
-        return std::vector<int>{
-            transposePermute[0],
-            transposePermute[1],
-            transposePermute[2],
-            transposePermute[3],
-        };
+        return transposePermute;
     }
 
   private:
-    int transposePermute[4];
+    vector<int> transposePermute = {1,1,1,1};
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;
 };

@@ -2,8 +2,11 @@
 
 namespace infini {
 TransposeObj::TransposeObj(GraphObj *graph, Tensor input, Tensor output,
-                           int permute[4])
+                           vector<int> permute)
     : OperatorObj(OpType::Transpose, {input}, {output}) {
+        if (permute.size() != 4) {
+            IT_TODO_HALT();
+        }
     transposePermute[0] = permute[0];
     transposePermute[1] = permute[1];
     transposePermute[2] = permute[2];
