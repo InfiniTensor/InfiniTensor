@@ -94,7 +94,7 @@ struct Partition {
     Partition(Unigraph &&, Func const &);
 
     /// @brief Returns mutant vector size.
-    /// @return 2D vector size;
+    /// @return 2D vector size.
     Vec<size_t> size() const;
 };
 
@@ -117,7 +117,7 @@ class Mutation {
     Mutation(Partition &&, Func const &);
 
     /// @brief Returns mutant vector size.
-    /// @return 2D vector size;
+    /// @return 2D vector size.
     Vec<size_t> size() const;
 };
 
@@ -138,7 +138,7 @@ class Rating {
     Rating(Mutation &&, Func const &);
 
     /// @brief Returns mutant vector size.
-    /// @return 2D vector size;
+    /// @return 2D vector size.
     Vec<size_t> size() const;
 
     /// @brief Builds `Unigraph` from the subgraphs

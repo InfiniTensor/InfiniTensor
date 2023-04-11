@@ -107,8 +107,12 @@ Vec<size_t> Mutation::size() const { return list_size(mutant); }
 
 Rating::Rating(Mutation &&m, Func const &f) : mutant(std::move(m.mutant)) {
     for (auto &sub : mutant) {
+        auto sum = 0.0f;
         for (auto &c : sub)
-            c.score = f(c.graph);
+            sum += (c.score = f(c.graph));
+        sum = std::abs(sum);
+        for (auto &c : sub)
+            c.score /= sum;
         std::sort(sub.begin(), sub.end(), std::greater<Mutant>());
     }
 }
@@ -140,5 +144,5 @@ float memory_usage(Unigraph const &g) {
         for (const auto &t : op.outputs)
             if (mark.insert(reinterpret_cast<uintptr_t>(t.get())).second)
                 memory += t->size();
-    return 1.0f / static_cast<float>(memory);
+    return 1e6f / static_cast<float>(memory);
 }
