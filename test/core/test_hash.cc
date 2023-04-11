@@ -8,7 +8,7 @@ namespace infini {
 TEST(Hash, OperatorHash) {
     OpPerfKey key1(0, OpType::Unknown), key2(0, OpType::Unknown);
     { // build with addOpWithOutputs
-        Graph g = make_ref<GraphObj>(nullptr);
+        Graph g = make_ref<GraphObj>(CpuRuntimeObj::getInstance());
         Tensor i0 = g->addTensor({1, 2, 3}, DataType::UInt32);
         Tensor w0 = g->addTensor({1, 3, 4}, DataType::UInt32);
         Tensor o0 = g->addTensor({1, 2, 4}, DataType::UInt32);
@@ -18,7 +18,7 @@ TEST(Hash, OperatorHash) {
         EXPECT_GT(key1.attrs.size(), (size_t)5);
     }
     { // build with addOp
-        Graph g = make_ref<GraphObj>(nullptr);
+        Graph g = make_ref<GraphObj>(CpuRuntimeObj::getInstance());
         Tensor i0 = g->addTensor({2, 2, 3}, DataType::UInt32);
         Tensor w0 = g->addTensor({2, 3, 4}, DataType::UInt32);
         auto matmul = g->addOp<MatmulObj>(i0, w0, nullptr);
