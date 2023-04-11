@@ -15,7 +15,6 @@ cmake_dependent_option(BUILD_TEST_PET "Build tests for PET" OFF BUILD_TEST OFF)
 cmake_dependent_option(BUILD_TEST_EINNET "Build tests for EINNET" OFF BUILD_TEST OFF)
 
 set(DEFAULT_BUILD_TYPE "RelWithDebInfo")
-set(TVM_HOME "/home/zly/Apps/tvm-v0.10.0")
 
 if(EXISTS ${CMAKE_CURRENT_BINARY_DIR}/config.cmake)
   message(STATUS "Using config.cmake in CMAKE_CURRENT_BINARY_DIR directory")
@@ -74,11 +73,18 @@ include_directories(3rd-party/pybind11/include)
 add_subdirectory(3rd-party/nlohmann_json_cmake_fetchcontent)
 include_directories(3rd-party/nlohmann_json_cmake_fetchcontent/single_include)
 
-# TVM and DMLC for invoking TVM packed functions
-include_directories(${TVM_INCLUDE_DIR})
-include_directories(${DMLC_INCLUDE_DIR})
-include_directories(${DLPACK_INCLUDE_DIR})
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDMLC_USE_LOGGING_LIBRARY=\\\<${TVM_INCLUDE_DIR}/tvm/runtime/logging.h\\\> ")
+# TVM backend
+if(BUILD_TEST_EINNET)
+  if (NOT TVM_INCLUDE_DIR OR NOT DMLC_INCLUDE_DIR OR NOT DLPACK_INCLUDE_DIR OR NOT DLPACK_INCLUDE_DIR)
+    message(FATAL_ERROR "TVM_INCLUDE_DIR, DMLC_INCLUDE_DIR, and DLPACK_INCLUDE_DIR must be set when BUILD_TEST_EINNET is ON")
+  endif()
+  # TVM and DMLC for invoking TVM packed functions
+  include_directories(${TVM_INCLUDE_DIR})
+  include_directories(${DMLC_INCLUDE_DIR})
+  include_directories(${DLPACK_INCLUDE_DIR})
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDMLC_USE_LOGGING_LIBRARY=\\\<${TVM_INCLUDE_DIR}/tvm/runtime/logging.h\\\> ")
+  set(CMAKE_CXX_FLAGS "-DINFINI_USE_TVM=1") # Enable TVM codegen kernels 
+endif()
 
 if(BUILD_TEST)
   set(BUILD_GMOCK
@@ -116,8 +122,11 @@ if(USE_PROTOBUF)
 endif()
 
 target_link_libraries(InfiniTensor pybind11::embed)
-# target_link_libraries(InfiniTensor /home/zly/Apps/tvm-v0.10.0/build/libtvm_runtime.so)
-target_link_libraries(InfiniTensor /home/zly/Apps/tvm-v0.10.0/build/libtvm.so)
+
+# TVM backend
+if(BUILD_TEST_EINNET)
+  target_link_libraries(InfiniTensor ${TVM_LIB_DIR}/libtvm.so)
+endif()
 
 # Python bindings
 file(GLOB_RECURSE FFIS src/ffi/ffi_infinitensor.cc)

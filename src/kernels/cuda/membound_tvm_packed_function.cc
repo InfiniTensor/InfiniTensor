@@ -1,3 +1,4 @@
+#ifdef INFINI_USE_TVM
 #include "core/kernel.h"
 #include "cuda/cuda_runtime.h"
 #include "dlpack/dlpack.h"
@@ -221,3 +222,5 @@ REGISTER_KERNEL(Device::CUDA, OpType::MemBound, DataType::Float32,
                 MemboundTVMPackedFunction,
                 "Memobund_TVM_Ansor_packed_funciton");
 }; // namespace infini
+
+#endif

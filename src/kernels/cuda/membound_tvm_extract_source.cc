@@ -1,3 +1,4 @@
+#ifdef INFINI_USE_TVM
 #include "core/kernel.h"
 #include "cuda/cuda_runtime.h"
 #include "ffi/ffi_embed.h"
@@ -236,6 +237,9 @@ class MemboundTVMExtractSource : public Kernel {
     }
 };
 
-// REGISTER_KERNEL(Device::CUDA, OpType::MemBound, DataType::Float32, MemboundTVMExtractSource,
+// REGISTER_KERNEL(Device::CUDA, OpType::MemBound, DataType::Float32,
+// MemboundTVMExtractSource,
 //                 "Memobund_TVM_Ansor_extract_source");
 }; // namespace infini
+
+#endif
