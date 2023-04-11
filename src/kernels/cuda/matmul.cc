@@ -50,21 +50,23 @@ class matmulCublas : public Kernel {
         // TODO:use compute type
         cublasStatus_t stat;
         if (b > 1) {
-            // use stride trick
+            // Support batch broadcast with zero stride
             int dimA = op->getInputs(0)->getDims().size();
             int dimB = op->getInputs(1)->getDims().size();
-            long long strideA, strideB;
-            if (dimA <= 3 && dimB <= 3) {
-                strideA = dimA == 2 || op->getInputs(0)->getDims()[0] == 1 ? 0 : m * k;
-                strideB = dimB == 2 || op->getInputs(1)->getDims()[0] == 1 ? 0 : n * k;
-            } else {
-                strideA = m * k;
-                strideB = n * k;
-            }
+            long long strideA =
+                (dimA == 2 ||
+                 (dimA == 3 && op->getInputs(0)->getDims()[0] == 1))
+                    ? 0 // Broadcast the batch dimension if batch size is 1
+                    : m * k;
+            long long strideB =
+                (dimB == 2 ||
+                 (dimB == 3 && op->getInputs(1)->getDims()[0] == 1))
+                    ? 0 // Broadcast the batch dimension if batch size is 1
+                    : n * k;
             stat = cublasGemmStridedBatchedEx(
                 context->cublasHandle(), opB, opA, n, m, k, &alpha, inBData,
-                CUDA_R_32F, ldb, strideB, inAData, CUDA_R_32F, lda, strideA, &beta,
-                outData, CUDA_R_32F, ldc, m * n, b, CUDA_R_32F,
+                CUDA_R_32F, ldb, strideB, inAData, CUDA_R_32F, lda, strideA,
+                &beta, outData, CUDA_R_32F, ldc, m * n, b, CUDA_R_32F,
                 (cublasGemmAlgo_t)record->algo);
         } else {
             stat = cublasGemmEx(
@@ -72,6 +74,8 @@ class matmulCublas : public Kernel {
                 CUDA_R_32F, ldb, inAData, CUDA_R_32F, lda, &beta, outData,
                 CUDA_R_32F, ldc, CUDA_R_32F, (cublasGemmAlgo_t)record->algo);
         }
+        // if (stat != CUBLAS_STATUS_SUCCESS)
+        //     cout << cublasGetErrorString(stat);
         return (stat == CUBLAS_STATUS_SUCCESS);
     }
 
@@ -90,6 +94,8 @@ class matmulCublas : public Kernel {
                     const RuntimeObj *_context) const override {
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         auto op = as<MatmulObj>(_op);
+        IT_ASSERT(context);
+        IT_ASSERT(op);
         auto ret = make_ref<MatmulCublasPerfRecordObj>();
         ret->time = std::numeric_limits<double>::max();
         for (int i = 0; i < N_ALGO; i++) {
@@ -102,9 +108,8 @@ class matmulCublas : public Kernel {
             if (rcd->time < ret->time)
                 ret = rcd;
         }
-        IT_ASSERT(ret->time < std::numeric_limits<double>::max(), "No valid "
-                                                                  "algorithm "
-                                                                  "found");
+        IT_ASSERT(ret->time < std::numeric_limits<double>::max(),
+                  "No valid algorithm found for " + op->toString());
         return ret;
     }
 };

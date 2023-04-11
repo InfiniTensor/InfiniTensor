@@ -1,4 +1,3 @@
-
 #include "core/graph.h"
 #include "core/kernel.h"
 #include "core/runtime.h"
@@ -51,35 +50,38 @@ TEST(cuBLAS_Matmul, run) {
                    Shape{2, 3, 4}, Shape{2, 3, 2},
                    ExpectOutput{40, 52, 46, 61, 52, 70, 58, 79, 400, 448, 424,
                                 475, 448, 502, 472, 529});
-    testMatmulCuda(IncrementalGenerator(), IncrementalGenerator(), false, false,
-                   Shape{2, 3, 5}, Shape{5, 2},
-                   ExpectOutput{60, 70, 160, 195, 260, 320, 360, 445, 460, 570, 560, 695});
+    testMatmulCuda(
+        IncrementalGenerator(), IncrementalGenerator(), false, false,
+        Shape{2, 3, 5}, Shape{5, 2},
+        ExpectOutput{60, 70, 160, 195, 260, 320, 360, 445, 460, 570, 560, 695});
     testMatmulCuda(IncrementalGenerator(), IncrementalGenerator(), true, false,
                    Shape{2, 5, 3}, Shape{5, 2},
-                   ExpectOutput{180, 210, 200, 235, 220, 260, 480, 585, 500, 610, 520, 635});
+                   ExpectOutput{180, 210, 200, 235, 220, 260, 480, 585, 500,
+                                610, 520, 635});
     testMatmulCuda(IncrementalGenerator(), IncrementalGenerator(), false, false,
                    Shape{3, 5}, Shape{5, 2},
-                   ExpectOutput{60,  70, 160, 195, 260, 320});
+                   ExpectOutput{60, 70, 160, 195, 260, 320});
 }
 
 TEST(cuBLAS_Matmul, tune) {
-    auto cpuRuntime = NativeCpuRuntimeObj::getInstance();
-    Graph gCpu = make_ref<GraphObj>(cpuRuntime);
-    auto ACpu = gCpu->addTensor(Shape{1, 3, 5}, DataType::Float32);
-    auto BCpu = gCpu->addTensor(Shape{1, 5, 2}, DataType::Float32);
-    gCpu->dataMalloc();
-    ACpu->setData(IncrementalGenerator());
-    BCpu->setData(IncrementalGenerator());
-
+    // Matmul([A^T,B,act=0],A=597,B=595,C=598,bmnk=[1,4,4096,448])
+    const int B = 1, M = 4, N = 4096, K = 448;
+    const bool transA = true, transB = false;
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
-    auto gCuda = make_ref<GraphObj>(cudaRuntime);
-    auto ACuda = gCuda->cloneTensor(ACpu);
-    auto BCuda = gCuda->cloneTensor(BCpu);
-    auto matmul = gCuda->addOp<MatmulObj>(ACuda, BCuda, nullptr);
-
+    Graph g = make_ref<GraphObj>(cudaRuntime);
+    auto a = g->addTensor(transA ? Shape{B, K, M} : Shape{B, M, K});
+    auto b = g->addTensor(transB ? Shape{B, N, K} : Shape{B, K, N});
     // allocate CUDA memory
-    gCuda->dataMalloc();
-    cudaRuntime->run(gCuda, true);
+    g->dataMalloc();
+    a->setData(IncrementalGenerator());
+    b->setData(IncrementalGenerator());
+
+    auto matmul = g->addOp<MatmulObj>(a, b, nullptr, transA, transB);
+    matmul->print();
+    double time = cudaRuntime->getPerfTime(g);
+    EXPECT_GT(time, 1e-3);
+    EXPECT_LT(time, 1);
+    cudaRuntime->run(g, true);
 }
 
 }; // namespace infini
