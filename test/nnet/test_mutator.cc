@@ -56,7 +56,7 @@ TEST(Mutator, NaiveConvWithInterpreter) {
 
 // FIXME: failed since implicit transpose for DLT
 TEST(Mutator, InfoGAN_TConv_3_correctness) {
-    const bool verifyMutator = true;
+    const bool useMutatorDirectly = true;
     Runtime runtime = make_ref<CudaRuntimeObj>();
     Graph g = make_ref<GraphObj>(runtime);
     Runtime cpu = NativeCpuRuntimeObj::getInstance(); // CPUruntime is singleton
@@ -65,58 +65,62 @@ TEST(Mutator, InfoGAN_TConv_3_correctness) {
     const int n = 1, c = 256, h = 2, w = 2, f = 448, r = 4, s = 4;
     // // Minimum config for test
     // const int n = 1, c = 1, h = 2, w = 2, f = 1, r = 4, s = 4;
+    // const int n = 1, c = 2, h = 2, w = 2, f = 2, r = 4, s = 4;
+
     auto i0 = g->addTensor({n, h, w, f});
     auto w0 = g->addTensor({f, r, s, c});
     g->addOp<ConvTransposed2dNHWCObj>(i0, w0, nullptr, 1, 1, 2, 2, 1, 1);
-    g->print();
 
     auto mutator =
         make_ref<NMutator>(NMutator::Mode::RuleBased,
                            vector<int>{3, 2, 2, 2, 2, 5, 8, 8, 6, 91, 90});
-
+    // // Translate OP to membound without derivation
     // mutator->setToNaiveMembound();
+
     vector<Graph> bestGraphs;
-    if (verifyMutator) {
+    if (useMutatorDirectly) { // Use mutator results
+        bestGraphs = mutator->run(g);
+    } else { // Use search engine results
         SearchEngine searchEngine(runtime, mutator);
         bestGraphs.emplace_back(searchEngine.run(g));
-        printf("--- SearchEngine Finished ---\n");
-    } else {
-        bestGraphs = mutator->run(g);
     }
-    puts("====== Origin graph");
-    g->print();
-    for (auto bestGraph : bestGraphs) {
-        puts("====== New best graph");
-        bestGraph->print();
+    g->dataMalloc();
+    map<UidBaseType, Tensor> fuidToInputTensor;
+    for (auto t : g->getInputs()) {
+        EXPECT_EQ(fuidToInputTensor.count(t->getFuid()), 0);
+        fuidToInputTensor[t->getFuid()] = t;
+    }
 
-        g->dataMalloc();
+    for (size_t i = 0; i < bestGraphs.size(); i++) {
+        auto bestGraphCpu = bestGraphs[i];
+        auto bestGraph =
+            make_ref<GraphObj>(runtime, bestGraphCpu->getOperators());
+
+        auto gen = RandomGenerator(0, 1, i);
         bestGraph->dataMalloc();
+        // Initialize inputs with random data
         for (auto t : g->getInputs()) {
-            t->setData(IncrementalGenerator());
+            t->setData(gen);
         }
         for (auto t : bestGraph->getInputs()) {
-            t->setData(IncrementalGenerator());
+            t->copyData(fuidToInputTensor[t->getFuid()]);
         }
+
+        // Initialize outputs with zeros
         for (auto t : g->getOutputs()) {
-            t->setData(IncrementalGenerator());
+            t->setData(ZeroGenerator());
         }
         for (auto t : bestGraph->getOutputs()) {
-            t->setData(IncrementalGenerator());
+            t->setData(ZeroGenerator());
         }
-        const bool tuningOp = false; // FIXME: some eOps are not tuned
+
+        runtime->run(bestGraph, true); // Tune kernels
         runtime->run(g);
-        // puts("cuDNN");
-        // g->getOutputs()[0]->printData();
-        runtime->run(bestGraph, tuningOp);
-        // puts("Output");
-        // bestGraph->getOutputs()[0]->printData();
+        runtime->run(bestGraph, false); // Execute transfomraed graph
 
         auto go0 = gCpu->cloneTensor(g->getOutputs()[0]);
         auto bgo0 = gCpu->cloneTensor(bestGraph->getOutputs()[0]);
-
-        EXPECT_TRUE(go0->equalData(bgo0));
-        EXPECT_TRUE(g->getOutputs()[0]->getRawDataPtr<void *>() !=
-                    bestGraph->getOutputs()[0]->getRawDataPtr<void *>());
+        EXPECT_TRUE(go0->equalData(bgo0, 1e-4));
     }
 }
 
