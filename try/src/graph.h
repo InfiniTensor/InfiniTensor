@@ -76,8 +76,8 @@ class Rating;
 
 /// @brief Partitioned subgraphs.
 struct Partition {
-    /// @brief 2D vector of Mutant instances for each partitioned subgraph.
-    Vec<Vec<Mutant>> graph;
+    /// @brief 2D vector of `Mutant` instances for each partitioned subgraph.
+    Vec<Vec<Mutant>> mutant;
 
     friend Mutation;
 
@@ -92,12 +92,16 @@ struct Partition {
     /// @param arg1 A function that takes an unpartitioned graph as input
     /// and returns a vector of partitioned subgraphs.
     Partition(Unigraph &&, Func const &);
+
+    /// @brief Returns mutant vector size.
+    /// @return 2D vector size;
+    Vec<size_t> size() const;
 };
 
 /// @brief Generates mutants for every subgraph.
 class Mutation {
-    /// @brief 2D vector of Mutant instances for each partitioned subgraph.
-    Vec<Vec<Mutant>> graph;
+    /// @brief 2D vector of `Mutant` instances for each partitioned subgraph.
+    Vec<Vec<Mutant>> mutant;
 
     friend Rating;
 
@@ -111,12 +115,16 @@ class Mutation {
     /// @param arg1 A function that takes a subgraph as input
     /// and returns a vector of mutated graphs.
     Mutation(Partition &&, Func const &);
+
+    /// @brief Returns mutant vector size.
+    /// @return 2D vector size;
+    Vec<size_t> size() const;
 };
 
 /// @brief Rates each subgraph mutant.
 class Rating {
-    /// @brief 2D vector of Mutant instances for each partitioned subgraph.
-    Vec<Vec<Mutant>> graph;
+    /// @brief 2D vector of `Mutant` instances for each partitioned subgraph.
+    Vec<Vec<Mutant>> mutant;
 
   public:
     /// @brief A functional object that takes a mutated subgraph as input
@@ -128,6 +136,16 @@ class Rating {
     /// @param arg1 A function that takes a mutated subgraph as input
     ///             and returns its score.
     Rating(Mutation &&, Func const &);
+
+    /// @brief Returns mutant vector size.
+    /// @return 2D vector size;
+    Vec<size_t> size() const;
+
+    /// @brief Builds `Unigraph` from the subgraphs
+    /// with specified indices.
+    /// @param arg0 Subgraph indices.
+    /// @return Merged `Unigraph`.
+    Unigraph build(Vec<size_t> const &) const;
 };
 
 /// @brief Splits a graph into subgraphs, where each subgraph contains

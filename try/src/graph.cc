@@ -82,24 +82,48 @@ Mutant &Mutant::operator=(Mutant &&others) {
     return *this;
 }
 
-Partition::Partition(Unigraph &&g, Func const &f) {
-    auto graph = f(std::move(g));
-    for (auto &sub : graph)
-        this->graph.emplace_back().emplace_back(std::move(sub));
+template <class t> Vec<size_t> list_size(Vec<Vec<t>> const &list) {
+    Vec<size_t> ans(list.size());
+    std::transform(list.begin(), list.end(), ans.begin(),
+                   [](const auto &e) { return e.size(); });
+    return ans;
 }
 
-Mutation::Mutation(Partition &&p, Func const &f) : graph(std::move(p.graph)) {
-    for (auto &sub : graph)
+Partition::Partition(Unigraph &&g, Func const &f) {
+    auto mutant = f(std::move(g));
+    for (auto &sub : mutant)
+        this->mutant.emplace_back().emplace_back(std::move(sub));
+}
+
+Vec<size_t> Partition::size() const { return list_size(mutant); }
+
+Mutation::Mutation(Partition &&p, Func const &f) : mutant(std::move(p.mutant)) {
+    for (auto &sub : mutant)
         for (auto &m : f(sub.front().graph))
             sub.emplace_back(std::move(m));
 }
 
-Rating::Rating(Mutation &&m, Func const &f) : graph(std::move(m.graph)) {
-    for (auto &sub : graph) {
+Vec<size_t> Mutation::size() const { return list_size(mutant); }
+
+Rating::Rating(Mutation &&m, Func const &f) : mutant(std::move(m.mutant)) {
+    for (auto &sub : mutant) {
         for (auto &c : sub)
             c.score = f(c.graph);
-        std::sort(sub.begin(), sub.end());
+        std::sort(sub.begin(), sub.end(), std::greater<Mutant>());
     }
+}
+
+Vec<size_t> Rating::size() const { return list_size(mutant); }
+
+Unigraph Rating::build(Vec<size_t> const &indices) const {
+    const auto size = indices.size();
+    if (size != mutant.size())
+        throw "indices size wrong";
+    Unigraph ans;
+    for (size_t i = 0; i < size; ++i)
+        for (const auto &op : mutant.at(i).at(indices[i]).graph.operators)
+            ans.push_operator(op.op_type, op.inputs, op.outputs);
+    return ans;
 }
 
 Vec<Unigraph> split_each(Unigraph &&g) {
