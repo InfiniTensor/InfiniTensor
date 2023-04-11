@@ -69,6 +69,9 @@ class TensorObj : public TensorBaseObj {
 
     void copyData(const TensorObj *src);
     void copyData(const Tensor &src) { copyData(src.get()); }
+
+    // FIXME: std::fucntion copies the generator instead of passing it by ref.
+    // Thus the internal state of generator cannot be updated.
     void setData(
         const std::function<void(void *, size_t, DataType)> &generator) const;
     Tensor clone() const {
@@ -92,12 +95,13 @@ class TensorObj : public TensorBaseObj {
     }
 
     void printData() const;
-    bool equalData(const Tensor &rhs) const;
+    bool equalData(const Tensor &rhs, double relativeError = 1e-6) const;
 
     template <typename T> bool equalData(const vector<T> &dataVector) {
         IT_ASSERT(DataType::get<T>() == dtype);
         IT_ASSERT(size() == dataVector.size());
-        return equalDataImpl(getRawDataPtr<T *>(), dataVector.data(), size());
+        return equalDataImpl(getRawDataPtr<T *>(), dataVector.data(), size(),
+                             1e-6);
     }
 
     size_t getOffsetByBroadcastOffset(size_t bcOffset, Shape bcShape) const;
@@ -107,14 +111,15 @@ class TensorObj : public TensorBaseObj {
     void printDataUint32_t(uint32_t *ptr) const;
 
     template <typename T>
-    bool equalDataImpl(const T *a, const T *b, size_t size) const {
+    bool equalDataImpl(const T *a, const T *b, size_t size,
+                       double relativeError) const {
         for (size_t i = 0; i < size; ++i) {
             if constexpr (std::is_integral_v<T>) {
                 if (a[i] != b[i])
                     return false;
             } else if constexpr (std::is_floating_point_v<T>) {
                 if (fabs(a[i] - b[i]) / std::max(fabs(a[i]), fabs(b[i])) >
-                    1e-6) {
+                    relativeError) {
                     printf("Error on %lu: %f %f\n", i, a[i], b[i]);
                     return false;
                 }

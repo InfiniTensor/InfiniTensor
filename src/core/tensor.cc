@@ -16,9 +16,16 @@ TensorObj::TensorObj(Shape shape_, DataType dtype, Runtime runtime)
                                   [](auto acc, auto x) { return acc * x; })) {}
 
 string TensorObj::toString() const {
+    // Convert data pointer to string
+    std::stringstream ss;
+    if (data != nullptr)
+        ss << data->getPtr<void *>();
+    else
+        ss << "nullptr data";
     string ret = "Tensor " + std::to_string(guid) + ", Fuid " +
                  std::to_string(fuid) + ", shape " + vecToString(shape) +
-                 ", dtype " + dtype.toString();
+                 ", dtype " + dtype.toString() + ", " + runtime->toString() +
+                 ", " + ss.str() + "\n";
     vector<UidBaseType> targetGuids;
     for (const auto &op : targets)
         targetGuids.emplace_back(op.lock()->getGuid());
@@ -132,7 +139,7 @@ void TensorObj::printDataUint32_t(uint32_t *ptr) const {
     }
 }
 
-bool TensorObj::equalData(const Tensor &rhs) const {
+bool TensorObj::equalData(const Tensor &rhs, double relativeError) const {
     IT_ASSERT(data != nullptr);
     IT_ASSERT(rhs->data != nullptr);
     IT_ASSERT(getDType() == rhs->getDType());
@@ -142,10 +149,11 @@ bool TensorObj::equalData(const Tensor &rhs) const {
         return false;
     if (getDType() == DataType::UInt32)
         return equalDataImpl(getRawDataPtr<uint32_t *>(),
-                             rhs->getRawDataPtr<uint32_t *>(), size());
+                             rhs->getRawDataPtr<uint32_t *>(), size(), 0);
     else if (getDType() == DataType::Float32)
         return equalDataImpl(getRawDataPtr<float *>(),
-                             rhs->getRawDataPtr<float *>(), size());
+                             rhs->getRawDataPtr<float *>(), size(),
+                             relativeError);
     else
         IT_TODO_HALT();
 }

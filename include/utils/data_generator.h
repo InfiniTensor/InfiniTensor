@@ -1,5 +1,7 @@
+#pragma once
 #include "core/common.h"
 #include "core/tensor_base.h"
+#include <random>
 
 namespace infini {
 
@@ -36,6 +38,31 @@ class IncrementalGenerator : public DataGenerator {
         fill<uint32_t>(data, size);
     }
     void fill(float *data, size_t size) override { fill<float>(data, size); }
+};
+
+class RandomGenerator : public DataGenerator {
+  private:
+    double l, r;
+    std::mt19937 e;
+    std::uniform_int_distribution<int> di;
+    std::uniform_real_distribution<float> dr;
+
+  public:
+    RandomGenerator(double l = 0, double r = 1, unsigned int seed = 0)
+        : l(l), r(r), e(seed), di(l, r), dr(l, r) {}
+    virtual ~RandomGenerator() {}
+
+  private:
+    void fill(uint32_t *data, size_t size) override {
+        for (size_t i = 0; i < size; i++) {
+            data[i] = di(e);
+        }
+    }
+    void fill(float *data, size_t size) override {
+        for (size_t i = 0; i < size; i++) {
+            data[i] = dr(e);
+        }
+    }
 };
 
 template <int val> class ValGenerator : public DataGenerator {
