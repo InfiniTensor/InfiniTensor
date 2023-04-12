@@ -19,9 +19,15 @@ class MatmulObj : public OperatorObj {
 
   public:
     /**
-     * @brief Construct a new Matmul object. This comments show how operators is
-     * defined in InfiniTensor. The constructor can create output tensors for
-     * the operator or not, which depends on `graph`.
+     * @brief Matmul operator with batch broadcast and tensor transpose
+     * supports. Only one tensor with singe batch can be broadcasted due to the
+     * BLAS interface restriction. Tranpose indicates whether the last two
+     * dimensions should be transposed before Matmul and does not affect other
+     * leading dimensions.
+     *
+     * Matmul show how operators are defined in InfiniTensor. The constructor of
+     * an operator can create output tensors for the operator or not, which
+     * depends on `graph`.
      *
      * @param graph The computation graph that this operator belongs to.
      * @param A The input tensor.

@@ -5,32 +5,13 @@ namespace infini {
 MatmulObj::MatmulObj(GraphObj *graph, Tensor A, Tensor B, Tensor C, bool transA,
                      bool transB, [[maybe_unused]] Tensor bias, ActType act)
     : OperatorObj(OpType::Matmul, {A, B}, {C}), transA(transA), transB(transB),
-    // auto shape_a = A->getDims();
-    // auto shape_b = B->getDims();
-    // IT_ASSERT(shape_a.size() == shape_b.size());
-    // switch (shape_a.size()) {
-    // case 0:
-    // case 1:
-    //     IT_ASSERT(false);
-    // case 2:
-    //     break;
-    // default:
-    //     for (size_t i = 0; i < shape_a.size() - 2; ++i) {
-    //         IT_ASSERT(shape_a[i] == shape_b[i]);
-    //         b *= shape_a[i];
-    //     }
-    //     break;
-    // }
-    // m = *(transA ? shape_a.rbegin() : shape_a.rbegin() + 1);
-    // n = *(transB ? shape_b.rbegin() + 1 : shape_b.rbegin());
-    // k = *(transA ? shape_a.rbegin() + 1 : shape_a.rbegin());
-      act(act), b(1)
-{
+      act(act) {
     auto shape_a = A->getDims();
     auto shape_b = B->getDims();
     int dimA = shape_a.size(), dimB = shape_b.size();
     IT_ASSERT(dimA >= 2 && dimB >= 2);
 
+    b = 1;
     if (dimA <= 3 && dimB <= 3) {
         int b1 = dimA == 2 ? 1 : A->getDims()[0];
         int b2 = dimB == 2 ? 1 : B->getDims()[0];
@@ -46,11 +27,6 @@ MatmulObj::MatmulObj(GraphObj *graph, Tensor A, Tensor B, Tensor C, bool transA,
     m = *(transA ? shape_a.rbegin() : shape_a.rbegin() + 1);
     n = *(transB ? shape_b.rbegin() + 1 : shape_b.rbegin());
     k = *(transA ? shape_a.rbegin() + 1 : shape_a.rbegin());
-    // std::cout << A->toString() << "\n"
-    //             << B->toString() << "\n";
-    // if (C) {
-    //     std::cout << C->toString() << std::endl;
-    // }
     IT_ASSERT(checkValid(graph));
 }
 
@@ -80,10 +56,10 @@ optional<vector<Shape>> MatmulObj::inferShape(const TensorVec &inputs) const {
     int b2 = dimB == 2 ? 1 : B->getDims()[0];
 
     int b = std::max(b1, b2);
-    int m = transA ? A->getDims()[dimA-1] : A->getDims()[dimA-2];
-    int n = transB ? B->getDims()[dimB-2] : B->getDims()[dimB-1];
-    int kA = transA ? A->getDims()[dimA-2] : A->getDims()[dimA-1];
-    int kB = transB ? B->getDims()[dimB-1] : B->getDims()[dimB-2];
+    int m = transA ? A->getDims()[dimA - 1] : A->getDims()[dimA - 2];
+    int n = transB ? B->getDims()[dimB - 2] : B->getDims()[dimB - 1];
+    int kA = transA ? A->getDims()[dimA - 2] : A->getDims()[dimA - 1];
+    int kB = transB ? B->getDims()[dimB - 1] : B->getDims()[dimB - 2];
 
     if ((dimA != 2 && dimA != 3) || (dimB != 2 && dimB != 3)) {
         printf("Bad input dim: dimA = %d, dimB = %d\n", dimA, dimB);
