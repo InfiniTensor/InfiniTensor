@@ -69,6 +69,5 @@ TEST(FuseMembound, mergeNestedStagesInRangeOp) {
     RangeOp ans = makeRangeOperator(
         {{f, {0, F}}, {i, {0, I}}}, {},
         makeSubscript(K, {f, i / 1024, (i / 256) % 4, i % 256}));
-    dbg(merged, ans);
     EXPECT_EQ(HashVisitor().getHash(merged), HashVisitor().getHash(ans));
 }

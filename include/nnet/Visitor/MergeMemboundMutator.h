@@ -20,10 +20,12 @@ class MergeMemboundMutator : public Mutator {
      */
     MergeMemboundMutator(const VecExpr &kernels)
         : Mutator(), kernels(kernels), curDepth(kernels.size() - 1) {}
-    /// @brief Merged multiple expressions into one with one or several stages. 
-    /// @param allowEmptyMembound 
-    /// @param allowFailure If true, return nullptr when merging fails. If false, assert will fail.
-    /// @return 
+
+    /// @brief Merged multiple expressions into one with one or several stages.
+    /// @param allowEmptyMembound
+    /// @param allowFailure If true, return nullptr when merging fails. If
+    /// false, assert will fail.
+    /// @return
     Expr merge(bool allowEmptyMembound = false, bool allowFailure = false);
 };
 

@@ -9,7 +9,6 @@
 #include "operators/matmul.h"
 #include "operators/membound.h"
 #include "test.h"
-#include <chrono>
 using namespace infini;
 using namespace std;
 
@@ -100,7 +99,6 @@ TEST(nnet, PRelu_Ansor_Codegen) {
     Tensor w0 = g->addTensor(vector{12});
     Tensor o0 = g->addTensor(vector{12});
     auto [nnetInputs, expr] = getPReluExpr(12);
-    dbg(expr);
     g->addOpWithOutputs<MemBoundObj>(vector{i0, w0}, vector{o0}, nnetInputs,
                                      expr, -1);
     g->dataMalloc();

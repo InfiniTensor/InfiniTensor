@@ -72,7 +72,6 @@ void NMutator::runSingleOpToNaiveMembound(Graph in_graph,
 }
 
 void NMutator::runSingleOp(Graph in_graph, std::vector<Graph> &out_graphs) {
-    // // IT_TODO_HALT();
     OpVec computeOps = in_graph->getComputeOps();
     IT_ASSERT(computeOps.size() == 1);
 

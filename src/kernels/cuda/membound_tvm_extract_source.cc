@@ -6,7 +6,6 @@
 #include "nnet/Visitor/CheckOOBVisitor.h"
 #include "nnet/Visitor/HashVisitor.h"
 #include "nnet/Visitor/MergeMemboundMutator.h"
-#include "nnet/dbg.h"
 #include "nvrtc.h"
 #include "operators/membound.h"
 #include "operators/pooling.h"
@@ -167,13 +166,6 @@ class MemboundTVMExtractSource : public Kernel {
                                argsPtr.data(), 0);
             },
             [&]() { context->sync(); });
-
-        // dbg(kernelName, "Print input");
-        // op->getInputs()[0]->print();
-        // op->getInputs()[0]->printData();
-        // dbg("Print output");
-        // op->getOutput()->print();
-        // op->getOutput()->printData();
 
         // free module
         checkCUresult(cuModuleUnload(module));

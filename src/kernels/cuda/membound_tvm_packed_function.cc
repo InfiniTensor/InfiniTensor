@@ -4,8 +4,6 @@
 #include "dlpack/dlpack.h"
 #include "ffi/ffi_embed.h"
 #include "nnet/Visitor/AsTVMVisitor.h"
-#include "nnet/Visitor/HashVisitor.h"
-#include "nnet/dbg.h"
 #include "operators/membound.h"
 #include "operators/pooling.h"
 #include "tvm/runtime/module.h"
