@@ -1,12 +1,13 @@
+import os
+import sys
+import json
 from contextlib import redirect_stdout
 import time
+import logging
 
 import numpy as np
 import tvm
 from tvm import te, tir, auto_scheduler, topi
-import os
-import json
-import logging
 
 USE_CACHE = True
 logging.basicConfig()
@@ -16,7 +17,7 @@ logger.setLevel(logging.INFO)
 
 def gen_ansor_so(input_tensors, input_dtypes, output_tensor, output_dtype,
                  tvm_code, func_name, nnet_expression: str,
-                 nnet_simplified_expression: str, hash_code=None):
+                 nnet_simplified_expression: str, hash_code: str = None):
     assert len(input_tensors) == len(input_dtypes)
 
     logger.debug(f'Work on hash {hash_code}')
@@ -117,3 +118,14 @@ def gen_ansor_so(input_tensors, input_dtypes, output_tensor, output_dtype,
             }, ensure_ascii=False, indent=2))
 
     return so_fn, conv_time
+
+# Read arguments from pipe, which is redirected to stdin.
+# Write generated library path to pipe.
+
+
+def pipe_gen(fd: int):
+    args = json.load(sys.stdin)  # read from pipe
+    # print(args, f'fd={fd}')
+    ret = gen_ansor_so(**args)
+    with os.fdopen(fd, 'w') as f:
+        print(ret[0], file=f, end='')  # write to pipe
