@@ -147,16 +147,12 @@ OpVec GraphObj::getComputeOps() const {
     return opList;
 };
 
-bool GraphObj::selfCheck(bool assert) const {
+bool GraphObj::selfCheck() const {
     std::set<UidBaseType> s;
     // check whether two tensors with the same FUID exist
     for (auto tensor : tensors) {
         int cnt = s.count(tensor->getFuid());
-
-        if (assert)
-            IT_ASSERT(cnt == 0, std::to_string(tensor->getFuid()));
-        else if (cnt > 0)
-            return false;
+        IT_ASSERT(cnt == 0, std::to_string(tensor->getFuid()));
         s.insert(tensor->getFuid());
     }
     return true;

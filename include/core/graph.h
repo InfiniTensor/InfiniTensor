@@ -82,7 +82,7 @@ class GraphObj : public Object {
         return ret;
     }
 
-    bool selfCheck(bool assert = false) const;
+    bool selfCheck() const;
 
   private:
     /**
