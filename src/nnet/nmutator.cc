@@ -49,7 +49,7 @@ void NMutator::runSingleOpToNaiveMembound(Graph in_graph,
     assert(computeOps.size() == 1);
     const auto &computeOp = computeOps[0];
     auto g = infini::make_ref<GraphObj>(in_graph->getRuntime());
-    auto expr = opToExpression(computeOp);
+    nnet::Expr expr = opToExpression(computeOp);
     auto inputsN = nnet::GetTensorsVisitor().get(expr);
     dbg(inputsN, expr);
     IT_ASSERT(inputsN.count("B") + inputsN.count("K") == 1,
@@ -258,6 +258,8 @@ nnet::Expr NMutator::opToExpression(Operator op) {
         const auto &[n, c, h, w, f, r, s] = convOp->getNCHWFRS();
         const auto &[ph, pw, sh, sw, dh, dw] = convOp->getPadStrideDilation();
         IT_ASSERT_TODO(convOp->getNumGroups() == 1);
+        if (r != 4)
+            return nullptr;
         IT_ASSERT_TODO(r == 4);
         IT_ASSERT_TODO(ph == pw);
         IT_ASSERT_TODO(tie(sh, sw) == tuple(2, 2));
