@@ -215,12 +215,13 @@ static vector<int> transpose_permute_of(Operator op) {
 
 void export_functions(py::module &m) {
 #define FUNCTION(NAME) def(#NAME, &NAME)
-#ifdef USE_CUDA
-    m.def("cuda_runtime", cuda_runtime)
-#elif USE_INTELCPU
-    m.def("intelcpu_runtime", intelcpu_runtime)
-#else
     m.def("cpu_runtime", &NativeCpuRuntimeObj::getInstance)
+#ifdef USE_CUDA
+        .def("cuda_runtime", cuda_runtime)
+#endif
+#ifdef USE_INTELCPU
+        .def("intelcpu_runtime", intelcpu_runtime)
+#endif
 #ifdef USE_CUDA
         .FUNCTION(cuda_runtime)
 #endif
