@@ -229,6 +229,21 @@ class ShapeObj : public OperatorObj {
     int numOutputs() const override { return 1; }
 };
 
+class PReluObj : public OperatorObj {
+  public:
+    PReluObj(GraphObj *graph, Tensor input, Tensor alpha, Tensor output);
+    OP_CLONE(PReluObj);
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+
+    std::string toString() const override;
+    int numInputs() const override { return 2; }
+    int numOutputs() const override { return 1; }
+
+  private:
+    vector<int> getWorkloadVector() const override;
+    vector<int> getOpAttrVector() const override;
+};
+
 // class CumprodObj : public OperatorObj {
 //   public:
 //     CumprodObj(GraphObj *graph, Tensor input, Tensor output, int axis, bool

@@ -37,6 +37,7 @@ enum class OpType {
     Activation,
     Relu,
     ReluBackward,
+    PRelu,
     Sigmoid,
     SigmoidBackward,
     Tanh,
@@ -149,6 +150,7 @@ class OpRegistry {
             FOP(Activation);
             FOP(Relu);
             FOP(ReluBackward);
+            FOP(PRelu);
             FOP(Sigmoid);
             FOP(SigmoidBackward);
             FOP(Tanh);
