@@ -59,10 +59,11 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
      * execution happens.
      *
      * @param graph
-     * @param profiling Whether to print breakdown of time
+     * @param printProfiling Whether to print breakdown of time
      * @return double Return the sum of perf time for each operator
      */
-    double getPerfTime(const Graph &graph, bool profiling = false) const;
+    double getPerfTime(const Graph &graph, bool printProfiling = false,
+                       bool allowEstimation = false) const;
     Blob allocBlob(size_t size);
     bool isCpu() const {
         return device == Device::CPU || device == Device::MKL;

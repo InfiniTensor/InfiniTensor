@@ -32,8 +32,7 @@ Graph SearchEngine::run(const Graph graph) {
     IT_ASSERT(runtimeExec == graph->getRuntime());
     std::cout << "[INFO] original graph: " << std::endl;
     std::cout << graph->toString();
-    std::cout << "[INFO] perf: " << runtimeExec->getPerfTime(graph)
-              << std::endl;
+    std::cout << "[INFO] perf: " << getEstimatedGraphPerf(graph) << std::endl;
 
     std::vector<Graph> partitions = partitionGraph(graph);
 
@@ -65,9 +64,7 @@ Graph SearchEngine::run(const Graph graph) {
                 nextGraphs.emplace_back(tmp);
             }
         }
-        std::sort(nextGraphs.begin(), nextGraphs.end(), [&](Graph x, Graph y) {
-            return runtimeExec->getPerfTime(x) < runtimeExec->getPerfTime(y);
-        });
+        std::sort(nextGraphs.begin(), nextGraphs.end(), graphTimeComparer);
         if (nextGraphs.size() > GRAPH_SIZE) {
             nextGraphs.resize(GRAPH_SIZE);
         }
@@ -81,7 +78,7 @@ Graph SearchEngine::run(const Graph graph) {
     for (size_t i = 0; i < bestGraphs.size(); i++) {
         std::cout << "bestGraph " << i << ":" << std::endl;
         std::cout << bestGraphs[i]->toString();
-        std::cout << "[INFO] perf: " << runtimeExec->getPerfTime(bestGraphs[i])
+        std::cout << "[INFO] perf: " << getEstimatedGraphPerf(bestGraphs[i])
                   << std::endl;
     }
 
@@ -102,9 +99,8 @@ std::vector<Graph> SearchEngine::search(const Graph &graph) {
         }
     }
 
-    sort(results.begin(), results.end(), [&](Graph x, Graph y) {
-        return runtimeExec->getPerfTime(x) < runtimeExec->getPerfTime(y);
-    }); // compare with perf time
+    // compare with perf time
+    std::sort(results.begin(), results.end(), graphTimeComparer);
     if (results.size() > GRAPH_SIZE) {
         results.resize(GRAPH_SIZE);
     }
@@ -360,9 +356,7 @@ std::vector<Graph> SearchEngine::searchMutation(
         for (auto g : nextGraphs) {
             g->dataMalloc();
         }
-        std::sort(nextGraphs.begin(), nextGraphs.end(), [&](Graph x, Graph y) {
-            return runtimeExec->getPerfTime(x) < runtimeExec->getPerfTime(y);
-        });
+        std::sort(nextGraphs.begin(), nextGraphs.end(), graphTimeComparer);
         if (nextGraphs.size() > GRAPH_SIZE) {
             nextGraphs.resize(GRAPH_SIZE);
         }
@@ -372,7 +366,7 @@ std::vector<Graph> SearchEngine::searchMutation(
 }
 
 bool SearchEngine::isMultiBranchMergable(const Graph graph) {
-    return mutationEngine->isMultiBranchMergable(graph);
+    return mutator->isMultiBranchMergable(graph);
 }
 
 // Split a graph into multiple independt graphs. Search engine will search for

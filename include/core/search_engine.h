@@ -11,11 +11,15 @@ class SearchEngine {
   private:
     Runtime runtimeExec;
     Ref<Mutator> mutator;
+    std::function<bool(const Graph &, const Graph &)> graphTimeComparer;
 
   public:
-    SearchEngine(Runtime _runtime, Ref<Mutator> _mutator) {
-        runtimeExec = _runtime;
-        mutator = _mutator;
+    SearchEngine(Runtime runtime, Ref<Mutator> mutator)
+        : runtimeExec(runtime), mutator(mutator) {
+        // Compare graph with estimated time
+        graphTimeComparer = [this](const Graph &a, const Graph &b) -> bool {
+            return getEstimatedGraphPerf(a) < getEstimatedGraphPerf(b);
+        };
     }
     ~SearchEngine() {}
 
@@ -24,11 +28,7 @@ class SearchEngine {
         3;                  // cut nodes whose #in + #out >= partitionThreshold
     size_t GRAPH_SIZE = 16; // num of best graphs.
 
-  private: // Composed objects
-    std::shared_ptr<Mutator> mutationEngine;
-
   public:
-    std::shared_ptr<Mutator> getMutationEngine() { return mutationEngine; };
     struct GroupEdge {
         int v, next;
         GroupEdge() = delete;
@@ -38,10 +38,7 @@ class SearchEngine {
         std::shared_ptr<Graph> graph;
         double perf = INFINITY;
     };
-    class MetaGraph { // a graph of subgraphs, for searching.
-      public:
-        MetaGraph() {}
-        ~MetaGraph() {}
+    struct MetaGraph { // a graph of subgraphs, for searching.
         struct Node {
             Graph graph;
             std::vector<int> suc;
@@ -51,7 +48,7 @@ class SearchEngine {
         std::vector<Node> nodes;
     };
 
-    Graph run(const Graph graph);                  // entrance of search engine.
+    Graph run(const Graph graph);                  // entrance to search engine.
     std::vector<Graph> search(const Graph &graph); // search for a partition.
 
   private:
@@ -76,5 +73,9 @@ class SearchEngine {
      * branch.
      */
     bool isMultiBranchMergable(const Graph graph);
+
+    double getEstimatedGraphPerf(Graph graph) {
+        return runtimeExec->getPerfTime(graph, false, true);
+    }
 };
 } // namespace infini

@@ -2,6 +2,7 @@
 #include "core/blob.h"
 #include "core/kernel.h"
 #include "core/perf_engine.h"
+#include "operators/membound.h"
 #include "utils/data_generator.h"
 #include <chrono>
 #include <cstring>
@@ -60,7 +61,8 @@ void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
         printProfilingData(totalTime, opTime, opCnt);
 }
 
-double RuntimeObj::getPerfTime(const Graph &graph, bool profiling) const {
+double RuntimeObj::getPerfTime(const Graph &graph, bool profiling,
+                               bool allowEstimation) const {
     const auto &kernelRegistry = KernelRegistry::getInstance();
     auto &perfEngine = PerfEngine::getInstance();
     // Statistics
@@ -74,11 +76,16 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling) const {
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
         auto perfData = perfEngine.getPerfData(perfKey);
 
-        PerfRecord record;
+        double time = -1e9;
         // Tune the kernel if there is no record
-        if (!perfData) {
+        if (perfData) {
+            time = perfData->time;
+        } else if (allowEstimation && op->getOpType() == OpType::MemBound) {
+            time = as<MemBoundObj>(op)->getEstimatedTime();
+        } else {
             // TODO: should tenosrs automatically allocate when access data?
-            // allocate memory for empty tensors and release it after profiling
+            // allocate memory for empty tensors and release it after
+            // profiling
             TensorVec allocatedTensors;
             for (auto t : op->getInputs())
                 if (!t->hasData())
@@ -92,21 +99,20 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling) const {
             }
 
             // Profile operators and record the results
-            record = kernel->tune(op, this);
+            PerfRecord record = kernel->tune(op, this);
+            time = record->time;
             perfEngine.setPerfData(perfKey, record);
 
             // Free allocated memory
             for (auto t : allocatedTensors)
                 t->freeData();
-        } else
-            record = perfData;
+        }
 
-        double t = record->time;
-        totalTime += t;
+        totalTime += time;
         if (profiling) {
             op->print();
-            printf(" op_time %lf\n", t);
-            opTime[op->getOpType()] += t;
+            printf(" op_time %lf\n", time);
+            opTime[op->getOpType()] += time;
             opCnt[op->getOpType()]++;
         }
     }

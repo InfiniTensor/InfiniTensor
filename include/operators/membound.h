@@ -30,6 +30,7 @@ class MemBoundObj : public OperatorObj {
     pair<const nnet::Expr, HashType> getSimplifiedNnetExpr() const {
         return {expr, hash};
     }
+    double getEstimatedTime() const { return exec_time; }
 
   private:
     vector<int> getWorkloadVector() const override;
