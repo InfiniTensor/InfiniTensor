@@ -150,6 +150,19 @@ DEFINE_UNARY_METHOD(tanh, Tanh)
 DEFINE_UNARY_METHOD(abs, Abs)
 DEFINE_UNARY_METHOD(shape, Shape)
 
+// see operators/reshape.h
+DEFINE_UNARY_METHOD(identity, Identity)
+
+Tensor GraphHandlerObj::pRelu(Tensor x, Tensor slope, Tensor y) {
+    if (y) {
+        g->addOpWithOutputs<PReluObj>(std::move(x), std::move(slope), y);
+        return y;
+    } else {
+        return g->addOp<PReluObj>(std::move(x), std::move(slope), y)
+            ->getOutput();
+    }
+}
+
 Tensor GraphHandlerObj::clip(Tensor x, Tensor y, std::optional<float> min,
                              std::optional<float> max) {
     if (y) {
@@ -159,9 +172,6 @@ Tensor GraphHandlerObj::clip(Tensor x, Tensor y, std::optional<float> min,
         return g->addOp<ClipObj>(std::move(x), y, min, max)->getOutput();
     }
 }
-
-// see operators/reshape.h
-DEFINE_UNARY_METHOD(identity, Identity)
 
 Tensor GraphHandlerObj::softmax(Tensor input, Tensor output, int axis) {
     if (output) {

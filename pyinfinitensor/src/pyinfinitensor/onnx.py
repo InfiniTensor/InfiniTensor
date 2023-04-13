@@ -360,17 +360,6 @@ class OnnxStub:
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
                 )
-            elif node.op_type == "Clip":
-                tensors[node.output[0]] = self.handler.clip(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    next(_parse_data(data[node.input[1]]).__iter__(), None)
-                    if len(node.input) > 1
-                    else None,
-                    next(_parse_data(data[node.input[2]]).__iter__(), None)
-                    if len(node.input) > 2
-                    else None,
-                )
             elif node.op_type == "Identity":
                 tensors[node.output[0]] = self.handler.identity(
                     tensors[node.input[0]],
@@ -381,6 +370,23 @@ class OnnxStub:
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
                     next((attr.i for attr in node.attribute if attr.name == "axis")),
+                )
+            elif node.op_type == "PRelu":
+                tensors[node.output[0]] = self.handler.pRelu(
+                    tensors[node.input[0]],
+                    tensors[node.input[1]],
+                    tensors.get(node.output[0]),
+                )
+            elif node.op_type == "Clip":
+                tensors[node.output[0]] = self.handler.clip(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                    next(_parse_data(data[node.input[1]]).__iter__(), None)
+                    if len(node.input) > 1
+                    else None,
+                    next(_parse_data(data[node.input[2]]).__iter__(), None)
+                    if len(node.input) > 2
+                    else None,
                 )
             elif node.op_type == "Transpose":
                 perm = next(
@@ -717,6 +723,7 @@ class OnnxStub:
                 backend.OpType.Softmax,
                 backend.OpType.Abs,
                 backend.OpType.Identity,
+                backend.OpType.PRelu,
             ]:
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpType.Flatten:
