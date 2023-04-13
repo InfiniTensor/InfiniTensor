@@ -647,7 +647,7 @@ class OnnxStub:
                 ph, pw, sh, sw, dh, dw, oph, opw = backend.conv_trans_attrs_of(op)
                 ctx.push_node(
                     make_node(
-                        ty.name,
+                        "ConvTranspose",
                         inputs,
                         outputs,
                         name,
