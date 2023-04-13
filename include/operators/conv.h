@@ -193,6 +193,7 @@ class ConvTransposed2dObj : public ConvBaseObj {
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
     int getNumGroups() const override { return group; }
+    std::pair<int, int> getOutputPadding() const { return {oph, opw}; }
 
   private:
     void setAuxilaryAttributes(PaddingMode mode) override;

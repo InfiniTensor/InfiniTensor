@@ -137,6 +137,16 @@ static std::tuple<int, int, int, int, int, int> conv_attrs_of(Operator op) {
                            conv->getDw(), conv->getSh(), conv->getSw());
 }
 
+static std::tuple<int, int, int, int, int, int, int, int>
+conv_trans_attrs_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::ConvTrans);
+    auto conv = dynamic_cast<const ConvTransposed2dObj *>(op.get());
+    auto [oph, opw] = conv->getOutputPadding();
+    return std::make_tuple(conv->getPh(), conv->getPw(), conv->getDh(),
+                           conv->getDw(), conv->getSh(), conv->getSw(), oph,
+                           opw);
+}
+
 static std::tuple<bool, bool> matmul_attrs_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Matmul);
     auto matmul = dynamic_cast<const MatmulObj *>(op.get());
@@ -229,6 +239,7 @@ void export_functions(py::module &m) {
         .FUNCTION(bang_runtime)
 #endif
         .FUNCTION(conv_attrs_of)
+        .FUNCTION(conv_trans_attrs_of)
         .FUNCTION(matmul_attrs_of)
         .FUNCTION(batch_norm_attrs_of)
         .FUNCTION(pool_attrs_of)
@@ -281,6 +292,7 @@ void init_graph_builder(py::module &m) {
         .def(py::init<Runtime>())
         .def("tensor", &Handler::tensor, policy::move)
         .def("conv", &Handler::conv, policy::move)
+        .def("convTransposed2d", &Handler::convTransposed2d, policy::move)
         .def("matmul", &Handler::matmul, policy::move)
         .def("batchNorm", &Handler::batchNorm, policy::move)
         .def("maxPool", &Handler::maxPool, policy::move)

@@ -37,28 +37,28 @@ jobs:
     - name: Install libdw
       run: sudo apt-get update && sudo apt-get install libdw-dev
 
-    - name: Cache protobuf
-      id: cache-protobuf
-      uses: actions/cache@v3
-      with:
-        path: protobuf-${{ env.protobuf-version }}
-        key: protobuf-${{ env.protobuf-version }}
+    # - name: Cache protobuf
+    #   id: cache-protobuf
+    #   uses: actions/cache@v3
+    #   with:
+    #     path: protobuf-${{ env.protobuf-version }}
+    #     key: protobuf-${{ env.protobuf-version }}
 
-    - name: Download and compile protobuf
-      if: steps.cache-protobuf.outputs.cache-hit != 'true'
-      run: |
-        wget ${{ env.protobuf-download }}
-        tar xf protobuf-cpp-${{ env.protobuf-version }}.tar.gz
-        cd protobuf-${{ env.protobuf-version }}
-        ./autogen.sh
-        ./configure CFLAGS="-fPIC" CXXFLAGS="-fPIC"
-        make -j8
+    # - name: Download and compile protobuf
+    #   if: steps.cache-protobuf.outputs.cache-hit != 'true'
+    #   run: |
+    #     wget ${{ env.protobuf-download }}
+    #     tar xf protobuf-cpp-${{ env.protobuf-version }}.tar.gz
+    #     cd protobuf-${{ env.protobuf-version }}
+    #     ./autogen.sh
+    #     ./configure CFLAGS="-fPIC" CXXFLAGS="-fPIC"
+    #     make -j8
 
-    - name: Install protobuf
-      run: |
-        cd protobuf-${{ env.protobuf-version }}
-        sudo make install
-        sudo ldconfig
+    # - name: Install protobuf
+    #   run: |
+    #     cd protobuf-${{ env.protobuf-version }}
+    #     sudo make install
+    #     sudo ldconfig
 
     - name: Build
       run: make

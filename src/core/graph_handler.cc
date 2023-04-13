@@ -37,6 +37,24 @@ Tensor GraphHandlerObj::conv(Tensor input, Tensor weight, Tensor output, int ph,
     }
 }
 
+Tensor GraphHandlerObj::convTransposed2d(Tensor input, Tensor weight,
+                                         Tensor output, int ph, int pw, int sh,
+                                         int sw, int dh, int dw, int oph,
+                                         int opw) {
+    if (output) {
+        g->addOpWithOutputs<ConvTransposed2dObj>(std::move(input),
+                                                 std::move(weight), output, ph,
+                                                 pw, sh, sw, dh, dw, oph, opw);
+        return output;
+    } else {
+        return g
+            ->addOp<ConvTransposed2dObj>(std::move(input), std::move(weight),
+                                         output, ph, pw, sh, sw, dh, dw, oph,
+                                         opw)
+            ->getOutput();
+    }
+}
+
 Tensor GraphHandlerObj::matmul(Tensor a, Tensor b, Tensor y, bool transA,
                                bool transB, Tensor bias, ActType act) {
     if (y) {

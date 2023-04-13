@@ -128,6 +128,33 @@ class OnnxStub:
                         d[0],
                         d[1],
                     )
+            elif node.op_type == "ConvTranspose":
+                attributes = _parse_attribute(
+                    node,
+                    {
+                        "dilations": [1, 1],
+                        "pads": [0, 0],
+                        "strides": [1, 1],
+                        "output_padding": [0, 0],
+                    },
+                )
+                (d, p, s, op) = (
+                    attributes[name]
+                    for name in ["dilations", "pads", "strides", "output_padding"]
+                )
+                tensors[node.output[0]] = self.handler.convTransposed2d(
+                    tensors[node.input[0]],
+                    tensors[node.input[1]],
+                    tensors.get(node.output[0]),
+                    p[0],
+                    p[1],
+                    s[0],
+                    s[1],
+                    d[0],
+                    d[1],
+                    op[0],
+                    op[1],
+                )
             elif node.op_type == "MatMul":
                 tensors[node.output[0]] = self.handler.matmul(
                     tensors[node.input[0]],
@@ -614,6 +641,20 @@ class OnnxStub:
                         strides=[sh, sw],
                         dilations=[dh, dw],
                         group=op.inputs()[0].shape()[1] // op.inputs()[1].shape()[1],
+                    )
+                )
+            elif ty == backend.OpType.ConvTrans:
+                ph, pw, sh, sw, dh, dw, oph, opw = backend.conv_trans_attrs_of(op)
+                ctx.push_node(
+                    make_node(
+                        ty.name,
+                        inputs,
+                        outputs,
+                        name,
+                        pads=[ph, pw],
+                        strides=[sh, sw],
+                        dilations=[dh, dw],
+                        output_padding=[oph, opw],
                     )
                 )
             elif ty == backend.OpType.Matmul:
