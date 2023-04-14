@@ -1,4 +1,4 @@
-﻿#include "../src/graph.h"
+﻿#include "../src/mutation.h"
 #include <iostream>
 #include <unordered_set>
 
@@ -26,10 +26,11 @@ int main() {
             {c}                        // outputs
         );
 
-        auto p = Partition(std::move(g), split_each);
-        auto m = Mutation(std::move(p),
-                          [](const auto &g) { return Vec<Unigraph>{}; });
-        auto r = Rating(std::move(m), memory_usage);
+        auto p = Partition<SingleOperator>(std::move(g), split_each);
+        auto m = Mutation<SingleOperator>(
+            std::move(p),
+            [](const auto &g, const auto &t) { return Vec<Unigraph>{}; });
+        auto r = Rating<SingleOperator>(std::move(m), memory_usage);
         auto ans = r.build(Vec<size_t>(r.size().size(), 0));
 
         return 0;

@@ -13,6 +13,7 @@ struct Data {
     // #ifdef USE_CUDA
     //     void *gpu_data;
     // #endif
+
     // #ifdef USE_BANG
     //     void *mlu_data;
     // #endif

@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include <cstdint>
+
 enum class OpType : uint16_t {
     Abs,
     Acos,
