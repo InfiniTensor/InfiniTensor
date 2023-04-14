@@ -46,10 +46,13 @@ class RandomGenerator : public DataGenerator {
     std::mt19937 e;
     std::uniform_int_distribution<int> di;
     std::uniform_real_distribution<float> dr;
+    bool generateInteger;
 
   public:
-    RandomGenerator(double l = 0, double r = 1, unsigned int seed = 0)
-        : l(l), r(r), e(seed), di(l, r), dr(l, r) {}
+    RandomGenerator(double l = 0, double r = 1, unsigned int seed = 0,
+                    bool generateInteger = false)
+        : l(l), r(r), e(seed), di(l, r), dr(l, r),
+          generateInteger(generateInteger) {}
     virtual ~RandomGenerator() {}
 
   private:
@@ -60,7 +63,7 @@ class RandomGenerator : public DataGenerator {
     }
     void fill(float *data, size_t size) override {
         for (size_t i = 0; i < size; i++) {
-            data[i] = dr(e);
+            data[i] = (generateInteger) ? di(e) : dr(e);
         }
     }
 };

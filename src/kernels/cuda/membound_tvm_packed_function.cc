@@ -242,7 +242,7 @@ class MemboundTVMPackedFunction : public Kernel {
             int status = -1;
             status =
                 write(fdP2C[1], serializedArgs.data(), serializedArgs.size());
-            IT_ASSERT(status == serializedArgs.size(),
+            IT_ASSERT((size_t)status == serializedArgs.size(),
                       "Failed to write to pipe");
             close(fdP2C[1]);
 
@@ -255,7 +255,6 @@ class MemboundTVMPackedFunction : public Kernel {
 
             // Read from pipe
             FILE *stream;
-            int c;
             stream = fdopen(fdC2P[0], "r");
             char buf_read[257] = {0};
             status = std::fscanf(stream, "%256c", buf_read);
