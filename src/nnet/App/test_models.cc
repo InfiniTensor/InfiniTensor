@@ -12,7 +12,7 @@
 namespace infini {
 
 // NHWC format
-Graph getInfoGAN(int batch, Runtime runtime) {
+Graph getInfoGAN(int batch, Runtime runtime, int nLayers) {
     Graph g = make_ref<GraphObj>(runtime);
     vector<Tensor> weights;
     vector<tuple<int, int, int, int>> cs{
@@ -21,7 +21,8 @@ Graph getInfoGAN(int batch, Runtime runtime) {
         {64, 4, 1, 2},  {32, 4, 1, 2},
     };
     Tensor input = g->addTensor({batch, 1, 1, 228});
-    for (auto [channel, kernelSize, pad, stride] : cs) {
+    for (int i = 0; i < (int)cs.size() && i < nLayers; ++i) {
+        auto [channel, kernelSize, pad, stride] = cs[i];
         int f = input->getDims()[3]; // n, h, w, f
         auto weight =
             g->addTensor({f, kernelSize, kernelSize, channel}); // f, r, s, c
@@ -42,13 +43,12 @@ void printGraph(Graph g) {
     }
 }
 
-vector<Tensor> runInfoGAN() {
-    const bool useMutatorDirectly = true;
+vector<Tensor> runInfoGAN(int nLayers) {
     Runtime cuda = make_ref<CudaRuntimeObj>();
     Runtime cpu = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(cpu);
 
-    Graph g = getInfoGAN(1, cuda);
+    Graph g = getInfoGAN(1, cuda, nLayers);
 
     auto mutator =
         make_ref<NMutator>(NMutator::Mode::RuleBased,
@@ -70,7 +70,8 @@ vector<Tensor> runInfoGAN() {
         fuidToInputTensor[t->getFuid()] = t;
     }
 
-    auto gen = RandomGenerator(-1, 1, 0);
+    auto gen = RandomGenerator(-0.1, 0.1, 0);
+    // auto gen = RandomGenerator(-5, 5, 0, true);
     for (auto t : g->getInputs()) {
         t->setData(gen);
     }

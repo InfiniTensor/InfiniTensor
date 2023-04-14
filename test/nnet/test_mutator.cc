@@ -56,7 +56,7 @@ TEST(Mutator, NaiveConvWithInterpreter) {
 
 // FIXME: failed since implicit transpose for DLT
 TEST(Mutator, InfoGAN_TConv_3_correctness) {
-    const bool useMutatorDirectly = true;
+    const bool useMutatorDirectly = false;
     Runtime runtime = make_ref<CudaRuntimeObj>();
     Graph g = make_ref<GraphObj>(runtime);
     Runtime cpu = NativeCpuRuntimeObj::getInstance(); // CPUruntime is singleton
@@ -91,12 +91,13 @@ TEST(Mutator, InfoGAN_TConv_3_correctness) {
         fuidToInputTensor[t->getFuid()] = t;
     }
 
+    std::cout << "# bestGraphs = " << bestGraphs.size() << std::endl;
     for (size_t i = 0; i < bestGraphs.size(); i++) {
         auto bestGraphCpu = bestGraphs[i];
         auto bestGraph =
             make_ref<GraphObj>(runtime, bestGraphCpu->getOperators());
 
-        auto gen = RandomGenerator(0, 1, i);
+        auto gen = RandomGenerator(0.1, 0.1, i);
         bestGraph->dataMalloc();
         // Initialize inputs with random data
         for (auto t : g->getInputs()) {
