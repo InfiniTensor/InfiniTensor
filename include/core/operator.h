@@ -39,6 +39,7 @@ enum class OpType {
     Tanh,
     Abs,
     Resize,
+    PRelu,
     //
     MemBound = 300,
 };

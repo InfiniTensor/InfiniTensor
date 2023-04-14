@@ -1,4 +1,7 @@
 #include "core/graph_handler.h"
+#include "core/mutator.h"
+#include "core/search_engine.h"
+#include "nnet/nmutator.h"
 #include "operators/batch_norm.h"
 #include "operators/concat.h"
 #include "operators/conv.h"
@@ -53,6 +56,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, Conv)
         .VALUE(OpType, Matmul)
         .VALUE(OpType, ConvTrans)
+        .VALUE(OpType, ConvTransNHWC)
         .VALUE(OpType, G2BMM)
         .VALUE(OpType, GBMM)
         .VALUE(OpType, Pad)
@@ -82,6 +86,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, Abs)
         .VALUE(OpType, Resize)
         .VALUE(OpType, MemBound)
+        .VALUE(OpType, PRelu)
         .export_values();
 
 #undef VALUE
@@ -176,6 +181,9 @@ void export_functions(py::module &m) {
 void init_graph_builder(py::module &m) {
     using Handler = GraphHandlerObj;
 
+    py::class_<Object, Ref<Object>>(m, "_Object")
+        .def("__str__", &Object::toString)
+        .def("guid", &Object::getGuid);
     py::class_<RuntimeObj, std::shared_ptr<RuntimeObj>>(m, "Runtime");
     py::class_<NativeCpuRuntimeObj, std::shared_ptr<NativeCpuRuntimeObj>,
                RuntimeObj>(m, "CpuRuntime");
@@ -183,7 +191,7 @@ void init_graph_builder(py::module &m) {
     py::class_<CudaRuntimeObj, std::shared_ptr<CudaRuntimeObj>, RuntimeObj>(
         m, "CudaRuntime");
 #endif
-    py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "Tensor")
+    py::class_<TensorObj, std::shared_ptr<TensorObj>, Object>(m, "Tensor")
         .def("fuid", &TensorObj::getFuid, policy::automatic)
         .def("shape", &TensorObj::getDims, policy::move)
         .def("copyin_float", &TensorObj::copyin<float>, policy::move)
@@ -194,8 +202,9 @@ void init_graph_builder(py::module &m) {
         .def("copyout_int64", &TensorObj::copyout<int64_t>, policy::move)
         .def("has_target", &TensorObj::hasTarget, policy::automatic)
         .def("src", &TensorObj::getSource, policy::move)
-        .def("printData", &TensorObj::printData, policy::automatic);
-    py::class_<OperatorObj, std::shared_ptr<OperatorObj>>(m, "Operator")
+        .def("print_data", &TensorObj::printData)
+        .def("data_malloc", &TensorObj::dataMalloc);
+    py::class_<OperatorObj, std::shared_ptr<OperatorObj>, Object>(m, "Operator")
         .def("op_type", &OperatorObj::getOpType, policy::automatic)
         .def("inputs", py::overload_cast<>(&OperatorObj::getInputs, py::const_),
              policy::reference)
@@ -232,6 +241,30 @@ void init_graph_builder(py::module &m) {
         .def("operators", &Handler::operators, policy::move)
         .def("data_malloc", &Handler::data_malloc, policy::automatic)
         .def("run", &Handler::run, policy::automatic);
+    py::class_<Mutator, Ref<Mutator>>(m, "Mutator").def("run", &Mutator::run);
+    py::enum_<NMutator::Mode>(m, "NMutatorMode")
+        .value("RuleBased", NMutator::Mode::RuleBased);
+    py::class_<NMutator, Ref<NMutator>, Mutator>(m, "NMutator")
+        .def(py::init<NMutator::Mode>())
+        .def(py::init<NMutator::Mode, vector<int>>())
+        .def("run", &NMutator::run);
+    py::class_<SearchEngine>(m, "SearchEngine")
+        .def(py::init<Runtime, Ref<Mutator>>())
+        .def("run", &SearchEngine::run);
+    py::class_<GraphObj, Ref<GraphObj>, Object>(m, "Graph")
+        .def("tensors", &GraphObj::getTensors)
+        .def("operators", &GraphObj::getOperators)
+        .def("inputs", &GraphObj::getInputs)
+        .def("outputs", &GraphObj::getOutputs)
+        .def("print", &GraphObj::print)
+        .def("topo_sort", &GraphObj::topo_sort);
+}
+
+Graph getInfoGAN(int batch, Runtime runtime, int nLayers);
+vector<Tensor> runInfoGAN(int nLayers);
+void export_test_model(py::module &m) {
+    m.def("runInfoGAN", &runInfoGAN);
+    m.def("getInfoGAN", &getInfoGAN);
 }
 
 } // namespace infini
@@ -241,4 +274,5 @@ PYBIND11_MODULE(backend, m) {
     infini::export_values(m);
     infini::export_functions(m);
     infini::init_graph_builder(m);
+    infini::export_test_model(m);
 }

@@ -6,6 +6,7 @@
 #include "cuda/cuda_runtime.h"
 #include "nnet/nmutator.h"
 #include "operators/conv.h"
+#include "operators/unary.h"
 #include "test.h"
 #include <pybind11/stl.h>
 
@@ -13,23 +14,29 @@ namespace infini {
 
 // NHWC format
 Graph getInfoGAN(int batch, Runtime runtime, int nLayers) {
+    IT_ASSERT(1 <= nLayers && nLayers <= 5);
     Graph g = make_ref<GraphObj>(runtime);
     vector<Tensor> weights;
-    vector<tuple<int, int, int, int>> cs{
-        // Channel, kernelSize, pad, stride
-        {448, 2, 0, 1}, {256, 4, 1, 2}, {128, 4, 1, 2},
-        {64, 4, 1, 2},  {32, 4, 1, 2},
+    vector<tuple<int, int, int, int, bool>> cs{
+        // Channel, kernelSize, pad, stride, isTanh
+        {448, 2, 0, 1, false}, {256, 4, 1, 2, false}, {128, 4, 1, 2, false},
+        {64, 4, 1, 2, false},  {32, 4, 1, 2, true},
     };
+
     Tensor input = g->addTensor({batch, 1, 1, 228});
     for (int i = 0; i < (int)cs.size() && i < nLayers; ++i) {
-        auto [channel, kernelSize, pad, stride] = cs[i];
+        auto [channel, kernelSize, pad, stride, tanh] = cs[i];
         int f = input->getDims()[3]; // n, h, w, f
         auto weight =
             g->addTensor({f, kernelSize, kernelSize, channel}); // f, r, s, c
         input = g->addOp<ConvTransposed2dNHWCObj>(input, weight, nullptr, pad,
                                                   pad, stride, stride, 1, 1)
                     ->getOutput();
-        // TODO: activation
+        if (tanh) {
+            input = g->addOp<TanhObj>(input, nullptr)->getOutput();
+        } else {
+            input = g->addOp<ReluObj>(input, nullptr)->getOutput();
+        }
     }
     return g;
 }
