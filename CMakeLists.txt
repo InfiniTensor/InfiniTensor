@@ -83,7 +83,7 @@ if(BUILD_TEST_EINNET)
   include_directories(${DMLC_INCLUDE_DIR})
   include_directories(${DLPACK_INCLUDE_DIR})
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDMLC_USE_LOGGING_LIBRARY=\\\<${TVM_INCLUDE_DIR}/tvm/runtime/logging.h\\\> ")
-  set(CMAKE_CXX_FLAGS "-DINFINI_USE_TVM=1") # Enable TVM codegen kernels 
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DINFINI_USE_TVM=1") # Enable TVM codegen kernels 
 endif()
 
 if(BUILD_TEST)
