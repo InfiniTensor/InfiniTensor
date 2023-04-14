@@ -1,6 +1,6 @@
-#include "operators/conv.h"
 #include "bang/bang_kernel_without_config.h"
 #include "bang/bang_runtime.h"
+#include "operators/conv.h"
 
 namespace infini {
 class ConvTransCnnl : public BangKernelWithoutConfig {
@@ -59,18 +59,18 @@ class ConvTransCnnl : public BangKernelWithoutConfig {
                                                CNNL_DTYPE_FLOAT, 4, output));
 
         cnnlConvolutionBwdDataAlgo_t algo;
-        cnnlGetConvolutionBackwardDataAlgorithm(context->cnnlHandle(),
-                                           aDesc, bDesc, convDesc, cDesc,
-                                           CNNL_CONVOLUTION_BWD_DATA_FASTEST, &algo);
+        cnnlGetConvolutionBackwardDataAlgorithm(
+            context->cnnlHandle(), aDesc, bDesc, convDesc, cDesc,
+            CNNL_CONVOLUTION_BWD_DATA_FASTEST, &algo);
         size_t wsSize;
-        cnnlGetConvolutionBackwardDataWorkspaceSize(context->cnnlHandle(), aDesc,
-                                               bDesc, convDesc, cDesc,
-                                               algo, &wsSize);
+        cnnlGetConvolutionBackwardDataWorkspaceSize(context->cnnlHandle(),
+                                                    aDesc, bDesc, convDesc,
+                                                    cDesc, algo, &wsSize);
         BangPtr wsData = context->getWorkspace(wsSize);
 
         cnnlStatus_t stat = cnnlConvolutionBackwardData(
-            context->cnnlHandle(), NULL, aDesc, aData, bDesc, bData, convDesc, algo,
-            wsData, wsSize, NULL, cDesc, cData);
+            context->cnnlHandle(), NULL, aDesc, aData, bDesc, bData, convDesc,
+            algo, wsData, wsSize, NULL, cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
@@ -83,6 +83,6 @@ class ConvTransCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::ConvTrans, DataType::Float32, ConvTransCnnl,
-                "ConvTrans_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::ConvTrans, DataType::Float32,
+                ConvTransCnnl, "ConvTrans_cnnl_BANG_Float32");
 }; // namespace infini
