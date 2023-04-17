@@ -12,13 +12,14 @@ namespace infini {
 // TODO: how to deal with this
 using ShapeElem = int;
 using Shape = vector<ShapeElem>;
+enum class TensorType { Input, Initialized, Other };
 class TensorObj : public TensorBaseObj {
   private:
     Shape shape;
     size_t _size; // Cache of Π(shape).
     Fuid fuid;    // Cloned tensors share the same id. Tensors constructed from
                   // scratch have a new id.
-
+    TensorType tensorType;
     void copyin(const void *ptr, size_t size) {
         runtime->copyBlobFromCPU(getRawDataPtr<void *>(), ptr, size);
     }
@@ -27,7 +28,8 @@ class TensorObj : public TensorBaseObj {
     }
 
   public:
-    TensorObj(Shape shape, DataType dtype, Runtime runtime);
+    TensorObj(Shape shape, DataType dtype, Runtime runtime,
+              TensorType tensorType = TensorType::Other);
     virtual ~TensorObj() {}
     string toString() const override;
 
@@ -39,6 +41,7 @@ class TensorObj : public TensorBaseObj {
     size_t getOffset(const vector<int> &ds) const;
     void dataMalloc();
     UidBaseType getFuid() const { return fuid; }
+    TensorType getTensorType() const { return tensorType; }
 
     void load(std::string file_path);
     void save(std::string file_path);

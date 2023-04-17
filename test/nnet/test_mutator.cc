@@ -5,12 +5,13 @@
 #include "core/search_engine.h"
 #include "cuda/cuda_runtime.h"
 #include "nnet/nmutator.h"
+#include "nnet/test.h"
 #include "operators/conv.h"
 #include "test.h"
 
 namespace infini {
 
-TEST(Mutator, NaiveConvWithInterpreter) {
+TEST(NMutator, NaiveConvWithInterpreter) {
     // verifyNaiveMembound True: subgraph after transformation
     // verifyNaiveMembound False: subgraph of one single membound (eOP)
     Runtime runtime = NativeCpuRuntimeObj::getInstance();
@@ -55,7 +56,7 @@ TEST(Mutator, NaiveConvWithInterpreter) {
 }
 
 // FIXME: failed since implicit transpose for DLT
-TEST(Mutator, InfoGAN_TConv_3_correctness) {
+TEST(NMutator, InfoGAN_TConv_3_correctness) {
     const bool useMutatorDirectly = false;
     Runtime runtime = make_ref<CudaRuntimeObj>();
     Graph g = make_ref<GraphObj>(runtime);
@@ -67,8 +68,9 @@ TEST(Mutator, InfoGAN_TConv_3_correctness) {
     // const int n = 1, c = 1, h = 2, w = 2, f = 1, r = 4, s = 4;
     // const int n = 1, c = 2, h = 2, w = 2, f = 2, r = 4, s = 4;
 
-    auto i0 = g->addTensor({n, h, w, f});
-    auto w0 = g->addTensor({f, r, s, c});
+    auto i0 = g->addTensor({n, h, w, f}, DataType::Float32, TensorType::Input);
+    auto w0 =
+        g->addTensor({f, r, s, c}, DataType::Float32, TensorType::Initialized);
     g->addOp<ConvTransposed2dNHWCObj>(i0, w0, nullptr, 1, 1, 2, 2, 1, 1);
 
     auto mutator =
