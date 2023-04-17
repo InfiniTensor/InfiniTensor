@@ -1,4 +1,5 @@
 #include "nnet/expr.h"
+#include "nnet/Visitor/FullPrinterVisitor.h"
 #include "nnet/Visitor/GetTensorsVisitor.h"
 
 namespace nnet {
@@ -461,6 +462,11 @@ vector<Range> RangeOpNode::getOutputRanges() const {
 void FuncNode::setObject(Expr e) {
     nnet_assert(e->isScalar(), "FuncNode operates on scalars");
     object = e;
+}
+
+string RangeOpNode::getFullExpression() {
+    FullPrinterVisitor printer;
+    return printer.print(this->shared_from_this());
 }
 
 } // namespace nnet
