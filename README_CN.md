@@ -22,28 +22,14 @@
    sudo apt-get install make cmake build-essential python-is-python3 python-dev-is-python3 python3-pip libdw-dev
    ```
 
-2. 安装 Protobuf
-
-   ```bash
-   wget https://github.com/protocolbuffers/protobuf/releases/download/v21.12/protobuf-cpp-3.21.12.tar.gz
-   tar xf protobuf-cpp-3.21.12.tar.gz
-   cd protobuf-3.21.12
-   ./autogen.sh
-   ./configure CFLAGS="-fPIC" CXXFLAGS="-fPIC"
-   make -j8
-   cd protobuf-3.21.12
-   sudo make install
-   sudo ldconfig
-   ```
-
-3. 更新 pip 并换清华源
+2. 更新 pip 并换清华源
 
    ```bash
    python -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --upgrade pip
    pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
    ```
 
-4. 编译并安装 python 库
+3. 编译并安装 python 库
 
    > 第一次执行会同时安装 python 依赖库，比较慢
 
@@ -68,6 +54,14 @@
 - 安装 python 库：`make install-python`
 - 测试 c++ 后端：`make test-cpp`
 - 测试 python 前端：`make test-onnx`
+
+并使用下列环境变量传递选项参数：
+
+- `TYPE`：编译模式（`debug`/`release`），默认值为 `release`
+- `CUDA`：是否编译 CUDA 后端，默认为 `OFF`，`ON` 打开
+- `BANG`：是否编译寒武纪后端，默认为 `OFF`，`ON` 打开
+- `BACKTRACE`：是否启用栈回溯，默认为 `ON`，`OFF` 关闭，建议调试时打开
+- `TEST`：是否编译 `googletest`，默认为 `ON`，`OFF` 关闭，只有 `test-cpp` 时必要
 
 ## python 前端应用指南
 
@@ -141,7 +135,7 @@ for name, tensor in stub.inputs.items():
 data [1, 3, 224, 224] <backend.Tensor object at 0x7efeb828e3b0>
 ```
 
-即需要输入一个名为 data，形为 1×3×224×224 的数据。通常来说，这表示一张 224×224 的 rgb 图片。而这个模型是一个 1000 分类的图像分类模型。
+当然，地址是随机的。这个输出表明需要输入一个名为 “data”，形为 1×3×224×224 的数据。通常来说，这表示一张 224×224 的 rgb 图片。而这个模型是一个 1000 分类的图像分类模型。
 
 为了方便，这里我们向模型传入一个随机的数据。
 
