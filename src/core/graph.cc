@@ -11,13 +11,11 @@ GraphObj::GraphObj(Runtime runtime, OpVec ops_in)
     for (const auto &op : ops_in) {
         for (const auto &t : op->getInputs())
             if (tensorPool.find(t->getFuid()) == tensorPool.end())
-                tensorPool[t->getFuid()] = t->clone();
+                tensorPool[t->getFuid()] = cloneTensor(t);
         for (const auto &t : op->getOutputs())
             if (tensorPool.find(t->getFuid()) == tensorPool.end())
-                tensorPool[t->getFuid()] = t->clone();
+                tensorPool[t->getFuid()] = cloneTensor(t);
     }
-    for (const auto &[_, t] : tensorPool)
-        addTensor(t);
     // Clone operators and add connections
     for (const auto &op : ops_in) {
         TensorVec inputs, outputs;
@@ -127,8 +125,12 @@ Tensor GraphObj::addTensor(Shape dim, DataType dtype) {
 }
 
 Tensor GraphObj::addTensor(const Tensor &tensor) {
-    IT_ASSERT(tensor->getRuntime() == runtime, "Tensor runtime mismatch");
-    return tensors.emplace_back(tensor);
+    IT_ASSERT(tensor->getRuntime() == runtime,
+              std::string("Tensor runtime mismatch: cannot add a tenosr in ") +
+                  tensor->getRuntime()->toString() + " to " +
+                  runtime->toString());
+    tensors.emplace_back(tensor);
+    return tensor;
 }
 
 TensorVec GraphObj::addTensor(const TensorVec &tensors) {
@@ -206,6 +208,13 @@ bool GraphObj::checkValid() const {
         for (auto suc : op->getSuccessors()) {
             IT_ASSERT(std::find(ops.begin(), ops.end(), suc) != ops.end());
         }
+    }
+    std::set<UidBaseType> s;
+    // check whether two tensors with the same FUID exist
+    for (auto tensor : tensors) {
+        int cnt = s.count(tensor->getFuid());
+        IT_ASSERT(cnt == 0, std::to_string(tensor->getFuid()));
+        s.insert(tensor->getFuid());
     }
     return true;
 }

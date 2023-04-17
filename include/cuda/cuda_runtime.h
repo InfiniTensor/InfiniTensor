@@ -12,17 +12,7 @@ class CudaRuntimeObj : public RuntimeObj {
     size_t workspaceSize;
 
   public:
-    CUdevice cuDevice;
-    CUcontext newContext;
-
-  public:
     CudaRuntimeObj() : RuntimeObj(Device::CUDA) {
-        // Prepare for nvrtc. cuCtxCreate should be called befero others.
-        // Otherwise it will result in strange failure, such as cuBLAS failed on
-        // certian inputs.
-        checkCUresult(cuInit(0));
-        checkCUresult(cuDeviceGet(&cuDevice, 0));
-        checkCUresult(cuCtxCreate(&newContext, 0, cuDevice));
 
         checkCudnnError(cudnnCreate(&cudnn));
         checkCublasError(cublasCreate(&cublas));
@@ -32,10 +22,13 @@ class CudaRuntimeObj : public RuntimeObj {
         workspace = alloc(workspaceSize);
     }
     virtual ~CudaRuntimeObj() {
-        dealloc(workspace);
-        checkCudnnError(cudnnDestroy(cudnn));
-        checkCublasError(cublasDestroy(cublas));
-        checkCUresult(cuCtxDestroy(newContext));
+        try {
+            dealloc(workspace);
+            checkCudnnError(cudnnDestroy(cudnn));
+            checkCublasError(cublasDestroy(cublas));
+        } catch (const std::exception &e) {
+            std::cerr << "Error in ~CudaRuntimeObj: " << e.what() << std::endl;
+        }
     }
     string toString() const override;
 

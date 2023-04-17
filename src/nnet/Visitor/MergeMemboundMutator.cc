@@ -5,7 +5,7 @@
 
 namespace nnet {
 
-Expr MergeMemboundMutator::merge(bool allowEmptyMembound) {
+Expr MergeMemboundMutator::merge(bool allowEmptyMembound, bool allowFailure) {
     // FIXME: fix empty expression in membound
     assert(kernels.size() >= 1);
     if (checkEmpty()) {
@@ -27,19 +27,30 @@ Expr MergeMemboundMutator::merge(bool allowEmptyMembound) {
             assert(CheckOOBVisitor().checkRangeOp(curRangeOp) == false);
             auto summand = curRangeOp->getSummand();
             if (auto subscriptOp = as<SubscriptNode>(summand)) {
+                // Try merging the current and next stages
                 if (auto mergedExpr = rule4StageMerging(*curExpr, true)) {
                     // dbg(*curExpr, mergedExpr);
                     *curExpr = mergedExpr;
                     merged = true;
                     break;
                 }
+                // If merging fails, try the next stage
                 curExpr = subscriptOp->getObjectPtr();
                 nnet_assert(*curExpr != nullptr, __LINE__);
             } else if (auto funcOp = as<FuncNode>(summand)) {
-                // Relu({...}[i,j])
-                curExpr = funcOp->getObject()->getObjectPtr();
-            } else
-                nnet_unimplemented_halt();
+                // If the object of FuncNode is a subscript, like
+                // Relu({...}[i,j]), we can further merge it. Otherwise, like
+                // Relu(A[i]+B[j]), we cannot.
+                if (auto sub = as<SubscriptNode>(funcOp->getObject()))
+                    curExpr = sub->getObjectPtr();
+                else
+                    break;
+            } else {
+                if (allowFailure)
+                    return nullptr;
+                else
+                    nnet_unimplemented_halt();
+            }
         }
     } while (merged);
     return expr;

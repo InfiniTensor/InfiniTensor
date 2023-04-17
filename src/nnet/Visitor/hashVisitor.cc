@@ -153,4 +153,11 @@ HashType HashVisitor::visit_(const Var &c) {
     return varHash[c];
 }
 
+HashType HashVisitor::visit_(const Func &c) {
+    HashType objHash = dispatch(c->getObject());
+    return hash(binPrefix,
+                hash((((HashType)c->getFuncType()) + 10086), objHash));
+    return 0;
+}
+
 } // namespace nnet

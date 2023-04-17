@@ -90,6 +90,14 @@ size_t TensorNode::getOffset(const vector<int> &idx) {
     return offset;
 }
 
+bool TensorNode::hasPadding() {
+    for (auto pad : paddings) {
+        if (pad > 0)
+            return true;
+    }
+    return false;
+}
+
 string RangeOpNode::toReadable() const {
     string ret;
     for (int i = 0; i < IterationType::NumIterationType; ++i) {
@@ -264,10 +272,15 @@ string FuncNode::toReadable() const {
         ret += "Relu";
     else if (funcType == FuncType::Tanh)
         ret += "Tanh";
+    else if (funcType == FuncType::PRelu)
+        ret += "PRelu";
     else
         nnet_unimplemented_halt();
-    ret += "(  ...  " + serializeVec(object->getIndex()) + ")\n    {" +
-           object->getObject()->toReadable() + "}";
+    if (auto sub = as<SubscriptNode>(object))
+        ret += "(  ...  " + serializeVec(sub->getIndex()) + ")\n    {" +
+               sub->getObject()->toReadable() + "}";
+    else
+        ret += "(" + object->toReadable() + ")";
     return ret;
 }
 
@@ -380,6 +393,7 @@ int64_t TensorNode::getSize() const {
         size *= len;
     return size;
 }
+
 int RangeOpNode::getPaddings(int dim) const {
     return dim < (int)paddings.size() ? paddings[dim] : 0;
 }
@@ -445,8 +459,8 @@ vector<Range> RangeOpNode::getOutputRanges() const {
 }
 
 void FuncNode::setObject(Expr e) {
-    object = as<SubscriptNode>(e);
-    nnet_assert(object, "Illegal subscripted object");
+    nnet_assert(e->isScalar(), "FuncNode operates on scalars");
+    object = e;
 }
 
 } // namespace nnet

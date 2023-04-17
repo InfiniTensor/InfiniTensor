@@ -7,15 +7,18 @@
 #include "operators/conv.h"
 #include "operators/matmul.h"
 #include "operators/membound.h"
+#include "operators/reshape.h"
 
 namespace infini {
 
 NMutator::NMutator(Mode mode) : Mutator(10), mode{mode} {
-    IT_ASSERT(mode != Mode::RuleBased, "Use RuleBased in the other ctor.");
+    IT_ASSERT(mode != Mode::RuleBased, "Specify rules for the RuleBased mode.");
 }
 
-NMutator::NMutator(const std::vector<int> &derivationRules)
-    : Mutator(10), mode{Mode::RuleBased}, derivationRules{derivationRules} {}
+NMutator::NMutator(Mode mode, const std::vector<int> &derivationRules)
+    : Mutator(10), mode{Mode::RuleBased}, derivationRules{derivationRules} {
+    IT_ASSERT(mode == Mode::RuleBased);
+}
 
 NMutator::~NMutator() {}
 
@@ -69,9 +72,10 @@ void NMutator::runSingleOpToNaiveMembound(Graph in_graph,
 }
 
 void NMutator::runSingleOp(Graph in_graph, std::vector<Graph> &out_graphs) {
-    IT_TODO_HALT();
-    // OpVec computeOps = in_graph->getComputeOps();
-    // if (infini::Graph g = transformTConv1x1(computeOps[0])) {
+    OpVec computeOps = in_graph->getComputeOps();
+    IT_ASSERT(computeOps.size() == 1);
+
+    /* if (infini::Graph g = transformTConv1x1(computeOps[0])) {
     //     out_graphs.emplace_back(g);
     //     return;
     // }
@@ -95,39 +99,40 @@ void NMutator::runSingleOp(Graph in_graph, std::vector<Graph> &out_graphs) {
     // //     out_graphs.emplace_back(graph);
     // //     return;
     // // }
+    */
 
-    // auto expr = opToExpression(computeOps[0]);
-    // if (!expr)
-    //     return;
+    auto expr = opToExpression(computeOps[0]);
+    if (!expr)
+        return;
 
-    // nnet::Derivator derivator(maxDepth);
-    // nnet::Formula conv_9x9(expr, 0);
-    // // const std::vector<int> rules{3, 2, 2, 2, 2, 5, 8, 8, 6, 91, 90}; //
-    // Tconv
-    // // const std::vector<int> rules{1, 7, 7, 2, 8, 6, 6}; // G2BMM
-    // if (mode == Mode::Normal) {
-    //     derivator.search(conv_9x9, 0);
-    // } else if (mode == Mode::RuleBased) {
-    //     dbg(derivationRules);
-    //     derivator.ruleBasedDFS(conv_9x9, 0, derivationRules);
-    // } else
-    //     nnet_assert(0, "Unknown mode");
-    // const auto &candidates = derivator.getCandidates();
-    // dbg(candidates.size());
-    // // derivator.print();
-    // for (const auto &candidate : candidates) {
-    //     // dbg(nnet::FullPrinterVisitor().print(candidate.root));
-    //     if (auto g = expressionToGraph(candidate.root, in_graph)) {
-    //         out_graphs.emplace_back(g);
-    //     }
-    //     // break; // HACK:Debug only for the first subgraph
+    nnet::Derivator derivator(maxDepth);
+    nnet::Formula conv_9x9(expr, 0);
+    // const std::vector<int> rules{3, 2, 2, 2, 2, 5, 8, 8, 6, 91, 90};
+    // ConvTraspose
+    // const std::vector<int> rules{1, 7, 7, 2, 8, 6, 6}; // G2BMM
+    if (mode == Mode::Normal) {
+        derivator.search(conv_9x9, 0);
+    } else if (mode == Mode::RuleBased) {
+        dbg(derivationRules);
+        derivator.ruleBasedDFS(conv_9x9, 0, derivationRules);
+    } else
+        IT_TODO_HALT_MSG("Unknown NMutator search mode.");
+    const auto &candidates = derivator.getCandidates();
+    dbg(candidates.size());
+    // derivator.print();
+    for (const auto &candidate : candidates) {
+        // dbg(nnet::FullPrinterVisitor().print(candidate.root));
+        if (auto g = expressionToGraph(candidate.root, in_graph)) {
+            out_graphs.emplace_back(g);
+        }
+        // break; // HACK:Debug only for the first subgraph
+    }
+    // dbg(out_graphs);
+    // for (auto graph : out_graphs) {
+    //     graph->print();
     // }
-    // // dbg(out_graphs);
-    // // for (auto graph : out_graphs) {
-    // //     graph->print();
-    // // }
-    // cntStates += derivator.getNumIntermediateStates();
-    // cntCandidates += derivator.getNumCandidates();
+    cntStates += derivator.getNumIntermediateStates();
+    cntCandidates += derivator.getNumCandidates();
 }
 
 void NMutator::runMultipleOps(Graph in_graph, std::vector<Graph> &out_graphs) {
@@ -245,7 +250,7 @@ nnet::Expr NMutator::opToExpression(Operator op) {
                                         std::vector<int>{0, 0, ph, pw});
         const auto K = nnet::makeTensor("K", KT->getDims());
         return nnet::ConvPattern::getExpr(A, K, n, c, h, w, f, r, s);
-    } else if (auto convOp = as<ConvTransposed2dObj>(op)) {
+    } else if (auto convOp = as<ConvTransposed2dNHWCObj>(op)) {
         const auto &AT = convOp->getInputs()[0];
         const auto &KT = convOp->getInputs()[1];
         inputsNameNToTensorT["A"] = AT;
@@ -304,99 +309,119 @@ nnet::Expr NMutator::opToExpression(Operator op) {
 }
 
 infini::Graph NMutator::expressionToGraph(nnet::Expr expr, Graph in_graph) {
-    IT_TODO_HALT();
-    // auto g = make_ref<GraphObj>();
-    // nnet::FullPrinterVisitor fullVisitor;
-    // const auto &tensorQueueN = fullVisitor.traverse(expr);
-    // // Build tensors: Skip the first one, which is output
-    // auto nameNToTensorT = inputsNameNToTensorT;
-    // for (size_t i = 1; i < tensorQueueN.size(); ++i) {
-    //     const auto &[nameN, routineN, tensorN] = tensorQueueN[i];
-    //     // dbg(nameN, routineN, tensorN);
-    //     if (!routineN) {
-    //         // This is an inputs
-    //         assert(nameNToTensorT.count(nameN));
-    //     } else {
-    //         assert(!nameNToTensorT.count(nameN));
-    //         nameNToTensorT[nameN] = g->addTensor(tensorN->getShape());
-    //     }
-    // }
-    // const auto &outputsPET = in_graph->getOutputs();
-    // if (outputsPET.size() != 1) {
-    //     nnet_unimplemented_continue();
-    //     return nullptr;
-    // }
-    // nameNToTensorT[std::get<0>(tensorQueueN.at(0))] = outputsPET[0];
-    // // Build computation graph in PET:
-    // for (int i = tensorQueueN.size() - 1; i >= 0; --i) {
-    //     const auto &[outputNameN, routineN, tensorN] = tensorQueueN[i];
-    //     if (!routineN)
-    //         continue;
-    //     // dbg(outputNameN, routineN, tensorN, routineN->getType());
-    //     if (auto op = nnet::as<nnet::ConvNode>(routineN)) {
-    //         // g->conv(i8, w9, 2, 2);
-    //         std::vector<nnet::Tensor> inputsN = op->getInputs();
-    //         auto A = nameNToTensorT.at(inputsN[0]->getName());
-    //         auto K = nameNToTensorT.at(inputsN[1]->getName());
-    //         auto output = nameNToTensorT.at(outputNameN);
-    //         const auto &[ph, pw, sh, sw, dh, dw] = op->getArgs();
-    //         g->conv(A, K, output, ph, pw, sh, sw, dh, dw);
-    //     } else if (auto op = nnet::as<nnet::ElementWiseNode>(routineN)) {
-    //         assert(op->getInputs().size() == 1);
-    //         nnet::MatchReshapeVisitor matchReshapeVisitor;
-    //         if (matchReshapeVisitor(op->getExpr())) {
-    //             auto input =
-    //                 nameNToTensorT.at(op->getInputs().at(0)->getName());
-    //             auto output = nameNToTensorT.at(outputNameN);
-    //             g->reshape(input, output);
-    //         } else {
-    //             TensorVec inputsPET;
-    //             TensorVec outputsPET = {nameNToTensorT.at(outputNameN)};
-    //             for (const auto &inputN : op->getInputs())
-    //                 inputsPET.emplace_back(
-    //                     nameNToTensorT.at(inputN->getName()));
-    //             // Re-estimate time here.
-    //             ssize_t cnt = 0;
-    //             for (const auto tensor : inputsPET)
-    //                 cnt += tensor->size();
-    //             for (const auto tensor : outputsPET)
-    //                 cnt += tensor->size();
-    //             g->membound(inputsPET, outputsPET, op->getInputs(),
-    //                         op->getExpr(), memboundTime(cnt));
-    //         }
-    //     } else if (auto op = nnet::as<nnet::MatmulNode>(routineN)) {
-    //         assert(op->getInputs().size() == 2);
-    //         nnet::Tensor AN = op->getInputs()[0];
-    //         nnet::Tensor BN = op->getInputs()[1];
-    //         TensorVec inputsPET = {nameNToTensorT.at(AN->getName()),
-    //                                nameNToTensorT.at(BN->getName())};
-    //         TensorVec outputsPET = {nameNToTensorT.at(outputNameN)};
-    //         const auto &[b, m, n, k, transa, transb] = op->getArgs();
-    //         g->matmul(inputsPET[0], inputsPET[1], outputsPET[0], transa,
-    //                   transb);
-    //     } else if (auto op = nnet::as<nnet::G2bmmNode>(routineN)) {
-    //         assert(op->getInputs().size() == 2);
-    //         nnet::Tensor AN = op->getInputs()[0];
-    //         nnet::Tensor BN = op->getInputs()[1];
-    //         TensorVec inputsPET = {nameNToTensorT.at(AN->getName()),
-    //                                nameNToTensorT.at(BN->getName())};
-    //         TensorVec outputsPET = {nameNToTensorT.at(outputNameN)};
-    //         const auto &[b, m, w, k, dilation] = op->getArgs();
-    //         g->g2bmm(inputsPET[0], inputsPET[1], outputsPET[0], w, dilation);
-    //     } else if (auto op = nnet::as<nnet::GbmmNode>(routineN)) {
-    //         assert(op->getInputs().size() == 2);
-    //         nnet::Tensor AN = op->getInputs()[0];
-    //         nnet::Tensor BN = op->getInputs()[1];
-    //         TensorVec inputsPET = {nameNToTensorT.at(AN->getName()),
-    //                                nameNToTensorT.at(BN->getName())};
-    //         TensorVec outputsPET = {nameNToTensorT.at(outputNameN)};
-    //         const auto &[b, m, w, n, dilation] = op->getArgs();
-    //         g->gbmml(inputsPET[0], inputsPET[1], outputsPET[0], dilation);
-    //     }
-    // }
-    // g->updateConnection();
-    // Graph graph = new Graph(g->getOperators());
-    // return graph;
+    auto g = make_ref<GraphObj>(runtime);
+    nnet::FullPrinterVisitor fullVisitor;
+    // Get tensors in the reversed topological order
+    const auto &tensorQueueN = fullVisitor.traverse(expr);
+    dbg(fullVisitor.print(expr));
+
+    // Build a map: name in nnet -> tensors in infini
+    // Add input tensors to the map
+    std::map<std::string, Tensor> nameNToTensorT;
+    for (const auto &[k, v] : inputsNameNToTensorT)
+        nameNToTensorT[k] = g->cloneTensor(v);
+
+    // Add output tensors to the map
+    const auto &outputsT = in_graph->getOutputs();
+    if (outputsT.size() != 1) {
+        nnet_unimplemented_continue();
+        return nullptr;
+    }
+    nameNToTensorT[std::get<0>(tensorQueueN.at(0))] =
+        g->cloneTensor(outputsT[0]);
+    // Skip the first tensor, which is output and should be created by clone
+    for (size_t i = 1; i < tensorQueueN.size(); ++i) {
+        const auto &[nameN, routineN, tensorN] = tensorQueueN[i];
+        // dbg(nameN, routineN, tensorN);
+        if (!routineN) {
+            // this tensor is an input as it is not contrusted by a routine
+            IT_ASSERT(nameNToTensorT.count(nameN),
+                      "Missing an input tensor in graph or a rountine for this "
+                      "tensor.");
+        } else { // this tensor is an intermediate result
+            IT_ASSERT(!nameNToTensorT.count(nameN),
+                      "An NNET tensor appears twice or it is an input tensor "
+                      "with routine specified.");
+            nameNToTensorT[nameN] = g->addTensor(tensorN->getShape());
+        }
+    }
+
+    // Build computation graph in InfiniTensor
+    for (int i = tensorQueueN.size() - 1; i >= 0; --i) {
+        const auto &[outputNameN, routineN, tensorN] = tensorQueueN[i];
+        if (!routineN)
+            continue;
+        // dbg(outputNameN, routineN, tensorN, routineN->getType());
+        if (auto op = nnet::as<nnet::ConvNode>(routineN)) {
+            std::vector<nnet::Tensor> inputsN = op->getInputs();
+            auto A = nameNToTensorT.at(inputsN[0]->getName());
+            auto K = nameNToTensorT.at(inputsN[1]->getName());
+            auto output = nameNToTensorT.at(outputNameN);
+            const auto &[ph, pw, sh, sw, dh, dw] = op->getArgs();
+            g->addOpWithOutputs<ConvObj>(A, K, output, ph, pw, sh, sw, dh, dw);
+        } else if (auto op = nnet::as<nnet::ElementWiseNode>(routineN)) {
+            assert(op->getInputs().size() == 1);
+            nnet::MatchReshapeVisitor matchReshapeVisitor;
+            // If this routine only change the shape, translate it to a Reshape
+            if (matchReshapeVisitor(op->getExpr())) {
+                auto input =
+                    nameNToTensorT.at(op->getInputs().at(0)->getName());
+                auto output = nameNToTensorT.at(outputNameN);
+                g->addOpWithOutputs<ReshapeObj>(input, output,
+                                                output->getDims());
+            } else {
+                TensorVec inputsPET;
+                TensorVec outputsPET = {nameNToTensorT.at(outputNameN)};
+                for (const auto &inputN : op->getInputs())
+                    inputsPET.emplace_back(
+                        nameNToTensorT.at(inputN->getName()));
+                // Re-estimate time here.
+                ssize_t cnt = 0;
+                for (const auto &tensor : inputsPET)
+                    cnt += tensor->size();
+                for (const auto &tensor : outputsPET)
+                    cnt += tensor->size();
+                dbg(inputsPET, outputsPET, op->getInputs(), op->getExpr(),
+                    memboundTime(cnt));
+                g->addOpWithOutputs<MemBoundObj>(inputsPET, outputsPET,
+                                                 op->getInputs(), op->getExpr(),
+                                                 memboundTime(cnt));
+            }
+        } else if (auto op = nnet::as<nnet::MatmulNode>(routineN)) {
+            assert(op->getInputs().size() == 2);
+            nnet::Tensor AN = op->getInputs()[0];
+            nnet::Tensor BN = op->getInputs()[1];
+            TensorVec inputsPET = {nameNToTensorT.at(AN->getName()),
+                                   nameNToTensorT.at(BN->getName())};
+            TensorVec outputsPET = {nameNToTensorT.at(outputNameN)};
+            const auto &[b, m, n, k, transa, transb] = op->getArgs();
+            g->addOpWithOutputs<MatmulObj>(inputsPET[0], inputsPET[1],
+                                           outputsPET[0], transa, transb);
+        }
+        // TODO
+        // else if (auto op = nnet::as<nnet::G2bmmNode>(routineN)) {
+        //     assert(op->getInputs().size() == 2);
+        //     nnet::Tensor AN = op->getInputs()[0];
+        //     nnet::Tensor BN = op->getInputs()[1];
+        //     TensorVec inputsPET = {nameNToTensorT.at(AN->getName()),
+        //                            nameNToTensorT.at(BN->getName())};
+        //     TensorVec outputsPET = {nameNToTensorT.at(outputNameN)};
+        //     const auto &[b, m, w, k, dilation] = op->getArgs();
+        //     g->g2bmm(inputsPET[0], inputsPET[1], outputsPET[0], w, dilation);
+        // } else if (auto op = nnet::as<nnet::GbmmNode>(routineN)) {
+        //     assert(op->getInputs().size() == 2);
+        //     nnet::Tensor AN = op->getInputs()[0];
+        //     nnet::Tensor BN = op->getInputs()[1];
+        //     TensorVec inputsPET = {nameNToTensorT.at(AN->getName()),
+        //                            nameNToTensorT.at(BN->getName())};
+        //     TensorVec outputsPET = {nameNToTensorT.at(outputNameN)};
+        //     const auto &[b, m, w, n, dilation] = op->getArgs();
+        //     g->gbmml(inputsPET[0], inputsPET[1], outputsPET[0], dilation);
+        // }
+        else
+            IT_TODO_HALT();
+    }
+    return g;
 }
 
 double NMutator::memboundTime(ssize_t cnt) {

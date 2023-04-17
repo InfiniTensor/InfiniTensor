@@ -27,13 +27,16 @@ std::string AsTVMVisitor::visit_(const BinaryOp &c) {
     }
 }
 std::string AsTVMVisitor::visit_(const Func &c) {
+    string nested = dispatch(c->getObject());
     switch (c->getFuncType()) {
     case FuncType::Relu:
         // TODO: Deduce the dtype
-        return "te.max(" + dispatch(c->getObject()) +
-               ", tvm.tir.const(0, 'float32'))";
+        return "te.max(" + nested + ", tvm.tir.const(0, 'float32'))";
     case FuncType::Tanh:
-        return "te.tanh(" + dispatch(c->getObject()) + ")";
+        return "te.tanh(" + nested + ")";
+    case FuncType::PRelu:
+        return "tir.if_then_else(0.0 < " + nested + ", " + nested +
+               ", (0.25 * " + nested + "))";
     default:
         assert(false);
     }
@@ -114,6 +117,11 @@ std::string AsTVMVisitor::visit_(const Subscript &c) {
             str += " - " +
                    std::to_string(rangeOp->getLoopVarRanges()[i].second.first -
                                   rangeOp->getPaddings(i));
+        } else if (c->getObject()->getType() == NodeType::TensorNodeType) {
+            auto tensor = as<TensorNode>(c->getObject());
+            if (auto pad_i = tensor->getPadding(i); pad_i > 0) {
+                str += " + " + std::to_string(pad_i);
+            }
         }
     }
     str += "]";
@@ -138,6 +146,24 @@ std::string AsTVMVisitor::visit_(const Tensor &c) {
     }
     stmt += "), name='" + c->getName() + "')";
     stmts += stmt + "\n";
+
+    if (c->hasPadding()) {
+        std::string name_after_pad = "pad_" + c->getName();
+        pythonVars.emplace_back(name_after_pad);
+        // inputs.emplace_back(name_after_pad);
+        std::string pad_tuple = "(";
+        for (auto pad : c->getPaddings()) {
+            pad_tuple += std::to_string(pad) + ", ";
+        }
+        pad_tuple += ")";
+
+        std::string pad_stmt = name_after_pad + " = " + "topi.nn.pad(" +
+                               c->getName() + ", " + pad_tuple + ", " +
+                               pad_tuple + ", 0.0, \"" + name_after_pad + "\")";
+        stmts += pad_stmt + "\n";
+        return name_after_pad;
+    }
+
     return c->getName();
 }
 std::string AsTVMVisitor::getStmts() const {

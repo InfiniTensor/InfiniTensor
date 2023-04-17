@@ -13,10 +13,10 @@ TEST(MklBatchNorm, run) {
     // Build graph
     Graph g = make_ref<GraphObj>(runtime);
     auto i = g->addTensor(Shape{1, 3, 2, 2}, DataType::Float32);
-    auto mean = g->addTensor(Shape{1, 3, 1, 1}, DataType::Float32);
-    auto var = g->addTensor(Shape{1, 3, 1, 1}, DataType::Float32);
-    auto scale = g->addTensor(Shape{1, 3, 1, 1}, DataType::Float32);
-    auto bias = g->addTensor(Shape{1, 3, 1, 1}, DataType::Float32);
+    auto mean = g->addTensor(Shape{3}, DataType::Float32);
+    auto var = g->addTensor(Shape{3}, DataType::Float32);
+    auto scale = g->addTensor(Shape{3}, DataType::Float32);
+    auto bias = g->addTensor(Shape{3}, DataType::Float32);
     auto op =
         g->addOp<BatchNormObj>(i, nullptr, mean, var, scale, bias, 0.9, 0);
     g->dataMalloc();

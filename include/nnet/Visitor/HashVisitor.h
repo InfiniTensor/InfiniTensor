@@ -22,6 +22,7 @@ class HashVisitor : public Functor<HashType(void)> {
     HashType visit_(const Subscript &c) override;
     HashType visit_(const Tensor &c) override;
     HashType visit_(const Var &c) override;
+    HashType visit_(const Func &c) override;
 
   public:
     HashVisitor(int _verobse = 0) : Functor(_verobse) {}
