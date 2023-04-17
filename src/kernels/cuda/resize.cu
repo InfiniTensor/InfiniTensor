@@ -213,7 +213,7 @@ void resize_kernel_nearest(float *in, float *out, const MetaData &metaData,
                                    sizeof(p_cooridnate_trans_mode_func[0]));
     IT_ASSERT(nearestMode <
               sizeof(p_nearest_mode_fun) / sizeof(p_nearest_mode_fun[0]));
-    _resize_kernel_nearest<<<blocksize, gridsize>>>(
+    _resize_kernel_nearest<<<gridsize, blocksize>>>(
         in, out, metaData, num, coordinateMode, nearestMode);
 }
 
@@ -223,7 +223,7 @@ void resize_kernel_linear(float *in, float *out, const MetaData &metaData,
     auto gridsize = (num + blocksize - 1) / blocksize;
     IT_ASSERT(coordinateMode < sizeof(p_cooridnate_trans_mode_func) /
                                    sizeof(p_cooridnate_trans_mode_func[0]));
-    _resize_kernel_linear_coeff<<<blocksize, gridsize>>>(in, out, metaData, num,
+    _resize_kernel_linear_coeff<<<gridsize, blocksize>>>(in, out, metaData, num,
                                                          coordinateMode);
 }
 
@@ -233,7 +233,7 @@ void resize_kernel_cubic(float *in, float *out, const MetaData &metaData,
     auto gridsize = (num + blocksize - 1) / blocksize;
     IT_ASSERT(coordinateMode < sizeof(p_cooridnate_trans_mode_func) /
                                    sizeof(p_cooridnate_trans_mode_func[0]));
-    _resize_kernel_cubic_coeff<<<blocksize, gridsize>>>(in, out, metaData, num,
+    _resize_kernel_cubic_coeff<<<gridsize, blocksize>>>(in, out, metaData, num,
                                                         coordinateMode);
 }
 } // namespace infini

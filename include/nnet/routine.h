@@ -22,6 +22,7 @@ class RoutineNode {
 
   public:
     RoutineNode(Expr _expr, const vector<Tensor> &_inputs);
+    virtual ~RoutineNode() {}
     virtual string toReadable() const = 0;
     const Expr &getExpr() const { return expr; }
     const vector<Tensor> &getInputs() const { return inputs; }

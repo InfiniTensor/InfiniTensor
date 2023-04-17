@@ -1,11 +1,18 @@
 # InfiniTensor
 
 ## Compilation on Lotus
-
+# Compilation for cuda
 ``` bash
 # Enter the root of InfiniTensor
 source test/script/env_lotus.sh
 make CUDA=ON
+```
+## Compilation for intelcpu
+``` bash
+# Enter the root of InfiniTensor
+source test/script/env_lotus.sh intelcpu
+mkdir build && cd build
+cmake -DUSE_INTELCPU=ON -DCMAKE_CXX_COMPILER=dpcpp .. && make -j 12
 ```
 
 ### Make Commands

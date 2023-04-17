@@ -39,18 +39,25 @@ vector<int> ReshapeObj::getOpAttrVector() const {
     return ret;
 }
 
-FlattenObj::FlattenObj(GraphObj *graph, Tensor input, Tensor output)
+FlattenObj::FlattenObj(GraphObj *graph, Tensor input, Tensor output, int _axis)
     : OperatorObj(OpType::Flatten, {input}, {output}) {
+    if (_axis >= 0 && (size_t)_axis < input->getDims().size())
+        axis = _axis;
+    else if (_axis <= -1 && (size_t)_axis >= -input->getDims().size())
+        axis = _axis + input->getDims().size();
+    else
+        IT_ASSERT(0);
     IT_ASSERT(checkValid(graph));
 }
 
 optional<vector<Shape>> FlattenObj::inferShape(const TensorVec &inputs) const {
-    int size = 1;
+    int sizeB = 1, sizeE = 1;
     auto dims = getInputs(0)->getDims();
-    for (size_t i = 0; i < dims.size(); ++i)
-        size *= dims.at(i);
+    int ndim = dims.size();
+    for (int i = 0; i < ndim; ++i)
+        ((i < axis) ? sizeB : sizeE) *= dims.at(i);
 
-    return {{{size}}};
+    return {{{sizeB, sizeE}}};
 }
 
 std::string FlattenObj::toString() const {
@@ -59,18 +66,20 @@ std::string FlattenObj::toString() const {
     os << "(";
     os << vecToString(inputs[0]->getDims()) << ",";
     os << "input=" << inputs[0]->getGuid() << ",";
-    os << "output=" << outputs[0]->getGuid() << ")";
+    os << "output=" << outputs[0]->getGuid() << ",";
+    os << "axis=" << axis << ")";
     return os.str();
 }
 
 vector<int> FlattenObj::getWorkloadVector() const {
     vector<int> ret = inputs[0]->getDims();
+    ret.emplace(ret.begin(), axis);
     ret.emplace(ret.begin(), enum_to_underlying(type));
     return ret;
 }
 
 vector<int> FlattenObj::getOpAttrVector() const {
-    return {enum_to_underlying(type)};
+    return {enum_to_underlying(type), axis};
 }
 
 IdentityObj::IdentityObj(GraphObj *graph, Tensor input, Tensor output)

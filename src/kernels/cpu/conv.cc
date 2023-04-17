@@ -10,8 +10,13 @@ template <typename T> class NaiveConv : public CpuKernelWithoutConfig {
         T *iptr = op->getInputs(0)->getRawDataPtr<T *>();
         T *wptr = op->getInputs(1)->getRawDataPtr<T *>();
         T *optr = op->getOutput()->getRawDataPtr<T *>();
-        auto [n, c, h, w, f, r, s] = op->getNCHWFRS();
-        auto [ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
+        //  Clang will give an error of " reference to local binding 'sh'
+        //  declared in enclosing function" if we write like this:
+        //        auto [n, c, h, w, f, r, s] = op->getNCHWFRS();
+        int n, c, h, w, f, r, s;
+        std::tie(n, c, h, w, f, r, s) = op->getNCHWFRS();
+        int ph, pw, sh, sw, dh, dw;
+        std::tie(ph, pw, sh, sw, dh, dw) = op->getPadStrideDilation();
         int cpg = op->getChannelPerGroup();
         int g = op->getNumGroups();
         IT_ASSERT(f % g == 0, "Illegal number of channel");
@@ -23,7 +28,7 @@ template <typename T> class NaiveConv : public CpuKernelWithoutConfig {
                 for (int hh = 0; hh < oh; hh++)
                     for (int ww = 0; ww < ow; ww++) {
                         int gidx = ff / (f / g);
-                        VType val = 0;
+                        T val = 0;
                         for (int cc = 0; cc < cpg; cc++)
                             for (int rr = 0; rr < r; rr++)
                                 for (int ss = 0; ss < s; ss++) {

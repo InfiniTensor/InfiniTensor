@@ -75,6 +75,9 @@ class ResizeObj : public OperatorObj {
         IT_ASSERT((size_t)i < scales.size());
         return scales.at(i);
     }
+
+    vector<float> getScales() const { return scales; }
+
     float getRoi(int i) const {
         if (coMode == ECoordinateTransMode::tfCropAndResize) {
             IT_ASSERT(size_t(i) < roi.size());

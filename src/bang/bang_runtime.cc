@@ -54,4 +54,6 @@ void BangRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
 
 void BangRuntimeObj::sync() const { cnrtSyncDevice(); }
 
+string BangRuntimeObj::toString() const { return "BANG Runtime"; }
+
 } // namespace infini

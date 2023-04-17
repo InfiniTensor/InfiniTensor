@@ -1,5 +1,7 @@
 name: clang-format Check
 on:
+  push:
+    branch: 'master'
   pull_request:
     paths-ignore:
       - '**.md'
