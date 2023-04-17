@@ -73,6 +73,14 @@ string Serializer::visit_(const Tensor &c) {
     return key;
 }
 
+string Serializer::visit_(const Func &c) {
+    const string key = std::to_string(id++);
+    j[key]["type"] = c->getType();
+    j[key]["funcType"] = c->getFuncType();
+    j[key]["object"] = dispatch(c->getObject());
+    return key;
+}
+
 bool Serializer::serialize(const Expr &expr, const string &filePath,
                            const string &msg) {
     // Metadata
@@ -179,6 +187,10 @@ Expr Serializer::buildExprTree(string key) {
         auto source = buildRoutine(j[key]["source"]);
         return make_ref<TensorNode>(j[key]["name"], j[key]["shape"],
                                     j[key]["paddings"], source);
+    }
+    case NodeType::FuncNodeType: {
+        auto object = buildExprTree(j[key]["object"]);
+        return make_ref<FuncNode>(object, j[key]["funcType"]);
     }
     default: {
         nnet_unimplemented_halt();
