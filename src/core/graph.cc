@@ -209,10 +209,6 @@ bool GraphObj::checkValid() const {
             IT_ASSERT(std::find(ops.begin(), ops.end(), suc) != ops.end());
         }
     }
-    return true;
-}
-
-bool GraphObj::selfCheck() const {
     std::set<UidBaseType> s;
     // check whether two tensors with the same FUID exist
     for (auto tensor : tensors) {

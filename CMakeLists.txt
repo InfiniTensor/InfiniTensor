@@ -42,19 +42,6 @@ if(OpenMP_CXX_FOUND)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
-
-if(BUILD_TEST)
-  set(BUILD_GMOCK
-      OFF
-      CACHE BOOL "Do not build gmock" FORCE)
-  set(INSTALL_GTEST
-      OFF
-      CACHE BOOL "Do not install gtest" FORCE)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall ")    
-  add_subdirectory(3rd-party/googletest)
-  include_directories(SYSTEM 3rd-party/googletest/googletest/include)
-endif()
-
 #Protobuf
 if(USE_PROTOBUF)
   add_definitions(-D TENSOR_PROTOBUF)
