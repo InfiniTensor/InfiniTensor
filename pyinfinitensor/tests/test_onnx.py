@@ -1,4 +1,7 @@
 ﻿import os, onnx, unittest
+from typing import  Dict
+import numpy as np
+import onnxruntime
 from onnx import TensorProto
 from onnx.helper import (
     make_model,
@@ -16,20 +19,7 @@ def make_and_import_model(graph: onnx.GraphProto):
     check_model(model)
     from_onnx(model, runtime)
 
-
 class TestStringMethods(unittest.TestCase):
-    #def test_run(self):
-    #    model_file = next(
-    #        (name for name in os.listdir() if name.endswith(".onnx")), None
-    #    )
-    #    if model_file != None:
-    #        print(
-    #            "model: {file}({size:.2f} MiB)".format(
-    #                file=model_file, size=os.path.getsize(model_file) / 1024 / 1024
-    #            )
-    #        )
-    #        run_onnx(onnx.load(model_file), runtime)
-
     def test_load(self):
         model_file = next(
             (name for name in os.listdir() if name.endswith(".onnx")), None
@@ -315,6 +305,7 @@ class TestStringMethods(unittest.TestCase):
         )
         y = handler.tensor([3, 2, 1], 12)
         handler.reshape(x, y, [3, 2, 1])
+
 
 
 if __name__ == "__main__":

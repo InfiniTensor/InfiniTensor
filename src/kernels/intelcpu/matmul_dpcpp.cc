@@ -53,9 +53,9 @@ template <typename T> class MklDpcppMatmul : public CpuKernelWithoutConfig {
         // create execution queue and buffers of matrix data
         cl::sycl::queue main_queue(sycl::cpu_selector{}, exception_handler);
 
-        cl::sycl::buffer<float, 1> A_buffer(A, op->getInputs(0)->size());
-        cl::sycl::buffer<float, 1> B_buffer(B, op->getInputs(1)->size());
-        cl::sycl::buffer<float, 1> C_buffer(C, op->getOutput(0)->size());
+        cl::sycl::buffer<T, 1> A_buffer(A, op->getInputs(0)->size());
+        cl::sycl::buffer<T, 1> B_buffer(B, op->getInputs(1)->size());
+        cl::sycl::buffer<T, 1> C_buffer(C, op->getOutput(0)->size());
 
         // add oneapi::mkl::blas::gemm to execution queue
         try {

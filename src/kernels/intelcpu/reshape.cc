@@ -1,7 +1,7 @@
 #include "operators/reshape.h"
 #include "intelcpu/mkl_kernel_without_config.h"
 #include "intelcpu/mkl_runtime.h"
-
+#include "operators/unsqueeze.h"
 namespace infini {
 class MklReshape : public MklKernelWithoutConfig {
     void compute(const Operator &op,
@@ -47,4 +47,6 @@ REGISTER_KERNEL(Device::INTELCPU, OpType::Identity, DataType::Float32,
                 MklReshape, "Identify_Mkl_Float32");
 REGISTER_KERNEL(Device::INTELCPU, OpType::Flatten, DataType::Float32,
                 MklReshape, "Flatten_Mkl_Float32");
+REGISTER_KERNEL(Device::INTELCPU, OpType::Unsqueeze, DataType::Float32,
+                MklReshape, "Unsqueeze_Mkl_Float32");
 }; // namespace infini

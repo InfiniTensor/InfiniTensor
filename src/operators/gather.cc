@@ -28,7 +28,7 @@ optional<vector<Shape>> GatherObj::inferShape(const TensorVec &inputs) const {
 vector<DataType> GatherObj::inferDataType(const TensorVec &inputs) const {
     IT_ASSERT(inputs.size() == 2);
     auto index = inputs[1];
-    IT_ASSERT(index->getDType() == DataType::UInt32);
+    IT_ASSERT(index->getDType() == DataType::Int32);
     return {inputs[0]->getDType()};
 }
 

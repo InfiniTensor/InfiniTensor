@@ -80,6 +80,8 @@ class GraphHandlerObj {
                  const optional<vector<int>> &steps);
     Tensor pad(Tensor input, Tensor output, const vector<int> &pads,
                const optional<vector<int>> &axes);
+    Tensor constant(Tensor output);
+    Tensor unsqueeze(Tensor input, const vector<int> &axes, Tensor output);
 
     //------ modifiers
 

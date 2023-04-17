@@ -38,12 +38,12 @@ class MklGather : public MklKernelWithoutConfig {
 
         sycl::queue q(sycl::cpu_selector{});
         auto inDevice = sycl::malloc_device<float>(iSize, q);
-        auto indexDevice = sycl::malloc_device<uint32_t>(idxSize, q);
+        auto indexDevice = sycl::malloc_device<int32_t>(idxSize, q);
         auto outDevice = sycl::malloc_device<float>(oSize, q);
 
         q.memcpy(inDevice, in->getRawDataPtr<float *>(), iSize * sizeof(float));
-        q.memcpy(indexDevice, index->getRawDataPtr<uint32_t *>(),
-                 idxSize * sizeof(uint32_t));
+        q.memcpy(indexDevice, index->getRawDataPtr<int32_t *>(),
+                 idxSize * sizeof(int32_t));
         q.wait();
 
         q.parallel_for(sycl::range<1>(oSize), [=](sycl::id<1> index) {

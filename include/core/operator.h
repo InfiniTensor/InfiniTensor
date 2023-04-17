@@ -25,6 +25,7 @@ enum class OpType {
     Mul,
     Div,
     Pow,
+    Sqrt,
     Gather,
     ReduceMean,
     Reshape,
@@ -39,6 +40,8 @@ enum class OpType {
     Tanh,
     Abs,
     Resize,
+    Constant,
+    Unsqueeze,
     //
     MemBound = 300,
 };

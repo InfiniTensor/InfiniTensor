@@ -62,7 +62,11 @@ void TensorObj::printData() const {
     if (dtype == DataType::Float32)
         printDataFloat();
     else if (dtype == DataType::UInt32)
-        printDataUint32_t();
+        printDataInteger<unsigned int>();
+    else if (dtype == DataType::Int32)
+        printDataInteger<int>();
+    else if (dtype == DataType::Int64)
+        printDataInteger<long long>();
     else
         IT_TODO_HALT();
 }
@@ -94,12 +98,12 @@ void TensorObj::printDataFloat() const {
     }
 }
 
-void TensorObj::printDataUint32_t() const {
+template <typename T> void TensorObj::printDataInteger() const {
     IT_ASSERT(data != nullptr);
     std::cout << "Tensor: " << guid << std::endl;
     auto numDims = shape.size();
     auto dimSzVec = std::vector<int>(numDims, 1);
-    auto ptr = data->getPtr<VType *>();
+    auto ptr = data->getPtr<T *>();
     dimSzVec[numDims - 1] = shape[numDims - 1];
     for (int i = numDims - 1; i != 0; --i)
         dimSzVec[i - 1] = dimSzVec[i] * shape[i - 1];
@@ -133,9 +137,15 @@ bool TensorObj::equalData(const Tensor &rhs) const {
     if (getDType() == DataType::UInt32)
         return equalDataImpl(getRawDataPtr<uint32_t *>(),
                              rhs->getRawDataPtr<uint32_t *>(), size());
+    if (getDType() == DataType::Int32)
+        return equalDataImpl(getRawDataPtr<int32_t *>(),
+                             rhs->getRawDataPtr<int32_t *>(), size());
     else if (getDType() == DataType::Float32)
         return equalDataImpl(getRawDataPtr<float *>(),
                              rhs->getRawDataPtr<float *>(), size());
+    else if (getDType() == DataType::Int64)
+        return equalDataImpl(getRawDataPtr<long long *>(),
+                             rhs->getRawDataPtr<long long *>(), size());
     else
         IT_TODO_HALT();
 }

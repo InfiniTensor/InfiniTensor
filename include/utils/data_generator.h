@@ -16,6 +16,8 @@ class DataGenerator {
             fill(reinterpret_cast<uint32_t *>(data), size);
         else if (dataType == DataType::Float32)
             fill(reinterpret_cast<float *>(data), size);
+        else if (dataType == DataType::Int64)
+            fill(reinterpret_cast<long long *>(data), size);
         else
             IT_TODO_HALT();
     }

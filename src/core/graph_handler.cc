@@ -1,6 +1,7 @@
 ﻿#include "core/graph_handler.h"
 #include "operators/batch_norm.h"
 #include "operators/concat.h"
+#include "operators/constant.h"
 #include "operators/conv.h"
 #include "operators/element_wise.h"
 #include "operators/gather.h"
@@ -12,6 +13,7 @@
 #include "operators/slice.h"
 #include "operators/softmax.h"
 #include "operators/unary.h"
+#include "operators/unsqueeze.h"
 
 namespace infini {
 
@@ -227,6 +229,24 @@ Tensor GraphHandlerObj::pad(Tensor input, Tensor output,
     }
 }
 
+Tensor GraphHandlerObj::constant(Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<ConstantObj>(output);
+        return output;
+    } else
+        return g->addOp<ConstantObj>(output)->getOutput();
+}
+
+Tensor GraphHandlerObj::unsqueeze(Tensor input, const vector<int> &axes,
+                                  Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<UnsqueezeObj>(std::move(input), axes, output);
+        return output;
+    } else
+        return g->addOp<UnsqueezeObj>(std::move(input), axes, output)
+            ->getOutput();
+}
+
 static DataType dtype_repr_convert(int dtype) {
     switch ((OnnxDType)dtype) {
     case OnnxDType::FLOAT:
@@ -243,8 +263,11 @@ static DataType dtype_repr_convert(int dtype) {
         return DataType::Int16;
     case OnnxDType::INT32:
         return DataType::Int32;
+    // TODO: conver Int64 to int32, because some backend like dnnl donot support
+    // int64
     case OnnxDType::INT64:
-        return DataType::Int64;
+        // return DataType::Int64;
+        return DataType::Int32;
     default:
         IT_ASSERT(false, "Unsupported data type");
     }

@@ -1,4 +1,5 @@
 ﻿import backend
+import numpy as np
 from onnx import (
     ModelProto,
     TensorProto,
@@ -24,13 +25,16 @@ from onnx.checker import (
 from onnx.shape_inference import infer_shapes
 from typing import Dict, List, Any, Tuple, Sequence, Union, Optional
 from functools import reduce
+import struct
 
+# TODO: do we need need runtime here
 runtime = backend.runtime()
 
 class OnnxStub:
-    inputs: Dict[str, backend.Tensor] = {}
-    outputs: Dict[str, backend.Tensor] = {}
-    initializer: Dict[int, TensorProto] = {}
+    inputs: Dict[str, backend.Tensor] = {}  #只包含图最初的输入，不是包含每一层的输入
+    outputs: Dict[str, backend.Tensor] = {} #只包含图最后的输出
+    initializer: Dict[int, TensorProto] = {} #包含图每一层的权重和参数
+    tensors: Dict[int, TensorProto] = {} #包含所有tensor
     handler: backend.GraphHandler
 
     def __init__(self, model: ModelProto, runtime):
@@ -39,13 +43,13 @@ class OnnxStub:
 
         tensors: Dict[str, backend.Tensor] = dict()
         data: Dict[str, TensorProto] = dict()
-
+        
         for input in model.graph.input:
             dims = _take_shape_dim(input.type.tensor_type.shape)
             tensors[input.name] = self.handler.tensor(
                 dims, input.type.tensor_type.elem_type
             )
-
+           
         for output in model.graph.output:
             dims = _take_shape_dim(output.type.tensor_type.shape)
             tensors[output.name] = self.handler.tensor(
@@ -54,6 +58,10 @@ class OnnxStub:
 
         for initializer in model.graph.initializer:
             data[initializer.name] = initializer
+            # weights and params are not in "model.graph.input" when .onnx is converted from .pth
+            tensors[initializer.name] = self.handler.tensor(
+                initializer.dims, initializer.data_type
+            )
 
         for node in model.graph.node:
             if node.op_type == "Conv":
@@ -331,9 +339,30 @@ class OnnxStub:
                     _parse_data(data[node.input[1]]),
                     _parse_data(data[node.input[3]]) if len(node.input) > 3 else None,
                 )
+            elif node.op_type == "Constant":
+                attr = next((attr for attr in node.attribute if attr.name == "value"), None)                
+                if attr == None:
+                    raise Exception("no value in constant nodeproto")
+                if attr.type == 4: #TENSOR     
+                    value_tensor  = self.handler.tensor(
+                        [self.get_data_len(attr.t)], attr.t.data_type
+                    )   
+                    value_tensor.data_malloc()
+                    self.fill_value(value_tensor, attr.t)                               
+                    tensors[node.output[0]] = self.handler.constant(
+                        value_tensor                      
+                    )
+                else :
+                    raise Exception("TODO")
+            elif node.op_type == "Unsqueeze":   
+                tensors[node.output[0]] = self.handler.unsqueeze(
+                        tensors[node.input[0]],
+                        _parse_data(data[node.input[1]]) if len(node.input) > 1 else next((attr.ints for attr in node.attribute if attr.name == "axes")),
+                        tensors.get(node.output[0]))   
             else:
+                print(node)
                 raise Exception('Unsupported operator "{}"'.format(node.op_type))
-
+            
         self.handler.data_malloc()
 
         for name, obj in tensors.items():
@@ -341,19 +370,84 @@ class OnnxStub:
             if tensor == None:
                 if any(input.name == name for input in model.graph.input):
                     self.inputs[name] = obj
-            else:
+            if tensor != None:
                 self.initializer[obj.fuid()] = tensor
-                if tensor.data_type == TensorProto.INT32:
-                    obj.copyin_int32([int(i) for i in tensor.int32_data])
-                elif tensor.data_type == TensorProto.INT64:
-                    obj.copyin_int64([int(i) for i in tensor.int64_data])
-                elif tensor.data_type == TensorProto.FLOAT:
-                    obj.copyin_float([int(i) for i in tensor.float_data])
-                else:
-                    assert False, "Unsupported Tensor Type: {}".format(tensor.data_type)
+                self.fill_value(obj, tensor)                         
 
         for output in model.graph.output:
-            self.outputs[output.name] = tensors[output.name]
+            self.outputs[output.name] = tensors[output.name]  
+
+        self.tensors = tensors    
+
+    def get_data_len(self, tensor)-> int:
+        length = 0
+        ele_size=1
+        if tensor.data_type == TensorProto.INT32:
+            length = len(tensor.int32_data)    
+            ele_size = 4            
+        elif tensor.data_type == TensorProto.INT64:
+            length = len(tensor.int64_data)   
+            ele_size = 8
+        elif tensor.data_type == TensorProto.FLOAT:            
+            length = len(tensor.float_data)  
+            ele_size = 4
+        else:
+            assert False, "Unsupported Tensor Type: {}".format(tensor.data_type) 
+        if length == 0:
+            length = len(tensor.raw_data) // ele_size
+        return length
+
+    def fill_inputs(self, inputs: List[TensorProto]):
+        for tensor in inputs:
+            obj = self.inputs[tensor.name]  
+            self.fill_value(obj, tensor)             
+
+    def fill_value(self, obj, tensor):
+        # Data may be stored in raw_data when .onnx is converted from .pth
+        # or when parsing Constant oprator
+        if tensor.data_type == TensorProto.INT32:
+            int32_data = tensor.int32_data
+            if len(tensor.int32_data) == 0:
+                int32_data = self.parse_data(tensor.raw_data, tensor.data_type)
+            obj.copyin_int32([int(i) for i in tensor.int32_data])
+        elif tensor.data_type == TensorProto.INT64:
+            int64_data = tensor.int64_data
+            if len(tensor.int64_data) == 0:
+                int64_data = self.parse_data(tensor.raw_data, tensor.data_type)
+            # todo: convert int64 to int32, because backend donot support int64!
+            obj.copyin_int32([np.int32(i) for i in int64_data]) 
+        elif tensor.data_type == TensorProto.FLOAT:            
+            float_data = tensor.float_data
+            if len(float_data) == 0:
+                float_data = self.parse_data(tensor.raw_data, tensor.data_type)
+            obj.copyin_float([i for i in float_data])
+        else:
+            assert False, "Unsupported Tensor Type: {}".format(tensor.data_type)   
+
+    def parse_data(self, raw_data, dtype):
+        if dtype == TensorProto.FLOAT:  
+            fmt = 'f'
+            elem_size = 4
+        elif dtype == TensorProto.FLOAT16:  
+            fmt = 'e'
+            elem_size = 2
+        elif dtype == TensorProto.INT32:
+            fmt = 'i'
+            elem_size = 4
+        elif dtype == TensorProto.INT64:
+            fmt = 'q'
+            elem_size = 8
+        else:
+            raise ValueError('Unsupported data type')
+        num_elems = len(raw_data) // elem_size
+        data = []
+        for i in range(num_elems):
+            start_idx = i * elem_size
+            end_idx = start_idx + elem_size
+            elem_bytes = raw_data[start_idx:end_idx]
+            elem_value = struct.unpack(fmt, elem_bytes)[0]
+            data.append(elem_value)
+        return data
 
     def to_onnx(self, name: str) -> ModelProto:
         class Context:
@@ -576,9 +670,11 @@ def from_onnx(model: ModelProto, runtime):
     stub = OnnxStub(model, runtime)
     return stub.inputs, stub.outputs, stub.handler
 
-def run_onnx(model: ModelProto, runtime):
+def run_onnx(model: ModelProto, inputs: List[TensorProto]):
     stub = OnnxStub(model, runtime)
+    stub.fill_inputs(inputs)
     stub.run()
+    return stub.outputs
 
 def _parse_attribute(node: NodeProto, attrs: Dict[str, Any] = dict()) -> Dict[str, Any]:
     for attr in node.attribute:
