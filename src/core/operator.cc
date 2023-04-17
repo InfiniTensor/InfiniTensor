@@ -1,6 +1,7 @@
 #include "core/operator.h"
 #include "core/graph.h"
 #include "core/hash.h"
+#include "nnet/dbg.h"
 
 namespace infini {
 
@@ -34,7 +35,8 @@ bool OperatorObj::isReshapeOp() const { return type == OpType::Reshape; }
 
 bool OperatorObj::isMemBoundOp() const {
     return type == OpType::MemBound || type == OpType::Activation ||
-           type == OpType::Transpose;
+           type == OpType::Transpose || type == OpType::Relu ||
+           type == OpType::Tanh;
 }
 
 OpPerfKey OperatorObj::getOpPerfKey() const {
@@ -57,22 +59,29 @@ HashType OperatorObj::hash() const {
 
 bool OperatorObj::checkValid(GraphObj *graph) {
     auto optShapes = inferShape();
+    IT_ASSERT(optShapes);
     if (!optShapes) // shape inference failed
         return false;
 
     const vector<Shape> &shapes = *optShapes;
+    IT_ASSERT(shapes.size() == outputs.size());
     if (shapes.size() != outputs.size())
         return false;
     if (graph) { // if graph != nullptr, outputs should be created
         auto dataTypes = inferDataType();
         for (size_t i = 0; i < outputs.size(); i++) {
             IT_ASSERT(!outputs[i], "Find empty output while operator creation");
-            outputs[i] = graph->addTensor(shapes[i], dataTypes[i]);
+            outputs[i] =
+                graph->addTensor(shapes[i], dataTypes[i], TensorType::Other);
         }
     } else { // if outputs have been created, check their shapes
         for (size_t i = 0; i < shapes.size(); ++i) {
-            if (shapes[i] != outputs[i]->getDims())
+            IT_ASSERT(shapes[i] == outputs[i]->getDims());
+            if (shapes[i] != outputs[i]->getDims()) {
+                dbg(shapes[i], outputs[i]->getDims());
                 return false;
+            }
+            IT_ASSERT(outputs[i]->getTensorType() == TensorType::Other);
         }
     }
     return true;

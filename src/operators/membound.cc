@@ -45,7 +45,7 @@ string MemBoundObj::toString() const {
     os << "exec_time=" << exec_time << ", ";
     os << "NNet Inputs=[";
     for (const auto &tensor : nnetInputs)
-        os << tensor->toReadable() << ",";
+        os << tensor->toReadable() << vecToString(tensor->getShape()) << ",";
     os << "]";
     os << ", ExprHash=" << hash;
     os << ", SimplifiedExprHash=" << simplifiedHash;

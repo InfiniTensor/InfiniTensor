@@ -1,13 +1,16 @@
 #include "nnet/nmutator.h"
 #include "core/graph.h"
+#include "ffi/ffi_callback.h"
 #include "nnet/Visitor/FullPrinterVisitor.h"
 #include "nnet/Visitor/GetTensorsVisitor.h"
 #include "nnet/Visitor/MatchReshapeVisitor.h"
+#include "nnet/Visitor/MergeMemboundMutator.h"
 #include "nnet/derivator.h"
 #include "operators/conv.h"
 #include "operators/matmul.h"
 #include "operators/membound.h"
 #include "operators/reshape.h"
+#include "operators/unary.h"
 
 namespace infini {
 
@@ -51,7 +54,7 @@ void NMutator::runSingleOpToNaiveMembound(Graph in_graph,
     auto g = infini::make_ref<GraphObj>(in_graph->getRuntime());
     nnet::Expr expr = opToExpression(computeOp);
     auto inputsN = nnet::GetTensorsVisitor().get(expr);
-    dbg(inputsN, expr);
+    // dbg(inputsN, expr);
     IT_ASSERT(inputsN.count("B") + inputsN.count("K") == 1,
               "Which one is the second input tensor?");
     vector<nnet::Tensor> inputsVectorN = {inputsN.at("A")};
@@ -113,12 +116,12 @@ void NMutator::runSingleOp(Graph in_graph, std::vector<Graph> &out_graphs) {
     if (mode == Mode::Normal) {
         derivator.search(conv_9x9, 0);
     } else if (mode == Mode::RuleBased) {
-        dbg(derivationRules);
+        // dbg(derivationRules);
         derivator.ruleBasedDFS(conv_9x9, 0, derivationRules);
     } else
         IT_TODO_HALT_MSG("Unknown NMutator search mode.");
     const auto &candidates = derivator.getCandidates();
-    dbg(candidates.size());
+    // dbg(candidates.size());
     // derivator.print();
     for (const auto &candidate : candidates) {
         // dbg(nnet::FullPrinterVisitor().print(candidate.root));
@@ -233,33 +236,38 @@ void NMutator::runMultipleOps(Graph in_graph, std::vector<Graph> &out_graphs) {
 //     }
 // }
 
-nnet::Expr NMutator::opToExpression(Operator op) {
-    // IT_TODO_HALT();
-    if (auto convOp = as<ConvObj>(op)) {
+nnet::Expr NMutator::opToExpression(Operator opT) {
+    auto [expr, mapNameNToTensorT] = extractOp(opT);
+    for (auto &[name, tensorT] : mapNameNToTensorT) {
+        IT_ASSERT(inputsNameNToTensorT.count(name) == 0);
+        inputsNameNToTensorT[name] = tensorT;
+    }
+    return expr;
+}
+
+pair<nnet::Expr, NMutator::NameNToTensorT> NMutator::extractOp(Operator opT) {
+    if (auto convOp = as<ConvObj>(opT)) {
         const auto &inputs = convOp->getInputs();
         const auto &AT = inputs[0];
         const auto &KT = inputs[1];
         const auto &[n, c, h, w, f, r, s] = convOp->getNCHWFRS();
         const auto &[ph, pw, sh, sw, dh, dw] = convOp->getPadStrideDilation();
         if (!(sh == 1 && sw == 1 && dh == 1 && dw == 1))
-            return nullptr;
+            return {};
         assert(sh == 1 && sw == 1 && dh == 1 && dw == 1);
-        inputsNameNToTensorT["A"] = AT;
-        inputsNameNToTensorT["K"] = KT;
         const auto A = nnet::makeTensor("A", AT->getDims(),
                                         std::vector<int>{0, 0, ph, pw});
         const auto K = nnet::makeTensor("K", KT->getDims());
-        return nnet::ConvPattern::getExpr(A, K, n, c, h, w, f, r, s);
-    } else if (auto convOp = as<ConvTransposed2dNHWCObj>(op)) {
+        return {nnet::ConvPattern::getExpr(A, K, n, c, h, w, f, r, s),
+                {{"A", AT}, {"K", KT}}};
+    } else if (auto convOp = as<ConvTransposed2dNHWCObj>(opT)) {
         const auto &AT = convOp->getInputs()[0];
         const auto &KT = convOp->getInputs()[1];
-        inputsNameNToTensorT["A"] = AT;
-        inputsNameNToTensorT["K"] = KT;
         const auto &[n, c, h, w, f, r, s] = convOp->getNCHWFRS();
         const auto &[ph, pw, sh, sw, dh, dw] = convOp->getPadStrideDilation();
         IT_ASSERT_TODO(convOp->getNumGroups() == 1);
         if (r != 4)
-            return nullptr;
+            return {};
         IT_ASSERT_TODO(r == 4);
         IT_ASSERT_TODO(ph == pw);
         IT_ASSERT_TODO(tie(sh, sw) == tuple(2, 2));
@@ -271,8 +279,9 @@ nnet::Expr NMutator::opToExpression(Operator op) {
         const auto A = nnet::makeTensor(
             "A", AT->getDims(), std::vector<int>{0, padding, padding, 0});
         const auto K = nnet::makeTensor("K", KT->getDims());
-        return nnet::ConvTransPattern::getExpr(A, K, n, c, h, w, f, r, s);
-        // } else if (auto g2bmmOp = dynamic_cast<G2BMMOp *>(op)) {
+        return {nnet::ConvTransPattern::getExpr(A, K, n, c, h, w, f, r, s),
+                {{"A", AT}, {"K", KT}}};
+        // } else if (auto g2bmmOp = dynamic_cast<G2BMMOp *>(opT)) {
         //     const auto &AT = g2bmmOp->getInputs()[0];
         //     const auto &BT = g2bmmOp->getInputs()[1];
         //     const auto [b, m, k, width, dilation] = g2bmmOp->getArgs();
@@ -282,7 +291,7 @@ nnet::Expr NMutator::opToExpression(Operator op) {
         //     inputsNameNToTensorT[inputsN.first->getName()] = AT;
         //     inputsNameNToTensorT[inputsN.second->getName()] = BT;
         //     return expr;
-        // } else if (auto gbmmlOp = dynamic_cast<GBMMLOp *>(op)) {
+        // } else if (auto gbmmlOp = dynamic_cast<GBMMLOp *>(opT)) {
         //     const auto &AT = gbmmlOp->getInputs()[0];
         //     const auto &BT = gbmmlOp->getInputs()[1];
         //     const auto [b, m, w, k, dilation] = gbmmlOp->getArgs();
@@ -292,22 +301,30 @@ nnet::Expr NMutator::opToExpression(Operator op) {
         //     inputsNameNToTensorT[inputsN.second->getName()] = BT;
         //     dbg(b, m, w, k, dilation, expr);
         //     return expr;
-    } else if (auto matmulOp = as<MatmulObj>(op)) {
+    } else if (auto matmulOp = as<MatmulObj>(opT)) {
         const auto &AT = matmulOp->getInputs()[0];
         const auto &BT = matmulOp->getInputs()[1];
         const auto [b, m, n, k, transA, transB] = matmulOp->getBMNKTransAB();
         const auto &[expr, inputsN] =
             nnet::MatmulPattern::getExpr(transA, transB, b, m, n, k);
-        inputsNameNToTensorT[inputsN.first->getName()] = AT;
-        inputsNameNToTensorT[inputsN.second->getName()] = BT;
-        // dbg(b, m, n, k, expr);
-        return expr;
+        return {
+            expr,
+            {{inputsN.first->getName(), AT}, {inputsN.second->getName(), BT}}};
+    } else if (auto op = as<MemBoundObj>(opT)) {
+        NameNToTensorT m;
+        for (int i = 0; i < op->numInputs(); ++i)
+            m[op->getNnetInputs()[i]->getName()] = opT->getInputs()[i];
+        return {op->getNnetExpr(), m};
+    } else if (opT->getOpType() == OpType::Relu ||
+               opT->getOpType() == OpType::Tanh) {
+        return generateUnaryExpr(opT);
     }
-    // // else if (auto transposeOp = dynamic_cast<TransposeOp *>(op)) {
+    // // else if (auto transposeOp = dynamic_cast<TransposeOp *>(opT)) {
     // //     return transposeOpToExpression(transposeOp);
     // // }
-    nnet_unimplemented_continue();
-    return nullptr;
+    IT_TODO_HALT_MSG("Cannot convert " + opT->toString() +
+                     " to an NNet expression");
+    return {};
 }
 
 infini::Graph NMutator::expressionToGraph(nnet::Expr expr, Graph in_graph) {
@@ -315,7 +332,7 @@ infini::Graph NMutator::expressionToGraph(nnet::Expr expr, Graph in_graph) {
     nnet::FullPrinterVisitor fullVisitor;
     // Get tensors in the reversed topological order
     const auto &tensorQueueN = fullVisitor.traverse(expr);
-    dbg(fullVisitor.print(expr));
+    // dbg(fullVisitor.print(expr));
 
     // Build a map: name in nnet -> tensors in infini
     // Add input tensors to the map
@@ -383,8 +400,8 @@ infini::Graph NMutator::expressionToGraph(nnet::Expr expr, Graph in_graph) {
                     cnt += tensor->size();
                 for (const auto &tensor : outputsPET)
                     cnt += tensor->size();
-                dbg(inputsPET, outputsPET, op->getInputs(), op->getExpr(),
-                    memboundTime(cnt));
+                // dbg(inputsPET, outputsPET, op->getInputs(), op->getExpr(),
+                //     memboundTime(cnt));
                 g->addOpWithOutputs<MemBoundObj>(inputsPET, outputsPET,
                                                  op->getInputs(), op->getExpr(),
                                                  memboundTime(cnt));
@@ -633,5 +650,65 @@ double NMutator::memboundTime(const Shape &dims) {
 //     Graph graph = new Graph(g->getOperators());
 //     return graph;
 // }
+
+Graph NMutator::fuseVertically(const Graph &inputGraph) {
+    Graph optGraph = make_ref<GraphObj>(runtime);
+
+    auto chainOps = inputGraph->getOperators();
+    IT_ASSERT(!chainOps.empty());
+    for (auto &op : chainOps) {
+        IT_ASSERT(op->isMemBoundOp());
+        IT_ASSERT_TODO(op->getInputs().size() == 1);
+        IT_ASSERT(op->getOutputs().size() == 1);
+    }
+    if (chainOps.size() == 1) {
+        return make_ref<GraphObj>(runtime, chainOps);
+    }
+    std::vector<nnet::Expr> exprs;
+    for (const auto &op : chainOps) {
+        auto [expr, _] = extractOp(op);
+        exprs.emplace_back(expr);
+        // dbg(op, infini::as<nnet::RangeOpNode>(expr)->getFullExpression());
+    }
+    // double maxTime = getMaxPerf(std::make_shared<SubGraph>(chainOps));
+    // Fuse a MemboundOp chain
+    auto expr = nnet::MergeMemboundMutator(exprs).merge(true);
+    auto inputNMap = nnet::GetTensorsVisitor().get(exprs.front());
+    IT_ASSERT(inputNMap.size() == 1);
+    vector<nnet::Tensor> inputsN;
+    for (const auto &[name, t] : inputNMap) {
+        inputsN.emplace_back(t);
+    }
+    optGraph->addOpWithOutputs<MemBoundObj>(chainOps.front()->getInputs(),
+                                            chainOps.back()->getOutputs(),
+                                            inputsN, expr, 0);
+    // TODO: set time
+    return optGraph;
+}
+
+pair<nnet::Expr, NMutator::NameNToTensorT>
+NMutator::generateUnaryExpr(const Operator &op) {
+    using namespace nnet;
+    const map<OpType, nnet::FuncType> opTToFuncN = {
+        {OpType::PRelu, nnet::FuncType::PRelu},
+        {OpType::Relu, nnet::FuncType::Relu},
+        {OpType::Tanh, nnet::FuncType::Tanh}};
+    Shape shape = op->getInputs()[0]->getDims();
+    nnet::FuncType type = opTToFuncN.at(op->getOpType());
+    auto T = make_ref<TensorNode>("T", shape);
+    VecExpr indices;
+    for (size_t i = 0; i < shape.size(); ++i) {
+        indices.emplace_back(make_ref<VarNode>("i" + std::to_string(i)));
+    }
+    auto sub = makeSubscript(T, indices);
+    auto func = nnet::make_ref<FuncNode>(sub, type);
+    vector<VarRangePair> varRanges;
+    for (size_t i = 0; i < shape.size(); ++i) {
+        varRanges.emplace_back(nnet::as<VarNode>(indices[i]),
+                               Range{0, shape[i]});
+    }
+    return {makeRangeOperator(varRanges, {}, func),
+            NameNToTensorT{{"T", op->getInputs()[0]}}};
+}
 
 } // namespace infini

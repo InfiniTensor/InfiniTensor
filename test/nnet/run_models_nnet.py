@@ -28,7 +28,7 @@ def read_and_check():
 
 def run():
     data = []
-    for n_layers in range(1, 6):
+    for n_layers in range(5, 6):
         tensors = run_InfoGAN(n_layers)
         for i, t in enumerate(tensors):
             torch.save(t, f'torch_{n_layers}layers_{i}.pt')

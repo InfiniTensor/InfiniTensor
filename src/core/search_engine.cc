@@ -92,6 +92,18 @@ Graph SearchEngine::run(const Graph graph) {
                   << std::endl;
     }
 
+    // Fuse vertically and sort according to performance
+    for (size_t i = 0; i < bestGraphs.size(); ++i) {
+        // Debug
+        bestGraphs[i] = fuseVertically(bestGraphs[i]);
+    }
+    std::sort(bestGraphs.begin(), bestGraphs.end(), graphTimeComparer);
+
+    std::cout << "[INFO] best fused graph: " << std::endl;
+    std::cout << "[INFO] perf: " << getEstimatedGraphPerf(bestGraphs[0])
+              << std::endl;
+    std::cout << bestGraphs[0] << std::endl;
+
     return bestGraphs[0];
 }
 
@@ -439,6 +451,58 @@ std::vector<Graph> SearchEngine::partitionGraph(const Graph graph) {
 
 double SearchEngine::getEstimatedGraphPerf(Graph graph) {
     return runtimeExec->getPerfTime(graph, false, true);
+}
+
+Graph SearchEngine::fuseVertically(const Graph &graph) {
+    std::unordered_map<UidBaseType, int> visitTime;
+    std::vector<Operator> ops;
+
+    graph->topo_sort();
+    int cnt = 0;
+    for (auto op : graph->getOperators()) {
+        // Skip visited OP
+        if (visitTime.find(op->getGuid()) != visitTime.end()) {
+            continue;
+        }
+        // Skip compute OP and multi-input/output OP
+        if (!op->isMemBoundOp() || (op->getPredecessors().size() != 1 &&
+                                    op->getSuccessors().size() != 1)) {
+            visitTime.emplace(op->getGuid(), ++cnt);
+            ops.emplace_back(op);
+            continue;
+        }
+        vector<Operator> chainOps;
+        visitTime.emplace(op->getGuid(), ++cnt);
+
+        vector<Operator> tmp;
+        auto cur = op;
+        while (cur->getPredecessors().size() == 1 &&
+               cur->getPredecessors()[0]->isMemBoundOp()) {
+            cur = cur->getPredecessors()[0];
+            tmp.emplace_back(cur);
+            visitTime.emplace(cur->getGuid(), cnt);
+        }
+        for (int i = tmp.size() - 1; i >= 0; i--) {
+            chainOps.emplace_back(tmp[i]);
+        }
+        chainOps.emplace_back(op);
+        cur = op;
+        while (cur->getSuccessors().size() == 1 &&
+               cur->getSuccessors()[0]->isMemBoundOp()) {
+            cur = cur->getSuccessors()[0];
+            chainOps.emplace_back(cur);
+            visitTime.emplace(cur->getGuid(), cnt);
+        }
+        make_ref<GraphObj>(runtimeExec, chainOps)->print();
+
+        Graph optGraph =
+            mutator->fuseVertically(make_ref<GraphObj>(runtimeExec, chainOps));
+        for (auto op : optGraph->getOperators()) {
+            ops.emplace_back(op);
+        }
+    }
+
+    return make_ref<GraphObj>(runtimeExec, ops);
 }
 
 } // namespace infini
