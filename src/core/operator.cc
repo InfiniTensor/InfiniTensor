@@ -37,6 +37,32 @@ bool OperatorObj::isMemBoundOp() const {
            type == OpType::Transpose;
 }
 
+void OperatorObj::removePredecessors(const Operator &op) {
+    for (auto it = predecessors.begin(); it != predecessors.end();) {
+        if (it->lock() == op)
+            it = predecessors.erase(it);
+        else
+            ++it;
+    }
+}
+
+void OperatorObj::removeSuccessors(const Operator &op) {
+    for (auto it = successors.begin(); it != successors.end();) {
+        if (it->lock() == op)
+            it = successors.erase(it);
+        else
+            ++it;
+    }
+}
+
+void OperatorObj::replaceInput(Tensor t1, Tensor t2) {
+    for (auto itr = inputs.begin(); itr != inputs.end(); ++itr) {
+        if (*itr == t1) {
+            *itr = t2;
+        }
+    }
+}
+
 OpPerfKey OperatorObj::getOpPerfKey() const {
     auto workloadVector = getWorkloadVector();
     // Calculate hash of workload, i.e. hash with shape. This is different from

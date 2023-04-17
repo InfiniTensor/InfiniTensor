@@ -6,10 +6,6 @@
 #include <chrono>
 #include <cstring>
 namespace infini {
-void RuntimeObj::prepareAndRun(Graph &graph, bool tune, bool profiling) {
-    run(graph, tune, profiling);
-}
-
 void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
     if (!tune && profiling)
         IT_TODO_HALT();

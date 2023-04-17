@@ -1,7 +1,7 @@
 #include "core/graph.h"
 #include "core/kernel.h"
 #include "core/runtime.h"
-#include "mkl/mkl_runtime.h"
+#include "intelcpu/mkl_runtime.h"
 #include "operators/conv.h"
 #include "operators/matmul.h"
 #include "utils/data_generator.h"

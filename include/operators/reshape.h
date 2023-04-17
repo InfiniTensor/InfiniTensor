@@ -42,6 +42,7 @@ class ReshapeObj : public OperatorObj {
  *
  */
 class FlattenObj : public OperatorObj {
+    int axis;
 
   public:
     /**
@@ -51,7 +52,7 @@ class FlattenObj : public OperatorObj {
      * @param input The input tensor.
      * @param output The output one-dimensional tensor.
      */
-    FlattenObj(GraphObj *graph, Tensor input, Tensor output);
+    FlattenObj(GraphObj *graph, Tensor input, Tensor output, int axis);
     OP_CLONE(FlattenObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;

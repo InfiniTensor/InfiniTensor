@@ -145,7 +145,72 @@ OpVec GraphObj::getComputeOps() const {
         if (op->isComputeOp())
             opList.emplace_back(op);
     return opList;
-};
+}
+
+void GraphObj::deleteConnection(Tensor tensor, Operator op) {
+    // if op is target
+    IT_ASSERT(std::find(tensor->getTargets().begin(),
+                        tensor->getTargets().end(),
+                        op) != tensor->getTargets().end());
+    tensor->removeTarget(op);
+    if (tensor->getSource()) {
+        tensor->getSource()->removeSuccessors(op);
+        op->removePredecessors(tensor->getSource());
+    }
+}
+
+// add op as a target
+void GraphObj::addConnection(Tensor tensor, Operator op) {
+    tensor->addTarget(op);
+    if (tensor->getSource()) {
+        tensor->getSource()->addSuccessors(op);
+        op->addPredecessors(tensor->getSource());
+    }
+}
+
+void GraphObj::replaceConnection(Tensor oldTensor, Tensor newTensor,
+                                 Operator op) {
+    // op is a target of old tensor
+    IT_ASSERT(std::find(oldTensor->getTargets().begin(),
+                        oldTensor->getTargets().end(),
+                        op) != oldTensor->getTargets().end());
+    addConnection(newTensor, op);
+    deleteConnection(oldTensor, op);
+    op->replaceInput(oldTensor, newTensor);
+}
+
+// tensor's "source" and "target" must be in "ops".
+// tensor has no "source" and no "target" must not exist.
+// "inputs" or "outputs" of operators must be in "tensors"
+// "predecessors" and "successors" of an operator of "ops" must be in "ops".
+bool GraphObj::checkValid() const {
+    for (auto tensor : tensors) {
+        IT_ASSERT(!(tensor->getTargets().size() == 0 &&
+                    nullptr == tensor->getSource()));
+        for (auto op : tensor->getTargets()) {
+            IT_ASSERT(std::find(ops.begin(), ops.end(), op) != ops.end());
+        }
+        auto op = tensor->getSource();
+        IT_ASSERT(!(op && std::find(ops.begin(), ops.end(), op) == ops.end()));
+    }
+    for (auto op : ops) {
+        for (auto tensor : op->getInputs()) {
+            IT_ASSERT(std::find(tensors.begin(), tensors.end(), tensor) !=
+                      tensors.end());
+        }
+        for (auto tensor : op->getOutputs()) {
+            IT_ASSERT(std::find(tensors.begin(), tensors.end(), tensor) !=
+                      tensors.end());
+        }
+        for (auto pre : op->getPredecessors()) {
+            IT_ASSERT(std::find(ops.begin(), ops.end(), pre) != ops.end());
+        }
+        for (auto suc : op->getSuccessors()) {
+            IT_ASSERT(std::find(ops.begin(), ops.end(), suc) != ops.end());
+        }
+    }
+    return true;
+}
 
 bool GraphObj::selfCheck() const {
     std::set<UidBaseType> s;

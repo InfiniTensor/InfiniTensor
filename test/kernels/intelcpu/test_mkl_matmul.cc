@@ -2,7 +2,7 @@
 #include "core/graph.h"
 #include "core/kernel.h"
 #include "core/runtime.h"
-#include "mkl/mkl_runtime.h"
+#include "intelcpu/mkl_runtime.h"
 #include "operators/matmul.h"
 
 #include "test.h"
@@ -27,7 +27,6 @@ void testMatmulMkl(
 
     gCpu->dataMalloc();
     cpuRuntime->run(gCpu);
-    matmul->getOutput()->printData();
     EXPECT_TRUE(matmul->getOutput()->equalData(ansVec));
 }
 

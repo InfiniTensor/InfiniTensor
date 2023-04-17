@@ -1,7 +1,7 @@
 #include "core/graph.h"
 #include "core/kernel.h"
 #include "core/perf_engine.h"
-#include "mkl/mkl_runtime.h"
+#include "intelcpu/mkl_runtime.h"
 #include "operators/conv.h"
 
 #include "test.h"
@@ -26,7 +26,7 @@ void testConvTransposedMkl(
     i0->setData(generator);
     w0->setData(generator);
 
-    runtime->prepareAndRun(gMkl);
+    runtime->run(gMkl);
     EXPECT_TRUE(conv->getOutput()->equalData(ansVec));
 }
 
@@ -50,7 +50,7 @@ TEST(mkl_ConvTransposed, run1) {
     i0->setData(IncrementalGenerator());
     w0->setData(IncrementalGenerator());
 
-    runtime->prepareAndRun(gMkl);
+    runtime->run(gMkl);
     EXPECT_TRUE(conv->getOutput()->equalData(vector<float>{
         162, 351,  569,  413,  224,  405,  876,  1417, 1024, 553,
         747, 1611, 2598, 1869, 1005, 639,  1368, 2191, 1564, 835,
@@ -71,10 +71,10 @@ TEST(mkl_ConvTransposed, tune) {
     w0->setData(IncrementalGenerator());
 
     bool tune = true;
-    runtime->prepareAndRun(gMkl, tune);
+    runtime->run(gMkl, tune);
     // check record
     auto kernelAttrs =
-        KernelAttrs{Device::MKL, conv->getOpType(), DataType::Float32};
+        KernelAttrs{Device::INTELCPU, conv->getOpType(), DataType::Float32};
     auto perfKey = PerfEngine::Key{kernelAttrs, conv->getOpPerfKey()};
     std::optional<PerfRecord> perfData =
         PerfEngine::getInstance().getPerfData(perfKey);
