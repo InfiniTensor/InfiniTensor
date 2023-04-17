@@ -2,7 +2,7 @@
 #include "core/kernel.h"
 #include "core/perf_engine.h"
 #include "core/runtime.h"
-#include "mkl/mkl_runtime.h"
+#include "intelcpu/mkl_runtime.h"
 #include "operators/conv.h"
 
 #include "test.h"
@@ -17,18 +17,15 @@ void testConvDnnl(
 
     Tensor i0 = gMkl->addTensor({1, 3, 4, 4}, DataType::Float32);
     Tensor w0 = gMkl->addTensor({2, 3, 3, 3}, DataType::Float32);
+
+    // Build  graph
+    auto conv = gMkl->addOp<ConvObj>(i0, w0, nullptr, 1, 1, 2, 1, 1, 2);
     // Malloc data for all tensors in a graph.
     gMkl->dataMalloc();
     i0->setData(generator);
     w0->setData(generator);
 
-    // Build  graph
-    auto conv = gMkl->addOp<ConvObj>(i0, w0, nullptr, 1, 1, 2, 1, 1, 2);
-    // allocate CUDA memory
-    gMkl->dataMalloc();
-    // Execute on CUDA
     mklRuntime->run(gMkl);
-    // check results on CPU
     EXPECT_TRUE(conv->getOutput(0)->equalData(ansVec));
 }
 
@@ -57,7 +54,7 @@ TEST(mkl_Conv, tune) {
 
     // check record
     auto kernelAttrs =
-        KernelAttrs{Device::MKL, conv->getOpType(), DataType::Float32};
+        KernelAttrs{Device::INTELCPU, conv->getOpType(), DataType::Float32};
     auto perfKey = PerfEngine::Key{kernelAttrs, conv->getOpPerfKey()};
     std::optional<PerfRecord> perfData =
         PerfEngine::getInstance().getPerfData(perfKey);

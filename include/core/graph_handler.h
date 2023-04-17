@@ -66,10 +66,10 @@ class GraphHandlerObj {
     Tensor relu(Tensor x, Tensor y);
     Tensor sigmoid(Tensor x, Tensor y);
     Tensor tanh(Tensor x, Tensor y);
-    Tensor softmax(Tensor x, Tensor y);
+    Tensor softmax(Tensor x, Tensor y, int axis);
     Tensor abs(Tensor x, Tensor y);
     Tensor identity(Tensor x, Tensor y);
-    Tensor flatten(Tensor s, Tensor y);
+    Tensor flatten(Tensor s, Tensor y, int axis);
     Tensor reshape(Tensor data, Tensor reshaped, Shape shape);
     Tensor concat(TensorVec inputs, Tensor output, int dim);
     Tensor gather(Tensor data, Tensor indices, Tensor output, int axis);

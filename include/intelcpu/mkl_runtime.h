@@ -7,9 +7,9 @@
 #include <dnnl_debug.h>
 #include <mkl.h>
 namespace infini {
-// TODO move utility function to alone file
 class MklRuntimeObj : public CpuRuntimeObj {
     dnnl_engine_t engine;
+    dnnl_stream_t stream;
 
   public:
     MklRuntimeObj();
@@ -26,8 +26,10 @@ class MklRuntimeObj : public CpuRuntimeObj {
                           sizeof(uint64_t), 64);
     };
 
-    string toString() const override { return "CPU MKL Runtime"; };
+    string toString() const override { return "INTELCPU Runtime"; };
     dnnl::engine getEngine() const { return dnnl::engine(engine, true); }
+    dnnl::stream getStream() const { return dnnl::stream(stream, true); }
+    void sync() const;
 };
 
 } // namespace infini
