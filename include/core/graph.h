@@ -103,8 +103,6 @@ class GraphObj : public Object {
         return ret;
     }
 
-    bool selfCheck() const;
-
     bool checkValid() const;
 
   private:
