@@ -35,7 +35,6 @@ class BatchNormObj : public OperatorObj {
                  float eps = 1e-5, bool training = false);
     OP_CLONE(BatchNormObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
-
     std::string toString() const override;
 
     // output size will be 3 when training
