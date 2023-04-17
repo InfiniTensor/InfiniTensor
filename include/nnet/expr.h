@@ -206,7 +206,8 @@ struct IterationType {
     enum { Loop, Sum };
     constexpr static int NumIterationType = 2;
 };
-class RangeOpNode : public OperatorNode {
+class RangeOpNode : public OperatorNode,
+                    public std::enable_shared_from_this<RangeOpNode> {
   public:
     enum { Summand, END_POS };
     constexpr static int Loop = IterationType::Loop;
@@ -230,6 +231,7 @@ class RangeOpNode : public OperatorNode {
         return 0;
     };
     string toReadable() const override;
+    string getFullExpression();
     const Expr &getSummand() const { return subExprs[Summand]; }
     const vector<VarRangePair> &getVarRanges(int _index) const {
         return vars[_index];
