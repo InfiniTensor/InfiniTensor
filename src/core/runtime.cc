@@ -65,6 +65,21 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling,
     double totalTime = 0;
     std::map<OpType, double> opTime;
     std::map<OpType, int> opCnt;
+    map<UidBaseType, bool> ctcMap; // compile-time computable
+
+    // Skip static computation
+    bool status = graph->topo_sort();
+    IT_ASSERT(status, "Topological sort failed");
+    for (auto &op : graph->getOperators()) {
+        bool compileTimeComputable = true;
+        for (auto input : op->getInputs()) {
+            // FIXME: propogate the tensor type. Current only the first operator
+            // after weights are compile-time computable.
+            if (input->getTensorType() != TensorType::Initialized)
+                compileTimeComputable = false;
+        }
+        ctcMap[op->getGuid()] = compileTimeComputable;
+    }
 
     for (auto &op : graph->getOperators()) {
         auto kernelAttrs = KernelAttrs{device, op->getOpType(), op->getDType()};
@@ -73,8 +88,9 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling,
         auto perfData = perfEngine.getPerfData(perfKey);
 
         double time = -1e9;
-        // Tune the kernel if there is no record
-        if (perfData) {
+        if (ctcMap[op->getGuid()]) { // Compile-time computable operators
+            time = 0;
+        } else if (perfData) { // Tune the kernel if there is no record
             time = perfData->time;
         } else if (allowEstimation && op->getOpType() == OpType::MemBound) {
             time = as<MemBoundObj>(op)->getEstimatedTime();
@@ -107,7 +123,7 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling,
         totalTime += time;
         if (profiling) {
             op->print();
-            printf(" op_time %lf\n", time);
+            printf("  op_time %lf\n", time);
             opTime[op->getOpType()] += time;
             opCnt[op->getOpType()]++;
         }

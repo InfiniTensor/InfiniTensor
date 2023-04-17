@@ -8,12 +8,14 @@
 
 namespace infini {
 
-TensorObj::TensorObj(Shape shape_, DataType dtype, Runtime runtime)
+TensorObj::TensorObj(Shape shape_, DataType dtype, Runtime runtime,
+                     TensorType tensorType)
     : TensorBaseObj(shape_.size(), dtype, runtime), shape(std::move(shape_)),
       _size(shape.empty()
                 ? 0
                 : std::accumulate(shape.begin(), shape.end(), 1,
-                                  [](auto acc, auto x) { return acc * x; })) {}
+                                  [](auto acc, auto x) { return acc * x; })),
+      tensorType(tensorType) {}
 
 string TensorObj::toString() const {
     // Convert data pointer to string
