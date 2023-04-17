@@ -13,7 +13,8 @@ string FullPrinterVisitor::print(const Expr &root) {
     oss << "==> ROOT\n" << root->toReadable() << "\n";
     for (size_t i = 0; i < q.size(); ++i) {
         const auto &[name, routine, tensor] = q[i];
-        oss << "==> " << name << " : ";
+        oss << "==> " << name << " " << infini::vecToString(tensor->getShape())
+            << " : ";
         if (routine) {
             oss << routine->toReadable() << "\n";
             if (routine->getExpr()) {

@@ -30,6 +30,7 @@ class Mutator {
     virtual bool isMultiBranchMergable(const Graph &in_graph) {
         IT_TODO_HALT();
     }
+    virtual Graph fuseVertically(const Graph &inputGraph) { IT_TODO_HALT(); }
 };
 
 } // namespace infini

@@ -63,6 +63,7 @@ class SearchEngine {
      * branch.
      */
     bool isMultiBranchMergable(const Graph graph);
+    Graph fuseVertically(const Graph &graph);
 
     double getEstimatedGraphPerf(Graph graph);
 };

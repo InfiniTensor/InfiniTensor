@@ -6,7 +6,9 @@ namespace infini {
 
 class MemBoundObj : public OperatorObj {
   private:
-    std::vector<nnet::Tensor> nnetInputs;
+    std::vector<nnet::Tensor>
+        nnetInputs; // The order of inputs in nnetInputs should be consistant
+                    // with inputs in infinitensor
     nnet::Expr expr, simplifiedExpr;
     double exec_time;
     std::string hint;

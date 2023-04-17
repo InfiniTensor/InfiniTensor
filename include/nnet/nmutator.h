@@ -7,12 +7,13 @@ namespace infini {
 class NMutator : public Mutator {
   public:
     enum class Mode { Normal, ToNaiveMembound, RuleBased };
+    using NameNToTensorT = map<string, Tensor>;
 
   private:
     // Suffix -N: NNet objects.
     // Suffix -T: tpm objects.
     // Map: NNet tensors -> tpm tensor.
-    std::map<std::string, Tensor> inputsNameNToTensorT;
+    NameNToTensorT inputsNameNToTensorT;
     Mode mode;
     const double bandwidth = double(200) * 1024 * 1024 * 1024;
     // If in RuleBased mode, use derivationRules in derivator
@@ -24,8 +25,9 @@ class NMutator : public Mutator {
     ~NMutator();
 
     vector<Graph> run(const Graph &in_graph) override;
-    void setToNaiveMembound();
+    Graph fuseVertically(const Graph &in_graph) override;
 
+    void setToNaiveMembound();
     void setMaxDepth(int _maxDepth) { maxDepth = _maxDepth; }
     long long cntStates = 0;
     long long cntCandidates = 0;
@@ -33,6 +35,13 @@ class NMutator : public Mutator {
   private:
     int maxDepth = 8;
     nnet::Expr opToExpression(Operator op);
+    /// @brief
+    /// @param op
+    /// @return pair<Expr, map from NNet tensor names to InfiniTensor tensors>
+    static pair<nnet::Expr, NameNToTensorT> extractOp(Operator op);
+    static pair<nnet::Expr, NMutator::NameNToTensorT>
+    generateUnaryExpr(const Operator &op);
+
     void runSingleOp(Graph in_graph, std::vector<Graph> &out_graphs);
 
     /**
