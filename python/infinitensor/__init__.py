@@ -1,8 +1,7 @@
-﻿import sys
+﻿import backend
+from backend import *
+import sys
 
 sys.path.extend(__path__)
 
-import backend
 print("import backend: {}".format(backend))
-from backend import *
-

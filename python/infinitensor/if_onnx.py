@@ -541,7 +541,7 @@ class OnnxStub:
     #     for output in model.graph.output:
     #         self.outputs[output.name] = tensors[output.name]
 
-    def to_onnx(self, g: backend.Graph, name: str) -> ModelProto:
+    def to_onnx(self, g: backend.Graph, path: str, name: str = 'my_onnx') -> ModelProto:
         class Context:
             # saves object names, including tensors and operators
             names: Dict[Union[backend.Tensor, backend.Operator], str] = dict()
@@ -860,7 +860,7 @@ class OnnxStub:
                 raise Exception("Unsupported OpType", ty)
 
         model = ctx.build(name)
-        onnx.save(model, '/home/zly/InfiniTensor_merge/build/a.onnx')
+        onnx.save(model, path)
         return model
 
     # def init(self) -> None:
@@ -935,3 +935,7 @@ class OnnxStub:
 
 # def _take_shape_dim(shape: TensorShapeProto) -> List[int]:
 #     return [(d.dim_value if d.dim_value > 0 else 1) for d in shape.dim]
+
+def export_onnx(g: backend.Graph, path: str) -> None:
+    stub = OnnxStub()
+    stub.to_onnx(g, path)
