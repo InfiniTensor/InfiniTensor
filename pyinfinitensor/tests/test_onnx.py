@@ -40,9 +40,9 @@ class TestStringMethods(unittest.TestCase):
                         file=model_file, size=os.path.getsize(model_file) / 1024 / 1024
                     )
                 )
-                model = OnnxStub(onnx.load(model_file), backend.cpu_runtime()).to_onnx(
-                    "new"
-                )
+                model = OnnxStub.from_onnx(
+                    onnx.load(model_file), backend.cpu_runtime()
+                ).to_onnx("new")
                 model = infer_shapes(model)
 
     def test_tensor(self):

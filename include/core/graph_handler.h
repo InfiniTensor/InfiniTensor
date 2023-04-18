@@ -35,8 +35,10 @@ class GraphHandlerObj {
     Graph g;
 
   public:
-    GraphHandlerObj(Runtime runtime)
+    explicit GraphHandlerObj(Runtime runtime)
         : g(make_ref<GraphObj>(std::move(runtime))) {}
+
+    explicit GraphHandlerObj(Graph g) : g(std::move(g)) {}
 
     Tensor tensor(Shape dims, int dtype);
 

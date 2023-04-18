@@ -81,7 +81,7 @@ import onnx
 from pyinfinitensor.onnx import OnnxStub
 from pyinfinitensor import backend
 
-stub = OnnxStub(onnx.load("model_file"), backend.cpu_runtime())
+stub = OnnxStub.from_model(onnx.load("model_file"), backend.cpu_runtime())
 ```
 
 [`onnx.load`](https://onnx.ai/onnx/api/serialization.html#load-a-model) 是 onnx 提供的加载函数，将 onnx 文件读取为保存在内存中的 onnx 模型。
@@ -201,7 +201,7 @@ def infer(model: ModelProto, input) -> dict:
 
 
 model0 = onnx.load(sys.argv[1])
-model1 = OnnxStub(model0, backend.cpu_runtime()).to_onnx("new")
+model1 = OnnxStub.from_model(model0, backend.cpu_runtime()).to_onnx("new")
 
 input_shape = [x.dim_value for x in model1.graph.input[0].type.tensor_type.shape.dim]
 input = numpy.random.random(input_shape).astype(numpy.float32)
