@@ -6,14 +6,17 @@ namespace infini {
 
 class MemBoundObj : public OperatorObj {
   private:
+    nnet::Expr expr;
     std::vector<nnet::Tensor>
         nnetInputs; // The order of inputs in nnetInputs should be consistant
                     // with inputs in infinitensor
-    nnet::Expr expr, simplifiedExpr;
     double exec_time;
     std::string hint;
-    HashType hash, simplifiedHash;
-    int n, f, h, w;
+
+    // Generated attributes
+    HashType hash;
+    nnet::Expr simplifiedExpr;
+    HashType simplifiedHash;
 
   public:
     MemBoundObj(GraphObj *graph, const TensorVec &input,

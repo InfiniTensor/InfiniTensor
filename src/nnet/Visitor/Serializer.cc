@@ -82,13 +82,26 @@ string Serializer::visit_(const Func &c) {
 }
 
 bool Serializer::serialize(const Expr &expr, const string &filePath,
-                           const string &msg) {
+                           const string &msg, vector<Tensor> inputs,
+                           double exec_time, string hint) {
     // Metadata
     j["Version"] = VERSION;
     j["Msg"] = msg;
+    j["exec_time"] = exec_time;
+    j["hint"] = hint;
     // Expressions and routines
     id = 0;
     dispatch(expr);
+
+    // Input tensors
+    vector<string> inputsIndices;
+    for (const auto &tensor : inputs) {
+        inputsIndices.emplace_back(std::to_string(id));
+        dispatch(tensor);
+    }
+    j["nnetInputs"] = inputsIndices;
+
+    // Write to file
     std::ofstream fout(filePath);
     fout << std::setw(4) << j << std::endl;
     return true;
@@ -252,6 +265,17 @@ Routine Serializer::buildRoutine(string key) {
         nnet_unimplemented_halt();
     }
     return nullptr;
+}
+
+tuple<Expr, vector<Tensor>, double, string>
+Serializer::deserializeAsMemobundOp(const string &filePath) {
+    std::ifstream fin(filePath);
+    fin >> j;
+    assert(j["Version"] == VERSION);
+    vector<Tensor> inputs;
+    for (const auto &input : j["nnetInputs"])
+        inputs.emplace_back(as<TensorNode>(buildExprTree(input)));
+    return {buildExprTree("0"), inputs, j["exec_time"], j["hint"]};
 }
 
 } // namespace nnet

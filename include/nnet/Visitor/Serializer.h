@@ -36,10 +36,14 @@ class Serializer : public Functor<string()> {
      * @param expr The expression to be serialized
      * @param filePath The path of json file to be output
      * @param msg Message of derivation
+     * @param inputs membound operator attributes
+     * @param exec_time membound operator attributes
+     * @param hint membound operator attributes
      * @return bool Whether the serialization succeed
      */
     bool serialize(const Expr &expr, const string &filePath,
-                   const string &msg = "");
+                   const string &msg = "", vector<Tensor> inputs = {},
+                   double exec_time = -1e9, string hint = "");
 
     /**
      * @brief Deserialize the given json file to expression
@@ -48,6 +52,9 @@ class Serializer : public Functor<string()> {
      * @return Expression deserialized from the given json file
      */
     Expr deserialize(const string &filePath);
+
+    tuple<Expr, vector<Tensor>, double, string>
+    deserializeAsMemobundOp(const string &filePath);
 };
 
 } // namespace nnet

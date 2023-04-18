@@ -10,8 +10,8 @@ MemBoundObj::MemBoundObj(GraphObj *graph, const TensorVec &input,
                          const TensorVec &output,
                          const std::vector<nnet::Tensor> &nnetInputs,
                          nnet::Expr expr, double exec_time, std::string hint)
-    : OperatorObj(OpType::MemBound, input, output), nnetInputs(nnetInputs),
-      expr(expr), exec_time(exec_time), hint(hint) {
+    : OperatorObj(OpType::MemBound, input, output), expr(expr),
+      nnetInputs(nnetInputs), exec_time(exec_time), hint(hint) {
     IT_ASSERT(checkValid(graph));
     IT_ASSERT(!checkOOB(expr));
     hash = calcHash(expr);
@@ -61,11 +61,18 @@ string MemBoundObj::toString() const {
 
 optional<vector<Shape>> MemBoundObj::inferShape(const TensorVec &inputs) const {
     // inputs have to match nnetInputs excatly
-    if (inputs.size() != nnetInputs.size())
+    if (inputs.size() != nnetInputs.size()) {
+        std::cout << "Num mismatch" << inputs.size() << " "
+                  << nnetInputs.size();
         return {};
+    }
     for (size_t i = 0; i < inputs.size(); ++i)
-        if (inputs[i]->getDims() != nnetInputs[i]->getShape())
+        if (inputs[i]->getDims() != nnetInputs[i]->getShape()) {
+            std::cout << "Shape mismatch " << inputs[i]
+                      << vecToString(inputs[i]->getDims()) << " "
+                      << vecToString(nnetInputs[i]->getShape());
             return {};
+        }
     return {{nnet::as<nnet::RangeOpNode>(expr)->getOutputShape()}};
 }
 
@@ -85,7 +92,8 @@ bool MemBoundObj::checkOOB(nnet::Expr expr) {
 }
 
 void MemBoundObj::saveAsJson(string path) const {
-    bool status = nnet::Serializer().serialize(expr, path);
+    bool status = nnet::Serializer().serialize(
+        expr, path, "MemBoundObj::saveAsJson", nnetInputs, exec_time, hint);
     IT_ASSERT(status);
 }
 

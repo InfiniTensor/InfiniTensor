@@ -1,9 +1,11 @@
+#include "core/graph.h"
 #include "nnet/Visitor/FullPrinterVisitor.h"
 #include "nnet/Visitor/Serializer.h"
+#include "nnet/test.h"
+#include "operators/membound.h"
 #include "gtest/gtest.h"
 using namespace nnet;
 using namespace std;
-#define DEFINE_VAR(name) auto name = make_ref<VarNode>(#name);
 
 //{L<i3:0:2500><i4:0:4><b:0:8><w:0:65>Sum<k:0:512>
 //{({A}[b, (i3 + (2500 * i4)), k] * {B<pad=0,128,0>}[b, ((i3 + (2500 * i4)) +
@@ -12,11 +14,7 @@ using namespace std;
 // ==> B : Input Tensor shape=[8,10000,512] pad=[0,128,0]
 
 Expr buildSimpleExpr() {
-    DEFINE_VAR(b);
-    DEFINE_VAR(w);
-    DEFINE_VAR(k);
-    DEFINE_VAR(i3);
-    DEFINE_VAR(i4);
+    DEFINE_VAR(b, w, k, i3, i4);
     auto A = makeTensor("A", {8, 10000, 512}, {0, 0, 0});
     auto B = makeTensor("B", {8, 10000, 512}, {0, 128, 0});
     auto subA = makeSubscript(A, {b, (i3 + (2500 * i4)), k});
@@ -28,9 +26,7 @@ Expr buildSimpleExpr() {
 }
 
 Expr buildNestedExpr() {
-    DEFINE_VAR(j1);
-    DEFINE_VAR(j2);
-    DEFINE_VAR(j3);
+    DEFINE_VAR(j1, j2, j3);
     // Build a Matmul to verify.
     const int M = 10000, N = 512, K = 3;
     auto C = make_ref<TensorNode>("C", vector<int>({M, K}));
@@ -46,11 +42,7 @@ Expr buildNestedExpr() {
     auto E = make_ref<TensorNode>("E", shapeE, shapeE, ele2);
     auto ele1 = make_ref<ElementWiseNode>(expr, vector{E}, shapeE);
 
-    DEFINE_VAR(b);
-    DEFINE_VAR(w);
-    DEFINE_VAR(k);
-    DEFINE_VAR(i3);
-    DEFINE_VAR(i4);
+    DEFINE_VAR(b, w, k, i3, i4);
     auto A = makeTensor("A", {8, 10000, 512}, {0, 0, 0}, matmul);
     auto B = makeTensor("B", {8, 10000, 512}, {0, 128, 0}, ele1);
     auto subA = makeSubscript(A, {b, (i3 + (2500 * i4)), k});
@@ -68,11 +60,7 @@ TEST(Serializer, Serialization) {
 }
 
 TEST(Serializer, CompareTwoExprs) {
-    DEFINE_VAR(b);
-    DEFINE_VAR(w);
-    DEFINE_VAR(k);
-    DEFINE_VAR(i3);
-    DEFINE_VAR(i4);
+    DEFINE_VAR(b, w, k, i3, i4);
     auto A = makeTensor("A", {8, 10000, 512}, {0, 0, 0});
     auto B = makeTensor("B", {8, 10000, 512}, {0, 128, 0});
     auto subA = makeSubscript(A, {b, (i3 + (2500 * i4)), k});
@@ -97,4 +85,32 @@ TEST(Serializer, Serialization_NestedTensor) {
     auto exprDeserialized = Serializer().deserialize("./test_serializer.json");
     auto output = printer.print(exprDeserialized);
     EXPECT_EQ(output, ans);
+}
+
+TEST(Serializer, Serialization_memboundOp) {
+    auto expr = buildSimpleExpr();
+    auto A = makeTensor("A", {8, 10000, 512}, {0, 0, 0});
+    auto B = makeTensor("B", {8, 10000, 512}, {0, 128, 0});
+    // using namespace infini;
+    auto runtime = infini::NativeCpuRuntimeObj::getInstance();
+    auto g = infini::make_ref<infini::GraphObj>(runtime);
+    auto AT = g->addTensor({8, 10000, 512});
+    auto BT = g->addTensor({8, 10000, 512});
+    auto CT = g->addTensor({2500, 4, 8, 65});
+
+    vector<Tensor> nnetInputs{A, B};
+    double execTime = 1;
+    string hint = "test";
+    infini::MemBoundObj memboundOp(nullptr, {AT, BT}, {CT}, nnetInputs, expr,
+                                   execTime, hint);
+    memboundOp.saveAsJson("./test_serializer.json");
+    auto [exprLoaded, nnetInputsLoaded, execTimeLoaded, hintLoaded] =
+        Serializer().deserializeAsMemobundOp("./test_serializer.json");
+    EXPECT_EQ(expr->toReadable(), exprLoaded->toReadable());
+    EXPECT_EQ(execTime, execTimeLoaded);
+    EXPECT_EQ(nnetInputs.size(), nnetInputsLoaded.size());
+    for (size_t i = 0; i < nnetInputs.size(); ++i)
+        EXPECT_EQ(nnetInputs[i]->toReadable(),
+                  nnetInputsLoaded[i]->toReadable());
+    EXPECT_EQ(hint, hintLoaded);
 }
