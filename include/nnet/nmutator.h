@@ -43,6 +43,7 @@ class NMutator : public Mutator {
     static pair<nnet::Expr, NameNToTensorT> extractOp(Operator op);
     static pair<nnet::Expr, NMutator::NameNToTensorT>
     generateUnaryExpr(const Operator &op);
+    static pair<nnet::Expr, vector<nnet::Tensor>> generateRevert(Tensor in);
 
     void runSingleOp(Graph in_graph, std::vector<Graph> &out_graphs);
 

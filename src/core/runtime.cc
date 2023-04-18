@@ -2,6 +2,7 @@
 #include "core/blob.h"
 #include "core/kernel.h"
 #include "core/perf_engine.h"
+#include "cuda_profiler_api.h"
 #include "operators/membound.h"
 #include "utils/data_generator.h"
 #include <chrono>
@@ -57,16 +58,9 @@ void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
         printProfilingData(totalTime, opTime, opCnt);
 }
 
-double RuntimeObj::getPerfTime(const Graph &graph, bool profiling,
-                               bool allowEstimation) const {
-    const auto &kernelRegistry = KernelRegistry::getInstance();
-    auto &perfEngine = PerfEngine::getInstance();
-    // Statistics
-    double totalTime = 0;
-    std::map<OpType, double> opTime;
-    std::map<OpType, int> opCnt;
+map<UidBaseType, bool>
+RuntimeObj::getCompileTimeComputableAttribute(const Graph &graph) const {
     map<UidBaseType, bool> ctcMap; // compile-time computable
-
     // Skip static computation
     bool status = graph->topo_sort();
     IT_ASSERT(status, "Topological sort failed");
@@ -80,6 +74,19 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling,
         }
         ctcMap[op->getGuid()] = compileTimeComputable;
     }
+    return ctcMap;
+}
+
+double RuntimeObj::getPerfTime(const Graph &graph, bool profiling,
+                               bool allowEstimation) const {
+    const auto &kernelRegistry = KernelRegistry::getInstance();
+    auto &perfEngine = PerfEngine::getInstance();
+    // Statistics
+    double totalTime = 0;
+    std::map<OpType, double> opTime;
+    std::map<OpType, int> opCnt;
+    // compile-time computable
+    map<UidBaseType, bool> ctcMap = getCompileTimeComputableAttribute(graph);
 
     for (auto &op : graph->getOperators()) {
         auto kernelAttrs = KernelAttrs{device, op->getOpType(), op->getDType()};
@@ -181,5 +188,47 @@ void CpuRuntimeObj::copyBlobInsideRuntime(void *dst, const void *src,
 }
 
 string NativeCpuRuntimeObj::toString() const { return "CPU Runtime"; }
+
+double RuntimeObj::timeNonCtcOperators(const Graph &graph) const {
+    const auto &kernelRegistry = KernelRegistry::getInstance();
+    auto &perfEngine = PerfEngine::getInstance();
+    // compile-time computable
+    map<UidBaseType, bool> ctcMap = getCompileTimeComputableAttribute(graph);
+    vector<tuple<Operator, Kernel *, PerfRecord>> kernels;
+    bool status = graph->topo_sort();
+    IT_ASSERT(status, "Topological sort failed");
+
+    for (auto &op : graph->getOperators()) {
+        // HACK: set correct data type
+        auto kernelAttrs =
+            KernelAttrs{device, op->getOpType(), DataType::Float32};
+        Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
+        auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
+        auto perfData = perfEngine.getPerfData(perfKey);
+        if (perfData)
+            kernel->compute(op, perfData, this);
+        else
+            kernel->compute(op, this);
+        // if (!ctcMap.at(op->getGuid()) && op->getOpType() != OpType::Reshape)
+        if (op->getOpType() == OpType::Matmul)
+            kernels.emplace_back(op, kernel, perfData);
+    }
+    for (auto &[op, kernel, perfData] : kernels) {
+        dbg(op);
+    }
+    cudaProfilerStart(); // HACK: Debug
+    double ret = timeit(
+        [&]() {
+            for (auto &[op, kernel, perfData] : kernels) {
+                if (perfData)
+                    kernel->compute(op, perfData, this);
+                else
+                    kernel->compute(op, this);
+            }
+        },
+        [&]() { sync(); });
+    cudaProfilerStop(); // HACK: Debug
+    return ret;
+}
 
 } // namespace infini

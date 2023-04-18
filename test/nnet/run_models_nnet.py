@@ -1,9 +1,9 @@
-import backend
 import onnx
 import torch
 from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
+import infinitensor as ft
 
 
 def to_pytorch_tensor(tensor) -> torch.Tensor:
@@ -12,8 +12,8 @@ def to_pytorch_tensor(tensor) -> torch.Tensor:
     return tt.reshape(tensor.shape())
 
 
-def run_InfoGAN(n_layers: int):
-    if_tensors = backend.runInfoGAN(n_layers)
+def run_InfoGAN_return_tesnor(n_layers: int):
+    if_tensors = ft.runInfoGAN(n_layers)
     tensors = [to_pytorch_tensor(t) for t in if_tensors]
     return tensors
 
@@ -26,10 +26,10 @@ def read_and_check():
         print(x.abs().max())
 
 
-def run():
+def run_e2e_InfoGAN():
     data = []
     for n_layers in range(5, 6):
-        tensors = run_InfoGAN(n_layers)
+        tensors = run_InfoGAN_return_tesnor(n_layers)
         for i, t in enumerate(tensors):
             torch.save(t, f'torch_{n_layers}layers_{i}.pt')
         print(f'============ {n_layers} layers = = =')
@@ -69,6 +69,24 @@ def run():
     df.to_csv('a.csv')
 
 
+def runSingleConvT():
+    runtime = ft.cuda_runtime()
+    g = ft.getConvtransposedNHWC(runtime, [1, 2, 2, 448], 1)
+    opt_g = ft.optimizeGraph(g, runtime)
+    ft.if_onnx.export_onnx(opt_g, 'convtransposed.onnx')
+
+
+def run_InfoGAN_without_tuning(tuning: bool):
+    runtime = ft.cuda_runtime()
+    g = ft.getInfoGAN(1, runtime, 5)
+    # g = ft.getInfoGAN(1, runtime, 1)
+    opt_g = ft.optimizeGraph(g, runtime, tuning)
+    ft.if_onnx.export_onnx(opt_g, 'infogan_transformed.onnx')
+    ft.NMutator.memboundToJson(opt_g, ".")
+
+
 if __name__ == "__main__":
-    run()
+    # run_e2e_InfoGAN()
+    run_InfoGAN_without_tuning(True)
+    # runSingleConvT()
     # read_and_check()

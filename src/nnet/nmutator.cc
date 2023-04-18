@@ -100,7 +100,6 @@ void NMutator::runSingleOp(Graph in_graph, std::vector<Graph> &out_graphs) {
     // //     out_graphs.emplace_back(graph);
     // //     return;
     // // }
-    */
 
     auto expr = opToExpression(computeOps[0]);
     if (!expr)
@@ -108,9 +107,6 @@ void NMutator::runSingleOp(Graph in_graph, std::vector<Graph> &out_graphs) {
 
     nnet::Derivator derivator(maxDepth);
     nnet::Formula conv_9x9(expr, 0);
-    // const std::vector<int> rules{3, 2, 2, 2, 2, 5, 8, 8, 6, 91, 90};
-    // ConvTraspose
-    // const std::vector<int> rules{1, 7, 7, 2, 8, 6, 6}; // G2BMM
     if (mode == Mode::Normal) {
         derivator.search(conv_9x9, 0);
     } else if (mode == Mode::RuleBased) {
@@ -755,6 +751,28 @@ void NMutator::memboundToJson(const Graph &g, const string path) {
                            std::to_string(op->getGuid()) + ".json");
         }
     }
+}
+
+pair<nnet::Expr, vector<nnet::Tensor>> NMutator::generateRevert(Tensor in) {
+    using namespace nnet;
+    using infini::make_ref;
+    const Shape &orignalShape = in->getDims();
+    auto tensor = makeTensor("T", in->getDims());
+    VecExpr iters;
+    for (size_t i = 0; i < orignalShape.size(); ++i) {
+        iters.emplace_back(make_ref<VarNode>("i" + std::to_string(i)));
+    }
+
+    Shape newShape = orignalShape;
+    std::reverse(newShape.begin(), newShape.end());
+    auto sub = makeSubscript(tensor, iters);
+    vector<VarRangePair> loopIters;
+    for (int i = orignalShape.size() - 1; i >= 0; --i) {
+        loopIters.emplace_back(infini::as<VarNode>(iters[i]),
+                               Range{0, orignalShape[i]});
+    }
+    auto range = makeRangeOperator(loopIters, {}, sub);
+    return {range, {tensor}};
 }
 
 } // namespace infini

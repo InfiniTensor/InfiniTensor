@@ -1,5 +1,6 @@
 #pragma once
 #include "core/common.h"
+#include "core/object.h"
 #include "core/ref.h"
 #include <memory>
 
@@ -77,6 +78,11 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
     virtual void copyBlobToCPU(void *dst, const void *src,
                                size_t bytes) const = 0;
     virtual string toString() const = 0;
+
+    map<UidBaseType, bool>
+    getCompileTimeComputableAttribute(const Graph &graph) const;
+
+    double timeNonCtcOperators(const Graph &graph) const;
 
   protected:
     void printProfilingData(double totTime,

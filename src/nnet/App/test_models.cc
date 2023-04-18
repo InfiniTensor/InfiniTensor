@@ -21,7 +21,7 @@ Graph getInfoGAN(int batch, Runtime runtime, int nLayers) {
     vector<tuple<int, int, int, int, bool>> cs{
         // Channel, kernelSize, pad, stride, isTanh
         {448, 2, 0, 1, false}, {256, 4, 1, 2, false}, {128, 4, 1, 2, false},
-        {64, 4, 1, 2, false},  {32, 4, 1, 2, true},
+        {64, 4, 1, 2, false},  {3, 4, 1, 2, true},
     };
 
     Tensor input =
@@ -51,7 +51,7 @@ Graph getConvtransposedNHWC(Runtime runtime, Shape shape, int layerId) {
     vector<tuple<int, int, int, int, bool>> cs{
         // Channel, kernelSize, pad, stride, isTanh
         {448, 2, 0, 1, false}, {256, 4, 1, 2, false}, {128, 4, 1, 2, false},
-        {64, 4, 1, 2, false},  {32, 4, 1, 2, true},
+        {64, 4, 1, 2, false},  {3, 4, 1, 2, true},
     };
 
     Tensor input = g->addTensor(shape, DataType::Float32, TensorType::Input);
@@ -144,6 +144,7 @@ Graph optimizeGraph(Graph g, Runtime runtime, bool tuning) {
             // EXPECT_TRUE(go0->equalData(bgo0, 1e-3));
             dbg(go0->equalData(bgo0, 1e-3));
             dbg(runtime->getPerfTime(bestGraph, true));
+            dbg(runtime->timeNonCtcOperators(bestGraph));
         }
 
         dbg("Best graph");
@@ -154,7 +155,7 @@ Graph optimizeGraph(Graph g, Runtime runtime, bool tuning) {
 }
 
 vector<Tensor> runInfoGAN(int nLayers) {
-    Runtime cuda = make_ref<CudaRuntimeObj>();
+    auto cuda = make_ref<CudaRuntimeObj>();
     Runtime cpu = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(cpu);
 
