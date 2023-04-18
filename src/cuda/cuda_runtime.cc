@@ -9,7 +9,6 @@ namespace infini {
 void CudaRuntimeObj::runWithoutSync(const Graph &graph) const {
     const auto &kernelRegistry = KernelRegistry::getInstance();
     auto &perfEngine = PerfEngine::getInstance();
-    Runtime cpuRuntime = CpuRuntimeObj::getInstance();
     for (auto &op : graph->getOperators()) {
         // HACK: set correct data type
         auto kernelAttrs =

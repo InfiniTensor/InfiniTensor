@@ -13,7 +13,7 @@ template <class T>
 void testClip(const std::function<void(void *, size_t, DataType)> &generator,
               const Shape &shape) {
     // Runtime
-    Runtime cpuRuntime = CpuRuntimeObj::getInstance();
+    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
 
     // Build input data on CPU

@@ -12,7 +12,7 @@ TEST(MKL_Slice, run) {
     // Build input data
     Tensor i = g->addTensor(Shape{3, 2, 1, 5}, DataType::Float32);
     auto op =
-        g->addOp<SliceObj>(i, nullptr, vector<int>{1, 1}, vector<int>{1, 4},
+        g->addOp<SliceObj>(i, nullptr, vector<int>{1, 1}, vector<int>{2, 5},
                            vector<int>{0, 3}, std::nullopt);
     g->dataMalloc();
     i->setData(IncrementalGenerator());
