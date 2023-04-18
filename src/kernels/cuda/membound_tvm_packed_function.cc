@@ -132,54 +132,6 @@ class MemboundTVMPackedFunction : public Kernel {
         return std::dynamic_pointer_cast<PerfRecordObj>(ret);
     }
 
-    /// @brief Invoke TVM with pybind11. This approach is deprecated since it
-    /// ruins the python global scope and somehow breaks the cuBLAS runtime.
-    /// @param inDims
-    /// @param inDTypes
-    /// @param outDims
-    /// @param outDType
-    /// @param lambda
-    /// @param funcName Generated function name
-    /// @param nnetExpressionString Save expr in string for logging.
-    /// @param nnetSimplifiedExprString Save simplified expr in string for
-    /// logging.
-    /// @param hashCode (optional) Hash code of the input expression for kernel
-    /// cache.
-    /// @return
-    std::string getAnsorDLLPybind11(const std::vector<std::vector<int>> &inDims,
-                                    const std::vector<std::string> &inDTypes,
-                                    const std::vector<int> &outDims,
-                                    const std::string &outDType,
-                                    const std::string &lambda,
-                                    const std::string &funcName,
-                                    const std::string &nnetExprString,
-                                    const std::string &nnetSimplifiedExprString,
-                                    const HashType hashCode) const {
-        std::string dllPath;
-        try {
-            start_interpreter();
-            // Use static to avoid re-importing the module. Re-importing results
-            // in cuBLAS failure, whose root cause is not identified yet.
-            static auto func =
-                py::module::import("cpp_plugin").attr("gen_ansor_so");
-            py::tuple code =
-                func(inDims, inDTypes, outDims, outDType, lambda, funcName,
-                     nnetExprString, nnetSimplifiedExprString,
-                     std::to_string(hashCode));
-            dllPath = py::str(code[0]);
-        } catch (py::error_already_set &e) {
-            if (e.matches(PyExc_ImportError)) {
-                std::cerr << "Import Error. Don't forget to set environment "
-                             "variable PYTHONPATH to contain "
-                             "<repo-root>/python"
-                          << std::endl;
-            }
-            throw;
-        }
-
-        return dllPath;
-    }
-
     std::string serializeTVMArgs(const std::vector<std::vector<int>> &inDims,
                                  const std::vector<std::string> &inDTypes,
                                  const std::vector<int> &outDims,
