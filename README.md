@@ -24,7 +24,9 @@ cmake -DUSE_INTELCPU=ON -DCMAKE_CXX_COMPILER=dpcpp .. && make -j 12
 
 ---
 
-> Sets env: `CUDA=ON` to enable cuda.
+> - Sets env: `TEST=OFF` to accelerate compiling.
+> - Sets env: `CUDA=ON` to enable cuda.
+> - Sets env: `BANG=ON` to enable bang.
 
 ### CMake Options
 

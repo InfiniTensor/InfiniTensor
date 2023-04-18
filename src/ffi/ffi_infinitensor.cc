@@ -3,14 +3,23 @@
 #include "operators/concat.h"
 #include "operators/conv.h"
 #include "operators/gather.h"
+#include "operators/matmul.h"
+#include "operators/pad.h"
 #include "operators/pooling.h"
 #include "operators/reduce_mean.h"
 #include "operators/reshape.h"
+#include "operators/split.h"
+#include "operators/transpose.h"
+#include "operators/unary.h"
+#include <algorithm>
 #include <pybind11/stl.h>
 
 #ifdef USE_CUDA
 #include "cuda/cuda_runtime.h"
 #include "cuda/operator_timer.h"
+#endif
+#ifdef USE_BANG
+#include "bang/bang_runtime.h"
 #endif
 #ifdef USE_INTELCPU
 #include "intelcpu/mkl_runtime.h"
@@ -57,6 +66,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, G2BMM)
         .VALUE(OpType, GBMM)
         .VALUE(OpType, Pad)
+        .VALUE(OpType, Clip)
         .VALUE(OpType, Slice)
         .VALUE(OpType, Concat)
         .VALUE(OpType, Split)
@@ -78,11 +88,12 @@ void export_values(py::module &m) {
         .VALUE(OpType, Softmax)
         .VALUE(OpType, Activation)
         .VALUE(OpType, Relu)
+        .VALUE(OpType, PRelu)
         .VALUE(OpType, Sigmoid)
         .VALUE(OpType, Tanh)
         .VALUE(OpType, Abs)
         .VALUE(OpType, Resize)
-        .VALUE(OpType, MemBound)
+        .VALUE(OpType, Dropout)
         .export_values();
 
 #undef VALUE
@@ -112,6 +123,10 @@ static int tensor_dtype(Tensor t) {
 static Ref<CudaRuntimeObj> cuda_runtime() { return make_ref<CudaRuntimeObj>(); }
 #endif
 
+#ifdef USE_BANG
+static Ref<BangRuntimeObj> bang_runtime() { return make_ref<BangRuntimeObj>(); }
+#endif
+
 #ifdef USE_INTELCPU
 static Ref<RuntimeObj> intelcpu_runtime() { return make_ref<MklRuntimeObj>(); }
 #endif
@@ -123,11 +138,27 @@ static std::tuple<int, int, int, int, int, int> conv_attrs_of(Operator op) {
                            conv->getDw(), conv->getSh(), conv->getSw());
 }
 
+static std::tuple<int, int, int, int, int, int, int, int>
+conv_trans_attrs_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::ConvTrans);
+    auto conv = dynamic_cast<const ConvTransposed2dObj *>(op.get());
+    auto [oph, opw] = conv->getOutputPadding();
+    return std::make_tuple(conv->getPh(), conv->getPw(), conv->getDh(),
+                           conv->getDw(), conv->getSh(), conv->getSw(), oph,
+                           opw);
+}
+
+static std::tuple<bool, bool> matmul_attrs_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Matmul);
+    auto matmul = dynamic_cast<const MatmulObj *>(op.get());
+    return std::make_tuple(matmul->getTransA(), matmul->getTransB());
+}
+
 static std::tuple<float, float, bool> batch_norm_attrs_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::BatchNorm);
     auto batchnorm = dynamic_cast<const BatchNormObj *>(op.get());
     return std::make_tuple(batchnorm->getMomentum(), batchnorm->getEps(),
-                           batchnorm->getTraining());
+                           batchnorm->getTrainingMode());
 }
 
 static std::tuple<int, int, int, int, int, int, int, int>
@@ -140,9 +171,29 @@ pool_attrs_of(Operator op) {
                            pool->getSh(), pool->getSw());
 }
 
+static std::tuple<std::optional<float>, std::optional<float>>
+clip_attrs_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Clip);
+    auto clip = dynamic_cast<const ClipObj *>(op.get());
+    return std::make_tuple(clip->getMin(), clip->getMax());
+}
+
+static std::tuple<vector<int>, bool> reduce_mean_attrs_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::ReduceMean);
+    auto reduce_mean = dynamic_cast<const ReduceMeanObj *>(op.get());
+    auto &set = reduce_mean->getAxes();
+    return std::make_tuple(vector(set.begin(), set.end()),
+                           reduce_mean->getKeepDims());
+}
+
 static int concat_axis_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Concat);
     return dynamic_cast<const ConcatObj *>(op.get())->getDim();
+}
+
+static int split_axis_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Split);
+    return dynamic_cast<const SplitObj *>(op.get())->getDim();
 }
 
 static int gather_axis_of(Operator op) {
@@ -150,35 +201,58 @@ static int gather_axis_of(Operator op) {
     return dynamic_cast<const GatherObj *>(op.get())->getAxis();
 }
 
-static vector<int> reduce_mean_axes_of(Operator op) {
-    IT_ASSERT(op->getOpType() == OpType::ReduceMean);
-    auto &set = dynamic_cast<const ReduceMeanObj *>(op.get())->getAxes();
-    return vector(set.begin(), set.end());
+static vector<int64_t> reshape_shape_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Reshape);
+    auto shape = dynamic_cast<const ReshapeObj *>(op.get())->getShape();
+    vector<int64_t> ans(shape.size());
+    std::transform(shape.begin(), shape.end(), ans.begin(),
+                   [](auto x) { return static_cast<int64_t>(x); });
+    return ans;
 }
 
-static Shape reshape_shape_of(Operator op) {
-    IT_ASSERT(op->getOpType() == OpType::Reshape);
-    return dynamic_cast<const ReshapeObj *>(op.get())->getShape();
+static vector<int64_t> pad_pads_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Pad);
+    auto shape = dynamic_cast<const PadObj *>(op.get())->getPads();
+    vector<int64_t> ans(shape.size());
+    std::transform(shape.begin(), shape.end(), ans.begin(),
+                   [](auto x) { return static_cast<int64_t>(x); });
+    return ans;
+}
+
+static vector<int> transpose_permute_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Transpose);
+    return dynamic_cast<const TransposeObj *>(op.get())->getPermute();
 }
 
 void export_functions(py::module &m) {
 #define FUNCTION(NAME) def(#NAME, &NAME)
+    m.def("cpu_runtime", &NativeCpuRuntimeObj::getInstance)
 #ifdef USE_CUDA
-    m.def("runtime", cuda_runtime)
-#elif USE_INTELCPU
-    m.def("runtime", intelcpu_runtime)
-#else
-    m.def("runtime", &NativeCpuRuntimeObj::getInstance)
+        .def("cuda_runtime", cuda_runtime)
 #endif
-
+#ifdef USE_INTELCPU
+        .def("intelcpu_runtime", intelcpu_runtime)
+#endif
+#ifdef USE_CUDA
+        .FUNCTION(cuda_runtime)
+#endif
+#ifdef USE_BANG
+        .FUNCTION(bang_runtime)
+#endif
         .FUNCTION(conv_attrs_of)
+        .FUNCTION(conv_trans_attrs_of)
+        .FUNCTION(matmul_attrs_of)
         .FUNCTION(batch_norm_attrs_of)
         .FUNCTION(pool_attrs_of)
+        .FUNCTION(clip_attrs_of)
+        .FUNCTION(reduce_mean_attrs_of)
         .FUNCTION(tensor_dtype)
         .FUNCTION(reshape_shape_of)
+        .FUNCTION(pad_pads_of)
+        .FUNCTION(transpose_permute_of)
         .FUNCTION(concat_axis_of)
-        .FUNCTION(gather_axis_of)
-        .FUNCTION(reduce_mean_axes_of);
+        .FUNCTION(split_axis_of)
+        .FUNCTION(gather_axis_of);
 #undef FUNCTION
 }
 
@@ -191,6 +265,10 @@ void init_graph_builder(py::module &m) {
 #ifdef USE_CUDA
     py::class_<CudaRuntimeObj, std::shared_ptr<CudaRuntimeObj>, RuntimeObj>(
         m, "CudaRuntime");
+#endif
+#ifdef USE_BANG
+    py::class_<BangRuntimeObj, std::shared_ptr<BangRuntimeObj>, RuntimeObj>(
+        m, "BangRuntime");
 #endif
     py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "Tensor")
         .def("fuid", &TensorObj::getFuid, policy::automatic)
@@ -215,6 +293,7 @@ void init_graph_builder(py::module &m) {
         .def(py::init<Runtime>())
         .def("tensor", &Handler::tensor, policy::move)
         .def("conv", &Handler::conv, policy::move)
+        .def("convTransposed2d", &Handler::convTransposed2d, policy::move)
         .def("matmul", &Handler::matmul, policy::move)
         .def("batchNorm", &Handler::batchNorm, policy::move)
         .def("maxPool", &Handler::maxPool, policy::move)
@@ -229,15 +308,21 @@ void init_graph_builder(py::module &m) {
         .def("tanh", &Handler::tanh, policy::move)
         .def("softmax", &Handler::softmax, policy::move)
         .def("abs", &Handler::abs, policy::move)
+        .def("shape", &Handler::shape, policy::move)
         .def("identity", &Handler::identity, policy::move)
         .def("flatten", &Handler::flatten, policy::move)
+        .def("pRelu", &Handler::pRelu, policy::move)
+        .def("clip", &Handler::clip, policy::move)
+        .def("transpose", &Handler::transpose, policy::move)
         .def("reshape", &Handler::reshape, policy::move)
         .def("concat", &Handler::concat, policy::move)
+        .def("split", &Handler::split, policy::move)
         .def("gather", &Handler::gather, policy::move)
         .def("reduce_mean", &Handler::reduceMean, policy::move)
         .def("slice", &Handler::slice, policy::move)
         .def("pad", &Handler::pad, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)
+        .def("optimize", &Handler::optimize, policy::automatic)
         .def("operators", &Handler::operators, policy::move)
         .def("data_malloc", &Handler::data_malloc, policy::automatic)
         .def("run", &Handler::run, policy::automatic);

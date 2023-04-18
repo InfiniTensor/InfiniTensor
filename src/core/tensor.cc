@@ -64,79 +64,24 @@ vector<size_t> TensorObj::getStride() const {
 
 void TensorObj::printData() const {
     IT_ASSERT(data != nullptr);
-    void *ptr = nullptr;
-    Blob buffer;
-    if (!runtime->isCpu()) {
-        buffer = NativeCpuRuntimeObj::getInstance()->allocBlob(getBytes());
-        runtime->copyBlobToCPU(buffer->getPtr<void *>(),
-                               getRawDataPtr<void *>(), getBytes());
-        ptr = buffer->getPtr<void *>();
-    } else
-        ptr = data->getPtr<float *>();
-    if (dtype == DataType::Float32)
-        printDataFloat(static_cast<float *>(ptr));
-    else if (dtype == DataType::UInt32)
-        printDataUint32_t(static_cast<uint32_t *>(ptr));
-    else
+    if (!runtime->isCpu())
         IT_TODO_HALT();
-}
 
-void TensorObj::printDataFloat(float *ptr) const {
-    std::cout << "Tensor: " << guid << std::endl;
-    auto numDims = shape.size();
-    auto dimSzVec = std::vector<int>(numDims, 1);
-    dimSzVec[numDims - 1] = shape[numDims - 1];
-    for (int i = numDims - 1; i != 0; --i)
-        dimSzVec[i - 1] = dimSzVec[i] * shape[i - 1];
-    for (size_t i = 0, iEnd = size(); i < iEnd; ++i) {
-        if (iEnd > 1000 && i > 20 && i < iEnd - 20) {
-            printf("... , ");
-            i = iEnd - 20;
-            continue;
-        }
-        for (size_t j = 0; j < numDims; ++j) {
-            if (i % dimSzVec[j] == 0) {
-                std::cout << "[";
-            }
-        }
-        printf("%.1f", ptr[i]);
-        for (size_t j = 0; j < numDims; ++j) {
-            if ((int)i % dimSzVec[j] == dimSzVec[j] - 1) {
-                std::cout << "]";
-            }
-        }
-        if (i != size() - 1)
-            std::cout << ", ";
-        if ((int)i % dimSzVec[numDims - 1] == dimSzVec[numDims - 1] - 1)
-            std::cout << std::endl;
-    }
-}
+#define TRY_PRINT(N)                                                           \
+    if (dtype == DataType(N))                                                  \
+        std::cout << dataToString<DT<N>::t>() << std::endl;
 
-void TensorObj::printDataUint32_t(uint32_t *ptr) const {
-    IT_ASSERT(data != nullptr);
-    std::cout << "Tensor: " << guid << std::endl;
-    auto numDims = shape.size();
-    auto dimSzVec = std::vector<int>(numDims, 1);
-    dimSzVec[numDims - 1] = shape[numDims - 1];
-    for (int i = numDims - 1; i != 0; --i)
-        dimSzVec[i - 1] = dimSzVec[i] * shape[i - 1];
-    for (size_t i = 0, iEnd = size(); i < iEnd; ++i) {
-        for (size_t j = 0; j < numDims; ++j) {
-            if (i % dimSzVec[j] == 0) {
-                std::cout << "[";
-            }
-        }
-        std::cout << ptr[i];
-        for (size_t j = 0; j < numDims; ++j) {
-            if ((int)i % dimSzVec[j] == dimSzVec[j] - 1) {
-                std::cout << "]";
-            }
-        }
-        if (i != size() - 1)
-            std::cout << ", ";
-        if ((int)i % dimSzVec[numDims - 1] == dimSzVec[numDims - 1] - 1)
-            std::cout << std::endl;
-    }
+    TRY_PRINT(0)          // fmt: new line
+    else TRY_PRINT(1)     //
+        else TRY_PRINT(2) //
+        else TRY_PRINT(3) //
+        else TRY_PRINT(4) //
+        else TRY_PRINT(5) //
+        else TRY_PRINT(6) //
+        else TRY_PRINT(7) //
+        else IT_TODO_HALT();
+
+#undef TRY_PRINT
 }
 
 bool TensorObj::equalData(const Tensor &rhs, double relativeError) const {
@@ -147,19 +92,27 @@ bool TensorObj::equalData(const Tensor &rhs, double relativeError) const {
     IT_ASSERT(rhs->getRuntime()->isCpu());
     if (size() != rhs->size())
         return false;
-    if (getDType() == DataType::UInt32)
-        return equalDataImpl(getRawDataPtr<uint32_t *>(),
-                             rhs->getRawDataPtr<uint32_t *>(), size(), 0);
-    else if (getDType() == DataType::Float32)
-        return equalDataImpl(getRawDataPtr<float *>(),
-                             rhs->getRawDataPtr<float *>(), size(),
-                             relativeError);
-    else
-        IT_TODO_HALT();
+
+#define TEST_EQUAL(N)                                                          \
+    if (dtype == DataType(N))                                                  \
+        return equalDataImpl(getRawDataPtr<DT<N>::t *>(),                      \
+                             rhs->getRawDataPtr<DT<N>::t *>(), size());
+
+    TEST_EQUAL(0)          // fmt: new line
+    else TEST_EQUAL(1)     //
+        else TEST_EQUAL(2) //
+        else TEST_EQUAL(3) //
+        else TEST_EQUAL(4) //
+        else TEST_EQUAL(5) //
+        else TEST_EQUAL(6) //
+        else TEST_EQUAL(7) //
+        else IT_TODO_HALT();
+
+#undef TEST_EQUAL
 }
 
 void TensorObj::dataMalloc() {
-    if (data == nullptr)
+    if (!data)
         data = runtime->allocBlob(getBytes());
 }
 
@@ -201,9 +154,9 @@ Shape TensorObj::getPosByOffset(size_t offset, Shape dim) const {
 size_t TensorObj::getOffsetByPos(Shape pos, Shape dim) const {
     int n = dim.size();
     size_t offset = pos.at(0);
-    for (auto i = 1; i < n; i++) {
+    for (auto i = 1; i < n; i++)
         offset = offset * dim.at(i) + pos.at(i);
-    }
+
     return offset;
 }
 
@@ -213,10 +166,10 @@ size_t TensorObj::getOffsetByBroadcastOffset(size_t bcOffset,
 
     Shape pos = bcPos;
     int n = shape.size();
-    for (auto i = 0; i < n; i++) {
+    for (auto i = 0; i < n; i++)
         if (shape.at(i) == 1)
             pos[i] = 0;
-    }
+
     return getOffsetByPos(pos, shape);
 }
 }; // namespace infini

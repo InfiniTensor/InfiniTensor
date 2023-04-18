@@ -42,6 +42,8 @@ void testOptensor(
     cpuRuntime->run(cpuGraph);
     auto outputCpu = cpuOp->getOutput();
     // Check
+    outputCpu->printData();
+    outputGpu2Cpu->printData();
     EXPECT_TRUE(outputCpu->equalData(outputGpu2Cpu));
 }
 
@@ -49,6 +51,7 @@ TEST(cuDNN_OpTensor, run) {
     testOptensor<AddObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     testOptensor<SubObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     testOptensor<MulObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    testOptensor<DivObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
 }
 
 } // namespace infini

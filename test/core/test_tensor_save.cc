@@ -7,6 +7,7 @@
 namespace infini {
 
 TEST(Prtotbuf, save_and_load) {
+#ifdef TENSOR_PROTOBUF
     Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph g = make_ref<GraphObj>(runtime);
     Tensor i0 = g->addTensor({1, 3, 4}, DataType::Float32);
@@ -28,6 +29,7 @@ TEST(Prtotbuf, save_and_load) {
     u1->load("u.pb");
     u1->printData();
     EXPECT_TRUE(u1->equalData(u0));
+#endif
 }
 
 } // namespace infini

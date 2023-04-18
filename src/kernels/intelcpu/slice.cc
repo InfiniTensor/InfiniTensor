@@ -23,7 +23,7 @@ class MklSlice : public MklKernelWithoutConfig {
         std::vector<dnnl_dim_t> sDims, offsets;
         for (int i = 0; i < ndim; ++i) {
             sDims.push_back(oDims.at(i));
-            offsets.push_back(op->getStart().at(i));
+            offsets.push_back(op->getStarts().at(i));
         }
         auto sliceMd = srcMd.submemory_desc(sDims, offsets);
         auto sliceMemory =

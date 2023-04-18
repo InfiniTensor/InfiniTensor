@@ -18,19 +18,27 @@ class MatmulCnnl : public BangKernelWithoutConfig {
         auto dimInputs0 = op->getInputs(0)->getDims();
         auto dimInputs1 = op->getInputs(1)->getDims();
         auto dimOutput = op->getOutput()->getDims();
-        if (dimInputs0.size() != 3)
-            IT_TODO_HALT();
-        if (dimInputs1.size() != 3)
-            IT_TODO_HALT();
-        if (dimOutput.size() != 3)
-            IT_TODO_HALT();
+        int input0_batch_size = 1;
+        int input1_batch_size = 1;
+        int output_batch_size = 1;
+        for (size_t i = 0; i < dimInputs0.size() - 2; ++i) {
+            input0_batch_size *= dimInputs0[i];
+            input1_batch_size *= dimInputs1[i];
+            output_batch_size *= dimOutput[i];
+        }
 
         bool transA = op->getTransA();
         bool transB = op->getTransB();
 
-        int inputs0Array[3] = {dimInputs0[0], dimInputs0[1], dimInputs0[2]};
-        int inputs1Array[3] = {dimInputs1[0], dimInputs1[1], dimInputs1[2]};
-        int outputArray[3] = {dimOutput[0], dimOutput[1], dimOutput[2]};
+        int inputs0Array[3] = {input0_batch_size,
+                               dimInputs0[dimInputs0.size() - 2],
+                               dimInputs0[dimInputs0.size() - 1]};
+        int inputs1Array[3] = {input1_batch_size,
+                               dimInputs1[dimInputs1.size() - 2],
+                               dimInputs1[dimInputs1.size() - 1]};
+        int outputArray[3] = {output_batch_size,
+                              dimOutput[dimOutput.size() - 2],
+                              dimOutput[dimOutput.size() - 1]};
 
         // get inputs
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));

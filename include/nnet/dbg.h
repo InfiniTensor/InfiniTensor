@@ -231,7 +231,7 @@ template <typename... T> std::string type_list_to_string() {
         result.pop_back();
     }
     return result;
-}
+} // namespace dbg
 
 template <typename... T> std::string get_type_name(type_tag<std::tuple<T...>>) {
     return "std::tuple<" + type_list_to_string<T...>() + ">";

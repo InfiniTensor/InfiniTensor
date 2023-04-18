@@ -11,6 +11,8 @@
 #include "operators/reshape.h"
 #include "operators/slice.h"
 #include "operators/softmax.h"
+#include "operators/split.h"
+#include "operators/transpose.h"
 #include "operators/unary.h"
 
 namespace infini {
@@ -31,6 +33,24 @@ Tensor GraphHandlerObj::conv(Tensor input, Tensor weight, Tensor output, int ph,
         return g
             ->addOp<ConvObj>(std::move(input), std::move(weight), output, ph,
                              pw, sh, sw, dh, dw)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::convTransposed2d(Tensor input, Tensor weight,
+                                         Tensor output, int ph, int pw, int sh,
+                                         int sw, int dh, int dw, int oph,
+                                         int opw) {
+    if (output) {
+        g->addOpWithOutputs<ConvTransposed2dObj>(std::move(input),
+                                                 std::move(weight), output, ph,
+                                                 pw, sh, sw, dh, dw, oph, opw);
+        return output;
+    } else {
+        return g
+            ->addOp<ConvTransposed2dObj>(std::move(input), std::move(weight),
+                                         output, ph, pw, sh, sw, dh, dw, oph,
+                                         opw)
             ->getOutput();
     }
 }
@@ -128,8 +148,30 @@ DEFINE_UNARY_METHOD(relu, Relu)
 DEFINE_UNARY_METHOD(sigmoid, Sigmoid)
 DEFINE_UNARY_METHOD(tanh, Tanh)
 DEFINE_UNARY_METHOD(abs, Abs)
+DEFINE_UNARY_METHOD(shape, Shape)
+
 // see operators/reshape.h
 DEFINE_UNARY_METHOD(identity, Identity)
+
+Tensor GraphHandlerObj::pRelu(Tensor x, Tensor slope, Tensor y) {
+    if (y) {
+        g->addOpWithOutputs<PReluObj>(std::move(x), std::move(slope), y);
+        return y;
+    } else {
+        return g->addOp<PReluObj>(std::move(x), std::move(slope), y)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::clip(Tensor x, Tensor y, std::optional<float> min,
+                             std::optional<float> max) {
+    if (y) {
+        g->addOpWithOutputs<ClipObj>(std::move(x), y, min, max);
+        return y;
+    } else {
+        return g->addOp<ClipObj>(std::move(x), y, min, max)->getOutput();
+    }
+}
 
 Tensor GraphHandlerObj::softmax(Tensor input, Tensor output, int axis) {
     if (output) {
@@ -151,6 +193,16 @@ Tensor GraphHandlerObj::flatten(Tensor input, Tensor output, int axis) {
     }
 }
 
+Tensor GraphHandlerObj::transpose(Tensor data, Tensor transposed, Shape perm) {
+    if (transposed) {
+        g->addOpWithOutputs<TransposeObj>(std::move(data), transposed, perm);
+        return transposed;
+    } else {
+        return g->addOp<TransposeObj>(std::move(data), transposed, perm)
+            ->getOutput();
+    }
+}
+
 Tensor GraphHandlerObj::reshape(Tensor data, Tensor reshaped, Shape shape) {
     if (reshaped) {
         g->addOpWithOutputs<ReshapeObj>(std::move(data), reshaped,
@@ -168,6 +220,18 @@ Tensor GraphHandlerObj::concat(TensorVec inputs, Tensor output, int dim) {
         return output;
     } else {
         return g->addOp<ConcatObj>(std::move(inputs), output, dim)->getOutput();
+    }
+}
+
+TensorVec GraphHandlerObj::split(Tensor input, std::optional<TensorVec> outputs,
+                                 int axis, int num_outputs) {
+    if (outputs) {
+        g->addOpWithOutputs<SplitObj>(std::move(input), outputs, axis,
+                                      num_outputs);
+        return *outputs;
+    } else {
+        return g->addOp<SplitObj>(std::move(input), outputs, axis, num_outputs)
+            ->getOutputs();
     }
 }
 

@@ -60,6 +60,52 @@ class ActivationCudnn : public CudaKernelWithoutConfig {
     }
 };
 
+class SoftmaxCudnn : public CudaKernelWithoutConfig {
+    virtual cudnnSoftmaxAlgorithm_t getAlgorithmType() const = 0;
+    virtual cudnnSoftmaxMode_t getModeType() const = 0;
+    virtual tuple<float, float> getAlphBeta() const { return {1.f, 0.f}; }
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<UnaryObj>(_op);
+        auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
+
+        void *const inputData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const outputData = (op->getOutput()->getRawDataPtr<void *>());
+
+        cudnnTensorDescriptor_t inputDesc, outputDesc;
+        auto dim = op->getInputs(0)->getDims();
+        if (dim.size() > 4)
+            IT_TODO_HALT();
+        int dim_array[4] = {1, 1, 1, 1};
+        memcpy(dim_array + (4 - dim.size()), dim.data(),
+               dim.size() * sizeof(int));
+
+        // get inputs
+        checkCudnnError(cudnnCreateTensorDescriptor(&inputDesc));
+        checkCudnnError(cudnnSetTensor4dDescriptor(
+            inputDesc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, dim_array[0],
+            dim_array[1], dim_array[2], dim_array[3]));
+
+        // get outputs
+        checkCudnnError(cudnnCreateTensorDescriptor(&outputDesc));
+        checkCudnnError(cudnnSetTensor4dDescriptor(
+            outputDesc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, dim_array[0],
+            dim_array[1], dim_array[2], dim_array[3]));
+
+        auto [alpha, beta] = getAlphBeta();
+        cudnnStatus_t stat = cudnnSoftmaxForward(
+            context->cudnnHandle(), getAlgorithmType(), getModeType(), &alpha,
+            inputDesc, inputData, &beta, outputDesc, outputData);
+        if (stat != CUDNN_STATUS_SUCCESS)
+            return;
+
+        // Destories in CUDA does not require sync. But cuDNN does not state
+        // whether sync is required before destories.
+        checkCudnnError(cudnnDestroyTensorDescriptor(inputDesc));
+        checkCudnnError(cudnnDestroyTensorDescriptor(outputDesc));
+    }
+};
+
 class ReluCudnn : public ActivationCudnn {
     cudnnActivationMode_t getOpType() const override {
         return CUDNN_ACTIVATION_RELU;

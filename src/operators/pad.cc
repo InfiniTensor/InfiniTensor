@@ -13,7 +13,8 @@ PadObj::PadObj(GraphObj *graph, Tensor input, Tensor output,
         pads = vector<int>(nDims * 2, 0);
 
         for (size_t i = 0; i < nAxis; ++i) {
-            auto j = (*axes)[i];
+            auto k = (*axes)[i];
+            auto j = k < 0 ? nDims + k : k;
             pads[j] = _pads[i];
             pads[j + nDims] = _pads[i + nAxis];
         }

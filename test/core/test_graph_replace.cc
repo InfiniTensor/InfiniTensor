@@ -281,7 +281,7 @@ TEST(MatchGraph, multi_input_output) {
     SubGraph subg0 = make_ref<SubGraphObj>(runtime, TensorVec{i0, i1});
     {
         auto slice = subg0->addOp<SliceObj>(i0, nullptr, vector<int>{0, 0},
-                                            vector<int>{55, 55},
+                                            vector<int>{56, 56},
                                             vector<int>{2, 3}, std::nullopt);
         auto relu0 = subg0->addOp<ReluObj>(slice->getOutput(0), nullptr);
         Tensor w0 = subg0->addTensor(Shape{256, 64, 1, 1}, DataType::UInt32);
@@ -303,7 +303,7 @@ TEST(MatchGraph, multi_input_output) {
     SubGraph subg1 = make_ref<SubGraphObj>(runtime, TensorVec{i1, i0});
     {
         auto slice = subg1->addOp<SliceObj>(i0, nullptr, vector<int>{0, 0},
-                                            vector<int>{55, 55},
+                                            vector<int>{56, 56},
                                             vector<int>{2, 3}, std::nullopt);
         auto relu0 = subg1->addOp<ReluObj>(slice->getOutput(0), nullptr);
         Tensor w0 = subg1->addTensor(Shape{256, 64, 1, 1}, DataType::UInt32);
@@ -328,7 +328,7 @@ TEST(MatchGraph, multi_input_output) {
 
         auto slice = subg2->addOp<SliceObj>(
             extend->getOutput(0), nullptr, vector<int>{0, 0},
-            vector<int>{55, 55}, vector<int>{2, 3}, std::nullopt);
+            vector<int>{56, 56}, vector<int>{2, 3}, std::nullopt);
 
         auto extend1 = subg2->addOp<ExtendObj>(i1, nullptr, 1, 3);
         auto add = subg2->addOp<AddObj>(extend1->getOutput(0),

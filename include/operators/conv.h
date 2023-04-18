@@ -149,6 +149,29 @@ class ConvObj : public ConvBaseObj {
     void setAuxilaryAttributes(PaddingMode mode) override;
 };
 
+class ConvBackwardFilterObj : public ConvBaseObj {
+  private:
+    ActType act;
+
+  public:
+    ConvBackwardFilterObj(GraphObj *graph, Tensor inputX, Tensor diffY,
+                          Tensor diffW, int ph, int pw, int sh = 1, int sw = 1,
+                          int dh = 1, int dw = 1, Tensor bias = nullptr,
+                          ActType act = ActType::None);
+    // Constructors for setting padding mode
+    ConvBackwardFilterObj(GraphObj *graph, Tensor inputX, Tensor diffY,
+                          Tensor diffW, PaddingMode mode = PaddingMode::Same,
+                          int sh = 1, int sw = 1, int dh = 1, int dw = 1,
+                          Tensor bias = nullptr, ActType act = ActType::None);
+
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    ActType getAct() const { return act; }
+    int getNumGroups() const override { return c / getChannelPerGroup(); }
+
+  private:
+    void setAuxilaryAttributes(PaddingMode mode) override;
+};
+
 class ConvTransposed2dObj : public ConvBaseObj {
   private:
     int oph, opw;
@@ -170,6 +193,7 @@ class ConvTransposed2dObj : public ConvBaseObj {
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
     int getNumGroups() const override { return group; }
+    std::pair<int, int> getOutputPadding() const { return {oph, opw}; }
 
   private:
     void setAuxilaryAttributes(PaddingMode mode) override;

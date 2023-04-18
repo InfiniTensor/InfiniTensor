@@ -46,6 +46,9 @@ class GraphHandlerObj {
 
     Tensor conv(Tensor input, Tensor weight, Tensor output, int ph, int pw,
                 int sh, int sw, int dh, int dw);
+    Tensor convTransposed2d(Tensor input, Tensor weight, Tensor output, int ph,
+                            int pw, int sh, int sw, int dh, int dw, int oph,
+                            int opw);
     Tensor matmul(Tensor a, Tensor b, Tensor y, bool transA, bool transB,
                   Tensor bias, ActType act);
     Tensor batchNorm(Tensor input, Tensor output, Tensor mean, Tensor var,
@@ -68,10 +71,17 @@ class GraphHandlerObj {
     Tensor tanh(Tensor x, Tensor y);
     Tensor softmax(Tensor x, Tensor y, int axis);
     Tensor abs(Tensor x, Tensor y);
+    Tensor shape(Tensor x, Tensor y);
     Tensor identity(Tensor x, Tensor y);
     Tensor flatten(Tensor s, Tensor y, int axis);
+    Tensor pRelu(Tensor x, Tensor slope, Tensor y);
+    Tensor clip(Tensor x, Tensor y, std::optional<float> min,
+                std::optional<float> max);
+    Tensor transpose(Tensor data, Tensor transposed, Shape perm);
     Tensor reshape(Tensor data, Tensor reshaped, Shape shape);
     Tensor concat(TensorVec inputs, Tensor output, int dim);
+    TensorVec split(Tensor input, std::optional<TensorVec> outputs, int axis,
+                    int num_outputs);
     Tensor gather(Tensor data, Tensor indices, Tensor output, int axis);
     Tensor reduceMean(Tensor data, Tensor reduced,
                       const optional<vector<int>> &axes, bool keepdims);
@@ -84,6 +94,8 @@ class GraphHandlerObj {
     //------ modifiers
 
     inline bool topo_sort() { return g->topo_sort(); }
+
+    inline void optimize() { g->optimize(); }
 
     //------ runtime
 

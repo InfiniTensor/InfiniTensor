@@ -34,7 +34,7 @@ class SliceCuda : private PadSliceCudaCompute, public CudaKernelWithoutConfig {
     void compute(const Operator &op,
                  const RuntimeObj *_context) const override {
         do_compute(op->getOutput(), op->getInputs(0),
-                   as<SliceObj>(op)->getStart(), false);
+                   as<SliceObj>(op)->getStarts(), false);
     }
 };
 

@@ -7,18 +7,20 @@ from onnx.helper import (
     make_graph,
     make_tensor_value_info,
 )
-from onnx.checker import check_model
-from pyinfinitensor.onnx import from_onnx, backend, runtime, run_onnx
+from onnx.checker import check_model, check_graph
+from onnx.shape_inference import infer_shapes
+from pyinfinitensor.onnx import from_onnx, OnnxStub, backend
 
 
 def make_and_import_model(graph: onnx.GraphProto):
+    check_graph(graph)
     model = make_model(graph)
     check_model(model)
-    from_onnx(model, runtime)
+    from_onnx(model, backend.cpu_runtime())
 
 
 class TestStringMethods(unittest.TestCase):
-    #def test_run(self):
+    # def test_run(self):
     #    model_file = next(
     #        (name for name in os.listdir() if name.endswith(".onnx")), None
     #    )
@@ -31,16 +33,17 @@ class TestStringMethods(unittest.TestCase):
     #        run_onnx(onnx.load(model_file), runtime)
 
     def test_load(self):
-        model_file = next(
-            (name for name in os.listdir() if name.endswith(".onnx")), None
-        )
-        if model_file != None:
-            print(
-                "model: {file}({size:.2f} MiB)".format(
-                    file=model_file, size=os.path.getsize(model_file) / 1024 / 1024
+        for model_file in os.listdir():
+            if model_file.endswith(".onnx"):
+                print(
+                    "model: {file}({size:.2f} MiB)".format(
+                        file=model_file, size=os.path.getsize(model_file) / 1024 / 1024
+                    )
                 )
-            )
-            from_onnx(onnx.load(model_file), runtime)
+                model = OnnxStub(onnx.load(model_file), backend.cpu_runtime()).to_onnx(
+                    "new"
+                )
+                model = infer_shapes(model)
 
     def test_tensor(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 2, 3])
@@ -55,7 +58,7 @@ class TestStringMethods(unittest.TestCase):
             ["i", "w"],
             ["o"],
             "conv",
-            pads=[1, 1],
+            pads=[1, 1, 1, 1],
             strides=[2, 1],
             dilations=[1, 2],
         )
@@ -102,7 +105,7 @@ class TestStringMethods(unittest.TestCase):
             ["y"],
             kernel_shape=[3, 3],
             dilations=[1, 1],
-            pads=[0, 0],
+            pads=[0, 0, 0, 0],
             strides=[2, 2],
             name="maxPool",
         )
@@ -116,7 +119,7 @@ class TestStringMethods(unittest.TestCase):
             ["x"],
             ["y"],
             kernel_shape=[3, 3],
-            pads=[0, 0],
+            pads=[0, 0, 0, 0],
             strides=[2, 2],
             name="avgPool",
         )
@@ -206,7 +209,7 @@ class TestStringMethods(unittest.TestCase):
 
     def test_flatten(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
-        y = make_tensor_value_info("y", TensorProto.FLOAT, [1*3,  5 * 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1 * 3, 5 * 7])
         flatten = make_node("Flatten", ["x"], ["y"], axis=2, name="flatten")
         # make_and_import_model(
         make_graph([flatten], "flatten", [x], [y])
@@ -254,22 +257,19 @@ class TestStringMethods(unittest.TestCase):
 
     def test_slice(self):
         data = make_tensor_value_info("data", TensorProto.UINT32, [10, 64, 162, 162])
-        output = make_tensor_value_info("output", TensorProto.UINT32, [1, 0, 99, 95])
-        starts = make_tensor_value_info("starts", TensorProto.INT64, [4])
-        starts_data = make_tensor("starts", TensorProto.INT64, [4], [2, 10, 1, 5])
-        ends = make_tensor_value_info("ends", TensorProto.INT64, [4])
-        ends_data = make_tensor("ends", TensorProto.INT64, [4], [3, 10, 100, 100])
+        output = make_tensor_value_info("output", TensorProto.UINT32, [1, 1, 99, 95])
+        starts = make_tensor("starts", TensorProto.INT64, [4], [2, 9, 1, 5])
+        ends = make_tensor("ends", TensorProto.INT64, [4], [3, 10, 100, 100])
         slice = make_node("Slice", ["data", "starts", "ends"], ["output"], name="slice")
-        # FIXME 后端的实现是 axis:[start,end]，onnx 的实现是 axis:[start,end)
-        # make_and_import_model(
-        make_graph(
-            [slice],
-            "slice",
-            [data, starts, ends],
-            [output],
-            [starts_data, ends_data],
+        make_and_import_model(
+            make_graph(
+                [slice],
+                "slice",
+                [data],
+                [output],
+                [starts, ends],
+            )
         )
-        # )
 
     def test_pad(self):
         data = make_tensor_value_info("data", TensorProto.UINT32, [1, 64, 162, 162])
@@ -300,10 +300,10 @@ class TestStringMethods(unittest.TestCase):
         graph = make_graph([matmul, add], "lr", [x, a, b], [y])
         model = make_model(graph)
         check_model(model)
-        from_onnx(model, runtime)
+        from_onnx(model, backend.cpu_runtime())
 
     def test_frontend(self):
-        handler = backend.GraphHandler(runtime)
+        handler = backend.GraphHandler(backend.cpu_runtime())
         a = handler.tensor([1, 2, 3], 12)
         b = handler.tensor([1, 2, 3], 12)
         c = handler.tensor([1, 2, 3], 12)

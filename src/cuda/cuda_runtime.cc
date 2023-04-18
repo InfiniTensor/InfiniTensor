@@ -1,6 +1,7 @@
 #include "cuda/cuda_runtime.h"
 #include "core/kernel.h"
 #include "core/perf_engine.h"
+#include "core/runtime.h"
 #include "operators/conv.h"
 #include "operators/matmul.h"
 namespace infini {
@@ -16,10 +17,11 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph) const {
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
         auto perfData = perfEngine.getPerfData(perfKey);
         // IT_ASSERT(perfData, "No perf data for OP " + op->toString());
-        if (perfData)
+        if (perfData) {
             kernel->compute(op, perfData, this);
-        else
+        } else {
             kernel->compute(op, this);
+        }
     }
 }
 

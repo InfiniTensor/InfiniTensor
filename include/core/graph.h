@@ -59,6 +59,8 @@ class GraphObj : public Object {
      */
     bool topo_sort();
 
+    void optimize();
+
     void dataMalloc();
 
     /**
