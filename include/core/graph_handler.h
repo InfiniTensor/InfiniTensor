@@ -40,11 +40,17 @@ class GraphHandlerObj {
 
     explicit GraphHandlerObj(Graph g) : g(std::move(g)) {}
 
+    //------ tensors
+
+    vector<Tensor> inputs() { return g->getInputs(); }
+
+    vector<Tensor> outputs() { return g->getOutputs(); }
+
     Tensor tensor(Shape dims, int dtype);
 
     //------ operators
 
-    inline OpVec operators() { return g->getOperators(); }
+    OpVec operators() { return g->getOperators(); }
 
     Tensor conv(Tensor input, Tensor weight, Tensor output, int ph, int pw,
                 int sh, int sw, int dh, int dw);
@@ -95,15 +101,15 @@ class GraphHandlerObj {
 
     //------ modifiers
 
-    inline bool topo_sort() { return g->topo_sort(); }
+    bool topo_sort() { return g->topo_sort(); }
 
-    inline void optimize() { g->optimize(); }
+    void optimize() { g->optimize(); }
 
     //------ runtime
 
-    inline void data_malloc() { g->dataMalloc(); }
+    void data_malloc() { g->dataMalloc(); }
 
-    inline void run() { g->getRuntime()->run(g); }
+    void run() { g->getRuntime()->run(g); }
 };
 
 } // namespace infini

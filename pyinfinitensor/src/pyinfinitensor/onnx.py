@@ -537,14 +537,19 @@ class OnnxStub:
                 else:
                     assert False, "Unsupported Tensor Type: {}".format(tensor.data_type)
 
-        return ans
-
         for output in model.graph.output:
             self.outputs[output.name] = tensors[output.name]
 
+        return ans
+
     @classmethod
-    def from_graph(cls, handler: backend.GraphHandler):
+    def from_graph(cls, g: backend.Graph):
         ans = OnnxStub()
+        handler = backend.GraphHandler(g)
+        for i, tensor in enumerate(handler.inputs()):
+            ans.inputs["input{}".format(i)] = tensor
+        for i, tensor in enumerate(handler.outputs()):
+            ans.inputs["output{}".format(i)] = tensor
         ans.handler = handler
         return ans
 

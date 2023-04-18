@@ -309,6 +309,9 @@ void init_graph_builder(py::module &m) {
              policy::reference);
     py::class_<Handler>(m, "GraphHandler")
         .def(py::init<Runtime>())
+        .def(py::init<Graph>())
+        .def("inputs", &Handler::inputs, policy::move)
+        .def("outputs", &Handler::outputs, policy::move)
         .def("tensor", &Handler::tensor, policy::move)
         .def("conv", &Handler::conv, policy::move)
         .def("convTransposed2d", &Handler::convTransposed2d, policy::move)
