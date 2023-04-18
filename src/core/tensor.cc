@@ -67,12 +67,19 @@ vector<size_t> TensorObj::getStride() const {
 
 void TensorObj::printData() const {
     IT_ASSERT(data != nullptr);
-    if (!runtime->isCpu())
-        IT_TODO_HALT();
+    void *ptr = nullptr;
+    Blob buffer;
+    if (!runtime->isCpu()) { // copy data to main memory
+        buffer = NativeCpuRuntimeObj::getInstance()->allocBlob(getBytes());
+        runtime->copyBlobToCPU(buffer->getPtr<void *>(),
+                               getRawDataPtr<void *>(), getBytes());
+        ptr = buffer->getPtr<void *>();
+    } else
+        ptr = data->getPtr<float *>();
 
 #define TRY_PRINT(N)                                                           \
     if (dtype == DataType(N))                                                  \
-        std::cout << dataToString<DT<N>::t>() << std::endl;
+        std::cout << dataToString<DT<N>::t>(ptr) << std::endl;
 
     TRY_PRINT(0)          // fmt: new line
     else TRY_PRINT(1)     //

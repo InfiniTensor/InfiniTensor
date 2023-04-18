@@ -109,13 +109,13 @@ class TensorObj : public TensorBaseObj {
     size_t getOffsetByBroadcastOffset(size_t bcOffset, Shape bcShape) const;
 
   private:
-    template <class T> string dataToString() const {
+    template <class T> string dataToString(void *rawPtr) const {
         std::stringstream builder;
         builder << "Tensor: " << guid << std::endl;
 
         auto numDims = shape.size();
         auto dimSzVec = vector<int>(numDims, 1);
-        auto ptr = data->getPtr<T *>();
+        T *ptr = (T *)rawPtr;
         dimSzVec[numDims - 1] = shape[numDims - 1];
 
         for (int i = numDims - 1; i != 0; --i)

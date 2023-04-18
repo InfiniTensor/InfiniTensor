@@ -121,6 +121,7 @@ class OpRegistry {
             FOP(ConvBackwardData);
             FOP(Matmul);
             FOP(ConvTrans);
+            FOP(ConvTransNHWC);
             FOP(G2BMM);
             FOP(GBMM);
             FOP(Pad);
@@ -209,7 +210,8 @@ class OpRegistry {
             //
             FOP(MemBound);
         default:
-            IT_ASSERT(false);
+            IT_ASSERT(false, "Unknown OpType " +
+                                 std::to_string(enum_to_underlying(opType)));
             break;
         }
 #undef FOP
