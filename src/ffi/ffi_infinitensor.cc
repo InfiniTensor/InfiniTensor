@@ -263,9 +263,14 @@ void init_graph_builder(py::module &m) {
 
 Graph getInfoGAN(int batch, Runtime runtime, int nLayers);
 vector<Tensor> runInfoGAN(int nLayers);
+Graph getConvtransposedNHWC(Runtime runtime, Shape shape, int layerId);
+Graph optimizeGraph(Graph g, Runtime runtime, bool tuning);
 void export_test_model(py::module &m) {
     m.def("runInfoGAN", &runInfoGAN);
     m.def("getInfoGAN", &getInfoGAN);
+    m.def("getConvtransposedNHWC", &getConvtransposedNHWC);
+    m.def("optimizeGraph", &optimizeGraph, "graph"_a, "runtime"_a,
+          "tuning"_a = false);
 }
 
 } // namespace infini
