@@ -65,15 +65,12 @@ enum class OpType {
     Erf,
     Exp,
     Fill,
-    Log_e,
-    Log_2,
-    Log_10,
-    Log1p,
+    Log,
     L2Loss,
     Maximum,
     Minimum,
     MSELoss,
-    NegTensor,
+    Neg,
     Power,
     Reciprocal,
     Sqrt,
@@ -175,15 +172,12 @@ class OpRegistry {
             FOP(Erf);
             FOP(Exp);
             FOP(Fill);
-            FOP(Log_e);
-            FOP(Log_2);
-            FOP(Log_10);
-            FOP(Log1p);
+            FOP(Log);
             FOP(L2Loss);
             FOP(Maximum);
             FOP(Minimum);
             FOP(MSELoss);
-            FOP(NegTensor);
+            FOP(Neg);
             FOP(Power);
             FOP(Reciprocal);
             FOP(Sqrt);

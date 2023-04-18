@@ -9,9 +9,8 @@
 namespace infini {
 
 template <class T>
-void testNegTensor(
-    const std::function<void(void *, size_t, DataType)> &generator,
-    const Shape &shape) {
+void testNeg(const std::function<void(void *, size_t, DataType)> &generator,
+             const Shape &shape) {
     // Runtime
     Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     auto bangRuntime = make_ref<BangRuntimeObj>();
@@ -34,8 +33,8 @@ void testNegTensor(
     EXPECT_TRUE(1);
 }
 
-TEST(cnnl_NegTensor, run) {
-    testNegTensor<NegTensorObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+TEST(cnnl_Neg, run) {
+    testNeg<NegObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
 }
 
 } // namespace infini

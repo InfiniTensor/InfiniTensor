@@ -4,14 +4,28 @@
 
 namespace infini {
 class LogCnnl : public BangKernelWithoutConfig {
-    virtual cnnlLogBase_t getOpType() const = 0;
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
-        auto op = as<UnaryObj>(_op);
+        auto op = as<LogObj>(_op);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+        auto type = op->getType();
+        cnnlLogBase_t base;
+        switch (type) {
+        case LogObj::Log2:
+            base = CNNL_LOG_2;
+            break;
+        case LogObj::LogE:
+            base = CNNL_LOG_E;
+            break;
+        case LogObj::Log10:
+            base = CNNL_LOG_10;
+            break;
+        default:
+            IT_TODO_HALT();
+        }
 
         cnnlTensorDescriptor_t aDesc, cDesc;
         auto dim = op->getInputs(0)->getDims();
@@ -31,7 +45,7 @@ class LogCnnl : public BangKernelWithoutConfig {
 
         cnnlStatus_t stat =
             cnnlLog_v2(context->cnnlHandle(), CNNL_COMPUTATION_HIGH_PRECISION,
-                       getOpType(), aDesc, aData, cDesc, cData);
+                       base, aDesc, aData, cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
@@ -42,21 +56,7 @@ class LogCnnl : public BangKernelWithoutConfig {
     }
 };
 
-class LogECnnl : public LogCnnl {
-    cnnlLogBase_t getOpType() const override { return CNNL_LOG_E; }
-};
-class Log2Cnnl : public LogCnnl {
-    cnnlLogBase_t getOpType() const override { return CNNL_LOG_2; }
-};
-class Log10Cnnl : public LogCnnl {
-    cnnlLogBase_t getOpType() const override { return CNNL_LOG_10; }
-};
-
-REGISTER_KERNEL(Device::BANG, OpType::Log_e, DataType::Float32, LogECnnl,
-                "Loge_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Log_2, DataType::Float32, Log2Cnnl,
-                "Loge_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Log_10, DataType::Float32, Log10Cnnl,
-                "Loge_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Log, DataType::Float32, LogCnnl,
+                "Log_cnnl_BANG_Float32");
 
 }; // namespace infini

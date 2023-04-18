@@ -51,38 +51,6 @@ class MSELossObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 };
 
-class AddNObj : public OperatorObj {
-  public:
-    AddNObj(GraphObj *graph, int tensorNum, Tensor output, ...);
-    OP_CLONE(AddNObj);
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
-
-    std::string toString() const override;
-    int numInputs() const override { return num; }
-    int numOutputs() const override { return 1; }
-
-  private:
-    int num;
-    vector<int> getWorkloadVector() const override;
-    vector<int> getOpAttrVector() const override;
-};
-
-class MulNObj : public OperatorObj {
-  public:
-    MulNObj(GraphObj *graph, int tensorNum, Tensor output, ...);
-    OP_CLONE(MulNObj);
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
-
-    std::string toString() const override;
-    int numInputs() const override { return num; }
-    int numOutputs() const override { return 1; }
-
-  private:
-    int num;
-    vector<int> getWorkloadVector() const override;
-    vector<int> getOpAttrVector() const override;
-};
-
 #define DEFINE_ELEMENT_WISE_OBJ(prefix, type)                                  \
     class prefix##Obj : public ElementWiseObj {                                \
       public:                                                                  \

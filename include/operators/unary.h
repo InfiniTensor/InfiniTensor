@@ -244,25 +244,27 @@ class PReluObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 };
 
-// class CumprodObj : public OperatorObj {
-//   public:
-//     CumprodObj(GraphObj *graph, Tensor input, Tensor output, int axis, bool
-//     exclusive, bool reverse); optional<vector<Shape>> inferShape(const
-//     TensorVec &inputs) const override;
-//
-//     std::string toString() const override;
-//     int getAxis() const { return axisValue; }
-//     float getExclusive() const { return exclusiveValue; }
-//     float getReverse() const { return reverseValue; }
-//     int numInputs() const override { return 1; }
-//     int numOutputs() const override { return 1; }
-//
-//   private:
-//     int axisValue;
-//     bool exclusiveValue, reverseValue;
-//     vector<int> getWorkloadVector() const override;
-//     vector<int> getOpAttrVector() const override;
-// };
+class LogObj : public OperatorObj {
+  public:
+    enum LogType {
+        LogE = 0,
+        Log2,
+        Log10,
+    };
+    LogObj(GraphObj *graph, Tensor input, Tensor output, LogType type);
+    OP_CLONE(LogObj);
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+
+    std::string toString() const override;
+    LogType getType() const { return logType; }
+    int numInputs() const override { return 1; }
+    int numOutputs() const override { return 1; }
+
+  private:
+    LogType logType;
+    vector<int> getWorkloadVector() const override;
+    vector<int> getOpAttrVector() const override;
+};
 
 #define DEFINE_UNARY_OBJ(prefix, type)                                         \
     class prefix##Obj : public UnaryObj {                                      \
@@ -296,11 +298,7 @@ DEFINE_UNARY_OBJ(Ceil, OpType::Ceil)
 DEFINE_UNARY_OBJ(Floor, OpType::Floor)
 DEFINE_UNARY_OBJ(Erf, OpType::Erf)
 DEFINE_UNARY_OBJ(Exp, OpType::Exp)
-DEFINE_UNARY_OBJ(Log_e, OpType::Log_e)
-DEFINE_UNARY_OBJ(Log_2, OpType::Log_2)
-DEFINE_UNARY_OBJ(Log_10, OpType::Log_10)
-DEFINE_UNARY_OBJ(Log1p, OpType::Log1p)
-DEFINE_UNARY_OBJ(NegTensor, OpType::NegTensor)
+DEFINE_UNARY_OBJ(Neg, OpType::Neg)
 DEFINE_UNARY_OBJ(Reciprocal, OpType::Reciprocal)
 DEFINE_UNARY_OBJ(Sqrt, OpType::Sqrt)
 DEFINE_UNARY_OBJ(Rsqrt, OpType::Rsqrt)

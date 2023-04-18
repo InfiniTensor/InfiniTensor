@@ -10,7 +10,7 @@ namespace infini {
 
 template <class T>
 void testLog(const std::function<void(void *, size_t, DataType)> &generator,
-             const Shape &shape) {
+             const Shape &shape, LogObj::LogType type) {
     // Runtime
     Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     auto bangRuntime = make_ref<BangRuntimeObj>();
@@ -23,7 +23,7 @@ void testLog(const std::function<void(void *, size_t, DataType)> &generator,
     // GPU
     Graph bangGraph = make_ref<GraphObj>(bangRuntime);
     auto inputGpu = bangGraph->cloneTensor(inputCpu);
-    auto gpuOp = bangGraph->addOp<T>(inputGpu, nullptr);
+    auto gpuOp = bangGraph->addOp<T>(inputGpu, nullptr, type);
     bangGraph->dataMalloc();
     bangRuntime->run(bangGraph);
     auto outputGpu = gpuOp->getOutput();
@@ -34,9 +34,9 @@ void testLog(const std::function<void(void *, size_t, DataType)> &generator,
 }
 
 TEST(cnnl_Log, run) {
-    testLog<Log_eObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    testLog<Log_2Obj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    testLog<Log_10Obj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    testLog<LogObj>(IncrementalGenerator(), Shape{1, 2, 2, 3}, LogObj::Log2);
+    testLog<LogObj>(IncrementalGenerator(), Shape{1, 2, 2, 3}, LogObj::LogE);
+    testLog<LogObj>(IncrementalGenerator(), Shape{1, 2, 2, 3}, LogObj::Log10);
 }
 
 } // namespace infini
