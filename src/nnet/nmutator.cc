@@ -78,16 +78,14 @@ void NMutator::runSingleOp(Graph in_graph, std::vector<Graph> &out_graphs) {
     OpVec computeOps = in_graph->getComputeOps();
     IT_ASSERT(computeOps.size() == 1);
 
-    /* if (infini::Graph g = transformTConv1x1(computeOps[0])) {
+    // if (infini::Graph g = transformTConv1x1(computeOps[0])) {
     //     out_graphs.emplace_back(g);
     //     return;
     // }
-    // // Commented for debug, not implemented yet
-    // // if (infini::Graph g = transformTConv3x3(computeOps[0])) {
-    // //     Graph graph = new Graph(g->getOperators());
-    // //     out_graphs.emplace_back(graph);
-    // //     return;
-    // // }
+    if (Graph g = transformConvtransposed1x1(computeOps[0])) {
+        out_graphs.emplace_back(g);
+        return;
+    }
     // if (infini::Graph g = transformDialtedConv(computeOps[0])) {
     //     out_graphs.emplace_back(g);
     //     return;
@@ -519,43 +517,82 @@ double NMutator::memboundTime(const Shape &dims) {
 //     return nullptr;
 // }
 
-// Graph NMutator::transformTConv3x3(Operator op) {
-//     if (auto tconvOp = dynamic_cast<ConvTransOp *>(op)) {
-//         dbg(tconvOp->getInputs()[1]->getDims());
-//         if (tconvOp->getPh() == 1 && tconvOp->getSh() == 2 &&
-//             tconvOp->getInputs()[1]->getDims()[0] == 3 &&
-//             tconvOp->getInputs()[1]->getDims()[1] == 3) {
-//             auto g = new infini::Graph();
-//             auto inputDims = tconvOp->getInputs(0)->getDims();
-//             auto weightDims = tconvOp->getInputs(1)->getDims();
-//             auto outputDims = tconvOp->getOutput()->getDims();
-//             // NHWF
-//             auto newA = g->tensor(
-//                 {inputDims[0] * inputDims[1] * inputDims[2], inputDims[3]});
-//             // RSFC
-//             auto newW = g->tensor(
-//                 {weightDims[0] * weightDims[1] * weightDims[3],
-//                 weightDims[2]});
-//             auto newO =
-//                 g->tensor({inputDims[0] * inputDims[1] * inputDims[2],
+Graph NMutator::transformConvtransposed1x1(Operator _op) {
+    auto op = as<ConvTransposed2dNHWCObj>(_op);
+    if (!op)
+        return nullptr;
+    const auto &A = op->getInputs()[0];
+    const auto &W = op->getInputs()[1];
+    const auto &[n, c, h, w, f, r, s] = op->getNCHWFRS();
+    const auto &[ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
+    const Shape inputDims = op->getInputs(0)->getDims();
+    const Shape weightDims = op->getInputs(1)->getDims();
+    const Shape outputDims = op->getOutput()->getDims();
+    const DataType dtype = A->getDType();
+    IT_ASSERT_TODO(op->getNumGroups() == 1);
+    if (h != 1 || w != 1)
+        return {};
+    IT_ASSERT_TODO(ph == pw);
+    IT_ASSERT_TODO(tie(sh, sw) == tuple(1, 1));
+    IT_ASSERT_TODO(tie(dh, dw) == tuple(1, 1));
+    auto g = make_ref<GraphObj>(runtime);
+    // NHWF
+    auto newA = g->addTensor(
+        {inputDims[0] * inputDims[1] * inputDims[2], inputDims[3]}, dtype);
+    // FRSC
+    auto newW = g->addTensor(
+        {weightDims[0], weightDims[1] * weightDims[2] * weightDims[3]}, dtype);
+    g->addOpWithOutputs<ReshapeObj>(g->cloneTensor(A), newA, newA->getDims());
+    g->addOpWithOutputs<ReshapeObj>(g->cloneTensor(W), newW, newW->getDims());
+    Tensor newO = g->addOp<MatmulObj>(newA, newW, nullptr, 0, 0)->getOutput();
+    g->addOpWithOutputs<ReshapeObj>(newO, g->cloneTensor(op->getOutput()),
+                                    op->getOutput()->getDims());
+    return g;
+}
+
+// Graph NMutator::transformConvtransposed(Operator _op) {
+//     auto op = as<ConvTransposed2dNHWCObj>(_op);
+//     if (!op)
+//         return nullptr;
+//     const auto &AT = op->getInputs()[0];
+//     const auto &KT = op->getInputs()[1];
+//     const auto &[n, c, h, w, f, r, s] = op->getNCHWFRS();
+//     const auto &[ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
+//     IT_ASSERT_TODO(op->getNumGroups() == 1);
+//     if (r != 4)
+//         return {};
+//     IT_ASSERT_TODO(ph == pw);
+//     IT_ASSERT_TODO(tie(sh, sw) == tuple(2, 2));
+//     IT_ASSERT_TODO(tie(dh, dw) == tuple(1, 1));
+
+//     auto g = make_ref<Graph>();
+//     // TODO: implement transformation rules
+//     // How to efficiently write an expression...
+//     auto inputDims = op->getInputs(0)->getDims();
+//     auto weightDims = op->getInputs(1)->getDims();
+//     auto outputDims = op->getOutput()->getDims();
+//     // NHWF
+//     auto newA =
+//         g->tensor({inputDims[0] * inputDims[1] * inputDims[2],
+//         inputDims[3]});
+//     // RSFC
+//     auto newW = g->tensor(
+//         {weightDims[0] * weightDims[1] * weightDims[3], weightDims[2]});
+//     auto newO = g->tensor({inputDims[0] * inputDims[1] * inputDims[2],
 //                            weightDims[0] * weightDims[1] * weightDims[3]});
-//             g->reshape(tconvOp->getInputs(0), newA);
-//             g->reshape(tconvOp->getInputs(1), newW);
-//             g->matmul(newA, newW, newO, 0, 1);
-//             // g->reshape(newO, tconvOp->getOutput());
-//             tconvOp->print();
-//             dbg(newO->size() * 4, tconvOp->getOutput()->size() * 9);
-//             assert(newO->size() * 4 == tconvOp->getOutput()->size() * 9);
-//             g->membound(
-//                 {newO}, {tconvOp->getOutput()}, {}, nullptr,
+//     g->reshape(op->getInputs(0), newA);
+//     g->reshape(op->getInputs(1), newW);
+//     g->matmul(newA, newW, newO, 0, 1);
+//     // g->reshape(newO, tconvOp->getOutput());
+//     tconvOp->print();
+//     dbg(newO->size() * 4, tconvOp->getOutput()->size() * 9);
+//     assert(newO->size() * 4 == tconvOp->getOutput()->size() * 9);
+//     g->membound({newO}, {tconvOp->getOutput()}, {}, nullptr,
 //                 memboundTime(newO->size() + tconvOp->getOutput()->size()),
 //                 "TConv3x3 reduce");
-//             g->updateConnection();
-//             Graph graph = new Graph(g->getOperators());
-//             return graph;
-//         }
-//     }
-//     return nullptr;
+//     g->updateConnection();
+//     Graph graph = new Graph(g->getOperators());
+//     return graph;
 // }
 
 // Graph NMutator::transformTConv1x1(Operator op) {
@@ -709,6 +746,15 @@ NMutator::generateUnaryExpr(const Operator &op) {
     }
     return {makeRangeOperator(varRanges, {}, func),
             NameNToTensorT{{"T", op->getInputs()[0]}}};
+}
+
+void NMutator::memboundToJson(const Graph &g, const string path) {
+    for (auto &_op : g->getOperators()) {
+        if (auto op = as<MemBoundObj>(_op)) {
+            op->saveAsJson(path + "/" + "membound_" +
+                           std::to_string(op->getGuid()) + ".json");
+        }
+    }
 }
 
 } // namespace infini

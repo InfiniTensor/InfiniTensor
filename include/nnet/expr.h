@@ -104,7 +104,7 @@ enum class NodeType {
     FuncNodeType
 };
 
-enum class FuncType { Relu, Tanh, PRelu };
+enum class FuncType { Relu = 1000, Tanh, PRelu };
 
 #define DEFINE_GETTYPE(CLASS, isScalar_v)                                      \
     NodeType getType() const override { return NodeType::CLASS##Type; }        \

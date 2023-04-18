@@ -341,7 +341,8 @@ void init_graph_builder(py::module &m) {
     py::class_<NMutator, Ref<NMutator>, Mutator>(m, "NMutator")
         .def(py::init<NMutator::Mode>())
         .def(py::init<NMutator::Mode, vector<int>>())
-        .def("run", &NMutator::run);
+        .def("run", &NMutator::run)
+        .def_static("memboundToJson", &NMutator::memboundToJson);
     py::class_<SearchEngine>(m, "SearchEngine")
         .def(py::init<Runtime, Ref<Mutator>>())
         .def("run", &SearchEngine::run);

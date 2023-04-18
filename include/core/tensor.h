@@ -12,7 +12,7 @@ namespace infini {
 // TODO: how to deal with this
 using ShapeElem = int;
 using Shape = vector<ShapeElem>;
-enum class TensorType { Input, Initialized, Other };
+enum class TensorType { Error = 0, Input = 1, Initialized = 2, Other = 3 };
 class TensorObj : public TensorBaseObj {
   private:
     Shape shape;
