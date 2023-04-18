@@ -32,6 +32,8 @@ class NMutator : public Mutator {
     long long cntStates = 0;
     long long cntCandidates = 0;
 
+    static void memboundToJson(const Graph &g, const string path);
+
   private:
     int maxDepth = 8;
     nnet::Expr opToExpression(Operator op);
@@ -57,8 +59,8 @@ class NMutator : public Mutator {
 
     // TODO: recover these rules
     // Graph fuseHetConv(nnet::Expr expr, Graph in_graph);
-    // Graph transformTConv1x1(Operator op);
-    // Graph transformTConv3x3(Operator op);
+    Graph transformConvtransposed1x1(Operator _op);
+    // Graph transformConvtransposed(Operator op);
     // Graph transformDialtedConv(Operator op);
     // Graph transformConv1x1(Operator op);
     // Graph transformConv1xk(Operator op);

@@ -2,6 +2,7 @@
 #include "nnet/Visitor/CheckOOBVisitor.h"
 #include "nnet/Visitor/HashVisitor.h"
 #include "nnet/Visitor/MergeMemboundMutator.h"
+#include "nnet/Visitor/Serializer.h"
 
 namespace infini {
 
@@ -81,6 +82,11 @@ HashType MemBoundObj::calcHash(nnet::Expr expr) {
 bool MemBoundObj::checkOOB(nnet::Expr expr) {
     return nnet::CheckOOBVisitor().checkRangeOp(
         nnet::as<nnet::RangeOpNode>(expr));
+}
+
+void MemBoundObj::saveAsJson(string path) const {
+    bool status = nnet::Serializer().serialize(expr, path);
+    IT_ASSERT(status);
 }
 
 } // namespace infini

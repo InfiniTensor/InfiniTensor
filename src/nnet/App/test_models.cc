@@ -4,6 +4,7 @@
 #include "core/runtime.h"
 #include "core/search_engine.h"
 #include "cuda/cuda_runtime.h"
+#include "ffi/ffi_callback.h"
 #include "nnet/nmutator.h"
 #include "operators/conv.h"
 #include "operators/unary.h"
@@ -23,12 +24,43 @@ Graph getInfoGAN(int batch, Runtime runtime, int nLayers) {
         {64, 4, 1, 2, false},  {32, 4, 1, 2, true},
     };
 
-    Tensor input = g->addTensor({batch, 1, 1, 228});
+    Tensor input =
+        g->addTensor({batch, 1, 1, 228}, DataType::Float32, TensorType::Input);
     for (int i = 0; i < (int)cs.size() && i < nLayers; ++i) {
         auto [channel, kernelSize, pad, stride, tanh] = cs[i];
         int f = input->getDims()[3]; // n, h, w, f
-        auto weight =
-            g->addTensor({f, kernelSize, kernelSize, channel}); // f, r, s, c
+        auto weight = g->addTensor({f, kernelSize, kernelSize, channel},
+                                   DataType::Float32,
+                                   TensorType::Initialized); // f, r, s, c
+        input = g->addOp<ConvTransposed2dNHWCObj>(input, weight, nullptr, pad,
+                                                  pad, stride, stride, 1, 1)
+                    ->getOutput();
+        if (tanh) {
+            input = g->addOp<TanhObj>(input, nullptr)->getOutput();
+        } else {
+            input = g->addOp<ReluObj>(input, nullptr)->getOutput();
+        }
+    }
+    return g;
+}
+
+Graph getConvtransposedNHWC(Runtime runtime, Shape shape, int layerId) {
+    IT_ASSERT(0 <= layerId && layerId < 5);
+    Graph g = make_ref<GraphObj>(runtime);
+    vector<Tensor> weights;
+    vector<tuple<int, int, int, int, bool>> cs{
+        // Channel, kernelSize, pad, stride, isTanh
+        {448, 2, 0, 1, false}, {256, 4, 1, 2, false}, {128, 4, 1, 2, false},
+        {64, 4, 1, 2, false},  {32, 4, 1, 2, true},
+    };
+
+    Tensor input = g->addTensor(shape, DataType::Float32, TensorType::Input);
+    for (int i = layerId; i < layerId + 1; ++i) {
+        auto [channel, kernelSize, pad, stride, tanh] = cs[i];
+        int f = input->getDims()[3]; // n, h, w, f
+        auto weight = g->addTensor({f, kernelSize, kernelSize, channel},
+                                   DataType::Float32,
+                                   TensorType::Initialized); // f, r, s, c
         input = g->addOp<ConvTransposed2dNHWCObj>(input, weight, nullptr, pad,
                                                   pad, stride, stride, 1, 1)
                     ->getOutput();
@@ -48,6 +80,77 @@ void printGraph(Graph g) {
         dbg(t);
         t->printData();
     }
+}
+
+Graph optimizeGraph(Graph g, Runtime runtime, bool tuning) {
+    Runtime cpu = NativeCpuRuntimeObj::getInstance();
+    Graph gCpu = make_ref<GraphObj>(cpu);
+
+    auto mutator =
+        make_ref<NMutator>(NMutator::Mode::RuleBased,
+                           vector<int>{3, 2, 2, 2, 2, 5, 8, 8, 6, 91, 90});
+    vector<Graph> bestGraphs;
+    SearchEngine searchEngine(runtime, mutator);
+    bestGraphs.emplace_back(searchEngine.run(g));
+    g->topo_sort();
+    dbg(g, bestGraphs[0], bestGraphs.size());
+    g->print();
+
+    g->dataMalloc();
+    map<UidBaseType, Tensor> fuidToInputTensor;
+    for (auto t : g->getInputs()) {
+        IT_ASSERT(fuidToInputTensor.count(t->getFuid()) == 0);
+        fuidToInputTensor[t->getFuid()] = t;
+    }
+
+    auto gen = RandomGenerator(-0.1, 0.1, 0);
+    for (auto t : g->getInputs()) {
+        t->setData(gen);
+    }
+    for (auto t : g->getOutputs()) {
+        t->setData(ZeroGenerator());
+    }
+    runtime->run(g);
+    dbg("Baseline graph");
+    printGraph(g);
+    dbg(runtime->getPerfTime(g, true));
+
+    for (size_t i = 0; i < bestGraphs.size(); i++) {
+        auto bestGraphCpu = bestGraphs[i];
+        auto bestGraph =
+            make_ref<GraphObj>(runtime, bestGraphCpu->getOperators());
+        bestGraph->topo_sort();
+
+        bestGraph->dataMalloc();
+        // Initialize inputs with random data
+        for (auto t : bestGraph->getInputs()) {
+            t->copyData(fuidToInputTensor[t->getFuid()]);
+        }
+
+        // Initialize outputs with zeros
+        for (auto t : bestGraph->getOutputs()) {
+            t->setData(ZeroGenerator());
+        }
+
+        dbg(bestGraph);
+        dbg(bestGraph->getOutputs());
+
+        if (tuning) {
+            runtime->run(bestGraph, true);  // Tune kernels
+            runtime->run(bestGraph, false); // Execute transfomraed graph
+
+            auto go0 = gCpu->cloneTensor(g->getOutputs()[0]);
+            auto bgo0 = gCpu->cloneTensor(bestGraph->getOutputs()[0]);
+            // EXPECT_TRUE(go0->equalData(bgo0, 1e-3));
+            dbg(go0->equalData(bgo0, 1e-3));
+            dbg(runtime->getPerfTime(bestGraph, true));
+        }
+
+        dbg("Best graph");
+        printGraph(bestGraph);
+        return bestGraph;
+    }
+    return nullptr;
 }
 
 vector<Tensor> runInfoGAN(int nLayers) {
@@ -122,6 +225,7 @@ vector<Tensor> runInfoGAN(int nLayers) {
 
         dbg("Best graph");
         printGraph(bestGraph);
+        callback::exportONNX(bestGraph, "best_graph.onnx"); // Debug
         return {g->getOutputs()[0], bestGraph->getOutputs()[0]};
     }
     return {};

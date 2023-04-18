@@ -20,6 +20,7 @@ class Serializer : public Functor<string()> {
     string visit_(const Subscript &c) override;
     string visit_(const Var &c) override;
     string visit_(const Tensor &c) override;
+    string visit_(const Func &c) override;
     string dispatchRoutine(const Routine &c);
 
     Expr buildExprTree(string key);
