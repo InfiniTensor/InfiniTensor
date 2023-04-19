@@ -129,7 +129,7 @@ if(BUILD_TEST_EINNET)
 endif()
 
 # Python bindings
-file(GLOB_RECURSE FFIS src/ffi/ffi_infinitensor.cc)
+file(GLOB_RECURSE FFIS src/ffi/ffi_callback.cc src/ffi/ffi_infinitensor.cc)
 pybind11_add_module(backend MODULE ${FFIS})
 target_link_libraries(backend PRIVATE InfiniTensor)
 
@@ -168,6 +168,7 @@ endif()
 
 if(USE_CUDA)
   add_compile_definitions(USE_CUDA=1)
+  add_compile_definitions(CUDA_API_PER_THREAD_DEFAULT_STREAM=1) # Support CUDA graph stream caputre
   # Since enable_language only executes once, rerun cmake is required if CMAKE_CUDA_HOST_COMPILER is wrong
   set(CMAKE_CUDA_HOST_COMPILER
       ${CMAKE_CXX_COMPILER}

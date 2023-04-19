@@ -82,7 +82,8 @@ void printGraph(Graph g) {
     }
 }
 
-Graph optimizeGraph(Graph g, Runtime runtime, bool tuning) {
+Graph optimizeGraph(Graph g, Runtime _runtime, bool tuning) {
+    auto runtime = as<CudaRuntimeObj>(_runtime);
     Runtime cpu = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(cpu);
 
@@ -145,6 +146,7 @@ Graph optimizeGraph(Graph g, Runtime runtime, bool tuning) {
             dbg(go0->equalData(bgo0, 1e-3));
             dbg(runtime->getPerfTime(bestGraph, true));
             dbg(runtime->timeNonCtcOperators(bestGraph));
+            dbg(runtime->timeWithCudaGraph(bestGraph));
         }
 
         dbg("Best graph");

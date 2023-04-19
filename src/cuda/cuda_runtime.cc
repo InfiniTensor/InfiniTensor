@@ -6,6 +6,46 @@
 #include "operators/matmul.h"
 namespace infini {
 
+CudaRuntimeObj::CudaRuntimeObj()
+    : RuntimeObj(Device::CUDA), stream(cudaStreamPerThread),
+      cudaGraphStatus(false) {
+    checkCudnnError(cudnnCreate(&cudnn));
+    checkCublasError(cublasCreate(&cublas));
+    checkCudnnError(cudnnSetStream(cudnn, stream));
+    checkCublasError(cublasSetStream(cublas, stream));
+    // 10GB for Longformer
+    // size_t longformerNum = 3lu * (1 << 30);
+    workspaceSize = 7ll << 30; // 7 GB
+    workspace = alloc(workspaceSize);
+}
+
+CudaRuntimeObj::~CudaRuntimeObj() {
+    try {
+        dealloc(workspace);
+        checkCudnnError(cudnnDestroy(cudnn));
+        checkCublasError(cublasDestroy(cublas));
+    } catch (const std::exception &e) {
+        std::cerr << "Error in ~CudaRuntimeObj: " << e.what() << std::endl;
+    }
+}
+
+void CudaRuntimeObj::beginCudaGraphStreamCapture() {
+    enum cudaStreamCaptureStatus pCaptureStatus;
+    checkCudaError(cudaStreamIsCapturing(stream, &pCaptureStatus));
+    dbg(pCaptureStatus);
+    cudaGraphStatus = true;
+    checkCudaError(cudaStreamBeginCapture(stream, cudaStreamCaptureModeGlobal));
+}
+
+cudaGraphExec_t CudaRuntimeObj::endCudaGraphStreamCapture() {
+    cudaGraph_t cudaGraph;
+    cudaGraphExec_t instance;
+    checkCudaError(cudaStreamEndCapture(stream, &cudaGraph));
+    cudaGraphStatus = false;
+    checkCudaError(cudaGraphInstantiate(&instance, cudaGraph, NULL, NULL, 0));
+    return instance;
+}
+
 void CudaRuntimeObj::runWithoutSync(const Graph &graph) const {
     const auto &kernelRegistry = KernelRegistry::getInstance();
     auto &perfEngine = PerfEngine::getInstance();
@@ -74,5 +114,53 @@ void CudaRuntimeObj::run(const Graph &graph, bool runTune,
 void CudaRuntimeObj::sync() const { checkCudaError(cudaDeviceSynchronize()); }
 
 string CudaRuntimeObj::toString() const { return "CUDA Runtime"; }
+
+double CudaRuntimeObj::timeWithCudaGraph(Graph graph) {
+    const auto &kernelRegistry = KernelRegistry::getInstance();
+    auto &perfEngine = PerfEngine::getInstance();
+    // compile-time computable
+    map<UidBaseType, bool> ctcMap = getCompileTimeComputableAttribute(graph);
+    vector<tuple<Operator, Kernel *, PerfRecord>> kernels;
+    bool status = graph->topo_sort();
+    IT_ASSERT(status, "Topological sort failed");
+
+    for (auto &op : graph->getOperators()) {
+        // HACK: set correct data type
+        auto kernelAttrs =
+            KernelAttrs{device, op->getOpType(), DataType::Float32};
+        Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
+        auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
+        auto perfData = perfEngine.getPerfData(perfKey);
+        if (perfData)
+            kernel->compute(op, perfData, this);
+        else
+            kernel->compute(op, this);
+        // if (!ctcMap.at(op->getGuid()) && op->getOpType() != OpType::Reshape)
+        // if (op->getOpType() == OpType::Matmul)
+        // if (op->getOpType() == OpType::Matmul ||
+        //     op->getOpType() == OpType::Relu
+        //     // || op->getOpType() == OpType::MemBound
+        // )
+        kernels.emplace_back(op, kernel, perfData);
+    }
+    for (auto &[op, kernel, perfData] : kernels) {
+        dbg(op);
+    }
+
+    beginCudaGraphStreamCapture();
+    for (auto &[op, kernel, perfData] : kernels) {
+        if (perfData)
+            kernel->compute(op, perfData, this);
+        else
+            kernel->compute(op, this);
+    }
+    auto cudaGraphInstance = endCudaGraphStreamCapture();
+    return timeit(
+        [&, stream = getStream()]() {
+            checkCudaError(cudaGraphLaunch(cudaGraphInstance, stream));
+        },
+        [&, stream = getStream()]() { cudaStreamSynchronize(stream); }, 1000,
+        1000);
+}
 
 } // namespace infini

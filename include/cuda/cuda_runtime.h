@@ -1,35 +1,22 @@
 #pragma once
 #include "core/runtime.h"
 #include "cuda/cuda_common.h"
+#include "nnet/dbg.h"
 
 namespace infini {
 
 class CudaRuntimeObj : public RuntimeObj {
   private:
+    cudaStream_t stream;
     cudnnHandle_t cudnn;
     cublasHandle_t cublas;
     CudaPtr workspace;
     size_t workspaceSize;
+    bool cudaGraphStatus; // Whether CUDA graph stream capture is enabled
 
   public:
-    CudaRuntimeObj() : RuntimeObj(Device::CUDA) {
-
-        checkCudnnError(cudnnCreate(&cudnn));
-        checkCublasError(cublasCreate(&cublas));
-        // 10GB for Longformer
-        // size_t longformerNum = 3lu * (1 << 30);
-        workspaceSize = 7ll << 30; // 7 GB
-        workspace = alloc(workspaceSize);
-    }
-    virtual ~CudaRuntimeObj() {
-        try {
-            dealloc(workspace);
-            checkCudnnError(cudnnDestroy(cudnn));
-            checkCublasError(cublasDestroy(cublas));
-        } catch (const std::exception &e) {
-            std::cerr << "Error in ~CudaRuntimeObj: " << e.what() << std::endl;
-        }
-    }
+    CudaRuntimeObj();
+    virtual ~CudaRuntimeObj();
     string toString() const override;
 
     void run(const Graph &graph, bool tune = false,
@@ -69,7 +56,15 @@ class CudaRuntimeObj : public RuntimeObj {
 
     void runWithoutSync(const Graph &graph) const;
 
+    bool isInCudaGraph() const { return cudaGraphStatus; }
+    cudaStream_t getStream() const { return stream; }
+
+    double timeWithCudaGraph(Graph graph);
+
   private:
     void tune(const Graph &graph, bool profiling) const;
+
+    void beginCudaGraphStreamCapture();
+    cudaGraphExec_t endCudaGraphStreamCapture();
 };
 } // namespace infini
