@@ -78,7 +78,8 @@ RuntimeObj::getCompileTimeComputableAttribute(const Graph &graph) const {
 }
 
 double RuntimeObj::getPerfTime(const Graph &graph, bool profiling,
-                               bool allowEstimation) const {
+                               bool allowEstimation,
+                               bool ignoreMemboundOp) const {
     const auto &kernelRegistry = KernelRegistry::getInstance();
     auto &perfEngine = PerfEngine::getInstance();
     // Statistics
@@ -97,10 +98,14 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling,
         double time = -1e9;
         if (ctcMap[op->getGuid()]) { // Compile-time computable operators
             time = 0;
+        } else if (op->getOpType() == OpType::Reshape) {
+            time = 0;
+        } else if (op->getOpType() == OpType::MemBound && ignoreMemboundOp) {
+            time = 0;
+        } else if (op->getOpType() == OpType::MemBound && allowEstimation) {
+            time = as<MemBoundObj>(op)->getEstimatedTime();
         } else if (perfData) { // Tune the kernel if there is no record
             time = perfData->time;
-        } else if (allowEstimation && op->getOpType() == OpType::MemBound) {
-            time = as<MemBoundObj>(op)->getEstimatedTime();
         } else {
             // TODO: should tenosrs automatically allocate when access data?
             // allocate memory for empty tensors and release it after
@@ -189,7 +194,8 @@ void CpuRuntimeObj::copyBlobInsideRuntime(void *dst, const void *src,
 
 string NativeCpuRuntimeObj::toString() const { return "CPU Runtime"; }
 
-double RuntimeObj::timeNonCtcOperators(const Graph &graph) const {
+double RuntimeObj::timeNonCtcOperators(const Graph &graph, int warmup,
+                                       int repeat) const {
     const auto &kernelRegistry = KernelRegistry::getInstance();
     auto &perfEngine = PerfEngine::getInstance();
     // compile-time computable
@@ -209,14 +215,13 @@ double RuntimeObj::timeNonCtcOperators(const Graph &graph) const {
             kernel->compute(op, perfData, this);
         else
             kernel->compute(op, this);
-        // if (!ctcMap.at(op->getGuid()) && op->getOpType() != OpType::Reshape)
-        if (op->getOpType() == OpType::Matmul)
+        if (!ctcMap.at(op->getGuid()) && op->getOpType() != OpType::Reshape)
             kernels.emplace_back(op, kernel, perfData);
     }
     for (auto &[op, kernel, perfData] : kernels) {
         dbg(op);
     }
-    cudaProfilerStart(); // HACK: Debug
+    // cudaProfilerStart();
     double ret = timeit(
         [&]() {
             for (auto &[op, kernel, perfData] : kernels) {
@@ -226,8 +231,8 @@ double RuntimeObj::timeNonCtcOperators(const Graph &graph) const {
                     kernel->compute(op, this);
             }
         },
-        [&]() { sync(); });
-    cudaProfilerStop(); // HACK: Debug
+        [&]() { sync(); }, warmup, repeat);
+    // cudaProfilerStop();
     return ret;
 }
 

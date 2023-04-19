@@ -64,7 +64,8 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
      * @return double Return the sum of perf time for each operator
      */
     double getPerfTime(const Graph &graph, bool printProfiling = false,
-                       bool allowEstimation = false) const;
+                       bool allowEstimation = false,
+                       bool ignoreMemboundOp = false) const;
     Blob allocBlob(size_t size);
     bool isCpu() const {
         return device == Device::CPU || device == Device::INTELCPU;
@@ -82,7 +83,8 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
     map<UidBaseType, bool>
     getCompileTimeComputableAttribute(const Graph &graph) const;
 
-    double timeNonCtcOperators(const Graph &graph) const;
+    double timeNonCtcOperators(const Graph &graph, int warmup = 1000,
+                               int repeat = 1000) const;
 
   protected:
     void printProfilingData(double totTime,

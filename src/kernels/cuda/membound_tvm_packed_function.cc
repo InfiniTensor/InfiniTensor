@@ -41,7 +41,6 @@ class MemboundTVMPackedFunction : public Kernel {
         // auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         auto tvmRecord = std::dynamic_pointer_cast<TVMRecordObj>(record);
         tvm::runtime::PackedFunc packedFunc = tvmRecord->packedFunc;
-        // IT_ASSERT(packedFunc != nullptr);
 
         // prepare inputs and outputs
         vector<DLTensorHolder> inputsHolder;

@@ -450,7 +450,7 @@ std::vector<Graph> SearchEngine::partitionGraph(const Graph graph) {
 }
 
 double SearchEngine::getEstimatedGraphPerf(Graph graph) {
-    return runtimeExec->getPerfTime(graph, false, true);
+    return runtimeExec->getPerfTime(graph, false, true, true);
 }
 
 Graph SearchEngine::fuseVertically(const Graph &graph) {
