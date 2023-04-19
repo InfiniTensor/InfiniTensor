@@ -1,12 +1,14 @@
 #include "core/graph_handler.h"
 #include "core/mutator.h"
 #include "core/search_engine.h"
+#include "nnet/Visitor/Serializer.h"
 #include "nnet/nmutator.h"
 #include "operators/batch_norm.h"
 #include "operators/concat.h"
 #include "operators/conv.h"
 #include "operators/gather.h"
 #include "operators/matmul.h"
+#include "operators/membound.h"
 #include "operators/pad.h"
 #include "operators/pooling.h"
 #include "operators/reduce_mean.h"
@@ -229,6 +231,12 @@ static vector<int> transpose_permute_of(Operator op) {
     return dynamic_cast<const TransposeObj *>(op.get())->getPermute();
 }
 
+static string membound_expr_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::MemBound);
+    return *nnet::Serializer().toString(
+        dynamic_cast<const MemBoundObj *>(op.get())->getNnetExpr());
+}
+
 void export_functions(py::module &m) {
 #define FUNCTION(NAME) def(#NAME, &NAME)
     m.def("cpu_runtime", &NativeCpuRuntimeObj::getInstance)
@@ -257,7 +265,8 @@ void export_functions(py::module &m) {
         .FUNCTION(transpose_permute_of)
         .FUNCTION(concat_axis_of)
         .FUNCTION(split_axis_of)
-        .FUNCTION(gather_axis_of);
+        .FUNCTION(gather_axis_of)
+        .FUNCTION(membound_expr_of);
 #undef FUNCTION
 }
 

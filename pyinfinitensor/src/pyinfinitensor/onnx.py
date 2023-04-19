@@ -512,6 +512,8 @@ class OnnxStub:
                     ),
                 ):
                     tensors[name] = tensor
+            elif node.op_type == "MemBound":
+                raise Exception('Unsupported operator "{}"'.format(node.op_type))
             else:
                 raise Exception('Unsupported operator "{}"'.format(node.op_type))
 
@@ -812,6 +814,17 @@ class OnnxStub:
                         ctx.push_data_input(name, "max", TensorProto.FLOAT, [], [])
                     )
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
+            elif ty == backend.OpType.MemBound:
+                ctx.push_node(
+                    make_node(
+                        ty.name,
+                        inputs,
+                        outputs,
+                        name,
+                        domain="nnet",
+                        expr=backend.membound_expr_of(op),
+                    )
+                )
             else:
                 raise Exception("Unsupported OpType", ty)
 
