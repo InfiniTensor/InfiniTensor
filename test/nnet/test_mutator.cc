@@ -55,7 +55,6 @@ TEST(NMutator, NaiveConvWithInterpreter) {
                 gg->getOutputs()[0]->getRawDataPtr<void *>());
 }
 
-// FIXME: failed since implicit transpose for DLT
 TEST(NMutator, InfoGAN_TConv_3_correctness) {
     const bool useMutatorDirectly = false;
     Runtime runtime = make_ref<CudaRuntimeObj>();
@@ -123,6 +122,7 @@ TEST(NMutator, InfoGAN_TConv_3_correctness) {
 
         auto go0 = gCpu->cloneTensor(g->getOutputs()[0]);
         auto bgo0 = gCpu->cloneTensor(bestGraph->getOutputs()[0]);
+        dbg(runtime->getPerfTime(bestGraph, true));
         EXPECT_TRUE(go0->equalData(bgo0, 1e-4));
     }
 }

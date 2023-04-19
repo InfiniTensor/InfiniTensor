@@ -1,6 +1,7 @@
 #include "core/search_engine.h"
 #include "core/hash.h"
 #include "core/runtime.h"
+#include "nnet/dbg.h"
 
 #include <algorithm>
 #include <iostream>
@@ -74,7 +75,9 @@ Graph SearchEngine::run(const Graph graph) {
                 nextGraphs.emplace_back(tmp);
             }
         }
+        dbg("===Num" + std::to_string(nextGraphs.size()));
         std::sort(nextGraphs.begin(), nextGraphs.end(), graphTimeComparer);
+
         if (nextGraphs.size() > GRAPH_SIZE) {
             nextGraphs.resize(GRAPH_SIZE);
         }
@@ -122,6 +125,7 @@ std::vector<Graph> SearchEngine::search(const Graph &graph) {
     }
 
     // compare with perf time
+    dbg("===Num" + std::to_string(results.size()));
     std::sort(results.begin(), results.end(), graphTimeComparer);
     if (results.size() > GRAPH_SIZE) {
         results.resize(GRAPH_SIZE);
@@ -341,6 +345,9 @@ std::vector<Graph> SearchEngine::searchMutation(const MetaGraph &metaGraph) {
         std::vector<Graph> nextGraphs;
         if (node.type == 1) { // If it has computing OPs
             auto mutatedGraphs = mutator->run(node.graph);
+            // // HACK: only try the first one for debug
+            if (mutatedGraphs.size() > 2)
+                mutatedGraphs.resize(2);
             for (auto graph : graphs) {
                 for (auto mutatedGraph : mutatedGraphs) {
                     std::vector<Operator> ops;
@@ -373,6 +380,7 @@ std::vector<Graph> SearchEngine::searchMutation(const MetaGraph &metaGraph) {
         for (auto g : nextGraphs) {
             g->dataMalloc();
         }
+        dbg("===Num" + std::to_string(nextGraphs.size()));
         std::sort(nextGraphs.begin(), nextGraphs.end(), graphTimeComparer);
         if (nextGraphs.size() > GRAPH_SIZE) {
             nextGraphs.resize(GRAPH_SIZE);

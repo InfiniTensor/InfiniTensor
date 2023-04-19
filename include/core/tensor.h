@@ -77,6 +77,7 @@ class TensorObj : public TensorBaseObj {
     // Thus the internal state of generator cannot be updated.
     void setData(
         std::function<void(void *, size_t, DataType)> const &generator) const;
+    void setData(const Blob &_blob) { data = _blob; }
     Tensor clone() const {
         auto obj = make_ref<TensorObj>(*this);
         obj->freeData();

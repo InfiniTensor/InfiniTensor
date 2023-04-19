@@ -77,6 +77,9 @@ void NMutator::runSingleOpToNaiveMembound(Graph in_graph,
 void NMutator::runSingleOp(Graph in_graph, std::vector<Graph> &out_graphs) {
     OpVec computeOps = in_graph->getComputeOps();
     IT_ASSERT(computeOps.size() == 1);
+    // HACK: remove this
+    if (auto op = as<ConvTransposed2dNHWCObj>(computeOps[0]); !op)
+        return;
 
     // if (infini::Graph g = transformTConv1x1(computeOps[0])) {
     //     out_graphs.emplace_back(g);
@@ -408,6 +411,9 @@ infini::Graph NMutator::expressionToGraph(nnet::Expr expr, Graph in_graph) {
                                    nameNToTensorT.at(BN->getName())};
             TensorVec outputsPET = {nameNToTensorT.at(outputNameN)};
             const auto &[b, m, n, k, transa, transb] = op->getArgs();
+            // // HACK: pruning for deubg
+            if (!((transa == 0) && (transb == 1)))
+                return nullptr;
             g->addOpWithOutputs<MatmulObj>(inputsPET[0], inputsPET[1],
                                            outputsPET[0], transa, transb);
         }
@@ -536,11 +542,15 @@ Graph NMutator::transformConvtransposed1x1(Operator _op) {
     auto newA = g->addTensor(
         {inputDims[0] * inputDims[1] * inputDims[2], inputDims[3]}, dtype);
     // FRSC
+    // auto newW = g->addTensor(
+    //     {weightDims[0], weightDims[1] * weightDims[2] * weightDims[3]},
+    //     dtype);
+    // HACK: without transpoe
     auto newW = g->addTensor(
-        {weightDims[0], weightDims[1] * weightDims[2] * weightDims[3]}, dtype);
+        {weightDims[1] * weightDims[2] * weightDims[3], weightDims[0]}, dtype);
     g->addOpWithOutputs<ReshapeObj>(g->cloneTensor(A), newA, newA->getDims());
     g->addOpWithOutputs<ReshapeObj>(g->cloneTensor(W), newW, newW->getDims());
-    Tensor newO = g->addOp<MatmulObj>(newA, newW, nullptr, 0, 0)->getOutput();
+    Tensor newO = g->addOp<MatmulObj>(newA, newW, nullptr, 0, 1)->getOutput();
     g->addOpWithOutputs<ReshapeObj>(newO, g->cloneTensor(op->getOutput()),
                                     op->getOutput()->getDims());
     return g;

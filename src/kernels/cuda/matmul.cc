@@ -49,7 +49,7 @@ class matmulCublas : public Kernel {
         const float alpha = 1.f, beta = 0.f;
         // TODO:use compute type
         cublasStatus_t stat;
-        if (b > 1) {
+        if (b >= 1) {
             // Support batch broadcast with zero stride
             int dimA = op->getInputs(0)->getDims().size();
             int dimB = op->getInputs(1)->getDims().size();
@@ -63,6 +63,11 @@ class matmulCublas : public Kernel {
                  (dimB == 3 && op->getInputs(1)->getDims()[0] == 1))
                     ? 0 // Broadcast the batch dimension if batch size is 1
                     : n * k;
+            // printf("cublasGemmStridedBatchedEx %d%d, mnk %d %d %d, alpha %f,
+            // B "
+            //        "%d %lld, A %d %lld, C %d %d, b %d %d\n",
+            //        opB, opA, n, m, k, alpha, ldb, strideB, lda, strideA, ldc,
+            //        m * n, b, record->algo);
             stat = cublasGemmStridedBatchedEx(
                 context->cublasHandle(), opB, opA, n, m, k, &alpha, inBData,
                 CUDA_R_32F, ldb, strideB, inAData, CUDA_R_32F, lda, strideA,

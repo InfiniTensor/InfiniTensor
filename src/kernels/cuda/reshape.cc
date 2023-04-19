@@ -4,10 +4,13 @@ namespace infini {
 class CopyCuda : public CudaKernelWithoutConfig {
     void compute(const Operator &op,
                  const RuntimeObj *_context) const override {
-        auto inData = op->getInputs(0)->getRawDataPtr<void *>();
-        auto outData = op->getOutputs()[0]->getRawDataPtr<void *>();
-        cudaMemcpyAsync(outData, inData, op->getInputs(0)->getBytes(),
-                        cudaMemcpyDeviceToDevice);
+        // auto inData = op->getInputs(0)->getRawDataPtr<void *>();
+        // auto outData = op->getOutputs()[0]->getRawDataPtr<void *>();
+        // cudaMemcpyAsync(outData, inData, op->getInputs(0)->getBytes(),
+        //                 cudaMemcpyDeviceToDevice);
+
+        // HACK: optimization
+        op->getOutputs()[0]->setData(op->getInputs(0)->getDataBlob());
     }
 };
 // reshape/flatten/identity all act as copying from input to output.
