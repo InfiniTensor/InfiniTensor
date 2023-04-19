@@ -55,7 +55,7 @@ Expr buildNestedExpr() {
 
 TEST(Serializer, Serialization) {
     auto range = buildSimpleExpr();
-    auto isSuccessful = Serializer().serialize(range, "./test_serializer.json");
+    auto isSuccessful = Serializer().toFile(range, "./test_serializer.json");
     EXPECT_TRUE(isSuccessful);
 }
 
@@ -69,8 +69,8 @@ TEST(Serializer, CompareTwoExprs) {
     auto range = makeRangeOperator(
         {{i3, {0, 2500}}, {i4, {0, 4}}, {b, {0, 8}}, {w, {0, 65}}},
         {{k, {0, 512}}}, funcA * subB);
-    Serializer().serialize(range, "./test_serializer.json");
-    auto expr = Serializer().deserialize("./test_serializer.json");
+    Serializer().toFile(range, "./test_serializer.json");
+    auto expr = Serializer().fromFile("./test_serializer.json");
     dbg(expr);
 
     EXPECT_EQ(range->toReadable(), expr->toReadable());
@@ -80,9 +80,9 @@ TEST(Serializer, Serialization_NestedTensor) {
     FullPrinterVisitor printer;
     auto range = buildNestedExpr();
     auto ans = printer.print(range);
-    auto isSuccessful = Serializer().serialize(range, "./test_serializer.json");
+    auto isSuccessful = Serializer().toFile(range, "./test_serializer.json");
     EXPECT_TRUE(isSuccessful);
-    auto exprDeserialized = Serializer().deserialize("./test_serializer.json");
+    auto exprDeserialized = Serializer().fromFile("./test_serializer.json");
     auto output = printer.print(exprDeserialized);
     EXPECT_EQ(output, ans);
 }

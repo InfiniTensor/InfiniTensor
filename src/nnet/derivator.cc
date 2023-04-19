@@ -499,8 +499,8 @@ void Derivator::printIntermediateStates() {
         std::cout << FullPrinterVisitor().print(intermediateStates[i]) << endl;
         if (logMode == LogMode::DumpFristCandiate) {
             Serializer serializer;
-            serializer.serialize(intermediateStates[i],
-                                 logFnPrefix + to_string(i) + ".expr", msg);
+            serializer.toFile(intermediateStates[i],
+                              logFnPrefix + to_string(i) + ".expr", msg);
         }
     }
     for (size_t i = 0; i < intermediateStates.size(); ++i) {

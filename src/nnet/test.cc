@@ -6,7 +6,7 @@
 namespace nnet {
 
 int matchExprResult(Derivator &derivator, string fn) {
-    auto ans = Serializer().deserialize(fn);
+    auto ans = Serializer().fromFile(fn);
     auto hashAns = HashVisitor()(ans);
     int match = 0;
     for (const auto &candidate : derivator.getCandidates()) {
@@ -19,14 +19,14 @@ int matchExprResult(Derivator &derivator, string fn) {
 bool checkExprLogSame(string fnPrefix, int start, int end) {
     Serializer serializer;
     string fn0 = fnPrefix + to_string(start) + ".expr";
-    Expr expr0 = serializer.deserialize(fn0);
+    Expr expr0 = serializer.fromFile(fn0);
     RangeOp range0 = as<RangeOpNode>(expr0);
     Interpreter interpreter(range0);
     auto ans0 = interpreter.interpretUniformSample(range0);
     dbg(expr0, ans0);
     for (int i = start + 1; i < end; ++i) {
         string fn1 = fnPrefix + to_string(i) + ".expr";
-        Expr expr1 = serializer.deserialize(fn1);
+        Expr expr1 = serializer.fromFile(fn1);
         RangeOp range1 = as<RangeOpNode>(expr1);
         dbg(fn1, expr1);
         auto ans1 = interpreter.interpretUniformSample(range1);

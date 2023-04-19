@@ -81,9 +81,10 @@ string Serializer::visit_(const Func &c) {
     return key;
 }
 
-bool Serializer::serialize(const Expr &expr, const string &filePath,
-                           const string &msg, vector<Tensor> inputs,
-                           double exec_time, string hint) {
+std::optional<std::string> Serializer::toString(const Expr &expr,
+                                                const string &msg,
+                                                vector<Tensor> inputs,
+                                                double exec_time, string hint) {
     // Metadata
     j["Version"] = VERSION;
     j["Msg"] = msg;
@@ -101,10 +102,23 @@ bool Serializer::serialize(const Expr &expr, const string &filePath,
     }
     j["nnetInputs"] = inputsIndices;
 
-    // Write to file
-    std::ofstream fout(filePath);
-    fout << std::setw(4) << j << std::endl;
-    return true;
+    // To string
+    std::stringstream ss;
+    ss << std::setw(4) << j << std::endl;
+    return {ss.str()};
+}
+
+bool Serializer::toFile(const Expr &expr, const string &filePath,
+                        const string &msg, vector<Tensor> inputs,
+                        double exec_time, string hint) {
+    if (auto s = toString(expr, msg, inputs, exec_time, hint); s) {
+        // Write to file
+        std::ofstream fout(filePath);
+        fout << *s;
+        return true;
+    } else {
+        return false;
+    }
 }
 
 string Serializer::dispatchRoutine(const Routine &c) {
@@ -150,7 +164,15 @@ string Serializer::dispatchRoutine(const Routine &c) {
     return key;
 }
 
-Expr Serializer::deserialize(const string &filePath) {
+Expr Serializer::fromString(const string &text) {
+    std::stringstream str;
+    str << text;
+    str >> j;
+    assert(j["Version"] == VERSION);
+    return buildExprTree("0");
+}
+
+Expr Serializer::fromFile(const string &filePath) {
     std::ifstream fin(filePath);
     fin >> j;
     assert(j["Version"] == VERSION);

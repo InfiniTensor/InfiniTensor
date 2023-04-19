@@ -2,11 +2,15 @@
 #include "core/blob.h"
 #include "core/kernel.h"
 #include "core/perf_engine.h"
-#include "cuda_profiler_api.h"
 #include "operators/membound.h"
 #include "utils/data_generator.h"
 #include <chrono>
 #include <cstring>
+
+#ifdef USE_CUDA
+#include "cuda_profiler_api.h"
+#endif
+
 namespace infini {
 void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
     if (!tune && profiling)
@@ -221,7 +225,6 @@ double RuntimeObj::timeNonCtcOperators(const Graph &graph, int warmup,
     for (auto &[op, kernel, perfData] : kernels) {
         dbg(op);
     }
-    // cudaProfilerStart();
     double ret = timeit(
         [&]() {
             for (auto &[op, kernel, perfData] : kernels) {
@@ -232,7 +235,6 @@ double RuntimeObj::timeNonCtcOperators(const Graph &graph, int warmup,
             }
         },
         [&]() { sync(); }, warmup, repeat);
-    // cudaProfilerStop();
     return ret;
 }
 

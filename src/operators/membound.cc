@@ -92,7 +92,7 @@ bool MemBoundObj::checkOOB(nnet::Expr expr) {
 }
 
 void MemBoundObj::saveAsJson(string path) const {
-    bool status = nnet::Serializer().serialize(
+    bool status = nnet::Serializer().toFile(
         expr, path, "MemBoundObj::saveAsJson", nnetInputs, exec_time, hint);
     IT_ASSERT(status);
 }

@@ -3,13 +3,16 @@
 #include "core/graph.h"
 #include "core/runtime.h"
 #include "core/search_engine.h"
-#include "cuda/cuda_runtime.h"
 #include "ffi/ffi_callback.h"
 #include "nnet/nmutator.h"
 #include "operators/conv.h"
 #include "operators/unary.h"
 #include "test.h"
 #include <pybind11/stl.h>
+
+#ifdef USE_CUDA
+#include "cuda/cuda_runtime.h"
+#endif
 
 namespace infini {
 
@@ -157,6 +160,7 @@ Graph optimizeGraph(Graph g, Runtime _runtime, bool tuning) {
 }
 
 vector<Tensor> runInfoGAN(int nLayers) {
+#ifdef USE_CUDA
     auto cuda = make_ref<CudaRuntimeObj>();
     Runtime cpu = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(cpu);
@@ -231,6 +235,7 @@ vector<Tensor> runInfoGAN(int nLayers) {
         callback::exportONNX(bestGraph, "best_graph.onnx"); // Debug
         return {g->getOutputs()[0], bestGraph->getOutputs()[0]};
     }
+#endif
     return {};
 }
 

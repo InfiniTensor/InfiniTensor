@@ -31,6 +31,22 @@ class Serializer : public Functor<string()> {
     virtual ~Serializer();
 
     /**
+     * @brief Serialize the given expression to string
+     *
+     * @param expr The expression to be serialized
+     * @param msg Message of derivation
+     * @param inputs membound operator attributes
+     * @param exec_time membound operator attributes
+     * @param hint membound operator attributes
+     * @return bool Whether the serialization succeed
+     */
+    std::optional<std::string> toString(Expr const &expr,
+                                        const string &msg = "",
+                                        vector<Tensor> inputs = {},
+                                        double exec_time = -1e9,
+                                        string hint = "");
+
+    /**
      * @brief Serialize the given expression to json file
      *
      * @param expr The expression to be serialized
@@ -41,9 +57,17 @@ class Serializer : public Functor<string()> {
      * @param hint membound operator attributes
      * @return bool Whether the serialization succeed
      */
-    bool serialize(const Expr &expr, const string &filePath,
-                   const string &msg = "", vector<Tensor> inputs = {},
-                   double exec_time = -1e9, string hint = "");
+    bool toFile(const Expr &expr, const string &filePath,
+                const string &msg = "", vector<Tensor> inputs = {},
+                double exec_time = -1e9, string hint = "");
+
+    /**
+     * @brief Deserialize the given json file to expression
+     *
+     * @param text The text of the expr to be deserialized
+     * @return Expression deserialized from the given json file
+     */
+    Expr fromString(const string &text);
 
     /**
      * @brief Deserialize the given json file to expression
@@ -51,7 +75,7 @@ class Serializer : public Functor<string()> {
      * @param filePath The path to file to be deserialized
      * @return Expression deserialized from the given json file
      */
-    Expr deserialize(const string &filePath);
+    Expr fromFile(const string &filePath);
 
     tuple<Expr, vector<Tensor>, double, string>
     deserializeAsMemobundOp(const string &filePath);
