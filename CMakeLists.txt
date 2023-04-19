@@ -60,6 +60,9 @@ if(USE_PROTOBUF)
 endif()
 
 include_directories(include)
+
+add_subdirectory(optimization)
+
 # Pybind11
 add_subdirectory(3rd-party/pybind11)
 include_directories(3rd-party/pybind11/include)
@@ -121,7 +124,7 @@ if(USE_PROTOBUF)
   target_link_libraries(InfiniTensor tensor_proto)
 endif()
 
-target_link_libraries(InfiniTensor pybind11::embed)
+target_link_libraries(InfiniTensor optimization pybind11::embed)
 
 # TVM backend
 if(BUILD_TEST_EINNET)
