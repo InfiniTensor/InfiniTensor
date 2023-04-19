@@ -3,7 +3,9 @@ import torch
 from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
-import infinitensor as ft
+import pyinfinitensor as pit
+from pyinfinitensor import backend as ft
+from pyinfinitensor.onnx import OnnxStub
 
 
 def to_pytorch_tensor(tensor) -> torch.Tensor:
@@ -81,8 +83,10 @@ def run_InfoGAN_without_tuning(tuning: bool):
     g = ft.getInfoGAN(1, runtime, 5)
     # g = ft.getInfoGAN(1, runtime, 1)
     opt_g = ft.optimizeGraph(g, runtime, tuning)
-    ft.if_onnx.export_onnx(opt_g, 'infogan_transformed.onnx')
-    ft.NMutator.memboundToJson(opt_g, ".")
+    stub = OnnxStub.from_graph(opt_g)
+    with open("optimized.onnx", "wb") as f:
+        f.write(stub.to_onnx("optimized").SerializeToString())
+
 
 
 if __name__ == "__main__":

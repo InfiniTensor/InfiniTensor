@@ -37,6 +37,7 @@ class OnnxStub:
     outputs: Dict[str, backend.Tensor] = {}
     initializer: Dict[int, TensorProto] = {}
     handler: backend.GraphHandler
+    disable_check: bool
 
     @classmethod
     def from_onnx(cls, model: ModelProto, runtime):
@@ -551,6 +552,7 @@ class OnnxStub:
         for i, tensor in enumerate(handler.outputs()):
             ans.inputs["output{}".format(i)] = tensor
         ans.handler = handler
+        ans.disable_check = True
         return ans
 
     def to_onnx(self, name: str) -> ModelProto:
@@ -569,6 +571,11 @@ class OnnxStub:
             outputs: List[ValueInfoProto] = []
             # saves global input tensors
             initializers: List[TensorProto] = []
+
+            enable_check = False
+            def __init__(self, enable_check):
+                self.enable_check = enable_check
+
 
             def name_op(self, op: backend.Operator) -> Tuple[backend.OpType, str]:
                 ty = op.op_type()
@@ -622,17 +629,20 @@ class OnnxStub:
                 return name
 
             def push_node(self, node: NodeProto) -> None:
-                check_node(node)
+                if self.enable_check:
+                    check_node(node)
                 self.nodes.append(node)
 
             def build(self, name: str) -> ModelProto:
                 graph = make_graph(
                     self.nodes, name, self.inputs, self.outputs, self.initializers
                 )
-                check_graph(graph)
+                if self.enable_check:
+                    check_graph(graph)
 
                 model = make_model(graph)
-                check_model(model)
+                if self.enable_check:
+                    check_model(model)
 
                 return model
 
@@ -642,7 +652,7 @@ class OnnxStub:
 
         ops = self.handler.operators()  # 图中所有算子（节点）
 
-        ctx = Context()
+        ctx = Context(not self.disable_check)
 
         for op in ops:
             ty, name = ctx.name_op(op)
