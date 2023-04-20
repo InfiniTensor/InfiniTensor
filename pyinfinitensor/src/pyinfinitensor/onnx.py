@@ -49,13 +49,20 @@ class OnnxStub:
         tensors: Dict[str, backend.Tensor] = dict()
         data: Dict[str, TensorProto] = dict()
 
+        cnt_infini_inputs = 0
         for input in model.graph.input:
             dims = _take_shape_dim(input.type.tensor_type.shape)
+            if input.name.startswith('input'):
+                tensor_type = backend.TensorType.Input
+                cnt_infini_inputs += 1
+            else:
+                tensor_type = backend.TensorType.Initialized
             tensors[input.name] = ans.handler.tensor(
                 dims,
                 input.type.tensor_type.elem_type,
-                backend.TensorType.Input,
+                tensor_type,
             )
+        assert cnt_infini_inputs == 1, f'{cnt_infini_inputs} tensor names start with "input" found.'
 
         for output in model.graph.output:
             dims = _take_shape_dim(output.type.tensor_type.shape)
@@ -625,7 +632,10 @@ class OnnxStub:
                 # means that this input is a global input
                 if name is None:
                     self.count_in += 1
-                    name = "input{}".format(self.count_in)
+                    if tensor.getTensorType() == backend.TensorType.Input:
+                        name = "input{}".format(self.count_in)
+                    else:
+                        name = "weight{}".format(self.count_in)
                     self.names[tensor] = name
                     if init != None:
                         init.name = name

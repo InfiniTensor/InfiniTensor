@@ -105,8 +105,7 @@ void export_values(py::module &m) {
     py::enum_<TensorType>(m, "TensorType")
         .VALUE(TensorType, Input)
         .VALUE(TensorType, Initialized)
-        .VALUE(TensorType, Other)
-        .export_values();
+        .VALUE(TensorType, Other);
 #undef VALUE
 }
 
@@ -309,7 +308,8 @@ void init_graph_builder(py::module &m) {
         .def("has_target", &TensorObj::hasTarget, policy::automatic)
         .def("src", &TensorObj::getSource, policy::move)
         .def("print_data", &TensorObj::printData)
-        .def("data_malloc", &TensorObj::dataMalloc);
+        .def("data_malloc", &TensorObj::dataMalloc)
+        .def("getTensorType", &TensorObj::getTensorType);
     py::class_<OperatorObj, std::shared_ptr<OperatorObj>, Object>(m, "Operator")
         .def("op_type", &OperatorObj::getOpType, policy::automatic)
         .def("inputs", py::overload_cast<>(&OperatorObj::getInputs, py::const_),
@@ -378,22 +378,12 @@ void init_graph_builder(py::module &m) {
         .def("topo_sort", &GraphObj::topo_sort);
 }
 
-Graph getInfoGAN(int batch, Runtime runtime, int nLayers) {
-    IT_TODO_HALT();
-    return nullptr;
-}
-vector<Tensor> runInfoGAN(int nLayers) {
-    IT_TODO_HALT();
-    return {};
-}
-Graph getConvtransposedNHWC(Runtime runtime, Shape shape, int layerId) {
-    IT_TODO_HALT();
-    return nullptr;
-}
-Graph optimizeGraph(Graph g, Runtime runtime, bool tuning) {
-    IT_TODO_HALT();
-    return nullptr;
-}
+#ifdef USE_CUDA
+Graph getInfoGAN(int batch, Runtime runtime, int nLayers);
+vector<Tensor> runInfoGAN(int nLayers);
+Graph getConvtransposedNHWC(Runtime runtime, Shape shape, int layerId);
+Graph optimizeGraph(Graph g, Runtime runtime, bool tuning);
+
 void export_test_model(py::module &m) {
     m.def("runInfoGAN", &runInfoGAN);
     m.def("getInfoGAN", &getInfoGAN);
@@ -401,6 +391,7 @@ void export_test_model(py::module &m) {
     m.def("optimizeGraph", &optimizeGraph, "graph"_a, "runtime"_a,
           "tuning"_a = false);
 }
+#endif
 
 } // namespace infini
 
