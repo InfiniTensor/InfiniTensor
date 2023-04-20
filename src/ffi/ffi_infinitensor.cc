@@ -102,6 +102,11 @@ void export_values(py::module &m) {
         .VALUE(OpType, MemBound)
         .export_values();
 
+    py::enum_<TensorType>(m, "TensorType")
+        .VALUE(TensorType, Input)
+        .VALUE(TensorType, Initialized)
+        .VALUE(TensorType, Other)
+        .export_values();
 #undef VALUE
 }
 
@@ -373,10 +378,22 @@ void init_graph_builder(py::module &m) {
         .def("topo_sort", &GraphObj::topo_sort);
 }
 
-Graph getInfoGAN(int batch, Runtime runtime, int nLayers);
-vector<Tensor> runInfoGAN(int nLayers);
-Graph getConvtransposedNHWC(Runtime runtime, Shape shape, int layerId);
-Graph optimizeGraph(Graph g, Runtime runtime, bool tuning);
+Graph getInfoGAN(int batch, Runtime runtime, int nLayers) {
+    IT_TODO_HALT();
+    return nullptr;
+}
+vector<Tensor> runInfoGAN(int nLayers) {
+    IT_TODO_HALT();
+    return {};
+}
+Graph getConvtransposedNHWC(Runtime runtime, Shape shape, int layerId) {
+    IT_TODO_HALT();
+    return nullptr;
+}
+Graph optimizeGraph(Graph g, Runtime runtime, bool tuning) {
+    IT_TODO_HALT();
+    return nullptr;
+}
 void export_test_model(py::module &m) {
     m.def("runInfoGAN", &runInfoGAN);
     m.def("getInfoGAN", &getInfoGAN);

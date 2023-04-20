@@ -40,7 +40,7 @@ class OnnxStub:
     disable_check: bool
 
     @classmethod
-    def from_onnx(cls, model: ModelProto, runtime, enable_onnx_shape_infernce = True):
+    def from_onnx(cls, model: ModelProto, runtime, enable_onnx_shape_infernce=True):
         if enable_onnx_shape_infernce:
             model = infer_shapes(model)
         ans = OnnxStub()
@@ -52,18 +52,26 @@ class OnnxStub:
         for input in model.graph.input:
             dims = _take_shape_dim(input.type.tensor_type.shape)
             tensors[input.name] = ans.handler.tensor(
-                dims, input.type.tensor_type.elem_type
+                dims,
+                input.type.tensor_type.elem_type,
+                backend.TensorType.Input,
             )
 
         for output in model.graph.output:
             dims = _take_shape_dim(output.type.tensor_type.shape)
             tensors[output.name] = ans.handler.tensor(
-                dims, output.type.tensor_type.elem_type
+                dims,
+                output.type.tensor_type.elem_type,
+                backend.TensorType.Other,
             )
 
         for initializer in model.graph.initializer:
             dims = [d for d in initializer.dims]
-            tensors[initializer.name] = ans.handler.tensor(dims, initializer.data_type)
+            tensors[initializer.name] = ans.handler.tensor(
+                dims,
+                initializer.data_type,
+                backend.TensorType.Initialized,
+            )
             data[initializer.name] = initializer
 
         for node in model.graph.node:
@@ -517,10 +525,12 @@ class OnnxStub:
                 ):
                     tensors[name] = tensor
             elif node.op_type == "MemBound":
-                attributes = _parse_attribute(node, {'expr': None})
-                expr: str = attributes['expr']
+                attributes = _parse_attribute(node, {"expr": None})
+                expr: str = attributes["expr"]
                 assert expr is not None
-                assert len(node.output) == 1, """MemBound with multiple 
+                assert (
+                    len(node.output) == 1
+                ), """MemBound with multiple
                     outputs requires rewrite the logic of tensor creation"""
                 outputs = ans.handler.memBound(
                     [tensors[name] for name in node.input],
@@ -602,9 +612,9 @@ class OnnxStub:
                 dtype = backend.tensor_dtype(tensor)
                 value_info = make_tensor_value_info(name, dtype, shape)
                 check_value_info(value_info)
-                if not tensor.has_target(): # if this output is a global output
+                if not tensor.has_target():  # if this output is a global output
                     self.outputs.append(value_info)
-                else: # if this output is a local output
+                else:  # if this output is a local output
                     self.value_info.append(value_info)
                 return name
 
@@ -649,8 +659,12 @@ class OnnxStub:
 
             def build(self, name: str) -> ModelProto:
                 graph = make_graph(
-                    self.nodes, name, self.inputs, self.outputs, self.initializers,
-                    value_info=self.value_info
+                    self.nodes,
+                    name,
+                    self.inputs,
+                    self.outputs,
+                    self.initializers,
+                    value_info=self.value_info,
                 )
                 if self.enable_check:
                     check_graph(graph)

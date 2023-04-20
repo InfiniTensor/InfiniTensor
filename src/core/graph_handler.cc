@@ -21,8 +21,8 @@ namespace infini {
 
 static DataType dtype_repr_convert(int);
 
-Tensor GraphHandlerObj::tensor(Shape dims, int dtype) {
-    return g->addTensor(std::move(dims), dtype_repr_convert(dtype));
+Tensor GraphHandlerObj::tensor(Shape dims, int dtype, TensorType ttype) {
+    return g->addTensor(std::move(dims), dtype_repr_convert(dtype), ttype);
 }
 
 Tensor GraphHandlerObj::conv(Tensor input, Tensor weight, Tensor output, int ph,

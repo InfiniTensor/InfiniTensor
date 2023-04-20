@@ -46,7 +46,7 @@ class GraphHandlerObj {
 
     vector<Tensor> outputs() { return g->getOutputs(); }
 
-    Tensor tensor(Shape dims, int dtype);
+    Tensor tensor(Shape dims, int dtype, TensorType ttype);
 
     //------ operators
 

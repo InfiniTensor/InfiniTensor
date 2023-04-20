@@ -304,16 +304,16 @@ class TestStringMethods(unittest.TestCase):
 
     def test_frontend(self):
         handler = backend.GraphHandler(backend.cpu_runtime())
-        a = handler.tensor([1, 2, 3], 12)
-        b = handler.tensor([1, 2, 3], 12)
-        c = handler.tensor([1, 2, 3], 12)
-        d = handler.tensor([1, 2, 3], 12)
-        e = handler.tensor([1, 2, 3], 12)
+        a = handler.tensor([1, 2, 3], 12, backend.TensorType.Input)
+        b = handler.tensor([1, 2, 3], 12, backend.TensorType.Input)
+        c = handler.tensor([1, 2, 3], 12, backend.TensorType.Input)
+        d = handler.tensor([1, 2, 3], 12, backend.TensorType.Input)
+        e = handler.tensor([1, 2, 3], 12, backend.TensorType.Input)
 
         x = handler.add(
             handler.add(handler.add(handler.add(a, b, None), c, None), d, None), e, None
         )
-        y = handler.tensor([3, 2, 1], 12)
+        y = handler.tensor([3, 2, 1], 12, backend.TensorType.Other)
         handler.reshape(x, y, [3, 2, 1])
 
 
