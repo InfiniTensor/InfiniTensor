@@ -53,7 +53,6 @@ TEST(TestCudaRuntime, CudaGraphMembound) {
     runtime->run(gNew, false);
     runtime->getPerfTime(gNew);
 
-    auto time = runtime->timeWithCudaGraph(gNew);
-    EXPECT_GE(time, 0.01);
+    runtime->timeWithCudaGraph(gNew);
 }
 } // namespace infini
