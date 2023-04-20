@@ -276,7 +276,8 @@ void init_graph_builder(py::module &m) {
     py::class_<RuntimeObj, Ref<RuntimeObj>>(m, "Runtime")
         .def("run", &RuntimeObj::run, "graph"_a, "tune"_a = false,
              "profiling"_a = false)
-        .def("getPerfTime", &RuntimeObj::getPerfTime)
+        .def("getPerfTime", &RuntimeObj::getPerfTime, "graph"_a, "profiling"_a,
+             "allowEstimation"_a, "ignoreMemboundOp"_a)
         .def("timeNonCtcOperators", &RuntimeObj::timeNonCtcOperators);
     py::class_<NativeCpuRuntimeObj, std::shared_ptr<NativeCpuRuntimeObj>,
                RuntimeObj>(m, "CpuRuntime");

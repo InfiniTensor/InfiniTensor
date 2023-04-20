@@ -93,6 +93,7 @@ def load_onnx_and_run():
     stub = OnnxStub.from_onnx(onnx.load("optimized.onnx"), runtime, False)
     g = stub.handler.getGraph()
     runtime.run(g, True)
+    print(f'getPerfTime = {runtime.getPerfTime(g, True, False, False)}')
     print(f'Non-ctc time = {runtime.timeNonCtcOperators(g, 1000, 1000)}')
 
 
