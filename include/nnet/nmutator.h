@@ -32,8 +32,6 @@ class NMutator : public Mutator {
     long long cntStates = 0;
     long long cntCandidates = 0;
 
-    static void memboundToJson(const Graph &g, const string path);
-
   private:
     int maxDepth = 8;
     nnet::Expr opToExpression(Operator op);

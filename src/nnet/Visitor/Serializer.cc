@@ -111,7 +111,7 @@ std::optional<std::string> Serializer::toString(const Expr &expr,
 bool Serializer::toFile(const Expr &expr, const string &filePath,
                         const string &msg, vector<Tensor> inputs,
                         double exec_time, string hint) {
-    if (auto s = toString(expr, msg, inputs, exec_time, hint); s) {
+    if (auto s = toString(expr, msg, inputs, exec_time, hint)) {
         // Write to file
         std::ofstream fout(filePath);
         fout << *s;
@@ -293,6 +293,16 @@ tuple<Expr, vector<Tensor>, double, string>
 Serializer::deserializeAsMemobundOp(const string &filePath) {
     std::ifstream fin(filePath);
     fin >> j;
+    assert(j["Version"] == VERSION);
+    vector<Tensor> inputs;
+    for (const auto &input : j["nnetInputs"])
+        inputs.emplace_back(as<TensorNode>(buildExprTree(input)));
+    return {buildExprTree("0"), inputs, j["exec_time"], j["hint"]};
+}
+
+tuple<Expr, vector<Tensor>, double, string>
+Serializer::membundOpFromString(const string &data) {
+    j = json::parse(data);
     assert(j["Version"] == VERSION);
     vector<Tensor> inputs;
     for (const auto &input : j["nnetInputs"])

@@ -88,9 +88,18 @@ def run_InfoGAN_without_tuning(tuning: bool):
         f.write(stub.to_onnx("optimized").SerializeToString())
 
 
+def load_onnx_and_run():
+    runtime = ft.cuda_runtime()
+    stub = OnnxStub.from_onnx(onnx.load("optimized.onnx"), runtime, False)
+    g = stub.handler.getGraph()
+    runtime.run(g, True)
+    print(f'Non-ctc time = {runtime.timeNonCtcOperators(g, 1000, 1000)}')
+
 
 if __name__ == "__main__":
     # run_e2e_InfoGAN()
-    run_InfoGAN_without_tuning(True)
     # runSingleConvT()
     # read_and_check()
+
+    # run_InfoGAN_without_tuning(False)
+    load_onnx_and_run()

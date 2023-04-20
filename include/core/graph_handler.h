@@ -98,6 +98,9 @@ class GraphHandlerObj {
                  const optional<vector<int>> &steps);
     Tensor pad(Tensor input, Tensor output, const vector<int> &pads,
                const optional<vector<int>> &axes);
+    /// @brief Import memBound operator from a json
+    TensorVec memBound(const TensorVec &inputs, const Tensor &outputs,
+                       const string &jsonString);
 
     //------ modifiers
 
@@ -110,6 +113,7 @@ class GraphHandlerObj {
     void data_malloc() { g->dataMalloc(); }
 
     void run() { g->getRuntime()->run(g); }
+    Graph getGraph() const { return g; }
 };
 
 } // namespace infini

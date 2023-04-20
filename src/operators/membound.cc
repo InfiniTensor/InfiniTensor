@@ -91,10 +91,9 @@ bool MemBoundObj::checkOOB(nnet::Expr expr) {
         nnet::as<nnet::RangeOpNode>(expr));
 }
 
-void MemBoundObj::saveAsJson(string path) const {
-    bool status = nnet::Serializer().toFile(
-        expr, path, "MemBoundObj::saveAsJson", nnetInputs, exec_time, hint);
-    IT_ASSERT(status);
+string MemBoundObj::toJson() const {
+    return *nnet::Serializer().toString(expr, "MemBoundObj::toJson", nnetInputs,
+                                        exec_time, hint);
 }
 
 } // namespace infini

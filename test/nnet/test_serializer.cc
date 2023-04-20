@@ -103,9 +103,9 @@ TEST(Serializer, Serialization_memboundOp) {
     string hint = "test";
     infini::MemBoundObj memboundOp(nullptr, {AT, BT}, {CT}, nnetInputs, expr,
                                    execTime, hint);
-    memboundOp.saveAsJson("./test_serializer.json");
+    auto str = memboundOp.toJson();
     auto [exprLoaded, nnetInputsLoaded, execTimeLoaded, hintLoaded] =
-        Serializer().deserializeAsMemobundOp("./test_serializer.json");
+        Serializer().membundOpFromString(str);
     EXPECT_EQ(expr->toReadable(), exprLoaded->toReadable());
     EXPECT_EQ(execTime, execTimeLoaded);
     EXPECT_EQ(nnetInputs.size(), nnetInputsLoaded.size());

@@ -1,10 +1,12 @@
 ﻿#include "core/graph_handler.h"
+#include "nnet/Visitor/Serializer.h"
 #include "operators/batch_norm.h"
 #include "operators/concat.h"
 #include "operators/conv.h"
 #include "operators/element_wise.h"
 #include "operators/gather.h"
 #include "operators/matmul.h"
+#include "operators/membound.h"
 #include "operators/pad.h"
 #include "operators/pooling.h"
 #include "operators/reduce_mean.h"
@@ -289,6 +291,22 @@ Tensor GraphHandlerObj::pad(Tensor input, Tensor output,
         return g->addOp<PadObj>(std::move(input), output, pads, axes)
             ->getOutput();
     }
+}
+
+TensorVec GraphHandlerObj::memBound(const TensorVec &inputs,
+                                    const Tensor &output,
+                                    const string &jsonString) {
+    const auto &[expr, nnetInputs, execTime, hint] =
+        nnet::Serializer().membundOpFromString(jsonString);
+    if (output) {
+        g->addOpWithOutputs<MemBoundObj>(std::move(inputs), TensorVec{output},
+                                         nnetInputs, expr, execTime, hint);
+        return {output};
+    } else
+        return g
+            ->addOp<MemBoundObj>(std::move(inputs), TensorVec{nullptr},
+                                 nnetInputs, expr, execTime, hint)
+            ->getOutputs();
 }
 
 static DataType dtype_repr_convert(int dtype) {

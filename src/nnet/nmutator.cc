@@ -754,15 +754,6 @@ NMutator::generateUnaryExpr(const Operator &op) {
             NameNToTensorT{{"T", op->getInputs()[0]}}};
 }
 
-void NMutator::memboundToJson(const Graph &g, const string path) {
-    for (auto &_op : g->getOperators()) {
-        if (auto op = as<MemBoundObj>(_op)) {
-            op->saveAsJson(path + "/" + "membound_" +
-                           std::to_string(op->getGuid()) + ".json");
-        }
-    }
-}
-
 pair<nnet::Expr, vector<nnet::Tensor>> NMutator::generateRevert(Tensor in) {
     using namespace nnet;
     using infini::make_ref;

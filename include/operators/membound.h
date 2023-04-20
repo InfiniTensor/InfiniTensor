@@ -36,7 +36,7 @@ class MemBoundObj : public OperatorObj {
         return {expr, hash};
     }
     double getEstimatedTime() const { return exec_time; }
-    void saveAsJson(string path) const;
+    string toJson() const;
 
   private:
     vector<int> getWorkloadVector() const override;

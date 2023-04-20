@@ -1,7 +1,6 @@
 #include "core/graph_handler.h"
 #include "core/mutator.h"
 #include "core/search_engine.h"
-#include "nnet/Visitor/Serializer.h"
 #include "nnet/nmutator.h"
 #include "operators/batch_norm.h"
 #include "operators/concat.h"
@@ -232,9 +231,7 @@ static vector<int> transpose_permute_of(Operator op) {
 }
 
 static string membound_expr_of(Operator op) {
-    IT_ASSERT(op->getOpType() == OpType::MemBound);
-    return *nnet::Serializer().toString(
-        dynamic_cast<const MemBoundObj *>(op.get())->getNnetExpr());
+    return as<MemBoundObj>(op)->toJson();
 }
 
 void export_functions(py::module &m) {
@@ -276,12 +273,16 @@ void init_graph_builder(py::module &m) {
     py::class_<Object, Ref<Object>>(m, "_Object")
         .def("__str__", &Object::toString)
         .def("guid", &Object::getGuid);
-    py::class_<RuntimeObj, std::shared_ptr<RuntimeObj>>(m, "Runtime");
+    py::class_<RuntimeObj, Ref<RuntimeObj>>(m, "Runtime")
+        .def("run", &RuntimeObj::run, "graph"_a, "tune"_a = false,
+             "profiling"_a = false)
+        .def("getPerfTime", &RuntimeObj::getPerfTime)
+        .def("timeNonCtcOperators", &RuntimeObj::timeNonCtcOperators);
     py::class_<NativeCpuRuntimeObj, std::shared_ptr<NativeCpuRuntimeObj>,
                RuntimeObj>(m, "CpuRuntime");
 #ifdef USE_CUDA
-    py::class_<CudaRuntimeObj, std::shared_ptr<CudaRuntimeObj>, RuntimeObj>(
-        m, "CudaRuntime");
+    py::class_<CudaRuntimeObj, Ref<CudaRuntimeObj>, RuntimeObj>(m,
+                                                                "CudaRuntime");
 #endif
 #ifdef USE_BANG
     py::class_<BangRuntimeObj, std::shared_ptr<BangRuntimeObj>, RuntimeObj>(
@@ -342,19 +343,20 @@ void init_graph_builder(py::module &m) {
         .def("reduce_mean", &Handler::reduceMean, policy::move)
         .def("slice", &Handler::slice, policy::move)
         .def("pad", &Handler::pad, policy::move)
+        .def("memBound", &Handler::memBound, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)
         .def("optimize", &Handler::optimize, policy::automatic)
         .def("operators", &Handler::operators, policy::move)
         .def("data_malloc", &Handler::data_malloc, policy::automatic)
-        .def("run", &Handler::run, policy::automatic);
+        .def("run", &Handler::run, policy::automatic)
+        .def("getGraph", &Handler::getGraph);
     py::class_<Mutator, Ref<Mutator>>(m, "Mutator").def("run", &Mutator::run);
     py::enum_<NMutator::Mode>(m, "NMutatorMode")
         .value("RuleBased", NMutator::Mode::RuleBased);
     py::class_<NMutator, Ref<NMutator>, Mutator>(m, "NMutator")
         .def(py::init<NMutator::Mode>())
         .def(py::init<NMutator::Mode, vector<int>>())
-        .def("run", &NMutator::run)
-        .def_static("memboundToJson", &NMutator::memboundToJson);
+        .def("run", &NMutator::run);
     py::class_<SearchEngine>(m, "SearchEngine")
         .def(py::init<Runtime, Ref<Mutator>>())
         .def("run", &SearchEngine::run);

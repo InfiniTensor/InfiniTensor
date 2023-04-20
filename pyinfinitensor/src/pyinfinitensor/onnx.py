@@ -1,4 +1,4 @@
-import backend
+﻿import backend
 from onnx import (
     ModelProto,
     TensorProto,
@@ -40,8 +40,9 @@ class OnnxStub:
     disable_check: bool
 
     @classmethod
-    def from_onnx(cls, model: ModelProto, runtime):
-        model = infer_shapes(model)
+    def from_onnx(cls, model: ModelProto, runtime, enable_onnx_shape_infernce = True):
+        if enable_onnx_shape_infernce:
+            model = infer_shapes(model)
         ans = OnnxStub()
         ans.handler = backend.GraphHandler(runtime)
 
@@ -516,7 +517,18 @@ class OnnxStub:
                 ):
                     tensors[name] = tensor
             elif node.op_type == "MemBound":
-                raise Exception('Unsupported operator "{}"'.format(node.op_type))
+                attributes = _parse_attribute(node, {'expr': None})
+                expr: str = attributes['expr']
+                assert expr is not None
+                assert len(node.output) == 1, """MemBound with multiple 
+                    outputs requires rewrite the logic of tensor creation"""
+                outputs = ans.handler.memBound(
+                    [tensors[name] for name in node.input],
+                    tensors.get(node.output[0]),
+                    expr,
+                )
+                for name, tensor in zip(node.output, outputs):
+                    tensors[name] = tensor
             else:
                 raise Exception('Unsupported operator "{}"'.format(node.op_type))
 
@@ -572,9 +584,9 @@ class OnnxStub:
             value_info: List[ValueInfoProto] = []
 
             enable_check = False
+
             def __init__(self, enable_check):
                 self.enable_check = enable_check
-
 
             def name_op(self, op: backend.Operator) -> Tuple[backend.OpType, str]:
                 ty = op.op_type()

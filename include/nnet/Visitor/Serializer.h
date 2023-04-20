@@ -79,6 +79,11 @@ class Serializer : public Functor<string()> {
 
     tuple<Expr, vector<Tensor>, double, string>
     deserializeAsMemobundOp(const string &filePath);
+
+    // FIXME: the order of elements in tuple is not consistent with memboundObj
+    // constructor
+    tuple<Expr, vector<Tensor>, double, string>
+    membundOpFromString(const string &data);
 };
 
 } // namespace nnet
