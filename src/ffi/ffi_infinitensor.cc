@@ -263,7 +263,9 @@ void export_functions(py::module &m) {
         .FUNCTION(concat_axis_of)
         .FUNCTION(split_axis_of)
         .FUNCTION(gather_axis_of)
-        .FUNCTION(membound_expr_of);
+        .FUNCTION(membound_expr_of)
+        .def("membound_hash_of",
+             [](Operator op) { return as<MemBoundObj>(op)->getHash(); });
 #undef FUNCTION
 }
 
@@ -283,7 +285,8 @@ void init_graph_builder(py::module &m) {
                RuntimeObj>(m, "CpuRuntime");
 #ifdef USE_CUDA
     py::class_<CudaRuntimeObj, Ref<CudaRuntimeObj>, RuntimeObj>(m,
-                                                                "CudaRuntime");
+                                                                "CudaRuntime")
+        .def("timeWithCudaGraph", &CudaRuntimeObj::timeWithCudaGraph);
 #endif
 #ifdef USE_BANG
     py::class_<BangRuntimeObj, std::shared_ptr<BangRuntimeObj>, RuntimeObj>(

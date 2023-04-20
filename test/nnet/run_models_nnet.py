@@ -78,23 +78,26 @@ def runSingleConvT():
     ft.if_onnx.export_onnx(opt_g, 'convtransposed.onnx')
 
 
-def run_InfoGAN_without_tuning(tuning: bool):
-    runtime = ft.cuda_runtime()
+def run_InfoGAN_without_tuning(runtime, tuning: bool):
     g = ft.getInfoGAN(1, runtime, 5)
     # g = ft.getInfoGAN(1, runtime, 1)
     opt_g = ft.optimizeGraph(g, runtime, tuning)
     stub = OnnxStub.from_graph(opt_g)
     with open("optimized.onnx", "wb") as f:
         f.write(stub.to_onnx("optimized").SerializeToString())
+    return opt_g
 
 
-def load_onnx_and_run():
-    runtime = ft.cuda_runtime()
+def load_onnx(runtime) -> ft.Graph:
     stub = OnnxStub.from_onnx(onnx.load("optimized.onnx"), runtime, False)
-    g = stub.handler.getGraph()
+    return stub.handler.getGraph()
+
+
+def run_and_evaluate(runtime, g):
     runtime.run(g, True)
     print(f'getPerfTime = {runtime.getPerfTime(g, True, False, False)}')
     print(f'Non-ctc time = {runtime.timeNonCtcOperators(g, 1000, 1000)}')
+    print(f'Cuda graph time = {runtime.timeWithCudaGraph(g)}')
 
 
 if __name__ == "__main__":
@@ -102,5 +105,9 @@ if __name__ == "__main__":
     # runSingleConvT()
     # read_and_check()
 
-    # run_InfoGAN_without_tuning(False)
-    load_onnx_and_run()
+    runtime = ft.cuda_runtime()
+    if True:
+        g = run_InfoGAN_without_tuning(runtime, False)
+    else:
+        g = load_onnx(runtime)
+    run_and_evaluate(runtime, g)

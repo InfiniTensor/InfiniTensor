@@ -32,6 +32,7 @@ class MemBoundObj : public OperatorObj {
     int numOutputs() const override { return outputs.size(); }
     const vector<nnet::Tensor> &getNnetInputs() const { return nnetInputs; }
     const nnet::Expr getNnetExpr() const { return expr; }
+    HashType getHash() const { return hash; }
     pair<const nnet::Expr, HashType> getSimplifiedNnetExpr() const {
         return {expr, hash};
     }

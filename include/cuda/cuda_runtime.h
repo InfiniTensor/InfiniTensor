@@ -65,6 +65,6 @@ class CudaRuntimeObj : public RuntimeObj {
     void tune(const Graph &graph, bool profiling) const;
 
     void beginCudaGraphStreamCapture();
-    cudaGraphExec_t endCudaGraphStreamCapture();
+    tuple<cudaGraphExec_t, size_t> endCudaGraphStreamCapture();
 };
 } // namespace infini

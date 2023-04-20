@@ -55,7 +55,6 @@ Graph SearchEngine::run(const Graph graph) {
         std::vector<Graph> candidates = search(subGraph);
         std::cout << "[INFO] size: " << candidates.size() << std::endl;
         IT_ASSERT(candidates.size() > 0);
-        std::cout << subGraph->toString() << std::endl;
         std::vector<Graph> nextGraphs;
         for (auto lastGraph : bestGraphs) {
             for (auto thisGraph : candidates) {

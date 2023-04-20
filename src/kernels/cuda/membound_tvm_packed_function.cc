@@ -1,5 +1,6 @@
 #ifdef INFINI_USE_TVM
 #include "core/kernel.h"
+#include "cuda/cuda_conv2dreduce.h"
 #include "cuda/cuda_runtime.h"
 #include "dlpack/dlpack.h"
 #include "ffi/ffi_embed.h"
@@ -13,6 +14,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+
 using json = nlohmann::json;
 
 namespace py = pybind11;
@@ -29,6 +31,7 @@ class TVMRecordObj : public PerfRecordObj {
     std::string funcName;
     std::vector<int> inputIdx;
     tvm::runtime::PackedFunc packedFunc;
+    bool useExistingKernel = false;
 };
 
 using TVMRecord = Ref<TVMRecordObj>;
@@ -40,6 +43,14 @@ class MemboundTVMPackedFunction : public Kernel {
         auto op = as<MemBoundObj>(_op);
         // auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         auto tvmRecord = std::dynamic_pointer_cast<TVMRecordObj>(record);
+
+        // Use user-defined kernels
+        if (tvmRecord->useExistingKernel) {
+            bool success = useExistingKernels(op);
+            IT_ASSERT(success);
+            return;
+        }
+
         tvm::runtime::PackedFunc packedFunc = tvmRecord->packedFunc;
 
         // prepare inputs and outputs
@@ -68,9 +79,17 @@ class MemboundTVMPackedFunction : public Kernel {
     // Premise: op is idempotent since it is called multiple times.
     PerfRecord tune(const Operator &_op,
                     const RuntimeObj *_context) const override {
-        TVMRecord ret = std::make_shared<TVMRecordObj>();
         auto op = as<MemBoundObj>(_op);
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
+
+        // If hash matches, use user-defined kernels
+        if (useExistingKernels(op)) {
+            TVMRecord ret = std::make_shared<TVMRecordObj>();
+            ret->time = timeit([&]() { useExistingKernels(op); },
+                               [&]() { context->sync(); });
+            ret->useExistingKernel = true;
+            return ret;
+        }
 
         // invoke Ansor to tune a membound kernel
         auto [expr, hash] = op->getSimplifiedNnetExpr();
@@ -120,6 +139,7 @@ class MemboundTVMPackedFunction : public Kernel {
         tvm::runtime::TVMArgs args(preArgs.first.data(), preArgs.second.data(),
                                    preArgs.first.size());
 
+        TVMRecord ret = std::make_shared<TVMRecordObj>();
         ret->time = timeit([&]() { packedFunc.CallPacked(args, &rv); },
                            [&]() { context->sync(); });
         ret->kernelName = kernelName;
@@ -128,7 +148,7 @@ class MemboundTVMPackedFunction : public Kernel {
         ret->inputIdx = inputIdx;
         ret->packedFunc = packedFunc;
 
-        return std::dynamic_pointer_cast<PerfRecordObj>(ret);
+        return ret;
     }
 
     std::string serializeTVMArgs(const std::vector<std::vector<int>> &inDims,
@@ -261,6 +281,34 @@ class MemboundTVMPackedFunction : public Kernel {
         }
 
         return {values, type_codes};
+    }
+
+    bool useExistingKernels(Ref<MemBoundObj> op) const {
+        const map<HashType, tuple<int, int, int, int, int, int, int, int, int,
+                                  int, int, int, int, int, int>>
+            hashMap = {
+                // clang-format off
+{18446744073661354550ULL, {1, 1, 2, 2, 256, 4, 4, 4, 4, 1, 1, 2, 2, 1, 1}},
+{124145340ULL,            {1, 1, 4, 4, 128, 4, 4, 8, 8, 1, 1, 2, 2, 1, 1}},
+{18446744073695718019ULL, {1, 1, 8, 8, 64, 4, 4, 16, 16, 1, 1, 2, 2, 1, 1}},
+{515085072ULL,            {2, 1, 16, 16, 3, 4, 4, 32, 32, 1, 1, 2, 2, 1, 1}}
+        }; // clang-format on
+        float *input = op->getInputs(0)->getRawDataPtr<float *>();
+        float *bias = nullptr;
+        float *output = op->getOutput()->getRawDataPtr<float *>();
+        if (auto it = hashMap.find(op->getHash()); it != hashMap.end()) {
+            auto &[PReLU, n, h, w, f, r, s, oh, ow, ph, pw, sh, sw, dh, dw] =
+                it->second;
+            IT_ASSERT(op->getInputs(0)->size() ==
+                      size_t(n) * h * w * f * r * s);
+            IT_ASSERT(op->getOutput()->size() == size_t(n) * oh * ow * f);
+            convTranspose2dreduce_kernel(input, bias, output, PReLU, n, h, w, f,
+                                         r, s, oh, ow, ph, pw, sh, sw, dh, dw);
+            return true;
+        }
+        // conv2dreduce_kernel(input, bias, output, PReLU, n, h, w, f, r, s,
+        //                     oh, ow, ph, pw, sh, sw, dh, dw);
+        return false;
     }
 };
 

@@ -863,6 +863,7 @@ class OnnxStub:
                         name,
                         domain="nnet",
                         expr=backend.membound_expr_of(op),
+                        hash=str(backend.membound_hash_of(op)),
                     )
                 )
             else:

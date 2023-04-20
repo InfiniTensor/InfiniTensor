@@ -115,7 +115,7 @@ Graph optimizeGraph(Graph g, Runtime _runtime, bool tuning) {
     runtime->run(g);
     dbg("Baseline graph");
     printGraph(g);
-    dbg(runtime->getPerfTime(g, true));
+    // dbg(runtme->getPerfTime(g, true));
 
     for (size_t i = 0; i < bestGraphs.size(); i++) {
         auto bestGraphCpu = bestGraphs[i];
@@ -234,8 +234,6 @@ vector<Tensor> runInfoGAN(int nLayers) {
     }
     return {};
 }
-
-// TEST(ModelE2E, InfoGAN) { runInfoGAN(); }
 
 } // namespace infini
 #endif

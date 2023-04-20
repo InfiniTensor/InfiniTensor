@@ -2,6 +2,7 @@
 #include "core/kernel.h"
 #include "core/perf_engine.h"
 #include "core/runtime.h"
+#include "cuda_profiler_api.h"
 #include "operators/conv.h"
 #include "operators/matmul.h"
 namespace infini {
@@ -32,18 +33,20 @@ CudaRuntimeObj::~CudaRuntimeObj() {
 void CudaRuntimeObj::beginCudaGraphStreamCapture() {
     enum cudaStreamCaptureStatus pCaptureStatus;
     checkCudaError(cudaStreamIsCapturing(stream, &pCaptureStatus));
-    dbg(pCaptureStatus);
+    IT_ASSERT(pCaptureStatus == cudaStreamCaptureStatusNone);
     cudaGraphStatus = true;
     checkCudaError(cudaStreamBeginCapture(stream, cudaStreamCaptureModeGlobal));
 }
 
-cudaGraphExec_t CudaRuntimeObj::endCudaGraphStreamCapture() {
+tuple<cudaGraphExec_t, size_t> CudaRuntimeObj::endCudaGraphStreamCapture() {
     cudaGraph_t cudaGraph;
     cudaGraphExec_t instance;
     checkCudaError(cudaStreamEndCapture(stream, &cudaGraph));
     cudaGraphStatus = false;
+    size_t numCudaGraphNodes;
+    checkCudaError(cudaGraphGetNodes(cudaGraph, nullptr, &numCudaGraphNodes));
     checkCudaError(cudaGraphInstantiate(&instance, cudaGraph, NULL, NULL, 0));
-    return instance;
+    return {instance, numCudaGraphNodes};
 }
 
 void CudaRuntimeObj::runWithoutSync(const Graph &graph) const {
@@ -135,13 +138,8 @@ double CudaRuntimeObj::timeWithCudaGraph(Graph graph) {
             kernel->compute(op, perfData, this);
         else
             kernel->compute(op, this);
-        // if (!ctcMap.at(op->getGuid()) && op->getOpType() != OpType::Reshape)
-        // if (op->getOpType() == OpType::Matmul)
-        // if (op->getOpType() == OpType::Matmul ||
-        //     op->getOpType() == OpType::Relu
-        //     // || op->getOpType() == OpType::MemBound
-        // )
-        kernels.emplace_back(op, kernel, perfData);
+        if (!ctcMap.at(op->getGuid()) && op->getOpType() != OpType::Reshape)
+            kernels.emplace_back(op, kernel, perfData);
     }
     for (auto &[op, kernel, perfData] : kernels) {
         dbg(op);
@@ -154,9 +152,12 @@ double CudaRuntimeObj::timeWithCudaGraph(Graph graph) {
         else
             kernel->compute(op, this);
     }
-    auto cudaGraphInstance = endCudaGraphStreamCapture();
+    auto [cudaGraphInstance, numCudaGraphNodes] = endCudaGraphStreamCapture();
+    IT_ASSERT(numCudaGraphNodes == kernels.size(),
+              std::to_string(numCudaGraphNodes) +
+                  " != " + std::to_string(kernels.size()));
     return timeit(
-        [&, stream = getStream()]() {
+        [&, cudaGraphInstance = cudaGraphInstance, stream = getStream()]() {
             checkCudaError(cudaGraphLaunch(cudaGraphInstance, stream));
         },
         [&, stream = getStream()]() { cudaStreamSynchronize(stream); }, 1000,
