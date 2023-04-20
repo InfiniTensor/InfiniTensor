@@ -6,6 +6,8 @@
 #include <unordered_map>
 #include <vector>
 
+namespace optimization {
+
 /// @brief Defines a template alias for `std::vector`.
 template <class t> using Vec = std::vector<t>;
 
@@ -45,6 +47,25 @@ struct Tensor {
     /// @return A `shared_ptr<Tensor>`.
     static Arc<Tensor> share(Vec<size_t> shape, DataType data_type, Data data);
 
+    /// @brief A static factory method to create a `shared_ptr<Tensor>` with
+    /// single data.
+    /// @tparam t Data type.
+    /// @param val Data value.
+    /// @return A `shared_ptr<Tensor>`.
+    template <class t> static Arc<Tensor> share_single(t val) {
+        return Tensor::share({1}, ty<t>(), Data::cpu<t>({val}));
+    }
+
+    /// @brief A static factory method to create a `shared_ptr<Tensor>` with
+    /// 1D data.
+    /// @tparam t Data type.
+    /// @param val Data value.
+    /// @return A `shared_ptr<Tensor>`.
+    template <class t> static Arc<Tensor> share_vec(Vec<t> val) {
+        return Tensor::share({val.size()}, ty<t>(),
+                             Data::cpu<t>(std::move(val)));
+    }
+
     /// @brief Calculates the size of the tensor in bytes.
     /// @return Memory usage in bytes.
     size_t size() const;
@@ -53,3 +74,5 @@ struct Tensor {
     /// @brief Constructor is private and only accessible by the factory method.
     Tensor(Vec<size_t> &&, DataType &&, Data &&);
 };
+
+} // namespace optimization

@@ -1,5 +1,7 @@
 ﻿#include "data_type.h"
 
+using namespace optimization;
+
 size_t DataType::size() const {
     switch (id) {
     case DataTypeId::FLOAT:

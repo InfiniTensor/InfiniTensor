@@ -62,6 +62,7 @@ endif()
 include_directories(include)
 
 add_subdirectory(optimization)
+include_directories(optimization/include)
 
 # Pybind11
 add_subdirectory(3rd-party/pybind11)

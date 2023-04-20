@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <cstdint>
 
+namespace optimization {
+
 enum class DataTypeId : uint8_t {
     UNDEFINED,
     FLOAT,
@@ -41,3 +43,5 @@ template <> inline DataType ty<bool>() { return {DataTypeId::BOOL}; }
 template <> inline DataType ty<double>() { return {DataTypeId::DOUBLE}; }
 template <> inline DataType ty<uint32_t>() { return {DataTypeId::UINT32}; }
 template <> inline DataType ty<uint64_t>() { return {DataTypeId::UINT64}; }
+
+} // namespace optimization

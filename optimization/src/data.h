@@ -4,6 +4,8 @@
 #include <cstring>
 #include <vector>
 
+namespace optimization {
+
 /// @brief Stores tensor data。
 struct Data {
     /// @brief `cpu_data` is stored in the memory space,
@@ -28,3 +30,5 @@ struct Data {
         return ans;
     }
 };
+
+} // namespace optimization

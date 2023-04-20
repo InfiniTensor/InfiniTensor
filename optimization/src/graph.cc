@@ -1,5 +1,7 @@
 ﻿#include "graph.h"
 
+using namespace optimization;
+
 static size_t GRAPH_ID = 1;
 
 Unigraph::Unigraph() : id(GRAPH_ID++) {}

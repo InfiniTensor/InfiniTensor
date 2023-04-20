@@ -1,6 +1,8 @@
 ﻿#include "tensor.h"
 #include <numeric>
 
+using namespace optimization;
+
 Arc<Tensor> Tensor::share(Vec<size_t> shape, DataType data_type, Data data) {
     return Arc<Tensor>(
         new Tensor(std::move(shape), std::move(data_type), std::move(data)));

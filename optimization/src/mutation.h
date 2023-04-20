@@ -3,6 +3,8 @@
 #include "graph.h"
 #include <functional>
 
+namespace optimization {
+
 /// @brief A candidate subgraph mutant.
 struct Mutant {
     /// @brief The mutated subgraph.
@@ -165,3 +167,5 @@ template <class t> Vec<size_t> list_size(Vec<SubGraph<t>> const &list) {
                    [](const auto &e) { return e.mutants.size(); });
     return ans;
 }
+
+} // namespace optimization

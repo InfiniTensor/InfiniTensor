@@ -3,6 +3,8 @@
 #include "op_type.h"
 #include "tensor.h"
 
+namespace optimization {
+
 /// @brief a struct to represent an operator in the computation graph.
 ///        The ownership of an `Operator` belongs to one `Unigraph`.
 struct Operator {
@@ -49,3 +51,5 @@ struct Unigraph {
         Vec<Arc<Tensor>> outputs //
     );
 };
+
+} // namespace optimization

@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+namespace optimization {
+
 enum class OpType : uint16_t {
     Abs,
     Acos,
@@ -190,3 +192,5 @@ enum class OpType : uint16_t {
     Where,
     Xor,
 };
+
+} // namespace optimization

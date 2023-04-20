@@ -1,4 +1,9 @@
 #include "core/graph.h"
+#include "operators/concat.h"
+#include "operators/conv.h"
+#include "operators/gather.h"
+#include "operators/unary.h"
+#include "optimization/common.h"
 #include <algorithm>
 #include <queue>
 
@@ -114,13 +119,262 @@ bool GraphObj::topo_sort() {
     return this->sorted = true;
 }
 
+optimization::DataType cast(DataType ty) {
+#define IT(A, B)                                                               \
+    if (ty == DataType::A)                                                     \
+        return {optimization::DataTypeId::B};
+
+    IT(Float32, FLOAT)          //
+    else IT(UInt32, UINT32)     //
+        else IT(UInt8, UINT8)   //
+        else IT(Int8, INT8)     //
+        else IT(UInt16, UINT16) //
+        else IT(Int16, INT16)   //
+        else IT(Int32, INT32)   //
+        else IT(Int64, INT64)   //
+        else IT_ASSERT(false, "unsupported data type");
+
+#undef IT
+}
+
+optimization::OpType cast(OpType ty) {
+#define IT(A, B)                                                               \
+    case OpType::A:                                                            \
+        return optimization::OpType::B
+
+    switch (ty) {
+        IT(Abs, Abs);
+        IT(Add, Add);
+        IT(And, And);
+        IT(AvgPool, AveragePool);
+        IT(BatchNorm, BatchNormalization);
+        IT(Cast, Cast);
+        IT(Clip, Clip);
+        IT(Concat, Concat);
+        IT(Conv, Conv);
+        IT(ConvTrans, ConvTranspose);
+        IT(Cos, Cos);
+        IT(Div, Div);
+        IT(Dropout, Dropout);
+        IT(Erf, Erf);
+        IT(Exp, Exp);
+        IT(Flatten, Flatten);
+        IT(Gather, Gather);
+        IT(Identity, Identity);
+        IT(Log, Log);
+        IT(Matmul, MatMul);
+        IT(MaxPool, MaxPool);
+        IT(Mul, Mul);
+        IT(Neg, Neg);
+        IT(Not, Not);
+        IT(Or, Or);
+        IT(PRelu, PRelu);
+        IT(Pad, Pad);
+        IT(Pow, Pow);
+        IT(ReduceMean, ReduceMean);
+        IT(Relu, Relu);
+        IT(Reshape, Reshape);
+        IT(Resize, Resize);
+        IT(Shape, Shape);
+        IT(Sigmoid, Sigmoid);
+        IT(Sin, Sin);
+        IT(SinH, Sinh);
+        IT(Slice, Slice);
+        IT(Softmax, Softmax);
+        IT(Split, Split);
+        IT(Sqrt, Sqrt);
+        IT(Sub, Sub);
+        IT(Tan, Tan);
+        IT(TanH, Tanh);
+        IT(Transpose, Transpose);
+        IT(Xor, Xor);
+    default:
+        IT_ASSERT(false);
+        break;
+    }
+
+#undef IT
+}
+
 void GraphObj::optimize() {
-    for (auto &op : ops) {
+    namespace opt = optimization;
+
+    topo_sort();
+
+#define I(PTR) reinterpret_cast<uintptr_t>((PTR).get())
+
+    unordered_map<uintptr_t, opt::Arc<opt::Tensor>> tensors;
+    for (const auto &t : this->getTensors()) {
+        const auto dims = t->getDims();
+        opt::Vec<size_t> shape(dims.size());
+        std::transform(dims.begin(), dims.end(), shape.begin(),
+                       [](auto x) { return static_cast<size_t>(x); });
+
+        opt::Data data{};
+        if (t->hasData()) {
+            auto origin = t->getDataBlob();
+            data.cpu_data.resize(t->getBytes());
+            memcpy(data.cpu_data.data(), origin->getPtr<uint8_t *>(),
+                   data.cpu_data.size());
+        }
+        tensors[I(t)] =
+            opt::Tensor::share(shape, cast(t->getDType()), std::move(data));
+    }
+
+    opt::Unigraph ans;
+
+    for (const auto &op : this->getOperators()) {
+        const auto inputs = op->getInputs(), outputs = op->getOutputs();
+        opt::Vec<opt::Arc<opt::Tensor>> in(inputs.size()), out(outputs.size());
+        std::transform(inputs.begin(), inputs.end(), in.begin(),
+                       [&](auto x) { return tensors[I(x)]; });
+        std::transform(outputs.begin(), outputs.end(), out.begin(),
+                       [&](auto x) { return tensors[I(x)]; });
         switch (op->getOpType()) {
+        case OpType::Abs:
+            ans.push_operator(opt::OpType::Abs, std::move(in), std::move(out));
+            break;
+        case OpType::ACos:
+            ans.push_operator(opt::OpType::Acos, std::move(in), std::move(out));
+            break;
+        case OpType::ACosH:
+            ans.push_operator(opt::OpType::Acosh, std::move(in),
+                              std::move(out));
+            break;
+        case OpType::Add:
+            ans.push_operator(opt::OpType::Add, std::move(in), std::move(out));
+            break;
+        case OpType::And:
+            ans.push_operator(opt::OpType::And, std::move(in), std::move(out));
+            break;
+        case OpType::ASin:
+            ans.push_operator(opt::OpType::Asin, std::move(in), std::move(out));
+            break;
+        case OpType::ASinH:
+            ans.push_operator(opt::OpType::Asinh, std::move(in),
+                              std::move(out));
+            break;
+        case OpType::ATan:
+            ans.push_operator(opt::OpType::Atan, std::move(in), std::move(out));
+            break;
+        case OpType::ATanH:
+            ans.push_operator(opt::OpType::Atanh, std::move(in),
+                              std::move(out));
+            break;
+        case OpType::AvgPool:
+            ans.push_operator(opt::OpType::AveragePool, std::move(in),
+                              std::move(out));
+            break;
+        case OpType::BatchNorm:
+            ans.push_operator(opt::OpType::BatchNormalization, std::move(in),
+                              std::move(out));
+            break;
+        case OpType::BitLeftShift:
+            in.push_back(opt::Tensor::share_single<uint8_t>(0));
+            ans.push_operator(opt::OpType::BitShift, std::move(in),
+                              std::move(out));
+            break;
+        case OpType::BitRightShift:
+            in.push_back(opt::Tensor::share_single<uint8_t>(1));
+            ans.push_operator(opt::OpType::BitShift, std::move(in),
+                              std::move(out));
+            break;
+        case OpType::BitAnd:
+            ans.push_operator(opt::OpType::BitwiseAnd, std::move(in),
+                              std::move(out));
+            break;
+        case OpType::BitNot:
+            ans.push_operator(opt::OpType::BitwiseNot, std::move(in),
+                              std::move(out));
+            break;
+        case OpType::BitOr:
+            ans.push_operator(opt::OpType::BitwiseOr, std::move(in),
+                              std::move(out));
+            break;
+        case OpType::BitXor:
+            ans.push_operator(opt::OpType::BitwiseXor, std::move(in),
+                              std::move(out));
+            break;
+        case OpType::Cast:
+            ans.push_operator(opt::OpType::Cast, std::move(in), std::move(out));
+            break;
+        case OpType::Ceil:
+            ans.push_operator(opt::OpType::Ceil, std::move(in), std::move(out));
+            break;
+        case OpType::Clip: {
+            auto obj = as<ClipObj>(op);
+            auto min = obj->getMin();
+            auto max = obj->getMax();
+            in.push_back(
+                opt::Tensor::share_single<float>(min ? *min : -INFINITY));
+            in.push_back(
+                opt::Tensor::share_single<float>(max ? *max : INFINITY));
+            ans.push_operator(opt::OpType::Clip, std::move(in), std::move(out));
+        } break;
+        case OpType::Concat:
+            in.push_back(
+                opt::Tensor::share_single<int>(as<ConcatObj>(op)->getDim()));
+            ans.push_operator(opt::OpType::Concat, std::move(in),
+                              std::move(out));
+            break;
+        case OpType::Conv: {
+            auto obj = as<ConvObj>(op);
+            in.push_back(opt::Tensor::share_vec<size_t>(
+                {(size_t)obj->getDh(), (size_t)obj->getDw()}));
+            in.push_back(opt::Tensor::share_vec<size_t>(
+                {(size_t)obj->getPh(), (size_t)obj->getPw()}));
+            in.push_back(opt::Tensor::share_vec<size_t>(
+                {(size_t)obj->getSh(), (size_t)obj->getSw()}));
+            ans.push_operator(opt::OpType::Conv, std::move(in), std::move(out));
+        } break;
+        case OpType::Cos:
+            ans.push_operator(opt::OpType::Cos, std::move(in), std::move(out));
+            break;
+        case OpType::CosH:
+            ans.push_operator(opt::OpType::Cosh, std::move(in), std::move(out));
+            break;
+        case OpType::Div:
+            ans.push_operator(opt::OpType::Div, std::move(in), std::move(out));
+            break;
+        case OpType::Dropout:
+            ans.push_operator(opt::OpType::Dropout, std::move(in),
+                              std::move(out));
+            break;
+        case OpType::Exp:
+            ans.push_operator(opt::OpType::Exp, std::move(in), std::move(out));
+            break;
+        case OpType::Flatten:
+            ans.push_operator(opt::OpType::Flatten, std::move(in),
+                              std::move(out));
+            break;
+        case OpType::Floor:
+            ans.push_operator(opt::OpType::Floor, std::move(in),
+                              std::move(out));
+            break;
+        case OpType::Gather:
+            in.push_back(
+                opt::Tensor::share_single<int>(as<GatherObj>(op)->getAxis()));
+            ans.push_operator(opt::OpType::Gather, std::move(in),
+                              std::move(out));
+            break;
+        case OpType::GreaterThan:
+            ans.push_operator(opt::OpType::Greater, std::move(in),
+                              std::move(out));
+            break;
+        case OpType::GreaterEqual:
+            ans.push_operator(opt::OpType::GreaterOrEqual, std::move(in),
+                              std::move(out));
+            break;
+        case OpType::Identity:
+            ans.push_operator(opt::OpType::Identity, std::move(in),
+                              std::move(out));
+            break;
         default:
             break;
         }
     }
+
+#undef I
 }
 
 void GraphObj::dataMalloc() {
@@ -191,7 +445,8 @@ void GraphObj::replaceConnection(Tensor oldTensor, Tensor newTensor,
 // tensor's "source" and "target" must be in "ops".
 // tensor has no "source" and no "target" must not exist.
 // "inputs" or "outputs" of operators must be in "tensors"
-// "predecessors" and "successors" of an operator of "ops" must be in "ops".
+// "predecessors" and "successors" of an operator of "ops" must be in
+// "ops".
 bool GraphObj::checkValid() const {
     for (auto tensor : tensors) {
         IT_ASSERT(!(tensor->getTargets().size() == 0 &&

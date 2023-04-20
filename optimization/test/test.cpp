@@ -2,6 +2,8 @@
 #include <iostream>
 #include <unordered_set>
 
+using namespace optimization;
+
 int main() {
     try {
         Unigraph g;
