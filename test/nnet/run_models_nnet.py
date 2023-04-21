@@ -81,8 +81,8 @@ def save_onnx(opt_g: ft.Graph, filename: str):
         f.write(stub.to_onnx("optimized").SerializeToString())
 
 
-def load_onnx(runtime) -> ft.Graph:
-    stub = OnnxStub.from_onnx(onnx.load("optimized.onnx"), runtime, False)
+def load_onnx(runtime, filename: str) -> ft.Graph:
+    stub = OnnxStub.from_onnx(onnx.load(filename), runtime, False)
     return stub.handler.getGraph()
 
 
@@ -121,23 +121,42 @@ def compare_tensors(ans, x):
     print(f'x = {x}')
 
 
+def verify_graphs(runtime, g_original, g_new):
+    ans = run_graph_get_output(runtime, g_original)
+    x = run_graph_get_output(runtime, g_new)
+    compare_tensors(runtime, ans, x)
+
+
+def evluate_GANs():
+    runtime = ft.cuda_runtime()
+    for model_id in [0, 1]:
+        for batch in [1, 16]:
+            if True:
+                original_g = ft.getGANGraph(batch, runtime, 5, model_id)
+                g = ft.optimizeGraph(original_g, runtime, tuning=False)
+            else:
+                g = load_onnx(runtime)
+            save_onnx(
+                g, f"{['infogan', 'dcgan'][model_id]}_optimized_{batch}.onnx")
+
+            run_and_evaluate(runtime, g)
+
+
 if __name__ == "__main__":
     runtime = ft.cuda_runtime()
     # run_e2e_InfoGAN()
     # runSingleConvT()
     # read_and_check()
-    if True:
-        original_g = ft.getInfoGAN(16, runtime, 5)
-        # original_g = ft.getConvtransposedNHWC(runtime, [1, 1, 1, 228], 0) # ConvTranspose 2x2
-        # original_g = ft.getConvtransposedNHWC(runtime, [16, 2, 2, 448], 1) # ConvTranspose 4x4
-        g = ft.optimizeGraph(original_g, runtime, tuning=False)
-    else:
-        g = load_onnx(runtime)
-    save_onnx(g, "optimized.onnx")
+    for batch in [1, 16]:
+        if True:
+            original_g = ft.getGANGraph(batch, runtime, 5, 1)
+            # original_g = ft.getConvtransposedNHWC(runtime, [1, 1, 1, 228], 0) # ConvTranspose 2x2
+            # original_g = ft.getConvtransposedNHWC(runtime, [16, 2, 2, 448], 1) # ConvTranspose 4x4
+            g = ft.optimizeGraph(original_g, runtime, tuning=False)
+        else:
+            g = load_onnx(runtime)
+        save_onnx(g, f"dcgan_optimized_{batch}.onnx")
 
-    ans = run_graph_get_output(runtime, original_g)
-    x = run_graph_get_output(runtime, g)
-    print('=== 138')
-    compare_tensors(ans, x)
+        verify_graphs(runtime, original_g, g)
 
-    # run_and_evaluate(runtime, g)
+        run_and_evaluate(runtime, g)

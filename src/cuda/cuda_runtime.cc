@@ -148,12 +148,13 @@ double CudaRuntimeObj::timeWithCudaGraph(Graph graph) {
         dbg(op);
     }
 
-    // Init tvm stream
-    #ifdef INFINI_USE_TVM
+// TODO: move this to kernel source?
+// Init tvm stream
+#ifdef INFINI_USE_TVM
     DLDevice tvm_device_id = {kDLCUDA, 0};
     auto tvm_device = tvm::runtime::DeviceAPI::Get(tvm_device_id);
     tvm_device->SetStream(tvm_device_id, getStream());
-    #endif
+#endif
 
     beginCudaGraphStreamCapture();
     for (auto &[op, kernel, perfData] : kernels) {
@@ -163,7 +164,9 @@ double CudaRuntimeObj::timeWithCudaGraph(Graph graph) {
             kernel->compute(op, this);
     }
     auto [cudaGraphInstance, numCudaGraphNodes] = endCudaGraphStreamCapture();
-    IT_ASSERT(numCudaGraphNodes == kernels.size(),
+    // Since one TVM packed function may contaion more than one CUDA kernel, the
+    // number of captured kernels may exceed the number of operators.
+    IT_ASSERT(numCudaGraphNodes >= kernels.size(),
               std::to_string(numCudaGraphNodes) +
                   " != " + std::to_string(kernels.size()));
     printf("numCudaGraphNodes = %lu\n", numCudaGraphNodes);

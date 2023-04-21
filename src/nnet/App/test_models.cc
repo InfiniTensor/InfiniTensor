@@ -14,29 +14,63 @@
 
 namespace infini {
 
+// Channel, kernelSize, pad, stride, isTanh
+using GANConfigs = vector<tuple<int, int, int, int, bool>>;
+using DetailedConfigs =
+    vector<tuple<int, int, int, int, int, int, int, int, int, int, bool>>;
+
+DetailedConfigs getGANConfigs(int id, int batch) {
+    // The first conv can be transformed into gemm without reduction
+    //                                       n, f,    h, w,     c, r, s, stride,
+    //                                       pad, dilation
+    GANConfigs ret;
+    const DetailedConfigs infoConfigs = {
+        {batch, 228, 1, 1, 448, 2, 2, 1, 0, 1, false},
+        {batch, 448, 2, 2, 256, 4, 4, 2, 1, 1, false},
+        {batch, 256, 4, 4, 128, 4, 4, 2, 1, 1, false},
+        {batch, 128, 8, 8, 64, 4, 4, 2, 1, 1, false},
+        {batch, 64, 16, 16, 3, 4, 4, 2, 1, 1, true}};
+    const DetailedConfigs dcganConfigs = {
+        {batch, 100, 1, 1, 512, 4, 4, 1, 0, 1, false},
+        {batch, 512, 4, 4, 256, 4, 4, 2, 1, 1, false},
+        {batch, 256, 8, 8, 128, 4, 4, 2, 1, 1, false},
+        {batch, 128, 16, 16, 64, 4, 4, 2, 1, 1, false},
+        {batch, 64, 32, 32, 3, 4, 4, 2, 1, 1, true}};
+    DetailedConfigs details;
+    if (id == 0) { // InfoGAN
+        dbg("Use InfoGAN configs");
+        details = infoConfigs;
+    } else if (id == 1) { // DCGAN
+        dbg("Use DCGAN configs");
+        details = dcganConfigs;
+    } else
+        IT_ASSERT(false);
+    return details;
+}
+
 // NHWC format
-Graph getInfoGAN(int batch, Runtime runtime, int nLayers) {
+Graph getGANGraph(int batch, Runtime runtime, int nLayers, int modelId) {
     IT_ASSERT(1 <= nLayers && nLayers <= 5);
     Graph g = make_ref<GraphObj>(runtime);
     vector<Tensor> weights;
-    vector<tuple<int, int, int, int, bool>> cs{
-        // Channel, kernelSize, pad, stride, isTanh
-        {448, 2, 0, 1, false}, {256, 4, 1, 2, false}, {128, 4, 1, 2, false},
-        {64, 4, 1, 2, false},  {3, 4, 1, 2, true},
-    };
+    auto configs = getGANConfigs(modelId, batch);
 
-    Tensor input =
-        g->addTensor({batch, 1, 1, 228}, DataType::Float32, TensorType::Input);
-    for (int i = 0; i < (int)cs.size() && i < nLayers; ++i) {
-        auto [channel, kernelSize, pad, stride, tanh] = cs[i];
-        int f = input->getDims()[3]; // n, h, w, f
-        auto weight = g->addTensor({f, kernelSize, kernelSize, channel},
-                                   DataType::Float32,
+    Tensor input;
+    {
+        auto &[n, f, h, w, c, r, s, stride, pad, dilation, isTanh] = configs[0];
+        input = g->addTensor({batch, 1, 1, f}, DataType::Float32,
+                             TensorType::Input);
+    }
+    for (int i = 0; i < (int)configs.size() && i < nLayers; ++i) {
+        // auto [channel, kernelSize, pad, stride, tanh] = configs[i];
+        auto &[n, f, h, w, c, r, s, stride, pad, dilation, isTanh] = configs[i];
+        IT_ASSERT(input->getDims()[3] == f);
+        auto weight = g->addTensor({f, r, s, c}, DataType::Float32,
                                    TensorType::Initialized); // f, r, s, c
         input = g->addOp<ConvTransposed2dNHWCObj>(input, weight, nullptr, pad,
                                                   pad, stride, stride, 1, 1)
                     ->getOutput();
-        if (tanh) {
+        if (isTanh) {
             input = g->addOp<TanhObj>(input, nullptr)->getOutput();
         } else {
             input = g->addOp<ReluObj>(input, nullptr)->getOutput();
@@ -172,7 +206,7 @@ vector<Tensor> runInfoGAN(int nLayers) {
     Runtime cpu = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(cpu);
 
-    Graph g = getInfoGAN(1, cuda, nLayers);
+    Graph g = getGANGraph(1, cuda, nLayers, 0);
 
     auto mutator =
         make_ref<NMutator>(NMutator::Mode::RuleBased,

@@ -382,7 +382,7 @@ void init_graph_builder(py::module &m) {
 void export_test_model(py::module &m) {
 #ifdef USE_CUDA
     m.def("runInfoGAN", &runInfoGAN)
-        .def("getInfoGAN", &getInfoGAN)
+        .def("getGANGraph", &getGANGraph)
         .def("getConvtransposedNHWC", &getConvtransposedNHWC)
         .def("optimizeGraph", &optimizeGraph, "graph"_a, "runtime"_a,
              "tuning"_a = false)

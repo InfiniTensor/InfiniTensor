@@ -2,8 +2,8 @@
 #include "core/runtime.h"
 #include "cuda/cuda_runtime.h"
 #include "cuda/cuda_utility.h"
-#include "operators/conv.h"
 #include "nnet/nmutator.h"
+#include "operators/conv.h"
 #include "operators/matmul.h"
 #include "test.h"
 
@@ -53,6 +53,7 @@ TEST(TestCudaRuntime, CudaGraphMembound) {
     runtime->run(gNew, false);
     runtime->getPerfTime(gNew);
 
-    runtime->timeWithCudaGraph(gNew);
+    auto time = runtime->timeWithCudaGraph(gNew);
+    EXPECT_GE(time, 0.001);
 }
 } // namespace infini

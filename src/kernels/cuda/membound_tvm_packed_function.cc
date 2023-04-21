@@ -284,6 +284,7 @@ class MemboundTVMPackedFunction : public Kernel {
     }
 
     bool useExistingKernels(Ref<MemBoundObj> op) const {
+        return false;
         const map<HashType, tuple<int, int, int, int, int, int, int, int, int,
                                   int, int, int, int, int, int>>
             hashMap = {
