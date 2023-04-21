@@ -60,7 +60,7 @@ class NMutator : public Mutator {
     // Graph fuseHetConv(nnet::Expr expr, Graph in_graph);
     Graph transformConvtransposed1x1(Operator _op);
     // Graph transformConvtransposed(Operator op);
-    // Graph transformDialtedConv(Operator op);
+    Graph transformDialtedConv(Operator _op);
     // Graph transformConv1x1(Operator op);
     // Graph transformConv1xk(Operator op);
 };
