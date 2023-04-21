@@ -83,6 +83,16 @@ void printGraph(Graph g) {
     }
 }
 
+void initializeGraphTensors(Graph g, double l, double r, bool useInt) {
+    auto gen = RandomGenerator(-0.1, 0.1, 0, useInt);
+    for (auto t : g->getInputs()) {
+        t->setData(gen);
+    }
+    for (auto t : g->getOutputs()) {
+        t->setData(ZeroGenerator());
+    }
+}
+
 Graph optimizeGraph(Graph g, Runtime _runtime, bool tuning) {
     auto runtime = as<CudaRuntimeObj>(_runtime);
     Runtime cpu = NativeCpuRuntimeObj::getInstance();

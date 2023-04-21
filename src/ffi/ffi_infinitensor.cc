@@ -2,6 +2,7 @@
 #include "core/mutator.h"
 #include "core/search_engine.h"
 #include "nnet/nmutator.h"
+#include "nnet/test_models.h"
 #include "operators/batch_norm.h"
 #include "operators/concat.h"
 #include "operators/conv.h"
@@ -378,20 +379,17 @@ void init_graph_builder(py::module &m) {
         .def("topo_sort", &GraphObj::topo_sort);
 }
 
-#ifdef USE_CUDA
-Graph getInfoGAN(int batch, Runtime runtime, int nLayers);
-vector<Tensor> runInfoGAN(int nLayers);
-Graph getConvtransposedNHWC(Runtime runtime, Shape shape, int layerId);
-Graph optimizeGraph(Graph g, Runtime runtime, bool tuning);
-
 void export_test_model(py::module &m) {
-    m.def("runInfoGAN", &runInfoGAN);
-    m.def("getInfoGAN", &getInfoGAN);
-    m.def("getConvtransposedNHWC", &getConvtransposedNHWC);
-    m.def("optimizeGraph", &optimizeGraph, "graph"_a, "runtime"_a,
-          "tuning"_a = false);
-}
+#ifdef USE_CUDA
+    m.def("runInfoGAN", &runInfoGAN)
+        .def("getInfoGAN", &getInfoGAN)
+        .def("getConvtransposedNHWC", &getConvtransposedNHWC)
+        .def("optimizeGraph", &optimizeGraph, "graph"_a, "runtime"_a,
+             "tuning"_a = false)
+        .def("initializeGraphTensors", &initializeGraphTensors, "g"_a,
+             "l"_a = -0.1, "r"_a = 0.1, "useInt"_a = false);
 #endif
+}
 
 } // namespace infini
 

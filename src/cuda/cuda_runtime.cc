@@ -156,6 +156,7 @@ double CudaRuntimeObj::timeWithCudaGraph(Graph graph) {
     IT_ASSERT(numCudaGraphNodes == kernels.size(),
               std::to_string(numCudaGraphNodes) +
                   " != " + std::to_string(kernels.size()));
+    printf("numCudaGraphNodes = %lu\n", numCudaGraphNodes);
     return timeit(
         [&, cudaGraphInstance = cudaGraphInstance, stream = getStream()]() {
             checkCudaError(cudaGraphLaunch(cudaGraphInstance, stream));

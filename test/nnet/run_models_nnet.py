@@ -71,21 +71,14 @@ def run_e2e_InfoGAN():
     df.to_csv('a.csv')
 
 
-def runSingleConvT():
-    runtime = ft.cuda_runtime()
-    g = ft.getConvtransposedNHWC(runtime, [1, 2, 2, 448], 1)
-    opt_g = ft.optimizeGraph(g, runtime)
-    ft.if_onnx.export_onnx(opt_g, 'convtransposed.onnx')
+def getSingleConvT(runtime):
+    return ft.getConvtransposedNHWC(runtime, [1, 2, 2, 448], 1)
 
 
-def run_InfoGAN_without_tuning(runtime, tuning: bool):
-    g = ft.getInfoGAN(1, runtime, 5)
-    # g = ft.getInfoGAN(1, runtime, 1)
-    opt_g = ft.optimizeGraph(g, runtime, tuning)
+def save_onnx(opt_g: ft.Graph, filename: str):
     stub = OnnxStub.from_graph(opt_g)
-    with open("optimized.onnx", "wb") as f:
+    with open(filename, "wb") as f:
         f.write(stub.to_onnx("optimized").SerializeToString())
-    return opt_g
 
 
 def load_onnx(runtime) -> ft.Graph:
@@ -100,14 +93,51 @@ def run_and_evaluate(runtime, g):
     print(f'Cuda graph time = {runtime.timeWithCudaGraph(g)}')
 
 
+def run_graph_get_output(runtime, g):
+    ft.initializeGraphTensors(g)
+    runtime.run(g, True)
+    runtime.run(g, False)
+    tensors = [to_pytorch_tensor(t) for t in g.outputs()]
+    assert len(tensors) == 1
+    return tensors[0]
+
+
+def compare_tensors(ans, x):
+    assert ans.shape == x.shape
+    print(f'Allclose {torch.allclose(ans, x)}')
+    # Print error numbers
+    tot = np.product(ans.shape)
+    data = []
+    for i in range(0, 10):
+        tol = 10**(-i)
+        clo = torch.isclose(ans, x, atol=tol, rtol=tol).sum().item()
+        print(f'0.1^{i} close: {clo}/{tot} = {clo/tot}')
+        data.append(clo/tot)
+
+    # rel_err = torch.abs((ans-x)/ans)
+    # print(f'rel_err = {rel_err}')
+    # print(f'max rel err = {rel_err.max()}')
+    print(f'ans = {ans}')
+    print(f'x = {x}')
+
+
 if __name__ == "__main__":
+    runtime = ft.cuda_runtime()
     # run_e2e_InfoGAN()
     # runSingleConvT()
     # read_and_check()
-
-    runtime = ft.cuda_runtime()
     if True:
-        g = run_InfoGAN_without_tuning(runtime, False)
+        original_g = ft.getInfoGAN(16, runtime, 5)
+        # original_g = ft.getConvtransposedNHWC(runtime, [1, 1, 1, 228], 0) # ConvTranspose 2x2
+        # original_g = ft.getConvtransposedNHWC(runtime, [16, 2, 2, 448], 1) # ConvTranspose 4x4
+        g = ft.optimizeGraph(original_g, runtime, tuning=False)
     else:
         g = load_onnx(runtime)
-    run_and_evaluate(runtime, g)
+    save_onnx(g, "optimized.onnx")
+
+    ans = run_graph_get_output(runtime, original_g)
+    x = run_graph_get_output(runtime, g)
+    print('=== 138')
+    compare_tensors(ans, x)
+
+    # run_and_evaluate(runtime, g)

@@ -878,6 +878,16 @@ class OnnxStub:
                         ctx.push_data_input(name, "max", TensorProto.FLOAT, [], [])
                     )
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
+            elif ty == backend.OpType.ConvTransNHWC:
+                ctx.push_node(
+                    make_node(
+                        ty.name,
+                        inputs,
+                        outputs,
+                        name,
+                        domain="nnet",
+                    )
+                )
             elif ty == backend.OpType.MemBound:
                 ctx.push_node(
                     make_node(
