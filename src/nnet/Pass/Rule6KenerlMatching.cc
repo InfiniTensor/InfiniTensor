@@ -25,8 +25,8 @@ void Rule6KenerlMatching::transform(Formula &origin, int depth, Expr &rCur) {
     }
     { // Match element-wise OP
         auto replaces = matchElementWise(cur);
-        if (!replaces.empty())
-            dbg(rCur);
+        // if (!replaces.empty())
+        //     dbg(rCur);
         for (auto newCur : replaces)
             nextStep(origin, depth, rCur, newCur);
     }

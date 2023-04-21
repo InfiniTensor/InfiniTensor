@@ -350,7 +350,7 @@ Expr ConvPattern::buildExpr(
     auto shape = conv->getShape();
     auto rangeOpShape = as<RangeOpNode>(expr)->getOutputShape();
     assert(shape.size() == rangeOpShape.size());
-    dbg(shape, rangeOpShape);
+    // dbg(shape, rangeOpShape);
     for (size_t i = 0; i < shape.size(); ++i) {
         if (shape[i] != rangeOpShape[i]) {
             dbg("Warning: unmatched Conv output", shape, rangeOpShape);
