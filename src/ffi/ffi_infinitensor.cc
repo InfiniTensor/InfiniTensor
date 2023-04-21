@@ -323,7 +323,8 @@ void init_graph_builder(py::module &m) {
         .def(py::init<Graph>())
         .def("inputs", &Handler::inputs, policy::move)
         .def("outputs", &Handler::outputs, policy::move)
-        .def("tensor", &Handler::tensor, policy::move)
+        .def("tensor", &Handler::tensor, policy::move, "shape"_a, "dtype"_a = 1,
+             "tensor_type"_a = TensorType::Other)
         .def("conv", &Handler::conv, policy::move)
         .def("convTransposed2d", &Handler::convTransposed2d, policy::move)
         .def("matmul", &Handler::matmul, policy::move)
@@ -362,6 +363,7 @@ void init_graph_builder(py::module &m) {
         .def("getGraph", &Handler::getGraph);
     py::class_<Mutator, Ref<Mutator>>(m, "Mutator").def("run", &Mutator::run);
     py::enum_<NMutator::Mode>(m, "NMutatorMode")
+        .value("Normal", NMutator::Mode::Normal)
         .value("RuleBased", NMutator::Mode::RuleBased);
     py::class_<NMutator, Ref<NMutator>, Mutator>(m, "NMutator")
         .def(py::init<NMutator::Mode>())
@@ -385,7 +387,8 @@ void export_test_model(py::module &m) {
         .def("getGANGraph", &getGANGraph)
         .def("getConvtransposedNHWC", &getConvtransposedNHWC)
         .def("optimizeGraph", &optimizeGraph, "graph"_a, "runtime"_a,
-             "tuning"_a = false)
+             "tuning"_a = false, "mode"_a = NMutator::Mode::Normal,
+             "rules"_a = vector<int>{})
         .def("initializeGraphTensors", &initializeGraphTensors, "g"_a,
              "l"_a = -0.1, "r"_a = 0.1, "useInt"_a = false);
 #endif

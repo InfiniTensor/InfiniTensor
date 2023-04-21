@@ -127,14 +127,23 @@ void initializeGraphTensors(Graph g, double l, double r, bool useInt) {
     }
 }
 
-Graph optimizeGraph(Graph g, Runtime _runtime, bool tuning) {
+Graph optimizeGraph(Graph g, Runtime _runtime, bool tuning, NMutator::Mode mode,
+                    vector<int> rules) {
     auto runtime = as<CudaRuntimeObj>(_runtime);
     Runtime cpu = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(cpu);
-
-    auto mutator =
-        make_ref<NMutator>(NMutator::Mode::RuleBased,
-                           vector<int>{3, 2, 2, 2, 2, 5, 8, 8, 6, 91, 90});
+    //    vector<int>{3, 2, 2, 5, 8, 8, 6, 90}); // Conv2gemm
+    //    vector<int>{3, 2, 2, 2, 2, 5, 8, 8, 6, 91, 90}); // TConv
+    Ref<NMutator> mutator;
+    if (mode == NMutator::Mode::Normal) {
+        dbg(mode);
+        mutator = make_ref<NMutator>(mode);
+    } else if (mode == NMutator::Mode::RuleBased) {
+        dbg(mode, rules);
+        IT_ASSERT_TODO(rules.size() > 0);
+        mutator = make_ref<NMutator>(mode, rules);
+    } else
+        IT_TODO_HALT();
     vector<Graph> bestGraphs;
     SearchEngine searchEngine(runtime, mutator);
     bestGraphs.emplace_back(searchEngine.run(g));
@@ -157,8 +166,8 @@ Graph optimizeGraph(Graph g, Runtime _runtime, bool tuning) {
         t->setData(ZeroGenerator());
     }
     runtime->run(g);
-    dbg("Baseline graph");
-    printGraph(g);
+    // dbg("Baseline graph");
+    // printGraph(g);
     // dbg(runtme->getPerfTime(g, true));
 
     for (size_t i = 0; i < bestGraphs.size(); i++) {
@@ -194,8 +203,8 @@ Graph optimizeGraph(Graph g, Runtime _runtime, bool tuning) {
             // dbg(runtime->timeWithCudaGraph(bestGraph));
         }
 
-        dbg("Best graph");
-        printGraph(bestGraph);
+        // dbg("Best graph");
+        // printGraph(bestGraph);
         return bestGraph;
     }
     return nullptr;

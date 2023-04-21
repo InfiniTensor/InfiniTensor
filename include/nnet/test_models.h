@@ -8,7 +8,8 @@ namespace infini {
 Graph getGANGraph(int batch, Runtime runtime, int nLayers, int modelId);
 vector<Tensor> runInfoGAN(int nLayers);
 Graph getConvtransposedNHWC(Runtime runtime, Shape shape, int layerId);
-Graph optimizeGraph(Graph g, Runtime runtime, bool tuning);
+Graph optimizeGraph(Graph g, Runtime _runtime, bool tuning, NMutator::Mode mode,
+                    vector<int> rules);
 void initializeGraphTensors(Graph g, double l, double r, bool useInt);
 
 } // namespace infini
