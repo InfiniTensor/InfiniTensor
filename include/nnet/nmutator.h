@@ -61,7 +61,7 @@ class NMutator : public Mutator {
     Graph transformConvtransposed1x1(Operator _op);
     // Graph transformConvtransposed(Operator op);
     // Graph transformDialtedConv(Operator op);
-    // Graph transformConv1x1(Operator op);
+    Graph transformConv1x1(Operator op);
     // Graph transformConv1xk(Operator op);
 };
 
