@@ -103,7 +103,8 @@ class OnnxStub:
                 else:
                     adapt = node.input[0]
 
-                if len(node.input) > 2:
+                # HACK: ignore bias
+                if len(node.input) > 3:
                     bias = "{}-bias".format(node.output[0])
                     reshape = "{}-reshape".format(node.output[0])
                     tensors[bias] = ans.handler.conv(
@@ -393,11 +394,16 @@ class OnnxStub:
                     next((attr.i for attr in node.attribute if attr.name == "axis")),
                 )
             elif node.op_type == "PRelu":
-                tensors[node.output[0]] = ans.handler.pRelu(
+                # HACK: replace PRelu with Relu
+                tensors[node.output[0]] = ans.handler.relu(
                     tensors[node.input[0]],
-                    tensors[node.input[1]],
                     tensors.get(node.output[0]),
                 )
+                # tensors[node.output[0]] = ans.handler.pRelu(
+                #     tensors[node.input[0]],
+                #     tensors[node.input[1]],
+                #     tensors.get(node.output[0]),
+                # )
             elif node.op_type == "Clip":
                 tensors[node.output[0]] = ans.handler.clip(
                     tensors[node.input[0]],

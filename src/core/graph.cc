@@ -229,4 +229,14 @@ bool GraphObj::checkValid() const {
     return true;
 }
 
+int GraphObj::removeIndependentTensors() {
+    TensorVec newTensors;
+    for (const auto &t : tensors)
+        if (!t->getTargets().empty() || t->getSource())
+            newTensors.emplace_back(t);
+    auto ret = tensors.size() - newTensors.size();
+    tensors = newTensors;
+    return ret;
+}
+
 } // namespace infini

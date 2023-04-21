@@ -108,6 +108,11 @@ class GraphObj : public Object {
 
     bool checkValid() const;
 
+    /// @brief If a tensor has no source and garget, it is independent and
+    /// removed from the graph.
+    /// @return The number of removed tensors.
+    int removeIndependentTensors();
+
   private:
     /**
      * @brief Add reverse connections and Op relationship in ctor.

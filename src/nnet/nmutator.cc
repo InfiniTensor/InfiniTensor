@@ -77,14 +77,6 @@ void NMutator::runSingleOpToNaiveMembound(Graph in_graph,
 void NMutator::runSingleOp(Graph in_graph, std::vector<Graph> &out_graphs) {
     OpVec computeOps = in_graph->getComputeOps();
     IT_ASSERT(computeOps.size() == 1);
-    // HACK: remove this
-    if (auto op = as<ConvTransposed2dNHWCObj>(computeOps[0]); !op)
-        return;
-
-    // if (infini::Graph g = transformTConv1x1(computeOps[0])) {
-    //     out_graphs.emplace_back(g);
-    //     return;
-    // }
     if (Graph g = transformConvtransposed1x1(computeOps[0])) {
         out_graphs.emplace_back(g);
         return;
@@ -103,6 +95,11 @@ void NMutator::runSingleOp(Graph in_graph, std::vector<Graph> &out_graphs) {
     // //     out_graphs.emplace_back(graph);
     // //     return;
     // // }
+
+    const set<OpType> opSet{OpType::Conv, OpType::ConvTransNHWC};
+    if (opSet.count(computeOps[0]->getOpType()) == 0)
+        return;
+
 
     auto expr = opToExpression(computeOps[0]);
     if (!expr)

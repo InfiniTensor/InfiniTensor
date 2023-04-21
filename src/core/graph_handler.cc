@@ -332,4 +332,12 @@ static DataType dtype_repr_convert(int dtype) {
     }
 }
 
+Graph GraphHandlerObj::getGraph() const {
+    int nRemoved = g->removeIndependentTensors();
+    if (nRemoved > 0)
+        std::cout << "Removed " << nRemoved << " independent tensors"
+                  << std::endl;
+    return g;
+}
+
 } // namespace infini
