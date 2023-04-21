@@ -5,6 +5,9 @@
 #include "cuda_profiler_api.h"
 #include "operators/conv.h"
 #include "operators/matmul.h"
+#ifdef INFINI_USE_TVM
+#include "tvm/runtime/device_api.h"
+#endif
 namespace infini {
 
 CudaRuntimeObj::CudaRuntimeObj()
@@ -144,6 +147,13 @@ double CudaRuntimeObj::timeWithCudaGraph(Graph graph) {
     for (auto &[op, kernel, perfData] : kernels) {
         dbg(op);
     }
+
+    // Init tvm stream
+    #ifdef INFINI_USE_TVM
+    DLDevice tvm_device_id = {kDLCUDA, 0};
+    auto tvm_device = tvm::runtime::DeviceAPI::Get(tvm_device_id);
+    tvm_device->SetStream(tvm_device_id, getStream());
+    #endif
 
     beginCudaGraphStreamCapture();
     for (auto &[op, kernel, perfData] : kernels) {
