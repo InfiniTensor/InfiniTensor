@@ -452,34 +452,6 @@ double NMutator::memboundTime(const Shape &dims) {
     return memboundTime(dims.size());
 }
 
-// infini::Graph NMutator::fuseHetConv(nnet::Expr expr, Graph in_graph) {
-//     // Conv3x3+Conv1x1 => Gemm(nhw, f(rs+1), c) + Reduce
-//     auto g = std::make_shared<infini::Graph>();
-//     in_graph->print();
-//     assert(in_graph->getInputs().size() == 3);
-//     auto input = in_graph->getOperators()[0]->getInputs(0);
-//     auto conv = dynamic_cast<ConvOp *>(in_graph->getOperators()[0]);
-//     auto output = conv->getOutput();
-//     // auto input = g->reshape(input);
-//     auto inputTrans = g->transpose(input, 0, {-1, {0, 2, 3}, 1}, -1);
-//     // dbg(inputTrans->getOutput()->getDims());
-//     const auto &[n, c, h, w, f, r, s, ph, pw, sh, sw, dh, dw, G, bi, ac] =
-//         conv->getArgs(0);
-//     auto weight = g->tensor({1, c, f * (3 * 3 + 1)});
-//     dbg(weight->getDims());
-//     auto matmul = g->matmul(inputTrans->getOutput(), weight, false, false);
-//     auto bias = g->tensor({f});
-//     const double size = n * f * h * w * (3 * 3 + 1) * 4;
-//     // FIXME: add NNET tensors for verfication
-//     auto membound =
-//         g->membound({matmul->getOutput(), bias}, {output}, {}, nullptr,
-//                     memboundTime(size), "Reduce_conv3x3+1x1");
-//     dbg(n, f, h, w);
-//     dynamic_cast<MemBoundOp *>(membound)->setNFHW(n, f, h, w);
-
-//     return new Graph(g->getOperators());
-// }
-
 // Graph NMutator::transformDialtedConv(Operator op) {
 //     if (auto convOp = dynamic_cast<ConvOp *>(op)) {
 //         if (convOp->getPh() == convOp->getDh() && convOp->getSh() == 1 &&

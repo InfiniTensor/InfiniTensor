@@ -57,7 +57,6 @@ class NMutator : public Mutator {
     double memboundTime(const Shape &dims);
 
     // TODO: recover these rules
-    // Graph fuseHetConv(nnet::Expr expr, Graph in_graph);
     Graph transformConvtransposed1x1(Operator _op);
     // Graph transformConvtransposed(Operator op);
     // Graph transformDialtedConv(Operator op);
