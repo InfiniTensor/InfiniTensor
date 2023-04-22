@@ -50,7 +50,7 @@ optional<vector<Shape>> AnyObj::inferShape(const TensorVec &inputs) const {
 
 const string AnyObj::getKernelName() const { return kernelName; }
 
-vector<int> AnyObj::getOpAttrVector() const { return attr; };
+vector<int> AnyObj::getOpAttrVector() const { return attr; }
 
 vector<int> AnyObj::getWorkloadVector() const {
     vector<int> ret = {};
