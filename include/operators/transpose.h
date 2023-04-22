@@ -15,7 +15,7 @@ class TransposeObj : public OperatorObj {
     std::vector<int> getPermute() const { return transposePermute; }
 
   private:
-    vector<int> transposePermute = {1, 1, 1, 1};
+    vector<int> transposePermute;
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;
 };

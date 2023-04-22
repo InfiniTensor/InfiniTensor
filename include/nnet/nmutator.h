@@ -60,10 +60,10 @@ class NMutator : public Mutator {
     // TODO: recover these rules
     Graph transformConvtransposed1x1(Operator _op);
     // Graph transformConvtransposed(Operator op);
-    // Graph transformDialtedConv(Operator op);
     Graph transformConv1x1(Operator op);
     Graph transformG2bmm(Operator op);
     Graph transformGbmm(Operator op);
+    Graph transformDialtedConv(Operator _op);
     // Graph transformConv1xk(Operator op);
 
     Tensor splitTransposeMerge(Graph g, Tensor A, int dim, int chunkSize,

@@ -142,8 +142,7 @@ double CudaRuntimeObj::timeWithCudaGraph(Graph graph, int rounds) {
         else
             kernel->compute(op, this);
         // FIXME: transpose
-        if (!ctcMap.at(op->getGuid()) && op->getOpType() != OpType::Transpose &&
-            op->getOpType() != OpType::Reshape)
+        if (!ctcMap.at(op->getGuid()) && op->getOpType() != OpType::Reshape)
             kernels.emplace_back(op, kernel, perfData);
     }
     for (auto &[op, kernel, perfData] : kernels) {

@@ -1,9 +1,7 @@
 #include "core/common.h"
-#include "core/constants.h"
 #include "cuda/cuda_common.h"
 #include <math.h>
 
-using infini::E_CONSTANT;
 constexpr unsigned int num_threads() { return 32 * 4; }
 constexpr int thread_work_size() { return 4; }
 constexpr int block_work_size() { return thread_work_size() * num_threads(); }
@@ -29,4 +27,4 @@ void clip_kernel(float *input, float *output, int num, float minValue,
                                           maxValue);
 }
 
-}; // namespace infini
+} // namespace infini
