@@ -639,9 +639,9 @@ class OnnxStub:
                 if name is None:
                     self.count_in += 1
                     if tensor.getTensorType() == backend.TensorType.Input:
-                        name = "input{}".format(self.count_in)
+                        name = f"input{self.count_in}_{tensor.guid()}"
                     else:
-                        name = "weight{}".format(self.count_in)
+                        name = f"weight{self.count_in}_{tensor.guid()}"
                     self.names[tensor] = name
                     if init != None:
                         init.name = name
@@ -706,7 +706,7 @@ class OnnxStub:
                 for it in op.inputs()
             ]
             outputs = [
-                ctx.push_output("{}_{}".format(name, i), it)
+                ctx.push_output(f"{name}_{i}_{it.guid()}", it)
                 for (i, it) in enumerate(op.outputs())
             ]
             if ty == backend.OpType.Conv:
