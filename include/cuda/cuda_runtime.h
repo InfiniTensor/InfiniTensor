@@ -59,7 +59,7 @@ class CudaRuntimeObj : public RuntimeObj {
     bool isInCudaGraph() const { return cudaGraphStatus; }
     cudaStream_t getStream() const { return stream; }
 
-    double timeWithCudaGraph(Graph graph);
+    double timeWithCudaGraph(Graph graph, int rounds = 1000);
 
   private:
     void tune(const Graph &graph, bool profiling) const;

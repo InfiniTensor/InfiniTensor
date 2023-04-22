@@ -121,7 +121,7 @@ void CudaRuntimeObj::sync() const { checkCudaError(cudaDeviceSynchronize()); }
 
 string CudaRuntimeObj::toString() const { return "CUDA Runtime"; }
 
-double CudaRuntimeObj::timeWithCudaGraph(Graph graph) {
+double CudaRuntimeObj::timeWithCudaGraph(Graph graph, int rounds) {
     const auto &kernelRegistry = KernelRegistry::getInstance();
     auto &perfEngine = PerfEngine::getInstance();
     // compile-time computable

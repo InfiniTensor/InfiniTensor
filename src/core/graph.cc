@@ -129,6 +129,12 @@ void GraphObj::dataMalloc() {
     }
 }
 
+void GraphObj::dataFree() {
+    for (auto &tensor : tensors) {
+        tensor->freeData();
+    }
+}
+
 Tensor GraphObj::addTensor(Shape dim, DataType dtype, TensorType tensorType) {
     return tensors.emplace_back(
         make_ref<TensorObj>(dim, dtype, runtime, tensorType));

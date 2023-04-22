@@ -283,6 +283,7 @@ Graph optimizeGraph(Graph g, Runtime _runtime, bool tuning, NMutator::Mode mode,
     // dbg("Baseline graph");
     // printGraph(g);
     // dbg(runtme->getPerfTime(g, true));
+    g->dataFree();
 
     for (size_t i = 0; i < bestGraphs.size(); i++) {
         auto bestGraphCpu = bestGraphs[i];
@@ -304,18 +305,19 @@ Graph optimizeGraph(Graph g, Runtime _runtime, bool tuning, NMutator::Mode mode,
         dbg(bestGraph);
         dbg(bestGraph->getOutputs());
 
-        if (tuning) {
-            runtime->run(bestGraph, true);  // Tune kernels
-            runtime->run(bestGraph, false); // Execute transfomraed graph
+        // if (tuning) {
+        //     runtime->run(bestGraph, true);  // Tune kernels
+        //     runtime->run(bestGraph, false); // Execute transfomraed graph
 
-            auto go0 = gCpu->cloneTensor(g->getOutputs()[0]);
-            auto bgo0 = gCpu->cloneTensor(bestGraph->getOutputs()[0]);
-            // EXPECT_TRUE(go0->equalData(bgo0, 1e-3));
-            dbg(go0->equalData(bgo0, 1e-3));
-            dbg(runtime->getPerfTime(bestGraph, true));
-            dbg(runtime->timeNonCtcOperators(bestGraph));
-            // dbg(runtime->timeWithCudaGraph(bestGraph));
-        }
+        //     // FIXME: g is freed
+        //     auto go0 = gCpu->cloneTensor(g->getOutputs()[0]);
+        //     auto bgo0 = gCpu->cloneTensor(bestGraph->getOutputs()[0]);
+        //     // EXPECT_TRUE(go0->equalData(bgo0, 1e-3));
+        //     dbg(go0->equalData(bgo0, 1e-3));
+        //     dbg(runtime->getPerfTime(bestGraph, true));
+        //     dbg(runtime->timeNonCtcOperators(bestGraph));
+        //     // dbg(runtime->timeWithCudaGraph(bestGraph));
+        // }
 
         // dbg("Best graph");
         // printGraph(bestGraph);
