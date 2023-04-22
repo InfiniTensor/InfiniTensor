@@ -37,7 +37,7 @@ string ConvBaseObj::toString() const {
 
 vector<int> ConvBaseObj::getWorkloadVector() const {
     return {
-        enum_to_underlying(type), n, c, h, w, f, r, s, ph, pw, sh, sw, dh, dw};
+        enum_to_underlying(type), n, c, h, w, f, r, s, ph, pw, sh, sw, dh, dw, (int)(inputs.size()), (int)(act)};
 }
 
 vector<int> ConvBaseObj::getOpAttrVector() const {

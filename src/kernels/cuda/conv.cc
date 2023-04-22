@@ -48,7 +48,7 @@ class convCudnn : public Kernel {
     static constexpr cudnnConvolutionMode_t MODES[2] = {
         CUDNN_CONVOLUTION, CUDNN_CROSS_CORRELATION};
 
-    std::tuple<void *, void *, void *, cudnnTensorDescriptor_t,
+    std::tuple<void *, void *, void *, void *, cudnnTensorDescriptor_t,
                cudnnFilterDescriptor_t, cudnnTensorDescriptor_t,
                cudnnConvolutionDescriptor_t, cudnnActivationDescriptor_t,
                cudnnTensorDescriptor_t>
@@ -56,9 +56,10 @@ class convCudnn : public Kernel {
                           const ConvCuDnnPerfRecord &record) const {
         void *const inData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const knData = (op->getInputs(1)->getRawDataPtr<void *>());
-        if (op->getInputs().size() > 2) // Bias is not supported yet
-            IT_TODO_HALT();
-        // void *const biasData = (op->getInputs(2)->getRawDataPtr<void *>());
+        // if (op->getInputs().size() > 2) // Bias is not supported yet
+        //     IT_TODO_HALT();
+        void * biasData = nullptr;
+        if (op->getInputs().size() >= 3) biasData = (op->getInputs(2)->getRawDataPtr<void *>());
         void *const outData = (op->getOutput()->getRawDataPtr<void *>());
 
         const auto [n, c, h, w, f, r, s] = op->getNCHWFRS();
@@ -132,7 +133,7 @@ class convCudnn : public Kernel {
                       op->getOutput()->getDims(),
                   "cuDNN output shape mismatches with OP output shape");
 
-        return tuple(inData, knData, outData, inDesc, knDesc, biasDesc,
+        return tuple(inData, knData, biasData, outData, inDesc, knDesc, biasDesc,
                      convDesc, actDesc, outDesc);
     }
 
@@ -140,19 +141,35 @@ class convCudnn : public Kernel {
                       const CudaRuntimeObj *context) const {
         cudnnStatus_t stat;
 
-        const auto &[inData, knData, outData, inDesc, knDesc, biasDesc,
+        const auto &[inData, knData, biasData, outData, inDesc, knDesc, biasDesc,
                      convDesc, actDesc, outDesc] =
             createCuDNNDescriptor(op, record);
         size_t wsSize = record->workspaceSize;
         CudaPtr wsData = context->getWorkspace(wsSize);
         float alpha = 1.f, beta = 0.f;
 
-        stat = cudnnConvolutionForward(context->cudnnHandle(), &alpha, inDesc,
-                                       inData, knDesc, knData, convDesc,
-                                       ALGOS[record->algo], wsData, wsSize,
-                                       &beta, outDesc, outData);
-        if (stat != CUDNN_STATUS_SUCCESS)
-            return false;
+        if (!record->fuseAct) {
+            stat = cudnnConvolutionForward(context->cudnnHandle(), &alpha, inDesc,
+                                        inData, knDesc, knData, convDesc,
+                                        ALGOS[record->algo], wsData, wsSize,
+                                        &beta, outDesc, outData);
+            if (stat != CUDNN_STATUS_SUCCESS)
+                return false;
+            // act
+            if (biasData != nullptr) {
+                // FIXME: again using indesc, is it correct?
+                stat = cudnnActivationForward(context->cudnnHandle(), actDesc,
+                                            &alpha, inDesc, inData,
+                                            &beta, outDesc, outData);
+            }
+        }
+        else {
+            stat = cudnnConvolutionBiasActivationForward(
+                context->cudnnHandle(), &alpha, inDesc, inData, knDesc, knData,
+                convDesc, ALGOS[record->algo], wsData, wsSize, &beta, outDesc,
+                outData, biasDesc, biasData, actDesc, outDesc, outData);
+        }
+
         // TODO:
         // // bias
         // if (bias != nullptr) {
@@ -230,41 +247,61 @@ class convCudnn : public Kernel {
                 record.mode = mode;
                 record.algo = algo;
                 cudnnStatus_t stat;
-                const auto &[inData, knData, outData, inDesc, knDesc, biasDesc,
+                const auto &[inData, knData, biasData, outData, inDesc, knDesc, biasDesc,
                              convDesc, actDesc, outDesc] =
                     createCuDNNDescriptor(op, recordRef);
-
-                // get workspace
-                stat = cudnnGetConvolutionForwardWorkspaceSize(
-                    context->cudnnHandle(), inDesc, knDesc, convDesc, outDesc,
-                    ALGOS[record.algo], &record.workspaceSize);
-                if (stat != CUDNN_STATUS_SUCCESS)
-                    continue;
-                if (record.workspaceSize > context->getWorkspaceSize())
-                    continue;
-                CudaPtr wsData = context->getWorkspace(record.workspaceSize);
-                float alpha = 1.f, beta = 0.f;
-
-                stat = cudnnConvolutionForward(
-                    context->cudnnHandle(), &alpha, inDesc, inData, knDesc,
-                    knData, convDesc, ALGOS[record.algo], wsData,
-                    record.workspaceSize, &beta, outDesc, outData);
-                if (stat != CUDNN_STATUS_SUCCESS)
-                    continue;
-                record.time = timeit(
-                    [&]() {
-                        cudnnConvolutionForward(context->cudnnHandle(), &alpha,
-                                                inDesc, inData, knDesc, knData,
-                                                convDesc, ALGOS[record.algo],
-                                                wsData, record.workspaceSize,
-                                                &beta, outDesc, outData);
-                    },
-                    [&]() { context->sync(); });
-                // printf("mode:%d algo:%d :%.8lf\n", mode, algo, record.time);
-
-                // Update the tune result
-                if (ret.time > record.time)
-                    ret = record;
+                int num_fuse_plan = 1;
+                if (biasData != nullptr) num_fuse_plan = 2;
+                for (int to_fuse = 0; to_fuse < num_fuse_plan; ++to_fuse) {
+                    // get workspace
+                    stat = cudnnGetConvolutionForwardWorkspaceSize(
+                        context->cudnnHandle(), inDesc, knDesc, convDesc, outDesc,
+                        ALGOS[record.algo], &record.workspaceSize);
+                    record.fuseAct = to_fuse;
+                    if (stat != CUDNN_STATUS_SUCCESS)
+                        continue;
+                    if (record.workspaceSize > context->getWorkspaceSize())
+                        continue;
+                    CudaPtr wsData = context->getWorkspace(record.workspaceSize);
+                    float alpha = 1.f, beta = 0.f;
+                    if (to_fuse == 0) {
+                        stat = cudnnConvolutionForward(
+                            context->cudnnHandle(), &alpha, inDesc, inData, knDesc,
+                            knData, convDesc, ALGOS[record.algo], wsData,
+                            record.workspaceSize, &beta, outDesc, outData);
+                        if (stat != CUDNN_STATUS_SUCCESS)
+                            continue;
+                        record.time = timeit(
+                            [&]() {
+                                cudnnConvolutionForward(context->cudnnHandle(), &alpha,
+                                                        inDesc, inData, knDesc, knData,
+                                                        convDesc, ALGOS[record.algo],
+                                                        wsData, record.workspaceSize,
+                                                        &beta, outDesc, outData);
+                            },
+                            [&]() { context->sync(); });
+                    }
+                    else {
+                        stat = cudnnConvolutionBiasActivationForward(
+                            context->cudnnHandle(), &alpha, inDesc, inData, knDesc, knData,
+                            convDesc, ALGOS[record.algo], wsData, record.workspaceSize, &beta, outDesc,
+                            outData, biasDesc, biasData, actDesc, outDesc, outData);
+                        if (stat != CUDNN_STATUS_SUCCESS) {
+                            continue;
+                        }
+                        record.time = timeit(
+                            [&]() {
+                                cudnnConvolutionBiasActivationForward(
+                                context->cudnnHandle(), &alpha, inDesc, inData, knDesc, knData,
+                                convDesc, ALGOS[record.algo], wsData, record.workspaceSize, &beta, outDesc,
+                                outData, biasDesc, biasData, actDesc, outDesc, outData);
+                            },
+                            [&]() { context->sync(); });
+                    }
+                    if (ret.time > record.time)
+                        ret = record;
+                    printf("Tuning Conv: mode:%d algo:%d to_fuse %d :%.8lf\n", mode, algo, to_fuse, record.time);
+                }
                 checkCudnnError(cudnnDestroyTensorDescriptor(outDesc));
                 checkCudnnError(cudnnDestroyActivationDescriptor(actDesc));
                 checkCudnnError(cudnnDestroyConvolutionDescriptor(convDesc));
@@ -278,6 +315,7 @@ class convCudnn : public Kernel {
         IT_ASSERT(ret.time < std::numeric_limits<double>::max(), "No valid "
                                                                  "algorithm "
                                                                  "found");
+        printf("Best Tuning Conv: mode:%d algo:%d to_fuse %d :%.8lf\n", ret.mode, ret.algo, ret.fuseAct, ret.time);
         return make_ref<ConvCuDnnPerfRecordObj>(ret);
     }
 

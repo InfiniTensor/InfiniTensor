@@ -701,7 +701,6 @@ class OnnxStub:
 
         for op in ops:
             ty, name = ctx.name_op(op)
-            print(f"hkz: onnx {name} {len(op.inputs())}")
             inputs = [
                 ctx.push_input(it, self.initializer.get(it.fuid()))
                 for it in op.inputs()
@@ -716,8 +715,6 @@ class OnnxStub:
                     inputs.append(ctx.push_input(bias, self.initializer.get(bias.fuid())))
                     for item in inputs:
                         print(type(item), str(item))
-                else:
-                    print("hkz: bias is none")
                 ctx.push_node(
                     make_node(
                         ty.name,
