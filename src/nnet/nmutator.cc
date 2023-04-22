@@ -1,5 +1,6 @@
 #include "nnet/nmutator.h"
 #include "core/graph.h"
+#include "cuda/cuda_runtime.h"
 #include "ffi/ffi_callback.h"
 #include "nnet/Visitor/FullPrinterVisitor.h"
 #include "nnet/Visitor/GetTensorsVisitor.h"
@@ -11,6 +12,7 @@
 #include "operators/conv.h"
 #include "operators/matmul.h"
 #include "operators/membound.h"
+#include "operators/reduce_mean.h"
 #include "operators/reshape.h"
 #include "operators/softmax.h"
 #include "operators/transpose.h"
@@ -107,11 +109,10 @@ void NMutator::runSingleOp(Graph in_graph, std::vector<Graph> &out_graphs) {
         out_graphs.emplace_back(g);
         return;
     }
-    // // if (infini::Graph g = transformConv1xk(computeOps[0])) {
-    // //     Graph graph = new Graph(g->getOperators());
-    // //     out_graphs.emplace_back(graph);
-    // //     return;
-    // // }
+    if (infini::Graph g = transformConv1xk(computeOps[0])) {
+        out_graphs.emplace_back(g);
+        return;
+    }
 
     const set<OpType> opSet{OpType::Conv, OpType::ConvTransNHWC, OpType::G2BMM,
                             OpType::GBMM};
@@ -623,6 +624,9 @@ Graph NMutator::transformConv1x1(Operator _op) {
     auto op = as<ConvObj>(_op);
     if (!op)
         return nullptr;
+    const auto &[ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
+    if (sh != 1 || sw != 1 || dh != 1 || dw != 1)
+        return nullptr;
     Shape shapeA = op->getInputs(0)->getDims();
     Shape shapeW = op->getInputs(1)->getDims();
     // TODO: support batch size > 1
@@ -648,42 +652,58 @@ Graph NMutator::transformConv1x1(Operator _op) {
     return nullptr;
 }
 
-// Graph NMutator::transformConv1xk(Operator op) {
-//     auto convOp = dynamic_cast<ConvOp *>(op);
-//     if (!convOp)
-//         return nullptr;
-//     if (convOp->getSh() != 1 || convOp->getSw() != 1)
-//         return nullptr;
-//     bool a = convOp->getInputs()[1]->getDims()[2] == 1;
-//     bool b = convOp->getInputs()[1]->getDims()[3] == 1;
-//     if (!(a ^ b))
-//         return nullptr;
-//     convOp->print();
-//     auto g = new infini::Graph();
-//     auto inputDims = convOp->getInputs(0)->getDims();
-//     auto weightDims = convOp->getInputs(1)->getDims();
-//     auto outputDims = convOp->getOutput()->getDims();
-//     auto newA =
-//         g->tensor({inputDims[0] * inputDims[2] * inputDims[3],
-//         inputDims[1]});
-//     auto newW = g->tensor(
-//         {weightDims[0] * weightDims[2] * weightDims[3], weightDims[1]});
-//     auto newO = g->tensor({weightDims[0] * weightDims[2] * weightDims[3],
-//                            inputDims[0] * inputDims[2] * inputDims[3]});
-//     // g->reshape(convOp->getInputs(0), newA);
-//     g->membound({convOp->getInputs(0)}, {newA}, {}, nullptr,
-//                 memboundTime(convOp->getInputs(0)->size() + newA->size()),
-//                 "1xk input reshape");
-//     g->reshape(convOp->getInputs(1), newW);
-
-//     g->matmul(newW, newA, newO, 0, 1);
-//     g->membound({newO}, {convOp->getOutput()}, {}, nullptr,
-//                 memboundTime(newW->size() + convOp->getOutput()->size()),
-//                 "1xk reduce");
-//     g->updateConnection();
-//     Graph graph = new Graph(g->getOperators());
-//     return graph;
-// }
+Graph NMutator::transformConv1xk(Operator _op) {
+    auto op = as<ConvObj>(_op);
+    if (!op)
+        return nullptr;
+    const auto &[ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
+    if (sh != 1 || sw != 1 || dh != 1 || dw != 1)
+        return nullptr;
+    op->print();
+    const auto &A = op->getInputs(0);
+    const auto &W = op->getInputs(1);
+    const auto &O = op->getOutput();
+    const Shape &shapeA = A->getDims();
+    const Shape &shapeW = W->getDims();
+    if (shapeW[2] == 1 || shapeW[3] == 1) {
+        auto g = make_ref<GraphObj>(runtime);
+        auto A0 = g->cloneTensor(A);
+        auto W0 = g->cloneTensor(W);
+        auto A1 = g->addOp<TransposeObj>(A0, nullptr, vector<int>{0, 2, 3, 1})
+                      ->getOutput(); // [N, H, W, C]
+        auto A2 =
+            g->addOp<ReshapeObj>(
+                 A1, nullptr,
+                 vector<int>{shapeA[0] * shapeA[2] * shapeA[3], shapeA[1]})
+                ->getOutput(); // [N*H*W, C]
+        auto W1 = g->addOp<TransposeObj>(W0, nullptr, vector<int>{0, 2, 3, 1})
+                      ->getOutput(); // [R, S, F, C]
+        auto W2 =
+            g->addOp<ReshapeObj>(
+                 W1, nullptr,
+                 vector<int>{shapeW[2] * shapeW[3] * shapeW[0], shapeW[1]})
+                ->getOutput(); // [R*S*F, C]
+        auto O0 = g->addOp<MatmulObj>(W2, A2, nullptr, 0, 1)
+                      ->getOutput(); // [R*S*F, N*H*W]
+        auto O1 =
+            g->addOp<ReshapeObj>(O0, nullptr,
+                                 vector<int>{shapeW[2] * shapeW[3], shapeW[0],
+                                             shapeA[0] * shapeA[2] * shapeA[3]})
+                ->getOutput(); // [R*S, F, N*H*W]
+        auto O2 = g->addOp<ReduceMeanObj>(O1, nullptr, optional{vector<int>{0}},
+                                          false)
+                      ->getOutput(); // [F, N*H*W]
+        auto O3 = g->addOp<ReshapeObj>(
+                       O2, nullptr,
+                       vector<int>{shapeW[0], shapeA[0], shapeA[2], shapeA[3]})
+                      ->getOutput(); // [F, N, H, W]
+        g->addOpWithOutputs<TransposeObj>(O3, g->cloneTensor(O),
+                                          vector<int>{1, 0, 2, 3});
+        std::cout << "Replace 1xk/kx1 conv successfully" << std::endl;
+        return g;
+    }
+    return nullptr;
+}
 
 Graph NMutator::constructGraphByOperatorChain(vector<Operator> ops,
                                               Graph inputGraph) {

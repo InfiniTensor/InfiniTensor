@@ -136,7 +136,9 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling,
                 t->freeData();
         }
 
-        totalTime += time;
+        if (op->getOpType() != OpType::Transpose &&
+            op->getOpType() != OpType::ReduceMean)
+            totalTime += time;
         if (profiling) {
             op->print();
             printf("  op_time %lf\n", time);

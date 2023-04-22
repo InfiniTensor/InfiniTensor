@@ -96,7 +96,7 @@ Graph SearchEngine::run(const Graph graph) {
     // Fuse vertically and sort according to performance
     for (size_t i = 0; i < bestGraphs.size(); ++i) {
         // Debug
-        bestGraphs[i] = fuseVertically(bestGraphs[i]);
+        // bestGraphs[i] = fuseVertically(bestGraphs[i]);
     }
     std::sort(bestGraphs.begin(), bestGraphs.end(), graphTimeComparer);
 
@@ -224,6 +224,8 @@ MetaGraph SearchEngine::buildMetaGraphWithPlan(const MetaGraph metaGraph,
 // Search how to merge multiple ops.
 vector<MetaGraph> SearchEngine::searchMerge(MetaGraph &metaGraph) {
     IT_ASSERT(metaGraph != nullptr);
+    // HACK: disable multiple op search
+    return {metaGraph};
     std::vector<int> plan(metaGraph->nodes.size());
     for (size_t i = 0; i < plan.size(); i++) {
         plan[i] = i;
@@ -344,8 +346,10 @@ std::vector<Graph> SearchEngine::searchMutation(const MetaGraph &metaGraph) {
         if (node.type == 1) { // If it has computing OPs
             auto mutatedGraphs = mutator->run(node.graph);
             // // HACK: only try the first one for debug
-            if (mutatedGraphs.size() > 2)
+            if (mutatedGraphs.size() >= 2) {
                 mutatedGraphs.resize(2);
+                mutatedGraphs = {mutatedGraphs[1]};
+            }
             for (auto graph : graphs) {
                 for (auto mutatedGraph : mutatedGraphs) {
                     std::vector<Operator> ops;
