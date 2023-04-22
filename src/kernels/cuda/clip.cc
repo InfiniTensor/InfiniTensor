@@ -24,4 +24,4 @@ class ClipCuda : public CudaKernelWithoutConfig {
 REGISTER_KERNEL(Device::CUDA, OpType::Clip, DataType::Float32, ClipCuda,
                 "Clip_CUDA_Float32");
 
-}; // namespace infini
+} // namespace infini
