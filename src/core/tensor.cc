@@ -122,8 +122,9 @@ bool TensorObj::equalData(const Tensor &rhs, double relativeError) const {
 }
 
 void TensorObj::dataMalloc() {
-    if (!data)
+    if (!data) {
         data = runtime->allocBlob(getBytes());
+    }
 }
 
 void TensorObj::copyData(const TensorObj *src) {

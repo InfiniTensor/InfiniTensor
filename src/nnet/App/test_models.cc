@@ -232,6 +232,7 @@ void printGraph(Graph g) {
 }
 
 void initializeGraphTensors(Graph g, double l, double r, bool useInt) {
+    g->dataMalloc();
     auto gen = RandomGenerator(-0.1, 0.1, 0, useInt);
     for (auto t : g->getInputs()) {
         t->setData(gen);
@@ -260,6 +261,8 @@ Graph optimizeGraph(Graph g, Runtime _runtime, bool tuning, NMutator::Mode mode,
         IT_TODO_HALT();
     vector<Graph> bestGraphs;
     SearchEngine searchEngine(runtime, mutator);
+    return searchEngine.run(g);
+
     bestGraphs.emplace_back(searchEngine.run(g));
     g->topo_sort();
     dbg(g, bestGraphs[0], bestGraphs.size());
@@ -291,19 +294,19 @@ Graph optimizeGraph(Graph g, Runtime _runtime, bool tuning, NMutator::Mode mode,
             make_ref<GraphObj>(runtime, bestGraphCpu->getOperators());
         bestGraph->topo_sort();
 
-        bestGraph->dataMalloc();
-        // Initialize inputs with random data
-        for (auto t : bestGraph->getInputs()) {
-            t->copyData(fuidToInputTensor[t->getFuid()]);
-        }
+        // bestGraph->dataMalloc();
+        // // Initialize inputs with random data
+        // for (auto t : bestGraph->getInputs()) {
+        //     t->copyData(fuidToInputTensor[t->getFuid()]);
+        // }
 
-        // Initialize outputs with zeros
-        for (auto t : bestGraph->getOutputs()) {
-            t->setData(ZeroGenerator());
-        }
+        // // Initialize outputs with zeros
+        // for (auto t : bestGraph->getOutputs()) {
+        //     t->setData(ZeroGenerator());
+        // }
 
-        dbg(bestGraph);
-        dbg(bestGraph->getOutputs());
+        // dbg(bestGraph);
+        // dbg(bestGraph->getOutputs());
 
         // if (tuning) {
         //     runtime->run(bestGraph, true);  // Tune kernels

@@ -26,6 +26,7 @@ def load_onnx(runtime, filename: str) -> ft.Graph:
 
 
 def run_and_evaluate(runtime, g):
+    ft.initializeGraphTensors(g)
     runtime.run(g, True)
     print(f'getPerfTime = {runtime.getPerfTime(g, True, False, False)}')
     print(f'Non-ctc time = {runtime.timeNonCtcOperators(g, 1000, 1000)}')
@@ -85,10 +86,17 @@ def evluate_GANs():
             run_and_evaluate(runtime, g)
 
 
-def construct_convTranspose2d(runtime):
+# def construct_convTranspose2d(runtime):
+#     handler = ft.GraphHandler(runtime)
+#     input = handler.tensor([1, 56, 32, 32], tensor_type=ft.TensorType.Input)
+#     w = handler.tensor([56, 1, 9, 9], tensor_type=ft.TensorType.Initialized)
+#     handler.convTransposed2d(input, w, None, 3, 3, 4, 4, 1, 1, 1, 1)
+#     return handler.getGraph()
+
+def construct_convTranspose2d(runtime, n, c, h, w, f, r, s, pad, stride, dilation):
     handler = ft.GraphHandler(runtime)
-    input = handler.tensor([1, 56, 32, 32], tensor_type=ft.TensorType.Input)
-    w = handler.tensor([56, 1, 9, 9], tensor_type=ft.TensorType.Initialized)
+    input = handler.tensor([n, f, h, w], tensor_type=ft.TensorType.Input)
+    w = handler.tensor([f, c, r, s], tensor_type=ft.TensorType.Initialized)
     handler.convTransposed2d(input, w, None, 3, 3, 4, 4, 1, 1, 1, 1)
     return handler.getGraph()
 
@@ -104,14 +112,31 @@ def construct_conv(runtime, n, c, h, w, f, r, s, pad, stride, dilation):
     return handler.getGraph()
 
 
+def export_op_level_onnx(runtime):
+    graphs = [
+        (construct_conv(runtime, 1, 512, 7, 7, 512, 3, 3,
+         1, 1, 1), "orig_Conv3x3"),  # ResNet18 Conv_37
+        # 16, 256, 2, 2, 448, 4, 4, 1, 2, 1 # CelebA_ConvTranspose_0
+        # TODO
+        (construct_convTranspose2d(), "orig_ConvTranspose"),
+        (construct_conv(runtime, 16, 32, 224, 224, 1, 5,
+         5, 2, 1, 1, 1), "orig_Conv5x5"),  # SRCNN_Conv_4
+        (construct_convTranspose2d(), "orig_G2BMM"),
+    ]
+    for g, name in graphs:
+        save_onnx(g, f"opt_{name}.onnx")
+
+
 if __name__ == "__main__":
     runtime = ft.cuda_runtime()
     graphs = [
         # (construct_conv(runtime, 16, 56, 32, 32, 12, 1, 1, 0, 1, 1), 'conv1x1'), # FSRCNN Conv_2 1x1
         # (construct_conv(runtime, 1, 12, 32, 32, 12, 3, 3, 1, 1, 1), 'conv3x3'),  # FSRCNN Conv_4 3x3
         # ft.getGANGraph(batch, runtime, 5, 1)
+        # (ft.getLongformer(runtime, 1), 'longformer.bs1'),
+        (ft.getLongformer(runtime, 16), 'longformer.bs16'),
         # construct_convTranspose2d(runtime)
-        (load_onnx(runtime, '/mnt/auxHome/models/einnet/fsrcnn.bs1.onnx'), 'fsrcnn.bs1'),
+        # (load_onnx(runtime, '/mnt/auxHome/models/einnet/fsrcnn.bs1.onnx'), 'fsrcnn.bs1'),
     ]
 
     for original_g, name in graphs:
@@ -119,9 +144,12 @@ if __name__ == "__main__":
         if True:  # Optimization
             save_onnx(original_g, f"orig_{name}.onnx")
             g = ft.optimizeGraph(original_g, runtime, False, ft.NMutatorMode.RuleBased,
-                                 [3, 2, 2, 5, 8, 8, 6, 90])
+                                 [1, 7, 7, 2, 8, 6, 6])  # G2BMM/GBMM
+            # g = ft.optimizeGraph(original_g, runtime, False, ft.NMutatorMode.RuleBased,
+            #                      [3, 2, 2, 5, 8, 8, 6, 90]) # Conv2conv
             # g = ft.optimizeGraph(original_g, runtime, False, ft.NMutatorMode.Normal)
 
         save_onnx(g, f"opt_{name}.onnx")
-        verify_graphs(runtime, original_g, g)
+        # verify_graphs(runtime, original_g, g)
+        # run_and_evaluate(runtime, original_g)
         run_and_evaluate(runtime, g)

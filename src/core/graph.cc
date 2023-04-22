@@ -125,7 +125,18 @@ void GraphObj::optimize() {
 
 void GraphObj::dataMalloc() {
     for (auto &tensor : tensors) {
-        tensor->dataMalloc();
+        if (tensor->getSource() && tensor->getTargets().size() > 0 &&
+            tensor->getSource()->getOpType() == OpType::Reshape) {
+            continue;
+        } else
+            tensor->dataMalloc();
+    }
+    // Fill reshape output for avoiding nullptr
+    for (auto &tensor : tensors) {
+        if (tensor->getSource() &&
+            tensor->getSource()->getOpType() == OpType::Reshape) {
+            tensor->setData(tensor->getSource()->getInputs(0)->getDataBlob());
+        }
     }
 }
 
