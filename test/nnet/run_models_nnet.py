@@ -111,7 +111,8 @@ if __name__ == "__main__":
         # (construct_conv(runtime, 1, 12, 32, 32, 12, 3, 3, 1, 1, 1), 'conv3x3'),  # FSRCNN Conv_4 3x3
         # ft.getGANGraph(batch, runtime, 5, 1)
         # construct_convTranspose2d(runtime)
-        (load_onnx(runtime, '/mnt/auxHome/models/einnet/fsrcnn.bs1.onnx'), 'fsrcnn.bs1'),
+        # (load_onnx(runtime, '/mnt/auxHome/models/einnet/fsrcnn.bs1.onnx'), 'fsrcnn.bs1'),
+        (ft.getFSRCNNGraph(16, runtime), "fsrcnn.bs16")
     ]
 
     for original_g, name in graphs:

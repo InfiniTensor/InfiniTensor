@@ -79,6 +79,58 @@ Graph getGANGraph(int batch, Runtime runtime, int nLayers, int modelId) {
     return g;
 }
 
+// NHWC
+Graph getFSRCNNGraph(int batch, Runtime runtime) {
+    // n, c, h, w, f, r, s, stride, pad, dilation, has_pReLU
+    const DetailedConfigs fsrcnn_config = {
+        {batch, 1, 32, 32, 56, 5, 5, 1, 2, 1, true},
+        {batch, 56, 32, 32, 12, 1, 1, 1, 0, 1, true},
+        {batch, 12, 32, 32, 12, 3, 3, 1, 1, 1, false},
+        {batch, 12, 32, 32, 12, 3, 3, 1, 1, 1, false},
+        {batch, 12, 32, 32, 12, 3, 3, 1, 1, 1, false},
+        {batch, 12, 32, 32, 12, 3, 3, 1, 1, 1, true},
+        {batch, 12, 32, 32, 56, 32, 32, 1, 0, 1, true},
+        {batch, 56, 32, 32, 1, 9, 9, 4, 3, 1, false} // ConvTransNHWC
+        // n, f, h, w, c, r, s, stride, pad, dilation, has_pReLU
+    };
+
+    Graph g = make_ref<GraphObj>(runtime);
+
+    Tensor input;
+    {
+        auto &[n, c, h, w, f, r, s, stride, pad, dilation, has_pReLU] = fsrcnn_config[0];
+        input = g->addTensor({batch, h, w, c}, DataType::Float32,
+                             TensorType::Input);
+    }
+
+    for (int i = 0; i < (int)fsrcnn_config.size() - 1; ++i) {
+        // auto [channel, kernelSize, pad, stride, tanh] = configs[i];
+        auto &[n, c, h, w, f, r, s, stride, pad, dilation, has_pReLU] = fsrcnn_config[i];
+        IT_ASSERT(input->getDims()[3] == c);
+        auto weight = g->addTensor({f, r, s, c}, DataType::Float32,
+                                   TensorType::Initialized); // f, r, s, c
+        input = g->addOp<ConvNHWCObj>(input, weight, nullptr, pad,
+                                                  pad, stride, stride, 1, 1)
+                    ->getOutput();
+        if (has_pReLU) {
+            input = g->addOp<ReluObj>(input, nullptr)->getOutput();
+        }
+    }
+
+    // last operator is a ConvTransNHWC
+    {
+        auto &[n, f, h, w, c, r, s, stride, pad, dilation, has_pReLU] = fsrcnn_config[fsrcnn_config.size()-1];
+        IT_ASSERT(input->getDims()[3] == f);
+        auto weight = g->addTensor({f, r, s, c}, DataType::Float32,
+                                   TensorType::Initialized); // f, r, s, c
+        input = g->addOp<ConvTransposed2dNHWCObj>(input, weight, nullptr, pad,
+                                                  pad, stride, stride, 1, 1)
+                    ->getOutput();
+    }
+
+    return g;
+}
+
 Graph getConvtransposedNHWC(Runtime runtime, Shape shape, int layerId) {
     IT_ASSERT(0 <= layerId && layerId < 5);
     Graph g = make_ref<GraphObj>(runtime);

@@ -69,6 +69,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, Matmul)
         .VALUE(OpType, ConvTrans)
         .VALUE(OpType, ConvTransNHWC)
+        .VALUE(OpType, ConvNHWC)
         .VALUE(OpType, G2BMM)
         .VALUE(OpType, GBMM)
         .VALUE(OpType, Pad)
@@ -143,17 +144,28 @@ static Ref<RuntimeObj> intelcpu_runtime() { return make_ref<MklRuntimeObj>(); }
 #endif
 
 static std::tuple<int, int, int, int, int, int> conv_attrs_of(Operator op) {
-    IT_ASSERT(op->getOpType() == OpType::Conv);
-    auto conv = dynamic_cast<const ConvObj *>(op.get());
+    IT_ASSERT(op->getOpType() == OpType::Conv || op->getOpType() == OpType::ConvNHWC);
+    auto conv = dynamic_cast<const ConvBaseObj *>(op.get());
     return std::make_tuple(conv->getPh(), conv->getPw(), conv->getDh(),
                            conv->getDw(), conv->getSh(), conv->getSw());
 }
 
 static std::tuple<int, int, int, int, int, int, int, int>
 conv_trans_attrs_of(Operator op) {
-    IT_ASSERT(op->getOpType() == OpType::ConvTrans);
-    auto conv = dynamic_cast<const ConvTransposed2dObj *>(op.get());
-    auto [oph, opw] = conv->getOutputPadding();
+    IT_ASSERT(op->getOpType() == OpType::ConvTrans || op->getOpType() == OpType::ConvTransNHWC);
+    auto conv = dynamic_cast<const ConvBaseObj *>(op.get());
+    int oph, opw;
+
+    if (op->getOpType() == OpType::ConvTrans) {
+        auto _conv = dynamic_cast<const ConvTransposed2dObj *>(op.get());
+        auto output_pad = _conv->getOutputPadding();
+        oph = output_pad.first; opw = output_pad.second;
+    } else {
+        auto _conv = dynamic_cast<const ConvTransposed2dNHWCObj *>(op.get());
+        auto output_pad = _conv->getOutputPadding();
+        oph = output_pad.first; opw = output_pad.second;
+    }
+
     return std::make_tuple(conv->getPh(), conv->getPw(), conv->getDh(),
                            conv->getDw(), conv->getSh(), conv->getSw(), oph,
                            opw);
@@ -385,6 +397,7 @@ void export_test_model(py::module &m) {
 #ifdef USE_CUDA
     m.def("runInfoGAN", &runInfoGAN)
         .def("getGANGraph", &getGANGraph)
+        .def("getFSRCNNGraph", &getFSRCNNGraph)
         .def("getConvtransposedNHWC", &getConvtransposedNHWC)
         .def("optimizeGraph", &optimizeGraph, "graph"_a, "runtime"_a,
              "tuning"_a = false, "mode"_a = NMutator::Mode::Normal,

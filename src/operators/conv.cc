@@ -114,6 +114,75 @@ optional<vector<Shape>> ConvObj::inferShape(const TensorVec &inputs) const {
     return {{{on, oc, oh, ow}}};
 }
 
+void ConvNHWCObj::setAuxilaryAttributes(PaddingMode mode) {
+    const Tensor &input = inputs[0];
+    const Tensor &weight = inputs[1];
+    n = input->getDims()[0], c = input->getDims()[3], h = input->getDims()[1],
+    w = input->getDims()[2], f = weight->getDims()[0], r = weight->getDims()[1],
+    s = weight->getDims()[2];
+    if (mode == PaddingMode::Same) {
+        int oh = h / sh;
+        int ow = w / sw;
+        ph = (h - oh * sh + (r - sh) * dh) / 2;
+        pw = (w - ow * sw + (s - sw) * dw) / 2;
+    } else if (mode == PaddingMode::Valid) {
+        ph = pw = 0;
+    }
+}
+
+ConvNHWCObj::ConvNHWCObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
+                 int ph, int pw, int sh, int sw, int dh, int dw, Tensor bias,
+                 ActType act)
+    : ConvBaseObj(OpType::ConvNHWC, {input, weight}, output, ph, pw, sh, sw, dh, dw,
+                  input, weight, act) {
+    if (bias)
+        IT_TODO_HALT();
+    setAuxilaryAttributes(PaddingMode::Other);
+    IT_ASSERT(checkValid(graph));
+}
+
+ConvNHWCObj::ConvNHWCObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
+                 PaddingMode mode, int sh, int sw, int dh, int dw, Tensor bias,
+                 ActType act)
+    : ConvBaseObj(OpType::ConvNHWC, {input, weight}, output, mode, sh, sw, dh, dw,
+                  input, weight, act) {
+    if (bias)
+        IT_TODO_HALT();
+    setAuxilaryAttributes(mode);
+    IT_ASSERT(checkValid(graph));
+}
+
+optional<vector<Shape>> ConvNHWCObj::inferShape(const TensorVec &inputs) const {
+    const auto &input = inputs[0], &weight = inputs[1];
+    auto n = input->getDims()[0];
+    auto h = input->getDims()[1];
+    auto w = input->getDims()[2];
+    auto f = weight->getDims()[0];
+    auto r = weight->getDims()[1];
+    auto s = weight->getDims()[2];
+    int on = n, oc = f;
+    int oh = 0, ow = 0;
+    // For NCHW+FCRS layout, C of input is divisable by C of weight
+    if (input->getDims()[3] % weight->getDims()[3] != 0)
+        return {};
+    // Set padding size
+    if (padding == PaddingMode::Other) {
+        oh = (h - (r - sh) * dh + ph * 2) / sh;
+        ow = (w - (s - sw) * dw + pw * 2) / sw;
+    } else if (padding == PaddingMode::Same) {
+        oh = h / sh;
+        ow = w / sw;
+        // ph = (h - oh * sh + (r - sh) * dh) / 2;
+        // pw = (w - ow * sw + (s - sw) * dw) / 2;
+    } else if (padding == PaddingMode::Valid) {
+        int ph = 0;
+        int pw = 0;
+        oh = (h - (r - sh) * dh + ph * 2) / sh;
+        ow = (w - (s - sw) * dw + pw * 2) / sw;
+    }
+    return {{{on, oh, ow, oc}}};
+}
+
 ConvTransposed2dObj::ConvTransposed2dObj(GraphObj *graph, Tensor input,
                                          Tensor weight, Tensor output, int ph,
                                          int pw, int sh, int sw, int dh, int dw,

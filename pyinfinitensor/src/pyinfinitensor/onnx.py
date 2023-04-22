@@ -709,7 +709,7 @@ class OnnxStub:
                 ctx.push_output("{}_{}".format(name, i), it)
                 for (i, it) in enumerate(op.outputs())
             ]
-            if ty == backend.OpType.Conv:
+            if ty == backend.OpType.Conv or ty == backend.OpType.ConvNHWC:
                 ph, pw, dh, dw, sh, sw = backend.conv_attrs_of(op)
                 ctx.push_node(
                     make_node(
@@ -723,7 +723,7 @@ class OnnxStub:
                         group=op.inputs()[0].shape()[1] // op.inputs()[1].shape()[1],
                     )
                 )
-            elif ty == backend.OpType.ConvTrans:
+            elif ty == backend.OpType.ConvTrans or ty == backend.OpType.ConvTransNHWC:
                 ph, pw, sh, sw, dh, dw, oph, opw = backend.conv_trans_attrs_of(op)
                 ctx.push_node(
                     make_node(
