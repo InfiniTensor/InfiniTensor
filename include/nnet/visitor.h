@@ -49,7 +49,7 @@ template <typename R, typename... Args> class Functor<R(Args...)> {
     virtual R visit_(const Tensor &c, Args... args) FUNCTOR_DEFAULT;
     virtual R visit_(const Func &c, Args... args) FUNCTOR_DEFAULT;
     virtual R visitDefault(const Expr &c, [[maybe_unused]] Args... args) {
-        dbg(*c);
+        dbg(*c, c->getType());
         nnet_assert(0, "Reach unimplemented visit function.");
         return R();
     };
