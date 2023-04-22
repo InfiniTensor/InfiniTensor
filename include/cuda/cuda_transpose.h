@@ -8,4 +8,4 @@ namespace infini {
 void transpose_kernel(float *input, float *output, int nDims, int size,
                       SmallArray strides, SmallArray outputShape);
 
-}; // namespace infini
+} // namespace infini

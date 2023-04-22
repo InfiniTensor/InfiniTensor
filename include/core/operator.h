@@ -102,6 +102,7 @@ enum class OpType {
     Dropout,
     //
     MemBound = 300,
+    Any,
 };
 
 using KernelAttrs = std::tuple<Device, OpType, DataType>;
@@ -209,6 +210,7 @@ class OpRegistry {
             FOP(BitRightShift);
             //
             FOP(MemBound);
+            FOP(Any);
         default:
             IT_ASSERT(false, "Unknown OpType " +
                                  std::to_string(enum_to_underlying(opType)));
