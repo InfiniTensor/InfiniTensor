@@ -385,6 +385,7 @@ void export_test_model(py::module &m) {
 #ifdef USE_CUDA
     m.def("runInfoGAN", &runInfoGAN)
         .def("getGANGraph", &getGANGraph)
+        .def("getLongformer", &getLongformer)
         .def("getConvtransposedNHWC", &getConvtransposedNHWC)
         .def("optimizeGraph", &optimizeGraph, "graph"_a, "runtime"_a,
              "tuning"_a = false, "mode"_a = NMutator::Mode::Normal,

@@ -13,7 +13,7 @@ static std::function<void(const Graph &, string)> exportONNXImpl;
 void exportONNX(const Graph &graph, const string &path) {
     IT_ASSERT(Py_IsInitialized(), "Python interpreter is not running.");
     static auto exportONNXImpl =
-        py::module_::import("infinitensor.if_onnx").attr("export_onnx");
+        py::module_::import("pyinfinitensor.onnx").attr("save_onnx");
     exportONNXImpl(graph, path);
 }
 

@@ -26,6 +26,7 @@ class NMutator : public Mutator {
 
     vector<Graph> run(const Graph &in_graph) override;
     Graph fuseVertically(const Graph &in_graph) override;
+    bool isMultiBranchMergable(const Graph &in_graph) override;
 
     void setToNaiveMembound();
     void setMaxDepth(int _maxDepth) { maxDepth = _maxDepth; }
@@ -61,7 +62,12 @@ class NMutator : public Mutator {
     // Graph transformConvtransposed(Operator op);
     // Graph transformDialtedConv(Operator op);
     Graph transformConv1x1(Operator op);
+    Graph transformG2bmm(Operator op);
+    Graph transformGbmm(Operator op);
     // Graph transformConv1xk(Operator op);
+
+    Tensor splitTransposeMerge(Graph g, Tensor A, int dim, int chunkSize,
+                               Tensor output = nullptr);
 };
 
 } // namespace infini

@@ -70,7 +70,6 @@ Graph SearchEngine::run(const Graph graph) {
                     }
                 }
                 auto tmp = make_ref<GraphObj>(runtimeExec, ops);
-                tmp->dataMalloc();
                 nextGraphs.emplace_back(tmp);
             }
         }
@@ -376,9 +375,6 @@ std::vector<Graph> SearchEngine::searchMutation(const MetaGraph &metaGraph) {
                 nextGraphs.emplace_back(make_ref<GraphObj>(runtimeExec, ops));
             }
         }
-        for (auto g : nextGraphs) {
-            g->dataMalloc();
-        }
         dbg("===Num" + std::to_string(nextGraphs.size()));
         std::sort(nextGraphs.begin(), nextGraphs.end(), graphTimeComparer);
         if (nextGraphs.size() > GRAPH_SIZE) {
@@ -441,7 +437,6 @@ std::vector<Graph> SearchEngine::partitionGraph(const Graph graph) {
                 std::cout << op->toString() << std::endl;
             }
             auto tmp = make_ref<GraphObj>(runtimeExec, headOps);
-            tmp->dataMalloc();
             partitions.emplace_back(tmp);
             headOps.clear();
         }
@@ -449,7 +444,6 @@ std::vector<Graph> SearchEngine::partitionGraph(const Graph graph) {
     }
     if (!headOps.empty()) {
         auto tmp = make_ref<GraphObj>(runtimeExec, headOps);
-        tmp->dataMalloc();
         partitions.emplace_back(tmp);
     }
     std::reverse(partitions.begin(), partitions.end());

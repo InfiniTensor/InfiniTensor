@@ -6,6 +6,7 @@
 namespace infini {
 
 Graph getGANGraph(int batch, Runtime runtime, int nLayers, int modelId);
+Graph getLongformer(Runtime runtime, int bs);
 vector<Tensor> runInfoGAN(int nLayers);
 Graph getConvtransposedNHWC(Runtime runtime, Shape shape, int layerId);
 Graph optimizeGraph(Graph g, Runtime _runtime, bool tuning, NMutator::Mode mode,

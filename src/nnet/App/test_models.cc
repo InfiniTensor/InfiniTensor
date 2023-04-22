@@ -7,7 +7,14 @@
 #include "cuda/cuda_runtime.h"
 #include "ffi/ffi_callback.h"
 #include "nnet/nmutator.h"
+#include "operators/G2BMM.h"
+#include "operators/GBMM.h"
 #include "operators/conv.h"
+#include "operators/element_wise.h"
+#include "operators/matmul.h"
+#include "operators/reshape.h"
+#include "operators/softmax.h"
+#include "operators/transpose.h"
 #include "operators/unary.h"
 #include "test.h"
 #include <pybind11/stl.h>
@@ -76,6 +83,113 @@ Graph getGANGraph(int batch, Runtime runtime, int nLayers, int modelId) {
             input = g->addOp<ReluObj>(input, nullptr)->getOutput();
         }
     }
+    return g;
+}
+
+Graph getLongformer(Runtime runtime, int bs) {
+    const int seqlen = 10000, w = 1000, featlen = 512, heads = 8, d = 4;
+    const int hidden = featlen, hiddenPerHead = hidden / heads;
+    assert(hidden % heads == 0);
+    Graph g = make_ref<GraphObj>(runtime);
+
+    auto i0 = g->addTensor({bs, seqlen, featlen}, DataType::Float32,
+                           TensorType::Input);
+    auto w0 = g->addTensor({featlen, hidden}, DataType::Float32,
+                           TensorType::Initialized);
+    auto w1 =
+        g->addTensor({512, 512}, DataType::Float32, TensorType::Initialized);
+    auto w2 =
+        g->addTensor({512, 512}, DataType::Float32, TensorType::Initialized);
+    // Feed forward
+    auto w3 =
+        g->addTensor({512, 512}, DataType::Float32, TensorType::Initialized);
+    auto bias3 =
+        g->addTensor({512}, DataType::Float32, TensorType::Initialized);
+    auto w4 =
+        g->addTensor({512, 512}, DataType::Float32, TensorType::Initialized);
+    auto bias4 =
+        g->addTensor({512}, DataType::Float32, TensorType::Initialized);
+
+    auto q0 = g->addTensor({bs, seqlen, hidden}, DataType::Float32,
+                           TensorType::Other);
+    auto k0 = g->addTensor({bs, seqlen, hidden}, DataType::Float32,
+                           TensorType::Other);
+    auto v0 = g->addTensor({bs, seqlen, hidden}, DataType::Float32,
+                           TensorType::Other);
+
+    auto q1 = g->addTensor({bs, seqlen, heads, hiddenPerHead},
+                           DataType::Float32, TensorType::Other);
+    auto k1 = g->addTensor({bs, seqlen, heads, hiddenPerHead},
+                           DataType::Float32, TensorType::Other);
+    auto v1 = g->addTensor({bs, seqlen, heads, hiddenPerHead},
+                           DataType::Float32, TensorType::Other);
+
+    auto q2 = g->addTensor({bs, heads, seqlen, hiddenPerHead},
+                           DataType::Float32, TensorType::Other);
+    auto k2 = g->addTensor({bs, heads, seqlen, hiddenPerHead},
+                           DataType::Float32, TensorType::Other);
+    auto v2 = g->addTensor({bs, heads, seqlen, hiddenPerHead},
+                           DataType::Float32, TensorType::Other);
+
+    auto q3 = g->addTensor({bs * heads, seqlen, hiddenPerHead},
+                           DataType::Float32, TensorType::Other);
+    auto k3 = g->addTensor({bs * heads, seqlen, hiddenPerHead},
+                           DataType::Float32, TensorType::Other);
+    auto v3 = g->addTensor({bs * heads, seqlen, hiddenPerHead},
+                           DataType::Float32, TensorType::Other);
+
+    auto prob = g->addTensor({bs * heads, seqlen, 2 * w + 1}, DataType::Float32,
+                             TensorType::Other);
+    auto probSoftmax = g->addTensor({bs * heads, seqlen, 2 * w + 1},
+                                    DataType::Float32, TensorType::Other);
+    auto attn = g->addTensor({bs * heads, seqlen, hiddenPerHead},
+                             DataType::Float32, TensorType::Other);
+
+    auto t00 = g->addTensor({bs, seqlen, hidden}, DataType::Float32,
+                            TensorType::Other);
+    auto t01 = g->addTensor({bs, seqlen, hidden}, DataType::Float32,
+                            TensorType::Other);
+    auto t02 = g->addTensor({bs, seqlen, hidden}, DataType::Float32,
+                            TensorType::Other);
+    // auto t10 = g->addTensor({bs, seqlen, hidden});
+    auto t11 = g->addTensor({bs, seqlen, hidden}, DataType::Float32,
+                            TensorType::Other);
+    auto t12 = g->addTensor({bs, seqlen, hidden}, DataType::Float32,
+                            TensorType::Other);
+    auto output = g->addTensor({bs, seqlen, featlen}, DataType::Float32,
+                               TensorType::Other);
+
+    g->addOpWithOutputs<MatmulObj>(i0, w0, q0, false, true);
+    g->addOpWithOutputs<MatmulObj>(i0, w1, k0, false, true);
+    g->addOpWithOutputs<MatmulObj>(i0, w2, v0, false, true);
+    g->addOpWithOutputs<ReshapeObj>(q0, q1);
+    g->addOpWithOutputs<ReshapeObj>(k0, k1);
+    g->addOpWithOutputs<ReshapeObj>(v0, v1);
+    // For example, when perm=(1, 0, 2), given an input tensor of shape (1, 2,
+    // 3), the output shape will be (2, 1, 3).
+    g->addOpWithOutputs<TransposeObj>(q1, q2, vector{0, 2, 1, 3});
+    g->addOpWithOutputs<TransposeObj>(k1, k2, vector{0, 2, 1, 3});
+    g->addOpWithOutputs<TransposeObj>(v1, v2, vector{0, 2, 1, 3});
+    g->addOpWithOutputs<ReshapeObj>(q2, q3);
+    g->addOpWithOutputs<ReshapeObj>(k2, k3);
+    g->addOpWithOutputs<ReshapeObj>(v2, v3);
+    // Attention
+    g->addOpWithOutputs<G2BMMObj>(q3, k3, prob, w, d);
+    g->addOpWithOutputs<SoftmaxObj>(prob, probSoftmax, 2);
+    g->addOpWithOutputs<GBMMObj>(probSoftmax, v3, attn, d);
+    auto attn2 = g->addOp<ReshapeObj>(attn, nullptr,
+                                      vector{bs, heads, seqlen, hiddenPerHead})
+                     ->getOutput();
+    auto t000 =
+        g->addOp<TransposeObj>(attn2, nullptr, vector{0, 2, 1, 3})->getOutput();
+    g->addOpWithOutputs<ReshapeObj>(t000, t00);
+
+    // Feed forward
+    g->addOpWithOutputs<MatmulObj>(t00, w3, t01, false, true, bias3);
+    g->addOpWithOutputs<ReluObj>(t01, t02);
+    g->addOpWithOutputs<MatmulObj>(t02, w4, t11, false, true, bias4);
+    g->addOpWithOutputs<ReluObj>(t11, t12);
+    g->addOpWithOutputs<AddObj>(t12, i0, output);
     return g;
 }
 

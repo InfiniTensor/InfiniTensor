@@ -6,10 +6,13 @@
 #include "nnet/Visitor/MatchReshapeVisitor.h"
 #include "nnet/Visitor/MergeMemboundMutator.h"
 #include "nnet/derivator.h"
+#include "operators/G2BMM.h"
+#include "operators/GBMM.h"
 #include "operators/conv.h"
 #include "operators/matmul.h"
 #include "operators/membound.h"
 #include "operators/reshape.h"
+#include "operators/transpose.h"
 #include "operators/unary.h"
 
 namespace infini {
@@ -44,6 +47,12 @@ vector<Graph> NMutator::run(const Graph &in_graph) {
     // else
     //     runMultipleOps(in_graph, out_graphs);
     return out_graphs;
+}
+
+bool NMutator::isMultiBranchMergable(const Graph &in_graph) {
+    // TODO
+    // dbg("Skip mergable Multi-Branch", in_graph);
+    return false;
 }
 
 void NMutator::runSingleOpToNaiveMembound(Graph in_graph,
@@ -89,13 +98,22 @@ void NMutator::runSingleOp(Graph in_graph, std::vector<Graph> &out_graphs) {
         out_graphs.emplace_back(g);
         return;
     }
+    if (Graph g = transformG2bmm(computeOps[0])) {
+        out_graphs.emplace_back(g);
+        return;
+    }
+    if (Graph g = transformGbmm(computeOps[0])) {
+        out_graphs.emplace_back(g);
+        return;
+    }
     // // if (infini::Graph g = transformConv1xk(computeOps[0])) {
     // //     Graph graph = new Graph(g->getOperators());
     // //     out_graphs.emplace_back(graph);
     // //     return;
     // // }
 
-    const set<OpType> opSet{OpType::Conv, OpType::ConvTransNHWC};
+    const set<OpType> opSet{OpType::Conv, OpType::ConvTransNHWC, OpType::G2BMM,
+                            OpType::GBMM};
     if (opSet.count(computeOps[0]->getOpType()) == 0)
         return;
 
@@ -273,26 +291,25 @@ pair<nnet::Expr, NMutator::NameNToTensorT> NMutator::extractOp(Operator opT) {
         const auto K = nnet::makeTensor("K", KT->getDims());
         return {nnet::ConvTransPattern::getExpr(A, K, n, c, h, w, f, r, s),
                 {{"A", AT}, {"K", KT}}};
-        // } else if (auto g2bmmOp = dynamic_cast<G2BMMOp *>(opT)) {
-        //     const auto &AT = g2bmmOp->getInputs()[0];
-        //     const auto &BT = g2bmmOp->getInputs()[1];
-        //     const auto [b, m, k, width, dilation] = g2bmmOp->getArgs();
+    } else if (auto g2bmmOp = as<G2BMMObj>(opT)) {
+        const auto &AT = g2bmmOp->getInputs()[0];
+        const auto &BT = g2bmmOp->getInputs()[1];
+        const auto [b, m, k, width, dilation] = g2bmmOp->getBMKWD();
 
-        //     const auto &[expr, inputsN] =
-        //         nnet::Sg2bmmPattern::getExpr(b, m, k, width, dilation);
-        //     inputsNameNToTensorT[inputsN.first->getName()] = AT;
-        //     inputsNameNToTensorT[inputsN.second->getName()] = BT;
-        //     return expr;
-        // } else if (auto gbmmlOp = dynamic_cast<GBMMLOp *>(opT)) {
-        //     const auto &AT = gbmmlOp->getInputs()[0];
-        //     const auto &BT = gbmmlOp->getInputs()[1];
-        //     const auto [b, m, w, k, dilation] = gbmmlOp->getArgs();
-        //     const auto &[expr, inputsN] =
-        //         nnet::LongformerGBMMPattern::getExpr(b, m, w, k, dilation);
-        //     inputsNameNToTensorT[inputsN.first->getName()] = AT;
-        //     inputsNameNToTensorT[inputsN.second->getName()] = BT;
-        //     dbg(b, m, w, k, dilation, expr);
-        //     return expr;
+        const auto &[expr, inputsN] =
+            nnet::Sg2bmmPattern::getExpr(b, m, k, width, dilation);
+        return {
+            expr,
+            {{inputsN.first->getName(), AT}, {inputsN.second->getName(), BT}}};
+    } else if (auto gbmmlOp = as<GBMMObj>(opT)) {
+        const auto &AT = gbmmlOp->getInputs()[0];
+        const auto &BT = gbmmlOp->getInputs()[1];
+        const auto [b, m, w, k, dilation] = gbmmlOp->getBMWND();
+        const auto &[expr, inputsN] =
+            nnet::LongformerGBMMPattern::getExpr(b, m, w, k, dilation);
+        return {
+            expr,
+            {{inputsN.first->getName(), AT}, {inputsN.second->getName(), BT}}};
     } else if (auto matmulOp = as<MatmulObj>(opT)) {
         const auto &AT = matmulOp->getInputs()[0];
         const auto &BT = matmulOp->getInputs()[1];
@@ -574,6 +591,44 @@ Graph NMutator::transformConvtransposed1x1(Operator _op) {
 //     return graph;
 // }
 
+Graph NMutator::transformG2bmm(Operator _op) {
+    auto op = as<G2BMMObj>(_op);
+    if (!op)
+        return nullptr;
+    const auto [b, m, k, width, dilation] = op->getBMKWD();
+    if (dilation == 1 || m % dilation != 0)
+        return nullptr;
+    auto g = make_ref<GraphObj>(runtime);
+    auto A = g->cloneTensor(op->getInputs(0));
+    auto B = g->cloneTensor(op->getInputs(1));
+    auto O = g->cloneTensor(op->getOutput());
+    auto A3 = splitTransposeMerge(g, A, 1, dilation),
+         B3 = splitTransposeMerge(g, B, 1, dilation);
+    auto O3 = g->addOp<G2BMMObj>(A3, B3, nullptr, width, 1)->getOutput();
+    splitTransposeMerge(g, O3, 1, m / dilation, O);
+    g->checkValid();
+    return g;
+}
+
+Graph NMutator::transformGbmm(Operator _op) {
+    auto op = as<GBMMObj>(_op);
+    if (!op)
+        return nullptr;
+    const auto [b, m, width, k, dilation] = op->getBMWND();
+    if (dilation == 1 || m % dilation != 0)
+        return nullptr;
+    auto g = make_ref<GraphObj>(runtime);
+    auto A = g->cloneTensor(op->getInputs(0)); // [b,m,2w+1]
+    auto B = g->cloneTensor(op->getInputs(1)); // [b,m,n]
+    auto O = g->cloneTensor(op->getOutput());  // [b,m,n]
+    auto A3 = splitTransposeMerge(g, A, 1, dilation),
+         B3 = splitTransposeMerge(g, B, 1, dilation);
+    auto O3 = g->addOp<GBMMObj>(A3, B3, nullptr, 1)->getOutput();
+    splitTransposeMerge(g, O3, 1, m / dilation, O);
+    g->checkValid();
+    return g;
+}
+
 Graph NMutator::transformConv1x1(Operator _op) {
     auto op = as<ConvObj>(_op);
     if (!op)
@@ -721,5 +776,29 @@ pair<nnet::Expr, vector<nnet::Tensor>> NMutator::generateRevert(Tensor in) {
     auto range = makeRangeOperator(loopIters, {}, sub);
     return {range, {tensor}};
 }
+
+Tensor NMutator::splitTransposeMerge(Graph g, Tensor A, int dim, int chunkSize,
+                                     Tensor output) {
+    IT_ASSERT(A->getDims().size() == 3);
+    Shape shapeOrignial = A->getDims();
+    Shape shapeNew;
+    // Construct new shape
+    for (int i = 0; i < dim; ++i)
+        shapeNew.emplace_back(shapeOrignial[i]);
+    shapeNew.emplace_back(shapeOrignial[dim] / chunkSize);
+    shapeNew.emplace_back(chunkSize);
+    for (size_t i = dim + 1; i < shapeOrignial.size(); ++i)
+        shapeNew.emplace_back(shapeOrignial[i]);
+    auto A1 = g->addOp<ReshapeObj>(A, nullptr, shapeNew)->getOutput();
+    auto A2 =
+        g->addOp<TransposeObj>(A1, nullptr, vector{0, 1, 3, 2})->getOutput();
+    Tensor A3;
+    if (output)
+        A3 = g->addOpWithOutputs<ReshapeObj>(A2, output, shapeOrignial)
+                 ->getOutput();
+    else
+        A3 = g->addOp<ReshapeObj>(A2, nullptr, shapeOrignial)->getOutput();
+    return A3;
+};
 
 } // namespace infini

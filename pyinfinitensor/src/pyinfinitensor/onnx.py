@@ -884,7 +884,8 @@ class OnnxStub:
                         ctx.push_data_input(name, "max", TensorProto.FLOAT, [], [])
                     )
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
-            elif ty == backend.OpType.ConvTransNHWC:
+            elif ty in [backend.OpType.ConvTransNHWC, backend.OpType.GBMM, 
+                        backend.OpType.G2BMM]:
                 ctx.push_node(
                     make_node(
                         ty.name,
@@ -983,3 +984,9 @@ def _parse_data(tensor: TensorProto) -> List[Any]:
 
 def _take_shape_dim(shape: TensorShapeProto) -> List[int]:
     return [(d.dim_value if d.dim_value > 0 else 1) for d in shape.dim]
+
+
+def save_onnx(opt_g, filename: str):
+    stub = OnnxStub.from_graph(opt_g)
+    with open(filename, "wb") as f:
+        f.write(stub.to_onnx("optimized").SerializeToString())

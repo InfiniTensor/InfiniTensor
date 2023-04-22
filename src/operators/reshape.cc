@@ -2,7 +2,8 @@
 
 namespace infini {
 ReshapeObj::ReshapeObj(GraphObj *graph, Tensor input, Tensor output, Shape dims)
-    : OperatorObj(OpType::Reshape, {input}, {output}), dims(std::move(dims)) {
+    : OperatorObj(OpType::Reshape, {input}, {output}),
+      dims(dims.size() == 0 ? output->getDims() : dims) {
     IT_ASSERT(checkValid(graph));
 }
 
