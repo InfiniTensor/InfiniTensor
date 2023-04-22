@@ -182,4 +182,26 @@ size_t TensorObj::getOffsetByBroadcastOffset(size_t bcOffset,
 
     return getOffsetByPos(pos, shape);
 }
+
+Tensor TensorObj::clone() const {
+    auto obj = make_ref<TensorObj>(*this);
+    obj->freeData();
+    obj->targets.clear();
+    obj->source.reset();
+    return obj;
+}
+
+Tensor TensorObj::clone(Runtime runtime) const {
+    auto obj = make_ref<TensorObj>(*this);
+    obj->runtime = runtime;
+    obj->freeData();
+    obj->targets.clear();
+    obj->source.reset();
+    if (hasData()) {
+        obj->dataMalloc();
+        obj->copyData(this);
+    }
+    return obj;
+}
+
 }; // namespace infini
