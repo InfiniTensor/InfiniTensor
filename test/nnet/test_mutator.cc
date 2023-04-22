@@ -7,6 +7,9 @@
 #include "nnet/nmutator.h"
 #include "nnet/test.h"
 #include "operators/conv.h"
+#include "operators/reshape.h"
+#include "operators/softmax.h"
+#include "operators/transpose.h"
 #include "test.h"
 
 namespace infini {
@@ -479,4 +482,73 @@ TEST(NMutator, InfoGAN_TConv_3_correctness) {
 //     bestGraph->print();
 //     EXPECT_TRUE(graph->verification(bestGraph.get(), true));
 // }
+
+TEST(NMutator, eliminateVertically_RTSTR) {
+    Runtime runtime = make_ref<CudaRuntimeObj>();
+    Graph g = make_ref<GraphObj>(runtime);
+    const int a = 8, b = 4, c = 5, d = 30;
+    auto t0 = g->addTensor({a, b * c, d}, DataType::Float32, TensorType::Input);
+    auto input = t0;
+    t0 = g->addOp<ReshapeObj>(t0, nullptr, Shape{a, b, c, d})->getOutput();
+    t0 = g->addOp<TransposeObj>(t0, nullptr, Shape{0, 2, 1, 3})->getOutput();
+    t0 = g->addOp<SoftmaxObj>(t0, nullptr, 3)->getOutput();
+    t0 = g->addOp<TransposeObj>(t0, nullptr, Shape{0, 2, 1, 3})->getOutput();
+    t0 = g->addOp<ReshapeObj>(t0, nullptr, Shape{a, b * c, d})->getOutput();
+    auto mutator = make_ref<NMutator>();
+    auto optG = mutator->eliminateVertically(g);
+    dbg(optG);
+    ASSERT_EQ(optG->getOperators().size(), 1u);
+    auto op = optG->getOperators()[0];
+    EXPECT_EQ(op->getOpType(), OpType::Softmax);
+    EXPECT_EQ(op->getInputs(0)->getFuid(), input->getFuid());
+    EXPECT_EQ(op->getOutput()->getFuid(), t0->getFuid());
+}
+
+TEST(NMutator, eliminateVertically_RTST) {
+    Runtime runtime = make_ref<CudaRuntimeObj>();
+    Graph g = make_ref<GraphObj>(runtime);
+    const int a = 8, b = 4, c = 5, d = 30;
+    auto t0 = g->addTensor({a, b * c, d}, DataType::Float32, TensorType::Input);
+    t0 = g->addOp<ReshapeObj>(t0, nullptr, Shape{a, b, c, d})->getOutput();
+    t0 = g->addOp<TransposeObj>(t0, nullptr, Shape{0, 2, 1, 3})->getOutput();
+    t0 = g->addOp<SoftmaxObj>(t0, nullptr, 3)->getOutput();
+    t0 = g->addOp<TransposeObj>(t0, nullptr, Shape{0, 2, 1, 3})->getOutput();
+    auto mutator = make_ref<NMutator>();
+    auto optG = mutator->eliminateVertically(g);
+    dbg(optG);
+    ASSERT_EQ(optG->getOperators().size(), 2u);
+}
+
+TEST(NMutator, eliminateVertically_RTSTR_3d) {
+    Runtime runtime = make_ref<CudaRuntimeObj>();
+    Graph g = make_ref<GraphObj>(runtime);
+    const int a = 8, b = 4, c = 5, d = 30;
+    auto t0 = g->addTensor({a, b * c, d}, DataType::Float32, TensorType::Input);
+    t0 = g->addOp<ReshapeObj>(t0, nullptr, Shape{a, b, c, d})->getOutput();
+    t0 = g->addOp<TransposeObj>(t0, nullptr, Shape{1, 2, 0, 3})->getOutput();
+    t0 = g->addOp<SoftmaxObj>(t0, nullptr, 3)->getOutput();
+    t0 = g->addOp<TransposeObj>(t0, nullptr, Shape{2, 0, 1, 3})->getOutput();
+    t0 = g->addOp<ReshapeObj>(t0, nullptr, Shape{a, b * c, d})->getOutput();
+    auto mutator = make_ref<NMutator>();
+    auto optG = mutator->eliminateVertically(g);
+    dbg(optG);
+    EXPECT_EQ(optG->getOperators().size(), 1u);
+}
+
+TEST(NMutator, eliminateVertically_RTSTR_softmax_non_last_dim) {
+    Runtime runtime = make_ref<CudaRuntimeObj>();
+    Graph g = make_ref<GraphObj>(runtime);
+    const int a = 8, b = 4, c = 5, d = 30;
+    auto t0 = g->addTensor({a, b * c, d}, DataType::Float32, TensorType::Input);
+    t0 = g->addOp<ReshapeObj>(t0, nullptr, Shape{a, b, c, d})->getOutput();
+    t0 = g->addOp<TransposeObj>(t0, nullptr, Shape{1, 2, 0, 3})->getOutput();
+    t0 = g->addOp<SoftmaxObj>(t0, nullptr, 2)->getOutput();
+    t0 = g->addOp<TransposeObj>(t0, nullptr, Shape{2, 0, 1, 3})->getOutput();
+    t0 = g->addOp<ReshapeObj>(t0, nullptr, Shape{a, b * c, d})->getOutput();
+    auto mutator = make_ref<NMutator>();
+    auto optG = mutator->eliminateVertically(g);
+    dbg(optG);
+    EXPECT_EQ(optG->getOperators().size(), 5u);
+}
+
 } // namespace infini

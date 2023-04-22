@@ -31,6 +31,10 @@ class Mutator {
         IT_TODO_HALT();
     }
     virtual Graph fuseVertically(const Graph &inputGraph) { IT_TODO_HALT(); }
+
+    /// @brief Eliminate transpose and reshape.
+    /// @return The graph after elimination. `nullptr` if fails.
+    virtual Graph eliminateVertically(const Graph &in_graph) { IT_TODO_HALT(); }
 };
 
 } // namespace infini
