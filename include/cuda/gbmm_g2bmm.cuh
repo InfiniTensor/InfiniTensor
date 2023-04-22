@@ -6736,13 +6736,15 @@ inline void sg2bmm(float *__restrict__ q, float *__restrict__ k,
         for (int i = 0; i < bs; i += 8) {
             // sg2bmm_bs1_n10000_m64_w1000_d1_kernel0<<<23000, 58>>>(
             sg2bmm_bs1_n10000_m64_w1000_d1_kernel0_tvm10<<<23000, 290>>>(
-                q + i * n * m, k + i * n * m, y + i * n * (2 * w + 1));
+                // q + size_t(i) * n * m, k + i * n * m, y + i * n * (2 * w + 1));
+                q, k, y);
         }
     } else if (d == 4) {
         for (int i = 0; i < bs; i += 8) {
             // sg2bmm_bs1_n10000_m64_w1000_d4_kernel0<<<4000, 276>>>(
             sg2bmm_bs1_n10000_m64_w1000_d4_kernel0_tvm10<<<2000, 667>>>(
-                q + i * n * m, k + i * n * m, y + i * n * (2 * w + 1));
+                q, k, y);
+                // q + size_t(i) * n * m, k + i * n * m, y + i * n * (2 * w + 1));
         }
     } else {
         assert(false);
@@ -6758,12 +6760,14 @@ inline void sgbmml(float *__restrict__ q, float *__restrict__ k,
     if (d == 1) {
         for (int i = 0; i < bs; i += 8) {
             gbmml_bs1_n10000_m64_w1000_d1_kernel0<<<2500, 256>>>(
-                q + i * n * (2 * w + 1), k + i * n * m, y + i * n * m);
+                q, k, y);
+                // q + size_t(i) * n * (2 * w + 1), k + i * n * m, y + i * n * m);
         }
     } else if (d == 4) {
         for (int i = 0; i < bs; i += 8) {
             gbmml_bs1_n10000_m64_w1000_d4_kernel0<<<800, 320>>>(
-                q + i * n * (2 * w + 1), k + i * n * m, y + i * n * m);
+                q, k, y);
+                // q + size_t(i) * n * (2 * w + 1), k + i * n * m, y + i * n * m);
         }
     } else {
         assert(false);
