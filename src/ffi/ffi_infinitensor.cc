@@ -142,11 +142,11 @@ static Ref<BangRuntimeObj> bang_runtime() { return make_ref<BangRuntimeObj>(); }
 static Ref<RuntimeObj> intelcpu_runtime() { return make_ref<MklRuntimeObj>(); }
 #endif
 
-static std::tuple<int, int, int, int, int, int> conv_attrs_of(Operator op) {
+static std::tuple<int, int, int, int, int, int, Tensor> conv_attrs_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Conv);
     auto conv = dynamic_cast<const ConvObj *>(op.get());
     return std::make_tuple(conv->getPh(), conv->getPw(), conv->getDh(),
-                           conv->getDw(), conv->getSh(), conv->getSw());
+                           conv->getDw(), conv->getSh(), conv->getSw(), conv->getBias());
 }
 
 static std::tuple<int, int, int, int, int, int, int, int>

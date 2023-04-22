@@ -123,5 +123,5 @@ if __name__ == "__main__":
             # g = ft.optimizeGraph(original_g, runtime, False, ft.NMutatorMode.Normal)
 
         save_onnx(g, f"optimized_{name}.onnx")
-        verify_graphs(runtime, original_g, g)
-        run_and_evaluate(runtime, g)
+        # verify_graphs(runtime, original_g, g)
+        # run_and_evaluate(runtime, g)

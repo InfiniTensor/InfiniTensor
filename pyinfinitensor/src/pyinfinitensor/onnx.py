@@ -104,7 +104,7 @@ class OnnxStub:
                     adapt = node.input[0]
 
                 # HACK: ignore bias
-                if len(node.input) > 3:
+                if len(node.input) > 2: # 2023.04.22-01:11:24
                     bias = "{}-bias".format(node.output[0])
                     reshape = "{}-reshape".format(node.output[0])
                     tensors[bias] = ans.handler.conv(
@@ -701,6 +701,7 @@ class OnnxStub:
 
         for op in ops:
             ty, name = ctx.name_op(op)
+            print(f"hkz: onnx {name} {len(op.inputs())}")
             inputs = [
                 ctx.push_input(it, self.initializer.get(it.fuid()))
                 for it in op.inputs()
@@ -710,7 +711,13 @@ class OnnxStub:
                 for (i, it) in enumerate(op.outputs())
             ]
             if ty == backend.OpType.Conv:
-                ph, pw, dh, dw, sh, sw = backend.conv_attrs_of(op)
+                ph, pw, dh, dw, sh, sw, bias = backend.conv_attrs_of(op)
+                if bias is not None:
+                    inputs.append(ctx.push_input(bias, self.initializer.get(bias.fuid())))
+                    for item in inputs:
+                        print(type(item), str(item))
+                else:
+                    print("hkz: bias is none")
                 ctx.push_node(
                     make_node(
                         ty.name,

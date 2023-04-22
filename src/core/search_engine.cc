@@ -471,9 +471,11 @@ Graph SearchEngine::fuseVertically(const Graph &graph) {
         if (visitTime.find(op->getGuid()) != visitTime.end()) {
             continue;
         }
+        // if is conv, we can still vertical fuse it
+        bool conv_flag = op->isComputeOp() && op->getSuccessors().size() == 1;
         // Skip compute OP and multi-input/output OP
-        if (!op->isMemBoundOp() || (op->getPredecessors().size() != 1 &&
-                                    op->getSuccessors().size() != 1)) {
+        if (!conv_flag && (!op->isMemBoundOp() || (op->getPredecessors().size() != 1 &&
+                                    op->getSuccessors().size() != 1))) {
             visitTime.emplace(op->getGuid(), ++cnt);
             ops.emplace_back(op);
             continue;
@@ -483,14 +485,17 @@ Graph SearchEngine::fuseVertically(const Graph &graph) {
 
         vector<Operator> tmp;
         auto cur = op;
-        while (cur->getPredecessors().size() == 1 &&
-               cur->getPredecessors()[0]->isMemBoundOp()) {
-            cur = cur->getPredecessors()[0];
-            tmp.emplace_back(cur);
-            visitTime.emplace(cur->getGuid(), cnt);
-        }
-        for (int i = tmp.size() - 1; i >= 0; i--) {
-            chainOps.emplace_back(tmp[i]);
+
+        if (!conv_flag) {
+            while (cur->getPredecessors().size() == 1 &&
+                cur->getPredecessors()[0]->isMemBoundOp()) {
+                cur = cur->getPredecessors()[0];
+                tmp.emplace_back(cur);
+                visitTime.emplace(cur->getGuid(), cnt);
+            }
+            for (int i = tmp.size() - 1; i >= 0; i--) {
+                chainOps.emplace_back(tmp[i]);
+            }
         }
         chainOps.emplace_back(op);
         cur = op;
@@ -502,10 +507,19 @@ Graph SearchEngine::fuseVertically(const Graph &graph) {
         }
         make_ref<GraphObj>(runtimeExec, chainOps)->print();
 
-        Graph optGraph =
-            mutator->fuseVertically(make_ref<GraphObj>(runtimeExec, chainOps));
-        for (auto op : optGraph->getOperators()) {
-            ops.emplace_back(op);
+        if (conv_flag && chainOps.size() > 1) {
+            Graph optGraph =
+                mutator->fuseConvBiasAct(make_ref<GraphObj>(runtimeExec, chainOps));
+            for (auto op : optGraph->getOperators()) {
+                ops.emplace_back(op);
+            }
+        }
+        else {
+            Graph optGraph =
+                mutator->fuseVertically(make_ref<GraphObj>(runtimeExec, chainOps));
+            for (auto op : optGraph->getOperators()) {
+                ops.emplace_back(op);
+            }
         }
     }
 

@@ -31,6 +31,7 @@ class Mutator {
         IT_TODO_HALT();
     }
     virtual Graph fuseVertically(const Graph &inputGraph) { IT_TODO_HALT(); }
+    virtual Graph fuseConvBiasAct(const Graph &inputGraph) { IT_TODO_HALT(); }
 };
 
 } // namespace infini

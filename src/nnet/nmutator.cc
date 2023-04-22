@@ -29,6 +29,8 @@ void NMutator::setToNaiveMembound() { mode = Mode::ToNaiveMembound; }
 
 vector<Graph> NMutator::run(const Graph &in_graph) {
     vector<Graph> out_graphs{in_graph};
+    printf("directly return out_graph\n");// Test helper: naively transform one Op to Membound
+    return out_graphs;
     // Test helper: naively transform one Op to Membound
     if (mode == Mode::ToNaiveMembound) {
         runSingleOpToNaiveMembound(in_graph, out_graphs);
@@ -680,14 +682,38 @@ Graph NMutator::transformConvtransposed1x1(Operator _op) {
 //     return graph;
 // }
 
+Graph NMutator::fuseConvBiasAct(const Graph &inputGraph) {
+    Graph optGraph = make_ref<GraphObj>(runtime);
+    auto chainOps = inputGraph->getOperators();
+    IT_ASSERT(!chainOps.empty());
+    if (chainOps.size() == 1) {
+        return make_ref<GraphObj>(runtime, chainOps);
+    }
+    auto conv_op = as<ConvObj>(chainOps[0]);
+    auto bias_tensor = conv_op->getInputs()[0]; // init bias tensor
+    auto add_op = chainOps[1];
+    bool fuse_bias = chainOps.size() >=2 && add_op->getInputs().size() == 2;
+    if (fuse_bias) { // conv add act
+        bias_tensor = add_op->getInputs()[1];
+    }
+    IT_ASSERT(conv_op != nullptr);
+    const auto &A = conv_op->getInputs()[0];
+    const auto &W = conv_op->getInputs()[1];
+    const auto &[ph, pw, sh, sw, dh, dw] = conv_op->getPadStrideDilation();
+    auto g = make_ref<GraphObj>(runtime);
+    g->addOpWithOutputs<ConvObj>(g->cloneTensor(A), g->cloneTensor(W), g->cloneTensor(chainOps.back()->getOutput()),
+        ph, pw, sh, sw, dh, dw, fuse_bias ? g->cloneTensor(bias_tensor) : nullptr, chainOps.size() == 3 ? ActType::Relu : ActType::None);
+    return g;
+}
+
 Graph NMutator::fuseVertically(const Graph &inputGraph) {
     Graph optGraph = make_ref<GraphObj>(runtime);
 
     auto chainOps = inputGraph->getOperators();
     IT_ASSERT(!chainOps.empty());
     for (auto &op : chainOps) {
-        IT_ASSERT(op->isMemBoundOp());
-        IT_ASSERT_TODO(op->getInputs().size() == 1);
+        IT_ASSERT(op->isMemBoundOp() || chainOps.size() == 1); // it is OK if a single non-mem-bound op is in
+        IT_ASSERT_TODO(op->getInputs().size() == 1 || chainOps.size() == 1); // it is OK if a single multi-input op is in
         IT_ASSERT(op->getOutputs().size() == 1);
     }
     if (chainOps.size() == 1) {

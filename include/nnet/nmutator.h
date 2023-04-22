@@ -26,6 +26,7 @@ class NMutator : public Mutator {
 
     vector<Graph> run(const Graph &in_graph) override;
     Graph fuseVertically(const Graph &in_graph) override;
+    Graph fuseConvBiasAct(const Graph &in_graph) override;
 
     void setToNaiveMembound();
     void setMaxDepth(int _maxDepth) { maxDepth = _maxDepth; }

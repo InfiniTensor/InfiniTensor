@@ -36,7 +36,7 @@ bool OperatorObj::isReshapeOp() const { return type == OpType::Reshape; }
 bool OperatorObj::isMemBoundOp() const {
     return type == OpType::MemBound || type == OpType::Activation ||
            type == OpType::Transpose || type == OpType::Relu ||
-           type == OpType::Tanh;
+           type == OpType::Tanh || type == OpType::Add; // TODO: is Add memory bound? 2023.04.22-14:35:32
 }
 
 void OperatorObj::removePredecessors(const Operator &op) {

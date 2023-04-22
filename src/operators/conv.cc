@@ -66,8 +66,10 @@ ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
                  ActType act)
     : ConvBaseObj(OpType::Conv, {input, weight}, output, ph, pw, sh, sw, dh, dw,
                   input, weight, act) {
+    // if (bias)
+    //     IT_TODO_HALT();
     if (bias)
-        IT_TODO_HALT();
+        inputs.emplace_back(bias);
     setAuxilaryAttributes(PaddingMode::Other);
     IT_ASSERT(checkValid(graph));
 }
