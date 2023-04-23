@@ -16,7 +16,7 @@ __global__ void conv2dreduce_kernel_(float *__restrict__ input,
     int nid = blockIdx.x, fid = blockIdx.y;
     int hid = threadIdx.x, wid = threadIdx.y;
     const int fchunck = r * s, wchunk = f * fchunck, hchunk = w * wchunk,
-              nchunck = n * hchunk;
+              nchunck = h * hchunk;
     float *nfinput = input + nid * nchunck + fid * fchunck;
     if (nid < n && fid < f && hid < oh && wid < ow) {
         float imm = 0.0;
