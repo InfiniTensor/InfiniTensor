@@ -17,9 +17,7 @@ CudaRuntimeObj::CudaRuntimeObj()
     checkCublasError(cublasCreate(&cublas));
     checkCudnnError(cudnnSetStream(cudnn, stream));
     checkCublasError(cublasSetStream(cublas, stream));
-    // 10GB for Longformer
-    // size_t longformerNum = 3lu * (1 << 30);
-    workspaceSize = 7ll << 30; // 7 GB
+    workspaceSize = 2ll << 30; // 2 GB
     workspace = alloc(workspaceSize);
 }
 
