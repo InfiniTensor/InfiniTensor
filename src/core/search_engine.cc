@@ -496,9 +496,15 @@ Graph SearchEngine::fuseVertically(const Graph &graph) {
         }
         make_ref<GraphObj>(runtimeExec, chainOps)->print();
 
-        Graph optGraph =
-            mutator->fuseVertically(make_ref<GraphObj>(runtimeExec, chainOps));
-        for (auto op : optGraph->getOperators()) {
+        auto bestGraph = make_ref<GraphObj>(runtimeExec, chainOps);
+        // Eliminate transpose and reshape operators
+        if (auto eliminatedGraph = mutator->eliminateVertically(
+                make_ref<GraphObj>(runtimeExec, chainOps)))
+            bestGraph = eliminatedGraph;
+        // Fuse membound operators
+        if (auto optGraph = mutator->fuseVertically(bestGraph))
+            bestGraph = optGraph;
+        for (auto op : bestGraph->getOperators()) {
             ops.emplace_back(op);
         }
     }

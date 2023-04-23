@@ -249,6 +249,8 @@ void NMutator::runMultipleOps(Graph in_graph, std::vector<Graph> &out_graphs) {
 
 nnet::Expr NMutator::opToExpression(Operator opT) {
     auto [expr, mapNameNToTensorT] = extractOp(opT);
+    IT_ASSERT(expr,
+              "Cannot convert " + opT->toString() + " to an NNet expression");
     for (auto &[name, tensorT] : mapNameNToTensorT) {
         IT_ASSERT(inputsNameNToTensorT.count(name) == 0);
         inputsNameNToTensorT[name] = tensorT;
@@ -332,8 +334,6 @@ pair<nnet::Expr, NMutator::NameNToTensorT> NMutator::extractOp(Operator opT) {
     // // else if (auto transposeOp = dynamic_cast<TransposeOp *>(opT)) {
     // //     return transposeOpToExpression(transposeOp);
     // // }
-    IT_TODO_HALT_MSG("Cannot convert " + opT->toString() +
-                     " to an NNet expression");
     return {};
 }
 
@@ -837,6 +837,8 @@ Graph NMutator::fuseVertically(const Graph &inputGraph) {
     std::vector<nnet::Expr> exprs;
     for (const auto &op : chainOps) {
         auto [expr, _] = extractOp(op);
+        if (!expr)
+            return nullptr;
         exprs.emplace_back(expr);
         // dbg(op, infini::as<nnet::RangeOpNode>(expr)->getFullExpression());
     }
