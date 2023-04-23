@@ -174,8 +174,8 @@ double CudaRuntimeObj::timeWithCudaGraph(Graph graph, int rounds) {
         [&, cudaGraphInstance = cudaGraphInstance, stream = getStream()]() {
             checkCudaError(cudaGraphLaunch(cudaGraphInstance, stream));
         },
-        [&, stream = getStream()]() { cudaStreamSynchronize(stream); }, 1000,
-        1000);
+        [&, stream = getStream()]() { cudaStreamSynchronize(stream); }, rounds,
+        rounds);
 }
 
 } // namespace infini

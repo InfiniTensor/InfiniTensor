@@ -84,6 +84,8 @@ RuntimeObj::getCompileTimeComputableAttribute(const Graph &graph) const {
 double RuntimeObj::getPerfTime(const Graph &graph, bool profiling,
                                bool allowEstimation,
                                bool ignoreMemboundOp) const {
+    if (profiling)
+        printf("hkz: profiling\n");
     const auto &kernelRegistry = KernelRegistry::getInstance();
     auto &perfEngine = PerfEngine::getInstance();
     // Statistics
@@ -98,6 +100,9 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling,
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
         auto perfData = perfEngine.getPerfData(perfKey);
+        if (profiling) {
+            dbg(op->getOpType());
+        }
 
         double time = -1e9;
         if (ctcMap[op->getGuid()]) { // Compile-time computable operators
@@ -153,17 +158,19 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling,
     return totalTime;
 }
 
-void RuntimeObj::printProfilingData(
-    double totalTime, const std::map<OpType, double> &opTime,
-    const std::map<OpType, int> &opCnt,
-    const std::map<OpType, int> &opNonCtcCnt) const {
+void RuntimeObj::printProfilingData(double totalTime,
+                                    std::map<OpType, double> &opTime,
+                                    std::map<OpType, int> &opCnt,
+                                    std::map<OpType, int> &opNonCtcCnt) const {
     printf("%11s %3s %5s %7s %7s %7s\n", "Op", "Cnt", "#NCtc", "T_tot",
            "Percent", "T_mean");
     for (const auto &[type, t] : opTime) {
+        // dbg(type);
+        // dbg(opCnt.at(type));
+        // dbg(opNonCtcCnt.at(type));
         printf("%11s %3d %5d %7.3f %7.1f %7.3f\n",
                OpRegistry::getOpName(type).data(), opCnt.at(type),
-               opNonCtcCnt.at(type), t, t / totalTime * 100,
-               t / opCnt.at(type));
+               opNonCtcCnt[type], t, t / totalTime * 100, t / opCnt.at(type));
     }
 }
 
