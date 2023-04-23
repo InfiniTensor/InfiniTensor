@@ -104,7 +104,7 @@ class OnnxStub:
                     adapt = node.input[0]
 
                 # HACK: ignore bias
-                if len(node.input) > 2: # 2023.04.22-01:11:24
+                if len(node.input) > 3: # 2023.04.22-01:11:24
                     bias = "{}-bias".format(node.output[0])
                     reshape = "{}-reshape".format(node.output[0])
                     tensors[bias] = ans.handler.conv(
