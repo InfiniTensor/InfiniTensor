@@ -2,6 +2,7 @@
 #include "core/blob.h"
 #include "core/operator.h"
 #include "core/runtime.h"
+#include "nnet/dbg.h"
 #include "utils/dataloader.h"
 #include <cstring>
 #include <numeric>
@@ -122,8 +123,11 @@ bool TensorObj::equalData(const Tensor &rhs, double relativeError) const {
 }
 
 void TensorObj::dataMalloc() {
-    if (!data)
+    if (!data) {
+        dbg(toString());
+        dbg(getBytes());
         data = runtime->allocBlob(getBytes());
+    }
 }
 
 void TensorObj::copyData(const TensorObj *src) {

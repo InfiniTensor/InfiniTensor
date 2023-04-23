@@ -91,10 +91,10 @@ class TensorObj : public TensorBaseObj {
         obj->freeData();
         obj->targets.clear();
         obj->source.reset();
-        if (hasData()) {
-            obj->dataMalloc();
-            obj->copyData(this);
-        }
+        // if (hasData()) {
+        //     obj->dataMalloc();
+        //     obj->copyData(this);
+        // }
         return obj;
     }
 

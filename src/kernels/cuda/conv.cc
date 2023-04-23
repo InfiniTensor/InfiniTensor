@@ -69,9 +69,9 @@ class convCudnn : public Kernel {
         int channelsPerGrp = cpg, channels = c;
 
         // set input format
-        cudnnTensorFormat_t tensorFormat =
-            (op->getOpType() == OpType::ConvNHWC) ? CUDNN_TENSOR_NHWC
-                                                       : CUDNN_TENSOR_NCHW;
+        cudnnTensorFormat_t tensorFormat = (op->getOpType() == OpType::ConvNHWC)
+                                               ? CUDNN_TENSOR_NHWC
+                                               : CUDNN_TENSOR_NCHW;
 
         // get inputs
         cudnnTensorDescriptor_t inDesc;
@@ -83,7 +83,7 @@ class convCudnn : public Kernel {
         cudnnFilterDescriptor_t knDesc;
         checkCudnnError(cudnnCreateFilterDescriptor(&knDesc));
         checkCudnnError(cudnnSetFilter4dDescriptor(knDesc, CUDNN_DATA_FLOAT,
-                                                   tensorFormat, f,
+                                                   CUDNN_TENSOR_NCHW, f,
                                                    channelsPerGrp, r, s));
         // get bias
         cudnnTensorDescriptor_t biasDesc;
@@ -130,25 +130,25 @@ class convCudnn : public Kernel {
             convDesc, inDesc, knDesc, &outn, &outc, &outh, &outw));
         cudnnTensorDescriptor_t outDesc;
         checkCudnnError(cudnnCreateTensorDescriptor(&outDesc));
-        checkCudnnError(cudnnSetTensor4dDescriptor(outDesc, tensorFormat,
-                                                   CUDNN_DATA_FLOAT, outn, outc,
-                                                   outh, outw));
-        
+        checkCudnnError(cudnnSetTensor4dDescriptor(
+            outDesc, tensorFormat, CUDNN_DATA_FLOAT, outn, outc, outh, outw));
+
         if (op->getOpType() == OpType::ConvNHWC) {
             IT_ASSERT((vector{outn, outh, outw, outc}) ==
-                      op->getOutput()->getDims(),
-                  "cuDNN output shape mismatches with OP output shape");
+                          op->getOutput()->getDims(),
+                      "cuDNN output shape mismatches with OP output shape");
         } else {
             IT_ASSERT((vector{outn, outc, outh, outw}) ==
-                      op->getOutput()->getDims(),
-                  "cuDNN output shape mismatches with OP output shape");
+                          op->getOutput()->getDims(),
+                      "cuDNN output shape mismatches with OP output shape");
         }
 
         return tuple(inData, knData, outData, inDesc, knDesc, biasDesc,
                      convDesc, actDesc, outDesc);
     }
 
-    bool cuDNNUnfused(const Ref<ConvBaseObj> &op, const ConvCuDnnPerfRecord &record,
+    bool cuDNNUnfused(const Ref<ConvBaseObj> &op,
+                      const ConvCuDnnPerfRecord &record,
                       const CudaRuntimeObj *context) const {
         cudnnStatus_t stat;
 

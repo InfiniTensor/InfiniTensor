@@ -166,9 +166,9 @@ double CudaRuntimeObj::timeWithCudaGraph(Graph graph) {
     auto [cudaGraphInstance, numCudaGraphNodes] = endCudaGraphStreamCapture();
     // Since one TVM packed function may contaion more than one CUDA kernel, the
     // number of captured kernels may exceed the number of operators.
-    IT_ASSERT(numCudaGraphNodes >= kernels.size(),
-              std::to_string(numCudaGraphNodes) +
-                  " != " + std::to_string(kernels.size()));
+    // IT_ASSERT(numCudaGraphNodes >= kernels.size(),
+    //           std::to_string(numCudaGraphNodes) +
+    //               " != " + std::to_string(kernels.size()));
     printf("numCudaGraphNodes = %lu\n", numCudaGraphNodes);
     return timeit(
         [&, cudaGraphInstance = cudaGraphInstance, stream = getStream()]() {

@@ -89,8 +89,8 @@ Graph getFSRCNNGraph(int batch, Runtime runtime) {
         {batch, 12, 32, 32, 12, 3, 3, 1, 1, 1, false},
         {batch, 12, 32, 32, 12, 3, 3, 1, 1, 1, false},
         {batch, 12, 32, 32, 12, 3, 3, 1, 1, 1, true},
-        {batch, 12, 32, 32, 56, 32, 32, 1, 0, 1, true},
-        {batch, 56, 32, 32, 1, 9, 9, 4, 3, 1, false} // ConvTransNHWC
+        {batch, 12, 32, 32, 56, 1, 1, 1, 0, 1, true},
+        {batch, 56, 32, 32, 1, 9, 9, 1, 3, 4, false} // ConvTransNHWC
         // n, f, h, w, c, r, s, stride, pad, dilation, has_pReLU
     };
 
@@ -98,19 +98,21 @@ Graph getFSRCNNGraph(int batch, Runtime runtime) {
 
     Tensor input;
     {
-        auto &[n, c, h, w, f, r, s, stride, pad, dilation, has_pReLU] = fsrcnn_config[0];
+        auto &[n, c, h, w, f, r, s, stride, pad, dilation, has_pReLU] =
+            fsrcnn_config[0];
         input = g->addTensor({batch, h, w, c}, DataType::Float32,
                              TensorType::Input);
     }
 
     for (int i = 0; i < (int)fsrcnn_config.size() - 1; ++i) {
         // auto [channel, kernelSize, pad, stride, tanh] = configs[i];
-        auto &[n, c, h, w, f, r, s, stride, pad, dilation, has_pReLU] = fsrcnn_config[i];
+        auto &[n, c, h, w, f, r, s, stride, pad, dilation, has_pReLU] =
+            fsrcnn_config[i];
         IT_ASSERT(input->getDims()[3] == c);
         auto weight = g->addTensor({f, r, s, c}, DataType::Float32,
                                    TensorType::Initialized); // f, r, s, c
-        input = g->addOp<ConvNHWCObj>(input, weight, nullptr, pad,
-                                                  pad, stride, stride, 1, 1)
+        input = g->addOp<ConvNHWCObj>(input, weight, nullptr, pad, pad, stride,
+                                      stride, 1, 1)
                     ->getOutput();
         if (has_pReLU) {
             input = g->addOp<ReluObj>(input, nullptr)->getOutput();
@@ -119,7 +121,8 @@ Graph getFSRCNNGraph(int batch, Runtime runtime) {
 
     // last operator is a ConvTransNHWC
     {
-        auto &[n, f, h, w, c, r, s, stride, pad, dilation, has_pReLU] = fsrcnn_config[fsrcnn_config.size()-1];
+        auto &[n, f, h, w, c, r, s, stride, pad, dilation, has_pReLU] =
+            fsrcnn_config[fsrcnn_config.size() - 1];
         IT_ASSERT(input->getDims()[3] == f);
         auto weight = g->addTensor({f, r, s, c}, DataType::Float32,
                                    TensorType::Initialized); // f, r, s, c

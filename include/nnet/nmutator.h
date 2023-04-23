@@ -63,6 +63,8 @@ class NMutator : public Mutator {
     Graph transformDialtedConv(Operator _op);
     // Graph transformConv1x1(Operator op);
     // Graph transformConv1xk(Operator op);
+    Graph transformConvToGEMMReduce(Operator _op);
+    Graph transformConvTranposeToGEMMReduce(Operator _op);
 };
 
 } // namespace infini

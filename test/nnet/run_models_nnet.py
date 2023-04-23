@@ -103,6 +103,23 @@ def construct_conv(runtime, n, c, h, w, f, r, s, pad, stride, dilation):
     handler.conv(input, w, None, pad, pad, stride, stride, dilation, dilation)
     return handler.getGraph()
 
+def construct_conv_nhwc(runtime, n, c, h, w, f, r, s, pad, stride, dilation):
+    handler = ft.GraphHandler(runtime)
+    # input = handler.tensor([1, 56, 32, 32], tensor_type=ft.TensorType.Input)
+    # w = handler.tensor([12, 56, 1, 1], tensor_type=ft.TensorType.Initialized)
+    # handler.conv(input, w, None, 0, 0, 1, 1, 1, 1)
+    input = handler.tensor([n, h, w, c], tensor_type=ft.TensorType.Input)
+    w = handler.tensor([f, r, s, c], tensor_type=ft.TensorType.Initialized)
+    handler.convNHWC(input, w, None, pad, pad, stride, stride, dilation, dilation)
+    return handler.getGraph()
+
+def construct_convtranposed_nhwc(runtime, n, c, h, w, f, r, s, pad, stride, dilation):
+    handler = ft.GraphHandler(runtime)
+    input = handler.tensor([n, h, w, c], tensor_type=ft.TensorType.Input)
+    w = handler.tensor([f, r, s, c], tensor_type=ft.TensorType.Initialized)
+    handler.convtransposed2dNHWC(input, w, None, pad, pad, stride, stride, dilation, dilation)
+    return handler.getGraph()
+
 
 if __name__ == "__main__":
     runtime = ft.cuda_runtime()
@@ -113,6 +130,7 @@ if __name__ == "__main__":
         # construct_convTranspose2d(runtime)
         # (load_onnx(runtime, '/mnt/auxHome/models/einnet/fsrcnn.bs1.onnx'), 'fsrcnn.bs1'),
         (ft.getFSRCNNGraph(16, runtime), "fsrcnn.bs16")
+        # (construct_conv_nhwc(runtime, 1, 56, 32, 32, 12, 1, 1, 0, 1, 1), 'conv1x1')
     ]
 
     for original_g, name in graphs:

@@ -1,4 +1,5 @@
 #include "cuda/cuda_common.h"
+#include "nnet/dbg.h"
 
 using dtype = float;
 
@@ -46,12 +47,15 @@ __global__ void convTranspose2dreduce_kernel_(
     float *__restrict__ output, const bool PReLU, const int n, const int f,
     const int h, const int w, const int oh, const int ow, const int r,
     const int s, const int ph, const int pw, const int dh, const int dw,
-    const int sh, const int sw) {
+    const int sh, const int sw, const int block_x_num, const int block_y_num) {
     // assert dh = dw = 1
-    int nid = blockIdx.x, fid = blockIdx.y;
-    int hid = threadIdx.x, wid = threadIdx.y;
+    int nid = blockIdx.x / block_x_num, fid = blockIdx.y / block_y_num;
+    int hid = (blockIdx.x % block_x_num) * blockDim.x + threadIdx.x,
+        wid = (blockIdx.y % block_y_num) * blockDim.y + threadIdx.y;
+    if (hid >= oh || wid >= ow)
+        return;
     const int fchunck = r * s, wchunk = f * fchunck, hchunk = w * wchunk,
-              nchunck = n * hchunk;
+              nchunck = h * hchunk;
     float *nfinput = input + nid * nchunck + fid * fchunck;
     // view as conv, the true ph and pw
     int tph = r - ph - 1, tpw = s - pw - 1;
@@ -162,10 +166,16 @@ void convTranspose2dreduce_kernel(float *input, float *bias, float *output,
         reduce_4x4<<<(M * N + 127) / 128, 128>>>(input, output, act, n, f, oh,
                                                  ow, h, w);
     } else {
-        puts("why use this conv2dreduce");
+        // puts("why use this conv2dreduce");
+        block.x = 32;
+        block.y = 32;
+        int block_x_num = (oh + block.x - 1) / block.x;
+        int block_y_num = (ow + block.y - 1) / block.y;
+        grid.x = n * (block_x_num);
+        grid.y = f * (block_y_num);
         convTranspose2dreduce_kernel_<<<grid, block, 0>>>(
             input, bias, output, (bool)act, n, f, h, w, oh, ow, r, s, ph, pw,
-            dh, dw, sh, sw);
+            dh, dw, sh, sw, block_x_num, block_y_num);
     }
 }
 } // namespace infini

@@ -894,6 +894,26 @@ class OnnxStub:
                         domain="nnet",
                     )
                 )
+            elif ty == backend.OpType.Conv2dReduce:
+                ctx.push_node(
+                    make_node(
+                        ty.name,
+                        inputs,
+                        outputs,
+                        name,
+                        domain="nnet",
+                    )
+                )
+            elif ty == backend.OpType.Conv2dReduceTranspose:
+                ctx.push_node(
+                    make_node(
+                        ty.name,
+                        inputs,
+                        outputs,
+                        name,
+                        domain="nnet",
+                    )
+                )
             elif ty == backend.OpType.MemBound:
                 ctx.push_node(
                     make_node(
