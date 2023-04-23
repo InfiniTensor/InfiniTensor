@@ -13,6 +13,7 @@ Graph getConvtransposedNHWC(Runtime runtime, Shape shape, int layerId);
 Graph optimizeGraph(Graph g, Runtime _runtime, bool tuning, NMutator::Mode mode,
                     vector<int> rules);
 void initializeGraphTensors(Graph g, double l, double r, bool useInt);
+Graph convertNCHWtoNHWCModel(Runtime runtime, Graph inG);
 
 } // namespace infini
 

@@ -98,7 +98,7 @@ class ConvBaseObj : public OperatorObj {
     int numInputs() const override { return 2; }
     int numOutputs() const override { return 1; }
 
-    Tensor getBias() const { return inputs[2]; }
+    Tensor getBias() const { return inputs.size() > 2 ? inputs[2] : nullptr; }
     PaddingMode getPaddingMode() const { return padding; }
     pair<int, int> inferPaddingSize() const;
 
@@ -151,14 +151,14 @@ class ConvObj : public ConvBaseObj {
 
 class ConvNHWCObj : public ConvBaseObj {
   public:
-    ConvNHWCObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output, int ph,
-            int pw, int sh = 1, int sw = 1, int dh = 1, int dw = 1,
-            Tensor bias = nullptr, ActType act = ActType::None);
+    ConvNHWCObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
+                int ph, int pw, int sh = 1, int sw = 1, int dh = 1, int dw = 1,
+                Tensor bias = nullptr, ActType act = ActType::None);
     // Constructors for setting padding mode
     ConvNHWCObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
-            PaddingMode mode = PaddingMode::Same, int sh = 1, int sw = 1,
-            int dh = 1, int dw = 1, Tensor bias = nullptr,
-            ActType act = ActType::None);
+                PaddingMode mode = PaddingMode::Same, int sh = 1, int sw = 1,
+                int dh = 1, int dw = 1, Tensor bias = nullptr,
+                ActType act = ActType::None);
     OP_CLONE(ConvNHWCObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;

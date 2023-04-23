@@ -555,6 +555,8 @@ class OnnxStub:
             else:
                 raise Exception('Unsupported operator "{}"'.format(node.op_type))
 
+        # FIXME: do not load data for speed
+        return ans
         ans.handler.data_malloc()
 
         for name, obj in tensors.items():
@@ -710,7 +712,7 @@ class OnnxStub:
                 for (i, it) in enumerate(op.outputs())
             ]
             if ty == backend.OpType.Conv or ty == backend.OpType.ConvNHWC:
-                ph, pw, dh, dw, sh, sw = backend.conv_attrs_of(op)
+                ph, pw, sh, sw, dh, dw  = backend.conv_attrs_of(op)
                 ctx.push_node(
                     make_node(
                         ty.name,

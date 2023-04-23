@@ -101,14 +101,14 @@ def construct_convTranspose2d(runtime, n, c, h, w, f, r, s, pad, stride, dilatio
     return handler.getGraph()
 
 
-def construct_conv(runtime, n, c, h, w, f, r, s, pad, stride, dilation):
+def construct_conv(runtime, n, c, h, w, f, r, s, ph, pw, sh, sw, dh, dw):
     handler = ft.GraphHandler(runtime)
     # input = handler.tensor([1, 56, 32, 32], tensor_type=ft.TensorType.Input)
     # w = handler.tensor([12, 56, 1, 1], tensor_type=ft.TensorType.Initialized)
     # handler.conv(input, w, None, 0, 0, 1, 1, 1, 1)
     input = handler.tensor([n, c, h, w], tensor_type=ft.TensorType.Input)
     w = handler.tensor([f, c, r, s], tensor_type=ft.TensorType.Initialized)
-    handler.conv(input, w, None, pad, pad, stride, stride, dilation, dilation)
+    handler.conv(input, w, None, ph, pw, sh, sw, dh, dw)
     return handler.getGraph()
 
 def construct_conv_nhwc(runtime, n, c, h, w, f, r, s, pad, stride, dilation):
@@ -149,6 +149,9 @@ if __name__ == "__main__":
     graphs = [
         # (construct_conv(runtime, 16, 56, 32, 32, 12, 1, 1, 0, 1, 1), 'conv1x1'), # FSRCNN Conv_2 1x1
         # (construct_conv(runtime, 1, 12, 32, 32, 12, 3, 3, 1, 1, 1), 'conv3x3'),  # FSRCNN Conv_4 3x3
+        # (construct_conv(runtime, 1, 12, 32, 32, 12, 3, 1, 1, 0, 1, 1, 1, 1), 'conv3x1'),  #
+        # (construct_conv(runtime, 1, 12, 32, 32, 12, 1, 11, 0, 5, 1, 1, 1, 1), 'conv1x11'),  #
+        # (construct_conv(runtime, 16, 12, 32, 32, 12, 1, 11, 0, 5, 1, 1, 1, 1), 'conv1x11_bs16'),  #
         # ft.getGANGraph(batch, runtime, 5, 1)
         # (ft.getLongformer(runtime, 1), 'longformer.bs1'),
         # (ft.getLongformer(runtime, 16), 'longformer.bs16'),
@@ -157,20 +160,25 @@ if __name__ == "__main__":
         # (ft.getFSRCNNGraph(1, runtime), "fsrcnn.bs1"),
         # (ft.getFSRCNNGraph(16, runtime), "fsrcnn.bs16"),
         # (construct_conv_nhwc(runtime, 1, 56, 32, 32, 12, 1, 1, 0, 1, 1), 'conv1x1')
-        (load_onnx(runtime, '/mnt/auxHome/models/einnet/gcn.bs1.onnx'), 'gcn.bs1'),
+        # (load_onnx(runtime, '/mnt/auxHome/models/einnet/gcn.bs1.onnx'), 'gcn.bs1'),
+        (load_onnx(runtime, '/mnt/auxHome/models/einnet/gcn.bs16.onnx'), 'gcn.bs16'),
     ]
+
 
     for original_g, name in graphs:
         print(f"=== {name}")
-        if True:  # Optimization
-            save_onnx(original_g, f"orig_{name}.onnx")
-            g = ft.optimizeGraph(original_g, runtime, False, ft.NMutatorMode.RuleBased,
-                                 [1, 7, 7, 2, 8, 6, 6])  # G2BMM/GBMM
-            # g = ft.optimizeGraph(original_g, runtime, False, ft.NMutatorMode.RuleBased,
-            #                      [3, 2, 2, 5, 8, 8, 6, 90]) # Conv2conv
-            # g = ft.optimizeGraph(original_g, runtime, False, ft.NMutatorMode.Normal)
+        # save_onnx(original_g, f"hkz_orig_{name}.onnx")
+        # original_g = ft.convertNCHWtoNHWCModel(runtime, original_g)
+        # save_onnx(original_g, f"hkz_dlt_{name}.onnx")
+
+        # run_and_evaluate(runtime, original_g)
+        g = ft.optimizeGraph(original_g, runtime, False, ft.NMutatorMode.RuleBased,
+                                [1, 7, 7, 2, 8, 6, 6])  # G2BMM/GBMM
+
+        # g = ft.optimizeGraph(original_g, runtime, False, ft.NMutatorMode.RuleBased,
+        #                      [3, 2, 2, 5, 8, 8, 6, 90]) # Conv2conv
+        # g = ft.optimizeGraph(original_g, runtime, False, ft.NMutatorMode.Normal)
 
         save_onnx(g, f"opt_{name}.onnx")
         # verify_graphs(runtime, original_g, g)
-        # run_and_evaluate(runtime, original_g)
         run_and_evaluate(runtime, g)

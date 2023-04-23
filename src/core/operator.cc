@@ -104,7 +104,9 @@ bool OperatorObj::checkValid(GraphObj *graph) {
         }
     } else { // if outputs have been created, check their shapes
         for (size_t i = 0; i < shapes.size(); ++i) {
-            IT_ASSERT(shapes[i] == outputs[i]->getDims());
+            IT_ASSERT(shapes[i] == outputs[i]->getDims(),
+                      (vecToString(shapes[i]) +
+                       " != " + vecToString(outputs[i]->getDims())));
             if (shapes[i] != outputs[i]->getDims()) {
                 dbg(shapes[i], outputs[i]->getDims());
                 return false;

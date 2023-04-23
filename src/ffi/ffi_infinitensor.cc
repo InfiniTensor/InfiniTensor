@@ -150,8 +150,8 @@ static std::tuple<int, int, int, int, int, int> conv_attrs_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Conv ||
               op->getOpType() == OpType::ConvNHWC);
     auto conv = dynamic_cast<const ConvBaseObj *>(op.get());
-    return std::make_tuple(conv->getPh(), conv->getPw(), conv->getDh(),
-                           conv->getDw(), conv->getSh(), conv->getSw());
+    return std::make_tuple(conv->getPh(), conv->getPw(), conv->getSh(),
+                           conv->getSw(), conv->getDh(), conv->getDw());
 }
 
 static std::tuple<int, int, int, int, int, int, int, int>
@@ -173,8 +173,8 @@ conv_trans_attrs_of(Operator op) {
         opw = output_pad.second;
     }
 
-    return std::make_tuple(conv->getPh(), conv->getPw(), conv->getDh(),
-                           conv->getDw(), conv->getSh(), conv->getSw(), oph,
+    return std::make_tuple(conv->getPh(), conv->getPw(), conv->getSh(),
+                           conv->getSw(), conv->getDh(), conv->getDw(), oph,
                            opw);
 }
 
@@ -414,7 +414,8 @@ void export_test_model(py::module &m) {
              "tuning"_a = false, "mode"_a = NMutator::Mode::Normal,
              "rules"_a = vector<int>{})
         .def("initializeGraphTensors", &initializeGraphTensors, "g"_a,
-             "l"_a = -0.1, "r"_a = 0.1, "useInt"_a = false);
+             "l"_a = -0.1, "r"_a = 0.1, "useInt"_a = false)
+        .def("convertNCHWtoNHWCModel", &convertNCHWtoNHWCModel);
 #endif
 }
 

@@ -566,14 +566,9 @@ Graph NMutator::transformConvToGEMMReduce(Operator _op) {
     const Shape inputDims = op->getInputs(0)->getDims();
     const Shape weightDims = op->getInputs(1)->getDims();
     const Shape outputDims = op->getOutput()->getDims();
-    IT_ASSERT(weightDims[0] == f);
-    IT_ASSERT(weightDims[1] == r);
-    IT_ASSERT(weightDims[2] == s);
-    IT_ASSERT(weightDims[3] == c);
-    IT_ASSERT(inputDims[0] == n);
-    IT_ASSERT(inputDims[1] == h);
-    IT_ASSERT(inputDims[2] == w);
-    IT_ASSERT(inputDims[3] == c);
+    if (sh != 1 || sw != 1 || dh != 1 || dw != 1 ||
+        (weightDims[2] != 1 && weightDims[3] != 1))
+        return nullptr;
     const DataType dtype = A->getDType();
     auto g = make_ref<GraphObj>(runtime);
     auto newA = g->addTensor(
@@ -581,12 +576,12 @@ Graph NMutator::transformConvToGEMMReduce(Operator _op) {
 
     // // If use Matmul with transpose 0,0
     // auto newW = g->addTensor(
-    //     {weightDims[3], weightDims[0] * weightDims[1] * weightDims[2]}, dtype);
+    //     {weightDims[3], weightDims[0] * weightDims[1] * weightDims[2]},
+    //     dtype);
 
     // If use Matmul with transpose 0, 1
     auto newW = g->addTensor(
-            {weightDims[0] * weightDims[1] * weightDims[2], weightDims[3]},
-            dtype);
+        {weightDims[0] * weightDims[1] * weightDims[2], weightDims[3]}, dtype);
     g->addOpWithOutputs<ReshapeObj>(g->cloneTensor(A), newA, newA->getDims());
     g->addOpWithOutputs<ReshapeObj>(g->cloneTensor(W), newW, newW->getDims());
     Tensor newO = g->addOp<MatmulObj>(newA, newW, nullptr, 0, 1)->getOutput();
@@ -606,6 +601,8 @@ Graph NMutator::transformConvTranposeToGEMMReduce(Operator _op) {
     // f is the de-facto input channel for ConvTranspose
     const auto &[n, c, h, w, f, r, s] = op->getNCHWFRS();
     const auto &[ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
+    if (dh != 1 || dw != 1)
+        return nullptr;
     const Shape inputDims = op->getInputs(0)->getDims();
     const Shape weightDims = op->getInputs(1)->getDims();
     const Shape outputDims = op->getOutput()->getDims();
@@ -625,7 +622,8 @@ Graph NMutator::transformConvTranposeToGEMMReduce(Operator _op) {
     g->addOpWithOutputs<ReshapeObj>(newO, new1, new1->getDims());
     // [NHW, CRS] -> [N,H,W,C]
     g->addOpWithOutputs<Conv2dReduceTranspose>(
-        new1, nullptr, g->cloneTensor(op->getOutput()), false, 0.f, ph, pw);
+        new1, nullptr, g->cloneTensor(op->getOutput()), false, 0.f, ph, pw, sh,
+        sw, dh, dw);
     return g;
 }
 
