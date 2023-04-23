@@ -59,6 +59,9 @@ class OnnxStub:
 
         for initializer in model.graph.initializer:
             dims = [d for d in initializer.dims]
+            # dims will be empty when the const tensor is from constant simplify
+            if len(dims) == 0:
+                dims = _infer_shape_by_raw_data(initializer)
             tensors[initializer.name] = self.handler.tensor(dims, initializer.data_type)
             data[initializer.name] = initializer
 
@@ -162,6 +165,8 @@ class OnnxStub:
                     tensors.get(node.output[0]),
                     False,
                     False,
+                    1,
+                    0,
                     None,
                     backend.ActType.Linear,
                 )
@@ -172,15 +177,14 @@ class OnnxStub:
                 (alpha, beta, transA, transB) = (
                     attributes[name] for name in ["alpha", "beta", "transA", "transB"]
                 )
-                # FIXME unsupport attributes: `alpha` `beta`
-                assert alpha == 1.0
-                assert beta == 1.0
                 tensors[node.output[0]] = self.handler.matmul(
                     tensors[node.input[0]],
                     tensors[node.input[1]],
                     tensors.get(node.output[0]),
                     transA == 1,
                     transB == 1,
+                    alpha,
+                    beta,
                     tensors[node.input[2]] if len(node.input) > 2 else None,
                     backend.ActType.Linear,
                 )
@@ -417,7 +421,7 @@ class OnnxStub:
             elif node.op_type == "Squeeze":
                 input_shape = _search_shape(model, node.input[0])
                 axes = set(
-                    [int(i) for i in data[node.input[1]].int64_data]
+                    [int(i) for i in _parse_data(data[node.input[1]])]
                     if len(node.input) > 1
                     else _parse_attribute(node, {"axes": None})["axes"]
                 )
@@ -434,7 +438,7 @@ class OnnxStub:
             elif node.op_type == "Unsqueeze":
                 input_shape = _search_shape(model, node.input[0])
                 axes = (
-                    [int(i) for i in data[node.input[1]].int64_data]
+                    [int(i) for i in _parse_data(data[node.input[1]])]
                     if len(node.input) > 1
                     else _parse_attribute(node, {"axes": None})["axes"]
                 )
@@ -473,10 +477,15 @@ class OnnxStub:
                     next((attr.i for attr in node.attribute if attr.name == "axis")),
                 )
             elif node.op_type == "ReduceMean":
+                axes = (
+                    [int(i) for i in data[node.input[1]].int64_data]
+                    if len(node.input) > 1
+                    else _parse_attribute(node, {"axes": None})["axes"]
+                )
                 tensors[node.output[0]] = self.handler.reduce_mean(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
-                    tensors[node.input[1]] if len(node.input) > 1 else None,
+                    axes,
                     next((attr.i for attr in node.attribute if attr.name == "keepdims"))
                     != 0,
                 )
@@ -490,11 +499,17 @@ class OnnxStub:
                     _parse_data(data[node.input[4]]) if len(node.input) > 4 else None,
                 )
             elif node.op_type == "Pad":
+                # todo constant value
+                pads = (
+                    [int(i) for i in data[node.input[1]].int64_data]
+                    if len(node.input) > 1
+                    else _parse_attribute(node, {"pads": None})["pads"]
+                )
                 tensors[node.output[0]] = self.handler.pad(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
-                    _parse_data(data[node.input[1]]),
-                    _parse_data(data[node.input[3]]) if len(node.input) > 3 else None,
+                    pads,
+                    _parse_data(data[node.input[2]]) if len(node.input) > 3 else None,
                 )
             elif node.op_type == "Dropout":
                 for name, tensor in zip(
@@ -514,7 +529,7 @@ class OnnxStub:
                     tensors[name] = tensor
             else:
                 raise Exception('Unsupported operator "{}"'.format(node.op_type))
-
+            
         self.handler.data_malloc()
 
         for name, obj in tensors.items():
@@ -535,7 +550,7 @@ class OnnxStub:
 
         for output in model.graph.output:
             self.outputs[output.name] = tensors[output.name]
-
+    
     def to_onnx(self, name: str) -> ModelProto:
         class Context:
             # saves object names, including tensors and operators
@@ -831,6 +846,25 @@ def from_onnx(model: ModelProto, runtime):
     stub = OnnxStub(model, runtime)
     return stub.inputs, stub.outputs, stub.handler
 
+def _infer_shape_by_raw_data(tensor: TensorProto):
+    dtype = tensor.data_type
+    raw_data = tensor.raw_data
+    if dtype == TensorProto.FLOAT:  
+        fmt = 'f'
+        elem_size = 4
+    elif dtype == TensorProto.FLOAT16:  
+        fmt = 'e'
+        elem_size = 2
+    elif dtype == TensorProto.INT32:
+        fmt = 'i'
+        elem_size = 4
+    elif dtype == TensorProto.INT64:
+        fmt = 'q'
+        elem_size = 8
+    else:
+        raise ValueError('Unsupported data type')
+    num_elems = len(raw_data) // elem_size   
+    return [num_elems]
 
 def _search_shape(model: ModelProto, name: str) -> List[int]:
     ans = (

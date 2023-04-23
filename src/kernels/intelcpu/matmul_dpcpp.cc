@@ -10,7 +10,7 @@ template <typename T> class MklDpcppMatmul : public CpuKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *context) const override {
         auto op = as<MatmulObj>(_op);
-        IT_ASSERT(op->getInputs().size() == 2, "Bias is not supported yet.");
+        // IT_ASSERT(op->getInputs().size() == 2, "Bias is not supported yet.");
         const T *A = op->getInputs(0)->getRawDataPtr<T *>();
         const T *B = op->getInputs(1)->getRawDataPtr<T *>();
         T *C = op->getOutput()->getRawDataPtr<T *>();
@@ -29,13 +29,6 @@ template <typename T> class MklDpcppMatmul : public CpuKernelWithoutConfig {
             std::max((opB == oneapi::mkl::transpose::nontrans) ? n : k, 1);
         const int ldC = std::max(n, 1);
 
-        const float alpha = 1.f, beta = 0.f;
-        // TODO: Intel MKL ERROR will occur when using cblas_sgemm_batch
-        /*for (int i = 0; i < b; ++i) {
-            cblas_sgemm(CblasRowMajor, opA, opB, m, n, k, alpha, A + m * k * i,
-                        ldA, B + k * n * i, ldB, beta, C + m * n * i, ldC);
-        }*/
-
         sycl::queue q(sycl::cpu_selector{});
         // Catch asynchronous exceptions
         auto exception_handler = [](cl::sycl::exception_list exceptions) {
@@ -53,15 +46,27 @@ template <typename T> class MklDpcppMatmul : public CpuKernelWithoutConfig {
         // create execution queue and buffers of matrix data
         cl::sycl::queue main_queue(sycl::cpu_selector{}, exception_handler);
 
-        cl::sycl::buffer<float, 1> A_buffer(A, op->getInputs(0)->size());
-        cl::sycl::buffer<float, 1> B_buffer(B, op->getInputs(1)->size());
-        cl::sycl::buffer<float, 1> C_buffer(C, op->getOutput(0)->size());
+        cl::sycl::buffer<T, 1> A_buffer(A, op->getInputs(0)->size());
+        cl::sycl::buffer<T, 1> B_buffer(B, op->getInputs(1)->size());
+
+        cl::sycl::buffer<T, 1> O_buffer(C, op->getOutput(0)->size());
 
         // add oneapi::mkl::blas::gemm to execution queue
         try {
+            if (op->getBeta() && op->getBias()) {
+                // init C with bias
+                IT_ASSERT_TODO(op->getBias()->size() ==
+                               op->getOutput(0)->size());
+                cl::sycl::buffer<T, 1> C_buffer(
+                    op->getBias()->getRawDataPtr<T *>(), op->getBias()->size());
+                oneapi::mkl::blas::row_major::copy(main_queue,
+                                                   op->getBias()->size(),
+                                                   C_buffer, 1, O_buffer, 1);
+            }
             oneapi::mkl::blas::row_major::gemm_batch(
-                main_queue, opA, opB, m, n, k, alpha, A_buffer, ldA, m * k,
-                B_buffer, ldB, k * n, beta, C_buffer, ldC, m * n, b);
+                main_queue, opA, opB, m, n, k, op->getAlpha(), A_buffer, ldA,
+                m * k, B_buffer, ldB, k * n, op->getBeta(), O_buffer, ldC,
+                m * n, b);
         } catch (cl::sycl::exception const &e) {
             std::cout << "\t\tCaught synchronous SYCL exception during GEMM:\n"
                       << e.what() << std::endl;

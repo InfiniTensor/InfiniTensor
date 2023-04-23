@@ -40,4 +40,24 @@ TEST(mkl_Matmul, run) {
                                475, 448, 502, 472, 529});
 }
 
+TEST(mkl_Matmul_with_Bias, run) {
+    auto cpuRuntime = MklRuntimeObj::getInstance();
+    Graph gCpu = make_ref<GraphObj>(cpuRuntime);
+    auto ACpu = gCpu->addTensor(Shape{3, 4}, DataType::Float32);
+    auto BCpu = gCpu->addTensor(Shape{4, 2}, DataType::Float32);
+    auto bias = gCpu->addTensor(Shape{3, 2}, DataType::Float32);
+    gCpu->dataMalloc();
+    ACpu->setData(IncrementalGenerator());
+    BCpu->setData(IncrementalGenerator());
+    bias->setData(IncrementalGenerator());
+
+    auto matmul =
+        gCpu->addOp<MatmulObj>(ACpu, BCpu, nullptr, false, false, 1, 1, bias);
+
+    gCpu->dataMalloc();
+    cpuRuntime->run(gCpu);
+    EXPECT_TRUE(matmul->getOutput()->equalData(
+        vector<float>{28., 35., 78., 101., 128., 167.}));
+}
+
 }; // namespace infini

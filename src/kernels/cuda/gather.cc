@@ -12,6 +12,8 @@ class GatherCuda : public CudaKernelWithoutConfig {
         auto in = op->getInputs(0);
         auto index = op->getInputs(1);
         auto out = op->getOutput();
+        if (!(index->getDType() == DataType::Int32))
+            IT_ASSERT_TODO();
         metaData.indexValue = index->getRawDataPtr<int *>();
         metaData.axis = op->getAxis();
         metaData.inNDim = in->getDims().size();

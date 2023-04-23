@@ -50,7 +50,7 @@ class GraphHandlerObj {
                             int pw, int sh, int sw, int dh, int dw, int oph,
                             int opw);
     Tensor matmul(Tensor a, Tensor b, Tensor y, bool transA, bool transB,
-                  Tensor bias, ActType act);
+                  float alpha, float beta, Tensor bias, ActType act);
     Tensor batchNorm(Tensor input, Tensor output, Tensor mean, Tensor var,
                      Tensor scale, Tensor bias, float momentum, float eps,
                      bool training);
