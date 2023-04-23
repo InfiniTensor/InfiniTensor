@@ -1,4 +1,4 @@
-﻿#include "../src/mutation.h"
+﻿#include "../include/optimization/common.h"
 #include <iostream>
 #include <unordered_set>
 
@@ -28,11 +28,12 @@ int main() {
             {c}                        // outputs
         );
 
-        auto p = Partition<SingleOperator>(std::move(g), split_each);
-        auto m = Mutation<SingleOperator>(
+        auto p =
+            Partition<pass::SingleOperator>(std::move(g), pass::split_each);
+        auto m = Mutation<pass::SingleOperator>(
             std::move(p),
             [](const auto &g, const auto &t) { return Vec<Unigraph>{}; });
-        auto r = Rating<SingleOperator>(std::move(m), memory_usage);
+        auto r = Rating<pass::SingleOperator>(std::move(m), memory_usage);
         auto ans = r.build(Vec<size_t>(r.size().size(), 0));
 
         return 0;

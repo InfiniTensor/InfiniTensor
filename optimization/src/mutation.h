@@ -147,20 +147,6 @@ template <class PartitionType> class Rating {
     }
 };
 
-/// @brief Partition every operator as a `Unigraph`.
-struct SingleOperator {};
-
-/// @brief Splits a graph into subgraphs, where each subgraph contains
-///        only one operator.
-/// @param arg0 An unpartitioned graph.
-/// @return A vector of individual subgraphs.
-Vec<std::pair<Unigraph, SingleOperator>> split_each(Unigraph &&);
-
-/// @brief Calculates the memory usage of a graph.
-/// @param arg0 The graph.
-/// @return The reciprocal of the total memory usage of the graph in bytes.
-float memory_usage(Unigraph const &);
-
 template <class t> Vec<size_t> list_size(Vec<SubGraph<t>> const &list) {
     Vec<size_t> ans(list.size());
     std::transform(list.begin(), list.end(), ans.begin(),
