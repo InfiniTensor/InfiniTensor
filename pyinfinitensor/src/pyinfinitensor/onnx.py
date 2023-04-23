@@ -885,7 +885,7 @@ class OnnxStub:
                     )
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty in [backend.OpType.ConvTransNHWC, backend.OpType.GBMM, 
-                        backend.OpType.G2BMM]:
+                        backend.OpType.G2BMM, backend.OpType.Any]:
                 ctx.push_node(
                     make_node(
                         ty.name,

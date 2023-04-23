@@ -31,11 +31,13 @@ class CudaRuntimeObj : public RuntimeObj {
     void sync() const;
     CudaPtr alloc(size_t size) override {
         void *ptr;
+        // printf("Try to cudaMalloc: %lu bytes\n", size);
         checkCudaError(cudaMalloc(&ptr, size));
         allocatedGPUMemorySize += size;
         allocationMap[ptr] = size;
         // printf("cuda malloc: %p %lu bytes, total %lu bytes (%.2lf GB)\n",
-        // ptr, size, allocatedGPUMemorySize,
+        // ptr,
+        //        size, allocatedGPUMemorySize,
         //        double(allocatedGPUMemorySize) / 1024 / 1024 / 1024);
         return ptr;
     }

@@ -346,10 +346,10 @@ std::vector<Graph> SearchEngine::searchMutation(const MetaGraph &metaGraph) {
         if (node.type == 1) { // If it has computing OPs
             auto mutatedGraphs = mutator->run(node.graph);
             // // HACK: only try the first one for debug
-            if (mutatedGraphs.size() >= 2) {
-                mutatedGraphs.resize(2);
+            // if (mutatedGraphs.size() > 2)
+            //     mutatedGraphs.resize(2);
+            if (mutatedGraphs.size() >= 2)
                 mutatedGraphs = {mutatedGraphs[1]};
-            }
             for (auto graph : graphs) {
                 for (auto mutatedGraph : mutatedGraphs) {
                     std::vector<Operator> ops;

@@ -3,7 +3,7 @@
 namespace infini {
 
 AnyObj::AnyObj(GraphObj *graph, const TensorVec &inputs,
-               const TensorVec &outputs, string &kernelName,
+               const TensorVec &outputs, const string &kernelName,
                const vector<int> &attr)
     : OperatorObj(OpType::Any, inputs, outputs), kernelName(kernelName),
       attr(attr) {

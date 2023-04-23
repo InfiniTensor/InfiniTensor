@@ -39,6 +39,19 @@ void any_kernel_mapping(vector<float *> inputs, vector<float *> outputs,
                             attr[4], attr[5], attr[6], attr[7], attr[8],
                             attr[9], attr[10], attr[11], attr[12], attr[13],
                             attr[14]);
+    } else if (kernelName == "reduceConvRxSToNCHW") {
+        IT_ASSERT(attr.size() == 15);
+        IT_ASSERT(inputs.size() == 1 || inputs.size() == 2)
+        IT_ASSERT(outputs.size() == 1);
+        // float *input, float *bias, float *output, int act,
+        //                          int n, int h, int w, int f, int r, int s,
+        //                          int oh, int ow, int ph, int pw, int sh, int
+        //                          sw, int dh, int dw
+        reduceConvRxSToNCHW(inputs[0], inputs.size() > 1 ? inputs[1] : nullptr,
+                            outputs[0], attr[0], attr[1], attr[2], attr[3],
+                            attr[4], attr[5], attr[6], attr[7], attr[8],
+                            attr[9], attr[10], attr[11], attr[12], attr[13],
+                            attr[14]);
     } else {
         std::cout << "Unimplemented AnyOp cuda kernel: " << kernelName
                   << std::endl;

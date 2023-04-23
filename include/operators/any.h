@@ -10,7 +10,7 @@ class AnyObj : public OperatorObj {
 
   public:
     AnyObj(GraphObj *graph, const TensorVec &inputs, const TensorVec &outputs,
-           string &kernelName, const vector<int> &attr);
+           const string &kernelName, const vector<int> &attr);
 
     OP_CLONE(AnyObj);
 

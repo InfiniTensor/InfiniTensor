@@ -9,6 +9,7 @@
 #include "nnet/derivator.h"
 #include "operators/G2BMM.h"
 #include "operators/GBMM.h"
+#include "operators/any.h"
 #include "operators/conv.h"
 #include "operators/matmul.h"
 #include "operators/membound.h"
@@ -249,6 +250,11 @@ void NMutator::runMultipleOps(Graph in_graph, std::vector<Graph> &out_graphs) {
 // }
 
 nnet::Expr NMutator::opToExpression(Operator opT) {
+    if (auto op = as<ConvObj>(opT)) {
+        if (op->getSh() != 1 || op->getSw() != 1 || op->getDh() != 1 ||
+            op->getDw() != 1)
+            return nullptr;
+    }
     auto [expr, mapNameNToTensorT] = extractOp(opT);
     IT_ASSERT(expr,
               "Cannot convert " + opT->toString() + " to an NNet expression");
@@ -625,16 +631,14 @@ Graph NMutator::transformConv1x1(Operator _op) {
     if (!op)
         return nullptr;
     const auto &[ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
-    if (sh != 1 || sw != 1 || dh != 1 || dw != 1)
-        return nullptr;
     Shape shapeA = op->getInputs(0)->getDims();
     Shape shapeW = op->getInputs(1)->getDims();
-    // TODO: support batch size > 1
-    if (shapeA[0] != 1)
+    Shape shapeO = op->getOutput()->getDims();
+    if (sh != 1 || sw != 1 || dh != 1 || dw != 1 || shapeW[2] != 1 ||
+        shapeW[3] != 1)
         return nullptr;
-    if (op->getPh() == 0 && op->getSh() == 1 && shapeW[2] == 1 &&
-        shapeW[3] == 1) {
-        auto g = make_ref<GraphObj>(runtime);
+    auto g = make_ref<GraphObj>(runtime);
+    if (shapeA[0] == 1) {
         auto A =
             g->addOp<ReshapeObj>(g->cloneTensor(op->getInputs(0)), nullptr,
                                  vector{shapeA[1], shapeA[0] * shapeA[2] *
@@ -647,9 +651,27 @@ Graph NMutator::transformConv1x1(Operator _op) {
             g->addOp<MatmulObj>(B, A, nullptr, 0, 0)->getOutput(); // [F, N*H*W]
         g->addOpWithOutputs<ReshapeObj>(O, g->cloneTensor(op->getOutput()),
                                         op->getOutput()->getDims());
-        return g;
+    } else {
+        auto A = g->addOp<TransposeObj>(g->cloneTensor(op->getInputs(0)),
+                                        nullptr, vector{1, 0, 2, 3})
+                     ->getOutput(); // [C,N,H,W]
+        A = g->addOp<ReshapeObj>(A, nullptr,
+                                 vector{shapeA[1], shapeA[0] * shapeA[2] *
+                                                       shapeA[3]}) // [C, N*H*W]
+                ->getOutput();
+        auto B = g->addOp<ReshapeObj>(g->cloneTensor(op->getInputs(1)), nullptr,
+                                      vector{shapeW[0], shapeW[1]}) // [F, C]
+                     ->getOutput();
+        auto O =
+            g->addOp<MatmulObj>(B, A, nullptr, 0, 0)->getOutput(); // [F, NHW]
+        O = g->addOp<ReshapeObj>(
+                 O, nullptr, Shape{shapeO[1], shapeO[0], shapeO[2], shapeO[3]})
+                ->getOutput(); // [F, NHW]
+        O = g->addOpWithOutputs<TransposeObj>(
+                 O, g->cloneTensor(op->getOutput()), vector{1, 0, 2, 3})
+                ->getOutput(); // [F, N*H*W]
     }
-    return nullptr;
+    return g;
 }
 
 Graph NMutator::transformConv1xk(Operator _op) {
@@ -659,6 +681,7 @@ Graph NMutator::transformConv1xk(Operator _op) {
     const auto &[ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
     if (sh != 1 || sw != 1 || dh != 1 || dw != 1)
         return nullptr;
+    const auto &[n, c, h, w, f, r, s] = op->getNCHWFRS();
     op->print();
     const auto &A = op->getInputs(0);
     const auto &W = op->getInputs(1);
@@ -668,7 +691,7 @@ Graph NMutator::transformConv1xk(Operator _op) {
     if (shapeW[2] == 1 || shapeW[3] == 1) {
         auto g = make_ref<GraphObj>(runtime);
         auto A0 = g->cloneTensor(A);
-        auto W0 = g->cloneTensor(W);
+        auto W0 = g->cloneTensor(W); // [F, C, R, S]
         auto A1 = g->addOp<TransposeObj>(A0, nullptr, vector<int>{0, 2, 3, 1})
                       ->getOutput(); // [N, H, W, C]
         auto A2 =
@@ -677,29 +700,32 @@ Graph NMutator::transformConv1xk(Operator _op) {
                  vector<int>{shapeA[0] * shapeA[2] * shapeA[3], shapeA[1]})
                 ->getOutput(); // [N*H*W, C]
         auto W1 = g->addOp<TransposeObj>(W0, nullptr, vector<int>{0, 2, 3, 1})
-                      ->getOutput(); // [R, S, F, C]
+                      ->getOutput(); // [F,R,S,C]
         auto W2 =
             g->addOp<ReshapeObj>(
                  W1, nullptr,
                  vector<int>{shapeW[2] * shapeW[3] * shapeW[0], shapeW[1]})
-                ->getOutput(); // [R*S*F, C]
-        auto O0 = g->addOp<MatmulObj>(W2, A2, nullptr, 0, 1)
-                      ->getOutput(); // [R*S*F, N*H*W]
-        auto O1 =
-            g->addOp<ReshapeObj>(O0, nullptr,
-                                 vector<int>{shapeW[2] * shapeW[3], shapeW[0],
-                                             shapeA[0] * shapeA[2] * shapeA[3]})
-                ->getOutput(); // [R*S, F, N*H*W]
-        auto O2 = g->addOp<ReduceMeanObj>(O1, nullptr, optional{vector<int>{0}},
-                                          false)
-                      ->getOutput(); // [F, N*H*W]
-        auto O3 = g->addOp<ReshapeObj>(
-                       O2, nullptr,
-                       vector<int>{shapeW[0], shapeA[0], shapeA[2], shapeA[3]})
-                      ->getOutput(); // [F, N, H, W]
-        g->addOpWithOutputs<TransposeObj>(O3, g->cloneTensor(O),
-                                          vector<int>{1, 0, 2, 3});
-        std::cout << "Replace 1xk/kx1 conv successfully" << std::endl;
+                ->getOutput(); // [F*R*S, C]
+        auto O0 = g->addOp<MatmulObj>(A2, W2, nullptr, 0, 1)
+                      ->getOutput(); // [N*H*W, F*R*S]
+        vector<int> args{op->getAct() != ActType::None,
+                         n,
+                         h,
+                         w,
+                         f,
+                         r,
+                         s,
+                         O->getDims()[2],
+                         O->getDims()[3],
+                         ph,
+                         pw,
+                         sh,
+                         sw,
+                         dh,
+                         dw};
+        const string kernelName = "reduceConvRxSToNCHW";
+        auto O3 = g->addOpWithOutputs<AnyObj>(
+            vector{O0}, vector{g->cloneTensor(O)}, kernelName, args);
         return g;
     }
     return nullptr;

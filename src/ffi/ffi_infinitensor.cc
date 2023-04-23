@@ -101,6 +101,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, Resize)
         .VALUE(OpType, Dropout)
         .VALUE(OpType, MemBound)
+        .VALUE(OpType, Any)
         .export_values();
 
     py::enum_<TensorType>(m, "TensorType")
