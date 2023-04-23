@@ -32,7 +32,6 @@ class ActivationCudnn : public CudaKernelWithoutConfig {
         } else if (dim.size() == 3) {
             n = 1, c = dim[0], h = dim[1], w = dim[2];
         } else {
-            dbg(vecToString(dim));
             IT_TODO_HALT();
         }
 

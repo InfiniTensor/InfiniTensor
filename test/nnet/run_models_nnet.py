@@ -155,7 +155,7 @@ if __name__ == "__main__":
         # construct_convTranspose2d(runtime)
         # (load_onnx(runtime, '/mnt/auxHome/models/einnet/fsrcnn.bs1.onnx'), 'fsrcnn.bs1'),
         (ft.getFSRCNNGraph(1, runtime), "fsrcnn.bs1"),
-        (ft.getFSRCNNGraph(16, runtime), "fsrcnn.bs16")
+        (ft.getFSRCNNGraph(16, runtime), "fsrcnn.bs16"),
         # (construct_conv_nhwc(runtime, 1, 56, 32, 32, 12, 1, 1, 0, 1, 1), 'conv1x1')
     ]
 

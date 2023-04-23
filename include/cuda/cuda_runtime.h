@@ -1,7 +1,6 @@
 #pragma once
 #include "core/runtime.h"
 #include "cuda/cuda_common.h"
-#include "nnet/dbg.h"
 
 namespace infini {
 
@@ -31,7 +30,6 @@ class CudaRuntimeObj : public RuntimeObj {
     void sync() const;
     CudaPtr alloc(size_t size) override {
         void *ptr;
-        // dbg(size);
         checkCudaError(cudaMalloc(&ptr, size));
         allocatedGPUMemorySize += size;
         allocationMap[ptr] = size;

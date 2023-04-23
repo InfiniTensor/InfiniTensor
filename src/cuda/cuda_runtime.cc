@@ -3,6 +3,7 @@
 #include "core/perf_engine.h"
 #include "core/runtime.h"
 #include "cuda_profiler_api.h"
+#include "nnet/dbg.h"
 #include "operators/conv.h"
 #include "operators/matmul.h"
 #ifdef INFINI_USE_TVM
@@ -165,9 +166,9 @@ double CudaRuntimeObj::timeWithCudaGraph(Graph graph, int rounds) {
     auto [cudaGraphInstance, numCudaGraphNodes] = endCudaGraphStreamCapture();
     // Since one TVM packed function may contaion more than one CUDA kernel, the
     // number of captured kernels may exceed the number of operators.
-    // IT_ASSERT(numCudaGraphNodes >= kernels.size(),
-    //           std::to_string(numCudaGraphNodes) +
-    //               " != " + std::to_string(kernels.size()));
+    IT_ASSERT(numCudaGraphNodes >= kernels.size(),
+              std::to_string(numCudaGraphNodes) +
+                  " != " + std::to_string(kernels.size()));
     printf("numCudaGraphNodes = %lu\n", numCudaGraphNodes);
     return timeit(
         [&, cudaGraphInstance = cudaGraphInstance, stream = getStream()]() {

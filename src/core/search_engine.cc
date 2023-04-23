@@ -502,9 +502,10 @@ Graph SearchEngine::fuseVertically(const Graph &graph) {
 
         auto bestGraph = make_ref<GraphObj>(runtimeExec, chainOps);
         // Eliminate transpose and reshape operators
-        // if (auto eliminatedGraph = mutator->eliminateVertically(
-        //         make_ref<GraphObj>(runtimeExec, chainOps)))
-        //     bestGraph = eliminatedGraph;
+        // FIXME: current Relu only support 3D and 4D tensors
+        if (auto eliminatedGraph = mutator->eliminateVertically(
+                make_ref<GraphObj>(runtimeExec, chainOps)))
+            bestGraph = eliminatedGraph;
         // Fuse membound operators
         if (auto optGraph = mutator->fuseVertically(bestGraph))
             bestGraph = optGraph;

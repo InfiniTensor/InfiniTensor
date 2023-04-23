@@ -82,6 +82,9 @@ class convCudnn : public Kernel {
         // get kernels
         cudnnFilterDescriptor_t knDesc;
         checkCudnnError(cudnnCreateFilterDescriptor(&knDesc));
+        // FIXME: filter data layout is not changed with input data layout
+        // since FCRS shows better performance for NHWC inputs in some cases.
+        // This should be tunable.
         checkCudnnError(cudnnSetFilter4dDescriptor(knDesc, CUDNN_DATA_FLOAT,
                                                    CUDNN_TENSOR_NCHW, f,
                                                    channelsPerGrp, r, s));
