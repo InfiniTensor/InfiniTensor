@@ -26,6 +26,7 @@ class NMutator : public Mutator {
 
     vector<Graph> run(const Graph &in_graph) override;
     Graph fuseVertically(const Graph &in_graph) override;
+    Graph eliminateVertically(const Graph &in_graph) override;
     bool isMultiBranchMergable(const Graph &in_graph) override;
 
     void setToNaiveMembound();
@@ -68,6 +69,14 @@ class NMutator : public Mutator {
 
     Tensor splitTransposeMerge(Graph g, Tensor A, int dim, int chunkSize,
                                Tensor output = nullptr);
+
+    /// @brief Construct a new graph with a chain of operators. Use the output
+    /// from the previous operator as the input of the next operator. While
+    /// constructing, the input and output tensors from inputGraph are used as
+    /// new constructed graph.
+    /// @param op The operator chain. It can have wrong input/output shapes.
+    /// @return
+    Graph constructGraphByOperatorChain(vector<Operator> ops, Graph inputGraph);
 };
 
 } // namespace infini

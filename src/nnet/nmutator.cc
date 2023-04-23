@@ -12,6 +12,7 @@
 #include "operators/matmul.h"
 #include "operators/membound.h"
 #include "operators/reshape.h"
+#include "operators/softmax.h"
 #include "operators/transpose.h"
 #include "operators/unary.h"
 
@@ -248,6 +249,8 @@ void NMutator::runMultipleOps(Graph in_graph, std::vector<Graph> &out_graphs) {
 
 nnet::Expr NMutator::opToExpression(Operator opT) {
     auto [expr, mapNameNToTensorT] = extractOp(opT);
+    IT_ASSERT(expr,
+              "Cannot convert " + opT->toString() + " to an NNet expression");
     for (auto &[name, tensorT] : mapNameNToTensorT) {
         IT_ASSERT(inputsNameNToTensorT.count(name) == 0);
         inputsNameNToTensorT[name] = tensorT;
@@ -331,8 +334,6 @@ pair<nnet::Expr, NMutator::NameNToTensorT> NMutator::extractOp(Operator opT) {
     // // else if (auto transposeOp = dynamic_cast<TransposeOp *>(opT)) {
     // //     return transposeOpToExpression(transposeOp);
     // // }
-    IT_TODO_HALT_MSG("Cannot convert " + opT->toString() +
-                     " to an NNet expression");
     return {};
 }
 
@@ -684,6 +685,142 @@ Graph NMutator::transformConv1x1(Operator _op) {
 //     return graph;
 // }
 
+Graph NMutator::constructGraphByOperatorChain(vector<Operator> ops,
+                                              Graph inputGraph) {
+    // Construct new graph
+    auto g = make_ref<GraphObj>(runtime);
+    IT_ASSERT(inputGraph->getInputs().size() == 1);
+    IT_ASSERT(inputGraph->getOutputs().size() == 1);
+    IT_ASSERT(ops.size() > 0,
+              "TODO: If there is no op left, how to return an empty graph?");
+    auto input = g->cloneTensor(inputGraph->getInputs()[0]);
+    for (size_t i = 0; i < ops.size(); ++i) {
+        auto output = (i + 1 == ops.size())
+                          ? inputGraph->getOutputs()[0]
+                          : g->addTensor(ops[i]->getOutput()->getDims());
+        dbg(input->getDims(), output->getDims());
+        input = g->cloneOperator(ops[i], {input}, {output})->getOutput();
+    }
+    return g;
+}
+
+Graph NMutator::eliminateVertically(const Graph &inputGraph) {
+    auto ops = inputGraph->getOperators();
+
+    IT_ASSERT(!ops.empty());
+    for (auto &op : ops) {
+        IT_ASSERT(op->isMemBoundOp());
+        IT_ASSERT_TODO(op->getInputs().size() == 1);
+        IT_ASSERT(op->getOutputs().size() == 1);
+    }
+    if (ops.size() == 1) {
+        return make_ref<GraphObj>(runtime, ops);
+    }
+
+    // Set attributs for operators.
+    // isComputation: is computaiton
+    // isElementwise: do elementwise computations
+    // lastRowSwapable: do last-channel-wise computations, which includes
+    // elementwise as a special case.
+    auto classifyOperator = [](Operator op) {
+        auto type = op->getOpType();
+        bool isComputation =
+            type != OpType::Reshape && type != OpType::Transpose;
+        bool isElementwise =
+            !isComputation || (type == OpType::Relu || type == OpType::Tanh);
+        bool lastRowSwapable = false;
+        if (isComputation)
+            lastRowSwapable = isElementwise || // Softmax along the last dim
+                              (type == OpType::Softmax &&
+                               as<SoftmaxObj>(op)->getAxis() ==
+                                   int(op->getOutput()->getDims().size()) - 1);
+        else {
+            if (auto t = as<TransposeObj>(op)) {
+                // Last dim remains unchanged
+                lastRowSwapable =
+                    (t->getPermute().back() == int(t->getPermute().size()) - 1);
+            } else if (auto t = as<ReshapeObj>(op)) {
+                // Last dim remains unchanged
+                lastRowSwapable = (t->getInputs(0)->getDims().back() ==
+                                   t->getOutput()->getDims().back());
+            }
+        }
+        return tuple{isComputation, isElementwise, lastRowSwapable};
+    };
+
+    // Reorder operators: move computatation operators to the tail
+    for (int i = ops.size() - 2; i >= 0; --i) {
+        for (int j = i; j < int(ops.size()) - 1; ++j) {
+            bool swapable = false;
+            const set<OpType> unaryElementwise{OpType::Relu, OpType::PRelu,
+                                               OpType::Tanh};
+            auto [aIsC, aEw, aLRS] = classifyOperator(ops[j]);
+            auto [bIsC, bEw, bLRS] = classifyOperator(ops[j + 1]);
+            if (aIsC && !bIsC && (aEw || (aLRS && bLRS))) // Swap condition
+                swapable = true;
+            if (swapable) {
+                swap(ops[j], ops[j + 1]);
+            }
+        }
+    }
+
+    Graph g = constructGraphByOperatorChain(ops, inputGraph);
+    // Eliminate operators
+    bool haveElimination;
+    do {
+        haveElimination = false;
+        ops = g->getOperators();
+        vector<Operator> newOps;
+        for (int i = 0; i < int(ops.size()); ++i) {
+            // Eliminate identity operators
+            if (auto op = as<TransposeObj>(ops[i])) {
+                auto perm = op->getPermute();
+                int j = 0;
+                for (j = 0; j < int(perm.size()); ++j)
+                    if (j != perm[j])
+                        break;
+                if (j == int(perm.size())) {
+                    haveElimination = true;
+                    continue;
+                }
+            } else if (auto op = as<ReshapeObj>(ops[i])) {
+                if (op->getShape() == op->getInputs(0)->getDims()) {
+                    haveElimination = true;
+                    continue;
+                }
+            }
+
+            // Eliminate reciprocal operators
+            if (i + 1 == (int)ops.size() ||
+                (ops[i]->getOpType() != ops[i + 1]->getOpType())) {
+                newOps.push_back(ops[i]);
+                continue;
+            }
+            if (ops[i]->getOpType() == OpType::Reshape) {
+                newOps.push_back(make_ref<ReshapeObj>(
+                    nullptr, ops[i]->getInputs(0), ops[i + 1]->getOutput()));
+                ++i;
+                haveElimination = true;
+            } else if (ops[i]->getOpType() == OpType::Transpose) {
+                auto permuteA = as<TransposeObj>(ops[i])->getPermute();
+                auto permuteB = as<TransposeObj>(ops[i + 1])->getPermute();
+                vector<int> permute;
+                for (auto p : permuteB)
+                    permute.push_back(permuteA[p]);
+                newOps.push_back(
+                    make_ref<TransposeObj>(nullptr, ops[i]->getInputs(0),
+                                           ops[i + 1]->getOutput(), permute));
+                ++i;
+                haveElimination = true;
+            } else {
+                newOps.push_back(ops[i]);
+            }
+        }
+        g = constructGraphByOperatorChain(newOps, inputGraph);
+    } while (haveElimination);
+    return g;
+}
+
 Graph NMutator::fuseVertically(const Graph &inputGraph) {
     Graph optGraph = make_ref<GraphObj>(runtime);
 
@@ -700,6 +837,8 @@ Graph NMutator::fuseVertically(const Graph &inputGraph) {
     std::vector<nnet::Expr> exprs;
     for (const auto &op : chainOps) {
         auto [expr, _] = extractOp(op);
+        if (!expr)
+            return nullptr;
         exprs.emplace_back(expr);
         // dbg(op, infini::as<nnet::RangeOpNode>(expr)->getFullExpression());
     }
@@ -780,7 +919,7 @@ Tensor NMutator::splitTransposeMerge(Graph g, Tensor A, int dim, int chunkSize,
         shapeNew.emplace_back(shapeOrignial[i]);
     auto A1 = g->addOp<ReshapeObj>(A, nullptr, shapeNew)->getOutput();
     auto A2 =
-        g->addOp<TransposeObj>(A1, nullptr, vector{0, 1, 3, 2})->getOutput();
+        g->addOp<TransposeObj>(A1, nullptr, vector{0, 2, 1, 3})->getOutput();
     Tensor A3;
     if (output)
         A3 = g->addOpWithOutputs<ReshapeObj>(A2, output, shapeOrignial)

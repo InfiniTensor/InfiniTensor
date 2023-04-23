@@ -27,7 +27,8 @@ std::string TransposeObj::toString() const {
     os << "(";
     os << vecToString(inputs[0]->getDims()) << ",";
     os << "input=" << inputs[0]->getGuid() << ",";
-    os << "output=" << outputs[0]->getGuid() << ")";
+    os << "output=" << outputs[0]->getGuid() << ",";
+    os << "perm=" << vecToString(transposePermute) << ")";
     return os.str();
 }
 
