@@ -1,7 +1,6 @@
 #pragma once
 #include "core/runtime.h"
 #include "cuda/cuda_common.h"
-#include "nnet/dbg.h"
 
 namespace infini {
 

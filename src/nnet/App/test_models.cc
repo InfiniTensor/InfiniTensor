@@ -86,6 +86,60 @@ Graph getGANGraph(int batch, Runtime runtime, int nLayers, int modelId) {
     return g;
 }
 
+// NHWC
+Graph getFSRCNNGraph(int batch, Runtime runtime) {
+    // n, c, h, w, f, r, s, stride, pad, dilation, has_pReLU
+    const DetailedConfigs fsrcnn_config = {
+        {batch, 1, 32, 32, 56, 5, 5, 1, 2, 1, true},
+        {batch, 56, 32, 32, 12, 1, 1, 1, 0, 1, true},
+        {batch, 12, 32, 32, 12, 3, 3, 1, 1, 1, false},
+        {batch, 12, 32, 32, 12, 3, 3, 1, 1, 1, false},
+        {batch, 12, 32, 32, 12, 3, 3, 1, 1, 1, false},
+        {batch, 12, 32, 32, 12, 3, 3, 1, 1, 1, true},
+        {batch, 12, 32, 32, 56, 1, 1, 1, 0, 1, true},
+        {batch, 56, 32, 32, 1, 9, 9, 1, 3, 4, false} // ConvTransNHWC
+        // n, f, h, w, c, r, s, stride, pad, dilation, has_pReLU
+    };
+
+    Graph g = make_ref<GraphObj>(runtime);
+
+    Tensor input;
+    {
+        auto &[n, c, h, w, f, r, s, stride, pad, dilation, has_pReLU] =
+            fsrcnn_config[0];
+        input = g->addTensor({batch, h, w, c}, DataType::Float32,
+                             TensorType::Input);
+    }
+
+    for (int i = 0; i < (int)fsrcnn_config.size() - 1; ++i) {
+        // auto [channel, kernelSize, pad, stride, tanh] = configs[i];
+        auto &[n, c, h, w, f, r, s, stride, pad, dilation, has_pReLU] =
+            fsrcnn_config[i];
+        IT_ASSERT(input->getDims()[3] == c);
+        auto weight = g->addTensor({f, r, s, c}, DataType::Float32,
+                                   TensorType::Initialized); // f, r, s, c
+        input = g->addOp<ConvNHWCObj>(input, weight, nullptr, pad, pad, stride,
+                                      stride, 1, 1)
+                    ->getOutput();
+        if (has_pReLU) {
+            input = g->addOp<ReluObj>(input, nullptr)->getOutput();
+        }
+    }
+
+    // last operator is a ConvTransNHWC
+    {
+        auto &[n, f, h, w, c, r, s, stride, pad, dilation, has_pReLU] =
+            fsrcnn_config[fsrcnn_config.size() - 1];
+        IT_ASSERT(input->getDims()[3] == f);
+        auto weight = g->addTensor({f, r, s, c}, DataType::Float32,
+                                   TensorType::Initialized); // f, r, s, c
+        input = g->addOp<ConvTransposed2dNHWCObj>(input, weight, nullptr, pad,
+                                                  pad, stride, stride, 1, 1)
+                    ->getOutput();
+    }
+    return g;
+}
+
 Graph getLongformer(Runtime runtime, int bs) {
     const int seqlen = 10000, w = 1000, featlen = 512, heads = 8, d = 4;
     const int hidden = featlen, hiddenPerHead = hidden / heads;
@@ -165,8 +219,8 @@ Graph getLongformer(Runtime runtime, int bs) {
     g->addOpWithOutputs<ReshapeObj>(q0, q1);
     g->addOpWithOutputs<ReshapeObj>(k0, k1);
     g->addOpWithOutputs<ReshapeObj>(v0, v1);
-    // For example, when perm=(1, 0, 2), given an input tensor of shape (1, 2,
-    // 3), the output shape will be (2, 1, 3).
+    // For example, when perm=(1, 0, 2), given an input tensor of shape (1,
+    // 2, 3), the output shape will be (2, 1, 3).
     g->addOpWithOutputs<TransposeObj>(q1, q2, vector{0, 2, 1, 3});
     g->addOpWithOutputs<TransposeObj>(k1, k2, vector{0, 2, 1, 3});
     g->addOpWithOutputs<TransposeObj>(v1, v2, vector{0, 2, 1, 3});

@@ -11,6 +11,7 @@
 #include "operators/GBMM.h"
 #include "operators/any.h"
 #include "operators/conv.h"
+#include "operators/conv2dreduce.h"
 #include "operators/matmul.h"
 #include "operators/membound.h"
 #include "operators/reduce_mean.h"
@@ -98,6 +99,10 @@ void NMutator::runSingleOp(Graph in_graph, std::vector<Graph> &out_graphs) {
         out_graphs.emplace_back(g);
         return;
     }
+    if (infini::Graph g = transformConv1xk(computeOps[0])) {
+        out_graphs.emplace_back(g);
+        return;
+    }
     if (Graph g = transformG2bmm(computeOps[0])) {
         out_graphs.emplace_back(g);
         return;
@@ -110,7 +115,12 @@ void NMutator::runSingleOp(Graph in_graph, std::vector<Graph> &out_graphs) {
         out_graphs.emplace_back(g);
         return;
     }
-    if (infini::Graph g = transformConv1xk(computeOps[0])) {
+    if (infini::Graph g = transformConvToGEMMReduce(computeOps[0])) {
+        out_graphs.emplace_back(g);
+        return;
+    }
+
+    if (infini::Graph g = transformConvTranposeToGEMMReduce(computeOps[0])) {
         out_graphs.emplace_back(g);
         return;
     }
@@ -522,7 +532,9 @@ Graph NMutator::transformConvtransposed1x1(Operator _op) {
     if (h != 1 || w != 1)
         return {};
     IT_ASSERT_TODO(ph == pw);
-    IT_ASSERT_TODO(tie(sh, sw) == tuple(1, 1));
+    if (tie(sh, sw) != tuple(1, 1)) {
+        return nullptr;
+    }
     IT_ASSERT_TODO(tie(dh, dw) == tuple(1, 1));
     auto g = make_ref<GraphObj>(runtime);
     // NHWF
@@ -540,6 +552,80 @@ Graph NMutator::transformConvtransposed1x1(Operator _op) {
     Tensor newO = g->addOp<MatmulObj>(newA, newW, nullptr, 0, 1)->getOutput();
     g->addOpWithOutputs<ReshapeObj>(newO, g->cloneTensor(op->getOutput()),
                                     op->getOutput()->getDims());
+    return g;
+}
+
+Graph NMutator::transformConvToGEMMReduce(Operator _op) {
+    auto op = as<ConvNHWCObj>(_op);
+    if (!op)
+        return nullptr;
+    const auto &A = op->getInputs()[0];
+    const auto &W = op->getInputs()[1];
+    const auto &[n, c, h, w, f, r, s] = op->getNCHWFRS();
+    const auto &[ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
+    const Shape inputDims = op->getInputs(0)->getDims();
+    const Shape weightDims = op->getInputs(1)->getDims();
+    const Shape outputDims = op->getOutput()->getDims();
+    IT_ASSERT(weightDims[0] == f);
+    IT_ASSERT(weightDims[1] == r);
+    IT_ASSERT(weightDims[2] == s);
+    IT_ASSERT(weightDims[3] == c);
+    IT_ASSERT(inputDims[0] == n);
+    IT_ASSERT(inputDims[1] == h);
+    IT_ASSERT(inputDims[2] == w);
+    IT_ASSERT(inputDims[3] == c);
+    const DataType dtype = A->getDType();
+    auto g = make_ref<GraphObj>(runtime);
+    auto newA = g->addTensor(
+        {inputDims[0] * inputDims[1] * inputDims[2], inputDims[3]}, dtype);
+
+    // // If use Matmul with transpose 0,0
+    // auto newW = g->addTensor(
+    //     {weightDims[3], weightDims[0] * weightDims[1] * weightDims[2]}, dtype);
+
+    // If use Matmul with transpose 0, 1
+    auto newW = g->addTensor(
+            {weightDims[0] * weightDims[1] * weightDims[2], weightDims[3]},
+            dtype);
+    g->addOpWithOutputs<ReshapeObj>(g->cloneTensor(A), newA, newA->getDims());
+    g->addOpWithOutputs<ReshapeObj>(g->cloneTensor(W), newW, newW->getDims());
+    Tensor newO = g->addOp<MatmulObj>(newA, newW, nullptr, 0, 1)->getOutput();
+    auto new1 = g->addTensor({n, h, w, f, r, s}, dtype);
+    g->addOpWithOutputs<ReshapeObj>(newO, new1, new1->getDims());
+    g->addOpWithOutputs<Conv2dReduce>(
+        new1, nullptr, g->cloneTensor(op->getOutput()), false, 0.f, ph, pw);
+    return g;
+}
+
+Graph NMutator::transformConvTranposeToGEMMReduce(Operator _op) {
+    auto op = as<ConvTransposed2dNHWCObj>(_op);
+    if (!op)
+        return nullptr;
+    const auto &A = op->getInputs()[0];
+    const auto &W = op->getInputs()[1];
+    // f is the de-facto input channel for ConvTranspose
+    const auto &[n, c, h, w, f, r, s] = op->getNCHWFRS();
+    const auto &[ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
+    const Shape inputDims = op->getInputs(0)->getDims();
+    const Shape weightDims = op->getInputs(1)->getDims();
+    const Shape outputDims = op->getOutput()->getDims();
+    const DataType dtype = A->getDType();
+    auto g = make_ref<GraphObj>(runtime);
+    auto newA = g->addTensor( // [N,H,W,F]
+        {inputDims[0] * inputDims[1] * inputDims[2], inputDims[3]}, dtype);
+    auto newW = g->addTensor( // [F, CRS]
+        {weightDims[0], weightDims[1] * weightDims[2] * weightDims[3]},
+        dtype); // HACK: this should be a transpose
+
+    g->addOpWithOutputs<ReshapeObj>(g->cloneTensor(A), newA, newA->getDims());
+    g->addOpWithOutputs<ReshapeObj>(g->cloneTensor(W), newW, newW->getDims());
+    // newO [NHW, CRS]
+    Tensor newO = g->addOp<MatmulObj>(newA, newW, nullptr, 0, 0)->getOutput();
+    auto new1 = g->addTensor({n, h, w, c, r, s}, dtype);
+    g->addOpWithOutputs<ReshapeObj>(newO, new1, new1->getDims());
+    // [NHW, CRS] -> [N,H,W,C]
+    g->addOpWithOutputs<Conv2dReduceTranspose>(
+        new1, nullptr, g->cloneTensor(op->getOutput()), false, 0.f, ph, pw);
     return g;
 }
 

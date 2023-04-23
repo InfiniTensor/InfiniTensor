@@ -66,6 +66,9 @@ class NMutator : public Mutator {
     Graph transformGbmm(Operator op);
     Graph transformDialtedConv(Operator _op);
     Graph transformConv1xk(Operator op);
+    // Graph transformConv1xk(Operator op);
+    Graph transformConvToGEMMReduce(Operator _op);
+    Graph transformConvTranposeToGEMMReduce(Operator _op);
 
     Tensor splitTransposeMerge(Graph g, Tensor A, int dim, int chunkSize,
                                Tensor output = nullptr);

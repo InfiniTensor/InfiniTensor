@@ -11,6 +11,7 @@ enum class OpType {
     Matmul,
     ConvTrans,
     ConvTransNHWC,
+    ConvNHWC,
     G2BMM,
     GBMM,
     Pad,
@@ -102,7 +103,10 @@ enum class OpType {
     Dropout,
     //
     MemBound = 300,
-    Any,
+    //
+    Conv2dReduce = 400,
+    Conv2dReduceTranspose,
+    Any
 };
 
 using KernelAttrs = std::tuple<Device, OpType, DataType>;
@@ -123,6 +127,7 @@ class OpRegistry {
             FOP(Matmul);
             FOP(ConvTrans);
             FOP(ConvTransNHWC);
+            FOP(ConvNHWC);
             FOP(G2BMM);
             FOP(GBMM);
             FOP(Pad);
@@ -210,6 +215,9 @@ class OpRegistry {
             FOP(BitRightShift);
             //
             FOP(MemBound);
+            //
+            FOP(Conv2dReduce);
+            FOP(Conv2dReduceTranspose);
             FOP(Any);
         default:
             IT_ASSERT(false, "Unknown OpType " +

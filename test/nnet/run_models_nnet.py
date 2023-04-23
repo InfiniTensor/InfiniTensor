@@ -30,7 +30,7 @@ def run_and_evaluate(runtime, g):
     runtime.run(g, True)
     print(f'getPerfTime = {runtime.getPerfTime(g, True, False, False)}')
     print(f'Non-ctc time = {runtime.timeNonCtcOperators(g, 1000, 1000)}')
-    print(f'Cuda graph time = {runtime.timeWithCudaGraph(g)}')
+    print(f'Cuda graph time = {runtime.timeWithCudaGraph(g, 100)}')
 
 
 def run_graph_get_output_as_torch_tensor(runtime, g):
@@ -111,6 +111,23 @@ def construct_conv(runtime, n, c, h, w, f, r, s, pad, stride, dilation):
     handler.conv(input, w, None, pad, pad, stride, stride, dilation, dilation)
     return handler.getGraph()
 
+def construct_conv_nhwc(runtime, n, c, h, w, f, r, s, pad, stride, dilation):
+    handler = ft.GraphHandler(runtime)
+    # input = handler.tensor([1, 56, 32, 32], tensor_type=ft.TensorType.Input)
+    # w = handler.tensor([12, 56, 1, 1], tensor_type=ft.TensorType.Initialized)
+    # handler.conv(input, w, None, 0, 0, 1, 1, 1, 1)
+    input = handler.tensor([n, h, w, c], tensor_type=ft.TensorType.Input)
+    w = handler.tensor([f, r, s, c], tensor_type=ft.TensorType.Initialized)
+    handler.convNHWC(input, w, None, pad, pad, stride, stride, dilation, dilation)
+    return handler.getGraph()
+
+def construct_convtranposed_nhwc(runtime, n, c, h, w, f, r, s, pad, stride, dilation):
+    handler = ft.GraphHandler(runtime)
+    input = handler.tensor([n, h, w, c], tensor_type=ft.TensorType.Input)
+    w = handler.tensor([f, r, s, c], tensor_type=ft.TensorType.Initialized)
+    handler.convtransposed2dNHWC(input, w, None, pad, pad, stride, stride, dilation, dilation)
+    return handler.getGraph()
+
 
 def export_op_level_onnx(runtime):
     graphs = [
@@ -134,9 +151,13 @@ if __name__ == "__main__":
         # (construct_conv(runtime, 1, 12, 32, 32, 12, 3, 3, 1, 1, 1), 'conv3x3'),  # FSRCNN Conv_4 3x3
         # ft.getGANGraph(batch, runtime, 5, 1)
         # (ft.getLongformer(runtime, 1), 'longformer.bs1'),
-        (ft.getLongformer(runtime, 16), 'longformer.bs16'),
+        # (ft.getLongformer(runtime, 16), 'longformer.bs16'),
         # construct_convTranspose2d(runtime)
         # (load_onnx(runtime, '/mnt/auxHome/models/einnet/fsrcnn.bs1.onnx'), 'fsrcnn.bs1'),
+        # (ft.getFSRCNNGraph(1, runtime), "fsrcnn.bs1"),
+        # (ft.getFSRCNNGraph(16, runtime), "fsrcnn.bs16"),
+        # (construct_conv_nhwc(runtime, 1, 56, 32, 32, 12, 1, 1, 0, 1, 1), 'conv1x1')
+        (load_onnx(runtime, '/mnt/auxHome/models/einnet/gcn.bs1.onnx'), 'gcn.bs1'),
     ]
 
     for original_g, name in graphs:

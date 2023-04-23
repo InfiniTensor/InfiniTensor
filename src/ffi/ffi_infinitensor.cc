@@ -69,6 +69,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, Matmul)
         .VALUE(OpType, ConvTrans)
         .VALUE(OpType, ConvTransNHWC)
+        .VALUE(OpType, ConvNHWC)
         .VALUE(OpType, G2BMM)
         .VALUE(OpType, GBMM)
         .VALUE(OpType, Pad)
@@ -100,6 +101,8 @@ void export_values(py::module &m) {
         .VALUE(OpType, Abs)
         .VALUE(OpType, Resize)
         .VALUE(OpType, Dropout)
+        .VALUE(OpType, Conv2dReduce)
+        .VALUE(OpType, Conv2dReduceTranspose)
         .VALUE(OpType, MemBound)
         .VALUE(OpType, Any)
         .export_values();
@@ -144,17 +147,32 @@ static Ref<RuntimeObj> intelcpu_runtime() { return make_ref<MklRuntimeObj>(); }
 #endif
 
 static std::tuple<int, int, int, int, int, int> conv_attrs_of(Operator op) {
-    IT_ASSERT(op->getOpType() == OpType::Conv);
-    auto conv = dynamic_cast<const ConvObj *>(op.get());
+    IT_ASSERT(op->getOpType() == OpType::Conv ||
+              op->getOpType() == OpType::ConvNHWC);
+    auto conv = dynamic_cast<const ConvBaseObj *>(op.get());
     return std::make_tuple(conv->getPh(), conv->getPw(), conv->getDh(),
                            conv->getDw(), conv->getSh(), conv->getSw());
 }
 
 static std::tuple<int, int, int, int, int, int, int, int>
 conv_trans_attrs_of(Operator op) {
-    IT_ASSERT(op->getOpType() == OpType::ConvTrans);
-    auto conv = dynamic_cast<const ConvTransposed2dObj *>(op.get());
-    auto [oph, opw] = conv->getOutputPadding();
+    IT_ASSERT(op->getOpType() == OpType::ConvTrans ||
+              op->getOpType() == OpType::ConvTransNHWC);
+    auto conv = dynamic_cast<const ConvBaseObj *>(op.get());
+    int oph, opw;
+
+    if (op->getOpType() == OpType::ConvTrans) {
+        auto _conv = dynamic_cast<const ConvTransposed2dObj *>(op.get());
+        auto output_pad = _conv->getOutputPadding();
+        oph = output_pad.first;
+        opw = output_pad.second;
+    } else {
+        auto _conv = dynamic_cast<const ConvTransposed2dNHWCObj *>(op.get());
+        auto output_pad = _conv->getOutputPadding();
+        oph = output_pad.first;
+        opw = output_pad.second;
+    }
+
     return std::make_tuple(conv->getPh(), conv->getPw(), conv->getDh(),
                            conv->getDw(), conv->getSh(), conv->getSw(), oph,
                            opw);
@@ -328,6 +346,9 @@ void init_graph_builder(py::module &m) {
              "tensor_type"_a = TensorType::Other)
         .def("conv", &Handler::conv, policy::move)
         .def("convTransposed2d", &Handler::convTransposed2d, policy::move)
+        .def("convNHWC", &Handler::convNHWC, policy::move)
+        .def("convtransposed2dNHWC", &Handler::convTransposed2dNHWC,
+             policy::move)
         .def("matmul", &Handler::matmul, policy::move)
         .def("batchNorm", &Handler::batchNorm, policy::move)
         .def("maxPool", &Handler::maxPool, policy::move)
@@ -386,6 +407,7 @@ void export_test_model(py::module &m) {
 #ifdef USE_CUDA
     m.def("runInfoGAN", &runInfoGAN)
         .def("getGANGraph", &getGANGraph)
+        .def("getFSRCNNGraph", &getFSRCNNGraph)
         .def("getLongformer", &getLongformer)
         .def("getConvtransposedNHWC", &getConvtransposedNHWC)
         .def("optimizeGraph", &optimizeGraph, "graph"_a, "runtime"_a,

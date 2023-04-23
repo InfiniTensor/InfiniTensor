@@ -3,6 +3,7 @@
 #include "core/perf_engine.h"
 #include "core/runtime.h"
 #include "cuda_profiler_api.h"
+#include "nnet/dbg.h"
 #include "operators/conv.h"
 #include "operators/matmul.h"
 #ifdef INFINI_USE_TVM

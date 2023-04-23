@@ -1,6 +1,7 @@
 #include "core/search_engine.h"
 #include "core/hash.h"
 #include "core/runtime.h"
+#include "ffi/ffi_callback.h"
 #include "nnet/dbg.h"
 
 #include <algorithm>
@@ -348,8 +349,8 @@ std::vector<Graph> SearchEngine::searchMutation(const MetaGraph &metaGraph) {
             // // HACK: only try the first one for debug
             // if (mutatedGraphs.size() > 2)
             //     mutatedGraphs.resize(2);
-            if (mutatedGraphs.size() >= 2)
-                mutatedGraphs = {mutatedGraphs[1]};
+            // if (mutatedGraphs.size() >= 2)
+            //     mutatedGraphs = {mutatedGraphs[1]};
             for (auto graph : graphs) {
                 for (auto mutatedGraph : mutatedGraphs) {
                     std::vector<Operator> ops;
@@ -455,6 +456,9 @@ std::vector<Graph> SearchEngine::partitionGraph(const Graph graph) {
 }
 
 double SearchEngine::getEstimatedGraphPerf(Graph graph) {
+    // dbg(graph);
+    // // hkz
+    // callback::exportONNX(graph, "a.onnx");
     return runtimeExec->getPerfTime(graph, false, true, true);
 }
 
@@ -502,6 +506,7 @@ Graph SearchEngine::fuseVertically(const Graph &graph) {
 
         auto bestGraph = make_ref<GraphObj>(runtimeExec, chainOps);
         // Eliminate transpose and reshape operators
+        // FIXME: current Relu only support 3D and 4D tensors
         if (auto eliminatedGraph = mutator->eliminateVertically(
                 make_ref<GraphObj>(runtimeExec, chainOps)))
             bestGraph = eliminatedGraph;

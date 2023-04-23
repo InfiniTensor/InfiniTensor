@@ -57,6 +57,38 @@ Tensor GraphHandlerObj::convTransposed2d(Tensor input, Tensor weight,
     }
 }
 
+Tensor GraphHandlerObj::convNHWC(Tensor input, Tensor weight, Tensor output,
+                                 int ph, int pw, int sh, int sw, int dh,
+                                 int dw) {
+    if (output) {
+        g->addOpWithOutputs<ConvNHWCObj>(std::move(input), std::move(weight),
+                                         output, ph, pw, sh, sw, dh, dw);
+        return output;
+    } else {
+        return g
+            ->addOp<ConvNHWCObj>(std::move(input), std::move(weight), output,
+                                 ph, pw, sh, sw, dh, dw)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::convTransposed2dNHWC(Tensor input, Tensor weight,
+                                             Tensor output, int ph, int pw,
+                                             int sh, int sw, int dh, int dw,
+                                             int oph, int opw) {
+    if (output) {
+        g->addOpWithOutputs<ConvTransposed2dNHWCObj>(
+            std::move(input), std::move(weight), output, ph, pw, sh, sw, dh, dw,
+            oph, opw);
+        return output;
+    } else {
+        return g->addOp<ConvTransposed2dNHWCObj>(std::move(input),
+                                                 std::move(weight), output, ph,
+                                                 pw, sh, sw, dh, dw, oph, opw)
+        ->getOutput();
+    }
+}
+
 Tensor GraphHandlerObj::matmul(Tensor a, Tensor b, Tensor y, bool transA,
                                bool transB, Tensor bias, ActType act) {
     if (y) {
