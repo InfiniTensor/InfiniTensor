@@ -4,13 +4,7 @@ namespace infini {
 TransposeObj::TransposeObj(GraphObj *graph, Tensor input, Tensor output,
                            vector<int> permute)
     : OperatorObj(OpType::Transpose, {input}, {output}) {
-    if (permute.size() != 4) {
-        IT_TODO_HALT();
-    }
-    transposePermute[0] = permute[0];
-    transposePermute[1] = permute[1];
-    transposePermute[2] = permute[2];
-    transposePermute[3] = permute[3];
+    transposePermute = permute;
     IT_ASSERT(checkValid(graph));
 }
 
@@ -20,7 +14,8 @@ TransposeObj::inferShape(const TensorVec &inputs) const {
     auto input = A->getDims();
     auto output = input;
 
-    for (int i = 0; i < 4; ++i) {
+    auto nDims = input.size();
+    for (size_t i = 0; i < nDims; ++i) {
         output[i] = input[transposePermute[i]];
     }
     return {{output}};
@@ -32,7 +27,8 @@ std::string TransposeObj::toString() const {
     os << "(";
     os << vecToString(inputs[0]->getDims()) << ",";
     os << "input=" << inputs[0]->getGuid() << ",";
-    os << "output=" << outputs[0]->getGuid() << ")";
+    os << "output=" << outputs[0]->getGuid() << ",";
+    os << "perm=" << vecToString(transposePermute) << ")";
     return os.str();
 }
 

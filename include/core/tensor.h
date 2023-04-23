@@ -78,25 +78,8 @@ class TensorObj : public TensorBaseObj {
     void setData(
         std::function<void(void *, size_t, DataType)> const &generator) const;
     void setData(const Blob &_blob) { data = _blob; }
-    Tensor clone() const {
-        auto obj = make_ref<TensorObj>(*this);
-        obj->freeData();
-        obj->targets.clear();
-        obj->source.reset();
-        return obj;
-    }
-    Tensor clone(Runtime runtime) const {
-        auto obj = make_ref<TensorObj>(*this);
-        obj->runtime = runtime;
-        obj->freeData();
-        obj->targets.clear();
-        obj->source.reset();
-        // if (hasData()) {
-        //     obj->dataMalloc();
-        //     obj->copyData(this);
-        // }
-        return obj;
-    }
+    Tensor clone() const;
+    Tensor clone(Runtime runtime) const;
 
     void printData() const;
     bool equalData(const Tensor &rhs, double relativeError = 1e-6) const;
@@ -126,6 +109,12 @@ class TensorObj : public TensorBaseObj {
             for (size_t j = 0; j < numDims; ++j)
                 if (i % dimSzVec[j] == 0)
                     builder << "[";
+
+            if (iEnd > 1000 && i > 20 && i < iEnd - 20) {
+                printf("... , ");
+                i = iEnd - 20;
+                continue;
+            }
 
             builder << ptr[i];
             for (size_t j = 0; j < numDims; ++j)

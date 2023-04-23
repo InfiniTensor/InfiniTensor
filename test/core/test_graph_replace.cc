@@ -48,7 +48,7 @@ TEST(SubGraphRewriter, subGraphMatch1) {
     SubGraphRewriter v(g);
     vector<MatchGraph> subgs = v.findMatch(subG);
 
-    EXPECT_TRUE(subgs.size() == 2);
+    EXPECT_TRUE(subgs.size() == 2u);
 }
 
 TEST(MatchGraph, single_input) {
@@ -116,12 +116,12 @@ TEST(MatchGraph, single_input) {
 
     auto o4 = v.addSubGraph(subG, TensorVec{add1->getOutput(0)});
 
-    EXPECT_EQ(g->getOperators().size(), 52);
+    EXPECT_EQ(g->getOperators().size(), 52u);
     vector<MatchGraph> subgs = v.findMatch(subG);
-    EXPECT_TRUE(subgs.size() == 5);
+    EXPECT_TRUE(subgs.size() == 5u);
 
     vector<MatchGraph> subgs1 = v.findMatch(subG1);
-    EXPECT_TRUE(subgs1.size() == 4);
+    EXPECT_TRUE(subgs1.size() == 4u);
 
     // test replace
     Tensor sii0 =
@@ -135,7 +135,7 @@ TEST(MatchGraph, single_input) {
     }
 
     v.replaceSubGraph(subG, subG2);
-    EXPECT_EQ(g->getOperators().size(), 37);
+    EXPECT_EQ(g->getOperators().size(), 37u);
 }
 
 TEST(MatchGraph, multi_input) {
@@ -186,17 +186,17 @@ TEST(MatchGraph, multi_input) {
                                      nullptr);
 
         auto matches = v.findMatch(subG);
-        EXPECT_EQ(2, matches.size());
+        EXPECT_EQ(2u, matches.size());
 
         auto div0 = g->addOp<DivObj>(reduce1->getOutput(0), i2, nullptr);
         auto add1 =
             g->addOp<AddObj>(sub0->getOutput(), div0->getOutput(), nullptr);
         matches = v.findMatch(subG);
-        EXPECT_EQ(1, matches.size());
+        EXPECT_EQ(1u, matches.size());
 
         // two matched subgraphs overlaped,so only replaced one sub graph
         v.replaceSubGraph(subG, replaceG);
-        EXPECT_EQ(1, v.findMatch(replaceG).size());
+        EXPECT_EQ(1u, v.findMatch(replaceG).size());
     }
 }
 
@@ -240,7 +240,7 @@ TEST(MatchGraph, multi_output) {
     {
         auto input = g->cloneTensor(i);
         auto outs = v.addSubGraph(subg0, {input});
-        EXPECT_EQ(2, outs.size());
+        EXPECT_EQ(2u, outs.size());
         Tensor w0 = g->addTensor(Shape{96, 64, 3, 3}, DataType::UInt32);
         auto conv0 = g->addOp<ConvObj>(outs[0], w0, nullptr, 1, 1);
         auto relu0 = g->addOp<ReluObj>(conv0->getOutput(0), nullptr);
@@ -263,11 +263,11 @@ TEST(MatchGraph, multi_output) {
     }
 
     auto matches = v.findMatch(subg0);
-    EXPECT_EQ(1, matches.size());
+    EXPECT_EQ(1u, matches.size());
 
     v.replaceSubGraph(subg0, subg1);
     auto matches2 = v.findMatch(subg1);
-    EXPECT_EQ(1, matches2.size());
+    EXPECT_EQ(1u, matches2.size());
 }
 
 // gcn
@@ -354,16 +354,16 @@ TEST(MatchGraph, multi_input_output) {
             v.addSubGraph(subg0, {relu->getOutput(0), maxPool->getOutput(0)});
         auto out1 =
             v.addSubGraph(subg1, {maxPool->getOutput(0), relu->getOutput(0)});
-        EXPECT_EQ(2, out0.size());
-        EXPECT_EQ(2, out1.size());
+        EXPECT_EQ(2u, out0.size());
+        EXPECT_EQ(2u, out1.size());
         auto div = g->addOp<DivObj>(out0[0], out1[1], nullptr);
         auto sub = g->addOp<SubObj>(out0[1], out1[0], nullptr);
     }
 
-    EXPECT_EQ(2, v.findMatch(subg0).size());
-    EXPECT_EQ(2, v.findMatch(subg1).size());
+    EXPECT_EQ(2u, v.findMatch(subg0).size());
+    EXPECT_EQ(2u, v.findMatch(subg1).size());
     v.replaceSubGraph(subg0, subg2);
-    EXPECT_EQ(v.findMatch(subg2).size(), 2);
+    EXPECT_EQ(v.findMatch(subg2).size(), 2u);
 }
 
 /* One Node having two or more successors is not supported yet.

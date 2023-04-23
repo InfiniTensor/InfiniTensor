@@ -19,7 +19,7 @@ class ReshapeObj : public OperatorObj {
      * @param output The output tensor.
      * @param dims The shape of the output tensor.
      */
-    ReshapeObj(GraphObj *graph, Tensor input, Tensor output, Shape dims);
+    ReshapeObj(GraphObj *graph, Tensor input, Tensor output, Shape dims = {});
     OP_CLONE(ReshapeObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;

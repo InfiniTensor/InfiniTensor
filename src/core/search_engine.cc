@@ -1,6 +1,7 @@
 #include "core/search_engine.h"
 #include "core/hash.h"
 #include "core/runtime.h"
+#include "ffi/ffi_callback.h"
 #include "nnet/dbg.h"
 
 #include <algorithm>
@@ -70,7 +71,6 @@ Graph SearchEngine::run(const Graph graph) {
                     }
                 }
                 auto tmp = make_ref<GraphObj>(runtimeExec, ops);
-                tmp->dataMalloc();
                 nextGraphs.emplace_back(tmp);
             }
         }
@@ -376,9 +376,6 @@ std::vector<Graph> SearchEngine::searchMutation(const MetaGraph &metaGraph) {
                 nextGraphs.emplace_back(make_ref<GraphObj>(runtimeExec, ops));
             }
         }
-        for (auto g : nextGraphs) {
-            g->dataMalloc();
-        }
         dbg("===Num" + std::to_string(nextGraphs.size()));
         std::sort(nextGraphs.begin(), nextGraphs.end(), graphTimeComparer);
         if (nextGraphs.size() > GRAPH_SIZE) {
@@ -441,7 +438,6 @@ std::vector<Graph> SearchEngine::partitionGraph(const Graph graph) {
                 std::cout << op->toString() << std::endl;
             }
             auto tmp = make_ref<GraphObj>(runtimeExec, headOps);
-            tmp->dataMalloc();
             partitions.emplace_back(tmp);
             headOps.clear();
         }
@@ -449,7 +445,6 @@ std::vector<Graph> SearchEngine::partitionGraph(const Graph graph) {
     }
     if (!headOps.empty()) {
         auto tmp = make_ref<GraphObj>(runtimeExec, headOps);
-        tmp->dataMalloc();
         partitions.emplace_back(tmp);
     }
     std::reverse(partitions.begin(), partitions.end());
@@ -457,6 +452,9 @@ std::vector<Graph> SearchEngine::partitionGraph(const Graph graph) {
 }
 
 double SearchEngine::getEstimatedGraphPerf(Graph graph) {
+    // dbg(graph);
+    // // hkz
+    // callback::exportONNX(graph, "a.onnx");
     return runtimeExec->getPerfTime(graph, false, true, true);
 }
 
@@ -502,9 +500,15 @@ Graph SearchEngine::fuseVertically(const Graph &graph) {
         }
         make_ref<GraphObj>(runtimeExec, chainOps)->print();
 
-        Graph optGraph =
-            mutator->fuseVertically(make_ref<GraphObj>(runtimeExec, chainOps));
-        for (auto op : optGraph->getOperators()) {
+        auto bestGraph = make_ref<GraphObj>(runtimeExec, chainOps);
+        // Eliminate transpose and reshape operators
+        // if (auto eliminatedGraph = mutator->eliminateVertically(
+        //         make_ref<GraphObj>(runtimeExec, chainOps)))
+        //     bestGraph = eliminatedGraph;
+        // Fuse membound operators
+        if (auto optGraph = mutator->fuseVertically(bestGraph))
+            bestGraph = optGraph;
+        for (auto op : bestGraph->getOperators()) {
             ops.emplace_back(op);
         }
     }

@@ -6,11 +6,15 @@
 #include "nnet/Visitor/MatchReshapeVisitor.h"
 #include "nnet/Visitor/MergeMemboundMutator.h"
 #include "nnet/derivator.h"
+#include "operators/G2BMM.h"
+#include "operators/GBMM.h"
 #include "operators/conv.h"
 #include "operators/conv2dreduce.h"
 #include "operators/matmul.h"
 #include "operators/membound.h"
 #include "operators/reshape.h"
+#include "operators/softmax.h"
+#include "operators/transpose.h"
 #include "operators/unary.h"
 
 namespace infini {
@@ -39,13 +43,18 @@ vector<Graph> NMutator::run(const Graph &in_graph) {
     inputsNameNToTensorT.clear();
     OpVec computeOps = in_graph->getComputeOps();
     // assert(computeOps.size() == 1);
-    printf("hkz: in run\n");
     if (computeOps.size() == 1)
         runSingleOp(in_graph, out_graphs);
     // FIXME: runMultipleOps results in segfault
     // else
     //     runMultipleOps(in_graph, out_graphs);
     return out_graphs;
+}
+
+bool NMutator::isMultiBranchMergable(const Graph &in_graph) {
+    // TODO
+    // dbg("Skip mergable Multi-Branch", in_graph);
+    return false;
 }
 
 void NMutator::runSingleOpToNaiveMembound(Graph in_graph,
@@ -79,16 +88,24 @@ void NMutator::runSingleOpToNaiveMembound(Graph in_graph,
 void NMutator::runSingleOp(Graph in_graph, std::vector<Graph> &out_graphs) {
     OpVec computeOps = in_graph->getComputeOps();
     IT_ASSERT(computeOps.size() == 1);
-    printf("hkz: try conv transpose\n");
     if (Graph g = transformConvtransposed1x1(computeOps[0])) {
-        printf("hkz: apply conv transpose\n");
         out_graphs.emplace_back(g);
         return;
     }
-    printf("hkz: try conv diated\n");
+    if (Graph g = transformConv1x1(computeOps[0])) {
+        out_graphs.emplace_back(g);
+        return;
+    }
+    if (Graph g = transformG2bmm(computeOps[0])) {
+        out_graphs.emplace_back(g);
+        return;
+    }
+    if (Graph g = transformGbmm(computeOps[0])) {
+        out_graphs.emplace_back(g);
+        return;
+    }
     if (infini::Graph g = transformDialtedConv(computeOps[0])) {
         out_graphs.emplace_back(g);
-        printf("hkz: apply conv diated\n");
         return;
     }
     if (infini::Graph g = transformConvToGEMMReduce(computeOps[0])) {
@@ -96,10 +113,8 @@ void NMutator::runSingleOp(Graph in_graph, std::vector<Graph> &out_graphs) {
         return;
     }
 
-    printf("hkz: try conv transpose gemm\n");
     if (infini::Graph g = transformConvTranposeToGEMMReduce(computeOps[0])) {
         out_graphs.emplace_back(g);
-        printf("hkz: apply conv transpose gemm\n");
         return;
     }
 
@@ -114,7 +129,8 @@ void NMutator::runSingleOp(Graph in_graph, std::vector<Graph> &out_graphs) {
     // //     return;
     // // }
 
-    const set<OpType> opSet{OpType::Conv, OpType::ConvTransNHWC};
+    const set<OpType> opSet{OpType::Conv, OpType::ConvTransNHWC, OpType::G2BMM,
+                            OpType::GBMM};
     if (opSet.count(computeOps[0]->getOpType()) == 0)
         return;
 
@@ -249,6 +265,8 @@ void NMutator::runMultipleOps(Graph in_graph, std::vector<Graph> &out_graphs) {
 
 nnet::Expr NMutator::opToExpression(Operator opT) {
     auto [expr, mapNameNToTensorT] = extractOp(opT);
+    IT_ASSERT(expr,
+              "Cannot convert " + opT->toString() + " to an NNet expression");
     for (auto &[name, tensorT] : mapNameNToTensorT) {
         IT_ASSERT(inputsNameNToTensorT.count(name) == 0);
         inputsNameNToTensorT[name] = tensorT;
@@ -292,26 +310,25 @@ pair<nnet::Expr, NMutator::NameNToTensorT> NMutator::extractOp(Operator opT) {
         const auto K = nnet::makeTensor("K", KT->getDims());
         return {nnet::ConvTransPattern::getExpr(A, K, n, c, h, w, f, r, s),
                 {{"A", AT}, {"K", KT}}};
-        // } else if (auto g2bmmOp = dynamic_cast<G2BMMOp *>(opT)) {
-        //     const auto &AT = g2bmmOp->getInputs()[0];
-        //     const auto &BT = g2bmmOp->getInputs()[1];
-        //     const auto [b, m, k, width, dilation] = g2bmmOp->getArgs();
+    } else if (auto g2bmmOp = as<G2BMMObj>(opT)) {
+        const auto &AT = g2bmmOp->getInputs()[0];
+        const auto &BT = g2bmmOp->getInputs()[1];
+        const auto [b, m, k, width, dilation] = g2bmmOp->getBMKWD();
 
-        //     const auto &[expr, inputsN] =
-        //         nnet::Sg2bmmPattern::getExpr(b, m, k, width, dilation);
-        //     inputsNameNToTensorT[inputsN.first->getName()] = AT;
-        //     inputsNameNToTensorT[inputsN.second->getName()] = BT;
-        //     return expr;
-        // } else if (auto gbmmlOp = dynamic_cast<GBMMLOp *>(opT)) {
-        //     const auto &AT = gbmmlOp->getInputs()[0];
-        //     const auto &BT = gbmmlOp->getInputs()[1];
-        //     const auto [b, m, w, k, dilation] = gbmmlOp->getArgs();
-        //     const auto &[expr, inputsN] =
-        //         nnet::LongformerGBMMPattern::getExpr(b, m, w, k, dilation);
-        //     inputsNameNToTensorT[inputsN.first->getName()] = AT;
-        //     inputsNameNToTensorT[inputsN.second->getName()] = BT;
-        //     dbg(b, m, w, k, dilation, expr);
-        //     return expr;
+        const auto &[expr, inputsN] =
+            nnet::Sg2bmmPattern::getExpr(b, m, k, width, dilation);
+        return {
+            expr,
+            {{inputsN.first->getName(), AT}, {inputsN.second->getName(), BT}}};
+    } else if (auto gbmmlOp = as<GBMMObj>(opT)) {
+        const auto &AT = gbmmlOp->getInputs()[0];
+        const auto &BT = gbmmlOp->getInputs()[1];
+        const auto [b, m, w, k, dilation] = gbmmlOp->getBMWND();
+        const auto &[expr, inputsN] =
+            nnet::LongformerGBMMPattern::getExpr(b, m, w, k, dilation);
+        return {
+            expr,
+            {{inputsN.first->getName(), AT}, {inputsN.second->getName(), BT}}};
     } else if (auto matmulOp = as<MatmulObj>(opT)) {
         const auto &AT = matmulOp->getInputs()[0];
         const auto &BT = matmulOp->getInputs()[1];
@@ -333,8 +350,6 @@ pair<nnet::Expr, NMutator::NameNToTensorT> NMutator::extractOp(Operator opT) {
     // // else if (auto transposeOp = dynamic_cast<TransposeOp *>(opT)) {
     // //     return transposeOpToExpression(transposeOp);
     // // }
-    IT_TODO_HALT_MSG("Cannot convert " + opT->toString() +
-                     " to an NNet expression");
     return {};
 }
 
@@ -390,7 +405,13 @@ infini::Graph NMutator::expressionToGraph(nnet::Expr expr, Graph in_graph) {
             const auto &[ph, pw, sh, sw, dh, dw] = op->getArgs();
             g->addOpWithOutputs<ConvObj>(A, K, output, ph, pw, sh, sw, dh, dw);
         } else if (auto op = nnet::as<nnet::ElementWiseNode>(routineN)) {
-            assert(op->getInputs().size() == 1);
+            // dbg(op, op->getExpr());
+            // TODO: For a single input channel conv, it can be transformed into
+            //          vec X vec ---> matrix --reduce--> result
+            // This transformation only introduce membound Ops and can have a
+            // wrong estimated execution time, so we skip it now.
+            if (op->getInputs().size() != 1)
+                return nullptr;
             nnet::MatchReshapeVisitor matchReshapeVisitor;
             // If this routine only change the shape, translate it to a Reshape
             if (matchReshapeVisitor(op->getExpr())) {
@@ -464,34 +485,6 @@ double NMutator::memboundTime(ssize_t cnt) {
 double NMutator::memboundTime(const Shape &dims) {
     return memboundTime(dims.size());
 }
-
-// infini::Graph NMutator::fuseHetConv(nnet::Expr expr, Graph in_graph) {
-//     // Conv3x3+Conv1x1 => Gemm(nhw, f(rs+1), c) + Reduce
-//     auto g = std::make_shared<infini::Graph>();
-//     in_graph->print();
-//     assert(in_graph->getInputs().size() == 3);
-//     auto input = in_graph->getOperators()[0]->getInputs(0);
-//     auto conv = dynamic_cast<ConvOp *>(in_graph->getOperators()[0]);
-//     auto output = conv->getOutput();
-//     // auto input = g->reshape(input);
-//     auto inputTrans = g->transpose(input, 0, {-1, {0, 2, 3}, 1}, -1);
-//     // dbg(inputTrans->getOutput()->getDims());
-//     const auto &[n, c, h, w, f, r, s, ph, pw, sh, sw, dh, dw, G, bi, ac] =
-//         conv->getArgs(0);
-//     auto weight = g->tensor({1, c, f * (3 * 3 + 1)});
-//     dbg(weight->getDims());
-//     auto matmul = g->matmul(inputTrans->getOutput(), weight, false, false);
-//     auto bias = g->tensor({f});
-//     const double size = n * f * h * w * (3 * 3 + 1) * 4;
-//     // FIXME: add NNET tensors for verfication
-//     auto membound =
-//         g->membound({matmul->getOutput(), bias}, {output}, {}, nullptr,
-//                     memboundTime(size), "Reduce_conv3x3+1x1");
-//     dbg(n, f, h, w);
-//     dynamic_cast<MemBoundOp *>(membound)->setNFHW(n, f, h, w);
-
-//     return new Graph(g->getOperators());
-// }
 
 Graph NMutator::transformDialtedConv(Operator _op) {
     auto op = as<ConvObj>(_op);
@@ -695,61 +688,72 @@ Graph NMutator::transformConvTranposeToGEMMReduce(Operator _op) {
 //     return graph;
 // }
 
-// Graph NMutator::transformTConv1x1(Operator op) {
-//     if (auto tconvOp = dynamic_cast<ConvTransOp *>(op)) {
-//         if (tconvOp->getPh() == 0 && tconvOp->getSh() == 1) {
-//             auto g = new infini::Graph();
-//             auto inputDims = tconvOp->getInputs(0)->getDims();
-//             auto weightDims = tconvOp->getInputs(1)->getDims();
-//             auto outputDims = tconvOp->getOutput()->getDims();
-//             auto newA = g->tensor(
-//                 {inputDims[0] * inputDims[1] * inputDims[2], inputDims[3]});
-//             auto newW = g->tensor(
-//                 {weightDims[0] * weightDims[1] * weightDims[3],
-//                 weightDims[2]});
-//             auto newO =
-//                 g->tensor({inputDims[0] * inputDims[1] * inputDims[2],
-//                            weightDims[0] * weightDims[1] * weightDims[3]});
-//             g->reshape(tconvOp->getInputs(0), newA);
-//             g->reshape(tconvOp->getInputs(1), newW);
-//             g->matmul(newA, newW, newO, 0, 1);
-//             g->reshape(newO, tconvOp->getOutput());
-//             g->updateConnection();
-//             Graph graph = new Graph(g->getOperators());
-//             return graph;
-//         }
-//     }
-//     return nullptr;
-// }
+Graph NMutator::transformG2bmm(Operator _op) {
+    auto op = as<G2BMMObj>(_op);
+    if (!op)
+        return nullptr;
+    const auto [b, m, k, width, dilation] = op->getBMKWD();
+    if (dilation == 1 || m % dilation != 0)
+        return nullptr;
+    auto g = make_ref<GraphObj>(runtime);
+    auto A = g->cloneTensor(op->getInputs(0));
+    auto B = g->cloneTensor(op->getInputs(1));
+    auto O = g->cloneTensor(op->getOutput());
+    auto A3 = splitTransposeMerge(g, A, 1, dilation),
+         B3 = splitTransposeMerge(g, B, 1, dilation);
+    auto O3 = g->addOp<G2BMMObj>(A3, B3, nullptr, width, 1)->getOutput();
+    splitTransposeMerge(g, O3, 1, m / dilation, O);
+    g->checkValid();
+    return g;
+}
 
-// Graph NMutator::transformConv1x1(Operator op) {
-//     auto convOp = dynamic_cast<ConvOp *>(op);
-//     if (!convOp)
-//         return nullptr;
-//     if (convOp->getPh() == 0 && convOp->getSh() == 1 &&
-//         convOp->getInputs()[1]->getDims()[2] == 1 &&
-//         convOp->getInputs()[1]->getDims()[3] == 1) {
-//         // Transpose is requrired for BS>1
-//         // if (convOp->getInputs()[0]->getDims()[0] == 1) {
-//         auto g = new infini::Graph();
-//         auto inputDims = convOp->getInputs(0)->getDims();
-//         auto weightDims = convOp->getInputs(1)->getDims();
-//         auto outputDims = convOp->getOutput()->getDims();
-//         auto newA = g->tensor(
-//             {inputDims[1], inputDims[0] * inputDims[2] * inputDims[3]});
-//         auto newW = g->tensor({weightDims[0], weightDims[1]});
-//         auto newO = g->tensor(
-//             {weightDims[0], inputDims[0] * inputDims[2] * inputDims[3]});
-//         g->reshape(convOp->getInputs(0), newA);
-//         g->reshape(convOp->getInputs(1), newW);
-//         g->matmul(newW, newA, newO, 0, 0);
-//         g->reshape(newO, convOp->getOutput());
-//         g->updateConnection();
-//         Graph graph = new Graph(g->getOperators());
-//         return graph;
-//     }
-//     return nullptr;
-// }
+Graph NMutator::transformGbmm(Operator _op) {
+    auto op = as<GBMMObj>(_op);
+    if (!op)
+        return nullptr;
+    const auto [b, m, width, k, dilation] = op->getBMWND();
+    if (dilation == 1 || m % dilation != 0)
+        return nullptr;
+    auto g = make_ref<GraphObj>(runtime);
+    auto A = g->cloneTensor(op->getInputs(0)); // [b,m,2w+1]
+    auto B = g->cloneTensor(op->getInputs(1)); // [b,m,n]
+    auto O = g->cloneTensor(op->getOutput());  // [b,m,n]
+    auto A3 = splitTransposeMerge(g, A, 1, dilation),
+         B3 = splitTransposeMerge(g, B, 1, dilation);
+    auto O3 = g->addOp<GBMMObj>(A3, B3, nullptr, 1)->getOutput();
+    splitTransposeMerge(g, O3, 1, m / dilation, O);
+    g->checkValid();
+    return g;
+}
+
+Graph NMutator::transformConv1x1(Operator _op) {
+    auto op = as<ConvObj>(_op);
+    if (!op)
+        return nullptr;
+    Shape shapeA = op->getInputs(0)->getDims();
+    Shape shapeW = op->getInputs(1)->getDims();
+    // TODO: support batch size > 1
+    if (shapeA[0] != 1)
+        return nullptr;
+    if (op->getPh() == 0 && op->getSh() == 1 && shapeW[2] == 1 &&
+        shapeW[3] == 1) {
+        auto g = make_ref<GraphObj>(runtime);
+        auto A =
+            g->addOp<ReshapeObj>(g->cloneTensor(op->getInputs(0)), nullptr,
+                                 vector{shapeA[1], shapeA[0] * shapeA[2] *
+                                                       shapeA[3]}) // [C, N*H*W]
+                ->getOutput();
+        auto B = g->addOp<ReshapeObj>(g->cloneTensor(op->getInputs(1)), nullptr,
+                                      vector{shapeW[0], shapeW[1]}) // [F, C]
+                     ->getOutput();
+        auto O =
+            g->addOp<MatmulObj>(B, A, nullptr, 0, 0)->getOutput(); // [F, N*H*W]
+        g->addOpWithOutputs<ReshapeObj>(O, g->cloneTensor(op->getOutput()),
+                                        op->getOutput()->getDims());
+        return g;
+    }
+    return nullptr;
+}
 
 // Graph NMutator::transformConv1xk(Operator op) {
 //     auto convOp = dynamic_cast<ConvOp *>(op);
@@ -788,6 +792,142 @@ Graph NMutator::transformConvTranposeToGEMMReduce(Operator _op) {
 //     return graph;
 // }
 
+Graph NMutator::constructGraphByOperatorChain(vector<Operator> ops,
+                                              Graph inputGraph) {
+    // Construct new graph
+    auto g = make_ref<GraphObj>(runtime);
+    IT_ASSERT(inputGraph->getInputs().size() == 1);
+    IT_ASSERT(inputGraph->getOutputs().size() == 1);
+    IT_ASSERT(ops.size() > 0,
+              "TODO: If there is no op left, how to return an empty graph?");
+    auto input = g->cloneTensor(inputGraph->getInputs()[0]);
+    for (size_t i = 0; i < ops.size(); ++i) {
+        auto output = (i + 1 == ops.size())
+                          ? inputGraph->getOutputs()[0]
+                          : g->addTensor(ops[i]->getOutput()->getDims());
+        dbg(input->getDims(), output->getDims());
+        input = g->cloneOperator(ops[i], {input}, {output})->getOutput();
+    }
+    return g;
+}
+
+Graph NMutator::eliminateVertically(const Graph &inputGraph) {
+    auto ops = inputGraph->getOperators();
+
+    IT_ASSERT(!ops.empty());
+    for (auto &op : ops) {
+        IT_ASSERT(op->isMemBoundOp());
+        IT_ASSERT_TODO(op->getInputs().size() == 1);
+        IT_ASSERT(op->getOutputs().size() == 1);
+    }
+    if (ops.size() == 1) {
+        return make_ref<GraphObj>(runtime, ops);
+    }
+
+    // Set attributs for operators.
+    // isComputation: is computaiton
+    // isElementwise: do elementwise computations
+    // lastRowSwapable: do last-channel-wise computations, which includes
+    // elementwise as a special case.
+    auto classifyOperator = [](Operator op) {
+        auto type = op->getOpType();
+        bool isComputation =
+            type != OpType::Reshape && type != OpType::Transpose;
+        bool isElementwise =
+            !isComputation || (type == OpType::Relu || type == OpType::Tanh);
+        bool lastRowSwapable = false;
+        if (isComputation)
+            lastRowSwapable = isElementwise || // Softmax along the last dim
+                              (type == OpType::Softmax &&
+                               as<SoftmaxObj>(op)->getAxis() ==
+                                   int(op->getOutput()->getDims().size()) - 1);
+        else {
+            if (auto t = as<TransposeObj>(op)) {
+                // Last dim remains unchanged
+                lastRowSwapable =
+                    (t->getPermute().back() == int(t->getPermute().size()) - 1);
+            } else if (auto t = as<ReshapeObj>(op)) {
+                // Last dim remains unchanged
+                lastRowSwapable = (t->getInputs(0)->getDims().back() ==
+                                   t->getOutput()->getDims().back());
+            }
+        }
+        return tuple{isComputation, isElementwise, lastRowSwapable};
+    };
+
+    // Reorder operators: move computatation operators to the tail
+    for (int i = ops.size() - 2; i >= 0; --i) {
+        for (int j = i; j < int(ops.size()) - 1; ++j) {
+            bool swapable = false;
+            const set<OpType> unaryElementwise{OpType::Relu, OpType::PRelu,
+                                               OpType::Tanh};
+            auto [aIsC, aEw, aLRS] = classifyOperator(ops[j]);
+            auto [bIsC, bEw, bLRS] = classifyOperator(ops[j + 1]);
+            if (aIsC && !bIsC && (aEw || (aLRS && bLRS))) // Swap condition
+                swapable = true;
+            if (swapable) {
+                swap(ops[j], ops[j + 1]);
+            }
+        }
+    }
+
+    Graph g = constructGraphByOperatorChain(ops, inputGraph);
+    // Eliminate operators
+    bool haveElimination;
+    do {
+        haveElimination = false;
+        ops = g->getOperators();
+        vector<Operator> newOps;
+        for (int i = 0; i < int(ops.size()); ++i) {
+            // Eliminate identity operators
+            if (auto op = as<TransposeObj>(ops[i])) {
+                auto perm = op->getPermute();
+                int j = 0;
+                for (j = 0; j < int(perm.size()); ++j)
+                    if (j != perm[j])
+                        break;
+                if (j == int(perm.size())) {
+                    haveElimination = true;
+                    continue;
+                }
+            } else if (auto op = as<ReshapeObj>(ops[i])) {
+                if (op->getShape() == op->getInputs(0)->getDims()) {
+                    haveElimination = true;
+                    continue;
+                }
+            }
+
+            // Eliminate reciprocal operators
+            if (i + 1 == (int)ops.size() ||
+                (ops[i]->getOpType() != ops[i + 1]->getOpType())) {
+                newOps.push_back(ops[i]);
+                continue;
+            }
+            if (ops[i]->getOpType() == OpType::Reshape) {
+                newOps.push_back(make_ref<ReshapeObj>(
+                    nullptr, ops[i]->getInputs(0), ops[i + 1]->getOutput()));
+                ++i;
+                haveElimination = true;
+            } else if (ops[i]->getOpType() == OpType::Transpose) {
+                auto permuteA = as<TransposeObj>(ops[i])->getPermute();
+                auto permuteB = as<TransposeObj>(ops[i + 1])->getPermute();
+                vector<int> permute;
+                for (auto p : permuteB)
+                    permute.push_back(permuteA[p]);
+                newOps.push_back(
+                    make_ref<TransposeObj>(nullptr, ops[i]->getInputs(0),
+                                           ops[i + 1]->getOutput(), permute));
+                ++i;
+                haveElimination = true;
+            } else {
+                newOps.push_back(ops[i]);
+            }
+        }
+        g = constructGraphByOperatorChain(newOps, inputGraph);
+    } while (haveElimination);
+    return g;
+}
+
 Graph NMutator::fuseVertically(const Graph &inputGraph) {
     Graph optGraph = make_ref<GraphObj>(runtime);
 
@@ -804,6 +944,8 @@ Graph NMutator::fuseVertically(const Graph &inputGraph) {
     std::vector<nnet::Expr> exprs;
     for (const auto &op : chainOps) {
         auto [expr, _] = extractOp(op);
+        if (!expr)
+            return nullptr;
         exprs.emplace_back(expr);
         // dbg(op, infini::as<nnet::RangeOpNode>(expr)->getFullExpression());
     }
@@ -869,5 +1011,29 @@ pair<nnet::Expr, vector<nnet::Tensor>> NMutator::generateRevert(Tensor in) {
     auto range = makeRangeOperator(loopIters, {}, sub);
     return {range, {tensor}};
 }
+
+Tensor NMutator::splitTransposeMerge(Graph g, Tensor A, int dim, int chunkSize,
+                                     Tensor output) {
+    IT_ASSERT(A->getDims().size() == 3);
+    Shape shapeOrignial = A->getDims();
+    Shape shapeNew;
+    // Construct new shape
+    for (int i = 0; i < dim; ++i)
+        shapeNew.emplace_back(shapeOrignial[i]);
+    shapeNew.emplace_back(shapeOrignial[dim] / chunkSize);
+    shapeNew.emplace_back(chunkSize);
+    for (size_t i = dim + 1; i < shapeOrignial.size(); ++i)
+        shapeNew.emplace_back(shapeOrignial[i]);
+    auto A1 = g->addOp<ReshapeObj>(A, nullptr, shapeNew)->getOutput();
+    auto A2 =
+        g->addOp<TransposeObj>(A1, nullptr, vector{0, 2, 1, 3})->getOutput();
+    Tensor A3;
+    if (output)
+        A3 = g->addOpWithOutputs<ReshapeObj>(A2, output, shapeOrignial)
+                 ->getOutput();
+    else
+        A3 = g->addOp<ReshapeObj>(A2, nullptr, shapeOrignial)->getOutput();
+    return A3;
+};
 
 } // namespace infini

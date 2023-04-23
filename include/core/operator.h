@@ -105,7 +105,8 @@ enum class OpType {
     MemBound = 300,
     //
     Conv2dReduce = 400,
-    Conv2dReduceTranspose
+    Conv2dReduceTranspose,
+    Any
 };
 
 using KernelAttrs = std::tuple<Device, OpType, DataType>;
@@ -217,6 +218,7 @@ class OpRegistry {
             //
             FOP(Conv2dReduce);
             FOP(Conv2dReduceTranspose);
+            FOP(Any);
         default:
             IT_ASSERT(false, "Unknown OpType " +
                                  std::to_string(enum_to_underlying(opType)));

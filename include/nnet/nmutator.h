@@ -26,6 +26,8 @@ class NMutator : public Mutator {
 
     vector<Graph> run(const Graph &in_graph) override;
     Graph fuseVertically(const Graph &in_graph) override;
+    Graph eliminateVertically(const Graph &in_graph) override;
+    bool isMultiBranchMergable(const Graph &in_graph) override;
 
     void setToNaiveMembound();
     void setMaxDepth(int _maxDepth) { maxDepth = _maxDepth; }
@@ -57,14 +59,26 @@ class NMutator : public Mutator {
     double memboundTime(const Shape &dims);
 
     // TODO: recover these rules
-    // Graph fuseHetConv(nnet::Expr expr, Graph in_graph);
     Graph transformConvtransposed1x1(Operator _op);
     // Graph transformConvtransposed(Operator op);
+    Graph transformConv1x1(Operator op);
+    Graph transformG2bmm(Operator op);
+    Graph transformGbmm(Operator op);
     Graph transformDialtedConv(Operator _op);
-    // Graph transformConv1x1(Operator op);
     // Graph transformConv1xk(Operator op);
     Graph transformConvToGEMMReduce(Operator _op);
     Graph transformConvTranposeToGEMMReduce(Operator _op);
+
+    Tensor splitTransposeMerge(Graph g, Tensor A, int dim, int chunkSize,
+                               Tensor output = nullptr);
+
+    /// @brief Construct a new graph with a chain of operators. Use the output
+    /// from the previous operator as the input of the next operator. While
+    /// constructing, the input and output tensors from inputGraph are used as
+    /// new constructed graph.
+    /// @param op The operator chain. It can have wrong input/output shapes.
+    /// @return
+    Graph constructGraphByOperatorChain(vector<Operator> ops, Graph inputGraph);
 };
 
 } // namespace infini

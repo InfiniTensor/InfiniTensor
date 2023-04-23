@@ -407,6 +407,7 @@ void export_test_model(py::module &m) {
     m.def("runInfoGAN", &runInfoGAN)
         .def("getGANGraph", &getGANGraph)
         .def("getFSRCNNGraph", &getFSRCNNGraph)
+        .def("getLongformer", &getLongformer)
         .def("getConvtransposedNHWC", &getConvtransposedNHWC)
         .def("optimizeGraph", &optimizeGraph, "graph"_a, "runtime"_a,
              "tuning"_a = false, "mode"_a = NMutator::Mode::Normal,

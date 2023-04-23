@@ -30,7 +30,14 @@ class Mutator {
     virtual bool isMultiBranchMergable(const Graph &in_graph) {
         IT_TODO_HALT();
     }
+
+    /// @brief Fuse memory bound operators.
+    /// @return The graph after fusion. Return `nullptr` if fails.
     virtual Graph fuseVertically(const Graph &inputGraph) { IT_TODO_HALT(); }
+
+    /// @brief Eliminate transpose and reshape.
+    /// @return The graph after elimination. Return `nullptr` if fails.
+    virtual Graph eliminateVertically(const Graph &in_graph) { IT_TODO_HALT(); }
 };
 
 } // namespace infini

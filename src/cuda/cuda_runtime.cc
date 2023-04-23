@@ -17,9 +17,7 @@ CudaRuntimeObj::CudaRuntimeObj()
     checkCublasError(cublasCreate(&cublas));
     checkCudnnError(cudnnSetStream(cudnn, stream));
     checkCublasError(cublasSetStream(cublas, stream));
-    // 10GB for Longformer
-    // size_t longformerNum = 3lu * (1 << 30);
-    workspaceSize = 7ll << 30; // 7 GB
+    workspaceSize = 2ll << 30; // 2 GB
     workspace = alloc(workspaceSize);
 }
 
@@ -121,7 +119,7 @@ void CudaRuntimeObj::sync() const { checkCudaError(cudaDeviceSynchronize()); }
 
 string CudaRuntimeObj::toString() const { return "CUDA Runtime"; }
 
-double CudaRuntimeObj::timeWithCudaGraph(Graph graph) {
+double CudaRuntimeObj::timeWithCudaGraph(Graph graph, int rounds) {
     const auto &kernelRegistry = KernelRegistry::getInstance();
     auto &perfEngine = PerfEngine::getInstance();
     // compile-time computable
@@ -141,6 +139,7 @@ double CudaRuntimeObj::timeWithCudaGraph(Graph graph) {
             kernel->compute(op, perfData, this);
         else
             kernel->compute(op, this);
+        // FIXME: transpose
         if (!ctcMap.at(op->getGuid()) && op->getOpType() != OpType::Reshape)
             kernels.emplace_back(op, kernel, perfData);
     }

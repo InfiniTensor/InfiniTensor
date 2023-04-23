@@ -639,9 +639,9 @@ class OnnxStub:
                 if name is None:
                     self.count_in += 1
                     if tensor.getTensorType() == backend.TensorType.Input:
-                        name = "input{}".format(self.count_in)
+                        name = f"input{self.count_in}_{tensor.guid()}"
                     else:
-                        name = "weight{}".format(self.count_in)
+                        name = f"weight{self.count_in}_{tensor.guid()}"
                     self.names[tensor] = name
                     if init != None:
                         init.name = name
@@ -706,7 +706,7 @@ class OnnxStub:
                 for it in op.inputs()
             ]
             outputs = [
-                ctx.push_output("{}_{}".format(name, i), it)
+                ctx.push_output(f"{name}_{i}_{it.guid()}", it)
                 for (i, it) in enumerate(op.outputs())
             ]
             if ty == backend.OpType.Conv or ty == backend.OpType.ConvNHWC:
@@ -884,7 +884,8 @@ class OnnxStub:
                         ctx.push_data_input(name, "max", TensorProto.FLOAT, [], [])
                     )
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
-            elif ty == backend.OpType.ConvTransNHWC:
+            elif ty in [backend.OpType.ConvTransNHWC, backend.OpType.GBMM, 
+                        backend.OpType.G2BMM]:
                 ctx.push_node(
                     make_node(
                         ty.name,
@@ -1003,3 +1004,9 @@ def _parse_data(tensor: TensorProto) -> List[Any]:
 
 def _take_shape_dim(shape: TensorShapeProto) -> List[int]:
     return [(d.dim_value if d.dim_value > 0 else 1) for d in shape.dim]
+
+
+def save_onnx(opt_g, filename: str):
+    stub = OnnxStub.from_graph(opt_g)
+    with open(filename, "wb") as f:
+        f.write(stub.to_onnx("optimized").SerializeToString())
