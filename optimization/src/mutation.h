@@ -13,14 +13,18 @@ struct Mutant {
     /// @brief A score representing the quality of the mutant.
     float score;
 
-    Mutant(Unigraph &&g) : graph(std::move(g)) {}
+    Mutant(Unigraph &&g) : graph(std::move(g)), score(1.0f) {}
     Mutant(Mutant const &) = delete;
-    Mutant(Mutant &&others) : graph(std::move(others.graph)) {}
+    Mutant(Mutant &&others)
+        : graph(std::move(others.graph)),
+          score(std::exchange(others.score, 1.0f)) {}
 
     Mutant &operator=(Mutant const &) = delete;
     Mutant &operator=(Mutant &&others) {
-        if (this != &others)
+        if (this != &others) {
             this->graph = std::move(others.graph);
+            this->score = std::exchange(others.score, 1.0f);
+        }
         return *this;
     }
 };
@@ -113,17 +117,20 @@ template <class PartitionType> class Rating {
     ///             and returns its score.
     Rating(Mutation<PartitionType> &&m, Func const &f)
         : parts(std::move(m.parts)) {
-        for (auto &sub : parts) {
-            auto sum = 0.0f;
-            for (auto &c : sub.mutants)
-                sum += (c.score = f(c.graph));
-            sum = std::abs(sum);
-            for (auto &c : sub.mutants)
-                c.score /= sum;
-            std::sort(
-                sub.mutants.begin(), sub.mutants.end(),
-                [](auto const &a, auto const &b) { return a.score > b.score; });
-        }
+
+        for (auto &sub : parts)
+            if (sub.mutants.size() > 1) {
+                auto sum = 0.0f;
+                for (auto &c : sub.mutants)
+                    sum += (c.score = f(c.graph));
+                sum = std::abs(sum);
+                for (auto &c : sub.mutants)
+                    c.score /= sum;
+                std::sort(sub.mutants.begin(), sub.mutants.end(),
+                          [](auto const &a, auto const &b) {
+                              return a.score > b.score;
+                          });
+            }
     }
 
     /// @brief Returns mutant vector size.
