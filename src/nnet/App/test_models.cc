@@ -7,7 +7,15 @@
 #include "cuda/cuda_runtime.h"
 #include "ffi/ffi_callback.h"
 #include "nnet/nmutator.h"
+#include "operators/G2BMM.h"
+#include "operators/GBMM.h"
 #include "operators/conv.h"
+#include "operators/element_wise.h"
+#include "operators/matmul.h"
+#include "operators/pooling.h"
+#include "operators/reshape.h"
+#include "operators/softmax.h"
+#include "operators/transpose.h"
 #include "operators/unary.h"
 #include "test.h"
 #include <pybind11/stl.h>
@@ -79,6 +87,167 @@ Graph getGANGraph(int batch, Runtime runtime, int nLayers, int modelId) {
     return g;
 }
 
+// NHWC
+Graph getFSRCNNGraph(int batch, Runtime runtime) {
+    // n, c, h, w, f, r, s, stride, pad, dilation, has_pReLU
+    const DetailedConfigs fsrcnn_config = {
+        {batch, 1, 32, 32, 56, 5, 5, 1, 2, 1, true},
+        {batch, 56, 32, 32, 12, 1, 1, 1, 0, 1, true},
+        {batch, 12, 32, 32, 12, 3, 3, 1, 1, 1, false},
+        {batch, 12, 32, 32, 12, 3, 3, 1, 1, 1, false},
+        {batch, 12, 32, 32, 12, 3, 3, 1, 1, 1, false},
+        {batch, 12, 32, 32, 12, 3, 3, 1, 1, 1, true},
+        {batch, 12, 32, 32, 56, 1, 1, 1, 0, 1, true},
+        {batch, 56, 32, 32, 1, 9, 9, 1, 3, 4, false} // ConvTransNHWC
+        // n, f, h, w, c, r, s, stride, pad, dilation, has_pReLU
+    };
+
+    Graph g = make_ref<GraphObj>(runtime);
+
+    Tensor input;
+    {
+        auto &[n, c, h, w, f, r, s, stride, pad, dilation, has_pReLU] =
+            fsrcnn_config[0];
+        input = g->addTensor({batch, h, w, c}, DataType::Float32,
+                             TensorType::Input);
+    }
+
+    for (int i = 0; i < (int)fsrcnn_config.size() - 1; ++i) {
+        // auto [channel, kernelSize, pad, stride, tanh] = configs[i];
+        auto &[n, c, h, w, f, r, s, stride, pad, dilation, has_pReLU] =
+            fsrcnn_config[i];
+        IT_ASSERT(input->getDims()[3] == c);
+        auto weight = g->addTensor({f, r, s, c}, DataType::Float32,
+                                   TensorType::Initialized); // f, r, s, c
+        input = g->addOp<ConvNHWCObj>(input, weight, nullptr, pad, pad, stride,
+                                      stride, 1, 1)
+                    ->getOutput();
+        if (has_pReLU) {
+            input = g->addOp<ReluObj>(input, nullptr)->getOutput();
+        }
+    }
+
+    // last operator is a ConvTransNHWC
+    {
+        auto &[n, f, h, w, c, r, s, stride, pad, dilation, has_pReLU] =
+            fsrcnn_config[fsrcnn_config.size() - 1];
+        IT_ASSERT(input->getDims()[3] == f);
+        auto weight = g->addTensor({f, r, s, c}, DataType::Float32,
+                                   TensorType::Initialized); // f, r, s, c
+        input = g->addOp<ConvTransposed2dNHWCObj>(input, weight, nullptr, pad,
+                                                  pad, stride, stride, 1, 1)
+                    ->getOutput();
+    }
+    return g;
+}
+
+Graph getLongformer(Runtime runtime, int bs) {
+    const int seqlen = 10000, w = 1000, featlen = 512, heads = 8, d = 4;
+    const int hidden = featlen, hiddenPerHead = hidden / heads;
+    assert(hidden % heads == 0);
+    Graph g = make_ref<GraphObj>(runtime);
+
+    auto i0 = g->addTensor({bs, seqlen, featlen}, DataType::Float32,
+                           TensorType::Input);
+    auto w0 = g->addTensor({featlen, hidden}, DataType::Float32,
+                           TensorType::Initialized);
+    auto w1 =
+        g->addTensor({512, 512}, DataType::Float32, TensorType::Initialized);
+    auto w2 =
+        g->addTensor({512, 512}, DataType::Float32, TensorType::Initialized);
+    // Feed forward
+    auto w3 =
+        g->addTensor({512, 512}, DataType::Float32, TensorType::Initialized);
+    auto bias3 =
+        g->addTensor({512}, DataType::Float32, TensorType::Initialized);
+    auto w4 =
+        g->addTensor({512, 512}, DataType::Float32, TensorType::Initialized);
+    auto bias4 =
+        g->addTensor({512}, DataType::Float32, TensorType::Initialized);
+
+    auto q0 = g->addTensor({bs, seqlen, hidden}, DataType::Float32,
+                           TensorType::Other);
+    auto k0 = g->addTensor({bs, seqlen, hidden}, DataType::Float32,
+                           TensorType::Other);
+    auto v0 = g->addTensor({bs, seqlen, hidden}, DataType::Float32,
+                           TensorType::Other);
+
+    auto q1 = g->addTensor({bs, seqlen, heads, hiddenPerHead},
+                           DataType::Float32, TensorType::Other);
+    auto k1 = g->addTensor({bs, seqlen, heads, hiddenPerHead},
+                           DataType::Float32, TensorType::Other);
+    auto v1 = g->addTensor({bs, seqlen, heads, hiddenPerHead},
+                           DataType::Float32, TensorType::Other);
+
+    auto q2 = g->addTensor({bs, heads, seqlen, hiddenPerHead},
+                           DataType::Float32, TensorType::Other);
+    auto k2 = g->addTensor({bs, heads, seqlen, hiddenPerHead},
+                           DataType::Float32, TensorType::Other);
+    auto v2 = g->addTensor({bs, heads, seqlen, hiddenPerHead},
+                           DataType::Float32, TensorType::Other);
+
+    auto q3 = g->addTensor({bs * heads, seqlen, hiddenPerHead},
+                           DataType::Float32, TensorType::Other);
+    auto k3 = g->addTensor({bs * heads, seqlen, hiddenPerHead},
+                           DataType::Float32, TensorType::Other);
+    auto v3 = g->addTensor({bs * heads, seqlen, hiddenPerHead},
+                           DataType::Float32, TensorType::Other);
+
+    auto prob = g->addTensor({bs * heads, seqlen, 2 * w + 1}, DataType::Float32,
+                             TensorType::Other);
+    auto probSoftmax = g->addTensor({bs * heads, seqlen, 2 * w + 1},
+                                    DataType::Float32, TensorType::Other);
+    auto attn = g->addTensor({bs * heads, seqlen, hiddenPerHead},
+                             DataType::Float32, TensorType::Other);
+
+    auto t00 = g->addTensor({bs, seqlen, hidden}, DataType::Float32,
+                            TensorType::Other);
+    auto t01 = g->addTensor({bs, seqlen, hidden}, DataType::Float32,
+                            TensorType::Other);
+    auto t02 = g->addTensor({bs, seqlen, hidden}, DataType::Float32,
+                            TensorType::Other);
+    // auto t10 = g->addTensor({bs, seqlen, hidden});
+    auto t11 = g->addTensor({bs, seqlen, hidden}, DataType::Float32,
+                            TensorType::Other);
+    auto t12 = g->addTensor({bs, seqlen, hidden}, DataType::Float32,
+                            TensorType::Other);
+    auto output = g->addTensor({bs, seqlen, featlen}, DataType::Float32,
+                               TensorType::Other);
+
+    g->addOpWithOutputs<MatmulObj>(i0, w0, q0, false, true);
+    g->addOpWithOutputs<MatmulObj>(i0, w1, k0, false, true);
+    g->addOpWithOutputs<MatmulObj>(i0, w2, v0, false, true);
+    g->addOpWithOutputs<ReshapeObj>(q0, q1);
+    g->addOpWithOutputs<ReshapeObj>(k0, k1);
+    g->addOpWithOutputs<ReshapeObj>(v0, v1);
+    // For example, when perm=(1, 0, 2), given an input tensor of shape (1,
+    // 2, 3), the output shape will be (2, 1, 3).
+    g->addOpWithOutputs<TransposeObj>(q1, q2, vector{0, 2, 1, 3});
+    g->addOpWithOutputs<TransposeObj>(k1, k2, vector{0, 2, 1, 3});
+    g->addOpWithOutputs<TransposeObj>(v1, v2, vector{0, 2, 1, 3});
+    g->addOpWithOutputs<ReshapeObj>(q2, q3);
+    g->addOpWithOutputs<ReshapeObj>(k2, k3);
+    g->addOpWithOutputs<ReshapeObj>(v2, v3);
+    // Attention
+    g->addOpWithOutputs<G2BMMObj>(q3, k3, prob, w, d);
+    g->addOpWithOutputs<SoftmaxObj>(prob, probSoftmax, 2);
+    g->addOpWithOutputs<GBMMObj>(probSoftmax, v3, attn, d);
+    auto attn2 = g->addOp<ReshapeObj>(attn, nullptr,
+                                      vector{bs, heads, seqlen, hiddenPerHead})
+                     ->getOutput();
+    auto t000 =
+        g->addOp<TransposeObj>(attn2, nullptr, vector{0, 2, 1, 3})->getOutput();
+    g->addOpWithOutputs<ReshapeObj>(t000, t00);
+
+    // Feed forward
+    g->addOpWithOutputs<MatmulObj>(t00, w3, t01, false, true, bias3);
+    g->addOpWithOutputs<ReluObj>(t01, t02);
+    g->addOpWithOutputs<MatmulObj>(t02, w4, t11, false, true, bias4);
+    g->addOpWithOutputs<ReluObj>(t11, t12);
+    g->addOpWithOutputs<AddObj>(t12, i0, output);
+    return g;
+}
+
 Graph getConvtransposedNHWC(Runtime runtime, Shape shape, int layerId) {
     IT_ASSERT(0 <= layerId && layerId < 5);
     Graph g = make_ref<GraphObj>(runtime);
@@ -118,6 +287,7 @@ void printGraph(Graph g) {
 }
 
 void initializeGraphTensors(Graph g, double l, double r, bool useInt) {
+    g->dataMalloc();
     auto gen = RandomGenerator(-0.1, 0.1, 0, useInt);
     for (auto t : g->getInputs()) {
         t->setData(gen);
@@ -125,6 +295,65 @@ void initializeGraphTensors(Graph g, double l, double r, bool useInt) {
     for (auto t : g->getOutputs()) {
         t->setData(ZeroGenerator());
     }
+}
+
+Graph convertNCHWtoNHWCModel(Runtime runtime, Graph inG) {
+    // Construct new graph
+    // IT_ASSERT(inG->getInputs().size() == 1);
+    IT_ASSERT(inG->getOutputs().size() == 1);
+    bool status = inG->topo_sort();
+    IT_ASSERT(status);
+    auto g = make_ref<GraphObj>(runtime);
+    map<UidBaseType, Tensor> tensors;
+    for (const auto &t : inG->getTensors())
+        if (t->getDims().size() != 4)
+            return nullptr;
+    auto getTensor = [&g, &tensors](const Tensor &inTensor) {
+        auto uid = inTensor->getGuid();
+        if (auto it = tensors.find(uid); it == tensors.end()) {
+            Shape s = inTensor->getDims();
+            s = vector{s[0], s[2], s[3], s[1]};
+            tensors[uid] = g->addTensor(s, inTensor->getDType(),
+                                        inTensor->getTensorType());
+        }
+        return tensors[uid];
+    };
+    for (auto op : inG->getOperators()) {
+        TensorVec inputs, outputs;
+        for (auto &t : op->getInputs())
+            inputs.emplace_back(getTensor(t));
+        for (auto &t : op->getOutputs())
+            outputs.emplace_back(getTensor(t));
+        if (auto cOp = as<ConvObj>(op)) {
+            const auto &[ph, pw, sh, sw, dh, dw] = cOp->getPadStrideDilation();
+            auto bias =
+                cOp->getBias() ? g->cloneTensor(cOp->getBias()) : nullptr;
+            g->addOpWithOutputs<ConvNHWCObj>(inputs[0], inputs[1], outputs[0],
+                                             ph, pw, sh, sw, dh, dw, bias,
+                                             cOp->getAct());
+        } else if (const auto &cOp = as<ConvTransposed2dObj>(op)) {
+            const auto &[ph, pw, sh, sw, dh, dw] = cOp->getPadStrideDilation();
+            const auto &[oph, opw] = cOp->getOutputPadding();
+            auto group = cOp->getNumGroups();
+            auto bias =
+                cOp->getBias() ? g->cloneTensor(cOp->getBias()) : nullptr;
+            g->addOpWithOutputs<ConvTransposed2dNHWCObj>(
+                inputs[0], inputs[1], outputs[0], ph, pw, sh, sw, dh, dw, oph,
+                opw, group, bias, cOp->getAct());
+        } else if (const auto &cOp = as<MaxPoolObj>(op)) {
+            auto t = g->addOp<ReshapeObj>(inputs[0], nullptr,
+                                          cOp->getInputs(0)->getDims())
+                         ->getOutput();
+            auto tt = g->addTensor(cOp->getOutput()->getDims(),
+                                   cOp->getOutput()->getDType());
+            g->cloneOperator(op, {t}, {tt});
+            g->addOpWithOutputs<ReshapeObj>(tt, outputs[0]);
+        } else {
+            dbg(op);
+            g->cloneOperator(op, inputs, outputs);
+        }
+    }
+    return g;
 }
 
 Graph optimizeGraph(Graph g, Runtime _runtime, bool tuning, NMutator::Mode mode,
@@ -146,6 +375,9 @@ Graph optimizeGraph(Graph g, Runtime _runtime, bool tuning, NMutator::Mode mode,
         IT_TODO_HALT();
     vector<Graph> bestGraphs;
     SearchEngine searchEngine(runtime, mutator);
+    g->dataFree();
+    return searchEngine.run(g);
+
     bestGraphs.emplace_back(searchEngine.run(g));
     g->topo_sort();
     dbg(g, bestGraphs[0], bestGraphs.size());
@@ -169,6 +401,7 @@ Graph optimizeGraph(Graph g, Runtime _runtime, bool tuning, NMutator::Mode mode,
     // dbg("Baseline graph");
     // printGraph(g);
     // dbg(runtme->getPerfTime(g, true));
+    g->dataFree();
 
     for (size_t i = 0; i < bestGraphs.size(); i++) {
         auto bestGraphCpu = bestGraphs[i];
@@ -176,32 +409,33 @@ Graph optimizeGraph(Graph g, Runtime _runtime, bool tuning, NMutator::Mode mode,
             make_ref<GraphObj>(runtime, bestGraphCpu->getOperators());
         bestGraph->topo_sort();
 
-        bestGraph->dataMalloc();
-        // Initialize inputs with random data
-        for (auto t : bestGraph->getInputs()) {
-            t->copyData(fuidToInputTensor[t->getFuid()]);
-        }
+        // bestGraph->dataMalloc();
+        // // Initialize inputs with random data
+        // for (auto t : bestGraph->getInputs()) {
+        //     t->copyData(fuidToInputTensor[t->getFuid()]);
+        // }
 
-        // Initialize outputs with zeros
-        for (auto t : bestGraph->getOutputs()) {
-            t->setData(ZeroGenerator());
-        }
+        // // Initialize outputs with zeros
+        // for (auto t : bestGraph->getOutputs()) {
+        //     t->setData(ZeroGenerator());
+        // }
 
-        dbg(bestGraph);
-        dbg(bestGraph->getOutputs());
+        // dbg(bestGraph);
+        // dbg(bestGraph->getOutputs());
 
-        if (tuning) {
-            runtime->run(bestGraph, true);  // Tune kernels
-            runtime->run(bestGraph, false); // Execute transfomraed graph
+        // if (tuning) {
+        //     runtime->run(bestGraph, true);  // Tune kernels
+        //     runtime->run(bestGraph, false); // Execute transfomraed graph
 
-            auto go0 = gCpu->cloneTensor(g->getOutputs()[0]);
-            auto bgo0 = gCpu->cloneTensor(bestGraph->getOutputs()[0]);
-            // EXPECT_TRUE(go0->equalData(bgo0, 1e-3));
-            dbg(go0->equalData(bgo0, 1e-3));
-            dbg(runtime->getPerfTime(bestGraph, true));
-            dbg(runtime->timeNonCtcOperators(bestGraph));
-            // dbg(runtime->timeWithCudaGraph(bestGraph));
-        }
+        //     // FIXME: g is freed
+        //     auto go0 = gCpu->cloneTensor(g->getOutputs()[0]);
+        //     auto bgo0 = gCpu->cloneTensor(bestGraph->getOutputs()[0]);
+        //     // EXPECT_TRUE(go0->equalData(bgo0, 1e-3));
+        //     dbg(go0->equalData(bgo0, 1e-3));
+        //     dbg(runtime->getPerfTime(bestGraph, true));
+        //     dbg(runtime->timeNonCtcOperators(bestGraph));
+        //     // dbg(runtime->timeWithCudaGraph(bestGraph));
+        // }
 
         // dbg("Best graph");
         // printGraph(bestGraph);

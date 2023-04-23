@@ -555,6 +555,8 @@ class OnnxStub:
             else:
                 raise Exception('Unsupported operator "{}"'.format(node.op_type))
 
+        # FIXME: do not load data for speed
+        return ans
         ans.handler.data_malloc()
 
         for name, obj in tensors.items():
@@ -639,9 +641,9 @@ class OnnxStub:
                 if name is None:
                     self.count_in += 1
                     if tensor.getTensorType() == backend.TensorType.Input:
-                        name = "input{}".format(self.count_in)
+                        name = f"input{self.count_in}_{tensor.guid()}"
                     else:
-                        name = "weight{}".format(self.count_in)
+                        name = f"weight{self.count_in}_{tensor.guid()}"
                     self.names[tensor] = name
                     if init != None:
                         init.name = name
@@ -706,11 +708,11 @@ class OnnxStub:
                 for it in op.inputs()
             ]
             outputs = [
-                ctx.push_output("{}_{}".format(name, i), it)
+                ctx.push_output(f"{name}_{i}_{it.guid()}", it)
                 for (i, it) in enumerate(op.outputs())
             ]
-            if ty == backend.OpType.Conv:
-                ph, pw, dh, dw, sh, sw, bias = backend.conv_attrs_of(op)
+            if ty == backend.OpType.Conv or ty == backend.OpType.ConvNHWC:
+                ph, pw, sh, sw, dh, dw, bias = backend.conv_attrs_of(op)
                 if bias is not None:
                     inputs.append(ctx.push_input(bias, self.initializer.get(bias.fuid())))
                     for item in inputs:
@@ -727,7 +729,7 @@ class OnnxStub:
                         group=op.inputs()[0].shape()[1] // op.inputs()[1].shape()[1],
                     )
                 )
-            elif ty == backend.OpType.ConvTrans:
+            elif ty == backend.OpType.ConvTrans or ty == backend.OpType.ConvTransNHWC:
                 ph, pw, sh, sw, dh, dw, oph, opw = backend.conv_trans_attrs_of(op)
                 ctx.push_node(
                     make_node(
@@ -888,7 +890,28 @@ class OnnxStub:
                         ctx.push_data_input(name, "max", TensorProto.FLOAT, [], [])
                     )
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
-            elif ty == backend.OpType.ConvTransNHWC:
+            elif ty in [backend.OpType.ConvTransNHWC, backend.OpType.GBMM, 
+                        backend.OpType.G2BMM, backend.OpType.Any]:
+                ctx.push_node(
+                    make_node(
+                        ty.name,
+                        inputs,
+                        outputs,
+                        name,
+                        domain="nnet",
+                    )
+                )
+            elif ty == backend.OpType.Conv2dReduce:
+                ctx.push_node(
+                    make_node(
+                        ty.name,
+                        inputs,
+                        outputs,
+                        name,
+                        domain="nnet",
+                    )
+                )
+            elif ty == backend.OpType.Conv2dReduceTranspose:
                 ctx.push_node(
                     make_node(
                         ty.name,
@@ -987,3 +1010,9 @@ def _parse_data(tensor: TensorProto) -> List[Any]:
 
 def _take_shape_dim(shape: TensorShapeProto) -> List[int]:
     return [(d.dim_value if d.dim_value > 0 else 1) for d in shape.dim]
+
+
+def save_onnx(opt_g, filename: str):
+    stub = OnnxStub.from_graph(opt_g)
+    with open(filename, "wb") as f:
+        f.write(stub.to_onnx("optimized").SerializeToString())

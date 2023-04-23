@@ -25,9 +25,15 @@ class ActivationCudnn : public CudaKernelWithoutConfig {
 
         cudnnTensorDescriptor_t inputDesc, outputDesc;
         auto dim = op->getInputs(0)->getDims();
-        if (dim.size() != 4)
+        IT_ASSERT_TODO(dim.size() <= 4);
+        int n, c, h, w;
+        if (dim.size() == 4) {
+            n = dim[0], c = dim[1], h = dim[2], w = dim[3];
+        } else if (dim.size() == 3) {
+            n = 1, c = dim[0], h = dim[1], w = dim[2];
+        } else {
             IT_TODO_HALT();
-        int n = dim[0], c = dim[1], h = dim[2], w = dim[3];
+        }
 
         // get inputs
         checkCudnnError(cudnnCreateTensorDescriptor(&inputDesc));

@@ -87,9 +87,10 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
                                int repeat = 1000) const;
 
   protected:
-    void printProfilingData(double totTime,
+    void printProfilingData(double totalTime,
                             const std::map<OpType, double> &opTime,
-                            const std::map<OpType, int> &opCnt) const;
+                            const std::map<OpType, int> &opCnt,
+                            const std::map<OpType, int> &opNonCtcCnt) const;
     virtual void copyBlobInsideRuntime(void *dst, const void *src,
                                        size_t bytes) const = 0;
 };

@@ -29,6 +29,7 @@ void BangRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
             perfEngine.setPerfData(perfKey, record);
         } else
             record = perfData;
+        std::cout << 5 << std::endl;
 
         double t = record->time;
         totalTime += t;

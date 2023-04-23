@@ -3,6 +3,8 @@
 
 namespace infini {
 class TransposeObj : public OperatorObj {
+    vector<int> transposePermute;
+
   public:
     TransposeObj(GraphObj *graph, Tensor input, Tensor output,
                  vector<int> permute);
@@ -15,7 +17,6 @@ class TransposeObj : public OperatorObj {
     std::vector<int> getPermute() const { return transposePermute; }
 
   private:
-    vector<int> transposePermute = {1, 1, 1, 1};
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;
 };

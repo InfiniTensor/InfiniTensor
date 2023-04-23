@@ -1,4 +1,5 @@
 #include "cuda/cuda_common.h"
+#include "nnet/dbg.h"
 
 using dtype = float;
 
@@ -15,7 +16,7 @@ __global__ void conv2dreduce_kernel_(float *__restrict__ input,
     int nid = blockIdx.x, fid = blockIdx.y;
     int hid = threadIdx.x, wid = threadIdx.y;
     const int fchunck = r * s, wchunk = f * fchunck, hchunk = w * wchunk,
-              nchunck = n * hchunk;
+              nchunck = h * hchunk;
     float *nfinput = input + nid * nchunck + fid * fchunck;
     if (nid < n && fid < f && hid < oh && wid < ow) {
         float imm = 0.0;
@@ -40,18 +41,71 @@ __global__ void conv2dreduce_kernel_(float *__restrict__ input,
         output[nid * (oh * ow * f) + hid * (ow * f) + wid * f + fid] = imm;
     }
 }
+__global__ void convTranspose2dreduce_kernel2_(
+    float *__restrict__ input, float *__restrict__ bias,
+    float *__restrict__ output, const bool PReLU, const int n, const int f,
+    const int h, const int w, const int oh, const int ow, const int r,
+    const int s, const int ph, const int pw, const int dh, const int dw,
+    const int sh, const int sw) {
+    int warp_id = (blockDim.x / 32) * blockIdx.x + threadIdx.x / 32;
+    int lane = threadIdx.x % 32;
+    int nid = warp_id / (f * oh * ow);
+    int fid = (warp_id - nid * (f * oh * ow)) / (oh * ow);
+    int hid = (warp_id - nid * (f * oh * ow) - fid * (oh * ow)) / ow;
+    int wid = warp_id % ow;
+    if (hid >= oh || wid >= ow || nid > n || fid > f)
+        return;
+
+    const int fchunck = r * s, wchunk = f * fchunck, hchunk = w * wchunk,
+              nchunck = h * hchunk;
+    float *nfinput = input + nid * nchunck + fid * fchunck;
+    // view as conv, the true ph and pw
+    int tph = r - ph - 1, tpw = s - pw - 1;
+    int th = (h - 1) * sh + 1, tw = (w - 1) * sw + 1;
+
+    float imm = 0.0;
+    int ihst = hid - tph;
+    int iwst = wid - tpw;
+    for (int idx = lane; idx < r * s; idx += 32) {
+        int ri = idx / s;
+        int si = idx % s;
+        int ihid = ihst + r - ri - 1;
+        int iwid = iwst + s - si - 1;
+        if (ihid >= 0 && ihid < th && iwid >= 0 && iwid < tw &&
+            (ihid % sh == 0) && (iwid % sw == 0)) {
+            imm += *(nfinput + (ihid / sh) * hchunk + (iwid / sw) * wchunk +
+                     ri * s + si);
+        }
+    }
+
+    for (int k = 16; k > 0; k >>= 1) {
+        imm += __shfl_down_sync(0xffffffff, imm, k); // sum
+    }
+    if (lane == 0) {
+        if (bias) {
+            imm += bias[fid];
+        }
+        if (PReLU) {
+            imm = imm > 0.0 ? imm : 0.0;
+        }
+        output[nid * (oh * ow * f) + hid * (ow * f) + wid * f + fid] = imm;
+    }
+}
 
 __global__ void convTranspose2dreduce_kernel_(
     float *__restrict__ input, float *__restrict__ bias,
     float *__restrict__ output, const bool PReLU, const int n, const int f,
     const int h, const int w, const int oh, const int ow, const int r,
     const int s, const int ph, const int pw, const int dh, const int dw,
-    const int sh, const int sw) {
+    const int sh, const int sw, const int block_x_num, const int block_y_num) {
     // assert dh = dw = 1
-    int nid = blockIdx.x, fid = blockIdx.y;
-    int hid = threadIdx.x, wid = threadIdx.y;
+    int nid = blockIdx.x / block_x_num, fid = blockIdx.y / block_y_num;
+    int hid = (blockIdx.x % block_x_num) * blockDim.x + threadIdx.x,
+        wid = (blockIdx.y % block_y_num) * blockDim.y + threadIdx.y;
+    if (hid >= oh || wid >= ow)
+        return;
     const int fchunck = r * s, wchunk = f * fchunck, hchunk = w * wchunk,
-              nchunck = n * hchunk;
+              nchunck = h * hchunk;
     float *nfinput = input + nid * nchunck + fid * fchunck;
     // view as conv, the true ph and pw
     int tph = r - ph - 1, tpw = s - pw - 1;
@@ -162,8 +216,22 @@ void convTranspose2dreduce_kernel(float *input, float *bias, float *output,
         reduce_4x4<<<(M * N + 127) / 128, 128>>>(input, output, act, n, f, oh,
                                                  ow, h, w);
     } else {
-        puts("why use this conv2dreduce");
-        convTranspose2dreduce_kernel_<<<grid, block, 0>>>(
+        // puts("why use this conv2dreduce");
+        // block.x = 32;
+        // block.y = 32;
+        // int block_x_num = (oh + block.x - 1) / block.x;
+        // int block_y_num = (ow + block.y - 1) / block.y;
+        // grid.x = n * (block_x_num);
+        // grid.y = f * (block_y_num);
+        // convTranspose2dreduce_kernel_<<<grid, block, 0>>>(
+        //     input, bias, output, (bool)act, n, f, h, w, oh, ow, r, s, ph, pw,
+        //     dh, dw, sh, sw, block_x_num, block_y_num);
+
+        block.x = 128;
+        block.y = 1;
+        grid.x = (n * f * ow * oh + block.x / 32 - 1) / (block.x / 32);
+        grid.y = 1;
+        convTranspose2dreduce_kernel2_<<<grid, block, 0>>>(
             input, bias, output, (bool)act, n, f, h, w, oh, ow, r, s, ph, pw,
             dh, dw, sh, sw);
     }

@@ -2,7 +2,8 @@
 
 namespace infini {
 ReshapeObj::ReshapeObj(GraphObj *graph, Tensor input, Tensor output, Shape dims)
-    : OperatorObj(OpType::Reshape, {input}, {output}), dims(std::move(dims)) {
+    : OperatorObj(OpType::Reshape, {input}, {output}),
+      dims(dims.size() == 0 ? output->getDims() : dims) {
     IT_ASSERT(checkValid(graph));
 }
 
@@ -19,9 +20,9 @@ optional<vector<Shape>> ReshapeObj::inferShape(const TensorVec &inputs) const {
 std::string ReshapeObj::toString() const {
     std::ostringstream os;
     os << "Reshape[" << getGuid() << "]";
-    os << "(";
+    os << "(input dim=";
     os << vecToString(inputs[0]->getDims()) << ",";
-    os << "dims=" << vecToString(dims) << ",";
+    os << "output dims=" << vecToString(dims) << ",";
     os << "input=" << inputs[0]->getGuid() << ",";
     os << "output=" << outputs[0]->getGuid() << ")";
     return os.str();

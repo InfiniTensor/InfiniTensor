@@ -63,6 +63,7 @@ class GraphObj : public Object {
     void optimize();
 
     void dataMalloc();
+    void dataFree();
 
     /**
      * @brief Add an operator and create its outputs. Output tensor arguments

@@ -33,7 +33,7 @@ class G2BMMCudnn : public CudaKernelWithoutConfig {
         auto record =
             make_ref<PerfRecordObj>(std::numeric_limits<double>::max());
         const auto [warmupRounds, timingRounds] =
-            op->getB() > 100 ? tuple{1, 3} : tuple{5, 15};
+            op->getB() > 100 ? tuple{1, 1} : tuple{1, 2};
         double tmp =
             timeit([&]() { g2bmmKernel(op, context); },
                    [&]() { context->sync(); }, warmupRounds, timingRounds);

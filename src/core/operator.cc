@@ -26,7 +26,8 @@ bool OperatorObj::isConcatOp() const { return type == OpType::Concat; }
 bool OperatorObj::isComputeOp() const {
     return type == OpType::Conv || type == OpType::Matmul ||
            type == OpType::ConvTrans || type == OpType::ConvTransNHWC ||
-           type == OpType::G2BMM || type == OpType::GBMM;
+           type == OpType::G2BMM || type == OpType::GBMM ||
+           type == OpType::ConvNHWC;
 }
 
 bool OperatorObj::isTransposeOp() const { return type == OpType::Transpose; }
@@ -34,9 +35,10 @@ bool OperatorObj::isTransposeOp() const { return type == OpType::Transpose; }
 bool OperatorObj::isReshapeOp() const { return type == OpType::Reshape; }
 
 bool OperatorObj::isMemBoundOp() const {
-    return type == OpType::MemBound || type == OpType::Activation ||
-           type == OpType::Transpose || type == OpType::Relu ||
-           type == OpType::Tanh || type == OpType::Add; // TODO: is Add memory bound? 2023.04.22-14:35:32
+    return type == OpType::MemBound || type == OpType::Reshape ||
+           type == OpType::Activation || type == OpType::Transpose ||
+           type == OpType::Relu || type == OpType::Tanh ||
+           type == OpType::Softmax || type == OpType::Add;
 }
 
 void OperatorObj::removePredecessors(const Operator &op) {
@@ -102,7 +104,9 @@ bool OperatorObj::checkValid(GraphObj *graph) {
         }
     } else { // if outputs have been created, check their shapes
         for (size_t i = 0; i < shapes.size(); ++i) {
-            IT_ASSERT(shapes[i] == outputs[i]->getDims());
+            IT_ASSERT(shapes[i] == outputs[i]->getDims(),
+                      (vecToString(shapes[i]) +
+                       " != " + vecToString(outputs[i]->getDims())));
             if (shapes[i] != outputs[i]->getDims()) {
                 dbg(shapes[i], outputs[i]->getDims());
                 return false;

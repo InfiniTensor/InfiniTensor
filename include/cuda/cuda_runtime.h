@@ -1,7 +1,6 @@
 #pragma once
 #include "core/runtime.h"
 #include "cuda/cuda_common.h"
-#include "nnet/dbg.h"
 
 namespace infini {
 
@@ -12,6 +11,11 @@ class CudaRuntimeObj : public RuntimeObj {
     cublasHandle_t cublas;
     CudaPtr workspace;
     size_t workspaceSize;
+
+    // Memory information
+    size_t allocatedGPUMemorySize = 0;
+    map<void *, size_t> allocationMap;
+
     bool cudaGraphStatus; // Whether CUDA graph stream capture is enabled
 
   public:
@@ -26,11 +30,23 @@ class CudaRuntimeObj : public RuntimeObj {
     void sync() const;
     CudaPtr alloc(size_t size) override {
         void *ptr;
+        // printf("Try to cudaMalloc: %lu bytes\n", size);
         checkCudaError(cudaMalloc(&ptr, size));
-        // printf("cuda malloc: %p %lu bytes\n", ptr, size);
+        allocatedGPUMemorySize += size;
+        allocationMap[ptr] = size;
+        // printf("cuda malloc: %p %lu bytes, total %lu bytes (%.2lf GB)\n",
+        // ptr,
+        //        size, allocatedGPUMemorySize,
+        //        double(allocatedGPUMemorySize) / 1024 / 1024 / 1024);
         return ptr;
     }
-    void dealloc(void *ptr) override { checkCudaError(cudaFree(ptr)); }
+    void dealloc(void *ptr) override {
+        checkCudaError(cudaFree(ptr));
+        allocatedGPUMemorySize -= allocationMap.at(ptr);
+        allocationMap.erase(ptr);
+        // printf("cuda dealloc: %p %lu bytes, total %lu\n", ptr,
+        //        allocationMap.at(ptr), allocatedGPUMemorySize);
+    }
     cudnnHandle_t cudnnHandle() const { return cudnn; }
     cublasHandle_t cublasHandle() const { return cublas; }
     size_t getWorkspaceSize() const { return workspaceSize; }
@@ -59,7 +75,7 @@ class CudaRuntimeObj : public RuntimeObj {
     bool isInCudaGraph() const { return cudaGraphStatus; }
     cudaStream_t getStream() const { return stream; }
 
-    double timeWithCudaGraph(Graph graph);
+    double timeWithCudaGraph(Graph graph, int rounds = 1000);
 
   private:
     void tune(const Graph &graph, bool profiling) const;

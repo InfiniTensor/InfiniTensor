@@ -52,7 +52,7 @@ class convCudnn : public Kernel {
                cudnnFilterDescriptor_t, cudnnTensorDescriptor_t,
                cudnnConvolutionDescriptor_t, cudnnActivationDescriptor_t,
                cudnnTensorDescriptor_t>
-    createCuDNNDescriptor(const Ref<ConvObj> &op,
+    createCuDNNDescriptor(const Ref<ConvBaseObj> &op,
                           const ConvCuDnnPerfRecord &record) const {
         void *const inData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const knData = (op->getInputs(1)->getRawDataPtr<void *>());
@@ -69,15 +69,23 @@ class convCudnn : public Kernel {
 
         int channelsPerGrp = cpg, channels = c;
 
+        // set input format
+        cudnnTensorFormat_t tensorFormat = (op->getOpType() == OpType::ConvNHWC)
+                                               ? CUDNN_TENSOR_NHWC
+                                               : CUDNN_TENSOR_NCHW;
+
         // get inputs
         cudnnTensorDescriptor_t inDesc;
         checkCudnnError(cudnnCreateTensorDescriptor(&inDesc));
         checkCudnnError(cudnnSetTensor4dDescriptor(
-            inDesc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, n, channels, h, w));
+            inDesc, tensorFormat, CUDNN_DATA_FLOAT, n, channels, h, w));
 
         // get kernels
         cudnnFilterDescriptor_t knDesc;
         checkCudnnError(cudnnCreateFilterDescriptor(&knDesc));
+        // FIXME: filter data layout is not changed with input data layout
+        // since FCRS shows better performance for NHWC inputs in some cases.
+        // This should be tunable.
         checkCudnnError(cudnnSetFilter4dDescriptor(knDesc, CUDNN_DATA_FLOAT,
                                                    CUDNN_TENSOR_NCHW, f,
                                                    channelsPerGrp, r, s));
@@ -85,7 +93,7 @@ class convCudnn : public Kernel {
         cudnnTensorDescriptor_t biasDesc;
         checkCudnnError(cudnnCreateTensorDescriptor(&biasDesc));
         checkCudnnError(cudnnSetTensor4dDescriptor(
-            biasDesc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, 1, f, 1, 1));
+            biasDesc, tensorFormat, CUDNN_DATA_FLOAT, 1, f, 1, 1));
 
         // get convlution descriptor
         cudnnConvolutionDescriptor_t convDesc;
@@ -126,18 +134,25 @@ class convCudnn : public Kernel {
             convDesc, inDesc, knDesc, &outn, &outc, &outh, &outw));
         cudnnTensorDescriptor_t outDesc;
         checkCudnnError(cudnnCreateTensorDescriptor(&outDesc));
-        checkCudnnError(cudnnSetTensor4dDescriptor(outDesc, CUDNN_TENSOR_NCHW,
-                                                   CUDNN_DATA_FLOAT, outn, outc,
-                                                   outh, outw));
-        IT_ASSERT((vector{outn, outc, outh, outw}) ==
-                      op->getOutput()->getDims(),
-                  "cuDNN output shape mismatches with OP output shape");
+        checkCudnnError(cudnnSetTensor4dDescriptor(
+            outDesc, tensorFormat, CUDNN_DATA_FLOAT, outn, outc, outh, outw));
+
+        if (op->getOpType() == OpType::ConvNHWC) {
+            IT_ASSERT((vector{outn, outh, outw, outc}) ==
+                          op->getOutput()->getDims(),
+                      "cuDNN output shape mismatches with OP output shape");
+        } else {
+            IT_ASSERT((vector{outn, outc, outh, outw}) ==
+                          op->getOutput()->getDims(),
+                      "cuDNN output shape mismatches with OP output shape");
+        }
 
         return tuple(inData, knData, biasData, outData, inDesc, knDesc, biasDesc,
                      convDesc, actDesc, outDesc);
     }
 
-    bool cuDNNUnfused(const Ref<ConvObj> &op, const ConvCuDnnPerfRecord &record,
+    bool cuDNNUnfused(const Ref<ConvBaseObj> &op,
+                      const ConvCuDnnPerfRecord &record,
                       const CudaRuntimeObj *context) const {
         cudnnStatus_t stat;
 
@@ -237,11 +252,12 @@ class convCudnn : public Kernel {
         ConvCuDnnPerfRecordObj ret;
         ret.time = std::numeric_limits<double>::max();
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
-        auto op = as<ConvObj>(_op);
+        auto op = as<ConvBaseObj>(_op);
+        int try_algo = op->getOpType() == OpType::ConvNHWC ? 2 : N_ALGO;
         // Both modes have the same performance. Only run cross-correlation.
         for (int mode = 1; mode < 2; mode++) {
             // Try every possible algorithm of convolution
-            for (int algo = 0; algo < N_ALGO; algo++) {
+            for (int algo = 0; algo < try_algo; algo++) {
                 auto recordRef = make_ref<ConvCuDnnPerfRecordObj>();
                 auto &record = *recordRef;
                 record.mode = mode;
@@ -321,7 +337,7 @@ class convCudnn : public Kernel {
 
     void compute(const Operator &_op, const PerfRecord &_record,
                  const RuntimeObj *_context) const override {
-        auto op = as<ConvObj>(_op);
+        auto op = as<ConvBaseObj>(_op);
         auto record = as<ConvCuDnnPerfRecordObj>(_record);
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         bool success = cuDNNUnfused(op, record, context);
@@ -331,6 +347,9 @@ class convCudnn : public Kernel {
 
 REGISTER_KERNEL(Device::CUDA, OpType::Conv, DataType::Float32, convCudnn,
                 "Conv_cuDNN_CUDA_Float32");
+
+REGISTER_KERNEL(Device::CUDA, OpType::ConvNHWC, DataType::Float32, convCudnn,
+                "ConvNHWC_cuDNN_CUDA_Float32");
 
 REGISTER_CONSTRUCTOR(1, ConvCuDnnPerfRecordObj::from_json);
 } // namespace infini

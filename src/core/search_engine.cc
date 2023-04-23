@@ -1,6 +1,7 @@
 #include "core/search_engine.h"
 #include "core/hash.h"
 #include "core/runtime.h"
+#include "ffi/ffi_callback.h"
 #include "nnet/dbg.h"
 
 #include <algorithm>
@@ -70,7 +71,6 @@ Graph SearchEngine::run(const Graph graph) {
                     }
                 }
                 auto tmp = make_ref<GraphObj>(runtimeExec, ops);
-                tmp->dataMalloc();
                 nextGraphs.emplace_back(tmp);
             }
         }
@@ -97,7 +97,7 @@ Graph SearchEngine::run(const Graph graph) {
     // Fuse vertically and sort according to performance
     for (size_t i = 0; i < bestGraphs.size(); ++i) {
         // Debug
-        bestGraphs[i] = fuseVertically(bestGraphs[i]);
+        // bestGraphs[i] = fuseVertically(bestGraphs[i]);
     }
     std::sort(bestGraphs.begin(), bestGraphs.end(), graphTimeComparer);
 
@@ -225,6 +225,8 @@ MetaGraph SearchEngine::buildMetaGraphWithPlan(const MetaGraph metaGraph,
 // Search how to merge multiple ops.
 vector<MetaGraph> SearchEngine::searchMerge(MetaGraph &metaGraph) {
     IT_ASSERT(metaGraph != nullptr);
+    // HACK: disable multiple op search
+    return {metaGraph};
     std::vector<int> plan(metaGraph->nodes.size());
     for (size_t i = 0; i < plan.size(); i++) {
         plan[i] = i;
@@ -345,8 +347,10 @@ std::vector<Graph> SearchEngine::searchMutation(const MetaGraph &metaGraph) {
         if (node.type == 1) { // If it has computing OPs
             auto mutatedGraphs = mutator->run(node.graph);
             // // HACK: only try the first one for debug
-            if (mutatedGraphs.size() > 2)
-                mutatedGraphs.resize(2);
+            // if (mutatedGraphs.size() > 2)
+            //     mutatedGraphs.resize(2);
+            // if (mutatedGraphs.size() >= 2)
+            //     mutatedGraphs = {mutatedGraphs[1]};
             for (auto graph : graphs) {
                 for (auto mutatedGraph : mutatedGraphs) {
                     std::vector<Operator> ops;
@@ -375,9 +379,6 @@ std::vector<Graph> SearchEngine::searchMutation(const MetaGraph &metaGraph) {
                 }
                 nextGraphs.emplace_back(make_ref<GraphObj>(runtimeExec, ops));
             }
-        }
-        for (auto g : nextGraphs) {
-            g->dataMalloc();
         }
         dbg("===Num" + std::to_string(nextGraphs.size()));
         std::sort(nextGraphs.begin(), nextGraphs.end(), graphTimeComparer);
@@ -441,7 +442,6 @@ std::vector<Graph> SearchEngine::partitionGraph(const Graph graph) {
                 std::cout << op->toString() << std::endl;
             }
             auto tmp = make_ref<GraphObj>(runtimeExec, headOps);
-            tmp->dataMalloc();
             partitions.emplace_back(tmp);
             headOps.clear();
         }
@@ -449,7 +449,6 @@ std::vector<Graph> SearchEngine::partitionGraph(const Graph graph) {
     }
     if (!headOps.empty()) {
         auto tmp = make_ref<GraphObj>(runtimeExec, headOps);
-        tmp->dataMalloc();
         partitions.emplace_back(tmp);
     }
     std::reverse(partitions.begin(), partitions.end());
@@ -457,6 +456,9 @@ std::vector<Graph> SearchEngine::partitionGraph(const Graph graph) {
 }
 
 double SearchEngine::getEstimatedGraphPerf(Graph graph) {
+    // dbg(graph);
+    // // hkz
+    // callback::exportONNX(graph, "a.onnx");
     return runtimeExec->getPerfTime(graph, false, true, true);
 }
 
@@ -473,9 +475,12 @@ Graph SearchEngine::fuseVertically(const Graph &graph) {
         }
         // if is conv, we can still vertical fuse it
         bool conv_flag = op->isComputeOp() && op->getSuccessors().size() == 1;
+        if (conv_flag)
+            printf("hkz: conv flag is true\n");
         // Skip compute OP and multi-input/output OP
-        if (!conv_flag && (!op->isMemBoundOp() || (op->getPredecessors().size() != 1 &&
-                                    op->getSuccessors().size() != 1))) {
+        if (!conv_flag &&
+            (!op->isMemBoundOp() || (op->getPredecessors().size() != 1 &&
+                                     op->getSuccessors().size() != 1))) {
             visitTime.emplace(op->getGuid(), ++cnt);
             ops.emplace_back(op);
             continue;
@@ -488,7 +493,7 @@ Graph SearchEngine::fuseVertically(const Graph &graph) {
 
         if (!conv_flag) {
             while (cur->getPredecessors().size() == 1 &&
-                cur->getPredecessors()[0]->isMemBoundOp()) {
+                   cur->getPredecessors()[0]->isMemBoundOp()) {
                 cur = cur->getPredecessors()[0];
                 tmp.emplace_back(cur);
                 visitTime.emplace(cur->getGuid(), cnt);
@@ -506,18 +511,25 @@ Graph SearchEngine::fuseVertically(const Graph &graph) {
             visitTime.emplace(cur->getGuid(), cnt);
         }
         make_ref<GraphObj>(runtimeExec, chainOps)->print();
-
+        if (conv_flag)
+            printf("hkz: chain size %d\n", (int)chainOps.size());
         if (conv_flag && chainOps.size() > 1) {
-            Graph optGraph =
-                mutator->fuseConvBiasAct(make_ref<GraphObj>(runtimeExec, chainOps));
+            Graph optGraph = mutator->fuseConvBiasAct(
+                make_ref<GraphObj>(runtimeExec, chainOps));
             for (auto op : optGraph->getOperators()) {
                 ops.emplace_back(op);
             }
-        }
-        else {
-            Graph optGraph =
-                mutator->fuseVertically(make_ref<GraphObj>(runtimeExec, chainOps));
-            for (auto op : optGraph->getOperators()) {
+        } else {
+            auto bestGraph = make_ref<GraphObj>(runtimeExec, chainOps);
+            // Eliminate transpose and reshape operators
+            // FIXME: current Relu only support 3D and 4D tensors
+            if (auto eliminatedGraph = mutator->eliminateVertically(
+                    make_ref<GraphObj>(runtimeExec, chainOps)))
+                bestGraph = eliminatedGraph;
+            // Fuse membound operators
+            if (auto optGraph = mutator->fuseVertically(bestGraph))
+                bestGraph = optGraph;
+            for (auto op : bestGraph->getOperators()) {
                 ops.emplace_back(op);
             }
         }
