@@ -20,8 +20,10 @@ class NMutator : public Mutator {
     const std::vector<int> derivationRules;
 
   public:
-    NMutator(Mode mode = Mode::Normal);
-    NMutator(Mode mode, const std::vector<int> &derivationRules);
+    NMutator(Mode mode = Mode::Normal,
+             Runtime runtime = NativeCpuRuntimeObj::getInstance());
+    NMutator(Mode mode, const std::vector<int> &derivationRules,
+             Runtime runtime = NativeCpuRuntimeObj::getInstance());
     ~NMutator();
 
     vector<Graph> run(const Graph &in_graph) override;

@@ -155,7 +155,6 @@ double CudaRuntimeObj::timeWithCudaGraph(Graph graph, int rounds) {
     auto tvm_device = tvm::runtime::DeviceAPI::Get(tvm_device_id);
     tvm_device->SetStream(tvm_device_id, getStream());
 #endif
-
     beginCudaGraphStreamCapture();
     for (auto &[op, kernel, perfData] : kernels) {
         if (perfData)
@@ -174,8 +173,8 @@ double CudaRuntimeObj::timeWithCudaGraph(Graph graph, int rounds) {
         [&, cudaGraphInstance = cudaGraphInstance, stream = getStream()]() {
             checkCudaError(cudaGraphLaunch(cudaGraphInstance, stream));
         },
-        [&, stream = getStream()]() { cudaStreamSynchronize(stream); }, 1000,
-        1000);
+        [&, stream = getStream()]() { cudaStreamSynchronize(stream); }, rounds,
+        rounds);
 }
 
 } // namespace infini

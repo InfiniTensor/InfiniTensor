@@ -16,6 +16,7 @@
 #include "operators/reshape.h"
 #include "operators/softmax.h"
 #include "operators/transpose.h"
+#include "operators/pooling.h"
 #include "operators/unary.h"
 #include "test.h"
 #include <pybind11/stl.h>
@@ -366,11 +367,11 @@ Graph optimizeGraph(Graph g, Runtime _runtime, bool tuning, NMutator::Mode mode,
     Ref<NMutator> mutator;
     if (mode == NMutator::Mode::Normal) {
         dbg(mode);
-        mutator = make_ref<NMutator>(mode);
+        mutator = make_ref<NMutator>(mode, runtime);
     } else if (mode == NMutator::Mode::RuleBased) {
         dbg(mode, rules);
         IT_ASSERT_TODO(rules.size() > 0);
-        mutator = make_ref<NMutator>(mode, rules);
+        mutator = make_ref<NMutator>(mode, rules, runtime);
     } else
         IT_TODO_HALT();
     vector<Graph> bestGraphs;

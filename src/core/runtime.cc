@@ -102,8 +102,6 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling,
         double time = -1e9;
         if (ctcMap[op->getGuid()]) { // Compile-time computable operators
             time = 0;
-        } else if (op->getOpType() == OpType::Reshape) {
-            time = 0;
         } else if (op->getOpType() == OpType::MemBound && ignoreMemboundOp) {
             time = 0;
         } else if (op->getOpType() == OpType::MemBound && allowEstimation) {
@@ -136,8 +134,10 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling,
                 t->freeData();
         }
 
-        if (op->getOpType() != OpType::Transpose &&
-            op->getOpType() != OpType::ReduceMean)
+        // FIXME: ignore trnapose when necessary 
+        //     op->getOpType() != OpType::Transpose &&
+        //     op->getOpType() != OpType::ReduceMean
+        if (op->getOpType() != OpType::Reshape)
             totalTime += time;
         if (profiling) {
             op->print();

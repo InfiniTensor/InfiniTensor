@@ -22,12 +22,15 @@
 
 namespace infini {
 
-NMutator::NMutator(Mode mode) : Mutator(10), mode{mode} {
+NMutator::NMutator(Mode mode, Runtime runtime)
+    : Mutator(10, runtime), mode{mode} {
     IT_ASSERT(mode != Mode::RuleBased, "Specify rules for the RuleBased mode.");
 }
 
-NMutator::NMutator(Mode mode, const std::vector<int> &derivationRules)
-    : Mutator(10), mode{Mode::RuleBased}, derivationRules{derivationRules} {
+NMutator::NMutator(Mode mode, const std::vector<int> &derivationRules,
+                   Runtime runtime)
+    : Mutator(10, runtime), mode{Mode::RuleBased}, derivationRules{
+                                                       derivationRules} {
     IT_ASSERT(mode == Mode::RuleBased);
 }
 
@@ -93,37 +96,29 @@ void NMutator::runSingleOp(Graph in_graph, std::vector<Graph> &out_graphs) {
     IT_ASSERT(computeOps.size() == 1);
     if (Graph g = transformConvtransposed1x1(computeOps[0])) {
         out_graphs.emplace_back(g);
-        return;
     }
     if (Graph g = transformConv1x1(computeOps[0])) {
         out_graphs.emplace_back(g);
-        return;
     }
     if (infini::Graph g = transformConv1xk(computeOps[0])) {
         out_graphs.emplace_back(g);
-        return;
     }
     if (Graph g = transformG2bmm(computeOps[0])) {
         out_graphs.emplace_back(g);
-        return;
     }
     if (Graph g = transformGbmm(computeOps[0])) {
         out_graphs.emplace_back(g);
-        return;
     }
     if (infini::Graph g = transformDialtedConv(computeOps[0])) {
         out_graphs.emplace_back(g);
-        return;
     }
     if (infini::Graph g = transformConvToGEMMReduce(computeOps[0])) {
         out_graphs.emplace_back(g);
-        return;
     }
-
     if (infini::Graph g = transformConvTranposeToGEMMReduce(computeOps[0])) {
         out_graphs.emplace_back(g);
-        return;
     }
+    return;
 
     const set<OpType> opSet{OpType::Conv, OpType::ConvTransNHWC, OpType::G2BMM,
                             OpType::GBMM};
@@ -735,25 +730,45 @@ Graph NMutator::transformConv1x1(Operator _op) {
             g->addOp<MatmulObj>(B, A, nullptr, 0, 0)->getOutput(); // [F, N*H*W]
         g->addOpWithOutputs<ReshapeObj>(O, g->cloneTensor(op->getOutput()),
                                         op->getOutput()->getDims());
-    } else {
-        auto A = g->addOp<TransposeObj>(g->cloneTensor(op->getInputs(0)),
-                                        nullptr, vector{1, 0, 2, 3})
-                     ->getOutput(); // [C,N,H,W]
-        A = g->addOp<ReshapeObj>(A, nullptr,
-                                 vector{shapeA[1], shapeA[0] * shapeA[2] *
-                                                       shapeA[3]}) // [C, N*H*W]
+        // } else { // Tranpose + Matmul + Transpose
+        //     auto A = g->addOp<TransposeObj>(g->cloneTensor(op->getInputs(0)),
+        //                                     nullptr, vector{1, 0, 2, 3})
+        //                  ->getOutput(); // [C,N,H,W]
+        //     A = g->addOp<ReshapeObj>(A, nullptr,
+        //                              vector{shapeA[1], shapeA[0] * shapeA[2]
+        //                              *
+        //                                                    shapeA[3]}) // [C,
+        //                                                    N*H*W]
+        //             ->getOutput();
+        //     auto B = g->addOp<ReshapeObj>(g->cloneTensor(op->getInputs(1)),
+        //     nullptr,
+        //                                   vector{shapeW[0], shapeW[1]}) //
+        //                                   [F, C]
+        //                  ->getOutput();
+        //     auto O =
+        //         g->addOp<MatmulObj>(B, A, nullptr, 0, 0)->getOutput(); // [F,
+        //         NHW]
+        //     O = g->addOp<ReshapeObj>(
+        //              O, nullptr, Shape{shapeO[1], shapeO[0], shapeO[2],
+        //              shapeO[3]})
+        //             ->getOutput(); // [F, NHW]
+        //     O = g->addOpWithOutputs<TransposeObj>(
+        //              O, g->cloneTensor(op->getOutput()), vector{1, 0, 2, 3})
+        //             ->getOutput(); // [F, N*H*W]
+    } else { // BGemm
+        auto A =
+            g->addOp<ReshapeObj>(g->cloneTensor(op->getInputs(0)), nullptr,
+                                 vector{shapeA[0], shapeA[1],
+                                        shapeA[2] * shapeA[3]}) // [N, C, H*W]
                 ->getOutput();
-        auto B = g->addOp<ReshapeObj>(g->cloneTensor(op->getInputs(1)), nullptr,
-                                      vector{shapeW[0], shapeW[1]}) // [F, C]
-                     ->getOutput();
+        auto B =
+            g->addOp<ReshapeObj>(g->cloneTensor(op->getInputs(1)), nullptr,
+                                 vector{1, shapeW[0], shapeW[1]}) // [1, F, C]
+                ->getOutput();
         auto O =
-            g->addOp<MatmulObj>(B, A, nullptr, 0, 0)->getOutput(); // [F, NHW]
-        O = g->addOp<ReshapeObj>(
-                 O, nullptr, Shape{shapeO[1], shapeO[0], shapeO[2], shapeO[3]})
-                ->getOutput(); // [F, NHW]
-        O = g->addOpWithOutputs<TransposeObj>(
-                 O, g->cloneTensor(op->getOutput()), vector{1, 0, 2, 3})
-                ->getOutput(); // [F, N*H*W]
+            g->addOp<MatmulObj>(B, A, nullptr, 0, 0)->getOutput(); // [F, N*H*W]
+        g->addOpWithOutputs<ReshapeObj>(O, g->cloneTensor(op->getOutput()),
+                                        op->getOutput()->getDims());
     }
     return g;
 }

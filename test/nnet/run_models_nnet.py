@@ -167,14 +167,14 @@ if __name__ == "__main__":
 
     for original_g, name in graphs:
         print(f"=== {name}")
-        # save_onnx(original_g, f"hkz_orig_{name}.onnx")
+        # save_onnx(original_g, f"orig_{name}.onnx")
         # original_g = ft.convertNCHWtoNHWCModel(runtime, original_g)
-        # save_onnx(original_g, f"hkz_dlt_{name}.onnx")
+        # save_onnx(dlt_g, f"dlt_{name}.onnx")
+        # exit()
 
         # run_and_evaluate(runtime, original_g)
         g = ft.optimizeGraph(original_g, runtime, False, ft.NMutatorMode.RuleBased,
                                 [1, 7, 7, 2, 8, 6, 6])  # G2BMM/GBMM
-
         # g = ft.optimizeGraph(original_g, runtime, False, ft.NMutatorMode.RuleBased,
         #                      [3, 2, 2, 5, 8, 8, 6, 90]) # Conv2conv
         # g = ft.optimizeGraph(original_g, runtime, False, ft.NMutatorMode.Normal)
