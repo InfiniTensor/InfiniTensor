@@ -6,6 +6,8 @@
 namespace infini {
 
 void transpose_kernel(float *input, float *output, int nDims, int size,
-                      SmallArray strides, SmallArray outputShape);
+                      SmallArray strides, SmallArray outputShape,
+                      vector<int> _dims_in, vector<int> _dims_out,
+                      vector<int> _perms);
 
 } // namespace infini

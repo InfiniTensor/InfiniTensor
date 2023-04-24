@@ -39,7 +39,8 @@ class TransposeCuda : public CudaKernelWithoutConfig {
         }
 
         transpose_kernel((float *)inputData, (float *)outputData, nDims, size,
-                         strides, outputDims);
+                         strides, outputDims, input->getDims(),
+                         output->getDims(), perm);
     }
 };
 
