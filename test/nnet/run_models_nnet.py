@@ -29,8 +29,8 @@ def run_and_evaluate(runtime, g):
     ft.initializeGraphTensors(g)
     runtime.run(g, True)
     print(f'getPerfTime = {runtime.getPerfTime(g, True, False, False)}')
-    print(f'Non-ctc time = {runtime.timeNonCtcOperators(g, 1000, 1000)}')
-    print(f'Cuda graph time = {runtime.timeWithCudaGraph(g, 100)}')
+    print(f'Non-ctc time = {runtime.timeNonCtcOperators(g, 10, 10)}')
+    print(f'Cuda graph time = {runtime.timeWithCudaGraph(g, 10)}')
 
 
 def run_graph_get_output_as_torch_tensor(runtime, g):

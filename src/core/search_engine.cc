@@ -351,7 +351,7 @@ std::vector<Graph> SearchEngine::searchMutation(const MetaGraph &metaGraph) {
             //     mutatedGraphs.resize(2);
             // if (mutatedGraphs.size() >= 2)
             //     mutatedGraphs = {mutatedGraphs[1]};
-            constexpr bool chooseBestMutation = false;
+            constexpr bool chooseBestMutation = true;
             if (chooseBestMutation && mutatedGraphs.size() >= 2) {
                 std::sort(mutatedGraphs.begin(), mutatedGraphs.end(),
                           graphTimeComparer);

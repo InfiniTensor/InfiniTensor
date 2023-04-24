@@ -851,7 +851,7 @@ Graph NMutator::constructGraphByOperatorChain(vector<Operator> ops,
 
 Graph NMutator::eliminateVertically(const Graph &inputGraph) {
     auto ops = inputGraph->getOperators();
-
+    printf("hkz: stage1\n");
     IT_ASSERT(!ops.empty());
     if (ops.size() == 1) {
         return make_ref<GraphObj>(runtime, ops);
@@ -862,7 +862,7 @@ Graph NMutator::eliminateVertically(const Graph &inputGraph) {
         IT_ASSERT_TODO(op->getInputs().size() == 1);
         IT_ASSERT(op->getOutputs().size() == 1);
     }
-
+    printf("hkz: stage2\n");
     // Set attributs for operators.
     // isComputation: is computaiton
     // isElementwise: do elementwise computations
@@ -893,7 +893,7 @@ Graph NMutator::eliminateVertically(const Graph &inputGraph) {
         }
         return tuple{isComputation, isElementwise, lastRowSwapable};
     };
-
+    printf("hkz: stage3\n");
     // Reorder operators: move computatation operators to the tail
     for (int i = ops.size() - 2; i >= 0; --i) {
         for (int j = i; j < int(ops.size()) - 1; ++j) {
@@ -909,7 +909,7 @@ Graph NMutator::eliminateVertically(const Graph &inputGraph) {
             }
         }
     }
-
+    printf("hkz: stage4\n");
     Graph g = constructGraphByOperatorChain(ops, inputGraph);
     // Eliminate operators
     bool haveElimination;
@@ -917,9 +917,13 @@ Graph NMutator::eliminateVertically(const Graph &inputGraph) {
         haveElimination = false;
         ops = g->getOperators();
         vector<Operator> newOps;
+        printf("hkz: stage5\n");
         for (int i = 0; i < int(ops.size()); ++i) {
             if (ops[i]->getOpType() == OpType::Any) {
-                dbg("hah");
+                printf("hkz: has any\n");
+                dbg(inputGraph);
+            } else {
+                printf("hkz: no any\n");
             }
             // Eliminate identity operators
             if (auto op = as<TransposeObj>(ops[i])) {
@@ -964,11 +968,13 @@ Graph NMutator::eliminateVertically(const Graph &inputGraph) {
                 haveElimination = true;
             } else if (ops[i]->getOpType() == OpType::Any) {
                 newOps.push_back(ops[i]);
+                printf("hkz: meet any\n");
                 if (i != (int)ops.size() - 1 &&
                     (ops[i + 1]->getOpType() == OpType::Relu ||
                      ops[i + 1]->getOpType() == OpType::PRelu)) {
                     ++i;
                     haveElimination = true;
+                    printf("hkz: fuse any\n");
                 }
             } else {
                 newOps.push_back(ops[i]);
