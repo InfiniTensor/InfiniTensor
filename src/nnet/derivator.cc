@@ -136,9 +136,10 @@ void Derivator::dfs(Formula &origin, int depth) {
 }
 
 Derivator::Derivator(int maxDepth, bool enableHashPruning, LogMode logMode,
-                     PassMode passMode)
+                     PassMode passMode, bool printAndExit)
     : maxDepth(maxDepth), logMode(logMode), passMode(passMode),
-      enableHashPruning(enableHashPruning), cntAppliedRules(12) {}
+      enableHashPruning(enableHashPruning), cntAppliedRules(12),
+      printAndExit(printAndExit) {}
 
 int Derivator::getNumIntermediateStates() { return cntStates; }
 
@@ -405,6 +406,8 @@ Expr Derivator::mergeMemboundStages(VecExpr stages) {
 void Derivator::appendCanddiate(const Tensor &tensor, int depth) {
     // if (!CountRoutineVisitor().match(tensor, 1, 0, 3))
     //     return;
+    if (intermediateStates.size() > 1 && printAndExit)
+        printDerivationRules();
 
     candidates.emplace_back(tensor, depth);
     // dbg("!!!!!!!!!!!!!!!Success!!!!!!!!!!!!!!!");
@@ -478,6 +481,7 @@ void Derivator::printStatistics() {
     printf("#Hashed intermediate states = %lu\n", visited.size());
     printf("#Iteratos = %d\n", nIteratorNames);
     printf("#Tensors = %d\n", nTensorNames);
+    printf("#Print and Exit mode = %d\n", printAndExit);
 }
 
 void Derivator::setDumpFirstSuccess(const string &_logFnPrefix) {
@@ -490,6 +494,9 @@ void Derivator::printIntermediateStates() {
     // Skip in NoLog mode
     if (logMode == LogMode::NoLog)
         return;
+    if (intermediateStates.size() > 1 && printAndExit)
+        printDerivationRules();
+
     assert(intermediateStates.size() == ruleStates.size());
     assert(intermediateStates.size() == ruleMsgs.size());
     for (size_t i = 0; i < intermediateStates.size(); ++i) {
@@ -503,12 +510,13 @@ void Derivator::printIntermediateStates() {
                               logFnPrefix + to_string(i) + ".expr", msg);
         }
     }
-    for (size_t i = 0; i < intermediateStates.size(); ++i) {
-        if (auto cur = as<RangeOpNode>(intermediateStates[i]))
-            if (CheckOOBVisitor().checkRangeOp(cur)) {
-                printf("OOB detected depth=%lu\n", i);
-            }
-    }
+    // FIXME
+    // for (size_t i = 0; i < intermediateStates.size(); ++i) {
+    //     if (auto cur = as<RangeOpNode>(intermediateStates[i]))
+    //         if (CheckOOBVisitor().checkRangeOp(cur)) {
+    //             printf("OOB detected depth=%lu\n", i);
+    //         }
+    // }
     if (logMode == LogMode::DumpFristCandiate) {
         puts("Serializaiton finished.");
         exit(0);
@@ -527,5 +535,22 @@ void Derivator::setEquivalenceCheck() { enableEquivalenceCheck = true; }
 Derivator::PassMode Derivator::getPassMode() { return passMode; }
 
 Derivator::LogMode Derivator::getLogMode() { return logMode; }
+
+void Derivator::printDerivationRules() {
+    int cntRules = 0, cntNonGuideRules = 0;
+    bool startGuided = false;
+    std::cout << ruleStates.size() << "rules" << std::endl;
+    for (size_t i = 1; i < ruleStates.size(); ++i) {
+        int ruleId = ruleStates[i][4] - '0';
+        if (ruleId != 4)
+            ++cntRules;
+        if (ruleId == 8)
+            startGuided = true;
+        if (!startGuided && ruleId != 4)
+            ++cntNonGuideRules;
+    }
+    printf("#Steps w/o converging derivation %d,  #Steps w/ converging derivation %d\n", cntRules, cntNonGuideRules);
+    exit(0);
+}
 
 } // namespace nnet
