@@ -16,7 +16,6 @@
 #include "operators/reshape.h"
 #include "operators/softmax.h"
 #include "operators/transpose.h"
-#include "operators/pooling.h"
 #include "operators/unary.h"
 #include "test.h"
 #include <pybind11/stl.h>
@@ -443,6 +442,18 @@ Graph optimizeGraph(Graph g, Runtime _runtime, bool tuning, NMutator::Mode mode,
         return bestGraph;
     }
     return nullptr;
+}
+
+Graph optimizeWithDepthConstraint(Graph g, Runtime _runtime, int maxDepth) {
+    auto runtime = as<CudaRuntimeObj>(_runtime);
+    Runtime cpu = NativeCpuRuntimeObj::getInstance();
+    Graph gCpu = make_ref<GraphObj>(cpu);
+    Ref<NMutator> mutator = make_ref<NMutator>(NMutator::Mode::Normal, runtime);
+    mutator->setMaxDepth(maxDepth);
+    g->dataFree();
+    SearchEngine searchEngine(runtime, mutator);
+    searchEngine.searchFilter = 1;
+    return searchEngine.run(g);
 }
 
 vector<Tensor> runInfoGAN(int nLayers) {

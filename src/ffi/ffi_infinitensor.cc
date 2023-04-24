@@ -415,7 +415,9 @@ void export_test_model(py::module &m) {
              "rules"_a = vector<int>{})
         .def("initializeGraphTensors", &initializeGraphTensors, "g"_a,
              "l"_a = -0.1, "r"_a = 0.1, "useInt"_a = false)
-        .def("convertNCHWtoNHWCModel", &convertNCHWtoNHWCModel);
+        .def("convertNCHWtoNHWCModel", &convertNCHWtoNHWCModel)
+        .def("optimizeWithDepthConstraint", &optimizeWithDepthConstraint);
+    
 #endif
 }
 

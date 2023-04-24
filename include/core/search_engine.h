@@ -14,6 +14,7 @@ class SearchEngine {
   public:
     SearchEngine(Runtime runtime, Ref<Mutator> mutator);
     ~SearchEngine() {}
+    int searchFilter = 0;
 
   private: // Configurations
     size_t partitionThreshold =

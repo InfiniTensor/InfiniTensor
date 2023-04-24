@@ -144,6 +144,24 @@ def export_op_level_onnx(runtime):
         save_onnx(g, f"opt_{name}.onnx")
 
 
+def search_depth_exp():
+    runtime = ft.cuda_runtime()
+    graphs = [
+        (ft.getGANGraph(1, runtime, 5, 0), 'InfoGAN.bs1'),
+        (ft.getLongformer(runtime, 1), 'longformer.bs1'),
+    ]
+    print("Figure 16")
+    for original_g, name in graphs:
+        print(f"=== Model {name}")
+        for i in range(1, 7):
+            g = ft.optimizeWithDepthConstraint(original_g, runtime, i)
+            ft.initializeGraphTensors(g)
+            # runtime.run(g, True)
+            # print(f'getPerfTime = {runtime.getPerfTime(g, True, True, False)}')
+            # print(f'Non-ctc time = {runtime.timeNonCtcOperators(g, 10, 10)}')
+            # save_onnx(g, f"opt_{name}_depth{i}.onnx")
+            print(f'{name} Depth = {i}: {runtime.getPerfTime(g, True, True, False)} ms')
+
 if __name__ == "__main__":
     runtime = ft.cuda_runtime()
     graphs = [
@@ -152,7 +170,7 @@ if __name__ == "__main__":
         # (construct_conv(runtime, 1, 12, 32, 32, 12, 3, 1, 1, 0, 1, 1, 1, 1), 'conv3x1'),  #
         # (construct_conv(runtime, 1, 12, 32, 32, 12, 1, 11, 0, 5, 1, 1, 1, 1), 'conv1x11'),  #
         # (construct_conv(runtime, 16, 12, 32, 32, 12, 1, 11, 0, 5, 1, 1, 1, 1), 'conv1x11_bs16'),  #
-        # ft.getGANGraph(batch, runtime, 5, 1)
+        # (construct_conv(runtime, 16,32,224,224, 1, 5, 5, 2, 2, 1, 1, 1, 1), 'conv5x5'),  #
         # (ft.getLongformer(runtime, 1), 'longformer.bs1'),
         # (ft.getLongformer(runtime, 16), 'longformer.bs16'),
         # construct_convTranspose2d(runtime)
@@ -161,8 +179,31 @@ if __name__ == "__main__":
         # (ft.getFSRCNNGraph(16, runtime), "fsrcnn.bs16"),
         # (construct_conv_nhwc(runtime, 1, 56, 32, 32, 12, 1, 1, 0, 1, 1), 'conv1x1')
         # (load_onnx(runtime, '/mnt/auxHome/models/einnet/gcn.bs1.onnx'), 'gcn.bs1'),
-        (load_onnx(runtime, '/mnt/auxHome/models/einnet/gcn.bs16.onnx'), 'gcn.bs16'),
+        # (load_onnx(runtime, '/mnt/auxHome/models/einnet/gcn.bs16.onnx'), 'gcn.bs16'),
+        # (load_onnx(runtime, '/mnt/auxHome/models/einnet/csrnet.bs1.onnx'), 'csrnet.bs1'),
+        # (load_onnx(runtime, '/mnt/auxHome/models/einnet/csrnet.bs16.onnx'), 'csrnet.bs16'),
+        (ft.getLongformer(runtime, 1), 'longformer.bs1'),
+        # (ft.getLongformer(runtime, 16), 'longformer.bs16'),
+    #     (load_onnx(runtime, '/mnt/auxHome/models/einnet/resnet18.bs1.onnx'), 'resnet18.bs1'),
+    #     (load_onnx(runtime, '/mnt/auxHome/models/einnet/resnet18.bs16.onnx'), 'resnet18.bs16'),
+        # (ft.getGANGraph(1, runtime, 5, 0), 'InfoGAN.bs1'),
     ]
+    # model_evaluation =[
+    #     (ft.getGANGraph(1, runtime, 5, 0), 'InfoGAN.bs1'),
+    #     (ft.getGANGraph(16, runtime, 5, 0), 'InfoGAN.bs16'),
+    #     (ft.getGANGraph(1, runtime, 5, 1), 'DCGAN.bs16'),
+    #     (ft.getGANGraph(16, runtime, 5, 1), 'DCGAN.bs16'),
+    #     (ft.getFSRCNNGraph(1, runtime), "fsrcnn.bs1"),
+    #     (ft.getFSRCNNGraph(16, runtime), "fsrcnn.bs16"),
+    #     (load_onnx(runtime, '/mnt/auxHome/models/einnet/gcn.bs1.onnx'), 'gcn.bs1'),
+    #     (load_onnx(runtime, '/mnt/auxHome/models/einnet/gcn.bs16.onnx'), 'gcn.bs16'),
+    #     (load_onnx(runtime, '/mnt/auxHome/models/einnet/resnet18.bs1.onnx'), 'resnet18.bs1'),
+    #     (load_onnx(runtime, '/mnt/auxHome/models/einnet/resnet18.bs16.onnx'), 'resnet18.bs16'),
+    #     (load_onnx(runtime, '/mnt/auxHome/models/einnet/csrnet.bs1.onnx'), 'csrnet.bs1'),
+    #     (load_onnx(runtime, '/mnt/auxHome/models/einnet/csrnet.bs16.onnx'), 'csrnet.bs16'),
+    #     (ft.getLongformer(runtime, 1), 'longformer.bs1'),
+    #     (ft.getLongformer(runtime, 16), 'longformer.bs16'),
+    # ]
 
 
     for original_g, name in graphs:
@@ -173,12 +214,17 @@ if __name__ == "__main__":
         # exit()
 
         # run_and_evaluate(runtime, original_g)
-        g = ft.optimizeGraph(original_g, runtime, False, ft.NMutatorMode.RuleBased,
-                                [1, 7, 7, 2, 8, 6, 6])  # G2BMM/GBMM
+        # g = ft.optimizeGraph(original_g, runtime, False, ft.NMutatorMode.RuleBased,
+        #                         [1, 7, 7, 2, 8, 6, 6])  # G2BMM/GBMM
         # g = ft.optimizeGraph(original_g, runtime, False, ft.NMutatorMode.RuleBased,
         #                      [3, 2, 2, 5, 8, 8, 6, 90]) # Conv2conv
+        g = ft.optimizeGraph(original_g, runtime, False, ft.NMutatorMode.RuleBased,
+                             [3, 2, 2, 2, 2, 5, 8, 8, 6, 91, 90]) # Convtranspose2gemm
         # g = ft.optimizeGraph(original_g, runtime, False, ft.NMutatorMode.Normal)
+        # g = ft.convertNCHWtoNHWCModel(original_g, runtime, i)
 
+        # run_and_evaluate(runtime, original_g)
+        run_and_evaluate(runtime, g)
         save_onnx(g, f"opt_{name}.onnx")
         # verify_graphs(runtime, original_g, g)
-        run_and_evaluate(runtime, g)
+        # run_and_evaluate(runtime, g)

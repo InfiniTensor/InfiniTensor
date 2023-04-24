@@ -345,17 +345,26 @@ std::vector<Graph> SearchEngine::searchMutation(const MetaGraph &metaGraph) {
         std::vector<Graph> nextGraphs;
         if (node.type == 1) { // If it has computing OPs
             auto mutatedGraphs = mutator->run(node.graph);
+            constexpr bool chooseBestMutation = false;
+            if (searchFilter == 1) {
+                std::sort(mutatedGraphs.begin(), mutatedGraphs.end(),
+                          graphTimeComparer);
+                if (mutatedGraphs.size() >= 10)
+                    mutatedGraphs.resize(10);
+                mutatedGraphs = {mutatedGraphs[0]};
+            } else if (chooseBestMutation && mutatedGraphs.size() >= 2) {
+                std::sort(mutatedGraphs.begin(), mutatedGraphs.end(),
+                          graphTimeComparer);
+                if (mutatedGraphs.size() >= 10)
+                    mutatedGraphs.resize(10);
+                mutatedGraphs = {mutatedGraphs[0]};
+            }
             // // HACK: only try the first one for debug
             // if (mutatedGraphs.size() > 2)
             //     mutatedGraphs.resize(2);
             // if (mutatedGraphs.size() >= 2)
             //     mutatedGraphs = {mutatedGraphs[1]};
-            constexpr bool chooseBestMutation = false;
-            if (chooseBestMutation && mutatedGraphs.size() >= 2) {
-                std::sort(mutatedGraphs.begin(), mutatedGraphs.end(),
-                          graphTimeComparer);
-                mutatedGraphs = {mutatedGraphs[0]};
-            }
+
             for (auto graph : graphs) {
                 for (auto mutatedGraph : mutatedGraphs) {
                     std::vector<Operator> ops;
