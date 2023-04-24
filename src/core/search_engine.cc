@@ -96,7 +96,6 @@ Graph SearchEngine::run(const Graph graph) {
 
     // Fuse vertically and sort according to performance
     for (size_t i = 0; i < bestGraphs.size(); ++i) {
-        // Debug
         bestGraphs[i] = fuseVertically(bestGraphs[i]);
     }
     std::sort(bestGraphs.begin(), bestGraphs.end(), graphTimeComparer);
