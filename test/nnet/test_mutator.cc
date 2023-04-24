@@ -6,10 +6,12 @@
 #include "cuda/cuda_runtime.h"
 #include "nnet/nmutator.h"
 #include "nnet/test.h"
+#include "operators/any.h"
 #include "operators/conv.h"
 #include "operators/reshape.h"
 #include "operators/softmax.h"
 #include "operators/transpose.h"
+#include "operators/unary.h"
 #include "test.h"
 
 namespace infini {
@@ -539,12 +541,19 @@ TEST(NMutator, eliminateVertically_RTSTR_softmax_non_last_dim) {
     Runtime runtime = make_ref<CudaRuntimeObj>();
     Graph g = make_ref<GraphObj>(runtime);
     const int a = 8, b = 4, c = 5, d = 30;
+    string kernelName = "fake_kernel_name";
+    vector<int> attr = {2, 3, 2, 1, 4, 4};
     auto t0 = g->addTensor({a, b * c, d}, DataType::Float32, TensorType::Input);
+    auto output = g->addTensor({a, b * c, d}, DataType::Float32);
     t0 = g->addOp<ReshapeObj>(t0, nullptr, Shape{a, b, c, d})->getOutput();
     t0 = g->addOp<TransposeObj>(t0, nullptr, Shape{1, 2, 0, 3})->getOutput();
     t0 = g->addOp<SoftmaxObj>(t0, nullptr, 2)->getOutput();
     t0 = g->addOp<TransposeObj>(t0, nullptr, Shape{2, 0, 1, 3})->getOutput();
     t0 = g->addOp<ReshapeObj>(t0, nullptr, Shape{a, b * c, d})->getOutput();
+    auto op = g->addOpWithOutputs<AnyObj>(TensorVec{t0}, TensorVec{output},
+                                          "Conv2dReduce", attr);
+    auto srelu1 = g->addOp<ReluObj>(output, nullptr);
+    dbg(g);
     auto mutator = make_ref<NMutator>();
     auto optG = mutator->eliminateVertically(g);
     dbg(optG);

@@ -853,13 +853,14 @@ Graph NMutator::eliminateVertically(const Graph &inputGraph) {
     auto ops = inputGraph->getOperators();
 
     IT_ASSERT(!ops.empty());
+    if (ops.size() == 1) {
+        return make_ref<GraphObj>(runtime, ops);
+    }
     for (auto &op : ops) {
+        dbg(op->getOpType());
         IT_ASSERT(op->isMemBoundOp());
         IT_ASSERT_TODO(op->getInputs().size() == 1);
         IT_ASSERT(op->getOutputs().size() == 1);
-    }
-    if (ops.size() == 1) {
-        return make_ref<GraphObj>(runtime, ops);
     }
 
     // Set attributs for operators.
@@ -917,6 +918,9 @@ Graph NMutator::eliminateVertically(const Graph &inputGraph) {
         ops = g->getOperators();
         vector<Operator> newOps;
         for (int i = 0; i < int(ops.size()); ++i) {
+            if (ops[i]->getOpType() == OpType::Any) {
+                dbg("hah");
+            }
             // Eliminate identity operators
             if (auto op = as<TransposeObj>(ops[i])) {
                 auto perm = op->getPermute();
@@ -936,8 +940,9 @@ Graph NMutator::eliminateVertically(const Graph &inputGraph) {
             }
 
             // Eliminate reciprocal operators
-            if (i + 1 == (int)ops.size() ||
-                (ops[i]->getOpType() != ops[i + 1]->getOpType())) {
+            if ((i + 1 == (int)ops.size() ||
+                 (ops[i]->getOpType() != ops[i + 1]->getOpType())) &&
+                (ops[i]->getOpType() != OpType::Any)) {
                 newOps.push_back(ops[i]);
                 continue;
             }
@@ -957,6 +962,14 @@ Graph NMutator::eliminateVertically(const Graph &inputGraph) {
                                            ops[i + 1]->getOutput(), permute));
                 ++i;
                 haveElimination = true;
+            } else if (ops[i]->getOpType() == OpType::Any) {
+                newOps.push_back(ops[i]);
+                if (i != (int)ops.size() - 1 &&
+                    (ops[i + 1]->getOpType() == OpType::Relu ||
+                     ops[i + 1]->getOpType() == OpType::PRelu)) {
+                    ++i;
+                    haveElimination = true;
+                }
             } else {
                 newOps.push_back(ops[i]);
             }

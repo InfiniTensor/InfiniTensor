@@ -38,7 +38,7 @@ bool OperatorObj::isMemBoundOp() const {
     return type == OpType::MemBound || type == OpType::Reshape ||
            type == OpType::Activation || type == OpType::Transpose ||
            type == OpType::Relu || type == OpType::Tanh ||
-           type == OpType::Softmax;
+           type == OpType::Softmax || type == OpType::Any;
 }
 
 void OperatorObj::removePredecessors(const Operator &op) {
