@@ -173,12 +173,10 @@ optimization::Unigraph cast(GraphObj &g) {
         std::transform(dims.begin(), dims.end(), shape.begin(),
                        [](auto x) { return static_cast<size_t>(x); });
 
-        opt::Data data{};
+        opt::Data data;
         if (t->hasData()) {
-            auto origin = t->getDataBlob();
-            data.cpu_data.resize(t->getBytes());
-            memcpy(data.cpu_data.data(), origin->getPtr<uint8_t *>(),
-                   data.cpu_data.size());
+            auto ptr = t->getDataBlob()->getPtr<uint8_t *>();
+            data = opt::Data(ptr, ptr + t->getBytes());
         }
         tensors[I(t)] =
             opt::Tensor::share(shape, cast(t->getDType()), std::move(data));

@@ -66,9 +66,18 @@ struct Tensor {
                              Data::cpu<t>(std::move(val)));
     }
 
+    /// @brief Calculates count of data in this tensor.
+    /// @return Data count.
+    size_t count() const;
+
     /// @brief Calculates the size of the tensor in bytes.
     /// @return Memory usage in bytes.
     size_t size() const;
+
+    /// @brief Copies tensor data to a `Vec`.
+    /// @tparam t Data type.
+    /// @return The data `Vec`.
+    template <class t> Vec<t> to_vec() const { return data.to_vec<t>(count()); }
 
   private:
     /// @brief Constructor is private and only accessible by the factory method.

@@ -53,10 +53,11 @@ Vec<Unigraph> optimization::pass::mutate( // fmt: new line
         auto const conv = Conv(g.operators.front());
         auto const &i_shape = conv.input()->shape;
         auto const &w_shape = conv.weight()->shape;
-        auto const &dilations = conv.delations()->data.cpu_data;
-        auto const &strides = conv.strides()->data.cpu_data;
+        auto const &dilations = conv.delations()->to_vec<int64_t>();
+        auto const &strides = conv.strides()->to_vec<int64_t>();
         if (w_shape.rbegin()[0] == 1    // fmt: new line
             && w_shape.rbegin()[1] == 1 //
+            && i_shape[1] == w_shape[1] // group = 1
             && std::all_of(strides.begin(), strides.end(),
                            [](auto x) { return x == 1; })) {
             // 1x1 conv
