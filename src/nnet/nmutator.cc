@@ -146,6 +146,7 @@ void NMutator::runSingleOp(Graph in_graph, std::vector<Graph> &out_graphs) {
         // dbg(nnet::FullPrinterVisitor().print(candidate.root));
         if (auto g = expressionToGraph(candidate.root, in_graph)) {
             out_graphs.emplace_back(g);
+            hasTunedKernel = true;
         }
         // break; // HACK:Debug only for the first subgraph
     }
@@ -415,7 +416,7 @@ infini::Graph NMutator::expressionToGraph(nnet::Expr expr, Graph in_graph) {
                 auto input =
                     nameNToTensorT.at(op->getInputs().at(0)->getName());
                 auto output = nameNToTensorT.at(outputNameN);
-               if (input->size() != output->size())
+                if (input->size() != output->size())
                     return nullptr;
                 g->addOpWithOutputs<ReshapeObj>(input, output,
                                                 output->getDims());
@@ -848,7 +849,6 @@ Graph NMutator::constructGraphByOperatorChain(vector<Operator> ops,
         auto output = (i + 1 == ops.size())
                           ? inputGraph->getOutputs()[0]
                           : g->addTensor(ops[i]->getOutput()->getDims());
-        dbg(input->getDims(), output->getDims());
         input = g->cloneOperator(ops[i], {input}, {output})->getOutput();
     }
     return g;

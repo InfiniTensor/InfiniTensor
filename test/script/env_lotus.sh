@@ -5,6 +5,7 @@ if [ "$#" == 0 ] || [ "$1" == "cuda" ]
 then
     echo "Load CUDA environment."
     spack load cuda@11.0.2 cudnn@8.0.3.33-11.0 
+    spack load /2fcgebh # python3.7
     export CUDAHOSTCXX=/home/spack/spack/opt/spack/linux-ubuntu22.04-broadwell/gcc-9.4.0/gcc-9.4.0-st36klijpsnquihiy463hmedsyhoc3g6/bin/gcc
 elif [ "$1" == "intelcpu" ]
 then

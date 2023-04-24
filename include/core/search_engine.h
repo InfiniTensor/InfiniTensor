@@ -15,6 +15,7 @@ class SearchEngine {
     SearchEngine(Runtime runtime, Ref<Mutator> mutator);
     ~SearchEngine() {}
     int searchFilter = 0;
+    bool chooseBestMutation = true;
 
   private: // Configurations
     size_t partitionThreshold =

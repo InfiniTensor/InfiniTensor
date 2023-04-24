@@ -15,6 +15,7 @@ Graph optimizeGraph(Graph g, Runtime _runtime, bool tuning, NMutator::Mode mode,
 void initializeGraphTensors(Graph g, double l, double r, bool useInt);
 Graph convertNCHWtoNHWCModel(Runtime runtime, Graph inG);
 Graph optimizeWithDepthConstraint(Graph g, Runtime _runtime, int maxDepth);
+Graph optimizeModel(Graph g, Runtime _runtime, string name);
 
 } // namespace infini
 

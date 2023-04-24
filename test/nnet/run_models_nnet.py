@@ -28,9 +28,9 @@ def load_onnx(runtime, filename: str) -> ft.Graph:
 def run_and_evaluate(runtime, g):
     ft.initializeGraphTensors(g)
     runtime.run(g, True)
-    print(f'getPerfTime = {runtime.getPerfTime(g, True, False, False)}')
-    print(f'Non-ctc time = {runtime.timeNonCtcOperators(g, 1000, 1000)}')
-    print(f'Cuda graph time = {runtime.timeWithCudaGraph(g, 100)}')
+    # print(f'getPerfTime = {runtime.getPerfTime(g, True, False, False)}')
+    # print(f'Non-ctc time = {runtime.timeNonCtcOperators(g, 10, 10)}')
+    print(f'Cuda graph time = {runtime.timeWithCudaGraph(g, 10)}')
 
 
 def run_graph_get_output_as_torch_tensor(runtime, g):
@@ -161,8 +161,45 @@ def search_depth_exp():
             # print(f'Non-ctc time = {runtime.timeNonCtcOperators(g, 10, 10)}')
             # save_onnx(g, f"opt_{name}_depth{i}.onnx")
             print(f'{name} Depth = {i}: {runtime.getPerfTime(g, True, True, False)} ms')
+    
+def model_e2e_exp():
+    runtime = ft.cuda_runtime()
+    model_evaluation =[
+        (lambda : ft.getGANGraph(1, runtime, 5, 0), 'InfoGAN.bs1'),
+        (lambda : ft.getGANGraph(16, runtime, 5, 0), 'InfoGAN.bs16'),
+        (lambda : ft.getGANGraph(1, runtime, 5, 1), 'DCGAN.bs1'),
+        (lambda : ft.getGANGraph(16, runtime, 5, 1), 'DCGAN.bs16'),
+        (lambda : ft.getFSRCNNGraph(1, runtime), "fsrcnn.bs1"),
+        (lambda : ft.getFSRCNNGraph(16, runtime), "fsrcnn.bs16"),
+        (lambda : load_onnx(runtime, '/mnt/auxHome/models/einnet/gcn.bs1.onnx'), 'gcn.bs1'),
+        (lambda : load_onnx(runtime, '/mnt/auxHome/models/einnet/gcn.bs16.onnx'), 'gcn.bs16'),
+        (lambda : load_onnx(runtime, '/mnt/auxHome/models/einnet/csrnet.bs1.onnx'), 'csrnet.bs1'),
+        (lambda : load_onnx(runtime, '/mnt/auxHome/models/einnet/csrnet.bs16.onnx'), 'csrnet.bs16'),
+        (lambda : ft.getLongformer(runtime, 1), 'longformer.bs1'),
+        (lambda : ft.getLongformer(runtime, 16), 'longformer.bs16'),
+    ]    
+    print("Figure 12")
+    for graph_ctor, name in model_evaluation:
+        print(f"=== {name}")
+        original_g = graph_ctor()
+        g = ft.optimizeModel(original_g, runtime, name)
+        # g = ft.optimizeGraph(original_g, runtime, False, ft.NMutatorMode.RuleBased,
+        #                      [3, 2, 2, 2, 2, 5, 8, 8, 6, 91, 90]) # Convtranspose2gemm
+        # save_onnx(g, f"opt_{name}.onnx")
+        run_and_evaluate(runtime, g)
+
+
+def perf_test():
+    # wrong time 26.6 ms
+    # correct time 15 ms
+    runtime = ft.cuda_runtime()
+    g = ft.getLongformer(runtime, 1)
+    run_and_evaluate(runtime, g)
 
 if __name__ == "__main__":
+    # perf_test()
+    model_e2e_exp()
+    exit()
     runtime = ft.cuda_runtime()
     graphs = [
         # (construct_conv(runtime, 16, 56, 32, 32, 12, 1, 1, 0, 1, 1), 'conv1x1'), # FSRCNN Conv_2 1x1
@@ -188,22 +225,6 @@ if __name__ == "__main__":
     #     (load_onnx(runtime, '/mnt/auxHome/models/einnet/resnet18.bs16.onnx'), 'resnet18.bs16'),
         # (ft.getGANGraph(1, runtime, 5, 0), 'InfoGAN.bs1'),
     ]
-    # model_evaluation =[
-    #     (ft.getGANGraph(1, runtime, 5, 0), 'InfoGAN.bs1'),
-    #     (ft.getGANGraph(16, runtime, 5, 0), 'InfoGAN.bs16'),
-    #     (ft.getGANGraph(1, runtime, 5, 1), 'DCGAN.bs16'),
-    #     (ft.getGANGraph(16, runtime, 5, 1), 'DCGAN.bs16'),
-    #     (ft.getFSRCNNGraph(1, runtime), "fsrcnn.bs1"),
-    #     (ft.getFSRCNNGraph(16, runtime), "fsrcnn.bs16"),
-    #     (load_onnx(runtime, '/mnt/auxHome/models/einnet/gcn.bs1.onnx'), 'gcn.bs1'),
-    #     (load_onnx(runtime, '/mnt/auxHome/models/einnet/gcn.bs16.onnx'), 'gcn.bs16'),
-    #     (load_onnx(runtime, '/mnt/auxHome/models/einnet/resnet18.bs1.onnx'), 'resnet18.bs1'),
-    #     (load_onnx(runtime, '/mnt/auxHome/models/einnet/resnet18.bs16.onnx'), 'resnet18.bs16'),
-    #     (load_onnx(runtime, '/mnt/auxHome/models/einnet/csrnet.bs1.onnx'), 'csrnet.bs1'),
-    #     (load_onnx(runtime, '/mnt/auxHome/models/einnet/csrnet.bs16.onnx'), 'csrnet.bs16'),
-    #     (ft.getLongformer(runtime, 1), 'longformer.bs1'),
-    #     (ft.getLongformer(runtime, 16), 'longformer.bs16'),
-    # ]
 
 
     for original_g, name in graphs:

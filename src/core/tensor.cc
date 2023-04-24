@@ -198,10 +198,11 @@ Tensor TensorObj::clone(Runtime runtime) const {
     obj->freeData();
     obj->targets.clear();
     obj->source.reset();
-    if (hasData()) {
-        obj->dataMalloc();
-        obj->copyData(this);
-    }
+    // FIXME
+    // if (hasData()) {
+    //     obj->dataMalloc();
+    //     obj->copyData(this);
+    // }
     return obj;
 }
 

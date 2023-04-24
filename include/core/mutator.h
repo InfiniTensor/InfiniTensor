@@ -16,6 +16,7 @@ class Mutator {
             Runtime runtime = NativeCpuRuntimeObj::getInstance())
         : candidatesLimit(candidatesLimit), runtime(runtime){};
     virtual ~Mutator(){};
+    bool hasTunedKernel = false;
 
     virtual vector<Graph> run(const Graph &in_graph) = 0;
     /**
