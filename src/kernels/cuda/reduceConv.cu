@@ -95,10 +95,15 @@ __global__ void reduce_merge_conv_3x3(
             res += input[5 + W_offset];
         if (w > 0)
             res += input[3 - W_offset];
-        if (act)
-            output[tid] = max(res + bias[f], 0.f);
-        else
-            output[tid] = res + bias[f];
+        if (act) {
+            // output[tid] = max(res + bias[f], 0.f);
+            // HACK: temperaly remove bias
+            output[tid] = max(res, 0.f);
+        } else {
+            // output[tid] = res + bias[f];
+            // HACK: temperaly remove bias
+            output[tid] = res;
+        }
     }
 }
 
@@ -133,7 +138,9 @@ reduce_2(T *__restrict__ input, T *__restrict__ output, T *__restrict__ bias,
             if (w != W - 1)
                 res += input[F_offset * 3 + 3 * H_offset + 3];
         }
-        output[tid] = max(res + bias[f], 0.f);
+        // output[tid] = max(res + bias[f], 0.f);
+        // HACK: temperaly remove bias
+        output[tid] = max(res, 0.f);
     }
 }
 
