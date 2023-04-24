@@ -96,8 +96,7 @@ Graph SearchEngine::run(const Graph graph) {
 
     // Fuse vertically and sort according to performance
     for (size_t i = 0; i < bestGraphs.size(); ++i) {
-        // Debug
-        // bestGraphs[i] = fuseVertically(bestGraphs[i]);
+        bestGraphs[i] = fuseVertically(bestGraphs[i]);
     }
     std::sort(bestGraphs.begin(), bestGraphs.end(), graphTimeComparer);
 
@@ -346,17 +345,28 @@ std::vector<Graph> SearchEngine::searchMutation(const MetaGraph &metaGraph) {
         std::vector<Graph> nextGraphs;
         if (node.type == 1) { // If it has computing OPs
             auto mutatedGraphs = mutator->run(node.graph);
-            // // HACK: only try the first one for debug
-            // if (mutatedGraphs.size() > 2)
-            //     mutatedGraphs.resize(2);
-            // if (mutatedGraphs.size() >= 2)
-            //     mutatedGraphs = {mutatedGraphs[1]};
-            constexpr bool chooseBestMutation = false;
-            if (chooseBestMutation && mutatedGraphs.size() >= 2) {
+            if (mutator->hasTunedKernel)
+                chooseBestMutation = false;
+            if (searchFilter == 1) {
                 std::sort(mutatedGraphs.begin(), mutatedGraphs.end(),
                           graphTimeComparer);
+                if (mutatedGraphs.size() >= 10)
+                    mutatedGraphs.resize(10);
                 mutatedGraphs = {mutatedGraphs[0]};
+            } else if (chooseBestMutation && mutatedGraphs.size() >= 2) {
+                std::sort(mutatedGraphs.begin(), mutatedGraphs.end(),
+                          graphTimeComparer);
+                if (mutatedGraphs.size() >= 10)
+                    mutatedGraphs.resize(10);
+                mutatedGraphs = {mutatedGraphs[0]};
+            } else { // avoid repeated kernel genreation
+                if (mutatedGraphs.size() >= 2) // INFOGAN
+                    mutatedGraphs = {mutatedGraphs[1]};
+                // if (mutatedGraphs.size() > 2) {
+                //     mutatedGraphs.resize(2);
+                // }
             }
+
             for (auto graph : graphs) {
                 for (auto mutatedGraph : mutatedGraphs) {
                     std::vector<Operator> ops;
@@ -485,6 +495,14 @@ Graph SearchEngine::fuseVertically(const Graph &graph) {
             visitTime.emplace(op->getGuid(), ++cnt);
             ops.emplace_back(op);
             continue;
+        }
+        if (op->getOpType() == OpType::Relu ||
+            op->getOpType() == OpType::PRelu) {
+            if (auto p = op->getInputs()[0])
+                if (auto sop = p->getSource())
+                    if (sop->getOpType() == OpType::Conv ||
+                        sop->getOpType() == OpType::Matmul)
+                        continue;
         }
         vector<Operator> chainOps;
         visitTime.emplace(op->getGuid(), ++cnt);

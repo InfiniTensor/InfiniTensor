@@ -24,16 +24,12 @@ class ActivationCudnn : public CudaKernelWithoutConfig {
         void *const outputData = (op->getOutput()->getRawDataPtr<void *>());
 
         cudnnTensorDescriptor_t inputDesc, outputDesc;
-        auto dim = op->getInputs(0)->getDims();
-        IT_ASSERT_TODO(dim.size() <= 4);
-        int n, c, h, w;
-        if (dim.size() == 4) {
-            n = dim[0], c = dim[1], h = dim[2], w = dim[3];
-        } else if (dim.size() == 3) {
-            n = 1, c = dim[0], h = dim[1], w = dim[2];
-        } else {
-            IT_TODO_HALT();
-        }
+        auto _dim = op->getInputs(0)->getDims();
+        IT_ASSERT_TODO(_dim.size() <= 4);
+        vector<int> dim(4, 1);
+        for (int i = 0; i < (int)_dim.size(); i++) // Unsqueeze to 4D
+            dim[i + 4 - _dim.size()] = _dim[i];
+        int n = dim[0], c = dim[1], h = dim[2], w = dim[3];
 
         // get inputs
         checkCudnnError(cudnnCreateTensorDescriptor(&inputDesc));

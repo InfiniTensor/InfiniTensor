@@ -16,7 +16,6 @@
 #include "operators/reshape.h"
 #include "operators/softmax.h"
 #include "operators/transpose.h"
-#include "operators/pooling.h"
 #include "operators/unary.h"
 #include "test.h"
 #include <pybind11/stl.h>
@@ -27,6 +26,8 @@ namespace infini {
 using GANConfigs = vector<tuple<int, int, int, int, bool>>;
 using DetailedConfigs =
     vector<tuple<int, int, int, int, int, int, int, int, int, int, bool>>;
+
+static const vector<int> metaRules = {3, 2, 2, 2, 2, 5, 8, 8, 6, 91, 90};
 
 DetailedConfigs getGANConfigs(int id, int batch) {
     // The first conv can be transformed into gemm without reduction
@@ -357,6 +358,18 @@ Graph convertNCHWtoNHWCModel(Runtime runtime, Graph inG) {
     return g;
 }
 
+Graph optimizeModel(Graph g, Runtime _runtime, string name) {
+    auto runtime = as<CudaRuntimeObj>(_runtime);
+    Runtime cpu = NativeCpuRuntimeObj::getInstance();
+    Graph gCpu = make_ref<GraphObj>(cpu);
+    Ref<NMutator> mutator =
+        make_ref<NMutator>(NMutator::Mode::RuleBased, metaRules, runtime);
+    vector<Graph> bestGraphs;
+    SearchEngine searchEngine(runtime, mutator);
+    g->dataFree();
+    return searchEngine.run(g);
+}
+
 Graph optimizeGraph(Graph g, Runtime _runtime, bool tuning, NMutator::Mode mode,
                     vector<int> rules) {
     auto runtime = as<CudaRuntimeObj>(_runtime);
@@ -443,6 +456,18 @@ Graph optimizeGraph(Graph g, Runtime _runtime, bool tuning, NMutator::Mode mode,
         return bestGraph;
     }
     return nullptr;
+}
+
+Graph optimizeWithDepthConstraint(Graph g, Runtime _runtime, int maxDepth) {
+    auto runtime = as<CudaRuntimeObj>(_runtime);
+    Runtime cpu = NativeCpuRuntimeObj::getInstance();
+    Graph gCpu = make_ref<GraphObj>(cpu);
+    Ref<NMutator> mutator = make_ref<NMutator>(NMutator::Mode::Normal, runtime);
+    mutator->setMaxDepth(maxDepth);
+    g->dataFree();
+    SearchEngine searchEngine(runtime, mutator);
+    searchEngine.searchFilter = 1;
+    return searchEngine.run(g);
 }
 
 vector<Tensor> runInfoGAN(int nLayers) {

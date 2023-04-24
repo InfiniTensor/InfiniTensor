@@ -18,6 +18,7 @@ class NMutator : public Mutator {
     const double bandwidth = double(200) * 1024 * 1024 * 1024;
     // If in RuleBased mode, use derivationRules in derivator
     const std::vector<int> derivationRules;
+    bool searchFilter = false;
 
   public:
     NMutator(Mode mode = Mode::Normal,
@@ -32,7 +33,10 @@ class NMutator : public Mutator {
     bool isMultiBranchMergable(const Graph &in_graph) override;
 
     void setToNaiveMembound();
-    void setMaxDepth(int _maxDepth) { maxDepth = _maxDepth; }
+    void setMaxDepth(int _maxDepth) { 
+      maxDepth = _maxDepth;
+      searchFilter = true;
+    }
     long long cntStates = 0;
     long long cntCandidates = 0;
 

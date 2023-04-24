@@ -13,6 +13,7 @@
         if (cudaSuccess != err) {                                              \
             fprintf(stderr, "Cuda error in %s:%i : %s.\n", __FILE__, __LINE__, \
                     cudaGetErrorString(err));                                  \
+            IT_ASSERT(false);                                                  \
             exit(EXIT_FAILURE);                                                \
         }                                                                      \
     }

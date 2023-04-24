@@ -118,7 +118,8 @@ void NMutator::runSingleOp(Graph in_graph, std::vector<Graph> &out_graphs) {
     if (infini::Graph g = transformConvTranposeToGEMMReduce(computeOps[0])) {
         out_graphs.emplace_back(g);
     }
-    return;
+    if (out_graphs.size() > 1)
+        return;
 
     const set<OpType> opSet{OpType::Conv, OpType::ConvTransNHWC, OpType::G2BMM,
                             OpType::GBMM};
@@ -145,6 +146,7 @@ void NMutator::runSingleOp(Graph in_graph, std::vector<Graph> &out_graphs) {
         // dbg(nnet::FullPrinterVisitor().print(candidate.root));
         if (auto g = expressionToGraph(candidate.root, in_graph)) {
             out_graphs.emplace_back(g);
+            hasTunedKernel = true;
         }
         // break; // HACK:Debug only for the first subgraph
     }
@@ -414,6 +416,8 @@ infini::Graph NMutator::expressionToGraph(nnet::Expr expr, Graph in_graph) {
                 auto input =
                     nameNToTensorT.at(op->getInputs().at(0)->getName());
                 auto output = nameNToTensorT.at(outputNameN);
+                if (input->size() != output->size())
+                    return nullptr;
                 g->addOpWithOutputs<ReshapeObj>(input, output,
                                                 output->getDims());
             } else {
@@ -598,6 +602,8 @@ Graph NMutator::transformConvTranposeToGEMMReduce(Operator _op) {
     const auto &[ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
     if (dh != 1 || dw != 1)
         return nullptr;
+    if (r == 4 && s == 4 && sh == 2 && sw == 2) // Solved by NNET
+        return nullptr;
     const Shape inputDims = op->getInputs(0)->getDims();
     const Shape weightDims = op->getInputs(1)->getDims();
     const Shape outputDims = op->getOutput()->getDims();
@@ -669,7 +675,7 @@ Graph NMutator::transformConvTranposeToGEMMReduce(Operator _op) {
 
 Graph NMutator::transformG2bmm(Operator _op) {
     auto op = as<G2BMMObj>(_op);
-    if (!op)
+    if (!op || maxDepth <= 3)
         return nullptr;
     const auto [b, m, k, width, dilation] = op->getBMKWD();
     if (dilation == 1 || m % dilation != 0)
@@ -688,7 +694,7 @@ Graph NMutator::transformG2bmm(Operator _op) {
 
 Graph NMutator::transformGbmm(Operator _op) {
     auto op = as<GBMMObj>(_op);
-    if (!op)
+    if (!op || maxDepth <= 3)
         return nullptr;
     const auto [b, m, width, k, dilation] = op->getBMWND();
     if (dilation == 1 || m % dilation != 0)
@@ -843,7 +849,6 @@ Graph NMutator::constructGraphByOperatorChain(vector<Operator> ops,
         auto output = (i + 1 == ops.size())
                           ? inputGraph->getOutputs()[0]
                           : g->addTensor(ops[i]->getOutput()->getDims());
-        dbg(input->getDims(), output->getDims());
         input = g->cloneOperator(ops[i], {input}, {output})->getOutput();
     }
     return g;
