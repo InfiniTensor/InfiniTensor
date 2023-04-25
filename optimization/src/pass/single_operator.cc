@@ -47,19 +47,18 @@ Vec<Unigraph> optimization::pass::mutate( // fmt: new line
     SingleOperator const &                //
 ) {
     Vec<Unigraph> ans;
-    auto const &op = g.operators.front();
-    switch (op.op_type) {
+    switch (g.operators.front().op_type) {
     case OpType::Conv: {
         auto const conv = Conv(g.operators.front());
         auto const &i_shape = conv.input()->shape;
-        auto const &w_shape = conv.kernel()->shape;
-        auto const &dilations = conv.delations()->to_vec<int64_t>();
+        auto const &k_shape = conv.kernel()->shape;
+        auto const &dilations = conv.dilations()->to_vec<int64_t>();
         auto const &strides = conv.strides()->to_vec<int64_t>();
         // assert(conv.input()->data_type == conv.kernel()->data_type);
         auto const dt = conv.input()->data_type;
-        if (w_shape.rbegin()[0] == 1    // fmt: new line
-            && w_shape.rbegin()[1] == 1 //
-            && i_shape[1] == w_shape[1] // group = 1
+        if (k_shape.rbegin()[0] == 1    // fmt: new line
+            && k_shape.rbegin()[1] == 1 //
+            && i_shape[1] == k_shape[1] // group = 1
             && std::all_of(strides.begin(), strides.end(),
                            [](auto x) { return x == 1; })) {
             // 1x1 conv
@@ -84,7 +83,7 @@ Vec<Unigraph> optimization::pass::mutate( // fmt: new line
             // (kernel,"fcrs"->"cfrs") -|transpose|-> tranposed -|reshape|-> t1
             Arc<Tensor> t1;
             {
-                auto [shape_, permute_] = transpose(w_shape, "fcrs", "cfrs");
+                auto [shape_, permute_] = transpose(k_shape, "fcrs", "cfrs");
                 auto tranposed = Tensor::share(std::move(shape_), dt, {});
                 auto permutation = Tensor::share_vec(std::move(permute_));
                 mutant.push_operator(OpType::Transpose,
@@ -114,7 +113,7 @@ Vec<Unigraph> optimization::pass::mutate( // fmt: new line
             }
         } else if (
             // group = 1
-            i_shape[1] == w_shape[1]
+            i_shape[1] == k_shape[1]
             // stride[*] = 1
             && std::all_of(strides.begin(), strides.end(),
                            [](auto x) { return x == 1; })
@@ -156,7 +155,7 @@ Vec<Unigraph> optimization::pass::mutate( // fmt: new line
 
             Vec<size_t> shape__{
                 shape_[0] * shape_[1] * shape_[2],
-                w_shape[1],
+                k_shape[1],
                 conv.output()->shape[2] / shape_[1],
                 conv.output()->shape[3] / shape_[2],
             };
