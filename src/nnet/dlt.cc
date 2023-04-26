@@ -60,7 +60,7 @@ optional<Expr> DLT::apply(const RangeOp &rangeOp, const Subscript &subscript,
             // Maybe there are bugs...
             // assert(index != nullptr);
             if (index == nullptr) {
-                std::cout << "Warning empty" << std::endl;
+                // std::cout << "Warning empty" << std::endl;
                 return {};
             }
         }
