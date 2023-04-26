@@ -28,8 +28,7 @@ int main() {
             {c}                        // outputs
         );
 
-        auto p =
-            Partition<pass::SingleOperator>(std::move(g), pass::partition);
+        auto p = Partition<pass::SingleOperator>(std::move(g), pass::partition);
         auto m = Mutation<pass::SingleOperator>(
             std::move(p),
             [](const auto &g, const auto &t) { return Vec<Unigraph>{}; });
