@@ -36,7 +36,7 @@ class BangRuntimeObj : public RuntimeObj {
              bool profiling = false) const;
     // double runEvaluation(const Graph &graph, int nWarmups,
     //                      int nEvaluations) const;
-    void sync() const;
+    void sync() const override;
     BangPtr alloc(size_t size) override {
         void *ptr;
         checkBangError(cnrtMalloc(&ptr, size));

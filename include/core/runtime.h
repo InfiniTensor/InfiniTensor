@@ -79,6 +79,7 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
     virtual void copyBlobToCPU(void *dst, const void *src,
                                size_t bytes) const = 0;
     virtual string toString() const = 0;
+    virtual void sync() const {}
 
     map<UidBaseType, bool>
     getCompileTimeComputableAttribute(const Graph &graph) const;

@@ -27,7 +27,7 @@ class CudaRuntimeObj : public RuntimeObj {
              bool profiling = false) const;
     // double runEvaluation(const Graph &graph, int nWarmups,
     //                      int nEvaluations) const;
-    void sync() const;
+    void sync() const override;
     CudaPtr alloc(size_t size) override {
         void *ptr;
         // printf("Try to cudaMalloc: %lu bytes\n", size);

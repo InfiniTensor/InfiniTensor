@@ -241,7 +241,7 @@ double RuntimeObj::timeNonCtcOperators(const Graph &graph, int warmup,
                     kernel->compute(op, this);
             }
         },
-        [&]() { sync(); }, warmup, repeat);
+        [&]() { this->sync(); }, warmup, repeat);
     return ret;
 }
 

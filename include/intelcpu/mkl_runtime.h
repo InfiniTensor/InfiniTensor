@@ -29,7 +29,7 @@ class MklRuntimeObj : public CpuRuntimeObj {
     string toString() const override { return "INTELCPU Runtime"; };
     dnnl::engine getEngine() const { return dnnl::engine(engine, true); }
     dnnl::stream getStream() const { return dnnl::stream(stream, true); }
-    void sync() const;
+    void sync() const override;
 };
 
 } // namespace infini
