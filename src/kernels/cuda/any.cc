@@ -74,6 +74,7 @@ void any_kernel_mapping(vector<float *> inputs, vector<float *> outputs,
         IT_ASSERT(outputs.size() == 1);
         conv3x3ToReduce(attr[0], attr[1], attr[2], attr[3], inputs[0],
                         outputs[0], inputs.size() > 1 ? inputs[1] : nullptr);
+    } else if (kernelName == "FakeOp") {
     } else {
         std::cout << "Unimplemented AnyOp cuda kernel: " << kernelName
                   << std::endl;

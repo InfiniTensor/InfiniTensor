@@ -33,9 +33,9 @@ class NMutator : public Mutator {
     bool isMultiBranchMergable(const Graph &in_graph) override;
 
     void setToNaiveMembound();
-    void setMaxDepth(int _maxDepth) { 
-      maxDepth = _maxDepth;
-      searchFilter = true;
+    void setMaxDepth(int _maxDepth) {
+        maxDepth = _maxDepth;
+        searchFilter = true;
     }
     long long cntStates = 0;
     long long cntCandidates = 0;
@@ -67,11 +67,11 @@ class NMutator : public Mutator {
     // TODO: recover these rules
     Graph transformConvtransposed1x1(Operator _op);
     // Graph transformConvtransposed(Operator op);
-    Graph transformConv1x1(Operator op);
+    vector<Graph> transformConv1x1(Operator op);
     Graph transformG2bmm(Operator op);
     Graph transformGbmm(Operator op);
     Graph transformDialtedConv(Operator _op);
-    Graph transformConv1xk(Operator op);
+    vector<Graph> transformConv1xk(Operator op);
     // Graph transformConv1xk(Operator op);
     Graph transformConvToGEMMReduce(Operator _op);
     Graph transformConvTranposeToGEMMReduce(Operator _op);

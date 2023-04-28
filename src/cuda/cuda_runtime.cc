@@ -6,6 +6,7 @@
 #include "nnet/dbg.h"
 #include "operators/conv.h"
 #include "operators/matmul.h"
+#include "operators/any.h"
 #ifdef INFINI_USE_TVM
 #include "tvm/runtime/device_api.h"
 #endif
@@ -140,8 +141,12 @@ double CudaRuntimeObj::timeWithCudaGraph(Graph graph, int rounds) {
             kernel->compute(op, perfData, this);
         else
             kernel->compute(op, this);
-        // FIXME: transpose
-        if (!ctcMap.at(op->getGuid()) && op->getOpType() != OpType::Reshape)
+        bool isFakeOp = (as<AnyObj>(op) &&
+                         as<AnyObj>(op)->getKernelName() == string("FakeOp"));
+        if (as<AnyObj>(op))
+            dbg(op, as<AnyObj>(op)->getKernelName() == string("FakeOp"));
+        if (!ctcMap.at(op->getGuid()) && op->getOpType() != OpType::Reshape &&
+            !isFakeOp)
             kernels.emplace_back(op, kernel, perfData);
     }
     for (auto &[op, kernel, perfData] : kernels) {

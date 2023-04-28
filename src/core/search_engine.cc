@@ -100,6 +100,15 @@ Graph SearchEngine::run(const Graph graph) {
     }
     std::sort(bestGraphs.begin(), bestGraphs.end(), graphTimeComparer);
 
+    // Check optimized graphs are legal
+    for (auto g : bestGraphs) {
+        g->checkValid();
+        IT_ASSERT(graph->getInputs().size() == g->getInputs().size(),
+                  graph->toString() + string("\n") + g->toString());
+        IT_ASSERT(graph->getOutputs().size() == g->getOutputs().size(),
+                  graph->toString() + string("\n") + g->toString());
+    }
+
     std::cout << "[INFO] best fused graph: " << std::endl;
     std::cout << "[INFO] perf: " << getEstimatedGraphPerf(bestGraphs[0])
               << std::endl;

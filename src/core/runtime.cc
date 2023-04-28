@@ -146,6 +146,8 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling,
             opCnt[op->getOpType()]++;
             if (!ctcMap[op->getGuid()])
                 opNonCtcCnt[op->getOpType()]++;
+            else
+                opNonCtcCnt[op->getOpType()]; // Create a new entry
         }
     }
     if (profiling)
