@@ -928,19 +928,28 @@ Graph NMutator::constructGraphByOperatorChain(vector<Operator> ops,
     IT_ASSERT(inputGraph->getInputs().size() == 1);
     IT_ASSERT(inputGraph->getOutputs().size() == 1);
     IT_ASSERT(ops.size() > 0,
-              "TODO: If there is no op left, how to return an empty graph?");
+              "TODO: If there is no op left, how to return an empty graph? " +
+                  inputGraph->toString());
     auto input = g->cloneTensor(inputGraph->getInputs()[0]);
+    auto graphOutput = g->cloneTensor(inputGraph->getOutputs()[0]);
     for (size_t i = 0; i < ops.size(); ++i) {
-        auto output = (i + 1 == ops.size())
-                          ? inputGraph->getOutputs()[0]
-                          : g->addTensor(ops[i]->getOutput()->getDims());
-        input = g->cloneOperator(ops[i], {input}, {output})->getOutput();
+        if (i + 1 == ops.size() &&
+            ops[i]->getOutput()->getDims() == graphOutput->getDims()) {
+            input =
+                g->cloneOperator(ops[i], {input}, {graphOutput})->getOutput();
+        } else { // If it is not the last op or output shape dismatches
+            input = g->cloneOpAndCreateOutputs(ops[i], {input})->getOutput();
+        }
     }
+    // Add a reshape to match original graph if necessary
+    if (g->getOutputs()[0]->getDims() != graphOutput->getDims())
+        g->addOpWithOutputs<ReshapeObj>(input, graphOutput);
     return g;
 }
 
 Graph NMutator::eliminateVertically(const Graph &inputGraph) {
     auto ops = inputGraph->getOperators();
+    bool funcHasOptmization = false;
 
     IT_ASSERT(!ops.empty());
     for (auto &op : ops) {
@@ -983,17 +992,19 @@ Graph NMutator::eliminateVertically(const Graph &inputGraph) {
         return tuple{isComputation, isElementwise, lastRowSwapable};
     };
 
-    // Reorder operators: move computatation operators to the tail
+    // Reorder operators: move computatation operators to the head
     for (int i = ops.size() - 2; i >= 0; --i) {
         for (int j = i; j < int(ops.size()) - 1; ++j) {
-            bool swapable = false;
-            const set<OpType> unaryElementwise{OpType::Relu, OpType::PRelu,
-                                               OpType::Tanh};
+           bool swapable = false;
             auto [aIsC, aEw, aLRS] = classifyOperator(ops[j]);
             auto [bIsC, bEw, bLRS] = classifyOperator(ops[j + 1]);
-            if (aIsC && !bIsC && (aEw || (aLRS && bLRS))) // Swap condition
+            // check swapable conditions:
+            // (!aIsC && bIsC): ordering of computation and non-computation
+            // (aEw && aEw): elementwise
+            // (aLRS && bLRS): last dim fixed
+            if ((!aIsC && bIsC) && ((aEw && bEw) || (aLRS && bLRS)))
                 swapable = true;
-            if (swapable) {
+           if (swapable) {
                 swap(ops[j], ops[j + 1]);
             }
         }
@@ -1001,8 +1012,9 @@ Graph NMutator::eliminateVertically(const Graph &inputGraph) {
 
     Graph g = constructGraphByOperatorChain(ops, inputGraph);
     // Eliminate operators
-    bool haveElimination;
+    bool haveElimination = false;
     do {
+        funcHasOptmization = funcHasOptmization || haveElimination;
         haveElimination = false;
         ops = g->getOperators();
         vector<Operator> newOps;
@@ -1022,6 +1034,24 @@ Graph NMutator::eliminateVertically(const Graph &inputGraph) {
                 if (op->getShape() == op->getInputs(0)->getDims()) {
                     haveElimination = true;
                     continue;
+                }
+            }
+            // Operator-level fusion
+            // Any+Relu -> Any(activation=1)
+            if (i + 1 < int(ops.size())) {
+                const string name = "reduceConvRxSToNCHW";
+                if (auto op = as<AnyObj>(ops[i]);
+                    op && op->getKernelName() == name) {
+                    if (auto op2 = as<ReluObj>(ops[i + 1])) {
+                        if (op->getOutput() == op2->getInputs(0)) {
+                            auto newOp = make_ref<AnyObj>(*op);
+                            newOp->setAttr(0, 1); // Set activation
+                            newOps.push_back(newOp);
+                            ++i;
+                            haveElimination = true;
+                            continue;
+                        }
+                    }
                 }
             }
 

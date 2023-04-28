@@ -22,6 +22,7 @@ class AnyObj : public OperatorObj {
     int numOutputs() const override { return outputs.size(); }
 
     const string getKernelName() const;
+    void setAttr(int i, int v) { attr[i] = v; }
     vector<int> getOpAttrVector() const override;
     vector<int> getWorkloadVector() const override;
 };

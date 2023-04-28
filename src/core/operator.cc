@@ -35,6 +35,8 @@ bool OperatorObj::isTransposeOp() const { return type == OpType::Transpose; }
 bool OperatorObj::isReshapeOp() const { return type == OpType::Reshape; }
 
 bool OperatorObj::isMemBoundOp() const {
+    if (type == OpType::Any)
+        return true; // TODO: check operator attributes
     return type == OpType::MemBound || type == OpType::Reshape ||
            type == OpType::Activation || type == OpType::Transpose ||
            type == OpType::Relu || type == OpType::Tanh ||

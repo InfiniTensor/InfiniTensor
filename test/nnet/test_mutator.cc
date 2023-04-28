@@ -6,10 +6,12 @@
 #include "cuda/cuda_runtime.h"
 #include "nnet/nmutator.h"
 #include "nnet/test.h"
+#include "operators/any.h"
 #include "operators/conv.h"
 #include "operators/reshape.h"
 #include "operators/softmax.h"
 #include "operators/transpose.h"
+#include "operators/unary.h"
 #include "test.h"
 
 namespace infini {
@@ -549,6 +551,23 @@ TEST(NMutator, eliminateVertically_RTSTR_softmax_non_last_dim) {
     auto optG = mutator->eliminateVertically(g);
     dbg(optG);
     EXPECT_EQ(optG->getOperators().size(), 5u);
+}
+
+TEST(NMutator, eliminateVertically_Reduce_Reshape_Relu) {
+    Runtime runtime = make_ref<CudaRuntimeObj>();
+    Graph g = make_ref<GraphObj>(runtime);
+    const int a = 8;
+    auto input = g->addTensor({a, a});
+    auto t0 = g->addTensor({a, a});
+    vector<int> args(15, 0);
+    const string kernelName = "reduceConvRxSToNCHW";
+    g->addOpWithOutputs<AnyObj>(vector{input}, vector{t0}, kernelName, args);
+    t0 = g->addOp<ReshapeObj>(t0, nullptr, Shape{a * a})->getOutput();
+    t0 = g->addOp<ReluObj>(t0, nullptr)->getOutput();
+    auto mutator = make_ref<NMutator>();
+    auto optG = mutator->eliminateVertically(g);
+    dbg(optG);
+    EXPECT_EQ(optG->getOperators().size(), 2u);
 }
 
 } // namespace infini
