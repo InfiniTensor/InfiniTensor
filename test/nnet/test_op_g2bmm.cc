@@ -38,7 +38,12 @@ void testOpG2BMMOrigin(bool printGraph = false) {
     // allocate CUDA memory
     gCuda->dataMalloc();
     // Execute on CUDA
+    cuda->run(gCuda, true);
+    std::cout << "Time: " << cuda->getPerfTime(gCuda) << " ms" << std::endl;
+    cudaProfilerStart();
     cuda->run(gCuda);
+    cudaProfilerStop();
+
     if (printGraph) {
         // print a tensor/operator/graph by print()
         gCuda->print();
@@ -71,7 +76,12 @@ void testOpG2BMMOptimized(bool printGraph = false) {
     // allocate CUDA memory
     gCuda->dataMalloc();
     // Execute on CUDA
+    cuda->run(gCuda, true);
+    std::cout << "Time: " << cuda->getPerfTime(gCuda) << " ms" << std::endl;
+    cudaProfilerStart();
     cuda->run(gCuda);
+    cudaProfilerStop();
+
     if (printGraph) {
         // print a tensor/operator/graph by print()
         gCuda->print();
@@ -80,22 +90,8 @@ void testOpG2BMMOptimized(bool printGraph = false) {
 
 constexpr int rounds = 100;
 
-TEST(op_G2BMM, origin) {
-    for (int i = 0; i < rounds; ++i) {
-        testOpG2BMMOrigin();
-    }
-    cudaProfilerStart();
-    testOpG2BMMOrigin(true);
-    cudaProfilerStop();
-}
+TEST(op_G2BMM, origin) { testOpG2BMMOrigin(); }
 
-TEST(op_G2BMM, optimized) {
-    for (int i = 0; i < rounds; ++i) {
-        testOpG2BMMOptimized();
-    }
-    cudaProfilerStart();
-    testOpG2BMMOptimized(true);
-    cudaProfilerStop();
-}
+TEST(op_G2BMM, optimized) { testOpG2BMMOptimized(); }
 
 } // namespace infini

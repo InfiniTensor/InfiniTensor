@@ -38,7 +38,12 @@ void testOpConv3x3Origin(bool printGraph = false) {
     // allocate CUDA memory
     gCuda->dataMalloc();
     // Execute on CUDA
+    cuda->run(gCuda, true);
+    std::cout << "Time: " << cuda->getPerfTime(gCuda) << " ms" << std::endl;
+
+    cudaProfilerStart();
     cuda->run(gCuda);
+    cudaProfilerStop();
     if (printGraph) {
         // print a tensor/operator/graph by print()
         gCuda->print();
@@ -80,7 +85,11 @@ void testOpConv3x3Optimized(bool printGraph = false) {
     gCuda->dataMalloc();
     // std::cout << "data malloc success..." << std::endl;
     // Execute on CUDA
+    cuda->run(gCuda, true);
+    std::cout << "Time: " << cuda->getPerfTime(gCuda) << " ms" << std::endl;
+    cudaProfilerStart();
     cuda->run(gCuda);
+    cudaProfilerStop();
     // std::cout << "cuda run success..." << std::endl;
     if (printGraph) {
         // print a tensor/operator/graph by print()
@@ -90,22 +99,8 @@ void testOpConv3x3Optimized(bool printGraph = false) {
 
 constexpr int rounds = 100;
 
-TEST(op_Conv3x3, origin) {
-    for (int i = 0; i < rounds; ++i) {
-        testOpConv3x3Origin();
-    }
-    cudaProfilerStart();
-    testOpConv3x3Origin(true);
-    cudaProfilerStop();
-}
+TEST(op_Conv3x3, origin) { testOpConv3x3Origin(); }
 
-TEST(op_Conv3x3, optimized) {
-    for (int i = 0; i < rounds; ++i) {
-        testOpConv3x3Optimized();
-    }
-    cudaProfilerStart();
-    testOpConv3x3Optimized(true);
-    cudaProfilerStop();
-}
+TEST(op_Conv3x3, optimized) { testOpConv3x3Optimized(); }
 
 } // namespace infini
