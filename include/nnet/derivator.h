@@ -67,11 +67,13 @@ class Derivator {
     vector<string> ruleStates, ruleMsgs;
     int cntStates = 0;   // the number of intermediate states
     int searchState = 0; // search state in guided search
+    bool printAndExit;
+    void printDerivationRules();
 
   public:
     Derivator(int maxDepth = 8, bool enableHashPruning = true,
               LogMode mode = LogMode::NoLog,
-              PassMode passMode = PassMode::Debug);
+              PassMode passMode = PassMode::Debug, bool printAndExit = false);
     void search(Formula &origin, int depth);
     void ruleBasedDFS(Formula &origin, int depth, vector<int> _rules,
                       map<int, vector<Var>> _substituteRules = {},
