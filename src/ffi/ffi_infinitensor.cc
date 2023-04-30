@@ -3,6 +3,7 @@
 #include "core/search_engine.h"
 #include "nnet/nmutator.h"
 #include "nnet/test_models.h"
+#include "operators/any.h"
 #include "operators/batch_norm.h"
 #include "operators/concat.h"
 #include "operators/conv.h"
@@ -254,6 +255,11 @@ static vector<int64_t> pad_pads_of(Operator op) {
     return ans;
 }
 
+static string any_kernelName_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Any);
+    return as<AnyObj>(op)->getKernelName();
+}
+
 static vector<int> transpose_permute_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Transpose);
     return dynamic_cast<const TransposeObj *>(op.get())->getPermute();
@@ -294,6 +300,7 @@ void export_functions(py::module &m) {
         .FUNCTION(split_axis_of)
         .FUNCTION(gather_axis_of)
         .FUNCTION(membound_expr_of)
+        .FUNCTION(any_kernelName_of)
         .def("membound_hash_of",
              [](Operator op) { return as<MemBoundObj>(op)->getHash(); });
 #undef FUNCTION

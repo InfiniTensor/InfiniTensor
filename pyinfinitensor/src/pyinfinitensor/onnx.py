@@ -25,6 +25,7 @@ from onnx.shape_inference import infer_shapes
 from onnx.numpy_helper import to_array
 from typing import Dict, List, Any, Tuple, Sequence, Union, Optional
 from functools import reduce
+import numpy as np
 
 
 class OnnxStub:
@@ -644,6 +645,12 @@ class OnnxStub:
                         name = f"input{self.count_in}_{tensor.guid()}"
                     else:
                         name = f"weight{self.count_in}_{tensor.guid()}"
+                        shape = tensor.shape()
+                        print('shape=', shape)
+                        data = np.random.randn(*shape)
+                        self.initializers.append(
+                            make_tensor(name, TensorProto.FLOAT, shape, data)
+                        )
                     self.names[tensor] = name
                     if init != None:
                         init.name = name
@@ -819,7 +826,8 @@ class OnnxStub:
                         shape,
                     )
                 )
-                ctx.push_node(make_node(ty.name, inputs, outputs, name))
+                ctx.push_node(make_node(ty.name, inputs,
+                              outputs, name, allowzero=0))
             elif ty == backend.OpType.Concat:
                 axis = backend.concat_axis_of(op)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, axis=axis))
@@ -887,8 +895,21 @@ class OnnxStub:
                         ctx.push_data_input(name, "max", TensorProto.FLOAT, [], [])
                     )
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
-            elif ty in [backend.OpType.ConvTransNHWC, backend.OpType.GBMM, 
-                        backend.OpType.G2BMM, backend.OpType.Any]:
+            elif ty == backend.OpType.Any:
+                kernel_name = backend.any_kernelName_of(op)
+                normal_op = kernel_name != 'Reduce3x3Offset_hint'
+                ctx.push_node(
+                    make_node(
+                        ty.name if normal_op else 'Reduce3x3OffsetPlugin',
+                        inputs,
+                        outputs,
+                        name,
+                        kernelName=kernel_name,
+                        domain="nnet" if normal_op else None,
+                    )
+                )
+            elif ty in [backend.OpType.ConvTransNHWC, backend.OpType.GBMM,
+                        backend.OpType.G2BMM]:
                 ctx.push_node(
                     make_node(
                         ty.name,

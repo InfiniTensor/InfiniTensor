@@ -101,6 +101,8 @@ void NMutator::runSingleOp(Graph in_graph, std::vector<Graph> &out_graphs) {
         out_graphs.emplace_back(g);
     for (auto g : transformConv1xk(computeOps[0]))
         out_graphs.emplace_back(g);
+    for (auto g : transformConv3x3ONNX(computeOps[0]))
+        out_graphs.emplace_back(g);
     if (Graph g = transformG2bmm(computeOps[0])) {
         out_graphs.emplace_back(g);
     }
@@ -995,7 +997,7 @@ Graph NMutator::eliminateVertically(const Graph &inputGraph) {
     // Reorder operators: move computatation operators to the head
     for (int i = ops.size() - 2; i >= 0; --i) {
         for (int j = i; j < int(ops.size()) - 1; ++j) {
-           bool swapable = false;
+            bool swapable = false;
             auto [aIsC, aEw, aLRS] = classifyOperator(ops[j]);
             auto [bIsC, bEw, bLRS] = classifyOperator(ops[j + 1]);
             // check swapable conditions:
@@ -1004,7 +1006,7 @@ Graph NMutator::eliminateVertically(const Graph &inputGraph) {
             // (aLRS && bLRS): last dim fixed
             if ((!aIsC && bIsC) && ((aEw && bEw) || (aLRS && bLRS)))
                 swapable = true;
-           if (swapable) {
+            if (swapable) {
                 swap(ops[j], ops[j + 1]);
             }
         }
@@ -1036,6 +1038,7 @@ Graph NMutator::eliminateVertically(const Graph &inputGraph) {
                     continue;
                 }
             }
+
             // Operator-level fusion
             // Any+Relu -> Any(activation=1)
             if (i + 1 < int(ops.size())) {
@@ -1193,5 +1196,35 @@ Tensor NMutator::splitTransposeMerge(Graph g, Tensor A, int dim, int chunkSize,
         A3 = g->addOp<ReshapeObj>(A2, nullptr, shapeOrignial)->getOutput();
     return A3;
 };
+
+vector<Graph> NMutator::transformConv3x3ONNX(Operator _op) {
+    vector<Graph> ret;
+    auto op = as<ConvObj>(_op);
+    if (!op)
+        return ret;
+    const auto &[n, c, h, w, f, r, s] = op->getNCHWFRS();
+    const auto &[ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
+    if (tuple{n, c, h, w, f, r, s} != tuple{1, 512, 7, 7, 512, 3, 3} ||
+        tuple{ph, pw, sh, sw, dh, dw} != tuple{1, 1, 1, 1, 1, 1})
+        return ret;
+    auto g = make_ref<GraphObj>(runtime);
+    auto A = g->cloneTensor(op->getInputs(0));
+    auto W = g->cloneTensor(op->getInputs(1)); // [F, C, R, S]
+    auto O = g->cloneTensor(op->getOutput());
+    A = g->addOp<ReshapeObj>(A, nullptr, vector<int>{c, h * w})
+            ->getOutput(); // [C, H*W]
+    W = g->addOp<ReshapeObj>(W, nullptr, vector<int>{f * r * s, c})
+            ->getOutput();                             // [F,R,S,C]
+    auto O0 = g->addOp<MatmulObj>(W, A, nullptr, 0, 0) // Orignal: W X A
+                  ->getOutput();                       // [F*R*S, H*W]
+    vector<int> args{};
+    const string kernelName = "Reduce3x3Offset_hint";
+    // const string kernelName = "FakeOp";
+    auto O3 = g->addOpWithOutputs<AnyObj>(vector{O0}, vector{g->cloneTensor(O)},
+                                          kernelName, args);
+    hasTunedKernel = true; // enforce the transformation
+    ret.emplace_back(g);
+    return ret;
+}
 
 } // namespace infini
