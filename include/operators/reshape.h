@@ -60,6 +60,7 @@ class FlattenObj : public OperatorObj {
     std::string toString() const override;
     int numInputs() const override { return 1; }
     int numOutputs() const override { return 1; }
+    int getAxis() const { return axis; }
 
   private:
     vector<int> getWorkloadVector() const override;

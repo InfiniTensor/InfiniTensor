@@ -803,7 +803,8 @@ class OnnxStub:
             ]:
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpType.Flatten:
-                raise Exception("TODO")
+                ctx.push_node(make_node(ty.name, inputs,
+                              outputs, axis=backend.flatten_axis_of(op)))
             elif ty == backend.OpType.Transpose:
                 perm = backend.transpose_permute_of(op)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, perm=perm))

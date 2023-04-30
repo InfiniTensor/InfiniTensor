@@ -240,6 +240,11 @@ static vector<int64_t> reshape_shape_of(Operator op) {
     return ans;
 }
 
+static int flatten_axis_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Flatten);
+    return as<FlattenObj>(op)->getAxis();
+}
+
 static vector<int64_t> pad_pads_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Pad);
     auto shape = dynamic_cast<const PadObj *>(op.get())->getPads();
@@ -282,6 +287,7 @@ void export_functions(py::module &m) {
         .FUNCTION(reduce_mean_attrs_of)
         .FUNCTION(tensor_dtype)
         .FUNCTION(reshape_shape_of)
+        .FUNCTION(flatten_axis_of)
         .FUNCTION(pad_pads_of)
         .FUNCTION(transpose_permute_of)
         .FUNCTION(concat_axis_of)

@@ -148,6 +148,7 @@ class OpRegistry {
             FOP(Reshape);
             FOP(Identity);
             FOP(Shape);
+            FOP(Flatten);
             // element wise
             FOP(BatchNorm);
             FOP(Softmax);
