@@ -4,6 +4,10 @@ namespace infini {
 ElementWiseObj::ElementWiseObj(OpType type, GraphObj *graph, Tensor input0,
                                Tensor input1, Tensor output)
     : OperatorObj(type, {input0, input1}, {output}) {
+    // Make sure the first input has the same shape with the output.
+    if (input0->size() < input1->size()) {
+        std::swap(inputs[0], inputs[1]);
+    }
     IT_ASSERT(checkValid(graph));
 }
 
