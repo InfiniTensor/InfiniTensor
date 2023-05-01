@@ -34,11 +34,11 @@ class Mutator {
 
     /// @brief Fuse memory bound operators.
     /// @return The graph after fusion. Return `nullptr` if fails.
-    virtual Graph fuseVertically(const Graph &inputGraph) { IT_TODO_HALT(); }
+    virtual Graph fuseVertically(const Graph &inputGraph) { return nullptr; }
 
     /// @brief Eliminate transpose and reshape.
     /// @return The graph after elimination. Return `nullptr` if fails.
-    virtual Graph eliminateVertically(const Graph &in_graph) { IT_TODO_HALT(); }
+    virtual Graph eliminateVertically(const Graph &in_graph) { return nullptr; }
 };
 
 } // namespace infini

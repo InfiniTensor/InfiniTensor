@@ -1,6 +1,5 @@
 #include "core/graph.h"
 #include "core/runtime.h"
-#include "cuda/cuda_runtime.h"
 #include "operators/any.h"
 #include "test.h"
 using namespace infini;

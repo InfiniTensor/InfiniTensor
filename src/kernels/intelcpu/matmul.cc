@@ -31,7 +31,7 @@ template <typename T> class MklMatmul : public CpuKernelWithoutConfig {
     }
 };
 
-/*REGISTER_KERNEL(Device::INTELCPU, OpType::Matmul, DataType::Float32,
-                MklMatmul<float>, "MklMatmul_CPU_float32");*/
+REGISTER_KERNEL(Device::INTELCPU, OpType::Matmul, DataType::Float32,
+                MklMatmul<float>, "MklMatmul_CPU_float32");
 
 } // namespace infini

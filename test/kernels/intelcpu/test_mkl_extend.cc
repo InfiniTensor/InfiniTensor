@@ -21,7 +21,6 @@ TEST(MKL_Extend, run) {
     runtime->run(g);
 
     auto o = op->getOutput();
-
     //  check results on CPU
     EXPECT_TRUE(o->equalData(vector<float>{
         0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 0,  1,  2,  3,

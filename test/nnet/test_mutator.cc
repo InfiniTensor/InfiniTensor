@@ -93,7 +93,7 @@ TEST(NMutator, InfoGAN_TConv_3_correctness) {
     g->dataMalloc();
     map<UidBaseType, Tensor> fuidToInputTensor;
     for (auto t : g->getInputs()) {
-        EXPECT_EQ(fuidToInputTensor.count(t->getFuid()), 0);
+        EXPECT_EQ(fuidToInputTensor.count(t->getFuid()), 0ul);
         fuidToInputTensor[t->getFuid()] = t;
     }
 

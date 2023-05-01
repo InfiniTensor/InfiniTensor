@@ -30,13 +30,13 @@ class MklResize : public MklKernelWithoutConfig {
             enum_to_underlying(ResizeObj::ECoordinateTransMode::halfPixel))
             IT_TODO_HALT();
 
-        int nDim = op->getInputs(0)->getDims().size();
+        auto nDim = op->getInputs(0)->getDims().size();
         IT_ASSERT(nDim == 3 || nDim == 4 ||
-                  nDim == 5 &&
-                      (op->getInputs(0)->getDims()[0] == 1 &&
-                       op->getInputs(0)->getDims()[1] == 1) &&
-                      (op->getOutput(0)->getDims()[0] == 1 &&
-                       op->getOutput(0)->getDims()[1] == 1));
+                  (nDim == 5 &&
+                   (op->getInputs(0)->getDims()[0] == 1 &&
+                    op->getInputs(0)->getDims()[1] == 1) &&
+                   (op->getOutput(0)->getDims()[0] == 1 &&
+                    op->getOutput(0)->getDims()[1] == 1)));
 
         IT_ASSERT(op->getScales().size() == nDim);
         std::vector<float>::iterator beg = op->getScales().begin() + 2;

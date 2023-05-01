@@ -41,7 +41,7 @@ TEST(dnnl_Binary, run) {
                        ExpectOutput{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1});
 }
 
-TEST(sycl_Pow, run) {
+TEST(omp_Pow, run) {
     testBinary<PowObj>(IncrementalGenerator(), Shape{1, 2, 2, 1},
                        ExpectOutput{1, 1, 4, 27});
 }
