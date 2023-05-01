@@ -499,10 +499,15 @@ class OnnxStub:
                     next((attr.i for attr in node.attribute if attr.name == "axis")),
                 )
             elif node.op_type == "ReduceMean":
+                axes = (
+                    [int(i) for i in data[node.input[1]].int64_data]
+                    if len(node.input) > 1
+                    else _parse_attribute(node, {"axes": None})["axes"]
+                )
                 tensors[node.output[0]] = ans.handler.reduce_mean(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
-                    tensors[node.input[1]] if len(node.input) > 1 else None,
+                    axes,
                     next((attr.i for attr in node.attribute if attr.name == "keepdims"))
                     != 0,
                 )
