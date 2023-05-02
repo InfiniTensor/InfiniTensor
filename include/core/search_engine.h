@@ -68,6 +68,7 @@ class SearchEngine {
     Graph fuseVertically(const Graph &graph);
 
     double getEstimatedGraphPerf(Graph graph);
+    vector<Graph> sortGraphsByTime(vector<Graph> graphs);
 };
 
 } // namespace infini

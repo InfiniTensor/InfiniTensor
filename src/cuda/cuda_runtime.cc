@@ -4,9 +4,9 @@
 #include "core/runtime.h"
 #include "cuda_profiler_api.h"
 #include "nnet/dbg.h"
+#include "operators/any.h"
 #include "operators/conv.h"
 #include "operators/matmul.h"
-#include "operators/any.h"
 #ifdef INFINI_USE_TVM
 #include "tvm/runtime/device_api.h"
 #endif
@@ -97,8 +97,8 @@ void CudaRuntimeObj::tune(const Graph &graph, bool profiling = false) const {
         if (profiling) {
             double t = timeit([&]() { kernel->compute(op, record, this); },
                               [&]() { sync(); }, 1, 1);
-            op->print();
-            printf(" op_time on cuda %lf\n", t);
+            // op->print();
+            // printf(" op_time on cuda %lf\n", t);
             totalTime += t;
             opTime[op->getOpType()] += t;
             opCnt[op->getOpType()]++;
@@ -172,7 +172,8 @@ double CudaRuntimeObj::timeWithCudaGraph(Graph graph, int rounds) {
     // number of captured kernels may exceed the number of operators.
     IT_ASSERT(numCudaGraphNodes >= kernels.size(),
               std::to_string(numCudaGraphNodes) +
-                  " != " + std::to_string(kernels.size()));
+                  " != " + std::to_string(kernels.size()) +
+                  "\nThe problemetic graph:\n" + graph->toString() + "\n");
     printf("numCudaGraphNodes = %lu\n", numCudaGraphNodes);
     return timeit(
         [&, cudaGraphInstance = cudaGraphInstance, stream = getStream()]() {

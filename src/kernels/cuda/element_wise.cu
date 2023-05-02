@@ -65,7 +65,8 @@ void div_kernel(float *a, float *b, float *c, int a0, int a1, int a2, int a3,
     int blocksize = block_work_size();
     int num = c0*c1*c2*c3;
     int gridsize = (num + block_work_size() - 1) / block_work_size();
-    _div_kernel<<<blocksize, gridsize>>>(a, b, c, a0, a1, a2, a3, b0, b1, b2, b3, c0, c1, c2, c3);
+    _div_kernel<<<gridsize, blocksize>>>(a, b, c, a0, a1, a2, a3, b0, b1, b2,
+                                         b3, c0, c1, c2, c3);
 }
 void pow_kernel(float *a, float *b, float *c, int a0, int a1, int a2, int a3,
                                               int b0, int b1, int b2, int b3,
@@ -73,7 +74,8 @@ void pow_kernel(float *a, float *b, float *c, int a0, int a1, int a2, int a3,
     int blocksize = block_work_size();
     int num = c0*c1*c2*c3;
     int gridsize = (num + block_work_size() - 1) / block_work_size();
-    _pow_kernel<<<blocksize, gridsize>>>(a, b, c, a0, a1, a2, a3, b0, b1, b2, b3, c0, c1, c2, c3);
+    _pow_kernel<<<gridsize, blocksize>>>(a, b, c, a0, a1, a2, a3, b0, b1, b2,
+                                         b3, c0, c1, c2, c3);
 }
 
 }; // namespace infini

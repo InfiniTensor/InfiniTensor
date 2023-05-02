@@ -76,7 +76,7 @@ Graph SearchEngine::run(const Graph graph) {
             }
         }
         dbg("===Num" + std::to_string(nextGraphs.size()));
-        std::sort(nextGraphs.begin(), nextGraphs.end(), graphTimeComparer);
+        nextGraphs = sortGraphsByTime(nextGraphs);
 
         if (nextGraphs.size() > GRAPH_SIZE) {
             nextGraphs.resize(GRAPH_SIZE);
@@ -99,7 +99,7 @@ Graph SearchEngine::run(const Graph graph) {
     for (size_t i = 0; i < bestGraphs.size(); ++i) {
         bestGraphs[i] = fuseVertically(bestGraphs[i]);
     }
-    std::sort(bestGraphs.begin(), bestGraphs.end(), graphTimeComparer);
+    bestGraphs = sortGraphsByTime(bestGraphs);
 
     // Check optimized graphs are legal
     for (auto g : bestGraphs) {
@@ -134,7 +134,7 @@ std::vector<Graph> SearchEngine::search(const Graph &graph) {
 
     // compare with perf time
     dbg("===Num" + std::to_string(results.size()));
-    std::sort(results.begin(), results.end(), graphTimeComparer);
+    results = sortGraphsByTime(results);
     if (results.size() > GRAPH_SIZE) {
         results.resize(GRAPH_SIZE);
     }
@@ -358,14 +358,12 @@ std::vector<Graph> SearchEngine::searchMutation(const MetaGraph &metaGraph) {
             if (mutator->hasTunedKernel)
                 chooseBestMutation = false;
             if (searchFilter == 1) {
-                std::sort(mutatedGraphs.begin(), mutatedGraphs.end(),
-                          graphTimeComparer);
+                mutatedGraphs = sortGraphsByTime(mutatedGraphs);
                 if (mutatedGraphs.size() >= 10)
                     mutatedGraphs.resize(10);
                 mutatedGraphs = {mutatedGraphs[0]};
             } else if (chooseBestMutation && mutatedGraphs.size() >= 2) {
-                std::sort(mutatedGraphs.begin(), mutatedGraphs.end(),
-                          graphTimeComparer);
+                mutatedGraphs = sortGraphsByTime(mutatedGraphs);
                 if (mutatedGraphs.size() >= 10)
                     mutatedGraphs.resize(10);
                 mutatedGraphs = {mutatedGraphs[0]};
@@ -407,7 +405,7 @@ std::vector<Graph> SearchEngine::searchMutation(const MetaGraph &metaGraph) {
             }
         }
         dbg("===Num" + std::to_string(nextGraphs.size()));
-        std::sort(nextGraphs.begin(), nextGraphs.end(), graphTimeComparer);
+        nextGraphs = sortGraphsByTime(nextGraphs);
         if (nextGraphs.size() > GRAPH_SIZE) {
             nextGraphs.resize(GRAPH_SIZE);
         }
@@ -489,7 +487,7 @@ double SearchEngine::getEstimatedGraphPerf(Graph graph) {
         graph->dataMalloc();
         cudaRuntime->run(graph, true);
         auto t = cudaRuntime->timeWithCudaGraph(graph, 20);
-        graph->dataFree();
+        // graph->dataFree();
         return t;
     } else {
         return runtimeExec->getPerfTime(graph, false, true, true);
@@ -577,6 +575,17 @@ Graph SearchEngine::fuseVertically(const Graph &graph) {
                                               graph->getOutputs()[0]));
     }
     return make_ref<GraphObj>(runtimeExec, ops);
+}
+
+vector<Graph> SearchEngine::sortGraphsByTime(vector<Graph> graphs) {
+    vector<pair<double, Graph>> timeGraphs;
+    for (auto g : graphs)
+        timeGraphs.emplace_back(pair{getEstimatedGraphPerf(g), g});
+    std::sort(timeGraphs.begin(), timeGraphs.end());
+    vector<Graph> ret;
+    for (const auto &[t, g] : timeGraphs)
+        ret.emplace_back(g);
+    return ret;
 }
 
 } // namespace infini

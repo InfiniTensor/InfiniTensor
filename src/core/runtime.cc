@@ -51,8 +51,8 @@ void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
         } else {
             double t = timeit([&]() { kernel->compute(op, record, this); },
                               []() {}, 1, 1);
-            op->print();
-            printf(" op_time %lf\n", t);
+            // op->print();
+            // printf(" op_time %lf\n", t);
             totalTime += t;
             opTime[op->getOpType()] += t;
             opCnt[op->getOpType()]++;
@@ -140,8 +140,8 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling,
         if (op->getOpType() != OpType::Reshape)
             totalTime += time;
         if (profiling) {
-            op->print();
-            printf("  op_time %lf\n", time);
+            // op->print();
+            // printf("  op_time %lf\n", time);
             opTime[op->getOpType()] += time;
             opCnt[op->getOpType()]++;
             if (!ctcMap[op->getGuid()])
@@ -231,9 +231,9 @@ double RuntimeObj::timeNonCtcOperators(const Graph &graph, int warmup,
         if (!ctcMap.at(op->getGuid()) && op->getOpType() != OpType::Reshape)
             kernels.emplace_back(op, kernel, perfData);
     }
-    for (auto &[op, kernel, perfData] : kernels) {
-        dbg(op);
-    }
+    // for (auto &[op, kernel, perfData] : kernels) {
+    //     dbg(op);
+    // }
     double ret = timeit(
         [&]() {
             for (auto &[op, kernel, perfData] : kernels) {
