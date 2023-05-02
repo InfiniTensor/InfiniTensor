@@ -146,12 +146,12 @@ double CudaRuntimeObj::timeWithCudaGraph(Graph graph, int rounds) {
         if (as<AnyObj>(op))
             dbg(op, as<AnyObj>(op)->getKernelName() == string("FakeOp"));
         if (!ctcMap.at(op->getGuid()) && op->getOpType() != OpType::Reshape &&
-            !isFakeOp)
+            op->getOpType() != OpType::Flatten && !isFakeOp)
             kernels.emplace_back(op, kernel, perfData);
     }
-    for (auto &[op, kernel, perfData] : kernels) {
-        dbg(op);
-    }
+    // for (auto &[op, kernel, perfData] : kernels) {
+    //     dbg(op);
+    // }
 
 // TODO: move this to kernel source?
 // Init tvm stream

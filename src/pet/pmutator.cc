@@ -203,9 +203,6 @@ Graph PMutator::constructGraphByOperatorChain(vector<Operator> ops,
     auto g = make_ref<GraphObj>(runtime);
     IT_ASSERT(inputGraph->getInputs().size() == 1);
     IT_ASSERT(inputGraph->getOutputs().size() == 1);
-    IT_ASSERT(ops.size() > 0,
-              "TODO: If there is no op left, how to return an empty graph? " +
-                  inputGraph->toString());
     auto input = g->cloneTensor(inputGraph->getInputs()[0]);
     auto graphOutput = g->cloneTensor(inputGraph->getOutputs()[0]);
     for (size_t i = 0; i < ops.size(); ++i) {
@@ -218,7 +215,9 @@ Graph PMutator::constructGraphByOperatorChain(vector<Operator> ops,
         }
     }
     // Add a reshape to match original graph if necessary
-    if (g->getOutputs()[0]->getDims() != graphOutput->getDims())
+    // HACK: If ops is an empty vector, add a reshape operator to construct a
+    // valid return graph.
+    if (g->getOutputs()[0]->getDims() != graphOutput->getDims() || ops.empty())
         g->addOpWithOutputs<ReshapeObj>(input, graphOutput);
     return g;
 }
@@ -293,6 +292,12 @@ Graph PMutator::eliminateVertically(const Graph &inputGraph) {
         funcHasOptmization = funcHasOptmization || haveElimination;
         haveElimination = false;
         ops = g->getOperators();
+        // HACK: constructGraphByOperatorChain function will return a graph with
+        // a reshape operator when all the operators are eliminated, because we
+        // cannot express an empty graph by now.
+        if (ops.size() == 1) {
+            break;
+        }
         vector<Operator> newOps;
         for (int i = 0; i < int(ops.size()); ++i) {
             // Eliminate identity operators
