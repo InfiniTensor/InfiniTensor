@@ -17,6 +17,7 @@
 #include "operators/softmax.h"
 #include "operators/transpose.h"
 #include "operators/unary.h"
+#include "pet/pmutator.h"
 #include "test.h"
 #include <pybind11/stl.h>
 
@@ -367,6 +368,14 @@ Graph optimizeModel(Graph g, Runtime _runtime, string name) {
     vector<Graph> bestGraphs;
     SearchEngine searchEngine(runtime, mutator);
     g->dataFree();
+    return searchEngine.run(g);
+}
+
+Graph optimizeWithPET(Graph g, Runtime _runtime) {
+    auto runtime = as<CudaRuntimeObj>(_runtime);
+    Ref<PMutator> mutator = make_ref<PMutator>(PMutator::Mode::Normal, runtime);
+    vector<Graph> bestGraphs;
+    SearchEngine searchEngine(runtime, mutator);
     return searchEngine.run(g);
 }
 

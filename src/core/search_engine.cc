@@ -485,7 +485,15 @@ double SearchEngine::getEstimatedGraphPerf(Graph graph) {
     // dbg(graph);
     // // hkz
     // callback::exportONNX(graph, "a.onnx");
-    return runtimeExec->getPerfTime(graph, false, true, true);
+    if (auto cudaRuntime = as<CudaRuntimeObj>(runtimeExec)) {
+        graph->dataMalloc();
+        cudaRuntime->run(graph, true);
+        auto t = cudaRuntime->timeWithCudaGraph(graph, 20);
+        graph->dataFree();
+        return t;
+    } else {
+        return runtimeExec->getPerfTime(graph, false, true, true);
+    }
 }
 
 Graph SearchEngine::fuseVertically(const Graph &graph) {

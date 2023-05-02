@@ -33,6 +33,7 @@
 
 build/
 build_debug/
+*build*/
 
 .vscode/
 
