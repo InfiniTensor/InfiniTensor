@@ -21,6 +21,8 @@ CudaRuntimeObj::CudaRuntimeObj()
     checkCublasError(cublasSetStream(cublas, stream));
     workspaceSize = 2ll << 30; // 2 GB
     workspace = alloc(workspaceSize);
+    // Get CUDA device properties
+    checkCudaError(cudaGetDeviceProperties(&deviceProperties, 0));
 }
 
 CudaRuntimeObj::~CudaRuntimeObj() {

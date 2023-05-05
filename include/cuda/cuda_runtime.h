@@ -18,6 +18,9 @@ class CudaRuntimeObj : public RuntimeObj {
 
     bool cudaGraphStatus; // Whether CUDA graph stream capture is enabled
 
+    // CUDA device properties
+    cudaDeviceProp deviceProperties;
+
   public:
     CudaRuntimeObj();
     virtual ~CudaRuntimeObj();
@@ -54,6 +57,10 @@ class CudaRuntimeObj : public RuntimeObj {
         IT_ASSERT(size <= workspaceSize);
         return workspace;
     }
+    pair<int, int> getComputeCapacitiy() const {
+        return {deviceProperties.major, deviceProperties.minor};
+    }
+    int getNumSMs() const { return deviceProperties.multiProcessorCount; }
 
     void copyBlobFromCPU(void *dst, const void *src,
                          size_t bytes) const override {

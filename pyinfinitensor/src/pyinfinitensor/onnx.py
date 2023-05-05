@@ -646,7 +646,6 @@ class OnnxStub:
                     else:
                         name = f"weight{self.count_in}_{tensor.guid()}"
                         shape = tensor.shape()
-                        print('shape=', shape)
                         data = np.random.randn(*shape)
                         self.initializers.append(
                             make_tensor(name, TensorProto.FLOAT, shape, data)

@@ -8,10 +8,9 @@
 
 namespace infini {
 
-template <class T>
 void testTranspose(
     const std::function<void(void *, size_t, DataType)> &generator,
-    const Shape &shape) {
+    const Shape &shape, const Shape &permute, vector<float> ans) {
     // Runtime
     Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
@@ -24,22 +23,24 @@ void testTranspose(
     // GPU
     Graph cudaGraph = make_ref<GraphObj>(cudaRuntime);
     auto inputGpu = cudaGraph->cloneTensor(inputCpu);
-    vector<int> permute = {0, 2, 1, 3};
-    auto gpuOp = cudaGraph->addOp<T>(inputGpu, nullptr, permute);
+    auto gpuOp = cudaGraph->addOp<TransposeObj>(inputGpu, nullptr, permute);
     cudaGraph->dataMalloc();
     cudaRuntime->run(cudaGraph);
     auto outputGpu = gpuOp->getOutput();
     auto oCpu = outputGpu->clone(cpuRuntime);
-    // Check
-    // inputCpu->printData();
-    // oCpu->printData();
-    EXPECT_TRUE(oCpu->equalData(vector<float>{0, 1, 2,  3,  12, 13, 14, 15,
-                                              4, 5, 6,  7,  16, 17, 18, 19,
-                                              8, 9, 10, 11, 20, 21, 22, 23}));
+    EXPECT_TRUE(oCpu->equalData(ans));
 }
 
-TEST(cuda_Transpose, run) {
-    testTranspose<TransposeObj>(IncrementalGenerator(), Shape{1, 2, 3, 4});
+TEST(cuda_Transpose, run_generic) {
+    testTranspose(IncrementalGenerator(), {1, 2, 3, 4}, {0, 2, 1, 3},
+                  {0,  1,  2,  3,  12, 13, 14, 15, 4,  5,  6,  7,
+                   16, 17, 18, 19, 8,  9,  10, 11, 20, 21, 22, 23});
+}
+
+TEST(cuda_Transpose, run_fast_last_dim) {
+    testTranspose(IncrementalGenerator(), {1, 2, 3, 4}, {0, 2, 3, 1},
+                  {0, 12, 1, 13, 2, 14, 3, 15, 4,  16, 5,  17,
+                   6, 18, 7, 19, 8, 20, 9, 21, 10, 22, 11, 23});
 }
 
 } // namespace infini

@@ -6,10 +6,8 @@
 namespace infini {
 
 class TransposeCuda : public CudaKernelWithoutConfig {
-    void compute(const Operator &_op,
-                 const RuntimeObj *_context) const override {
-        auto op = as<TransposeObj>(_op);
-
+    void generic_transpose(const Ref<TransposeObj> &op,
+                           const RuntimeObj *context) const {
         auto input = op->getInputs(0);
         auto output = op->getOutput();
         void *const inputData = input->getRawDataPtr<void *>();
@@ -41,6 +39,28 @@ class TransposeCuda : public CudaKernelWithoutConfig {
         transpose_kernel((float *)inputData, (float *)outputData, nDims, size,
                          strides, outputDims, input->getDims(),
                          output->getDims(), perm);
+    }
+
+    void fast_transpose_last_dim(const Ref<TransposeObj> &op,
+                                 const RuntimeObj *context) const {
+        // Perm 0 2 3 1
+        auto cuda = dynamic_cast<const CudaRuntimeObj *>(context);
+        auto shape = op->getOutput()->getDims();
+        invoke_transpose_last_two_dim(
+            op->getInputs(0)->getRawDataPtr<float *>(),
+            op->getOutput()->getRawDataPtr<float *>(), shape[0],
+            shape[1] * shape[2], shape[3], cuda->getNumSMs());
+    }
+
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<TransposeObj>(_op);
+        const auto &perm = op->getPermute();
+        if (perm == vector{0, 2, 3, 1}) {
+            fast_transpose_last_dim(op, _context);
+        } else {
+            generic_transpose(op, _context);
+        }
     }
 };
 
