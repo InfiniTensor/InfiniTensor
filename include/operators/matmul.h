@@ -12,6 +12,8 @@ class MatmulObj : public OperatorObj {
     // default dims, true means A should be transposed before matmul. This is in
     // oppsite to the column-major BLAS.
     bool transA, transB;
+    float alpha, beta;
+
     ActType act;
 
     // Auxiliary attributes which are not a part of operator attributes.
@@ -40,7 +42,8 @@ class MatmulObj : public OperatorObj {
      * @param act The activation function.
      */
     MatmulObj(GraphObj *graph, Tensor A, Tensor B, Tensor C,
-              bool transA = false, bool transB = false, Tensor bias = nullptr,
+              bool transA = false, bool transB = false, float alpha = 1,
+              float beta = 0, Tensor bias = nullptr,
               ActType act = ActType::None);
     OP_CLONE(MatmulObj);
 
@@ -60,6 +63,8 @@ class MatmulObj : public OperatorObj {
     int getN() const { return n; }
     int getK() const { return k; }
     auto getBMNK() const { return tuple{b, m, n, k}; }
+    float getAlpha() const { return alpha; }
+    float getBeta() const { return beta; }
 
   private:
     vector<int> getWorkloadVector() const override;

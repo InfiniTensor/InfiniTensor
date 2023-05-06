@@ -85,6 +85,7 @@ ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
 
 optional<vector<Shape>> ConvObj::inferShape(const TensorVec &inputs) const {
     const auto &input = inputs[0], &weight = inputs[1];
+    IT_ASSERT_TODO(input->getDims().size() == 4);
     auto n = input->getDims()[0];
     auto h = input->getDims()[2];
     auto w = input->getDims()[3];

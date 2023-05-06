@@ -31,8 +31,8 @@ class MklConv : public Kernel {
 
         auto [n, c, h, w, f, r, s] = op->getNCHWFRS();
         auto [ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
-        const int cpg = op->getChannelPerGroup();
-
+        const int g = op->getNumGroups();
+        IT_ASSERT(f % g == 0 && c % g == 0);
         auto oDims = op->getOutput(0)->getDims();
         int oH = oDims[oDims.size() - 2];
         int oW = oDims[oDims.size() - 1];
@@ -44,9 +44,9 @@ class MklConv : public Kernel {
         auto userSrcMemory =
             dnnl::memory(userSrcMd, context->getEngine(), srcData);
 
-        auto userWMd =
-            dnnl::memory::desc({f, cpg, r, s}, dnnl::memory::data_type::f32,
-                               dnnl::memory::format_tag::oihw);
+        auto userWMd = dnnl::memory::desc({g, f / g, c / g, r, s},
+                                          dnnl::memory::data_type::f32,
+                                          dnnl::memory::format_tag::goihw);
         auto userWMemory = dnnl::memory(userWMd, context->getEngine(), wData);
         auto userDstMd =
             dnnl::memory::desc({n, f, oH, oW}, dnnl::memory::data_type::f32,
@@ -65,9 +65,9 @@ class MklConv : public Kernel {
         auto srcMd =
             dnnl::memory::desc({n, c, h, w}, dnnl::memory::data_type::f32,
                                dnnl::memory::format_tag::any);
-        auto wMd =
-            dnnl::memory::desc({f, cpg, r, s}, dnnl::memory::data_type::f32,
-                               dnnl::memory::format_tag::any);
+        auto wMd = dnnl::memory::desc({g, f / g, c / g, r, s},
+                                      dnnl::memory::data_type::f32,
+                                      dnnl::memory::format_tag::any);
         auto dstMd =
             dnnl::memory::desc({n, f, oH, oW}, dnnl::memory::data_type::f32,
                                dnnl::memory::format_tag::any);

@@ -56,15 +56,17 @@ Tensor GraphHandlerObj::convTransposed2d(Tensor input, Tensor weight,
 }
 
 Tensor GraphHandlerObj::matmul(Tensor a, Tensor b, Tensor y, bool transA,
-                               bool transB, Tensor bias, ActType act) {
+                               bool transB, float alpha, float beta,
+                               Tensor bias, ActType act) {
     if (y) {
         g->addOpWithOutputs<MatmulObj>(std::move(a), std::move(b), y, transA,
-                                       transB, std::move(bias), act);
+                                       transB, alpha, beta, std::move(bias),
+                                       act);
         return y;
     } else {
         return g
             ->addOp<MatmulObj>(std::move(a), std::move(b), y, transA, transB,
-                               std::move(bias), act)
+                               alpha, beta, std::move(bias), act)
             ->getOutput();
     }
 }

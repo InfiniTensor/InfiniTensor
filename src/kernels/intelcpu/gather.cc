@@ -7,8 +7,8 @@
 
 namespace infini {
 class MklGather : public MklKernelWithoutConfig {
-    void compute(const Operator &_op,
-                 const RuntimeObj *_context) const override {
+    template <typename T>
+    void doCompute(const Operator &_op, const RuntimeObj *_context) const {
         auto op = as<GatherObj>(_op);
         auto in = op->getInputs(0);
         auto index = op->getInputs(1);
@@ -38,19 +38,18 @@ class MklGather : public MklKernelWithoutConfig {
 
         sycl::queue q(sycl::cpu_selector{});
         auto inDevice = sycl::malloc_device<float>(iSize, q);
-        auto indexDevice = sycl::malloc_device<uint32_t>(idxSize, q);
+        auto indexDevice = sycl::malloc_device<T>(idxSize, q);
         auto outDevice = sycl::malloc_device<float>(oSize, q);
 
         q.memcpy(inDevice, in->getRawDataPtr<float *>(), iSize * sizeof(float));
-        q.memcpy(indexDevice, index->getRawDataPtr<uint32_t *>(),
-                 idxSize * sizeof(uint32_t));
+        q.memcpy(indexDevice, index->getRawDataPtr<T *>(), index->getBytes());
         q.wait();
 
         q.parallel_for(sycl::range<1>(oSize), [=](sycl::id<1> index) {
              int offset = 0;
              int gOffset = index;
              for (int i = inNDim - 1, k = oNDim - 1; i >= 0; --i) {
-                 int idx = 0;
+                 T idx = 0;
                  if (i == axis) {
                      int idxOffset = 0;
                      for (int j = idxNDim - 1; j >= 0; --j) {
@@ -79,6 +78,17 @@ class MklGather : public MklKernelWithoutConfig {
         sycl::free(inDevice, q);
         sycl::free(outDevice, q);
         sycl::free(indexDevice, q);
+    }
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<GatherObj>(_op);
+        auto index = op->getInputs(1);
+        if (index->getDType() == DataType::Int32)
+            doCompute<int32_t>(_op, _context);
+        else if (index->getDType() == DataType::Int64)
+            doCompute<int64_t>(_op, _context);
+        else
+            IT_ASSERT(0);
     }
 };
 REGISTER_KERNEL(Device::INTELCPU, OpType::Gather, DataType::Float32, MklGather,

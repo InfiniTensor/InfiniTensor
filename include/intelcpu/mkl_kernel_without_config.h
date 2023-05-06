@@ -24,7 +24,9 @@ class MklKernelWithoutConfig : public Kernel {
 
   protected:
     dnnl::memory::format_tag getUserFormatTag(int nDim) const {
-        if (nDim == 2)
+        if (nDim == 1)
+            return dnnl::memory::format_tag::x;
+        else if (nDim == 2)
             return dnnl::memory::format_tag::nc;
         else if (nDim == 3)
             return dnnl::memory::format_tag::ncw;

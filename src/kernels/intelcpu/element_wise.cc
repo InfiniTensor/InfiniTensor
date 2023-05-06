@@ -32,21 +32,33 @@ class MklBinary : public MklKernelWithoutConfig {
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
 
+        // Multidirectional Broadcasting
+        int nDim = op->getOutput()->getDims().size();
+        std::vector<int> dimsA(nDim, 1), dimsB(nDim, 1);
+        memcpy(dimsA.data() + nDim - op->getInputs(0)->getDims().size(),
+               op->getInputs(0)->getDims().data(),
+               op->getInputs(0)->getDims().size() * sizeof(int));
+        memcpy(dimsB.data() + nDim - op->getInputs(1)->getDims().size(),
+               op->getInputs(1)->getDims().data(),
+               op->getInputs(1)->getDims().size() * sizeof(int));
         //  create user memory that describes data layout in the buffers
-        std::vector<dnnl_dim_t> dims;
-        for (size_t i = 0; i < op->getInputs(0)->getDims().size(); ++i)
-            dims.push_back(op->getInputs(0)->getDims()[i]);
+        std::vector<dnnl_dim_t> dims1, dims2, dims3;
+        for (size_t i = 0; i < nDim; ++i) {
+            dims1.push_back(dimsA[i]);
+            dims2.push_back(dimsB[i]);
+            dims3.push_back(op->getOutput(0)->getDims()[i]);
+        }
 
-        auto srcMd1 = dnnl::memory::desc(dims, dnnl::memory::data_type::f32,
-                                         getUserFormatTag(dims.size()));
+        auto srcMd1 = dnnl::memory::desc(dims1, dnnl::memory::data_type::f32,
+                                         getUserFormatTag(dims1.size()));
         auto srcMemory1 = dnnl::memory(srcMd1, context->getEngine(), aData);
 
-        auto srcMd2 = dnnl::memory::desc(dims, dnnl::memory::data_type::f32,
-                                         getUserFormatTag(dims.size()));
+        auto srcMd2 = dnnl::memory::desc(dims2, dnnl::memory::data_type::f32,
+                                         getUserFormatTag(dims2.size()));
         auto srcMemory2 = dnnl::memory(srcMd2, context->getEngine(), bData);
 
-        auto dstMd = dnnl::memory::desc(dims, dnnl::memory::data_type::f32,
-                                        getUserFormatTag(dims.size()));
+        auto dstMd = dnnl::memory::desc(dims3, dnnl::memory::data_type::f32,
+                                        getUserFormatTag(dims3.size()));
         auto output = dnnl::memory(dstMd, context->getEngine(), cData);
 
         auto binaryDesc =
@@ -63,7 +75,7 @@ class MklBinary : public MklKernelWithoutConfig {
 };
 
 class MklUnary : public MklKernelWithoutConfig {
-    dnnl::algorithm getAlgorithem(const Ref<UnaryObj> &op) const {
+    dnnl::algorithm getAlgorithem(const Operator &op) const {
         switch (op->getOpType()) {
         case OpType::Relu:
             return dnnl::algorithm::eltwise_relu;
@@ -73,15 +85,26 @@ class MklUnary : public MklKernelWithoutConfig {
             return dnnl::algorithm::eltwise_abs;
         case OpType::Sigmoid:
             return dnnl::algorithm::eltwise_logistic;
+        case OpType::Clip:
+            return dnnl::algorithm::eltwise_clip;
         default:
             IT_TODO_HALT();
         }
         return dnnl::algorithm::undef;
     }
 
-    void compute(const Operator &_op,
+    tuple<float, float> getAlphaBeta(const Operator &_op) const {
+        float al = 0, beta = 0;
+        if (OpType::Clip == _op->getOpType()) {
+            auto op = as<ClipObj>(_op);
+            al = op->getMin() == std::nullopt ? al : *(op->getMin());
+            beta = op->getMax() == std::nullopt ? al : *(op->getMax());
+        }
+        return tuple(al, beta);
+    }
+
+    void compute(const Operator &op,
                  const RuntimeObj *_context) const override {
-        auto op = as<UnaryObj>(_op);
         auto context = dynamic_cast<const MklRuntimeObj *>(_context);
 
         void *const srcData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -98,11 +121,12 @@ class MklUnary : public MklKernelWithoutConfig {
 
         auto output = dnnl::memory(srcMd, context->getEngine(), dstData);
 
-        const float negative1_slope = 0.0f;
+        float alpha, beta;
+        std::tie(alpha, beta) = getAlphaBeta(op);
 
-        auto unaryDesc = dnnl::eltwise_forward::desc(
-            dnnl::prop_kind::forward_inference, getAlgorithem(op), srcMd,
-            negative1_slope);
+        auto unaryDesc =
+            dnnl::eltwise_forward::desc(dnnl::prop_kind::forward_inference,
+                                        getAlgorithem(op), srcMd, alpha, beta);
         auto primDesc = dnnl::eltwise_forward::primitive_desc(
             unaryDesc, context->getEngine());
 
@@ -130,4 +154,6 @@ REGISTER_KERNEL(Device::INTELCPU, OpType::Tanh, DataType::Float32, MklUnary,
                 "Tanh_Mkl_Float32");
 REGISTER_KERNEL(Device::INTELCPU, OpType::Abs, DataType::Float32, MklUnary,
                 "Abs_Mkl_Float32");
+REGISTER_KERNEL(Device::INTELCPU, OpType::Clip, DataType::Float32, MklUnary,
+                "Clip_Mkl_Float32");
 } // namespace infini
