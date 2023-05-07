@@ -1,4 +1,5 @@
 #include "operators/conv.h"
+#include "core/graph.h"
 #include "core/kernel.h"
 #include "cuda/cuda_runtime.h"
 #include <chrono>
@@ -234,7 +235,8 @@ class convCudnn : public Kernel {
                     const RuntimeObj *_context) const override {
         ConvCuDnnPerfRecordObj ret;
         ret.time = std::numeric_limits<double>::max();
-        auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
+        auto context = const_cast<CudaRuntimeObj *>(
+            dynamic_cast<const CudaRuntimeObj *>(_context));
         auto op = as<ConvBaseObj>(_op);
         int try_algo = op->getOpType() == OpType::ConvNHWC ? 2 : N_ALGO;
         // Both modes have the same performance. Only run cross-correlation.
@@ -267,16 +269,15 @@ class convCudnn : public Kernel {
                     record.workspaceSize, &beta, outDesc, outData);
                 if (stat != CUDNN_STATUS_SUCCESS)
                     continue;
-                record.time = timeit(
-                    [&]() {
-                        cudnnConvolutionForward(context->cudnnHandle(), &alpha,
-                                                inDesc, inData, knDesc, knData,
-                                                convDesc, ALGOS[record.algo],
-                                                wsData, record.workspaceSize,
-                                                &beta, outDesc, outData);
-                    },
-                    [&]() { context->sync(); });
-                // printf("mode:%d algo:%d :%.8lf\n", mode, algo, record.time);
+                // Time the kernel with CUDA Graph to get a precise time
+                std::function<void(void)> func = [&]() {
+                    cudnnConvolutionForward(
+                        context->cudnnHandle(), &alpha, inDesc, inData, knDesc,
+                        knData, convDesc, ALGOS[record.algo], wsData,
+                        record.workspaceSize, &beta, outDesc, outData);
+                };
+                record.time = context->timeWithCudaGraph({func}, 100);
+                // printf("mode:%d algo:%d :%.4lf\n", mode, algo, record.time);
 
                 // Update the tune result
                 if (ret.time > record.time)

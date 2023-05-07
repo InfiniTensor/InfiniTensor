@@ -323,7 +323,9 @@ void init_graph_builder(py::module &m) {
 #ifdef USE_CUDA
     py::class_<CudaRuntimeObj, Ref<CudaRuntimeObj>, RuntimeObj>(m,
                                                                 "CudaRuntime")
-        .def("timeWithCudaGraph", &CudaRuntimeObj::timeWithCudaGraph);
+        .def("timeWithCudaGraph",
+             py::overload_cast<Graph, int>(&CudaRuntimeObj::timeWithCudaGraph))
+        .def("setEnableTF32", &CudaRuntimeObj::setEnableTF32);
 #endif
 #ifdef USE_BANG
     py::class_<BangRuntimeObj, std::shared_ptr<BangRuntimeObj>, RuntimeObj>(

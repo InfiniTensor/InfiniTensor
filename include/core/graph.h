@@ -56,6 +56,14 @@ class GraphObj : public Object {
         return cloneOperator(op, inputs, outputs);
     }
 
+    Operator cloneOpAndCreateInputsOutputs(Operator op) {
+        vector<Tensor> inputs;
+        for (auto t : op->getInputs()) {
+            inputs.emplace_back(cloneTensor(t));
+        }
+        return cloneOpAndCreateOutputs(op, inputs);
+    }
+
     const TensorVec &getTensors() const { return tensors; }
     const OpVec &getOperators() const { return ops; }
     OpVec getComputeOps() const;

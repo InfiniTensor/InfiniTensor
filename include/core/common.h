@@ -77,6 +77,6 @@ double timeit(
     const std::function<void()> &func,
     // HACK: set timeit rounds to 10 for fast debug
     const std::function<void(void)> &sync = []() {}, int warmupRounds = 10,
-    int timingRounds = 10);
+    int timingRounds = 100);
 
 } // namespace infini

@@ -1,6 +1,7 @@
 #include "operators/matmul.h"
 #include "core/kernel.h"
 #include "cuda/cuda_runtime.h"
+#include "nnet/dbg.h"
 
 namespace infini {
 
@@ -21,8 +22,7 @@ struct MatmulCublasPerfRecordObj : public PerfRecordObj {
     }
 };
 
-constexpr int N_ALGO = 24;
-constexpr cublasGemmAlgo_t ALGOS[N_ALGO] = {
+const vector<cublasGemmAlgo_t> Algos = {
     CUBLAS_GEMM_ALGO0,  CUBLAS_GEMM_ALGO1,  CUBLAS_GEMM_ALGO2,
     CUBLAS_GEMM_ALGO3,  CUBLAS_GEMM_ALGO4,  CUBLAS_GEMM_ALGO5,
     CUBLAS_GEMM_ALGO6,  CUBLAS_GEMM_ALGO7,  CUBLAS_GEMM_ALGO8,
@@ -32,6 +32,17 @@ constexpr cublasGemmAlgo_t ALGOS[N_ALGO] = {
     CUBLAS_GEMM_ALGO18, CUBLAS_GEMM_ALGO19, CUBLAS_GEMM_ALGO20,
     CUBLAS_GEMM_ALGO21, CUBLAS_GEMM_ALGO22, CUBLAS_GEMM_ALGO23,
 };
+const vector<cublasGemmAlgo_t> AlgosTensorOp = {
+    CUBLAS_GEMM_DFALT_TENSOR_OP,  CUBLAS_GEMM_ALGO0_TENSOR_OP,
+    CUBLAS_GEMM_ALGO1_TENSOR_OP,  CUBLAS_GEMM_ALGO2_TENSOR_OP,
+    CUBLAS_GEMM_ALGO3_TENSOR_OP,  CUBLAS_GEMM_ALGO4_TENSOR_OP,
+    CUBLAS_GEMM_ALGO5_TENSOR_OP,  CUBLAS_GEMM_ALGO6_TENSOR_OP,
+    CUBLAS_GEMM_ALGO7_TENSOR_OP,  CUBLAS_GEMM_ALGO8_TENSOR_OP,
+    CUBLAS_GEMM_ALGO9_TENSOR_OP,  CUBLAS_GEMM_ALGO10_TENSOR_OP,
+    CUBLAS_GEMM_ALGO11_TENSOR_OP, CUBLAS_GEMM_ALGO12_TENSOR_OP,
+    CUBLAS_GEMM_ALGO13_TENSOR_OP, CUBLAS_GEMM_ALGO14_TENSOR_OP,
+    CUBLAS_GEMM_ALGO15_TENSOR_OP};
+
 class matmulCublas : public Kernel {
     bool do_compute(const Operator &_op, const PerfRecord &_record,
                     const RuntimeObj *_context) const {
@@ -49,8 +60,11 @@ class matmulCublas : public Kernel {
         const int lda = op->getTransA() ? m : k, ldb = op->getTransB() ? k : n,
                   ldc = n;
         const float alpha = 1.f, beta = 0.f;
-        // TODO:use compute type
         cublasStatus_t stat;
+        // Set the compute type to TF32 if enabled
+        cublasComputeType_t computeType = context->getEnableTF32()
+                                              ? CUBLAS_COMPUTE_32F_FAST_TF32
+                                              : CUBLAS_COMPUTE_32F;
         if (record->apiId == 0) {
             // Support batch broadcast with zero stride
             int dimA = op->getInputs(0)->getDims().size();
@@ -73,13 +87,13 @@ class matmulCublas : public Kernel {
             stat = cublasGemmStridedBatchedEx(
                 context->cublasHandle(), opB, opA, n, m, k, &alpha, inBData,
                 CUDA_R_32F, ldb, strideB, inAData, CUDA_R_32F, lda, strideA,
-                &beta, outData, CUDA_R_32F, ldc, m * n, b, CUDA_R_32F,
+                &beta, outData, CUDA_R_32F, ldc, m * n, b, computeType,
                 (cublasGemmAlgo_t)record->algo);
         } else if (record->apiId == 1) {
             stat = cublasGemmEx(
                 context->cublasHandle(), opB, opA, n, m, k, &alpha, inBData,
                 CUDA_R_32F, ldb, inAData, CUDA_R_32F, lda, &beta, outData,
-                CUDA_R_32F, ldc, CUDA_R_32F, (cublasGemmAlgo_t)record->algo);
+                CUDA_R_32F, ldc, computeType, (cublasGemmAlgo_t)record->algo);
         } else
             IT_ASSERT(false);
         // if (stat != CUBLAS_STATUS_SUCCESS)
@@ -109,11 +123,19 @@ class matmulCublas : public Kernel {
         vector<int> apis{0};
         if (op->getB() == 1)
             apis.emplace_back(1);
+
+        // Set the possible algorithm range
+        auto algos = Algos;
+        if (context->getEnableTF32()) {
+            algos.insert(algos.end(), AlgosTensorOp.begin(),
+                         AlgosTensorOp.end());
+        }
+
         for (int api : apis) {
-            for (int i = 0; i < N_ALGO; i++) {
+            for (size_t i = 0; i < algos.size(); i++) {
                 auto rcd = make_ref<MatmulCublasPerfRecordObj>();
                 rcd->apiId = api;
-                rcd->algo = ALGOS[i];
+                rcd->algo = algos[i];
                 if (!do_compute(_op, rcd, _context))
                     continue;
                 rcd->time = timeit([&]() { do_compute(_op, rcd, _context); },

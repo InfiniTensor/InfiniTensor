@@ -4,9 +4,9 @@
 #include "core/runtime.h"
 #include "cuda_profiler_api.h"
 #include "nnet/dbg.h"
+#include "operators/any.h"
 #include "operators/conv.h"
 #include "operators/matmul.h"
-#include "operators/any.h"
 #ifdef INFINI_USE_TVM
 #include "tvm/runtime/device_api.h"
 #endif
@@ -148,13 +148,25 @@ double CudaRuntimeObj::timeWithCudaGraph(Graph graph, int rounds) {
         if (as<AnyObj>(op))
             dbg(op, as<AnyObj>(op)->getKernelName() == string("FakeOp"));
         if (!ctcMap.at(op->getGuid()) && op->getOpType() != OpType::Reshape &&
-            !isFakeOp)
+            op->getOpType() != OpType::Flatten && !isFakeOp)
             kernels.emplace_back(op, kernel, perfData);
     }
     for (auto &[op, kernel, perfData] : kernels) {
         dbg(op);
     }
+    vector<std::function<void(void)>> funcs;
+    for (auto &[op, kernel, perfData] : kernels) {
+        if (perfData)
+            funcs.push_back([&]() { kernel->compute(op, perfData, this); });
+        else
+            funcs.push_back([&]() { kernel->compute(op, this); });
+    }
+    return timeWithCudaGraph(funcs, rounds);
+}
 
+double
+CudaRuntimeObj::timeWithCudaGraph(std::vector<std::function<void(void)>> funcs,
+                                  int rounds) {
 // TODO: move this to kernel source?
 // Init tvm stream
 #ifdef INFINI_USE_TVM
@@ -163,25 +175,22 @@ double CudaRuntimeObj::timeWithCudaGraph(Graph graph, int rounds) {
     tvm_device->SetStream(tvm_device_id, getStream());
 #endif
     beginCudaGraphStreamCapture();
-    for (auto &[op, kernel, perfData] : kernels) {
-        if (perfData)
-            kernel->compute(op, perfData, this);
-        else
-            kernel->compute(op, this);
-    }
+    for (auto &f : funcs)
+        f();
     auto [cudaGraphInstance, numCudaGraphNodes] = endCudaGraphStreamCapture();
     // Since one TVM packed function may contaion more than one CUDA kernel, the
     // number of captured kernels may exceed the number of operators.
-    IT_ASSERT(numCudaGraphNodes >= kernels.size(),
+    IT_ASSERT(numCudaGraphNodes >= funcs.size(),
               std::to_string(numCudaGraphNodes) +
-                  " != " + std::to_string(kernels.size()));
-    printf("numCudaGraphNodes = %lu\n", numCudaGraphNodes);
+                  " != " + std::to_string(funcs.size()));
     return timeit(
         [&, cudaGraphInstance = cudaGraphInstance, stream = getStream()]() {
             checkCudaError(cudaGraphLaunch(cudaGraphInstance, stream));
         },
-        [&, stream = getStream()]() { cudaStreamSynchronize(stream); }, rounds,
-        rounds);
+        [&, stream = getStream()]() { cudaStreamSynchronize(stream); },
+        std::min(50, rounds), rounds);
 }
+
+void CudaRuntimeObj::setEnableTF32(bool state) { enableTF32 = state; }
 
 } // namespace infini

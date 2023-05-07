@@ -68,16 +68,16 @@ TEST(cuBLAS_Matmul, tune) {
     const int B = 1, M = 4, N = 4096, K = 448;
     const bool transA = true, transB = false;
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
+    cudaRuntime->setEnableTF32(true);
     Graph g = make_ref<GraphObj>(cudaRuntime);
     auto a = g->addTensor(transA ? Shape{B, K, M} : Shape{B, M, K});
     auto b = g->addTensor(transB ? Shape{B, N, K} : Shape{B, K, N});
     // allocate CUDA memory
+
+    auto matmul = g->addOp<MatmulObj>(a, b, nullptr, transA, transB);
     g->dataMalloc();
     a->setData(IncrementalGenerator());
     b->setData(IncrementalGenerator());
-
-    auto matmul = g->addOp<MatmulObj>(a, b, nullptr, transA, transB);
-    matmul->print();
     double time = cudaRuntime->getPerfTime(g);
     EXPECT_GT(time, 1e-3);
     EXPECT_LT(time, 1);
