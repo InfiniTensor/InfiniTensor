@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "InfiniTest"
+version = "0.0.1"
+#authors = [{ name = "Wanghailu", email = "wanghailul0717@163.com" }]
+#description = "Python frontend of InfiniTest"
+#readme = "README.md"
+#keywords = ["test"]
+#classifiers = ["Programming Language :: Python :: 3"]
+#dependencies = ["numpy"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+InfiniTest = ["*.so", ".proto"]

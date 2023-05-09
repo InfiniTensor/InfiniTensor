@@ -1,4 +1,4 @@
-﻿.PHONY : build clean format install-python test-cpp test-onnx
+﻿.PHONY : build clean format install-python test-cpp test-onnx install-test clean-test
 
 TYPE ?= release
 CUDA ?= OFF
@@ -22,7 +22,7 @@ build:
 	mkdir -p build/$(TYPE)
 	cd build/$(TYPE) && cmake $(CMAKE_OPT) ../.. && make -j8
 
-clean:
+clean: clean-test
 	rm -rf build
 
 format:
@@ -39,3 +39,23 @@ test-cpp:
 test-onnx:
 	@echo
 	python3 pyinfinitensor/tests/test_onnx.py
+
+build-test:
+ifeq ($(CUDA), ON)
+	@echo "CUDA_HOME: ${CUDA_HOME}"
+	@c++ -O3 -Wall -shared -std=c++11 -fPIC $$(python3 -m pybind11 --includes) -I${CUDA_HOME}/include -DCUDA ./InfiniTest/Device/device.cpp -o ./InfiniTest/src/InfiniTest/device$$(python3-config --extension-suffix) -L$(CUDA_HOME)/lib64 -lcudart
+	cd InfiniTest/src/InfiniTest && protoc --python_out=./ operator.proto
+endif
+ifeq ($(BANG), ON)
+	@echo "NEUWARE_HOME: ${NEUWARE_HOME}"
+	@c++ -O3 -Wall -shared -std=c++11 -fPIC $$(python3 -m pybind11 --includes) -I${NEUWARE_HOME}/include -DBANG ./InfiniTest/Device/device.cpp -o ./InfiniTest/src/InfiniTest/device$$(python3-config --extension-suffix) -L$(NEUWARE_HOME)/lib64 -lcnrt
+	cd InfiniTest/src/InfiniTest && protoc --python_out=./ operator.proto
+endif
+
+install-test: build-test
+	pip install InfiniTest/
+
+clean-test:
+	rm -rf InfiniTest/src/InfiniTest.egg-info
+	rm -rf InfiniTest/src/InfiniTest/operator_pb2.py
+	rm -rf InfiniTest/src/InfiniTest/device$$(python3-config --extension-suffix)
