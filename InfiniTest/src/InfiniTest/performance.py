@@ -5,9 +5,15 @@ import device
 class Profiling():
     def __init__(self):
         self.host_start = None
-        self.host_endi = None
+        self.host_end = None
         self.cuda_queue = None
         self.bang_queue = None
+
+    def setBangQueue(self, queue):
+        self.bang_queue = queue
+
+    def setCudaQueue(self, queue):
+        self.cuda_queue = queue
 
     def hostProfilingWrapper(self, times:int = 1):
         def hostProfiling(func):
@@ -29,13 +35,11 @@ class Profiling():
             def wrapper(*args, **kwargs):
                 logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
                 logging.info("\033[32m" + "[INFO] " + "\033[0m" + ": " + "Start Bang device profiling " + str(func.__name__) + ".")
-                device.bangCreateQueue()
-                queue = device.bangGetQueue()
-                device.bangPlaceStartNotifier(queue)
+                device.bangPlaceStartNotifier(self.bang_queue)
                 for i in range(times):
                     func(*args, **kwargs)
-                device.bangPlaceEndNotifier(queue)
-                totalTime = device.bangGetNotifierDuration(queue) / 1000
+                device.bangPlaceEndNotifier(self.bang_queue)
+                totalTime = device.bangGetNotifierDuration(self.bang_queue) / 1000
                 averageTime = totalTime / times
                 logging.info("\033[32m" + "[INFO] " + "\033[0m" + ": " + "End profiling, Run " + str(times) + " times, Total " + str(totalTime) + " ms, Average " + str(averageTime) + "ms.")
             return wrapper
@@ -46,13 +50,11 @@ class Profiling():
             def wrapper(*args, **kwargs):
                 logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
                 logging.info("\033[32m" + "[INFO] " + "\033[0m" + ": " + "Start Cuda device profiling " + str(func.__name__) + ".")
-                device.cudaCreateQueue()
-                queue = device.cudaGetQueue()
-                device.cudaPlaceStartNotifier(queue)
+                device.cudaPlaceStartNotifier(self.cuda_queue)
                 for i in range(times):
                     func(*args, **kwargs)
-                device.cudaPlaceEndNotifier(queue)
-                totalTime = device.cudaGetNotifierDuration(queue)
+                device.cudaPlaceEndNotifier(self.cuda_queue)
+                totalTime = device.cudaGetNotifierDuration(self.cuda_queue)
                 averageTime = totalTime / times
                 logging.info("\033[32m" + "[INFO] " + "\033[0m" + ": " + "End profiling, Run " + str(times) + " times, Total " + str(totalTime) + " ms, Average " + str(averageTime) + "ms.")
             return wrapper
@@ -73,8 +75,6 @@ class Profiling():
     def bangProfilingStart(self):
         logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
         logging.info("\033[32m" + "[INFO] " + "\033[0m" + ": " + "Start Bang device profiling. ")
-        device.bangCreateQueue()
-        self.bang_queue = device.bangGetQueue()
         device.bangPlaceStartNotifier(self.bang_queue)
 
     def bangProfilingEnd(self):
@@ -86,8 +86,6 @@ class Profiling():
     def cudaProfilingStart(self):
         logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
         logging.info("\033[32m" + "[INFO] " + "\033[0m" + ": " + "Start Cuda device profiling. ")
-        device.cudaCreateQueue()
-        self.cuda_queue = device.cudaGetQueue()
         device.cudaPlaceStartNotifier(self.cuda_queue)
 
     def cudaProfilingEnd(self):
@@ -98,7 +96,6 @@ class Profiling():
 
 
 def unitTest():
-
     pro = Profiling()
 
     @pro.hostProfilingWrapper(times=10)
@@ -117,16 +114,22 @@ def unitTest():
     def helloCuda():
         time.sleep(0.1)
 
+    device.cudaCreateQueue()
+    queue = device.cudaGetQueue()
+    pro.setCudaQueue(queue)
+
     helloHost()
     byebye(2,3)
-    #helloBang()
-    #helloCuda()
 
     pro.hostProfilingStart()
     print("These are soem code.")
     pro.hostProfilingEnd()
 
+    #helloBang()
+    #helloCuda()
+
     #pro.bangProfilingStart()
+    #time.sleep(0.1)
     #pro.bangProfilingEnd()
 
     #pro.cudaProfilingStart()
