@@ -1,7 +1,7 @@
 from InfiniTest.accuracy import Accuracy
 from InfiniTest.dump import Dump
 from InfiniTest.pytorch_operator import AddPytorch
-from InfiniTest.performance import hostProfilingWrapper, bangProfilingWrapper, cudaProfilingWrapper 
+from InfiniTest.performance import Profiling
 from InfiniTest.pytorch_operator import AddPytorch
 import torch
 import numpy
@@ -11,12 +11,13 @@ b = a
 acc = Accuracy()
 acc.computeDifference0("passed test case", a, b)
 
-@hostProfilingWrapper(times=2)
+pro = Profiling()
+@pro.hostProfilingWrapper(times=2)
 def func():
     dump = Dump()
     dump.dumpData(case="case", input_data=a, precision=2)
 
-@hostProfilingWrapper(times=1)
+@pro.hostProfilingWrapper(times=1)
 def test_proto():
     input1= torch.randint(0,100,(3,4),dtype=torch.int32)
     input2= torch.randint(0,100,(3,4),dtype=torch.int32)
