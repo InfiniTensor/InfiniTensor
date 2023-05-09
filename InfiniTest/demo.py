@@ -12,6 +12,7 @@ acc = Accuracy()
 acc.computeDifference0("passed test case", a, b)
 
 pro = Profiling()
+
 @pro.hostProfilingWrapper(times=2)
 def func():
     dump = Dump()
@@ -29,8 +30,15 @@ def test_proto():
     acc = Accuracy()
     acc.computeDifference0("a pass case", output.numpy(), outputs[0].numpy())
 
+def another_test():
+    pro.hostProfilingStart()
+    print("aaa")
+    pro.hostProfilingEnd()
 
 func()
 test_proto()
+another_test()
+
+
 
 
