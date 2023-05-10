@@ -39,8 +39,9 @@ message Tensor {
 
 message Operator {
     string name = 1;
-    Device device = 2;
-    repeated Tensor inputs = 3;
-    repeated Tensor outputs = 4;
+    string info = 2;
+    Device device = 3;
+    repeated Tensor inputs = 4;
+    repeated Tensor outputs = 5;
 }
 

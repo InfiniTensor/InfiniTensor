@@ -41,15 +41,14 @@ test-onnx:
 	python3 pyinfinitensor/tests/test_onnx.py
 
 build-test:
+	cd InfiniTest/src/InfiniTest && protoc --python_out=./ operator.proto
 ifeq ($(CUDA), ON)
 	@echo "CUDA_HOME: ${CUDA_HOME}"
 	@c++ -O3 -Wall -shared -std=c++11 -fPIC $$(python3 -m pybind11 --includes) -I${CUDA_HOME}/include -DCUDA ./InfiniTest/Device/device.cpp -o ./InfiniTest/src/InfiniTest/device$$(python3-config --extension-suffix) -L$(CUDA_HOME)/lib64 -lcudart
-	cd InfiniTest/src/InfiniTest && protoc --python_out=./ operator.proto
 endif
 ifeq ($(BANG), ON)
 	@echo "NEUWARE_HOME: ${NEUWARE_HOME}"
 	@c++ -O3 -Wall -shared -std=c++11 -fPIC $$(python3 -m pybind11 --includes) -I${NEUWARE_HOME}/include -DBANG ./InfiniTest/Device/device.cpp -o ./InfiniTest/src/InfiniTest/device$$(python3-config --extension-suffix) -L$(NEUWARE_HOME)/lib64 -lcnrt
-	cd InfiniTest/src/InfiniTest && protoc --python_out=./ operator.proto
 endif
 
 install-test: build-test

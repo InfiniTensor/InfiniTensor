@@ -94,10 +94,11 @@ class Operator(object):
 
         return inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype
 
-    def saveToFile(self, path, hex_option:bool = False, binary_file = False):
+    def saveToFile(self, path, hex_option:bool = False, binary_file:bool = False, device:operator_pb2.Device = operator_pb2.DEVICE_CPU, info:str = ""):
         operator = operator_pb2.Operator()
         operator.name = self.name
-        operator.device = operator_pb2.DEVICE_CPU
+        operator.device = device
+        operator.info = info
 
         for input, layout in zip(self.inputs, self.inputs_layout):
             input_tensor = operator_pb2.Tensor()
@@ -152,6 +153,9 @@ class AddBase(Operator):
     def __init__(self, inputs:list=[], outputs:list=[], inputs_layout:list=[], outputs_layout:list=[]):
         super().__init__(inputs, outputs, inputs_layout, outputs_layout)
         self.name = "Add"
+
+    def saveToFile(self, path, hex_option:bool = False, binary_file:bool = False, device:operator_pb2.Device = operator_pb2.DEVICE_CPU, info:str = ""):
+        super().saveToFile(path, hex_option, binary_file, device, info)
 
     def loadFromFile(self, path, binary_file = False):
         inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype = super().loadFromFile(path, binary_file)

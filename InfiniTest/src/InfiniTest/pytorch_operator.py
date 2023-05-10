@@ -19,6 +19,9 @@ class AddPytorch(base_operator.AddBase):
         outputs_layout_list = [operator_pb2.LAYOUT_NCHW]
         super().__init__(inputs_list,outputs_list,inputs_layout_list,outputs_layout_list)
 
+    def saveToFile(self, path, hex_option:bool = False, binary_file:bool = False, device:operator_pb2.Device = operator_pb2.DEVICE_CPU, info:str = ""):
+        super().saveToFile(path, hex_option, binary_file, device, info)
+
     def loadFromFile(self, path, binary_file = False):
         inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype = super().loadFromFile(path, binary_file)
         inputs = []
