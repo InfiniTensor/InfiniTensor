@@ -44,7 +44,7 @@ def test_proto():
     acc.computeDifference0("a pass case", output.numpy(), outputs[0].numpy())
     # 注意上述代码糅合了测例生成与测例解析两个过程，实际生产时，这两个过程应当是分开的：测例生成，测例解析&精度判定
 
-# 另外一种使用方式，考虑到有些代码不方便以函数的形式来组装进行装饰器标记，这里提供了Start与End函数来进行其实与末尾的标记
+# 另外一种使用方式，考虑到有些代码不方便以函数的形式来组装进行装饰器标记，这里提供了Start与End函数来进行起始与末尾的标记
 def another_test():
     pro.hostProfilingStart()
     print("aaa")
