@@ -49,6 +49,7 @@ class Operator(object):
             f.close()
         self.name = operator.name
         self.device = operator.device
+        self.info = operator.info
         
         self.inputs.clear()
         self.inputs_layout.clear()
