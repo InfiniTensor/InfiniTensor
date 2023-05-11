@@ -75,6 +75,9 @@ def gofusion_test():
     outputs = next(model.outputs.items().__iter__())[1].copyout_float()
     outputs = torch.tensor(outputs)
     outputs = torch.reshape(outputs,(1,10))
+    dump = Dump()
+    dump.dumpData(case="case", input_data=outputs.numpy(), precision=2)
+
 
 # 运行
 func()

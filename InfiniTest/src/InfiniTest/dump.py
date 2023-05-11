@@ -5,7 +5,7 @@ class Dump(object):
     def __init__(self, name:str = "default"):
         self.name = name
 
-    def dumpData(self, input_data:numpy.ndarray, case:str = "default", file_path:str="", precision=3):
+    def dumpData(self, input_data:numpy.ndarray, case:str = "default", file_path:str="", precision:int=3):
         if file_path == "":
             logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
             numpy.set_printoptions(threshold=numpy.inf, precision=precision)
