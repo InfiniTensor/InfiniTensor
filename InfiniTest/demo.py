@@ -57,8 +57,28 @@ def another_test():
     print("aaa")
     pro.hostProfilingEnd()
 
+def gofusion_test():
+    from pyinfinitensor.onnx import OnnxStub, backend
+    from onnxsim import simplify
+    import onnx
+    model = onnx.load('./resnet18_untrained.onnx')
+    model, check = simplify(model)
+    gofusion_model = OnnxStub(model, backend.cuda_runtime())
+    model = gofusion_model
+    images= torch.randint(0,100,(1,3,32,32),dtype=torch.float32)
+    next(model.inputs.items().__iter__())[1].copyin_float(images.reshape(-1).tolist())
+    model.init()
+    #模型运行两侧进行cuda性能起始标记
+    pro.cudaProfilingStart()
+    model.run()
+    pro.cudaProfilingEnd()
+    outputs = next(model.outputs.items().__iter__())[1].copyout_float()
+    outputs = torch.tensor(outputs)
+    outputs = torch.reshape(outputs,(1,10))
+
 # 运行
 func()
 test_proto()
 another_test()
+gofusion_test()
 
