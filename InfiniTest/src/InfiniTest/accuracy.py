@@ -35,7 +35,9 @@ class Accuracy(object):
         if state == 1:
             return;
         logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
-        if (base != test).any():
+        baseCopy = base.ravel()
+        testCopy = test.ravel()
+        if (baseCopy != testCopy).any():
             logging.info("\033[31m" + "[UNPASSED] " + "\033[0m" + ": " + case + " The value of two inputs are not equal.")
             return;
         logging.info("\033[32m" + "[PASSED] " + "\033[0m" + ": " + case)
@@ -49,8 +51,8 @@ class Accuracy(object):
         if state == 1:
             return;
         logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
-        baseCopy = base.astype(numpy.float64)
-        testCopy = test.astype(numpy.float64)
+        baseCopy = base.astype(numpy.float64).ravel()
+        testCopy = test.astype(numpy.float64).ravel()
         result = numpy.abs(baseCopy - testCopy)
         maxError = numpy.max(result)
         if maxError > self.diff1_threshold:
@@ -67,8 +69,8 @@ class Accuracy(object):
         if state == 1:
             return;
         logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
-        baseCopy = base.astype(numpy.float64)
-        testCopy = test.astype(numpy.float64)
+        baseCopy = base.astype(numpy.float64).ravel()
+        testCopy = test.astype(numpy.float64).ravel()
         upValue = numpy.abs(baseCopy - testCopy)
         downValue = numpy.abs(baseCopy) + utils.FLOAT64_EPSILON
         result = upValue / downValue
@@ -87,8 +89,8 @@ class Accuracy(object):
         if state == 1:
             return;
         logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
-        baseCopy = base.astype(numpy.float64)
-        testCopy = test.astype(numpy.float64)
+        baseCopy = base.astype(numpy.float64).ravel()
+        testCopy = test.astype(numpy.float64).ravel()
         upValue = numpy.sum(numpy.abs(baseCopy - testCopy))
         downValue = numpy.sum(numpy.abs(baseCopy)) + utils.FLOAT64_EPSILON
         maxError = upValue / downValue
@@ -108,8 +110,8 @@ class Accuracy(object):
         if state == 1:
             return;
         logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
-        baseCopy = base.astype(numpy.float64)
-        testCopy = test.astype(numpy.float64)
+        baseCopy = base.astype(numpy.float64).ravel()
+        testCopy = test.astype(numpy.float64).ravel()
         down = numpy.count_nonzero(numpy.not_equal(baseCopy, testCopy))
         small = numpy.count_nonzero(numpy.less(baseCopy, testCopy))
         error = small / down
