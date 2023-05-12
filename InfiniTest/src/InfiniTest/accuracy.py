@@ -28,6 +28,9 @@ class Accuracy(object):
         return 0;
 
     def computeDifference0(self, case:str, base:numpy.ndarray, test:numpy.ndarray):
+        """
+        逐个检查 base 中的元素与 test 中的元素是否完全一致。
+        """
         state = self.basicCheck(case, base, test)
         if state == 1:
             return;
@@ -38,6 +41,10 @@ class Accuracy(object):
         logging.info("\033[32m" + "[PASSED] " + "\033[0m" + ": " + case)
 
     def computeDifference1(self, case:str, base:numpy.ndarray, test:numpy.ndarray):
+        """
+        逐个检查 base 中的元素与 test 中的元素，计算获得最大单点绝对误差。
+        error_value = max( |base[i] - test[i]| )
+        """
         state = self.basicCheck(case, base, test)
         if state == 1:
             return;
@@ -49,9 +56,13 @@ class Accuracy(object):
         if maxError > self.diff1_threshold:
             logging.info("\033[31m" + "[UNPASSED] " + "\033[0m" + ": " + case + " The error " + str(maxError) + " is out of the threshold " + str(self.diff1_threshold) + ".")
         else:
-            logging.info("\033[32m" + "[PASSED] " + "\033[0m" + ": " + case)
+            logging.info("\033[32m" + "[PASSED] " + "\033[0m" + ": " + case + " The error is " + str(maxError))
 
     def computeDifference2(self, case:str, base:numpy.ndarray, test:numpy.ndarray):
+        """
+        逐个检查 base 中的元素与 test 中的元素，计算获得最大单点相对误差。
+        error_value = max( |base[i] - test[i]| / |base[i]| + EPSILON )
+        """
         state = self.basicCheck(case, base, test)
         if state == 1:
             return;
@@ -65,9 +76,13 @@ class Accuracy(object):
         if maxError > self.diff2_threshold:
             logging.info("\033[31m" + "[UNPASSED] " + "\033[0m" + ": " + case + " The error " + str(maxError) + " is out of the threshold " + str(self.diff2_threshold) + ".")
         else:
-            logging.info("\033[32m" + "[PASSED] " + "\033[0m" + ": " + case)
+            logging.info("\033[32m" + "[PASSED] " + "\033[0m" + ": " + case + " The error is " + str(maxError))
 
     def computeDifference3(self, case:str, base:numpy.ndarray, test:numpy.ndarray):
+        """
+        计算获得平均相对误差。
+        error_value = ( ∑|base[i] - test[i]| ) / ( ∑|base[i]| + EPSILON )
+        """
         state = self.basicCheck(case, base, test)
         if state == 1:
             return;
@@ -80,9 +95,15 @@ class Accuracy(object):
         if maxError > self.diff3_threshold:
             logging.info("\033[31m" + "[UNPASSED] " + "\033[0m" + ": " + case + " The error " + str(maxError) + " is out of the threshold " + str(self.diff3_threshold) + ".")
         else:
-            logging.info("\033[32m" + "[PASSED] " + "\033[0m" + ": " + case)
+            logging.info("\033[32m" + "[PASSED] " + "\033[0m" + ": " + case + " The error is " + str(maxError))
 
     def computeDifference4(self, case:str, base:numpy.ndarray, test:numpy.ndarray):
+        """
+        误差有偏性度量
+        not_equal_num = count( base[i]! = test[i] )
+        less_num = count( base[i] < test[i] )
+        error_value = less_num / not_equal_num
+        """
         state = self.basicCheck(case, base, test)
         if state == 1:
             return;
@@ -95,7 +116,7 @@ class Accuracy(object):
         if error < self.diff4_threshold[0] or error > self.diff4_threshold[1]:
             logging.info("\033[31m" + "[UNPASSED] " + "\033[0m" + ": " + case + " The error " + str(error) + " is out of the threshold [" + str(self.diff4_threshold[0]) + ", " + str(self.diff4_threshold[1]) +"].")
         else:
-            logging.info("\033[32m" + "[PASSED] " + "\033[0m" + ": " + case)
+            logging.info("\033[32m" + "[PASSED] " + "\033[0m" + ": " + case + " The error is " + str(maxError))
 
     def unitTest(self):
         a = numpy.array([1,2,3])
