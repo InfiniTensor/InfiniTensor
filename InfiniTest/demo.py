@@ -79,9 +79,47 @@ def gofusion_test():
     dump.dumpData(case="case", input_data=outputs.numpy(), precision=2)
 
 
+def gofusion_test2():
+    import torch
+    import torch.nn as nn
+    import onnx
+    import numpy
+    from pyinfinitensor.onnx import OnnxStub, backend
+
+    class Model(nn.Module):
+        def __init__(self):
+            super(Model,self).__init__()
+        def forward(self,x,y):
+            z = torch.add(x,y)
+            return z
+
+    model = Model()
+    x = torch.rand(3,4,dtype=torch.float32)
+    y = torch.rand(3,4,dtype=torch.float32)
+    z = torch.add(x,y)
+    torch.onnx.export(model, (x,y), 'model.onnx', input_names=["x","y"], output_names=["z"])
+
+    model = onnx.load('./model.onnx')
+    gofusion_model = OnnxStub(model, backend.cuda_runtime())
+    model = gofusion_model
+
+    model.init()
+    model.inputs["x"].copyin_float(x.reshape(-1).tolist())
+    model.inputs["y"].copyin_float(y.reshape(-1).tolist())
+
+    model.run()
+    output = model.outputs["z"].copyout_float()
+    output = torch.tensor(output)
+    output = torch.reshape(output,(3,4))
+
+    acc = Accuracy()
+    acc.computeDifference1("gofusion case", z.numpy(), output.numpy())
+
+
 # 运行
 func()
 test_proto()
 another_test()
 gofusion_test()
+gofusion_test2()
 
