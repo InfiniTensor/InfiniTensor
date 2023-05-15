@@ -57,14 +57,14 @@ def another_test():
     print("aaa")
     pro.hostProfilingEnd()
 
-def gofusion_test():
+def operator_test():
     from pyinfinitensor.onnx import OnnxStub, backend
     from onnxsim import simplify
     import onnx
     model = onnx.load('./resnet18_untrained.onnx')
     model, check = simplify(model)
-    gofusion_model = OnnxStub(model, backend.cuda_runtime())
-    model = gofusion_model
+    operator_model = OnnxStub(model, backend.cuda_runtime())
+    model = operator_model
     images= torch.randint(0,100,(1,3,32,32),dtype=torch.float32)
     next(model.inputs.items().__iter__())[1].copyin_float(images.reshape(-1).tolist())
     model.init()
@@ -79,7 +79,7 @@ def gofusion_test():
     dump.dumpData(case="case", input_data=outputs.numpy(), precision=2)
 
 
-def gofusion_test2():
+def operator_test2():
     import torch
     import torch.nn as nn
     import onnx
@@ -100,8 +100,8 @@ def gofusion_test2():
     torch.onnx.export(model, (x,y), 'model.onnx', input_names=["x","y"], output_names=["z"])
 
     model = onnx.load('./model.onnx')
-    gofusion_model = OnnxStub(model, backend.cuda_runtime())
-    model = gofusion_model
+    operator_model = OnnxStub(model, backend.cuda_runtime())
+    model = operator_model
 
     model.init()
     model.inputs["x"].copyin_float(x.reshape(-1).tolist())
@@ -113,13 +113,40 @@ def gofusion_test2():
     output = torch.reshape(output,(3,4))
 
     acc = Accuracy()
-    acc.computeDifference1("gofusion case", z.numpy(), output.numpy())
+    acc.computeDifference1("operator case", z.numpy(), output.numpy())
 
+def operator_test3():
+    import torch
+    import torch.nn as nn
+    import onnx
+    import numpy
+    from pyinfinitensor.onnx import OnnxStub, backend
+
+    x = torch.rand(3,4,dtype=torch.float32)
+    y = torch.rand(3,4,dtype=torch.float32)
+    z = torch.add(x,y)
+
+    handler = backend.GraphHandler(backend.cuda_runtime())
+    xa = handler.tensor([3,4], 1)
+    ya = handler.tensor([3,4], 1)
+    za = handler.add(xa,ya,None)
+    handler.data_malloc()
+    xa.copyin_float(x.reshape(-1).tolist())
+    ya.copyin_float(y.reshape(-1).tolist())
+    handler.run()
+
+    output = za.copyout_float()
+    output = torch.tensor(output)
+    output = torch.reshape(output,(3,4))
+
+    acc = Accuracy()
+    acc.computeDifference1("operator case", z.numpy(), output.numpy())
 
 # 运行
 func()
 test_proto()
 another_test()
-gofusion_test()
-gofusion_test2()
+operator_test()
+operator_test2()
+operator_test3()
 
