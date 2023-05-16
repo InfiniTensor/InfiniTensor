@@ -1,0 +1,62 @@
+name: "Add"
+device: DEVICE_GPU
+inputs {
+  layout: LAYOUT_NCHW
+  datatype: DTYPE_FLOAT
+  shape {
+    dimension: 3
+    dimension: 4
+  }
+  valueFloat: 0.9012795686721802
+  valueFloat: 0.5670772194862366
+  valueFloat: 0.6212474703788757
+  valueFloat: 0.7216101884841919
+  valueFloat: 0.07695329189300537
+  valueFloat: 0.23625695705413818
+  valueFloat: 0.14144599437713623
+  valueFloat: 0.7139170169830322
+  valueFloat: 0.5300498008728027
+  valueFloat: 0.9382588267326355
+  valueFloat: 0.2582342028617859
+  valueFloat: 0.4123877286911011
+}
+inputs {
+  layout: LAYOUT_NCHW
+  datatype: DTYPE_FLOAT
+  shape {
+    dimension: 3
+    dimension: 4
+  }
+  valueFloat: 0.1711353063583374
+  valueFloat: 0.39829474687576294
+  valueFloat: 0.11482900381088257
+  valueFloat: 0.8069161772727966
+  valueFloat: 0.35165154933929443
+  valueFloat: 0.6227519512176514
+  valueFloat: 0.6204600930213928
+  valueFloat: 0.8705883622169495
+  valueFloat: 0.556583821773529
+  valueFloat: 0.1992695927619934
+  valueFloat: 0.905242383480072
+  valueFloat: 0.103726327419281
+}
+outputs {
+  layout: LAYOUT_NCHW
+  datatype: DTYPE_FLOAT
+  shape {
+    dimension: 3
+    dimension: 4
+  }
+  valueFloat: 1.0724148750305176
+  valueFloat: 0.9653719663619995
+  valueFloat: 0.7360764741897583
+  valueFloat: 1.5285263061523438
+  valueFloat: 0.4286048412322998
+  valueFloat: 0.8590089082717896
+  valueFloat: 0.761906087398529
+  valueFloat: 1.584505319595337
+  valueFloat: 1.0866336822509766
+  valueFloat: 1.137528419494629
+  valueFloat: 1.163476586341858
+  valueFloat: 0.5161140561103821
+}
