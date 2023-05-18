@@ -43,5 +43,10 @@ message Operator {
     Device device = 3;
     repeated Tensor inputs = 4;
     repeated Tensor outputs = 5;
+    TransposeParam permute = 6;
+}
+
+message TransposeParam {
+  repeated int32 value = 1;
 }
 

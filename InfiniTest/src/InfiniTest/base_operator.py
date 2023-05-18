@@ -37,6 +37,14 @@ class Operator(object):
         self.inputs_layout = inputs_layout
         self.outputs_layout = outputs_layout
 
+    def save_param(self, param):
+        if self.name == "Transpose":
+            param.permute.value.extend(self.permute)
+    
+    def load_param(self, param):
+        if param.name == "Transpose":
+            self.permute = param.permute.value
+
     def loadFromFile(self, path, binary_file = False):
         operator = operator_pb2.Operator()
         if binary_file == True:
@@ -50,6 +58,7 @@ class Operator(object):
         self.name = operator.name
         self.device = operator.device
         self.info = operator.info
+        self.load_param(operator)
         
         self.inputs.clear()
         self.inputs_layout.clear()
@@ -100,6 +109,8 @@ class Operator(object):
         operator.name = self.name
         operator.device = device
         operator.info = info
+        # 处理算子的Param
+        self.save_param(operator)
 
         for input, layout in zip(self.inputs, self.inputs_layout):
             input_tensor = operator_pb2.Tensor()
@@ -166,6 +177,19 @@ class MatmulBase(Operator):
     def __init__(self, inputs:list=[], outputs:list=[], inputs_layout:list=[], outputs_layout:list=[]):
         super().__init__(inputs, outputs, inputs_layout, outputs_layout)
         self.name = "Matmul"
+
+    def saveToFile(self, path, hex_option:bool = False, binary_file:bool = False, device:operator_pb2.Device = operator_pb2.DEVICE_CPU, info:str = ""):
+        super().saveToFile(path, hex_option, binary_file, device, info)
+
+    def loadFromFile(self, path, binary_file = False):
+        inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype = super().loadFromFile(path, binary_file)
+        return inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype
+
+class TransposeBase(Operator):
+    def __init__(self, inputs:list=[], outputs:list=[], inputs_layout:list=[], outputs_layout:list=[], permute:list=[]):
+        super().__init__(inputs, outputs, inputs_layout, outputs_layout)
+        self.name = "Transpose"
+        self.permute = permute
 
     def saveToFile(self, path, hex_option:bool = False, binary_file:bool = False, device:operator_pb2.Device = operator_pb2.DEVICE_CPU, info:str = ""):
         super().saveToFile(path, hex_option, binary_file, device, info)

@@ -24,10 +24,7 @@ def generate_case(dir_path:str = "./add/", shape:tuple = (3,4), type = torch.flo
     # 构造tensor
     x = torch.rand(shape, dtype=type)
     y = torch.rand(shape, dtype=type)
-    x_gpu = x.to(torch.device("cuda"))
-    y_gpu = y.to(torch.device("cuda"))
-    z_gpu = torch.add(x_gpu, y_gpu)
-    z = z_gpu.to(torch.device("cpu"))
+    z = torch.add(x, y)
     # 构造测例实例
     add = AddPytorch([x,y],[z])
     # 序列化为文件
@@ -42,7 +39,7 @@ def parse_case(dir_path:str="./add/"):
         if os.path.isfile(dir_path + file) and os.path.splitext(dir_path + file)[1] =='.prototxt':
             check = AddPytorch()
             inputs, outputs = check.loadFromFile(dir_path + file)
-            handler = backend.GraphHandler(backend.cuda_runtime())
+            handler = backend.GraphHandler(backend.bang_runtime())
             x = handler.tensor(inputs[0].shape, 1)
             y = handler.tensor(inputs[1].shape, 1)
             z = handler.add(x,y,None)

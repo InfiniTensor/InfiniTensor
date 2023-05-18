@@ -1,0 +1,88 @@
+name: "Transpose"
+device: DEVICE_GPU
+inputs {
+  layout: LAYOUT_NCHW
+  datatype: DTYPE_FLOAT
+  shape {
+    dimension: 1
+    dimension: 1
+    dimension: 5
+    dimension: 6
+  }
+  valueFloat: 0.37072157859802246
+  valueFloat: 0.6802645921707153
+  valueFloat: 0.2071629762649536
+  valueFloat: 0.24346953630447388
+  valueFloat: 0.5836188793182373
+  valueFloat: 0.6389609575271606
+  valueFloat: 0.720373272895813
+  valueFloat: 0.2705225944519043
+  valueFloat: 0.5755137801170349
+  valueFloat: 0.9963685870170593
+  valueFloat: 0.7445892691612244
+  valueFloat: 0.05287688970565796
+  valueFloat: 0.524434506893158
+  valueFloat: 0.18888986110687256
+  valueFloat: 0.20826774835586548
+  valueFloat: 0.8289477229118347
+  valueFloat: 0.2118111252784729
+  valueFloat: 0.7187515497207642
+  valueFloat: 0.0736532211303711
+  valueFloat: 0.1624501347541809
+  valueFloat: 0.8430400490760803
+  valueFloat: 0.6339982748031616
+  valueFloat: 0.43049246072769165
+  valueFloat: 0.2006017565727234
+  valueFloat: 0.38881629705429077
+  valueFloat: 0.7873696088790894
+  valueFloat: 0.11759388446807861
+  valueFloat: 0.8663092255592346
+  valueFloat: 0.49767351150512695
+  valueFloat: 0.7452982664108276
+}
+outputs {
+  layout: LAYOUT_NCHW
+  datatype: DTYPE_FLOAT
+  shape {
+    dimension: 1
+    dimension: 1
+    dimension: 6
+    dimension: 5
+  }
+  valueFloat: 0.37072157859802246
+  valueFloat: 0.720373272895813
+  valueFloat: 0.524434506893158
+  valueFloat: 0.0736532211303711
+  valueFloat: 0.38881629705429077
+  valueFloat: 0.6802645921707153
+  valueFloat: 0.2705225944519043
+  valueFloat: 0.18888986110687256
+  valueFloat: 0.1624501347541809
+  valueFloat: 0.7873696088790894
+  valueFloat: 0.2071629762649536
+  valueFloat: 0.5755137801170349
+  valueFloat: 0.20826774835586548
+  valueFloat: 0.8430400490760803
+  valueFloat: 0.11759388446807861
+  valueFloat: 0.24346953630447388
+  valueFloat: 0.9963685870170593
+  valueFloat: 0.8289477229118347
+  valueFloat: 0.6339982748031616
+  valueFloat: 0.8663092255592346
+  valueFloat: 0.5836188793182373
+  valueFloat: 0.7445892691612244
+  valueFloat: 0.2118111252784729
+  valueFloat: 0.43049246072769165
+  valueFloat: 0.49767351150512695
+  valueFloat: 0.6389609575271606
+  valueFloat: 0.05287688970565796
+  valueFloat: 0.7187515497207642
+  valueFloat: 0.2006017565727234
+  valueFloat: 0.7452982664108276
+}
+permute {
+  value: 0
+  value: 1
+  value: 3
+  value: 2
+}
