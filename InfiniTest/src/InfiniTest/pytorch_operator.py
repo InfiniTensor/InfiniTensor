@@ -127,6 +127,35 @@ class SigmoidPytorch(base_operator.SigmoidBase):
             outputs.append(temp)
         return inputs, outputs
 
+class ConvPytorch(base_operator.ConvBase):
+    def __init__(self, inputs:list=[], outputs:list=[], pads:list=[], strides:list=[], dilations:list=[]):
+        inputs_list = [data.numpy() for data in inputs]
+        outputs_list = [data.numpy() for data in outputs]
+        inputs_layout_list = [operator_pb2.LAYOUT_NCHW, operator_pb2.LAYOUT_NCHW]
+        outputs_layout_list = [operator_pb2.LAYOUT_NCHW]
+        super().__init__(inputs_list,outputs_list,inputs_layout_list,outputs_layout_list, pads, strides, dilations)
+
+    def saveToFile(self, path, hex_option:bool = False, binary_file:bool = False, device:operator_pb2.Device = operator_pb2.DEVICE_CPU, info:str = ""):
+        super().saveToFile(path, hex_option, binary_file, device, info)
+
+    def loadFromFile(self, path, binary_file = False):
+        inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype = super().loadFromFile(path, binary_file)
+        inputs = []
+        for input, shape, stride, datatype in zip(self.inputs, inputs_dimension, inputs_stride, inputs_datatype):
+            temp = torch.tensor(input, dtype = datatype_switch(datatype))
+            temp = temp.reshape(tuple(shape))
+            if len(stride) > 0:
+                temp = torch.as_strided(temp, tuple(shape), tuple(stride))
+            inputs.append(temp)
+        outputs = []
+        for output, shape, stride, datatype in zip(self.outputs, outputs_dimension, outputs_stride, outputs_datatype):
+            temp = torch.tensor(output, dtype = datatype_switch(datatype))
+            temp = temp.reshape(tuple(shape))
+            if len(stride) > 0:
+                temp = torch.as_strided(temp, tuple(shape), tuple(stride))
+            outputs.append(temp)
+        return inputs, outputs, self.pads, self.strides, self.dilations
+
 if __name__ == "__main__":
     input1 = torch.randint(0,100,(3,4),dtype=torch.int32)
     input2 = torch.randint(0,100,(3,4),dtype=torch.int32)

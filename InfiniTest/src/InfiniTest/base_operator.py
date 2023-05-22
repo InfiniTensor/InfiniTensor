@@ -40,10 +40,18 @@ class Operator(object):
     def save_param(self, param):
         if self.name == "Transpose":
             param.permute.value.extend(self.permute)
+        elif self.name == "Convolution":
+            param.conv.pads.extend(self.pads)
+            param.conv.strides.extend(self.strides)
+            param.conv.dilations.extend(self.dilations)
     
     def load_param(self, param):
         if param.name == "Transpose":
             self.permute = param.permute.value
+        elif param.name == "Convolution":
+            self.pads = param.conv.pads
+            self.strides = param.conv.strides
+            self.dilations = param.conv.dilations
 
     def loadFromFile(self, path, binary_file = False):
         operator = operator_pb2.Operator()
@@ -202,6 +210,21 @@ class SigmoidBase(Operator):
     def __init__(self, inputs:list=[], outputs:list=[], inputs_layout:list=[], outputs_layout:list=[]):
         super().__init__(inputs, outputs, inputs_layout, outputs_layout)
         self.name = "Sigmoid"
+
+    def saveToFile(self, path, hex_option:bool = False, binary_file:bool = False, device:operator_pb2.Device = operator_pb2.DEVICE_CPU, info:str = ""):
+        super().saveToFile(path, hex_option, binary_file, device, info)
+
+    def loadFromFile(self, path, binary_file = False):
+        inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype = super().loadFromFile(path, binary_file)
+        return inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype
+
+class ConvBase(Operator):
+    def __init__(self, inputs:list=[], outputs:list=[], inputs_layout:list=[], outputs_layout:list=[], pads:list=[], strides:list=[], dilations:list=[]):
+        super().__init__(inputs, outputs, inputs_layout, outputs_layout)
+        self.name = "Convolution"
+        self.pads = pads
+        self.strides = strides
+        self.dilations = dilations
 
     def saveToFile(self, path, hex_option:bool = False, binary_file:bool = False, device:operator_pb2.Device = operator_pb2.DEVICE_CPU, info:str = ""):
         super().saveToFile(path, hex_option, binary_file, device, info)

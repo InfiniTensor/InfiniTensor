@@ -44,9 +44,16 @@ message Operator {
     repeated Tensor inputs = 4;
     repeated Tensor outputs = 5;
     TransposeParam permute = 6;
+    ConvolutionParam conv = 7;
 }
 
 message TransposeParam {
   repeated int32 value = 1;
+}
+
+message ConvolutionParam {
+  repeated int32 pads = 1;
+  repeated int32 strides = 2;
+  repeated int32 dilations = 3;
 }
 
