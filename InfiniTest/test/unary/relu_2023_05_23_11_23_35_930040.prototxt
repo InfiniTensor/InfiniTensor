@@ -1,0 +1,58 @@
+name: "Relu"
+device: DEVICE_GPU
+inputs {
+  layout: LAYOUT_NCHW
+  datatype: DTYPE_FLOAT
+  shape {
+    dimension: 1
+    dimension: 3
+    dimension: 2
+    dimension: 3
+  }
+  valueFloat: 0.16944319009780884
+  valueFloat: 0.209786057472229
+  valueFloat: 0.9834144711494446
+  valueFloat: 0.901722252368927
+  valueFloat: 0.39303863048553467
+  valueFloat: 0.573692262172699
+  valueFloat: 0.9067879915237427
+  valueFloat: 0.42316216230392456
+  valueFloat: 0.9596343040466309
+  valueFloat: 0.4055737257003784
+  valueFloat: 0.30267542600631714
+  valueFloat: 0.10764312744140625
+  valueFloat: 0.7261384129524231
+  valueFloat: 0.22320616245269775
+  valueFloat: 0.8152516484260559
+  valueFloat: 0.10247337818145752
+  valueFloat: 0.2983226180076599
+  valueFloat: 0.5616959929466248
+}
+outputs {
+  layout: LAYOUT_NCHW
+  datatype: DTYPE_FLOAT
+  shape {
+    dimension: 1
+    dimension: 3
+    dimension: 2
+    dimension: 3
+  }
+  valueFloat: 0.16944319009780884
+  valueFloat: 0.209786057472229
+  valueFloat: 0.9834144711494446
+  valueFloat: 0.901722252368927
+  valueFloat: 0.39303863048553467
+  valueFloat: 0.573692262172699
+  valueFloat: 0.9067879915237427
+  valueFloat: 0.42316216230392456
+  valueFloat: 0.9596343040466309
+  valueFloat: 0.4055737257003784
+  valueFloat: 0.30267542600631714
+  valueFloat: 0.10764312744140625
+  valueFloat: 0.7261384129524231
+  valueFloat: 0.22320616245269775
+  valueFloat: 0.8152516484260559
+  valueFloat: 0.10247337818145752
+  valueFloat: 0.2983226180076599
+  valueFloat: 0.5616959929466248
+}

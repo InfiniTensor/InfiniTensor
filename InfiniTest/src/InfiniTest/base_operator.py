@@ -233,6 +233,162 @@ class ConvBase(Operator):
         inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype = super().loadFromFile(path, binary_file)
         return inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype
 
+class ReluBase(Operator):
+    def __init__(self, inputs:list=[], outputs:list=[], inputs_layout:list=[], outputs_layout:list=[]):
+        super().__init__(inputs, outputs, inputs_layout, outputs_layout)
+        self.name = "Relu"
+
+    def saveToFile(self, path, hex_option:bool = False, binary_file:bool = False, device:operator_pb2.Device = operator_pb2.DEVICE_CPU, info:str = ""):
+        super().saveToFile(path, hex_option, binary_file, device, info)
+
+    def loadFromFile(self, path, binary_file = False):
+        inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype = super().loadFromFile(path, binary_file)
+        return inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype
+
+# class SinBase(Operator):
+#     def __init__(self, inputs:list=[], outputs:list=[], inputs_layout:list=[], outputs_layout:list=[]):
+#         super().__init__(inputs, outputs, inputs_layout, outputs_layout)
+#         self.name = "Sin"
+# 
+#     def saveToFile(self, path, hex_option:bool = False, binary_file:bool = False, device:operator_pb2.Device = operator_pb2.DEVICE_CPU, info:str = ""):
+#         super().saveToFile(path, hex_option, binary_file, device, info)
+# 
+#     def loadFromFile(self, path, binary_file = False):
+#         inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype = super().loadFromFile(path, binary_file)
+#         return inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype
+# 
+# class CosBase(Operator):
+#     def __init__(self, inputs:list=[], outputs:list=[], inputs_layout:list=[], outputs_layout:list=[]):
+#         super().__init__(inputs, outputs, inputs_layout, outputs_layout)
+#         self.name = "Cos"
+# 
+#     def saveToFile(self, path, hex_option:bool = False, binary_file:bool = False, device:operator_pb2.Device = operator_pb2.DEVICE_CPU, info:str = ""):
+#         super().saveToFile(path, hex_option, binary_file, device, info)
+# 
+#     def loadFromFile(self, path, binary_file = False):
+#         inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype = super().loadFromFile(path, binary_file)
+#         return inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype
+# 
+# class TanBase(Operator):
+#     def __init__(self, inputs:list=[], outputs:list=[], inputs_layout:list=[], outputs_layout:list=[]):
+#         super().__init__(inputs, outputs, inputs_layout, outputs_layout)
+#         self.name = "Tan"
+# 
+#     def saveToFile(self, path, hex_option:bool = False, binary_file:bool = False, device:operator_pb2.Device = operator_pb2.DEVICE_CPU, info:str = ""):
+#         super().saveToFile(path, hex_option, binary_file, device, info)
+# 
+#     def loadFromFile(self, path, binary_file = False):
+#         inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype = super().loadFromFile(path, binary_file)
+#         return inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype
+# 
+# class ASinBase(Operator):
+#     def __init__(self, inputs:list=[], outputs:list=[], inputs_layout:list=[], outputs_layout:list=[]):
+#         super().__init__(inputs, outputs, inputs_layout, outputs_layout)
+#         self.name = "ASin"
+# 
+#     def saveToFile(self, path, hex_option:bool = False, binary_file:bool = False, device:operator_pb2.Device = operator_pb2.DEVICE_CPU, info:str = ""):
+#         super().saveToFile(path, hex_option, binary_file, device, info)
+# 
+#     def loadFromFile(self, path, binary_file = False):
+#         inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype = super().loadFromFile(path, binary_file)
+#         return inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype
+# 
+# class ACosBase(Operator):
+#     def __init__(self, inputs:list=[], outputs:list=[], inputs_layout:list=[], outputs_layout:list=[]):
+#         super().__init__(inputs, outputs, inputs_layout, outputs_layout)
+#         self.name = "ACos"
+# 
+#     def saveToFile(self, path, hex_option:bool = False, binary_file:bool = False, device:operator_pb2.Device = operator_pb2.DEVICE_CPU, info:str = ""):
+#         super().saveToFile(path, hex_option, binary_file, device, info)
+# 
+#     def loadFromFile(self, path, binary_file = False):
+#         inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype = super().loadFromFile(path, binary_file)
+#         return inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype
+# 
+# class ATanBase(Operator):
+#     def __init__(self, inputs:list=[], outputs:list=[], inputs_layout:list=[], outputs_layout:list=[]):
+#         super().__init__(inputs, outputs, inputs_layout, outputs_layout)
+#         self.name = "ATan"
+# 
+#     def saveToFile(self, path, hex_option:bool = False, binary_file:bool = False, device:operator_pb2.Device = operator_pb2.DEVICE_CPU, info:str = ""):
+#         super().saveToFile(path, hex_option, binary_file, device, info)
+# 
+#     def loadFromFile(self, path, binary_file = False):
+#         inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype = super().loadFromFile(path, binary_file)
+#         return inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype
+# 
+# class SinHBase(Operator):
+#     def __init__(self, inputs:list=[], outputs:list=[], inputs_layout:list=[], outputs_layout:list=[]):
+#         super().__init__(inputs, outputs, inputs_layout, outputs_layout)
+#         self.name = "SinH"
+# 
+#     def saveToFile(self, path, hex_option:bool = False, binary_file:bool = False, device:operator_pb2.Device = operator_pb2.DEVICE_CPU, info:str = ""):
+#         super().saveToFile(path, hex_option, binary_file, device, info)
+# 
+#     def loadFromFile(self, path, binary_file = False):
+#         inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype = super().loadFromFile(path, binary_file)
+#         return inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype
+# 
+# class CosHBase(Operator):
+#     def __init__(self, inputs:list=[], outputs:list=[], inputs_layout:list=[], outputs_layout:list=[]):
+#         super().__init__(inputs, outputs, inputs_layout, outputs_layout)
+#         self.name = "CosH"
+# 
+#     def saveToFile(self, path, hex_option:bool = False, binary_file:bool = False, device:operator_pb2.Device = operator_pb2.DEVICE_CPU, info:str = ""):
+#         super().saveToFile(path, hex_option, binary_file, device, info)
+# 
+#     def loadFromFile(self, path, binary_file = False):
+#         inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype = super().loadFromFile(path, binary_file)
+#         return inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype
+# 
+# class TanHBase(Operator):
+#     def __init__(self, inputs:list=[], outputs:list=[], inputs_layout:list=[], outputs_layout:list=[]):
+#         super().__init__(inputs, outputs, inputs_layout, outputs_layout)
+#         self.name = "TanH"
+# 
+#     def saveToFile(self, path, hex_option:bool = False, binary_file:bool = False, device:operator_pb2.Device = operator_pb2.DEVICE_CPU, info:str = ""):
+#         super().saveToFile(path, hex_option, binary_file, device, info)
+# 
+#     def loadFromFile(self, path, binary_file = False):
+#         inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype = super().loadFromFile(path, binary_file)
+#         return inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype
+# 
+# class ASinHBase(Operator):
+#     def __init__(self, inputs:list=[], outputs:list=[], inputs_layout:list=[], outputs_layout:list=[]):
+#         super().__init__(inputs, outputs, inputs_layout, outputs_layout)
+#         self.name = "ASinH"
+# 
+#     def saveToFile(self, path, hex_option:bool = False, binary_file:bool = False, device:operator_pb2.Device = operator_pb2.DEVICE_CPU, info:str = ""):
+#         super().saveToFile(path, hex_option, binary_file, device, info)
+# 
+#     def loadFromFile(self, path, binary_file = False):
+#         inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype = super().loadFromFile(path, binary_file)
+#         return inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype
+# 
+# class ACosHBase(Operator):
+#     def __init__(self, inputs:list=[], outputs:list=[], inputs_layout:list=[], outputs_layout:list=[]):
+#         super().__init__(inputs, outputs, inputs_layout, outputs_layout)
+#         self.name = "ACosH"
+# 
+#     def saveToFile(self, path, hex_option:bool = False, binary_file:bool = False, device:operator_pb2.Device = operator_pb2.DEVICE_CPU, info:str = ""):
+#         super().saveToFile(path, hex_option, binary_file, device, info)
+# 
+#     def loadFromFile(self, path, binary_file = False):
+#         inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype = super().loadFromFile(path, binary_file)
+#         return inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype
+# 
+# class ATanHBase(Operator):
+#     def __init__(self, inputs:list=[], outputs:list=[], inputs_layout:list=[], outputs_layout:list=[]):
+#         super().__init__(inputs, outputs, inputs_layout, outputs_layout)
+#         self.name = "ATanH"
+# 
+#     def saveToFile(self, path, hex_option:bool = False, binary_file:bool = False, device:operator_pb2.Device = operator_pb2.DEVICE_CPU, info:str = ""):
+#         super().saveToFile(path, hex_option, binary_file, device, info)
+# 
+#     def loadFromFile(self, path, binary_file = False):
+#         inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype = super().loadFromFile(path, binary_file)
+#         return inputs_dimension, inputs_stride, inputs_datatype, outputs_dimension, outputs_stride, outputs_datatype
+
 if __name__ == "__main__":
     input1 = numpy.array([1.0,2.0,3.0], dtype=numpy.float32)
     input2 = numpy.array([1.0,2.0,3.0], dtype=numpy.float32)
