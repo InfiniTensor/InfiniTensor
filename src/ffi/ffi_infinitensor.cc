@@ -21,6 +21,9 @@
 #ifdef USE_BANG
 #include "bang/bang_runtime.h"
 #endif
+#ifdef USE_XPU
+#include "xpu/xpu_runtime.h"
+#endif
 #ifdef USE_INTELCPU
 #include "intelcpu/mkl_runtime.h"
 #include "intelcpu/operator_timer.h"
@@ -125,6 +128,10 @@ static Ref<CudaRuntimeObj> cuda_runtime() { return make_ref<CudaRuntimeObj>(); }
 
 #ifdef USE_BANG
 static Ref<BangRuntimeObj> bang_runtime() { return make_ref<BangRuntimeObj>(); }
+#endif
+
+#ifdef USE_XPU
+static Ref<XPURuntimeObj> xpu_runtime() { return make_ref<XPURuntimeObj>(); }
 #endif
 
 #ifdef USE_INTELCPU
@@ -239,6 +246,10 @@ void export_functions(py::module &m) {
 #ifdef USE_BANG
         .FUNCTION(bang_runtime)
 #endif
+
+#ifdef USE_XPU
+        .FUNCTION(xpu_runtime)
+#endif
         .FUNCTION(conv_attrs_of)
         .FUNCTION(conv_trans_attrs_of)
         .FUNCTION(matmul_attrs_of)
@@ -269,6 +280,10 @@ void init_graph_builder(py::module &m) {
 #ifdef USE_BANG
     py::class_<BangRuntimeObj, std::shared_ptr<BangRuntimeObj>, RuntimeObj>(
         m, "BangRuntime");
+#endif
+#ifdef USE_XPU
+    py::class_<XPURuntimeObj, std::shared_ptr<XPURuntimeObj>, RuntimeObj>(
+        m, "XPURuntime");
 #endif
     py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "Tensor")
         .def("fuid", &TensorObj::getFuid, policy::automatic)
