@@ -49,6 +49,9 @@ void testAdd(
 
 TEST(xpu_add, run) {
     testAdd<AddObj>(IncrementalGenerator(), Shape{10, 256, 256, 3});
+    testAdd<SubObj>(IncrementalGenerator(), Shape{10, 256, 256, 3});
+    testAdd<MulObj>(IncrementalGenerator(), Shape{10, 256, 256, 3});
+    testAdd<DivObj>(IncrementalGenerator(), Shape{10, 256, 256, 3});
 }
 
 } // namespace infini
