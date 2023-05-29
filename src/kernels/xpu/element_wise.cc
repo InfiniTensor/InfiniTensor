@@ -150,6 +150,132 @@ class MinXdnn : public XPUKernelWithoutConfig {
     }
 };
 
+class EqualXdnn : public XPUKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<ElementWiseObj>(_op);
+        auto context = dynamic_cast<const XPURuntimeObj *>(_context);
+
+        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
+        void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+
+        auto aDim = op->getInputs(0)->getDims();
+        auto bDim = op->getInputs(1)->getDims();
+        if (aDim.size() != 4 || bDim.size() != 4)
+            IT_TODO_HALT();
+	auto ret = baidu::xpu::api::broadcast_equal<float>(context->XPUHandle(), (float*)aData, (float*)bData, (bool*)cData, aDim, bDim);
+	assert(ret == 0);
+	return;
+
+    }
+};
+
+class NotEqualXdnn : public XPUKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<ElementWiseObj>(_op);
+        auto context = dynamic_cast<const XPURuntimeObj *>(_context);
+
+        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
+        void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+
+        auto aDim = op->getInputs(0)->getDims();
+        auto bDim = op->getInputs(1)->getDims();
+        if (aDim.size() != 4 || bDim.size() != 4)
+            IT_TODO_HALT();
+	auto ret = baidu::xpu::api::broadcast_not_equal<float>(context->XPUHandle(), (float*)aData, (float*)bData, (bool*)cData, aDim, bDim);
+	assert(ret == 0);
+	return;
+
+    }
+};
+
+class GreaterEqualXdnn : public XPUKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<ElementWiseObj>(_op);
+        auto context = dynamic_cast<const XPURuntimeObj *>(_context);
+
+        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
+        void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+
+        auto aDim = op->getInputs(0)->getDims();
+        auto bDim = op->getInputs(1)->getDims();
+        if (aDim.size() != 4 || bDim.size() != 4)
+            IT_TODO_HALT();
+	auto ret = baidu::xpu::api::broadcast_greater_equal<float>(context->XPUHandle(), (float*)aData, (float*)bData, (bool*)cData, aDim, bDim);
+	assert(ret == 0);
+	return;
+
+    }
+};
+
+class GreaterThanXdnn : public XPUKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<ElementWiseObj>(_op);
+        auto context = dynamic_cast<const XPURuntimeObj *>(_context);
+
+        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
+        void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+
+        auto aDim = op->getInputs(0)->getDims();
+        auto bDim = op->getInputs(1)->getDims();
+        if (aDim.size() != 4 || bDim.size() != 4)
+            IT_TODO_HALT();
+	auto ret = baidu::xpu::api::broadcast_greater_than<float>(context->XPUHandle(), (float*)aData, (float*)bData, (bool*)cData, aDim, bDim);
+	assert(ret == 0);
+	return;
+
+    }
+};
+
+class LessEqualXdnn : public XPUKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<ElementWiseObj>(_op);
+        auto context = dynamic_cast<const XPURuntimeObj *>(_context);
+
+        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
+        void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+
+        auto aDim = op->getInputs(0)->getDims();
+        auto bDim = op->getInputs(1)->getDims();
+        if (aDim.size() != 4 || bDim.size() != 4)
+            IT_TODO_HALT();
+	auto ret = baidu::xpu::api::broadcast_less_equal<float>(context->XPUHandle(), (float*)aData, (float*)bData, (bool*)cData, aDim, bDim);
+	assert(ret == 0);
+	return;
+
+    }
+};
+
+class LessThanXdnn : public XPUKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<ElementWiseObj>(_op);
+        auto context = dynamic_cast<const XPURuntimeObj *>(_context);
+
+        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
+        void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+
+        auto aDim = op->getInputs(0)->getDims();
+        auto bDim = op->getInputs(1)->getDims();
+        if (aDim.size() != 4 || bDim.size() != 4)
+            IT_TODO_HALT();
+	auto ret = baidu::xpu::api::broadcast_less_than<float>(context->XPUHandle(), (float*)aData, (float*)bData, (bool*)cData, aDim, bDim);
+	assert(ret == 0);
+	return;
+
+    }
+};
+
 REGISTER_KERNEL(Device::XPU, OpType::Add, DataType::Float32, AddXdnn,
                 "Add_xdnn_XPU_Float32");
 REGISTER_KERNEL(Device::XPU, OpType::Sub, DataType::Float32, SubXdnn,
@@ -164,4 +290,16 @@ REGISTER_KERNEL(Device::XPU, OpType::Maximum, DataType::Float32, MaxXdnn,
                 "Max_xdnn_XPU_Float32");
 REGISTER_KERNEL(Device::XPU, OpType::Minimum, DataType::Float32, MinXdnn,
                 "Min_xdnn_XPU_Float32");
+REGISTER_KERNEL(Device::XPU, OpType::Equal, DataType::Float32, EqualXdnn,
+                "Equal_xdnn_XPU_Float32");
+REGISTER_KERNEL(Device::XPU, OpType::NotEqual, DataType::Float32, NotEqualXdnn,
+                "NotEqual_xdnn_XPU_Float32");
+REGISTER_KERNEL(Device::XPU, OpType::GreaterEqual, DataType::Float32, GreaterEqualXdnn,
+                "GreaterEqual_xdnn_XPU_Float32");
+REGISTER_KERNEL(Device::XPU, OpType::GreaterThan, DataType::Float32, GreaterThanXdnn,
+                "GreaterThan_xdnn_XPU_Float32");
+REGISTER_KERNEL(Device::XPU, OpType::LessEqual, DataType::Float32, LessEqualXdnn,
+                "LessEqual_xdnn_XPU_Float32");
+REGISTER_KERNEL(Device::XPU, OpType::LessThan, DataType::Float32, LessThanXdnn,
+                "LessThan_xdnn_XPU_Float32");
 }; // namespace infini

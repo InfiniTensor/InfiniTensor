@@ -42,8 +42,8 @@ void testAdd(
     cpuRuntime->run(cpuGraph);
     auto outputCpu = cpuOp->getOutput();
     // Check
-    //outputCpu->printData();
-    //outputGpu2Cpu->printData();
+    // outputCpu->printData();
+    // outputGpu2Cpu->printData();
     EXPECT_TRUE(outputCpu->equalData(outputGpu2Cpu));
 }
 
@@ -52,6 +52,12 @@ TEST(xpu_add, run) {
     testAdd<SubObj>(IncrementalGenerator(), Shape{10, 256, 256, 3});
     testAdd<MulObj>(IncrementalGenerator(), Shape{10, 256, 256, 3});
     testAdd<DivObj>(IncrementalGenerator(), Shape{10, 256, 256, 3});
+    //testAdd<EqualObj>(IncrementalGenerator(), Shape{1, 1, 1, 30});
+    //testAdd<NotEqualObj>(IncrementalGenerator(), Shape{10, 256, 256, 3});
+    //testAdd<GreaterEqualObj>(IncrementalGenerator(), Shape{10, 256, 256, 3});
+    //testAdd<GreaterThanObj>(IncrementalGenerator(), Shape{10, 256, 256, 3});
+    //testAdd<LessEqualObj>(IncrementalGenerator(), Shape{10, 256, 256, 3});
+    //testAdd<LessThanObj>(IncrementalGenerator(), Shape{10, 256, 256, 3});
 }
 
 } // namespace infini
