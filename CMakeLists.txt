@@ -236,7 +236,6 @@ if(USE_XPU)
   endif()
   message(STATUS "XPU_HOME: ${XPU_HOME}")
 
-  include_directories("${XPU_HOME}/include/")
   include_directories("${XPU_HOME}/XTDK/include/")
   find_library(XPU_RT libxpurt.so "${XPU_HOME}/lib64")
   find_library(XPU_DNN libxpuapi.so "${XPU_HOME}/XTDK/shlib")

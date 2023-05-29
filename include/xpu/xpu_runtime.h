@@ -15,7 +15,9 @@ class XPURuntimeObj : public RuntimeObj {
 	xdnn = baidu::xpu::api::create_context(); 
         // 10GB for Longformer
         // size_t longformerNum = 3lu * (1 << 30);
-        workspaceSize = 7ll << 30; // 7 GB
+        workspaceSize = 3ll << 30; // 3 GB
+	//std::cout<<workspaceSize/1024/1024/1024<< std::endl;
+	//std::cout<<std::bitset<64>(workspaceSize)<< std::endl;
         workspace = alloc(workspaceSize);
     }
     virtual ~XPURuntimeObj() {
@@ -31,7 +33,7 @@ class XPURuntimeObj : public RuntimeObj {
     void sync() const;
     XPUPtr alloc(size_t size) override {
         void *ptr;
-	xpu_malloc(&ptr, size);
+	checkXPUError(xpu_malloc_ex((void**)&ptr, size, XPUMemoryKind::XPU_MEM_MAIN));
         return ptr;
     }
     void dealloc(void *ptr) override { xpu_free(ptr); }

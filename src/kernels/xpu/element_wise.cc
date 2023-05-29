@@ -159,12 +159,15 @@ class EqualXdnn : public XPUKernelWithoutConfig {
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+	size_t len = op->getOutput()->size();
+	XPUPtr wsData = context->getWorkspace(len);
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
         if (aDim.size() != 4 || bDim.size() != 4)
             IT_TODO_HALT();
-	auto ret = baidu::xpu::api::broadcast_equal<float>(context->XPUHandle(), (float*)aData, (float*)bData, (bool*)cData, aDim, bDim);
+	auto ret = baidu::xpu::api::broadcast_equal<float>(context->XPUHandle(), (float*)aData, (float*)bData, (bool*)wsData, aDim, bDim);
+	ret = baidu::xpu::api::cast<bool, float>(context->XPUHandle(), (bool*)wsData, (float*)cData, len);
 	assert(ret == 0);
 	return;
 
@@ -180,12 +183,15 @@ class NotEqualXdnn : public XPUKernelWithoutConfig {
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+	size_t len = op->getOutput()->size();
+	XPUPtr wsData = context->getWorkspace(len);
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
         if (aDim.size() != 4 || bDim.size() != 4)
             IT_TODO_HALT();
-	auto ret = baidu::xpu::api::broadcast_not_equal<float>(context->XPUHandle(), (float*)aData, (float*)bData, (bool*)cData, aDim, bDim);
+	auto ret = baidu::xpu::api::broadcast_not_equal<float>(context->XPUHandle(), (float*)aData, (float*)bData, (bool*)wsData, aDim, bDim);
+	ret = baidu::xpu::api::cast<bool, float>(context->XPUHandle(), (bool*)wsData, (float*)cData, len);
 	assert(ret == 0);
 	return;
 
@@ -201,12 +207,15 @@ class GreaterEqualXdnn : public XPUKernelWithoutConfig {
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+	size_t len = op->getOutput()->size();
+	XPUPtr wsData = context->getWorkspace(len);
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
         if (aDim.size() != 4 || bDim.size() != 4)
             IT_TODO_HALT();
-	auto ret = baidu::xpu::api::broadcast_greater_equal<float>(context->XPUHandle(), (float*)aData, (float*)bData, (bool*)cData, aDim, bDim);
+	auto ret = baidu::xpu::api::broadcast_greater_equal<float>(context->XPUHandle(), (float*)aData, (float*)bData, (bool*)wsData, aDim, bDim);
+	ret = baidu::xpu::api::cast<bool, float>(context->XPUHandle(), (bool*)wsData, (float*)cData, len);
 	assert(ret == 0);
 	return;
 
@@ -222,12 +231,15 @@ class GreaterThanXdnn : public XPUKernelWithoutConfig {
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+	size_t len = op->getOutput()->size();
+	XPUPtr wsData = context->getWorkspace(len);
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
         if (aDim.size() != 4 || bDim.size() != 4)
             IT_TODO_HALT();
-	auto ret = baidu::xpu::api::broadcast_greater_than<float>(context->XPUHandle(), (float*)aData, (float*)bData, (bool*)cData, aDim, bDim);
+	auto ret = baidu::xpu::api::broadcast_greater_than<float>(context->XPUHandle(), (float*)aData, (float*)bData, (bool*)wsData, aDim, bDim);
+	ret = baidu::xpu::api::cast<bool, float>(context->XPUHandle(), (bool*)wsData, (float*)cData, len);
 	assert(ret == 0);
 	return;
 
@@ -243,12 +255,15 @@ class LessEqualXdnn : public XPUKernelWithoutConfig {
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+	size_t len = op->getOutput()->size();
+	XPUPtr wsData = context->getWorkspace(len);
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
         if (aDim.size() != 4 || bDim.size() != 4)
             IT_TODO_HALT();
-	auto ret = baidu::xpu::api::broadcast_less_equal<float>(context->XPUHandle(), (float*)aData, (float*)bData, (bool*)cData, aDim, bDim);
+	auto ret = baidu::xpu::api::broadcast_less_equal<float>(context->XPUHandle(), (float*)aData, (float*)bData, (bool*)wsData, aDim, bDim);
+	ret = baidu::xpu::api::cast<bool, float>(context->XPUHandle(), (bool*)wsData, (float*)cData, len);
 	assert(ret == 0);
 	return;
 
@@ -264,12 +279,15 @@ class LessThanXdnn : public XPUKernelWithoutConfig {
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+	size_t len = op->getOutput()->size();
+	XPUPtr wsData = context->getWorkspace(len);
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
         if (aDim.size() != 4 || bDim.size() != 4)
             IT_TODO_HALT();
-	auto ret = baidu::xpu::api::broadcast_less_than<float>(context->XPUHandle(), (float*)aData, (float*)bData, (bool*)cData, aDim, bDim);
+	auto ret = baidu::xpu::api::broadcast_less_than<float>(context->XPUHandle(), (float*)aData, (float*)bData, (bool*)wsData, aDim, bDim);
+	ret = baidu::xpu::api::cast<bool, float>(context->XPUHandle(), (bool*)wsData, (float*)cData, len);
 	assert(ret == 0);
 	return;
 
