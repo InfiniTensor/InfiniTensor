@@ -41,7 +41,7 @@ void testSplit(const std::function<void(void *, size_t, DataType)> &generator,
     EXPECT_TRUE(1);
 }
 
-TEST(cnnl_Split, run) {
+TEST(xpu_Split, run) {
     testSplit<SplitObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
 }
 

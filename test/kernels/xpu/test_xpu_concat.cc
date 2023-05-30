@@ -45,7 +45,7 @@ void testConcat(const std::function<void(void *, size_t, DataType)> &generator,
     EXPECT_TRUE(1);
 }
 
-TEST(cnnl_Concat, run) {
+TEST(xpu_Concat, run) {
     testConcat<ConcatObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
 }
 
