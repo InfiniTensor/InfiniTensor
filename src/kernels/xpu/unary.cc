@@ -192,6 +192,40 @@ class NegXdnn : public XPUKernelWithoutConfig {
     }
 };
 
+class CopyXdnn : public XPUKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<UnaryObj>(_op);
+        auto context = dynamic_cast<const XPURuntimeObj *>(_context);
+
+        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+        auto len = op->getInputs(0)->size();
+
+	auto ret = baidu::xpu::api::copy<float>(context->XPUHandle(), (float*)aData, (float*)cData, len);
+	assert(ret == 0);
+	return;
+
+    }
+};
+
+class ReciprocalXdnn : public XPUKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<UnaryObj>(_op);
+        auto context = dynamic_cast<const XPURuntimeObj *>(_context);
+
+        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+        auto len = op->getInputs(0)->size();
+
+	auto ret = baidu::xpu::api::reciprocal<float>(context->XPUHandle(), (float*)aData, (float*)cData, len);
+	assert(ret == 0);
+	return;
+
+    }
+};
+
 
 REGISTER_KERNEL(Device::XPU, OpType::Relu, DataType::Float32, ReluXdnn,
                 "Relu_xdnn_XPU_Float32");
@@ -215,4 +249,8 @@ REGISTER_KERNEL(Device::XPU, OpType::Floor, DataType::Float32, FloorXdnn,
                 "Floor_xdnn_XPU_Float32");
 REGISTER_KERNEL(Device::XPU, OpType::Neg, DataType::Float32, NegXdnn,
                 "Neg_xdnn_XPU_Float32");
+REGISTER_KERNEL(Device::XPU, OpType::Copy, DataType::Float32, CopyXdnn,
+                "Copy_xdnn_XPU_Float32");
+REGISTER_KERNEL(Device::XPU, OpType::Reciprocal, DataType::Float32, ReciprocalXdnn,
+                "Reciprocal_xdnn_XPU_Float32");
 }; // namespace infini
