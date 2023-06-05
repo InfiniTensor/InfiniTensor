@@ -193,9 +193,8 @@ class NegXdnn : public XPUKernelWithoutConfig {
 };
 
 class CopyXdnn : public XPUKernelWithoutConfig {
-    void compute(const Operator &_op,
+    void compute(const Operator &op,
                  const RuntimeObj *_context) const override {
-        auto op = as<UnaryObj>(_op);
         auto context = dynamic_cast<const XPURuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -253,4 +252,11 @@ REGISTER_KERNEL(Device::XPU, OpType::Copy, DataType::Float32, CopyXdnn,
                 "Copy_xdnn_XPU_Float32");
 REGISTER_KERNEL(Device::XPU, OpType::Reciprocal, DataType::Float32, ReciprocalXdnn,
                 "Reciprocal_xdnn_XPU_Float32");
+
+REGISTER_KERNEL(Device::XPU, OpType::Reshape, DataType::Float32, CopyXdnn,
+                "Reshape_xdnn_Float32");
+REGISTER_KERNEL(Device::XPU, OpType::Flatten, DataType::Float32, CopyXdnn,
+                "Flatten_xdnn_Float32");
+REGISTER_KERNEL(Device::XPU, OpType::Identity, DataType::Float32, CopyXdnn,
+                "Identity_xdnn_Float32");
 }; // namespace infini

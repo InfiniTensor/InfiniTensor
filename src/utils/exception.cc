@@ -3,16 +3,16 @@
 #ifdef BACKWARD_TRACE
 #include "backward.hpp"
 
-namespace backtrace = backward;
+namespace host_backtrace = backward;
 
 // signal handler
-backtrace::SignalHandling sh;
+host_backtrace::SignalHandling sh;
 
 namespace infini {
 Exception::Exception(const std::string &msg) : std::runtime_error(msg) {
-    backtrace::StackTrace st;
+    host_backtrace::StackTrace st;
     st.load_here(32);
-    backtrace::Printer p;
+    host_backtrace::Printer p;
     p.print(st);
 }
 }; // namespace infini
