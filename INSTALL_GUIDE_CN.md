@@ -69,6 +69,15 @@
    pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
    ```
 
+6. 安装一些不必要的项目（可选）
+
+   > 如您需要运行本项目下的 example 代码，您需要安装一些辅助项目。请注意这些项目不是必要的，若您不需要运行样例代码，这些项目无需安装。
+   > > [Pytorch](https://pytorch.org/get-started/locally/)：业界内流行的神经网络编程框架
+   > > [ONNX](https://onnx.ai/get-started.html)：业界内流行的神经网络模型存储文件与转换器
+   > > [onnxsim](https://pypi.org/project/onnxsim/)：一个简化onnx模型的小工具
+   > > [onnx2torch](https://github.com/ENOT-AutoDL/onnx2torch)：一个将onnx模型转换pytorch模型的小工具
+   > > [tqdm](https://pypi.org/project/tqdm/)：一个显示程序运行进度条的小工具
+
 ## 编译本项目
 
 推荐使用 X86-64 机器以及 Ubuntu-22.04，本文以此环境为例。
