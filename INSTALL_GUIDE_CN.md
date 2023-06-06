@@ -31,9 +31,26 @@
 
 3. 第三方加速卡软件资源安装，目前本项目已经适配了如下的第三方加速卡：
 
-   > 如您的第三方加速卡为英伟达 GPU，请参考英伟达官方文档进行[驱动安装](https://www.nvidia.cn/geforce/drivers/)，[CUDA Toolkit 安装](https://developer.nvidia.com/cuda-toolkit)，[Cudnn 安装](https://developer.nvidia.com/rdp/cudnn-download)，[Cublas 安装](https://developer.nvidia.com/cublas)，我们强烈建议您规范安装，统一到一个目录下，以免不必要的麻烦。
+   > 如您的第三方加速卡为英伟达 GPU，请参考英伟达官方文档进行：
+   > > [驱动安装](https://www.nvidia.cn/geforce/drivers/)，
+   > > [CUDA Toolkit 安装](https://developer.nvidia.com/cuda-toolkit)，
+   > > [Cudnn 安装](https://developer.nvidia.com/rdp/cudnn-download)，
+   > > [Cublas 安装](https://developer.nvidia.com/cublas)，
+   > > 安装完成后请进行相应的环境变量配置，将可执行文件目录与库目录添加到操作系统识别的路径中，
+   我们强烈建议您规范安装，统一到一个目录下，以免不必要的麻烦。
 
-   > 如您的第三方加速卡为寒武纪 MLU，请参考寒武纪官方文档进行[驱动安装](https://www.cambricon.com/docs/sdk_1.11.0/driver_5.10.6/user_guide_5.10.6/index.html)，[CNToolkit 安装](https://www.cambricon.com/docs/sdk_1.11.0/cntoolkit_3.4.1/cntoolkit_install_3.4.1/index.html)，[CNNL 安装](https://www.cambricon.com/docs/sdk_1.11.0/cambricon_cnnl_1.16.1/user_guide/index.html)，我们强烈建议您规范安装，统一到一个目录下，以免不必要的麻烦。另外请注意，由于 MLU 上层软件建设适配程度有限，如您在其覆盖的机器，操作系统之外运行，需要在安装驱动之后使用上层软件的 Docker。
+   > 如您的第三方加速卡为寒武纪 MLU，请参考寒武纪官方文档进行：
+   > > [驱动安装](https://www.cambricon.com/docs/sdk_1.11.0/driver_5.10.6/user_guide_5.10.6/index.html)，
+   > > [CNToolkit 安装](https://www.cambricon.com/docs/sdk_1.11.0/cntoolkit_3.4.1/cntoolkit_install_3.4.1/index.html)，
+   > > [CNNL 安装](https://www.cambricon.com/docs/sdk_1.11.0/cambricon_cnnl_1.16.1/user_guide/index.html)，
+   > > 安装完成后请进行相应的环境变量配置，将可执行文件目录与库目录添加到操作系统识别的路径中，例如
+   > > ```bash
+   > > # 将如下内容写入到你的 bashrc 文件并 source 该文件
+   > > export NEUWARE_HOME="/usr/local/neuware"
+   > > export PATH="${NEUWARE_HOME}/bin:${PATH}"
+   > > export LD_LIBRARY_PATH="${NEUWARE_HOME}/lib64:${LD_LIBRARY_PATH}"
+   > > ```
+   > > 我们强烈建议您规范安装，统一到一个目录下，以免不必要的麻烦。另外请注意，由于 MLU 上层软件建设适配程度有限，如您在其覆盖的机器，操作系统之外运行，需要在安装驱动之后使用上层软件的 Docker。
 
 4. 确认您安装了 make，build-essential， python-is-python3， python-dev-is-python3， python3-pip， libdw-dev，如您的机器没有上述基础依赖，请自行按需安装。
 
