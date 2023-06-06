@@ -77,6 +77,7 @@
    > > [onnxsim](https://pypi.org/project/onnxsim/)：一个简化onnx模型的小工具
    > > [onnx2torch](https://github.com/ENOT-AutoDL/onnx2torch)：一个将onnx模型转换pytorch模型的小工具
    > > [tqdm](https://pypi.org/project/tqdm/)：一个显示程序运行进度条的小工具
+
    > 如您需要使用本项目下的 InfiniTest 测试工具，你还需要安装如下的项目：
    > > [protobuf](https://github.com/protocolbuffers/protobuf)： 一种序列化文件的格式及其编译、序列化、解析工具 
 
