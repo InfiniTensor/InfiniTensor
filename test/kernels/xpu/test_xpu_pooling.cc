@@ -34,7 +34,7 @@ void testPooling(const std::function<void(void *, size_t, DataType)> &generator,
 }
 
 TEST(xdnn_Pooling, run) {
-    //testPooling<MaxPoolObj>(IncrementalGenerator(), Shape{1, 1, 5, 5});
+    testPooling<MaxPoolObj>(IncrementalGenerator(), Shape{1, 1, 5, 5});
     testPooling<AvgPoolObj>(IncrementalGenerator(), Shape{1, 1, 5, 5});
 }
 

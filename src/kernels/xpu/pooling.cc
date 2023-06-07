@@ -40,10 +40,14 @@ class MaxPooling : public XPUKernelWithoutConfig {
 	std::vector<int> ksize = {kh, kw};
 	std::vector<int> stride = {sh, sw};
 	std::vector<int> pad = {ph, pw};
-	int indices;
+
+	int yh = (h + ph*2 -kh) /sh + 1;
+	int yw = (w + pw*2 -kw) /sw + 1;
+
+	XPUPtr indices = context->getWorkspace(yh * yw * 4);
 
 	auto ret = baidu::xpu::api::max_pool2d<float>(context->XPUHandle(), (float*)aData, (float*)cData,
-			                              &indices, n,c,h,w,ksize,stride,pad,true,nullptr,nullptr,false);
+			                              (int*)indices, n,c,h,w,ksize,stride,pad,true,nullptr,nullptr,false);
         assert(ret == 0);
         return;
 
