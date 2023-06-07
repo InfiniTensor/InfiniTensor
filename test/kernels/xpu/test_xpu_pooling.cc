@@ -23,7 +23,7 @@ void testPooling(const std::function<void(void *, size_t, DataType)> &generator,
     // GPU
     Graph xpuGraph = make_ref<GraphObj>(xpuRuntime);
     auto inputGpu = xpuGraph->cloneTensor(inputCpu);
-    auto gpuOp = xpuGraph->addOp<T>(inputGpu, nullptr, 3, 3, 1, 1, 1, 1, 2, 2);
+    auto gpuOp = xpuGraph->addOp<T>(inputGpu, nullptr, 3, 3, 1, 1, 0, 0, 2, 2);
     xpuGraph->dataMalloc();
     xpuRuntime->run(xpuGraph);
     auto outputGpu = gpuOp->getOutput();
