@@ -18,24 +18,26 @@ class ElementWiseCnnl : public BangKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
 
         cnnlTensorDescriptor_t aDesc, bDesc, cDesc;
-        auto dim = op->getInputs(0)->getDims();
-        if (dim.size() != 4)
+        auto a_dim = op->getInputs(0)->getDims();
+        auto b_dim = op->getInputs(1)->getDims();
+        auto c_dim = op->getOutput()->getDims();
+
+        if (a_dim.size() > 4 || b_dim.size() > 4 || c_dim.size() > 4)
             IT_TODO_HALT();
 
-        int dim_array[4] = {dim[0], dim[1], dim[2], dim[3]};
         // get inputs
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, a_dim.data()));
 
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            bDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, b_dim.data()));
 
         // get outputs
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, c_dim.data()));
 
         // get op descriptor
         cnnlOpTensorDescriptor_t opDesc;
