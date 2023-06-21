@@ -27,28 +27,33 @@ class BatchNormCnnl : public BangKernelWithoutConfig {
             dimArray[i] = dims[i];
             strideArray[i] = op->getInputs(0)->getStride()[i];
         }
-        int w = dimArray[3]; dimArray[3] = dimArray[1];
-        int h = dimArray[2]; dimArray[1] = h; dimArray[2] = w;
+        int w = dimArray[3];
+        dimArray[3] = dimArray[1];
+        int h = dimArray[2];
+        dimArray[1] = h;
+        dimArray[2] = w;
 
         dimPArray[0] = op->getInputs(1)->getDims()[0];
         stridePArray[0] = op->getInputs(1)->getDims()[0];
         // get inputs
         cnnlTensorDescriptor_t inDesc;
         checkCnnlError(cnnlCreateTensorDescriptor(&inDesc));
-        checkCnnlError(cnnlSetTensorDescriptorEx(
-            inDesc, CNNL_LAYOUT_NHWC, CNNL_DTYPE_FLOAT, dims.size(), dimArray, strideArray));
+        checkCnnlError(cnnlSetTensorDescriptorEx(inDesc, CNNL_LAYOUT_NHWC,
+                                                 CNNL_DTYPE_FLOAT, dims.size(),
+                                                 dimArray, strideArray));
 
         // get bnScaleBiasMeanVarDesc
         cnnlTensorDescriptor_t paraDesc;
         checkCnnlError(cnnlCreateTensorDescriptor(&paraDesc));
-        checkCnnlError(cnnlSetTensorDescriptorEx(
-            paraDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT, 1, dimPArray, stridePArray));        
+        checkCnnlError(cnnlSetTensorDescriptorEx(paraDesc, CNNL_LAYOUT_ARRAY,
+                                                 CNNL_DTYPE_FLOAT, 1, dimPArray,
+                                                 stridePArray));
 
         float alpha = 1.f, beta = 0.f;
         // This mode is intended for use after convolutional layers
         cnnlStatus_t stat = cnnlBatchNormForwardInference(
-            context->cnnlHandle(), &alpha, &beta, inDesc, input, paraDesc, scale, bias, mean, var,
-            op->getEps(), inDesc, output);
+            context->cnnlHandle(), &alpha, &beta, inDesc, input, paraDesc,
+            scale, bias, mean, var, op->getEps(), inDesc, output);
 
         if (stat != CNNL_STATUS_SUCCESS)
             return;
@@ -60,7 +65,7 @@ class BatchNormCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::BatchNorm, DataType::Float32, BatchNormCnnl,
-                "BatchNorm_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::BatchNorm, DataType::Float32,
+                BatchNormCnnl, "BatchNorm_cnnl_BANG_Float32");
 
 }; // namespace infini
