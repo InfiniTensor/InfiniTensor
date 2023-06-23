@@ -2,8 +2,8 @@
 
 ## 目录
 
-- [环境准备](#环境准备)
-- [编译本项目](#编译本项目)
+- [项目简介](#项目简介)
+- [项目设计](#项目设计)
 - [使用方法](#使用方法)
 - [python-前端应用指南](#python-前端应用指南)
   - [导入-onnx-模型](#导入-onnx-模型)
@@ -13,60 +13,17 @@
 - [技术支持](#技术支持)
 - [测试](#测试)
 
-## 环境准备
+## 项目简介
 
-推荐使用 X86-64 机器以及 Ubuntu-22.04，本文以此环境为例。
+本项目是深度学习领域的一个编译器集合，本项目旨在缩小深度学习应用与后端硬件之间的鸿沟。本项目通过使用编译器超优化技术，对神经网络模型进行优化，从而获得更好的性能。同时，本项目与深度学习框架相互配合，为不同的硬件后端提供端倒端的编译，方便用户迁移部署。
 
-1. 确认 GCC 版本为 11.3 及以上的稳定版本，如若您的机器 GCC 版本不满足此条件，请自行编译安装，下述方式二选一：
-   > [GCC 官方文档](https://gcc.gnu.org/onlinedocs/gcc-11.3.0/gcc/)
-   > [网友安装分享](https://zhuanlan.zhihu.com/p/509695395)
-2. 确认 CMake 版本为 3.17 及以上的稳定版本， 如若您的机器 CMake 版本不满足此条件，请自行编译安装，下述方式二选一：
-   > [CMake 官方文档](https://cmake.org/install/)
-   > [网友安装分享](https://zhuanlan.zhihu.com/p/110793004)
-3. 第三方加速卡软件资源安装，目前本项目已经适配了如下的第三方加速卡：
-   > 如您的第三方加速卡为英伟达 GPU，请参考英伟达官方文档进行[驱动安装](https://www.nvidia.cn/geforce/drivers/)，[CUDA Toolkit 安装](https://developer.nvidia.com/cuda-toolkit)，[Cudnn 安装](https://developer.nvidia.com/rdp/cudnn-download)，[Cublas 安装](https://developer.nvidia.com/cublas)，我们强烈建议您规范安装，统一到一个目录下，以免不必要的麻烦。
-   > 如您的第三方加速卡为寒武纪 MLU，请参考寒武纪官方文档进行[驱动安装](https://www.cambricon.com/docs/sdk_1.11.0/driver_5.10.6/user_guide_5.10.6/index.html)，[CNToolkit 安装](https://www.cambricon.com/docs/sdk_1.11.0/cntoolkit_3.4.1/cntoolkit_install_3.4.1/index.html)，[CNNL 安装](https://www.cambricon.com/docs/sdk_1.11.0/cambricon_cnnl_1.16.1/user_guide/index.html)，我们强烈建议您规范安装，统一到一个目录下，以免不必要的麻烦。另外请注意，由于 MLU 上层软件建设适配程度有限，如您在其覆盖的机器，操作系统之外运行，需要在安装驱动之后使用上层软件的 Docker。
-4. 确认您安装了 make，build-essential， python-is-python3， python-dev-is-python3， python3-pip， libdw-dev，如您的机器没有上述基础依赖，请自行按需安装。
-   > 在使用 apt-get 工具情况下，您可以这样子执行。
+## 项目设计
 
-   ```bash
-   sudo apt-get install make cmake build-essential python-is-python3 python-dev-is-python3 python3-pip libdw-dev
-   ```
+本项目的设计是前后端解耦合的，主要有三个模块，分别为：
 
-   > 其他工具请自行上网搜寻
-
-5. 更新pip并切换到清华源
-
-   ```bash
-   python -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --upgrade pip
-   pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
-   ```
-
-## 编译本项目
-
-推荐使用 X86-64 机器以及 Ubuntu-22.04，本文以此环境为例。
-
-1. 编译并安装 python 库
-
-   > 第一次执行会同时安装 python 依赖库，耗时略长，请耐心等待
-
-   仅编译 CPU 部分，不编译第三方计算卡：
-
-   ```bash
-   make install-python
-   ```
-
-   编译 CPU 部分，同时编译英伟达 GPU 部分：
-
-   ```bash
-   make install-python CUDA=ON
-   ```
-
-   编译 CPU 部分，同时编译寒武纪 MLU 部分：
-
-   ```bash
-   make install-python BANG=ON
-   ```
+- Runtime 模块：该模式负责对不同的加速卡后端进行包装与支持，支撑后端运行。另外提供统一的向上接口，方便上层建设。
+- Compiler 模块：该模式负责对神经网络模型进行优化变换，获得更加高效的等价模型。
+- Interface 模块：该模式负责给用户提供编程与交互的接口，方便用户使用本系统。
 
 ## 使用方法
 
