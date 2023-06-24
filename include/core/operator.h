@@ -11,6 +11,7 @@ enum class OpType {
     Matmul,
     ConvTrans,
     ConvTransNHWC,
+    ConvNHWC,
     G2BMM,
     GBMM,
     Pad,
@@ -121,6 +122,8 @@ class OpRegistry {
             FOP(ConvBackwardData);
             FOP(Matmul);
             FOP(ConvTrans);
+            FOP(ConvTransNHWC);
+            FOP(ConvNHWC);
             FOP(G2BMM);
             FOP(GBMM);
             FOP(Pad);

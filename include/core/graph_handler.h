@@ -49,6 +49,11 @@ class GraphHandlerObj {
     Tensor convTransposed2d(Tensor input, Tensor weight, Tensor output, int ph,
                             int pw, int sh, int sw, int dh, int dw, int oph,
                             int opw);
+    Tensor convNHWC(Tensor input, Tensor weight, Tensor output, int ph, int pw,
+                    int sh, int sw, int dh, int dw);
+    Tensor convTransposed2dNHWC(Tensor input, Tensor weight, Tensor output,
+                                int ph, int pw, int sh, int sw, int dh, int dw,
+                                int oph, int opw);
     Tensor matmul(Tensor a, Tensor b, Tensor y, bool transA, bool transB,
                   Tensor bias, ActType act);
     Tensor batchNorm(Tensor input, Tensor output, Tensor mean, Tensor var,
