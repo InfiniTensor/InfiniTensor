@@ -6,7 +6,7 @@ namespace infini {
 class ConvCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
-        auto op = as<ConvObj>(_op);
+        auto op = as<ConvBaseObj>(_op);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         const auto [ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
@@ -27,127 +27,151 @@ class ConvCnnl : public BangKernelWithoutConfig {
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
 
-        cnnlTensorDescriptor_t aInDesc, aDesc, bInDesc, bDesc, cInDesc, cDesc;
-        auto dimInputs0 = op->getInputs(0)->getDims();
-        auto dimInputs1 = op->getInputs(1)->getDims();
-        auto dimOutput = op->getOutput()->getDims();
+        int inputs0[4] = {n, c, h, w};
+        int inputs0Array[4] = {n, h, w, c};
+        int inputs1[4] = {f, c, r, s};
+        int inputs1Array[4] = {f, r, s, c};
+        int output[4] = {n, c, h, w};
+        int outputArray[4] = {n, h, w, c};
 
-        if (dimInputs0.size() != 4)
-            IT_TODO_HALT();
-        if (dimInputs1.size() != 4)
-            IT_TODO_HALT();
-        if (dimOutput.size() != 4)
-            IT_TODO_HALT();
+        if (op->getOpType() == OpType::Conv) {
+            cnnlTensorDescriptor_t aInDesc, aDesc, bInDesc, bDesc, cInDesc,
+                cDesc;
+            // get inputs
+            checkCnnlError(cnnlCreateTensorDescriptor(&aInDesc));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                aInDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, inputs0));
 
-        int inputs0[4] = {dimInputs0[0], dimInputs0[1], dimInputs0[2],
-                          dimInputs0[3]};
-        int inputs0Array[4] = {dimInputs0[0], dimInputs0[2], dimInputs0[3],
-                               dimInputs0[1]};
-        int inputs1[4] = {dimInputs1[0], dimInputs1[1], dimInputs1[2],
-                          dimInputs1[3]};
-        int inputs1Array[4] = {dimInputs1[0], dimInputs1[2], dimInputs1[3],
-                               dimInputs1[1]};
-        int output[4] = {dimOutput[0], dimOutput[1], dimOutput[2],
-                         dimOutput[3]};
-        int outputArray[4] = {dimOutput[0], dimOutput[2], dimOutput[3],
-                              dimOutput[1]};
+            checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                aDesc, CNNL_LAYOUT_NHWC, CNNL_DTYPE_FLOAT, 4, inputs0Array));
 
-        // get inputs
-        checkCnnlError(cnnlCreateTensorDescriptor(&aInDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(aInDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, inputs0));
+            checkCnnlError(cnnlCreateTensorDescriptor(&bInDesc));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                bInDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, inputs1));
 
-        checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(
-            aDesc, CNNL_LAYOUT_NHWC, CNNL_DTYPE_FLOAT, 4, inputs0Array));
+            checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                bDesc, CNNL_LAYOUT_NHWC, CNNL_DTYPE_FLOAT, 4, inputs1Array));
 
-        checkCnnlError(cnnlCreateTensorDescriptor(&bInDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(bInDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, inputs1));
+            int permute[4] = {0, 2, 3, 1};
+            cnnlTransposeDescriptor_t opDesc;
+            checkCnnlError(cnnlCreateTransposeDescriptor(&opDesc));
+            checkCnnlError(cnnlSetTransposeDescriptor(opDesc, 4, permute));
 
-        checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(
-            bDesc, CNNL_LAYOUT_NHWC, CNNL_DTYPE_FLOAT, 4, inputs1Array));
+            size_t wsSize;
+            cnnlGetTransposeWorkspaceSize(context->cnnlHandle(), aInDesc,
+                                          opDesc, &wsSize);
+            BangPtr wsData = context->getWorkspace(wsSize);
+            BangPtr aDataOut = context->getWorkspace(
+                cnnlGetTensorElementNum(aInDesc) * sizeof(float));
+            cnnlStatus_t stat =
+                cnnlTranspose_v2(context->cnnlHandle(), opDesc, aInDesc, aData,
+                                 aDesc, aDataOut, wsData, wsSize);
+            if (stat != CNNL_STATUS_SUCCESS)
+                return;
 
-        int permute[4] = {0, 2, 3, 1};
-        cnnlTransposeDescriptor_t opDesc;
-        checkCnnlError(cnnlCreateTransposeDescriptor(&opDesc));
-        checkCnnlError(cnnlSetTransposeDescriptor(opDesc, 4, permute));
+            cnnlGetTransposeWorkspaceSize(context->cnnlHandle(), bInDesc,
+                                          opDesc, &wsSize);
+            wsData = context->getWorkspace(wsSize);
+            BangPtr bDataOut = context->getWorkspace(
+                cnnlGetTensorElementNum(bInDesc) * sizeof(float));
+            stat = cnnlTranspose_v2(context->cnnlHandle(), opDesc, bInDesc,
+                                    bData, bDesc, bDataOut, wsData, wsSize);
+            if (stat != CNNL_STATUS_SUCCESS)
+                return;
 
-        size_t wsSize;
-        cnnlGetTransposeWorkspaceSize(context->cnnlHandle(), aInDesc, opDesc,
-                                      &wsSize);
-        BangPtr wsData = context->getWorkspace(wsSize);
-        BangPtr aDataOut = context->getWorkspace(
-            cnnlGetTensorElementNum(aInDesc) * sizeof(float));
-        cnnlStatus_t stat =
-            cnnlTranspose_v2(context->cnnlHandle(), opDesc, aInDesc, aData,
-                             aDesc, aDataOut, wsData, wsSize);
-        if (stat != CNNL_STATUS_SUCCESS)
-            return;
+            // get outputs
+            checkCnnlError(cnnlCreateTensorDescriptor(&cInDesc));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                cInDesc, CNNL_LAYOUT_NHWC, CNNL_DTYPE_FLOAT, 4, outputArray));
 
-        cnnlGetTransposeWorkspaceSize(context->cnnlHandle(), bInDesc, opDesc,
-                                      &wsSize);
-        wsData = context->getWorkspace(wsSize);
-        BangPtr bDataOut = context->getWorkspace(
-            cnnlGetTensorElementNum(bInDesc) * sizeof(float));
-        stat = cnnlTranspose_v2(context->cnnlHandle(), opDesc, bInDesc, bData,
-                                bDesc, bDataOut, wsData, wsSize);
-        if (stat != CNNL_STATUS_SUCCESS)
-            return;
+            checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, output));
 
-        // get outputs
-        checkCnnlError(cnnlCreateTensorDescriptor(&cInDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(
-            cInDesc, CNNL_LAYOUT_NHWC, CNNL_DTYPE_FLOAT, 4, outputArray));
+            cnnlConvolutionForwardAlgo_t algo;
+            cnnlGetConvolutionForwardAlgorithm(
+                context->cnnlHandle(), convDesc, aDesc, bDesc, cInDesc,
+                CNNL_CONVOLUTION_FWD_FASTEST, &algo);
 
-        checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, output));
+            cnnlGetConvolutionForwardWorkspaceSize(context->cnnlHandle(), aDesc,
+                                                   bDesc, cInDesc, NULL,
+                                                   convDesc, algo, &wsSize);
+            wsData = context->getWorkspace(wsSize);
+            BangPtr cDataIn = context->getWorkspace(
+                cnnlGetTensorElementNum(cInDesc) * sizeof(float));
 
-        cnnlConvolutionForwardAlgo_t algo;
-        cnnlGetConvolutionForwardAlgorithm(context->cnnlHandle(), convDesc,
-                                           aDesc, bDesc, cInDesc,
-                                           CNNL_CONVOLUTION_FWD_FASTEST, &algo);
+            stat = cnnlConvolutionForward(context->cnnlHandle(), convDesc, algo,
+                                          NULL, aDesc, aDataOut, bDesc,
+                                          bDataOut, NULL, NULL, wsData, wsSize,
+                                          NULL, cInDesc, cDataIn);
+            if (stat != CNNL_STATUS_SUCCESS)
+                return;
 
-        cnnlGetConvolutionForwardWorkspaceSize(context->cnnlHandle(), aDesc,
-                                               bDesc, cInDesc, NULL, convDesc,
-                                               algo, &wsSize);
-        wsData = context->getWorkspace(wsSize);
-        BangPtr cDataIn = context->getWorkspace(
-            cnnlGetTensorElementNum(cInDesc) * sizeof(float));
+            int cPermute[4] = {0, 3, 1, 2};
+            cnnlTransposeDescriptor_t opOutDesc;
+            checkCnnlError(cnnlCreateTransposeDescriptor(&opOutDesc));
+            checkCnnlError(cnnlSetTransposeDescriptor(opOutDesc, 4, cPermute));
 
-        stat = cnnlConvolutionForward(
-            context->cnnlHandle(), convDesc, algo, NULL, aDesc, aData, bDesc,
-            bData, NULL, NULL, wsData, wsSize, NULL, cInDesc, cDataIn);
-        if (stat != CNNL_STATUS_SUCCESS)
-            return;
+            cnnlGetTransposeWorkspaceSize(context->cnnlHandle(), cInDesc,
+                                          opOutDesc, &wsSize);
+            wsData = context->getWorkspace(wsSize);
 
-        int cPermute[4] = {0, 3, 1, 2};
-        cnnlTransposeDescriptor_t opOutDesc;
-        checkCnnlError(cnnlCreateTransposeDescriptor(&opOutDesc));
-        checkCnnlError(cnnlSetTransposeDescriptor(opOutDesc, 4, cPermute));
+            stat = cnnlTranspose_v2(context->cnnlHandle(), opOutDesc, cInDesc,
+                                    cDataIn, cDesc, cData, wsData, wsSize);
+            if (stat != CNNL_STATUS_SUCCESS)
+                return;
 
-        cnnlGetTransposeWorkspaceSize(context->cnnlHandle(), cInDesc, opOutDesc,
-                                      &wsSize);
-        wsData = context->getWorkspace(wsSize);
+            // Destories in BANG does not require sync. But cnnl does not state
+            // whether sync is required before destories.
+            checkCnnlError(cnnlDestroyTensorDescriptor(aInDesc));
+            checkCnnlError(cnnlDestroyTensorDescriptor(bInDesc));
+            checkCnnlError(cnnlDestroyTensorDescriptor(cInDesc));
+            checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
+            checkCnnlError(cnnlDestroyTensorDescriptor(bDesc));
+            checkCnnlError(cnnlDestroyTensorDescriptor(cDesc));
+            checkCnnlError(cnnlDestroyConvolutionDescriptor(convDesc));
+            checkCnnlError(cnnlDestroyTransposeDescriptor(opDesc));
+            checkCnnlError(cnnlDestroyTransposeDescriptor(opOutDesc));
+        } else if (op->getOpType() == OpType::ConvNHWC) {
+            cnnlTensorDescriptor_t aDesc, bDesc, cDesc;
+            checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                aDesc, CNNL_LAYOUT_NHWC, CNNL_DTYPE_FLOAT, 4, inputs0Array));
 
-        stat = cnnlTranspose_v2(context->cnnlHandle(), opOutDesc, cInDesc,
-                                cDataIn, cDesc, cData, wsData, wsSize);
-        if (stat != CNNL_STATUS_SUCCESS)
-            return;
+            checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                bDesc, CNNL_LAYOUT_NHWC, CNNL_DTYPE_FLOAT, 4, inputs1Array));
 
-        // Destories in BANG does not require sync. But cnnl does not state
-        // whether sync is required before destories.
-        checkCnnlError(cnnlDestroyTensorDescriptor(aInDesc));
-        checkCnnlError(cnnlDestroyTensorDescriptor(bInDesc));
-        checkCnnlError(cnnlDestroyTensorDescriptor(cInDesc));
-        checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
-        checkCnnlError(cnnlDestroyTensorDescriptor(bDesc));
-        checkCnnlError(cnnlDestroyTensorDescriptor(cDesc));
-        checkCnnlError(cnnlDestroyConvolutionDescriptor(convDesc));
-        checkCnnlError(cnnlDestroyTransposeDescriptor(opDesc));
-        checkCnnlError(cnnlDestroyTransposeDescriptor(opOutDesc));
+            checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, outputArray));
+
+            cnnlConvolutionForwardAlgo_t algo;
+            cnnlGetConvolutionForwardAlgorithm(
+                context->cnnlHandle(), convDesc, aDesc, bDesc, cDesc,
+                CNNL_CONVOLUTION_FWD_FASTEST, &algo);
+
+            size_t wsSize;
+            cnnlGetConvolutionForwardWorkspaceSize(context->cnnlHandle(), aDesc,
+                                                   bDesc, cDesc, NULL, convDesc,
+                                                   algo, &wsSize);
+            BangPtr wsData = context->getWorkspace(wsSize);
+
+            cnnlStatus_t stat = cnnlConvolutionForward(
+                context->cnnlHandle(), convDesc, algo, NULL, aDesc, aData,
+                bDesc, bData, NULL, NULL, wsData, wsSize, NULL, cDesc, cData);
+            if (stat != CNNL_STATUS_SUCCESS)
+                return;
+
+            // Destories in BANG does not require sync. But cnnl does not state
+            // whether sync is required before destories.
+            checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
+            checkCnnlError(cnnlDestroyTensorDescriptor(bDesc));
+            checkCnnlError(cnnlDestroyTensorDescriptor(cDesc));
+            checkCnnlError(cnnlDestroyConvolutionDescriptor(convDesc));
+        }
     }
 };
 
