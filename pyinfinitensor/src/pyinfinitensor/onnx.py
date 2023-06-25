@@ -823,8 +823,14 @@ class OnnxStub:
     def optimize(self) -> None:
         self.handler.optimize()
 
+    def tune(self) -> None:
+        self.handler.tune()
+
     def run(self) -> None:
         self.handler.run()
+
+    def get_perf_time(self) -> float:
+        self.handler.get_perf_time()
 
 
 def from_onnx(model: ModelProto, runtime):

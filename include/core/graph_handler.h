@@ -101,7 +101,11 @@ class GraphHandlerObj {
 
     inline void data_malloc() { g->dataMalloc(); }
 
+    inline void tune() { g->getRuntime()->run(g, true); }
+
     inline void run() { g->getRuntime()->run(g); }
+
+    inline double get_perf_time() { return g->getRuntime()->getPerfTime(g); }
 };
 
 } // namespace infini
