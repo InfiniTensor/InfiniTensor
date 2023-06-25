@@ -8,7 +8,27 @@
 #include "operators/reshape.h"
 #include "operators/transpose.h"
 
+#ifdef BANG
+#include "bang/bang_runtime.h"
+#endif // BANG
 namespace infini {
+
+Tensor runWeightComputation(const Tensor &weight) {
+#ifdef BANG
+    auto rt = make_ref<NativeCpuRuntimeObj>();
+    auto g = make_ref<GraphObj>(rt);
+    auto in = g->addTensor(weight);
+    auto out = g->addOp<TransposeObj>(weight, nullptr, vector<int>{0, 2, 3, 1})
+                   ->getOutput();
+    g->dataMalloc();
+    g->getRuntime()->run(g);
+    return g->getOutputs()[0];
+#else
+    IT_TODO_HALT();
+    return nullptr;
+#endif // BANG
+}
+
 Graph convertNCHWtoNHWCModel(Runtime runtime, Graph inG) {
     // Construct new graph
     // IT_ASSERT(inG->getInputs().size() == 1);
@@ -50,9 +70,10 @@ Graph convertNCHWtoNHWCModel(Runtime runtime, Graph inG) {
                     cOp->getPadStrideDilation();
                 auto bias =
                     cOp->getBias() ? g->cloneTensor(cOp->getBias()) : nullptr;
-                g->addOpWithOutputs<ConvNHWCObj>(inputs[0], inputs[1],
-                                                 outputs[0], ph, pw, sh, sw, dh,
-                                                 dw, bias, cOp->getAct());
+                auto weight = runWeightComputation(inputs[1]);
+                g->addOpWithOutputs<ConvNHWCObj>(inputs[0], weight, outputs[0],
+                                                 ph, pw, sh, sw, dh, dw, bias,
+                                                 cOp->getAct());
             } else if (const auto &cOp = as<ConvTransposed2dObj>(op)) {
                 const auto &[ph, pw, sh, sw, dh, dw] =
                     cOp->getPadStrideDilation();
@@ -60,9 +81,10 @@ Graph convertNCHWtoNHWCModel(Runtime runtime, Graph inG) {
                 auto group = cOp->getNumGroups();
                 auto bias =
                     cOp->getBias() ? g->cloneTensor(cOp->getBias()) : nullptr;
+                auto weight = runWeightComputation(inputs[1]);
                 g->addOpWithOutputs<ConvTransposed2dNHWCObj>(
-                    inputs[0], inputs[1], outputs[0], ph, pw, sh, sw, dh, dw,
-                    oph, opw, group, bias, cOp->getAct());
+                    inputs[0], weight, outputs[0], ph, pw, sh, sw, dh, dw, oph,
+                    opw, group, bias, cOp->getAct());
             } else if (const auto &pOp = as<PoolingObj>(op)) {
                 auto t = g->addOp<TransposeObj>(inputs[0], nullptr,
                                                 vector<int>{0, 2, 3, 1})
@@ -116,9 +138,10 @@ Graph convertNCHWtoNHWCModel(Runtime runtime, Graph inG) {
                     auto t = g->addOp<TransposeObj>(inputs[0], nullptr,
                                                     vector<int>{0, 2, 3, 1})
                                  ->getOutput();
-                    g->addOpWithOutputs<ConvNHWCObj>(t, inputs[1], outputs[0],
-                                                     ph, pw, sh, sw, dh, dw,
-                                                     bias, cOp->getAct());
+                    auto weight = runWeightComputation(inputs[1]);
+                    g->addOpWithOutputs<ConvNHWCObj>(t, weight, outputs[0], ph,
+                                                     pw, sh, sw, dh, dw, bias,
+                                                     cOp->getAct());
                     modelStatus = 1;
                 } else {
                     IT_TODO_HALT();
