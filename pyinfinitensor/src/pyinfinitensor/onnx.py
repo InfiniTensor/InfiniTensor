@@ -820,6 +820,9 @@ class OnnxStub:
     def init(self) -> None:
         self.handler.data_malloc()
 
+    def convert_nhwc(self) -> None:
+        self.handler.convert_nhwc()
+
     def optimize(self) -> None:
         self.handler.optimize()
 

@@ -4,6 +4,6 @@
 
 namespace infini {
 
-Graph convertNCHWtoNHWCModel(Runtime runtime, Graph inG);
+Graph convertNCHWtoNHWCModel(Graph inG);
 
 } // namespace infini

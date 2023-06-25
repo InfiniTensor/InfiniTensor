@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "app.h"
 #include "core/graph.h"
 #include "core/runtime.h"
 #include <cstdint>
@@ -101,6 +102,8 @@ class GraphHandlerObj {
     inline bool topo_sort() { return g->topo_sort(); }
 
     inline void optimize() { g->optimize(); }
+
+    inline void convert_nhwc() { g = std::move(convertNCHWtoNHWCModel(g)); }
 
     //------ runtime
 

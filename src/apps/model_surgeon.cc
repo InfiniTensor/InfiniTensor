@@ -29,13 +29,13 @@ Tensor runWeightComputation(const Tensor &weight) {
 #endif // BANG
 }
 
-Graph convertNCHWtoNHWCModel(Runtime runtime, Graph inG) {
+Graph convertNCHWtoNHWCModel(Graph inG) {
     // Construct new graph
     // IT_ASSERT(inG->getInputs().size() == 1);
     IT_ASSERT(inG->getOutputs().size() == 1);
     bool status = inG->topo_sort();
     IT_ASSERT(status);
-    auto g = make_ref<GraphObj>(runtime);
+    auto g = make_ref<GraphObj>(inG->getRuntime());
     map<UidBaseType, Tensor> tensors;
     // modelStatus: if currently processing Conv-related subgraph
     // 0: before processcing Conv-related subgraph
@@ -71,6 +71,7 @@ Graph convertNCHWtoNHWCModel(Runtime runtime, Graph inG) {
                 auto bias =
                     cOp->getBias() ? g->cloneTensor(cOp->getBias()) : nullptr;
                 auto weight = runWeightComputation(inputs[1]);
+                g->addTensor(weight);
                 g->addOpWithOutputs<ConvNHWCObj>(inputs[0], weight, outputs[0],
                                                  ph, pw, sh, sw, dh, dw, bias,
                                                  cOp->getAct());
@@ -82,6 +83,7 @@ Graph convertNCHWtoNHWCModel(Runtime runtime, Graph inG) {
                 auto bias =
                     cOp->getBias() ? g->cloneTensor(cOp->getBias()) : nullptr;
                 auto weight = runWeightComputation(inputs[1]);
+                g->addTensor(weight);
                 g->addOpWithOutputs<ConvTransposed2dNHWCObj>(
                     inputs[0], weight, outputs[0], ph, pw, sh, sw, dh, dw, oph,
                     opw, group, bias, cOp->getAct());
@@ -139,6 +141,7 @@ Graph convertNCHWtoNHWCModel(Runtime runtime, Graph inG) {
                                                     vector<int>{0, 2, 3, 1})
                                  ->getOutput();
                     auto weight = runWeightComputation(inputs[1]);
+                    g->addTensor(weight);
                     g->addOpWithOutputs<ConvNHWCObj>(t, weight, outputs[0], ph,
                                                      pw, sh, sw, dh, dw, bias,
                                                      cOp->getAct());

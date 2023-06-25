@@ -344,6 +344,7 @@ void init_graph_builder(py::module &m) {
         .def("pad", &Handler::pad, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)
         .def("optimize", &Handler::optimize, policy::automatic)
+        .def("convert_nhwc", &Handler::convert_nhwc, policy::automatic)
         .def("operators", &Handler::operators, policy::move)
         .def("data_malloc", &Handler::data_malloc, policy::automatic)
         .def("run", &Handler::run, policy::automatic);
