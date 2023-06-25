@@ -177,4 +177,6 @@ class ConvCnnl : public BangKernelWithoutConfig {
 
 REGISTER_KERNEL(Device::BANG, OpType::Conv, DataType::Float32, ConvCnnl,
                 "Conv_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::ConvNHWC, DataType::Float32, ConvCnnl,
+                "ConvNHWC_cnnl_BANG_Float32");
 }; // namespace infini
