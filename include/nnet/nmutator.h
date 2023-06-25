@@ -19,12 +19,15 @@ class NMutator : public Mutator {
     // If in RuleBased mode, use derivationRules in derivator
     const std::vector<int> derivationRules;
     bool searchFilter = false;
+    bool enableRules = false; // Enable operator-level transformation rules
 
   public:
     NMutator(Mode mode = Mode::Normal,
-             Runtime runtime = NativeCpuRuntimeObj::getInstance());
+             Runtime runtime = NativeCpuRuntimeObj::getInstance(),
+             bool enableRules = false);
     NMutator(Mode mode, const std::vector<int> &derivationRules,
-             Runtime runtime = NativeCpuRuntimeObj::getInstance());
+             Runtime runtime = NativeCpuRuntimeObj::getInstance(),
+             bool enableRules = false);
     ~NMutator();
 
     vector<Graph> run(const Graph &in_graph) override;

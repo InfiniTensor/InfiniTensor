@@ -358,12 +358,20 @@ Graph convertNCHWtoNHWCModel(Runtime runtime, Graph inG) {
     return g;
 }
 
+Graph optimizeModelWithRules(Graph g, Runtime _runtime, vector<int> rules) {
+    auto runtime = as<CudaRuntimeObj>(_runtime);
+    // make_ref<NMutator>(NMutator::Mode::RuleBased, metaRules, runtime);
+    Ref<NMutator> mutator =
+        make_ref<NMutator>(NMutator::Mode::RuleBased, rules, runtime);
+    vector<Graph> bestGraphs;
+    SearchEngine searchEngine(runtime, mutator);
+    g->dataFree();
+    return searchEngine.run(g);
+}
+
 Graph optimizeModel(Graph g, Runtime _runtime, string name) {
     auto runtime = as<CudaRuntimeObj>(_runtime);
-    Runtime cpu = NativeCpuRuntimeObj::getInstance();
-    Graph gCpu = make_ref<GraphObj>(cpu);
-    Ref<NMutator> mutator =
-        make_ref<NMutator>(NMutator::Mode::RuleBased, metaRules, runtime);
+    Ref<NMutator> mutator = make_ref<NMutator>(NMutator::Mode::Normal, runtime);
     vector<Graph> bestGraphs;
     SearchEngine searchEngine(runtime, mutator);
     g->dataFree();

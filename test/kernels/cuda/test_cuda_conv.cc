@@ -89,10 +89,10 @@ TEST(cuDNN_Conv, run) {
 
 TEST(cuDNN_Conv, runNHWC) {
     testConvNHWCCudnn(OneGenerator(),
-                  vector<float>{12., 12., 12., 12., 18., 18., 18., 18.});
+                      vector<float>{12., 12., 12., 12., 18., 18., 18., 18.});
     testConvNHWCCudnn(
         IncrementalGenerator(),
-        vector<float>{3350,  7562,  2306,  5546,  9480, 24546,  7185, 20793});
+        vector<float>{3350, 7562, 2306, 5546, 9480, 24546, 7185, 20793});
 }
 
 TEST(cuDNN_Conv, tune) {

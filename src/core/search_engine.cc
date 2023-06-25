@@ -357,25 +357,30 @@ std::vector<Graph> SearchEngine::searchMutation(const MetaGraph &metaGraph) {
             auto mutatedGraphs = mutator->run(node.graph);
             if (mutator->hasTunedKernel)
                 chooseBestMutation = false;
-            if (searchFilter == 1) {
-                std::sort(mutatedGraphs.begin(), mutatedGraphs.end(),
-                          graphTimeComparer);
-                if (mutatedGraphs.size() >= 10)
-                    mutatedGraphs.resize(10);
-                mutatedGraphs = {mutatedGraphs[0]};
-            } else if (chooseBestMutation && mutatedGraphs.size() >= 2) {
-                std::sort(mutatedGraphs.begin(), mutatedGraphs.end(),
-                          graphTimeComparer);
-                if (mutatedGraphs.size() >= 10)
-                    mutatedGraphs.resize(10);
-                mutatedGraphs = {mutatedGraphs[0]};
-            } else { // avoid repeated kernel genreation
-                if (mutatedGraphs.size() >= 2) // INFOGAN
-                    mutatedGraphs = {mutatedGraphs[1]};
-                // if (mutatedGraphs.size() > 2) {
-                //     mutatedGraphs.resize(2);
-                // }
-            }
+            std::sort(mutatedGraphs.begin(), mutatedGraphs.end(),
+                      graphTimeComparer);
+            if (mutatedGraphs.size() >= 10)
+                mutatedGraphs.resize(10);
+            mutatedGraphs = {mutatedGraphs[0]};
+            // if (searchFilter == 1) {
+            //     std::sort(mutatedGraphs.begin(), mutatedGraphs.end(),
+            //               graphTimeComparer);
+            //     if (mutatedGraphs.size() >= 10)
+            //         mutatedGraphs.resize(10);
+            //     mutatedGraphs = {mutatedGraphs[0]};
+            // } else if (chooseBestMutation && mutatedGraphs.size() >= 2) {
+            //     std::sort(mutatedGraphs.begin(), mutatedGraphs.end(),
+            //               graphTimeComparer);
+            //     if (mutatedGraphs.size() >= 10)
+            //         mutatedGraphs.resize(10);
+            //     mutatedGraphs = {mutatedGraphs[0]};
+            // } else { // avoid repeated kernel genreation
+            //     if (mutatedGraphs.size() >= 2) // INFOGAN
+            //         mutatedGraphs = {mutatedGraphs[1]};
+            //     // if (mutatedGraphs.size() > 2) {
+            //     //     mutatedGraphs.resize(2);
+            //     // }
+            // }
 
             for (auto graph : graphs) {
                 for (auto mutatedGraph : mutatedGraphs) {

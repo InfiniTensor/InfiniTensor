@@ -22,15 +22,15 @@
 
 namespace infini {
 
-NMutator::NMutator(Mode mode, Runtime runtime)
-    : Mutator(10, runtime), mode{mode} {
+NMutator::NMutator(Mode mode, Runtime runtime, bool enableRules)
+    : Mutator(10, runtime), mode{mode}, enableRules{enableRules} {
     IT_ASSERT(mode != Mode::RuleBased, "Specify rules for the RuleBased mode.");
 }
 
 NMutator::NMutator(Mode mode, const std::vector<int> &derivationRules,
-                   Runtime runtime)
-    : Mutator(10, runtime), mode{Mode::RuleBased}, derivationRules{
-                                                       derivationRules} {
+                   Runtime runtime, bool enableRules)
+    : Mutator(10, runtime), mode{Mode::RuleBased},
+      derivationRules{derivationRules}, enableRules{enableRules} {
     IT_ASSERT(mode == Mode::RuleBased);
 }
 
@@ -94,32 +94,38 @@ void NMutator::runSingleOpToNaiveMembound(Graph in_graph,
 void NMutator::runSingleOp(Graph in_graph, std::vector<Graph> &out_graphs) {
     OpVec computeOps = in_graph->getComputeOps();
     IT_ASSERT(computeOps.size() == 1);
-    if (Graph g = transformConvtransposed1x1(computeOps[0])) {
-        out_graphs.emplace_back(g);
+    printf("Mutator states enableRules = %d, mode = %d\n", int(enableRules),
+           int(mode));
+    if (enableRules) {
+        // TODO: unify rules
+        if (Graph g = transformConvtransposed1x1(computeOps[0])) {
+            out_graphs.emplace_back(g);
+        }
+        for (auto g : transformConv1x1(computeOps[0]))
+            out_graphs.emplace_back(g);
+        for (auto g : transformConv1xk(computeOps[0]))
+            out_graphs.emplace_back(g);
+        for (auto g : transformConv3x3ONNX(computeOps[0]))
+            out_graphs.emplace_back(g);
+        if (Graph g = transformG2bmm(computeOps[0])) {
+            out_graphs.emplace_back(g);
+        }
+        if (Graph g = transformGbmm(computeOps[0])) {
+            out_graphs.emplace_back(g);
+        }
+        if (infini::Graph g = transformDialtedConv(computeOps[0])) {
+            out_graphs.emplace_back(g);
+        }
+        if (infini::Graph g = transformConvToGEMMReduce(computeOps[0])) {
+            out_graphs.emplace_back(g);
+        }
+        if (infini::Graph g =
+                transformConvTranposeToGEMMReduce(computeOps[0])) {
+            out_graphs.emplace_back(g);
+        }
+        if (out_graphs.size() > 1)
+            return;
     }
-    for (auto g : transformConv1x1(computeOps[0]))
-        out_graphs.emplace_back(g);
-    for (auto g : transformConv1xk(computeOps[0]))
-        out_graphs.emplace_back(g);
-    for (auto g : transformConv3x3ONNX(computeOps[0]))
-        out_graphs.emplace_back(g);
-    if (Graph g = transformG2bmm(computeOps[0])) {
-        out_graphs.emplace_back(g);
-    }
-    if (Graph g = transformGbmm(computeOps[0])) {
-        out_graphs.emplace_back(g);
-    }
-    if (infini::Graph g = transformDialtedConv(computeOps[0])) {
-        out_graphs.emplace_back(g);
-    }
-    if (infini::Graph g = transformConvToGEMMReduce(computeOps[0])) {
-        out_graphs.emplace_back(g);
-    }
-    if (infini::Graph g = transformConvTranposeToGEMMReduce(computeOps[0])) {
-        out_graphs.emplace_back(g);
-    }
-    if (out_graphs.size() > 1)
-        return;
 
     const set<OpType> opSet{OpType::Conv, OpType::ConvTransNHWC, OpType::G2BMM,
                             OpType::GBMM};
@@ -140,7 +146,7 @@ void NMutator::runSingleOp(Graph in_graph, std::vector<Graph> &out_graphs) {
     } else
         IT_TODO_HALT_MSG("Unknown NMutator search mode.");
     const auto &candidates = derivator.getCandidates();
-    // dbg(candidates.size());
+    dbg(candidates.size());
     // derivator.print();
     for (const auto &candidate : candidates) {
         // dbg(nnet::FullPrinterVisitor().print(candidate.root));

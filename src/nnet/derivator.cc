@@ -549,7 +549,9 @@ void Derivator::printDerivationRules() {
         if (!startGuided && ruleId != 4)
             ++cntNonGuideRules;
     }
-    printf("#Steps w/o converging derivation %d,  #Steps w/ converging derivation %d\n", cntRules, cntNonGuideRules);
+    printf("#Steps w/o converging derivation %d,  #Steps w/ converging "
+           "derivation %d\n",
+           cntRules, cntNonGuideRules);
     exit(0);
 }
 

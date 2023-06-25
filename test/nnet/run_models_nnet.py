@@ -6,6 +6,7 @@ import pandas as pd
 import pyinfinitensor as pit
 from pyinfinitensor import backend as ft
 from pyinfinitensor.onnx import OnnxStub
+from pyinfinitensor.tensorrt_backend import get_trt_time
 
 
 def to_pytorch_tensor(tensor) -> torch.Tensor:
@@ -28,9 +29,11 @@ def load_onnx(runtime, filename: str) -> ft.Graph:
 def run_and_evaluate(runtime, g):
     ft.initializeGraphTensors(g)
     runtime.run(g, True)
-    # print(f'getPerfTime = {runtime.getPerfTime(g, True, False, False)}')
-    # print(f'Non-ctc time = {runtime.timeNonCtcOperators(g, 10, 10)}')
-    print(f'Cuda graph time = {runtime.timeWithCudaGraph(g, 10)}')
+    print(f'Op perf time = {runtime.getPerfTime(g, True, False, False)}')
+    print(f'Graph perf time = {runtime.timeNonCtcOperators(g, 10, 10)}')
+    t = runtime.timeWithCudaGraph(g, 100)
+    print(f'Cuda graph time = {t}')
+    return t
 
 
 def run_graph_get_output_as_torch_tensor(runtime, g):
@@ -101,15 +104,31 @@ def construct_convTranspose2d(runtime, n, c, h, w, f, r, s, pad, stride, dilatio
     return handler.getGraph()
 
 
-def construct_conv(runtime, n, c, h, w, f, r, s, ph, pw, sh, sw, dh, dw):
+def construct_gemm(runtime, b, m, n, k, transA, transB):
+    handler = ft.GraphHandler(runtime)
+    input = handler.tensor([b, k, m] if transA else [b, m, k],
+                           tensor_type=ft.TensorType.Input)
+    w = handler.tensor([b, n, k] if transB else [b, k, n],
+                       tensor_type=ft.TensorType.Initialized)
+    handler.matmul(input, w, None, transA, transB, None, ft.Linear)
+    return handler.getGraph()
+
+
+def construct_conv(runtime, n, c, h, w, f, r, s, ph, pw, sh, sw, dh, dw, bias=False, relu=False):
     handler = ft.GraphHandler(runtime)
     # input = handler.tensor([1, 56, 32, 32], tensor_type=ft.TensorType.Input)
     # w = handler.tensor([12, 56, 1, 1], tensor_type=ft.TensorType.Initialized)
     # handler.conv(input, w, None, 0, 0, 1, 1, 1, 1)
     input = handler.tensor([n, c, h, w], tensor_type=ft.TensorType.Input)
     w = handler.tensor([f, c, r, s], tensor_type=ft.TensorType.Initialized)
-    handler.conv(input, w, None, ph, pw, sh, sw, dh, dw)
+    x = handler.conv(input, w, None, ph, pw, sh, sw, dh, dw)
+    if bias:
+        bias = handler.tensor([f, 1, 1], tensor_type=ft.TensorType.Initialized)
+        x = handler.add(x, bias, None)
+    if relu:
+        x = handler.relu(x, None)
     return handler.getGraph()
+
 
 def construct_conv_nhwc(runtime, n, c, h, w, f, r, s, pad, stride, dilation):
     handler = ft.GraphHandler(runtime)
@@ -118,14 +137,17 @@ def construct_conv_nhwc(runtime, n, c, h, w, f, r, s, pad, stride, dilation):
     # handler.conv(input, w, None, 0, 0, 1, 1, 1, 1)
     input = handler.tensor([n, h, w, c], tensor_type=ft.TensorType.Input)
     w = handler.tensor([f, r, s, c], tensor_type=ft.TensorType.Initialized)
-    handler.convNHWC(input, w, None, pad, pad, stride, stride, dilation, dilation)
+    handler.convNHWC(input, w, None, pad, pad, stride,
+                     stride, dilation, dilation)
     return handler.getGraph()
+
 
 def construct_convtranposed_nhwc(runtime, n, c, h, w, f, r, s, pad, stride, dilation):
     handler = ft.GraphHandler(runtime)
     input = handler.tensor([n, h, w, c], tensor_type=ft.TensorType.Input)
     w = handler.tensor([f, r, s, c], tensor_type=ft.TensorType.Initialized)
-    handler.convtransposed2dNHWC(input, w, None, pad, pad, stride, stride, dilation, dilation)
+    handler.convtransposed2dNHWC(
+        input, w, None, pad, pad, stride, stride, dilation, dilation)
     return handler.getGraph()
 
 
@@ -160,33 +182,112 @@ def search_depth_exp():
             # print(f'getPerfTime = {runtime.getPerfTime(g, True, True, False)}')
             # print(f'Non-ctc time = {runtime.timeNonCtcOperators(g, 10, 10)}')
             # save_onnx(g, f"opt_{name}_depth{i}.onnx")
-            print(f'{name} Depth = {i}: {runtime.getPerfTime(g, True, True, False)} ms')
-    
-def model_e2e_exp():
+            print(
+                f'{name} Depth = {i}: {runtime.getPerfTime(g, True, True, False)} ms')
+
+
+def get_e2e_time(runtime, g, name: str):
+    if name.startswith('resnet'):
+        return get_trt_time(g)
+    else:
+        return run_and_evaluate(runtime, g)
+
+
+def model_e2e_exp(allow_tf32: bool):
     runtime = ft.cuda_runtime()
-    model_evaluation =[
-        (lambda : ft.getGANGraph(1, runtime, 5, 0), 'InfoGAN.bs1'),
-        (lambda : ft.getGANGraph(16, runtime, 5, 0), 'InfoGAN.bs16'),
-        (lambda : ft.getGANGraph(1, runtime, 5, 1), 'DCGAN.bs1'),
-        (lambda : ft.getGANGraph(16, runtime, 5, 1), 'DCGAN.bs16'),
-        (lambda : ft.getFSRCNNGraph(1, runtime), "fsrcnn.bs1"),
-        (lambda : ft.getFSRCNNGraph(16, runtime), "fsrcnn.bs16"),
-        (lambda : load_onnx(runtime, '/mnt/auxHome/models/einnet/gcn.bs1.onnx'), 'gcn.bs1'),
-        (lambda : load_onnx(runtime, '/mnt/auxHome/models/einnet/gcn.bs16.onnx'), 'gcn.bs16'),
-        (lambda : load_onnx(runtime, '/mnt/auxHome/models/einnet/csrnet.bs1.onnx'), 'csrnet.bs1'),
-        (lambda : load_onnx(runtime, '/mnt/auxHome/models/einnet/csrnet.bs16.onnx'), 'csrnet.bs16'),
-        (lambda : ft.getLongformer(runtime, 1), 'longformer.bs1'),
-        (lambda : ft.getLongformer(runtime, 16), 'longformer.bs16'),
-    ]    
+    runtime.setEnableTF32(allow_tf32)
+    model_evaluation = [
+        # (lambda: construct_conv(runtime, 1, 512, 7,
+        #  7, 512, 3, 3, 1, 1, 1, 1, 1, 1), 'ResNet-conv3x3'),
+        # (lambda: construct_conv(runtime, 1, 512, 7,
+        #  7, 512, 3, 3, 1, 1, 1, 1, 1, 1, True, True), 'ResNet-conv3x3-BiasRelu'),
+        # (lambda: construct_conv(runtime, 1, 1, 7,
+        #  7, 1, 3, 3, 1, 1, 1, 1, 1, 1), 'ResNet-conv3x3-c1'),
+        # (lambda: construct_conv(runtime, 1, 3, 7,
+        #  7, 3, 3, 3, 1, 1, 1, 1, 1, 1), 'ResNet-conv3x3-c3'),
+        # (lambda: construct_conv(runtime, 1, 32, 7,
+        #  7, 32, 3, 3, 1, 1, 1, 1, 1, 1), 'ResNet-conv3x3-c32'),
+        # (lambda: construct_conv(runtime, 1, 128, 7,
+        #  7, 128, 3, 3, 1, 1, 1, 1, 1, 1), 'ResNet-conv3x3-c128'),
+        # (lambda: ft.getGANGraph(1, runtime, 5, 0), 'InfoGAN.bs1'),
+        # (lambda: ft.getGANGraph(16, runtime, 5, 0), 'InfoGAN.bs16'),
+        # (lambda: ft.getGANGraph(1, runtime, 5, 1), 'DCGAN.bs1'),
+        # (lambda: ft.getGANGraph(16, runtime, 5, 1), 'DCGAN.bs16'),
+        # (lambda: ft.getFSRCNNGraph(1, runtime), "fsrcnn.bs1"),
+        # (lambda: ft.getFSRCNNGraph(16, runtime), "fsrcnn.bs16"),
+        # (lambda: load_onnx(runtime, '/mnt/auxHome/models/einnet/gcn.bs1.onnx'), 'gcn.bs1'),
+        # (lambda: load_onnx(runtime, '/mnt/auxHome/models/einnet/gcn.bs16.onnx'), 'gcn.bs16'),
+        (lambda: load_onnx(runtime, '/mnt/auxHome/models/einnet/resnet18.bs1.onnx'), 'resnet.bs1'),
+        # (lambda: load_onnx(runtime, '/mnt/auxHome/models/einnet/resnet18.bs16.onnx'), 'resnet.bs16'),
+        # (lambda: load_onnx(runtime, '/mnt/auxHome/models/einnet/csrnet.bs1.onnx'), 'csrnet.bs1'),
+        # (lambda: load_onnx(runtime, '/mnt/auxHome/models/einnet/csrnet.bs16.onnx'), 'csrnet.bs16'),
+        # (lambda : ft.getLongformer(runtime, 1), 'longformer.bs1'),
+        # (lambda : ft.getLongformer(runtime, 16), 'longformer.bs16'),
+        # (lambda : load_onnx(runtime, '/home/whj/workspace/InfiniTensor/cuda-build/efficientnet-b1_bs1.onnx'), 'efficientnet.b1'),
+        # (lambda : load_onnx(runtime, '/home/whj/workspace/InfiniTensor/cuda-build/mobilenet_v2_bs1.onnx'), 'mobilenet_v2.bs1'),
+    ]
     print("Figure 12")
     for graph_ctor, name in model_evaluation:
+        t_orig, t_opt = 99999999, 99999999
         print(f"=== {name}")
         original_g = graph_ctor()
+        # original_g = ft.convertNCHWtoNHWCModel(runtime, original_g)
+        # save_onnx(original_g, f"orig_{name}.onnx")
+        # print('Time:', get_e2e_time(runtime, original_g, name))
+        t_orig = run_and_evaluate(runtime, original_g)
         g = ft.optimizeModel(original_g, runtime, name)
         # g = ft.optimizeGraph(original_g, runtime, False, ft.NMutatorMode.RuleBased,
         #                      [3, 2, 2, 2, 2, 5, 8, 8, 6, 91, 90]) # Convtranspose2gemm
-        # save_onnx(g, f"opt_{name}.onnx")
-        run_and_evaluate(runtime, g)
+        # g = ft.optimizeModelWithRules(original_g, runtime,
+        #                               [3, 2, 2, 5, 8, 8, 6, 90])  # Conv2Gemm 
+        save_onnx(g, f"opt_{name}.onnx")
+        # run_and_evaluate(runtime, g)
+        # print(get_e2e_time(runtime, g, name))
+        t_opt = run_and_evaluate(runtime, g)
+        print(
+            f'=== {name} orig/opt=speedup {t_orig:.3f} {t_opt:.3f} {t_orig/t_opt:.2f}')
+        verify_graphs(runtime, original_g, g)
+
+
+def test_gemm_tf32(allow_tf32: bool):
+    configs = [
+        [1, 1024, 196, 85],
+        [1, 128, 3136, 256],
+        [1, 128, 784, 512],
+        [1, 196, 231, 1024],
+        [1, 196, 231, 21],
+        [1, 196, 425, 1024],
+        [1, 196, 896, 1024],
+        [1, 196, 896, 128],
+        [1, 2048, 49, 128],
+        [1, 21, 50176, 21],
+        [1, 231, 3136, 21],
+        [1, 231, 3136, 256],
+        [1, 256, 3136, 64],
+        [1, 425, 196, 1024],
+        [1, 425, 196, 85],
+        [1, 425, 784, 512],
+        [1, 49, 231, 2048],
+        [1, 49, 231, 21],
+        [1, 49, 896, 128],
+        [1, 512, 784, 128],
+        [1, 64, 3136, 256],
+        [1, 784, 231, 21],
+        [1, 784, 231, 512],
+        [1, 896, 196, 128],
+        [1, 896, 49, 2048],
+    ]
+    runtime = ft.cuda_runtime()
+    runtime.setEnableTF32(allow_tf32)
+    for config in configs:
+        for transA, transB in ((False, False), (False, True), (True, False), (True, True)):
+            s = 16
+            align_config = [config[0], config[1]*16, config[2], config[3]]
+            align_config = [config[0]]+[(v+s-1)//s*s for v in align_config[1:]]
+            # align_config = config
+            g = construct_gemm(runtime, *align_config, transA, transB)
+            print(
+                f"{allow_tf32} {transA} {transB} {align_config} {run_and_evaluate(runtime, g)}")
 
 
 def perf_test():
@@ -196,56 +297,9 @@ def perf_test():
     g = ft.getLongformer(runtime, 1)
     run_and_evaluate(runtime, g)
 
+
 if __name__ == "__main__":
     # perf_test()
-    model_e2e_exp()
-    exit()
-    runtime = ft.cuda_runtime()
-    graphs = [
-        # (construct_conv(runtime, 16, 56, 32, 32, 12, 1, 1, 0, 1, 1), 'conv1x1'), # FSRCNN Conv_2 1x1
-        # (construct_conv(runtime, 1, 12, 32, 32, 12, 3, 3, 1, 1, 1), 'conv3x3'),  # FSRCNN Conv_4 3x3
-        # (construct_conv(runtime, 1, 12, 32, 32, 12, 3, 1, 1, 0, 1, 1, 1, 1), 'conv3x1'),  #
-        # (construct_conv(runtime, 1, 12, 32, 32, 12, 1, 11, 0, 5, 1, 1, 1, 1), 'conv1x11'),  #
-        # (construct_conv(runtime, 16, 12, 32, 32, 12, 1, 11, 0, 5, 1, 1, 1, 1), 'conv1x11_bs16'),  #
-        # (construct_conv(runtime, 16,32,224,224, 1, 5, 5, 2, 2, 1, 1, 1, 1), 'conv5x5'),  #
-        # (ft.getLongformer(runtime, 1), 'longformer.bs1'),
-        # (ft.getLongformer(runtime, 16), 'longformer.bs16'),
-        # construct_convTranspose2d(runtime)
-        # (load_onnx(runtime, '/mnt/auxHome/models/einnet/fsrcnn.bs1.onnx'), 'fsrcnn.bs1'),
-        # (ft.getFSRCNNGraph(1, runtime), "fsrcnn.bs1"),
-        # (ft.getFSRCNNGraph(16, runtime), "fsrcnn.bs16"),
-        # (construct_conv_nhwc(runtime, 1, 56, 32, 32, 12, 1, 1, 0, 1, 1), 'conv1x1')
-        # (load_onnx(runtime, '/mnt/auxHome/models/einnet/gcn.bs1.onnx'), 'gcn.bs1'),
-        # (load_onnx(runtime, '/mnt/auxHome/models/einnet/gcn.bs16.onnx'), 'gcn.bs16'),
-        # (load_onnx(runtime, '/mnt/auxHome/models/einnet/csrnet.bs1.onnx'), 'csrnet.bs1'),
-        # (load_onnx(runtime, '/mnt/auxHome/models/einnet/csrnet.bs16.onnx'), 'csrnet.bs16'),
-        (ft.getLongformer(runtime, 1), 'longformer.bs1'),
-        # (ft.getLongformer(runtime, 16), 'longformer.bs16'),
-    #     (load_onnx(runtime, '/mnt/auxHome/models/einnet/resnet18.bs1.onnx'), 'resnet18.bs1'),
-    #     (load_onnx(runtime, '/mnt/auxHome/models/einnet/resnet18.bs16.onnx'), 'resnet18.bs16'),
-        # (ft.getGANGraph(1, runtime, 5, 0), 'InfoGAN.bs1'),
-    ]
-
-
-    for original_g, name in graphs:
-        print(f"=== {name}")
-        # save_onnx(original_g, f"orig_{name}.onnx")
-        # original_g = ft.convertNCHWtoNHWCModel(runtime, original_g)
-        # save_onnx(dlt_g, f"dlt_{name}.onnx")
-        # exit()
-
-        # run_and_evaluate(runtime, original_g)
-        # g = ft.optimizeGraph(original_g, runtime, False, ft.NMutatorMode.RuleBased,
-        #                         [1, 7, 7, 2, 8, 6, 6])  # G2BMM/GBMM
-        # g = ft.optimizeGraph(original_g, runtime, False, ft.NMutatorMode.RuleBased,
-        #                      [3, 2, 2, 5, 8, 8, 6, 90]) # Conv2conv
-        g = ft.optimizeGraph(original_g, runtime, False, ft.NMutatorMode.RuleBased,
-                             [3, 2, 2, 2, 2, 5, 8, 8, 6, 91, 90]) # Convtranspose2gemm
-        # g = ft.optimizeGraph(original_g, runtime, False, ft.NMutatorMode.Normal)
-        # g = ft.convertNCHWtoNHWCModel(original_g, runtime, i)
-
-        # run_and_evaluate(runtime, original_g)
-        run_and_evaluate(runtime, g)
-        save_onnx(g, f"opt_{name}.onnx")
-        # verify_graphs(runtime, original_g, g)
-        # run_and_evaluate(runtime, g)
+    for b in [False]:
+        model_e2e_exp(b)
+        # test_gemm_tf32(b)

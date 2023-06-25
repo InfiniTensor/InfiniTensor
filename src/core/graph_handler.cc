@@ -82,10 +82,11 @@ Tensor GraphHandlerObj::convTransposed2dNHWC(Tensor input, Tensor weight,
             oph, opw);
         return output;
     } else {
-        return g->addOp<ConvTransposed2dNHWCObj>(std::move(input),
-                                                 std::move(weight), output, ph,
-                                                 pw, sh, sw, dh, dw, oph, opw)
-        ->getOutput();
+        return g
+            ->addOp<ConvTransposed2dNHWCObj>(std::move(input),
+                                             std::move(weight), output, ph, pw,
+                                             sh, sw, dh, dw, oph, opw)
+            ->getOutput();
     }
 }
 

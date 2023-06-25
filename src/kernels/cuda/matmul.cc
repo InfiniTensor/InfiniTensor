@@ -1,7 +1,6 @@
 #include "operators/matmul.h"
 #include "core/kernel.h"
 #include "cuda/cuda_runtime.h"
-#include "nnet/dbg.h"
 
 namespace infini {
 

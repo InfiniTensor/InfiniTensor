@@ -134,7 +134,7 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling,
                 t->freeData();
         }
 
-        // FIXME: ignore trnapose when necessary 
+        // FIXME: ignore trnapose when necessary
         //     op->getOpType() != OpType::Transpose &&
         //     op->getOpType() != OpType::ReduceMean
         if (op->getOpType() != OpType::Reshape)
