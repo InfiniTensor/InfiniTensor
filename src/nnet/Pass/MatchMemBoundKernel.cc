@@ -12,8 +12,7 @@ void MatchMemBoundKernel::transform(Formula &origin, int depth, Expr &rCur) {
     const auto &inputs = InputVisitor().getInputs(rangeOp);
     auto source =
         make_ref<ElementWiseNode>(rangeOp, inputs, rangeOp->getOutputShape());
-    auto tensor =
-        makeTensor(newTensorName(), rangeOp->getOutputShape(), {}, source);
+    auto tensor = mT(newTensorName(), rangeOp->getOutputShape(), {}, source);
     // The original code directly appends candidate. But it seems should be done
     // by the search.
     // appendCanddiate(as<TensorNode>(tensor), depth);

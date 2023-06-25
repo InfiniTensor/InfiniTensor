@@ -21,21 +21,18 @@ TEST(MatchMatmul, NoBatch) {
     // Transpose requires the existance of source for inputs
     auto _A = make_ref<TensorNode>("A_shadow", vector<int>({M, K}));
     auto _B = make_ref<TensorNode>("B_shadow", vector<int>({N, K}));
-    auto rangeA = makeRangeOperator({{m, {0, M}}, {k, {0, K}}}, {},
-                                    makeSubscript(_A, {m, k}));
-    auto rangeB = makeRangeOperator({{n, {0, N}}, {k, {0, K}}}, {},
-                                    makeSubscript(_A, {n, k}));
+    auto rangeA = mL({{m, {0, M}}, {k, {0, K}}}, {}, mSub(_A, {m, k}));
+    auto rangeB = mL({{n, {0, N}}, {k, {0, K}}}, {}, mSub(_A, {n, k}));
     auto elemA =
         make_ref<ElementWiseNode>(rangeA, vector<Tensor>{_A}, _A->getShape());
     auto elemB =
         make_ref<ElementWiseNode>(rangeB, vector<Tensor>{_B}, _B->getShape());
-    auto A = makeTensor("A", vector<int>({M, K}), {}, elemA);
-    auto B = makeTensor("B", vector<int>({N, K}), {}, elemB);
+    auto A = mT("A", vector<int>({M, K}), {}, elemA);
+    auto B = mT("B", vector<int>({N, K}), {}, elemB);
 
-    auto subA = makeSubscript(A, {m, k});
-    auto subB = makeSubscript(B, {n, k});
-    auto range = makeRangeOperator({{m, {0, M}}, {n, {0, N}}}, {{k, {0, K}}},
-                                   subA * subB);
+    auto subA = mSub(A, {m, k});
+    auto subB = mSub(B, {n, k});
+    auto range = mL({{m, {0, M}}, {n, {0, N}}}, {{k, {0, K}}}, subA * subB);
 
     // Derivation
     Formula matmul(range, 0);
@@ -73,10 +70,9 @@ TEST(MatchMatmul, Illegal0) {
     auto A = make_ref<TensorNode>("A", vector<int>({M, K}));
     auto B = make_ref<TensorNode>("B", vector<int>({N, K}));
 
-    auto subA = makeSubscript(A, {m, k});
-    auto subB = makeSubscript(B, {k, k});
-    auto range = makeRangeOperator({{m, {0, M}}, {n, {0, N}}}, {{k, {0, K}}},
-                                   subA * subB);
+    auto subA = mSub(A, {m, k});
+    auto subB = mSub(B, {k, k});
+    auto range = mL({{m, {0, M}}, {n, {0, N}}}, {{k, {0, K}}}, subA * subB);
     // Derivation
     Formula matmul(range, 0);
     Derivator derivator;
@@ -93,10 +89,9 @@ TEST(MatchMatmul, Illegal1) {
     auto A = make_ref<TensorNode>("A", vector<int>({M, K}));
     auto B = make_ref<TensorNode>("B", vector<int>({N, K}));
 
-    auto subA = makeSubscript(A, {m, k});
-    auto subB = makeSubscript(B, {n, k});
-    auto range = makeRangeOperator({{m, {0, M}}, {n, {0, N}}, {k, {0, K}}}, {},
-                                   subA * subB);
+    auto subA = mSub(A, {m, k});
+    auto subB = mSub(B, {n, k});
+    auto range = mL({{m, {0, M}}, {n, {0, N}}, {k, {0, K}}}, {}, subA * subB);
     // Derivation
     Formula matmul(range, 0);
     Derivator derivator;
@@ -113,10 +108,9 @@ TEST(MatchMatmul, Illegal2) {
     auto A = make_ref<TensorNode>("A", vector<int>({M, K}));
     auto B = make_ref<TensorNode>("B", vector<int>({N, K}));
 
-    auto subA = makeSubscript(A, {m, m + k});
-    auto subB = makeSubscript(B, {n, k});
-    auto range = makeRangeOperator({{m, {0, M}}, {n, {0, N}}}, {{k, {0, K}}},
-                                   subA * subB);
+    auto subA = mSub(A, {m, m + k});
+    auto subB = mSub(B, {n, k});
+    auto range = mL({{m, {0, M}}, {n, {0, N}}}, {{k, {0, K}}}, subA * subB);
     // Derivation
     Formula matmul(range, 0);
     Derivator derivator;
@@ -140,10 +134,9 @@ TEST(MatchMatmul, Illegal3) {
     auto A = make_ref<TensorNode>("A", vector<int>({M, K}));
     auto B = make_ref<TensorNode>("B", vector<int>({N, K}));
 
-    auto subA = makeSubscript(A, {m, n + k});
-    auto subB = makeSubscript(B, {n, k});
-    auto range = makeRangeOperator({{m, {0, M}}, {n, {0, N}}}, {{k, {0, K}}},
-                                   subA * subB);
+    auto subA = mSub(A, {m, n + k});
+    auto subB = mSub(B, {n, k});
+    auto range = mL({{m, {0, M}}, {n, {0, N}}}, {{k, {0, K}}}, subA * subB);
     // Derivation
     Formula matmul(range, 0);
     Derivator derivator;
@@ -168,10 +161,9 @@ TEST(MatchMatmul, Illegal4) {
     auto A = make_ref<TensorNode>("A", vector<int>({M, K}));
     auto B = make_ref<TensorNode>("B", vector<int>({N, K}));
 
-    auto subA = makeSubscript(A, {m, k});
-    auto subB = makeSubscript(B, {k, n});
-    auto range = makeRangeOperator({{m, {0, M}}, {n, {0, N}}}, {{k, {0, K}}},
-                                   subA * subB);
+    auto subA = mSub(A, {m, k});
+    auto subB = mSub(B, {k, n});
+    auto range = mL({{m, {0, M}}, {n, {0, N}}}, {{k, {0, K}}}, subA * subB);
     // Derivation
     Formula matmul(range, 0);
     Derivator derivator;
@@ -196,10 +188,9 @@ TEST(MatchMatmul, IteratorTable1) {
     auto A = make_ref<TensorNode>("_A", vector<int>({M, K}));
     auto B = make_ref<TensorNode>("_B", vector<int>({N, K}));
 
-    auto subA = makeSubscript(A, {m, k});
-    auto subB = makeSubscript(B, {n, k});
-    auto range = makeRangeOperator({{m, {0, M}}, {n, {0, N}}}, {{k, {0, K}}},
-                                   subA * subB);
+    auto subA = mSub(A, {m, k});
+    auto subB = mSub(B, {n, k});
+    auto range = mL({{m, {0, M}}, {n, {0, N}}}, {{k, {0, K}}}, subA * subB);
     class IteratorTable exprIT;
     ASSERT_TRUE(exprIT.analyzeExpr(range));
     exprIT.buildTable({0, 1});
@@ -244,10 +235,9 @@ TEST(MatchMatmul, IteratorTable2) {
     auto A = make_ref<TensorNode>("_A", vector<int>({M, K}));
     auto B = make_ref<TensorNode>("_B", vector<int>({N, K}));
 
-    auto subA = makeSubscript(A, {m, k + m});
-    auto subB = makeSubscript(B, {n, c2 * (k + c2)});
-    auto range = makeRangeOperator({{m, {0, M}}, {n, {0, N}}}, {{k, {0, K}}},
-                                   subA * subB);
+    auto subA = mSub(A, {m, k + m});
+    auto subB = mSub(B, {n, c2 * (k + c2)});
+    auto range = mL({{m, {0, M}}, {n, {0, N}}}, {{k, {0, K}}}, subA * subB);
     class IteratorTable exprIT;
     ASSERT_TRUE(exprIT.analyzeExpr(range));
     exprIT.buildTable({0, 1});
@@ -293,19 +283,19 @@ TEST(MatchMatmul, IteratorTable2) {
 //     auto A = make_ref<TensorNode>("A", vector<int>({M, K}));
 //     auto B = make_ref<TensorNode>("B", vector<int>({N, K}));
 
-//     auto subA = makeSubscript(A, {m, k});
-//     auto subB = makeSubscript(B, {n, k});
-//     auto rangeA = makeRangeOperator({{m, {0, M}}, {k, {0, K}}}, {}, subA);
-//     auto rangeB = makeRangeOperator({{n, {0, N}}, {k, {0, K}}}, {}, subB);
+//     auto subA = mSub(A, {m, k});
+//     auto subB = mSub(B, {n, k});
+//     auto rangeA = mL({{m, {0, M}}, {k, {0, K}}}, {}, subA);
+//     auto rangeB = mL({{n, {0, N}}, {k, {0, K}}}, {}, subB);
 //     auto ewA = make_ref<ElementWiseNode>(rangeA, vector<Tensor>{A},
 //                                             rangeA->getOutputShape());
 //     auto ewB = make_ref<ElementWiseNode>(rangeB, vector<Tensor>{B},
 //                                             rangeB->getOutputShape());
-//     auto tensorA = makeTensor("TA", A->getShape(), {}, ewA);
-//     auto tensorB = makeTensor("TB", B->getShape(), {}, ewB);
-//     auto subRangeA = makeSubscript(tensorA, {m, k});
-//     auto subRangeB = makeSubscript(tensorB, {n, k});
-//     auto range = makeRangeOperator({{m, {0, M}}, {n, {0, N}}}, {{k, {0, K}}},
+//     auto tensorA = mT("TA", A->getShape(), {}, ewA);
+//     auto tensorB = mT("TB", B->getShape(), {}, ewB);
+//     auto subRangeA = mSub(tensorA, {m, k});
+//     auto subRangeB = mSub(tensorB, {n, k});
+//     auto range = mL({{m, {0, M}}, {n, {0, N}}}, {{k, {0, K}}},
 //                                    subRangeA * subRangeB);
 
 //     // Derivation

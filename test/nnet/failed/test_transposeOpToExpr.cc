@@ -18,9 +18,9 @@ TEST(TransposeOp2Expr, Basic) {
     auto k = make_ref<VarNode>("k");
     auto l = make_ref<VarNode>("l");
     auto AN = make_ref<TensorNode>("A", vector<int>({2, 4, 6, 8}));
-    auto subA = makeSubscript(AN, {l, j, k, i});
-    auto ans = makeRangeOperator(
-        {{i, {0, 16}}, {j, {0, 4}}, {k, {0, 8}}, {l, {0, 2}}}, {}, subA);
+    auto subA = mSub(AN, {l, j, k, i});
+    auto ans =
+        mL({{i, {0, 16}}, {j, {0, 4}}, {k, {0, 8}}, {l, {0, 2}}}, {}, subA);
     ASSERT_TRUE(HashVisitor().getHash(ans) ==
                 HashVisitor().getHash(tpm::transposeOpToExpression(op)));
 }

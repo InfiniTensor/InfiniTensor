@@ -15,15 +15,13 @@ Expr buildAnsPosPos() {
     DEFINE_VAR(y);
     DEFINE_VAR(t1);
     DEFINE_VAR(i3);
-    auto A = makeTensor("A", {8});
-    auto B = makeTensor("B", {8});
-    auto subA = makeSubscript(A, {i3});
-    auto subB = makeSubscript(B, {t1});
-    auto innerRange =
-        makeRangeOperator({{i3, {0, 8}}}, {{t1, {0, 5}}}, subA * subB);
-    auto subInner = makeSubscript(innerRange, {x + 2 * y});
-    auto outerRange =
-        makeRangeOperator({{x, {0, 2}}, {y, {0, 4}}}, {}, subInner);
+    auto A = mT("A", {8});
+    auto B = mT("B", {8});
+    auto subA = mSub(A, {i3});
+    auto subB = mSub(B, {t1});
+    auto innerRange = mL({{i3, {0, 8}}}, {{t1, {0, 5}}}, subA * subB);
+    auto subInner = mSub(innerRange, {x + 2 * y});
+    auto outerRange = mL({{x, {0, 2}}, {y, {0, 4}}}, {}, subInner);
     return outerRange;
 }
 
@@ -53,12 +51,11 @@ TEST(Rule2, PosPos) {
     DEFINE_VAR(x);
     DEFINE_VAR(y);
     DEFINE_VAR(t1);
-    auto A = makeTensor("A", {8});
-    auto B = makeTensor("B", {8});
-    auto subA = makeSubscript(A, {a * x + b * y});
-    auto subB = makeSubscript(B, {t1});
-    auto range = makeRangeOperator({{x, {0, 2}}, {y, {0, 4}}}, {{t1, {0, 5}}},
-                                   subA * subB);
+    auto A = mT("A", {8});
+    auto B = mT("B", {8});
+    auto subA = mSub(A, {a * x + b * y});
+    auto subB = mSub(B, {t1});
+    auto range = mL({{x, {0, 2}}, {y, {0, 4}}}, {{t1, {0, 5}}}, subA * subB);
     realTest(range, buildAnsPosPos());
 }
 
@@ -70,15 +67,13 @@ Expr buildAnsPosNeg() {
     DEFINE_VAR(y);
     DEFINE_VAR(t1);
     DEFINE_VAR(i3);
-    auto A = makeTensor("A", {8});
-    auto B = makeTensor("B", {8});
-    auto subA = makeSubscript(A, {i3});
-    auto subB = makeSubscript(B, {t1});
-    auto innerRange =
-        makeRangeOperator({{i3, {0, 8}}}, {{t1, {0, 5}}}, subA * subB);
-    auto subInner = makeSubscript(innerRange, {x - 2 * y + 6});
-    auto outerRange =
-        makeRangeOperator({{x, {0, 2}}, {y, {0, 4}}}, {}, subInner);
+    auto A = mT("A", {8});
+    auto B = mT("B", {8});
+    auto subA = mSub(A, {i3});
+    auto subB = mSub(B, {t1});
+    auto innerRange = mL({{i3, {0, 8}}}, {{t1, {0, 5}}}, subA * subB);
+    auto subInner = mSub(innerRange, {x - 2 * y + 6});
+    auto outerRange = mL({{x, {0, 2}}, {y, {0, 4}}}, {}, subInner);
     return outerRange;
 }
 
@@ -87,12 +82,11 @@ TEST(Rule2, PosNeg) {
     DEFINE_VAR(x);
     DEFINE_VAR(y);
     DEFINE_VAR(t1);
-    auto A = makeTensor("A", {8});
-    auto B = makeTensor("B", {8});
-    auto subA = makeSubscript(A, {a * x + b * y + 6});
-    auto subB = makeSubscript(B, {t1});
-    auto range = makeRangeOperator({{x, {0, 2}}, {y, {0, 4}}}, {{t1, {0, 5}}},
-                                   subA * subB);
+    auto A = mT("A", {8});
+    auto B = mT("B", {8});
+    auto subA = mSub(A, {a * x + b * y + 6});
+    auto subB = mSub(B, {t1});
+    auto range = mL({{x, {0, 2}}, {y, {0, 4}}}, {{t1, {0, 5}}}, subA * subB);
     realTest(range, buildAnsPosNeg());
 }
 
@@ -104,15 +98,13 @@ Expr buildAnsNegNeg() {
     DEFINE_VAR(y);
     DEFINE_VAR(t1);
     DEFINE_VAR(i3);
-    auto A = makeTensor("A", {8});
-    auto B = makeTensor("B", {8});
-    auto subA = makeSubscript(A, {i3});
-    auto subB = makeSubscript(B, {t1});
-    auto innerRange =
-        makeRangeOperator({{i3, {0, 8}}}, {{t1, {0, 5}}}, subA * subB);
-    auto subInner = makeSubscript(innerRange, {(-1) * x - 2 * y + 7});
-    auto outerRange =
-        makeRangeOperator({{x, {0, 2}}, {y, {0, 4}}}, {}, subInner);
+    auto A = mT("A", {8});
+    auto B = mT("B", {8});
+    auto subA = mSub(A, {i3});
+    auto subB = mSub(B, {t1});
+    auto innerRange = mL({{i3, {0, 8}}}, {{t1, {0, 5}}}, subA * subB);
+    auto subInner = mSub(innerRange, {(-1) * x - 2 * y + 7});
+    auto outerRange = mL({{x, {0, 2}}, {y, {0, 4}}}, {}, subInner);
     return outerRange;
 }
 
@@ -121,11 +113,10 @@ TEST(Rule2, NegNeg) {
     DEFINE_VAR(x);
     DEFINE_VAR(y);
     DEFINE_VAR(t1);
-    auto A = makeTensor("A", {8});
-    auto B = makeTensor("B", {8});
-    auto subA = makeSubscript(A, {a * x + b * y + 7});
-    auto subB = makeSubscript(B, {t1});
-    auto range = makeRangeOperator({{x, {0, 2}}, {y, {0, 4}}}, {{t1, {0, 5}}},
-                                   subA * subB);
+    auto A = mT("A", {8});
+    auto B = mT("B", {8});
+    auto subA = mSub(A, {a * x + b * y + 7});
+    auto subB = mSub(B, {t1});
+    auto range = mL({{x, {0, 2}}, {y, {0, 4}}}, {{t1, {0, 5}}}, subA * subB);
     realTest(range, buildAnsNegNeg());
 }

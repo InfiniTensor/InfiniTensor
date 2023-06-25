@@ -296,10 +296,9 @@ const Pattern &MatmulPattern::getMatmulPattern() {
         auto k = make_ref<VarNode>("_Matmul_k");
         auto A = make_ref<TensorNode>("_Matmul_A", vector<int>({M, K}));
         auto B = make_ref<TensorNode>("_Matmul_B", vector<int>({N, K}));
-        auto subA = makeSubscript(A, {m, k});
-        auto subB = makeSubscript(B, {n, k});
-        auto range = makeRangeOperator({{m, {0, M}}, {n, {0, N}}},
-                                       {{k, {0, K}}}, subA * subB);
+        auto subA = mSub(A, {m, k});
+        auto subB = mSub(B, {n, k});
+        auto range = mL({{m, {0, M}}, {n, {0, N}}}, {{k, {0, K}}}, subA * subB);
         auto success = exprIT.analyzeExpr(range);
         assert(success);
         exprIT.buildTable({0, 1});
@@ -317,11 +316,10 @@ const Pattern &ConvPattern::getPattern() {
         // auto n = make_ref<VarNode>("_Matmul_n");
         auto A = make_ref<TensorNode>("_Conv_A", vector<int>({N, C, H, W}));
         auto B = make_ref<TensorNode>("_Conv_K", vector<int>({F, C, R, S}));
-        auto subA = makeSubscript(A, {n, c, h + r, w + s});
-        auto subB = makeSubscript(B, {f, c, r, s});
-        auto range = makeRangeOperator(
-            {{n, {0, 0}}, {f, {0, 0}}, {h, {0, 0}}, {w, {0, 0}}},
-            {{c, {0, 0}}, {r, {0, 0}}, {s, {0, 0}}}, subA * subB);
+        auto subA = mSub(A, {n, c, h + r, w + s});
+        auto subB = mSub(B, {f, c, r, s});
+        auto range = mL({{n, {0, 0}}, {f, {0, 0}}, {h, {0, 0}}, {w, {0, 0}}},
+                        {{c, {0, 0}}, {r, {0, 0}}, {s, {0, 0}}}, subA * subB);
         auto success = exprIT.analyzeExpr(range);
         assert(success);
         exprIT.buildTable({0, 1});
@@ -404,11 +402,10 @@ const Pattern &Sg2bmmPattern::getPattern() {
         // auto n = make_ref<VarNode>("_Matmul_n");
         auto A = make_ref<TensorNode>("_Sg2bmm_A", vector<int>{Batch, M, K});
         auto B = make_ref<TensorNode>("_Sg2bmm_B", vector<int>{Batch, M, K});
-        auto subA = makeSubscript(A, {b, m, k});
-        auto subB = makeSubscript(B, {b, m + w, k});
-        auto range =
-            makeRangeOperator({{b, {0, Batch}}, {m, {0, M}}, {w, {-W, W + 1}}},
-                              {{k, {0, K}}}, subA * subB);
+        auto subA = mSub(A, {b, m, k});
+        auto subB = mSub(B, {b, m + w, k});
+        auto range = mL({{b, {0, Batch}}, {m, {0, M}}, {w, {-W, W + 1}}},
+                        {{k, {0, K}}}, subA * subB);
         auto success = exprIT.analyzeExpr(range);
         assert(success);
         exprIT.buildTableWithDefaultMap();
@@ -458,11 +455,10 @@ const Pattern &LongformerGBMMPattern::getPattern() {
         auto A =
             make_ref<TensorNode>("_lo_A", vector<int>{Batch, M, 2 * W + 1});
         auto B = make_ref<TensorNode>("_lo_B", vector<int>{Batch, M, N});
-        auto subA = makeSubscript(A, {b, m, w});
-        auto subB = makeSubscript(B, {b, m + w, n});
-        auto range =
-            makeRangeOperator({{b, {0, Batch}}, {m, {0, M}}, {n, {0, M}}},
-                              {{w, {-W, W + 1}}}, subA * subB);
+        auto subA = mSub(A, {b, m, w});
+        auto subB = mSub(B, {b, m + w, n});
+        auto range = mL({{b, {0, Batch}}, {m, {0, M}}, {n, {0, M}}},
+                        {{w, {-W, W + 1}}}, subA * subB);
         auto success = exprIT.analyzeExpr(range);
         assert(success);
         exprIT.buildTableWithDefaultMap();
@@ -536,11 +532,10 @@ Expr ConvPattern::getExpr(Tensor A, Tensor K, int N, int C, int H, int W, int F,
     DEFINE_VAR(f);
     DEFINE_VAR(r);
     DEFINE_VAR(s);
-    auto subA = makeSubscript(A, {n, c, h + r - R / 2, w + s - S / 2});
-    auto subB = makeSubscript(K, {f, c, r, s});
-    auto range =
-        makeRangeOperator({{n, {0, N}}, {f, {0, F}}, {h, {0, H}}, {w, {0, W}}},
-                          {{c, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA * subB);
+    auto subA = mSub(A, {n, c, h + r - R / 2, w + s - S / 2});
+    auto subB = mSub(K, {f, c, r, s});
+    auto range = mL({{n, {0, N}}, {f, {0, F}}, {h, {0, H}}, {w, {0, W}}},
+                    {{c, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA * subB);
     return range;
 }
 
@@ -572,13 +567,13 @@ Expr ConvTransPattern::getExpr(Tensor A, Tensor K, int N, int C, int H, int W,
     //                               vector<int>{0, padding, padding, 0});
     // auto K = make_ref<TensorNode>("K", vector<int>({R, S, F, C}));
 
-    auto subA = makeSubscript(A, {n, x1 + r - 1, y1 + s - 1, f});
+    auto subA = mSub(A, {n, x1 + r - 1, y1 + s - 1, f});
     auto subK =
-        // makeSubscript(K, {(R - 2) - 2 * r + x2, (S - 2) - 2 * s + y2, f, c});
-        makeSubscript(K, {f, (R - 2) - 2 * r + x2, (S - 2) - 2 * s + y2, c});
+        // mSub(K, {(R - 2) - 2 * r + x2, (S - 2) - 2 * s + y2, f, c});
+        mSub(K, {f, (R - 2) - 2 * r + x2, (S - 2) - 2 * s + y2, c});
     // x1=(h+1)//2, x2=(h+1)%2, y1=(w+1)//2
 
-    auto range1 = makeRangeOperator(
+    auto range1 = mL(
         {
             {n, {0, N}},
             {c, {0, C}},
@@ -588,10 +583,10 @@ Expr ConvTransPattern::getExpr(Tensor A, Tensor K, int N, int C, int H, int W,
             {y2, {0, 2}},
         },
         {{f, {0, F}}, {r, {0, R / 2}}, {s, {0, S / 2}}}, subA * subK);
-    auto sub0 = makeSubscript(
+    auto sub0 = mSub(
         range1, {n, c, (h + 1) / 2, (h + 1) % 2, (w + 1) / 2, (w + 1) % 2});
-    auto range0 = makeRangeOperator(
-        {{n, {0, N}}, {h, {0, OH}}, {w, {0, OW}}, {c, {0, C}}}, {}, sub0);
+    auto range0 =
+        mL({{n, {0, N}}, {h, {0, OH}}, {w, {0, OW}}, {c, {0, C}}}, {}, sub0);
     return range0;
 }
 
@@ -606,11 +601,10 @@ pair<Expr, pair<Tensor, Tensor>> Sg2bmmPattern::getExpr(int Batch, int M, int K,
     auto B = make_ref<TensorNode>("B", vector<int>({Batch, M, K}),
                                   vector<int>{0, D * W, 0});
 
-    auto subA = makeSubscript(A, {b, m, k});
-    auto subB = makeSubscript(B, {b, m + D * (w - W), k});
-    auto range =
-        makeRangeOperator({{b, {0, Batch}}, {m, {0, M}}, {w, {0, 2 * W + 1}}},
-                          {{k, {0, K}}}, subA * subB);
+    auto subA = mSub(A, {b, m, k});
+    auto subB = mSub(B, {b, m + D * (w - W), k});
+    auto range = mL({{b, {0, Batch}}, {m, {0, M}}, {w, {0, 2 * W + 1}}},
+                    {{k, {0, K}}}, subA * subB);
     return {range, {A, B}};
 }
 
@@ -624,10 +618,10 @@ LongformerGBMMPattern::getExpr(int Batch, int M, int W, int K, int dilation) {
                                   vector<int>{0, 0, 0});
     auto B = make_ref<TensorNode>("B", vector<int>({Batch, M, K}),
                                   vector<int>{0, dilation * W, 0});
-    auto subA = makeSubscript(A, {b, m, w});
-    auto subB = makeSubscript(B, {b, m + dilation * w - dilation * W, n});
-    auto range = makeRangeOperator({{b, {0, Batch}}, {m, {0, M}}, {n, {0, K}}},
-                                   {{w, {0, 2 * W + 1}}}, subA * subB);
+    auto subA = mSub(A, {b, m, w});
+    auto subB = mSub(B, {b, m + dilation * w - dilation * W, n});
+    auto range = mL({{b, {0, Batch}}, {m, {0, M}}, {n, {0, K}}},
+                    {{w, {0, 2 * W + 1}}}, subA * subB);
     return {range, {A, B}};
 }
 
@@ -642,10 +636,10 @@ pair<Expr, pair<Tensor, Tensor>> MatmulPattern::getExpr(bool transA,
                                   vector<int>{0, 0, 0});
     auto B = make_ref<TensorNode>("B", vector<int>({Batch, K, N}),
                                   vector<int>{0, 0, 0});
-    auto subA = makeSubscript(A, {b, m, k});
-    auto subB = makeSubscript(B, {b, k, n});
-    auto range = makeRangeOperator({{b, {0, Batch}}, {m, {0, M}}, {n, {0, N}}},
-                                   {{k, {0, K}}}, subA * subB);
+    auto subA = mSub(A, {b, m, k});
+    auto subB = mSub(B, {b, k, n});
+    auto range = mL({{b, {0, Batch}}, {m, {0, M}}, {n, {0, N}}}, {{k, {0, K}}},
+                    subA * subB);
     return {range, {A, B}};
 }
 

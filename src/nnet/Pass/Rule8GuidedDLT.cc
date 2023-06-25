@@ -265,10 +265,9 @@ Expr Rule8GuidedDLT::guidedDLTMoreVar2(const RangeOp &cur,
     const auto sourceRoutine = make_ref<ElementWiseNode>(
         sourceExpr, vector<Tensor>{originalTensor}, newShape);
     // build stage connections
-    const auto newTensor =
-        makeTensor(newTensorName(), newShape, {}, sourceRoutine);
-    const auto &newSub = makeSubscript(
-        newTensor, VecExpr(tensorDimAxes.begin(), tensorDimAxes.end()));
+    const auto newTensor = mT(newTensorName(), newShape, {}, sourceRoutine);
+    const auto &newSub =
+        mSub(newTensor, VecExpr(tensorDimAxes.begin(), tensorDimAxes.end()));
     // TODO [1124]: get variable mapping and reorder L according to it
     // dbg(cur, originalSub, newSub, newVarRanges, replace.toReadable(),
     //     tensorDimAxes, newShape);
@@ -311,7 +310,7 @@ Expr Rule8GuidedDLT::buildGuidedDLTSource(const Subscript &originalSub,
     vector<VarRangePair> loopVarRangePairs;
     for (size_t i = 0; i < tensorDimAxes.size(); ++i)
         loopVarRangePairs.emplace_back(tensorDimAxes[i], pair(0, newShape[i]));
-    return makeRangeOperator(loopVarRangePairs, {}, newSub);
+    return mL(loopVarRangePairs, {}, newSub);
 }
 
 } // namespace nnet

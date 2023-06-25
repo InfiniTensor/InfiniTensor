@@ -63,11 +63,11 @@ TEST(MatchConv, NoBatch) {
                                   vector<int>{0, 0, R / 2, S / 2});
     auto B = make_ref<TensorNode>("B", vector<int>({F, C, R, S}));
 
-    auto subA = makeSubscript(A, {n, c, h + r, w + s});
-    auto subB = makeSubscript(B, {f, c, r, s});
-    auto rangeOp = makeRangeOperator(
-        {{n, {0, N}}, {f, {0, F}}, {h, {0, H}}, {w, {0, W}}},
-        {{c, {0, C}}, {r, {-R / 2, R / 2}}, {s, {-S / 2, S / 2}}}, subA * subB);
+    auto subA = mSub(A, {n, c, h + r, w + s});
+    auto subB = mSub(B, {f, c, r, s});
+    auto rangeOp = mL({{n, {0, N}}, {f, {0, F}}, {h, {0, H}}, {w, {0, W}}},
+                      {{c, {0, C}}, {r, {-R / 2, R / 2}}, {s, {-S / 2, S / 2}}},
+                      subA * subB);
 
     // Derivation
     Formula matmul(rangeOp, 0);
@@ -101,11 +101,10 @@ TEST(MatchConv, Wrong0) {
                                   vector<int>{0, 0, R / 2, S / 2});
     auto B = make_ref<TensorNode>("B", vector<int>({F, C, R, S}));
 
-    auto subA = makeSubscript(A, {n, c, h + r, w + s});
-    auto subB = makeSubscript(B, {c, f, r, s});
-    auto rangeOp =
-        makeRangeOperator({{n, {0, N}}, {f, {0, F}}, {h, {0, H}}, {w, {0, W}}},
-                          {{c, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA * subB);
+    auto subA = mSub(A, {n, c, h + r, w + s});
+    auto subB = mSub(B, {c, f, r, s});
+    auto rangeOp = mL({{n, {0, N}}, {f, {0, F}}, {h, {0, H}}, {w, {0, W}}},
+                      {{c, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA * subB);
 
     // Derivation
     Formula matmul(rangeOp, 0);
@@ -129,11 +128,10 @@ TEST(MatchConv, Wrong1) {
                                   vector<int>{0, 0, R / 2, S / 2});
     auto B = make_ref<TensorNode>("B", vector<int>({F, C, R, S}));
 
-    auto subA = makeSubscript(A, {n, c, h + 2 * r, w + s});
-    auto subB = makeSubscript(B, {f, c, r, s});
-    auto rangeOp =
-        makeRangeOperator({{n, {0, N}}, {f, {0, F}}, {h, {0, H}}, {w, {0, W}}},
-                          {{c, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA * subB);
+    auto subA = mSub(A, {n, c, h + 2 * r, w + s});
+    auto subB = mSub(B, {f, c, r, s});
+    auto rangeOp = mL({{n, {0, N}}, {f, {0, F}}, {h, {0, H}}, {w, {0, W}}},
+                      {{c, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA * subB);
 
     // Derivation
     Formula matmul(rangeOp, 0);

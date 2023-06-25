@@ -85,9 +85,8 @@ pair<std::vector<nnet::Tensor>, nnet::Expr> getPReluExpr(int size) {
     DEFINE_VAR(i);
     auto A = make_ref<TensorNode>("A", vector{size});
     auto B = make_ref<TensorNode>("B", vector{size});
-    Expr e = make_ref<FuncNode>(makeSubscript(A, {i}) - makeSubscript(B, {i}),
-                                FuncType::PRelu);
-    Expr ret = makeRangeOperator({{i, {0, size}}}, {}, e);
+    Expr e = make_ref<FuncNode>(mSub(A, {i}) - mSub(B, {i}), FuncType::PRelu);
+    Expr ret = mL({{i, {0, size}}}, {}, e);
     return {{A, B}, ret};
 }
 

@@ -288,9 +288,9 @@ pair<nnet::Expr, NMutator::NameNToTensorT> NMutator::extractOp(Operator opT) {
         if (!(sh == 1 && sw == 1 && dh == 1 && dw == 1))
             return {};
         assert(sh == 1 && sw == 1 && dh == 1 && dw == 1);
-        const auto A = nnet::makeTensor("A", AT->getDims(),
-                                        std::vector<int>{0, 0, ph, pw});
-        const auto K = nnet::makeTensor("K", KT->getDims());
+        const auto A =
+            nnet::mT("A", AT->getDims(), std::vector<int>{0, 0, ph, pw});
+        const auto K = nnet::mT("K", KT->getDims());
         return {nnet::ConvPattern::getExpr(A, K, n, c, h, w, f, r, s),
                 {{"A", AT}, {"K", KT}}};
     } else if (auto convOp = as<ConvTransposed2dNHWCObj>(opT)) {
@@ -309,9 +309,9 @@ pair<nnet::Expr, NMutator::NameNToTensorT> NMutator::extractOp(Operator opT) {
         // https://pytorch.org/docs/stable/generated/torch.nn.ConvTranspose2d.html
         // Real padding = dilation * (kernel_size - 1) - padding
         int padding = dh * (r - 1) - ph;
-        const auto A = nnet::makeTensor(
-            "A", AT->getDims(), std::vector<int>{0, padding, padding, 0});
-        const auto K = nnet::makeTensor("K", KT->getDims());
+        const auto A = nnet::mT("A", AT->getDims(),
+                                std::vector<int>{0, padding, padding, 0});
+        const auto K = nnet::mT("K", KT->getDims());
         return {nnet::ConvTransPattern::getExpr(A, K, n, c, h, w, f, r, s),
                 {{"A", AT}, {"K", KT}}};
     } else if (auto g2bmmOp = as<G2BMMObj>(opT)) {
@@ -1146,22 +1146,21 @@ NMutator::generateUnaryExpr(const Operator &op) {
     for (size_t i = 0; i < shape.size(); ++i) {
         indices.emplace_back(make_ref<VarNode>("i" + std::to_string(i)));
     }
-    auto sub = makeSubscript(T, indices);
+    auto sub = mSub(T, indices);
     auto func = nnet::make_ref<FuncNode>(sub, type);
     vector<VarRangePair> varRanges;
     for (size_t i = 0; i < shape.size(); ++i) {
         varRanges.emplace_back(nnet::as<VarNode>(indices[i]),
                                Range{0, shape[i]});
     }
-    return {makeRangeOperator(varRanges, {}, func),
-            NameNToTensorT{{"T", op->getInputs()[0]}}};
+    return {mL(varRanges, {}, func), NameNToTensorT{{"T", op->getInputs()[0]}}};
 }
 
 pair<nnet::Expr, vector<nnet::Tensor>> NMutator::generateRevert(Tensor in) {
     using namespace nnet;
     using infini::make_ref;
     const Shape &orignalShape = in->getDims();
-    auto tensor = makeTensor("T", in->getDims());
+    auto tensor = mT("T", in->getDims());
     VecExpr iters;
     for (size_t i = 0; i < orignalShape.size(); ++i) {
         iters.emplace_back(make_ref<VarNode>("i" + std::to_string(i)));
@@ -1169,13 +1168,13 @@ pair<nnet::Expr, vector<nnet::Tensor>> NMutator::generateRevert(Tensor in) {
 
     Shape newShape = orignalShape;
     std::reverse(newShape.begin(), newShape.end());
-    auto sub = makeSubscript(tensor, iters);
+    auto sub = mSub(tensor, iters);
     vector<VarRangePair> loopIters;
     for (int i = orignalShape.size() - 1; i >= 0; --i) {
         loopIters.emplace_back(infini::as<VarNode>(iters[i]),
                                Range{0, orignalShape[i]});
     }
-    auto range = makeRangeOperator(loopIters, {}, sub);
+    auto range = mL(loopIters, {}, sub);
     return {range, {tensor}};
 }
 

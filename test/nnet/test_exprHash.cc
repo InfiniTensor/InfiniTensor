@@ -19,42 +19,42 @@ TEST(Hash, Conv2gemm) {
                                   vector<int>{0, R / 2, S / 2, 0});
     auto K = make_ref<TensorNode>("K", vector<int>({R, S, F, C}));
 
-    auto subA = makeSubscript(A, {n, h + r, w + s, c});
-    auto subK = makeSubscript(K, {r, s, f, c});
-    auto range = makeRangeOperator(
-        {{n, {0, N}}, {h, {0, H}}, {w, {0, W}}, {f, {0, F}}},
-        {{c, {0, C}}, {r, {-R / 2, R / 2 + 1}}, {s, {-S / 2, S / 2 + 1}}},
-        subA * subK);
+    auto subA = mSub(A, {n, h + r, w + s, c});
+    auto subK = mSub(K, {r, s, f, c});
+    auto range =
+        mL({{n, {0, N}}, {h, {0, H}}, {w, {0, W}}, {f, {0, F}}},
+           {{c, {0, C}}, {r, {-R / 2, R / 2 + 1}}, {s, {-S / 2, S / 2 + 1}}},
+           subA * subK);
     cout << range->toReadable() << endl;
     auto hash0 = HashVisitor().getHash(range);
     cout << hash0 << endl;
 
-    subA = makeSubscript(A, {n, h + s, w + r, c});
-    subK = makeSubscript(K, {s, r, f, c});
-    range = makeRangeOperator(
-        {{n, {0, N}}, {h, {0, H}}, {w, {0, W}}, {f, {0, F}}},
-        {{c, {0, C}}, {r, {-R / 2, R / 2 + 1}}, {s, {-S / 2, S / 2 + 1}}},
-        subA * subK);
+    subA = mSub(A, {n, h + s, w + r, c});
+    subK = mSub(K, {s, r, f, c});
+    range =
+        mL({{n, {0, N}}, {h, {0, H}}, {w, {0, W}}, {f, {0, F}}},
+           {{c, {0, C}}, {r, {-R / 2, R / 2 + 1}}, {s, {-S / 2, S / 2 + 1}}},
+           subA * subK);
     cout << range->toReadable() << endl;
     auto hash1 = HashVisitor().getHash(range);
     cout << hash1 << endl;
 
-    subA = makeSubscript(A, {n, s + h, w + r, c});
-    subK = makeSubscript(K, {s, r, f, c});
-    range = makeRangeOperator(
-        {{n, {0, N}}, {h, {0, H}}, {w, {0, W}}, {f, {0, F}}},
-        {{c, {0, C}}, {r, {-R / 2, R / 2 + 1}}, {s, {-S / 2, S / 2 + 1}}},
-        subA * subK);
+    subA = mSub(A, {n, s + h, w + r, c});
+    subK = mSub(K, {s, r, f, c});
+    range =
+        mL({{n, {0, N}}, {h, {0, H}}, {w, {0, W}}, {f, {0, F}}},
+           {{c, {0, C}}, {r, {-R / 2, R / 2 + 1}}, {s, {-S / 2, S / 2 + 1}}},
+           subA * subK);
     cout << range->toReadable() << endl;
     auto hash2 = HashVisitor().getHash(range);
     cout << hash2 << endl;
 
-    subA = makeSubscript(A, {n, s + h, w, c});
-    subK = makeSubscript(K, {s, r, f, c});
-    range = makeRangeOperator(
-        {{n, {0, N}}, {h, {0, H}}, {w, {0, W}}, {f, {0, F}}},
-        {{c, {0, C}}, {r, {-R / 2, R / 2 + 1}}, {s, {-S / 2, S / 2 + 1}}},
-        subA * subK);
+    subA = mSub(A, {n, s + h, w, c});
+    subK = mSub(K, {s, r, f, c});
+    range =
+        mL({{n, {0, N}}, {h, {0, H}}, {w, {0, W}}, {f, {0, F}}},
+           {{c, {0, C}}, {r, {-R / 2, R / 2 + 1}}, {s, {-S / 2, S / 2 + 1}}},
+           subA * subK);
     cout << range->toReadable() << endl;
     auto hash3 = HashVisitor().getHash(range);
     cout << hash3 << endl;

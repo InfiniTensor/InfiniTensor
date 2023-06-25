@@ -28,11 +28,10 @@ TEST(GuidedDLT, dimFusion_ConvToGemm_1Tensor) {
     auto A = make_ref<TensorNode>("A", vector<int>({N, N, N, K}));
     auto B = make_ref<TensorNode>("B", vector<int>({N, K}));
 
-    auto subA = makeSubscript(A, {n, t1, t2, c});
-    auto subB = makeSubscript(B, {r, c});
-    auto range = makeRangeOperator(
-        {{n, {0, N}}, {t1, {0, N}}, {t2, {0, N}}, {r, {0, N}}}, {{c, {0, K}}},
-        subA * subB);
+    auto subA = mSub(A, {n, t1, t2, c});
+    auto subB = mSub(B, {r, c});
+    auto range = mL({{n, {0, N}}, {t1, {0, N}}, {t2, {0, N}}, {r, {0, N}}},
+                    {{c, {0, K}}}, subA * subB);
     // Derivation
     Derivator derivator(2);
     {
@@ -65,15 +64,15 @@ TEST(GuidedDLT, dimFusion_ConvToGemm_1step) {
     auto A = make_ref<TensorNode>("A", vector<int>({N, N, N, K}));
     auto B = make_ref<TensorNode>("B", vector<int>({N, N, N, K}));
 
-    auto subA = makeSubscript(A, {n, t1, t2, c});
-    auto subB = makeSubscript(B, {r, s, f, c});
-    auto range = makeRangeOperator({{r, {0, N}},
-                                    {s, {0, N}},
-                                    {n, {0, N}},
-                                    {t1, {0, N}},
-                                    {t2, {0, N}},
-                                    {f, {0, N}}},
-                                   {{c, {0, K}}}, subA * subB);
+    auto subA = mSub(A, {n, t1, t2, c});
+    auto subB = mSub(B, {r, s, f, c});
+    auto range = mL({{r, {0, N}},
+                     {s, {0, N}},
+                     {n, {0, N}},
+                     {t1, {0, N}},
+                     {t2, {0, N}},
+                     {f, {0, N}}},
+                    {{c, {0, K}}}, subA * subB);
     // Derivation
     {
         Formula matmul(range, 0);
@@ -105,15 +104,15 @@ TEST(GuidedDLT, dimFusion_ConvToGemm_real_2tensors) {
     auto A = make_ref<TensorNode>("A", vector<int>({N, N, N, K}));
     auto B = make_ref<TensorNode>("B", vector<int>({N, N, N, K}));
 
-    auto subA = makeSubscript(A, {n, t1, t2, c});
-    auto subB = makeSubscript(B, {r, s, f, c});
-    auto range = makeRangeOperator({{r, {0, N}},
-                                    {s, {0, N}},
-                                    {n, {0, N}},
-                                    {t1, {0, N}},
-                                    {t2, {0, N}},
-                                    {f, {0, N}}},
-                                   {{c, {0, K}}}, subA * subB);
+    auto subA = mSub(A, {n, t1, t2, c});
+    auto subB = mSub(B, {r, s, f, c});
+    auto range = mL({{r, {0, N}},
+                     {s, {0, N}},
+                     {n, {0, N}},
+                     {t1, {0, N}},
+                     {t2, {0, N}},
+                     {f, {0, N}}},
+                    {{c, {0, K}}}, subA * subB);
     // Derivation
     {
         Formula matmul(range, 0);
@@ -131,23 +130,22 @@ TEST(GuidedDLT, Conv2Conv_KernelDLT) {
     // auto A =
     //     make_ref<TensorNode>("A", vector<int>({N, C, H, W}),
     //     vector<int>{0, 0, 1, 1});
-    auto A = makeTensor("A", {N, C, H, W}, {0, 0, 3, 3});
+    auto A = mT("A", {N, C, H, W}, {0, 0, 3, 3});
     auto B = make_ref<TensorNode>("W", vector<int>({F, C, R, S}));
     // cur =
     // L<i19:-1:226><i20:-1:2><i15:-1:226><i16:-1:2><n:0:8><f:0:32><pad=2,0,2,0,0,0,>Sum<i14:-1:2><i4:-1:2><c:0:16>
     //     {({A<pad=0,0,4,4>}[n, c, (i15 + i4), (i14 + i19)] * {K}[f, c, ((3 *
     //     i16) + i4), (i14 + (3 * i20))])} (std::shared_ptr<nnet::RangeOpNode>)
 
-    auto subA = makeSubscript(A, {n, c, (j15 + j4 - 1), (j14 - 1 + i19)});
-    auto subB = makeSubscript(B, {f, c, ((3 * j16) + j4), (j14 + (3 * i20))});
-    auto range = makeRangeOperator({{i19, {-1, 226}},
-                                    {i20, {0, 3}},
-                                    {j15, {-1, 226}},
-                                    {j16, {0, 3}},
-                                    {n, {0, 8}},
-                                    {f, {0, 32}}},
-                                   {{j14, {0, 3}}, {j4, {0, 3}}, {c, {0, 16}}},
-                                   subA * subB);
+    auto subA = mSub(A, {n, c, (j15 + j4 - 1), (j14 - 1 + i19)});
+    auto subB = mSub(B, {f, c, ((3 * j16) + j4), (j14 + (3 * i20))});
+    auto range = mL({{i19, {-1, 226}},
+                     {i20, {0, 3}},
+                     {j15, {-1, 226}},
+                     {j16, {0, 3}},
+                     {n, {0, 8}},
+                     {f, {0, 32}}},
+                    {{j14, {0, 3}}, {j4, {0, 3}}, {c, {0, 16}}}, subA * subB);
     // Derivation
     {
         Formula conv(range, 0);
@@ -187,9 +185,9 @@ TEST(GuidedDLT, Conv2Conv_KernelDLT) {
 //     {L<i101:0:288><i79:-3:227><i55:-3:227><n:0:8>Sum<i14:-1:2><i4:-1:2><c:0:16>
 //     // {({A<pad=0,0,4,4>}[n, c, (i4 + i55), (i14 + i79)] * {T1}[i101, c, i4,
 //     // i14])}}}}}
-//     auto subA = makeSubscript(A, {n, c, (j4 + j55), (j14 + j79)});
-//     auto subB = makeSubscript(B, {j101, c, j4, j14});
-//     auto range = makeRangeOperator(
+//     auto subA = mSub(A, {n, c, (j4 + j55), (j14 + j79)});
+//     auto subB = mSub(B, {j101, c, j4, j14});
+//     auto range = mL(
 //         {{j101, {0, 288}}, {j79, {-3, 227}}, {j55, {-3, 227}}, {n, {0, 8}}},
 //         {{j14, {-1, 2}}, {j4, {-1, 2}}, {c, {0, 16}}}, subA * subB);
 //     // Derivation
@@ -226,15 +224,15 @@ TEST(GuidedDLT, dimFusion_ConvToGemm_2Tensor_ruleBased) {
     auto A = make_ref<TensorNode>("A", vector<int>({N, N, N, K}));
     auto B = make_ref<TensorNode>("B", vector<int>({N, N, N, K}));
 
-    auto subA = makeSubscript(A, {n, t1, t2, c});
-    auto subB = makeSubscript(B, {r, s, f, c});
-    auto range = makeRangeOperator({{r, {0, N}},
-                                    {s, {0, N}},
-                                    {n, {0, N}},
-                                    {t1, {0, N}},
-                                    {t2, {0, N}},
-                                    {f, {0, N}}},
-                                   {{c, {0, K}}}, subA * subB);
+    auto subA = mSub(A, {n, t1, t2, c});
+    auto subB = mSub(B, {r, s, f, c});
+    auto range = mL({{r, {0, N}},
+                     {s, {0, N}},
+                     {n, {0, N}},
+                     {t1, {0, N}},
+                     {t2, {0, N}},
+                     {f, {0, N}}},
+                    {{c, {0, K}}}, subA * subB);
     // Derivation
     Formula matmul(range, 0);
     {
@@ -263,15 +261,15 @@ TEST(GuidedDLT, dimFusion_ConvToGemm_2Tensor_dfs) {
     auto A = make_ref<TensorNode>("A", vector<int>({N, N, N, K}));
     auto B = make_ref<TensorNode>("B", vector<int>({N, N, N, K}));
 
-    auto subA = makeSubscript(A, {n, t1, t2, c});
-    auto subB = makeSubscript(B, {r, s, f, c});
-    auto range = makeRangeOperator({{r, {0, N}},
-                                    {s, {0, N}},
-                                    {n, {0, N}},
-                                    {t1, {0, N}},
-                                    {t2, {0, N}},
-                                    {f, {0, N}}},
-                                   {{c, {0, K}}}, subA * subB);
+    auto subA = mSub(A, {n, t1, t2, c});
+    auto subB = mSub(B, {r, s, f, c});
+    auto range = mL({{r, {0, N}},
+                     {s, {0, N}},
+                     {n, {0, N}},
+                     {t1, {0, N}},
+                     {t2, {0, N}},
+                     {f, {0, N}}},
+                    {{c, {0, K}}}, subA * subB);
     // Derivation
     Formula matmul(range, 0);
     {
@@ -307,14 +305,14 @@ TEST(GuidedDLT, dimFusion_ConvToGemm_2Tensor_dfs) {
 // Disabled since forget the answer
 TEST(GuidedDLT, DISABLED_match_ConvToConv_conv) {
     DEFINE_VAR(r, s, n, i22, i4, i14, i17, i24, f, c);
-    auto A = makeTensor("A", {1, 1, 224, 224}, {0, 0, 4, 4});
+    auto A = mT("A", {1, 1, 224, 224}, {0, 0, 4, 4});
     auto B = make_ref<TensorNode>("B", vector<int>({576, 1, 3, 3}));
 
-    auto subA = makeSubscript(A, {n, c, ((i22 + i4) + -4), ((i14 + i17) + -4)});
-    auto subB = makeSubscript(B, {i24, c, i4, i14});
-    auto range = makeRangeOperator(
-        {{i24, {0, 576}}, {i22, {2, 228}}, {i17, {2, 228}}, {n, {0, 1}}},
-        {{i14, {0, 3}}, {i4, {0, 3}}, {c, {0, 1}}}, subA * subB);
+    auto subA = mSub(A, {n, c, ((i22 + i4) + -4), ((i14 + i17) + -4)});
+    auto subB = mSub(B, {i24, c, i4, i14});
+    auto range =
+        mL({{i24, {0, 576}}, {i22, {2, 228}}, {i17, {2, 228}}, {n, {0, 1}}},
+           {{i14, {0, 3}}, {i4, {0, 3}}, {c, {0, 1}}}, subA * subB);
     dbg(range);
     // Derivation
     {

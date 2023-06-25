@@ -45,27 +45,26 @@ VecExpr MatmulTransposeMutator::transpose(const Tensor &tensor) {
         auto _va = make_ref<VarNode>("transA");
         auto _vb = make_ref<VarNode>("transB");
         auto _vc = make_ref<VarNode>("swapAB");
-        auto fakeSub = makeSubscript(matmul->getExpr(), {_va, _vb});
-        auto fakeRangeWrapperForHackHash =
-            makeRangeOperator({{_va, {0, Atrans + 100}},
-                               {_vb, {0, Btrans + 100}},
-                               {_vc, {0, ABswap + 100}}},
-                              {}, fakeSub);
+        auto fakeSub = mSub(matmul->getExpr(), {_va, _vb});
+        auto fakeRangeWrapperForHackHash = mL({{_va, {0, Atrans + 100}},
+                                               {_vb, {0, Btrans + 100}},
+                                               {_vc, {0, ABswap + 100}}},
+                                              {}, fakeSub);
         Matmul newMatmul =
             make_ref<MatmulNode>(fakeRangeWrapperForHackHash, inputs[0],
                                  inputs[1], b, m, n, k, transa, transb);
-        auto newTensor = makeTensor(derivator.newTensorName(), newShape,
-                                    newPaddings, newMatmul);
+        auto newTensor =
+            mT(derivator.newTensorName(), newShape, newPaddings, newMatmul);
         // build output transpose
         if (ABswap) {
             vector<Var> vars{derivator.getNewVar(), derivator.getNewVar()};
-            auto sub = makeSubscript(newTensor, {vars[1], vars[0]});
+            auto sub = mSub(newTensor, {vars[1], vars[0]});
             vector<VarRangePair> loopVRs;
             // Sicne inputs array may be swaped, use the orignal tensor shape
             for (int i = 0; i < 2; ++i) {
                 loopVRs.emplace_back(vars[i], Range(0, tensor->getShape(i)));
             }
-            auto rangeOp = makeRangeOperator(loopVRs, {}, sub);
+            auto rangeOp = mL(loopVRs, {}, sub);
             ret.emplace_back(rangeOp);
         } else
             ret.emplace_back(newTensor);
@@ -85,8 +84,8 @@ optional<Tensor> MatmulTransposeMutator::transposeInput(const Tensor &tensor) {
         assert(!rangeOp->hasPaddings());
         // auto paddings = rangeOp->getPaddings();
         // std::swap(paddings[0], paddings[1]);
-        auto sub = makeSubscript(rangeOp, {loopVRs[1].first, loopVRs[0].first});
-        auto newRangeOp = makeRangeOperator(loopVRs, {}, sub);
+        auto sub = mSub(rangeOp, {loopVRs[1].first, loopVRs[0].first});
+        auto newRangeOp = mL(loopVRs, {}, sub);
         // ElementWise newElementWise = make_ref<ElementWiseNode>(*ew);
         auto outputShape = ew->getOutputShape();
         std::swap(outputShape[0], outputShape[1]);
@@ -97,8 +96,8 @@ optional<Tensor> MatmulTransposeMutator::transposeInput(const Tensor &tensor) {
         auto tensorPaddings = tensor->getPaddings();
         std::swap(tensorShape[0], tensorShape[1]);
         std::swap(tensorPaddings[0], tensorPaddings[1]);
-        ret = makeTensor(derivator.newTensorName(), tensorShape, tensorPaddings,
-                         newElementWise);
+        ret = mT(derivator.newTensorName(), tensorShape, tensorPaddings,
+                 newElementWise);
         // } else if (!tensor->getSource()) {
     } else {
         nnet_unimplemented_continue();

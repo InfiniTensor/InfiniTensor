@@ -16,13 +16,12 @@ TEST(Interpreter, SingleStage) {
     DEFINE_VAR(k);
     DEFINE_VAR(i3);
     DEFINE_VAR(i4);
-    auto A = makeTensor("A", {8, 10000, 512}, {0, 0, 0});
-    auto B = makeTensor("B", {8, 10000, 512}, {0, 128, 0});
-    auto subA = makeSubscript(A, {b, (i3 + (2500 * i4)), k});
-    auto subB = makeSubscript(B, {b, ((i3 + (2500 * i4)) + w), k});
-    auto range = makeRangeOperator(
-        {{i3, {0, 2500}}, {i4, {0, 4}}, {b, {0, 8}}, {w, {0, 65}}},
-        {{k, {0, 512}}}, subA * subB);
+    auto A = mT("A", {8, 10000, 512}, {0, 0, 0});
+    auto B = mT("B", {8, 10000, 512}, {0, 128, 0});
+    auto subA = mSub(A, {b, (i3 + (2500 * i4)), k});
+    auto subB = mSub(B, {b, ((i3 + (2500 * i4)) + w), k});
+    auto range = mL({{i3, {0, 2500}}, {i4, {0, 4}}, {b, {0, 8}}, {w, {0, 65}}},
+                    {{k, {0, 512}}}, subA * subB);
     cout << range->toReadable() << endl;
 
     auto dataA = make_ref<vector<int>>(8 * 10000 * 512);
@@ -49,17 +48,16 @@ TEST(Interpreter, DoubleNestedStages) {
     DEFINE_VAR(i3);
     DEFINE_VAR(i4);
     DEFINE_VAR(i45);
-    auto A = makeTensor("A", {8, 10000, 512}, {0, 0, 0});
-    auto B = makeTensor("B", {8, 10000, 512}, {0, 128, 0});
-    auto subA = makeSubscript(A, {b, i45, k});
-    auto subB = makeSubscript(B, {b, (i45 + w), k});
-    auto innerRange =
-        makeRangeOperator({{i45, {0, 10000}}, {b, {0, 8}}, {w, {0, 65}}},
-                          {{k, {0, 512}}}, subA * subB);
-    auto subOuter = makeSubscript(innerRange, {(i3 + (2500 * i4)), b, w});
-    auto outerRange = makeRangeOperator(
-        {{i3, {0, 2500}}, {i4, {0, 4}}, {b, {0, 8}}, {w, {0, 65}}}, {},
-        subOuter);
+    auto A = mT("A", {8, 10000, 512}, {0, 0, 0});
+    auto B = mT("B", {8, 10000, 512}, {0, 128, 0});
+    auto subA = mSub(A, {b, i45, k});
+    auto subB = mSub(B, {b, (i45 + w), k});
+    auto innerRange = mL({{i45, {0, 10000}}, {b, {0, 8}}, {w, {0, 65}}},
+                         {{k, {0, 512}}}, subA * subB);
+    auto subOuter = mSub(innerRange, {(i3 + (2500 * i4)), b, w});
+    auto outerRange =
+        mL({{i3, {0, 2500}}, {i4, {0, 4}}, {b, {0, 8}}, {w, {0, 65}}}, {},
+           subOuter);
     cout << outerRange->toReadable() << endl;
 
     auto dataA = make_ref<vector<int>>(8 * 10000 * 512);
@@ -82,25 +80,23 @@ TEST(Interpreter, CompareTwoExprs) {
     DEFINE_VAR(i3);
     DEFINE_VAR(i4);
     DEFINE_VAR(i45);
-    auto A = makeTensor("A", {8, 10000, 512}, {0, 0, 0});
-    auto B = makeTensor("B", {8, 10000, 512}, {0, 128, 0});
+    auto A = mT("A", {8, 10000, 512}, {0, 0, 0});
+    auto B = mT("B", {8, 10000, 512}, {0, 128, 0});
     // singleStage
-    auto subA1 = makeSubscript(A, {b, (i3 + (2500 * i4)), k});
-    auto subB1 = makeSubscript(B, {b, ((i3 + (2500 * i4)) + w), k});
-    auto range = makeRangeOperator(
-        {{i3, {0, 2500}}, {i4, {0, 4}}, {b, {0, 8}}, {w, {0, 65}}},
-        {{k, {0, 512}}}, subA1 * subB1);
+    auto subA1 = mSub(A, {b, (i3 + (2500 * i4)), k});
+    auto subB1 = mSub(B, {b, ((i3 + (2500 * i4)) + w), k});
+    auto range = mL({{i3, {0, 2500}}, {i4, {0, 4}}, {b, {0, 8}}, {w, {0, 65}}},
+                    {{k, {0, 512}}}, subA1 * subB1);
     cout << range->toReadable() << endl;
     // doubleStages
-    auto subA2 = makeSubscript(A, {b, i45, k});
-    auto subB2 = makeSubscript(B, {b, (i45 + w), k});
-    auto innerRange =
-        makeRangeOperator({{i45, {0, 10000}}, {b, {0, 8}}, {w, {0, 65}}},
-                          {{k, {0, 512}}}, subA2 * subB2);
-    auto subOuter = makeSubscript(innerRange, {(i3 + (2500 * i4)), b, w});
-    auto outerRange = makeRangeOperator(
-        {{i3, {0, 2500}}, {i4, {0, 4}}, {b, {0, 8}}, {w, {0, 65}}}, {},
-        subOuter);
+    auto subA2 = mSub(A, {b, i45, k});
+    auto subB2 = mSub(B, {b, (i45 + w), k});
+    auto innerRange = mL({{i45, {0, 10000}}, {b, {0, 8}}, {w, {0, 65}}},
+                         {{k, {0, 512}}}, subA2 * subB2);
+    auto subOuter = mSub(innerRange, {(i3 + (2500 * i4)), b, w});
+    auto outerRange =
+        mL({{i3, {0, 2500}}, {i4, {0, 4}}, {b, {0, 8}}, {w, {0, 65}}}, {},
+           subOuter);
     cout << outerRange->toReadable() << endl;
 
     auto dataA = make_ref<vector<int>>(8 * 10000 * 512);
@@ -136,24 +132,22 @@ TEST(Interpreter, TransConv) {
     DEFINE_VAR(f);
     DEFINE_VAR(r);
     DEFINE_VAR(s);
-    auto A = makeTensor("A", {1, 4, 4, 448}, {0, 2, 2, 0});
-    auto K = makeTensor("K", {4, 4, 448, 256}, {0, 0, 0, 0});
-    auto subA = makeSubscript(A, {n, ((x1 + r) + (-1)), ((y1 + s) + (-1)), f});
-    auto subK =
-        makeSubscript(K, {((2 - (2 * r)) + x2), ((2 - (2 * s)) + y2), f, c});
-    auto innerRange = makeRangeOperator(
-        {{n, {0, 1}},
-         {c, {0, 256}},
-         {x1, {0, 3}},
-         {x2, {0, 2}},
-         {y1, {0, 3}},
-         {y2, {0, 2}}},
-        {{f, {0, 448}}, {r, {0, 2}}, {s, {0, 2}}}, subA * subK);
-    auto subOuter =
-        makeSubscript(innerRange, {n, c, ((h + 1) / 2), ((h + 1) % 2),
-                                   ((w + 1) / 2), ((w + 1) % 2)});
-    auto outerRange = makeRangeOperator(
-        {{n, {0, 1}}, {h, {0, 4}}, {w, {0, 4}}, {c, {0, 256}}}, {}, subOuter);
+    auto A = mT("A", {1, 4, 4, 448}, {0, 2, 2, 0});
+    auto K = mT("K", {4, 4, 448, 256}, {0, 0, 0, 0});
+    auto subA = mSub(A, {n, ((x1 + r) + (-1)), ((y1 + s) + (-1)), f});
+    auto subK = mSub(K, {((2 - (2 * r)) + x2), ((2 - (2 * s)) + y2), f, c});
+    auto innerRange =
+        mL({{n, {0, 1}},
+            {c, {0, 256}},
+            {x1, {0, 3}},
+            {x2, {0, 2}},
+            {y1, {0, 3}},
+            {y2, {0, 2}}},
+           {{f, {0, 448}}, {r, {0, 2}}, {s, {0, 2}}}, subA * subK);
+    auto subOuter = mSub(innerRange, {n, c, ((h + 1) / 2), ((h + 1) % 2),
+                                      ((w + 1) / 2), ((w + 1) % 2)});
+    auto outerRange = mL({{n, {0, 1}}, {h, {0, 4}}, {w, {0, 4}}, {c, {0, 256}}},
+                         {}, subOuter);
     cout << outerRange->toReadable() << endl;
 
     auto dataA = make_ref<vector<int>>(1 * 4 * 4 * 448);

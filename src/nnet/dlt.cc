@@ -83,12 +83,11 @@ optional<Expr> DLT::apply(const RangeOp &rangeOp, const Subscript &subscript,
     // HACK [important] fix this fake tensor.
     auto elementRoutine = make_ref<ElementWiseNode>(
         // FIXME: implement transpose
-        // makeTensor(newTensorName + "_DLT", {}), vector<Tensor>{tensor},
+        // mT(newTensorName + "_DLT", {}), vector<Tensor>{tensor},
         // shape0);
-        makeTensor("__DLT", {}), vector<Tensor>{tensor}, shape0);
-    auto dltedTensor =
-        makeTensor(newTensorName, shape0, dltedPaddings, elementRoutine);
-    auto dltedSubscript = makeSubscript(dltedTensor, index0);
+        mT("__DLT", {}), vector<Tensor>{tensor}, shape0);
+    auto dltedTensor = mT(newTensorName, shape0, dltedPaddings, elementRoutine);
+    auto dltedSubscript = mSub(dltedTensor, index0);
     return optional<Expr>(std::in_place, dltedSubscript);
 }
 

@@ -203,7 +203,7 @@ Expr Serializer::buildExprTree(string key) {
         }
         auto summand = buildExprTree(j[key]["summand"]);
         auto paddings = j[key]["paddings"].get<std::vector<int>>();
-        auto rangeOp = makeRangeOperator(loopIters, sumIters, summand);
+        auto rangeOp = mL(loopIters, sumIters, summand);
         rangeOp->setPaddings(paddings);
         return rangeOp;
     }

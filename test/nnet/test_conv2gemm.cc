@@ -15,12 +15,11 @@ TEST(Conv2gemm, NCHW_FCRS_ruleBased) {
                                   vector<int>{0, 0, R / 2, S / 2});
     auto K = make_ref<TensorNode>("K", vector<int>({F, C, R, S}));
 
-    auto subA = makeSubscript(A, {n, c, h + r - R / 2, w + s - S / 2});
-    auto subK = makeSubscript(K, {f, c, r, s});
+    auto subA = mSub(A, {n, c, h + r - R / 2, w + s - S / 2});
+    auto subK = mSub(K, {f, c, r, s});
 
-    auto range =
-        makeRangeOperator({{n, {0, N}}, {h, {0, H}}, {w, {0, W}}, {f, {0, F}}},
-                          {{c, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA * subK);
+    auto range = mL({{n, {0, N}}, {h, {0, H}}, {w, {0, W}}, {f, {0, F}}},
+                    {{c, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA * subK);
     // cout << range->toReadable() << endl;
 
     // Derivation
@@ -51,12 +50,11 @@ TEST(Conv2gemm, NHWC_RSFC_ruleBased) {
     // auto K = make_ref<TensorNode>("K", vector<int>({R, S, F, C}));
     auto K = make_ref<TensorNode>("K", vector<int>({R, S, F, C}));
 
-    auto subA = makeSubscript(A, {n, h + r - R / 2, w + s - S / 2, c});
-    auto subK = makeSubscript(K, {r, s, f, c});
+    auto subA = mSub(A, {n, h + r - R / 2, w + s - S / 2, c});
+    auto subK = mSub(K, {r, s, f, c});
 
-    auto range =
-        makeRangeOperator({{n, {0, N}}, {h, {0, H}}, {w, {0, W}}, {f, {0, F}}},
-                          {{c, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA * subK);
+    auto range = mL({{n, {0, N}}, {h, {0, H}}, {w, {0, W}}, {f, {0, F}}},
+                    {{c, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA * subK);
     // cout << range->toReadable() << endl;
 
     // Derivation
@@ -82,12 +80,11 @@ TEST(Conv2gemm, Derivation_dfs) {
                                   vector<int>{0, R / 2, S / 2, 0});
     auto K = make_ref<TensorNode>("K", vector<int>({R, S, F, C}));
 
-    auto subA = makeSubscript(A, {n, h + r - R / 2, w + s - S / 2, c});
-    auto subK = makeSubscript(K, {r, s, f, c});
+    auto subA = mSub(A, {n, h + r - R / 2, w + s - S / 2, c});
+    auto subK = mSub(K, {r, s, f, c});
 
-    auto range =
-        makeRangeOperator({{n, {0, N}}, {h, {0, H}}, {w, {0, W}}, {f, {0, F}}},
-                          {{c, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA * subK);
+    auto range = mL({{n, {0, N}}, {h, {0, H}}, {w, {0, W}}, {f, {0, F}}},
+                    {{c, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA * subK);
     // cout << range->toReadable() << endl;
 
     // Derivation
@@ -107,12 +104,11 @@ void Conv2gemm_NHWC_RSFC_search(int maxDepth, bool enalbeHashPruning) {
     // auto K = make_ref<TensorNode>("K", vector<int>({R, S, F, C}));
     auto K = make_ref<TensorNode>("K", vector<int>({R, S, F, C}));
 
-    auto subA = makeSubscript(A, {n, h + r - R / 2, w + s - S / 2, c});
-    auto subK = makeSubscript(K, {r, s, f, c});
+    auto subA = mSub(A, {n, h + r - R / 2, w + s - S / 2, c});
+    auto subK = mSub(K, {r, s, f, c});
 
-    auto range =
-        makeRangeOperator({{n, {0, N}}, {h, {0, H}}, {w, {0, W}}, {f, {0, F}}},
-                          {{c, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA * subK);
+    auto range = mL({{n, {0, N}}, {h, {0, H}}, {w, {0, W}}, {f, {0, F}}},
+                    {{c, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA * subK);
     // cout << ange->toReadable() << endl;
 
     // Derivation
@@ -160,12 +156,11 @@ TEST(Conv2gemm, NCHW_RSFC_search) {
                                   vector<int>{0, R / 2, S / 2, 0});
     auto K = make_ref<TensorNode>("K", vector<int>({R, S, F, C}));
 
-    auto subA = makeSubscript(A, {n, h + r - R / 2, w + s - S / 2, c});
-    auto subK = makeSubscript(K, {r, s, f, c});
+    auto subA = mSub(A, {n, h + r - R / 2, w + s - S / 2, c});
+    auto subK = mSub(K, {r, s, f, c});
 
-    auto range =
-        makeRangeOperator({{n, {0, N}}, {h, {0, H}}, {w, {0, W}}, {f, {0, F}}},
-                          {{c, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA * subK);
+    auto range = mL({{n, {0, N}}, {h, {0, H}}, {w, {0, W}}, {f, {0, F}}},
+                    {{c, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA * subK);
 
     // Derivation
     Formula conv_3x3_nhwc_rsfc(range, 0);
@@ -195,12 +190,11 @@ TEST(Conv2gemm1x1, NHWC_RSFC_ruleBased) {
     auto A = make_ref<TensorNode>("A", vector<int>({N, H, W, C}));
     auto K = make_ref<TensorNode>("K", vector<int>({R, S, F, C}));
 
-    auto subA = makeSubscript(A, {n, h + r, w + s, c});
-    auto subK = makeSubscript(K, {r, s, f, c});
+    auto subA = mSub(A, {n, h + r, w + s, c});
+    auto subK = mSub(K, {r, s, f, c});
 
-    auto range =
-        makeRangeOperator({{n, {0, N}}, {h, {0, H}}, {w, {0, W}}, {f, {0, F}}},
-                          {{c, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA * subK);
+    auto range = mL({{n, {0, N}}, {h, {0, H}}, {w, {0, W}}, {f, {0, F}}},
+                    {{c, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA * subK);
 
     Formula conv_1x1_nhwc_fc(range, 0);
     Derivator derivator(7);
@@ -224,12 +218,11 @@ TEST(Conv2gemm1x1, NCHW_FCRS_search) {
                                   vector<int>{0, R / 2, S / 2, 0});
     auto K = make_ref<TensorNode>("K", vector<int>({F, C, R, S}));
 
-    auto subA = makeSubscript(A, {n, c, h + r - R / 2, w + s - S / 2});
-    auto subK = makeSubscript(K, {f, c, r, s});
+    auto subA = mSub(A, {n, c, h + r - R / 2, w + s - S / 2});
+    auto subK = mSub(K, {f, c, r, s});
 
-    auto range =
-        makeRangeOperator({{n, {0, N}}, {f, {0, F}}, {h, {0, H}}, {w, {0, W}}},
-                          {{c, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA * subK);
+    auto range = mL({{n, {0, N}}, {f, {0, F}}, {h, {0, H}}, {w, {0, W}}},
+                    {{c, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA * subK);
 
     // Derivation
     Formula conv_3x3_nhwc_rsfc(range, 0);
@@ -255,12 +248,11 @@ TEST(Conv2gemm1x7, NCHW_FCRS_search) {
                                   vector<int>{0, 0, R / 2, S / 2});
     auto K = make_ref<TensorNode>("K", vector<int>({F, C, R, S}));
 
-    auto subA = makeSubscript(A, {n, c, h + r - R / 2, w + s - S / 2});
-    auto subK = makeSubscript(K, {f, c, r, s});
+    auto subA = mSub(A, {n, c, h + r - R / 2, w + s - S / 2});
+    auto subK = mSub(K, {f, c, r, s});
 
-    auto range =
-        makeRangeOperator({{n, {0, N}}, {f, {0, F}}, {h, {0, H}}, {w, {0, W}}},
-                          {{c, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA * subK);
+    auto range = mL({{n, {0, N}}, {f, {0, F}}, {h, {0, H}}, {w, {0, W}}},
+                    {{c, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA * subK);
 
     // Derivation
     Formula conv_1x7(range, 0);

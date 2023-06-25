@@ -20,13 +20,13 @@ TEST(MatchElementWise, NoMatch) {
                                   vector<int>{0, 0, R / 2, S / 2});
     auto K = make_ref<TensorNode>("K", vector<int>({F, C, R, S}));
 
-    auto subA = makeSubscript(A, {n, c, h + r, w + s});
-    auto subK = makeSubscript(K, {f, c, r + R / 2, s + S / 2});
+    auto subA = mSub(A, {n, c, h + r, w + s});
+    auto subK = mSub(K, {f, c, r + R / 2, s + S / 2});
 
-    auto range = makeRangeOperator(
-        {{n, {0, N}}, {h, {0, H}}, {w, {0, W}}, {f, {0, F}}},
-        {{c, {0, C}}, {r, {-R / 2, R / 2 + 1}}, {s, {-S / 2, S / 2 + 1}}},
-        subA * subK);
+    auto range =
+        mL({{n, {0, N}}, {h, {0, H}}, {w, {0, W}}, {f, {0, F}}},
+           {{c, {0, C}}, {r, {-R / 2, R / 2 + 1}}, {s, {-S / 2, S / 2 + 1}}},
+           subA * subK);
     // cout << range->toReadable() << endl;
 
     // Derivation
@@ -56,13 +56,11 @@ TEST(MatchElementWise, TwoStagesWithPadding) {
         make_ref<TensorNode>("A", vector<int>({N, N}), vector<int>{0, N / 2});
     auto K = make_ref<TensorNode>("K", vector<int>({N, N}));
 
-    auto innerSub = makeSubscript(A, {n, h});
-    auto innerRange =
-        makeRangeOperator({{n, {0, N}}, {h, {0, N}}}, {}, innerSub);
+    auto innerSub = mSub(A, {n, h});
+    auto innerRange = mL({{n, {0, N}}, {h, {0, N}}}, {}, innerSub);
     innerRange->setPaddings({0, 2});
-    auto outerSub = makeSubscript(innerRange, {r, s + r});
-    auto outerRange =
-        makeRangeOperator({{r, {0, 4}}, {s, {0, 5}}}, {}, outerSub);
+    auto outerSub = mSub(innerRange, {r, s + r});
+    auto outerRange = mL({{r, {0, 4}}, {s, {0, 5}}}, {}, outerSub);
     // cout << range->toReadable() << endl;
 
     // Derivation
@@ -85,13 +83,11 @@ TEST(MatchElementWise, TwoStagesWithImperfectedNestedPadding) {
                                   vector<int>{0, N / 2});
     auto K = make_ref<TensorNode>("K", vector<int>({100, 100}));
 
-    auto innerSub = makeSubscript(A, {n, h + n});
-    auto innerRange =
-        makeRangeOperator({{n, {0, 8}}, {h, {0, 8}}}, {}, innerSub);
+    auto innerSub = mSub(A, {n, h + n});
+    auto innerRange = mL({{n, {0, 8}}, {h, {0, 8}}}, {}, innerSub);
     innerRange->setPaddings({0, 2});
-    auto outerSub = makeSubscript(innerRange, {r, s + r});
-    auto outerRange =
-        makeRangeOperator({{r, {0, 4}}, {s, {0, 5}}}, {}, outerSub);
+    auto outerSub = mSub(innerRange, {r, s + r});
+    auto outerRange = mL({{r, {0, 4}}, {s, {0, 5}}}, {}, outerSub);
     // cout << range->toReadable() << endl;
 
     // Derivation

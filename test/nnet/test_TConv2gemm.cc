@@ -20,11 +20,11 @@ TEST(Conv2conv, TConv4x4_NHWC_innerStage_RuleBased) {
                                   vector<int>{0, padding, padding, 0});
     auto K = make_ref<TensorNode>("K", vector<int>({F, R, S, C}));
 
-    auto subA = makeSubscript(A, {n, x1 + r - 1, y1 + s - 1, f});
-    auto subK = makeSubscript(
+    auto subA = mSub(A, {n, x1 + r - 1, y1 + s - 1, f});
+    auto subK = mSub(
         K, {f, -2 * r + (-1) * x2 + (R - 1), -2 * s + (-1) * y2 + (S - 1), c});
 
-    auto range = makeRangeOperator(
+    auto range = mL(
         {
             {n, {0, N}},
             {c, {0, C}},
@@ -61,16 +61,16 @@ TEST(Conv2conv, TConv4x4_NHWC_RuleBased) {
                                   vector<int>{0, padding, padding, 0});
     auto K = make_ref<TensorNode>("K", vector<int>({F, R, S, C}));
 
-    auto subA = makeSubscript(A, {n, x1 + r - 1, y1 + s - 1, f});
-    auto subK = makeSubscript(
+    auto subA = mSub(A, {n, x1 + r - 1, y1 + s - 1, f});
+    auto subK = mSub(
         K, {f, -2 * r + (-1) * x2 + (R - 1), -2 * s + (-1) * y2 + (S - 1), c});
 
     // auto range =
-    //     makeRangeOperator({{n, {0, N}}, {c, {0, H}}, {w, {0, W}}, {f, {0,
+    //     mL({{n, {0, N}}, {c, {0, H}}, {w, {0, W}}, {f, {0,
     //     F}}},
     //                       {{f, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA *
     //                       subK);
-    auto range = makeRangeOperator(
+    auto range = mL(
         {
             {n, {0, N}},
             {x1, {0, OH / 2 + 1}},
@@ -80,9 +80,9 @@ TEST(Conv2conv, TConv4x4_NHWC_RuleBased) {
             {c, {0, C}},
         },
         {{f, {0, F}}, {r, {0, R / 2}}, {s, {0, S / 2}}}, subA * subK);
-    auto subOuter = makeSubscript(
-        range, {n, (h + 1) / 2, (h + 1) % 2, (w + 1) / 2, (w + 1) % 2, c});
-    auto outerRange = makeRangeOperator(
+    auto subOuter =
+        mSub(range, {n, (h + 1) / 2, (h + 1) % 2, (w + 1) / 2, (w + 1) % 2, c});
+    auto outerRange = mL(
         {
             {n, {0, N}},
             {h, {0, OH}},
@@ -124,16 +124,16 @@ TEST(Conv2conv, TConv4x4_BS16_NHWC_RuleBased) {
                                   vector<int>{0, padding, padding, 0});
     auto K = make_ref<TensorNode>("K", vector<int>({F, R, S, C}));
 
-    auto subA = makeSubscript(A, {n, x1 + r - 1, y1 + s - 1, f});
-    auto subK = makeSubscript(
+    auto subA = mSub(A, {n, x1 + r - 1, y1 + s - 1, f});
+    auto subK = mSub(
         K, {f, -2 * r + (-1) * x2 + (R - 1), -2 * s + (-1) * y2 + (S - 1), c});
 
     // auto range =
-    //     makeRangeOperator({{n, {0, N}}, {c, {0, H}}, {w, {0, W}}, {f, {0,
+    //     mL({{n, {0, N}}, {c, {0, H}}, {w, {0, W}}, {f, {0,
     //     F}}},
     //                       {{f, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA *
     //                       subK);
-    auto range = makeRangeOperator(
+    auto range = mL(
         {
             {n, {0, N}},
             {x1, {0, OH / 2 + 1}},
@@ -143,9 +143,9 @@ TEST(Conv2conv, TConv4x4_BS16_NHWC_RuleBased) {
             {c, {0, C}},
         },
         {{f, {0, F}}, {r, {0, R / 2}}, {s, {0, S / 2}}}, subA * subK);
-    auto subOuter = makeSubscript(
-        range, {n, (h + 1) / 2, (h + 1) % 2, (w + 1) / 2, (w + 1) % 2, c});
-    auto outerRange = makeRangeOperator(
+    auto subOuter =
+        mSub(range, {n, (h + 1) / 2, (h + 1) % 2, (w + 1) / 2, (w + 1) % 2, c});
+    auto outerRange = mL(
         {
             {n, {0, N}},
             {h, {0, OH}},
@@ -192,12 +192,11 @@ RangeOp buildTConv4x4_NHWF_FRSC(const int N, const int C, const int H,
                                   vector<int>{0, padding, padding, 0});
     auto K = make_ref<TensorNode>("K", vector<int>({F, R, S, C}));
 
-    auto subA = makeSubscript(A, {n, x1 + r - 1, y1 + s - 1, f});
-    auto subK =
-        makeSubscript(K, {f, (R - 2) - 2 * r + x2, (S - 2) - 2 * s + y2, c});
+    auto subA = mSub(A, {n, x1 + r - 1, y1 + s - 1, f});
+    auto subK = mSub(K, {f, (R - 2) - 2 * r + x2, (S - 2) - 2 * s + y2, c});
     // x1=(h+1)//2, x2=(h+1)%2, y1=(w+1)//2
 
-    auto range1 = makeRangeOperator(
+    auto range1 = mL(
         {
             {n, {0, N}},
             {c, {0, C}},
@@ -208,10 +207,10 @@ RangeOp buildTConv4x4_NHWF_FRSC(const int N, const int C, const int H,
         },
         {{f, {0, F}}, {r, {0, R / 2}}, {s, {0, S / 2}}}, subA * subK);
     dbg(range1);
-    auto sub0 = makeSubscript(
+    auto sub0 = mSub(
         range1, {n, c, (h + 1) / 2, (h + 1) % 2, (w + 1) / 2, (w + 1) % 2});
-    auto range0 = makeRangeOperator(
-        {{n, {0, N}}, {h, {0, OH}}, {w, {0, OW}}, {c, {0, C}}}, {}, sub0);
+    auto range0 =
+        mL({{n, {0, N}}, {h, {0, OH}}, {w, {0, OW}}, {c, {0, C}}}, {}, sub0);
     return range0;
 }
 
@@ -234,12 +233,11 @@ RangeOp buildTConv4x4_NHWF_RSFC(const int N, const int C, const int H,
                                   vector<int>{0, padding, padding, 0});
     auto K = make_ref<TensorNode>("K", vector<int>({R, S, F, C}));
 
-    auto subA = makeSubscript(A, {n, x1 + r - 1, y1 + s - 1, f});
-    auto subK =
-        makeSubscript(K, {(R - 2) - 2 * r + x2, (S - 2) - 2 * s + y2, f, c});
+    auto subA = mSub(A, {n, x1 + r - 1, y1 + s - 1, f});
+    auto subK = mSub(K, {(R - 2) - 2 * r + x2, (S - 2) - 2 * s + y2, f, c});
     // x1=(h+1)//2, x2=(h+1)%2, y1=(w+1)//2
 
-    auto range1 = makeRangeOperator(
+    auto range1 = mL(
         {
             {n, {0, N}},
             {c, {0, C}},
@@ -250,10 +248,10 @@ RangeOp buildTConv4x4_NHWF_RSFC(const int N, const int C, const int H,
         },
         {{f, {0, F}}, {r, {0, R / 2}}, {s, {0, S / 2}}}, subA * subK);
     dbg(range1);
-    auto sub0 = makeSubscript(
+    auto sub0 = mSub(
         range1, {n, c, (h + 1) / 2, (h + 1) % 2, (w + 1) / 2, (w + 1) % 2});
-    auto range0 = makeRangeOperator(
-        {{n, {0, N}}, {h, {0, OH}}, {w, {0, OW}}, {c, {0, C}}}, {}, sub0);
+    auto range0 =
+        mL({{n, {0, N}}, {h, {0, OH}}, {w, {0, OW}}, {c, {0, C}}}, {}, sub0);
     return range0;
 }
 
@@ -381,9 +379,9 @@ TEST(Conv2conv, InfoGAN_ConvTranspose_3_OOB_Test) {
     // ConvTranspose_3 in InfoGAN
     const int n = 1, c = 256, h = 2, w = 2, f = 448, r = 4, s = 4;
     int padding = 1 * (r - 1) - 1;
-    const auto A = nnet::makeTensor("A", {n, h, w, f},
-                                    std::vector<int>{0, padding, padding, 0});
-    const auto K = nnet::makeTensor("K", {f, c, r, s});
+    const auto A =
+        nnet::mT("A", {n, h, w, f}, std::vector<int>{0, padding, padding, 0});
+    const auto K = nnet::mT("K", {f, c, r, s});
     auto expr = ConvTransPattern::getExpr(A, K, n, c, h, w, f, r, s);
     dbg(expr);
     Derivator derivator;

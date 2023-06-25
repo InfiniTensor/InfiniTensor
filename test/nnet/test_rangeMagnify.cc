@@ -21,12 +21,11 @@ TEST(RangeMagnify, Conv5x5) {
                                   vector<int>{0, 0, R / 2, S / 2});
     auto K = make_ref<TensorNode>("K", vector<int>({F, C, R, S}));
 
-    auto subA = makeSubscript(A, {n, c, h + r - R / 2, w + s - S / 2});
-    auto subK = makeSubscript(K, {f, c, r, s});
+    auto subA = mSub(A, {n, c, h + r - R / 2, w + s - S / 2});
+    auto subK = mSub(K, {f, c, r, s});
 
-    auto range =
-        makeRangeOperator({{n, {0, N}}, {f, {0, F}}, {h, {0, H}}, {w, {0, W}}},
-                          {{c, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA * subK);
+    auto range = mL({{n, {0, N}}, {f, {0, F}}, {h, {0, H}}, {w, {0, W}}},
+                    {{c, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA * subK);
     // cout << range->toReadable() << endl;
     auto ret = RangeMagnifyVisitor().magnify(
         range, {{c, {0, C}}, {r, {0, R + 1}}, {s, {0, S + 1}}});

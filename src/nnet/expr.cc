@@ -368,19 +368,19 @@ Expr operator/(const Expr &lhs, const int rhs) {
 }
 
 // Wrappers for type deduction
-Subscript makeSubscript(const Expr &tensor, const VecExpr &subscripts) {
+Subscript mSub(const Expr &tensor, const VecExpr &subscripts) {
     return make_ref<SubscriptNode>(tensor, subscripts);
 }
 
-RangeOp makeRangeOperator(const vector<VarRangePair> &_loopIters,
-                          const vector<VarRangePair> &_sumIters, Expr _summand,
-                          const vector<int> &paddings) {
+RangeOp mL(const vector<VarRangePair> &_loopIters,
+           const vector<VarRangePair> &_sumIters, Expr _summand,
+           const vector<int> &paddings) {
     return make_ref<RangeOpNode>(_loopIters, _sumIters, _summand, paddings);
 }
 
 // Wrappers for type deduction
-Tensor makeTensor(const string &name, const vector<int> &shape,
-                  const vector<int> &paddings, const Routine &source) {
+Tensor mT(const string &name, const vector<int> &shape,
+          const vector<int> &paddings, const Routine &source) {
     if (paddings.size() == 0)
         return make_ref<TensorNode>(name, shape,
                                     vector<int>((int)shape.size(), 0), source);

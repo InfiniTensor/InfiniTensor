@@ -32,8 +32,7 @@ RangeOp PatternMatcher::getOffsetCur() {
     }
     auto newSummand = ReplaceKit::replaceMultipleExprs(
         originalCur->getSummand(), itersFromNonZero, psis);
-    return makeRangeOperator(newLoopVarRanges, originalCur->getSumVarRanges(),
-                             newSummand);
+    return mL(newLoopVarRanges, originalCur->getSumVarRanges(), newSummand);
 }
 
 VecExpr PatternMatcher::matchKernel(const Pattern &pattern,
@@ -106,9 +105,9 @@ VecExpr PatternMatcher::applyWrapper(const VecExpr &exprs) {
         }
     }
     for (auto &expr : exprs) {
-        auto newSub = makeSubscript(expr, indexes);
-        ret.emplace_back(makeRangeOperator(originalCur->getLoopVarRanges(), {},
-                                           newSub, originalCur->getPaddings()));
+        auto newSub = mSub(expr, indexes);
+        ret.emplace_back(mL(originalCur->getLoopVarRanges(), {}, newSub,
+                            originalCur->getPaddings()));
     }
     return ret;
 }

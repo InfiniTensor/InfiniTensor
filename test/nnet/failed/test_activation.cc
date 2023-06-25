@@ -20,15 +20,13 @@ TEST(Activation, Relu) {
     auto A = make_ref<TensorNode>("A", vector<int>({Batch, M, K}),
                                   vector<int>{0, 0, 0});
 
-    auto subA = makeSubscript(A, {b, m, k});
-    auto innerRange = makeRangeOperator(
-        {{b, {0, Batch}}, {m, {0, M}}, {k, {0, K}}}, {}, subA);
-    auto outerSub = makeSubscript(innerRange, {b, m, k});
-    // auto subB = makeSubscript(B, {b, m + dilation * (w - W), k});
+    auto subA = mSub(A, {b, m, k});
+    auto innerRange = mL({{b, {0, Batch}}, {m, {0, M}}, {k, {0, K}}}, {}, subA);
+    auto outerSub = mSub(innerRange, {b, m, k});
+    // auto subB = mSub(B, {b, m + dilation * (w - W), k});
     auto relu = make_ref<FuncNode>(subA, FuncType::Relu);
-    auto range =
-        makeRangeOperator({{b, {0, Batch}}, {m, {0, M}}, {w, {0, 2 * W + 1}}},
-                          {{k, {0, K}}}, relu);
+    auto range = mL({{b, {0, Batch}}, {m, {0, M}}, {w, {0, 2 * W + 1}}},
+                    {{k, {0, K}}}, relu);
     dbg(range);
 
     auto g = new tpm::Graph();

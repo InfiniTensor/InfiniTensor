@@ -80,12 +80,11 @@ TEST_F(OpSearch, Conv3x3) {
     // auto K = make_ref<TensorNode>("K", vector<int>({R, S, F, C}));
     auto K = make_ref<TensorNode>("K", vector<int>({R, S, F, C}));
 
-    auto subA = makeSubscript(A, {n, h + r - R / 2, w + s - S / 2, c});
-    auto subK = makeSubscript(K, {r, s, f, c});
+    auto subA = mSub(A, {n, h + r - R / 2, w + s - S / 2, c});
+    auto subK = mSub(K, {r, s, f, c});
 
-    auto range =
-        makeRangeOperator({{n, {0, N}}, {h, {0, H}}, {w, {0, W}}, {f, {0, F}}},
-                          {{c, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA * subK);
+    auto range = mL({{n, {0, N}}, {h, {0, H}}, {w, {0, W}}, {f, {0, F}}},
+                    {{c, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA * subK);
 
     // Derivation
     Formula conv_3x3_nhwc_rsfc(range, 0);
@@ -136,12 +135,11 @@ RangeOp buildTConv4x4_NHWF_RSFC(const int N, const int C, const int H,
                                   vector<int>{0, padding, padding, 0});
     auto K = make_ref<TensorNode>("K", vector<int>({R, S, F, C}));
 
-    auto subA = makeSubscript(A, {n, x1 + r - 1, y1 + s - 1, f});
-    auto subK =
-        makeSubscript(K, {(R - 2) - 2 * r + x2, (S - 2) - 2 * s + y2, f, c});
+    auto subA = mSub(A, {n, x1 + r - 1, y1 + s - 1, f});
+    auto subK = mSub(K, {(R - 2) - 2 * r + x2, (S - 2) - 2 * s + y2, f, c});
     // x1=(h+1)//2, x2=(h+1)%2, y1=(w+1)//2
 
-    auto range1 = makeRangeOperator(
+    auto range1 = mL(
         {
             {n, {0, N}},
             {c, {0, C}},
@@ -152,10 +150,10 @@ RangeOp buildTConv4x4_NHWF_RSFC(const int N, const int C, const int H,
         },
         {{f, {0, F}}, {r, {0, R / 2}}, {s, {0, S / 2}}}, subA * subK);
     dbg(range1);
-    auto sub0 = makeSubscript(
+    auto sub0 = mSub(
         range1, {n, c, (h + 1) / 2, (h + 1) % 2, (w + 1) / 2, (w + 1) % 2});
-    auto range0 = makeRangeOperator(
-        {{n, {0, N}}, {h, {0, OH}}, {w, {0, OW}}, {c, {0, C}}}, {}, sub0);
+    auto range0 =
+        mL({{n, {0, N}}, {h, {0, OH}}, {w, {0, OW}}, {c, {0, C}}}, {}, sub0);
     return range0;
 }
 
@@ -198,12 +196,11 @@ TEST_F(OpSearch, Conv5x5) {
                                   vector<int>{0, 0, R / 2, S / 2});
     auto K = make_ref<TensorNode>("K", vector<int>({F, C, R, S}));
 
-    auto subA = makeSubscript(A, {n, c, h + r - R / 2, w + s - S / 2});
-    auto subK = makeSubscript(K, {f, c, r, s});
+    auto subA = mSub(A, {n, c, h + r - R / 2, w + s - S / 2});
+    auto subK = mSub(K, {f, c, r, s});
 
-    auto range =
-        makeRangeOperator({{n, {0, N}}, {f, {0, F}}, {h, {0, H}}, {w, {0, W}}},
-                          {{c, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA * subK);
+    auto range = mL({{n, {0, N}}, {f, {0, F}}, {h, {0, H}}, {w, {0, W}}},
+                    {{c, {0, C}}, {r, {0, R}}, {s, {0, S}}}, subA * subK);
 
     Formula conv_9x9(range, 0);
     Derivator derivator(maxDepth, useHash, mode, passMode, printAndExit);
@@ -236,11 +233,10 @@ TEST_F(OpSearch, G2BMM) {
     auto B = make_ref<TensorNode>("B", vector<int>({Batch, M, K}),
                                   vector<int>{0, dilation * W, 0});
 
-    auto subA = makeSubscript(A, {b, m, k});
-    auto subB = makeSubscript(B, {b, m + dilation * (w - W), k});
-    auto range =
-        makeRangeOperator({{b, {0, Batch}}, {m, {0, M}}, {w, {0, 2 * W + 1}}},
-                          {{k, {0, K}}}, subA * subB);
+    auto subA = mSub(A, {b, m, k});
+    auto subB = mSub(B, {b, m + dilation * (w - W), k});
+    auto range = mL({{b, {0, Batch}}, {m, {0, M}}, {w, {0, 2 * W + 1}}},
+                    {{k, {0, K}}}, subA * subB);
 
     // Derivation: this work without padding check in stage merging
     Formula dialted_g2bmm(range, 0);

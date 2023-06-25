@@ -38,11 +38,10 @@ void Rule3StageSplit::transform(Formula &origin, int depth, Expr &rCur) {
 
         // if no sum iterator, the stage is redundant
         assert(!innerSumVars.empty());
-        auto inner =
-            makeRangeOperator(innerLoopVars, innerSumVars, cur->getSummand());
+        auto inner = mL(innerLoopVars, innerSumVars, cur->getSummand());
         auto subscriptedInner = make_ref<SubscriptNode>(inner, indexForInner);
-        auto outer = makeRangeOperator(cur->getLoopVarRanges(), outerSumVars,
-                                       subscriptedInner);
+        auto outer =
+            mL(cur->getLoopVarRanges(), outerSumVars, subscriptedInner);
         outer->setPaddings(cur->getPaddings());
 
         // next searching step

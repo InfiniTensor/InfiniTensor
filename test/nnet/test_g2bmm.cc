@@ -17,11 +17,11 @@ TEST(GBMM, RuleBased) {
                                   vector<int>{0, 0, 0});
     auto B = make_ref<TensorNode>("B", vector<int>({Batch, M, K}),
                                   vector<int>{0, dilation * W, 0});
-    auto subA = makeSubscript(A, {b, m, w});
-    // auto subB = makeSubscript(B, {b, m + dilation * (w - W), n});
-    auto subB = makeSubscript(B, {b, m + dilation * w - dilation * W, n});
-    auto range = makeRangeOperator({{b, {0, Batch}}, {m, {0, M}}, {n, {0, K}}},
-                                   {{w, {0, 2 * W + 1}}}, subA * subB);
+    auto subA = mSub(A, {b, m, w});
+    // auto subB = mSub(B, {b, m + dilation * (w - W), n});
+    auto subB = mSub(B, {b, m + dilation * w - dilation * W, n});
+    auto range = mL({{b, {0, Batch}}, {m, {0, M}}, {n, {0, K}}},
+                    {{w, {0, 2 * W + 1}}}, subA * subB);
     dbg(range);
 
     // Derivation: this work without padding check in stage merging
@@ -57,11 +57,10 @@ TEST(G2BMM, RuleBased) {
     auto B = make_ref<TensorNode>("B", vector<int>({Batch, M, K}),
                                   vector<int>{0, dilation * W, 0});
 
-    auto subA = makeSubscript(A, {b, m, k});
-    auto subB = makeSubscript(B, {b, m + dilation * (w - W), k});
-    auto range =
-        makeRangeOperator({{b, {0, Batch}}, {m, {0, M}}, {w, {0, 2 * W + 1}}},
-                          {{k, {0, K}}}, subA * subB);
+    auto subA = mSub(A, {b, m, k});
+    auto subB = mSub(B, {b, m + dilation * (w - W), k});
+    auto range = mL({{b, {0, Batch}}, {m, {0, M}}, {w, {0, 2 * W + 1}}},
+                    {{k, {0, K}}}, subA * subB);
 
     // Derivation: this work without padding check in stage merging
     Formula dialted_g2bmm(range, 0);

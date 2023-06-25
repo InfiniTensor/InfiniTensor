@@ -386,13 +386,16 @@ class FuncNode : public ExprNode {
 };
 
 // Wrappers for type deduction
-Subscript makeSubscript(const Expr &tensor, const VecExpr &subscripts);
-RangeOp makeRangeOperator(const vector<VarRangePair> &_loopIters,
-                          const vector<VarRangePair> &_sumIters, Expr _summand,
-                          const vector<int> &paddings = {});
-Tensor makeTensor(const string &name, const vector<int> &shape,
-                  const vector<int> &paddings = {},
-                  const Routine &source = nullptr);
+
+// make subscript
+Subscript mSub(const Expr &tensor, const VecExpr &subscripts);
+// make range operator
+RangeOp mL(const vector<VarRangePair> &_loopIters,
+           const vector<VarRangePair> &_sumIters, Expr _summand,
+           const vector<int> &paddings = {});
+// make tensor
+Tensor mT(const string &name, const vector<int> &shape,
+          const vector<int> &paddings = {}, const Routine &source = nullptr);
 
 // Pretty output for dbg with shared_ptr
 template <typename T, typename std::enable_if_t<std::is_base_of_v<ExprNode, T>>

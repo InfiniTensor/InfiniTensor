@@ -61,23 +61,23 @@ TEST(Relaxation, NaiveMatch) {
     DEFINE_VAR(i14);
     DEFINE_VAR(i4);
     DEFINE_VAR(c);
-    auto A = makeTensor("A", {8, 16, 224, 224}, {0, 0, 4, 4});
-    auto K = makeTensor("K", {32, 16, 9, 9});
-    auto subA = makeSubscript(A, {n, c, ((i22 + i4) + -4), ((i14 + i17) + -4)});
-    auto subK = makeSubscript(K, {f, c, ((3 * i23) + i4), (i14 + (3 * i18))});
-    auto innerRange = makeRangeOperator(
-        {{i22, {0, 230}},
-         {i23, {0, 3}},
-         {i17, {0, 230}},
-         {i18, {0, 3}},
-         {n, {0, 8}},
-         {f, {0, 32}}},
-        {{i14, {0, 3}}, {i4, {0, 3}}, {c, {0, 16}}}, subA * subK);
-    auto subOuter = makeSubscript(
-        innerRange, {(h + (3 * i3)), i3, (w + (3 * i13)), i13, n, f});
-    auto outerRange = makeRangeOperator(
-        {{n, {0, 8}}, {h, {0, 224}}, {w, {0, 224}}, {f, {0, 32}}},
-        {{i13, {0, 3}}, {i3, {0, 3}}}, subOuter);
+    auto A = mT("A", {8, 16, 224, 224}, {0, 0, 4, 4});
+    auto K = mT("K", {32, 16, 9, 9});
+    auto subA = mSub(A, {n, c, ((i22 + i4) + -4), ((i14 + i17) + -4)});
+    auto subK = mSub(K, {f, c, ((3 * i23) + i4), (i14 + (3 * i18))});
+    auto innerRange =
+        mL({{i22, {0, 230}},
+            {i23, {0, 3}},
+            {i17, {0, 230}},
+            {i18, {0, 3}},
+            {n, {0, 8}},
+            {f, {0, 32}}},
+           {{i14, {0, 3}}, {i4, {0, 3}}, {c, {0, 16}}}, subA * subK);
+    auto subOuter =
+        mSub(innerRange, {(h + (3 * i3)), i3, (w + (3 * i13)), i13, n, f});
+    auto outerRange =
+        mL({{n, {0, 8}}, {h, {0, 224}}, {w, {0, 224}}, {f, {0, 32}}},
+           {{i13, {0, 3}}, {i3, {0, 3}}}, subOuter);
     Derivator derivator(0);
     Formula formula(innerRange, 0);
     Rule5RangeRelaxation pass(derivator);

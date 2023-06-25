@@ -17,8 +17,8 @@ RangeOp ReplaceKit::replaceRangeOpIterator(const RangeOp &rangeOp,
                                               replace.oldIters.size() +
                                               replace.newIters.size());
         // Check the number of loop iterators
-        return makeRangeOperator(newVarRangePairs, rangeOp->getSumVarRanges(),
-                                 replacedSummand);
+        return mL(newVarRangePairs, rangeOp->getSumVarRanges(),
+                  replacedSummand);
     } else if (replace.iteratorType == IterationType::Sum) {
         for (const auto &[var, range] : rangeOp->getSumVarRanges()) {
             if (!replace.isReplaced(var))
@@ -27,8 +27,8 @@ RangeOp ReplaceKit::replaceRangeOpIterator(const RangeOp &rangeOp,
         assert(newVarRangePairs.size() == rangeOp->getSumVarRanges().size() -
                                               replace.oldIters.size() +
                                               replace.newIters.size());
-        return makeRangeOperator(rangeOp->getLoopVarRanges(), newVarRangePairs,
-                                 replacedSummand, rangeOp->getPaddings());
+        return mL(rangeOp->getLoopVarRanges(), newVarRangePairs,
+                  replacedSummand, rangeOp->getPaddings());
     }
     assert(false);
     return nullptr;
@@ -55,7 +55,7 @@ Subscript ReplaceKit::buildSubscirptForLoopVarReplace(const RangeOp &inner,
     //     } else
     //         subs.emplace_back(inner->getLoopVar(i));
     // }
-    return makeSubscript(inner, subs);
+    return mSub(inner, subs);
 }
 
 RangeOp

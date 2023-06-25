@@ -15,10 +15,9 @@ TEST(DLT, Simple) {
     int C = 12, F = 16, R = 9, S = 9;
     auto A = make_ref<TensorNode>("A", vector<int>({F, C, R, S}));
 
-    auto subA = makeSubscript(A, {f, c, 3 * p1 + p2, 3 * q1 + q2});
-    auto rangeOp =
-        makeRangeOperator({{p1, {0, 3}}, {q1, {0, 3}}, {f, {0, F}}},
-                          {{c, {0, C}}, {p2, {0, 3}}, {q2, {0, 3}}}, subA);
+    auto subA = mSub(A, {f, c, 3 * p1 + p2, 3 * q1 + q2});
+    auto rangeOp = mL({{p1, {0, 3}}, {q1, {0, 3}}, {f, {0, F}}},
+                      {{c, {0, C}}, {p2, {0, 3}}, {q2, {0, 3}}}, subA);
     DLT dlt;
     dlt.split(2, 3);
     auto opt = dlt.apply(rangeOp, subA, "dltedA");
@@ -41,10 +40,9 @@ TEST(DLT, Conv2Conv) {
     int C = 12, F = 16, R = 9, S = 9;
     auto A = make_ref<TensorNode>("A", vector<int>({F, C, R, S}));
 
-    auto subA = makeSubscript(A, {f, c, 3 * p1 + p2, 3 * q1 + q2});
-    auto rangeOp =
-        makeRangeOperator({{p1, {0, 3}}, {q1, {0, 3}}, {f, {0, F}}},
-                          {{c, {0, C}}, {p2, {0, 3}}, {q2, {0, 3}}}, subA);
+    auto subA = mSub(A, {f, c, 3 * p1 + p2, 3 * q1 + q2});
+    auto rangeOp = mL({{p1, {0, 3}}, {q1, {0, 3}}, {f, {0, F}}},
+                      {{c, {0, C}}, {p2, {0, 3}}, {q2, {0, 3}}}, subA);
     DLT dlt;
     dlt.split(3, 3);
     dlt.split(2, 3);
@@ -67,10 +65,9 @@ TEST(DLT, Wrong0) {
     int C = 12, F = 16, R = 9, S = 9;
     auto A = make_ref<TensorNode>("A", vector<int>({F, C, R, S}));
 
-    auto subA = makeSubscript(A, {f, c, 3 * p1 + p2, 3 * q1 + q2});
-    auto rangeOp =
-        makeRangeOperator({{p1, {0, 3}}, {q1, {0, 3}}, {f, {0, F}}},
-                          {{c, {0, C}}, {p2, {0, 4}}, {q2, {0, 3}}}, subA);
+    auto subA = mSub(A, {f, c, 3 * p1 + p2, 3 * q1 + q2});
+    auto rangeOp = mL({{p1, {0, 3}}, {q1, {0, 3}}, {f, {0, F}}},
+                      {{c, {0, C}}, {p2, {0, 4}}, {q2, {0, 3}}}, subA);
     DLT dlt;
     dlt.split(2, 3);
     auto opt = dlt.apply(rangeOp, subA, "dltedA");

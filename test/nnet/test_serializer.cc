@@ -15,13 +15,12 @@ using namespace std;
 
 Expr buildSimpleExpr() {
     DEFINE_VAR(b, w, k, i3, i4);
-    auto A = makeTensor("A", {8, 10000, 512}, {0, 0, 0});
-    auto B = makeTensor("B", {8, 10000, 512}, {0, 128, 0});
-    auto subA = makeSubscript(A, {b, (i3 + (2500 * i4)), k});
-    auto subB = makeSubscript(B, {b, ((i3 + (2500 * i4)) + w), k});
-    auto range = makeRangeOperator(
-        {{i3, {0, 2500}}, {i4, {0, 4}}, {b, {0, 8}}, {w, {0, 65}}},
-        {{k, {0, 512}}}, subA * subB);
+    auto A = mT("A", {8, 10000, 512}, {0, 0, 0});
+    auto B = mT("B", {8, 10000, 512}, {0, 128, 0});
+    auto subA = mSub(A, {b, (i3 + (2500 * i4)), k});
+    auto subB = mSub(B, {b, ((i3 + (2500 * i4)) + w), k});
+    auto range = mL({{i3, {0, 2500}}, {i4, {0, 4}}, {b, {0, 8}}, {w, {0, 65}}},
+                    {{k, {0, 512}}}, subA * subB);
     return range;
 }
 
@@ -32,9 +31,8 @@ Expr buildNestedExpr() {
     auto C = make_ref<TensorNode>("C", vector<int>({M, K}));
     auto D = make_ref<TensorNode>("D", vector<int>({N, K}));
     auto F = make_ref<TensorNode>("F", vector<int>({N, K}));
-    auto matmulExpr = makeSubscript(C, {j1, j3}) * makeSubscript(D, {j2, j3});
-    Expr expr = makeRangeOperator({{j1, {0, M}}, {j2, {0, N}}}, {{j3, {0, K}}},
-                                  matmulExpr);
+    auto matmulExpr = mSub(C, {j1, j3}) * mSub(D, {j2, j3});
+    Expr expr = mL({{j1, {0, M}}, {j2, {0, N}}}, {{j3, {0, K}}}, matmulExpr);
     auto matmul = make_ref<MatmulNode>(expr, C, D, 1, M, N, K, false, false);
 
     vector<int> shapeE{N, K};
@@ -43,13 +41,12 @@ Expr buildNestedExpr() {
     auto ele1 = make_ref<ElementWiseNode>(expr, vector{E}, shapeE);
 
     DEFINE_VAR(b, w, k, i3, i4);
-    auto A = makeTensor("A", {8, 10000, 512}, {0, 0, 0}, matmul);
-    auto B = makeTensor("B", {8, 10000, 512}, {0, 128, 0}, ele1);
-    auto subA = makeSubscript(A, {b, (i3 + (2500 * i4)), k});
-    auto subB = makeSubscript(B, {b, ((i3 + (2500 * i4)) + w), k});
-    auto range = makeRangeOperator(
-        {{i3, {0, 2500}}, {i4, {0, 4}}, {b, {0, 8}}, {w, {0, 65}}},
-        {{k, {0, 512}}}, subA * subB);
+    auto A = mT("A", {8, 10000, 512}, {0, 0, 0}, matmul);
+    auto B = mT("B", {8, 10000, 512}, {0, 128, 0}, ele1);
+    auto subA = mSub(A, {b, (i3 + (2500 * i4)), k});
+    auto subB = mSub(B, {b, ((i3 + (2500 * i4)) + w), k});
+    auto range = mL({{i3, {0, 2500}}, {i4, {0, 4}}, {b, {0, 8}}, {w, {0, 65}}},
+                    {{k, {0, 512}}}, subA * subB);
     return range;
 }
 
@@ -61,14 +58,13 @@ TEST(Serializer, Serialization) {
 
 TEST(Serializer, CompareTwoExprs) {
     DEFINE_VAR(b, w, k, i3, i4);
-    auto A = makeTensor("A", {8, 10000, 512}, {0, 0, 0});
-    auto B = makeTensor("B", {8, 10000, 512}, {0, 128, 0});
-    auto subA = makeSubscript(A, {b, (i3 + (2500 * i4)), k});
+    auto A = mT("A", {8, 10000, 512}, {0, 0, 0});
+    auto B = mT("B", {8, 10000, 512}, {0, 128, 0});
+    auto subA = mSub(A, {b, (i3 + (2500 * i4)), k});
     auto funcA = make_ref<FuncNode>(subA, FuncType::Relu);
-    auto subB = makeSubscript(B, {b, ((i3 + (2500 * i4)) + w), k});
-    auto range = makeRangeOperator(
-        {{i3, {0, 2500}}, {i4, {0, 4}}, {b, {0, 8}}, {w, {0, 65}}},
-        {{k, {0, 512}}}, funcA * subB);
+    auto subB = mSub(B, {b, ((i3 + (2500 * i4)) + w), k});
+    auto range = mL({{i3, {0, 2500}}, {i4, {0, 4}}, {b, {0, 8}}, {w, {0, 65}}},
+                    {{k, {0, 512}}}, funcA * subB);
     Serializer().toFile(range, "./test_serializer.json");
     auto expr = Serializer().fromFile("./test_serializer.json");
     dbg(expr);
@@ -89,8 +85,8 @@ TEST(Serializer, Serialization_NestedTensor) {
 
 TEST(Serializer, Serialization_memboundOp) {
     auto expr = buildSimpleExpr();
-    auto A = makeTensor("A", {8, 10000, 512}, {0, 0, 0});
-    auto B = makeTensor("B", {8, 10000, 512}, {0, 128, 0});
+    auto A = mT("A", {8, 10000, 512}, {0, 0, 0});
+    auto B = mT("B", {8, 10000, 512}, {0, 128, 0});
     // using namespace infini;
     auto runtime = infini::NativeCpuRuntimeObj::getInstance();
     auto g = infini::make_ref<infini::GraphObj>(runtime);

@@ -18,11 +18,11 @@ TEST(OOB, noOOB) {
                                   vector<int>{0, 0, 0});
     auto B = make_ref<TensorNode>("B", vector<int>({Batch, M, K}),
                                   vector<int>{0, dilation * W, 0});
-    auto subA = makeSubscript(A, {b, m, w});
-    // auto subB = makeSubscript(B, {b, m + dilation * (w - W), n});
-    auto subB = makeSubscript(B, {b, m + dilation * w - dilation * W, n});
-    auto range = makeRangeOperator({{b, {0, Batch}}, {m, {0, M}}, {n, {0, K}}},
-                                   {{w, {0, 2 * W + 1}}}, subA * subB);
+    auto subA = mSub(A, {b, m, w});
+    // auto subB = mSub(B, {b, m + dilation * (w - W), n});
+    auto subB = mSub(B, {b, m + dilation * w - dilation * W, n});
+    auto range = mL({{b, {0, Batch}}, {m, {0, M}}, {n, {0, K}}},
+                    {{w, {0, 2 * W + 1}}}, subA * subB);
     dbg(range);
 
     CheckOOBVisitor oobchecker;
@@ -41,12 +41,11 @@ TEST(OOB, hasOOB) {
                                   vector<int>{0, 0, 0});
     auto B = make_ref<TensorNode>("B", vector<int>({Batch, M, K}),
                                   vector<int>{0, 0, 0});
-    auto subA = makeSubscript(A, {b, m, w});
-    // auto subB = makeSubscript(B, {b, m + dilation * (w - W), n});
-    auto subB = makeSubscript(B, {b, m - dilation * (w), n});
-    auto range =
-        makeRangeOperator({{b, {0, Batch}}, {m, {0, M + 1}}, {n, {0, K}}},
-                          {{w, {0, 2 * W + 1}}}, subA * subB);
+    auto subA = mSub(A, {b, m, w});
+    // auto subB = mSub(B, {b, m + dilation * (w - W), n});
+    auto subB = mSub(B, {b, m - dilation * (w), n});
+    auto range = mL({{b, {0, Batch}}, {m, {0, M + 1}}, {n, {0, K}}},
+                    {{w, {0, 2 * W + 1}}}, subA * subB);
     dbg(range);
 
     CheckOOBVisitor oobchecker;

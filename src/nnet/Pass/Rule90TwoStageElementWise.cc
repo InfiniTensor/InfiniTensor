@@ -47,7 +47,7 @@ Rule90TwoStageElementWise::matchTwoStageElementWise(const RangeOp &rangeOp) {
     const auto &inputs = InputVisitor().getInputs(rangeOp);
     auto source =
         make_ref<ElementWiseNode>(rangeOp, inputs, rangeOp->getOutputShape());
-    auto newTensor = makeTensor(newTensorName(), newShape, {}, source);
+    auto newTensor = mT(newTensorName(), newShape, {}, source);
     return {newTensor};
 }
 
