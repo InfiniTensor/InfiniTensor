@@ -32,6 +32,17 @@ Tensor runWeightComputation(const Tensor &weight) {
 Graph convertNCHWtoNHWCModel(Graph inG) {
     // Construct new graph
     // IT_ASSERT(inG->getInputs().size() == 1);
+    {
+        auto useless = vector<Tensor>();
+        for (const auto &t : inG->getTensors()) {
+            if (!t->getSource() && t->getTargets().empty()) {
+                useless.push_back(t);
+            }
+        }
+        for (auto t : useless) {
+            inG->removeTensor(t);
+        }
+    }
     IT_ASSERT(inG->getOutputs().size() == 1);
     bool status = inG->topo_sort();
     IT_ASSERT(status);
