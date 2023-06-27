@@ -3,10 +3,12 @@
 #include "nnet/dbg.h"
 #include "operators/concat.h"
 #include "operators/conv.h"
+#include "operators/element_wise.h"
 #include "operators/matmul.h"
 #include "operators/pooling.h"
 #include "operators/reshape.h"
 #include "operators/transpose.h"
+#include "operators/unary.h"
 
 #ifdef USE_BANG
 #include "bang/bang_runtime.h"
@@ -57,7 +59,6 @@ Graph convertNCHWtoNHWCModel(Graph inG) {
                 if (inTensor->hasData()) {
                     tensors[uid] =
                         g->addTensor(runWeightComputation(rt, inTensor));
-
                 } else {
                     Shape s = inTensor->getDims();
                     tensors[uid] = g->addTensor(vector{s[0], s[2], s[3], s[1]},
@@ -92,15 +93,6 @@ Graph convertNCHWtoNHWCModel(Graph inG) {
             g->addOpWithOutputs<ConvTransposed2dNHWCObj>(
                 inputs[0], inputs[1], outputs[0], ph, pw, sh, sw, dh, dw, oph,
                 opw, group, bias, cOp->getAct());
-        } else if (const auto &pOp = as<PoolingObj>(op)) {
-            auto t = g->addOp<TransposeObj>(inputs[0], nullptr,
-                                            vector<int>{0, 2, 3, 1})
-                         ->getOutput();
-            auto tt = g->addTensor(op->getOutput()->getDims(),
-                                   op->getOutput()->getDType());
-            g->cloneOperator(op, {t}, {tt});
-            g->addOpWithOutputs<TransposeObj>(tt, outputs[0],
-                                              vector<int>{0, 3, 1, 2});
         } else if (const auto &ccOp = as<ConcatObj>(op)) {
             int axis = ccOp->getDim();
             axis = vector<int>{0, 3, 1, 2}[axis];
@@ -115,6 +107,10 @@ Graph convertNCHWtoNHWCModel(Graph inG) {
                                             outputs[0]->getDims());
         } else if (const auto &mmOp = as<MatmulObj>(op)) {
             g->cloneOperator(mmOp, inputs, outputs);
+        } else if (const auto &uOp = as<UnaryObj>(op)) {
+            g->cloneOperator(uOp, inputs, outputs);
+        } else if (const auto &eOp = as<ElementWiseObj>(op)) {
+            g->cloneOperator(eOp, inputs, outputs);
         } else {
             dbg(op);
             for (auto &t : inputs) {
@@ -125,14 +121,17 @@ Graph convertNCHWtoNHWCModel(Graph inG) {
                 if (t->getDims().size() != 4)
                     IT_TODO_HALT();
             }
+            // FIXME: the weights for these operators should not be processed
             auto t = g->addOp<TransposeObj>(inputs[0], nullptr,
-                                            vector<int>{0, 2, 3, 1})
+                                            vector<int>{0, 3, 1, 2})
                          ->getOutput();
-            auto tt = g->addTensor(op->getOutput()->getDims(),
-                                   op->getOutput()->getDType());
+            t->dataMalloc();
+            auto s = op->getOutput()->getDims();
+            auto tt = g->addTensor(s, op->getOutput()->getDType());
+            tt->dataMalloc();
             g->cloneOperator(op, {t}, {tt});
             g->addOpWithOutputs<TransposeObj>(tt, outputs[0],
-                                              vector<int>{0, 3, 1, 2});
+                                              vector<int>{0, 2, 3, 1});
         }
     }
     return g;

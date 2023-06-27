@@ -135,8 +135,6 @@ ConvNHWCObj::ConvNHWCObj(GraphObj *graph, Tensor input, Tensor weight,
                          int dw, Tensor bias, ActType act)
     : ConvBaseObj(OpType::ConvNHWC, {input, weight}, output, ph, pw, sh, sw, dh,
                   dw, input, weight, act) {
-    if (bias)
-        IT_TODO_HALT();
     setAuxilaryAttributes(PaddingMode::Other);
     IT_ASSERT(checkValid(graph));
 }

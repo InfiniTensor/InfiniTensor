@@ -31,8 +31,9 @@ class ConvCnnl : public BangKernelWithoutConfig {
         int inputs0Array[4] = {n, h, w, c};
         int inputs1[4] = {f, c, r, s};
         int inputs1Array[4] = {f, r, s, c};
-        int output[4] = {n, c, h, w};
-        int outputArray[4] = {n, h, w, c};
+        auto oShape = op->getOutput()->getDims();
+        int output[4] = {oShape[0], oShape[1], oShape[2], oShape[3]};
+        int outputArray[4] = {output[0], output[3], output[1], output[2]};
 
         if (op->getOpType() == OpType::Conv) {
             cnnlTensorDescriptor_t aInDesc, aDesc, bInDesc, bDesc, cInDesc,
@@ -146,7 +147,7 @@ class ConvCnnl : public BangKernelWithoutConfig {
 
             checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
             checkCnnlError(cnnlSetTensorDescriptor(
-                cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, outputArray));
+                cDesc, CNNL_LAYOUT_NHWC, CNNL_DTYPE_FLOAT, 4, output));
 
             cnnlConvolutionForwardAlgo_t algo;
             cnnlGetConvolutionForwardAlgorithm(

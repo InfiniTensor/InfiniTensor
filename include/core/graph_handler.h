@@ -109,7 +109,7 @@ class GraphHandlerObj {
 
     inline void data_malloc() { g->dataMalloc(); }
 
-    inline void run() { g->getRuntime()->run(g); }
+    inline void run() { g->getRuntime()->run(g, true); }
 };
 
 } // namespace infini
