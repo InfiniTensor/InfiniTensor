@@ -11,17 +11,10 @@ class CopyBang : public BangKernelWithoutConfig {
         auto outData = op->getOutputs()[0]->getRawDataPtr<void *>();
         cnnlTensorDescriptor_t aDesc;
         auto dim = op->getInputs(0)->getDims();
-        int len = dim.size();
-        int size = 1;
-        for (int i = 0; i < len; ++i) {
-            size *= dim[i];
-        }
 
-        int dim_array[1] = {size};
-        // get inputs
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, 1, dim_array));
+                                               CNNL_DTYPE_FLOAT, dim.size(), dim.data()));
         cnnlStatus_t stat =
             cnnlCopy(context->cnnlHandle(), aDesc, inData, aDesc, outData);
         if (stat != CNNL_STATUS_SUCCESS)

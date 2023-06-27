@@ -15,22 +15,16 @@ class TrigonCnnl : public BangKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
 
         cnnlTensorDescriptor_t aDesc, cDesc;
-        auto dim = op->getInputs(0)->getDims();
-        if (dim.size() != 4)
-            IT_TODO_HALT();
+        auto aDim = op->getInputs(0)->getDims();
+        auto cDim = op->getOutput()->getDims();
 
-        int dim_array[4] = {dim[0], dim[1], dim[2], dim[3]};
-        // get inputs
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, dim_array));
-
-        // get outputs
+                                               CNNL_DTYPE_FLOAT, aDim.size(), aDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+                                               CNNL_DTYPE_FLOAT, cDim.size(), cDim.data()));
 
-        // get op descriptor
         cnnlTrigonDescriptor_t opDesc;
         checkCnnlError(cnnlCreateTrigonDescriptor(&opDesc));
         checkCnnlError(cnnlSetTrigonDescriptor(opDesc, getOpType()));
@@ -40,8 +34,6 @@ class TrigonCnnl : public BangKernelWithoutConfig {
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
-        // Destories in BANG does not require sync. But cnnl does not state
-        // whether sync is required before destories.
         checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
         checkCnnlError(cnnlDestroyTensorDescriptor(cDesc));
         checkCnnlError(cnnlDestroyTrigonDescriptor(opDesc));
