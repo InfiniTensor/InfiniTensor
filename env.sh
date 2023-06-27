@@ -1,6 +1,8 @@
 # 配置英伟达 CUDA 的 HOME 路径，请注意安装 CUDA Toolkit, CUDNN 并将路径配置到下述环境变量。
 export CUDA_HOME=/PATH/TO/YOUR/CUDA/HOME
 export CUDNN_HOME=/PATH/TO/YOUR/CUDNN/HOME
+export PATH="${CUDA_HOME}/bin:${PATH}"
+export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${LD_LIBRARY_PATH}"
 
 # 配置寒武纪 BANG 的 HOME 路径，请注意 /usr/local/neuware 是寒武纪软件栈建议的，同时也是默认的安装路径。
 # 如若用户有其他的路径安装方式，请自行配置正确的路径。

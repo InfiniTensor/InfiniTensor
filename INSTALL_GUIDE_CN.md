@@ -36,7 +36,16 @@
    > > [CUDA Toolkit 安装](https://developer.nvidia.com/cuda-toolkit)，
    > > [Cudnn 安装](https://developer.nvidia.com/rdp/cudnn-download)，
    > > [Cublas 安装](https://developer.nvidia.com/cublas)，
-   > > 安装完成后请进行相应的环境变量配置，将可执行文件目录与库目录添加到操作系统识别的路径中，
+   > > 安装完成后请进行相应的环境变量配置，将可执行文件目录与库目录添加到操作系统识别的路径中，例如
+   > > ```bash
+   > > # 将如下内容写入到你的 bashrc 文件并 source 该文件
+   > > export CUDA_HOME="/PATH/TO/YOUR/CUDA_HOME"
+   > > export CUDNN_HOME="/PATH/TO/YOUR/CUDNN_HOME"
+   > > export PATH="${CUDA_HOME}/bin:${PATH}"
+   > > export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${LD_LIBRARY_PATH}"
+   > > # 如您不方便将上述环境变量配置到 bashrc 文件中进行长期使用，你也可以在我们提供的 env.sh 文件中进行正确配置并激活，作为临时使用
+   > > source env.sh
+   > > ```
    我们强烈建议您规范安装，统一到一个目录下，以免不必要的麻烦。
 
    > 如您的第三方加速卡为寒武纪 MLU，请参考寒武纪官方文档进行：
