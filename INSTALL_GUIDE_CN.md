@@ -49,6 +49,8 @@
    > > export NEUWARE_HOME="/usr/local/neuware"
    > > export PATH="${NEUWARE_HOME}/bin:${PATH}"
    > > export LD_LIBRARY_PATH="${NEUWARE_HOME}/lib64:${LD_LIBRARY_PATH}"
+   > > # 如您不方便将上述环境变量配置到 bashrc 文件中进行长期使用，你也可以在我们提供的 env.sh 文件中进行正确配置并激活，作为临时使用
+   > > source env.sh
    > > ```
    > > 我们强烈建议您规范安装，统一到一个目录下，以免不必要的麻烦。另外请注意，由于 MLU 上层软件建设适配程度有限，如您在其覆盖的机器，操作系统之外运行，需要在安装驱动之后使用上层软件的 Docker。
 
