@@ -138,8 +138,8 @@ static std::tuple<int, int, int, int, int, int> conv_attrs_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Conv ||
               op->getOpType() == OpType::ConvNHWC);
     auto conv = dynamic_cast<const ConvBaseObj *>(op.get());
-    return std::make_tuple(conv->getPh(), conv->getPw(), conv->getSh(),
-                           conv->getSw(), conv->getDh(), conv->getDw());
+    return std::make_tuple(conv->getPh(), conv->getPw(), conv->getDh(),
+                           conv->getDw(), conv->getSh(), conv->getSw());
 }
 
 static std::tuple<int, int, int, int, int, int, int, int>
