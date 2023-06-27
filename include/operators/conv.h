@@ -98,7 +98,7 @@ class ConvBaseObj : public OperatorObj {
     int numInputs() const override { return 2; }
     int numOutputs() const override { return 1; }
 
-    Tensor getBias() const { return inputs[2]; }
+    Tensor getBias() const { return inputs.size() > 2 ? inputs[2] : nullptr; }
     PaddingMode getPaddingMode() const { return padding; }
     pair<int, int> inferPaddingSize() const;
 
