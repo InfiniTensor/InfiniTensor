@@ -8,6 +8,8 @@
 
 ## 环境准备
 
+如果您使用的是 ares 集群，请直接参照下面的 [ares集群配置](#ares-集群配置)。
+### 手动配置
 目前的软硬件环境支持矩阵
 
 | Host CPU | Device        | OS            |  Support   |
@@ -79,7 +81,35 @@
    > > [tqdm](https://pypi.org/project/tqdm/)：一个显示程序运行进度条的小工具
 
    > 如您需要使用本项目下的 InfiniTest 测试工具，你还需要安装如下的项目：
-   > > [protobuf](https://github.com/protocolbuffers/protobuf)： 一种序列化文件的格式及其编译、序列化、解析工具 
+   > > [protobuf](https://github.com/protocolbuffers/protobuf)： 一种序列化文件的格式及其编译、序列化、解析工具
+
+### ares 集群配置
+
+集群使用 spack 安装和管理软件。本项目所依赖的基础软件已经预先安装好，使用时只需要将它们加载到环境中。
+
+1. 加载 CUDA 和 CUDNN。
+   ```bash
+   spack load cuda@11.8.0
+   spack load cudnn@8.7.0.84-11.8
+   ```
+
+2. 更新 pip 并切换到清华源。
+   ```bash
+   python -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --upgrade pip
+   pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+   ```
+
+3. 安装其它软件。
+   ```bash
+   # PyTorch
+   pip install --user torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+
+   # ONNX
+   pip install --user onnx
+
+   # onnxsim
+   pip install --user onnxsim
+   ```
 
 ## 编译本项目
 
