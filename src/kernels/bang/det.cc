@@ -21,28 +21,20 @@ class DetCnnl : public BangKernelWithoutConfig {
         cnnlTensorDescriptor_t aDesc, cDesc;
         auto dimin = op->getInputs(0)->getDims();
         auto dimout = op->getOutput()->getDims();
-        if (dimin.size() != 4 || dimout.size() != 2)
-            IT_TODO_HALT();
 
-        int dimin_array[4] = {dimin[0], dimin[1], dimin[2], dimin[3]};
-        int dimout_array[2] = {dimout[0], dimout[1]};
-        // get inputs
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            aDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT, 4, dimin_array));
+            aDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT, dimin.size(), dimin.data()));
 
-        // get outputs
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            cDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT, 2, dimout_array));
+            cDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT, dimout.size(), dimout.data()));
 
         cnnlStatus_t stat =
             cnnlDet(context->cnnlHandle(), nlMode, aDesc, aData, cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
-        // Destories in BANG does not require sync. But cnnl does not state
-        // whether sync is required before destories.
         checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
         checkCnnlError(cnnlDestroyTensorDescriptor(cDesc));
     }
