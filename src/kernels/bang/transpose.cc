@@ -17,16 +17,19 @@ class TransposeCnnl : public BangKernelWithoutConfig {
         auto dimout = op->getOutput()->getDims();
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(
-            aDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT, dimin.size(), dimin.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_ARRAY,
+                                               CNNL_DTYPE_FLOAT, dimin.size(),
+                                               dimin.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(
-            cDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT, dimout.size(), dimout.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_ARRAY,
+                                               CNNL_DTYPE_FLOAT, dimout.size(),
+                                               dimout.data()));
 
         auto permute = op->getPermute();
         cnnlTransposeDescriptor_t opDesc;
         checkCnnlError(cnnlCreateTransposeDescriptor(&opDesc));
-        checkCnnlError(cnnlSetTransposeDescriptor(opDesc, permute.size(), permute.data()));
+        checkCnnlError(
+            cnnlSetTransposeDescriptor(opDesc, permute.size(), permute.data()));
 
         size_t wsSize;
         cnnlGetTransposeWorkspaceSize(context->cnnlHandle(), aDesc, opDesc,

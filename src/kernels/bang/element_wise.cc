@@ -23,16 +23,19 @@ class ElementWiseCnnl : public BangKernelWithoutConfig {
         auto c_dim = op->getOutput()->getDims();
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(
-            aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, a_dim.size(), a_dim.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
+                                               CNNL_DTYPE_FLOAT, a_dim.size(),
+                                               a_dim.data()));
 
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(
-            bDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, b_dim.size(), b_dim.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
+                                               CNNL_DTYPE_FLOAT, b_dim.size(),
+                                               b_dim.data()));
 
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(
-            cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, c_dim.size(), c_dim.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
+                                               CNNL_DTYPE_FLOAT, c_dim.size(),
+                                               c_dim.data()));
 
         cnnlOpTensorDescriptor_t opDesc;
         checkCnnlError(cnnlCreateOpTensorDescriptor(&opDesc));
@@ -77,13 +80,16 @@ class LogicOpCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, a_dim.size(), a_dim.data()));
+                                               CNNL_DTYPE_FLOAT, a_dim.size(),
+                                               a_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
         checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, b_dim.size(), b_dim.data()));
+                                               CNNL_DTYPE_FLOAT, b_dim.size(),
+                                               b_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, c_dim.size(), c_dim.data()));
+                                               CNNL_DTYPE_FLOAT, c_dim.size(),
+                                               c_dim.data()));
 
         size_t wsSize;
         cnnlGetLogicOpWorkspaceSize(context->cnnlHandle(), aDesc, bDesc, cDesc,
@@ -120,13 +126,16 @@ class BitComputeCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_INT32, a_dim.size(), a_dim.data()));
+                                               CNNL_DTYPE_INT32, a_dim.size(),
+                                               a_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
         checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_INT32, b_dim.size(), b_dim.data()));
+                                               CNNL_DTYPE_INT32, b_dim.size(),
+                                               b_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_INT32, c_dim.size(), c_dim.data()));
+                                               CNNL_DTYPE_INT32, c_dim.size(),
+                                               c_dim.data()));
 
         size_t wsSize;
         cnnlGetBitComputeWorkspaceSize(context->cnnlHandle(), aDesc, bDesc,
@@ -162,13 +171,16 @@ class DivCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, a_dim.size(), a_dim.data()));
+                                               CNNL_DTYPE_FLOAT, a_dim.size(),
+                                               a_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
         checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, b_dim.size(), b_dim.data()));
+                                               CNNL_DTYPE_FLOAT, b_dim.size(),
+                                               b_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, c_dim.size(), c_dim.data()));
+                                               CNNL_DTYPE_FLOAT, c_dim.size(),
+                                               c_dim.data()));
 
         size_t wsSize;
         cnnlGetDivWorkspaceSize(context->cnnlHandle(), aDesc, bDesc, cDesc,
@@ -204,13 +216,16 @@ class MaximumCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, a_dim.size(), a_dim.data()));
+                                               CNNL_DTYPE_FLOAT, a_dim.size(),
+                                               a_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
         checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, b_dim.size(), b_dim.data()));
+                                               CNNL_DTYPE_FLOAT, b_dim.size(),
+                                               b_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, c_dim.size(), c_dim.data()));
+                                               CNNL_DTYPE_FLOAT, c_dim.size(),
+                                               c_dim.data()));
 
         size_t wsSize;
         cnnlGetMaximumWorkspaceSize(context->cnnlHandle(), cDesc, &wsSize);
@@ -245,13 +260,16 @@ class MinimumCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, a_dim.size(), a_dim.data()));
+                                               CNNL_DTYPE_FLOAT, a_dim.size(),
+                                               a_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
         checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, b_dim.size(), b_dim.data()));
+                                               CNNL_DTYPE_FLOAT, b_dim.size(),
+                                               b_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, c_dim.size(), c_dim.data()));
+                                               CNNL_DTYPE_FLOAT, c_dim.size(),
+                                               c_dim.data()));
 
         size_t wsSize;
         cnnlGetMinimumWorkspaceSize(context->cnnlHandle(), cDesc, &wsSize);
@@ -286,14 +304,17 @@ class MSELossCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, a_dim.size(), a_dim.data()));
+                                               CNNL_DTYPE_FLOAT, a_dim.size(),
+                                               a_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
         checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, b_dim.size(), b_dim.data()));
+                                               CNNL_DTYPE_FLOAT, b_dim.size(),
+                                               b_dim.data()));
 
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, c_dim.size(), c_dim.data()));
+                                               CNNL_DTYPE_FLOAT, c_dim.size(),
+                                               c_dim.data()));
         cnnlStatus_t stat;
         if (reduction == MSELossObj::None) {
             stat = cnnlMSELoss(context->cnnlHandle(), CNNL_MSE_LOSS_NONE, aDesc,
@@ -332,13 +353,16 @@ class PowerCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, a_dim.size(), a_dim.data()));
+                                               CNNL_DTYPE_FLOAT, a_dim.size(),
+                                               a_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
         checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, b_dim.size(), b_dim.data()));
+                                               CNNL_DTYPE_FLOAT, b_dim.size(),
+                                               b_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, c_dim.size(), c_dim.data()));
+                                               CNNL_DTYPE_FLOAT, c_dim.size(),
+                                               c_dim.data()));
 
         size_t wsSize;
         cnnlGetPowWorkspaceSize(context->cnnlHandle(), aDesc, bDesc, cDesc,
@@ -374,13 +398,16 @@ class FloorDivCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, a_dim.size(), a_dim.data()));
+                                               CNNL_DTYPE_FLOAT, a_dim.size(),
+                                               a_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
         checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, b_dim.size(), b_dim.data()));
+                                               CNNL_DTYPE_FLOAT, b_dim.size(),
+                                               b_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, c_dim.size(), c_dim.data()));
+                                               CNNL_DTYPE_FLOAT, c_dim.size(),
+                                               c_dim.data()));
 
         size_t wsSize;
         cnnlGetFloorDivWorkspaceSize(context->cnnlHandle(), aDesc, bDesc, cDesc,
@@ -416,13 +443,16 @@ class FloorModCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, a_dim.size(), a_dim.data()));
+                                               CNNL_DTYPE_FLOAT, a_dim.size(),
+                                               a_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
         checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, b_dim.size(), b_dim.data()));
+                                               CNNL_DTYPE_FLOAT, b_dim.size(),
+                                               b_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, c_dim.size(), c_dim.data()));
+                                               CNNL_DTYPE_FLOAT, c_dim.size(),
+                                               c_dim.data()));
 
         size_t wsSize;
         cnnlGetFloorModWorkspaceSize(context->cnnlHandle(), aDesc, bDesc, cDesc,
@@ -458,13 +488,16 @@ class SquaredDifferenceCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, a_dim.size(), a_dim.data()));
+                                               CNNL_DTYPE_FLOAT, a_dim.size(),
+                                               a_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
         checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, b_dim.size(), b_dim.data()));
+                                               CNNL_DTYPE_FLOAT, b_dim.size(),
+                                               b_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, c_dim.size(), c_dim.data()));
+                                               CNNL_DTYPE_FLOAT, c_dim.size(),
+                                               c_dim.data()));
 
         size_t wsSize;
         cnnlGetSquaredDifferenceWorkspaceSize(context->cnnlHandle(), aDesc,

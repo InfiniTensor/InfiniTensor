@@ -20,10 +20,12 @@ class TrigonCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, aDim.size(), aDim.data()));
+                                               CNNL_DTYPE_FLOAT, aDim.size(),
+                                               aDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, cDim.size(), cDim.data()));
+                                               CNNL_DTYPE_FLOAT, cDim.size(),
+                                               cDim.data()));
 
         cnnlTrigonDescriptor_t opDesc;
         checkCnnlError(cnnlCreateTrigonDescriptor(&opDesc));

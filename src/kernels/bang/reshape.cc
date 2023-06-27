@@ -14,7 +14,8 @@ class CopyBang : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, dim.size(), dim.data()));
+                                               CNNL_DTYPE_FLOAT, dim.size(),
+                                               dim.data()));
         cnnlStatus_t stat =
             cnnlCopy(context->cnnlHandle(), aDesc, inData, aDesc, outData);
         if (stat != CNNL_STATUS_SUCCESS)
