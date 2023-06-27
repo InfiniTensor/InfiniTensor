@@ -120,7 +120,7 @@ class BitComputeCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_INT32, a_dim.szie(), a_dim.data()));
+                                               CNNL_DTYPE_INT32, a_dim.size(), a_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
         checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
                                                CNNL_DTYPE_INT32, b_dim.size(), b_dim.data()));
