@@ -8,14 +8,13 @@
 #include "operators/reshape.h"
 #include "operators/transpose.h"
 
-#ifdef BANG
+#ifdef USE_BANG
 #include "bang/bang_runtime.h"
 #endif // BANG
 namespace infini {
 
-Tensor runWeightComputation(const Tensor &weight) {
-#ifdef BANG
-    auto rt = make_ref<NativeCpuRuntimeObj>();
+Tensor runWeightComputation(Runtime &rt, const Tensor &weight) {
+#ifdef USE_BANG
     auto g = make_ref<GraphObj>(rt);
     auto in = g->addTensor(weight);
     auto out = g->addOp<TransposeObj>(weight, nullptr, vector<int>{0, 2, 3, 1})
@@ -46,7 +45,8 @@ Graph convertNCHWtoNHWCModel(Graph inG) {
     IT_ASSERT(inG->getOutputs().size() == 1);
     bool status = inG->topo_sort();
     IT_ASSERT(status);
-    auto g = make_ref<GraphObj>(inG->getRuntime());
+    auto runtime = inG->getRuntime();
+    auto g = make_ref<GraphObj>(runtime);
     map<UidBaseType, Tensor> tensors;
     auto getTensor = [&g, &tensors](const Tensor &inTensor) {
         auto uid = inTensor->getGuid();
@@ -71,7 +71,7 @@ Graph convertNCHWtoNHWCModel(Graph inG) {
             const auto &[ph, pw, sh, sw, dh, dw] = cOp->getPadStrideDilation();
             auto bias =
                 cOp->getBias() ? g->cloneTensor(cOp->getBias()) : nullptr;
-            auto weight = runWeightComputation(inputs[1]);
+            auto weight = runWeightComputation(runtime, inputs[1]);
             g->addTensor(weight);
             g->addOpWithOutputs<ConvNHWCObj>(inputs[0], weight, outputs[0], ph,
                                              pw, sh, sw, dh, dw, bias,
@@ -82,7 +82,7 @@ Graph convertNCHWtoNHWCModel(Graph inG) {
             auto group = cOp->getNumGroups();
             auto bias =
                 cOp->getBias() ? g->cloneTensor(cOp->getBias()) : nullptr;
-            auto weight = runWeightComputation(inputs[1]);
+            auto weight = runWeightComputation(runtime, inputs[1]);
             g->addTensor(weight);
             g->addOpWithOutputs<ConvTransposed2dNHWCObj>(
                 inputs[0], weight, outputs[0], ph, pw, sh, sw, dh, dw, oph, opw,
