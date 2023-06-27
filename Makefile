@@ -28,7 +28,7 @@ install-python: build
 	cp build/$(TYPE)/backend*.so pyinfinitensor/src/pyinfinitensor
 	pip install pyinfinitensor/
 
-test-cpp: build
+test-cpp:
 	@echo
 	cd build/$(TYPE) && make test
 
