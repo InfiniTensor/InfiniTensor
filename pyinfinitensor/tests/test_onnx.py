@@ -43,6 +43,8 @@ class TestStringMethods(unittest.TestCase):
                 model = OnnxStub(onnx.load(model_file), backend.cpu_runtime()).to_onnx(
                     "new"
                 )
+                # with open("modified.onnx", "wb") as f:
+                #     f.write(model.SerializeToString())
                 model = infer_shapes(model)
 
     def test_tensor(self):
