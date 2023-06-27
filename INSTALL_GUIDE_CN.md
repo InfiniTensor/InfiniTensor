@@ -86,20 +86,29 @@
 ### ares 集群配置
 
 集群使用 spack 安装和管理软件。本项目所依赖的基础软件已经预先安装好，使用时只需要将它们加载到环境中。
+1. 引入 spack 环境
+   ```bash
+   source /home/spack/spack/share/spack/setup-env.sh
+   ```
 
-1. 加载 CUDA 和 CUDNN。
+3. 加载 CUDA 和 CUDNN。
    ```bash
    spack load cuda@11.8.0
    spack load cudnn@8.7.0.84-11.8
    ```
+   
+   如果节点上没有安装 python，那么加载 spack 提供的 python。
+   ```bash
+   spack load python@3.10.10
+   ```
 
-2. 更新 pip 并切换到清华源。
+4. 更新 pip 并切换到清华源。
    ```bash
    python -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --upgrade pip
    pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
    ```
 
-3. 安装其它软件。
+5. 安装其它软件，这些软件主要用于模型导出和转换。
    ```bash
    # PyTorch
    pip install --user torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
