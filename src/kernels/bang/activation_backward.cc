@@ -25,16 +25,20 @@ class ActivationBackwardCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&yDesc));
         checkCnnlError(cnnlSetTensorDescriptor(yDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, yDim.size(), yDim.data()));
+                                               CNNL_DTYPE_FLOAT, yDim.size(),
+                                               yDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&diffYDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(diffYDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, diffyDim.size(), diffyDim.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            diffYDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, diffyDim.size(),
+            diffyDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&xDesc));
         checkCnnlError(cnnlSetTensorDescriptor(xDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, xDim.size(), xDim.data()));
+                                               CNNL_DTYPE_FLOAT, xDim.size(),
+                                               xDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&diffXDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(diffXDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, diffxDim.size(), diffxDim.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            diffXDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, diffxDim.size(),
+            diffxDim.data()));
         // get op descriptor
         cnnlActivationDescriptor_t opDesc;
         checkCnnlError(cnnlCreateActivationDescriptor(&opDesc));

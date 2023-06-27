@@ -16,8 +16,8 @@ class L2LossCnnl : public BangKernelWithoutConfig {
         auto dim = op->getInputs(0)->getDims();
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, dim.size(), dim.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, dim.size(), dim.data()));
 
         cnnlStatus_t stat =
             cnnlL2Loss(context->cnnlHandle(), aDesc, aData, cData);
