@@ -20,6 +20,8 @@ export CUDNN_HOME=/PATH/TO/YOUR/CUDNN/HOME
 # ├── share
 # └── version.txt
 export NEUWARE_HOME=/usr/local/neuware
+export PATH="${NEUWARE_HOME}/bin:${PATH}"
+export LD_LIBRARY_PATH="${NEUWARE_HOME}/lib64:${LD_LIBRARY_PATH}"
 
 # 配置昆仑芯 XPU 的 HOME 路径，请注意 /usr/local/xpu 是昆仑芯软件栈提供的软件包路径。
 # 如若用户有其他的路径安装方式，请自行配置正确的路径。
