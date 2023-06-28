@@ -3,10 +3,11 @@
 #include "bang/bang_runtime.h"
 
 namespace infini {
-class ConvCnnl : public BangKernelWithoutConfig {
+
+class ConvNCHWCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
-        auto op = as<ConvBaseObj>(_op);
+        auto op = as<ConvObj>(_op);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         const auto [ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
@@ -33,7 +34,7 @@ class ConvCnnl : public BangKernelWithoutConfig {
         int inputs1Array[4] = {f, r, s, c};
         auto oShape = op->getOutput()->getDims();
         int output[4] = {oShape[0], oShape[1], oShape[2], oShape[3]};
-        int outputArray[4] = {output[0], output[3], output[1], output[2]};
+        int outputArray[4] = {output[0], output[2], output[3], output[1]};
 
         if (op->getOpType() == OpType::Conv) {
             cnnlTensorDescriptor_t aInDesc, aDesc, bInDesc, bDesc, cInDesc,
@@ -135,7 +136,41 @@ class ConvCnnl : public BangKernelWithoutConfig {
             checkCnnlError(cnnlDestroyConvolutionDescriptor(convDesc));
             checkCnnlError(cnnlDestroyTransposeDescriptor(opDesc));
             checkCnnlError(cnnlDestroyTransposeDescriptor(opOutDesc));
-        } else if (op->getOpType() == OpType::ConvNHWC) {
+        }
+    }
+};
+
+
+class ConvNHWCCnnl : public BangKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<ConvNHWCObj>(_op);
+        auto context = dynamic_cast<const BangRuntimeObj *>(_context);
+
+        const auto [ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
+        const auto [n, c, h, w, f, r, s] = op->getNCHWFRS();
+        const int cpg = op->getChannelPerGroup();
+        const int g = c / cpg;
+
+        int pad[4] = {ph, ph, pw, pw};
+        int stride[2] = {sh, sw};
+        int dilation[2] = {dh, dw};
+
+        cnnlConvolutionDescriptor_t convDesc;
+        checkCnnlError(cnnlCreateConvolutionDescriptor(&convDesc));
+        checkCnnlError(cnnlSetConvolutionDescriptor(
+            convDesc, 4, pad, stride, dilation, g, CNNL_DTYPE_FLOAT));
+
+        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
+        void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+
+        int inputs0Array[4] = {n, h, w, c};
+        int inputs1Array[4] = {f, r, s, c};
+        auto oShape = op->getOutput()->getDims();
+        int output[4] = {oShape[0], oShape[1], oShape[2], oShape[3]};
+
+        if (op->getOpType() == OpType::ConvNHWC) {
             cnnlTensorDescriptor_t aDesc, bDesc, cDesc;
             checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
             checkCnnlError(cnnlSetTensorDescriptor(
@@ -176,8 +211,8 @@ class ConvCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Conv, DataType::Float32, ConvCnnl,
-                "Conv_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::ConvNHWC, DataType::Float32, ConvCnnl,
+REGISTER_KERNEL(Device::BANG, OpType::Conv, DataType::Float32, ConvNCHWCnnl,
+                "ConvNCHW_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::ConvNHWC, DataType::Float32, ConvNHWCCnnl,
                 "ConvNHWC_cnnl_BANG_Float32");
 }; // namespace infini
