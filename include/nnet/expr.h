@@ -387,13 +387,13 @@ class FuncNode : public ExprNode {
 
 // Wrappers for type deduction
 
-// make subscript
+// make a subscript operator
 Subscript mSub(const Expr &tensor, const VecExpr &subscripts);
-// make range operator
+// make a range operator
 RangeOp mL(const vector<VarRangePair> &_loopIters,
            const vector<VarRangePair> &_sumIters, Expr _summand,
            const vector<int> &paddings = {});
-// make tensor
+// make a tensor
 Tensor mT(const string &name, const vector<int> &shape,
           const vector<int> &paddings = {}, const Routine &source = nullptr);
 

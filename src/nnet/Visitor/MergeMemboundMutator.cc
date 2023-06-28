@@ -45,6 +45,8 @@ Expr MergeMemboundMutator::merge(bool allowEmptyMembound, bool allowFailure) {
                     curExpr = sub->getObjectPtr();
                 else
                     break;
+            } else if (auto funcOp = as<BinaryOpNode>(summand)) {
+                break;
             } else {
                 if (allowFailure)
                     return nullptr;

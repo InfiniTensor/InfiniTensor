@@ -1232,4 +1232,17 @@ vector<Graph> NMutator::transformConv3x3ONNX(Operator _op) {
     return ret;
 }
 
+Graph NMutator::constructGraphFromExpression(Runtime runtime, nnet::Expr expr) {
+    auto g = make_ref<GraphObj>(runtime);
+    auto nTensors = nnet::GetTensorsVisitor().get(expr);
+    TensorVec inputs, outputs;
+    for (auto &[nName, nTensor] : nTensors) {
+        inputs.emplace_back(g->addTensor(nTensor->getShape()));
+    }
+    outputs.emplace_back(
+        g->addTensor(nnet::as<nnet::RangeOpNode>(expr)->getOutputShape()));
+    g->addOpWithOutputs<MemBoundObj>(inputs, outputs, nTensors, expr, 0);
+    return g;
+}
+
 } // namespace infini

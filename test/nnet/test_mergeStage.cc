@@ -65,3 +65,31 @@ TEST(FuseMembound, mergeNestedStagesInRangeOp) {
                      mSub(K, {f, i / 1024, (i / 256) % 4, i % 256}));
     EXPECT_EQ(HashVisitor().getHash(merged), HashVisitor().getHash(ans));
 }
+
+TEST(FuseMembound, mergeReductionBiasRelu) {
+    DEFINE_VAR(f, i);
+    const int F = 4, H = 16;
+    auto A = mT("A", vector<int>({F, H}));
+    auto B = mT("B", vector<int>({F, H}));
+    auto AB = mT("AB", vector<int>({F, H}));
+    auto C = mT("Bias", vector<int>({F}));
+    auto l0 = // Reduction
+        mL({{f, {0, F}}, {i, {0, H}}}, {}, mSub(A, {f, i}) * mSub(B, {f, i}));
+    auto l1 = // Bias
+        mL({{f, {0, F}}, {i, {0, H}}}, {}, mSub(l0, {f, i}) + mSub(C, {f}));
+    // Relu
+    auto l2 = mL({{f, {0, F}}, {i, {0, H}}}, {},
+                 make_ref<FuncNode>(mSub(AB, {f, i}), FuncType::Relu));
+    dbg(l1, l2);
+
+    auto merged = MergeMemboundMutator({l1, l2}).merge();
+    dbg(merged);
+
+    // TODO:
+    // 1. 用NMutator::constructGraphFromExpression，把以上merged表达式变为算子，
+    // 跑通TVM codegen。现在端到端运行模型用的是test/nnet/run_models_nnet.py的
+    // model_e2e_exp()，可将以上函数作为整体暴露给python。
+    // 2. 在NMutator::runSingleOp中，处理带有bias、relu的conv，使得输入一个conv
+    // operator，能得到Gemm加一个Membound算子(Reduce+Bias+Relu)。现在的代码中，
+    // NMutator::opToExpression返回的表达式会直接忽略bias和relu。
+}

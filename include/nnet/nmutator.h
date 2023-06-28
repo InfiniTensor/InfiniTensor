@@ -90,6 +90,10 @@ class NMutator : public Mutator {
     /// @param op The operator chain. It can have wrong input/output shapes.
     /// @return
     Graph constructGraphByOperatorChain(vector<Operator> ops, Graph inputGraph);
+
+    // Convert an nnet::Expr to an infini::Graph containing corresponding
+    // tensors and operators
+    Graph constructGraphFromExpression(Runtime runtime, nnet::Expr expr);
 };
 
 } // namespace infini
