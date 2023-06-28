@@ -22,7 +22,8 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
         if (aTensor->getDims() != cTensor->getDims()) {
             swap(aTensor, bTensor);
         }
-        IT_ASSERT(aTensor->getDims() == cTensor->getDims(), "Shape does not match.");
+        IT_ASSERT(aTensor->getDims() == cTensor->getDims(),
+                  "Shape does not match.");
 
         void *const aData = (aTensor->getRawDataPtr<void *>());
         void *const bData = (bTensor->getRawDataPtr<void *>());
