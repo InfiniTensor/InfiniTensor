@@ -4,6 +4,7 @@
 #include "operators/concat.h"
 #include "operators/conv.h"
 #include "operators/element_wise.h"
+#include "operators/gather.h"
 #include "operators/matmul.h"
 #include "operators/pooling.h"
 #include "operators/reshape.h"
@@ -15,11 +16,26 @@
 #endif // BANG
 namespace infini {
 
-Tensor runWeightComputation(Runtime &rt, const Tensor &weight) {
+Tensor convertData(Runtime &rt, const Tensor &weight) {
 #ifdef USE_BANG
     auto g = make_ref<GraphObj>(rt);
     auto in = g->addTensor(weight);
     auto out = g->addOp<TransposeObj>(weight, nullptr, vector<int>{0, 2, 3, 1})
+                   ->getOutput();
+    g->dataMalloc();
+    g->getRuntime()->run(g);
+    return g->getOutputs()[0];
+#else
+    IT_TODO_HALT();
+    return nullptr;
+#endif // BANG
+}
+
+Tensor revertDataConversion(Runtime &rt, const Tensor &weight) {
+#ifdef USE_BANG
+    auto g = make_ref<GraphObj>(rt);
+    auto in = g->addTensor(weight);
+    auto out = g->addOp<TransposeObj>(weight, nullptr, vector<int>{0, 3, 1, 2})
                    ->getOutput();
     g->dataMalloc();
     g->getRuntime()->run(g);
@@ -54,19 +70,24 @@ Graph convertNCHWtoNHWCModel(Graph inG) {
         auto rt = g->getRuntime();
         auto uid = inTensor->getGuid();
         if (auto it = tensors.find(uid); it == tensors.end()) {
-            // Only transpose 4-dimension tensors
-            if (inTensor->getDims().size() == 4) {
-                if (inTensor->hasData()) {
-                    tensors[uid] =
-                        g->addTensor(runWeightComputation(rt, inTensor));
-                } else {
-                    Shape s = inTensor->getDims();
-                    tensors[uid] = g->addTensor(vector{s[0], s[2], s[3], s[1]},
-                                                inTensor->getDType(),
-                                                inTensor->getTensorType());
-                }
-            } else {
+            auto targets = inTensor->getTargets();
+            if (std::any_of(targets.begin(), targets.end(), [](const auto &op) {
+                    return as<GatherObj>(op) != nullptr;
+                })) {
+
                 tensors[uid] = g->addTensor(inTensor);
+
+            } else if (inTensor->getDims().size() != 4) {
+
+                tensors[uid] = g->addTensor(inTensor);
+
+            } else if (inTensor->hasData()) {
+                tensors[uid] = g->addTensor(convertData(rt, inTensor));
+            } else {
+                Shape s = inTensor->getDims();
+                tensors[uid] = g->addTensor(vector{s[0], s[2], s[3], s[1]},
+                                            inTensor->getDType(),
+                                            inTensor->getTensorType());
             }
         }
         return tensors[uid];
