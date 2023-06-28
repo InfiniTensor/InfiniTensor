@@ -10,6 +10,7 @@
 #include "operators/reshape.h"
 #include "operators/transpose.h"
 #include "operators/unary.h"
+#include "operators/batch_norm.h"
 
 #ifdef USE_BANG
 #include "bang/bang_runtime.h"
@@ -132,8 +133,14 @@ Graph convertNCHWtoNHWCModel(Graph inG) {
             g->cloneOperator(uOp, inputs, outputs);
         } else if (const auto &eOp = as<ElementWiseObj>(op)) {
             g->cloneOperator(eOp, inputs, outputs);
+        } else if (const auto &eOp = as<BatchNormObj>(op)) {
+            float momentum = eOp->getMomentum();
+            float eps = eOp->getEps();
+            bool mode = eOp->getTrainingMode();
+            g->addOpWithOutputs<BatchNormNHWCObj>(inputs[0], outputs[0], inputs[1], inputs[2], inputs[3], inputs[4], momentum, eps, mode);
         } else {
             dbg(op);
+            std::cout << OpRegistry::getOpName(op->getOpType()) << std::endl;
             for (auto &t : inputs) {
                 if (t->getDims().size() != 4)
                     IT_TODO_HALT();

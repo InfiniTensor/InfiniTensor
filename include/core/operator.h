@@ -34,6 +34,7 @@ enum class OpType {
     Identity,
     // element wise
     BatchNorm = 200,
+    BatchNormNHWC,
     Softmax,
     Activation,
     Relu,
@@ -146,6 +147,7 @@ class OpRegistry {
             FOP(Shape);
             // element wise
             FOP(BatchNorm);
+            FOP(BatchNormNHWC);
             FOP(Softmax);
             FOP(Activation);
             FOP(Relu);
