@@ -45,8 +45,8 @@ class GraphHandlerObj {
 
     inline OpVec operators() { return g->getOperators(); }
 
-    Tensor conv(Tensor input, Tensor weight, Tensor output, int ph, int pw,
-                int sh, int sw, int dh, int dw);
+    Tensor conv(Tensor input, Tensor weight, Tensor bias, Tensor output, int ph,
+                int pw, int sh, int sw, int dh, int dw);
     Tensor convTransposed2d(Tensor input, Tensor weight, Tensor output, int ph,
                             int pw, int sh, int sw, int dh, int dw, int oph,
                             int opw);
@@ -109,7 +109,7 @@ class GraphHandlerObj {
 
     inline void data_malloc() { g->dataMalloc(); }
 
-    inline void run() { g->getRuntime()->run(g); }
+    inline void run() { g->getRuntime()->run(g, true); }
 };
 
 } // namespace infini

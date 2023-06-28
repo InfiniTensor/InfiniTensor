@@ -111,7 +111,7 @@ class ConvBaseObj : public OperatorObj {
     auto getNCHWFRS() const { return tuple(n, c, h, w, f, r, s); }
     auto getPadStrideDilation() const { return tuple(ph, pw, sh, sw, dh, dw); }
     int getChannelPerGroup() const {
-        if (type == OpType::ConvTransNHWC) {
+        if (type == OpType::ConvNHWC || type == OpType::ConvTransNHWC) {
             return inputs[1]->getDims()[3];
         } else {
             return inputs[1]->getDims()[1];
