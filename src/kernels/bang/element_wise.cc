@@ -22,22 +22,19 @@ class ElementWiseCnnl : public BangKernelWithoutConfig {
         auto b_dim = op->getInputs(1)->getDims();
         auto c_dim = op->getOutput()->getDims();
 
-        if (a_dim.size() > 4 || b_dim.size() > 4 || c_dim.size() > 4)
-            IT_TODO_HALT();
-
         // get inputs
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, a_dim.data()));
+            aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, a_dim.size(), a_dim.data()));
 
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            bDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, b_dim.data()));
+            bDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, b_dim.size(), b_dim.data()));
 
         // get outputs
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, c_dim.data()));
+            cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, c_dim.size(), c_dim.data()));
 
         // get op descriptor
         cnnlOpTensorDescriptor_t opDesc;

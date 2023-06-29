@@ -11,6 +11,7 @@ enum class OpType {
     Matmul,
     ConvTrans,
     ConvTransNHWC,
+    ConvNHWC,
     G2BMM,
     GBMM,
     Pad,
@@ -33,6 +34,7 @@ enum class OpType {
     Identity,
     // element wise
     BatchNorm = 200,
+    BatchNormNHWC,
     Softmax,
     Activation,
     Relu,
@@ -121,6 +123,8 @@ class OpRegistry {
             FOP(ConvBackwardData);
             FOP(Matmul);
             FOP(ConvTrans);
+            FOP(ConvTransNHWC);
+            FOP(ConvNHWC);
             FOP(G2BMM);
             FOP(GBMM);
             FOP(Pad);
@@ -143,6 +147,7 @@ class OpRegistry {
             FOP(Shape);
             // element wise
             FOP(BatchNorm);
+            FOP(BatchNormNHWC);
             FOP(Softmax);
             FOP(Activation);
             FOP(Relu);

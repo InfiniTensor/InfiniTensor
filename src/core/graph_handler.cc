@@ -23,16 +23,18 @@ Tensor GraphHandlerObj::tensor(Shape dims, int dtype) {
     return g->addTensor(std::move(dims), dtype_repr_convert(dtype));
 }
 
-Tensor GraphHandlerObj::conv(Tensor input, Tensor weight, Tensor output, int ph,
-                             int pw, int sh, int sw, int dh, int dw) {
+Tensor GraphHandlerObj::conv(Tensor input, Tensor weight, Tensor bias,
+                             Tensor output, int ph, int pw, int sh, int sw,
+                             int dh, int dw) {
     if (output) {
         g->addOpWithOutputs<ConvObj>(std::move(input), std::move(weight),
-                                     output, ph, pw, sh, sw, dh, dw);
+                                     output, ph, pw, sh, sw, dh, dw, bias,
+                                     ActType::None);
         return output;
     } else {
         return g
             ->addOp<ConvObj>(std::move(input), std::move(weight), output, ph,
-                             pw, sh, sw, dh, dw)
+                             pw, sh, sw, dh, dw, bias, ActType::None)
             ->getOutput();
     }
 }
@@ -51,6 +53,39 @@ Tensor GraphHandlerObj::convTransposed2d(Tensor input, Tensor weight,
             ->addOp<ConvTransposed2dObj>(std::move(input), std::move(weight),
                                          output, ph, pw, sh, sw, dh, dw, oph,
                                          opw)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::convNHWC(Tensor input, Tensor weight, Tensor output,
+                                 int ph, int pw, int sh, int sw, int dh,
+                                 int dw) {
+    if (output) {
+        g->addOpWithOutputs<ConvNHWCObj>(std::move(input), std::move(weight),
+                                         output, ph, pw, sh, sw, dh, dw);
+        return output;
+    } else {
+        return g
+            ->addOp<ConvNHWCObj>(std::move(input), std::move(weight), output,
+                                 ph, pw, sh, sw, dh, dw)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::convTransposed2dNHWC(Tensor input, Tensor weight,
+                                             Tensor output, int ph, int pw,
+                                             int sh, int sw, int dh, int dw,
+                                             int oph, int opw) {
+    if (output) {
+        g->addOpWithOutputs<ConvTransposed2dNHWCObj>(
+            std::move(input), std::move(weight), output, ph, pw, sh, sw, dh, dw,
+            oph, opw);
+        return output;
+    } else {
+        return g
+            ->addOp<ConvTransposed2dNHWCObj>(std::move(input),
+                                             std::move(weight), output, ph, pw,
+                                             sh, sw, dh, dw, oph, opw)
             ->getOutput();
     }
 }

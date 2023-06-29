@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "app.h"
 #include "core/graph.h"
 #include "core/runtime.h"
 #include <cstdint>
@@ -44,11 +45,16 @@ class GraphHandlerObj {
 
     inline OpVec operators() { return g->getOperators(); }
 
-    Tensor conv(Tensor input, Tensor weight, Tensor output, int ph, int pw,
-                int sh, int sw, int dh, int dw);
+    Tensor conv(Tensor input, Tensor weight, Tensor bias, Tensor output, int ph,
+                int pw, int sh, int sw, int dh, int dw);
     Tensor convTransposed2d(Tensor input, Tensor weight, Tensor output, int ph,
                             int pw, int sh, int sw, int dh, int dw, int oph,
                             int opw);
+    Tensor convNHWC(Tensor input, Tensor weight, Tensor output, int ph, int pw,
+                    int sh, int sw, int dh, int dw);
+    Tensor convTransposed2dNHWC(Tensor input, Tensor weight, Tensor output,
+                                int ph, int pw, int sh, int sw, int dh, int dw,
+                                int oph, int opw);
     Tensor matmul(Tensor a, Tensor b, Tensor y, bool transA, bool transB,
                   Tensor bias, ActType act);
     Tensor batchNorm(Tensor input, Tensor output, Tensor mean, Tensor var,
@@ -96,6 +102,8 @@ class GraphHandlerObj {
     inline bool topo_sort() { return g->topo_sort(); }
 
     inline void optimize() { g->optimize(); }
+
+    inline void convert_nhwc() { g = std::move(convertNCHWtoNHWCModel(g)); }
 
     //------ runtime
 

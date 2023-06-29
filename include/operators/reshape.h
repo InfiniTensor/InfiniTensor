@@ -19,7 +19,7 @@ class ReshapeObj : public OperatorObj {
      * @param output The output tensor.
      * @param dims The shape of the output tensor.
      */
-    ReshapeObj(GraphObj *graph, Tensor input, Tensor output, Shape dims);
+    ReshapeObj(GraphObj *graph, Tensor input, Tensor output, Shape dims = {});
     OP_CLONE(ReshapeObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
@@ -60,6 +60,7 @@ class FlattenObj : public OperatorObj {
     std::string toString() const override;
     int numInputs() const override { return 1; }
     int numOutputs() const override { return 1; }
+    int getAxis() const { return axis; }
 
   private:
     vector<int> getWorkloadVector() const override;

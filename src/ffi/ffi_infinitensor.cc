@@ -1,3 +1,4 @@
+#include "core/app.h"
 #include "core/graph_handler.h"
 #include "operators/batch_norm.h"
 #include "operators/concat.h"
@@ -63,6 +64,8 @@ void export_values(py::module &m) {
         .VALUE(OpType, Conv)
         .VALUE(OpType, Matmul)
         .VALUE(OpType, ConvTrans)
+        .VALUE(OpType, ConvTransNHWC)
+        .VALUE(OpType, ConvNHWC)
         .VALUE(OpType, G2BMM)
         .VALUE(OpType, GBMM)
         .VALUE(OpType, Pad)
@@ -132,19 +135,34 @@ static Ref<RuntimeObj> intelcpu_runtime() { return make_ref<MklRuntimeObj>(); }
 #endif
 
 static std::tuple<int, int, int, int, int, int> conv_attrs_of(Operator op) {
-    IT_ASSERT(op->getOpType() == OpType::Conv);
-    auto conv = dynamic_cast<const ConvObj *>(op.get());
+    IT_ASSERT(op->getOpType() == OpType::Conv ||
+              op->getOpType() == OpType::ConvNHWC);
+    auto conv = dynamic_cast<const ConvBaseObj *>(op.get());
     return std::make_tuple(conv->getPh(), conv->getPw(), conv->getDh(),
                            conv->getDw(), conv->getSh(), conv->getSw());
 }
 
 static std::tuple<int, int, int, int, int, int, int, int>
 conv_trans_attrs_of(Operator op) {
-    IT_ASSERT(op->getOpType() == OpType::ConvTrans);
-    auto conv = dynamic_cast<const ConvTransposed2dObj *>(op.get());
-    auto [oph, opw] = conv->getOutputPadding();
-    return std::make_tuple(conv->getPh(), conv->getPw(), conv->getDh(),
-                           conv->getDw(), conv->getSh(), conv->getSw(), oph,
+    IT_ASSERT(op->getOpType() == OpType::ConvTrans ||
+              op->getOpType() == OpType::ConvTransNHWC);
+    auto conv = dynamic_cast<const ConvBaseObj *>(op.get());
+    int oph, opw;
+
+    if (op->getOpType() == OpType::ConvTrans) {
+        auto _conv = dynamic_cast<const ConvTransposed2dObj *>(op.get());
+        auto output_pad = _conv->getOutputPadding();
+        oph = output_pad.first;
+        opw = output_pad.second;
+    } else {
+        auto _conv = dynamic_cast<const ConvTransposed2dNHWCObj *>(op.get());
+        auto output_pad = _conv->getOutputPadding();
+        oph = output_pad.first;
+        opw = output_pad.second;
+    }
+
+    return std::make_tuple(conv->getPh(), conv->getPw(), conv->getSh(),
+                           conv->getSw(), conv->getDh(), conv->getDw(), oph,
                            opw);
 }
 
@@ -294,6 +312,9 @@ void init_graph_builder(py::module &m) {
         .def("tensor", &Handler::tensor, policy::move)
         .def("conv", &Handler::conv, policy::move)
         .def("convTransposed2d", &Handler::convTransposed2d, policy::move)
+        .def("convNHWC", &Handler::convNHWC, policy::move)
+        .def("convtransposed2dNHWC", &Handler::convTransposed2dNHWC,
+             policy::move)
         .def("matmul", &Handler::matmul, policy::move)
         .def("batchNorm", &Handler::batchNorm, policy::move)
         .def("maxPool", &Handler::maxPool, policy::move)
@@ -323,12 +344,17 @@ void init_graph_builder(py::module &m) {
         .def("pad", &Handler::pad, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)
         .def("optimize", &Handler::optimize, policy::automatic)
+        .def("convert_nhwc", &Handler::convert_nhwc, policy::automatic)
         .def("operators", &Handler::operators, policy::move)
         .def("data_malloc", &Handler::data_malloc, policy::automatic)
         .def("get_perf_time", &Handler::get_perf_time, policy::automatic)
         .def("tune", &Handler::tune, policy::automatic)
         .def("run", &Handler::run, policy::automatic)
         .def("get_perf_time", &Handler::get_perf_time, policy::automatic);
+}
+
+void load_apps(py::module &m) {
+    m.def("convertNCHWtoNHWCModel", &convertNCHWtoNHWCModel);
 }
 
 } // namespace infini
@@ -338,4 +364,5 @@ PYBIND11_MODULE(backend, m) {
     infini::export_values(m);
     infini::export_functions(m);
     infini::init_graph_builder(m);
+    infini::load_apps(m);
 }

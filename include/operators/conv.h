@@ -98,7 +98,7 @@ class ConvBaseObj : public OperatorObj {
     int numInputs() const override { return 2; }
     int numOutputs() const override { return 1; }
 
-    Tensor getBias() const { return inputs[2]; }
+    Tensor getBias() const { return inputs.size() > 2 ? inputs[2] : nullptr; }
     PaddingMode getPaddingMode() const { return padding; }
     pair<int, int> inferPaddingSize() const;
 
@@ -111,7 +111,7 @@ class ConvBaseObj : public OperatorObj {
     auto getNCHWFRS() const { return tuple(n, c, h, w, f, r, s); }
     auto getPadStrideDilation() const { return tuple(ph, pw, sh, sw, dh, dw); }
     int getChannelPerGroup() const {
-        if (type == OpType::ConvTransNHWC) {
+        if (type == OpType::ConvNHWC || type == OpType::ConvTransNHWC) {
             return inputs[1]->getDims()[3];
         } else {
             return inputs[1]->getDims()[1];
@@ -141,6 +141,25 @@ class ConvObj : public ConvBaseObj {
             int dh = 1, int dw = 1, Tensor bias = nullptr,
             ActType act = ActType::None);
     OP_CLONE(ConvObj);
+
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    int getNumGroups() const override { return c / getChannelPerGroup(); }
+
+  private:
+    void setAuxilaryAttributes(PaddingMode mode) override;
+};
+
+class ConvNHWCObj : public ConvBaseObj {
+  public:
+    ConvNHWCObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
+                int ph, int pw, int sh = 1, int sw = 1, int dh = 1, int dw = 1,
+                Tensor bias = nullptr, ActType act = ActType::None);
+    // Constructors for setting padding mode
+    ConvNHWCObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
+                PaddingMode mode = PaddingMode::Same, int sh = 1, int sw = 1,
+                int dh = 1, int dw = 1, Tensor bias = nullptr,
+                ActType act = ActType::None);
+    OP_CLONE(ConvNHWCObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
     int getNumGroups() const override { return c / getChannelPerGroup(); }
@@ -220,6 +239,7 @@ class ConvTransposed2dNHWCObj : public ConvBaseObj {
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
     int getNumGroups() const override { return group; }
+    std::pair<int, int> getOutputPadding() const { return {oph, opw}; }
 
   private:
     void setAuxilaryAttributes(PaddingMode mode) override;

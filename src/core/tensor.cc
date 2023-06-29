@@ -8,12 +8,14 @@
 
 namespace infini {
 
-TensorObj::TensorObj(Shape shape_, DataType dtype, Runtime runtime)
+TensorObj::TensorObj(Shape shape_, DataType dtype, Runtime runtime,
+                     TensorType tensorType)
     : TensorBaseObj(shape_.size(), dtype, runtime), shape(std::move(shape_)),
       _size(shape.empty()
                 ? 0
-                : std::accumulate(shape.begin(), shape.end(), 1,
-                                  [](auto acc, auto x) { return acc * x; })) {}
+                : std::accumulate(shape.begin(), shape.end(), 1lu,
+                                  [](auto acc, auto x) { return acc * x; })),
+      tensorType(tensorType) {}
 
 string TensorObj::toString() const {
     // Convert data pointer to string
@@ -24,8 +26,8 @@ string TensorObj::toString() const {
         ss << "nullptr data";
     string ret = "Tensor " + std::to_string(guid) + ", Fuid " +
                  std::to_string(fuid) + ", shape " + vecToString(shape) +
-                 ", dtype " + dtype.toString() + ", " + runtime->toString() +
-                 ", " + ss.str() + "\n";
+                 ", dtype " + dtype.toString() + ", tensorType " +
+                 std::to_string(enum_to_underlying(tensorType));
     vector<UidBaseType> targetGuids;
     for (const auto &op : targets)
         targetGuids.emplace_back(op.lock()->getGuid());
@@ -34,6 +36,7 @@ string TensorObj::toString() const {
     else
         ret += ", source None";
     ret += ", targets " + vecToString(targetGuids);
+    ret += ", " + runtime->toString() + ", " + ss.str();
     return ret;
 }
 
