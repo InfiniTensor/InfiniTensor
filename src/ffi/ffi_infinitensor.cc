@@ -347,7 +347,10 @@ void init_graph_builder(py::module &m) {
         .def("convert_nhwc", &Handler::convert_nhwc, policy::automatic)
         .def("operators", &Handler::operators, policy::move)
         .def("data_malloc", &Handler::data_malloc, policy::automatic)
-        .def("run", &Handler::run, policy::automatic);
+        .def("get_perf_time", &Handler::get_perf_time, policy::automatic)
+        .def("tune", &Handler::tune, policy::automatic)
+        .def("run", &Handler::run, policy::automatic)
+        .def("get_perf_time", &Handler::get_perf_time, policy::automatic);
 }
 
 void load_apps(py::module &m) {

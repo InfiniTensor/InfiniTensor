@@ -444,7 +444,8 @@ class OnnxStub:
                 tensors[node.output[0]] = self.handler.reduce_mean(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
-                    tensors[node.input[1]] if len(node.input) > 1 else None,
+                    # NOTE(constroy): `axes` is an attribute until opset version 13.
+                    next((attr.ints for attr in node.attribute if attr.name == "axes"), None),
                     next((attr.i for attr in node.attribute if attr.name == "keepdims"))
                     != 0,
                 )
@@ -794,8 +795,14 @@ class OnnxStub:
     def optimize(self) -> None:
         self.handler.optimize()
 
+    def tune(self) -> None:
+        self.handler.tune()
+
     def run(self) -> None:
         self.handler.run()
+
+    def get_perf_time(self) -> float:
+        self.handler.get_perf_time()
 
 
 def from_onnx(model: ModelProto, runtime):
