@@ -1,6 +1,7 @@
 #include "core/graph.h"
 #include "core/runtime.h"
 #include "nnet/dbg.h"
+#include "operators/batch_norm.h"
 #include "operators/concat.h"
 #include "operators/conv.h"
 #include "operators/element_wise.h"
@@ -10,34 +11,18 @@
 #include "operators/reshape.h"
 #include "operators/transpose.h"
 #include "operators/unary.h"
-#include "operators/batch_norm.h"
 
 #ifdef USE_BANG
 #include "bang/bang_runtime.h"
 #endif // BANG
 namespace infini {
 
-Tensor convertData(Runtime &rt, const Tensor &weight) {
+Tensor convertData(Runtime &rt, const Tensor &weight, vector<int> permute) {
+    IT_ASSERT(weight->getDims().size() == permute.size());
 #ifdef USE_BANG
     auto g = make_ref<GraphObj>(rt);
     auto in = g->addTensor(weight);
-    auto out = g->addOp<TransposeObj>(weight, nullptr, vector<int>{0, 2, 3, 1})
-                   ->getOutput();
-    g->dataMalloc();
-    g->getRuntime()->run(g);
-    return g->getOutputs()[0];
-#else
-    IT_TODO_HALT();
-    return nullptr;
-#endif // BANG
-}
-
-Tensor revertDataConversion(Runtime &rt, const Tensor &weight) {
-#ifdef USE_BANG
-    auto g = make_ref<GraphObj>(rt);
-    auto in = g->addTensor(weight);
-    auto out = g->addOp<TransposeObj>(weight, nullptr, vector<int>{0, 3, 1, 2})
-                   ->getOutput();
+    auto out = g->addOp<TransposeObj>(weight, nullptr, permute)->getOutput();
     g->dataMalloc();
     g->getRuntime()->run(g);
     return g->getOutputs()[0];
@@ -83,7 +68,8 @@ Graph convertNCHWtoNHWCModel(Graph inG) {
                 tensors[uid] = g->addTensor(inTensor);
 
             } else if (inTensor->hasData()) {
-                tensors[uid] = g->addTensor(convertData(rt, inTensor));
+                tensors[uid] =
+                    g->addTensor(convertData(rt, inTensor, {0, 2, 3, 1}));
             } else {
                 Shape s = inTensor->getDims();
                 tensors[uid] = g->addTensor(vector{s[0], s[2], s[3], s[1]},
@@ -137,7 +123,9 @@ Graph convertNCHWtoNHWCModel(Graph inG) {
             float momentum = eOp->getMomentum();
             float eps = eOp->getEps();
             bool mode = eOp->getTrainingMode();
-            g->addOpWithOutputs<BatchNormNHWCObj>(inputs[0], outputs[0], inputs[1], inputs[2], inputs[3], inputs[4], momentum, eps, mode);
+            g->addOpWithOutputs<BatchNormNHWCObj>(
+                inputs[0], outputs[0], inputs[1], inputs[2], inputs[3],
+                inputs[4], momentum, eps, mode);
         } else {
             dbg(op);
             std::cout << OpRegistry::getOpName(op->getOpType()) << std::endl;
