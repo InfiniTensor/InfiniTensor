@@ -8,11 +8,10 @@
 #include "operators/gather.h"
 #include "operators/matmul.h"
 #include "operators/pooling.h"
+#include "operators/reduce_mean.h"
 #include "operators/reshape.h"
 #include "operators/transpose.h"
 #include "operators/unary.h"
-#include "operators/batch_norm.h"
-#include "operators/reduce_mean.h"
 
 #ifdef USE_BANG
 #include "bang/bang_runtime.h"
@@ -125,39 +124,43 @@ Graph convertNCHWtoNHWCModel(Graph inG) {
             float momentum = eOp->getMomentum();
             float eps = eOp->getEps();
             bool mode = eOp->getTrainingMode();
-            g->addOpWithOutputs<BatchNormNHWCObj>(inputs[0], outputs[0], inputs[1], inputs[2], inputs[3], inputs[4], momentum, eps, mode);
+            g->addOpWithOutputs<BatchNormNHWCObj>(
+                inputs[0], outputs[0], inputs[1], inputs[2], inputs[3],
+                inputs[4], momentum, eps, mode);
         } else if (const auto &eOp = as<ReduceMeanObj>(op)) {
             std::vector<int> axes_vector;
-            auto axes = eOp->getAxes(); 
+            auto axes = eOp->getAxes();
             std::set<int>::iterator it;
 
-            auto convertxxx = [&](std::vector<int> permute){
-                for (auto x:axes){
-                  axes_vector.push_back(permute[x]);
+            auto convertxxx = [&](std::vector<int> permute) {
+                for (auto x : axes) {
+                    axes_vector.push_back(permute[x]);
                 }
             };
 
-            switch(inputs[0]->getDims().size()){
-              case 4: convertxxx({0,3,1,2});
-                      break;
-              case 3: convertxxx({0,2,1});
-                      break;
-              case 2: convertxxx({0,1});
-                      break;
-              case 1: convertxxx({0});
-                      break;
+            switch (inputs[0]->getDims().size()) {
+            case 4:
+                convertxxx({0, 3, 1, 2});
+                break;
+            case 3:
+                convertxxx({0, 2, 1});
+                break;
+            case 2:
+                convertxxx({0, 1});
+                break;
+            case 1:
+                convertxxx({0});
+                break;
             }
             bool keepDims = eOp->getKeepDims();
             g->addOp<ReduceMeanObj>(inputs[0], nullptr, axes_vector, keepDims);
         } else {
             dbg(op);
-            std::cout << OpRegistry::getOpName(op->getOpType()) << std::endl;
             for (auto &t : inputs) {
                 if (t->getDims().size() != 4)
                     IT_TODO_HALT();
             }
             for (auto &t : outputs) {
-                std::cout<< t->getDims().size() << std::endl;
                 if (t->getDims().size() != 4)
                     IT_TODO_HALT();
             }
