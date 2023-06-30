@@ -36,13 +36,13 @@ class ClipObj : public OperatorObj {
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
     std::string toString() const override;
-    std::optional<float> getMin() const { return minValue; };
-    std::optional<float> getMax() const { return maxValue; };
+    float getMin() const { return minValue; };
+    float getMax() const { return maxValue; };
     int numInputs() const override { return 1; }
     int numOutputs() const override { return 1; }
 
   private:
-    std::optional<float> minValue, maxValue;
+    float minValue, maxValue;
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;
 };

@@ -1,6 +1,5 @@
 #include "core/graph.h"
 #include "core/runtime.h"
-#include "nnet/dbg.h"
 #include "operators/batch_norm.h"
 #include "operators/concat.h"
 #include "operators/conv.h"
@@ -149,7 +148,6 @@ Graph convertNCHWtoNHWCModel(Graph inG) {
             g->addOp<ReduceMeanObj>(inputs[0], nullptr, axes_vector,
                                     eOp->getKeepDims());
         } else {
-            dbg(op);
             for (auto &t : inputs) {
                 if (t->getDims().size() != 4)
                     IT_TODO_HALT();

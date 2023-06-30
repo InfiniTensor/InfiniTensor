@@ -68,9 +68,9 @@ template <typename T> class Clip : public CpuKernelWithoutConfig {
         auto n = op->getOutput()->size();
         for (size_t offset = 0; offset < n; offset++) {
             auto val = *inptr++;
-            *outptr++ = (minValue && val < *minValue)   ? *minValue
-                        : (maxValue && val > *maxValue) ? *maxValue
-                                                        : val;
+            *outptr++ = val < minValue   ? minValue
+                        : val > maxValue ? maxValue
+                                         : val;
         }
     }
 };

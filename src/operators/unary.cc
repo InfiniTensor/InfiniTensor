@@ -34,8 +34,8 @@ vector<int> UnaryObj::getOpAttrVector() const {
 
 ClipObj::ClipObj(GraphObj *graph, Tensor input, Tensor output,
                  std::optional<float> min, std::optional<float> max)
-    : OperatorObj(OpType::Clip, {input}, {output}), minValue(min),
-      maxValue(max) {
+    : OperatorObj(OpType::Clip, {input}, {output}),
+      minValue(min ? *min : -INFINITY), maxValue(max ? *max : INFINITY) {
     IT_ASSERT(checkValid(graph));
 }
 
