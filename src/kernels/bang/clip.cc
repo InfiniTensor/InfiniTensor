@@ -22,10 +22,16 @@ class ClipCnnl : public BangKernelWithoutConfig {
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
                                                CNNL_DTYPE_FLOAT, aDim.size(),
                                                aDim.data()));
-        cnnlStatus_t stat =
+        cnnlStatus_t stat;
+        if ( std::isfinite(min) || std::isfinite(max)) {
+        stat =
             cnnlClip(context->cnnlHandle(), aDesc, aData,
                      std::isfinite(min) ? &min : nullptr,
                      std::isfinite(max) ? &max : nullptr, cData);
+        } else {
+        stat =
+            cnnlCopy(context->cnnlHandle(), aDesc, aData, aDesc, cData);
+        }
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
