@@ -12,12 +12,10 @@ class ClipCuda : public CudaKernelWithoutConfig {
 
         void *const inputData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const outputData = (op->getOutput()->getRawDataPtr<void *>());
-        auto min = op->getMin();
-        auto max = op->getMax();
         auto dim = op->getInputs(0)->getDims();
         int num = dim[0] * dim[1] * dim[2] * dim[3];
-        clip_kernel((float *)inputData, (float *)outputData, num,
-                    min ? *min : NAN, max ? *max : NAN);
+        clip_kernel((float *)inputData, (float *)outputData, num, op->getMin(),
+                    op->getMax());
     }
 };
 
