@@ -1,6 +1,7 @@
 #include "bang/bang_kernel_without_config.h"
 #include "bang/bang_runtime.h"
 #include "operators/unary.h"
+#include <cmath>
 
 namespace infini {
 class ClipCnnl : public BangKernelWithoutConfig {
@@ -22,7 +23,9 @@ class ClipCnnl : public BangKernelWithoutConfig {
                                                CNNL_DTYPE_FLOAT, aDim.size(),
                                                aDim.data()));
         cnnlStatus_t stat =
-            cnnlClip(context->cnnlHandle(), aDesc, aData, &min, &max, cData);
+            cnnlClip(context->cnnlHandle(), aDesc, aData,
+                     std::isfinite(min) ? &min : nullptr,
+                     std::isfinite(max) ? &max : nullptr, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
