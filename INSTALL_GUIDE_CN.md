@@ -92,6 +92,12 @@
    > 如您需要使用本项目下的 InfiniTest 测试工具，你还需要安装如下的项目：
    > > [protobuf](https://github.com/protocolbuffers/protobuf)： 一种序列化文件的格式及其编译、序列化、解析工具 
 
+7. 使用 Docker 进行部署运行
+   > 我们提供了英伟达环境上的 Docker 镜像文件与寒武纪环境上的 Docker 镜像文件来方便用户直接部署运行。
+   > > 你需要先将镜像文件加载到 Docker 环境中， 请确保您已经在机器上正确安装了 Docker。之后使用 docker load -i docker_file.tar 来进行加载。
+   > > 如您是英伟达机器环境，请执行 docker run -it --network=host --runtime=nvidia REPOSITORY:TAG，例如 docker run -it --network=host --runtime=nvidia infini:release 来启动并进入容器。
+   > > 如您是寒武纪机器环境，请执行 docker run -it --device /dev/cambricon_ctl --device /dev/cambricon_dev0 --device /dev/cambricon_ipcm0 REPOSITORY:TAG /bin/bash，例如 docker run -it --device /dev/cambricon_ctl --device /dev/cambricon_dev0 --device /dev/cambricon_ipcm0 tensorsense:0630 /bin/bash 来启动并进入容器。
+
 ## 编译本项目
 
 推荐使用 X86-64 机器以及 Ubuntu-22.04，本文以此环境为例。
