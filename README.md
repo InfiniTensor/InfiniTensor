@@ -1,13 +1,23 @@
 # InfiniTensor
 
+[中文项目简介](/README_CN.md) | [Documentation](/docs/INDEX.md) | [Contributors](/docs/TODO.md) | [Community](/docs/TODO.md) | [Release Notes](/CHANGELOG.md)
+
+[![Build](https://github.com/InfiniTensor/InfiniTensor/actions/workflows/workflow.yml/badge.svg?branch=master)](https://github.com/InfiniTensor/InfiniTensor/actions)
+[![issue](https://img.shields.io/github/issues/InfiniTensor/InfiniTensor)](https://github.com/InfiniTensor/InfiniTensor/issues)
+![license](https://img.shields.io/github/license/InfiniTensor/InfiniTensor)
+
 ## Compilation on Lotus
-# Compilation for cuda
+
+## Compilation for cuda
+
 ``` bash
 # Enter the root of InfiniTensor
 source test/script/env_lotus.sh
 make CUDA=ON
 ```
+
 ## Compilation for intelcpu
+
 ``` bash
 # Enter the root of InfiniTensor
 source test/script/env_lotus.sh intelcpu
