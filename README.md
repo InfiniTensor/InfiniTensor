@@ -1,20 +1,14 @@
 # InfiniTensor
 
-## Compilation on Lotus
-# Compilation for cuda
-``` bash
-# Enter the root of InfiniTensor
-source test/script/env_lotus.sh
-make CUDA=ON
-```
-## Compilation for intelcpu
-``` bash
-# Enter the root of InfiniTensor
-source test/script/env_lotus.sh intelcpu
-mkdir build && cd build
-cmake -DUSE_INTELCPU=ON -DCMAKE_CXX_COMPILER=dpcpp .. && make -j 12
-```
+[中文项目简介](/README_CN.md) | Documentation | [中文文档](/docs/INDEX.md)
 
+[![Build](https://github.com/InfiniTensor/InfiniTensor/actions/workflows/workflow.yml/badge.svg?branch=master)](https://github.com/InfiniTensor/InfiniTensor/actions)
+[![issue](https://img.shields.io/github/issues/InfiniTensor/InfiniTensor)](https://github.com/InfiniTensor/InfiniTensor/issues)
+![license](https://img.shields.io/github/license/InfiniTensor/InfiniTensor)
+
+InfiniTensor is a high-performance inference engine tailored for GPUs and AI accelerators. Its design focuses on effective deployment and swift academic validation.
+
+## Get started 
 ### Make Commands
 
 - `make`/`make build`: Builds the project;
@@ -30,11 +24,21 @@ cmake -DUSE_INTELCPU=ON -DCMAKE_CXX_COMPILER=dpcpp .. && make -j 12
 
 ### CMake Options
 
-There are several configurable CMake options, see the [CMakeLists.txt file](/CMakeLists.txt#L5).
+There are several configurable CMake options, see the [CMakeLists.txt](/CMakeLists.txt#L5) file.
 
 - If `USE_BACKTRACE` is `ON`, `libdw-dev` have to be installed. See the README of [backward-cpp](https://github.com/bombela/backward-cpp) for details.
 - If `USE_PROTOBUF` is `ON`, `protobuf` have to be installed. See the README of [protobuf](https://github.com/protocolbuffers/protobuf) for details.
 - If `USE_CUDA` is `ON`, `cuda` have to be installed.
+
+## Roadmap
+
+- [EinNet](https://github.com/InfiniTensor/InfiniTensor/tree/NNET_e2e) is going to be merged into the main branch.
+- Integration of [PET](https://github.com/thu-pacman/PET), a tensor program optimizer supporting partially equivalent transformations.
+- Supported hardware
+    - ✔ NVIDIA GPU
+    - ✔ Cambricon MLU
+    - ⬜ Ascend NPU
+    - ⬜ Kunlunxin XPU
 
 ## Contributor Guide
 
@@ -46,9 +50,22 @@ InfiniTensor development is based on the pull request on Github. Before requesti
 2. Receive at least one approval from reviewers.
 3. PR title should be concise since it is going to be the commit message in the main branch after merging and squashing.
 
-## Dependencies
+## Reference
+Please cite EinNet or PET in your publications if it helps your research:
+```
+@article{zheng2023einnet,
+  title={EINNET: Optimizing Tensor Programs with Derivation-Based Transformations},
+  author={Zheng, Liyan and Wang, Haojie and Zhai, Jidong and Hu, Muyan and Ma, Zixuan and Wang, Tuowei and Huang, Shuhong and Miao, Xupeng and Tang, Shizhi and Huang, Kezhao and Jia, Zhihao},
+  booktitle={17th USENIX Symposium on Operating Systems Design and Implementation (OSDI 23)},
+  pages={739--755},
+  year={2023}
+}
 
-- [backward-cpp](https://github.com/bombela/backward-cpp): [v1.6](https://github.com/bombela/backward-cpp/releases/tag/v1.6)
-- [googletest](https://github.com/google/googletest): [v1.13.0](https://github.com/google/googletest/releases/tag/v1.13.0)
-- [nlohmann_json_cmake_fetchcontent](https://github.com/ArthurSonzogni/nlohmann_json_cmake_fetchcontent): [v3.10.5](https://github.com/ArthurSonzogni/nlohmann_json_cmake_fetchcontent/releases/tag/v3.10.5)
-- [pybind11](https://github.com/pybind/pybind11): [v2.10.3](https://github.com/pybind/pybind11/releases/tag/v2.10.3)
+@inproceedings{wang2021pet,
+  title={PET: Optimizing tensor programs with partially equivalent transformations and automated corrections},
+  author={Wang, Haojie and Zhai, Jidong and Gao, Mingyu and Ma, Zixuan and Tang, Shizhi and Zheng, Liyan and Li, Yuanzhi and Rong, Kaiyuan and Chen, Yuanyong and Jia, Zhihao},
+  booktitle={15th USENIX Symposium on Operating Systems Design and Implementation (OSDI 21)},
+  pages={37--54},
+  year={2021}
+}
+```
