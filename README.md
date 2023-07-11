@@ -2,13 +2,14 @@
 
 [中文项目简介](/README_CN.md) | Documentation | [中文文档](/docs/INDEX.md)
 
-[![Build](https://github.com/InfiniTensor/InfiniTensor/actions/workflows/workflow.yml/badge.svg?branch=master)](https://github.com/InfiniTensor/InfiniTensor/actions)
+[![Build](https://github.com/InfiniTensor/InfiniTensor/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/InfiniTensor/InfiniTensor/actions)
 [![issue](https://img.shields.io/github/issues/InfiniTensor/InfiniTensor)](https://github.com/InfiniTensor/InfiniTensor/issues)
 ![license](https://img.shields.io/github/license/InfiniTensor/InfiniTensor)
 
 InfiniTensor is a high-performance inference engine tailored for GPUs and AI accelerators. Its design focuses on effective deployment and swift academic validation.
 
-## Get started 
+## Get started
+
 ### Make Commands
 
 - `make`/`make build`: Builds the project;
@@ -35,10 +36,10 @@ There are several configurable CMake options, see the [CMakeLists.txt](/CMakeLis
 - [EinNet](https://github.com/InfiniTensor/InfiniTensor/tree/NNET_e2e) is going to be merged into the main branch.
 - Integration of [PET](https://github.com/thu-pacman/PET), a tensor program optimizer supporting partially equivalent transformations.
 - Supported hardware
-    - ✔ NVIDIA GPU
-    - ✔ Cambricon MLU
-    - ⬜ Ascend NPU
-    - ⬜ Kunlunxin XPU
+  - ✔ NVIDIA GPU
+  - ✔ Cambricon MLU
+  - ⬜ Ascend NPU
+  - ⬜ Kunlunxin XPU
 
 ## Contributor Guide
 
@@ -51,8 +52,10 @@ InfiniTensor development is based on the pull request on Github. Before requesti
 3. PR title should be concise since it is going to be the commit message in the main branch after merging and squashing.
 
 ## Reference
+
 Please cite EinNet or PET in your publications if it helps your research:
-```
+
+```plaintext
 @article{zheng2023einnet,
   title={EINNET: Optimizing Tensor Programs with Derivation-Based Transformations},
   author={Zheng, Liyan and Wang, Haojie and Zhai, Jidong and Hu, Muyan and Ma, Zixuan and Wang, Tuowei and Huang, Shuhong and Miao, Xupeng and Tang, Shizhi and Huang, Kezhao and Jia, Zhihao},
