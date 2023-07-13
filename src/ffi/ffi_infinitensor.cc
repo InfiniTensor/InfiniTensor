@@ -96,6 +96,10 @@ void export_values(py::module &m) {
         .VALUE(OpType, Resize)
         .VALUE(OpType, Dropout)
         .VALUE(OpType, Cast)
+        .VALUE(OpType, Sqrt)
+		.VALUE(OpType, Expand)
+		.VALUE(OpType, Erf)
+        .VALUE(OpType, Where)
         .export_values();
 
 #undef VALUE
@@ -224,6 +228,15 @@ static vector<int64_t> reshape_shape_of(Operator op) {
     std::transform(shape.begin(), shape.end(), ans.begin(),
                    [](auto x) { return static_cast<int64_t>(x); });
     return ans;
+}
+
+static vector<int64_t> expand_shape_of(Operator op) {
+	IT_ASSERT(op->getOpType() == OpType::Expand);
+	auto shape = dynamic_cast<const ExpandObj *>(op.get())->getShape();
+	vector<int64_t> ans(shape.size());
+	std::transform(shape.begin(), shape.end(), ans.begin(),
+					[](auto x) { return static_cast<int64_t>(x); });
+	return ans;
 }
 
 static vector<int64_t> pad_pads_of(Operator op) {
@@ -359,6 +372,10 @@ void init_graph_builder(py::module &m) {
         .def("slice", &Handler::slice, policy::move)
         .def("pad", &Handler::pad, policy::move)
         .def("cast", &Handler::cast, policy::move)
+		.def("expand", &Handler::expand, policy::move)
+        .def("sqrt", &Handler::sqrt, policy::move)
+        .def("erf", &Handler::erf, policy::move)
+        .def("where", &Handler::where, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)
         .def("optimize", &Handler::optimize, policy::automatic)
         .def("operators", &Handler::operators, policy::move)

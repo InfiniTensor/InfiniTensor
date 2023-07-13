@@ -1,4 +1,4 @@
-﻿import backend
+﻿﻿import backend
 from onnx import (
     ModelProto,
     TensorProto,
@@ -409,7 +409,7 @@ class OnnxStub:
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
                         next(
-                            (attr.i for attr in node.attribute if attr.name == "axis")
+                            (attr.i for attr in node.attribute if attr.name == "axis"), 1
                         ),
                     )
                 elif node.op_type == "PRelu":
@@ -588,6 +588,30 @@ class OnnxStub:
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
                         next((attr.i for attr in node.attribute if attr.name == "to")),
+                    )
+                elif node.op_type == "Expand":
+                    shape = _parse_data(data[node.input[1]])
+                    tensors[node.output[0]] = self.handler.expand(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        shape,
+                    )
+                elif node.op_type == "Sqrt":
+                    tensors[node.output[0]] = self.handler.sqrt(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "Erf":
+                    tensors[node.output[0]] = self.handler.erf(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "Where":
+                    tensors[node.output[0]] = self.handler.where(
+                        tensors[node.input[1]],
+                        tensors[node.input[2]],
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
                     )
                 else:
                     raise Exception('Unsupported operator "{}"'.format(node.op_type))
@@ -814,6 +838,8 @@ class OnnxStub:
                 backend.OpTypeId.Abs,
                 backend.OpTypeId.Identity,
                 backend.OpTypeId.PRelu,
+                backend.OpTypeId.Sqrt,
+                backend.OpTypeId.Erf,
             ]:
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Flatten:
@@ -904,6 +930,13 @@ class OnnxStub:
             elif ty == backend.OpTypeId.Cast:
                 to = backend.cast_to_of(op)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, to=to))
+            elif ty == backend.OpTypeId.Where:
+                assert len(inputs) == 3, "Check Where Op must have three inputs."
+                new_inputs = [inputs[2], inputs[0], inputs[1]]
+                ctx.push_node(make_node(ty.name, new_inputs, outputs, name))
+            elif ty == backend.OpTypeId.Expand:
+                shape = backend.expand_shape_of(op)
+                ctx.push_node(make_node(ty.name, inputs, outputs, name, shape=shape))
             else:
                 raise Exception("Unsupported OpType", ty)
 
