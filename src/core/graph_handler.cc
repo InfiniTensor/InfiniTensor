@@ -14,6 +14,7 @@
 #include "operators/split.h"
 #include "operators/transpose.h"
 #include "operators/unary.h"
+#include "operators/expand.h"
 
 namespace infini {
 
@@ -311,6 +312,16 @@ Tensor GraphHandlerObj::cast(Tensor input, Tensor output, int to) {
     }
 }
 
+Tensor GraphHandlerObj::expand(Tensor input, Tensor output, Shape dims) {
+		if (output) {
+        g->addOpWithOutputs<ExpandObj>(std::move(input), output, std::move(dims));
+				return output;
+		} else {
+				return g->addOp<ExpandObj>(std::move(input), output, std::move(dims))
+								->getOutput();
+		}
+}
+
 static CastType inferCastType(Tensor input, int to) {
     auto iType = input->getDType();
     auto oType = DataType(to);
@@ -367,7 +378,6 @@ static CastType inferCastType(Tensor input, int to) {
                          iType.toString() + " output_type is " +
                          oType.toString());
     }
-}
 
 static DataType dtype_repr_convert(int dtype) {
     switch (dtype) {
