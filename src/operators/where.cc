@@ -17,9 +17,9 @@ namespace infini {
 		auto shape_con = inputs[2]->getDims();
 		std::reverse(shape_con.begin(), shape_con.end());
 
-		auto dim_X = shape_X.size();
-		auto dim_Y = shape_Y.size();
-		auto dim_con = shape_con.size();
+		int dim_X = shape_X.size();
+		int dim_Y = shape_Y.size();
+		int dim_con = shape_con.size();
 		Shape ret;
 
 		auto dims = std::max(dim_X, dim_Y);
@@ -37,7 +37,7 @@ namespace infini {
 		}
 
 		for (int i = 0; i < dims; ++i) {
-		    if (shape_X[i] == shape_Y[i] && shape_Y[i] == shape_con[i] ||
+		    if ((shape_X[i] == shape_Y[i] && shape_Y[i] == shape_con[i]) ||
 		    				shape_X[i] == 1 || shape_Y[i] == 1 || shape_con[i] == 1) {
 				ret.emplace_back(std::max(std::max(shape_X[i], shape_Y[i]), shape_con[i]));
 		    } else {
