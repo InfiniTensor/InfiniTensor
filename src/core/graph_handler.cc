@@ -15,6 +15,7 @@
 #include "operators/transpose.h"
 #include "operators/unary.h"
 #include "operators/expand.h"
+#include "operators/where.h"
 
 namespace infini {
 
@@ -320,6 +321,19 @@ Tensor GraphHandlerObj::expand(Tensor input, Tensor output, Shape dims) {
 				return g->addOp<ExpandObj>(std::move(input), output, std::move(dims))
 								->getOutput();
 		}
+}
+
+Tensor GraphHandlerObj::where(Tensor inputX, Tensor inputY, Tensor condition,
+							  Tensor output) {
+	if (output) {
+		g->addOpWithOutputs<WhereObj>(std::move(inputX), std::move(inputY),
+						              std::move(condition), output);
+		return output;
+	} else {
+        return g->addOp<WhereObj>(std::move(inputX), std::move(inputY),
+					   		      std::move(condition), output)
+            ->getOutput();
+	}
 }
 
 static CastType inferCastType(Tensor input, int to) {
