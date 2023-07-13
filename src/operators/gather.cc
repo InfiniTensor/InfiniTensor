@@ -36,7 +36,7 @@ bool GatherObj::CheckIndexValid() const {
         return true;
 
     Runtime runtime = NativeCpuRuntimeObj::getInstance();
-    int *data = (int *)runtime->alloc(index->getBytes());
+    int64_t *data = (int64_t *)runtime->alloc(index->getBytes());
     index->getRuntime()->copyBlobToCPU(
         (void *)data, index->getRawDataPtr<void *>(), index->getBytes());
 
