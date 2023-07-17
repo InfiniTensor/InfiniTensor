@@ -12,7 +12,7 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph) const {
     for (auto &op : graph->getOperators()) {
         // HACK: set correct data type
         auto kernelAttrs =
-            KernelAttrs{device, op->getOpType(), DataType::Float32};
+            KernelAttrs{device, op->getOpType(), op->getDType()};
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
         auto perfData = perfEngine.getPerfData(perfKey);
@@ -34,7 +34,7 @@ void CudaRuntimeObj::tune(const Graph &graph, bool profiling = false) const {
     for (auto &op : graph->getOperators()) {
         // HACK: set correct data type
         auto kernelAttrs =
-            KernelAttrs{device, op->getOpType(), DataType::Float32};
+            KernelAttrs{device, op->getOpType(), op->getDType()};
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
         auto perfData = perfEngine.getPerfData(perfKey);
