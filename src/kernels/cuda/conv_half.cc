@@ -33,7 +33,7 @@ struct ConvCuDnnPerfRecordObj : public PerfRecordObj {
 
 using ConvCuDnnPerfRecord = Ref<ConvCuDnnPerfRecordObj>;
 
-class convCudnnHalf : public Kernel {
+class convCudnnFP16 : public Kernel {
 
     static constexpr int N_ALGO = 8;
     static constexpr int N_MODE = 2;
@@ -294,7 +294,7 @@ class convCudnnHalf : public Kernel {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Conv, DataType::Float16, convCudnnHalf,
+REGISTER_KERNEL(Device::CUDA, OpType::Conv, DataType::Float16, convCudnnFP16,
                 "Conv_cuDNN_CUDA_Float16");
 
 REGISTER_CONSTRUCTOR(1, ConvCuDnnPerfRecordObj::from_json);
