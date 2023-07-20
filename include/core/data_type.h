@@ -1,3 +1,4 @@
+#pragma once
 #include "core/common.h"
 
 namespace infini {

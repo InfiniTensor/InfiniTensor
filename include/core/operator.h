@@ -102,6 +102,7 @@ enum class OpType {
     Dropout,
     //
     MemBound = 300,
+    MemoryGraph,
 };
 
 using KernelAttrs = std::tuple<Device, OpType, DataType>;
