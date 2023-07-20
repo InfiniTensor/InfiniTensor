@@ -116,6 +116,10 @@ static int tensor_dtype(Tensor t) {
         return OnnxDType::INT32;
     if (t->getDType() == DataType::Int64)
         return OnnxDType::INT64;
+    if (t->getDType() == DataType::Bool)
+        return OnnxDType::BOOL;
+    if (t->getDType() == DataType::Float16)
+        return OnnxDType::FLOAT16;
     IT_ASSERT(false, "Unsupported data type");
 }
 
@@ -224,6 +228,11 @@ static vector<int> transpose_permute_of(Operator op) {
     return dynamic_cast<const TransposeObj *>(op.get())->getPermute();
 }
 
+static int flatten_axis_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Flatten);
+    return dynamic_cast<const FlattenObj *>(op.get())->getAxis();
+}
+
 void export_functions(py::module &m) {
 #define FUNCTION(NAME) def(#NAME, &NAME)
     m.def("cpu_runtime", &NativeCpuRuntimeObj::getInstance)
@@ -252,7 +261,8 @@ void export_functions(py::module &m) {
         .FUNCTION(transpose_permute_of)
         .FUNCTION(concat_axis_of)
         .FUNCTION(split_axis_of)
-        .FUNCTION(gather_axis_of);
+        .FUNCTION(gather_axis_of)
+        .FUNCTION(flatten_axis_of);
 #undef FUNCTION
 }
 
@@ -276,6 +286,8 @@ void init_graph_builder(py::module &m) {
         .def("copyin_float", &TensorObj::copyin<float>, policy::move)
         .def("copyin_int32", &TensorObj::copyin<int32_t>, policy::move)
         .def("copyin_int64", &TensorObj::copyin<int64_t>, policy::move)
+        .def("copyin_int8", &TensorObj::copyin<int8_t>, policy::move)
+        .def("copyin_uint8", &TensorObj::copyin<uint8_t>, policy::move)
         .def("copyout_float", &TensorObj::copyout<float>, policy::move)
         .def("copyout_int32", &TensorObj::copyout<int32_t>, policy::move)
         .def("copyout_int64", &TensorObj::copyout<int64_t>, policy::move)

@@ -531,6 +531,21 @@ class OnnxStub:
                     obj.copyin_int64(_parse_data(tensor))
                 elif tensor.data_type == TensorProto.FLOAT:
                     obj.copyin_float(_parse_data(tensor))
+                elif tensor.data_type == TensorProto.BOOL:
+                    obj.copyin_int8(_parse_data(tensor))
+                elif tensor.data_type == TensorProto.FLOAT16:
+                    if len(tensor.int32_data) != 0:
+                        list_int32_data = []
+                        for i in tensor.int32_data:
+                            list_int32_data.append(i.to_bytes(2, "little")[0])
+                            list_int32_data.append(i.to_bytes(2, "little")[1])
+                        obj.copyin_uint8(list_int32_data)
+                    elif len(tensor.raw_data) != 0:
+                        obj.copyin_uint8(list(tensor.raw_data))
+                    else :
+                        raise Exception("Tensor have no float16 data!")
+                elif tensor.data_type == TensorProto.INT8:
+                    obj.copyin_uint8(_parse_data(tensor))
                 else:
                     assert False, "Unsupported Tensor Type: {}".format(tensor.data_type)
 
@@ -730,7 +745,8 @@ class OnnxStub:
             ]:
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpType.Flatten:
-                raise Exception("TODO")
+                axis = backend.flatten_axis_of(op)
+                ctx.push_node(make_node(ty.name, inputs, outputs, name, axis=axis))
             elif ty == backend.OpType.Transpose:
                 perm = backend.transpose_permute_of(op)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, perm=perm))
@@ -892,7 +908,6 @@ def _parse_attribute(node: NodeProto, attrs: Dict[str, Any] = dict()) -> Dict[st
 
 def _parse_data(tensor: TensorProto) -> List[Any]:
     return to_array(tensor).flatten().tolist()
-
 
 def _take_shape_dim(shape: TensorShapeProto) -> List[int]:
     return [(d.dim_value if d.dim_value > 0 else 1) for d in shape.dim]

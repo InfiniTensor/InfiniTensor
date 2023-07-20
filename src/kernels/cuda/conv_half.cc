@@ -1,11 +1,10 @@
-#include "operators/conv.h"
 #include "core/kernel.h"
 #include "cuda/cuda_runtime.h"
+#include "operators/conv.h"
 #include <chrono>
 #include <functional>
 #include <limits>
 #include <tuple>
-
 
 namespace infini {
 
@@ -73,20 +72,22 @@ class convCudnnFP16 : public Kernel {
         // get inputs
         cudnnTensorDescriptor_t inDesc;
         checkCudnnError(cudnnCreateTensorDescriptor(&inDesc));
-        checkCudnnError(cudnnSetTensor4dDescriptor(
-            inDesc, CUDNN_TENSOR_NCHW, CUDNN_DATA_HALF, n, channels, h, w)); /*fp16 type*/
+        checkCudnnError(cudnnSetTensor4dDescriptor(inDesc, CUDNN_TENSOR_NCHW,
+                                                   CUDNN_DATA_HALF, n, channels,
+                                                   h, w)); /*fp16 type*/
 
         // get kernels
         cudnnFilterDescriptor_t knDesc;
         checkCudnnError(cudnnCreateFilterDescriptor(&knDesc));
-        checkCudnnError(cudnnSetFilter4dDescriptor(knDesc, CUDNN_DATA_HALF, /*fp16 type*/
-                                                   CUDNN_TENSOR_NCHW, f,
-                                                   channelsPerGrp, r, s));
+        checkCudnnError(cudnnSetFilter4dDescriptor(
+            knDesc, CUDNN_DATA_HALF, /*fp16 type*/
+            CUDNN_TENSOR_NCHW, f, channelsPerGrp, r, s));
         // get bias
         cudnnTensorDescriptor_t biasDesc;
         checkCudnnError(cudnnCreateTensorDescriptor(&biasDesc));
-        checkCudnnError(cudnnSetTensor4dDescriptor(
-            biasDesc, CUDNN_TENSOR_NCHW, CUDNN_DATA_HALF, 1, f, 1, 1)); /*fp16 type*/
+        checkCudnnError(cudnnSetTensor4dDescriptor(biasDesc, CUDNN_TENSOR_NCHW,
+                                                   CUDNN_DATA_HALF, 1, f, 1,
+                                                   1)); /*fp16 type*/
 
         // get convolution descriptor
         cudnnConvolutionDescriptor_t convDesc;
@@ -297,5 +298,4 @@ class convCudnnFP16 : public Kernel {
 REGISTER_KERNEL(Device::CUDA, OpType::Conv, DataType::Float16, convCudnnFP16,
                 "Conv_cuDNN_CUDA_Float16");
 
-REGISTER_CONSTRUCTOR(1, ConvCuDnnPerfRecordObj::from_json);
 } // namespace infini

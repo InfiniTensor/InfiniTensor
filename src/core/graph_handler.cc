@@ -309,6 +309,10 @@ static DataType dtype_repr_convert(int dtype) {
         return DataType::Int32;
     case OnnxDType::INT64:
         return DataType::Int64;
+    case OnnxDType::BOOL:
+        return DataType::Bool;
+    case OnnxDType::FLOAT16:
+        return DataType::Float16;
     default:
         IT_ASSERT(false, "Unsupported data type");
     }
