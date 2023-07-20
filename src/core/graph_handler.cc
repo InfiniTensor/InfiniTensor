@@ -3,6 +3,7 @@
 #include "operators/concat.h"
 #include "operators/conv.h"
 #include "operators/element_wise.h"
+#include "operators/expand.h"
 #include "operators/gather.h"
 #include "operators/matmul.h"
 #include "operators/pad.h"
@@ -14,7 +15,6 @@
 #include "operators/split.h"
 #include "operators/transpose.h"
 #include "operators/unary.h"
-#include "operators/expand.h"
 #include "operators/where.h"
 
 namespace infini {
@@ -314,26 +314,28 @@ Tensor GraphHandlerObj::cast(Tensor input, Tensor output, int to) {
 }
 
 Tensor GraphHandlerObj::expand(Tensor input, Tensor output, Shape dims) {
-		if (output) {
-        g->addOpWithOutputs<ExpandObj>(std::move(input), output, std::move(dims));
-				return output;
-		} else {
-				return g->addOp<ExpandObj>(std::move(input), output, std::move(dims))
-								->getOutput();
-		}
+    if (output) {
+        g->addOpWithOutputs<ExpandObj>(std::move(input), output,
+                                       std::move(dims));
+        return output;
+    } else {
+        return g->addOp<ExpandObj>(std::move(input), output, std::move(dims))
+            ->getOutput();
+    }
 }
 
 Tensor GraphHandlerObj::where(Tensor inputX, Tensor inputY, Tensor condition,
-							  Tensor output) {
-	if (output) {
-		g->addOpWithOutputs<WhereObj>(std::move(inputX), std::move(inputY),
-						              std::move(condition), output);
-		return output;
-	} else {
-        return g->addOp<WhereObj>(std::move(inputX), std::move(inputY),
-					   		      std::move(condition), output)
+                              Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<WhereObj>(std::move(inputX), std::move(inputY),
+                                      std::move(condition), output);
+        return output;
+    } else {
+        return g
+            ->addOp<WhereObj>(std::move(inputX), std::move(inputY),
+                              std::move(condition), output)
             ->getOutput();
-	}
+    }
 }
 
 static CastType inferCastType(Tensor input, int to) {
