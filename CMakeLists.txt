@@ -214,8 +214,10 @@ if(USE_BANG)
   ################################################################################
   # BangC Kernels
   ################################################################################
+  add_subdirectory(src/kernels/bang_kernel)
 
   target_link_libraries(InfiniTensor ${CAMBRICON_CNNL} ${CAMBRICON_CNRT} ${CAMBRICON_CNDRV} stdc++)
+  target_link_libraries(InfiniTensor bang_kernel)
 endif()
 
 # # Python bindings
