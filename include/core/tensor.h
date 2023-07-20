@@ -48,13 +48,13 @@ class TensorObj : public TensorBaseObj {
 
     // Copy elements from `data`.
     template <typename T> void copyin(const vector<T> &data) {
-        IT_ASSERT(DataType::get<T>() == dtype.sizetoString());
+        IT_ASSERT(DataType::get<T>() == dtype.cpuTypeString());
         IT_ASSERT(data.size() >= _size);
         copyin(data.data(), getBytes());
     }
     // Copy all the elements to a vector.
     template <typename T> auto copyout() const {
-        IT_ASSERT(DataType::get<T>() == dtype.sizetoString());
+        IT_ASSERT(DataType::get<T>() == dtype.cpuTypeString());
         auto sizeofvec = _size;
         if (dtype == DataType::Float16) {
             sizeofvec = _size * 2;
@@ -65,7 +65,7 @@ class TensorObj : public TensorBaseObj {
     }
     // Copy the element at `pos`.
     template <typename T> auto copyOne(const vector<int> &pos) const {
-        IT_ASSERT(DataType::get<T>() == dtype.sizetoString());
+        IT_ASSERT(DataType::get<T>() == dtype.cpuTypeString());
         auto offset = getOffset(pos);
         auto bytes = dtype.getSize();
         T ans;
@@ -105,7 +105,7 @@ class TensorObj : public TensorBaseObj {
     bool equalData(const Tensor &rhs, double relativeError = 1e-6) const;
 
     template <typename T> bool equalData(const vector<T> &dataVector) {
-        IT_ASSERT(DataType::get<T>() == dtype.sizetoString());
+        IT_ASSERT(DataType::get<T>() == dtype.cpuTypeString());
         IT_ASSERT(size() == dataVector.size());
         return equalDataImpl(getRawDataPtr<T *>(), dataVector.data(), size());
     }

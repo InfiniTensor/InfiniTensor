@@ -536,9 +536,10 @@ class OnnxStub:
                 elif tensor.data_type == TensorProto.FLOAT16:
                     if len(tensor.int32_data) != 0:
                         list_int32_data = []
-                        for i in tensor.int32_data:
-                            list_int32_data.append(i.to_bytes(2, "little")[0])
-                            list_int32_data.append(i.to_bytes(2, "little")[1])
+                        for element_data in tensor.int32_data:
+                            element_byte = element_data.to_bytes(2, "little")
+                            list_int32_data.append(element_byte[0])
+                            list_int32_data.append(element_byte[1])
                         obj.copyin_uint8(list_int32_data)
                     elif len(tensor.raw_data) != 0:
                         obj.copyin_uint8(list(tensor.raw_data))
