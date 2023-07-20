@@ -1,7 +1,8 @@
-﻿#include "core/data_type.h"
-#include <cstddef>
-#include <memory>
-#include <vector>
+﻿#pragma once
+#ifndef MEMORY_GRAPH_H
+#define MEMORY_GRAPH_H
+
+#include "core/operator.h"
 
 namespace infini {
 using dim_t = int64_t;
@@ -78,13 +79,15 @@ struct MemoryOperator {
 };
 
 /// @brief 访存图。
-class MemoryGraphObj {
+class MemoryGraphObj : public OperatorObj {
     /// @brief 图中所有算子。
     std::vector<MemoryOperator> ops;
 
   public:
     /// @brief 构造一个空的访存图。
-    MemoryGraphObj();
+    /// @param inputs 访存图在计算图里的输入。
+    /// @param outputs 访存图在计算图里的输出。
+    MemoryGraphObj(TensorVec inputs, TensorVec outputs);
 
     /// @brief 添加新的图输入。
     /// @param shape 访存图的输入必须是连续的。
@@ -107,3 +110,5 @@ class MemoryGraphObj {
             std::vector<Inlet> inputs, std::vector<Outlet> outputs);
 };
 } // namespace infini
+
+#endif // MEMORY_GRAPH_H

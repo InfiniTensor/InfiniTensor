@@ -1,7 +1,8 @@
-﻿#include "core/memory_graph.h"
+﻿#include "operators/memory_graph.h"
 
 namespace infini {
-MemoryGraphObj::MemoryGraphObj() : ops(2) {
+MemoryGraphObj::MemoryGraphObj(TensorVec inputs, TensorVec outputs)
+    : OperatorObj(OpType::MemoryGraph, inputs, outputs), ops(2) {
     // 输入输出固定在 0、1 号，其他算子按拓扑序。
     ops[0] = MemoryOperator{0, MemoryOpType::Input, nullptr, {}, {}};
     ops[1] = MemoryOperator{1, MemoryOpType::Output, nullptr, {}, {}};
