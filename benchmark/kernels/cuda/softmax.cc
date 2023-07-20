@@ -12,23 +12,24 @@
 
 using namespace infini;
 
-namespace ch {
-    using namespace std::chrono;
-}
+#define M 1048576
 
 int main() {
 
+    // Benchmark Settings
     int warmupRounds = 200;
     int timingRounds = 200;
     Shape INPUT_SHAPE = {16, 3, 128, 128};
     DataType dtype = DataType::Float32;
 
+    // Get data size
     size_t size = 1;
     for (auto dim: INPUT_SHAPE) {
         size *= dim;
     }
     size_t sizeInBytes = size * sizeof(dtype);
 
+    // Init time variables
     double time_memcpy_htod = 0.0, time_memcpy_dtoh = 0.0;
     double time_op = 0.0;
 
@@ -56,25 +57,35 @@ int main() {
         warmupRounds, timingRounds
     );
 
+    // Build output data on CPU
     auto outputGpu = inputGpu->clone(cudaRuntime);
 
+    // Build output data on GPU
+    Tensor outputCpu =
+        make_ref<TensorObj>(INPUT_SHAPE, dtype, cpuRuntime);
+    outputCpu->dataMalloc();
+
+    // Build cudnn descriptors
     cudnnTensorDescriptor_t inputDesc, outputDesc;
 
-    // get inputs
+    // input descriptor
     checkCudnnError(cudnnCreateTensorDescriptor(&inputDesc));
     checkCudnnError(cudnnSetTensor4dDescriptor(
         inputDesc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, INPUT_SHAPE[0],
         INPUT_SHAPE[1], INPUT_SHAPE[2], INPUT_SHAPE[3]));
 
-    // get outputs
+    // output descriptor
     checkCudnnError(cudnnCreateTensorDescriptor(&outputDesc));
     checkCudnnError(cudnnSetTensor4dDescriptor(
         outputDesc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, INPUT_SHAPE[0],
         INPUT_SHAPE[1], INPUT_SHAPE[2], INPUT_SHAPE[3]));
 
+    // cudnn operator settings
     float alpha = 1.0, beta = 0.0;
     cudnnSoftmaxAlgorithm_t algo = CUDNN_SOFTMAX_FAST;
     cudnnSoftmaxMode_t mode = CUDNN_SOFTMAX_MODE_INSTANCE;
+
+    // Do forward
     time_op += timeit(
         [&]() {
             cudnnSoftmaxForward(cudaRuntime->cudnnHandle(), algo, mode, 
@@ -87,11 +98,8 @@ int main() {
     
     checkCudnnError(cudnnDestroyTensorDescriptor(inputDesc));
     checkCudnnError(cudnnDestroyTensorDescriptor(outputDesc));
-
-    Tensor outputCpu =
-        make_ref<TensorObj>(INPUT_SHAPE, dtype, cpuRuntime);
-    outputCpu->dataMalloc();
-
+    
+    // Do memcpy device to host
     time_memcpy_dtoh += timeit(
         [&]() {
             outputCpu = outputGpu->clone(cpuRuntime);
@@ -100,14 +108,12 @@ int main() {
         warmupRounds, timingRounds
     );
 
+    // Print Results
     printf("Operator - Softmax:\n");
     printf("Input shape: (%d, %d, %d, %d)\n", 
         INPUT_SHAPE[0], INPUT_SHAPE[1], INPUT_SHAPE[2], INPUT_SHAPE[3]);
     printf("Input size: %ld, dtype: %s, size in bytes: %ld\n", 
         size, dtype.toString().c_str(), sizeInBytes);
-
-    // int G = 1073741824;
-    int M = 1048576;
 
     printf("TFlops: %.5lf tflops\n", 5 * size / 1e9 / time_op);
     printf("Memcpy time: h2d - %.6lf ms, d2h - %.6lf ms\n",
