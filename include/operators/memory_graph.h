@@ -109,6 +109,16 @@ class MemoryGraphObj : public OperatorObj {
     push_op(MemoryOpType opType, std::unique_ptr<MemoryOpAttibutes> attributes,
             std::vector<Inlet> inputs, std::vector<Outlet> outputs);
 };
+
+/// @brief 存储器级别。0 是寄存器。
+using MemoryLevel = uint8_t;
+
+/// @brief 在不同级别存储器之间拷贝数据。
+struct MemoryAttribute : public MemoryOpAttibutes {
+    /// @brief 原存储器和目标存储器的级别。
+    MemoryLevel source, target;
+};
+
 } // namespace infini
 
 #endif // MEMORY_GRAPH_H
