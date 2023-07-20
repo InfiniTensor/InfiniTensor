@@ -31,11 +31,12 @@ const char mode_name[2][50] = {
 };
 
 int main() {
-
+    // Benchmark Settings
     int warmupRounds = 50;
     int timingRounds = 100;
     DataType dtype = DataType::Float32; 
 
+    // cudnn Conv Configurations
     cudnnConvolutionMode_t convMode = CUDNN_CROSS_CORRELATION;
     cudnnConvolutionFwdAlgo_t convAlgo = CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM;
     float alpha = 1.f, beta = 0.f;
@@ -63,19 +64,21 @@ int main() {
     int DILATION_HEIGHT = 1;
     int DILATION_WIDTH = 1;
 
+    // Get input size
     size_t inputSize = 1;
     for (auto dim: INPUT_SHAPE) {
         inputSize *= dim;
     }
     size_t inputSizeInBytes = inputSize * sizeof(dtype);
 
+    // Get kernel size
     size_t kernelSize = 1;
     for (auto dim: KERNEL_SHAPE) {
         kernelSize *= dim;
     }
     size_t kernelSizeInBytes = kernelSize * sizeof(dtype);
 
-    // Init time
+    // Init time variables
     double time_memcpy_htod = 0.0, time_memcpy_dtoh = 0.0;
     double time_op = 0.0;
 
@@ -83,7 +86,7 @@ int main() {
     Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
 
-    // Build input data on CPU
+    // Build input data and kernel on CPU
     Tensor inputCpu =
         make_ref<TensorObj>(INPUT_SHAPE, dtype, cpuRuntime);
     inputCpu->dataMalloc();
@@ -94,7 +97,7 @@ int main() {
     kernelCpu->dataMalloc();
     kernelCpu->setData(RandomGenerator());
 
-    // Build input data on GPU
+    // Build input data and kernel on GPU
     Tensor inputGpu = 
         make_ref<TensorObj>(INPUT_SHAPE, dtype, cudaRuntime);
     inputGpu->dataMalloc();
@@ -115,26 +118,27 @@ int main() {
 
     int channelsPerGrp = INPUT_CHANNELS / NUM_GROUPS;
 
-    // get inputs
+    // Build cudnn descriptors
+    // input descriptor
     cudnnTensorDescriptor_t inDesc;
     checkCudnnError(cudnnCreateTensorDescriptor(&inDesc));
     checkCudnnError(cudnnSetTensor4dDescriptor(
         inDesc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, n, c, h, w));
 
-    // get kernels
+    // kernel descriptor
     cudnnFilterDescriptor_t knDesc;
     checkCudnnError(cudnnCreateFilterDescriptor(&knDesc));
     checkCudnnError(cudnnSetFilter4dDescriptor(knDesc, CUDNN_DATA_FLOAT,
                                                 CUDNN_TENSOR_NCHW, f,
                                                 channelsPerGrp, r, s));
     
-    // get bias
+    // bias descriptor
     // cudnnTensorDescriptor_t biasDesc;
     // checkCudnnError(cudnnCreateTensorDescriptor(&biasDesc));
     // checkCudnnError(cudnnSetTensor4dDescriptor(
     //     biasDesc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, 1, f, 1, 1));
 
-    // get convlution descriptor
+    // convlution descriptor
     cudnnConvolutionDescriptor_t convDesc;
     checkCudnnError(cudnnCreateConvolutionDescriptor(&convDesc));
     checkCudnnError(cudnnSetConvolution2dDescriptor(
@@ -144,16 +148,19 @@ int main() {
         checkCudnnError(cudnnSetConvolutionGroupCount(convDesc, NUM_GROUPS));
     }
 
+    // Get output shape
     int outn, outc, outh, outw;
     checkCudnnError(cudnnGetConvolution2dForwardOutputDim(
         convDesc, inDesc, knDesc, &outn, &outc, &outh, &outw));
 
+    // Build output descriptor
     cudnnTensorDescriptor_t outDesc;
     checkCudnnError(cudnnCreateTensorDescriptor(&outDesc));
     checkCudnnError(cudnnSetTensor4dDescriptor(outDesc, CUDNN_TENSOR_NCHW,
                                                CUDNN_DATA_FLOAT, outn, outc,
                                                outh, outw));
 
+    // Get output size
     Shape OUTPUT_SHAPE = {outn, outc, outh, outw};
     size_t outputSize = 1;
     for (auto dim: OUTPUT_SHAPE) {
@@ -171,6 +178,7 @@ int main() {
         make_ref<TensorObj>(OUTPUT_SHAPE, dtype, cudaRuntime);
     outputGpu->dataMalloc();
 
+    // Get workspace size
     size_t workspaceSize = 0;
     checkCudnnError(cudnnGetConvolutionForwardWorkspaceSize(
         cudaRuntime->cudnnHandle(), inDesc, knDesc, convDesc,
@@ -178,6 +186,7 @@ int main() {
 
     CudaPtr workspace = cudaRuntime->getWorkspace(workspaceSize);
 
+    // Do forward
     time_op += timeit(
         [&]() {
             cudnnConvolutionForward(cudaRuntime->cudnnHandle(), &alpha,
@@ -197,6 +206,7 @@ int main() {
     checkCudnnError(cudnnDestroyFilterDescriptor(knDesc));
     checkCudnnError(cudnnDestroyTensorDescriptor(inDesc));
 
+    // Do memcpy device to host
     time_memcpy_dtoh += timeit(
         [&]() {
             outputCpu = outputGpu->clone(cpuRuntime);
