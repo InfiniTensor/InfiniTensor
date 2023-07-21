@@ -38,7 +38,8 @@ class UnaryKernelObj : public OperatorObj {
      * @param input The input tensor.
      * @param output The output tensor.
      */
-    UnaryKernelObj(GraphObj *graph, Tensor input, Tensor output, std::vector<int> op_list);
+    UnaryKernelObj(GraphObj *graph, Tensor input, Tensor output,
+                   std::vector<int> op_list);
     OP_CLONE(UnaryKernelObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 

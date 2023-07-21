@@ -7,11 +7,11 @@ namespace infini {
 class UnaryKernel : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
-      bang_unary_kernel(_context, _op);
+        bang_unary_kernel(_context, _op);
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::UnaryKernel, DataType::Float32, UnaryKernel,
-                "Unary_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::UnaryKernel, DataType::Float32,
+                UnaryKernel, "Unary_BANG_Float32");
 
 }; // namespace infini

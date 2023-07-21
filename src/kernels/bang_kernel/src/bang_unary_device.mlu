@@ -5,8 +5,9 @@
 __nram__ char left[NRAM_USE_SIZE];
 __nram__ char right[NRAM_USE_SIZE];
 
-template<typename T>
-__mlu_device__ void UnaryFunction(T* output, T* input, size_t num, size_t op_list) {
+template <typename T>
+__mlu_device__ void UnaryFunction(T *output, T *input, size_t num,
+                                  size_t op_list) {
     int use_nram_size = NRAM_USE_SIZE;
     int deal_align = use_nram_size / sizeof(T);
     int num_per_core = num / taskDim;
@@ -14,61 +15,61 @@ __mlu_device__ void UnaryFunction(T* output, T* input, size_t num, size_t op_lis
     int easy = num_per_core;
     int hard = num_per_core + (num_rem != 0 ? 1 : 0);
     int my = taskId < num_rem ? hard : easy;
-    int start = (taskId < num_rem) ? (hard * taskId) : (hard * num_rem + (taskId - num_rem) * easy);
-    char* input_start = (char*)input + start * sizeof(T);
-    char* output_start = (char*)output + start * sizeof(T);
+    int start = (taskId < num_rem)
+                    ? (hard * taskId)
+                    : (hard * num_rem + (taskId - num_rem) * easy);
+    char *input_start = (char *)input + start * sizeof(T);
+    char *output_start = (char *)output + start * sizeof(T);
 
     int my_repeat = my / deal_align;
     int my_rem = my % deal_align;
-    for(int i = 0; i < my_repeat; ++i) {
+    for (int i = 0; i < my_repeat; ++i) {
         __memcpy(left, input_start, use_nram_size, GDRAM2NRAM);
-        while(op_list){
-          int op = op_list % 10;
-          switch(op){
+        while (op_list) {
+            int op = op_list % 10;
+            switch (op) {
             case 1:
-              __bang_active_abs((T*)left, (T*)left, num);
-              break;
+                __bang_active_abs((T *)left, (T *)left, num);
+                break;
             case 2:
-              __bang_active_relu((T*)left, (T*)left, num);
-              break;
+                __bang_active_relu((T *)left, (T *)left, num);
+                break;
             case 3:
-              __bang_active_sigmoid((T*)left, (T*)left, num);
-              break;
+                __bang_active_sigmoid((T *)left, (T *)left, num);
+                break;
             default:
-              break;
-          }
-          op_list /= 10;
+                break;
+            }
+            op_list /= 10;
         }
         __memcpy(output_start, left, use_nram_size, NRAM2GDRAM);
         input_start += use_nram_size;
         output_start += use_nram_size;
     }
-    if(my_rem) {
+    if (my_rem) {
         __memcpy(left, input_start, my_rem * sizeof(T), GDRAM2NRAM);
-        while(op_list){
-          int op = op_list % 10;
-          switch(op){
+        while (op_list) {
+            int op = op_list % 10;
+            switch (op) {
             case 1:
-              __bang_active_abs((T*)left, (T*)left, my_rem);
-              break;
+                __bang_active_abs((T *)left, (T *)left, my_rem);
+                break;
             case 2:
-              __bang_active_relu((T*)left, (T*)left, my_rem);
-              break;
+                __bang_active_relu((T *)left, (T *)left, my_rem);
+                break;
             case 3:
-              __bang_active_sigmoid((T*)left, (T*)left, my_rem);
-              break;
+                __bang_active_sigmoid((T *)left, (T *)left, my_rem);
+                break;
             default:
-              break;
-          }
-          op_list /= 10;
+                break;
+            }
+            op_list /= 10;
         }
         __memcpy(output_start, left, my_rem * sizeof(T), NRAM2GDRAM);
     }
 }
 
-__mlu_global__ void MLUUnaryKernelUnion1(float *output,
-                                         float *input,
-                                         uint32_t num,
-                                         uint32_t op_list) {
-    UnaryFunction((float*)output, (float*)input, num, op_list);
+__mlu_global__ void MLUUnaryKernelUnion1(float *output, float *input,
+                                         uint32_t num, uint32_t op_list) {
+    UnaryFunction((float *)output, (float *)input, num, op_list);
 }
