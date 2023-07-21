@@ -8,7 +8,7 @@ option(USE_BANG "Support BANG MLU" OFF)
 option(USE_INTELCPU "Support INTELCPU" OFF)
 option(USE_BACKTRACE "Print backtrace on exception and segmentation fault" ON)
 option(USE_PROTOBUF "Serialize and deserialize tensors" OFF)
-option(BUILD_TEST "Build tests" OFF)
+option(BUILD_TEST "Build tests" ON)
 
 cmake_dependent_option(BUILD_TEST_CORE "Build tests for core components" ON BUILD_TEST OFF)
 cmake_dependent_option(BUILD_TEST_PET "Build tests for PET" OFF BUILD_TEST OFF)
@@ -181,7 +181,7 @@ endif()
 
 if(USE_BANG)
   add_compile_definitions(USE_BANG=1)
-  include_directories(src/kernels/mlu/include)
+  include_directories(src/kernels/bang_kernel/include)
   ################################################################################
   # Neuware Evironment
   ################################################################################

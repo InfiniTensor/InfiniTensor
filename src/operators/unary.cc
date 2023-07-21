@@ -32,6 +32,38 @@ vector<int> UnaryObj::getOpAttrVector() const {
     return {enum_to_underlying(type)};
 }
 
+UnaryKernelObj::UnaryKernelObj(GraphObj *graph, Tensor input, Tensor output, std::vector<int> op_list)
+    : OperatorObj(OpType::UnaryKernel, {input}, {output}), opList(op_list) {
+    IT_ASSERT(checkValid(graph));
+}
+
+optional<vector<Shape>> UnaryKernelObj::inferShape(const TensorVec &inputs) const {
+    const auto A = inputs[0];
+    return {{A->getDims()}};
+}
+
+std::string UnaryKernelObj::toString() const {
+    std::ostringstream os;
+    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]";
+    os << "(";
+    os << vecToString(inputs[0]->getDims()) << ",";
+    os << "input=" << inputs[0]->getGuid() << ",";
+    os << "output=" << outputs[0]->getGuid() << ")";
+    return os.str();
+}
+
+vector<int> UnaryKernelObj::getWorkloadVector() const {
+    vector<int> ret{enum_to_underlying(type)};
+    const Shape shape = outputs[0]->getDims();
+    ret.insert(ret.end(), shape.begin(), shape.end());
+    return ret;
+}
+
+vector<int> UnaryKernelObj::getOpAttrVector() const {
+    return {enum_to_underlying(type)};
+}
+
+
 ClipObj::ClipObj(GraphObj *graph, Tensor input, Tensor output,
                  std::optional<float> min, std::optional<float> max)
     : OperatorObj(OpType::Clip, {input}, {output}), minValue(min),
