@@ -1,4 +1,4 @@
-﻿.PHONY : build clean install-python test-cpp test-onnx
+﻿.PHONY : build clean format install-python test-cpp test-onnx
 
 TYPE ?= release
 CUDA ?= OFF
@@ -23,6 +23,9 @@ build:
 
 clean:
 	rm -rf build
+
+format:
+	python3 scripts/format.py
 
 install-python: build
 	cp build/$(TYPE)/backend*.so pyinfinitensor/src/pyinfinitensor
