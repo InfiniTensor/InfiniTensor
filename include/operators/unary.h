@@ -28,6 +28,31 @@ class UnaryObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 };
 
+class UnaryKernelObj : public OperatorObj {
+  public:
+    /**
+     * @brief Construct a new Unary object.
+     *
+     * @param type Operator type.
+     * @param graph The computation graph that this operator belongs to.
+     * @param input The input tensor.
+     * @param output The output tensor.
+     */
+    UnaryKernelObj(GraphObj *graph, Tensor input, Tensor output, std::vector<int> op_list);
+    OP_CLONE(UnaryKernelObj);
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+
+    std::string toString() const override;
+    int numInputs() const override { return 1; }
+    int numOutputs() const override { return 1; }
+    std::vector<int> getOpList() const { return opList; }
+
+  private:
+    std::vector<int> opList;
+    vector<int> getWorkloadVector() const override;
+    vector<int> getOpAttrVector() const override;
+};
+
 class ClipObj : public OperatorObj {
   public:
     ClipObj(GraphObj *graph, Tensor input, Tensor output,
