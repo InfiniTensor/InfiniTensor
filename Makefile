@@ -6,6 +6,7 @@ BANG ?= OFF
 INTELCPU ?= off
 BACKTRACE ?= ON
 TEST ?= ON
+FORMAT_ORIGIN ?=
 
 CMAKE_OPT = -DCMAKE_BUILD_TYPE=$(TYPE)
 CMAKE_OPT += -DUSE_CUDA=$(CUDA)
@@ -25,7 +26,7 @@ clean:
 	rm -rf build
 
 format:
-	python3 scripts/format.py
+	@python3 scripts/format.py $(FORMAT_ORIGIN)
 
 install-python: build
 	cp build/$(TYPE)/backend*.so pyinfinitensor/src/pyinfinitensor
