@@ -5,7 +5,7 @@
 namespace infini {
 
 GraphObj::GraphObj(Runtime runtime, OpVec ops_in)
-    : runtime(runtime), sorted(false) {
+    : runtime(runtime), allocator(runtime), sorted(false) {
     map<UidBaseType, Tensor> tensorPool;
     // Clone tensors
     for (const auto &op : ops_in) {
@@ -124,9 +124,13 @@ void GraphObj::optimize() {
 }
 
 void GraphObj::dataMalloc() {
+    size_t totalSize = 0;
     for (auto &tensor : tensors) {
+        totalSize += tensor->getBytes();
         tensor->dataMalloc();
     }
+    allocator.init(totalSize);
+    std::cout << "totalSize <<<<<<<<<< " << totalSize << std::endl;
 }
 
 Tensor GraphObj::addTensor(Shape dim, DataType dtype) {
