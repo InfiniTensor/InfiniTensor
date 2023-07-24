@@ -50,13 +50,13 @@ std::string PadObj::toString() const {
 vector<int> PadObj::getWorkloadVector() const {
     vector<int> ret = inputs[0]->getDims();
     ret.insert(ret.end(), pads.begin(), pads.end());
-    ret.emplace(ret.begin(), enum_to_underlying(type));
+    ret.emplace(ret.begin(), type.underlying());
     return ret;
 }
 
 vector<int> PadObj::getOpAttrVector() const {
     vector<int> ret = pads;
-    ret.emplace(ret.begin(), enum_to_underlying(type));
+    ret.emplace(ret.begin(), type.underlying());
     return ret;
 }
 

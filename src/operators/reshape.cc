@@ -30,12 +30,12 @@ std::string ReshapeObj::toString() const {
 vector<int> ReshapeObj::getWorkloadVector() const {
     vector<int> ret = inputs[0]->getDims();
     ret.insert(ret.end(), dims.begin(), dims.end());
-    ret.emplace(ret.begin(), enum_to_underlying(type));
+    ret.emplace(ret.begin(), type.underlying());
     return ret;
 }
 vector<int> ReshapeObj::getOpAttrVector() const {
     vector<int> ret = dims;
-    ret.emplace(ret.begin(), enum_to_underlying(type));
+    ret.emplace(ret.begin(), type.underlying());
     return ret;
 }
 
@@ -74,12 +74,12 @@ std::string FlattenObj::toString() const {
 vector<int> FlattenObj::getWorkloadVector() const {
     vector<int> ret = inputs[0]->getDims();
     ret.emplace(ret.begin(), axis);
-    ret.emplace(ret.begin(), enum_to_underlying(type));
+    ret.emplace(ret.begin(), type.underlying());
     return ret;
 }
 
 vector<int> FlattenObj::getOpAttrVector() const {
-    return {enum_to_underlying(type), axis};
+    return {type.underlying(), axis};
 }
 
 IdentityObj::IdentityObj(GraphObj *graph, Tensor input, Tensor output)
@@ -103,10 +103,8 @@ std::string IdentityObj::toString() const {
 
 vector<int> IdentityObj::getWorkloadVector() const {
     vector<int> ret = inputs[0]->getDims();
-    ret.emplace(ret.begin(), enum_to_underlying(type));
+    ret.emplace(ret.begin(), type.underlying());
     return ret;
 }
-vector<int> IdentityObj::getOpAttrVector() const {
-    return {enum_to_underlying(type)};
-}
+vector<int> IdentityObj::getOpAttrVector() const { return {type.underlying()}; }
 } // namespace infini

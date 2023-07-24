@@ -1,13 +1,14 @@
 #pragma once
 
 #include "core/op_type.h"
+#include "core/tensor.h"
 
 namespace infini {
-using KernelAttrs = std::tuple<Device, OpType, DataType>;
+using KernelAttrs = std::tuple<Device, OpType::underlying_t, DataType>;
 
 struct OpPerfKey {
     HashType hash;
-    OpType opType;
+    OpType::underlying_t opType;
     vector<int> attrs;
 
   public:
@@ -15,7 +16,7 @@ struct OpPerfKey {
     // https://github.com/nlohmann/json#how-can-i-use-get-for-non-default-constructiblenon-copyable-types
     OpPerfKey() = default;
     OpPerfKey(HashType hash, OpType opType, vector<int> attrs = {})
-        : hash(hash), opType(opType), attrs(attrs) {}
+        : hash(hash), opType(opType.underlying()), attrs(attrs) {}
     bool operator==(const OpPerfKey &rhs) const {
         if (hash != rhs.hash)
             return false;
@@ -72,16 +73,7 @@ class OperatorObj : public Object {
      */
     HashType hash() const;
 
-  public: // check Op type
-    bool isLinearOp() const;
-    bool isElementWiseOp() const;
-    bool isSplitOp() const;
-    bool isConcatOp() const;
-    bool isComputeOp() const;
-    bool isTransposeOp() const;
-    bool isReshapeOp() const;
-    bool isMemBoundOp() const;
-
+  public:
   public: // getter and setter
     const TensorVec &getInputs() const { return inputs; }
     const TensorVec &getOutputs() const { return outputs; }

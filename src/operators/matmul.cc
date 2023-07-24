@@ -4,7 +4,7 @@ namespace infini {
 
 MatmulObj::MatmulObj(GraphObj *graph, Tensor A, Tensor B, Tensor C, bool transA,
                      bool transB, [[maybe_unused]] Tensor bias, ActType act)
-    : OperatorObj(OpType::Matmul,
+    : OperatorObj(OpType::MatMul,
                   bias ? TensorVec{A, B, bias} : TensorVec{A, B}, {C}),
       transA(transA), transB(transB), act(act), b(1) {
     auto shape_a = A->getDims();
@@ -82,12 +82,12 @@ optional<vector<Shape>> MatmulObj::inferShape(const TensorVec &inputs) const {
 }
 
 vector<int> MatmulObj::getWorkloadVector() const {
-    return {enum_to_underlying(type), b, m, n, k, transA, transB,
+    return {type.underlying(),      b, m, n, k, transA, transB,
             enum_to_underlying(act)};
 }
 
 vector<int> MatmulObj::getOpAttrVector() const {
-    return {enum_to_underlying(type), transA, transB, enum_to_underlying(act)};
+    return {type.underlying(), transA, transB, enum_to_underlying(act)};
 }
 
 } // namespace infini

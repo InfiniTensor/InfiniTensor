@@ -47,12 +47,12 @@ vector<int> ConcatObj::getWorkloadVector() const {
     vector<int> ret = getOutput()->getDims();
     ret.emplace(ret.begin(), (int)inputs.size());
     ret.emplace(ret.begin(), dim);
-    ret.emplace(ret.begin(), enum_to_underlying(type));
+    ret.emplace(ret.begin(), type.underlying());
     return ret;
 }
 
 vector<int> ConcatObj::getOpAttrVector() const {
-    return {enum_to_underlying(type), dim};
+    return {type.underlying(), dim};
 }
 
 } // namespace infini

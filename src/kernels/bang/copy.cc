@@ -40,7 +40,7 @@ class CopyCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Copy, DataType::Float32, CopyCnnl,
-                "Copy_cnnl_BANG_Float32");
+// REGISTER_KERNEL(Device::BANG, COpType::opy, DataType::Float32, CopyCnnl,
+//                 "Copy_cnnl_BANG_Float32");
 
 }; // namespace infini

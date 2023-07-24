@@ -69,14 +69,14 @@ std::string ReduceMeanObj::toString() const {
 
 vector<int> ReduceMeanObj::getWorkloadVector() const {
     vector<int> ret = inputs[0]->getDims();
-    ret.emplace(ret.begin(), enum_to_underlying(type));
+    ret.emplace(ret.begin(), type.underlying());
     ret.emplace_back((int)keepDims);
     ret.insert(ret.end(), axes.begin(), axes.end());
     return ret;
 }
 
 vector<int> ReduceMeanObj::getOpAttrVector() const {
-    vector<int> ret = {enum_to_underlying(type), (int)keepDims};
+    vector<int> ret = {type.underlying(), (int)keepDims};
     ret.insert(ret.end(), axes.begin(), axes.end());
     return ret;
 }

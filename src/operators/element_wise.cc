@@ -39,7 +39,7 @@ ElementWiseObj::inferShape(const TensorVec &inputs) const {
 
 std::string ElementWiseObj::toString() const {
     std::ostringstream os;
-    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]";
+    os << type.toString() << "[" << getGuid() << "]";
     os << "(";
     os << vecToString(inputs[0]->getDims()) << ",";
     os << vecToString(inputs[1]->getDims()) << ",";
@@ -52,12 +52,12 @@ std::string ElementWiseObj::toString() const {
 // use output dim or inputs dim?
 vector<int> ElementWiseObj::getWorkloadVector() const {
     vector<int> ret = outputs[0]->getDims();
-    ret.emplace(ret.begin(), enum_to_underlying(type));
+    ret.emplace(ret.begin(), type.underlying());
     return ret;
 }
 
 vector<int> ElementWiseObj::getOpAttrVector() const {
-    return {enum_to_underlying(type)};
+    return {type.underlying()};
 }
 
 MSELossObj::MSELossObj(GraphObj *graph, Tensor input0, Tensor input1,
@@ -83,7 +83,7 @@ optional<vector<Shape>> MSELossObj::inferShape(const TensorVec &inputs) const {
 
 std::string MSELossObj::toString() const {
     std::ostringstream os;
-    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]";
+    os << type.toString() << "[" << getGuid() << "]";
     os << "(";
     os << vecToString(inputs[0]->getDims()) << ",";
     os << vecToString(inputs[1]->getDims()) << ",";
@@ -96,12 +96,10 @@ std::string MSELossObj::toString() const {
 // use output dim or inputs dim?
 vector<int> MSELossObj::getWorkloadVector() const {
     vector<int> ret = outputs[0]->getDims();
-    ret.emplace(ret.begin(), enum_to_underlying(type));
+    ret.emplace(ret.begin(), type.underlying());
     return ret;
 }
 
-vector<int> MSELossObj::getOpAttrVector() const {
-    return {enum_to_underlying(type)};
-}
+vector<int> MSELossObj::getOpAttrVector() const { return {type.underlying()}; }
 
 }; // namespace infini

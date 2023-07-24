@@ -76,6 +76,6 @@ REGISTER_KERNEL(Device::CPU, OpType::MaxPool, DataType::UInt32,
                 NaiveMaxPool<uint32_t>, "maxPoolNaive_CPU_uint32");
 REGISTER_KERNEL(Device::CPU, OpType::MaxPool, DataType::Float32,
                 NaiveMaxPool<float>, "maxPoolNaive_CPU_float32");
-REGISTER_KERNEL(Device::CPU, OpType::AvgPool, DataType::Float32,
+REGISTER_KERNEL(Device::CPU, OpType::AveragePool, DataType::Float32,
                 NaiveAvgPool<float>, "AvgPoolNaive_CPU_float32");
 } // namespace infini

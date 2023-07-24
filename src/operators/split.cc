@@ -56,14 +56,14 @@ optional<vector<Shape>> SplitObj::inferShape(const TensorVec &inputs) const {
 
 vector<int> SplitObj::getWorkloadVector() const {
     vector<int> ret = inputs[0]->getDims();
-    ret.emplace(ret.begin(), enum_to_underlying(type));
+    ret.emplace(ret.begin(), type.underlying());
     ret.emplace_back(dim);
     ret.emplace_back(num);
     return ret;
 }
 
 vector<int> SplitObj::getOpAttrVector() const {
-    return {enum_to_underlying(type), dim, num};
+    return {type.underlying(), dim, num};
 }
 
 string SplitObj::toString() const {

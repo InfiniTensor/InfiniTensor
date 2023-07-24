@@ -2,16 +2,19 @@
 #ifndef OP_TYPE_H
 #define OP_TYPE_H
 
-#include "core/tensor.h"
 #include <string>
 #include <unordered_set>
 
 namespace infini {
 
-struct NewOpType {
+struct OpType {
+    using underlying_t = uint16_t;
+
     // Clang-format is ambiguous in formating of comment alignment.
-    // In order to disambiguate, it is necessary to comment all enum elements.
-    enum {
+    // In order to disambiguate, it is necessary to comment all enum
+    // elements.
+    enum : underlying_t {
+        Unknown,
         Abs,                // Unary
         Acos,               // Unary
         Acosh,              // Unary
@@ -42,14 +45,14 @@ struct NewOpType {
         Concat,
         ConcatFromSequence,
         ConstantOfShape,
-        Conv,
-        ConvInteger,
-        ConvTranspose,
-        Cos,  // Unary
-        Cosh, // Unary
+        Conv,          // ComputationIntensive
+        ConvInteger,   // ComputationIntensive
+        ConvTranspose, // ComputationIntensive
+        Cos,           // Unary
+        Cosh,          // Unary
         CumSum,
         DFT,
-        DeformConv,
+        DeformConv, // ComputationIntensive
         DepthToSpace,
         DequantizeLinear,
         Det,
@@ -98,8 +101,8 @@ struct NewOpType {
         Loop,
         LpNormalization,
         LpPool,
-        MatMul,
-        MatMulInteger,
+        MatMul,        // ComputationIntensive
+        MatMulInteger, // ComputationIntensive
         Max,
         MaxPool,
         MaxRoiPool,
@@ -109,10 +112,10 @@ struct NewOpType {
         MelWeightMatrix,
         Min,
         Mish,
-        Mod, // Binary
-        Mul, // Binary
-        Multinomial,
-        Neg, // Unary
+        Mod,         // Binary
+        Mul,         // Binary
+        Multinomial, //
+        Neg,         // Unary
         NegativeLogLikelihoodLoss,
         NonMaxSuppression,
         NonZero,
@@ -121,12 +124,12 @@ struct NewOpType {
         Optional,
         OptionalGetElement,
         OptionalHasElement,
-        Or, // Binary
-        PRelu,
-        Pad,
-        Pow, // Binary
-        QLinearConv,
-        QLinearMatMul,
+        Or,            // Binary
+        PRelu,         //
+        Pad,           //
+        Pow,           // Binary
+        QLinearConv,   // ComputationIntensive
+        QLinearMatMul, // ComputationIntensive
         QuantizeLinear,
         RNN,
         RandomNormal,
@@ -197,230 +200,40 @@ struct NewOpType {
         Upsample,
         Where,
         Xor, // Binary
+        // temp --------------------
+        ConvTransNHWC,
+        MemBound,
+        ReluBackward,
+        SigmoidBackward,
+        TanhBackward,
+        G2BMM,
+        GBMM,
+        Extend,
+        MSELoss,
+        Hardtanh,
+        Fill,
+        L2Loss,
+        Square,
+        ConvBackwardFilter,
+        Copy,
     } type;
 
-    const char *ToString() const;
+    constexpr OpType(decltype(type) t) : type(t) {}
+    constexpr explicit OpType(underlying_t val) : type((decltype(type))val) {}
+    constexpr underlying_t underlying() const { return type; }
+
+    bool operator==(OpType others) const { return type == others.type; }
+    bool operator!=(OpType others) const { return type != others.type; }
+    bool operator<(OpType others) const { return type < others.type; }
+
+    const char *toString() const;
     bool isUnary() const;
     bool isBinary() const;
     bool isElementWise() const;
     bool isCompair() const;
     bool isPool() const;
     bool isGlobalPool() const;
-};
-
-enum class OpType {
-    Unknown = 0,
-    // linear
-    Conv = 100,
-    ConvBackwardFilter,
-    ConvBackwardData,
-    Matmul,
-    ConvTrans,
-    ConvTransNHWC,
-    G2BMM,
-    GBMM,
-    Pad,
-    Slice,
-    Concat,
-    Split,
-    Transpose,
-    Extend,
-    MaxPool,
-    AvgPool,
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Pow,
-    Gather,
-    ReduceMean,
-    Reshape,
-    Flatten,
-    Identity,
-    // element wise
-    BatchNorm = 200,
-    Softmax,
-    Activation,
-    Relu,
-    ReluBackward,
-    PRelu,
-    Sigmoid,
-    SigmoidBackward,
-    Tanh,
-    TanhBackward,
-    Abs,
-    Sin,
-    Cos,
-    Tan,
-    ASin,
-    ACos,
-    ATan,
-    SinH,
-    CosH,
-    TanH,
-    ASinH,
-    ACosH,
-    ATanH,
-    Resize,
-    Arange,
-    Shape,
-    Copy,
-    Ceil,
-    Floor,
-    Clip,
-    Erf,
-    Exp,
-    Fill,
-    Log,
-    L2Loss,
-    Maximum,
-    Minimum,
-    MSELoss,
-    Neg,
-    Power,
-    Reciprocal,
-    Sqrt,
-    Rsqrt,
-    Cast,
-    FloorDiv,
-    FloorMod,
-    Det,
-    Round,
-    Square,
-    SquaredDifference,
-    Hardtanh,
-    Equal,
-    NotEqual,
-    GreaterThan,
-    GreaterEqual,
-    LessThan,
-    LessEqual,
-    And,
-    Or,
-    Xor,
-    Not,
-    BitAnd,
-    BitOr,
-    BitXor,
-    BitNot,
-    BitLeftShift,
-    BitRightShift,
-    Dropout,
-    UnaryKernel,
-    //
-    MemBound = 300,
-    MemoryGraph,
-};
-
-class OpRegistry {
-  public:
-    static std::string getOpName(OpType opType) {
-#define FOP(op)                                                                \
-    case OpType::op:                                                           \
-        return #op
-
-        switch (opType) {
-            FOP(Unknown);
-            // linear
-            FOP(Conv);
-            FOP(ConvBackwardFilter);
-            FOP(ConvBackwardData);
-            FOP(Matmul);
-            FOP(ConvTrans);
-            FOP(G2BMM);
-            FOP(GBMM);
-            FOP(Pad);
-            FOP(Slice);
-            FOP(Concat);
-            FOP(Split);
-            FOP(Transpose);
-            FOP(Extend);
-            FOP(MaxPool);
-            FOP(AvgPool);
-            FOP(Add);
-            FOP(Sub);
-            FOP(Mul);
-            FOP(Div);
-            FOP(Pow);
-            FOP(Gather);
-            FOP(ReduceMean);
-            FOP(Reshape);
-            FOP(Identity);
-            FOP(Shape);
-            // element wise
-            FOP(BatchNorm);
-            FOP(Softmax);
-            FOP(Activation);
-            FOP(Relu);
-            FOP(ReluBackward);
-            FOP(PRelu);
-            FOP(Sigmoid);
-            FOP(SigmoidBackward);
-            FOP(Tanh);
-            FOP(TanhBackward);
-            FOP(Abs);
-            FOP(Sin);
-            FOP(Cos);
-            FOP(Tan);
-            FOP(ASin);
-            FOP(ACos);
-            FOP(ATan);
-            FOP(SinH);
-            FOP(CosH);
-            FOP(TanH);
-            FOP(ASinH);
-            FOP(ACosH);
-            FOP(ATanH);
-            FOP(Copy);
-            FOP(Ceil);
-            FOP(Floor);
-            FOP(Clip);
-            FOP(Erf);
-            FOP(Exp);
-            FOP(Fill);
-            FOP(Log);
-            FOP(L2Loss);
-            FOP(Maximum);
-            FOP(Minimum);
-            FOP(MSELoss);
-            FOP(Neg);
-            FOP(Power);
-            FOP(Reciprocal);
-            FOP(Sqrt);
-            FOP(Rsqrt);
-            FOP(Cast);
-            FOP(FloorDiv);
-            FOP(FloorMod);
-            FOP(Det);
-            FOP(Round);
-            FOP(Square);
-            FOP(SquaredDifference);
-            FOP(Hardtanh);
-            FOP(Equal);
-            FOP(NotEqual);
-            FOP(GreaterThan);
-            FOP(GreaterEqual);
-            FOP(LessThan);
-            FOP(LessEqual);
-            FOP(And);
-            FOP(Or);
-            FOP(Xor);
-            FOP(Not);
-            FOP(BitAnd);
-            FOP(BitOr);
-            FOP(BitXor);
-            FOP(BitNot);
-            FOP(BitLeftShift);
-            FOP(BitRightShift);
-            FOP(UnaryKernel);
-            //
-            FOP(MemBound);
-        default:
-            IT_ASSERT(false);
-            break;
-        }
-#undef FOP
-    }
+    bool isMatMulOrConv() const;
 };
 
 enum class ActType {

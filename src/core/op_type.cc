@@ -1,12 +1,13 @@
 ﻿#include "core/op_type.h"
 
 namespace infini {
-const char *NewOpType::ToString() const {
+const char *OpType::toString() const {
 #define CASE(NAME)                                                             \
-    case NewOpType::NAME:                                                      \
+    case OpType::NAME:                                                         \
         return #NAME
 
     switch (type) {
+        CASE(Unknown);
         CASE(Abs);
         CASE(Acos);
         CASE(Acosh);
@@ -192,14 +193,30 @@ const char *NewOpType::ToString() const {
         CASE(Upsample);
         CASE(Where);
         CASE(Xor);
+        // temp
+        CASE(ConvTransNHWC);
+        CASE(MemBound);
+        CASE(ReluBackward);
+        CASE(SigmoidBackward);
+        CASE(TanhBackward);
+        CASE(G2BMM);
+        CASE(GBMM);
+        CASE(Extend);
+        CASE(MSELoss);
+        CASE(Hardtanh);
+        CASE(Fill);
+        CASE(L2Loss);
+        CASE(Square);
+        CASE(ConvBackwardFilter);
+        CASE(Copy);
     default:
-        IT_ASSERT(false);
+        return "Unknown";
     }
 
 #undef CASE
 }
 
-bool NewOpType::isUnary() const {
+bool OpType::isUnary() const {
     static const std::unordered_set<decltype(type)> set{
         Abs,  Acos,  Acosh,   Asin, Asinh, Atan,  Atanh, Cast, Ceil,
         Clip, Cos,   Cosh,    Erf,  Exp,   Floor, Log,   Neg,  Not,
@@ -209,7 +226,7 @@ bool NewOpType::isUnary() const {
     return set.find(type) != set.end();
 }
 
-bool NewOpType::isBinary() const {
+bool OpType::isBinary() const {
     static const std::unordered_set<decltype(type)> set{
         Add, And, BitShift, BitwiseAnd, BitwiseNot, BitwiseOr, BitwiseXor,
         Div, Mod, Mul,      Or,         Pow,        Sub,       Xor,
@@ -218,9 +235,9 @@ bool NewOpType::isBinary() const {
     return set.find(type) != set.end() || isCompair();
 }
 
-bool NewOpType::isElementWise() const { return isUnary() || isBinary(); }
+bool OpType::isElementWise() const { return isUnary() || isBinary(); }
 
-bool NewOpType::isCompair() const {
+bool OpType::isCompair() const {
     static const std::unordered_set<decltype(type)> set{
         Equal, Greater, GreaterOrEqual, Less, LessOrEqual,
     };
@@ -228,15 +245,27 @@ bool NewOpType::isCompair() const {
     return set.find(type) != set.end();
 }
 
-bool NewOpType::isPool() const {
+bool OpType::isPool() const {
     static const std::unordered_set<decltype(type)> set{};
 
     return set.find(type) != set.end();
 }
 
-bool NewOpType::isGlobalPool() const {
+bool OpType::isGlobalPool() const {
     static const std::unordered_set<decltype(type)> set{
-        GlobalAveragePool, GlobalLpPool, GlobalMaxPool};
+        GlobalAveragePool,
+        GlobalLpPool,
+        GlobalMaxPool,
+    };
+
+    return set.find(type) != set.end();
+}
+
+bool OpType::isMatMulOrConv() const {
+    static const std::unordered_set<decltype(type)> set{
+        Conv,        ConvInteger, ConvTranspose, DeformConv,
+        QLinearConv, MatMul,      MatMulInteger, QLinearMatMul,
+    };
 
     return set.find(type) != set.end();
 }

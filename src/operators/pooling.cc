@@ -28,7 +28,7 @@ optional<vector<Shape>> PoolingObj::inferShape(const TensorVec &inputs) const {
 
 std::string PoolingObj::toString() const {
     std::ostringstream os;
-    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]";
+    os << type.toString() << "[" << getGuid() << "]";
     os << "(";
     os << "k=[" << kh << "," << kw << "],";
     os << "p=[" << ph << "," << pw << "],";
@@ -40,12 +40,11 @@ std::string PoolingObj::toString() const {
 }
 
 vector<int> PoolingObj::getWorkloadVector() const {
-    return {
-        enum_to_underlying(type), n, c, h, w, kh, kw, ph, pw, sh, sw, dh, dw};
+    return {type.underlying(), n, c, h, w, kh, kw, ph, pw, sh, sw, dh, dw};
 }
 
 vector<int> PoolingObj::getOpAttrVector() const {
-    return {enum_to_underlying(type), kh, kw, ph, pw, sh, sw, dh, dw};
+    return {type.underlying(), kh, kw, ph, pw, sh, sw, dh, dw};
 }
 
 }; // namespace infini
