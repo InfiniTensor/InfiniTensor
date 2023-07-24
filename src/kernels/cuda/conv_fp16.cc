@@ -57,8 +57,9 @@ class convCudnnFP16 : public Kernel {
                           const ConvCuDnnPerfRecord &record) const {
         void *const inData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const knData = (op->getInputs(1)->getRawDataPtr<void *>());
-        if (op->getInputs().size() > 2) // Bias is not supported yet
+        if (op->getInputs().size() > 2) { // Bias is not supported yet
             IT_TODO_HALT();
+        }
         // void *const biasData = (op->getInputs(2)->getRawDataPtr<void *>());
         void *const outData = (op->getOutput()->getRawDataPtr<void *>());
 
@@ -155,10 +156,12 @@ class convCudnnFP16 : public Kernel {
                                        inData, knDesc, knData, convDesc,
                                        ALGOS[record->algo], wsData, wsSize,
                                        &beta, outDesc, outData);
-        if (stat != CUDNN_STATUS_SUCCESS)
-            // Destories in CUDA does not require sync. But cuDNN does not state
-            // whether sync is required before destories.
-            checkCudnnError(cudnnDestroyTensorDescriptor(outDesc));
+        if (stat != CUDNN_STATUS_SUCCESS) {
+            return false;
+        }
+        // Destories in CUDA does not require sync. But cuDNN does not state
+        // whether sync is required before destories.
+        checkCudnnError(cudnnDestroyTensorDescriptor(outDesc));
         checkCudnnError(cudnnDestroyActivationDescriptor(actDesc));
         checkCudnnError(cudnnDestroyConvolutionDescriptor(convDesc));
         checkCudnnError(cudnnDestroyTensorDescriptor(biasDesc));
@@ -196,10 +199,12 @@ class convCudnnFP16 : public Kernel {
                 stat = cudnnGetConvolutionForwardWorkspaceSize(
                     context->cudnnHandle(), inDesc, knDesc, convDesc, outDesc,
                     ALGOS[record.algo], &record.workspaceSize);
-                if (stat != CUDNN_STATUS_SUCCESS)
+                if (stat != CUDNN_STATUS_SUCCESS) {
                     continue;
-                if (record.workspaceSize > context->getWorkspaceSize())
+                }
+                if (record.workspaceSize > context->getWorkspaceSize()) {
                     continue;
+                }
                 CudaPtr wsData = context->getWorkspace(record.workspaceSize);
                 float alpha = 1.f, beta = 0.f;
 
@@ -207,8 +212,9 @@ class convCudnnFP16 : public Kernel {
                     context->cudnnHandle(), &alpha, inDesc, inData, knDesc,
                     knData, convDesc, ALGOS[record.algo], wsData,
                     record.workspaceSize, &beta, outDesc, outData);
-                if (stat != CUDNN_STATUS_SUCCESS)
+                if (stat != CUDNN_STATUS_SUCCESS) {
                     continue;
+                }
                 record.time = timeit(
                     [&]() {
                         cudnnConvolutionForward(context->cudnnHandle(), &alpha,
@@ -221,8 +227,9 @@ class convCudnnFP16 : public Kernel {
                 // printf("mode:%d algo:%d :%.8lf\n", mode, algo, record.time);
 
                 // Update the tune result
-                if (ret.time > record.time)
+                if (ret.time > record.time) {
                     ret = record;
+                }
                 checkCudnnError(cudnnDestroyTensorDescriptor(outDesc));
                 checkCudnnError(cudnnDestroyActivationDescriptor(actDesc));
                 checkCudnnError(cudnnDestroyConvolutionDescriptor(convDesc));
