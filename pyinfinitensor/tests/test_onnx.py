@@ -108,7 +108,7 @@ class TestStringMethods(unittest.TestCase):
             name="batchNormalization",
         )
         make_and_import_model(
-            make_graph([batch_norm], "batchNorm", [x, scale, b, mean, var], [y])
+            make_graph([batch_norm], "batchNormalzation", [x, scale, b, mean, var], [y])
         )
 
     def test_max_pool(self):

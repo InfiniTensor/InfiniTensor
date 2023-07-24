@@ -48,6 +48,8 @@ void register_operator_timer(py::module &m) {
 #endif
 }
 
+decltype(OpType::type) getId(OpType const *const ptr) { return ptr->type; }
+
 void export_values(py::module &m) {
 #define VALUE(TYPE, NAME) value(#NAME, TYPE::NAME)
 
@@ -58,7 +60,10 @@ void export_values(py::module &m) {
         .VALUE(ActType, Tanh)
         .export_values();
 
-    py::enum_<decltype(OpType::type)>(m, "OpType")
+    py::class_<OpType>(m, "OpType")
+        .def(py::init<decltype(OpType::type)>())
+        .def("id", getId, policy::automatic);
+    py::enum_<decltype(OpType::type)>(m, "OpTypeId")
         .VALUE(OpType, Conv)
         .VALUE(OpType, MatMul)
         .VALUE(OpType, ConvTranspose)
@@ -315,7 +320,7 @@ void init_graph_builder(py::module &m) {
         .def("conv", &Handler::conv, policy::move)
         .def("convTransposed2d", &Handler::convTransposed2d, policy::move)
         .def("matmul", &Handler::matmul, policy::move)
-        .def("batchNorm", &Handler::batchNorm, policy::move)
+        .def("batchNormalization", &Handler::batchNormalization, policy::move)
         .def("maxPool", &Handler::maxPool, policy::move)
         .def("avgPool", &Handler::avgPool, policy::move)
         .def("add", &Handler::add, policy::move)

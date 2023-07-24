@@ -39,7 +39,7 @@ vector<DataType> BatchNormObj::inferDataType(const TensorVec &inputs) const {
 
 std::string BatchNormObj::toString() const {
     std::ostringstream os;
-    os << "BatchNorm[" << getGuid() << "]";
+    os << "batchNormalization[" << getGuid() << "]";
     os << "(";
     os << vecToString(inputs[0]->getDims()) << ",";
     os << "momentum=" << momentum << ",";
