@@ -1,4 +1,5 @@
 ﻿import backend
+import struct
 from onnx import (
     ModelProto,
     TensorProto,
@@ -477,7 +478,10 @@ class OnnxStub:
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
                     # NOTE(constroy): `axes` is an attribute until opset version 13.
-                    next((attr.ints for attr in node.attribute if attr.name == "axes"), None),
+                    next(
+                        (attr.ints for attr in node.attribute if attr.name == "axes"),
+                        None,
+                    ),
                     next((attr.i for attr in node.attribute if attr.name == "keepdims"))
                     != 0,
                 )
@@ -534,17 +538,7 @@ class OnnxStub:
                 elif tensor.data_type == TensorProto.BOOL:
                     obj.copyin_int8(_parse_data(tensor))
                 elif tensor.data_type == TensorProto.FLOAT16:
-                    if len(tensor.int32_data) != 0:
-                        list_int32_data = []
-                        for element_data in tensor.int32_data:
-                            element_byte = element_data.to_bytes(2, "little")
-                            list_int32_data.append(element_byte[0])
-                            list_int32_data.append(element_byte[1])
-                        obj.copyin_uint8(list_int32_data)
-                    elif len(tensor.raw_data) != 0:
-                        obj.copyin_uint8(list(tensor.raw_data))
-                    else :
-                        raise Exception("Tensor have no float16 data!")
+                    obj.copyin_float16(_parse_data_fp16(tensor))
                 elif tensor.data_type == TensorProto.INT8:
                     obj.copyin_uint8(_parse_data(tensor))
                 else:
@@ -909,6 +903,23 @@ def _parse_attribute(node: NodeProto, attrs: Dict[str, Any] = dict()) -> Dict[st
 
 def _parse_data(tensor: TensorProto) -> List[Any]:
     return to_array(tensor).flatten().tolist()
+
+
+def _parse_data_fp16(tensor: TensorProto):
+    list_ = []
+    if len(tensor.int32_data) != 0:
+        for element_data in tensor.int32_data:
+            element_byte = element_data.to_bytes(2, "little")
+            list_.append(element_byte[0] + element_byte[1] * 256)
+    elif len(tensor.raw_data) != 0:
+        list_raw_data = list(tensor.raw_data)
+        list_data = [list_raw_data[i : i + 2] for i in range(0, len(list_raw_data), 2)]
+        for ele in list_data:
+            list_.append(ele[0] + ele[1] * 256)
+    else:
+        raise Exception("Tensor have no float16 data!")
+    return list_
+
 
 def _take_shape_dim(shape: TensorShapeProto) -> List[int]:
     return [(d.dim_value if d.dim_value > 0 else 1) for d in shape.dim]

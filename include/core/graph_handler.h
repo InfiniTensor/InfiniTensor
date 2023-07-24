@@ -7,30 +7,6 @@
 
 namespace infini {
 
-// Use the indices from onnx to reduce delivery overhead,
-// which comes from onnx but may be not only used for onnx.
-//
-// see https://onnx.ai/onnx/intro/concepts.html#element-type
-enum OnnxDType : int {
-    UNDEFINED = 0,
-    FLOAT,
-    UINT8,
-    INT8,
-    UINT16,
-    INT16,
-    INT32,
-    INT64,
-    STRING,
-    BOOL,
-    FLOAT16,
-    DOUBLE,
-    UINT32,
-    UINT64,
-    COMPLEX64,
-    COMPLEX128,
-    BFLOAT16,
-};
-
 class GraphHandlerObj {
     Graph g;
 
