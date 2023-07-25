@@ -675,7 +675,7 @@ REGISTER_KERNEL(Device::BANG, OpType::Equal, DataType::Float32, EqualCnnl,
 //                 "NotEqual_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::Greater, DataType::Float32,
                 GreaterThanCnnl, "GreaterThan_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::GreaterPrEqual, DataType::Float32,
+REGISTER_KERNEL(Device::BANG, OpType::GreaterOrEqual, DataType::Float32,
                 GreaterEqualCnnl, "GreaterEqual_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::Less, DataType::Float32, LessThanCnnl,
                 "LessThan_cnnl_BANG_Float32");
