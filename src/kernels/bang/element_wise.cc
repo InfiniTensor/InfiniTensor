@@ -593,9 +593,6 @@ class MulCnnl : public ElementWiseCnnl {
 class EqualCnnl : public LogicOpCnnl {
     cnnlLogicOp_t getOpType() const override { return CNNL_LOGIC_OP_EQ; }
 };
-class NotEqualCnnl : public LogicOpCnnl {
-    cnnlLogicOp_t getOpType() const override { return CNNL_LOGIC_OP_NE; }
-};
 class GreaterThanCnnl : public LogicOpCnnl {
     cnnlLogicOp_t getOpType() const override { return CNNL_LOGIC_OP_GT; }
 };
@@ -667,8 +664,6 @@ REGISTER_KERNEL(Device::BANG, OpType::SquaredDifference, DataType::Float32,
                 SquaredDifferenceCnnl, "SquaredDifference_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::Equal, DataType::Float32, EqualCnnl,
                 "Equal_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::NotEqual, DataType::Float32, NotEqualCnnl,
-                "NotEqual_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::Greater, DataType::Float32,
                 GreaterThanCnnl, "GreaterThan_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::GreaterOrEqual, DataType::Float32,
