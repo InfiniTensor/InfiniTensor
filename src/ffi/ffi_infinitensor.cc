@@ -95,6 +95,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, Abs)
         .VALUE(OpType, Resize)
         .VALUE(OpType, Dropout)
+        .VALUE(OpType, Cast)
         .export_values();
 
 #undef VALUE
@@ -346,6 +347,7 @@ void init_graph_builder(py::module &m) {
         .def("reduce_mean", &Handler::reduceMean, policy::move)
         .def("slice", &Handler::slice, policy::move)
         .def("pad", &Handler::pad, policy::move)
+        .def("cast", &Handler::cast, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)
         .def("optimize", &Handler::optimize, policy::automatic)
         .def("operators", &Handler::operators, policy::move)

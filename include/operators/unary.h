@@ -134,31 +134,33 @@ class TransformObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 };
 
+enum CastType {
+    Float2Float16 = 0,
+    Float2Int64,
+    Float2Int32,
+    Float2Int16,
+    Float2Int8,
+    Int322Float,
+    Int322Int8,
+    Int322Int16,
+    Int322Int64,
+    Int162Float,
+    Int162Int32,
+    Int82Float,
+    Int82Int16,
+    Int82Int32,
+    Uint82Float,
+    Uint82Int32,
+    Uint82Int64,
+    Int642Int32,
+    Int642Uint32,
+    Int642Float,
+    Uint322Int64,
+    Float162Float32,
+};
+
 class CastObj : public OperatorObj {
   public:
-    enum CastType {
-        Float2Half = 0,
-        Float2Int64,
-        Float2Int32,
-        Float2Int16,
-        Float2Int8,
-        Int322Float,
-        Int322Int8,
-        Int322Int16,
-        Int162Float,
-        Int162Int32,
-        Int82Float,
-        Int82Int16,
-        Int82Int32,
-        Uint82Float,
-        Uint82Int32,
-        Uint82Int64,
-        Int322Int64,
-        Int642Int32,
-        Int642Uint32,
-        Int642Float,
-        Uint322Int64,
-    };
     CastObj(GraphObj *graph, Tensor input, Tensor output, CastType type);
     OP_CLONE(CastObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
