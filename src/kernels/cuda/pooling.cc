@@ -68,6 +68,6 @@ class avgPoolCudnn : public poolingCudnn {
 
 REGISTER_KERNEL(Device::CUDA, OpType::MaxPool, DataType::Float32, maxPoolCudnn,
                 "MaxPool_cuDNN_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::AvgPool, DataType::Float32, avgPoolCudnn,
+REGISTER_KERNEL(Device::CUDA, OpType::AveragePool, DataType::Float32, avgPoolCudnn,
                 "AvgPool_cuDNN_CUDA_Float32");
 }; // namespace infini

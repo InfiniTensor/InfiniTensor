@@ -59,6 +59,6 @@ class BatchNormCudnn : public CudaKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::batchNormalization, DataType::Float32,
+REGISTER_KERNEL(Device::CUDA, OpType::BatchNormalization, DataType::Float32,
                 BatchNormCudnn, "BatchNorm_cuDNN_CUDA_Float32");
 } // namespace infini
