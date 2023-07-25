@@ -659,20 +659,16 @@ REGISTER_KERNEL(Device::BANG, OpType::MSELoss, DataType::Float32, MSELossCnnl,
                 "MSELoss_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::Pow, DataType::Float32, PowerCnnl,
                 "Power_cnnl_BANG_Float32");
-// REGISTER_KERNEL(Device::BANG, OpType::FloorDiv, DataType::Float32,
-// FloorDivCnnl,
-//                 "FloorDiv_cnnl_BANG_Float32");
-// REGISTER_KERNEL(Device::BANG, OpType::FloorMod, DataType::Float32,
-// FloorModCnnl,
-//                 "FloorMod_cnnl_BANG_Float32");
-// REGISTER_KERNEL(Device::BANG, OpType::SquaredDifference, DataType::Float32,
-//                 SquaredDifferenceCnnl,
-//                 "SquaredDifference_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::FloorDiv, DataType::Float32, FloorDivCnnl,
+                "FloorDiv_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::FloorMod, DataType::Float32, FloorModCnnl,
+                "FloorMod_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::SquaredDifference, DataType::Float32,
+                SquaredDifferenceCnnl, "SquaredDifference_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::Equal, DataType::Float32, EqualCnnl,
                 "Equal_cnnl_BANG_Float32");
-// REGISTER_KERNEL(Device::BANG, OpType::NotEqual, DataType::Float32,
-// NotEqualCnnl,
-//                 "NotEqual_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::NotEqual, DataType::Float32, NotEqualCnnl,
+                "NotEqual_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::Greater, DataType::Float32,
                 GreaterThanCnnl, "GreaterThan_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::GreaterOrEqual, DataType::Float32,

@@ -197,27 +197,6 @@ class CumsumObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 };
 
-class ArangeObj : public OperatorObj {
-  public:
-    ArangeObj(GraphObj *graph, float start, float step, int length,
-              Tensor output);
-    OP_CLONE(ArangeObj);
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
-
-    std::string toString() const override;
-    int numInputs() const override { return 0; }
-    int numOutputs() const override { return 1; }
-    float getStartValue() { return startValue; }
-    float getStepValue() { return stepValue; }
-    int getLength() { return lengthValue; }
-
-  private:
-    float startValue, stepValue;
-    int lengthValue;
-    vector<int> getWorkloadVector() const override;
-    vector<int> getOpAttrVector() const override;
-};
-
 class ShapeObj : public OperatorObj {
   public:
     ShapeObj(GraphObj *graph, Tensor input, Tensor output);

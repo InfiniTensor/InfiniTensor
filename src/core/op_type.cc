@@ -193,22 +193,27 @@ const char *OpType::toString() const {
         CASE(Upsample);
         CASE(Where);
         CASE(Xor);
-        // temp
-        CASE(ConvTransNHWC);
+        // CUSTOM DEFINED
+        CASE(G2BMM);
+        CASE(GBMM);
         CASE(MemBound);
+        // TODO
+        CASE(ConvTransNHWC);
+        CASE(ConvBackwardFilter);
         CASE(ReluBackward);
         CASE(SigmoidBackward);
         CASE(TanhBackward);
-        CASE(G2BMM);
-        CASE(GBMM);
+
+        CASE(Fill);
         CASE(Extend);
         CASE(MSELoss);
         CASE(Hardtanh);
-        CASE(Fill);
         CASE(L2Loss);
+        CASE(Rsqrt);
+        CASE(FloorDiv);
+        CASE(FloorMod);
         CASE(Square);
-        CASE(ConvBackwardFilter);
-        CASE(Copy);
+        CASE(SquaredDifference);
     default:
         return "Unknown";
     }

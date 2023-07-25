@@ -200,22 +200,27 @@ struct OpType {
         Upsample,
         Where,
         Xor, // Binary
-        // temp --------------------
-        ConvTransNHWC,
+        // CUSTOM DEFINED
+        G2BMM,
+        GBMM,
         MemBound,
+        // TODO
+        ConvTransNHWC,
+        ConvBackwardFilter,
         ReluBackward,
         SigmoidBackward,
         TanhBackward,
-        G2BMM,
-        GBMM,
+
+        Fill,
         Extend,
         MSELoss,
         Hardtanh,
-        Fill,
         L2Loss,
+        Rsqrt,
+        FloorDiv,
+        FloorMod,
         Square,
-        ConvBackwardFilter,
-        Copy,
+        SquaredDifference,
     } type;
 
     constexpr OpType(decltype(type) t) : type(t) {}
