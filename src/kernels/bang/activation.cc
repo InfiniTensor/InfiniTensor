@@ -148,7 +148,6 @@ class SigmoidCnnl : public UnaryCnnl {
     float getCoef() const override { return 0.0; }
 };
 
-
 REGISTER_KERNEL(Device::BANG, OpType::Relu, DataType::Float32, ReluCnnl,
                 "Relu_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::PRelu, DataType::Float32, PReluCnnl,
