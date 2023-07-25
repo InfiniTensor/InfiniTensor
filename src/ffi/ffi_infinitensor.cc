@@ -243,6 +243,13 @@ static int flatten_axis_of(Operator op) {
     return dynamic_cast<const FlattenObj *>(op.get())->getAxis();
 }
 
+static int cast_to_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Cast);
+    return dynamic_cast<const CastObj *>(op.get())
+        ->getOutputDataType()
+        .getIndex();
+}
+
 void export_functions(py::module &m) {
 #define FUNCTION(NAME) def(#NAME, &NAME)
     m.def("cpu_runtime", &NativeCpuRuntimeObj::getInstance)
@@ -272,7 +279,8 @@ void export_functions(py::module &m) {
         .FUNCTION(concat_axis_of)
         .FUNCTION(split_axis_of)
         .FUNCTION(gather_axis_of)
-        .FUNCTION(flatten_axis_of);
+        .FUNCTION(flatten_axis_of)
+        .FUNCTION(cast_to_of);
 #undef FUNCTION
 }
 

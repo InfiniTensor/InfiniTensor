@@ -226,9 +226,7 @@ class TestStringMethods(unittest.TestCase):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1 * 3, 5 * 7])
         flatten = make_node("Flatten", ["x"], ["y"], axis=2, name="flatten")
-        make_and_import_model(
-            make_graph([flatten], "flatten", [x], [y])
-        )
+        make_and_import_model(make_graph([flatten], "flatten", [x], [y]))
 
     def test_reshape(self):
         data = make_tensor_value_info("data", TensorProto.FLOAT, [2, 3, 4, 5])
@@ -330,6 +328,12 @@ class TestStringMethods(unittest.TestCase):
         )
         y = handler.tensor([3, 2, 1], 12)
         handler.reshape(x, y, [3, 2, 1])
+
+    def test_cast(self):
+        input1 = make_tensor_value_info("input1", TensorProto.FLOAT, [1, 3, 2, 4])
+        output = make_tensor_value_info("output", TensorProto.FLOAT16, [1, 3, 2, 4])
+        cast = make_node("Cast", ["input1"], ["output"], to=10, name="cast")
+        make_and_import_model(make_graph([cast], "cast", [input1], [output]))
 
 
 if __name__ == "__main__":
