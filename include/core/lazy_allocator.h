@@ -23,8 +23,6 @@ class LazyAllocator {
         struct freeBlockInfo {
             size_t addr;
             size_t blockSize;
-            freeBlockInfo(size_t addr, size_t blockSize)
-                : addr(addr), blockSize(blockSize) {}
         };
 
         struct cmpFreeBlockInfo {
@@ -74,7 +72,9 @@ class LazyAllocator {
 
         // 功能：内存对齐，向上取整
         // 返回值：对齐后的尾地址
-        size_t LazyAllocator::getAlignedTailAddr(size_t baseAddr);
+        size_t getAlignedTailAddr(size_t baseAddr);
+
+        void info();
 };
 
 } // namespace infini
