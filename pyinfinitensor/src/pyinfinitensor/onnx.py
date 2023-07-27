@@ -1,5 +1,4 @@
 ﻿import backend
-import struct
 from onnx import (
     ModelProto,
     TensorProto,

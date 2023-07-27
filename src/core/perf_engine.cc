@@ -30,9 +30,7 @@ void from_json(const json &j, OpPerfKey &p) {
     j.at("opType").get_to(p.opType);
     j.at("attrs").get_to(p.attrs);
 }
-void to_json(json &j, const DataType &p) {
-    j = p.toString() == "Float32" ? 0 : 1;
-}
+void to_json(json &j, const DataType &p) { j = p.getIndex(); }
 void from_json(const json &j, DataType &p) { p = DataType(j.get<int>()); }
 void to_json(json &j, const PerfRecord &p) { p->to_json(j); }
 void from_json(const json &j, PerfRecord &p) {

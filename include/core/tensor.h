@@ -1,5 +1,6 @@
 #pragma once
 #include "core/tensor_base.h"
+#include "utils/data_convert.h"
 #include <cmath>
 #include <cstring>
 
@@ -98,8 +99,12 @@ class TensorObj : public TensorBaseObj {
     bool equalData(const Tensor &rhs, double relativeError = 1e-6) const;
 
     template <typename T> bool equalData(const vector<T> &dataVector) {
-        IT_ASSERT(DataType::get<T>() == dtype.cpuTypeInt());
         IT_ASSERT(size() == dataVector.size());
+        if (dtype == DataType::Float16) {
+            return equalDataImpl_fp16(getRawDataPtr<uint16_t *>(),
+                                      (float *)dataVector.data(), size());
+        }
+        IT_ASSERT(DataType::get<T>() == dtype.cpuTypeInt());
         return equalDataImpl(getRawDataPtr<T *>(), dataVector.data(), size());
     }
 
@@ -152,6 +157,20 @@ class TensorObj : public TensorBaseObj {
                 }
             } else
                 static_assert(!sizeof(T), "Unsupported data type");
+        }
+        return true;
+    }
+
+    bool equalDataImpl_fp16(const uint16_t *a, const float *b,
+                            size_t size) const {
+        for (size_t i = 0; i < size; ++i) {
+            auto a_fp32 = fp16_to_float(a[i]);
+            auto b_fp32 = b[i];
+            if (fabs(a_fp32 - b_fp32) / std::max(fabs(a_fp32), fabs(b_fp32)) >
+                1e-6) {
+                printf("Error on %lu: %f %f\n", i, a_fp32, b_fp32);
+                return false;
+            }
         }
         return true;
     }
