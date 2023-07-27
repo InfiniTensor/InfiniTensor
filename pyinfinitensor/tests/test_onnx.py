@@ -64,6 +64,21 @@ class TestStringMethods(unittest.TestCase):
         )
         make_and_import_model(make_graph([conv], "conv", [i, w], [o]))
 
+    def test_conv_fp16(self):
+        i = make_tensor_value_info("i", TensorProto.FLOAT16, [1, 3, 4, 4])
+        w = make_tensor_value_info("w", TensorProto.FLOAT16, [2, 3, 3, 3])
+        o = make_tensor_value_info("o", TensorProto.FLOAT16, [1, 2, 2, 2])
+        conv = make_node(
+            "Conv",
+            ["i", "w"],
+            ["o"],
+            "conv",
+            pads=[1, 1, 1, 1],
+            strides=[2, 1],
+            dilations=[1, 2],
+        )
+        make_and_import_model(make_graph([conv], "conv_fp16", [i, w], [o]))
+
     def test_matmul(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 2, 3])
         a = make_tensor_value_info("a", TensorProto.FLOAT, [1, 3, 4])
@@ -211,9 +226,9 @@ class TestStringMethods(unittest.TestCase):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1 * 3, 5 * 7])
         flatten = make_node("Flatten", ["x"], ["y"], axis=2, name="flatten")
-        # make_and_import_model(
-        make_graph([flatten], "flatten", [x], [y])
-        # )
+        make_and_import_model(
+            make_graph([flatten], "flatten", [x], [y])
+        )
 
     def test_reshape(self):
         data = make_tensor_value_info("data", TensorProto.FLOAT, [2, 3, 4, 5])

@@ -110,8 +110,6 @@ optional<vector<Shape>> OperatorObj::inferShape() const {
 
 vector<DataType> OperatorObj::inferDataType(const TensorVec &inputs) const {
     auto dataType = inputs[0]->getDType();
-    for (const auto &tensor : inputs)
-        IT_ASSERT(dataType == tensor->getDType());
     return vector(numOutputs(), dataType);
 }
 
