@@ -41,24 +41,19 @@ class LazyAllocator {
         std::unordered_map<size_t, size_t> headAddrToBlockSize;
         
         // 空闲块结尾地址集合，维护所有空闲内存块的结尾地址偏移量，用于碎片回收
-        std::unordered_map<size_t, size_t> tailAddrToBlockSize;
+        std::unordered_map<size_t, size_t> tailAddrToBlockSize;       
 
     public:
         LazyAllocator(Runtime runtime, size_t alignment);
         
         virtual ~LazyAllocator();
 
-        // 功能：初始化成员变量 peak=size。
-        // 输入参数：
-        //    size：计算图中的常量 Tensor（模型权重等）所需内存大小。
-        void init(size_t size);
-
         // 功能：模拟分配内存。   
         // 输入参数：
         //     size：需要分配的内存大小。
         //     alignment：内存对齐量。
         // 返回值：所分配内存块的起始地址偏移量。 
-        size_t alloc(size_t size, size_t alignment);
+        size_t alloc(size_t size);
 
         // 功能：模拟释放内存。
         // 输入参数：
@@ -68,7 +63,7 @@ class LazyAllocator {
 
         // 功能：进行实际的内存分配
         // 返回值：指向所分配内存起始地址的指针
-        Blob ptr();
+        void* ptr();
 
         // 功能：内存对齐，向上取整
         // 返回值：对齐后的尾地址

@@ -124,13 +124,63 @@ void GraphObj::optimize() {
 }
 
 void GraphObj::dataMalloc() {
-    size_t totalSize = 0;
-    for (auto &tensor : tensors) {
-        totalSize += tensor->getBytes();
-        tensor->dataMalloc();
+    // size_t totalSize = 0;
+    // for (auto &tensor : tensors) {
+    //     totalSize += tensor->getBytes();
+    //     tensor->dataMalloc();
+    // }
+    // allocator.init(totalSize);
+    // std::cout << "totalSize <<<<<<<<<< " << totalSize << std::endl;
+    
+    // 先拓扑排序
+    IT_ASSERT(topo_sort() == true);
+    // 统计所有 tensor 被使用的次数
+    std::unordered_map<Tensor*, size_t> tensorToRefCount;
+    // 统计所有 tensor 被分配的内存地址偏移量
+    std::unordered_map<Tensor*, size_t> tensorToAddr;     
+
+    // 记录所有常量 tensor
+    std::unordered_set<Tensor*> constTensor;
+    for (auto &tensor: tensors) {
+        if (tensor->getSource() == nullptr) {
+            // 先给所有常量 tensor 分配内存
+            // 说明是 weight 或者 input，都不进行复用
+            constTensor.insert(&tensor);
+            tensorToAddr[&tensor] = allocator.alloc(tensor->getBytes())
+        } else {
+            // 计算 tensor 需要被使用的次数
+            tensorToRefCount[&tensor] = tensor->getTargets().size();
+        }
     }
-    allocator.init(totalSize);
-    std::cout << "totalSize <<<<<<<<<< " << totalSize << std::endl;
+    // 按照拓扑序遍历，模拟分配内存
+    for (auto &op : ops) {
+        auto inputs = op->getInputs();
+        for (auto &tensor: inputs) {
+            if (constTensor.find(&tensor) == constTensor.end()) {
+                // 说明不是常量 tensor，计数-1
+                auto tensorIter = tensorToRefCount.find(&tensor);
+                IT_ASSERT(tensorIter != tensorToRefCount.end());
+                tensorToRefCount[&tensor] -= 1;
+                if (tensorToRefCount[&tensor] == 0) {
+                    // 之后不再被使用的 tensor，释放内存
+                    tensorToRefCount.erase(&tensor);
+                    allocator.free(tensorToAddr[&tensor], tensor->getBytes());
+                }
+            }
+        }
+        auto outputs = op->getOutputs();
+        for (auto &tensor: outputs) {
+            // 直接分配内存
+            tensorToAddr[&tensor] = allocator.alloc(tensor->getBytes());
+        }
+    }
+
+    // 进行实际的内存分配
+    // 所有的 runtime 都是一致的？
+    // tensor 的 dataMalloc 需要改（test 里会用到）
+    for (auto &tensor: tensors) {
+        tensor->data = make_ref<BlobObj>(BlobObj(tensor->runtime, allocator.ptr() + tensorToAddr[&tensor]));
+    }
 }
 
 Tensor GraphObj::addTensor(Shape dim, DataType dtype) {
