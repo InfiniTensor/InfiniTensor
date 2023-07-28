@@ -3,7 +3,10 @@
 
 namespace infini {
     LazyAllocator::LazyAllocator(Runtime runtime, size_t alignment) : 
-                            runtime(runtime), alignment(alignment), used(0), peak(0) {}
+                            runtime(runtime), alignment(alignment) {
+        used = 0;
+        peak = 0;
+    }
 
     LazyAllocator::~LazyAllocator() {}
 
