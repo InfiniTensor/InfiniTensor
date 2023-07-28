@@ -57,8 +57,10 @@ class convCudnnFP16 : public Kernel {
                           const ConvCuDnnPerfRecord &record) const {
         void *const inData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const knData = (op->getInputs(1)->getRawDataPtr<void *>());
-        if (op->getInputs().size() > 2) // Bias is not supported yet
+        // Bias is not supported yet
+        if (op->getInputs().size() > 2) {
             IT_TODO_HALT();
+        }
         // void *const biasData = (op->getInputs(2)->getRawDataPtr<void *>());
         void *const outData = (op->getOutput()->getRawDataPtr<void *>());
 
@@ -155,55 +157,9 @@ class convCudnnFP16 : public Kernel {
                                        inData, knDesc, knData, convDesc,
                                        ALGOS[record->algo], wsData, wsSize,
                                        &beta, outDesc, outData);
-        if (stat != CUDNN_STATUS_SUCCESS)
+        if (stat != CUDNN_STATUS_SUCCESS) {
             return false;
-        // TODO:
-        // // bias
-        // if (bias != nullptr) {
-        //     auto sz = op.getOutputs()[0]->size();
-        //     // TODO: element wise
-        //     t += sz * 2 / 400;
-        // }
-        // // act
-        // if (act != None) {
-        //     stat = cudnnActivationForward(cudnnHandle(), actDesc,
-        //                                   &alpha, inDesc, inData,
-        //                                   &beta, outDesc, outData);
-        //     checkCudaError(cudaDeviceSynchronize());
-        //     end = ch::high_resolution_clock::now();
-        //     if (stat != CUDNN_STATUS_SUCCESS) {
-        //         durtime = INFINITY;
-        //         break;
-        //     }
-        //     t +=
-        //         ch::duration_cast<ch::duration<double>>(end -
-        //         beg).count() * 1000; // ms
-        // }
-
-        // best = ConvResult{durtime, ALGOS[i], wsSize, false};
-
-        // // w/ bias & act
-        // for (int j = 0; j < rounds + warmupRounds; ++j) {
-        //     cudnnStatus_t stat;
-        //     if (j == warmupRounds) {
-        //         checkCudaError(cudaDeviceSynchronize());
-        //         beg = ch::high_resolution_clock::now();
-        //     }
-        //     stat = cudnnConvolutionBiasActivationForward(
-        //         cudnnHandle(), &alpha, inDesc, inData, knDesc, knData,
-        //         convDesc, ALGOS[i], wsData, wsSize, &beta, outDesc,
-        //         outData, biasDesc, biasData, actDesc, outDesc, outData);
-        //     if (stat != CUDNN_STATUS_SUCCESS) {
-        //         // checkCudnnError(stat);
-        //         // Do not checkCudnnError since not all algorithms are
-        //         // supported
-        //         durtime_fuse = INFINITY;
-        //         break;
-        //     }
-        // }
-
-        // Destories in CUDA does not require sync. But cuDNN does not state
-        // whether sync is required before destories.
+        }
         checkCudnnError(cudnnDestroyTensorDescriptor(outDesc));
         checkCudnnError(cudnnDestroyActivationDescriptor(actDesc));
         checkCudnnError(cudnnDestroyConvolutionDescriptor(convDesc));
@@ -242,10 +198,12 @@ class convCudnnFP16 : public Kernel {
                 stat = cudnnGetConvolutionForwardWorkspaceSize(
                     context->cudnnHandle(), inDesc, knDesc, convDesc, outDesc,
                     ALGOS[record.algo], &record.workspaceSize);
-                if (stat != CUDNN_STATUS_SUCCESS)
+                if (stat != CUDNN_STATUS_SUCCESS) {
                     continue;
-                if (record.workspaceSize > context->getWorkspaceSize())
+                }
+                if (record.workspaceSize > context->getWorkspaceSize()) {
                     continue;
+                }
                 CudaPtr wsData = context->getWorkspace(record.workspaceSize);
                 float alpha = 1.f, beta = 0.f;
 
@@ -253,8 +211,9 @@ class convCudnnFP16 : public Kernel {
                     context->cudnnHandle(), &alpha, inDesc, inData, knDesc,
                     knData, convDesc, ALGOS[record.algo], wsData,
                     record.workspaceSize, &beta, outDesc, outData);
-                if (stat != CUDNN_STATUS_SUCCESS)
+                if (stat != CUDNN_STATUS_SUCCESS) {
                     continue;
+                }
                 record.time = timeit(
                     [&]() {
                         cudnnConvolutionForward(context->cudnnHandle(), &alpha,
@@ -267,8 +226,9 @@ class convCudnnFP16 : public Kernel {
                 // printf("mode:%d algo:%d :%.8lf\n", mode, algo, record.time);
 
                 // Update the tune result
-                if (ret.time > record.time)
+                if (ret.time > record.time) {
                     ret = record;
+                }
                 checkCudnnError(cudnnDestroyTensorDescriptor(outDesc));
                 checkCudnnError(cudnnDestroyActivationDescriptor(actDesc));
                 checkCudnnError(cudnnDestroyConvolutionDescriptor(convDesc));
