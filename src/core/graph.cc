@@ -5,7 +5,7 @@
 namespace infini {
 
 GraphObj::GraphObj(Runtime runtime, OpVec ops_in)
-    : runtime(runtime), allocator(runtime, 64), sorted(false) {
+    : runtime(runtime), allocator(runtime, 8), sorted(false) {
     map<UidBaseType, Tensor> tensorPool;
     // Clone tensors
     for (const auto &op : ops_in) {
@@ -131,7 +131,7 @@ void GraphObj::dataMalloc() {
     // }
     // allocator.init(totalSize);
     // std::cout << "totalSize <<<<<<<<<< " << totalSize << std::endl;
-    
+
     // 先拓扑排序
     IT_ASSERT(topo_sort() == true);
     // 统计所有 tensor 被使用的次数
@@ -179,7 +179,9 @@ void GraphObj::dataMalloc() {
     // 所有的 runtime 都是一致的？
     // tensor 的 dataMalloc 需要改（test 里会用到）
     for (auto &tensor: tensors) {
-        tensor->setDataBlob(make_ref<BlobObj>(tensor->runtime, (uint8_t *)allocator.ptr() + tensorToOffset[tensor.get()]));
+        IT_ASSERT(tensorToOffset.find(tensor.get()) != tensorToOffset.end());
+        printf("tensor->setDataBlob: %p\n", (uint8_t *)allocator.getPtr() + tensorToOffset[tensor.get()]);
+        tensor->setDataBlob(make_ref<BlobObj>(tensor->runtime, (uint8_t *)allocator.getPtr() + tensorToOffset[tensor.get()]));
     }
 
     allocator.info();

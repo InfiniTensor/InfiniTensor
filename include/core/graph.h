@@ -13,7 +13,7 @@ class GraphObj : public Object {
     LazyAllocator allocator;
 
   public:
-    explicit GraphObj(Runtime runtime) : runtime(runtime), allocator(runtime, 64), sorted(false) {};
+    explicit GraphObj(Runtime runtime) : runtime(runtime), allocator(runtime, 8), sorted(false) {};
     GraphObj(Runtime runtime, OpVec ops_in);
     string toString() const override;
     Runtime getRuntime() const { return runtime; }

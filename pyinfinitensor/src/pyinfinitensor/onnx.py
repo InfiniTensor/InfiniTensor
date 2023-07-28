@@ -516,14 +516,17 @@ class OnnxStub:
             else:
                 raise Exception('Unsupported operator "{}"'.format(node.op_type))
 
+        # TODO: 这一步应该放在 cpp 里的 run 里调用，因为找峰值应该在图优化之后进行
         self.handler.data_malloc()
 
         for name, obj in tensors.items():
             tensor = data.get(name)
             if tensor == None:
                 if any(input.name == name for input in model.graph.input):
+                    # 是否需要也事先给 input 分配内存空间呢？（后续在 c++ 里无法区分 input 和 weight 了
                     self.inputs[name] = obj
             else:
+                # TODO: 可以在这里事先给 weight 分配内存空间
                 self.initializer[obj.fuid()] = tensor
                 if tensor.data_type == TensorProto.INT32:
                     obj.copyin_int32(_parse_data(tensor))

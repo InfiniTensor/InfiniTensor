@@ -6,21 +6,25 @@ namespace infini {
                             runtime(runtime), alignment(alignment) {
         used = 0;
         peak = 0;
+        ptr = nullptr;
     }
 
     LazyAllocator::~LazyAllocator() {}
 
     size_t LazyAllocator::alloc(size_t size) {
+        IT_ASSERT(this->ptr == nullptr);
+        // 将 size 填充至 alignment 的倍数
+        size = this->getAlignedSize(size);
         // 这里保守考虑，使用 size + alignment 作为要寻找的空闲块大小
-            auto it = this->freeBlocks.lower_bound(freeBlockInfo{.addr = (size_t)0, 
-                                                           .blockSize = size + this->alignment});
+        auto it = this->freeBlocks.lower_bound(freeBlockInfo{.addr = (size_t)0, 
+                                                             .blockSize = size});
 
         size_t retAddr = this->peak;
         if (it != this->freeBlocks.end()) {
             // 找到了可以分配的空内存块
             size_t blockSize = it->blockSize;
             retAddr = it->addr;
-            size_t tailAddr = getAlignedTailAddr(retAddr + size);
+            size_t tailAddr = retAddr + size;
             // 更新空闲块地址集合
             this->headAddrToBlockSize.erase(retAddr);
             this->tailAddrToBlockSize.erase(tailAddr);
@@ -38,14 +42,17 @@ namespace infini {
         } else {
             // 已分配的内存空间大小不足以进行再分配，需要扩充
             retAddr = this->peak;
-            this->peak = getAlignedTailAddr(this->peak + size);
+            this->peak = this->peak + size;
             this->used += this->peak - retAddr;
         }
+        // printf("LazyAllocator alloc: %lu %lu bytes\n", retAddr, size);
         return retAddr;
     }
 
     void LazyAllocator::free(size_t addr, size_t size) {
-        auto tailAddr = getAlignedTailAddr(addr + size);
+        IT_ASSERT(this->ptr == nullptr);
+        size = getAlignedSize(size);
+        auto tailAddr = addr + size;
         size_t currBlockSize = tailAddr - addr;
         freeBlockInfo block = {.addr = addr, 
                                .blockSize = currBlockSize};
@@ -81,14 +88,20 @@ namespace infini {
                                            .blockSize = subBlockSize});
         }
         this->freeBlocks.insert(block);
+        this->used -= size;
+        // printf("LazyAllocator free: %lu %lu bytes\n", addr, size);
     }
 
-    void* LazyAllocator::ptr() {
-        return runtime->alloc(this->peak);
+    void* LazyAllocator::getPtr() {
+        if (this->ptr == nullptr) {
+            this->ptr = runtime->alloc(this->peak);
+            printf("LazyAllocator really alloc: %p %lu bytes\n", this->ptr, peak);
+        }
+        return this->ptr;
     }
 
-    size_t LazyAllocator::getAlignedTailAddr(size_t baseAddr) {
-        return ((baseAddr - 1) / this->alignment + 1) * this->alignment;
+    size_t LazyAllocator::getAlignedSize(size_t size) {
+        return ((size - 1) / this->alignment + 1) * this->alignment;
     }
 
     void LazyAllocator::info() {

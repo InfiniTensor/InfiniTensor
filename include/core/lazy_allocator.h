@@ -20,6 +20,9 @@ class LazyAllocator {
         // 内存对齐
         size_t alignment;
 
+        // 指向实际分配的内存的指针
+        void *ptr;
+
         struct freeBlockInfo {
             size_t addr;
             size_t blockSize;
@@ -63,11 +66,11 @@ class LazyAllocator {
 
         // 功能：进行实际的内存分配
         // 返回值：指向所分配内存起始地址的指针
-        void* ptr();
+        void* getPtr();
 
         // 功能：内存对齐，向上取整
         // 返回值：对齐后的尾地址
-        size_t getAlignedTailAddr(size_t baseAddr);
+        size_t getAlignedSize(size_t size);
 
         void info();
 };
