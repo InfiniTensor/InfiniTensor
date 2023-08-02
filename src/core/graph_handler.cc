@@ -292,23 +292,35 @@ Tensor GraphHandlerObj::pad(Tensor input, Tensor output,
 }
 
 static DataType dtype_repr_convert(int dtype) {
-    switch ((OnnxDType)dtype) {
-    case OnnxDType::FLOAT:
+    switch (dtype) {
+    case 0:
+        return DataType::Undefine;
+    case 1:
         return DataType::Float32;
-    case OnnxDType::UINT32:
-        return DataType::UInt32;
-    case OnnxDType::UINT8:
+    case 2:
         return DataType::UInt8;
-    case OnnxDType::INT8:
+    case 3:
         return DataType::Int8;
-    case OnnxDType::UINT16:
+    case 4:
         return DataType::UInt16;
-    case OnnxDType::INT16:
+    case 5:
         return DataType::Int16;
-    case OnnxDType::INT32:
+    case 6:
         return DataType::Int32;
-    case OnnxDType::INT64:
+    case 7:
         return DataType::Int64;
+    case 8:
+        return DataType::String;
+    case 9:
+        return DataType::Bool;
+    case 10:
+        return DataType::Float16;
+    case 11:
+        return DataType::Double;
+    case 12:
+        return DataType::UInt32;
+    case 13:
+        return DataType::UInt64;
     default:
         IT_ASSERT(false, "Unsupported data type");
     }

@@ -100,22 +100,34 @@ void export_values(py::module &m) {
 }
 
 static int tensor_dtype(Tensor t) {
+    if (t->getDType() == DataType::Undefine)
+        return 0;
     if (t->getDType() == DataType::Float32)
-        return OnnxDType::FLOAT;
-    if (t->getDType() == DataType::UInt32)
-        return OnnxDType::UINT32;
+        return 1;
     if (t->getDType() == DataType::UInt8)
-        return OnnxDType::UINT8;
+        return 2;
     if (t->getDType() == DataType::Int8)
-        return OnnxDType::INT8;
+        return 3;
     if (t->getDType() == DataType::UInt16)
-        return OnnxDType::UINT16;
+        return 4;
     if (t->getDType() == DataType::Int16)
-        return OnnxDType::INT16;
+        return 5;
     if (t->getDType() == DataType::Int32)
-        return OnnxDType::INT32;
+        return 6;
     if (t->getDType() == DataType::Int64)
-        return OnnxDType::INT64;
+        return 7;
+    if (t->getDType() == DataType::String)
+        return 8;
+    if (t->getDType() == DataType::Bool)
+        return 9;
+    if (t->getDType() == DataType::Float16)
+        return 10;
+    if (t->getDType() == DataType::Double)
+        return 11;
+    if (t->getDType() == DataType::UInt32)
+        return 12;
+    if (t->getDType() == DataType::UInt64)
+        return 13;
     IT_ASSERT(false, "Unsupported data type");
 }
 
@@ -224,6 +236,11 @@ static vector<int> transpose_permute_of(Operator op) {
     return dynamic_cast<const TransposeObj *>(op.get())->getPermute();
 }
 
+static int flatten_axis_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Flatten);
+    return dynamic_cast<const FlattenObj *>(op.get())->getAxis();
+}
+
 void export_functions(py::module &m) {
 #define FUNCTION(NAME) def(#NAME, &NAME)
     m.def("cpu_runtime", &NativeCpuRuntimeObj::getInstance)
@@ -252,7 +269,8 @@ void export_functions(py::module &m) {
         .FUNCTION(transpose_permute_of)
         .FUNCTION(concat_axis_of)
         .FUNCTION(split_axis_of)
-        .FUNCTION(gather_axis_of);
+        .FUNCTION(gather_axis_of)
+        .FUNCTION(flatten_axis_of);
 #undef FUNCTION
 }
 
@@ -276,9 +294,15 @@ void init_graph_builder(py::module &m) {
         .def("copyin_float", &TensorObj::copyin<float>, policy::move)
         .def("copyin_int32", &TensorObj::copyin<int32_t>, policy::move)
         .def("copyin_int64", &TensorObj::copyin<int64_t>, policy::move)
+        .def("copyin_int8", &TensorObj::copyin<int8_t>, policy::move)
+        .def("copyin_uint8", &TensorObj::copyin<uint8_t>, policy::move)
+        .def("copyin_float16", &TensorObj::copyin<uint16_t>, policy::move)
         .def("copyout_float", &TensorObj::copyout<float>, policy::move)
         .def("copyout_int32", &TensorObj::copyout<int32_t>, policy::move)
         .def("copyout_int64", &TensorObj::copyout<int64_t>, policy::move)
+        .def("copyout_int8", &TensorObj::copyout<int8_t>, policy::move)
+        .def("copyout_uint8", &TensorObj::copyout<uint8_t>, policy::move)
+        .def("copyout_float16", &TensorObj::copyout<uint16_t>, policy::move)
         .def("has_target", &TensorObj::hasTarget, policy::automatic)
         .def("src", &TensorObj::getSource, policy::move)
         .def("printData", &TensorObj::printData, policy::automatic);
