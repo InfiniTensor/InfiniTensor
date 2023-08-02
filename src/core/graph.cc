@@ -154,6 +154,12 @@ void GraphObj::dataMalloc() {
     }
     // 按照拓扑序遍历，模拟分配内存
     for (auto &op : ops) {
+        // 应该先给 output 分配内存
+        auto outputs = op->getOutputs();
+        for (auto &tensor: outputs) {
+            // 直接分配内存
+            tensorToOffset[tensor.get()] = allocator.alloc(tensor->getBytes());
+        }
         auto inputs = op->getInputs();
         for (auto &tensor: inputs) {
             if (constTensor.find(tensor.get()) == constTensor.end()) {
@@ -168,11 +174,6 @@ void GraphObj::dataMalloc() {
                 }
             }
         }
-        auto outputs = op->getOutputs();
-        for (auto &tensor: outputs) {
-            // 直接分配内存
-            tensorToOffset[tensor.get()] = allocator.alloc(tensor->getBytes());
-        }
     }
 
     // 进行实际的内存分配
@@ -180,8 +181,9 @@ void GraphObj::dataMalloc() {
     // tensor 的 dataMalloc 需要改（test 里会用到）
     for (auto &tensor: tensors) {
         IT_ASSERT(tensorToOffset.find(tensor.get()) != tensorToOffset.end());
-        printf("tensor->setDataBlob: %p\n", (uint8_t *)allocator.getPtr() + tensorToOffset[tensor.get()]);
-        tensor->setDataBlob(make_ref<BlobObj>(tensor->runtime, (uint8_t *)allocator.getPtr() + tensorToOffset[tensor.get()]));
+        // printf("tensor->setDataBlob: %p\n", static_cast<uint8_t *>(allocator.getPtr()) + tensorToOffset[tensor.get()]);
+        // if 
+        tensor->setDataBlob(make_ref<BlobObj>(tensor->runtime, static_cast<uint8_t *>(allocator.getPtr()) + tensorToOffset[tensor.get()]));
     }
 
     allocator.info();

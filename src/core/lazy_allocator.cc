@@ -9,7 +9,7 @@ namespace infini {
         ptr = nullptr;
     }
 
-    LazyAllocator::~LazyAllocator() {}
+    LazyAllocator::~LazyAllocator() { runtime->dealloc(this->ptr); }
 
     size_t LazyAllocator::alloc(size_t size) {
         IT_ASSERT(this->ptr == nullptr);
@@ -46,6 +46,7 @@ namespace infini {
             this->used += this->peak - retAddr;
         }
         // printf("LazyAllocator alloc: %lu %lu bytes\n", retAddr, size);
+
         return retAddr;
     }
 
@@ -53,39 +54,34 @@ namespace infini {
         IT_ASSERT(this->ptr == nullptr);
         size = getAlignedSize(size);
         auto tailAddr = addr + size;
-        size_t currBlockSize = tailAddr - addr;
-        freeBlockInfo block = {.addr = addr, 
-                               .blockSize = currBlockSize};
-        this->headAddrToBlockSize[addr] = currBlockSize;
-        this->tailAddrToBlockSize[tailAddr] = currBlockSize;
+        freeBlockInfo block = {addr, tailAddr - addr};
+        this->headAddrToBlockSize[addr] = block.blockSize;
+        this->tailAddrToBlockSize[tailAddr] = block.blockSize;
         auto preFreeBlockIter = this->tailAddrToBlockSize.find(addr);
         auto subFreeBlockIter = this->headAddrToBlockSize.find(tailAddr);
         if (preFreeBlockIter != this->tailAddrToBlockSize.end()) {
             // 需要释放的内存块的头地址是某个空闲块的尾，将二者进行合并
             size_t preBlockSize = preFreeBlockIter->second;
-            this->headAddrToBlockSize.erase(addr);
-            this->headAddrToBlockSize[addr - preBlockSize] += currBlockSize;
-            this->tailAddrToBlockSize.erase(addr);
+            this->headAddrToBlockSize.erase(block.addr);
+            this->headAddrToBlockSize[block.addr - preBlockSize] += block.blockSize;
+            this->tailAddrToBlockSize.erase(block.addr);
             this->tailAddrToBlockSize[tailAddr] += preBlockSize;
-            addr -= preBlockSize;
-            block.addr = addr;
+            block.addr -= preBlockSize;
             block.blockSize += preBlockSize;
             // 删掉原来的前相邻空闲块，这里是否需要先 find 拿到迭代器，再进行删除？（以防之后修改代码出问题
-            this->freeBlocks.erase(freeBlockInfo{.addr = addr, 
-                                           .blockSize=preBlockSize});
+            this->freeBlocks.erase(freeBlockInfo{block.addr, preBlockSize});
         }
         if (subFreeBlockIter != this->headAddrToBlockSize.end()) {
             // 需要释放的内存块的尾地址是某个空闲块的头，将二者进行合并
             auto subBlockSize = subFreeBlockIter->second;
             this->headAddrToBlockSize.erase(tailAddr);
-            this->headAddrToBlockSize[addr] += subBlockSize;
+            this->headAddrToBlockSize[block.addr] += subBlockSize;
             this->tailAddrToBlockSize.erase(tailAddr);
-            this->tailAddrToBlockSize[tailAddr + subBlockSize] += currBlockSize;
+            this->tailAddrToBlockSize[tailAddr + subBlockSize] += block.blockSize;
             tailAddr += subBlockSize;
             block.blockSize += subBlockSize;
             // 删掉原来的后相邻内存块
-            this->freeBlocks.erase(freeBlockInfo{.addr = tailAddr - subBlockSize, 
-                                           .blockSize = subBlockSize});
+            this->freeBlocks.erase(freeBlockInfo{tailAddr - subBlockSize, subBlockSize});
         }
         this->freeBlocks.insert(block);
         this->used -= size;

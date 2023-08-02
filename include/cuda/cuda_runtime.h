@@ -43,7 +43,7 @@ class CudaRuntimeObj : public RuntimeObj {
         // printf("cuda malloc: %p %lu bytes\n", ptr, size);
         return ptr;
     }
-    void dealloc(void *ptr) override { printf("cuda dealloc: %p\n", ptr); checkCudaError(cudaFree(ptr)); }
+    void dealloc(void *ptr) override { checkCudaError(cudaFree(ptr)); }
     cudnnHandle_t cudnnHandle() const { return cudnn; }
     cublasHandle_t cublasHandle() const { return cublas; }
     size_t getWorkspaceSize() const { return workspaceSize; }
