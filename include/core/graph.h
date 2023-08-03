@@ -1,7 +1,7 @@
 #pragma once
+#include "core/lazy_allocator.h"
 #include "core/operator.h"
 #include "core/tensor.h"
-#include "core/lazy_allocator.h"
 
 namespace infini {
 
@@ -13,7 +13,8 @@ class GraphObj : public Object {
     LazyAllocator allocator;
 
   public:
-    explicit GraphObj(Runtime runtime) : runtime(runtime), allocator(runtime, 8), sorted(false) {};
+    explicit GraphObj(Runtime runtime)
+        : runtime(runtime), allocator(runtime, 8), sorted(false){};
     GraphObj(Runtime runtime, OpVec ops_in);
     string toString() const override;
     Runtime getRuntime() const { return runtime; }

@@ -127,15 +127,16 @@ void GraphObj::dataMalloc() {
     // topological sorting first
     IT_ASSERT(topo_sort() == true);
     // count the number of times all tensors are used
-    std::unordered_map<TensorObj*, size_t> tensorToRefCount;
+    std::unordered_map<TensorObj *, size_t> tensorToRefCount;
     // record the memory address offsets of all tensors to be allocated
-    std::unordered_map<TensorObj*, size_t> tensorToOffset;     
+    std::unordered_map<TensorObj *, size_t> tensorToOffset;
 
     // record all constant tensors, including weight tensors and input tensors
-    std::unordered_set<TensorObj*> constTensor;
-    for (auto &tensor: tensors) {
+    std::unordered_set<TensorObj *> constTensor;
+    for (auto &tensor : tensors) {
         if (tensor.get()->getSource() == nullptr) {
-            // allocate memory for all constant tensors first, and this memory will not be reused later
+            // allocate memory for all constant tensors first, and this memory
+            // will not be reused later
             constTensor.insert(tensor.get());
             tensorToOffset[tensor.get()] = allocator.alloc(tensor->getBytes());
         } else {
@@ -146,28 +147,32 @@ void GraphObj::dataMalloc() {
     for (auto &op : ops) {
         // memory should be allocated for the output first
         auto outputs = op->getOutputs();
-        for (auto &tensor: outputs) {
+        for (auto &tensor : outputs) {
             tensorToOffset[tensor.get()] = allocator.alloc(tensor->getBytes());
         }
         auto inputs = op->getInputs();
-        for (auto &tensor: inputs) {
+        for (auto &tensor : inputs) {
             if (constTensor.find(tensor.get()) == constTensor.end()) {
                 auto tensorIter = tensorToRefCount.find(tensor.get());
                 IT_ASSERT(tensorIter != tensorToRefCount.end());
                 tensorToRefCount[tensor.get()] -= 1;
                 if (tensorToRefCount[tensor.get()] == 0) {
-                    // indicate that this tensor will no longer be used and perform memory free
+                    // indicate that this tensor will no longer be used and
+                    // perform memory free
                     tensorToRefCount.erase(tensor.get());
-                    allocator.free(tensorToOffset[tensor.get()], tensor->getBytes());
+                    allocator.free(tensorToOffset[tensor.get()],
+                                   tensor->getBytes());
                 }
             }
         }
     }
 
     // perform actual memory allocation
-    for (auto &tensor: tensors) {
+    for (auto &tensor : tensors) {
         IT_ASSERT(tensorToOffset.find(tensor.get()) != tensorToOffset.end());
-        tensor->setDataBlob(make_ref<BlobObj>(tensor->runtime, static_cast<uint8_t *>(allocator.getPtr()) + tensorToOffset[tensor.get()]));
+        tensor->setDataBlob(make_ref<BlobObj>(
+            tensor->runtime, static_cast<uint8_t *>(allocator.getPtr()) +
+                                 tensorToOffset[tensor.get()]));
     }
 
     allocator.info();

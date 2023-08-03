@@ -138,9 +138,7 @@ void TensorObj::setData(
     }
 }
 
-void TensorObj::setDataBlob(const Blob& blob) {
-    this->data = blob;
-}
+void TensorObj::setDataBlob(const Blob &blob) { this->data = blob; }
 
 void TensorObj::load(std::string file_path) { loadTensorData(this, file_path); }
 
