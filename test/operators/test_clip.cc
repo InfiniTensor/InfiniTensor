@@ -23,6 +23,9 @@ void testClip(const std::function<void(void *, size_t, DataType)> &generator,
     float min = 1.0;
     float max = 4.0;
     auto Op = Graph->addOp<T>(inputCpu, nullptr, min, max);
+    // HACK: add inputCpu to tensors field of Graph, 
+    // but the original data field of inputCpu will be reset once dataMlloc is called
+    Graph->addTensor(inputCpu);
     Graph->dataMalloc();
     cpuRuntime->run(Graph);
     auto output = Op->getOutput();
