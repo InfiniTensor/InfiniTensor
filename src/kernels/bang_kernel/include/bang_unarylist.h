@@ -10,7 +10,6 @@ typedef enum {
 } UnaryOpType;
 
 void unary_kernel_list(cnnlHandle_t handle, const float *input, float *output,
-                       const uint32_t num, const uint32_t op_num,
-                       int* list);
+                       const uint32_t num, const uint32_t op_num, int *list);
 
 }; // namespace infini

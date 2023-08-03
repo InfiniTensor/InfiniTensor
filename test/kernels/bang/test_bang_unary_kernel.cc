@@ -9,8 +9,9 @@
 namespace infini {
 
 template <class T>
-void testUnaryKernel(const std::function<void(void *, size_t, DataType)> &generator,
-              const Shape &shape) {
+void testUnaryKernel(
+    const std::function<void(void *, size_t, DataType)> &generator,
+    const Shape &shape) {
     // Runtime
     Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     auto bangRuntime = make_ref<BangRuntimeObj>();
@@ -23,7 +24,7 @@ void testUnaryKernel(const std::function<void(void *, size_t, DataType)> &genera
     // GPU
     Graph bangGraph = make_ref<GraphObj>(bangRuntime);
     auto inputGpu = bangGraph->cloneTensor(inputCpu);
-    std::vector<int> op_list = {1,2,3};
+    std::vector<int> op_list = {1, 2, 3};
 
     auto gpuOp = bangGraph->addOp<T>(inputGpu, nullptr, op_list);
 
