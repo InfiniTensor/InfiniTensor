@@ -140,6 +140,7 @@ enum CastType {
     Float2Int32,
     Float2Int16,
     Float2Int8,
+    Float2BFloat16,
     Int322Float,
     Int322Int8,
     Int322Int16,
@@ -156,7 +157,8 @@ enum CastType {
     Int642Uint32,
     Int642Float,
     Uint322Int64,
-    Float162Float32,
+    Float162Float,
+    BFloat162Float,
 };
 
 class CastObj : public OperatorObj {

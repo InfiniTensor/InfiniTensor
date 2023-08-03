@@ -130,6 +130,8 @@ static int tensor_dtype(Tensor t) {
         return 12;
     if (t->getDType() == DataType::UInt64)
         return 13;
+    if (t->getDType() == DataType::BFloat16)
+        return 16;
     IT_ASSERT(false, "Unsupported data type");
 }
 
@@ -245,9 +247,12 @@ static int flatten_axis_of(Operator op) {
 
 static int cast_to_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Cast);
-    return dynamic_cast<const CastObj *>(op.get())
-        ->getOutputDataType()
-        .getIndex();
+    auto cast_output_dtype =
+        dynamic_cast<const CastObj *>(op.get())->getOutputDataType();
+    if (cast_output_dtype == DataType::BFloat16) {
+        return 16;
+    }
+    return cast_output_dtype.getIndex();
 }
 
 void export_functions(py::module &m) {

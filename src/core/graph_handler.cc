@@ -308,6 +308,10 @@ Tensor GraphHandlerObj::cast(Tensor input, Tensor output, int to) {
 
 static CastType inferCastType(Tensor input, int to) {
     auto i_type = input->getDType();
+    // TensorProto::BFLOAT16(16) -> DataType::BFloat16(14)
+    if (to == 16) {
+        to = 14;
+    }
     auto o_type = DataType(to);
     if (i_type == DataType::Float32 && o_type == DataType::Float16) {
         return CastType::Float2Float16;
@@ -319,6 +323,8 @@ static CastType inferCastType(Tensor input, int to) {
         return CastType::Float2Int16;
     } else if (i_type == DataType::Float32 && o_type == DataType::Int8) {
         return CastType::Float2Int8;
+    } else if (i_type == DataType::Float32 && o_type == DataType::BFloat16) {
+        return CastType::Float2BFloat16;
     } else if (i_type == DataType::Int32 && o_type == DataType::Float32) {
         return CastType::Int322Float;
     } else if (i_type == DataType::Int32 && o_type == DataType::Int8) {
@@ -352,7 +358,9 @@ static CastType inferCastType(Tensor input, int to) {
     } else if (i_type == DataType::UInt32 && o_type == DataType::Int64) {
         return CastType::Uint322Int64;
     } else if (i_type == DataType::Float16 && o_type == DataType::Float32) {
-        return CastType::Float162Float32;
+        return CastType::Float162Float;
+    } else if (i_type == DataType::BFloat16 && o_type == DataType::Float32) {
+        return CastType::BFloat162Float;
     } else {
         IT_TODO_HALT_MSG("Unsupported CastType : input_type is " +
                          i_type.toString() + " output_type is " +
@@ -390,6 +398,8 @@ static DataType dtype_repr_convert(int dtype) {
         return DataType::UInt32;
     case 13:
         return DataType::UInt64;
+    case 16:
+        return DataType::BFloat16;
     default:
         IT_ASSERT(false, "Unsupported data type");
     }

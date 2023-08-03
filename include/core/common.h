@@ -53,6 +53,8 @@ using HashType = uint64_t; // compatible with std::hash
 #define IT_ASSERT_TODO(condition) _IT_ASSERT_2(condition, "Unimplemented")
 #define IT_TODO_SKIP() puts("Unimplemented " __FILE__ ":" __LINE__)
 
+#define LOG(msg) std::cout << "=====zyz===== #msg = " << msg << std::endl;
+
 // Other utilities
 
 // std::to_underlying is avaiable since C++23

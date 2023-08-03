@@ -79,6 +79,21 @@ class TestStringMethods(unittest.TestCase):
         )
         make_and_import_model(make_graph([conv], "conv_fp16", [i, w], [o]))
 
+    def test_conv_bfp16(self):
+        i = make_tensor_value_info("i", TensorProto.BFLOAT16, [1, 3, 4, 4])
+        w = make_tensor_value_info("w", TensorProto.BFLOAT16, [2, 3, 3, 3])
+        o = make_tensor_value_info("o", TensorProto.BFLOAT16, [1, 2, 2, 2])
+        conv = make_node(
+            "Conv",
+            ["i", "w"],
+            ["o"],
+            "conv",
+            pads=[1, 1, 1, 1],
+            strides=[2, 1],
+            dilations=[1, 2],
+        )
+        make_and_import_model(make_graph([conv], "conv_bfp16", [i, w], [o]))
+
     def test_matmul(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 2, 3])
         a = make_tensor_value_info("a", TensorProto.FLOAT, [1, 3, 4])

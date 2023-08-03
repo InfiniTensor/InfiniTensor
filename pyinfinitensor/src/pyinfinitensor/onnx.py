@@ -597,6 +597,8 @@ class OnnxStub:
                     obj.copyin_float16(_parse_data_fp16(tensor))
                 elif tensor.data_type == TensorProto.INT8:
                     obj.copyin_uint8(_parse_data(tensor))
+                elif tensor.data_type == TensorProto.BFLOAT16:
+                    obj.copyin_float16(_parse_data_fp16(tensor))
                 else:
                     assert False, "Unsupported Tensor Type: {}".format(tensor.data_type)
 
