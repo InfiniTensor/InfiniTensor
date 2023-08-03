@@ -124,51 +124,39 @@ void GraphObj::optimize() {
 }
 
 void GraphObj::dataMalloc() {
-    // size_t totalSize = 0;
-    // for (auto &tensor : tensors) {
-    //     totalSize += tensor->getBytes();
-    //     tensor->dataMalloc();
-    // }
-    // allocator.init(totalSize);
-    // std::cout << "totalSize <<<<<<<<<< " << totalSize << std::endl;
-
-    // 先拓扑排序
+    // topological sorting first
     IT_ASSERT(topo_sort() == true);
-    // 统计所有 tensor 被使用的次数
+    // count the number of times all tensors are used
     std::unordered_map<TensorObj*, size_t> tensorToRefCount;
-    // 统计所有 tensor 被分配的内存地址偏移量
+    // record the memory address offsets of all tensors to be allocated
     std::unordered_map<TensorObj*, size_t> tensorToOffset;     
 
-    // 记录所有常量 tensor
+    // record all constant tensors, including weight tensors and input tensors
     std::unordered_set<TensorObj*> constTensor;
     for (auto &tensor: tensors) {
         if (tensor.get()->getSource() == nullptr) {
-            // 先给所有常量 tensor 分配内存
-            // 说明是 weight 或者 input，都不进行复用
+            // allocate memory for all constant tensors first, and this memory will not be reused later
             constTensor.insert(tensor.get());
             tensorToOffset[tensor.get()] = allocator.alloc(tensor->getBytes());
         } else {
-            // 计算 tensor 需要被使用的次数
             tensorToRefCount[tensor.get()] = tensor->getTargets().size();
         }
     }
-    // 按照拓扑序遍历，模拟分配内存
+    // traverse in topological order and simulate memory allocation
     for (auto &op : ops) {
-        // 应该先给 output 分配内存
+        // memory should be allocated for the output first
         auto outputs = op->getOutputs();
         for (auto &tensor: outputs) {
-            // 直接分配内存
             tensorToOffset[tensor.get()] = allocator.alloc(tensor->getBytes());
         }
         auto inputs = op->getInputs();
         for (auto &tensor: inputs) {
             if (constTensor.find(tensor.get()) == constTensor.end()) {
-                // 说明不是常量 tensor，计数-1
                 auto tensorIter = tensorToRefCount.find(tensor.get());
                 IT_ASSERT(tensorIter != tensorToRefCount.end());
                 tensorToRefCount[tensor.get()] -= 1;
                 if (tensorToRefCount[tensor.get()] == 0) {
-                    // 之后不再被使用的 tensor，释放内存
+                    // indicate that this tensor will no longer be used and perform memory free
                     tensorToRefCount.erase(tensor.get());
                     allocator.free(tensorToOffset[tensor.get()], tensor->getBytes());
                 }
@@ -176,13 +164,9 @@ void GraphObj::dataMalloc() {
         }
     }
 
-    // 进行实际的内存分配
-    // 所有的 runtime 都是一致的？
-    // tensor 的 dataMalloc 需要改（test 里会用到）
+    // perform actual memory allocation
     for (auto &tensor: tensors) {
         IT_ASSERT(tensorToOffset.find(tensor.get()) != tensorToOffset.end());
-        // printf("tensor->setDataBlob: %p\n", static_cast<uint8_t *>(allocator.getPtr()) + tensorToOffset[tensor.get()]);
-        // if 
         tensor->setDataBlob(make_ref<BlobObj>(tensor->runtime, static_cast<uint8_t *>(allocator.getPtr()) + tensorToOffset[tensor.get()]));
     }
 

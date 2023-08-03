@@ -13,22 +13,21 @@ namespace infini {
 
     size_t LazyAllocator::alloc(size_t size) {
         IT_ASSERT(this->ptr == nullptr);
-        // 将 size 填充至 alignment 的倍数
+        // pad the size to the multiple of alignment
         size = this->getAlignedSize(size);
-        // 这里保守考虑，使用 size + alignment 作为要寻找的空闲块大小
         auto it = this->freeBlocks.lower_bound(freeBlockInfo{.addr = (size_t)0, 
                                                              .blockSize = size});
 
         size_t retAddr = this->peak;
         if (it != this->freeBlocks.end()) {
-            // 找到了可以分配的空内存块
+            // found an alvailable free memory block for allocation
             size_t blockSize = it->blockSize;
             retAddr = it->addr;
             size_t tailAddr = retAddr + size;
-            // 更新空闲块地址集合
+            // update the map of head and tail address offset of memory blocks
             this->headAddrToBlockSize.erase(retAddr);
             this->tailAddrToBlockSize.erase(tailAddr);
-            // 内存块分裂
+            // memory block splitting
             if (blockSize > tailAddr - retAddr) {
                 freeBlockInfo newBlock = {.addr = tailAddr, 
                                           .blockSize = blockSize - (tailAddr - retAddr)};
@@ -36,16 +35,15 @@ namespace infini {
                 this->tailAddrToBlockSize[retAddr + blockSize] = newBlock.blockSize;
                 this->freeBlocks.insert(newBlock);
             }
-            // 更新空闲平衡树
+            // update the free balanced tree
             this->freeBlocks.erase(it);
             this->used += tailAddr - retAddr;
         } else {
-            // 已分配的内存空间大小不足以进行再分配，需要扩充
+            // the allocated memory space is not sufficient for reallocation, it needs to be extended
             retAddr = this->peak;
             this->peak = this->peak + size;
             this->used += this->peak - retAddr;
         }
-        // printf("LazyAllocator alloc: %lu %lu bytes\n", retAddr, size);
 
         return retAddr;
     }
@@ -60,7 +58,7 @@ namespace infini {
         auto preFreeBlockIter = this->tailAddrToBlockSize.find(addr);
         auto subFreeBlockIter = this->headAddrToBlockSize.find(tailAddr);
         if (preFreeBlockIter != this->tailAddrToBlockSize.end()) {
-            // 需要释放的内存块的头地址是某个空闲块的尾，将二者进行合并
+            // the head address of the memory block to be freed matches the end of a free block, merge them together
             size_t preBlockSize = preFreeBlockIter->second;
             this->headAddrToBlockSize.erase(block.addr);
             this->headAddrToBlockSize[block.addr - preBlockSize] += block.blockSize;
@@ -68,11 +66,11 @@ namespace infini {
             this->tailAddrToBlockSize[tailAddr] += preBlockSize;
             block.addr -= preBlockSize;
             block.blockSize += preBlockSize;
-            // 删掉原来的前相邻空闲块，这里是否需要先 find 拿到迭代器，再进行删除？（以防之后修改代码出问题
+            // delete the preceding adjacent free block
             this->freeBlocks.erase(freeBlockInfo{block.addr, preBlockSize});
         }
         if (subFreeBlockIter != this->headAddrToBlockSize.end()) {
-            // 需要释放的内存块的尾地址是某个空闲块的头，将二者进行合并
+            // the tail address of the memory block to be freed matches the start of a free block, merge them together
             auto subBlockSize = subFreeBlockIter->second;
             this->headAddrToBlockSize.erase(tailAddr);
             this->headAddrToBlockSize[block.addr] += subBlockSize;
@@ -80,12 +78,11 @@ namespace infini {
             this->tailAddrToBlockSize[tailAddr + subBlockSize] += block.blockSize;
             tailAddr += subBlockSize;
             block.blockSize += subBlockSize;
-            // 删掉原来的后相邻内存块
+            // delete the succeeding adjacent memory block
             this->freeBlocks.erase(freeBlockInfo{tailAddr - subBlockSize, subBlockSize});
         }
         this->freeBlocks.insert(block);
         this->used -= size;
-        // printf("LazyAllocator free: %lu %lu bytes\n", addr, size);
     }
 
     void* LazyAllocator::getPtr() {

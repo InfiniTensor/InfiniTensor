@@ -70,7 +70,7 @@ class TensorObj : public TensorBaseObj {
     void copyData(const TensorObj *src);
     void copyData(const Tensor &src) { copyData(src.get()); }
 
-    // TODO(chenjie): Rename this function later, because it is confused that it will change the field data, but actually it generates data and maybe copy to device.
+    // TODO: Rename this function later, because it is confused that it will change the field data, but actually it generates data and maybe copy to device.
     // FIXME: std::fucntion copies the generator instead of passing it by ref.
     // Thus the internal state of generator cannot be updated.
     void setData(

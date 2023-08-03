@@ -8,19 +8,15 @@ namespace infini {
 
 class LazyAllocator {
     protected:
-        // 用于调用 runtime->allocBlob() 函数进行实际的内存分配
         Runtime runtime;
 
-        // 记录当前使用的内存大小
         size_t used;
 
-        // 记录推理过程中的内存峰值
         size_t peak;
 
-        // 内存对齐
         size_t alignment;
 
-        // 指向实际分配的内存的指针
+        // pointer to the memory actually allocated
         void *ptr;
 
         struct freeBlockInfo {
@@ -35,15 +31,15 @@ class LazyAllocator {
             }
         };
 
-        // 空闲平衡树，维护所有空闲内存块
-        // key: 空闲内存块大小，val: 内存块起始地址偏移量
+        // free balanced tree, maintains all free memory blocks
         std::set<freeBlockInfo, cmpFreeBlockInfo> freeBlocks;
-        // map<size_t, size_t> freeSizeToHeadAddr;
 
-        // 空闲块起始地址集合，维护所有空闲内存块的起始地址偏移量，用于碎片回收
+        // key: head address offset of the free memory block
+        // value: blockSize of the block
         std::unordered_map<size_t, size_t> headAddrToBlockSize;
         
-        // 空闲块结尾地址集合，维护所有空闲内存块的结尾地址偏移量，用于碎片回收
+        // key: tail address offset of the free memory block
+        // value: blockSize of the block
         std::unordered_map<size_t, size_t> tailAddrToBlockSize;       
 
     public:
@@ -51,25 +47,24 @@ class LazyAllocator {
         
         virtual ~LazyAllocator();
 
-        // 功能：模拟分配内存。   
-        // 输入参数：
-        //     size：需要分配的内存大小。
-        //     alignment：内存对齐量。
-        // 返回值：所分配内存块的起始地址偏移量。 
+        // function: simulate memory allocation
+        // arguments：
+        //     size: size of memory block to be allocated
+        // return: head address offset of the allocated memory block
         size_t alloc(size_t size);
 
-        // 功能：模拟释放内存。
-        // 输入参数：
-        //     addr：需要释放的内存起始地址偏移量。
-        //     size：需要释放的 Tensor 大小
+        // function: simulate memory free
+        // arguments:
+        //     addr: head address offset of memory block to be free
+        //     size: size of memory block to be freed
         void free(size_t addr, size_t size);
 
-        // 功能：进行实际的内存分配
-        // 返回值：指向所分配内存起始地址的指针
+        // function: perform actual memory allocation
+        // return: pointer to the head address of the allocated memory
         void* getPtr();
 
-        // 功能：内存对齐，向上取整
-        // 返回值：对齐后的尾地址
+        // function: memory alignment, rouned up
+        // return: size of the aligned memory block
         size_t getAlignedSize(size_t size);
 
         void info();
