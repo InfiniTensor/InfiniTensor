@@ -574,6 +574,7 @@ class OnnxStub:
                 else:
                     raise Exception('Unsupported operator "{}"'.format(node.op_type))
                 new_node_name.append(node.name)
+            # update the node_list
             node_list = list(set(node_name) - set(new_node_name))
 
         self.handler.data_malloc()
