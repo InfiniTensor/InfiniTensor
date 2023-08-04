@@ -2,13 +2,23 @@
 #include <utility>
 
 namespace infini {
+
+// In cuda-c-programming-guide(https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#device-memory-accesses): Any address of a variable residing in global memory or returned by one of the memory allocation routines from the driver or runtime API is always aligned to at least 256 bytes.
+constexpr size_t alignmentInBytesForCUDA = 256;
+
 LazyAllocator::LazyAllocator(Runtime runtime) : runtime(runtime) {
     used = 0;
     peak = 0;
     ptr = nullptr;
-    // 'alignment' defaults to sizeof(uint64_t), because it is the length of the
-    // longest data type currently supported by the DataType field of the tensor
-    alignment = sizeof(uint64_t);
+    if (runtime->isCuda()) {
+        // TODO: the alignment on cuda might need further discussion
+        alignment = alignmentInBytesForCUDA;
+    } else {
+        // 'alignment' defaults to sizeof(uint64_t), because it is the length of the
+        // longest data type currently supported by the DataType field of the tensor
+        // TODO: the alignment on bang might need further discussion
+        alignment = sizeof(uint64_t);
+    }
 }
 
 LazyAllocator::~LazyAllocator() {
