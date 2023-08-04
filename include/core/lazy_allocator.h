@@ -43,7 +43,7 @@ class LazyAllocator {
     std::unordered_map<size_t, size_t> tailAddrToBlockSize;
 
   public:
-    LazyAllocator(Runtime runtime, size_t alignment);
+    LazyAllocator(Runtime runtime);
 
     virtual ~LazyAllocator();
 

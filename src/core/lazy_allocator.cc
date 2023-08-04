@@ -2,14 +2,20 @@
 #include <utility>
 
 namespace infini {
-LazyAllocator::LazyAllocator(Runtime runtime, size_t alignment)
-    : runtime(runtime), alignment(alignment) {
+LazyAllocator::LazyAllocator(Runtime runtime)
+    : runtime(runtime) {
     used = 0;
     peak = 0;
     ptr = nullptr;
+    // 'alignment' defaults to sizeof(uint64_t), because it is the length of the longest data type currently supported by the DataType field of the tensor
+    alignment = sizeof(uint64_t);
 }
 
-LazyAllocator::~LazyAllocator() { runtime->dealloc(this->ptr); }
+LazyAllocator::~LazyAllocator() { 
+    if (this->ptr != nullptr) {
+        runtime->dealloc(this->ptr); 
+    }
+}
 
 size_t LazyAllocator::alloc(size_t size) {
     IT_ASSERT(this->ptr == nullptr);

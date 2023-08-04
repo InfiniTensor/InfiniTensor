@@ -5,7 +5,7 @@
 namespace infini {
 
 GraphObj::GraphObj(Runtime runtime, OpVec ops_in)
-    : runtime(runtime), allocator(runtime, 8), sorted(false) {
+    : runtime(runtime), allocator(runtime), sorted(false) {
     map<UidBaseType, Tensor> tensorPool;
     // Clone tensors
     for (const auto &op : ops_in) {
