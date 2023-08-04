@@ -42,9 +42,8 @@ size_t LazyAllocator::alloc(size_t size) {
     } else {
         // the allocated memory space is not sufficient for reallocation, it
         // needs to be extended
-        retAddr = this->peak;
         this->peak = this->peak + size;
-        this->used += this->peak - retAddr;
+        this->used += size;
     }
 
     return retAddr;

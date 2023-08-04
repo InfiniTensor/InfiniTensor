@@ -7,7 +7,7 @@
 namespace infini {
 
 class LazyAllocator {
-  protected:
+  private:
     Runtime runtime;
 
     size_t used;
@@ -63,11 +63,13 @@ class LazyAllocator {
     // return: pointer to the head address of the allocated memory
     void *getPtr();
 
+    void info();
+    
+  private:
     // function: memory alignment, rouned up
     // return: size of the aligned memory block
     size_t getAlignedSize(size_t size);
 
-    void info();
 };
 
 } // namespace infini
