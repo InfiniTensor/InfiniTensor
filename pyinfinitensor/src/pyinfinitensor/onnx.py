@@ -3,8 +3,6 @@ from onnx import (
     ModelProto,
     TensorProto,
     NodeProto,
-    AttributeProto,
-    TensorShapeProto,
     ValueInfoProto,
 )
 from onnx.helper import (
@@ -22,9 +20,21 @@ from onnx.checker import (
     check_tensor,
 )
 from onnx.shape_inference import infer_shapes
-from onnx.numpy_helper import to_array
-from typing import Dict, List, Any, Tuple, Sequence, Union, Optional
+from typing import Any, Tuple, Sequence, Union, Optional
 from functools import reduce
+from utils import (
+    _parse_data,
+    _parse_data_fp16,
+    _take_shape_dim,
+    _search_shape,
+    _parse_attribute,
+    _parse_all_attribute,
+)
+from operators.conv import import_conv
+from operators.matmul import import_matmul
+from operators.conv_transpose import import_conv_transpose
+from operators.unary import import_unary
+from operators.binary import import_binary
 
 
 class OnnxStub:
@@ -33,17 +43,21 @@ class OnnxStub:
     It can be generated from an Onnx model object.
     """
 
-    inputs: Dict[str, backend.Tensor] = {}
-    outputs: Dict[str, backend.Tensor] = {}
-    initializer: Dict[int, TensorProto] = {}
+    inputs: dict[str, backend.Tensor] = {}
+    outputs: dict[str, backend.Tensor] = {}
+    initializer: dict[int, TensorProto] = {}
     handler: backend.GraphHandler
 
     def __init__(self, model: ModelProto, runtime):
+        opset = [x.version for x in model.opset_import if x.domain == ""]
+        assert len(opset) == 1
+        opset = opset[0]
+
         model = infer_shapes(model)
         self.handler = backend.GraphHandler(runtime)
 
-        tensors: Dict[str, backend.Tensor] = dict()
-        data: Dict[str, TensorProto] = dict()
+        tensors: dict[str, backend.Tensor] = dict()
+        data: dict[str, TensorProto] = dict()
 
         for input in model.graph.input:
             dims = _take_shape_dim(input.type.tensor_type.shape)
@@ -63,108 +77,65 @@ class OnnxStub:
             data[initializer.name] = initializer
 
         for node in model.graph.node:
-            if node.op_type == "Conv":
-                attributes = _parse_attribute(
-                    node,
-                    {
-                        "dilations": [1, 1],
-                        "pads": [0, 0, 0, 0],
-                        "strides": [1, 1],
-                    },
-                )
-                (d, p, s) = (
-                    attributes[name] for name in ["dilations", "pads", "strides"]
-                )
-                if p[0] != p[2] or p[1] != p[3]:
-                    adapt = "{}-adapt".format(node.output[0])
-                    tensors[adapt] = self.handler.pad(
-                        tensors[node.input[0]], None, p, [-2, -1]
-                    )
-                    p = [0, 0, 0, 0]
-                else:
-                    adapt = node.input[0]
-
-                if len(node.input) > 2:
-                    bias = "{}-bias".format(node.output[0])
-                    reshape = "{}-reshape".format(node.output[0])
-                    tensors[bias] = self.handler.conv(
-                        tensors[adapt],
-                        tensors[node.input[1]],
-                        None,
-                        p[0],
-                        p[1],
-                        s[0],
-                        s[1],
-                        d[0],
-                        d[1],
-                    )
-                    tensors[reshape] = self.handler.reshape(
-                        tensors[node.input[2]],
-                        None,
-                        [
-                            1,
-                            reduce(
-                                lambda acc, x: acc * x,
-                                _search_shape(model, node.input[2]),
-                            ),
-                            1,
-                            1,
-                        ],
-                    )
-                    tensors[node.output[0]] = self.handler.add(
-                        tensors[bias],
-                        tensors[reshape],
-                        tensors.get(node.output[0]),
-                    )
-                else:
-                    tensors[node.output[0]] = self.handler.conv(
-                        tensors[adapt],
-                        tensors[node.input[1]],
-                        tensors.get(node.output[0]),
-                        p[0],
-                        p[1],
-                        s[0],
-                        s[1],
-                        d[0],
-                        d[1],
-                    )
+            backend.print_op(
+                node.op_type,
+                node.input,
+                node.output,
+                _parse_all_attribute(node),
+            )
+            print()
+            if node.op_type in [
+                "Abs",
+                "Acos",
+                "Acosh",
+                "Asin",
+                "Asinh",
+                "Atan",
+                "Atanh",
+                "BitwiseNot",
+                "Ceil",
+                "Cos",
+                "Cosh",
+                "Erf",
+                "Exp",
+                "Floor",
+                "Log",
+                "Neg",
+                "Not",
+                "Relu",
+                "Round",
+                "Sigmoid",
+                "Sin",
+                "Sinh",
+                "Sqrt",
+                "Tan",
+                "Tanh",
+                "Identity",
+                "Shape",
+            ]:
+                import_unary(node, opset, tensors, self.handler)
+            elif node.op_type in [
+                "Add",
+                "Sub",
+                "Mul",
+                "Div",
+                "Pow",
+                "And",
+                "Or",
+                "Xor",
+                "BitShift",
+                "BitwiseAnd",
+                "BitwiseOr",
+                "BitwiseXor",
+                "Equal",
+            ]:
+                import_binary(node, opset, tensors, self.handler)
+            elif node.op_type == "Conv":
+                import_conv(node, opset, tensors, self.handler)
             elif node.op_type == "ConvTranspose":
-                attributes = _parse_attribute(
-                    node,
-                    {
-                        "dilations": [1, 1],
-                        "pads": [0, 0],
-                        "strides": [1, 1],
-                        "output_padding": [0, 0],
-                    },
-                )
-                (d, p, s, op) = (
-                    attributes[name]
-                    for name in ["dilations", "pads", "strides", "output_padding"]
-                )
-                tensors[node.output[0]] = self.handler.convTransposed2d(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                    p[0],
-                    p[1],
-                    s[0],
-                    s[1],
-                    d[0],
-                    d[1],
-                    op[0],
-                    op[1],
-                )
+                import_conv_transpose(node, opset, tensors, self.handler)
             elif node.op_type == "MatMul":
-                tensors[node.output[0]] = self.handler.matmul(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                    False,
-                    False,
-                    None,
-                    backend.ActType.Linear,
-                )
+                import_matmul(node, opset, tensors, self.handler)
             elif node.op_type == "Gemm":
                 attributes = _parse_attribute(
                     node, {"alpha": 1.0, "beta": 1.0, "transA": 0, "transB": 0}
@@ -329,21 +300,6 @@ class OnnxStub:
                     tensors[node.input[1]],
                     tensors.get(node.output[0]),
                 )
-            elif node.op_type == "Relu":
-                tensors[node.output[0]] = self.handler.relu(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Sigmoid":
-                tensors[node.output[0]] = self.handler.sigmoid(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Tanh":
-                tensors[node.output[0]] = self.handler.tanh(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
             elif node.op_type == "Softmax":
                 tensors[node.output[0]] = self.handler.softmax(
                     tensors[node.input[0]],
@@ -351,21 +307,6 @@ class OnnxStub:
                     next(
                         (attr.i for attr in node.attribute if attr.name == "axis"), -1
                     ),
-                )
-            elif node.op_type == "Abs":
-                tensors[node.output[0]] = self.handler.abs(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Shape":
-                tensors[node.output[0]] = self.handler.shape(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Identity":
-                tensors[node.output[0]] = self.handler.identity(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
                 )
             elif node.op_type == "Flatten":
                 tensors[node.output[0]] = self.handler.flatten(
@@ -549,19 +490,19 @@ class OnnxStub:
     def to_onnx(self, name: str) -> ModelProto:
         class Context:
             # saves object names, including tensors and operators
-            names: Dict[Union[backend.Tensor, backend.Operator], str] = dict()
+            names: dict[Union[backend.Tensor, backend.Operator], str] = dict()
             # counts the occurrence times of each operator for naming
-            count_op: Dict[backend.OpTypeId, int] = dict()
+            count_op: dict[backend.OpTypeId, int] = dict()
             # counts input and output tensors for naming
             count_in, count_out = 0, 0
             # saves nodes (operators)
-            nodes: List[NodeProto] = []
+            nodes: list[NodeProto] = []
             # saves global input tensors
-            inputs: List[ValueInfoProto] = []
+            inputs: list[ValueInfoProto] = []
             # saves global output tensors
-            outputs: List[ValueInfoProto] = []
+            outputs: list[ValueInfoProto] = []
             # saves global input tensors
-            initializers: List[TensorProto] = []
+            initializers: list[TensorProto] = []
 
             def name_op(self, op: backend.Operator) -> Tuple[backend.OpTypeId, str]:
                 ty = op.op_type().id()
@@ -847,78 +788,3 @@ class OnnxStub:
 def from_onnx(model: ModelProto, runtime):
     stub = OnnxStub(model, runtime)
     return stub.inputs, stub.outputs, stub.handler
-
-
-def _search_shape(model: ModelProto, name: str) -> List[int]:
-    ans = (
-        next(
-            (
-                [
-                    (d.dim_value if d.dim_value > 0 else 1)
-                    for d in tensor.type.tensor_type.shape.dim
-                ]
-                for tensor in model.graph.value_info
-                if tensor.name == name
-            ),
-            None,
-        )
-        or next(
-            (
-                [
-                    (d.dim_value if d.dim_value > 0 else 1)
-                    for d in tensor.type.tensor_type.shape.dim
-                ]
-                for tensor in model.graph.input
-                if tensor.name == name
-            ),
-            None,
-        )
-        or next(
-            [int(d) for d in tensor.dims]
-            for tensor in model.graph.initializer
-            if tensor.name == name
-        )
-    )
-    return ans
-
-
-def _parse_attribute(node: NodeProto, attrs: Dict[str, Any] = dict()) -> Dict[str, Any]:
-    for attr in node.attribute:
-        if attr.name in attrs:
-            if attr.type == AttributeProto.INT:
-                attrs[attr.name] = attr.i
-            elif attr.type == AttributeProto.INTS:
-                attrs[attr.name] = attr.ints
-            elif attr.type == AttributeProto.FLOAT:
-                attrs[attr.name] = attr.f
-            elif attr.type == AttributeProto.STRING:
-                attrs[attr.name] = attr.s
-            elif attr.type == AttributeProto.TENSOR:
-                attrs[attr.name] = attr.t
-            else:
-                assert False, "Unsupported Attribute Type: {}".format(attr.type)
-    return attrs
-
-
-def _parse_data(tensor: TensorProto) -> List[Any]:
-    return to_array(tensor).flatten().tolist()
-
-
-def _parse_data_fp16(tensor: TensorProto):
-    list_ = []
-    if len(tensor.int32_data) != 0:
-        for element_data in tensor.int32_data:
-            element_byte = element_data.to_bytes(2, "little")
-            list_.append(element_byte[0] + element_byte[1] * 256)
-    elif len(tensor.raw_data) != 0:
-        list_raw_data = list(tensor.raw_data)
-        list_data = [list_raw_data[i : i + 2] for i in range(0, len(list_raw_data), 2)]
-        for ele in list_data:
-            list_.append(ele[0] + ele[1] * 256)
-    else:
-        raise Exception("Tensor have no float16 data!")
-    return list_
-
-
-def _take_shape_dim(shape: TensorShapeProto) -> List[int]:
-    return [(d.dim_value if d.dim_value > 0 else 1) for d in shape.dim]

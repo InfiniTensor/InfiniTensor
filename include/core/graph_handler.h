@@ -20,8 +20,8 @@ class GraphHandlerObj {
 
     inline OpVec operators() { return g->getOperators(); }
 
-    Tensor conv(Tensor input, Tensor weight, Tensor output, int ph, int pw,
-                int sh, int sw, int dh, int dw);
+    Tensor conv(Tensor input, Tensor weight, Tensor bias, Tensor output, int ph,
+                int pw, int sh, int sw, int dh, int dw);
     Tensor convTransposed2d(Tensor input, Tensor weight, Tensor output, int ph,
                             int pw, int sh, int sw, int dh, int dw, int oph,
                             int opw);
@@ -36,19 +36,9 @@ class GraphHandlerObj {
     Tensor avgPool(Tensor input, Tensor output, int kh, int kw, int dh, int dw,
                    int ph, int pw, int sh, int sw);
 
-    Tensor add(Tensor a, Tensor b, Tensor c);
-    Tensor sub(Tensor a, Tensor b, Tensor c);
-    Tensor mul(Tensor a, Tensor b, Tensor c);
-    Tensor div(Tensor a, Tensor b, Tensor c);
-    Tensor pow(Tensor a, Tensor b, Tensor c);
-
-    Tensor relu(Tensor x, Tensor y);
-    Tensor sigmoid(Tensor x, Tensor y);
-    Tensor tanh(Tensor x, Tensor y);
+    Tensor unary(std::string ty, Tensor x, Tensor y);
+    Tensor binary(std::string ty, Tensor x, Tensor y, Tensor z);
     Tensor softmax(Tensor x, Tensor y, int axis);
-    Tensor abs(Tensor x, Tensor y);
-    Tensor shape(Tensor x, Tensor y);
-    Tensor identity(Tensor x, Tensor y);
     Tensor flatten(Tensor s, Tensor y, int axis);
     Tensor pRelu(Tensor x, Tensor slope, Tensor y);
     Tensor clip(Tensor x, Tensor y, std::optional<float> min,

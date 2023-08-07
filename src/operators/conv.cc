@@ -63,10 +63,10 @@ void ConvObj::setAuxilaryAttributes(PaddingMode mode) {
 ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
                  int ph, int pw, int sh, int sw, int dh, int dw, Tensor bias,
                  ActType act)
-    : ConvBaseObj(OpType::Conv, {input, weight}, output, ph, pw, sh, sw, dh, dw,
-                  input, weight, act) {
-    if (bias)
-        IT_TODO_HALT();
+    : ConvBaseObj(OpType::Conv,
+                  bias ? TensorVec{input, weight, bias}
+                       : TensorVec{input, weight},
+                  output, ph, pw, sh, sw, dh, dw, input, weight, act) {
     setAuxilaryAttributes(PaddingMode::Other);
     IT_ASSERT(checkValid(graph));
 }
@@ -74,10 +74,10 @@ ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
 ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
                  PaddingMode mode, int sh, int sw, int dh, int dw, Tensor bias,
                  ActType act)
-    : ConvBaseObj(OpType::Conv, {input, weight}, output, mode, sh, sw, dh, dw,
-                  input, weight, act) {
-    if (bias)
-        IT_TODO_HALT();
+    : ConvBaseObj(OpType::Conv,
+                  bias ? TensorVec{input, weight, bias}
+                       : TensorVec{input, weight},
+                  output, mode, sh, sw, dh, dw, input, weight, act) {
     setAuxilaryAttributes(mode);
     IT_ASSERT(checkValid(graph));
 }

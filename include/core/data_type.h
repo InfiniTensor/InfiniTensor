@@ -1,3 +1,7 @@
+#pragma once
+#ifndef DATA_TYPE_H
+#define DATA_TYPE_H
+
 #include "core/common.h"
 
 namespace infini {
@@ -109,3 +113,5 @@ template <> struct DT<12> { using t = uint32_t; };
 template <> struct DT<13> { using t = uint64_t; };
 
 } // namespace infini
+
+#endif // DATA_TYPE_H

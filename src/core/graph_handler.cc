@@ -23,16 +23,18 @@ Tensor GraphHandlerObj::tensor(Shape dims, int dtype) {
     return g->addTensor(std::move(dims), dtype_repr_convert(dtype));
 }
 
-Tensor GraphHandlerObj::conv(Tensor input, Tensor weight, Tensor output, int ph,
-                             int pw, int sh, int sw, int dh, int dw) {
+Tensor GraphHandlerObj::conv(Tensor input, Tensor weight, Tensor bias,
+                             Tensor output, int ph, int pw, int sh, int sw,
+                             int dh, int dw) {
     if (output) {
         g->addOpWithOutputs<ConvObj>(std::move(input), std::move(weight),
-                                     output, ph, pw, sh, sw, dh, dw);
+                                     output, ph, pw, sh, sw, dh, dw, bias,
+                                     ActType::None);
         return output;
     } else {
         return g
             ->addOp<ConvObj>(std::move(input), std::move(weight), output, ph,
-                             pw, sh, sw, dh, dw)
+                             pw, sh, sw, dh, dw, bias, ActType::None)
             ->getOutput();
     }
 }
@@ -117,43 +119,119 @@ Tensor GraphHandlerObj::avgPool(Tensor input, Tensor output, int kh, int kw,
     }
 }
 
-// see operators/element_wise.h
-#define DEFINE_ELEMENT_WISE_METHOD(name, obj)                                  \
-    Tensor GraphHandlerObj::name(Tensor a, Tensor b, Tensor c) {               \
-        if (c) {                                                               \
-            g->addOpWithOutputs<obj##Obj>(std::move(a), std::move(b), c);      \
-            return c;                                                          \
-        } else {                                                               \
-            return g->addOp<obj##Obj>(std::move(a), std::move(b), c)           \
-                ->getOutput();                                                 \
-        }                                                                      \
-    }
-
-DEFINE_ELEMENT_WISE_METHOD(add, Add)
-DEFINE_ELEMENT_WISE_METHOD(sub, Sub)
-DEFINE_ELEMENT_WISE_METHOD(mul, Mul)
-DEFINE_ELEMENT_WISE_METHOD(div, Div)
-DEFINE_ELEMENT_WISE_METHOD(pow, Pow)
-
 // see operators/unary.h
-#define DEFINE_UNARY_METHOD(name, obj)                                         \
-    Tensor GraphHandlerObj::name(Tensor x, Tensor y) {                         \
-        if (y) {                                                               \
-            g->addOpWithOutputs<obj##Obj>(std::move(x), y);                    \
-            return y;                                                          \
-        } else {                                                               \
-            return g->addOp<obj##Obj>(std::move(x), y)->getOutput();           \
-        }                                                                      \
+#define ADD_UNARY(obj)                                                         \
+    if (y) {                                                                   \
+        g->addOpWithOutputs<obj##Obj>(std::move(x), y);                        \
+        return y;                                                              \
+    } else {                                                                   \
+        return g->addOp<obj##Obj>(std::move(x), y)->getOutput();               \
     }
 
-DEFINE_UNARY_METHOD(relu, Relu)
-DEFINE_UNARY_METHOD(sigmoid, Sigmoid)
-DEFINE_UNARY_METHOD(tanh, Tanh)
-DEFINE_UNARY_METHOD(abs, Abs)
-DEFINE_UNARY_METHOD(shape, Shape)
+Tensor GraphHandlerObj::unary(std::string ty, Tensor x, Tensor y) {
+    if (ty == "Abs") {
+        ADD_UNARY(Abs)
+    } else if (ty == "Acos") {
+        IT_ASSERT_TODO(false);
+    } else if (ty == "Acosh") {
+        IT_ASSERT_TODO(false);
+    } else if (ty == "Asin") {
+        IT_ASSERT_TODO(false);
+    } else if (ty == "Asinh") {
+        IT_ASSERT_TODO(false);
+    } else if (ty == "Atan") {
+        IT_ASSERT_TODO(false);
+    } else if (ty == "Atanh") {
+        IT_ASSERT_TODO(false);
+    } else if (ty == "BitwiseNot") {
+        IT_ASSERT_TODO(false);
+    } else if (ty == "Ceil") {
+        IT_ASSERT_TODO(false);
+    } else if (ty == "Cos") {
+        IT_ASSERT_TODO(false);
+    } else if (ty == "Cosh") {
+        IT_ASSERT_TODO(false);
+    } else if (ty == "Erf") {
+        IT_ASSERT_TODO(false);
+    } else if (ty == "Exp") {
+        IT_ASSERT_TODO(false);
+    } else if (ty == "Floor") {
+        IT_ASSERT_TODO(false);
+    } else if (ty == "Log") {
+        IT_ASSERT_TODO(false);
+    } else if (ty == "Neg") {
+        IT_ASSERT_TODO(false);
+    } else if (ty == "Not") {
+        IT_ASSERT_TODO(false);
+    } else if (ty == "Relu") {
+        ADD_UNARY(Relu)
+    } else if (ty == "Round") {
+        IT_ASSERT_TODO(false);
+    } else if (ty == "Sigmoid") {
+        ADD_UNARY(Sigmoid)
+    } else if (ty == "Sin") {
+        IT_ASSERT_TODO(false);
+    } else if (ty == "Sinh") {
+        IT_ASSERT_TODO(false);
+    } else if (ty == "Sqrt") {
+        IT_ASSERT_TODO(false);
+    } else if (ty == "Tan") {
+        IT_ASSERT_TODO(false);
+    } else if (ty == "Tanh") {
+        ADD_UNARY(Tanh)
+    } else if (ty == "Identity") {
+        ADD_UNARY(Identity)
+    } else if (ty == "Shape") {
+        ADD_UNARY(Shape)
+    } else {
+        IT_ASSERT(false, "Unsupported unary operator");
+    }
+}
 
-// see operators/reshape.h
-DEFINE_UNARY_METHOD(identity, Identity)
+#undef ADD_UNARY
+
+// see operators/element_wise.h
+#define ADD_BINARY(obj)                                                        \
+    if (z) {                                                                   \
+        g->addOpWithOutputs<obj##Obj>(std::move(x), std::move(y), z);          \
+        return y;                                                              \
+    } else {                                                                   \
+        return g->addOp<obj##Obj>(std::move(x), std::move(y), z)->getOutput(); \
+    }
+
+Tensor GraphHandlerObj::binary(std::string ty, Tensor x, Tensor y, Tensor z) {
+    if (ty == "Add") {
+        ADD_BINARY(Add)
+    } else if (ty == "Sub") {
+        ADD_BINARY(Sub)
+    } else if (ty == "Mul") {
+        ADD_BINARY(Mul)
+    } else if (ty == "Div") {
+        ADD_BINARY(Div)
+    } else if (ty == "Pow") {
+        ADD_BINARY(Pow)
+    } else if (ty == "And") {
+        IT_ASSERT_TODO(false);
+    } else if (ty == "Or") {
+        IT_ASSERT_TODO(false);
+    } else if (ty == "Xor") {
+        IT_ASSERT_TODO(false);
+    } else if (ty == "BitShift") {
+        IT_ASSERT_TODO(false);
+    } else if (ty == "BitwiseAnd") {
+        IT_ASSERT_TODO(false);
+    } else if (ty == "BitwiseOr") {
+        IT_ASSERT_TODO(false);
+    } else if (ty == "BitwiseXor") {
+        IT_ASSERT_TODO(false);
+    } else if (ty == "Equal") {
+        IT_ASSERT_TODO(false);
+    } else {
+        IT_ASSERT(false, "Unsupported unary operator");
+    }
+}
+
+#undef ADD_BINARY
 
 Tensor GraphHandlerObj::pRelu(Tensor x, Tensor slope, Tensor y) {
     if (y) {

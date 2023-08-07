@@ -242,6 +242,46 @@ static int flatten_axis_of(Operator op) {
     return dynamic_cast<const FlattenObj *>(op.get())->getAxis();
 }
 
+using Attribute = std::variant< //
+    long long,                  //
+    std::vector<long long>,     //
+    double,                     //
+    std::vector<double>,        //
+    std::string,                //
+    std::vector<std::string>>;
+
+using Attributes = std::unordered_map<std::string, Attribute>;
+
+static void print_op(std::string op_type,              //
+                     std::vector<std::string> inputs,  //
+                     std::vector<std::string> outputs, //
+                     Attributes attrs) {
+    std::cout << "op_type: " << op_type << std::endl << "inputs: [";
+    for (auto const &i : inputs)
+        std::cout << i << " ";
+    std::cout << "]" << std::endl << "outputs: [";
+    for (auto const &i : inputs)
+        std::cout << i << " ";
+    std::cout << ']' << std::endl << "attributes: [";
+    for (auto const &[k, v] : attrs) {
+        std::cout << k << ':';
+        if (std::holds_alternative<long long>(v)) {
+            std::cout << "INT ";
+        } else if (std::holds_alternative<std::vector<long long>>(v)) {
+            std::cout << "INTS ";
+        } else if (std::holds_alternative<double>(v)) {
+            std::cout << "FLOAT ";
+        } else if (std::holds_alternative<std::vector<double>>(v)) {
+            std::cout << "FLOATS ";
+        } else if (std::holds_alternative<std::string>(v)) {
+            std::cout << "STRING ";
+        } else if (std::holds_alternative<std::vector<std::string>>(v)) {
+            std::cout << "STRINGS ";
+        }
+    }
+    std::cout << ']' << std::endl;
+}
+
 void export_functions(py::module &m) {
 #define FUNCTION(NAME) def(#NAME, &NAME)
     m.def("cpu_runtime", &NativeCpuRuntimeObj::getInstance)
@@ -271,6 +311,7 @@ void export_functions(py::module &m) {
         .FUNCTION(concat_axis_of)
         .FUNCTION(split_axis_of)
         .FUNCTION(gather_axis_of)
+        .FUNCTION(print_op)
         .FUNCTION(flatten_axis_of);
 #undef FUNCTION
 }
@@ -317,24 +358,15 @@ void init_graph_builder(py::module &m) {
     py::class_<Handler>(m, "GraphHandler")
         .def(py::init<Runtime>())
         .def("tensor", &Handler::tensor, policy::move)
+        .def("unary", &Handler::unary, policy::move)
+        .def("binary", &Handler::binary, policy::move)
         .def("conv", &Handler::conv, policy::move)
         .def("convTransposed2d", &Handler::convTransposed2d, policy::move)
         .def("matmul", &Handler::matmul, policy::move)
         .def("batchNormalization", &Handler::batchNormalization, policy::move)
         .def("maxPool", &Handler::maxPool, policy::move)
         .def("avgPool", &Handler::avgPool, policy::move)
-        .def("add", &Handler::add, policy::move)
-        .def("sub", &Handler::sub, policy::move)
-        .def("mul", &Handler::mul, policy::move)
-        .def("div", &Handler::div, policy::move)
-        .def("pow", &Handler::pow, policy::move)
-        .def("relu", &Handler::relu, policy::move)
-        .def("sigmoid", &Handler::sigmoid, policy::move)
-        .def("tanh", &Handler::tanh, policy::move)
         .def("softmax", &Handler::softmax, policy::move)
-        .def("abs", &Handler::abs, policy::move)
-        .def("shape", &Handler::shape, policy::move)
-        .def("identity", &Handler::identity, policy::move)
         .def("flatten", &Handler::flatten, policy::move)
         .def("pRelu", &Handler::pRelu, policy::move)
         .def("clip", &Handler::clip, policy::move)
