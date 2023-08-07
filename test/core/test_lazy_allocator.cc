@@ -1,8 +1,8 @@
 #include "core/graph.h"
 #include "core/kernel.h"
 #include "core/runtime.h"
-#include "operators/unary.h"
 #include "cuda/cuda_runtime.h"
+#include "operators/unary.h"
 
 #include "test.h"
 
@@ -22,10 +22,13 @@ void testLazyAllocator(const Shape &shape, Runtime runtime) {
     // free b and c
     allocator.free(offsetB, b->getBytes());
     allocator.free(offsetC, c->getBytes());
-    // expected to be a->mergedFreeBlock->d, where mergedFreeBlock is the result of merging the memory blocks corresponding to the already freed b and c
+    // expected to be a->mergedFreeBlock->d, where mergedFreeBlock is the result
+    // of merging the memory blocks corresponding to the already freed b and c
     EXPECT_EQ(allocator.freeBlocks.size(), 1);
     EXPECT_EQ(allocator.freeBlocks.begin()->addr, offsetB);
-    EXPECT_EQ(allocator.freeBlocks.begin()->blockSize, allocator.getAlignedSize(b->getBytes()) + allocator.getAlignedSize(c->getBytes()));
+    EXPECT_EQ(allocator.freeBlocks.begin()->blockSize,
+              allocator.getAlignedSize(b->getBytes()) +
+                  allocator.getAlignedSize(c->getBytes()));
 }
 
 TEST(Lazy_Allocator, runOnCpu) {

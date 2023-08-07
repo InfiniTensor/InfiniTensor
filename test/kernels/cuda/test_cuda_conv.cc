@@ -75,7 +75,7 @@ TEST(cuDNN_Conv, tune) {
     // allocate CUDA memory
     gCuda->dataMalloc();
     i0Cuda->setData(IncrementalGenerator());
-    w0Cuda->setData(IncrementalGenerator());    
+    w0Cuda->setData(IncrementalGenerator());
     // Execute on CUDA
     bool tune = true;
     cuda->run(gCuda, tune);

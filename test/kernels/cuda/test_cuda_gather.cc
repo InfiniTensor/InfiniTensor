@@ -188,8 +188,7 @@ TEST(Gather, Cuda) {
 
         auto inputCuda = gCuda->cloneTensor(input);
         auto indexCuda = gCuda->cloneTensor(index);
-        auto op = gCuda->addOp<GatherObj>(inputCuda
-            , indexCuda, nullptr, 0);
+        auto op = gCuda->addOp<GatherObj>(inputCuda, indexCuda, nullptr, 0);
         gCuda->dataMalloc();
         inputCuda->copyin(vector<float>{1, 2, 3, 4, 5, 6});
         indexCuda->copyin(vector<uint32_t>{0, 1, 1, 2});
@@ -212,9 +211,8 @@ TEST(Gather, Cuda) {
         Graph gCuda = make_ref<GraphObj>(cudaRuntime);
 
         auto inputCuda = gCuda->cloneTensor(input);
-        auto indexCuda = gCuda->cloneTensor(index);        
-        auto op = gCuda->addOp<GatherObj>(
-            inputCuda, indexCuda, nullptr, 1);
+        auto indexCuda = gCuda->cloneTensor(index);
+        auto op = gCuda->addOp<GatherObj>(inputCuda, indexCuda, nullptr, 1);
         gCuda->dataMalloc();
         inputCuda->setData(IncrementalGenerator());
         indexCuda->copyin(vector<uint32_t>{0, 2});
@@ -237,12 +235,11 @@ TEST(Gather, Cuda) {
         Graph gCuda = make_ref<GraphObj>(cudaRuntime);
 
         auto inputCuda = gCuda->cloneTensor(input);
-        auto indexCuda = gCuda->cloneTensor(index);           
-        auto op = gCuda->addOp<GatherObj>(
-            inputCuda, indexCuda, nullptr, 1);
+        auto indexCuda = gCuda->cloneTensor(index);
+        auto op = gCuda->addOp<GatherObj>(inputCuda, indexCuda, nullptr, 1);
         gCuda->dataMalloc();
         inputCuda->setData(IncrementalGenerator());
-        indexCuda->copyin(vector<uint32_t>{0, 3, 1});        
+        indexCuda->copyin(vector<uint32_t>{0, 3, 1});
         cudaRuntime->run(gCuda);
 
         // cudaPrintTensor(op->getOutput());

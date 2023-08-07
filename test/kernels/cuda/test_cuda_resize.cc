@@ -22,12 +22,11 @@ TEST(Resize, Cuda_downsample_sizes_nearest) {
     auto inputCuda = gCuda->cloneTensor(input);
     auto sizesCuda = gCuda->cloneTensor(sizes);
     auto op = gCuda->addOp<ResizeObj>(
-        inputCuda, nullptr, std::nullopt,
-        sizesCuda, nullptr, nullptr,
+        inputCuda, nullptr, std::nullopt, sizesCuda, nullptr, nullptr,
         ResizeObj::EKeepAspectRatioPolicy::stretch);
     gCuda->dataMalloc();
     inputCuda->copyin(vector<float>{1, 2, 3, 4, 5, 6, 7, 8});
-    sizesCuda->copyin(vector<uint32_t>{1, 1, 1, 3});    
+    sizesCuda->copyin(vector<uint32_t>{1, 1, 1, 3});
 
     cudaRuntime->run(gCuda);
 
@@ -52,14 +51,13 @@ TEST(Resize, Cuda_upsample_sizes_nearest_notlarger) {
     auto inputCuda = gCuda->cloneTensor(input);
     auto sizesCuda = gCuda->cloneTensor(sizes);
     auto op = gCuda->addOp<ResizeObj>(
-        inputCuda, nullptr, vector<int>{2, 3},
-        sizesCuda, nullptr, nullptr,
+        inputCuda, nullptr, vector<int>{2, 3}, sizesCuda, nullptr, nullptr,
         ResizeObj::EKeepAspectRatioPolicy::notLarger,
         ResizeObj::ENearestMode::roundPreferFloor,
         ResizeObj::ECoordinateTransMode::halfPixel);
     gCuda->dataMalloc();
     inputCuda->copyin(vector<float>{1, 2, 3, 4});
-    sizesCuda->copyin(vector<uint32_t>{7, 8});    
+    sizesCuda->copyin(vector<uint32_t>{7, 8});
     cudaRuntime->run(gCuda);
 
     //  copy output from CUDA to CPU
@@ -86,14 +84,13 @@ TEST(Resize, Cuda_upsample_sizes_nearest_notsmaller) {
     auto inputCuda = gCuda->cloneTensor(input);
     auto sizesCuda = gCuda->cloneTensor(sizes);
     auto op = gCuda->addOp<ResizeObj>(
-        inputCuda, nullptr, vector<int>{2, 3},
-        sizesCuda, nullptr, nullptr,
+        inputCuda, nullptr, vector<int>{2, 3}, sizesCuda, nullptr, nullptr,
         ResizeObj::EKeepAspectRatioPolicy::notSmaller,
         ResizeObj::ENearestMode::roundPreferFloor,
         ResizeObj::ECoordinateTransMode::halfPixel);
     gCuda->dataMalloc();
     inputCuda->copyin(vector<float>{1, 2, 3, 4});
-    sizesCuda->copyin(vector<uint32_t>{7, 8});        
+    sizesCuda->copyin(vector<uint32_t>{7, 8});
     cudaRuntime->run(gCuda);
 
     //  copy output from CUDA to CPU
@@ -121,15 +118,14 @@ TEST(Resize, Cuda_upsample_sizes_nearest_ceil_half_pixel) {
     auto inputCuda = gCuda->cloneTensor(input);
     auto sizesCuda = gCuda->cloneTensor(sizes);
     auto op = gCuda->addOp<ResizeObj>(
-        inputCuda, nullptr, std::nullopt,
-        sizesCuda, nullptr, nullptr,
+        inputCuda, nullptr, std::nullopt, sizesCuda, nullptr, nullptr,
         ResizeObj::EKeepAspectRatioPolicy::stretch,
         ResizeObj::ENearestMode::ceil,
         ResizeObj::ECoordinateTransMode::halfPixel);
     gCuda->dataMalloc();
     inputCuda->copyin(
         vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16});
-    sizesCuda->copyin(vector<uint32_t>{1, 1, 8, 8});    
+    sizesCuda->copyin(vector<uint32_t>{1, 1, 8, 8});
     cudaRuntime->run(gCuda);
 
     //  copy output from CUDA to CPU
@@ -159,15 +155,14 @@ TEST(Resize, Cuda_upsample_sizes_nearest_floor_align_corners) {
     auto inputCuda = gCuda->cloneTensor(input);
     auto sizesCuda = gCuda->cloneTensor(sizes);
     auto op = gCuda->addOp<ResizeObj>(
-        inputCuda, nullptr, vector<int>{3, 2},
-        sizesCuda, nullptr, nullptr,
+        inputCuda, nullptr, vector<int>{3, 2}, sizesCuda, nullptr, nullptr,
         ResizeObj::EKeepAspectRatioPolicy::stretch,
         ResizeObj::ENearestMode::floor,
         ResizeObj::ECoordinateTransMode::alignCorners);
     gCuda->dataMalloc();
     inputCuda->copyin(
         vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16});
-    sizesCuda->copyin(vector<uint32_t>{8, 8});    
+    sizesCuda->copyin(vector<uint32_t>{8, 8});
     cudaRuntime->run(gCuda);
 
     //  copy output from CUDA to CPU
@@ -197,15 +192,14 @@ TEST(Resize, Cuda_upsample_sizes_nearest_round_prefer_ceil_asymmetri) {
     auto inputCuda = gCuda->cloneTensor(input);
     auto sizesCuda = gCuda->cloneTensor(sizes);
     auto op = gCuda->addOp<ResizeObj>(
-        inputCuda, nullptr, std::nullopt,
-        sizesCuda, nullptr, nullptr,
+        inputCuda, nullptr, std::nullopt, sizesCuda, nullptr, nullptr,
         ResizeObj::EKeepAspectRatioPolicy::stretch,
         ResizeObj::ENearestMode::roundPreferCeil,
         ResizeObj::ECoordinateTransMode::asymmetric);
     gCuda->dataMalloc();
     inputCuda->copyin(
         vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16});
-    sizesCuda->copyin(vector<uint32_t>{1, 1, 8, 8});    
+    sizesCuda->copyin(vector<uint32_t>{1, 1, 8, 8});
 
     cudaRuntime->run(gCuda);
 
@@ -234,12 +228,11 @@ TEST(Resize, Cuda_downsample_scales_nearest) {
 
     auto inputCuda = gCuda->cloneTensor(input);
     auto scalesCuda = gCuda->cloneTensor(scales);
-    auto op = gCuda->addOp<ResizeObj>(inputCuda, nullptr,
-                                      std::nullopt, nullptr,
+    auto op = gCuda->addOp<ResizeObj>(inputCuda, nullptr, std::nullopt, nullptr,
                                       scalesCuda, nullptr);
     gCuda->dataMalloc();
     inputCuda->copyin(vector<float>{1, 2, 3, 4, 5, 6, 7, 8});
-    scalesCuda->copyin(vector<float>{1, 1, 0.6, 0.6});    
+    scalesCuda->copyin(vector<float>{1, 1, 0.6, 0.6});
     cudaRuntime->run(gCuda);
 
     //  copy output from CUDA to CPU
@@ -262,12 +255,11 @@ TEST(Resize, Cuda_upsample_scales_nearest) {
 
     auto inputCuda = gCuda->cloneTensor(input);
     auto scalesCuda = gCuda->cloneTensor(scales);
-    auto op = gCuda->addOp<ResizeObj>(inputCuda, nullptr,
-                                      std::nullopt, nullptr,
+    auto op = gCuda->addOp<ResizeObj>(inputCuda, nullptr, std::nullopt, nullptr,
                                       scalesCuda, nullptr);
     gCuda->dataMalloc();
     inputCuda->copyin(vector<float>{1, 2, 3, 4});
-    scalesCuda->copyin(vector<float>{1, 1, 2, 3});    
+    scalesCuda->copyin(vector<float>{1, 1, 2, 3});
     cudaRuntime->run(gCuda);
 
     //  copy output from CUDA to CPU
@@ -292,12 +284,11 @@ TEST(Resize, Cuda_upsample_scales_nearest_axes_3_2) {
 
     auto inputCuda = gCuda->cloneTensor(input);
     auto scalesCuda = gCuda->cloneTensor(scales);
-    auto op = gCuda->addOp<ResizeObj>(inputCuda, nullptr,
-                                      vector<int>{3, 2}, nullptr,
-                                      scalesCuda, nullptr);
+    auto op = gCuda->addOp<ResizeObj>(inputCuda, nullptr, vector<int>{3, 2},
+                                      nullptr, scalesCuda, nullptr);
     gCuda->dataMalloc();
     inputCuda->copyin(vector<float>{1, 2, 3, 4});
-    scalesCuda->copyin(vector<float>{3, 2});    
+    scalesCuda->copyin(vector<float>{3, 2});
     cudaRuntime->run(gCuda);
 
     //  copy output from CUDA to CPU
@@ -322,12 +313,12 @@ TEST(Resize, Cuda_downsample_scales_linear) {
 
     auto inputCuda = gCuda->cloneTensor(input);
     auto scalesCuda = gCuda->cloneTensor(scales);
-    auto op = gCuda->addOp<ResizeObj>(
-        inputCuda, nullptr, std::nullopt, nullptr,
-        scalesCuda, nullptr, ResizeObj::ECoeffMode::linear);
+    auto op = gCuda->addOp<ResizeObj>(inputCuda, nullptr, std::nullopt, nullptr,
+                                      scalesCuda, nullptr,
+                                      ResizeObj::ECoeffMode::linear);
     gCuda->dataMalloc();
     inputCuda->copyin(vector<float>{1, 2, 3, 4, 5, 6, 7, 8});
-    scalesCuda->copyin(vector<float>{1, 1, 0.6, 0.6});    
+    scalesCuda->copyin(vector<float>{1, 1, 0.6, 0.6});
     cudaRuntime->run(gCuda);
 
     //  copy output from CUDA to CPU
@@ -351,13 +342,12 @@ TEST(Resize, Cuda_downsample_scales_linear_aligncorners) {
     auto inputCuda = gCuda->cloneTensor(input);
     auto scalesCuda = gCuda->cloneTensor(scales);
     auto op = gCuda->addOp<ResizeObj>(
-        inputCuda, nullptr, std::nullopt, nullptr,
-        scalesCuda, nullptr, ResizeObj::ECoeffMode::linear,
-        ResizeObj::EKeepAspectRatioPolicy::none,
+        inputCuda, nullptr, std::nullopt, nullptr, scalesCuda, nullptr,
+        ResizeObj::ECoeffMode::linear, ResizeObj::EKeepAspectRatioPolicy::none,
         ResizeObj::ECoordinateTransMode::alignCorners);
     gCuda->dataMalloc();
     inputCuda->copyin(vector<float>{1, 2, 3, 4, 5, 6, 7, 8});
-    scalesCuda->copyin(vector<float>{1, 1, 0.6, 0.6});    
+    scalesCuda->copyin(vector<float>{1, 1, 0.6, 0.6});
     cudaRuntime->run(gCuda);
 
     //  copy output from CUDA to CPU
@@ -380,12 +370,12 @@ TEST(Resize, Cuda_upsample_scales_linear) {
 
     auto inputCuda = gCuda->cloneTensor(input);
     auto scalesCuda = gCuda->cloneTensor(scales);
-    auto op = gCuda->addOp<ResizeObj>(
-        inputCuda, nullptr, std::nullopt, nullptr,
-        scalesCuda, nullptr, ResizeObj::ECoeffMode::linear);
+    auto op = gCuda->addOp<ResizeObj>(inputCuda, nullptr, std::nullopt, nullptr,
+                                      scalesCuda, nullptr,
+                                      ResizeObj::ECoeffMode::linear);
     gCuda->dataMalloc();
     inputCuda->copyin(vector<float>{1, 2, 3, 4});
-    scalesCuda->copyin(vector<float>{1, 1, 2, 2});    
+    scalesCuda->copyin(vector<float>{1, 1, 2, 2});
     cudaRuntime->run(gCuda);
 
     //  copy output from CUDA to CPU
@@ -411,13 +401,12 @@ TEST(Resize, Cuda_upsample_scales_linear_align_corners) {
     auto inputCuda = gCuda->cloneTensor(input);
     auto scalesCuda = gCuda->cloneTensor(scales);
     auto op = gCuda->addOp<ResizeObj>(
-        inputCuda, nullptr, std::nullopt, nullptr,
-        scalesCuda, nullptr, ResizeObj::ECoeffMode::linear,
-        ResizeObj::EKeepAspectRatioPolicy::none,
+        inputCuda, nullptr, std::nullopt, nullptr, scalesCuda, nullptr,
+        ResizeObj::ECoeffMode::linear, ResizeObj::EKeepAspectRatioPolicy::none,
         ResizeObj::ECoordinateTransMode::alignCorners);
     gCuda->dataMalloc();
     inputCuda->copyin(vector<float>{1, 2, 3, 4});
-    scalesCuda->copyin(vector<float>{1, 1, 2, 2});    
+    scalesCuda->copyin(vector<float>{1, 1, 2, 2});
     cudaRuntime->run(gCuda);
 
     //  copy output from CUDA to CPU
@@ -444,15 +433,14 @@ TEST(Resize, Cuda_downsample_sizes_linear_pytorchhalfpixel) {
     auto inputCuda = gCuda->cloneTensor(input);
     auto sizesCuda = gCuda->cloneTensor(sizes);
     auto op = gCuda->addOp<ResizeObj>(
-        inputCuda, nullptr, std::nullopt,
-        sizesCuda, nullptr, nullptr,
+        inputCuda, nullptr, std::nullopt, sizesCuda, nullptr, nullptr,
         ResizeObj::ECoeffMode::linear,
         ResizeObj::EKeepAspectRatioPolicy::stretch,
         ResizeObj::ECoordinateTransMode::pytorchHalfPixel);
     gCuda->dataMalloc();
     inputCuda->copyin(
         vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16});
-    sizesCuda->copyin(vector<uint32_t>{1, 1, 3, 1});    
+    sizesCuda->copyin(vector<uint32_t>{1, 1, 3, 1});
     cudaRuntime->run(gCuda);
 
     //  copy output from CUDA to CPU
@@ -480,8 +468,7 @@ TEST(Resize, Cuda_tf_crop_and_resize) {
     auto sizesCuda = gCuda->cloneTensor(sizes);
     auto roiCuda = gCuda->cloneTensor(roi);
     auto op = gCuda->addOp<ResizeObj>(
-        inputCuda, nullptr, std::nullopt,
-        sizesCuda, nullptr, roiCuda,
+        inputCuda, nullptr, std::nullopt, sizesCuda, nullptr, roiCuda,
         ResizeObj::ECoeffMode::linear,
         ResizeObj::EKeepAspectRatioPolicy::stretch,
         ResizeObj::ECoordinateTransMode::tfCropAndResize);
@@ -489,7 +476,7 @@ TEST(Resize, Cuda_tf_crop_and_resize) {
     inputCuda->copyin(
         vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16});
     sizesCuda->copyin(vector<uint32_t>{1, 1, 3, 3});
-    roiCuda->copyin(vector<float>{0, 0, 0.4, 0.6, 1, 1, 0.6, 0.8});    
+    roiCuda->copyin(vector<float>{0, 0, 0.4, 0.6, 1, 1, 0.6, 0.8});
     cudaRuntime->run(gCuda);
 
     //  copy output from CUDA to CPU
@@ -518,8 +505,7 @@ TEST(Resize, Cuda_tf_crop_and_resize_axes_3_2) {
     auto sizesCuda = gCuda->cloneTensor(sizes);
     auto roiCuda = gCuda->cloneTensor(roi);
     auto op = gCuda->addOp<ResizeObj>(
-        inputCuda, nullptr, vector<int>{3, 2},
-        sizesCuda, nullptr, roiCuda,
+        inputCuda, nullptr, vector<int>{3, 2}, sizesCuda, nullptr, roiCuda,
         ResizeObj::ECoeffMode::linear,
         ResizeObj::EKeepAspectRatioPolicy::stretch,
         ResizeObj::ECoordinateTransMode::tfCropAndResize);
@@ -527,7 +513,7 @@ TEST(Resize, Cuda_tf_crop_and_resize_axes_3_2) {
     inputCuda->copyin(
         vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16});
     sizesCuda->copyin(vector<uint32_t>{3, 3});
-    roiCuda->copyin(vector<float>{0.6, 0.4, 0.8, 0.6});    
+    roiCuda->copyin(vector<float>{0.6, 0.4, 0.8, 0.6});
     cudaRuntime->run(gCuda);
 
     //  copy output from CUDA to CPU
@@ -552,13 +538,13 @@ TEST(Resize, Cuda_downsample_scales_cubic) {
 
     auto inputCuda = gCuda->cloneTensor(input);
     auto scalesCuda = gCuda->cloneTensor(scales);
-    auto op = gCuda->addOp<ResizeObj>(
-        inputCuda, nullptr, std::nullopt, nullptr,
-        scalesCuda, nullptr, ResizeObj::ECoeffMode::cubic);
+    auto op = gCuda->addOp<ResizeObj>(inputCuda, nullptr, std::nullopt, nullptr,
+                                      scalesCuda, nullptr,
+                                      ResizeObj::ECoeffMode::cubic);
     gCuda->dataMalloc();
     inputCuda->copyin(
         vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16});
-    scalesCuda->copyin(vector<float>{1.0, 1.0, 0.8, 0.8});    
+    scalesCuda->copyin(vector<float>{1.0, 1.0, 0.8, 0.8});
     cudaRuntime->run(gCuda);
 
     //   copy output from CUDA to CPU
@@ -585,14 +571,13 @@ TEST(Resize, Cuda_downsample_scales_cubic_align_corners) {
     auto inputCuda = gCuda->cloneTensor(input);
     auto scalesCuda = gCuda->cloneTensor(scales);
     auto op = gCuda->addOp<ResizeObj>(
-        inputCuda, nullptr, std::nullopt, nullptr,
-        scalesCuda, nullptr, ResizeObj::ECoeffMode::cubic,
-        ResizeObj::EKeepAspectRatioPolicy::none,
+        inputCuda, nullptr, std::nullopt, nullptr, scalesCuda, nullptr,
+        ResizeObj::ECoeffMode::cubic, ResizeObj::EKeepAspectRatioPolicy::none,
         ResizeObj::ECoordinateTransMode::alignCorners);
     gCuda->dataMalloc();
     inputCuda->copyin(
         vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16});
-    scalesCuda->copyin(vector<float>{1.0, 1.0, 0.8, 0.8});    
+    scalesCuda->copyin(vector<float>{1.0, 1.0, 0.8, 0.8});
     cudaRuntime->run(gCuda);
     //   copy output from CUDA to CPU
     auto oCpu = gCpu->cloneTensor(op->getOutput(0));
@@ -617,13 +602,13 @@ TEST(Resize, Cuda_upsample_scales_cubic) {
 
     auto inputCuda = gCuda->cloneTensor(input);
     auto scalesCuda = gCuda->cloneTensor(scales);
-    auto op = gCuda->addOp<ResizeObj>(
-        inputCuda, nullptr, std::nullopt, nullptr,
-        scalesCuda, nullptr, ResizeObj::ECoeffMode::cubic);
+    auto op = gCuda->addOp<ResizeObj>(inputCuda, nullptr, std::nullopt, nullptr,
+                                      scalesCuda, nullptr,
+                                      ResizeObj::ECoeffMode::cubic);
     gCuda->dataMalloc();
     inputCuda->copyin(
         vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16});
-    scalesCuda->copyin(vector<float>{1.0, 1.0, 2, 2});    
+    scalesCuda->copyin(vector<float>{1.0, 1.0, 2, 2});
     cudaRuntime->run(gCuda);
     //   copy output from CUDA to CPU
     auto oCpu = gCpu->cloneTensor(op->getOutput(0));
@@ -660,14 +645,13 @@ TEST(Resize, Cuda_upsample_scales_cubic_align_corners) {
     auto inputCuda = gCuda->cloneTensor(input);
     auto scalesCuda = gCuda->cloneTensor(scales);
     auto op = gCuda->addOp<ResizeObj>(
-        inputCuda, nullptr, std::nullopt, nullptr,
-        scalesCuda, nullptr, ResizeObj::ECoeffMode::cubic,
-        ResizeObj::EKeepAspectRatioPolicy::none,
+        inputCuda, nullptr, std::nullopt, nullptr, scalesCuda, nullptr,
+        ResizeObj::ECoeffMode::cubic, ResizeObj::EKeepAspectRatioPolicy::none,
         ResizeObj::ECoordinateTransMode::alignCorners);
     gCuda->dataMalloc();
     inputCuda->copyin(
         vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16});
-    scalesCuda->copyin(vector<float>{1.0, 1.0, 2, 2});    
+    scalesCuda->copyin(vector<float>{1.0, 1.0, 2, 2});
     cudaRuntime->run(gCuda);
     //   copy output from CUDA to CPU
     auto oCpu = gCpu->cloneTensor(op->getOutput(0));
@@ -704,9 +688,8 @@ TEST(Resize, Cuda_upsample_scales_cubic_asymmetric) {
     auto inputCuda = gCuda->cloneTensor(input);
     auto scalesCuda = gCuda->cloneTensor(scales);
     auto op = gCuda->addOp<ResizeObj>(
-        inputCuda, nullptr, std::nullopt, nullptr,
-        scalesCuda, nullptr, ResizeObj::ECoeffMode::cubic,
-        ResizeObj::EKeepAspectRatioPolicy::none,
+        inputCuda, nullptr, std::nullopt, nullptr, scalesCuda, nullptr,
+        ResizeObj::ECoeffMode::cubic, ResizeObj::EKeepAspectRatioPolicy::none,
         ResizeObj::ECoordinateTransMode::asymmetric);
     gCuda->dataMalloc();
     inputCuda->copyin(
@@ -744,14 +727,13 @@ TEST(Resize, Cuda_downsample_sizes_cubic) {
     auto inputCuda = gCuda->cloneTensor(input);
     auto sizesCuda = gCuda->cloneTensor(sizes);
     auto op =
-        gCuda->addOp<ResizeObj>(inputCuda, nullptr,
-                                std::nullopt, sizesCuda,
+        gCuda->addOp<ResizeObj>(inputCuda, nullptr, std::nullopt, sizesCuda,
                                 nullptr, nullptr, ResizeObj::ECoeffMode::cubic,
                                 ResizeObj::EKeepAspectRatioPolicy::stretch);
     gCuda->dataMalloc();
     inputCuda->copyin(
         vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16});
-    sizesCuda->copyin(vector<uint32_t>{1, 1, 3, 3});    
+    sizesCuda->copyin(vector<uint32_t>{1, 1, 3, 3});
     cudaRuntime->run(gCuda);
 
     //   copy output from CUDA to CPU
@@ -783,14 +765,13 @@ TEST(Resize, Cuda_upsample_sizes_cubic) {
     auto inputCuda = gCuda->cloneTensor(input);
     auto sizesCuda = gCuda->cloneTensor(sizes);
     auto op =
-        gCuda->addOp<ResizeObj>(inputCuda, nullptr,
-                                std::nullopt, sizesCuda,
+        gCuda->addOp<ResizeObj>(inputCuda, nullptr, std::nullopt, sizesCuda,
                                 nullptr, nullptr, ResizeObj::ECoeffMode::cubic,
                                 ResizeObj::EKeepAspectRatioPolicy::stretch);
     gCuda->dataMalloc();
     inputCuda->copyin(
         vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16});
-    sizesCuda->copyin(vector<uint32_t>{1, 1, 9, 10});    
+    sizesCuda->copyin(vector<uint32_t>{1, 1, 9, 10});
     cudaRuntime->run(gCuda);
     //   copy output from CUDA to CPU
     auto oCpu = gCpu->cloneTensor(op->getOutput(0));

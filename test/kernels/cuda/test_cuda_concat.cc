@@ -62,14 +62,12 @@ TEST(Concat, Cuda) {
     auto t2Gpu = gCuda->cloneTensor(t2);
     auto t3Gpu = gCuda->cloneTensor(t3);
 
-    auto op = gCuda->addOp<ConcatObj>(TensorVec{t1Gpu,
-                                                t2Gpu,
-                                                t3Gpu},
-                                      nullptr, 2);
+    auto op =
+        gCuda->addOp<ConcatObj>(TensorVec{t1Gpu, t2Gpu, t3Gpu}, nullptr, 2);
     gCuda->dataMalloc();
     t1Gpu->setData(IncrementalGenerator());
     t2Gpu->setData(OneGenerator());
-    t3Gpu->setData(OneGenerator());    
+    t3Gpu->setData(OneGenerator());
     cudaRuntime->run(gCuda);
 
     // cudaPrintTensor(op->getOutput());

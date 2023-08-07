@@ -33,7 +33,7 @@ void testMatmulCuda(
     // allocate CUDA memory
     gCuda->dataMalloc();
     ACuda->setData(generatorA);
-    BCuda->setData(generatorB);    
+    BCuda->setData(generatorB);
     cudaRuntime->run(gCuda);
 
     auto CCpu = gCpu->cloneTensor(matmul->getOutput());

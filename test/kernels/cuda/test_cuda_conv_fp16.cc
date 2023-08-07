@@ -36,7 +36,7 @@ void testConvCudnnFP16(
     // allocate CUDA memory
     gCuda->dataMalloc();
     i0Cuda->setData(generator);
-    w0Cuda->setData(generator);    
+    w0Cuda->setData(generator);
     // Execute on CUDA
     cuda->run(gCuda);
     // copy output from CUDA to CPU
@@ -74,7 +74,7 @@ TEST(cuDNN_Conv_FP16, tune) {
     // allocate CUDA memory
     gCuda->dataMalloc();
     i0Cuda->setData(IncrementalGenerator());
-    w0Cuda->setData(IncrementalGenerator());    
+    w0Cuda->setData(IncrementalGenerator());
     // Execute on CUDA
     bool tune = true;
     cuda->run(gCuda, tune);

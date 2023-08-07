@@ -20,8 +20,7 @@ TEST(Split, Cuda) {
     Graph gCuda = make_ref<GraphObj>(cudaRuntime);
 
     auto inputGpu = gCuda->cloneTensor(input);
-    auto op =
-        gCuda->addOp<SplitObj>(inputGpu, std::nullopt, 1, 3);
+    auto op = gCuda->addOp<SplitObj>(inputGpu, std::nullopt, 1, 3);
     gCuda->dataMalloc();
     inputGpu->setData(IncrementalGenerator());
 

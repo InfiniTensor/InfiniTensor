@@ -8,7 +8,8 @@
 namespace infini {
 
 class LazyAllocator {
-  friend void testLazyAllocator(const Shape &shape, Runtime runtime);
+    friend void testLazyAllocator(const Shape &shape, Runtime runtime);
+
   private:
     Runtime runtime;
 

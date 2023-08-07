@@ -37,7 +37,7 @@ void testConvTransposedCudnn(
                                                   stride, dilation, dilation);
     gCuda->dataMalloc();
     i0Cuda->setData(generator);
-    w0Cuda->setData(generator);    
+    w0Cuda->setData(generator);
     // Execute on CUDA
     cuda->run(gCuda);
     // copy output from CUDA to CPU
@@ -73,7 +73,7 @@ void testConvTransposedNHWCCudnn(
         dilation);
     gCuda->dataMalloc();
     i0Cuda->setData(generator);
-    w0Cuda->setData(generator);    
+    w0Cuda->setData(generator);
     // Execute on CUDA
     cuda->run(gCuda);
     // copy output from CUDA to CPU
@@ -120,7 +120,7 @@ TEST(cuDNN_ConvTransposed, run1) {
         gCuda->addOp<ConvTransposed2dObj>(i0Cuda, w0Cuda, nullptr, 0, 0);
     gCuda->dataMalloc();
     i0Cuda->setData(IncrementalGenerator());
-    w0Cuda->setData(IncrementalGenerator());    
+    w0Cuda->setData(IncrementalGenerator());
     // Execute on CUDA
     cuda->run(gCuda);
     // copy output from CUDA to CPU
@@ -155,7 +155,7 @@ TEST(cuDNN_ConvTransposed, tune) {
     // allocate CUDA memory
     gCuda->dataMalloc();
     i0Cuda->setData(IncrementalGenerator());
-    w0Cuda->setData(IncrementalGenerator());    
+    w0Cuda->setData(IncrementalGenerator());
     // Execute on CUDA
     bool tune = true;
     cuda->run(gCuda, tune);
