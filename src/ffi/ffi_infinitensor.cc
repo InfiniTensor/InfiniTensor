@@ -73,7 +73,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, Concat)
         .VALUE(OpType, Split)
         .VALUE(OpType, Transpose)
-        // .VALUE(OpType, Extend)
+        .VALUE(OpType, Extend)
         .VALUE(OpType, MaxPool)
         .VALUE(OpType, AveragePool)
         .VALUE(OpType, Add)
