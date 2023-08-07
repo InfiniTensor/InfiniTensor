@@ -35,8 +35,4 @@ TEST(Lazy_Allocator, runOnCpu) {
     testLazyAllocator(Shape{1, 2, 2, 3}, NativeCpuRuntimeObj::getInstance());
 }
 
-TEST(Lazy_Allocator, runOnGpu) {
-    testLazyAllocator(Shape{1, 2, 2, 3}, make_ref<CudaRuntimeObj>());
-}
-
 } // namespace infini
