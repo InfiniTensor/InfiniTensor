@@ -1,7 +1,6 @@
 #include "core/graph.h"
 #include "core/kernel.h"
 #include "core/runtime.h"
-#include "cuda/cuda_runtime.h"
 #include "operators/unary.h"
 
 #include "test.h"
