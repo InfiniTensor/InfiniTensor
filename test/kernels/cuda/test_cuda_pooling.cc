@@ -19,8 +19,8 @@ void testPoolCudnn(
 
     // Build input data on CPU
     Tensor i0cpu = make_ref<TensorObj>(shape, DataType::Float32, cpuRuntime);
-    i0cpu->dataMalloc();
-    i0cpu->setData(generator);
+    // i0cpu->dataMalloc();
+    // i0cpu->setData(generator);
 
     // Build CUDA graph
     Graph g = make_ref<GraphObj>(cudaRuntime);
@@ -30,6 +30,7 @@ void testPoolCudnn(
 
     // allocate CUDA memory
     g->dataMalloc();
+    i0->setData(generator);
 
     // Execute on CUDA
     cudaRuntime->run(g);

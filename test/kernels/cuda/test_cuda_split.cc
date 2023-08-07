@@ -19,9 +19,12 @@ TEST(Split, Cuda) {
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cudaRuntime);
 
+    auto inputGpu = gCuda->cloneTensor(input);
     auto op =
-        gCuda->addOp<SplitObj>(gCuda->cloneTensor(input), std::nullopt, 1, 3);
+        gCuda->addOp<SplitObj>(inputGpu, std::nullopt, 1, 3);
     gCuda->dataMalloc();
+    inputGpu->setData(IncrementalGenerator());
+
     cudaRuntime->run(gCuda);
 
     //  copy output from CUDA to CPU

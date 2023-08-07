@@ -1,5 +1,6 @@
 #pragma once
 #include "core/runtime.h"
+#include "core/tensor.h"
 #include <cstddef>
 #include <map>
 #include <unordered_set>
@@ -7,6 +8,7 @@
 namespace infini {
 
 class LazyAllocator {
+  friend void testLazyAllocator(const Shape &shape, Runtime runtime);
   private:
     Runtime runtime;
 

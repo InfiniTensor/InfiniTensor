@@ -19,12 +19,12 @@ void testElementWiseCudnn(
 
     // Build input data on CPU
     Tensor acpu = make_ref<TensorObj>(shape, DataType::Float32, cpuRuntime);
-    acpu->dataMalloc();
-    acpu->setData(generator);
+    // acpu->dataMalloc();
+    // acpu->setData(generator);
 
     Tensor bcpu = make_ref<TensorObj>(shape, DataType::Float32, cpuRuntime);
-    bcpu->dataMalloc();
-    bcpu->setData(generator);
+    // bcpu->dataMalloc();
+    // bcpu->setData(generator);
 
     // Build CUDA graph
     Graph g = make_ref<GraphObj>(cudaRuntime);
@@ -34,6 +34,8 @@ void testElementWiseCudnn(
 
     // allocate CUDA memory
     g->dataMalloc();
+    a->setData(generator);
+    b->setData(generator);
 
     // Execute on CUDA
     cudaRuntime->run(g);
