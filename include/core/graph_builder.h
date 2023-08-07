@@ -37,6 +37,17 @@ class GraphBuilder {
     std::unordered_map<std::string, Tensor> tensors;
     std::vector<OpInfo> unknownOps;
 
+    template <class T>
+    std::optional<T> takeAttribute(Attributes &attributes, const char *name) {
+        auto it = attributes.find(name);
+        if (it != attributes.end()) {
+            auto value = std::get<T>(std::move(it->second));
+            attributes.erase(it);
+            return {value};
+        }
+        return std::nullopt;
+    }
+
   public:
     void addTensor(std::string name, //
                    Shape shape,      //
