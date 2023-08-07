@@ -4,26 +4,31 @@ namespace infini {
 TransposeObj::TransposeObj(GraphObj *graph, Tensor input, Tensor output,
                            vector<int> permute)
     : OperatorObj(OpType::Transpose, {input}, {output}) {
-    if (permute.size() != 4) {
-        IT_TODO_HALT();
+    if (permute.empty()) {
+        int rank = input->getRank();
+        for (int i = 0; i < rank; ++i) {
+            transposePermute[i] = i;
+        }
+    } else {
+        transposePermute = permute;
     }
-    transposePermute[0] = permute[0];
-    transposePermute[1] = permute[1];
-    transposePermute[2] = permute[2];
-    transposePermute[3] = permute[3];
     IT_ASSERT(checkValid(graph));
 }
 
 optional<vector<Shape>>
 TransposeObj::inferShape(const TensorVec &inputs) const {
     const auto A = inputs[0];
-    auto input = A->getDims();
-    auto output = input;
+    auto input_dim = A->getDims();
+    auto output_dim = input_dim;
+    int rank = A->getRank();
 
-    for (int i = 0; i < 4; ++i) {
-        output[i] = input[transposePermute[i]];
+    for (auto index : transposePermute) {
+        IT_ASSERT(index < rank);
     }
-    return {{output}};
+    for (int i = 0; i < rank; ++i) {
+        output_dim[i] = input_dim[transposePermute[i]];
+    }
+    return {{output_dim}};
 }
 
 std::string TransposeObj::toString() const {

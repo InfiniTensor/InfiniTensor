@@ -13,7 +13,6 @@ template <typename T> class NaiveMatmul : public CpuKernelWithoutConfig {
         T *C = op->getOutput()->getRawDataPtr<T *>();
         IT_ASSERT(op->getTransA() == false && op->getTransB() == false);
         IT_ASSERT(op->getAct() == ActType::None);
-        IT_ASSERT(op->getB() == 1);
         const int M = op->getM(), N = op->getN(), K = op->getK();
         for (int i = 0; i < M; i++) {
             for (int j = 0; j < N; j++) {

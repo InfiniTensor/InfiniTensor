@@ -12,26 +12,23 @@ ElementWiseObj::inferShape(const TensorVec &inputs) const {
     // For now,we only process the same dims here, broardcast will be considered
     // in the opt layer.
     const auto A = inputs[0], B = inputs[1];
-    int max_len = std::max(A->getDims().size(), B->getDims().size());
+    int max_len = std::max(A->getRank(), B->getRank());
     std::vector<int> A_(max_len, 1);
     std::vector<int> B_(max_len, 1);
     std::vector<int> res(max_len, 1);
-    memcpy(A_.data() + max_len - A->getDims().size(), A->getDims().data(),
-           A->getDims().size() * sizeof(int));
-    memcpy(B_.data() + max_len - B->getDims().size(), B->getDims().data(),
-           B->getDims().size() * sizeof(int));
+    memcpy(A_.data() + max_len - A->getRank(), A->getDims().data(),
+           A->getRank() * sizeof(int));
+    memcpy(B_.data() + max_len - B->getRank(), B->getDims().data(),
+           B->getRank() * sizeof(int));
     // std::copy(A->getDims().begin(), A->getDims().end(), A_.begin() + (max_len
-    // - A->getDims().size())); std::copy(B->getDims().begin(),
-    // B->getDims().end(), B_.begin() + (max_len - B->getDims().size()));
+    // - A->getRank())); std::copy(B->getDims().begin(),
+    // B->getDims().end(), B_.begin() + (max_len - B->getRank()));
     // std::copy(A->getDims().rbegin(), A->getDims().rend(), A_.rbegin());
     // std::copy(B->getDims().rbegin(), B->getDims().rend(), B_.rbegin());
 
     for (int i = 0; i < max_len; ++i) {
-        if (A_[i] == B_[i] || (A_[i] == 1 || B_[i] == 1)) {
-            res[i] = std::max(A_[i], B_[i]);
-        } else {
-            return {};
-        }
+        IT_ASSERT(A_[i] == B_[i] || A_[i] == 1 || B_[i] == 1);
+        res[i] = std::max(A_[i], B_[i]);
     }
 
     return {{res}};
@@ -69,9 +66,8 @@ MSELossObj::MSELossObj(GraphObj *graph, Tensor input0, Tensor input1,
 
 optional<vector<Shape>> MSELossObj::inferShape(const TensorVec &inputs) const {
     const auto A = inputs[0], B = inputs[1];
-    if (A->getDims().size() != B->getDims().size() ||
-        A->getDims() != B->getDims())
-        return {};
+    IT_ASSERT(A->getRank() == B->getRank());
+    IT_ASSERT(A->getDims() == B->getDims());
 
     if (reductionMode == None) {
         return {{A->getDims()}};

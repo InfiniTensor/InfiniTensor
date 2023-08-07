@@ -9,7 +9,7 @@ class ResizeCuda : public CudaKernelWithoutConfig {
         auto in = op->getInputs(0);
         auto out = op->getOutputs()[0];
 
-        int nDims = in->getDims().size();
+        int nDims = in->getRank();
         if (nDims > 4)
             IT_TODO_HALT();
 

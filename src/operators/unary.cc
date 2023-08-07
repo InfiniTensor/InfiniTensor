@@ -242,7 +242,7 @@ ShapeObj::ShapeObj(GraphObj *graph, Tensor input, Tensor output)
 }
 
 optional<vector<Shape>> ShapeObj::inferShape(const TensorVec &inputs) const {
-    return {{{static_cast<int>(inputs[0]->getDims().size())}}};
+    return {{{static_cast<int>(inputs[0]->getRank())}}};
 }
 
 std::string ShapeObj::toString() const {

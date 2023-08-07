@@ -4,10 +4,10 @@ namespace infini {
 
 SoftmaxObj::SoftmaxObj(GraphObj *graph, Tensor input, Tensor output, int _axis)
     : OperatorObj(OpType::Softmax, {input}, {output}) {
-    if (_axis >= 0 && (size_t)_axis < input->getDims().size())
+    if (_axis >= 0 && (size_t)_axis < input->getRank())
         axis = _axis;
-    else if (_axis <= -1 && (size_t)_axis >= -input->getDims().size())
-        axis = _axis + input->getDims().size();
+    else if (_axis <= -1 && (size_t)_axis >= -input->getRank())
+        axis = _axis + input->getRank();
     else
         IT_ASSERT(0);
     IT_ASSERT(checkValid(graph));

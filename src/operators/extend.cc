@@ -10,7 +10,8 @@ ExtendObj::ExtendObj(GraphObj *graph, Tensor input, Tensor output, int dim,
 
 optional<vector<Shape>> ExtendObj::inferShape(const TensorVec &inputs) const {
     auto ret = inputs[0]->getDims();
-    IT_ASSERT((size_t)dim < ret.size());
+    auto rank = inputs[0]->getRank();
+    IT_ASSERT((size_t)dim < rank);
     ret[dim] = ret[dim] * (num + 1);
     return {{ret}};
 }

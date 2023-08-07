@@ -207,7 +207,7 @@ class OnnxStub:
                         attributes[name]
                         for name in ["momentum", "epsilon", "training_mode"]
                     )
-                    tensors[node.output[0]] = self.handler.batchNorm(
+                    tensors[node.output[0]] = self.handler.batchNormalization(
                         input,
                         output,
                         mean,
@@ -883,7 +883,7 @@ class OnnxStub:
                         ctx.push_data_input(name, "max", TensorProto.FLOAT, [], [])
                     )
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
-            elif ty == backend.OpType.Cast:
+            elif ty == backend.OpTypeId.Cast:
                 to = backend.cast_to_of(op)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, to=to))
             else:

@@ -9,25 +9,30 @@ MatmulObj::MatmulObj(GraphObj *graph, Tensor A, Tensor B, Tensor C, bool transA,
       transA(transA), transB(transB), act(act), b(1) {
     auto shape_a = A->getDims();
     auto shape_b = B->getDims();
-    int dimA = shape_a.size(), dimB = shape_b.size();
-    IT_ASSERT(dimA >= 2 && dimB >= 2);
-
-    b = 1;
-    if (dimA <= 3 && dimB <= 3) {
-        int b1 = dimA == 2 ? 1 : A->getDims()[0];
-        int b2 = dimB == 2 ? 1 : B->getDims()[0];
-
-        b = std::max(b1, b2);
-    } else {
-        IT_ASSERT_TODO(dimA == dimB);
-        for (size_t i = 0; i < shape_a.size() - 2; ++i) {
-            IT_ASSERT_TODO(shape_a[i] == shape_b[i]);
-            b *= shape_a[i];
+    int rankA = A->getRank();
+    int rankB = B->getRank();
+    IT_ASSERT(rankA >= 2 && rankB >= 2);
+    auto rank = std::max(rankA, rankB);
+    if (rankA < rank) {
+        for (int i = 0; i < rank - rankA; ++i) {
+            shape_a.insert(shape_a.begin(), 1);
         }
     }
+    if (rankB < rank) {
+        for (int i = 0; i < rank - rankB; ++i) {
+            shape_b.insert(shape_b.begin(), 1);
+        }
+    }
+    b = 1;
+    for (int i = 0; i < rank - 2; ++i) {
+        b *= std::max(shape_a[i], shape_b[i]);
+    }
+    auto kA = *(transA ? shape_a.rbegin() + 1 : shape_a.rbegin());
+    auto kB = *(transB ? shape_b.rbegin() : shape_b.rbegin() + 1);
+    IT_ASSERT(kA == kB);
     m = *(transA ? shape_a.rbegin() : shape_a.rbegin() + 1);
     n = *(transB ? shape_b.rbegin() + 1 : shape_b.rbegin());
-    k = *(transA ? shape_a.rbegin() + 1 : shape_a.rbegin());
+    k = kA;
     IT_ASSERT(checkValid(graph));
 }
 
@@ -42,43 +47,30 @@ string MatmulObj::toString() const {
 
 optional<vector<Shape>> MatmulObj::inferShape(const TensorVec &inputs) const {
     auto A = inputs[0], B = inputs[1];
-    int dimA = A->getDims().size(), dimB = B->getDims().size();
-
-    if (dimA > 3 || dimB > 3) {
-        // no broadcast
-        auto shape_a = inputs[0]->getDims();
-        auto it = shape_a.rbegin();
-        *it++ = n;
-        *it++ = m;
-        return {{std::move(shape_a)}};
+    auto shapeA = A->getDims();
+    auto shapeB = B->getDims();
+    int rankA = A->getRank();
+    int rankB = B->getRank();
+    auto rank = std::max(rankA, rankB);
+    if (rankA < rank) {
+        for (int i = 0; i < rank - rankA; ++i) {
+            shapeA.insert(shapeA.begin(), 1);
+        }
     }
-
-    int b1 = dimA == 2 ? 1 : A->getDims()[0];
-    int b2 = dimB == 2 ? 1 : B->getDims()[0];
-
-    int b = std::max(b1, b2);
-    int m = transA ? A->getDims()[dimA - 1] : A->getDims()[dimA - 2];
-    int n = transB ? B->getDims()[dimB - 2] : B->getDims()[dimB - 1];
-    int kA = transA ? A->getDims()[dimA - 2] : A->getDims()[dimA - 1];
-    int kB = transB ? B->getDims()[dimB - 1] : B->getDims()[dimB - 2];
-
-    if ((dimA != 2 && dimA != 3) || (dimB != 2 && dimB != 3)) {
-        printf("Bad input dim: dimA = %d, dimB = %d\n", dimA, dimB);
-        return {};
+    if (rankB < rank) {
+        for (int i = 0; i < rank - rankB; ++i) {
+            shapeB.insert(shapeB.begin(), 1);
+        }
     }
-    if (b1 != 1 && b2 != 1 && b1 != b2) {
-        printf("Bad batch size b1 = %d, b2 = %d\n", b1, b2);
-        return {};
+    Shape ret;
+    for (int i = 0; i < rank - 2; ++i) {
+        IT_ASSERT(shapeA[i] == shapeB[i] || shapeA[i] == 1 || shapeB[i] == 1);
+        auto shape_ele = std::max(shapeA[i], shapeB[i]);
+        ret.emplace_back(shape_ele);
     }
-    if (kA != kB) {
-        printf("Bad K: kA = %d, kB = %d\n", kA, kB);
-        return {};
-    }
-    if (dimA == 2 && dimB == 2) {
-        return {{{m, n}}};
-    } else {
-        return {{{b, m, n}}};
-    }
+    ret.emplace_back(m);
+    ret.emplace_back(n);
+    return {{ret}};
 }
 
 vector<int> MatmulObj::getWorkloadVector() const {

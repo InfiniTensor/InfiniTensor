@@ -4,7 +4,7 @@ namespace infini {
 ReduceMeanObj::ReduceMeanObj(GraphObj *graph, Tensor input, Tensor output,
                              const optional<vector<int>> &_axes, bool keepDims)
     : OperatorObj(OpType::ReduceMean, {input}, {output}), keepDims(keepDims) {
-    const auto size = input->getDims().size();
+    const auto size = input->getRank();
     if (_axes) {
         for (auto idx : *_axes) {
             if (idx < 0)
@@ -25,6 +25,7 @@ bool ReduceMeanObj::isReduced(int idx) const {
 optional<vector<Shape>>
 ReduceMeanObj::inferShape(const TensorVec &inputs) const {
     auto dims = inputs[0]->getDims();
+    auto rank = inputs[0]->getRank();
 
     if (keepDims) {
         Shape ret = dims;
@@ -33,7 +34,7 @@ ReduceMeanObj::inferShape(const TensorVec &inputs) const {
         return {{ret}};
     } else {
         Shape ret;
-        for (size_t i = 0; i < dims.size(); ++i) {
+        for (size_t i = 0; i < rank; ++i) {
             if (!isReduced(i))
                 ret.emplace_back(dims[i]);
         }

@@ -14,7 +14,7 @@ class MklBatchNorm : public MklKernelWithoutConfig {
 
         //  create user memory that describes data layout in the buffers
         std::vector<dnnl_dim_t> dims;
-        for (size_t i = 0; i < op->getInputs(0)->getDims().size(); ++i)
+        for (size_t i = 0; i < op->getInputs(0)->getRank(); ++i)
             dims.push_back(op->getInputs(0)->getDims()[i]);
 
         auto srcMd = dnnl::memory::desc(dims, dnnl::memory::data_type::f32,
@@ -25,7 +25,7 @@ class MklBatchNorm : public MklKernelWithoutConfig {
                                         getUserFormatTag(dims.size()));
         auto output = dnnl::memory(dstMd, context->getEngine(), dstData);
 
-        std::vector<dnnl_dim_t> meanDims(op->getInputs(0)->getDims().size(), 1);
+        std::vector<dnnl_dim_t> meanDims(op->getInputs(0)->getRank(), 1);
         meanDims[1] = op->getInputs(0)->getDims()[1];
         auto meanMd = dnnl::memory::desc(meanDims, dnnl::memory::data_type::f32,
                                          getUserFormatTag(meanDims.size()));
