@@ -21,7 +21,7 @@ optional<vector<Shape>> DetObj::inferShape(const TensorVec &inputs) const {
 
 std::string DetObj::toString() const {
     std::ostringstream os;
-    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]";
+    os << type.toString() << "[" << getGuid() << "]";
     os << "(";
     os << vecToString(inputs[0]->getDims()) << ",";
     os << "input=" << inputs[0]->getGuid() << ",";
@@ -30,14 +30,12 @@ std::string DetObj::toString() const {
 }
 
 vector<int> DetObj::getWorkloadVector() const {
-    vector<int> ret{enum_to_underlying(type)};
+    vector<int> ret{type.underlying()};
     const Shape shape = outputs[0]->getDims();
     ret.insert(ret.end(), shape.begin(), shape.end());
     return ret;
 }
 
-vector<int> DetObj::getOpAttrVector() const {
-    return {enum_to_underlying(type)};
-}
+vector<int> DetObj::getOpAttrVector() const { return {type.underlying()}; }
 
 }; // namespace infini

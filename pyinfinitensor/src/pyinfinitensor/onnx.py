@@ -196,7 +196,7 @@ class OnnxStub:
                     attributes[name]
                     for name in ["momentum", "epsilon", "training_mode"]
                 )
-                tensors[node.output[0]] = self.handler.batchNorm(
+                tensors[node.output[0]] = self.handler.batchNormalization(
                     input, output, mean, var, scale, bias, momentum, eps, training != 0
                 )
             elif node.op_type == "MaxPool":
@@ -551,7 +551,7 @@ class OnnxStub:
             # saves object names, including tensors and operators
             names: Dict[Union[backend.Tensor, backend.Operator], str] = dict()
             # counts the occurrence times of each operator for naming
-            count_op: Dict[backend.OpType, int] = dict()
+            count_op: Dict[backend.OpTypeId, int] = dict()
             # counts input and output tensors for naming
             count_in, count_out = 0, 0
             # saves nodes (operators)
@@ -563,8 +563,8 @@ class OnnxStub:
             # saves global input tensors
             initializers: List[TensorProto] = []
 
-            def name_op(self, op: backend.Operator) -> Tuple[backend.OpType, str]:
-                ty = op.op_type()
+            def name_op(self, op: backend.Operator) -> Tuple[backend.OpTypeId, str]:
+                ty = op.op_type().id()
                 name = "{}{}".format(ty.name, self.count_op.setdefault(ty, 0) + 1)
                 self.names[op] = name
                 self.count_op[ty] += 1
@@ -647,7 +647,7 @@ class OnnxStub:
                 ctx.push_output("{}_{}".format(name, i), it)
                 for (i, it) in enumerate(op.outputs())
             ]
-            if ty == backend.OpType.Conv:
+            if ty == backend.OpTypeId.Conv:
                 ph, pw, dh, dw, sh, sw = backend.conv_attrs_of(op)
                 ctx.push_node(
                     make_node(
@@ -661,11 +661,11 @@ class OnnxStub:
                         group=op.inputs()[0].shape()[1] // op.inputs()[1].shape()[1],
                     )
                 )
-            elif ty == backend.OpType.ConvTrans:
+            elif ty == backend.OpTypeId.ConvTranspose:
                 ph, pw, sh, sw, dh, dw, oph, opw = backend.conv_trans_attrs_of(op)
                 ctx.push_node(
                     make_node(
-                        "ConvTranspose",
+                        ty.name,
                         inputs,
                         outputs,
                         name,
@@ -675,14 +675,14 @@ class OnnxStub:
                         output_padding=[oph, opw],
                     )
                 )
-            elif ty == backend.OpType.Matmul:
+            elif ty == backend.OpTypeId.MatMul:
                 transA, transB = backend.matmul_attrs_of(op)
                 ctx.push_node(
                     make_node(
                         "Gemm", inputs, outputs, name, transA=transA, transB=transB
                     )
                 )
-            elif ty == backend.OpType.BatchNorm:
+            elif ty == backend.OpTypeId.BatchNormalization:
                 inputs = [inputs[i] for i in [0, 3, 4, 1, 2]]
                 momentum, eps, training = backend.batch_norm_attrs_of(op)
                 ctx.push_node(
@@ -696,7 +696,7 @@ class OnnxStub:
                         training_mode=training,
                     )
                 )
-            elif ty == backend.OpType.MaxPool:
+            elif ty == backend.OpTypeId.MaxPool:
                 kh, kw, dh, dw, ph, pw, sh, sw = backend.pool_attrs_of(op)
                 ctx.push_node(
                     make_node(
@@ -710,7 +710,7 @@ class OnnxStub:
                         strides=[sh, sw],
                     )
                 )
-            elif ty == backend.OpType.AvgPool:
+            elif ty == backend.OpTypeId.AveragePool:
                 kh, kw, dh, dw, ph, pw, sh, sw = backend.pool_attrs_of(op)
                 ctx.push_node(
                     make_node(
@@ -724,27 +724,27 @@ class OnnxStub:
                     )
                 )
             elif ty in [
-                backend.OpType.Add,
-                backend.OpType.Sub,
-                backend.OpType.Mul,
-                backend.OpType.Div,
-                backend.OpType.Pow,
-                backend.OpType.Relu,
-                backend.OpType.Sigmoid,
-                backend.OpType.Tanh,
-                backend.OpType.Softmax,
-                backend.OpType.Abs,
-                backend.OpType.Identity,
-                backend.OpType.PRelu,
+                backend.OpTypeId.Add,
+                backend.OpTypeId.Sub,
+                backend.OpTypeId.Mul,
+                backend.OpTypeId.Div,
+                backend.OpTypeId.Pow,
+                backend.OpTypeId.Relu,
+                backend.OpTypeId.Sigmoid,
+                backend.OpTypeId.Tanh,
+                backend.OpTypeId.Softmax,
+                backend.OpTypeId.Abs,
+                backend.OpTypeId.Identity,
+                backend.OpTypeId.PRelu,
             ]:
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
-            elif ty == backend.OpType.Flatten:
+            elif ty == backend.OpTypeId.Flatten:
                 axis = backend.flatten_axis_of(op)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, axis=axis))
-            elif ty == backend.OpType.Transpose:
+            elif ty == backend.OpTypeId.Transpose:
                 perm = backend.transpose_permute_of(op)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, perm=perm))
-            elif ty == backend.OpType.Reshape:
+            elif ty == backend.OpTypeId.Reshape:
                 shape = backend.reshape_shape_of(op)
                 inputs.append(
                     ctx.push_data_input(
@@ -756,10 +756,10 @@ class OnnxStub:
                     )
                 )
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
-            elif ty == backend.OpType.Concat:
+            elif ty == backend.OpTypeId.Concat:
                 axis = backend.concat_axis_of(op)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, axis=axis))
-            elif ty == backend.OpType.Split:
+            elif ty == backend.OpTypeId.Split:
                 axis = backend.split_axis_of(op)
                 num_outputs = len(outputs)
                 split = op.inputs()[0].shape()[axis] // num_outputs
@@ -781,10 +781,10 @@ class OnnxStub:
                         axis=axis,
                     )
                 )
-            elif ty == backend.OpType.Gather:
+            elif ty == backend.OpTypeId.Gather:
                 axis = backend.gather_axis_of(op)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, axis=axis))
-            elif ty == backend.OpType.ReduceMean:
+            elif ty == backend.OpTypeId.ReduceMean:
                 axes, keepdims = backend.reduce_mean_attrs_of(op)
                 inputs.append(
                     ctx.push_data_input(
@@ -794,9 +794,9 @@ class OnnxStub:
                 ctx.push_node(
                     make_node(ty.name, inputs, outputs, name, keepdims=keepdims)
                 )
-            elif ty == backend.OpType.Slice:
+            elif ty == backend.OpTypeId.Slice:
                 raise Exception("TODO")
-            elif ty == backend.OpType.Pad:
+            elif ty == backend.OpTypeId.Pad:
                 pads = backend.pad_pads_of(op)
                 inputs.append(
                     ctx.push_data_input(
@@ -804,7 +804,7 @@ class OnnxStub:
                     )
                 )
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
-            elif ty == backend.OpType.Clip:
+            elif ty == backend.OpTypeId.Clip:
                 min, max = backend.clip_attrs_of(op)
                 if min != None:
                     inputs.append(

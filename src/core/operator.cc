@@ -10,33 +10,6 @@ OperatorObj::OperatorObj(OpType opType, TensorVec inputs, TensorVec outputs)
         IT_ASSERT(t);
 }
 
-bool OperatorObj::isLinearOp() const {
-    return enum_to_underlying(type) >= 100 && enum_to_underlying(type) < 200;
-}
-
-bool OperatorObj::isElementWiseOp() const {
-    return enum_to_underlying(type) >= 200 && enum_to_underlying(type) < 300;
-}
-
-bool OperatorObj::isSplitOp() const { return type == OpType::Split; }
-
-bool OperatorObj::isConcatOp() const { return type == OpType::Concat; }
-
-bool OperatorObj::isComputeOp() const {
-    return type == OpType::Conv || type == OpType::Matmul ||
-           type == OpType::ConvTrans || type == OpType::ConvTransNHWC ||
-           type == OpType::G2BMM || type == OpType::GBMM;
-}
-
-bool OperatorObj::isTransposeOp() const { return type == OpType::Transpose; }
-
-bool OperatorObj::isReshapeOp() const { return type == OpType::Reshape; }
-
-bool OperatorObj::isMemBoundOp() const {
-    return type == OpType::MemBound || type == OpType::Activation ||
-           type == OpType::Transpose;
-}
-
 void OperatorObj::removePredecessors(const Operator &op) {
     for (auto it = predecessors.begin(); it != predecessors.end();) {
         if (it->lock() == op)
@@ -69,14 +42,14 @@ OpPerfKey OperatorObj::getOpPerfKey() const {
     // Operator::hash, which hashes operator attributes and ignores tensor
     // shapes.
     HashType hash = 0;
-    hash = hashAppend(hash, enum_to_underlying(type));
+    hash = hashAppend(hash, type.underlying());
     hash = hashAppend(hash, hashVector(workloadVector));
     return OpPerfKey(hash, type, workloadVector);
 }
 
 HashType OperatorObj::hash() const {
     HashType hash = 0;
-    hash = hashAppend(hash, enum_to_underlying(type));
+    hash = hashAppend(hash, type.underlying());
     hash = hashAppend(hash, hashVector(getOpAttrVector()));
     return hash;
 }

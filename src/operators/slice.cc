@@ -93,7 +93,7 @@ vector<int> SliceObj::getWorkloadVector() const {
 }
 
 vector<int> SliceObj::getOpAttrVector() const {
-    vector<int> ans{enum_to_underlying(type)};
+    vector<int> ans{type.underlying()};
     for (const auto &range : axes) {
         ans.push_back(range.start);
         ans.push_back(range.end);

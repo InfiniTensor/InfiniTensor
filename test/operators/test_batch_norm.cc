@@ -4,7 +4,7 @@
 #include "test.h"
 
 namespace infini {
-TEST(BatchNorm, ShapeInference) {
+TEST(BatchNormalization, ShapeInference) {
     Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     {
         Graph g = make_ref<GraphObj>(cpuRuntime);

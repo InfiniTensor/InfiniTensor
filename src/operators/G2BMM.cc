@@ -38,12 +38,12 @@ optional<vector<Shape>> G2BMMObj::inferShape(const TensorVec &inputs) const {
 }
 
 vector<int> G2BMMObj::getWorkloadVector() const {
-    return {enum_to_underlying(type), b, m, k, width, dilation,
+    return {type.underlying(),      b, m, k, width, dilation,
             enum_to_underlying(act)};
 }
 
 vector<int> G2BMMObj::getOpAttrVector() const {
-    return {enum_to_underlying(type), width, dilation, enum_to_underlying(act)};
+    return {type.underlying(), width, dilation, enum_to_underlying(act)};
 }
 
 } // namespace infini

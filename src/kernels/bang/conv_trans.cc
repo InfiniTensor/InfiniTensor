@@ -83,6 +83,6 @@ class ConvTransCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::ConvTrans, DataType::Float32,
+REGISTER_KERNEL(Device::BANG, OpType::ConvTranspose, DataType::Float32,
                 ConvTransCnnl, "ConvTrans_cnnl_BANG_Float32");
 }; // namespace infini

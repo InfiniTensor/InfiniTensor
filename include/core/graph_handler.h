@@ -27,9 +27,9 @@ class GraphHandlerObj {
                             int opw);
     Tensor matmul(Tensor a, Tensor b, Tensor y, bool transA, bool transB,
                   Tensor bias, ActType act);
-    Tensor batchNorm(Tensor input, Tensor output, Tensor mean, Tensor var,
-                     Tensor scale, Tensor bias, float momentum, float eps,
-                     bool training);
+    Tensor batchNormalization(Tensor input, Tensor output, Tensor mean,
+                              Tensor var, Tensor scale, Tensor bias,
+                              float momentum, float eps, bool training);
 
     Tensor maxPool(Tensor input, Tensor output, int kh, int kw, int dh, int dw,
                    int ph, int pw, int sh, int sw);

@@ -68,6 +68,6 @@ class avgPoolCnnl : public PoolingCnnl {
 
 REGISTER_KERNEL(Device::BANG, OpType::MaxPool, DataType::Float32, maxPoolCnnl,
                 "MaxPool_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::AvgPool, DataType::Float32, avgPoolCnnl,
-                "AvgPool_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::AveragePool, DataType::Float32,
+                avgPoolCnnl, "AvgPool_cnnl_BANG_Float32");
 }; // namespace infini

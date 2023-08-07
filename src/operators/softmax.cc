@@ -15,7 +15,7 @@ SoftmaxObj::SoftmaxObj(GraphObj *graph, Tensor input, Tensor output, int _axis)
 
 std::string SoftmaxObj::toString() const {
     std::ostringstream os;
-    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]";
+    os << type.toString() << "[" << getGuid() << "]";
     os << "(";
     os << vecToString(inputs[0]->getDims()) << ",";
     os << "input=" << inputs[0]->getGuid() << ",";
@@ -25,13 +25,13 @@ std::string SoftmaxObj::toString() const {
 }
 
 vector<int> SoftmaxObj::getWorkloadVector() const {
-    vector<int> ret{enum_to_underlying(type), axis};
+    vector<int> ret{type.underlying(), axis};
     const Shape shape = outputs[0]->getDims();
     ret.insert(ret.end(), shape.begin(), shape.end());
     return ret;
 }
 
 vector<int> SoftmaxObj::getOpAttrVector() const {
-    return {enum_to_underlying(type), axis};
+    return {type.underlying(), axis};
 }
 } // namespace infini

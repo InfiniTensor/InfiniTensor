@@ -63,6 +63,6 @@ class MklBatchNorm : public MklKernelWithoutConfig {
                                    {DNNL_ARG_SHIFT, baisMemory}});
     }
 };
-REGISTER_KERNEL(Device::INTELCPU, OpType::BatchNorm, DataType::Float32,
+REGISTER_KERNEL(Device::INTELCPU, OpType::BatchNormalization, DataType::Float32,
                 MklBatchNorm, "BatchNorm_Mkl_Float32");
 }; // namespace infini

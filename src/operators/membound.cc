@@ -69,7 +69,7 @@ optional<vector<Shape>> MemBoundObj::inferShape(const TensorVec &inputs) const {
 }
 
 vector<int> MemBoundObj::getWorkloadVector() const {
-    return {enum_to_underlying(type), (int)simplifiedHash};
+    return {type.underlying(), (int)simplifiedHash};
 }
 
 vector<int> MemBoundObj::getOpAttrVector() const { return getWorkloadVector(); }

@@ -116,7 +116,7 @@ bool GraphObj::topo_sort() {
 
 void GraphObj::optimize() {
     for (auto &op : ops) {
-        switch (op->getOpType()) {
+        switch (op->getOpType().underlying()) {
         default:
             break;
         }
@@ -151,7 +151,7 @@ TensorVec GraphObj::addTensor(const TensorVec &tensors) {
 OpVec GraphObj::getComputeOps() const {
     OpVec opList;
     for (auto op : ops)
-        if (op->isComputeOp())
+        if (op->getOpType().isMatMulOrConv())
             opList.emplace_back(op);
     return opList;
 }
