@@ -1,4 +1,5 @@
 ﻿#include "core/graph_builder.h"
+#include "operators/batch_norm.h"
 #include "operators/element_wise.h"
 #include "operators/pad.h"
 #include "operators/pooling.h"
@@ -35,13 +36,18 @@ void GraphBuilder::addOperation(      //
     }
     if (unknownInputs.empty()) {
         if (opType == "Abs") {
+
             outputTensors =
                 graph->addOp<AbsObj>(inputTensors[0], nullptr)->getOutputs();
+
         } else if (opType == "Add") {
+
             outputTensors =
                 graph->addOp<AddObj>(inputTensors[0], inputTensors[1], nullptr)
                     ->getOutputs();
+
         } else if (opType == "AveragePool") {
+
             int kh, kw, dh = 1, dw = 1, ph, pw, sh = 0, sw = 0;
             { // `kernel_shpae`: required
                 auto k = takeAttribute<Ints>(attributes, "kernel_shape");
@@ -76,19 +82,57 @@ void GraphBuilder::addOperation(      //
                     ->addOp<AvgPoolObj>(inputTensors[0], nullptr, kh, kw, dh,
                                         dw, ph, pw, sh, sw)
                     ->getOutputs();
+
         } else if (opType == "BatchNormalization") {
+
+            auto input = inputTensors[0];
+            auto mean = inputTensors[3];
+            auto var = inputTensors[4];
+            auto scale = inputTensors[1];
+            auto bias = inputTensors[2];
+
+            float epsilon, momentum;
+            bool training_mode;
+            // `epsilon`
+            if (auto e = takeAttribute<Float>(attributes, "epsilon"); e) {
+                epsilon = *e;
+            } else {
+                epsilon = 1e-5;
+            }
+            // `momentum`
+            if (auto m = takeAttribute<Float>(attributes, "momentum"); m) {
+                momentum = *m;
+            } else {
+                momentum = 0.9;
+            }
+            // `training_mode`
+            if (auto t = takeAttribute<Int>(attributes, "training_mode"); t) {
+                training_mode = 0 != *t;
+            } else {
+                training_mode = false;
+            }
+            outputTensors =
+                graph
+                    ->addOp<BatchNormObj>(input, scale, mean, var, scale, bias,
+                                          momentum, epsilon, training_mode)
+                    ->getOutputs();
+
         } else if (opType == "Cast") {
         } else if (opType == "Clip") {
         } else if (opType == "Concat") {
         } else if (opType == "Conv") {
         } else if (opType == "ConvTranspose") {
         } else if (opType == "Div") {
+
             outputTensors =
                 graph->addOp<DivObj>(inputTensors[0], inputTensors[1], nullptr)
                     ->getOutputs();
+
         } else if (opType == "Exp") {
+
             outputTensors =
                 graph->addOp<ExpObj>(inputTensors[0], nullptr)->getOutputs();
+
         } else if (opType == "Expand") {
         } else if (opType == "Flatten") {
         } else if (opType == "Gather") {
@@ -96,68 +140,93 @@ void GraphBuilder::addOperation(      //
         } else if (opType == "GlobalAveragePool") {
         } else if (opType == "GlobalMaxPool") {
         } else if (opType == "Greater") {
+
             outputTensors = graph
                                 ->addOp<GreaterThanObj>(
                                     inputTensors[0], inputTensors[1], nullptr)
                                 ->getOutputs();
+
         } else if (opType == "GreaterOrEqual") {
+
             outputTensors = graph
                                 ->addOp<GreaterEqualObj>(
                                     inputTensors[0], inputTensors[1], nullptr)
                                 ->getOutputs();
+
         } else if (opType == "Identity") {
         } else if (opType == "Less") {
+
             outputTensors = graph
                                 ->addOp<LessThanObj>(inputTensors[0],
                                                      inputTensors[1], nullptr)
                                 ->getOutputs();
+
         } else if (opType == "LessOrEqual") {
+
             outputTensors = graph
                                 ->addOp<LessEqualObj>(inputTensors[0],
                                                       inputTensors[1], nullptr)
                                 ->getOutputs();
+
         } else if (opType == "Log") {
         } else if (opType == "MatMul") {
         } else if (opType == "MaxPool") {
         } else if (opType == "Mul") {
+
             outputTensors =
                 graph->addOp<MulObj>(inputTensors[0], inputTensors[1], nullptr)
                     ->getOutputs();
+
         } else if (opType == "Or") {
+
             outputTensors =
                 graph->addOp<OrObj>(inputTensors[0], inputTensors[1], nullptr)
                     ->getOutputs();
+
         } else if (opType == "Pad") {
         } else if (opType == "Pow") {
+
             outputTensors =
                 graph->addOp<PowObj>(inputTensors[0], inputTensors[1], nullptr)
                     ->getOutputs();
+
         } else if (opType == "ReduceMean") {
         } else if (opType == "Relu") {
+
             outputTensors =
                 graph->addOp<ReluObj>(inputTensors[0], nullptr)->getOutputs();
         } else if (opType == "Reshape") {
+
         } else if (opType == "Sigmoid") {
+
             outputTensors = graph->addOp<SigmoidObj>(inputTensors[0], nullptr)
                                 ->getOutputs();
+
         } else if (opType == "Slice") {
         } else if (opType == "Softmax") {
         } else if (opType == "Split") {
         } else if (opType == "Sqrt") {
+
             outputTensors =
                 graph->addOp<SqrtObj>(inputTensors[0], nullptr)->getOutputs();
+
         } else if (opType == "Squeeze") {
         } else if (opType == "Sub") {
+
             outputTensors =
                 graph->addOp<SubObj>(inputTensors[0], inputTensors[1], nullptr)
                     ->getOutputs();
+
         } else if (opType == "Tanh") {
+
             outputTensors =
                 graph->addOp<TanhObj>(inputTensors[0], nullptr)->getOutputs();
+
         } else if (opType == "Transpose") {
         } else if (opType == "Unsqueeze") {
         } else if (opType == "Squeeze") {
         }
+
         IT_ASSERT(outputTensors.size() == outputs.size());
         for (size_t i = 0; i < outputs.size(); ++i) {
             tensors[outputs[i]] = outputTensors[i];
