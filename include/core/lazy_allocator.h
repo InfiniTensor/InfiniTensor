@@ -1,17 +1,17 @@
 #pragma once
 #include "core/runtime.h"
 #include "core/tensor.h"
+#include "gtest/gtest.h"
 #include <cstddef>
 #include <map>
 #include <unordered_set>
-#include "gtest/gtest.h"
 
 namespace infini {
 
 class LazyAllocator {
   private:
     FRIEND_TEST(LazyAllocator, testMergeFreeBlocks);
-    
+
     FRIEND_TEST(LazyAllocator, testAllocWithEndFreeBlock);
 
     Runtime runtime;

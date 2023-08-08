@@ -49,7 +49,8 @@ size_t LazyAllocator::alloc(size_t size) {
         this->tailAddrToBlockSize.erase(tailAddr);
         // memory block splitting
         if (blockSize > tailAddr - retAddr) {
-            freeBlockInfo newBlock = {tailAddr, blockSize - (tailAddr - retAddr)};
+            freeBlockInfo newBlock = {tailAddr,
+                                      blockSize - (tailAddr - retAddr)};
             this->headAddrToBlockSize[tailAddr] = newBlock.blockSize;
             this->tailAddrToBlockSize[retAddr + blockSize] = newBlock.blockSize;
             this->freeBlocks.insert(newBlock);
@@ -62,7 +63,9 @@ size_t LazyAllocator::alloc(size_t size) {
         // needs to be extended
         auto blockTailWithPeak = this->tailAddrToBlockSize.find(this->peak);
         if (blockTailWithPeak != this->tailAddrToBlockSize.end()) {
-            // there is a free block located at the end of the currently allocated memory, where this free block has its tail address as 'peak'
+            // there is a free block located at the end of the currently
+            // allocated memory, where this free block has its tail address as
+            // 'peak'
             retAddr = this->peak - blockTailWithPeak->second;
             IT_ASSERT(blockTailWithPeak->second < size);
             this->peak += (size - blockTailWithPeak->second);

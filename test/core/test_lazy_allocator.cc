@@ -29,7 +29,7 @@ TEST(LazyAllocator, testMergeFreeBlocks) {
     EXPECT_EQ(allocator.freeBlocks.begin()->addr, offsetB);
     EXPECT_EQ(allocator.freeBlocks.begin()->blockSize,
               allocator.getAlignedSize(b->getBytes()) +
-                  allocator.getAlignedSize(c->getBytes()));    
+                  allocator.getAlignedSize(c->getBytes()));
 }
 
 TEST(LazyAllocator, testAlloc) {
@@ -48,7 +48,7 @@ TEST(LazyAllocator, testAlloc) {
     allocator.free(offsetB, b->getBytes());
     size_t offsetC = allocator.alloc(d->getBytes());
     // expected to be a->d->c
-    EXPECT_EQ(offsetB, offsetC);    
+    EXPECT_EQ(offsetB, offsetC);
 }
 
 TEST(LazyAllocator, testAllocWithEndFreeBlock) {
@@ -57,7 +57,8 @@ TEST(LazyAllocator, testAllocWithEndFreeBlock) {
     Tensor a = make_ref<TensorObj>(shape, DataType::Float32, runtime);
     Tensor b = make_ref<TensorObj>(shape, DataType::Float32, runtime);
     Tensor c = make_ref<TensorObj>(shape, DataType::Float32, runtime);
-    Tensor d = make_ref<TensorObj>(Shape{2, 2, 2, 3}, DataType::Float32, runtime);
+    Tensor d =
+        make_ref<TensorObj>(Shape{2, 2, 2, 3}, DataType::Float32, runtime);
     LazyAllocator allocator = LazyAllocator(runtime);
     // allocate a->b->c
     allocator.alloc(a->getBytes());
@@ -69,13 +70,13 @@ TEST(LazyAllocator, testAllocWithEndFreeBlock) {
     size_t offsetD = allocator.alloc(d->getBytes());
     allocator.info();
     // expected to be a->b->d, with no free block between b and c
-    EXPECT_EQ(allocator.freeBlocks.size(), 0);    
-    EXPECT_EQ(offsetC, offsetD);       
+    EXPECT_EQ(allocator.freeBlocks.size(), 0);
+    EXPECT_EQ(offsetC, offsetD);
 }
 
 TEST(LazyAllocator, testGetPtr) {
     Shape shape = Shape{1, 2, 2, 3};
-    Runtime runtime = NativeCpuRuntimeObj::getInstance();    
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Tensor a = make_ref<TensorObj>(shape, DataType::Float32, runtime);
     Tensor b = make_ref<TensorObj>(shape, DataType::Float32, runtime);
     Tensor c = make_ref<TensorObj>(shape, DataType::Float32, runtime);
@@ -85,7 +86,7 @@ TEST(LazyAllocator, testGetPtr) {
     allocator.alloc(a->getBytes());
     allocator.alloc(b->getBytes());
     allocator.alloc(c->getBytes());
-    allocator.alloc(d->getBytes());    
+    allocator.alloc(d->getBytes());
     // multiple calls to the getPtr() function should return the same pointer
     void *ptr1 = allocator.getPtr();
     void *ptr2 = allocator.getPtr();
