@@ -1,7 +1,9 @@
 #pragma once
 #include "core/runtime.h"
 #include "core/tensor.h"
+#ifdef BUILD_TEST
 #include "gtest/gtest.h"
+#endif
 #include <cstddef>
 #include <map>
 #include <unordered_set>
@@ -10,9 +12,11 @@ namespace infini {
 
 class LazyAllocator {
   private:
+    #ifdef BUILD_TEST  
     FRIEND_TEST(LazyAllocator, testMergeFreeBlocks);
 
     FRIEND_TEST(LazyAllocator, testAllocWithEndFreeBlock);
+    #endif
 
     Runtime runtime;
 

@@ -234,6 +234,7 @@ function(build_test files)
 endfunction()
 
 if(BUILD_TEST)
+  add_compile_definitions(BUILD_TEST=1)
   enable_testing()
   if(USE_TRACE)
     build_test(test/trace/*.cc)
