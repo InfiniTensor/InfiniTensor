@@ -36,8 +36,7 @@ size_t LazyAllocator::alloc(size_t size) {
     IT_ASSERT(this->ptr == nullptr);
     // pad the size to the multiple of alignment
     size = this->getAlignedSize(size);
-    auto it = this->freeBlocks.lower_bound(
-        freeBlockInfo{.addr = (size_t)0, .blockSize = size});
+    auto it = this->freeBlocks.lower_bound(freeBlockInfo{(size_t)0, size});
 
     size_t retAddr = this->peak;
     if (it != this->freeBlocks.end()) {
@@ -50,9 +49,7 @@ size_t LazyAllocator::alloc(size_t size) {
         this->tailAddrToBlockSize.erase(tailAddr);
         // memory block splitting
         if (blockSize > tailAddr - retAddr) {
-            freeBlockInfo newBlock = {.addr = tailAddr,
-                                      .blockSize =
-                                          blockSize - (tailAddr - retAddr)};
+            freeBlockInfo newBlock = {tailAddr, blockSize - (tailAddr - retAddr)};
             this->headAddrToBlockSize[tailAddr] = newBlock.blockSize;
             this->tailAddrToBlockSize[retAddr + blockSize] = newBlock.blockSize;
             this->freeBlocks.insert(newBlock);
@@ -63,7 +60,20 @@ size_t LazyAllocator::alloc(size_t size) {
     } else {
         // the allocated memory space is not sufficient for reallocation, it
         // needs to be extended
-        this->peak = this->peak + size;
+        auto blockTailWithPeak = this->tailAddrToBlockSize.find(this->peak);
+        if (blockTailWithPeak != this->tailAddrToBlockSize.end()) {
+            // there is a free block located at the end of the currently allocated memory, where this free block has its tail address as 'peak'
+            retAddr = this->peak - blockTailWithPeak->second;
+            IT_ASSERT(blockTailWithPeak->second < size);
+            this->peak += (size - blockTailWithPeak->second);
+            // updata freeBlocks, headAddrToBlockSize and tailAddrToBlockSize
+            freeBlockInfo endBlock = {retAddr, blockTailWithPeak->second};
+            this->freeBlocks.erase(endBlock);
+            this->headAddrToBlockSize.erase(endBlock.addr);
+            this->tailAddrToBlockSize.erase(endBlock.addr + endBlock.blockSize);
+        } else {
+            this->peak = this->peak + size;
+        }
         this->used += size;
     }
 

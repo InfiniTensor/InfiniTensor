@@ -4,13 +4,16 @@
 #include <cstddef>
 #include <map>
 #include <unordered_set>
+#include "gtest/gtest.h"
 
 namespace infini {
 
 class LazyAllocator {
-    friend void testLazyAllocator(const Shape &shape, Runtime runtime);
-
   private:
+    FRIEND_TEST(LazyAllocator, testMergeFreeBlocks);
+    
+    FRIEND_TEST(LazyAllocator, testAllocWithEndFreeBlock);
+
     Runtime runtime;
 
     size_t used;
