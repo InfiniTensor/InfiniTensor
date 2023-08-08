@@ -12,11 +12,11 @@ namespace infini {
 
 class LazyAllocator {
   private:
-    #ifdef BUILD_TEST  
+#ifdef BUILD_TEST
     FRIEND_TEST(LazyAllocator, testMergeFreeBlocks);
 
     FRIEND_TEST(LazyAllocator, testAllocWithEndFreeBlock);
-    #endif
+#endif
 
     Runtime runtime;
 
