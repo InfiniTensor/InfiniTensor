@@ -19,12 +19,12 @@ class BangGenCode {
     BangGenCode(std::vector<std::string> inputs_list, std::string output_value, std::vector<std::string> compute_list, int64_t total, int64_t worker);
   private:
     std::string genHead();
-    std::string genNramSplit(int64_t num);
-    std::string genFunctionHead(std::vector<std::string> inputs, std::string output); 
+    std::string genNramSplit();
+    std::string genFunctionHead(); 
     std::string genFunctionEnd();
-    std::string genTaskCycle(int64_t taskNum, int64_t workerNum);
-    std::string genOffset(std::vector<std::string> inputs, std::string output);
-    std::string computeKernel(std::vector<std::string> inputs, std::string output, std::vector<std::string> compute, std::string size);
+    std::string genTaskCycle();
+    std::string genOffset();
+    std::string computeKernel(std::string size);
     std::string genKernelCycle();
   public:
     std::string genElementwiseFusion();

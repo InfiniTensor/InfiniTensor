@@ -10,7 +10,8 @@ std::string BangGenCode::genHead() {
   return temp;
 }
 
-std::string BangGenCode::genNramSplit(int64_t num) {
+std::string BangGenCode::genNramSplit() {
+  int64_t num = this->inputs.size();
   deal_size = nram_size / (num + 1);
   deal_size_align = ((deal_size) / (64) * (64));
   std::string temp = "";
@@ -21,13 +22,13 @@ std::string BangGenCode::genNramSplit(int64_t num) {
   return temp;
 }
 
-std::string BangGenCode::genFunctionHead(std::vector<std::string> inputs, std::string output) {
+std::string BangGenCode::genFunctionHead() {
   std::string temp = "";
   temp += "template<typename T>;\n";
   temp += "__mlu_device__ void FusionFunction(";
-  temp += "T*" + output + ",\n";
-  for(uint32_t i = 0; i < inputs.size(); ++i) {
-    temp += "T*" + inputs[i] + ",\n";
+  temp += "T*" + this->output + ",\n";
+  for(uint32_t i = 0; i < this->inputs.size(); ++i) {
+    temp += "T*" + this->inputs[i] + ",\n";
   }
   temp += "int64_t taskNum) {\n";
   return temp;
@@ -37,9 +38,9 @@ std::string BangGenCode::genFunctionEnd() {
   return "}\n";
 }
 
-std::string BangGenCode::genTaskCycle(int64_t taskNum, int64_t workerNum) {
-  int64_t num_per_core = taskNum / workerNum;
-  int64_t num_rem = taskNum % workerNum;
+std::string BangGenCode::genTaskCycle() {
+  int64_t num_per_core = this->totalNum / this->workerNum;
+  int64_t num_rem = this->totalNum % this->workerNum;
   int64_t easy_job = num_per_core;
   int64_t hard_job = num_per_core + ( num_rem != 0 ? 1 : 0);
   std::string temp = "";
@@ -49,28 +50,28 @@ std::string BangGenCode::genTaskCycle(int64_t taskNum, int64_t workerNum) {
   return temp;
 }
 
-std::string BangGenCode::genOffset(std::vector<std::string> inputs, std::string output) {
+std::string BangGenCode::genOffset() {
   std::string temp = "";
-  for(uint32_t i = 0; i < inputs.size(); ++i) {
-    temp += "char *" + inputs[i] + "_start = (char*)" + inputs[i] + "start * sizeof(T);\n";
+  for(uint32_t i = 0; i < this->inputs.size(); ++i) {
+    temp += "char *" + this->inputs[i] + "_start = (char*)" + this->inputs[i] + "start * sizeof(T);\n";
   }
-  temp += "char *" + output + "_start = (char*)" + output + "start * sizeof(T);\n";
+  temp += "char *" + this->output + "_start = (char*)" + this->output + "start * sizeof(T);\n";
   return temp;
 }
 
-std::string BangGenCode::computeKernel(std::vector<std::string> inputs, std::string output, std::vector<std::string> compute, std::string size) {
+std::string BangGenCode::computeKernel(std::string size) {
   std::string temp = "";
-  for(uint32_t i = 0; i < inputs.size(); ++i) {
-    temp += "__memcpy(nram_buffer" + std::to_string(i) + ", " + inputs[i] + "_start, " + size + ", GDRAM2NRAM);\n";
+  for(uint32_t i = 0; i < this->inputs.size(); ++i) {
+    temp += "__memcpy(nram_buffer" + std::to_string(i) + ", " + this->inputs[i] + "_start, " + size + ", GDRAM2NRAM);\n";
   }
   ////////////////////////////////////////
   // Compute
   ////////////////////////////////////////
-  temp += "__memcpy(" + output + "_start, nram_buffer_output, " + size + ", NRAM2GDRAM);\n"; 
-  for(uint32_t i = 0; i < inputs.size(); ++i) {
-    temp += inputs[i] + "_start += " + std::to_string(deal_size_align) + ";\n"; 
+  temp += "__memcpy(" + this->output + "_start, nram_buffer_output, " + size + ", NRAM2GDRAM);\n"; 
+  for(uint32_t i = 0; i < this->inputs.size(); ++i) {
+    temp += this->inputs[i] + "_start += " + std::to_string(deal_size_align) + ";\n"; 
   }
-  temp += output + "_start += " + std::to_string(deal_size_align) + ";\n";
+  temp += this->output + "_start += " + std::to_string(deal_size_align) + ";\n";
   return temp;
 }
 
@@ -80,10 +81,10 @@ std::string BangGenCode::genKernelCycle() {
   temp += "int64_t repeat = my_job / deal_num_align;\n";
   temp += "int64_t rem = my_job % deal_num_align;\n";
   temp += "for(int i = 0; i < repeat; ++i) {;\n";
-  temp += this->computeKernel(inputs, output, compute, std::to_string(deal_size_align)); 
+  temp += this->computeKernel(std::to_string(deal_size_align)); 
   temp += "}\n";
   temp += "if(rem){;\n";
-  temp += this->computeKernel(inputs, output, compute, "rem * sizeof(T)"); 
+  temp += this->computeKernel("rem * sizeof(T)"); 
   temp += "}\n";
   return temp;
 }
@@ -91,10 +92,10 @@ std::string BangGenCode::genKernelCycle() {
 std::string BangGenCode::genElementwiseFusion() {
   std::string temp = "";
   temp += genHead();
-  temp += genNramSplit(inputs.size());
-  temp += genFunctionHead(inputs, output);
-  temp += genTaskCycle(this->totalNum, this->workerNum);
-  temp += genOffset(inputs, output);
+  temp += genNramSplit();
+  temp += genFunctionHead();
+  temp += genTaskCycle();
+  temp += genOffset();
   temp += genKernelCycle();
   return temp;
 }
