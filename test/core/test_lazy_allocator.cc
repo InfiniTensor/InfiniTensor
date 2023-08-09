@@ -7,7 +7,6 @@
 
 namespace infini {
 
-#ifdef BUILD_TEST
 TEST(LazyAllocator, testMergeFreeBlocks) {
     Shape shape = Shape{1, 2, 2, 3};
     Runtime runtime = NativeCpuRuntimeObj::getInstance();
@@ -32,7 +31,6 @@ TEST(LazyAllocator, testMergeFreeBlocks) {
               allocator.getAlignedSize(b->getBytes()) +
                   allocator.getAlignedSize(c->getBytes()));
 }
-#endif
 
 TEST(LazyAllocator, testAlloc) {
     Shape shape = Shape{1, 2, 2, 3};
@@ -53,7 +51,6 @@ TEST(LazyAllocator, testAlloc) {
     EXPECT_EQ(offsetB, offsetC);
 }
 
-#ifdef BUILD_TEST
 TEST(LazyAllocator, testAllocWithEndFreeBlock) {
     Shape shape = Shape{1, 2, 2, 3};
     Runtime runtime = NativeCpuRuntimeObj::getInstance();
@@ -76,7 +73,6 @@ TEST(LazyAllocator, testAllocWithEndFreeBlock) {
     EXPECT_EQ(allocator.freeBlocks.size(), 0);
     EXPECT_EQ(offsetC, offsetD);
 }
-#endif
 
 TEST(LazyAllocator, testGetPtr) {
     Shape shape = Shape{1, 2, 2, 3};
