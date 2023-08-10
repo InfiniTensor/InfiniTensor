@@ -37,11 +37,10 @@ optional<vector<Shape>> GBMMObj::inferShape(const TensorVec &inputs) const {
 }
 
 vector<int> GBMMObj::getWorkloadVector() const {
-    return {enum_to_underlying(type), b, m, w, n, dilation,
-            enum_to_underlying(act)};
+    return {type.underlying(), b, m, w, n, dilation, enum_to_underlying(act)};
 }
 
 vector<int> GBMMObj::getOpAttrVector() const {
-    return {enum_to_underlying(type), dilation, enum_to_underlying(act)};
+    return {type.underlying(), dilation, enum_to_underlying(act)};
 }
 } // namespace infini

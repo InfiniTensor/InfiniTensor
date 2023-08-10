@@ -48,7 +48,7 @@ bool DummyMutator::isMultiBranchMergable(const Graph &inGraph) {
     if (inGraph->getOperators().size() != 2)
         return false;
     for (auto op : inGraph->getOperators()) {
-        if (op->getOpType() != OpType::Matmul)
+        if (op->getOpType() != OpType::MatMul)
             return false;
         if (op->getPredecessors().size() > 0)
             return false;

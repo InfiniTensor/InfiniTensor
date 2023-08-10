@@ -69,9 +69,11 @@ Tensor GraphHandlerObj::matmul(Tensor a, Tensor b, Tensor y, bool transA,
     }
 }
 
-Tensor GraphHandlerObj::batchNorm(Tensor input, Tensor output, Tensor mean,
-                                  Tensor var, Tensor scale, Tensor bias,
-                                  float momentum, float eps, bool training) {
+Tensor GraphHandlerObj::batchNormalization(Tensor input, Tensor output,
+                                           Tensor mean, Tensor var,
+                                           Tensor scale, Tensor bias,
+                                           float momentum, float eps,
+                                           bool training) {
     if (output) {
         g->addOpWithOutputs<BatchNormObj>(
             std::move(input), output, std::move(mean), std::move(var),

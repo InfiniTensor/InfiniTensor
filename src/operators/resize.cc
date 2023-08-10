@@ -244,7 +244,7 @@ vector<int> ResizeObj::getWorkloadVector() const {
     // here.
     ret.emplace_back(enum_to_underlying(coMode));
     ret.emplace_back(enum_to_underlying(nearestMode));
-    ret.emplace(ret.begin(), enum_to_underlying(type));
+    ret.emplace(ret.begin(), type.underlying());
     return ret;
 }
 
@@ -253,7 +253,7 @@ vector<int> ResizeObj::getOpAttrVector() const {
     ret.emplace_back(enum_to_underlying(coMode));
     ret.emplace_back(enum_to_underlying(nearestMode));
     ret.emplace_back(enum_to_underlying(ratioPolicy));
-    ret.emplace(ret.begin(), enum_to_underlying(type));
+    ret.emplace(ret.begin(), type.underlying());
     return ret;
 }
 

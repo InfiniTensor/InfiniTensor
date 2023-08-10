@@ -70,7 +70,7 @@ class AvgPoolObj : public PoolingObj {
   public:
     AvgPoolObj(GraphObj *graph, Tensor input, Tensor output, int kh, int kw,
                int dh, int dw, int ph, int pw, int sh, int sw)
-        : PoolingObj(graph, OpType::AvgPool, input, output, kh, kw, dh, dw, ph,
-                     pw, sh, sw) {}
+        : PoolingObj(graph, OpType::AveragePool, input, output, kh, kw, dh, dw,
+                     ph, pw, sh, sw) {}
 };
 }; // namespace infini

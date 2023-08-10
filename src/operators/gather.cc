@@ -72,7 +72,7 @@ std::string GatherObj::toString() const {
 
 vector<int> GatherObj::getWorkloadVector() const {
     vector<int> ret = inputs[0]->getDims();
-    ret.emplace(ret.begin(), enum_to_underlying(type));
+    ret.emplace(ret.begin(), type.underlying());
     for (auto it : inputs[1]->getDims())
         ret.emplace_back(it);
     ret.emplace_back(axis);
@@ -80,7 +80,7 @@ vector<int> GatherObj::getWorkloadVector() const {
 }
 
 vector<int> GatherObj::getOpAttrVector() const {
-    return {enum_to_underlying(type), axis};
+    return {type.underlying(), axis};
 }
 
 } // namespace infini

@@ -48,6 +48,8 @@ void register_operator_timer(py::module &m) {
 #endif
 }
 
+decltype(OpType::type) getId(OpType const *const ptr) { return ptr->type; }
+
 void export_values(py::module &m) {
 #define VALUE(TYPE, NAME) value(#NAME, TYPE::NAME)
 
@@ -58,13 +60,13 @@ void export_values(py::module &m) {
         .VALUE(ActType, Tanh)
         .export_values();
 
-    py::enum_<OpType>(m, "OpType")
-        .VALUE(OpType, Unknown)
+    py::class_<OpType>(m, "OpType")
+        .def(py::init<decltype(OpType::type)>())
+        .def("id", getId, policy::automatic);
+    py::enum_<decltype(OpType::type)>(m, "OpTypeId")
         .VALUE(OpType, Conv)
-        .VALUE(OpType, Matmul)
-        .VALUE(OpType, ConvTrans)
-        .VALUE(OpType, G2BMM)
-        .VALUE(OpType, GBMM)
+        .VALUE(OpType, MatMul)
+        .VALUE(OpType, ConvTranspose)
         .VALUE(OpType, Pad)
         .VALUE(OpType, Clip)
         .VALUE(OpType, Slice)
@@ -73,7 +75,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, Transpose)
         .VALUE(OpType, Extend)
         .VALUE(OpType, MaxPool)
-        .VALUE(OpType, AvgPool)
+        .VALUE(OpType, AveragePool)
         .VALUE(OpType, Add)
         .VALUE(OpType, Sub)
         .VALUE(OpType, Mul)
@@ -84,9 +86,8 @@ void export_values(py::module &m) {
         .VALUE(OpType, Reshape)
         .VALUE(OpType, Flatten)
         .VALUE(OpType, Identity)
-        .VALUE(OpType, BatchNorm)
+        .VALUE(OpType, BatchNormalization)
         .VALUE(OpType, Softmax)
-        .VALUE(OpType, Activation)
         .VALUE(OpType, Relu)
         .VALUE(OpType, PRelu)
         .VALUE(OpType, Sigmoid)
@@ -152,7 +153,7 @@ static std::tuple<int, int, int, int, int, int> conv_attrs_of(Operator op) {
 
 static std::tuple<int, int, int, int, int, int, int, int>
 conv_trans_attrs_of(Operator op) {
-    IT_ASSERT(op->getOpType() == OpType::ConvTrans);
+    IT_ASSERT(op->getOpType() == OpType::ConvTranspose);
     auto conv = dynamic_cast<const ConvTransposed2dObj *>(op.get());
     auto [oph, opw] = conv->getOutputPadding();
     return std::make_tuple(conv->getPh(), conv->getPw(), conv->getDh(),
@@ -161,13 +162,13 @@ conv_trans_attrs_of(Operator op) {
 }
 
 static std::tuple<bool, bool> matmul_attrs_of(Operator op) {
-    IT_ASSERT(op->getOpType() == OpType::Matmul);
+    IT_ASSERT(op->getOpType() == OpType::MatMul);
     auto matmul = dynamic_cast<const MatmulObj *>(op.get());
     return std::make_tuple(matmul->getTransA(), matmul->getTransB());
 }
 
 static std::tuple<float, float, bool> batch_norm_attrs_of(Operator op) {
-    IT_ASSERT(op->getOpType() == OpType::BatchNorm);
+    IT_ASSERT(op->getOpType() == OpType::BatchNormalization);
     auto batchnorm = dynamic_cast<const BatchNormObj *>(op.get());
     return std::make_tuple(batchnorm->getMomentum(), batchnorm->getEps(),
                            batchnorm->getTrainingMode());
@@ -176,7 +177,7 @@ static std::tuple<float, float, bool> batch_norm_attrs_of(Operator op) {
 static std::tuple<int, int, int, int, int, int, int, int>
 pool_attrs_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::MaxPool ||
-              op->getOpType() == OpType::AvgPool);
+              op->getOpType() == OpType::AveragePool);
     auto pool = dynamic_cast<const PoolingObj *>(op.get());
     return std::make_tuple(pool->getKh(), pool->getKw(), pool->getDh(),
                            pool->getDw(), pool->getPh(), pool->getPw(),
@@ -319,7 +320,7 @@ void init_graph_builder(py::module &m) {
         .def("conv", &Handler::conv, policy::move)
         .def("convTransposed2d", &Handler::convTransposed2d, policy::move)
         .def("matmul", &Handler::matmul, policy::move)
-        .def("batchNorm", &Handler::batchNorm, policy::move)
+        .def("batchNormalization", &Handler::batchNormalization, policy::move)
         .def("maxPool", &Handler::maxPool, policy::move)
         .def("avgPool", &Handler::avgPool, policy::move)
         .def("add", &Handler::add, policy::move)

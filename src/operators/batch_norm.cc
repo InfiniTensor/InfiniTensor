@@ -4,7 +4,8 @@ namespace infini {
 BatchNormObj::BatchNormObj(GraphObj *graph, Tensor input, Tensor output,
                            Tensor mean, Tensor var, Tensor scale, Tensor bias,
                            float momentum, float eps, bool trainingMode)
-    : OperatorObj(OpType::BatchNorm, {input, mean, var, scale, bias}, {output}),
+    : OperatorObj(OpType::BatchNormalization, {input, mean, var, scale, bias},
+                  {output}),
       momentum(momentum), eps(eps), trainingMode(trainingMode) {
     if (trainingMode)
         IT_TODO_HALT();
@@ -38,7 +39,7 @@ vector<DataType> BatchNormObj::inferDataType(const TensorVec &inputs) const {
 
 std::string BatchNormObj::toString() const {
     std::ostringstream os;
-    os << "BatchNorm[" << getGuid() << "]";
+    os << "batchNormalization[" << getGuid() << "]";
     os << "(";
     os << vecToString(inputs[0]->getDims()) << ",";
     os << "momentum=" << momentum << ",";
@@ -57,13 +58,13 @@ std::string BatchNormObj::toString() const {
 // need eps and momentum?
 vector<int> BatchNormObj::getWorkloadVector() const {
     vector<int> ret = inputs[0]->getDims();
-    ret.emplace(ret.begin(), enum_to_underlying(type));
+    ret.emplace(ret.begin(), type.underlying());
     return ret;
 }
 
 // need eps and momentum?
 vector<int> BatchNormObj::getOpAttrVector() const {
-    return {enum_to_underlying(type)};
+    return {type.underlying()};
 }
 
 } // namespace infini
