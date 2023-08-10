@@ -20,10 +20,10 @@ TEST(Resize, Mkl_downsample_sizes_nearest) {
 
     auto input2 = g->cloneTensor(input);
     auto sizes2 = g->cloneTensor(sizes);
-    auto op = g->addOp<ResizeObj>(input2, nullptr, std::nullopt,
-                                  sizes2, nullptr, nullptr,
-                                  ResizeObj::EKeepAspectRatioPolicy::stretch,
-                                  ResizeObj::ENearestMode::ceil);
+    auto op =
+        g->addOp<ResizeObj>(input2, nullptr, std::nullopt, sizes2, nullptr,
+                            nullptr, ResizeObj::EKeepAspectRatioPolicy::stretch,
+                            ResizeObj::ENearestMode::ceil);
     g->dataMalloc();
     input2->copyin(vector<float>{1, 2, 3, 4, 5, 6, 7, 8});
     sizes2->copyin(vector<uint32_t>{1, 1, 1, 3});
