@@ -11,13 +11,8 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph) const {
     auto &perfEngine = PerfEngine::getInstance();
     for (auto &op : graph->getOperators()) {
         // HACK: set correct data type
-<<<<<<< HEAD
         auto kernelAttrs =
             KernelAttrs{device, op->getOpType().underlying(), op->getDType()};
-=======
-        auto kernelAttrs = KernelAttrs{device, op->getOpType().underlying(),
-                                       DataType::Float32};
->>>>>>> master
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
         auto perfData = perfEngine.getPerfData(perfKey);
