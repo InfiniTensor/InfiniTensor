@@ -39,10 +39,10 @@ void testConv(const std::function<void(void *, size_t, DataType)> &generatorA,
     auto cpuOp =
         cpuGraph->addOp<T>(inputCpu1, inputCpu2, nullptr, 1, 1, 1, 1, 1, 1);
     cpuGraph->addTensor(inputCpu1);
-    cpuGraph->addTensor(inputCpu2);        
+    cpuGraph->addTensor(inputCpu2);
     cpuGraph->dataMalloc();
     inputCpu1->setData(generatorA);
-    inputCpu2->setData(generatorB);    
+    inputCpu2->setData(generatorB);
     cpuRuntime->run(cpuGraph);
     auto outputCpu = cpuOp->getOutput();
     outputCpu->print();

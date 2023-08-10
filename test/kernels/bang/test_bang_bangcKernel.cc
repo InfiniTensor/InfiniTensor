@@ -46,7 +46,7 @@ void testBangcKernel(
     cpuGraph->addTensor(inputCpu2);
     cpuGraph->dataMalloc();
     inputCpu1->setData(generator);
-    inputCpu2->setData(generator);    
+    inputCpu2->setData(generator);
     cpuRuntime->run(cpuGraph);
     auto outputCpu = cpuOp->getOutput();
     // outputCpu->printData();

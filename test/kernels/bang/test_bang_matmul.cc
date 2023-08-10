@@ -41,7 +41,7 @@ void testMatmul(const std::function<void(void *, size_t, DataType)> &generatorA,
     cpuGraph->addTensor(inputCpu2);
     cpuGraph->dataMalloc();
     inputCpu1->setData(generatorA);
-    inputCpu2->setData(generatorB);    
+    inputCpu2->setData(generatorB);
     cpuRuntime->run(cpuGraph);
     auto outputCpu = cpuOp->getOutput();
     outputCpu->print();
