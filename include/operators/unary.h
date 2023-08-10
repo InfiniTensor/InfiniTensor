@@ -134,7 +134,7 @@ class TransformObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 };
 
-enum CastType {
+enum class CastType {
     Float2Float16 = 0,
     Float2Int64,
     Float2Int32,

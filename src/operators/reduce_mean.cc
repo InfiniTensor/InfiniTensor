@@ -1,4 +1,5 @@
 #include "operators/reduce_mean.h"
+#include "utils/operator_utils.h"
 
 namespace infini {
 ReduceMeanObj::ReduceMeanObj(GraphObj *graph, Tensor input, Tensor output,
@@ -7,9 +8,7 @@ ReduceMeanObj::ReduceMeanObj(GraphObj *graph, Tensor input, Tensor output,
     const auto size = input->getRank();
     if (_axes) {
         for (auto idx : *_axes) {
-            if (idx < 0)
-                IT_TODO_HALT();
-            IT_ASSERT((size_t)idx < size);
+            idx = get_real_axis(idx, size);
             axes.emplace(idx);
         }
     } else

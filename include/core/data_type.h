@@ -36,15 +36,18 @@ class DataType {
                                              sizeof(double),
                                              sizeof(uint32_t),
                                              sizeof(uint64_t),
+                                             0,
+                                             0,
                                              sizeof(uint16_t)};
 
     static constexpr std::string_view names[]{
-        "Undefine", "Float32", "UInt8",  "Int8",   "UInt16",
-        "Int16",    "Int32",   "Int64",  "String", "Bool",
-        "Float16",  "Double",  "UInt32", "UInt64", "BFloat16"};
+        "Undefine",    "Float32", "UInt8",  "Int8",   "UInt16",
+        "Int16",       "Int32",   "Int64",  "String", "Bool",
+        "Float16",     "Double",  "UInt32", "UInt64", "PlaceHolder",
+        "PlaceHolder", "BFloat16"};
 
-    static constexpr int cpuType[]{-1, 0, 2, 3, 4, 5, 6, 7,
-                                   -1, 3, 4, 9, 1, 8, 4};
+    static constexpr int cpuType[]{-1, 0, 2, 3, 4, 5,  6,  7, -1,
+                                   3,  4, 9, 1, 8, -1, -1, 4};
 
   private:
     int index;
@@ -82,7 +85,7 @@ inline const DataType DataType::Float16(10);
 inline const DataType DataType::Double(11);
 inline const DataType DataType::UInt32(12);
 inline const DataType DataType::UInt64(13);
-inline const DataType DataType::BFloat16(14);
+inline const DataType DataType::BFloat16(16);
 // Method definitions are out of the declaration due to GCC bug:
 // https://stackoverflow.com/questions/49707184/explicit-specialization-in-non-namespace-scope-does-not-compile-in-gcc
 template <> inline int DataType::get<float>() { return 0; }
@@ -111,6 +114,6 @@ template <> struct DT<10> { using t = uint16_t; };
 template <> struct DT<11> { using t = double; };
 template <> struct DT<12> { using t = uint32_t; };
 template <> struct DT<13> { using t = uint64_t; };
-template <> struct DT<14> { using t = uint16_t; };
+template <> struct DT<16> { using t = uint16_t; };
 
 } // namespace infini

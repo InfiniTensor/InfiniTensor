@@ -347,7 +347,9 @@ class TestStringMethods(unittest.TestCase):
     def test_cast(self):
         input1 = make_tensor_value_info("input1", TensorProto.FLOAT, [1, 3, 2, 4])
         output = make_tensor_value_info("output", TensorProto.FLOAT16, [1, 3, 2, 4])
-        cast = make_node("Cast", ["input1"], ["output"], to=10, name="cast")
+        cast = make_node(
+            "Cast", ["input1"], ["output"], to=TensorProto.FLOAT16, name="cast"
+        )
         make_and_import_model(make_graph([cast], "cast", [input1], [output]))
 
 

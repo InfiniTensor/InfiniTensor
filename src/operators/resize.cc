@@ -78,19 +78,21 @@ void ResizeObj::InitBySizes(Tensor input, Tensor sizes,
     IT_ASSERT(size == input->getRank() ||
               (axes != std::nullopt && size == (*axes).size()));
 
-    if (axes == std::nullopt)
-        for (size_t i = 0; i < input->getRank(); ++i)
+    if (axes == std::nullopt) {
+        for (size_t i = 0; i < input->getRank(); ++i) {
             this->axes.emplace_back(i);
-    else
+        }
+    } else {
         // check axes
         for (size_t i = 0; i < (*axes).size(); ++i) {
             auto val = (*axes)[i];
-            if (val < 0)
+            if (val < 0) {
                 IT_TODO_HALT();
+            }
             IT_ASSERT((size_t)val < inputs[0]->getRank());
             this->axes.emplace_back(val);
         }
-
+    }
     // init this->scales
     for (size_t i = 0; i < input->getRank(); ++i) {
         this->scales.emplace_back(1);
@@ -109,9 +111,10 @@ void ResizeObj::InitBySizes(Tensor input, Tensor sizes,
     int n = this->axes.size();
     switch (ratioPolicy) {
     case EKeepAspectRatioPolicy::stretch:
-        for (int i = 0; i < n; ++i)
+        for (int i = 0; i < n; ++i) {
             scales[this->axes[i]] =
                 (float)data[i] / (float)inDims[this->axes[i]];
+        }
         break;
     case EKeepAspectRatioPolicy::notLarger: {
         float scale = (float)data[0] / (float)inDims[this->axes[0]];
@@ -119,8 +122,9 @@ void ResizeObj::InitBySizes(Tensor input, Tensor sizes,
             auto tmp = (float)data[i] / (float)inDims[this->axes[i]];
             scale = scale < tmp ? scale : tmp;
         }
-        for (int i = 0; i < n; ++i)
+        for (int i = 0; i < n; ++i) {
             scales[this->axes[i]] = scale;
+        }
         break;
     }
     case EKeepAspectRatioPolicy::notSmaller: {
@@ -129,8 +133,9 @@ void ResizeObj::InitBySizes(Tensor input, Tensor sizes,
             auto tmp = (float)data[i] / (float)inDims[this->axes[i]];
             scale = scale > tmp ? scale : tmp;
         }
-        for (int i = 0; i < n; ++i)
+        for (int i = 0; i < n; ++i) {
             scales[this->axes[i]] = scale;
+        }
         break;
     }
     default:
@@ -159,23 +164,25 @@ void ResizeObj::InitByScales(Tensor input, Tensor scales,
         this->scales.emplace_back(1);
     }
 
-    if (axes == std::nullopt)
+    if (axes == std::nullopt) {
         for (size_t i = 0; i < input->getRank(); ++i) {
             this->axes.emplace_back(i);
             IT_ASSERT(data[i] > 0);
             this->scales[i] = data[i];
         }
-    else
+    } else {
         // check axes
         for (size_t i = 0; i < (*axes).size(); ++i) {
             auto val = (*axes)[i];
-            if (val < 0)
+            if (val < 0) {
                 IT_TODO_HALT();
+            }
             IT_ASSERT((size_t)val < inputs[0]->getRank());
             this->axes.emplace_back(val);
             IT_ASSERT(data[i] > 0);
             this->scales[val] = data[i];
         }
+    }
 }
 
 vector<DataType> ResizeObj::inferDataType(const TensorVec &inputs) const {
@@ -217,12 +224,14 @@ std::string ResizeObj::toString() const {
        << "[" << getGuid() << "]";
     os << "(";
     os << vecToString(inputs[0]->getDims()) << ",";
-    if (inputs.size() == 3)
+    if (inputs.size() == 3) {
         os << "roi=" << vecToString(inputs[2]->getDims()) << ",";
-    if (isResizeBySizes())
+    }
+    if (isResizeBySizes()) {
         os << "sizes=" << vecToString(inputs[1]->getDims()) << ",";
-    else
+    } else {
         os << "scales=" << vecToString(inputs[1]->getDims()) << ",";
+    }
     os << "axes=" << vecToString(axes) << ",";
     os << "coMode=" << enum_to_underlying(coMode) << ",";
     os << "nearestMode=" << enum_to_underlying(nearestMode) << ",";
@@ -230,16 +239,18 @@ std::string ResizeObj::toString() const {
 
     os << "input=" << inputs[0]->getGuid() << ",";
     os << inputs[1]->getGuid() << ",";
-    if (inputs.size() == 3)
+    if (inputs.size() == 3) {
         os << inputs[2]->getGuid() << ",";
+    }
     os << "output=" << outputs[0]->getGuid() << ")";
     return os.str();
 }
 
 vector<int> ResizeObj::getWorkloadVector() const {
     vector<int> ret = inputs[0]->getDims();
-    for (size_t i = 0; i < outputs[0]->getRank(); ++i)
+    for (size_t i = 0; i < outputs[0]->getRank(); ++i) {
         ret.emplace_back(outputs[0]->getDims()[i]);
+    }
     // ratioPolicy only effects output shape, so did not need
     // here.
     ret.emplace_back(enum_to_underlying(coMode));

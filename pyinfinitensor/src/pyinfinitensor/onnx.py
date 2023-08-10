@@ -987,7 +987,7 @@ def _take_shape_dim(shape: TensorShapeProto) -> List[int]:
     return [(d.dim_value if d.dim_value > 0 else 1) for d in shape.dim]
 
 
-def _analyse_node(node: NodeProto, tensors):
+def _analyse_node(node: NodeProto, tensors) -> bool:
     for i in node.input:
         if i not in tensors:
             return True

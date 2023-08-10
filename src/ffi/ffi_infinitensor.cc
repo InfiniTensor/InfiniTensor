@@ -247,12 +247,9 @@ static int flatten_axis_of(Operator op) {
 
 static int cast_to_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Cast);
-    auto cast_output_dtype =
+    auto castOutputDtype =
         dynamic_cast<const CastObj *>(op.get())->getOutputDataType();
-    if (cast_output_dtype == DataType::BFloat16) {
-        return 16;
-    }
-    return cast_output_dtype.getIndex();
+    return castOutputDtype.getIndex();
 }
 
 void export_functions(py::module &m) {

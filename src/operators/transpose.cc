@@ -4,13 +4,14 @@ namespace infini {
 TransposeObj::TransposeObj(GraphObj *graph, Tensor input, Tensor output,
                            vector<int> permute)
     : OperatorObj(OpType::Transpose, {input}, {output}) {
+    auto rank = input->getRank();
     if (permute.empty()) {
-        int rank = input->getRank();
-        for (int i = 0; i < rank; ++i) {
+        for (size_t i = 0; i < rank; ++i) {
             transposePermute[i] = i;
         }
     } else {
-        transposePermute = permute;
+        IT_ASSERT(rank == permute.size());
+        transposePermute = std::move(permute);
     }
     IT_ASSERT(checkValid(graph));
 }

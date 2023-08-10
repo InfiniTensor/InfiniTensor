@@ -1,4 +1,5 @@
 #include "operators/reshape.h"
+#include "utils/operator_utils.h"
 
 namespace infini {
 ReshapeObj::ReshapeObj(GraphObj *graph, Tensor input, Tensor output, Shape dims)
@@ -41,12 +42,8 @@ vector<int> ReshapeObj::getOpAttrVector() const {
 
 FlattenObj::FlattenObj(GraphObj *graph, Tensor input, Tensor output, int _axis)
     : OperatorObj(OpType::Flatten, {input}, {output}) {
-    if (_axis >= 0 && (size_t)_axis < input->getRank())
-        axis = _axis;
-    else if (_axis <= -1 && (size_t)_axis >= -input->getRank())
-        axis = _axis + input->getRank();
-    else
-        IT_ASSERT(0);
+    int rank = input->getRank();
+    axis = get_real_axis(_axis, rank);
     IT_ASSERT(checkValid(graph));
 }
 
@@ -54,9 +51,9 @@ optional<vector<Shape>> FlattenObj::inferShape(const TensorVec &inputs) const {
     int sizeB = 1, sizeE = 1;
     auto dims = getInputs(0)->getDims();
     int rank = getInputs(0)->getRank();
-    for (int i = 0; i < rank; ++i)
+    for (int i = 0; i < rank; ++i) {
         ((i < axis) ? sizeB : sizeE) *= dims.at(i);
-
+    }
     return {{{sizeB, sizeE}}};
 }
 

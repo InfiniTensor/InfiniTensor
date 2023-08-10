@@ -1,4 +1,6 @@
 #include "operators/matmul.h"
+#include "utils/operator_utils.h"
+#include <numeric>
 
 namespace infini {
 
@@ -12,20 +14,13 @@ MatmulObj::MatmulObj(GraphObj *graph, Tensor A, Tensor B, Tensor C, bool transA,
     int rankA = A->getRank();
     int rankB = B->getRank();
     IT_ASSERT(rankA >= 2 && rankB >= 2);
-    auto rank = std::max(rankA, rankB);
-    if (rankA < rank) {
-        for (int i = 0; i < rank - rankA; ++i) {
-            shape_a.insert(shape_a.begin(), 1);
-        }
-    }
-    if (rankB < rank) {
-        for (int i = 0; i < rank - rankB; ++i) {
-            shape_b.insert(shape_b.begin(), 1);
-        }
-    }
-    b = 1;
-    for (int i = 0; i < rank - 2; ++i) {
-        b *= std::max(shape_a[i], shape_b[i]);
+    Shape shape_a1(shape_a.begin(), shape_a.begin() + (rankA - 2));
+    Shape shape_b1(shape_b.begin(), shape_b.begin() + (rankB - 2));
+    auto ret = infer_broadcast(shape_a1, shape_b1);
+    if (ret.empty()) {
+        b = 1;
+    } else {
+        b = std::accumulate(ret.begin(), ret.end(), 1);
     }
     auto kA = *(transA ? shape_a.rbegin() + 1 : shape_a.rbegin());
     auto kB = *(transB ? shape_b.rbegin() : shape_b.rbegin() + 1);
@@ -51,23 +46,9 @@ optional<vector<Shape>> MatmulObj::inferShape(const TensorVec &inputs) const {
     auto shapeB = B->getDims();
     int rankA = A->getRank();
     int rankB = B->getRank();
-    auto rank = std::max(rankA, rankB);
-    if (rankA < rank) {
-        for (int i = 0; i < rank - rankA; ++i) {
-            shapeA.insert(shapeA.begin(), 1);
-        }
-    }
-    if (rankB < rank) {
-        for (int i = 0; i < rank - rankB; ++i) {
-            shapeB.insert(shapeB.begin(), 1);
-        }
-    }
-    Shape ret;
-    for (int i = 0; i < rank - 2; ++i) {
-        IT_ASSERT(shapeA[i] == shapeB[i] || shapeA[i] == 1 || shapeB[i] == 1);
-        auto shape_ele = std::max(shapeA[i], shapeB[i]);
-        ret.emplace_back(shape_ele);
-    }
+    Shape shapeA1(shapeA.begin(), shapeA.begin() + (rankA - 2));
+    Shape shapeB1(shapeB.begin(), shapeB.begin() + (rankB - 2));
+    Shape ret = infer_broadcast(shapeA1, shapeB1);
     ret.emplace_back(m);
     ret.emplace_back(n);
     return {{ret}};

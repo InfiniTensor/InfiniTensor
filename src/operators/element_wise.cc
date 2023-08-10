@@ -1,4 +1,5 @@
 #include "operators/element_wise.h"
+#include "utils/operator_utils.h"
 
 namespace infini {
 ElementWiseObj::ElementWiseObj(OpType type, GraphObj *graph, Tensor input0,
@@ -9,28 +10,8 @@ ElementWiseObj::ElementWiseObj(OpType type, GraphObj *graph, Tensor input0,
 
 optional<vector<Shape>>
 ElementWiseObj::inferShape(const TensorVec &inputs) const {
-    // For now,we only process the same dims here, broardcast will be considered
-    // in the opt layer.
     const auto A = inputs[0], B = inputs[1];
-    int max_len = std::max(A->getRank(), B->getRank());
-    std::vector<int> A_(max_len, 1);
-    std::vector<int> B_(max_len, 1);
-    std::vector<int> res(max_len, 1);
-    memcpy(A_.data() + max_len - A->getRank(), A->getDims().data(),
-           A->getRank() * sizeof(int));
-    memcpy(B_.data() + max_len - B->getRank(), B->getDims().data(),
-           B->getRank() * sizeof(int));
-    // std::copy(A->getDims().begin(), A->getDims().end(), A_.begin() + (max_len
-    // - A->getRank())); std::copy(B->getDims().begin(),
-    // B->getDims().end(), B_.begin() + (max_len - B->getRank()));
-    // std::copy(A->getDims().rbegin(), A->getDims().rend(), A_.rbegin());
-    // std::copy(B->getDims().rbegin(), B->getDims().rend(), B_.rbegin());
-
-    for (int i = 0; i < max_len; ++i) {
-        IT_ASSERT(A_[i] == B_[i] || A_[i] == 1 || B_[i] == 1);
-        res[i] = std::max(A_[i], B_[i]);
-    }
-
+    auto res = infer_broadcast(A->getDims(), B->getDims());
     return {{res}};
 }
 
