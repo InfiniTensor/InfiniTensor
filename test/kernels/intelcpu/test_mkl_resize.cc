@@ -18,11 +18,15 @@ TEST(Resize, Mkl_downsample_sizes_nearest) {
     auto runtime = make_ref<MklRuntimeObj>();
     Graph g = make_ref<GraphObj>(runtime);
 
-    auto op = g->addOp<ResizeObj>(g->cloneTensor(input), nullptr, std::nullopt,
-                                  g->cloneTensor(sizes), nullptr, nullptr,
+    auto input2 = g->cloneTensor(input);
+    auto sizes2 = g->cloneTensor(sizes);
+    auto op = g->addOp<ResizeObj>(input2, nullptr, std::nullopt,
+                                  sizes2, nullptr, nullptr,
                                   ResizeObj::EKeepAspectRatioPolicy::stretch,
                                   ResizeObj::ENearestMode::ceil);
     g->dataMalloc();
+    input2->copyin(vector<float>{1, 2, 3, 4, 5, 6, 7, 8});
+    sizes2->copyin(vector<uint32_t>{1, 1, 1, 3});
     runtime->run(g);
 
     EXPECT_TRUE(op->getOutput(0)->equalData(vector<float>{5, 7, 8}));
