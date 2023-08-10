@@ -6,7 +6,7 @@
 namespace infini {
 class MklBinary : public MklKernelWithoutConfig {
     dnnl::algorithm getAlgorithem(const Ref<ElementWiseObj> &op) const {
-        switch (op->getOpType()) {
+        switch (op->getOpType().underlying()) {
         case OpType::Add:
             return dnnl::algorithm::binary_add;
         case OpType::Sub:
@@ -64,7 +64,7 @@ class MklBinary : public MklKernelWithoutConfig {
 
 class MklUnary : public MklKernelWithoutConfig {
     dnnl::algorithm getAlgorithem(const Ref<UnaryObj> &op) const {
-        switch (op->getOpType()) {
+        switch (op->getOpType().underlying()) {
         case OpType::Relu:
             return dnnl::algorithm::eltwise_relu;
         case OpType::Tanh:
