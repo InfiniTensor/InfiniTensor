@@ -133,7 +133,9 @@ static int tensor_dtype(Tensor t) {
 }
 
 #ifdef USE_CUDA
-static Ref<CudaRuntimeObj> cuda_runtime() { return make_ref<CudaRuntimeObj>(); }
+static Ref<CudaRuntimeObj> cuda_runtime(int deviceId) {
+    return make_ref<CudaRuntimeObj>(deviceId);
+}
 #endif
 
 #ifdef USE_BANG
@@ -283,7 +285,9 @@ void init_graph_builder(py::module &m) {
                RuntimeObj>(m, "CpuRuntime");
 #ifdef USE_CUDA
     py::class_<CudaRuntimeObj, std::shared_ptr<CudaRuntimeObj>, RuntimeObj>(
-        m, "CudaRuntime");
+        m, "CudaRuntime")
+        .def(py::init<int>(), py::arg("device_id") = 0)
+        .def("init_comm", &CudaRuntimeObj::initComm);
 #endif
 #ifdef USE_BANG
     py::class_<BangRuntimeObj, std::shared_ptr<BangRuntimeObj>, RuntimeObj>(
