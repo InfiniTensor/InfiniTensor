@@ -25,6 +25,7 @@ void testCopy(const std::function<void(void *, size_t, DataType)> &generator,
     auto inputGpu = bangGraph->cloneTensor(inputCpu);
     auto gpuOp = bangGraph->addOp<T>(inputGpu, nullptr);
     bangGraph->dataMalloc();
+    inputGpu->setData(generator);
     bangRuntime->run(bangGraph);
     auto outputGpu = gpuOp->getOutput();
     auto outputGpu2Cpu = outputGpu->clone(cpuRuntime);
