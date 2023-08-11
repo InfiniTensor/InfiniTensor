@@ -33,8 +33,12 @@ class NcclCommunicatorObj final : public CommunicatorObj {
             ofs.write((char *)&commId, sizeof(ncclUniqueId));
 
         } else {
+            auto begin = std::chrono::steady_clock::now();
             while (!std::filesystem::exists(filePath)) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(200));
+                auto now = std::chrono::steady_clock::now();
+                _IT_ASSERT_2(now < begin + std::chrono::seconds(10),
+                             "time limit (10s) exceeded.");
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }
             std::ifstream ifs(filePath, std::ios::binary);
             ifs.read((char *)&commId, sizeof(ncclUniqueId));
