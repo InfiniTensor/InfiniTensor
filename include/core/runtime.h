@@ -83,7 +83,7 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
 
     int getDeviceId() const { return deviceId; }
 
-    virtual void initComm(int worldSize, int rank) = 0;
+    virtual void initComm(const string &name, int worldSize, int rank) = 0;
 
   protected:
     void printProfilingData(double totTime,
@@ -105,7 +105,7 @@ class CpuRuntimeObj : public RuntimeObj {
     void copyBlobToCPU(void *dst, const void *src, size_t bytes) const override;
     void copyBlobInsideRuntime(void *dst, const void *src,
                                size_t bytes) const override;
-    void initComm(int, int) override { IT_TODO_HALT(); }
+    void initComm(const string &, int, int) override { IT_TODO_HALT(); }
 };
 
 class NativeCpuRuntimeObj : public CpuRuntimeObj {

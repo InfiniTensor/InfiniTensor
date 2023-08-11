@@ -24,8 +24,8 @@ class NcclCommunicatorObj final : public CommunicatorObj {
     ncclComm_t comm;
 
   public:
-    NcclCommunicatorObj(int worldSize, int rank) {
-        const std::string filePath("./nccl_comm_id.temp");
+    NcclCommunicatorObj(const string &name, int worldSize, int rank) {
+        const std::string filePath("./" + name + "_nccl_id.bin");
         ncclUniqueId commId;
         if (rank == 0) {
             checkNcclError(ncclGetUniqueId(&commId));
@@ -40,7 +40,9 @@ class NcclCommunicatorObj final : public CommunicatorObj {
             ifs.read((char *)&commId, sizeof(ncclUniqueId));
         }
         checkNcclError(ncclCommInitRank(&comm, worldSize, commId, rank));
-        std::filesystem::remove(filePath);
+        if (rank == 0) {
+            std::filesystem::remove(filePath);
+        }
     }
 
     void finalize() { checkNcclError(ncclCommFinalize(comm)); }

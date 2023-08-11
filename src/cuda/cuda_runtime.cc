@@ -78,12 +78,12 @@ void CudaRuntimeObj::sync() const { checkCudaError(cudaDeviceSynchronize()); }
 
 string CudaRuntimeObj::toString() const { return "CUDA Runtime"; }
 
-void CudaRuntimeObj::initComm(int worldSize, int rank) {
+void CudaRuntimeObj::initComm(const string &name, int worldSize, int rank) {
     IT_ASSERT(worldSize > 0);
     IT_ASSERT(rank >= 0);
     IT_ASSERT(rank < worldSize);
 #ifdef INFINI_USE_NCCL
-    comm = std::make_unique<NcclCommunicatorObj>(worldSize, rank);
+    comm = std::make_unique<NcclCommunicatorObj>(name, worldSize, rank);
 #else
     IT_TODO_HALT_MSG("Not compiled with NCCL.");
 #endif

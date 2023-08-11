@@ -1,4 +1,5 @@
 import argparse
+import os
 import time
 import multiprocessing as mp
 from pyinfinitensor.onnx import OnnxStub, backend
@@ -41,12 +42,21 @@ def run_stub(stub: OnnxStub, inputs: np.array, n=100):
     return avg_time
 
 
-def start_worker(world_size: int, rank: int, local_rank: int, model: onnx.ModelProto):
+def start_worker(
+    dist_name: str, world_size: int, rank: int, local_rank: int, model: onnx.ModelProto
+):
     print("start worker")
     runtime = backend.CudaRuntime(local_rank)
-    runtime.init_comm(world_size, rank)
+    print("init comm")
+    runtime.init_comm(
+        dist_name,
+        world_size,
+        rank,
+    )
+    print("load model")
     stub = OnnxStub(model, runtime)
     data = np.random.randn(1, 3, 224, 224)
+    print("run model")
     avg_time = run_stub(stub, data)
     print(f"average time: {avg_time}")
 
@@ -57,10 +67,11 @@ def main():
 
     model = onnx.load(model_path)
 
+    dist_name = f"dist_{os.getpid()}"
     workers = [
         mp.Process(
             target=start_worker,
-            args=(world_size, rank, rank % nproc_per_node, model),
+            args=(dist_name, world_size, rank, rank % nproc_per_node, model),
         )
         for rank in range(world_size)
     ]

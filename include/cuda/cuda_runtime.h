@@ -75,7 +75,7 @@ class CudaRuntimeObj : public RuntimeObj {
     void runWithoutSync(const Graph &graph) const;
 
     // init communicator
-    virtual void initComm(int worldSize, int rank) final;
+    virtual void initComm(const string &name, int worldSize, int rank) final;
 
   private:
     void tune(const Graph &graph, bool profiling) const;
