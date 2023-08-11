@@ -16,8 +16,6 @@ TEST(cuDNN_Softmax, run_axis1) {
     // Build input data on CPU
     Tensor inputCpu =
         make_ref<TensorObj>(Shape{2, 4}, DataType::Float32, cpuRuntime);
-    // inputCpu->dataMalloc();
-    // inputCpu->copyin(vector<float>{0, 1, 2, 3, 10000, 10001, 10002, 10003});
 
     // GPU
     Graph cudaGraph = make_ref<GraphObj>(cudaRuntime);
@@ -43,8 +41,6 @@ TEST(cuDNN_Softmax, run_axis0) {
     // Build input data on CPU
     Tensor inputCpu =
         make_ref<TensorObj>(Shape{2, 4}, DataType::Float32, cpuRuntime);
-    // inputCpu->dataMalloc();
-    // inputCpu->copyin(vector<float>{0, 1, 2, 3, 10000, 10001, 10002, 10003});
 
     // GPU
     Graph cudaGraph = make_ref<GraphObj>(cudaRuntime);
@@ -69,8 +65,6 @@ TEST(cuDNN_Softmax2, run_axis1) {
     // Build input data on CPU
     Tensor inputCpu =
         make_ref<TensorObj>(Shape{2, 2, 2, 2}, DataType::Float32, cpuRuntime);
-    // inputCpu->dataMalloc();
-    // inputCpu->setData(IncrementalGenerator());
 
     // GPU
     Graph cudaGraph = make_ref<GraphObj>(cudaRuntime);
@@ -97,8 +91,6 @@ TEST(cuDNN_Softmax2, run_axis2) {
     // Build input data on CPU
     Tensor inputCpu =
         make_ref<TensorObj>(Shape{2, 2, 2, 2}, DataType::Float32, cpuRuntime);
-    // inputCpu->dataMalloc();
-    // inputCpu->setData(IncrementalGenerator());
 
     // GPU
     Graph cudaGraph = make_ref<GraphObj>(cudaRuntime);
@@ -125,8 +117,6 @@ TEST(cuDNN_Softmax2, run_axis3) {
     // Build input data on CPU
     Tensor inputCpu =
         make_ref<TensorObj>(Shape{2, 2, 2, 2}, DataType::Float32, cpuRuntime);
-    // inputCpu->dataMalloc();
-    // inputCpu->setData(IncrementalGenerator());
 
     // GPU
     Graph cudaGraph = make_ref<GraphObj>(cudaRuntime);

@@ -18,8 +18,6 @@ void testClip(const std::function<void(void *, size_t, DataType)> &generator,
 
     // Build input data on CPU
     Tensor inputCpu = make_ref<TensorObj>(shape, DataType::Float32, cpuRuntime);
-    // inputCpu->dataMalloc();
-    // inputCpu->setData(generator);
 
     // GPU
     Graph cudaGraph = make_ref<GraphObj>(cudaRuntime);
