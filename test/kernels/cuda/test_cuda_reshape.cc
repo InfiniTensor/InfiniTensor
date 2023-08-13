@@ -26,6 +26,7 @@ TEST(CUDA_Reshape, run) {
 
     // allocate CUDA memory
     g->dataMalloc();
+    i->setData(IncrementalGenerator());
 
     // Execute on CUDA
     cudaRuntime->run(g);
@@ -55,6 +56,7 @@ TEST(CUDA_Flatten, run) {
 
     // allocate CUDA memory
     g->dataMalloc();
+    i->setData(IncrementalGenerator());
 
     // Execute on CUDA
     cudaRuntime->run(g);
@@ -84,6 +86,7 @@ TEST(CUDA_Identity, run) {
 
     // allocate CUDA memory
     g->dataMalloc();
+    i->setData(IncrementalGenerator());
 
     // Execute on CUDA
     cudaRuntime->run(g);

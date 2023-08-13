@@ -186,9 +186,12 @@ TEST(Gather, Cuda) {
         auto cudaRuntime = make_ref<CudaRuntimeObj>();
         Graph gCuda = make_ref<GraphObj>(cudaRuntime);
 
-        auto op = gCuda->addOp<GatherObj>(
-            gCuda->cloneTensor(input), gCuda->cloneTensor(index), nullptr, 0);
+        auto inputCuda = gCuda->cloneTensor(input);
+        auto indexCuda = gCuda->cloneTensor(index);
+        auto op = gCuda->addOp<GatherObj>(inputCuda, indexCuda, nullptr, 0);
         gCuda->dataMalloc();
+        inputCuda->copyin(vector<float>{1, 2, 3, 4, 5, 6});
+        indexCuda->copyin(vector<uint32_t>{0, 1, 1, 2});
         cudaRuntime->run(gCuda);
 
         // cudaPrintTensor(op->getOutput());
@@ -207,9 +210,12 @@ TEST(Gather, Cuda) {
         auto cudaRuntime = make_ref<CudaRuntimeObj>();
         Graph gCuda = make_ref<GraphObj>(cudaRuntime);
 
-        auto op = gCuda->addOp<GatherObj>(
-            gCuda->cloneTensor(input), gCuda->cloneTensor(index), nullptr, 1);
+        auto inputCuda = gCuda->cloneTensor(input);
+        auto indexCuda = gCuda->cloneTensor(index);
+        auto op = gCuda->addOp<GatherObj>(inputCuda, indexCuda, nullptr, 1);
         gCuda->dataMalloc();
+        inputCuda->setData(IncrementalGenerator());
+        indexCuda->copyin(vector<uint32_t>{0, 2});
         cudaRuntime->run(gCuda);
 
         // cudaPrintTensor(op->getOutput());
@@ -228,9 +234,12 @@ TEST(Gather, Cuda) {
         auto cudaRuntime = make_ref<CudaRuntimeObj>();
         Graph gCuda = make_ref<GraphObj>(cudaRuntime);
 
-        auto op = gCuda->addOp<GatherObj>(
-            gCuda->cloneTensor(input), gCuda->cloneTensor(index), nullptr, 1);
+        auto inputCuda = gCuda->cloneTensor(input);
+        auto indexCuda = gCuda->cloneTensor(index);
+        auto op = gCuda->addOp<GatherObj>(inputCuda, indexCuda, nullptr, 1);
         gCuda->dataMalloc();
+        inputCuda->setData(IncrementalGenerator());
+        indexCuda->copyin(vector<uint32_t>{0, 3, 1});
         cudaRuntime->run(gCuda);
 
         // cudaPrintTensor(op->getOutput());

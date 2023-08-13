@@ -33,6 +33,8 @@ void testElementWiseCnnl(
 
     // allocate BANG memory
     g->dataMalloc();
+    a->setData(generator);
+    b->setData(generator);
 
     // Execute on BANG
     bangRuntime->run(g);

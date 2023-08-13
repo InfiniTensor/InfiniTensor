@@ -1,4 +1,5 @@
 #pragma once
+#include "core/lazy_allocator.h"
 #include "core/operator.h"
 #include "core/tensor.h"
 
@@ -9,9 +10,11 @@ class GraphObj : public Object {
     Runtime runtime;
     TensorVec tensors;
     OpVec ops;
+    LazyAllocator allocator;
 
   public:
-    explicit GraphObj(Runtime runtime) : runtime(runtime), sorted(false){};
+    explicit GraphObj(Runtime runtime)
+        : runtime(runtime), allocator(runtime), sorted(false){};
     GraphObj(Runtime runtime, OpVec ops_in);
     string toString() const override;
     Runtime getRuntime() const { return runtime; }

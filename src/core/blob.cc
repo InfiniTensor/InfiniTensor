@@ -5,7 +5,7 @@ namespace infini {
 
 BlobObj::~BlobObj() {
     // Avoid cycled inclusion
-    runtime->dealloc(ptr);
+    // destruction is performed in LazyAllocator
 }
 
 } // namespace infini

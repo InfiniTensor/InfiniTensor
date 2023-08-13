@@ -77,7 +77,7 @@ class MklMaxPool : public MklPooling {
     }
 };
 
-REGISTER_KERNEL(Device::INTELCPU, OpType::AvgPool, DataType::Float32,
+REGISTER_KERNEL(Device::INTELCPU, OpType::AveragePool, DataType::Float32,
                 MklAvgPool, "AvgPool_Mkl_Float32");
 REGISTER_KERNEL(Device::INTELCPU, OpType::MaxPool, DataType::Float32,
                 MklMaxPool, "MaxPool_Mkl_Float32");

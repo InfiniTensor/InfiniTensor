@@ -71,10 +71,16 @@ class TensorObj : public TensorBaseObj {
     void copyData(const TensorObj *src);
     void copyData(const Tensor &src) { copyData(src.get()); }
 
+    // TODO: Rename this function later, because it is confused that it will
+    // change the field data, but actually it generates data and maybe copy to
+    // device.
     // FIXME: std::fucntion copies the generator instead of passing it by ref.
     // Thus the internal state of generator cannot be updated.
     void setData(
         std::function<void(void *, size_t, DataType)> const &generator) const;
+
+    void setDataBlob(const Blob &blob);
+
     Tensor clone() const {
         auto obj = make_ref<TensorObj>(*this);
         obj->freeData();
