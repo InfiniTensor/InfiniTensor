@@ -49,6 +49,11 @@ class NcclCommunicatorObj final : public CommunicatorObj {
         }
     }
 
+    // Get the actual ncclComm_t 
+    ncclComm_t getNcclComm(){
+        return comm;
+    }
+
     void finalize() { checkNcclError(ncclCommFinalize(comm)); }
 
     ~NcclCommunicatorObj() final {

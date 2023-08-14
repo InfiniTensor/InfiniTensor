@@ -18,21 +18,22 @@ void testUnary(const std::function<void(void *, size_t, DataType)> &generator,
 
     // Build input data on CPU
     Tensor inputCpu = make_ref<TensorObj>(shape, DataType::Float32, cpuRuntime);
-    inputCpu->dataMalloc();
-    inputCpu->setData(generator);
 
     // GPU
     Graph cudaGraph = make_ref<GraphObj>(cudaRuntime);
     auto inputGpu = cudaGraph->cloneTensor(inputCpu);
     auto gpuOp = cudaGraph->addOp<T>(inputGpu, nullptr);
     cudaGraph->dataMalloc();
+    inputGpu->setData(generator);
     cudaRuntime->run(cudaGraph);
     auto outputGpu = gpuOp->getOutput();
     auto outputGpu2Cpu = outputGpu->clone(cpuRuntime);
     // CPU
     Graph cpuGraph = make_ref<GraphObj>(cpuRuntime);
     auto cpuOp = cpuGraph->addOp<T>(inputCpu, nullptr);
+    cpuGraph->addTensor(inputCpu);
     cpuGraph->dataMalloc();
+    inputCpu->setData(generator);
     cpuRuntime->run(cpuGraph);
     auto outputCpu = cpuOp->getOutput();
     // Check

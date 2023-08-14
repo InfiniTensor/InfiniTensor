@@ -19,13 +19,12 @@ void testMatmulMkl(
     Graph gCpu = make_ref<GraphObj>(cpuRuntime);
     auto ACpu = gCpu->addTensor(shapeA, DataType::Float32);
     auto BCpu = gCpu->addTensor(shapeB, DataType::Float32);
-    gCpu->dataMalloc();
-    ACpu->setData(generatorA);
-    BCpu->setData(generatorB);
 
     auto matmul = gCpu->addOp<MatmulObj>(ACpu, BCpu, nullptr, transA, transB);
 
     gCpu->dataMalloc();
+    ACpu->setData(generatorA);
+    BCpu->setData(generatorB);
     cpuRuntime->run(gCpu);
     EXPECT_TRUE(matmul->getOutput()->equalData(ansVec));
 }
