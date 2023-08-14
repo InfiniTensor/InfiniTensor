@@ -43,10 +43,8 @@ class NcclCommunicatorObj final : public CommunicatorObj {
         std::filesystem::remove(filePath);
     }
 
-    // Get the actual ncclComm_t 
-    ncclComm_t getNcclComm(){
-        return comm;
-    }
+    // Get the actual ncclComm_t
+    ncclComm_t getNcclComm() { return comm; }
 
     void finalize() { checkNcclError(ncclCommFinalize(comm)); }
 
