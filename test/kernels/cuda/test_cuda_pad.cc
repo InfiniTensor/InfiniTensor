@@ -13,8 +13,6 @@ TEST(Pad, Cuda) {
     // Build input data on CPU
     Tensor icpu =
         make_ref<TensorObj>(Shape{1, 2, 3, 2}, DataType::Float32, cpuRuntime);
-    icpu->dataMalloc();
-    icpu->setData(IncrementalGenerator());
 
     // Build CUDA graph;
     Graph g = make_ref<GraphObj>(cudaRuntime);
@@ -24,6 +22,7 @@ TEST(Pad, Cuda) {
 
     // allocate CUDA memory
     g->dataMalloc();
+    i->setData(IncrementalGenerator());
 
     // Execute on CUDA
     cudaRuntime->run(g);
