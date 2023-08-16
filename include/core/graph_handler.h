@@ -67,6 +67,12 @@ class GraphHandlerObj {
     Tensor pad(Tensor input, Tensor output, const vector<int> &pads,
                const optional<vector<int>> &axes);
 
+    Tensor allReduceSum(Tensor input, Tensor output);
+    Tensor allReduceProd(Tensor input, Tensor output);
+    Tensor allReduceMin(Tensor input, Tensor output);
+    Tensor allReduceMax(Tensor input, Tensor output);
+    Tensor allReduceAvg(Tensor input, Tensor output);
+
     //------ modifiers
 
     inline bool topo_sort() { return g->topo_sort(); }

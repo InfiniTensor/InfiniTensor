@@ -1,4 +1,5 @@
 ﻿#include "core/graph_handler.h"
+#include "operators/all_reduce.h"
 #include "operators/batch_norm.h"
 #include "operators/concat.h"
 #include "operators/conv.h"
@@ -290,6 +291,51 @@ Tensor GraphHandlerObj::pad(Tensor input, Tensor output,
     } else {
         return g->addOp<PadObj>(std::move(input), output, pads, axes)
             ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::allReduceSum(Tensor input, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<AllReduceSumObj>(std::move(input), output);
+        return output;
+    } else {
+        return g->addOp<AllReduceSumObj>(std::move(input), output)->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::allReduceProd(Tensor input, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<AllReduceProdObj>(std::move(input), output);
+        return output;
+    } else {
+        return g->addOp<AllReduceProdObj>(std::move(input), output)->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::allReduceMin(Tensor input, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<AllReduceMinObj>(std::move(input), output);
+        return output;
+    } else {
+        return g->addOp<AllReduceMinObj>(std::move(input), output)->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::allReduceMax(Tensor input, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<AllReduceMaxObj>(std::move(input), output);
+        return output;
+    } else {
+        return g->addOp<AllReduceMaxObj>(std::move(input), output)->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::allReduceAvg(Tensor input, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<AllReduceAvgObj>(std::move(input), output);
+        return output;
+    } else {
+        return g->addOp<AllReduceAvgObj>(std::move(input), output)->getOutput();
     }
 }
 
