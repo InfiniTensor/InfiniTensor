@@ -1,4 +1,5 @@
 #include "core/graph.h"
+#include "graph/graph.h"
 #include <algorithm>
 #include <queue>
 
@@ -121,6 +122,8 @@ void GraphObj::optimize() {
             break;
         }
     }
+    using namespace refactor;
+    GraphTopo<graph::NodeInfo, graph::EdgeInfo> topo;
 }
 
 void GraphObj::dataMalloc() {

@@ -9,6 +9,7 @@ option(USE_INTELCPU "Support INTELCPU" OFF)
 option(USE_BACKTRACE "Print backtrace on exception and segmentation fault" ON)
 option(USE_PROTOBUF "Serialize and deserialize tensors" OFF)
 option(BUILD_TEST "Build tests" OFF)
+option(USE_REFACTOR_GRAPH "Use refactor graph" ON)
 
 cmake_dependent_option(BUILD_TEST_CORE "Build tests for core components" ON BUILD_TEST OFF)
 cmake_dependent_option(BUILD_TEST_PET "Build tests for PET" OFF BUILD_TEST OFF)
@@ -59,6 +60,20 @@ if(USE_PROTOBUF)
   target_link_libraries(tensor_proto PUBLIC ${PROTOBUF_LIBRARIES})
 endif()
 
+if(USE_REFACTOR_GRAPH)
+set(BUILD_SHARED ON CACHE BOOL "build shared refactor graph")
+add_subdirectory(RefactorGraph)
+
+include_directories(RefactorGraph/3rd-party/fmt/include)
+include_directories(RefactorGraph/3rd-party/googletest/googletest/include)
+include_directories(RefactorGraph/3rd-party/fmtlog)
+add_definitions(-D FMTLOG_HEADER_ONLY)
+
+include_directories(RefactorGraph/src/00common/include)
+include_directories(RefactorGraph/src/01graph_topo/include)
+include_directories(RefactorGraph/src/03graph/include)
+endif()
+
 include_directories(include)
 # Pybind11
 add_subdirectory(3rd-party/pybind11)
@@ -88,14 +103,13 @@ if(BUILD_TEST)
   set(INSTALL_GTEST
       OFF
       CACHE BOOL "Do not install gtest" FORCE)
-  add_subdirectory(3rd-party/googletest)
-  include_directories(3rd-party/googletest/googletest/include)
+  # add_subdirectory(RefactorGraph/3rd-party/googletest)
+  # include_directories(RefactorGraph/3rd-party/googletest/googletest/include)
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Werror -Wno-error=deprecated-declarations")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -UNDEBUG") # Enable assertion
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -UNDEBUG") # Enable assertion
-
 
 # Source files
 file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/kernels/cpu/*.cc src/nnet/*.cc src/operators/*.cc src/utils/*.cc)
@@ -121,6 +135,10 @@ if(USE_PROTOBUF)
   target_link_libraries(InfiniTensor tensor_proto)
 endif()
 
+if(USE_REFACTOR_GRAPH)
+target_link_libraries(InfiniTensor graph)
+endif()
+
 target_link_libraries(InfiniTensor pybind11::embed)
 
 # TVM backend
@@ -135,7 +153,7 @@ target_link_libraries(backend PRIVATE InfiniTensor)
 
 if(USE_BACKTRACE)
   add_definitions(-D BACKWARD_TRACE)
-  add_subdirectory(3rd-party/backward-cpp)
+  # add_subdirectory(3rd-party/backward-cpp)
   include_directories(3rd-party/backward-cpp)
   add_backward(InfiniTensor)
   target_link_libraries(InfiniTensor dw)

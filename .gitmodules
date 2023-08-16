@@ -13,3 +13,6 @@
 [submodule "example"]
 	path = example
 	url = git@github.com:wanghailu0717/NNmodel.git
+[submodule "RefactorGraph"]
+	path = RefactorGraph
+	url = git@github.com:InfiniTensor/RefactorGraph.git
