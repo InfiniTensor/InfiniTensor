@@ -116,14 +116,10 @@ bool GraphObj::topo_sort() {
 }
 
 void GraphObj::optimize() {
-    for (auto &op : ops) {
-        switch (op->getOpType().underlying()) {
-        default:
-            break;
-        }
-    }
     using namespace refactor;
     GraphTopo<graph::NodeInfo, graph::EdgeInfo> topo;
+    // TODO: 构造 GraphTopo 和 Graph，再拆除，
+    //       将结果直接存放在这个 `GraphOhj` 里规避 Runtime 等不同成员的问题
 }
 
 void GraphObj::dataMalloc() {
