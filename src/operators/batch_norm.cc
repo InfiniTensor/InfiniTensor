@@ -21,9 +21,10 @@ BatchNormObj::inferShape(const TensorVec &inputs) const {
     auto scale = inputs[3];
     auto bias = inputs[4];
     auto c = std::vector<int>{input->getDims()[1]};
-    if (mean->getDims() != c || var->getDims() != c || scale->getDims() != c ||
-        bias->getDims() != c)
-        return {};
+    IT_ASSERT(mean->getRank() == 1 && mean->getDims() == c);
+    IT_ASSERT(var->getRank() == 1 && var->getDims() == c);
+    IT_ASSERT(scale->getRank() == 1 && scale->getDims() == c);
+    IT_ASSERT(bias->getRank() == 1 && bias->getDims() == c);
     return {{input->getDims()}};
 }
 

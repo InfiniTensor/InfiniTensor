@@ -9,8 +9,8 @@ DetObj::DetObj(GraphObj *graph, Tensor input, Tensor output, Mode mode)
 optional<vector<Shape>> DetObj::inferShape(const TensorVec &inputs) const {
     const auto A = inputs[0];
     auto input = A->getDims();
-    int length = input.size();
-    if (length == 2) {
+    int rank = A->getRank();
+    if (rank == 2) {
         std::vector<int> output = {1};
         return {{output}};
     } else {

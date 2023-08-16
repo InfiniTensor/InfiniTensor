@@ -27,4 +27,17 @@ float fp16_to_float(const uint16_t x) {
     u.u32 = r;
     return u.f32;
 }
+
+uint16_t float_to_bfp16(const float x) {
+    Uf32 u;
+    u.f32 = x;
+    return u.u32 >> 16;
+}
+
+float bfp16_to_fp32(const uint16_t x) {
+    Uf32 u;
+    u.u32 = x << 16;
+    return u.f32;
+}
+
 } // namespace infini

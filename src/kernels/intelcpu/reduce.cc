@@ -18,16 +18,16 @@ class MklReduce : public MklKernelWithoutConfig {
 
         //  create user memory that describes data layout in the buffers
         std::vector<dnnl_dim_t> inDims, inStrides;
-        for (size_t i = 0; i < op->getInputs(0)->getDims().size(); ++i) {
+        for (size_t i = 0; i < op->getInputs(0)->getRank(); ++i) {
             inDims.push_back(op->getInputs(0)->getDims()[i]);
             inStrides.push_back(op->getInputs(0)->getStride()[i]);
         }
 
-        std::vector<dnnl_dim_t> oDims(op->getInputs(0)->getDims().size(), 0),
-            oStrides(op->getInputs(0)->getDims().size(), 1);
+        std::vector<dnnl_dim_t> oDims(op->getInputs(0)->getRank(), 0),
+            oStrides(op->getInputs(0)->getRank(), 1);
         if (!op->getKeepDims()) {
             oDims = inDims;
-            for (size_t i = 0; i < op->getInputs(0)->getDims().size(); ++i) {
+            for (size_t i = 0; i < op->getInputs(0)->getRank(); ++i) {
                 if (op->isReduced(i)) {
                     oDims[i] = 1;
                 }
@@ -38,7 +38,7 @@ class MklReduce : public MklKernelWithoutConfig {
                 stride *= oDims[i];
             }
         } else {
-            for (size_t i = 0; i < op->getOutput(0)->getDims().size(); ++i) {
+            for (size_t i = 0; i < op->getOutput(0)->getRank(); ++i) {
                 oDims[i] = op->getOutput(0)->getDims()[i];
                 oStrides[i] = op->getOutput(0)->getStride()[i];
             }

@@ -66,6 +66,7 @@ class GraphHandlerObj {
                  const optional<vector<int>> &steps);
     Tensor pad(Tensor input, Tensor output, const vector<int> &pads,
                const optional<vector<int>> &axes);
+    Tensor cast(Tensor input, Tensor output, int to);
 
     //------ modifiers
 

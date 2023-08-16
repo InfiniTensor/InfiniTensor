@@ -7,7 +7,7 @@ class PadSliceCudaCompute {
   public:
     void do_compute(Tensor partTensor, Tensor wholeTensor, const Shape &begNos,
                     bool isPad) const {
-        int nDims = partTensor->getDims().size();
+        int nDims = partTensor->getRank();
         IT_ASSERT(MAX_DIM >= nDims);
         TransMetaData metadata;
         for (int i = 0; i < nDims; i++) {
