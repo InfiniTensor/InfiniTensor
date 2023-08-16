@@ -2,6 +2,7 @@
 #include "operators/batch_norm.h"
 #include "operators/concat.h"
 #include "operators/conv.h"
+#include "operators/expand.h"
 #include "operators/gather.h"
 #include "operators/matmul.h"
 #include "operators/pad.h"
@@ -97,8 +98,8 @@ void export_values(py::module &m) {
         .VALUE(OpType, Dropout)
         .VALUE(OpType, Cast)
         .VALUE(OpType, Sqrt)
-		.VALUE(OpType, Expand)
-		.VALUE(OpType, Erf)
+        .VALUE(OpType, Expand)
+        .VALUE(OpType, Erf)
         .VALUE(OpType, Where)
         .export_values();
 
@@ -231,12 +232,12 @@ static vector<int64_t> reshape_shape_of(Operator op) {
 }
 
 static vector<int64_t> expand_shape_of(Operator op) {
-	IT_ASSERT(op->getOpType() == OpType::Expand);
-	auto shape = dynamic_cast<const ExpandObj *>(op.get())->getShape();
-	vector<int64_t> ans(shape.size());
-	std::transform(shape.begin(), shape.end(), ans.begin(),
-					[](auto x) { return static_cast<int64_t>(x); });
-	return ans;
+    IT_ASSERT(op->getOpType() == OpType::Expand);
+    auto shape = dynamic_cast<const ExpandObj *>(op.get())->getShape();
+    vector<int64_t> ans(shape.size());
+    std::transform(shape.begin(), shape.end(), ans.begin(),
+                   [](auto x) { return static_cast<int64_t>(x); });
+    return ans;
 }
 
 static vector<int64_t> pad_pads_of(Operator op) {
@@ -289,6 +290,7 @@ void export_functions(py::module &m) {
         .FUNCTION(reduce_mean_attrs_of)
         .FUNCTION(tensor_dtype)
         .FUNCTION(reshape_shape_of)
+        .FUNCTION(expand_shape_of)
         .FUNCTION(pad_pads_of)
         .FUNCTION(transpose_permute_of)
         .FUNCTION(concat_axis_of)
@@ -372,7 +374,7 @@ void init_graph_builder(py::module &m) {
         .def("slice", &Handler::slice, policy::move)
         .def("pad", &Handler::pad, policy::move)
         .def("cast", &Handler::cast, policy::move)
-		.def("expand", &Handler::expand, policy::move)
+        .def("expand", &Handler::expand, policy::move)
         .def("sqrt", &Handler::sqrt, policy::move)
         .def("erf", &Handler::erf, policy::move)
         .def("where", &Handler::where, policy::move)

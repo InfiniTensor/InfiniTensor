@@ -1,4 +1,4 @@
-﻿﻿import backend
+﻿import backend
 from onnx import (
     ModelProto,
     TensorProto,
@@ -409,7 +409,8 @@ class OnnxStub:
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
                         next(
-                            (attr.i for attr in node.attribute if attr.name == "axis"), 1
+                            (attr.i for attr in node.attribute if attr.name == "axis"),
+                            1,
                         ),
                     )
                 elif node.op_type == "PRelu":
@@ -517,7 +518,8 @@ class OnnxStub:
                         tensors[node.input[1]],
                         tensors.get(node.output[0]),
                         next(
-                            (attr.i for attr in node.attribute if attr.name == "axis"), 0
+                            (attr.i for attr in node.attribute if attr.name == "axis"),
+                            0,
                         ),
                     )
                 elif node.op_type == "ReduceMean":

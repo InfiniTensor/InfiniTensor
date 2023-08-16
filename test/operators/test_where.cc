@@ -39,7 +39,7 @@ TEST(Where, ShapeInference) {
         Tensor y = g->addTensor({1, 1, 224, 224}, DataType::Float32);
         Tensor con = g->addTensor({2, 1, 1, 1, 224}, DataType::Bool);
         auto op = g->addOp<WhereObj>(x, y, con, nullptr);
-        EXPECT_EQ(op->getOutput()->getDims(), (Shape{1, 12, 224, 224}));
+        EXPECT_EQ(op->getOutput()->getDims(), (Shape{2, 1, 12, 224, 224}));
     }
 }
 

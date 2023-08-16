@@ -394,6 +394,7 @@ static CastType inferCastType(Tensor input, int to) {
                          iType.toString() + " output_type is " +
                          oType.toString());
     }
+}
 
 static DataType dtype_repr_convert(int dtype) {
     switch (dtype) {
