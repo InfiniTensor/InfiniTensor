@@ -377,6 +377,11 @@ class OnnxStub:
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
                     )
+                elif node.op_type == "Sqrt":
+                    tensors[node.output[0]] = self.handler.sqrt(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
                 elif node.op_type == "Shape":
                     tensors[node.output[0]] = self.handler.shape(
                         tensors[node.input[0]],
@@ -500,7 +505,7 @@ class OnnxStub:
                         tensors[node.input[1]],
                         tensors.get(node.output[0]),
                         next(
-                            (attr.i for attr in node.attribute if attr.name == "axis")
+                            (attr.i for attr in node.attribute if attr.name == "axis"), 0
                         ),
                     )
                 elif node.op_type == "ReduceMean":
@@ -521,7 +526,8 @@ class OnnxStub:
                                 attr.i
                                 for attr in node.attribute
                                 if attr.name == "keepdims"
-                            )
+                            ),
+                            1
                         )
                         != 0,
                     )
