@@ -17,7 +17,7 @@ class MklPooling : public MklKernelWithoutConfig {
         //  create user memory that describes data layout in the buffers
         auto [n, c, h, w, r, s] = op->getNCHWRS();
         auto [ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
-        auto nDim = op->getOutput()->getDims().size();
+        auto nDim = op->getOutput()->getRank();
         auto oh = op->getOutput()->getDims()[nDim - 2];
         auto ow = op->getOutput()->getDims()[nDim - 1];
 

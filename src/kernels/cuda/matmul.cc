@@ -51,8 +51,8 @@ class matmulCublas : public Kernel {
         cublasStatus_t stat;
         if (b > 1) {
             // Support batch broadcast with zero stride
-            int dimA = op->getInputs(0)->getDims().size();
-            int dimB = op->getInputs(1)->getDims().size();
+            int dimA = op->getInputs(0)->getRank();
+            int dimB = op->getInputs(1)->getRank();
             long long strideA =
                 (dimA == 2 ||
                  (dimA == 3 && op->getInputs(0)->getDims()[0] == 1))

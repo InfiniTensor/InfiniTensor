@@ -95,6 +95,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, Abs)
         .VALUE(OpType, Resize)
         .VALUE(OpType, Dropout)
+        .VALUE(OpType, Cast)
         .export_values();
 
 #undef VALUE
@@ -129,6 +130,8 @@ static int tensor_dtype(Tensor t) {
         return 12;
     if (t->getDType() == DataType::UInt64)
         return 13;
+    if (t->getDType() == DataType::BFloat16)
+        return 16;
     IT_ASSERT(false, "Unsupported data type");
 }
 
@@ -245,6 +248,13 @@ static int flatten_axis_of(Operator op) {
     return dynamic_cast<const FlattenObj *>(op.get())->getAxis();
 }
 
+static int cast_to_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Cast);
+    auto castOutputDtype =
+        dynamic_cast<const CastObj *>(op.get())->getOutputDataType();
+    return castOutputDtype.getIndex();
+}
+
 void export_functions(py::module &m) {
 #define FUNCTION(NAME) def(#NAME, &NAME)
     m.def("cpu_runtime", &NativeCpuRuntimeObj::getInstance)
@@ -274,7 +284,8 @@ void export_functions(py::module &m) {
         .FUNCTION(concat_axis_of)
         .FUNCTION(split_axis_of)
         .FUNCTION(gather_axis_of)
-        .FUNCTION(flatten_axis_of);
+        .FUNCTION(flatten_axis_of)
+        .FUNCTION(cast_to_of);
 #undef FUNCTION
 }
 
@@ -356,6 +367,7 @@ void init_graph_builder(py::module &m) {
         .def("allReduceMin", &Handler::allReduceMin, policy::move)
         .def("allReduceMax", &Handler::allReduceMax, policy::move)
         .def("allReduceAvg", &Handler::allReduceAvg, policy::move)
+        .def("cast", &Handler::cast, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)
         .def("optimize", &Handler::optimize, policy::automatic)
         .def("operators", &Handler::operators, policy::move)

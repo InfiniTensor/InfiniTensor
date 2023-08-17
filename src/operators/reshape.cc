@@ -1,4 +1,5 @@
 #include "operators/reshape.h"
+#include "utils/operator_utils.h"
 
 namespace infini {
 ReshapeObj::ReshapeObj(GraphObj *graph, Tensor input, Tensor output, Shape dims)
@@ -8,10 +9,10 @@ ReshapeObj::ReshapeObj(GraphObj *graph, Tensor input, Tensor output, Shape dims)
 
 optional<vector<Shape>> ReshapeObj::inferShape(const TensorVec &inputs) const {
     size_t size = 1;
-    for (size_t i = 0; i < dims.size(); ++i)
+    for (size_t i = 0; i < dims.size(); ++i) {
         size *= dims.at(i);
-    if (size != inputs[0]->size())
-        return {};
+    }
+    IT_ASSERT(size == inputs[0]->size());
 
     return {{dims}};
 }
@@ -41,22 +42,18 @@ vector<int> ReshapeObj::getOpAttrVector() const {
 
 FlattenObj::FlattenObj(GraphObj *graph, Tensor input, Tensor output, int _axis)
     : OperatorObj(OpType::Flatten, {input}, {output}) {
-    if (_axis >= 0 && (size_t)_axis < input->getDims().size())
-        axis = _axis;
-    else if (_axis <= -1 && (size_t)_axis >= -input->getDims().size())
-        axis = _axis + input->getDims().size();
-    else
-        IT_ASSERT(0);
+    int rank = input->getRank();
+    axis = get_real_axis(_axis, rank);
     IT_ASSERT(checkValid(graph));
 }
 
 optional<vector<Shape>> FlattenObj::inferShape(const TensorVec &inputs) const {
     int sizeB = 1, sizeE = 1;
     auto dims = getInputs(0)->getDims();
-    int ndim = dims.size();
-    for (int i = 0; i < ndim; ++i)
+    int rank = getInputs(0)->getRank();
+    for (int i = 0; i < rank; ++i) {
         ((i < axis) ? sizeB : sizeE) *= dims.at(i);
-
+    }
     return {{{sizeB, sizeE}}};
 }
 

@@ -49,7 +49,6 @@ TEST(NCCL, multi_gpu_communication) {
     for (int i = 0; i < num_threads; ++i) {
         ASSERT_EQ(data[i], 5.0f);
     }
-
 }
 
 } // namespace infini

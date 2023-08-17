@@ -19,6 +19,7 @@
 namespace infini {
 
 static DataType dtype_repr_convert(int);
+static CastType inferCastType(Tensor input, int to);
 
 Tensor GraphHandlerObj::tensor(Shape dims, int dtype) {
     return g->addTensor(std::move(dims), dtype_repr_convert(dtype));
@@ -308,7 +309,8 @@ Tensor GraphHandlerObj::allReduceProd(Tensor input, Tensor output) {
         g->addOpWithOutputs<AllReduceProdObj>(std::move(input), output);
         return output;
     } else {
-        return g->addOp<AllReduceProdObj>(std::move(input), output)->getOutput();
+        return g->addOp<AllReduceProdObj>(std::move(input), output)
+            ->getOutput();
     }
 }
 
@@ -336,6 +338,76 @@ Tensor GraphHandlerObj::allReduceAvg(Tensor input, Tensor output) {
         return output;
     } else {
         return g->addOp<AllReduceAvgObj>(std::move(input), output)->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::cast(Tensor input, Tensor output, int to) {
+    if (output) {
+        g->addOpWithOutputs<CastObj>(std::move(input), output,
+                                     inferCastType(input, to));
+        return output;
+    } else {
+        return g
+            ->addOp<CastObj>(std::move(input), output, inferCastType(input, to))
+            ->getOutput();
+    }
+}
+
+static CastType inferCastType(Tensor input, int to) {
+    auto iType = input->getDType();
+    auto oType = DataType(to);
+    if (iType == DataType::Float32 && oType == DataType::Float16) {
+        return CastType::Float2Float16;
+    } else if (iType == DataType::Float32 && oType == DataType::Int64) {
+        return CastType::Float2Int64;
+    } else if (iType == DataType::Float32 && oType == DataType::Int32) {
+        return CastType::Float2Int32;
+    } else if (iType == DataType::Float32 && oType == DataType::Int16) {
+        return CastType::Float2Int16;
+    } else if (iType == DataType::Float32 && oType == DataType::Int8) {
+        return CastType::Float2Int8;
+    } else if (iType == DataType::Float32 && oType == DataType::BFloat16) {
+        return CastType::Float2BFloat16;
+    } else if (iType == DataType::Int32 && oType == DataType::Float32) {
+        return CastType::Int322Float;
+    } else if (iType == DataType::Int32 && oType == DataType::Int8) {
+        return CastType::Int322Int8;
+    } else if (iType == DataType::Int32 && oType == DataType::Int16) {
+        return CastType::Int322Int16;
+    } else if (iType == DataType::Int32 && oType == DataType::Int64) {
+        return CastType::Int322Int64;
+    } else if (iType == DataType::Int16 && oType == DataType::Int32) {
+        return CastType::Int162Int32;
+    } else if (iType == DataType::Int16 && oType == DataType::Float32) {
+        return CastType::Int162Float;
+    } else if (iType == DataType::Int8 && oType == DataType::Float32) {
+        return CastType::Int82Float;
+    } else if (iType == DataType::Int8 && oType == DataType::Int16) {
+        return CastType::Int82Int16;
+    } else if (iType == DataType::Int8 && oType == DataType::Int32) {
+        return CastType::Int82Int32;
+    } else if (iType == DataType::UInt8 && oType == DataType::Int32) {
+        return CastType::Uint82Int32;
+    } else if (iType == DataType::UInt8 && oType == DataType::Float32) {
+        return CastType::Uint82Float;
+    } else if (iType == DataType::UInt8 && oType == DataType::Int64) {
+        return CastType::Uint82Int64;
+    } else if (iType == DataType::Int64 && oType == DataType::Float32) {
+        return CastType::Int642Float;
+    } else if (iType == DataType::Int64 && oType == DataType::UInt32) {
+        return CastType::Int642Uint32;
+    } else if (iType == DataType::Int64 && oType == DataType::Int32) {
+        return CastType::Int642Int32;
+    } else if (iType == DataType::UInt32 && oType == DataType::Int64) {
+        return CastType::Uint322Int64;
+    } else if (iType == DataType::Float16 && oType == DataType::Float32) {
+        return CastType::Float162Float;
+    } else if (iType == DataType::BFloat16 && oType == DataType::Float32) {
+        return CastType::BFloat162Float;
+    } else {
+        IT_TODO_HALT_MSG("Unsupported CastType : input_type is " +
+                         iType.toString() + " output_type is " +
+                         oType.toString());
     }
 }
 
@@ -369,6 +441,8 @@ static DataType dtype_repr_convert(int dtype) {
         return DataType::UInt32;
     case 13:
         return DataType::UInt64;
+    case 16:
+        return DataType::BFloat16;
     default:
         IT_ASSERT(false, "Unsupported data type");
     }

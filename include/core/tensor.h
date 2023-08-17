@@ -36,6 +36,7 @@ class TensorObj : public TensorBaseObj {
     size_t getBytes() const { return _size * dtype.getSize(); }
 
     Shape getDims() const { return shape; }
+    size_t getRank() const { return shape.size(); }
     vector<size_t> getStride() const;
     size_t getOffset(const vector<int> &ds) const;
     void dataMalloc();
@@ -330,7 +331,7 @@ class TensorObj : public TensorBaseObj {
     //     }
 
     //     void initSplittingPoints() {
-    //     splittingPoints.resize(getDims().size()); }
+    //     splittingPoints.resize(getRank()); }
 
     //     void printShape();
 };
