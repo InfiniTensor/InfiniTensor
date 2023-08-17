@@ -5,6 +5,7 @@ import multiprocessing as mp
 from pyinfinitensor.onnx import OnnxStub, backend
 import onnx
 import numpy as np
+from parallel import parallel_model
 
 
 def parse_args():
@@ -37,6 +38,7 @@ def run_stub(stub: OnnxStub, inputs: np.array, n=100):
         stub.run()
     end = time.time()
     outputs = np.array(next(stub.outputs.items().__iter__())[1].copyout_float())
+    print(outputs.shape)
 
     avg_time = (end - begin) / n
     return avg_time
@@ -53,6 +55,8 @@ def start_worker(
         world_size,
         rank,
     )
+    model = parallel_model(model, world_size, rank)
+    onnx.save(model, f"dist_model_rank{rank}.onnx")
     print("load model")
     stub = OnnxStub(model, runtime)
     data = np.random.randn(1, 3, 224, 224)
