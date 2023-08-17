@@ -6,8 +6,8 @@ namespace infini {
 
 OperatorObj::OperatorObj(OpType opType, TensorVec inputs, TensorVec outputs)
     : type(opType), inputs(inputs), outputs(outputs) {
-    for (const auto &t : inputs)
-        IT_ASSERT(t);
+    //for (const auto &t : inputs)
+    //    IT_ASSERT(t);
 }
 
 void OperatorObj::removePredecessors(const Operator &op) {

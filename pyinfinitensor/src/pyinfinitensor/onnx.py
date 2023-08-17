@@ -571,6 +571,15 @@ class OnnxStub:
                         tensors.get(node.output[0]),
                         next((attr.i for attr in node.attribute if attr.name == "to")),
                     )
+                elif node.op_type == "Constant":
+                    print("=================")
+                    print(type(next((attr.t for attr in node.attribute if attr.name == "value"))))
+                    tensors[node.output[0]] = self.handler.constant(
+                        tensors.get(node.output[0]),
+                        self.handler.tensor(next((attr.t for attr in node.attribute if attr.name == "value"))),
+                    )
+                    
+
                 else:
                     raise Exception('Unsupported operator "{}"'.format(node.op_type))
                 new_node_name.append(node.name)

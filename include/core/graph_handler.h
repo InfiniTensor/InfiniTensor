@@ -67,7 +67,8 @@ class GraphHandlerObj {
     Tensor pad(Tensor input, Tensor output, const vector<int> &pads,
                const optional<vector<int>> &axes);
     Tensor cast(Tensor input, Tensor output, int to);
-
+    Tensor constant(Tensor output);
+    //Tensor constantvalue(Tensor input, Tensor output, Tensor value);
     //------ modifiers
 
     inline bool topo_sort() { return g->topo_sort(); }

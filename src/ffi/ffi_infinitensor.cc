@@ -365,7 +365,7 @@ void init_graph_builder(py::module &m) {
         .def("get_perf_time", &Handler::get_perf_time, policy::automatic)
         .def("tune", &Handler::tune, policy::automatic)
         .def("run", &Handler::run, policy::automatic)
-        .def("get_perf_time", &Handler::get_perf_time, policy::automatic);
+        .def("constant", &Handler::constant, policy::automatic);
 }
 
 } // namespace infini

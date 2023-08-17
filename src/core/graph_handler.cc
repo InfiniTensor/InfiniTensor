@@ -14,6 +14,7 @@
 #include "operators/split.h"
 #include "operators/transpose.h"
 #include "operators/unary.h"
+#include "operators/constant.h"
 
 namespace infini {
 
@@ -306,6 +307,26 @@ Tensor GraphHandlerObj::cast(Tensor input, Tensor output, int to) {
     }
 }
 
+Tensor GraphHandlerObj::constant(Tensor output, Tensor value) {
+    if (output) {
+        g->addOpWithOutputs<ConstantObj>(output, std::move(value));
+        return output;
+    } else {
+        return g->addOp<ConstantObj>(output, std::move(value))
+            ->getOutput();
+    }
+}
+/***
+Tensor GraphHandlerObj::constantvalue(Tensor input, Tensor output, Tensor value) {
+    if (output) {
+        g->addOpWithOutputs<ConstantTensorValueObj>(nullptr, output, value);
+        return output;
+    }else {
+        return g->addOp<ConstantTensorValueObj>(nullptr, output, value)
+            ->getOutput();
+
+}
+***/
 static CastType inferCastType(Tensor input, int to) {
     auto iType = input->getDType();
     auto oType = DataType(to);

@@ -44,6 +44,7 @@ struct OpType {
         Compress,
         Concat,
         ConcatFromSequence,
+        Constant,
         ConstantOfShape,
         Conv,          // ComputationIntensive
         ConvInteger,   // ComputationIntensive
