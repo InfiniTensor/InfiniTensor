@@ -596,6 +596,11 @@ class OnnxStub:
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
                     )
+                elif node.op_type == "AllGather":
+                    tensors[node.output[0]] = self.handler.allGather(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
                 else:
                     raise Exception('Unsupported operator "{}"'.format(node.op_type))
                 new_node_name.append(node.name)

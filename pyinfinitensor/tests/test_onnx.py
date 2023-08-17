@@ -366,7 +366,17 @@ class TestStringMethods(unittest.TestCase):
         graph = make_graph([allReduceAvg], "allReduceAvg", [input], [output])
         model = make_model(graph)
         from_onnx(model, backend.cpu_runtime())
-        
+    
+    def test_allGather(self):
+        input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 2, 4])
+        allGather = make_node(
+            "AllGather", ["input"], ["output"], name="allGather"
+        )
+        graph = make_graph([allGather], "allGather", [input], [output])
+        model = make_model(graph)
+        from_onnx(model, backend.cpu_runtime())
+
     # see <https://onnx.ai/onnx/intro/python.html#a-simple-example-a-linear-regression>
     def test_linear(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 2, 3])

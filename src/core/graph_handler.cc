@@ -1,4 +1,5 @@
 ﻿#include "core/graph_handler.h"
+#include "operators/all_gather.h"
 #include "operators/all_reduce.h"
 #include "operators/batch_norm.h"
 #include "operators/concat.h"
@@ -338,6 +339,15 @@ Tensor GraphHandlerObj::allReduceAvg(Tensor input, Tensor output) {
         return output;
     } else {
         return g->addOp<AllReduceAvgObj>(std::move(input), output)->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::allGather(Tensor input, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<AllGatherObj>(std::move(input), output);
+        return output;
+    } else {
+        return g->addOp<AllGatherObj>(std::move(input), output)->getOutput();
     }
 }
 
