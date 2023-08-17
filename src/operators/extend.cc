@@ -1,16 +1,18 @@
 #include "operators/extend.h"
+#include "utils/operator_utils.h"
 
 namespace infini {
 
 ExtendObj::ExtendObj(GraphObj *graph, Tensor input, Tensor output, int dim,
                      int num)
     : OperatorObj(OpType::Extend, {input}, {output}), dim(dim), num(num) {
+    int rank = input->getRank();
+    dim = get_real_axis(dim, rank);
     IT_ASSERT(checkValid(graph));
 }
 
 optional<vector<Shape>> ExtendObj::inferShape(const TensorVec &inputs) const {
     auto ret = inputs[0]->getDims();
-    IT_ASSERT((size_t)dim < ret.size());
     ret[dim] = ret[dim] * (num + 1);
     return {{ret}};
 }

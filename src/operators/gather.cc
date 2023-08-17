@@ -1,21 +1,18 @@
 #include "operators/gather.h"
+#include "utils/operator_utils.h"
 
 namespace infini {
 GatherObj::GatherObj(GraphObj *graph, Tensor input, Tensor indices,
                      Tensor output, int axis)
     : OperatorObj(OpType::Gather, {input, indices}, {output}), axis(axis) {
+    int rank = input->getRank();
+    axis = get_real_axis(axis, rank);
     IT_ASSERT(checkValid(graph));
 }
 
 optional<vector<Shape>> GatherObj::inferShape(const TensorVec &inputs) const {
     auto dims0 = inputs[0]->getDims();
     auto dims1 = inputs[1]->getDims();
-
-    if (axis < 0)
-        IT_TODO_HALT();
-
-    if ((size_t)axis >= dims0.size())
-        return {};
 
     IT_ASSERT(CheckIndexValid());
 

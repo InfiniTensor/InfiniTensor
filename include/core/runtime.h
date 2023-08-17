@@ -46,7 +46,7 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
     RuntimeObj &operator=(RuntimeObj const &) = delete;
     virtual ~RuntimeObj() {}
 
-    CommunicatorObj &getCommunicator() { return *comm; }
+    CommunicatorObj &getCommunicator() const { return *comm; }
 
     /**
      * @brief Execute a graph.

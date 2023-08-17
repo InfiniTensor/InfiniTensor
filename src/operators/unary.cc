@@ -183,46 +183,54 @@ vector<int> CastObj::getOpAttrVector() const { return {type.underlying()}; }
 
 DataType CastObj::getOutputDataType() const {
     switch (castType) {
-    case CastObj::Float2Int64:
+    case CastType::Float2Float16:
+        return DataType::Float16;
+    case CastType::Float2Int64:
         return DataType::Int64;
-    case CastObj::Float2Int32:
+    case CastType::Float2Int32:
         return DataType::Int32;
-    case CastObj::Float2Int16:
+    case CastType::Float2Int16:
         return DataType::Int16;
-    case CastObj::Float2Int8:
+    case CastType::Float2Int8:
         return DataType::Int8;
-    case CastObj::Int322Float:
+    case CastType::Int322Float:
         return DataType::Float32;
-    case CastObj::Int322Int8:
+    case CastType::Int322Int8:
         return DataType::Int8;
-    case CastObj::Int322Int16:
+    case CastType::Int322Int16:
         return DataType::Int16;
-    case CastObj::Int162Float:
+    case CastType::Int162Float:
         return DataType::Float32;
-    case CastObj::Int162Int32:
+    case CastType::Int162Int32:
         return DataType::Int32;
-    case CastObj::Int82Float:
+    case CastType::Int82Float:
         return DataType::Float32;
-    case CastObj::Int82Int16:
+    case CastType::Int82Int16:
         return DataType::Int16;
-    case CastObj::Int82Int32:
+    case CastType::Int82Int32:
         return DataType::Int32;
-    case CastObj::Uint82Float:
+    case CastType::Uint82Float:
         return DataType::Float32;
-    case CastObj::Uint82Int32:
+    case CastType::Uint82Int32:
         return DataType::Int32;
-    case CastObj::Uint82Int64:
+    case CastType::Uint82Int64:
         return DataType::Int64;
-    case CastObj::Int322Int64:
+    case CastType::Int322Int64:
         return DataType::Int64;
-    case CastObj::Int642Int32:
+    case CastType::Int642Int32:
         return DataType::Int32;
-    case CastObj::Int642Uint32:
+    case CastType::Int642Uint32:
         return DataType::UInt32;
-    case CastObj::Int642Float:
+    case CastType::Int642Float:
         return DataType::Float32;
-    case CastObj::Uint322Int64:
+    case CastType::Uint322Int64:
         return DataType::Int64;
+    case CastType::Float162Float:
+        return DataType::Float32;
+    case CastType::BFloat162Float:
+        return DataType::Float32;
+    case CastType::Float2BFloat16:
+        return DataType::BFloat16;
     default:
         IT_TODO_HALT();
     }
@@ -234,7 +242,7 @@ ShapeObj::ShapeObj(GraphObj *graph, Tensor input, Tensor output)
 }
 
 optional<vector<Shape>> ShapeObj::inferShape(const TensorVec &inputs) const {
-    return {{{static_cast<int>(inputs[0]->getDims().size())}}};
+    return {{{static_cast<int>(inputs[0]->getRank())}}};
 }
 
 std::string ShapeObj::toString() const {

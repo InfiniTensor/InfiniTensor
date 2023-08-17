@@ -1,4 +1,5 @@
 #include "operators/split.h"
+#include "utils/operator_utils.h"
 #include <numeric>
 
 namespace infini {
@@ -7,6 +8,8 @@ SplitObj::SplitObj(GraphObj *graph, Tensor input,
     : OperatorObj(OpType::Split, {input},
                   ((!outputs) ? TensorVec(num, nullptr) : std::move(*outputs))),
       dim(dim), num(num), ratio({}) {
+    int rank = input->getRank();
+    dim = get_real_axis(dim, rank);
     int dimSize = input->getDims().at(dim);
     int pieceSize = dimSize / num;
     int lastSize = dimSize - pieceSize * num;
@@ -26,6 +29,8 @@ SplitObj::SplitObj(GraphObj *graph, Tensor input,
     : OperatorObj(OpType::Split, {input},
                   ((!outputs) ? TensorVec{nullptr} : (*outputs))),
       dim(dim), num(-1), ratio(ratio) {
+    int rank = input->getRank();
+    dim = get_real_axis(dim, rank);
     num = ratio.size();
     if (!outputs) {
         TensorVec tmp(num, nullptr);
@@ -35,13 +40,11 @@ SplitObj::SplitObj(GraphObj *graph, Tensor input,
 }
 
 optional<vector<Shape>> SplitObj::inferShape(const TensorVec &inputs) const {
-    if (num == -1 || ratio.size() == 0)
-        return {};
+    IT_ASSERT(num != -1 && ratio.size() != 0);
     auto inputDims = inputs[0]->getDims();
     int totalSize = inputDims.at(dim);
     int ratioSum = std::accumulate(ratio.begin(), ratio.end(), 0);
-    if (totalSize % ratioSum != 0)
-        return {};
+    IT_ASSERT(totalSize % ratioSum == 0);
 
     int pieceSize = totalSize / ratioSum;
 

@@ -85,6 +85,7 @@ void TensorObj::printData() const {
         else TRY_PRINT(11) //
         else TRY_PRINT(12) //
         else TRY_PRINT(13) //
+        else TRY_PRINT(16) //
         else IT_TODO_HALT();
 
 #undef TRY_PRINT
@@ -118,6 +119,7 @@ bool TensorObj::equalData(const Tensor &rhs, double relativeError) const {
         else TEST_EQUAL(11) //
         else TEST_EQUAL(12) //
         else TEST_EQUAL(13) //
+        else TEST_EQUAL(16) //
         else IT_TODO_HALT();
 
 #undef TEST_EQUAL

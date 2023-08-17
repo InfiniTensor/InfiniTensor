@@ -11,7 +11,7 @@ void allReduceSum(float *data, int deviceId) {
     // Create Runtime and setup communication
     CudaRuntimeObj *cuda_runtime = new CudaRuntimeObj(deviceId);
     int rank = deviceId;
-    cuda_runtime->initComm(WORLD_SIZE, rank);
+    cuda_runtime->initComm("test_nccl_comm", WORLD_SIZE, rank);
     ncclComm_t comm =
         dynamic_cast<NcclCommunicatorObj &>(cuda_runtime->getCommunicator())
             .getNcclComm();
@@ -49,8 +49,7 @@ TEST(NCCL, multi_gpu_communication) {
     for (int i = 0; i < num_threads; ++i) {
         ASSERT_EQ(data[i], 5.0f);
     }
-
-} // namespace infini
+}
 
 } // namespace infini
 #endif

@@ -16,13 +16,13 @@ PoolingObj::PoolingObj(GraphObj *graph, OpType optype, Tensor input,
 
 optional<vector<Shape>> PoolingObj::inferShape(const TensorVec &inputs) const {
     const auto &input = inputs[0];
-    auto h = input->getDims()[input->getDims().size() - 2],
-         w = input->getDims()[input->getDims().size() - 1];
+    auto h = input->getDims()[input->getRank() - 2],
+         w = input->getDims()[input->getRank() - 1];
     int oh = (h - (kh - sh) + ph * 2) / sh;
     int ow = (w - (kw - sw) + pw * 2) / sw;
     auto ret = input->getDims();
-    ret[input->getDims().size() - 2] = oh;
-    ret[input->getDims().size() - 1] = ow;
+    ret[input->getRank() - 2] = oh;
+    ret[input->getRank() - 1] = ow;
     return {{ret}};
 }
 

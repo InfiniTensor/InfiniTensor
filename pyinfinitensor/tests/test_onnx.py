@@ -79,6 +79,21 @@ class TestStringMethods(unittest.TestCase):
         )
         make_and_import_model(make_graph([conv], "conv_fp16", [i, w], [o]))
 
+    def test_conv_bfp16(self):
+        i = make_tensor_value_info("i", TensorProto.BFLOAT16, [1, 3, 4, 4])
+        w = make_tensor_value_info("w", TensorProto.BFLOAT16, [2, 3, 3, 3])
+        o = make_tensor_value_info("o", TensorProto.BFLOAT16, [1, 2, 2, 2])
+        conv = make_node(
+            "Conv",
+            ["i", "w"],
+            ["o"],
+            "conv",
+            pads=[1, 1, 1, 1],
+            strides=[2, 1],
+            dilations=[1, 2],
+        )
+        make_and_import_model(make_graph([conv], "conv_bfp16", [i, w], [o]))
+
     def test_matmul(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 2, 3])
         a = make_tensor_value_info("a", TensorProto.FLOAT, [1, 3, 4])
@@ -226,9 +241,7 @@ class TestStringMethods(unittest.TestCase):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1 * 3, 5 * 7])
         flatten = make_node("Flatten", ["x"], ["y"], axis=2, name="flatten")
-        make_and_import_model(
-            make_graph([flatten], "flatten", [x], [y])
-        )
+        make_and_import_model(make_graph([flatten], "flatten", [x], [y]))
 
     def test_reshape(self):
         data = make_tensor_value_info("data", TensorProto.FLOAT, [2, 3, 4, 5])
@@ -303,7 +316,57 @@ class TestStringMethods(unittest.TestCase):
                 [pads_data],
             )
         )
+    
+    def test_allReduceSum(self):
+        input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 2, 4])
+        allReduceSum = make_node(
+            "AllReduceSum", ["input"], ["output"], name="allReduceSum"
+        )
+        graph = make_graph([allReduceSum], "allReduceSum", [input], [output])
+        model = make_model(graph)
+        from_onnx(model, backend.cpu_runtime())
 
+    def test_allReduceProd(self):
+        input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 2, 4])
+        allReduceProd = make_node(
+            "AllReduceProd", ["input"], ["output"], name="allReduceProd"
+        )
+        graph = make_graph([allReduceProd], "allReduceProd", [input], [output])
+        model = make_model(graph)
+        from_onnx(model, backend.cpu_runtime())
+    
+    def test_allReduceMin(self):
+        input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 2, 4])
+        allReduceMin = make_node(
+            "AllReduceMin", ["input"], ["output"], name="allReduceMin"
+        )
+        graph = make_graph([allReduceMin], "allReduceMin", [input], [output])
+        model = make_model(graph)
+        from_onnx(model, backend.cpu_runtime())
+
+    def test_allReduceMax(self):
+        input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 2, 4])
+        allReduceMax = make_node(
+            "AllReduceMax", ["input"], ["output"], name="allReduceMax"
+        )
+        graph = make_graph([allReduceMax], "allReduceMax", [input], [output])
+        model = make_model(graph)
+        from_onnx(model, backend.cpu_runtime())
+
+    def test_allReduceAvg(self):
+        input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 2, 4])
+        allReduceAvg = make_node(
+            "AllReduceAvg", ["input"], ["output"], name="allReduceAvg"
+        )
+        graph = make_graph([allReduceAvg], "allReduceAvg", [input], [output])
+        model = make_model(graph)
+        from_onnx(model, backend.cpu_runtime())
+        
     # see <https://onnx.ai/onnx/intro/python.html#a-simple-example-a-linear-regression>
     def test_linear(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 2, 3])
@@ -330,6 +393,14 @@ class TestStringMethods(unittest.TestCase):
         )
         y = handler.tensor([3, 2, 1], 12)
         handler.reshape(x, y, [3, 2, 1])
+
+    def test_cast(self):
+        input1 = make_tensor_value_info("input1", TensorProto.FLOAT, [1, 3, 2, 4])
+        output = make_tensor_value_info("output", TensorProto.FLOAT16, [1, 3, 2, 4])
+        cast = make_node(
+            "Cast", ["input1"], ["output"], to=TensorProto.FLOAT16, name="cast"
+        )
+        make_and_import_model(make_graph([cast], "cast", [input1], [output]))
 
 
 if __name__ == "__main__":
