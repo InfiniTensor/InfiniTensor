@@ -2,6 +2,7 @@
 #include "core/lazy_allocator.h"
 #include "core/operator.h"
 #include "core/tensor.h"
+#include "graph/graph.h"
 
 namespace infini {
 
@@ -109,6 +110,7 @@ class GraphObj : public Object {
     }
 
     bool checkValid() const;
+	GraphTopo<refactor::graph::NodeInfo, refactor::graph::EdgeInfo> transformToGraphTopo(GraphObj &obj);
 
   private:
     /**
