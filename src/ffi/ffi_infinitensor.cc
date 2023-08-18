@@ -344,6 +344,7 @@ void init_graph_builder(py::module &m) {
         .def("tanh", &Handler::tanh, policy::move)
         .def("softmax", &Handler::softmax, policy::move)
         .def("abs", &Handler::abs, policy::move)
+        .def("sqrt", &Handler::sqrt, policy::move)
         .def("shape", &Handler::shape, policy::move)
         .def("identity", &Handler::identity, policy::move)
         .def("flatten", &Handler::flatten, policy::move)

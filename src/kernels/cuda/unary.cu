@@ -58,6 +58,14 @@ __global__ void _abs_kernel(float *input, float *output, int n) {
     }
 }
 
+__global__ void _sqrt_kernel(float *input, float *output, int n) {
+    int index = threadIdx.x + blockIdx.x * blockDim.x;
+    int stride = blockDim.x * gridDim.x;
+    for (int i = index; i < n; i += stride) {
+        output[i] = sqrt(input[i]);
+    }
+}
+
 namespace infini {
 void softmax_kernel(float *input, float *output, int num) {
 
@@ -90,5 +98,10 @@ void abs_kernel(float *input, float *output, int num) {
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     _abs_kernel<<<blocksize, gridsize>>>(input, output, num);
 }
+void sqrt_kernel(float *input, float *output, int num) {
 
+    int blocksize = block_work_size();
+    int gridsize = (num + block_work_size() - 1) / block_work_size();
+    _sqrt_kernel<<<blocksize, gridsize>>>(input, output, num);
+}
 }; // namespace infini
