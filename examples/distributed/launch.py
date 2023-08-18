@@ -23,7 +23,6 @@ def parse_args():
 
 
 def run_stub(stub: OnnxStub, inputs: np.array, n=100):
-    stub.init()
     # warm up
     next(stub.inputs.items().__iter__())[1].copyin_float(inputs.reshape(-1).tolist())
     stub.tune()
@@ -38,8 +37,11 @@ def run_stub(stub: OnnxStub, inputs: np.array, n=100):
         stub.run()
     end = time.time()
     outputs = np.array(next(stub.outputs.items().__iter__())[1].copyout_float())
-    print(outputs.shape)
-
+    print("outputs sum:", outputs.sum())
+    # np.save("results", outputs)
+    results = np.load("results.npy")
+    print("max diff:", abs(outputs - results).max())
+    assert np.allclose(outputs, results, rtol=1e-6, atol=1e-6)
     avg_time = (end - begin) / n
     return avg_time
 
@@ -59,7 +61,7 @@ def start_worker(
     onnx.save(model, f"dist_model_rank{rank}.onnx")
     print("load model")
     stub = OnnxStub(model, runtime)
-    data = np.random.randn(1, 3, 224, 224)
+    data = np.load("inputs.npy")
     print("run model")
     avg_time = run_stub(stub, data)
     print(f"average time: {avg_time}")
@@ -70,6 +72,13 @@ def main():
     world_size = nnodes * nproc_per_node
 
     model = onnx.load(model_path)
+    # generate standard results
+    # runtime = backend.CudaRuntime(0)
+    # stub = OnnxStub(model, runtime)
+    # data = np.random.randn(1, 3, 224, 224)
+    # np.save("inputs", data)
+    # run_stub(stub, data)
+    # del stub
 
     dist_name = f"dist_{os.getpid()}"
     workers = [
