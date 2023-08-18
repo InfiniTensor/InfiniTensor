@@ -342,12 +342,13 @@ Tensor GraphHandlerObj::allReduceAvg(Tensor input, Tensor output) {
     }
 }
 
-Tensor GraphHandlerObj::allGather(Tensor input, Tensor output) {
-    if (output) {
-        g->addOpWithOutputs<AllGatherObj>(std::move(input), output);
-        return output;
+TensorVec GraphHandlerObj::allGather(Tensor input,
+                                  std::optional<TensorVec> outputs, int n) {
+    if (outputs) {
+        g->addOpWithOutputs<AllGatherObj>(std::move(input), outputs, n);
+        return *outputs;
     } else {
-        return g->addOp<AllGatherObj>(std::move(input), output)->getOutput();
+        return g->addOp<AllGatherObj>(std::move(input), outputs, n)->getOutputs();
     }
 }
 

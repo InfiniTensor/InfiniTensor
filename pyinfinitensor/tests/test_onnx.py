@@ -367,13 +367,22 @@ class TestStringMethods(unittest.TestCase):
         model = make_model(graph)
         from_onnx(model, backend.cpu_runtime())
     
+    def test_split(self):
+        input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
+        split = make_node(
+            "Split", ["input"], ["output"], name="split", axis=0
+        )
+        graph = make_graph([split], "split", [input], [])
+        model = make_model(graph)
+        from_onnx(model, backend.cpu_runtime())
+
     def test_allGather(self):
         input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
-        output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 2, 4])
+        world_size = make_tensor_value_info("world_size", TensorProto.INT32, [1])
         allGather = make_node(
-            "AllGather", ["input"], ["output"], name="allGather"
+            "AllGather", ["input", "world_size"], ["output"], name="allGather"
         )
-        graph = make_graph([allGather], "allGather", [input], [output])
+        graph = make_graph([allGather], "allGather", [input, world_size], [])
         model = make_model(graph)
         from_onnx(model, backend.cpu_runtime())
 

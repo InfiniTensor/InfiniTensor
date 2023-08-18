@@ -23,9 +23,7 @@ void allReduce(const string taskName, int deviceID, vector<float> data,
     Graph g = make_ref<GraphObj>(cudaRuntime);
     auto input =
         g->addTensor(Shape{static_cast<int>(data.size())}, DataType::Float32);
-    auto output =
-        g->addTensor(Shape{static_cast<int>(ans.size())}, DataType::Float32);
-    auto op = g->addOp<OperatorObj>(input, output);
+    auto op = g->addOp<OperatorObj>(input, nullptr);
     // Copy data from CPU to GPU
     g->dataMalloc();
     input->copyin(data);

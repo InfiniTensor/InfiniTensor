@@ -49,6 +49,24 @@ class NcclCommunicatorObj final : public CommunicatorObj {
         }
     }
 
+    int getWorldSize() const override {
+        int world_size;
+        checkNcclError(ncclCommCount(comm, &world_size));
+        return world_size;
+    }
+
+    virtual int getRank() const override {
+        int rank;
+        checkNcclError(ncclCommUserRank(comm, &rank));
+        return rank;
+    }
+
+    virtual int getLocalRank() const override {
+        int deviceID;
+        checkNcclError(ncclCommCuDevice(comm, &deviceID));
+        return deviceID;
+    }
+
     // Get the actual ncclComm_t
     ncclComm_t getNcclComm() { return comm; }
 

@@ -18,6 +18,9 @@ class AllReduceBaseObj : public OperatorObj {
   private:
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;
+    vector<DataType> inferDataType(const TensorVec &inputs) const override {
+        return {inputs[0]->getDType()};
+    };
 };
 
 class AllReduceSumObj : public AllReduceBaseObj {

@@ -73,7 +73,7 @@ class GraphHandlerObj {
     Tensor allReduceMin(Tensor input, Tensor output);
     Tensor allReduceMax(Tensor input, Tensor output);
     Tensor allReduceAvg(Tensor input, Tensor output);
-    Tensor allGather(Tensor input, Tensor output);
+    TensorVec allGather(Tensor input, std::optional<TensorVec> outputs, int n);
 
     //------ modifiers
 

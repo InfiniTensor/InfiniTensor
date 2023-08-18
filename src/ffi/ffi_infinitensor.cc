@@ -367,7 +367,7 @@ void init_graph_builder(py::module &m) {
         .def("allReduceMin", &Handler::allReduceMin, policy::move)
         .def("allReduceMax", &Handler::allReduceMax, policy::move)
         .def("allReduceAvg", &Handler::allReduceAvg, policy::move)
-        .def("allGather", &Handler::allReduceAvg, policy::move)
+        .def("allGather", &Handler::allGather, policy::move)
         .def("cast", &Handler::cast, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)
         .def("optimize", &Handler::optimize, policy::automatic)

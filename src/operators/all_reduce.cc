@@ -3,7 +3,9 @@
 namespace infini {
 AllReduceBaseObj::AllReduceBaseObj(GraphObj *graph, OpType opType, Tensor input,
                                    Tensor output)
-    : OperatorObj(opType, {input}, {output}) {}
+    : OperatorObj(opType, {input}, {output}) {
+    IT_ASSERT(checkValid(graph));
+}
 
 std::string AllReduceBaseObj::toString() const {
     std::ostringstream os;

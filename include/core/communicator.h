@@ -8,6 +8,9 @@ namespace infini {
 class CommunicatorObj : public Object {
   public:
     virtual ~CommunicatorObj() = default;
+    virtual int getWorldSize() const = 0;
+    virtual int getRank() const = 0;
+    virtual int getLocalRank() const = 0;
 };
 
 } // namespace infini
