@@ -7,9 +7,7 @@ SplitObj::SplitObj(GraphObj *graph, Tensor input,
                    std::optional<TensorVec> outputs, int dim, int num)
     : OperatorObj(OpType::Split, {input},
                   ((!outputs) ? TensorVec(num, nullptr) : std::move(*outputs))),
-      dim(dim), num(num), ratio({}) {
-    int rank = input->getRank();
-    dim = get_real_axis(dim, rank);
+      dim(get_real_axis(dim, input->getRank())), num(num), ratio({}) {
     int dimSize = input->getDims().at(dim);
     int pieceSize = dimSize / num;
     int lastSize = dimSize - pieceSize * num;
@@ -28,9 +26,7 @@ SplitObj::SplitObj(GraphObj *graph, Tensor input,
                    const vector<int> &ratio)
     : OperatorObj(OpType::Split, {input},
                   ((!outputs) ? TensorVec{nullptr} : (*outputs))),
-      dim(dim), num(-1), ratio(ratio) {
-    int rank = input->getRank();
-    dim = get_real_axis(dim, rank);
+      dim(get_real_axis(dim, input->getRank())), num(-1), ratio(ratio) {
     num = ratio.size();
     if (!outputs) {
         TensorVec tmp(num, nullptr);
