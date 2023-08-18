@@ -24,7 +24,8 @@ class NcclCommunicatorObj final : public CommunicatorObj {
     ncclComm_t comm;
 
   public:
-    NcclCommunicatorObj(const string &name, int worldSize, int rank) {
+    NcclCommunicatorObj(const string &name, int worldSize, int rank)
+        : CommunicatorObj(worldSize, rank) {
         const std::string filePath("./" + name + "_nccl_id.bin");
         ncclUniqueId commId;
         if (rank == 0) {
@@ -47,24 +48,6 @@ class NcclCommunicatorObj final : public CommunicatorObj {
         if (rank == 0) {
             std::filesystem::remove(filePath);
         }
-    }
-
-    int getWorldSize() const override {
-        int world_size;
-        checkNcclError(ncclCommCount(comm, &world_size));
-        return world_size;
-    }
-
-    virtual int getRank() const override {
-        int rank;
-        checkNcclError(ncclCommUserRank(comm, &rank));
-        return rank;
-    }
-
-    virtual int getLocalRank() const override {
-        int deviceID;
-        checkNcclError(ncclCommCuDevice(comm, &deviceID));
-        return deviceID;
     }
 
     // Get the actual ncclComm_t

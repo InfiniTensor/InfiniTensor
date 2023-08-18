@@ -7,10 +7,6 @@ AllGatherObj::AllGatherObj(GraphObj *graph, Tensor input,
           OpType::AllGather, {input},
           ((!outputs) ? TensorVec(world_size, nullptr) : std::move(*outputs))),
       world_size(world_size) {
-    // if (!outputs) {
-    //     TensorVec tmp(world_size, nullptr);
-    //     this->outputs = tmp;
-    // }
     IT_ASSERT(checkValid(graph));
 }
 
