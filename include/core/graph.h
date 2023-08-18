@@ -2,6 +2,7 @@
 #include "core/lazy_allocator.h"
 #include "core/operator.h"
 #include "core/tensor.h"
+#include "graph/graph.h"
 
 namespace infini {
 
@@ -63,6 +64,8 @@ class GraphObj : public Object {
     bool topo_sort();
 
     void optimize();
+
+    void fromGraphTopo(refactor::graph::Graph &graph);
 
     void dataMalloc();
 
