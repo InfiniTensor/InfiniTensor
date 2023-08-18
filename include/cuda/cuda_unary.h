@@ -8,6 +8,7 @@ void relu_kernel(float *input, float *output, int num);
 void sigmoid_kernel(float *input, float *output, int num);
 void tanh_kernel(float *input, float *output, int num);
 void abs_kernel(float *input, float *output, int num);
+void sqrt_kernel(float *input, float *output, int num);
 
 void unary_kernel(const Operator &_op) {
     auto op = as<UnaryObj>(_op);
@@ -26,6 +27,8 @@ void unary_kernel(const Operator &_op) {
         tanh_kernel(inputData, outputData, n * c * h * w);
     else if (op->getOpType() == OpType::Abs)
         abs_kernel(inputData, outputData, n * c * h * w);
+    else if (op->getOpType() == OpType::Sqrt)
+        sqrt_kernel(inputData, outputData, n * c * h * w);
     else
         IT_TODO_HALT();
 }
