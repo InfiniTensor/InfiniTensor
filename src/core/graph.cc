@@ -7,6 +7,7 @@
 #include "operators/pooling.h"
 #include "operators/reshape.h"
 #include "operators/unary.h"
+#include "utils/operator_utils.h"
 #include <algorithm>
 #include <queue>
 
@@ -122,9 +123,72 @@ bool GraphObj::topo_sort() {
     return this->sorted = true;
 }
 
+using namespace refactor;
+using EdgeRef = GraphTopo<graph::NodeInfo, graph::EdgeInfo>::EdgeRef;
+GraphTopo<graph::NodeInfo, graph::EdgeInfo> GraphObj::transformToGraphTopo(GraphObj &g) {
+	if(!g.sorted) {
+		g.topo_sort();
+	}
+	auto graphTopo = GraphTopo<graph::NodeInfo, graph::EdgeInfo>();
+	std::map<int, EdgeRef> edgeToTensor;
+	// add global input tensor
+	for (auto tensor : g.tensors) {
+		if (tensor->source.expired()) {
+			auto shape = tensor->getDims();
+			std::vector<size_t> shape_t(tensor->getRank());
+			graph::EdgeInfo edgeInfo;
+			std::transform(shape.begin(), shape.end(), shape_t.begin(), [](int x) { return size_t(x); });
+			edgeInfo.info = graph::Tensor{static_cast<common::DataType>(tensor->getDType().getIndex()), shape_t};
+			edgeToTensor.emplace(tensor->getFuid(), graphTopo.addEdge(edgeInfo));
+		}
+	}
+	// add graph ops
+	for (auto node : g.ops) {
+		// get add node info
+		//graph::NodeInfo nodeInfo = graph::NodeInfo{static_cast<common::OpType>(node->getOpType().underlying()), graph::Attributes{}};
+		graph::NodeInfo nodeInfo = getNodeInfo(node);
+		auto opInputs = node->getInputs();
+		auto opOutputs = node->getOutputs();
+		std::vector<EdgeRef> nodeInputs;
+		std::vector<graph::EdgeInfo> nodeOutputs;
+		// get add node inputs
+		for (auto nodeInputEle : opInputs) {
+			auto it = edgeToTensor.find(nodeInputEle->getFuid());
+			IT_ASSERT(it != edgeToTensor.end());
+			nodeInputs.emplace_back(edgeToTensor.at(nodeInputEle->getFuid()));
+		}
+		// get add node outputs
+		for (auto nodeOutputEle : opOutputs) {
+			auto shape = nodeOutputEle->getDims();
+			std::vector<size_t> shape_t(nodeOutputEle->getRank());
+			graph::EdgeInfo edgeInfo;
+			std::transform(shape.begin(), shape.end(), shape_t.begin(), [](int x) { return size_t(x); });
+			edgeInfo.info = graph::Tensor{static_cast<common::DataType>(nodeOutputEle->getDType().getIndex()), shape_t};
+			nodeOutputs.emplace_back(edgeInfo);
+		}
+		auto nodeProduct = graphTopo.addNode(nodeInfo, nodeInputs, nodeOutputs);
+		// add node outputs edge_tensor to edgeToTensor
+		for (size_t i = 0; i < opOutputs.size(); ++i) {
+			int32_t index = static_cast<int32_t>(i);
+			edgeToTensor.emplace(opOutputs[i]->getFuid(), nodeProduct[index]);
+		}
+	}
+	// markout the globaloutput edge
+	std::vector<EdgeRef> globalOutput;
+	for (auto tensor : g.tensors) {
+		if (tensor->getTargets().empty()) {
+			IT_ASSERT(edgeToTensor.find(tensor->getFuid()) != edgeToTensor.end());
+			globalOutput.emplace_back(edgeToTensor.at(tensor->getFuid()));
+		}
+	}
+	graphTopo.markOutput(globalOutput);
+	return graphTopo;
+}
+
 void GraphObj::optimize() {
     using namespace refactor;
     GraphTopo<graph::NodeInfo, graph::EdgeInfo> topo;
+	topo = transformToGraphTopo(*this);
     // TODO: 构造 GraphTopo 和 Graph，再拆除，
     //       将结果直接存放在这个 `GraphOhj` 里规避 Runtime 等不同成员的问题
 }

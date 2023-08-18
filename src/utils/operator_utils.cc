@@ -41,4 +41,31 @@ int get_real_axis(const int &axis, const int &rank) {
     }
     return newAxis;
 }
+
+using namespace refactor;
+graph::NodeInfo getNodeInfo(const Operator &obj) {
+	auto type = obj->getOpType().underlying();
+	graph::NodeInfo nodeInfo{common::OpType::Unknown};
+#define CASE(T)																				\
+		case OpType::T:																		\
+			nodeInfo = {common::OpType::T, refactor::graph::Attributes{}};		\
+			break;
+
+	switch (type) {
+			case OpType::MatMul: {
+					auto matmul = dynamic_cast<const MatmulObj *>(obj.get());
+					auto transA = matmul->getTransA();
+					auto transB = matmul->getTransB();
+					nodeInfo = {common::OpType::MatMul,
+							{{"transA", static_cast<int>(transA)},
+									{"transB", static_cast<int>(transB)}}};
+					break;
+			}
+			CASE(Relu)
+			default :
+				IT_TODO_HALT_MSG("Don't Support OpType");
+	}
+#undef CASE
+	return nodeInfo;
+}
 } // namespace infini
