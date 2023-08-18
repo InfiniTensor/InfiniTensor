@@ -65,14 +65,26 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
         if node.op_type == "Gemm":
             output = node.output[0]
             dim = shard_gemm(node)
+            gathered = [node.output[0] + f".{i}" for i in range(tp_world_size)]
+            # all_gather
             nodes.insert(
                 i + 1,
                 helper.make_node(
                     op_type="AllGather",
                     inputs=[node.output[0]],
-                    outputs=[output],
+                    outputs=gathered,
                     name=node.name + "/allgather",
                     # domain="infini", # shape inference fails for custom domain
+                ),
+            )
+            # concat
+            nodes.insert(
+                i + 2,
+                helper.make_node(
+                    op_type="Concat",
+                    inputs=gathered,
+                    outputs=[output],
+                    name=node.name + "/concat",
                     axis=dim,
                 ),
             )
