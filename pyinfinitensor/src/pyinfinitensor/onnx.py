@@ -573,23 +573,23 @@ class OnnxStub:
                     )
                 elif node.op_type == "AllReduceSum":
                     tensors[node.output[0]] = self.handler.allReduceSum(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
                     )
                 elif node.op_type == "AllReduceProd":
                     tensors[node.output[0]] = self.handler.allReduceProd(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
                     )
                 elif node.op_type == "AllReduceMin":
                     tensors[node.output[0]] = self.handler.allReduceMin(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
                     )
                 elif node.op_type == "AllReduceMax":
                     tensors[node.output[0]] = self.handler.allReduceMax(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
                     )
                 elif node.op_type == "AllReduceAvg":
                     tensors[node.output[0]] = self.handler.allReduceAvg(
