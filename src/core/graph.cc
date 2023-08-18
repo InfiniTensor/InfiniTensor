@@ -1,14 +1,14 @@
 #include "core/graph.h"
 #include "graph/graph.h"
+#include "operators/batch_norm.h"
+#include "operators/conv.h"
+#include "operators/element_wise.h"
+#include "operators/matmul.h"
+#include "operators/pooling.h"
+#include "operators/reshape.h"
+#include "operators/unary.h"
 #include <algorithm>
 #include <queue>
-#include "operators/conv.h"
-#include "operators/pooling.h"
-#include "operators/unary.h"
-#include "operators/matmul.h"
-#include "operators/batch_norm.h"
-#include "operators/element_wise.h"
-#include "operators/reshape.h"
 
 namespace infini {
 
@@ -133,45 +133,53 @@ void GraphObj::fromGraphTopo(refactor::graph::Graph &graph) {
     // tensors
     tensors.clear();
     std::unordered_map<int32_t, TensorObj *> edgeToTensor;
-    for (auto edge: graph.topo().edges()) {
+    for (auto edge : graph.topo().edges()) {
         // dataType 是否对应？
         auto refactorShape = edge.info().tensor().shape;
         Shape shape;
-        std::transform(refactorShape.begin(), refactorShape.end(), shape.begin(), [](std::size_t val) { return static_cast<int>(val); });
-        Tensor tensor = addTensor(shape, DataType(static_cast<int>(edge.info().tensor().dataType)));
+        std::transform(refactorShape.begin(), refactorShape.end(),
+                       shape.begin(),
+                       [](std::size_t val) { return static_cast<int>(val); });
+        Tensor tensor = addTensor(
+            shape, DataType(static_cast<int>(edge.info().tensor().dataType)));
         edgeToTensor[edge.index()] = tensor.get();
     }
     // ops
     ops.clear();
-    for (auto node: graph.topo().nodes()) {
+    for (auto node : graph.topo().nodes()) {
         TensorVec inputs, outputs;
-        for (auto edge: node.inputs()) {
+        for (auto edge : node.inputs()) {
             inputs.emplace_back(edgeToTensor[edge.index()]);
         }
-        for (auto edge: node.outputs()) {
+        for (auto edge : node.outputs()) {
             outputs.emplace_back(edgeToTensor[edge.index()]);
-        }        
+        }
         auto attr = node.info().attributes;
         if (node.info().opType == refactor::common::OpType::Conv) {
             auto p = std::get<refactor::graph::Ints>(attr["pads"]);
             auto s = std::get<refactor::graph::Ints>(attr["strides"]);
             auto d = std::get<refactor::graph::Ints>(attr["dilations"]);
-            addOpWithOutputs<ConvObj>(std::move(inputs[0]), std::move(inputs[1]),
-                outputs[0], p[0], p[1], s[0], s[1], d[0], d[1], std::move(inputs[2]));
+            addOpWithOutputs<ConvObj>(
+                std::move(inputs[0]), std::move(inputs[1]), outputs[0], p[0],
+                p[1], s[0], s[1], d[0], d[1], std::move(inputs[2]));
         } else if (node.info().opType == refactor::common::OpType::Relu) {
             addOpWithOutputs<ReluObj>(std::move(inputs[0]), outputs[0]);
         } else if (node.info().opType == refactor::common::OpType::Add) {
-            addOpWithOutputs<AddObj>(std::move(inputs[0]), std::move(inputs[1]), outputs[0]);
+            addOpWithOutputs<AddObj>(std::move(inputs[0]), std::move(inputs[1]),
+                                     outputs[0]);
         } else if (node.info().opType == refactor::common::OpType::Identity) {
             addOpWithOutputs<IdentityObj>(std::move(inputs[0]), outputs[0]);
-        } else if (node.info().opType == refactor::common::OpType::GlobalAveragePool) {
+        } else if (node.info().opType ==
+                   refactor::common::OpType::GlobalAveragePool) {
             int h = inputs[0]->getDims()[2];
             int w = inputs[0]->getDims()[3];
-            addOpWithOutputs<AvgPoolObj>(std::move(inputs[0]), outputs[0], h, w, 1, 1, 0, 0, 1, 1);
+            addOpWithOutputs<AvgPoolObj>(std::move(inputs[0]), outputs[0], h, w,
+                                         1, 1, 0, 0, 1, 1);
         } else if (node.info().opType == refactor::common::OpType::Reshape) {
             // 需要把 inputs[1] 转换成 shape
-            // Shape shape = 
-            // addOpWithOutputs<ReshapeObj>(std::move(inputs[0]), outputs[0], std::move(inputs[1]));
+            // Shape shape =
+            // addOpWithOutputs<ReshapeObj>(std::move(inputs[0]), outputs[0],
+            // std::move(inputs[1]));
         } else if (node.info().opType == refactor::common::OpType::Gemm) {
             // FIXME unsupport attributes: `alpha` `beta`
             auto alpha = std::get<refactor::graph::Float>(attr["alpha"]);
@@ -180,15 +188,19 @@ void GraphObj::fromGraphTopo(refactor::graph::Graph &graph) {
             auto transB = std::get<refactor::graph::Int>(attr["transB"]);
             IT_ASSERT(alpha == 1.0);
             IT_ASSERT(beta == 1.0);
-            addOpWithOutputs<MatmulObj>(std::move(inputs[0]), std::move(inputs[1]), 
-                outputs[0], transA, transB, std::move(inputs[2]), ActType::None);
-        } else if (node.info().opType == refactor::common::OpType::BatchNormalization) {
+            addOpWithOutputs<MatmulObj>(
+                std::move(inputs[0]), std::move(inputs[1]), outputs[0], transA,
+                transB, std::move(inputs[2]), ActType::None);
+        } else if (node.info().opType ==
+                   refactor::common::OpType::BatchNormalization) {
             auto epsilon = std::get<refactor::graph::Float>(attr["epsilon"]);
             auto momentum = std::get<refactor::graph::Float>(attr["momentum"]);
-            auto training_mode = std::get<refactor::graph::Int>(attr["training_mode"]);
-            addOpWithOutputs<BatchNormObj>(std::move(inputs[0]), outputs[0], std::move(inputs[3]), 
-                std::move(inputs[4]), std::move(inputs[1]), std::move(inputs[2]), 
-                momentum, epsilon, training_mode != 0);
+            auto training_mode =
+                std::get<refactor::graph::Int>(attr["training_mode"]);
+            addOpWithOutputs<BatchNormObj>(
+                std::move(inputs[0]), outputs[0], std::move(inputs[3]),
+                std::move(inputs[4]), std::move(inputs[1]),
+                std::move(inputs[2]), momentum, epsilon, training_mode != 0);
         }
     }
 }
