@@ -1,4 +1,3 @@
-#include <variant>
 #include "core/graph.h"
 #include "graph/graph.h"
 #include "operators/batch_norm.h"
@@ -11,6 +10,7 @@
 #include "utils/operator_utils.h"
 #include <algorithm>
 #include <queue>
+#include <variant>
 
 namespace infini {
 
@@ -126,70 +126,82 @@ bool GraphObj::topo_sort() {
 
 using namespace refactor;
 using EdgeRef = GraphTopo<graph::NodeInfo, graph::EdgeInfo>::EdgeRef;
-GraphTopo<graph::NodeInfo, graph::EdgeInfo> GraphObj::transformToGraphTopo(GraphObj &g) {
-	if(!g.sorted) {
-		g.topo_sort();
-	}
-	auto graphTopo = GraphTopo<graph::NodeInfo, graph::EdgeInfo>();
-	std::map<int, EdgeRef> edgeToTensor;
-	// add global input tensor
-	for (auto tensor : g.tensors) {
-		if (tensor->source.expired()) {
-			auto shape = tensor->getDims();
-			std::vector<size_t> shape_t(tensor->getRank());
-			graph::EdgeInfo edgeInfo;
-			std::transform(shape.begin(), shape.end(), shape_t.begin(), [](int x) { return size_t(x); });
-			edgeInfo.info = graph::Tensor{static_cast<common::DataType>(tensor->getDType().getIndex()), shape_t};
-			edgeToTensor.emplace(tensor->getFuid(), graphTopo.addEdge(edgeInfo));
-		}
-	}
-	// add graph ops
-	for (auto node : g.ops) {
-		// get add node info
-		//graph::NodeInfo nodeInfo = graph::NodeInfo{static_cast<common::OpType>(node->getOpType().underlying()), graph::Attributes{}};
-		graph::NodeInfo nodeInfo = getNodeInfo(node);
-		auto opInputs = node->getInputs();
-		auto opOutputs = node->getOutputs();
-		std::vector<EdgeRef> nodeInputs;
-		std::vector<graph::EdgeInfo> nodeOutputs;
-		// get add node inputs
-		for (auto nodeInputEle : opInputs) {
-			auto it = edgeToTensor.find(nodeInputEle->getFuid());
-			IT_ASSERT(it != edgeToTensor.end());
-			nodeInputs.emplace_back(edgeToTensor.at(nodeInputEle->getFuid()));
-		}
-		// get add node outputs
-		for (auto nodeOutputEle : opOutputs) {
-			auto shape = nodeOutputEle->getDims();
-			std::vector<size_t> shape_t(nodeOutputEle->getRank());
-			graph::EdgeInfo edgeInfo;
-			std::transform(shape.begin(), shape.end(), shape_t.begin(), [](int x) { return size_t(x); });
-			edgeInfo.info = graph::Tensor{static_cast<common::DataType>(nodeOutputEle->getDType().getIndex()), shape_t};
-			nodeOutputs.emplace_back(edgeInfo);
-		}
-		auto nodeProduct = graphTopo.addNode(nodeInfo, nodeInputs, nodeOutputs);
-		// add node outputs edge_tensor to edgeToTensor
-		for (size_t i = 0; i < opOutputs.size(); ++i) {
-			int32_t index = static_cast<int32_t>(i);
-			edgeToTensor.emplace(opOutputs[i]->getFuid(), nodeProduct[index]);
-		}
-	}
-	// markout the globaloutput edge
-	std::vector<EdgeRef> globalOutput;
-	for (auto tensor : g.tensors) {
-		if (tensor->getTargets().empty()) {
-			IT_ASSERT(edgeToTensor.find(tensor->getFuid()) != edgeToTensor.end());
-			globalOutput.emplace_back(edgeToTensor.at(tensor->getFuid()));
-		}
-	}
-	graphTopo.markOutput(globalOutput);
-	return graphTopo;
+GraphTopo<graph::NodeInfo, graph::EdgeInfo>
+GraphObj::transformToGraphTopo(GraphObj &g) {
+    if (!g.sorted) {
+        g.topo_sort();
+    }
+    auto graphTopo = GraphTopo<graph::NodeInfo, graph::EdgeInfo>();
+    std::map<int, EdgeRef> edgeToTensor;
+    // add global input tensor
+    for (auto tensor : g.tensors) {
+        if (tensor->source.expired()) {
+            auto shape = tensor->getDims();
+            std::vector<size_t> shape_t(tensor->getRank());
+            graph::EdgeInfo edgeInfo;
+            std::transform(shape.begin(), shape.end(), shape_t.begin(),
+                           [](int x) { return size_t(x); });
+            edgeInfo.info = graph::Tensor{
+                static_cast<common::DataType>(tensor->getDType().getIndex()),
+                shape_t};
+            edgeToTensor.emplace(tensor->getFuid(),
+                                 graphTopo.addEdge(edgeInfo));
+        }
+    }
+    // add graph ops
+    for (auto node : g.ops) {
+        // get add node info
+        // graph::NodeInfo nodeInfo =
+        // graph::NodeInfo{static_cast<common::OpType>(node->getOpType().underlying()),
+        // graph::Attributes{}};
+        graph::NodeInfo nodeInfo = getNodeInfo(node);
+        auto opInputs = node->getInputs();
+        auto opOutputs = node->getOutputs();
+        std::vector<EdgeRef> nodeInputs;
+        std::vector<graph::EdgeInfo> nodeOutputs;
+        // get add node inputs
+        for (auto nodeInputEle : opInputs) {
+            auto it = edgeToTensor.find(nodeInputEle->getFuid());
+            IT_ASSERT(it != edgeToTensor.end());
+            nodeInputs.emplace_back(edgeToTensor.at(nodeInputEle->getFuid()));
+        }
+        // get add node outputs
+        for (auto nodeOutputEle : opOutputs) {
+            auto shape = nodeOutputEle->getDims();
+            std::vector<size_t> shape_t(nodeOutputEle->getRank());
+            graph::EdgeInfo edgeInfo;
+            std::transform(shape.begin(), shape.end(), shape_t.begin(),
+                           [](int x) { return size_t(x); });
+            edgeInfo.info =
+                graph::Tensor{static_cast<common::DataType>(
+                                  nodeOutputEle->getDType().getIndex()),
+                              shape_t};
+            nodeOutputs.emplace_back(edgeInfo);
+        }
+        auto nodeProduct = graphTopo.addNode(nodeInfo, nodeInputs, nodeOutputs);
+        // add node outputs edge_tensor to edgeToTensor
+        for (size_t i = 0; i < opOutputs.size(); ++i) {
+            int32_t index = static_cast<int32_t>(i);
+            edgeToTensor.emplace(opOutputs[i]->getFuid(), nodeProduct[index]);
+        }
+    }
+    // markout the globaloutput edge
+    std::vector<EdgeRef> globalOutput;
+    for (auto tensor : g.tensors) {
+        if (tensor->getTargets().empty()) {
+            IT_ASSERT(edgeToTensor.find(tensor->getFuid()) !=
+                      edgeToTensor.end());
+            globalOutput.emplace_back(edgeToTensor.at(tensor->getFuid()));
+        }
+    }
+    graphTopo.markOutput(globalOutput);
+    return graphTopo;
 }
 
 void GraphObj::optimize() {
     using namespace refactor;
     GraphTopo<graph::NodeInfo, graph::EdgeInfo> topo;
-	topo = transformToGraphTopo(*this);
+    topo = transformToGraphTopo(*this);
     // TODO: 构造 GraphTopo 和 Graph，再拆除，
     //       将结果直接存放在这个 `GraphOhj` 里规避 Runtime 等不同成员的问题
 }
@@ -200,22 +212,23 @@ void GraphObj::fromGraphTopo(refactor::graph::Graph &graph) {
     std::unordered_map<int32_t, TensorObj *> edgeIdxToTensor;
     std::unordered_map<int32_t, infini::Shape> edgeIdxToShape;
     for (auto edge : graph.topo().edges()) {
-        auto info = edge.info();  
+        auto info = edge.info();
         if (info.isTensor()) {
             auto refactorShape = info.tensor().shape;
             Shape shape;
-            std::transform(refactorShape.begin(), refactorShape.end(),
-                        shape.begin(),
-                        [](std::size_t val) { return static_cast<int>(val); });
+            std::transform(
+                refactorShape.begin(), refactorShape.end(), shape.begin(),
+                [](std::size_t val) { return static_cast<int>(val); });
             Tensor tensor = addTensor(
                 shape, DataType(static_cast<int>(info.tensor().dataType)));
             edgeIdxToTensor[edge.index()] = tensor.get();
         } else if (info.isShapeVariable()) {
             Shape shape;
-            std::transform(info.shapeVariable().shape.begin(), info.shapeVariable().shape.end(),
-                        shape.begin(),
-                        [](std::size_t val) { return static_cast<int>(val); });       
-            edgeIdxToShape[edge.index()] = shape;     
+            std::transform(
+                info.shapeVariable().shape.begin(),
+                info.shapeVariable().shape.end(), shape.begin(),
+                [](std::size_t val) { return static_cast<int>(val); });
+            edgeIdxToShape[edge.index()] = shape;
         }
     }
     // ops
@@ -243,23 +256,22 @@ void GraphObj::fromGraphTopo(refactor::graph::Graph &graph) {
             auto s = std::get<refactor::graph::Ints>(attr["strides"]);
             auto d = std::get<refactor::graph::Ints>(attr["dilations"]);
             std::cout << s[0] << std::endl;
-            addOpWithOutputs<ConvObj>(inputs[0], inputs[1], outputs[0], p[0],p[1], s[0], s[1], d[0], d[1], inputs[2]);
+            addOpWithOutputs<ConvObj>(inputs[0], inputs[1], outputs[0], p[0],
+                                      p[1], s[0], s[1], d[0], d[1], inputs[2]);
         } else if (node.info().opType == refactor::common::OpType::Relu) {
             addOpWithOutputs<ReluObj>(inputs[0], outputs[0]);
         } else if (node.info().opType == refactor::common::OpType::Add) {
-            addOpWithOutputs<AddObj>(inputs[0], inputs[1],
-                                     outputs[0]);
+            addOpWithOutputs<AddObj>(inputs[0], inputs[1], outputs[0]);
         } else if (node.info().opType == refactor::common::OpType::Identity) {
             addOpWithOutputs<IdentityObj>(inputs[0], outputs[0]);
         } else if (node.info().opType ==
                    refactor::common::OpType::GlobalAveragePool) {
             int h = inputs[0]->getDims()[2];
             int w = inputs[0]->getDims()[3];
-            addOpWithOutputs<AvgPoolObj>(inputs[0], outputs[0], h, w,
-                                         1, 1, 0, 0, 1, 1);
+            addOpWithOutputs<AvgPoolObj>(inputs[0], outputs[0], h, w, 1, 1, 0,
+                                         0, 1, 1);
         } else if (node.info().opType == refactor::common::OpType::Reshape) {
-            addOpWithOutputs<ReshapeObj>(inputs[0], outputs[0],
-            shapes[0]);
+            addOpWithOutputs<ReshapeObj>(inputs[0], outputs[0], shapes[0]);
         } else if (node.info().opType == refactor::common::OpType::Gemm) {
             // FIXME unsupport attributes: `alpha` `beta`
             auto alpha = std::get<refactor::graph::Float>(attr["alpha"]);
@@ -268,9 +280,9 @@ void GraphObj::fromGraphTopo(refactor::graph::Graph &graph) {
             auto transB = std::get<refactor::graph::Int>(attr["transB"]);
             IT_ASSERT(alpha == 1.0);
             IT_ASSERT(beta == 1.0);
-            addOpWithOutputs<MatmulObj>(
-                inputs[0], inputs[1], outputs[0], transA,
-                transB, inputs[2], ActType::None);
+            addOpWithOutputs<MatmulObj>(inputs[0], inputs[1], outputs[0],
+                                        transA, transB, inputs[2],
+                                        ActType::None);
         } else if (node.info().opType ==
                    refactor::common::OpType::BatchNormalization) {
             auto epsilon = std::get<refactor::graph::Float>(attr["epsilon"]);
@@ -278,8 +290,7 @@ void GraphObj::fromGraphTopo(refactor::graph::Graph &graph) {
             auto training_mode =
                 std::get<refactor::graph::Int>(attr["training_mode"]);
             addOpWithOutputs<BatchNormObj>(
-                inputs[0], outputs[0], inputs[3],
-                inputs[4], inputs[1],
+                inputs[0], outputs[0], inputs[3], inputs[4], inputs[1],
                 inputs[2], momentum, epsilon, training_mode != 0);
         }
     }
