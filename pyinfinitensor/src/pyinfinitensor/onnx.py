@@ -541,7 +541,7 @@ class OnnxStub:
                                 for attr in node.attribute
                                 if attr.name == "keepdims"
                             ),
-                            1
+                            1,
                         )
                         != 0,
                     )
@@ -597,11 +597,6 @@ class OnnxStub:
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
                         shape,
-                    )
-                elif node.op_type == "Sqrt":
-                    tensors[node.output[0]] = self.handler.sqrt(
-                        tensors[node.input[0]],
-                        tensors.get(node.output[0]),
                     )
                 elif node.op_type == "Erf":
                     tensors[node.output[0]] = self.handler.erf(

@@ -38,7 +38,7 @@ bool GatherObj::CheckIndexValid() const {
     Runtime runtime = NativeCpuRuntimeObj::getInstance();
     bool ret = true;
     auto value = inputs[0]->getDims()[axis];
-    if (index->getDType() == DataType::UInt32) {
+    if (index->getDType() == DataType::Int32) {
         int *data = (int *)runtime->alloc(index->getBytes());
         index->getRuntime()->copyBlobToCPU(
             (void *)data, index->getRawDataPtr<void *>(), index->getBytes());

@@ -157,7 +157,6 @@ DEFINE_UNARY_METHOD(tanh, Tanh)
 DEFINE_UNARY_METHOD(abs, Abs)
 DEFINE_UNARY_METHOD(sqrt, Sqrt)
 DEFINE_UNARY_METHOD(shape, Shape)
-DEFINE_UNARY_METHOD(sqrt, Sqrt)
 DEFINE_UNARY_METHOD(erf, Erf)
 
 // see operators/reshape.h

@@ -375,7 +375,6 @@ void init_graph_builder(py::module &m) {
         .def("pad", &Handler::pad, policy::move)
         .def("cast", &Handler::cast, policy::move)
         .def("expand", &Handler::expand, policy::move)
-        .def("sqrt", &Handler::sqrt, policy::move)
         .def("erf", &Handler::erf, policy::move)
         .def("where", &Handler::where, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)
