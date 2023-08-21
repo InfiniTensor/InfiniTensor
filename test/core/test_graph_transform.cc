@@ -28,7 +28,7 @@ TEST(Graph, transform_refactor) {
 		using EdgeInfo = graph::EdgeInfo;
 		using Tensor = graph::Tensor;
 		using Attributes = graph::Attributes;
-		NodeInfo op1 = NodeInfo{common::OpType::MatMul, Attributes{}};
+		NodeInfo op1 = NodeInfo{common::OpType::MatMul, Attributes{{"transA", graph::Int(false)}, {"transB", graph::Int(false)}}};
 		NodeInfo op2 = NodeInfo{common::OpType::Relu, Attributes{}};
 		EdgeInfo i0, w0, o0, o1;
 		i0.info = Tensor{common::DataType::U32, {1, 2, 3}};
@@ -44,25 +44,25 @@ TEST(Graph, transform_refactor) {
 	auto searcher1 = GraphTopoSearcher(std::move(topo));
 	// compare nodes
 	for (int32_t i = 0; i < static_cast<int32_t>(nodeSize); ++i) {
-		EXPECT_EQ(searcher.nodes()[i], searcher1.nodes()[i]);
+		EXPECT_EQ(searcher.nodes()[i].info(), searcher1.nodes()[i].info());
 	}
 	// compare edges
 	for (int32_t i = 0; i < static_cast<int32_t>(edgeSize); ++i) {
-		EXPECT_EQ(searcher.edges()[i], searcher1.edges()[i]);
+		EXPECT_EQ(searcher.edges()[i].info(), searcher1.edges()[i].info());
 	}
 	// compare global inputs
 	auto globalInput = searcher.globalInputs();
 	auto globalInput1 = searcher1.globalInputs();
 	EXPECT_EQ(globalInput.size(), globalInput1.size());
 	for (size_t i = 0; i < globalInput.size(); ++i) {
-		EXPECT_EQ(globalInput[i], globalInput1[i]);
+		EXPECT_EQ(globalInput[i].info(), globalInput1[i].info());
 	}
 	// compare global outputs
 	auto globalOutput = searcher.globalOutputs();
 	auto globalOutput1 = searcher1.globalOutputs();
 	EXPECT_EQ(globalOutput.size(), globalOutput1.size());
 	for (size_t i = 0; i < globalOutput.size(); ++i) {
-		EXPECT_EQ(globalOutput[i], globalOutput1[i]);
+		EXPECT_EQ(globalOutput[i].info(), globalOutput1[i].info());
 	}
 }
 

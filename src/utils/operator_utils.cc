@@ -43,6 +43,7 @@ int get_real_axis(const int &axis, const int &rank) {
 }
 
 using namespace refactor;
+// add batchnormalization conv gemm globalaveragepool maxpool relu reshape
 graph::NodeInfo getNodeInfo(const Operator &obj) {
 	auto type = obj->getOpType().underlying();
 	graph::NodeInfo nodeInfo{common::OpType::Unknown};
@@ -57,11 +58,46 @@ graph::NodeInfo getNodeInfo(const Operator &obj) {
 					auto transA = matmul->getTransA();
 					auto transB = matmul->getTransB();
 					nodeInfo = {common::OpType::MatMul,
-							{{"transA", static_cast<int>(transA)},
-									{"transB", static_cast<int>(transB)}}};
+							{{"transA", static_cast<graph::Int>(transA)},
+									{"transB", static_cast<graph::Int>(transB)}}};
 					break;
 			}
+			case OpType::BatchNormalization: {
+					auto batchNorm = dynamic_cast<const BatchNormObj *>(obj.get());
+					auto momentum = batchNorm->getMomentum();
+					auto eps = batchNorm->getEps();
+					auto trainingMode = batchNorm->getTrainingMode();
+					nodeInfo = {common::OpType::BatchNorm,
+						{{"epsilon", static_cast<graph::Float>(eps)},
+								{"momentum", static_cast<graph::Float>(momentum)},
+						{"training_mode", static_cast<graph::Int>(trainingMode)}}};
+					break;
+			}
+			case OpType::Conv: {
+					auto conv = dynamic_cast<const ConvObj *>(obj.get());
+					auto tuple = conv->getPadStrideDilation();
+					auto group = conv->getNumGroups();
+					graph::Ints pads, strides, dilations;
+					{
+						pads.emplace_back(std::get<0>(tuple));
+						pads.emplace_back(std::get<1>(tuple));
+						pads.emplace_back(std::get<0>(tuple));
+						pads.emplace_back(std::get<1>(tuple));
+					}
+					{
+						strides.emplace_back(std::get<2>(tuple));
+						strides.emplace_back(std::get<3>(tuple));
+					}
+					{
+						dilations.emplace_back(std::get<4>(tuple));
+						dilations.emplace_back(std::get<5>(tuple));
+					}
+					nodeInfo = {common::OpType::Conv,
+						{{"group", static_cast<graph::Int>group},
+						{"kernel_s"}}}
+			}
 			CASE(Relu)
+			CASE(Add)
 			default :
 				IT_TODO_HALT_MSG("Don't Support OpType");
 	}
