@@ -19,12 +19,8 @@ void testOptensor(
     // Build input data on CPU
     Tensor inputCpu1 =
         make_ref<TensorObj>(shape, DataType::Float32, cpuRuntime);
-    inputCpu1->dataMalloc();
-    inputCpu1->setData(generator);
     Tensor inputCpu2 =
         make_ref<TensorObj>(shape, DataType::Float32, cpuRuntime);
-    inputCpu2->dataMalloc();
-    inputCpu2->setData(generator);
 
     // GPU
     Graph bangGraph = make_ref<GraphObj>(bangRuntime);
@@ -32,13 +28,19 @@ void testOptensor(
     auto inputGpu2 = bangGraph->cloneTensor(inputCpu2);
     auto gpuOp = bangGraph->addOp<T>(inputGpu1, inputGpu2, nullptr);
     bangGraph->dataMalloc();
+    inputGpu1->setData(generator);
+    inputGpu2->setData(generator);
     bangRuntime->run(bangGraph);
     auto outputGpu = gpuOp->getOutput();
     auto outputGpu2Cpu = outputGpu->clone(cpuRuntime);
     // CPU
     Graph cpuGraph = make_ref<GraphObj>(cpuRuntime);
     auto cpuOp = cpuGraph->addOp<T>(inputCpu1, inputCpu2, nullptr);
+    cpuGraph->addTensor(inputCpu1);
+    cpuGraph->addTensor(inputCpu2);
     cpuGraph->dataMalloc();
+    inputCpu1->setData(generator);
+    inputCpu2->setData(generator);
     cpuRuntime->run(cpuGraph);
     auto outputCpu = cpuOp->getOutput();
     // Check

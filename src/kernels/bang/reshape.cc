@@ -4,9 +4,8 @@
 
 namespace infini {
 class CopyBang : public BangKernelWithoutConfig {
-    void compute(const Operator &_op,
+    void compute(const Operator &op,
                  const RuntimeObj *_context) const override {
-        auto op = as<ReshapeObj>(_op);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
         auto inData = op->getInputs(0)->getRawDataPtr<void *>();
         auto outData = op->getOutputs()[0]->getRawDataPtr<void *>();

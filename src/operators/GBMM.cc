@@ -24,24 +24,19 @@ string GBMMObj::toString() const {
 optional<vector<Shape>> GBMMObj::inferShape(const TensorVec &inputs) const {
     auto A = inputs[0], B = inputs[1];
 
-    if (!(A->getDims().size() == 3 && B->getDims().size() == 3))
-        return {};
-    if (!(A->getDims()[0] == B->getDims()[0]))
-        return {};
-    if (!(A->getDims()[1] == B->getDims()[1]))
-        return {};
-    if (A->getDims()[2] % 2 == 0)
-        return {};
+    IT_ASSERT(A->getRank() == 3 && B->getRank() == 3);
+    IT_ASSERT(A->getDims()[0] == B->getDims()[0]);
+    IT_ASSERT(A->getDims()[1] == B->getDims()[1]);
+    IT_ASSERT(A->getDims()[2] % 2 != 0);
     int b(A->getDims()[0]), m(A->getDims()[1]), k(B->getDims()[2]);
     return {{{b, m, k}}};
 }
 
 vector<int> GBMMObj::getWorkloadVector() const {
-    return {enum_to_underlying(type), b, m, w, n, dilation,
-            enum_to_underlying(act)};
+    return {type.underlying(), b, m, w, n, dilation, enum_to_underlying(act)};
 }
 
 vector<int> GBMMObj::getOpAttrVector() const {
-    return {enum_to_underlying(type), dilation, enum_to_underlying(act)};
+    return {type.underlying(), dilation, enum_to_underlying(act)};
 }
 } // namespace infini

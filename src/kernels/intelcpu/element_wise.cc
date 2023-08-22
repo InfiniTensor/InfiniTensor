@@ -6,7 +6,7 @@
 namespace infini {
 class MklBinary : public MklKernelWithoutConfig {
     dnnl::algorithm getAlgorithem(const Ref<ElementWiseObj> &op) const {
-        switch (op->getOpType()) {
+        switch (op->getOpType().underlying()) {
         case OpType::Add:
             return dnnl::algorithm::binary_add;
         case OpType::Sub:
@@ -34,7 +34,7 @@ class MklBinary : public MklKernelWithoutConfig {
 
         //  create user memory that describes data layout in the buffers
         std::vector<dnnl_dim_t> dims;
-        for (size_t i = 0; i < op->getInputs(0)->getDims().size(); ++i)
+        for (size_t i = 0; i < op->getInputs(0)->getRank(); ++i)
             dims.push_back(op->getInputs(0)->getDims()[i]);
 
         auto srcMd1 = dnnl::memory::desc(dims, dnnl::memory::data_type::f32,
@@ -64,7 +64,7 @@ class MklBinary : public MklKernelWithoutConfig {
 
 class MklUnary : public MklKernelWithoutConfig {
     dnnl::algorithm getAlgorithem(const Ref<UnaryObj> &op) const {
-        switch (op->getOpType()) {
+        switch (op->getOpType().underlying()) {
         case OpType::Relu:
             return dnnl::algorithm::eltwise_relu;
         case OpType::Tanh:
@@ -89,7 +89,7 @@ class MklUnary : public MklKernelWithoutConfig {
 
         //  create user memory that describes data layout in the buffers
         std::vector<dnnl_dim_t> dims;
-        for (size_t i = 0; i < op->getInputs(0)->getDims().size(); ++i)
+        for (size_t i = 0; i < op->getInputs(0)->getRank(); ++i)
             dims.push_back(op->getInputs(0)->getDims()[i]);
 
         auto srcMd = dnnl::memory::desc(dims, dnnl::memory::data_type::f32,

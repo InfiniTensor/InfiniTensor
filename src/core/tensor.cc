@@ -71,14 +71,21 @@ void TensorObj::printData() const {
     if (dtype == DataType(N))                                                  \
         std::cout << dataToString<DT<N>::t>() << std::endl;
 
-    TRY_PRINT(0)          // fmt: new line
-    else TRY_PRINT(1)     //
-        else TRY_PRINT(2) //
-        else TRY_PRINT(3) //
-        else TRY_PRINT(4) //
-        else TRY_PRINT(5) //
-        else TRY_PRINT(6) //
-        else TRY_PRINT(7) //
+    TRY_PRINT(0)           // fmt: new line
+    else TRY_PRINT(1)      //
+        else TRY_PRINT(2)  //
+        else TRY_PRINT(3)  //
+        else TRY_PRINT(4)  //
+        else TRY_PRINT(5)  //
+        else TRY_PRINT(6)  //
+        else TRY_PRINT(7)  //
+        else TRY_PRINT(8)  //
+        else TRY_PRINT(9)  //
+        else TRY_PRINT(10) //
+        else TRY_PRINT(11) //
+        else TRY_PRINT(12) //
+        else TRY_PRINT(13) //
+        else TRY_PRINT(16) //
         else IT_TODO_HALT();
 
 #undef TRY_PRINT
@@ -98,14 +105,21 @@ bool TensorObj::equalData(const Tensor &rhs, double relativeError) const {
         return equalDataImpl(getRawDataPtr<DT<N>::t *>(),                      \
                              rhs->getRawDataPtr<DT<N>::t *>(), size());
 
-    TEST_EQUAL(0)          // fmt: new line
-    else TEST_EQUAL(1)     //
-        else TEST_EQUAL(2) //
-        else TEST_EQUAL(3) //
-        else TEST_EQUAL(4) //
-        else TEST_EQUAL(5) //
-        else TEST_EQUAL(6) //
-        else TEST_EQUAL(7) //
+    TEST_EQUAL(0)           // fmt: new line
+    else TEST_EQUAL(1)      //
+        else TEST_EQUAL(2)  //
+        else TEST_EQUAL(3)  //
+        else TEST_EQUAL(4)  //
+        else TEST_EQUAL(5)  //
+        else TEST_EQUAL(6)  //
+        else TEST_EQUAL(7)  //
+        else TEST_EQUAL(8)  //
+        else TEST_EQUAL(9)  //
+        else TEST_EQUAL(10) //
+        else TEST_EQUAL(11) //
+        else TEST_EQUAL(12) //
+        else TEST_EQUAL(13) //
+        else TEST_EQUAL(16) //
         else IT_TODO_HALT();
 
 #undef TEST_EQUAL
@@ -137,6 +151,8 @@ void TensorObj::setData(
                                  buffer->getPtr<void *>(), nBytes);
     }
 }
+
+void TensorObj::setDataBlob(const Blob &blob) { this->data = blob; }
 
 void TensorObj::load(std::string file_path) { loadTensorData(this, file_path); }
 

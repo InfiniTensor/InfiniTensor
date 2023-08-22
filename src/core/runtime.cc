@@ -17,7 +17,8 @@ void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
     std::map<OpType, int> opCnt;
 
     for (auto &op : graph->getOperators()) {
-        auto kernelAttrs = KernelAttrs{device, op->getOpType(), op->getDType()};
+        auto kernelAttrs =
+            KernelAttrs{device, op->getOpType().underlying(), op->getDType()};
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
         auto perfData = perfEngine.getPerfData(perfKey);
@@ -65,7 +66,8 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling) const {
     std::map<OpType, int> opCnt;
 
     for (auto &op : graph->getOperators()) {
-        auto kernelAttrs = KernelAttrs{device, op->getOpType(), op->getDType()};
+        auto kernelAttrs =
+            KernelAttrs{device, op->getOpType().underlying(), op->getDType()};
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
         auto perfData = perfEngine.getPerfData(perfKey);
@@ -116,9 +118,8 @@ void RuntimeObj::printProfilingData(double totalTime,
                                     const std::map<OpType, int> &opCnt) const {
     printf("%11s %3s %7s %7s %7s\n", "Op", "Cnt", "T_tot", "Percent", "T_mean");
     for (const auto &[type, t] : opTime) {
-        printf("%11s %3d %7.3f %7.1f %7.3f\n",
-               OpRegistry::getOpName(type).data(), opCnt.at(type), t,
-               t / totalTime * 100, t / opCnt.at(type));
+        printf("%11s %3d %7.3f %7.1f %7.3f\n", type.toString(), opCnt.at(type),
+               t, t / totalTime * 100, t / opCnt.at(type));
     }
 }
 

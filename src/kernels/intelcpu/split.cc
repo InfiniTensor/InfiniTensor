@@ -10,7 +10,7 @@ class MklSplit : public MklKernelWithoutConfig {
         auto context = dynamic_cast<const MklRuntimeObj *>(_context);
 
         std::vector<dnnl_dim_t> dims;
-        for (size_t i = 0; i < op->getInputs(0)->getDims().size(); ++i)
+        for (size_t i = 0; i < op->getInputs(0)->getRank(); ++i)
             dims.push_back(op->getInputs(0)->getDims()[i]);
 
         // create src md

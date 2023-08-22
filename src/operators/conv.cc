@@ -19,7 +19,7 @@ ConvBaseObj::ConvBaseObj(OpType opType, TensorVec inputs, Tensor &output,
 
 string ConvBaseObj::toString() const {
     std::ostringstream os;
-    os << OpRegistry::getOpName(getOpType()) << "[" << getGuid() << "]";
+    os << type.toString() << "[" << getGuid() << "]";
     os << "(";
     if (inputs.size() == 2) {
         os << vecToString(inputs[0]->getDims()) << ",";
@@ -36,13 +36,12 @@ string ConvBaseObj::toString() const {
 }
 
 vector<int> ConvBaseObj::getWorkloadVector() const {
-    return {
-        enum_to_underlying(type), n, c, h, w, f, r, s, ph, pw, sh, sw, dh, dw};
+    return {type.underlying(), n, c, h, w, f, r, s, ph, pw, sh, sw, dh, dw};
 }
 
 vector<int> ConvBaseObj::getOpAttrVector() const {
     // IT_TODO_HALT(); // should padding mode / ph+pw be in attrs?
-    return {enum_to_underlying(type), c, f, r, s, ph, pw, sh, sw, dh, dw};
+    return {type.underlying(), c, f, r, s, ph, pw, sh, sw, dh, dw};
 }
 
 void ConvObj::setAuxilaryAttributes(PaddingMode mode) {
@@ -94,8 +93,7 @@ optional<vector<Shape>> ConvObj::inferShape(const TensorVec &inputs) const {
     int on = n, oc = f;
     int oh = 0, ow = 0;
     // For NCHW+FCRS layout, C of input is divisable by C of weight
-    if (input->getDims()[1] % weight->getDims()[1] != 0)
-        return {};
+    IT_ASSERT(input->getDims()[1] % weight->getDims()[1] == 0);
     // Set padding size
     if (padding == PaddingMode::Other) {
         oh = (h - (r - sh) * dh + ph * 2) / sh;
@@ -119,8 +117,8 @@ ConvTransposed2dObj::ConvTransposed2dObj(GraphObj *graph, Tensor input,
                                          int pw, int sh, int sw, int dh, int dw,
                                          int oph, int opw, int group,
                                          Tensor bias, ActType act)
-    : ConvBaseObj(OpType::ConvTrans, {input, weight}, output, ph, pw, sh, sw,
-                  dh, dw, output, weight, act),
+    : ConvBaseObj(OpType::ConvTranspose, {input, weight}, output, ph, pw, sh,
+                  sw, dh, dw, output, weight, act),
       oph(oph), opw(opw), group(group) {
     if (bias)
         IT_TODO_HALT();
@@ -133,8 +131,8 @@ ConvTransposed2dObj::ConvTransposed2dObj(GraphObj *graph, Tensor input,
                                          PaddingMode mode, int sh, int sw,
                                          int dh, int dw, int oph, int opw,
                                          int group, Tensor bias, ActType act)
-    : ConvBaseObj(OpType::ConvTrans, {input, weight}, output, mode, sh, sw, dh,
-                  dw, output, weight, act),
+    : ConvBaseObj(OpType::ConvTranspose, {input, weight}, output, mode, sh, sw,
+                  dh, dw, output, weight, act),
       oph(oph), opw(opw), group(group) {
     if (bias)
         IT_TODO_HALT();
@@ -152,8 +150,7 @@ ConvTransposed2dObj::inferShape(const TensorVec &inputs) const {
     auto c = weight->getDims()[1];
     auto r = weight->getDims()[2];
     auto s = weight->getDims()[3];
-    if (f != weight->getDims()[0])
-        return {};
+    IT_ASSERT(f == weight->getDims()[0]);
 
     int on = n, oc = c * group;
     int oh = 0, ow = 0;
@@ -233,8 +230,7 @@ ConvBackwardFilterObj::inferShape(const TensorVec &inputs) const {
     int on = n, oc = f;
     int oh = 0, ow = 0;
     // For NCHW+FCRS layout, C of input is divisable by C of weight
-    if (inputX->getDims()[1] % diffY->getDims()[1] != 0)
-        return {};
+    IT_ASSERT(inputX->getDims()[1] % diffY->getDims()[1] == 0);
     // Set padding size
     if (padding == PaddingMode::Other) {
         oh = (h - (r - sh) * dh + ph * 2) / sh;
@@ -274,8 +270,8 @@ ConvTransposed2dNHWCObj::ConvTransposed2dNHWCObj(GraphObj *graph, Tensor input,
                                                  int sw, int dh, int dw,
                                                  int oph, int opw, int group,
                                                  Tensor bias, ActType act)
-    : ConvBaseObj(OpType::ConvTrans, {input, weight}, output, mode, sh, sw, dh,
-                  dw, output, weight, act),
+    : ConvBaseObj(OpType::ConvTranspose, {input, weight}, output, mode, sh, sw,
+                  dh, dw, output, weight, act),
       oph(oph), opw(opw), group(group) {
     if (bias)
         IT_TODO_HALT();

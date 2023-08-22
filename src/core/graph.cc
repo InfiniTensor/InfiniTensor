@@ -5,7 +5,7 @@
 namespace infini {
 
 GraphObj::GraphObj(Runtime runtime, OpVec ops_in)
-    : runtime(runtime), sorted(false) {
+    : runtime(runtime), allocator(runtime), sorted(false) {
     map<UidBaseType, Tensor> tensorPool;
     // Clone tensors
     for (const auto &op : ops_in) {
@@ -116,7 +116,7 @@ bool GraphObj::topo_sort() {
 
 void GraphObj::optimize() {
     for (auto &op : ops) {
-        switch (op->getOpType()) {
+        switch (op->getOpType().underlying()) {
         default:
             break;
         }
@@ -124,9 +124,58 @@ void GraphObj::optimize() {
 }
 
 void GraphObj::dataMalloc() {
+    // topological sorting first
+    IT_ASSERT(topo_sort() == true);
+    // count the number of times all tensors are used
+    std::unordered_map<TensorObj *, size_t> tensorToRefCount;
+    // record the memory address offsets of all tensors to be allocated
+    std::unordered_map<TensorObj *, size_t> tensorToOffset;
+
+    // record all constant tensors, including weight tensors and input tensors
+    std::unordered_set<TensorObj *> constTensor;
     for (auto &tensor : tensors) {
-        tensor->dataMalloc();
+        if (tensor.get()->getSource() == nullptr) {
+            // allocate memory for all constant tensors first, and this memory
+            // will not be reused later
+            constTensor.insert(tensor.get());
+            tensorToOffset[tensor.get()] = allocator.alloc(tensor->getBytes());
+        } else {
+            tensorToRefCount[tensor.get()] = tensor->getTargets().size();
+        }
     }
+    // traverse in topological order and simulate memory allocation
+    for (auto &op : ops) {
+        // memory should be allocated for the output first
+        auto outputs = op->getOutputs();
+        for (auto &tensor : outputs) {
+            tensorToOffset[tensor.get()] = allocator.alloc(tensor->getBytes());
+        }
+        auto inputs = op->getInputs();
+        for (auto &tensor : inputs) {
+            if (constTensor.find(tensor.get()) == constTensor.end()) {
+                auto tensorIter = tensorToRefCount.find(tensor.get());
+                IT_ASSERT(tensorIter != tensorToRefCount.end());
+                tensorToRefCount[tensor.get()] -= 1;
+                if (tensorToRefCount[tensor.get()] == 0) {
+                    // indicate that this tensor will no longer be used and
+                    // perform memory free
+                    tensorToRefCount.erase(tensor.get());
+                    allocator.free(tensorToOffset[tensor.get()],
+                                   tensor->getBytes());
+                }
+            }
+        }
+    }
+
+    // perform actual memory allocation
+    for (auto &tensor : tensors) {
+        IT_ASSERT(tensorToOffset.find(tensor.get()) != tensorToOffset.end());
+        tensor->setDataBlob(make_ref<BlobObj>(
+            tensor->runtime, static_cast<uint8_t *>(allocator.getPtr()) +
+                                 tensorToOffset[tensor.get()]));
+    }
+
+    allocator.info();
 }
 
 Tensor GraphObj::addTensor(Shape dim, DataType dtype) {
@@ -151,7 +200,7 @@ TensorVec GraphObj::addTensor(const TensorVec &tensors) {
 OpVec GraphObj::getComputeOps() const {
     OpVec opList;
     for (auto op : ops)
-        if (op->isComputeOp())
+        if (op->getOpType().isMatMulOrConv())
             opList.emplace_back(op);
     return opList;
 }

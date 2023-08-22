@@ -29,12 +29,12 @@ std::string DropoutObj::toString() const {
 vector<int> DropoutObj::getWorkloadVector() const {
     vector<int> ret = inputs[0]->getDims();
     ret.emplace_back(static_cast<int>(ratio));
-    ret.emplace(ret.begin(), enum_to_underlying(type));
+    ret.emplace(ret.begin(), type.underlying());
     return ret;
 }
 
 vector<int> DropoutObj::getOpAttrVector() const {
-    return {enum_to_underlying(type), static_cast<int>(ratio), false};
+    return {type.underlying(), static_cast<int>(ratio), false};
 }
 
 } // namespace infini

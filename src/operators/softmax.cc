@@ -1,21 +1,18 @@
 #include "operators/softmax.h"
+#include "utils/operator_utils.h"
 
 namespace infini {
 
 SoftmaxObj::SoftmaxObj(GraphObj *graph, Tensor input, Tensor output, int _axis)
     : OperatorObj(OpType::Softmax, {input}, {output}) {
-    if (_axis >= 0 && (size_t)_axis < input->getDims().size())
-        axis = _axis;
-    else if (_axis <= -1 && (size_t)_axis >= -input->getDims().size())
-        axis = _axis + input->getDims().size();
-    else
-        IT_ASSERT(0);
+    int rank = input->getRank();
+    axis = get_real_axis(_axis, rank);
     IT_ASSERT(checkValid(graph));
 }
 
 std::string SoftmaxObj::toString() const {
     std::ostringstream os;
-    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]";
+    os << type.toString() << "[" << getGuid() << "]";
     os << "(";
     os << vecToString(inputs[0]->getDims()) << ",";
     os << "input=" << inputs[0]->getGuid() << ",";
@@ -25,13 +22,13 @@ std::string SoftmaxObj::toString() const {
 }
 
 vector<int> SoftmaxObj::getWorkloadVector() const {
-    vector<int> ret{enum_to_underlying(type), axis};
+    vector<int> ret{type.underlying(), axis};
     const Shape shape = outputs[0]->getDims();
     ret.insert(ret.end(), shape.begin(), shape.end());
     return ret;
 }
 
 vector<int> SoftmaxObj::getOpAttrVector() const {
-    return {enum_to_underlying(type), axis};
+    return {type.underlying(), axis};
 }
 } // namespace infini

@@ -23,27 +23,22 @@ string G2BMMObj::toString() const {
 optional<vector<Shape>> G2BMMObj::inferShape(const TensorVec &inputs) const {
     auto A = inputs[0], B = inputs[1];
 
-    if (!(A->getDims().size() == 3 && B->getDims().size() == 3))
-        return {};
-    if (!(A->getDims()[0] == B->getDims()[0]))
-        return {};
-    if (!(A->getDims()[1] == B->getDims()[1]))
-        return {};
-    if (!(A->getDims()[2] == B->getDims()[2]))
-        return {};
-    if (width < 0)
-        return {};
+    IT_ASSERT(A->getRank() == 3 && B->getRank() == 3);
+    IT_ASSERT(A->getDims()[0] == B->getDims()[0]);
+    IT_ASSERT(A->getDims()[1] == B->getDims()[1]);
+    IT_ASSERT(A->getDims()[2] == B->getDims()[2]);
+    IT_ASSERT(width >= 0);
     int b(A->getDims()[0]), m(A->getDims()[1]), n(2 * width + 1);
     return {{{b, m, n}}};
 }
 
 vector<int> G2BMMObj::getWorkloadVector() const {
-    return {enum_to_underlying(type), b, m, k, width, dilation,
+    return {type.underlying(),      b, m, k, width, dilation,
             enum_to_underlying(act)};
 }
 
 vector<int> G2BMMObj::getOpAttrVector() const {
-    return {enum_to_underlying(type), width, dilation, enum_to_underlying(act)};
+    return {type.underlying(), width, dilation, enum_to_underlying(act)};
 }
 
 } // namespace infini

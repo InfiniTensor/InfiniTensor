@@ -18,45 +18,53 @@ class MatmulCnnl : public BangKernelWithoutConfig {
         auto dimInputs0 = op->getInputs(0)->getDims();
         auto dimInputs1 = op->getInputs(1)->getDims();
         auto dimOutput = op->getOutput()->getDims();
-        int input0_batch_size = 1;
-        int input1_batch_size = 1;
-        int output_batch_size = 1;
-        for (size_t i = 0; i < dimInputs0.size() - 2; ++i) {
-            input0_batch_size *= dimInputs0[i];
-            input1_batch_size *= dimInputs1[i];
-            output_batch_size *= dimOutput[i];
-        }
 
-        bool transA = op->getTransA();
-        bool transB = op->getTransB();
-
-        int inputs0Array[3] = {input0_batch_size,
-                               dimInputs0[dimInputs0.size() - 2],
-                               dimInputs0[dimInputs0.size() - 1]};
-        int inputs1Array[3] = {input1_batch_size,
-                               dimInputs1[dimInputs1.size() - 2],
-                               dimInputs1[dimInputs1.size() - 1]};
-        int outputArray[3] = {output_batch_size,
-                              dimOutput[dimOutput.size() - 2],
-                              dimOutput[dimOutput.size() - 1]};
+        int32_t transA = op->getTransA();
+        int32_t transB = op->getTransB();
 
         // get inputs
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(
-            aDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT, 3, inputs0Array));
+        checkCnnlError(
+            cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT,
+                                    dimInputs0.size(), dimInputs0.data()));
 
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(
-            bDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT, 3, inputs1Array));
+        checkCnnlError(
+            cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT,
+                                    dimInputs1.size(), dimInputs1.data()));
 
         // get outputs
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(
-            cDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT, 3, outputArray));
+        checkCnnlError(
+            cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT,
+                                    dimOutput.size(), dimOutput.data()));
 
-        cnnlStatus_t stat =
-            cnnlBatchMatMul(context->cnnlHandle(), transA, transB, aDesc, aData,
-                            bDesc, bData, cDesc, cData);
+        cnnlMatMulDescriptor_t bmm_desc;
+        cnnlMatMulDescCreate(&bmm_desc);
+        cnnlSetMatMulDescAttr(bmm_desc, CNNL_MATMUL_DESC_TRANSA, &transA,
+                              sizeof(int32_t));
+        cnnlSetMatMulDescAttr(bmm_desc, CNNL_MATMUL_DESC_TRANSB, &transB,
+                              sizeof(int32_t));
+
+        cnnlMatMulAlgo_t bmm_algo;
+        cnnlMatMulAlgoCreate(&bmm_algo);
+
+        float alpha = 1.0;
+        float beta = 0.0;
+        int count = 0;
+
+        cnnlMatMulHeuristicResult_t desc;
+        cnnlCreateMatMulHeuristicResult(&desc);
+
+        cnnlGetBatchMatMulAlgoHeuristic(context->cnnlHandle(), bmm_desc, aDesc,
+                                        bDesc, cDesc, NULL, 1, &desc, &count);
+        size_t wsSize;
+        cnnlGetBatchMatMulHeuristicResult(desc, bmm_algo, &wsSize);
+        BangPtr wsData = context->getWorkspace(wsSize);
+
+        cnnlStatus_t stat = cnnlBatchMatMulBCast_v2(
+            context->cnnlHandle(), bmm_desc, bmm_algo, &alpha, aDesc, aData,
+            bDesc, bData, &beta, cDesc, cData, wsData, wsSize);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
@@ -65,9 +73,12 @@ class MatmulCnnl : public BangKernelWithoutConfig {
         checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
         checkCnnlError(cnnlDestroyTensorDescriptor(bDesc));
         checkCnnlError(cnnlDestroyTensorDescriptor(cDesc));
+        checkCnnlError(cnnlMatMulDescDestroy(bmm_desc));
+        checkCnnlError(cnnlMatMulAlgoDestroy(bmm_algo));
+        checkCnnlError(cnnlDestroyMatMulHeuristicResult(desc));
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Matmul, DataType::Float32, MatmulCnnl,
+REGISTER_KERNEL(Device::BANG, OpType::MatMul, DataType::Float32, MatmulCnnl,
                 "Matmul_cnnl_BANG_Float32");
 }; // namespace infini

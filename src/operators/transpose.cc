@@ -4,31 +4,37 @@ namespace infini {
 TransposeObj::TransposeObj(GraphObj *graph, Tensor input, Tensor output,
                            vector<int> permute)
     : OperatorObj(OpType::Transpose, {input}, {output}) {
-    if (permute.size() != 4) {
-        IT_TODO_HALT();
+    auto rank = input->getRank();
+    if (permute.empty()) {
+        for (size_t i = 0; i < rank; ++i) {
+            transposePermute[i] = i;
+        }
+    } else {
+        IT_ASSERT(rank == permute.size());
+        transposePermute = std::move(permute);
     }
-    transposePermute[0] = permute[0];
-    transposePermute[1] = permute[1];
-    transposePermute[2] = permute[2];
-    transposePermute[3] = permute[3];
     IT_ASSERT(checkValid(graph));
 }
 
 optional<vector<Shape>>
 TransposeObj::inferShape(const TensorVec &inputs) const {
     const auto A = inputs[0];
-    auto input = A->getDims();
-    auto output = input;
+    auto input_dim = A->getDims();
+    auto output_dim = input_dim;
+    int rank = A->getRank();
 
-    for (int i = 0; i < 4; ++i) {
-        output[i] = input[transposePermute[i]];
+    for (auto index : transposePermute) {
+        IT_ASSERT(index < rank);
     }
-    return {{output}};
+    for (int i = 0; i < rank; ++i) {
+        output_dim[i] = input_dim[transposePermute[i]];
+    }
+    return {{output_dim}};
 }
 
 std::string TransposeObj::toString() const {
     std::ostringstream os;
-    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]";
+    os << type.toString() << "[" << getGuid() << "]";
     os << "(";
     os << vecToString(inputs[0]->getDims()) << ",";
     os << "input=" << inputs[0]->getGuid() << ",";
@@ -37,14 +43,14 @@ std::string TransposeObj::toString() const {
 }
 
 vector<int> TransposeObj::getWorkloadVector() const {
-    vector<int> ret{enum_to_underlying(type)};
+    vector<int> ret{type.underlying()};
     const Shape shape = outputs[0]->getDims();
     ret.insert(ret.end(), shape.begin(), shape.end());
     return ret;
 }
 
 vector<int> TransposeObj::getOpAttrVector() const {
-    return {enum_to_underlying(type)};
+    return {type.underlying()};
 }
 
 }; // namespace infini

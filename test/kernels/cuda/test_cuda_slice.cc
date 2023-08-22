@@ -25,6 +25,7 @@ TEST(CUDA_Slice, run) {
 
     // allocate CUDA memory
     g->dataMalloc();
+    i->setData(IncrementalGenerator());
 
     // Execute on CUDA
     cudaRuntime->run(g);

@@ -13,7 +13,6 @@ template <typename T> class NaiveMatmul : public CpuKernelWithoutConfig {
         T *C = op->getOutput()->getRawDataPtr<T *>();
         IT_ASSERT(op->getTransA() == false && op->getTransB() == false);
         IT_ASSERT(op->getAct() == ActType::None);
-        IT_ASSERT(op->getB() == 1);
         const int M = op->getM(), N = op->getN(), K = op->getK();
         for (int i = 0; i < M; i++) {
             for (int j = 0; j < N; j++) {
@@ -26,9 +25,9 @@ template <typename T> class NaiveMatmul : public CpuKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CPU, OpType::Matmul, DataType::UInt32,
+REGISTER_KERNEL(Device::CPU, OpType::MatMul, DataType::UInt32,
                 NaiveMatmul<uint32_t>, "MatmulNaive_CPU_uint32");
-REGISTER_KERNEL(Device::CPU, OpType::Matmul, DataType::Float32,
+REGISTER_KERNEL(Device::CPU, OpType::MatMul, DataType::Float32,
                 NaiveMatmul<float>, "MatmulNaive_CPU_float32");
 
 } // namespace infini

@@ -18,24 +18,26 @@ class ElementWiseCnnl : public BangKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
 
         cnnlTensorDescriptor_t aDesc, bDesc, cDesc;
-        auto dim = op->getInputs(0)->getDims();
-        if (dim.size() != 4)
+        auto a_dim = op->getInputs(0)->getDims();
+        auto b_dim = op->getInputs(1)->getDims();
+        auto c_dim = op->getOutput()->getDims();
+
+        if (a_dim.size() > 4 || b_dim.size() > 4 || c_dim.size() > 4)
             IT_TODO_HALT();
 
-        int dim_array[4] = {dim[0], dim[1], dim[2], dim[3]};
         // get inputs
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, a_dim.data()));
 
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            bDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, b_dim.data()));
 
         // get outputs
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, c_dim.data()));
 
         // get op descriptor
         cnnlOpTensorDescriptor_t opDesc;
@@ -591,9 +593,6 @@ class MulCnnl : public ElementWiseCnnl {
 class EqualCnnl : public LogicOpCnnl {
     cnnlLogicOp_t getOpType() const override { return CNNL_LOGIC_OP_EQ; }
 };
-class NotEqualCnnl : public LogicOpCnnl {
-    cnnlLogicOp_t getOpType() const override { return CNNL_LOGIC_OP_NE; }
-};
 class GreaterThanCnnl : public LogicOpCnnl {
     cnnlLogicOp_t getOpType() const override { return CNNL_LOGIC_OP_GT; }
 };
@@ -649,13 +648,13 @@ REGISTER_KERNEL(Device::BANG, OpType::Mul, DataType::Float32, MulCnnl,
 
 REGISTER_KERNEL(Device::BANG, OpType::Div, DataType::Float32, DivCnnl,
                 "Div_cnnl_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Maximum, DataType::Float32, MaximumCnnl,
+REGISTER_KERNEL(Device::BANG, OpType::Max, DataType::Float32, MaximumCnnl,
                 "Maximum_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Minimum, DataType::Float32, MinimumCnnl,
+REGISTER_KERNEL(Device::BANG, OpType::Min, DataType::Float32, MinimumCnnl,
                 "Minimum_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::MSELoss, DataType::Float32, MSELossCnnl,
                 "MSELoss_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Power, DataType::Float32, PowerCnnl,
+REGISTER_KERNEL(Device::BANG, OpType::Pow, DataType::Float32, PowerCnnl,
                 "Power_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::FloorDiv, DataType::Float32, FloorDivCnnl,
                 "FloorDiv_cnnl_BANG_Float32");
@@ -665,15 +664,13 @@ REGISTER_KERNEL(Device::BANG, OpType::SquaredDifference, DataType::Float32,
                 SquaredDifferenceCnnl, "SquaredDifference_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::Equal, DataType::Float32, EqualCnnl,
                 "Equal_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::NotEqual, DataType::Float32, NotEqualCnnl,
-                "NotEqual_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::GreaterThan, DataType::Float32,
+REGISTER_KERNEL(Device::BANG, OpType::Greater, DataType::Float32,
                 GreaterThanCnnl, "GreaterThan_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::GreaterEqual, DataType::Float32,
+REGISTER_KERNEL(Device::BANG, OpType::GreaterOrEqual, DataType::Float32,
                 GreaterEqualCnnl, "GreaterEqual_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::LessThan, DataType::Float32, LessThanCnnl,
+REGISTER_KERNEL(Device::BANG, OpType::Less, DataType::Float32, LessThanCnnl,
                 "LessThan_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::LessEqual, DataType::Float32,
+REGISTER_KERNEL(Device::BANG, OpType::LessOrEqual, DataType::Float32,
                 LessEqualCnnl, "LessEqual_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::And, DataType::Float32, AndCnnl,
                 "And_cnnl_BANG_Float32");
@@ -683,13 +680,13 @@ REGISTER_KERNEL(Device::BANG, OpType::Xor, DataType::Float32, XorCnnl,
                 "Xor_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::Not, DataType::Float32, NotCnnl,
                 "Not_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::BitAnd, DataType::Float32, BitAndCnnl,
+REGISTER_KERNEL(Device::BANG, OpType::BitwiseAnd, DataType::Float32, BitAndCnnl,
                 "BitAnd_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::BitOr, DataType::Float32, BitOrCnnl,
+REGISTER_KERNEL(Device::BANG, OpType::BitwiseOr, DataType::Float32, BitOrCnnl,
                 "BitOr_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::BitXor, DataType::Float32, BitXorCnnl,
+REGISTER_KERNEL(Device::BANG, OpType::BitwiseXor, DataType::Float32, BitXorCnnl,
                 "BitXor_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::BitNot, DataType::Float32, BitNotCnnl,
+REGISTER_KERNEL(Device::BANG, OpType::BitwiseNot, DataType::Float32, BitNotCnnl,
                 "BitNot_cnnl_BANG_Float32");
 // REGISTER_KERNEL(Device::BANG, OpType::BitLeftShift, DataType::Float32,
 // BitLeftShiftCnnl,

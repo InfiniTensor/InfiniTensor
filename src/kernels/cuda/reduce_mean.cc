@@ -14,7 +14,7 @@ class ReduceMeanCudnn : public CudaKernelWithoutConfig {
         // Each dimension of the output tensor C must match the corresponding
         // dimension of the input tensor A or must be equal to 1. The dimensions
         // equal to 1 indicate the dimensions of A to be reduced.
-        int nInDims = input->getDims().size();
+        int nInDims = input->getRank();
         IT_ASSERT(CUDNN_DIM_MAX >= nInDims);
         int inDimArray[CUDNN_DIM_MAX], outDimArray[CUDNN_DIM_MAX],
             inStrideArray[CUDNN_DIM_MAX], outStrideArray[CUDNN_DIM_MAX];
