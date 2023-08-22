@@ -206,7 +206,7 @@ void GraphObj::optimize() {
     //       将结果直接存放在这个 `GraphOhj` 里规避 Runtime 等不同成员的问题
 }
 
-void GraphObj::fromGraphTopo(refactor::graph::Graph &graph) {
+void GraphObj::transformFromGraphTopo(refactor::graph::Graph &graph) {
     // tensors
     tensors.clear();
     std::unordered_map<int32_t, TensorObj *> edgeIdxToTensor;
@@ -255,7 +255,6 @@ void GraphObj::fromGraphTopo(refactor::graph::Graph &graph) {
             auto p = std::get<refactor::graph::Ints>(attr["pads"]);
             auto s = std::get<refactor::graph::Ints>(attr["strides"]);
             auto d = std::get<refactor::graph::Ints>(attr["dilations"]);
-            std::cout << s[0] << std::endl;
             addOpWithOutputs<ConvObj>(inputs[0], inputs[1], outputs[0], p[0],
                                       p[1], s[0], s[1], d[0], d[1], inputs[2]);
         } else if (node.info().opType == refactor::common::OpType::Relu) {

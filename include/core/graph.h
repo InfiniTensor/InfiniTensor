@@ -65,8 +65,6 @@ class GraphObj : public Object {
 
     void optimize();
 
-    void fromGraphTopo(refactor::graph::Graph &graph);
-
     void dataMalloc();
 
     /**
@@ -112,7 +110,10 @@ class GraphObj : public Object {
     }
 
     bool checkValid() const;
+
 	GraphTopo<refactor::graph::NodeInfo, refactor::graph::EdgeInfo> transformToGraphTopo(GraphObj &obj);
+
+    void transformFromGraphTopo(refactor::graph::Graph &graph);
 
   private:
     /**
