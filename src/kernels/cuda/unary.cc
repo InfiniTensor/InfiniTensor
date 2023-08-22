@@ -25,19 +25,25 @@ class ActivationCudnn : public CudaKernelWithoutConfig {
 
         cudnnTensorDescriptor_t inputDesc, outputDesc;
         auto dim = op->getInputs(0)->getDims();
-        if (dim.size() != 4)
-            IT_TODO_HALT();
-        int n = dim[0], c = dim[1], h = dim[2], w = dim[3];
+        // assume input and output have the same strides.
+        auto stride = op->getInputs(0)->getStride();
+        // CUDNN requires that dim >= 4.
+        while (dim.size() < 4)
+            dim.push_back(1);
+        while (stride.size() < 4)
+            stride.push_back(1);
 
         // get inputs
         checkCudnnError(cudnnCreateTensorDescriptor(&inputDesc));
-        checkCudnnError(cudnnSetTensor4dDescriptor(
-            inputDesc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, n, c, h, w));
+        checkCudnnError(cudnnSetTensorNdDescriptor(inputDesc, CUDNN_DATA_FLOAT,
+                                                   dim.size(), dim.data(),
+                                                   stride.data()));
 
         // get outputs
         checkCudnnError(cudnnCreateTensorDescriptor(&outputDesc));
-        checkCudnnError(cudnnSetTensor4dDescriptor(
-            outputDesc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, n, c, h, w));
+        checkCudnnError(cudnnSetTensorNdDescriptor(outputDesc, CUDNN_DATA_FLOAT,
+                                                   dim.size(), dim.data(),
+                                                   stride.data()));
 
         // get op descriptor
         cudnnActivationDescriptor_t activationDesc;

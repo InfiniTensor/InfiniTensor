@@ -51,15 +51,14 @@ size_t TensorObj::getOffset(const vector<int> &pos) const {
     return idx;
 }
 
-vector<size_t> TensorObj::getStride() const {
-    vector<size_t> ret;
-    size_t stride = 1;
-    for (int i = shape.size() - 1; i >= 1; i--) {
-        ret.emplace(ret.begin(), stride);
-        stride *= shape.at(i);
+Shape TensorObj::getStride() const {
+    Shape stride(getRank());
+    ShapeElem p = 1;
+    for (auto i = getRank(); i > 0; --i) {
+        stride[i - 1] = p;
+        p = p * shape[i - 1];
     }
-    ret.emplace(ret.begin(), stride);
-    return ret;
+    return stride;
 }
 
 void TensorObj::printData() const {
