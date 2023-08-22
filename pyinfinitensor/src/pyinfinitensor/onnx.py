@@ -348,6 +348,18 @@ class OnnxStub:
                         tensors[node.input[1]],
                         tensors.get(node.output[0]),
                     )
+                elif node.op_type == "Min":
+                    tensors[node.output[0]] = self.handler.min(
+                        tensors[node.input[0]],
+                        tensors[node.input[1]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "Max":
+                    tensors[node.output[0]] = self.handler.max(
+                        tensors[node.input[0]],
+                        tensors[node.input[1]],
+                        tensors.get(node.output[0]),
+                    )
                 elif node.op_type == "Relu":
                     tensors[node.output[0]] = self.handler.relu(
                         tensors[node.input[0]],

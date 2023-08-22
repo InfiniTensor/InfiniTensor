@@ -135,6 +135,8 @@ DEFINE_ELEMENT_WISE_METHOD(sub, Sub)
 DEFINE_ELEMENT_WISE_METHOD(mul, Mul)
 DEFINE_ELEMENT_WISE_METHOD(div, Div)
 DEFINE_ELEMENT_WISE_METHOD(pow, Pow)
+DEFINE_ELEMENT_WISE_METHOD(min, Minimum)
+DEFINE_ELEMENT_WISE_METHOD(max, Maximum)
 
 // see operators/unary.h
 #define DEFINE_UNARY_METHOD(name, obj)                                         \
