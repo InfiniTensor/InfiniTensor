@@ -52,6 +52,11 @@ class PoolingObj : public OperatorObj {
     int getSw() const { return sw; }
 
     auto getPadStrideDilation() const { return tuple(ph, pw, sh, sw, dh, dw); }
+    std::vector<int> getPads() const {
+        return std::vector<int>{ph, pw, ph, pw};
+    }
+    std::vector<int> getStrides() const { return std::vector<int>{sh, sw}; }
+    std::vector<int> getDilations() const { return std::vector<int>{dh, dw}; }
     auto getNCHWRS() const { return tuple(n, c, h, w, kh, kw); }
 
   private:
