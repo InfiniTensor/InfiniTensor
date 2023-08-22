@@ -30,6 +30,6 @@ class MatmulXdnn : public XPUKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::XPU, OpType::Matmul, DataType::Float32, MatmulXdnn,
+REGISTER_KERNEL(Device::XPU, OpType::MatMul, DataType::Float32, MatmulXdnn,
                 "Matmul_xdnn_XPU_Float32");
 }; // namespace infini

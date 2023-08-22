@@ -32,6 +32,8 @@ void testConcat(const std::function<void(void *, size_t, DataType)> &generator,
     auto gpuOp =
         xpuGraph->addOp<T>(TensorVec{inputGpu1, inputGpu2}, nullptr, 2);
     xpuGraph->dataMalloc();
+    inputGpu1->setData(generator);
+    inputGpu2->setData(generator);
     xpuRuntime->run(xpuGraph);
     auto outputGpu = gpuOp->getOutput();
     auto outputGpu2Cpu = outputGpu->clone(cpuRuntime);

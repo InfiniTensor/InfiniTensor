@@ -174,30 +174,6 @@ class EqualXdnn : public XPUKernelWithoutConfig {
     }
 };
 
-class NotEqualXdnn : public XPUKernelWithoutConfig {
-    void compute(const Operator &_op,
-                 const RuntimeObj *_context) const override {
-        auto op = as<ElementWiseObj>(_op);
-        auto context = dynamic_cast<const XPURuntimeObj *>(_context);
-
-        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
-        void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
-        void *const cData = (op->getOutput()->getRawDataPtr<void *>());
-	size_t len = op->getOutput()->size();
-	XPUPtr wsData = context->getWorkspace(len);
-
-        auto aDim = op->getInputs(0)->getDims();
-        auto bDim = op->getInputs(1)->getDims();
-        if (aDim.size() != 4 || bDim.size() != 4)
-            IT_TODO_HALT();
-	auto ret = baidu::xpu::api::broadcast_not_equal<float>(context->XPUHandle(), (float*)aData, (float*)bData, (bool*)wsData, aDim, bDim);
-	ret = baidu::xpu::api::cast<bool, float>(context->XPUHandle(), (bool*)wsData, (float*)cData, len);
-	assert(ret == 0);
-	return;
-
-    }
-};
-
 class GreaterEqualXdnn : public XPUKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
@@ -304,20 +280,18 @@ REGISTER_KERNEL(Device::XPU, OpType::Div, DataType::Float32, DivXdnn,
                 "Div_xdnn_XPU_Float32");
 REGISTER_KERNEL(Device::XPU, OpType::Pow, DataType::Float32, PowXdnn,
                 "Pow_xdnn_XPU_Float32");
-REGISTER_KERNEL(Device::XPU, OpType::Maximum, DataType::Float32, MaxXdnn,
+REGISTER_KERNEL(Device::XPU, OpType::Max, DataType::Float32, MaxXdnn,
                 "Max_xdnn_XPU_Float32");
-REGISTER_KERNEL(Device::XPU, OpType::Minimum, DataType::Float32, MinXdnn,
+REGISTER_KERNEL(Device::XPU, OpType::Min, DataType::Float32, MinXdnn,
                 "Min_xdnn_XPU_Float32");
 REGISTER_KERNEL(Device::XPU, OpType::Equal, DataType::Float32, EqualXdnn,
                 "Equal_xdnn_XPU_Float32");
-REGISTER_KERNEL(Device::XPU, OpType::NotEqual, DataType::Float32, NotEqualXdnn,
-                "NotEqual_xdnn_XPU_Float32");
-REGISTER_KERNEL(Device::XPU, OpType::GreaterEqual, DataType::Float32, GreaterEqualXdnn,
+REGISTER_KERNEL(Device::XPU, OpType::GreaterOrEqual, DataType::Float32, GreaterEqualXdnn,
                 "GreaterEqual_xdnn_XPU_Float32");
-REGISTER_KERNEL(Device::XPU, OpType::GreaterThan, DataType::Float32, GreaterThanXdnn,
+REGISTER_KERNEL(Device::XPU, OpType::Greater, DataType::Float32, GreaterThanXdnn,
                 "GreaterThan_xdnn_XPU_Float32");
-REGISTER_KERNEL(Device::XPU, OpType::LessEqual, DataType::Float32, LessEqualXdnn,
+REGISTER_KERNEL(Device::XPU, OpType::LessOrEqual, DataType::Float32, LessEqualXdnn,
                 "LessEqual_xdnn_XPU_Float32");
-REGISTER_KERNEL(Device::XPU, OpType::LessThan, DataType::Float32, LessThanXdnn,
+REGISTER_KERNEL(Device::XPU, OpType::Less, DataType::Float32, LessThanXdnn,
                 "LessThan_xdnn_XPU_Float32");
 }; // namespace infini

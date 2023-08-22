@@ -19,12 +19,8 @@ void testAdd(
     // Build input data on CPU
     Tensor inputCpu1 =
         make_ref<TensorObj>(shape, DataType::Float32, cpuRuntime);
-    inputCpu1->dataMalloc();
-    inputCpu1->setData(generator);
     Tensor inputCpu2 =
         make_ref<TensorObj>(shape, DataType::Float32, cpuRuntime);
-    inputCpu2->dataMalloc();
-    inputCpu2->setData(generator);
 
     // GPU
     Graph xpuGraph = make_ref<GraphObj>(xpuRuntime);
@@ -36,12 +32,16 @@ void testAdd(
     auto outputGpu = gpuOp->getOutput();
     auto outputGpu2Cpu = outputGpu->clone(cpuRuntime);
     // CPU
-    //  Graph cpuGraph = make_ref<GraphObj>(cpuRuntime);
-    //  auto cpuOp = cpuGraph->addOp<T>(inputCpu1, inputCpu2, nullptr);
-    //  cpuGraph->dataMalloc();
-    //  cpuRuntime->run(cpuGraph);
-    //  auto outputCpu = cpuOp->getOutput();
-    // Check
+    // Graph cpuGraph = make_ref<GraphObj>(cpuRuntime);
+    // auto cpuOp = cpuGraph->addOp<T>(inputCpu1, inputCpu2, nullptr);
+    // cpuGraph->addTensor(inputCpu1);
+    // cpuGraph->addTensor(inputCpu2);
+    // cpuGraph->dataMalloc();
+    // inputCpu1->setData(generator);
+    // inputCpu2->setData(generator);
+    // cpuRuntime->run(cpuGraph);
+    // auto outputCpu = cpuOp->getOutput();
+    // // Check
     // outputCpu->printData();
     outputGpu2Cpu->printData();
     // EXPECT_TRUE(outputCpu->equalData(outputGpu2Cpu));
@@ -54,7 +54,6 @@ TEST(xpu_add, run) {
     testAdd<MulObj>(IncrementalGenerator(), Shape{1, 1, 1, 30});
     testAdd<DivObj>(IncrementalGenerator(), Shape{1, 1, 1, 30});
     testAdd<EqualObj>(IncrementalGenerator(), Shape{1, 1, 1, 30});
-    testAdd<NotEqualObj>(IncrementalGenerator(), Shape{1, 1, 1, 30});
     testAdd<GreaterEqualObj>(IncrementalGenerator(), Shape{1, 1, 1, 30});
     testAdd<GreaterThanObj>(IncrementalGenerator(), Shape{1, 1, 1, 30});
     testAdd<LessEqualObj>(IncrementalGenerator(), Shape{1, 1, 1, 30});

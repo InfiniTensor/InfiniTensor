@@ -19,13 +19,8 @@ void testConv(const std::function<void(void *, size_t, DataType)> &generatorA,
     // Build input data on CPU
     Tensor inputCpu1 =
         make_ref<TensorObj>(shapeA, DataType::Float32, cpuRuntime);
-    inputCpu1->dataMalloc();
-    inputCpu1->setData(generatorA);
     Tensor inputCpu2 =
         make_ref<TensorObj>(shapeB, DataType::Float32, cpuRuntime);
-    inputCpu2->dataMalloc();
-    inputCpu2->setData(generatorB);
-
     // MLU
     Graph xpuGraph = make_ref<GraphObj>(xpuRuntime);
     auto inputMlu1 = xpuGraph->cloneTensor(inputCpu1);
@@ -38,9 +33,13 @@ void testConv(const std::function<void(void *, size_t, DataType)> &generatorA,
     auto outputXpu2Cpu = outputXpu->clone(cpuRuntime);
     // CPU
     Graph cpuGraph = make_ref<GraphObj>(cpuRuntime);
+    cpuGraph->addTensor(inputCpu1);
+    cpuGraph->addTensor(inputCpu2);
     auto cpuOp =
         cpuGraph->addOp<T>(inputCpu1, inputCpu2, nullptr, 1, 1, 1, 1, 1, 1);
     cpuGraph->dataMalloc();
+    inputCpu1->setData(generatorA);
+    inputCpu2->setData(generatorB);
     cpuRuntime->run(cpuGraph);
     auto outputCpu = cpuOp->getOutput();
     outputCpu->print();

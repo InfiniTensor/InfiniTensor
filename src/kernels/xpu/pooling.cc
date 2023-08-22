@@ -57,6 +57,6 @@ class MaxPooling : public XPUKernelWithoutConfig {
 
 REGISTER_KERNEL(Device::XPU, OpType::MaxPool, DataType::Float32, MaxPooling,
                 "MaxPool_xdnn_Float32");
-REGISTER_KERNEL(Device::XPU, OpType::AvgPool, DataType::Float32, AvgPooling,
+REGISTER_KERNEL(Device::XPU, OpType::AveragePool, DataType::Float32, AvgPooling,
                 "AvgPool_xdnn_Float32");
 }; // namespace infini
