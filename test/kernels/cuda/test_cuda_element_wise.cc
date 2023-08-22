@@ -58,7 +58,12 @@ TEST(cuDNN_ElementWise, run) {
     testElementWiseCudnn<DivObj>(
         OneGenerator(), Shape{1, 2, 2, 3},
         ExpectOutput{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1});
-
+    testElementWiseCudnn<MinimumObj>(
+        IncrementalGenerator(), Shape{1, 2, 2, 3},
+        ExpectOutput{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11});
+    testElementWiseCudnn<MaximumObj>(
+        IncrementalGenerator(), Shape{1, 2, 2, 3},
+        ExpectOutput{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11});
     testElementWiseCudnn<PowObj>(IncrementalGenerator(), Shape{1, 2, 2, 1},
                                  ExpectOutput{1, 1, 4, 27});
 }
