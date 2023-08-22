@@ -955,6 +955,17 @@ def _search_shape(model: ModelProto, name: str) -> List[int]:
             None,
         )
         or next(
+            (
+                [
+                    (d.dim_value if d.dim_value > 0 else 1)
+                    for d in tensor.type.tensor_type.shape.dim
+                ]
+                for tensor in model.graph.output
+                if tensor.name == name
+            ),
+            None,
+        )
+        or next(
             [int(d) for d in tensor.dims]
             for tensor in model.graph.initializer
             if tensor.name == name
