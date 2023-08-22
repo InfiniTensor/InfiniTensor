@@ -23,7 +23,7 @@ void testCast(const std::function<void(void *, size_t, DataType)> &generator,
     // GPU
     Graph bangGraph = make_ref<GraphObj>(bangRuntime);
     auto inputGpu = bangGraph->cloneTensor(inputCpu);
-    auto gpuOp = bangGraph->addOp<T>(inputGpu, nullptr, CastObj::Float2Int32);
+    auto gpuOp = bangGraph->addOp<T>(inputGpu, nullptr, CastType::Float2Int32);
     auto outputGpu = gpuOp->getOutput();
     bangGraph->dataMalloc();
     bangRuntime->run(bangGraph);
