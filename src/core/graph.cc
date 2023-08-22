@@ -137,10 +137,10 @@ GraphObj::transformToGraphTopo(GraphObj &g) {
     for (auto tensor : g.tensors) {
         if (tensor->source.expired()) {
             auto shape = tensor->getDims();
-            std::vector<size_t> shape_t(tensor->getRank());
+            std::vector<int64_t> shape_t(tensor->getRank());
             graph::EdgeInfo edgeInfo;
             std::transform(shape.begin(), shape.end(), shape_t.begin(),
-                           [](int x) { return size_t(x); });
+                           [](int x) { return int64_t(x); });
             edgeInfo.info = graph::Tensor{
                 static_cast<common::DataType>(tensor->getDType().getIndex()),
                 shape_t};
@@ -151,14 +151,13 @@ GraphObj::transformToGraphTopo(GraphObj &g) {
     // add graph ops
     for (auto node : g.ops) {
         // get add node info
-        // graph::NodeInfo nodeInfo =
-        // graph::NodeInfo{static_cast<common::OpType>(node->getOpType().underlying()),
-        // graph::Attributes{}};
         graph::NodeInfo nodeInfo = getNodeInfo(node);
         auto opInputs = node->getInputs();
         auto opOutputs = node->getOutputs();
         std::vector<EdgeRef> nodeInputs;
         std::vector<graph::EdgeInfo> nodeOutputs;
+        // process reshape op
+        processShapeVariable(node, graphTopo, nodeInputs);
         // get add node inputs
         for (auto nodeInputEle : opInputs) {
             auto it = edgeToTensor.find(nodeInputEle->getFuid());
@@ -168,10 +167,10 @@ GraphObj::transformToGraphTopo(GraphObj &g) {
         // get add node outputs
         for (auto nodeOutputEle : opOutputs) {
             auto shape = nodeOutputEle->getDims();
-            std::vector<size_t> shape_t(nodeOutputEle->getRank());
+            std::vector<int64_t> shape_t(nodeOutputEle->getRank());
             graph::EdgeInfo edgeInfo;
             std::transform(shape.begin(), shape.end(), shape_t.begin(),
-                           [](int x) { return size_t(x); });
+                           [](int x) { return int64_t(x); });
             edgeInfo.info =
                 graph::Tensor{static_cast<common::DataType>(
                                   nodeOutputEle->getDType().getIndex()),
@@ -204,97 +203,99 @@ void GraphObj::optimize() {
     topo = transformToGraphTopo(*this);
     // TODO: 构造 GraphTopo 和 Graph，再拆除，
     //       将结果直接存放在这个 `GraphOhj` 里规避 Runtime 等不同成员的问题
+    graph::Graph graph(std::move(topo));
+    //fromGraphTopo(graph);
 }
 
-void GraphObj::fromGraphTopo(refactor::graph::Graph &graph) {
-    // tensors
-    tensors.clear();
-    std::unordered_map<int32_t, TensorObj *> edgeIdxToTensor;
-    std::unordered_map<int32_t, infini::Shape> edgeIdxToShape;
-    for (auto edge : graph.topo().edges()) {
-        auto info = edge.info();
-        if (info.isTensor()) {
-            auto refactorShape = info.tensor().shape;
-            Shape shape;
-            std::transform(
-                refactorShape.begin(), refactorShape.end(), shape.begin(),
-                [](std::size_t val) { return static_cast<int>(val); });
-            Tensor tensor = addTensor(
-                shape, DataType(static_cast<int>(info.tensor().dataType)));
-            edgeIdxToTensor[edge.index()] = tensor.get();
-        } else if (info.isShapeVariable()) {
-            Shape shape;
-            std::transform(
-                info.shapeVariable().shape.begin(),
-                info.shapeVariable().shape.end(), shape.begin(),
-                [](std::size_t val) { return static_cast<int>(val); });
-            edgeIdxToShape[edge.index()] = shape;
-        }
-    }
-    // ops
-    ops.clear();
-    for (auto node : graph.topo().nodes()) {
-        TensorVec inputs, outputs;
-        std::vector<infini::Shape> shapes;
-        for (auto edge : node.inputs()) {
-            if (edge.info().isTensor()) {
-                IT_ASSERT(edgeIdxToTensor.count(edge.index()) > 0);
-                inputs.emplace_back(edgeIdxToTensor.at(edge.index()));
-            } else if (edge.info().isShapeVariable()) {
-                IT_ASSERT(edgeIdxToShape.count(edge.index()) > 0);
-                shapes.emplace_back(edgeIdxToShape.at(edge.index()));
-            }
-        }
-        for (auto edge : node.outputs()) {
-            IT_ASSERT(edge.info().isTensor());
-            IT_ASSERT(edgeIdxToTensor.count(edge.index()) > 0);
-            outputs.emplace_back(edgeIdxToTensor.at(edge.index()));
-        }
-        auto attr = node.info().attributes;
-        if (node.info().opType == refactor::common::OpType::Conv) {
-            auto p = std::get<refactor::graph::Ints>(attr["pads"]);
-            auto s = std::get<refactor::graph::Ints>(attr["strides"]);
-            auto d = std::get<refactor::graph::Ints>(attr["dilations"]);
-            std::cout << s[0] << std::endl;
-            addOpWithOutputs<ConvObj>(inputs[0], inputs[1], outputs[0], p[0],
-                                      p[1], s[0], s[1], d[0], d[1], inputs[2]);
-        } else if (node.info().opType == refactor::common::OpType::Relu) {
-            addOpWithOutputs<ReluObj>(inputs[0], outputs[0]);
-        } else if (node.info().opType == refactor::common::OpType::Add) {
-            addOpWithOutputs<AddObj>(inputs[0], inputs[1], outputs[0]);
-        } else if (node.info().opType == refactor::common::OpType::Identity) {
-            addOpWithOutputs<IdentityObj>(inputs[0], outputs[0]);
-        } else if (node.info().opType ==
-                   refactor::common::OpType::GlobalAveragePool) {
-            int h = inputs[0]->getDims()[2];
-            int w = inputs[0]->getDims()[3];
-            addOpWithOutputs<AvgPoolObj>(inputs[0], outputs[0], h, w, 1, 1, 0,
-                                         0, 1, 1);
-        } else if (node.info().opType == refactor::common::OpType::Reshape) {
-            addOpWithOutputs<ReshapeObj>(inputs[0], outputs[0], shapes[0]);
-        } else if (node.info().opType == refactor::common::OpType::Gemm) {
-            // FIXME unsupport attributes: `alpha` `beta`
-            auto alpha = std::get<refactor::graph::Float>(attr["alpha"]);
-            auto beta = std::get<refactor::graph::Float>(attr["beta"]);
-            auto transA = std::get<refactor::graph::Int>(attr["transA"]);
-            auto transB = std::get<refactor::graph::Int>(attr["transB"]);
-            IT_ASSERT(alpha == 1.0);
-            IT_ASSERT(beta == 1.0);
-            addOpWithOutputs<MatmulObj>(inputs[0], inputs[1], outputs[0],
-                                        transA, transB, inputs[2],
-                                        ActType::None);
-        } else if (node.info().opType ==
-                   refactor::common::OpType::BatchNormalization) {
-            auto epsilon = std::get<refactor::graph::Float>(attr["epsilon"]);
-            auto momentum = std::get<refactor::graph::Float>(attr["momentum"]);
-            auto training_mode =
-                std::get<refactor::graph::Int>(attr["training_mode"]);
-            addOpWithOutputs<BatchNormObj>(
-                inputs[0], outputs[0], inputs[3], inputs[4], inputs[1],
-                inputs[2], momentum, epsilon, training_mode != 0);
-        }
-    }
-}
+//void GraphObj::fromGraphTopo(refactor::graph::Graph &graph) {
+//    // tensors
+//    tensors.clear();
+//    std::unordered_map<int32_t, TensorObj *> edgeIdxToTensor;
+//    std::unordered_map<int32_t, infini::Shape> edgeIdxToShape;
+//    for (auto edge : graph.topo().edges()) {
+//        auto info = edge.info();
+//        if (info.isTensor()) {
+//            auto refactorShape = info.tensor().shape;
+//            Shape shape;
+//            std::transform(
+//                refactorShape.begin(), refactorShape.end(), shape.begin(),
+//                [](std::size_t val) { return static_cast<int>(val); });
+//            Tensor tensor = addTensor(
+//                shape, DataType(static_cast<int>(info.tensor().dataType)));
+//            edgeIdxToTensor[edge.index()] = tensor.get();
+//        } else if (info.isShapeVariable()) {
+//            Shape shape;
+//            std::transform(
+//                info.shapeVariable().shape.begin(),
+//                info.shapeVariable().shape.end(), shape.begin(),
+//                [](std::size_t val) { return static_cast<int>(val); });
+//            edgeIdxToShape[edge.index()] = shape;
+//        }
+//    }
+//    // ops
+//    ops.clear();
+//    for (auto node : graph.topo().nodes()) {
+//        TensorVec inputs, outputs;
+//        std::vector<infini::Shape> shapes;
+//        for (auto edge : node.inputs()) {
+//            if (edge.info().isTensor()) {
+//                IT_ASSERT(edgeIdxToTensor.count(edge.index()) > 0);
+//                inputs.emplace_back(edgeIdxToTensor.at(edge.index()));
+//            } else if (edge.info().isShapeVariable()) {
+//                IT_ASSERT(edgeIdxToShape.count(edge.index()) > 0);
+//                shapes.emplace_back(edgeIdxToShape.at(edge.index()));
+//            }
+//        }
+//        for (auto edge : node.outputs()) {
+//            IT_ASSERT(edge.info().isTensor());
+//            IT_ASSERT(edgeIdxToTensor.count(edge.index()) > 0);
+//            outputs.emplace_back(edgeIdxToTensor.at(edge.index()));
+//        }
+//        auto attr = node.info().attributes;
+//        if (node.info().opType == refactor::common::OpType::Conv) {
+//            auto p = std::get<refactor::graph::Ints>(attr["pads"]);
+//            auto s = std::get<refactor::graph::Ints>(attr["strides"]);
+//            auto d = std::get<refactor::graph::Ints>(attr["dilations"]);
+//            std::cout << s[0] << std::endl;
+//            addOpWithOutputs<ConvObj>(inputs[0], inputs[1], outputs[0], p[0],
+//                                      p[1], s[0], s[1], d[0], d[1], inputs[2]);
+//        } else if (node.info().opType == refactor::common::OpType::Relu) {
+//            addOpWithOutputs<ReluObj>(inputs[0], outputs[0]);
+//        } else if (node.info().opType == refactor::common::OpType::Add) {
+//            addOpWithOutputs<AddObj>(inputs[0], inputs[1], outputs[0]);
+//        } else if (node.info().opType == refactor::common::OpType::Identity) {
+//            addOpWithOutputs<IdentityObj>(inputs[0], outputs[0]);
+//        } else if (node.info().opType ==
+//                   refactor::common::OpType::GlobalAveragePool) {
+//            int h = inputs[0]->getDims()[2];
+//            int w = inputs[0]->getDims()[3];
+//            addOpWithOutputs<AvgPoolObj>(inputs[0], outputs[0], h, w, 1, 1, 0,
+//                                         0, 1, 1);
+//        } else if (node.info().opType == refactor::common::OpType::Reshape) {
+//            addOpWithOutputs<ReshapeObj>(inputs[0], outputs[0], shapes[0]);
+//        } else if (node.info().opType == refactor::common::OpType::Gemm) {
+//            // FIXME unsupport attributes: `alpha` `beta`
+//            auto alpha = std::get<refactor::graph::Float>(attr["alpha"]);
+//            auto beta = std::get<refactor::graph::Float>(attr["beta"]);
+//            auto transA = std::get<refactor::graph::Int>(attr["transA"]);
+//            auto transB = std::get<refactor::graph::Int>(attr["transB"]);
+//            IT_ASSERT(alpha == 1.0);
+//            IT_ASSERT(beta == 1.0);
+//            addOpWithOutputs<MatmulObj>(inputs[0], inputs[1], outputs[0],
+//                                        transA, transB, inputs[2],
+//                                        ActType::None);
+//        } else if (node.info().opType ==
+//                   refactor::common::OpType::BatchNormalization) {
+//            auto epsilon = std::get<refactor::graph::Float>(attr["epsilon"]);
+//            auto momentum = std::get<refactor::graph::Float>(attr["momentum"]);
+//            auto training_mode =
+//                std::get<refactor::graph::Int>(attr["training_mode"]);
+//            addOpWithOutputs<BatchNormObj>(
+//                inputs[0], outputs[0], inputs[3], inputs[4], inputs[1],
+//                inputs[2], momentum, epsilon, training_mode != 0);
+//        }
+//    }
+//}
 
 void GraphObj::dataMalloc() {
     // topological sorting first

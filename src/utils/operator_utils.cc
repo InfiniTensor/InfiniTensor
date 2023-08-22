@@ -45,63 +45,125 @@ int get_real_axis(const int &axis, const int &rank) {
 using namespace refactor;
 // add batchnormalization conv gemm globalaveragepool maxpool relu reshape
 graph::NodeInfo getNodeInfo(const Operator &obj) {
-	auto type = obj->getOpType().underlying();
-	graph::NodeInfo nodeInfo{common::OpType::Unknown};
-#define CASE(T)																				\
-		case OpType::T:																		\
-			nodeInfo = {common::OpType::T, refactor::graph::Attributes{}};		\
-			break;
+    auto type = obj->getOpType().underlying();
+    graph::NodeInfo nodeInfo{common::OpType::Unknown};
+#define CASE(T)                                                                \
+    case OpType::T:                                                            \
+        nodeInfo = {common::OpType::T, refactor::graph::Attributes{}};         \
+        break;
 
-	switch (type) {
-			case OpType::MatMul: {
-					auto matmul = dynamic_cast<const MatmulObj *>(obj.get());
-					auto transA = matmul->getTransA();
-					auto transB = matmul->getTransB();
-					nodeInfo = {common::OpType::MatMul,
-							{{"transA", static_cast<graph::Int>(transA)},
-									{"transB", static_cast<graph::Int>(transB)}}};
-					break;
-			}
-			case OpType::BatchNormalization: {
-					auto batchNorm = dynamic_cast<const BatchNormObj *>(obj.get());
-					auto momentum = batchNorm->getMomentum();
-					auto eps = batchNorm->getEps();
-					auto trainingMode = batchNorm->getTrainingMode();
-					nodeInfo = {common::OpType::BatchNorm,
-						{{"epsilon", static_cast<graph::Float>(eps)},
-								{"momentum", static_cast<graph::Float>(momentum)},
-						{"training_mode", static_cast<graph::Int>(trainingMode)}}};
-					break;
-			}
-			case OpType::Conv: {
-					auto conv = dynamic_cast<const ConvObj *>(obj.get());
-					auto tuple = conv->getPadStrideDilation();
-					auto group = conv->getNumGroups();
-					graph::Ints pads, strides, dilations;
-					{
-						pads.emplace_back(std::get<0>(tuple));
-						pads.emplace_back(std::get<1>(tuple));
-						pads.emplace_back(std::get<0>(tuple));
-						pads.emplace_back(std::get<1>(tuple));
-					}
-					{
-						strides.emplace_back(std::get<2>(tuple));
-						strides.emplace_back(std::get<3>(tuple));
-					}
-					{
-						dilations.emplace_back(std::get<4>(tuple));
-						dilations.emplace_back(std::get<5>(tuple));
-					}
-					nodeInfo = {common::OpType::Conv,
-						{{"group", static_cast<graph::Int>group},
-						{"kernel_s"}}}
-			}
-			CASE(Relu)
-			CASE(Add)
-			default :
-				IT_TODO_HALT_MSG("Don't Support OpType");
-	}
+    switch (type) {
+    case OpType::MatMul: {
+        auto matmul = dynamic_cast<const MatmulObj *>(obj.get());
+        auto transA = matmul->getTransA();
+        auto transB = matmul->getTransB();
+        if (transA || transB) {
+            nodeInfo = {common::OpType::Gemm,
+                        {{"transA", {static_cast<graph::Int>(transA)}},
+                         {"transB", {static_cast<graph::Int>(transB)}}}};
+        } else {
+            nodeInfo = {common::OpType::MatMul, graph::Attributes{}};
+        }
+        break;
+    }
+    case OpType::BatchNormalization: {
+        auto batchNorm = dynamic_cast<const BatchNormObj *>(obj.get());
+        auto momentum = batchNorm->getMomentum();
+        auto eps = batchNorm->getEps();
+        auto trainingMode = batchNorm->getTrainingMode();
+        nodeInfo = {common::OpType::BatchNormalization,
+                    {{"epsilon", {static_cast<graph::Float>(eps)}},
+                     {"momentum", {static_cast<graph::Float>(momentum)}},
+                     {"training_mode", {static_cast<graph::Int>(trainingMode)}}}};
+        break;
+    }
+    case OpType::Conv: {
+        auto conv = dynamic_cast<const ConvObj *>(obj.get());
+        auto group = conv->getNumGroups();
+        auto pads = conv->getPads();
+        auto strides = conv->getStrides();
+        auto dilations = conv->getDilations();
+        std::transform(pads.begin(), pads.end(), pads.begin(),
+                       [](int x) { return static_cast<graph::Int>(x); });
+        std::transform(strides.begin(), strides.end(), strides.begin(),
+                       [](int x) { return static_cast<graph::Int>(x); });
+        std::transform(dilations.begin(), dilations.end(), dilations.begin(),
+                       [](int x) { return static_cast<graph::Int>(x); });
+        nodeInfo = {
+            common::OpType::Conv,
+            {{"group", {static_cast<graph::Int>(group)}},
+             {"pads", {graph::Ints(pads.begin(), pads.end())}},
+             {"strides", {graph::Ints(strides.begin(), strides.end())}},
+             {"dilations", {graph::Ints(dilations.begin(), dilations.end())}}}};
+        break;
+    }
+    case OpType::AveragePool: {
+        auto averagePool = dynamic_cast<const AvgPoolObj *>(obj.get());
+        auto pads = averagePool->getPads();
+        auto strides = averagePool->getStrides();
+        auto dilations = averagePool->getDilations();
+        std::transform(pads.begin(), pads.end(), pads.begin(),
+                       [](int x) { return static_cast<graph::Int>(x); });
+        std::transform(strides.begin(), strides.end(), strides.begin(),
+                       [](int x) { return static_cast<graph::Int>(x); });
+        std::transform(dilations.begin(), dilations.end(), dilations.begin(),
+                       [](int x) { return static_cast<graph::Int>(x); });
+        nodeInfo = {
+            common::OpType::AveragePool,
+            {{"pads", {graph::Ints(pads.begin(), pads.end())}},
+             {"strides", {graph::Ints(strides.begin(), strides.end())}},
+             {"dilations", {graph::Ints(dilations.begin(), dilations.end())}}}};
+        break;
+    }
+    case OpType::MaxPool: {
+        auto maxPool = dynamic_cast<const MaxPoolObj *>(obj.get());
+        auto pads = maxPool->getPads();
+        auto strides = maxPool->getStrides();
+        auto dilations = maxPool->getDilations();
+        std::transform(pads.begin(), pads.end(), pads.begin(),
+                       [](int x) { return static_cast<graph::Int>(x); });
+        std::transform(strides.begin(), strides.end(), strides.begin(),
+                       [](int x) { return static_cast<graph::Int>(x); });
+        std::transform(dilations.begin(), dilations.end(), dilations.begin(),
+                       [](int x) { return static_cast<graph::Int>(x); });
+        nodeInfo = {
+            common::OpType::MaxPool,
+            {{"pads", {graph::Ints(pads.begin(), pads.end())}},
+             {"strides", {graph::Ints(strides.begin(), strides.end())}},
+             {"dilations", {graph::Ints(dilations.begin(), dilations.end())}}}};
+        break;
+    }
+        CASE(Reshape)
+        CASE(Relu)
+        CASE(Add)
+        CASE(Sub)
+        CASE(Mul)
+        CASE(Div)
+    default:
+        IT_TODO_HALT_MSG("Don't Support OpType");
+    }
 #undef CASE
-	return nodeInfo;
+    return nodeInfo;
+}
+
+using EdgeRef =
+    GraphTopo<refactor::graph::NodeInfo, refactor::graph::EdgeInfo>::EdgeRef;
+void processShapeVariable(
+    const Operator &obj,
+    GraphTopo<refactor::graph::NodeInfo, refactor::graph::EdgeInfo> &graphTopo,
+    std::vector<EdgeRef> &nodeInputs) {
+    auto type = obj->getOpType().underlying();
+    if (type == OpType::Reshape) {
+        auto reshape = dynamic_cast<const ReshapeObj *>(obj.get());
+        auto dims = reshape->getShape();
+        std::vector<int64_t> shape(dims.size());
+        std::transform(dims.begin(), dims.end(), shape.begin(),
+                       [](int x) { return static_cast<int64_t>(x); });
+        graph::EdgeInfo edge;
+        edge.info = graph::ShapeVariable{shape};
+        auto e = graphTopo.addEdge(edge);
+        nodeInputs.emplace_back(e);
+    }
+    return;
 }
 } // namespace infini
