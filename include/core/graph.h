@@ -112,7 +112,8 @@ class GraphObj : public Object {
     }
 
     bool checkValid() const;
-	GraphTopo<refactor::graph::NodeInfo, refactor::graph::EdgeInfo> transformToGraphTopo(GraphObj &obj);
+    GraphTopo<refactor::graph::NodeInfo, refactor::graph::EdgeInfo>
+    transformToGraphTopo(GraphObj &obj);
 
   private:
     /**

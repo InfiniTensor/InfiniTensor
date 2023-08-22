@@ -2,8 +2,8 @@
 #ifndef OPERATOR_UTIL_H
 #define OPERATOR_UTIL_H
 
-#include "core/tensor.h"
 #include "core/graph.h"
+#include "core/tensor.h"
 #include "graph/graph.h"
 #include "operators/batch_norm.h"
 #include "operators/concat.h"
@@ -27,7 +27,13 @@ namespace infini {
 Shape infer_broadcast(const Shape &A, const Shape &B);
 // Launch the real axis based on rank and current axis
 int get_real_axis(const int &axis, const int &rank);
-refactor::graph::NodeInfo getNodeInfo(const Operator &obj);	
+
+refactor::graph::NodeInfo getNodeInfo(const Operator &obj);
+void processShapeVariable(
+    const Operator &obj,
+    GraphTopo<refactor::graph::NodeInfo, refactor::graph::EdgeInfo> &graphTopo,
+    std::vector<GraphTopo<refactor::graph::NodeInfo,
+                          refactor::graph::EdgeInfo>::EdgeRef> &nodeInputs);
 } // namespace infini
 
 #endif

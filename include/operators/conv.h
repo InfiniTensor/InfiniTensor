@@ -110,6 +110,18 @@ class ConvBaseObj : public OperatorObj {
     int getSw() const { return sw; }
     auto getNCHWFRS() const { return tuple(n, c, h, w, f, r, s); }
     auto getPadStrideDilation() const { return tuple(ph, pw, sh, sw, dh, dw); }
+    std::vector<int> getPads() const {
+        std::vector<int> ans = {ph, pw, ph, pw};
+        return ans;
+    }
+    std::vector<int> getStrides() const {
+        std::vector<int> ans = {sh, sw};
+        return ans;
+    }
+    std::vector<int> getDilations() const {
+        std::vector<int> ans = {dh, dw};
+        return ans;
+    }
     int getChannelPerGroup() const {
         if (type == OpType::ConvTransNHWC) {
             return inputs[1]->getDims()[3];

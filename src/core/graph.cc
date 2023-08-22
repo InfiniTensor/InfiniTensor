@@ -137,10 +137,10 @@ GraphObj::transformToGraphTopo(GraphObj &g) {
     for (auto tensor : g.tensors) {
         if (tensor->source.expired()) {
             auto shape = tensor->getDims();
-            std::vector<size_t> shape_t(tensor->getRank());
+            std::vector<int64_t> shape_t(tensor->getRank());
             graph::EdgeInfo edgeInfo;
             std::transform(shape.begin(), shape.end(), shape_t.begin(),
-                           [](int x) { return size_t(x); });
+                           [](int x) { return int64_t(x); });
             edgeInfo.info = graph::Tensor{
                 static_cast<common::DataType>(tensor->getDType().getIndex()),
                 shape_t};
@@ -151,14 +151,13 @@ GraphObj::transformToGraphTopo(GraphObj &g) {
     // add graph ops
     for (auto node : g.ops) {
         // get add node info
-        // graph::NodeInfo nodeInfo =
-        // graph::NodeInfo{static_cast<common::OpType>(node->getOpType().underlying()),
-        // graph::Attributes{}};
         graph::NodeInfo nodeInfo = getNodeInfo(node);
         auto opInputs = node->getInputs();
         auto opOutputs = node->getOutputs();
         std::vector<EdgeRef> nodeInputs;
         std::vector<graph::EdgeInfo> nodeOutputs;
+        // process reshape op
+        processShapeVariable(node, graphTopo, nodeInputs);
         // get add node inputs
         for (auto nodeInputEle : opInputs) {
             auto it = edgeToTensor.find(nodeInputEle->getFuid());
@@ -168,10 +167,10 @@ GraphObj::transformToGraphTopo(GraphObj &g) {
         // get add node outputs
         for (auto nodeOutputEle : opOutputs) {
             auto shape = nodeOutputEle->getDims();
-            std::vector<size_t> shape_t(nodeOutputEle->getRank());
+            std::vector<int64_t> shape_t(nodeOutputEle->getRank());
             graph::EdgeInfo edgeInfo;
             std::transform(shape.begin(), shape.end(), shape_t.begin(),
-                           [](int x) { return size_t(x); });
+                           [](int x) { return int64_t(x); });
             edgeInfo.info =
                 graph::Tensor{static_cast<common::DataType>(
                                   nodeOutputEle->getDType().getIndex()),
@@ -204,6 +203,8 @@ void GraphObj::optimize() {
     topo = transformToGraphTopo(*this);
     // TODO: 构造 GraphTopo 和 Graph，再拆除，
     //       将结果直接存放在这个 `GraphOhj` 里规避 Runtime 等不同成员的问题
+    graph::Graph graph(std::move(topo));
+    fromGraphTopo(graph);
 }
 
 void GraphObj::fromGraphTopo(refactor::graph::Graph &graph) {
