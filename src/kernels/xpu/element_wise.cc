@@ -270,6 +270,30 @@ class LessThanXdnn : public XPUKernelWithoutConfig {
     }
 };
 
+class FloorDivXdnn : public XPUKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<ElementWiseObj>(_op);
+        auto context = dynamic_cast<const XPURuntimeObj *>(_context);
+
+        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
+        void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+    size_t len = op->getOutput()->size();
+	XPUPtr wsData = context->getWorkspace(len);
+
+        auto aDim = op->getInputs(0)->getDims();
+        auto bDim = op->getInputs(1)->getDims();
+        if (aDim.size() != 4 || bDim.size() != 4)
+            IT_TODO_HALT();
+	auto ret = baidu::xpu::api::broadcast_floordiv<float>(context->XPUHandle(), (float*)aData, (float*)bData, (float*)wsData, aDim, bDim);
+	ret = baidu::xpu::api::cast<int, float>(context->XPUHandle(), (int*)wsData, (float*)cData, len);
+    assert(ret == 0);
+	return;
+
+    }
+};
+
 REGISTER_KERNEL(Device::XPU, OpType::Add, DataType::Float32, AddXdnn,
                 "Add_xdnn_XPU_Float32");
 REGISTER_KERNEL(Device::XPU, OpType::Sub, DataType::Float32, SubXdnn,
@@ -294,4 +318,6 @@ REGISTER_KERNEL(Device::XPU, OpType::LessOrEqual, DataType::Float32, LessEqualXd
                 "LessEqual_xdnn_XPU_Float32");
 REGISTER_KERNEL(Device::XPU, OpType::Less, DataType::Float32, LessThanXdnn,
                 "LessThan_xdnn_XPU_Float32");
+REGISTER_KERNEL(Device::XPU, OpType::FloorDiv, DataType::Float32, FloorDivXdnn,
+                "FloorDiv_xdnn_XPU_Float32");
 }; // namespace infini
