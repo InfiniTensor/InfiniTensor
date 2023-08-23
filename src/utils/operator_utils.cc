@@ -59,8 +59,8 @@ graph::NodeInfo getNodeInfo(const Operator &obj) {
         auto transB = matmul->getTransB();
         if (transA || transB) {
             nodeInfo = {common::OpType::Gemm,
-                        {{"transA", static_cast<graph::Int>(transA)},
-                         {"transB", static_cast<graph::Int>(transB)}}};
+                        {{"transA", {static_cast<graph::Int>(transA)}},
+                         {"transB", {static_cast<graph::Int>(transB)}}}};
         } else {
             nodeInfo = {common::OpType::MatMul, graph::Attributes{}};
         }
@@ -72,9 +72,9 @@ graph::NodeInfo getNodeInfo(const Operator &obj) {
         auto eps = batchNorm->getEps();
         auto trainingMode = batchNorm->getTrainingMode();
         nodeInfo = {common::OpType::BatchNormalization,
-                    {{"epsilon", static_cast<graph::Float>(eps)},
-                     {"momentum", static_cast<graph::Float>(momentum)},
-                     {"training_mode", static_cast<graph::Int>(trainingMode)}}};
+                    {{"epsilon", {static_cast<graph::Float>(eps)}},
+                     {"momentum", {static_cast<graph::Float>(momentum)}},
+                     {"training_mode", {static_cast<graph::Int>(trainingMode)}}}};
         break;
     }
     case OpType::Conv: {
@@ -91,10 +91,10 @@ graph::NodeInfo getNodeInfo(const Operator &obj) {
                        [](int x) { return static_cast<graph::Int>(x); });
         nodeInfo = {
             common::OpType::Conv,
-            {{"group", static_cast<graph::Int>(group)},
-             {"pads", graph::Ints(pads.begin(), pads.end())},
-             {"strides", graph::Ints(strides.begin(), strides.end())},
-             {"dilations", graph::Ints(dilations.begin(), dilations.end())}}};
+            {{"group", {static_cast<graph::Int>(group)}},
+             {"pads", {graph::Ints(pads.begin(), pads.end())}},
+             {"strides", {graph::Ints(strides.begin(), strides.end())}},
+             {"dilations", {graph::Ints(dilations.begin(), dilations.end())}}}};
         break;
     }
     case OpType::AveragePool: {
@@ -110,9 +110,9 @@ graph::NodeInfo getNodeInfo(const Operator &obj) {
                        [](int x) { return static_cast<graph::Int>(x); });
         nodeInfo = {
             common::OpType::AveragePool,
-            {{"pads", graph::Ints(pads.begin(), pads.end())},
-             {"strides", graph::Ints(strides.begin(), strides.end())},
-             {"dilations", graph::Ints(dilations.begin(), dilations.end())}}};
+            {{"pads", {graph::Ints(pads.begin(), pads.end())}},
+             {"strides", {graph::Ints(strides.begin(), strides.end())}},
+             {"dilations", {graph::Ints(dilations.begin(), dilations.end())}}}};
         break;
     }
     case OpType::MaxPool: {
@@ -128,9 +128,9 @@ graph::NodeInfo getNodeInfo(const Operator &obj) {
                        [](int x) { return static_cast<graph::Int>(x); });
         nodeInfo = {
             common::OpType::MaxPool,
-            {{"pads", graph::Ints(pads.begin(), pads.end())},
-             {"strides", graph::Ints(strides.begin(), strides.end())},
-             {"dilations", graph::Ints(dilations.begin(), dilations.end())}}};
+            {{"pads", {graph::Ints(pads.begin(), pads.end())}},
+             {"strides", {graph::Ints(strides.begin(), strides.end())}},
+             {"dilations", {graph::Ints(dilations.begin(), dilations.end())}}}};
         break;
     }
         CASE(Reshape)

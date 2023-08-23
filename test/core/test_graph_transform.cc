@@ -31,9 +31,7 @@ TEST(Graph, transform_refactor) {
         using EdgeInfo = graph::EdgeInfo;
         using Tensor = graph::Tensor;
         using Attributes = graph::Attributes;
-        NodeInfo op1 = NodeInfo{common::OpType::MatMul,
-                                Attributes{{"transA", graph::Int(false)},
-                                           {"transB", graph::Int(false)}}};
+        NodeInfo op1 = NodeInfo{common::OpType::MatMul, Attributes{}};
         NodeInfo op2 = NodeInfo{common::OpType::Relu, Attributes{}};
         EdgeInfo i0, w0, o0, o1;
         i0.info = Tensor{common::DataType::U32, {1, 2, 3}};
@@ -70,7 +68,6 @@ TEST(Graph, transform_refactor) {
         EXPECT_EQ(globalOutput[i].info(), globalOutput1[i].info());
     }
 }
-
 
 TEST(Graph, transform_reshape) {
     Runtime runtime = NativeCpuRuntimeObj::getInstance();
