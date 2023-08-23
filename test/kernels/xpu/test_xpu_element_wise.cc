@@ -31,15 +31,15 @@ void testElementWiseXdnn(
     auto b = g->cloneTensor(bcpu);
     auto op = g->addOp<T>(a, b, nullptr);
 
-    // allocate BANG memory
+    // allocate XPU memory
     g->dataMalloc();
     a->setData(generator);
     b->setData(generator);
 
-    // Execute on BANG
+    // Execute on XPU
     xpuRuntime->run(g);
 
-    // clone BANG output to CPU
+    // clone XPU output to CPU
     auto c = op->getOutput();
     auto ccpu = c->clone(cpuRuntime);
     //  check results on CPU
