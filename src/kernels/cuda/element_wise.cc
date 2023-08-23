@@ -98,6 +98,14 @@ class MulCudnn : public ElementWiseCudnn {
     cudnnOpTensorOp_t getOpType() const override { return CUDNN_OP_TENSOR_MUL; }
 };
 
+class MinCudnn : public ElementWiseCudnn {
+    cudnnOpTensorOp_t getOpType() const override { return CUDNN_OP_TENSOR_MIN; }
+};
+
+class MaxCudnn : public ElementWiseCudnn {
+    cudnnOpTensorOp_t getOpType() const override { return CUDNN_OP_TENSOR_MAX; }
+};
+
 class ElementWiseCuda : public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
@@ -137,6 +145,10 @@ REGISTER_KERNEL(Device::CUDA, OpType::Sub, DataType::Float32, SubCudnn,
                 "Sub_cuDNN_CUDA_Float32");
 REGISTER_KERNEL(Device::CUDA, OpType::Mul, DataType::Float32, MulCudnn,
                 "Mul_cuDNN_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Min, DataType::Float32, MinCudnn,
+                "Min_cuDNN_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Max, DataType::Float32, MaxCudnn,
+                "Max_cuDNN_CUDA_Float32");
 
 REGISTER_KERNEL(Device::CUDA, OpType::Div, DataType::Float32, ElementWiseCuda,
                 "Div_CUDA_Float32");

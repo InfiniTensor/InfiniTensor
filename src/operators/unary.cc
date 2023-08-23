@@ -13,7 +13,7 @@ optional<vector<Shape>> UnaryObj::inferShape(const TensorVec &inputs) const {
 
 std::string UnaryObj::toString() const {
     std::ostringstream os;
-    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]";
+    os << type.toString() << "[" << getGuid() << "]";
     os << "(";
     os << vecToString(inputs[0]->getDims()) << ",";
     os << "input=" << inputs[0]->getGuid() << ",";
@@ -22,15 +22,13 @@ std::string UnaryObj::toString() const {
 }
 
 vector<int> UnaryObj::getWorkloadVector() const {
-    vector<int> ret{enum_to_underlying(type)};
+    vector<int> ret{type.underlying()};
     const Shape shape = outputs[0]->getDims();
     ret.insert(ret.end(), shape.begin(), shape.end());
     return ret;
 }
 
-vector<int> UnaryObj::getOpAttrVector() const {
-    return {enum_to_underlying(type)};
-}
+vector<int> UnaryObj::getOpAttrVector() const { return {type.underlying()}; }
 
 ClipObj::ClipObj(GraphObj *graph, Tensor input, Tensor output,
                  std::optional<float> min, std::optional<float> max)
@@ -46,7 +44,7 @@ optional<vector<Shape>> ClipObj::inferShape(const TensorVec &inputs) const {
 
 std::string ClipObj::toString() const {
     std::ostringstream os;
-    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]";
+    os << type.toString() << "[" << getGuid() << "]";
     os << "(";
     os << vecToString(inputs[0]->getDims()) << ",";
     os << "input=" << inputs[0]->getGuid() << ",";
@@ -55,15 +53,13 @@ std::string ClipObj::toString() const {
 }
 
 vector<int> ClipObj::getWorkloadVector() const {
-    vector<int> ret{enum_to_underlying(type)};
+    vector<int> ret{type.underlying()};
     const Shape shape = outputs[0]->getDims();
     ret.insert(ret.end(), shape.begin(), shape.end());
     return ret;
 }
 
-vector<int> ClipObj::getOpAttrVector() const {
-    return {enum_to_underlying(type)};
-}
+vector<int> ClipObj::getOpAttrVector() const { return {type.underlying()}; }
 
 HardtanhObj::HardtanhObj(GraphObj *graph, Tensor input, Tensor output,
                          float min, float max)
@@ -79,7 +75,7 @@ optional<vector<Shape>> HardtanhObj::inferShape(const TensorVec &inputs) const {
 
 std::string HardtanhObj::toString() const {
     std::ostringstream os;
-    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]";
+    os << type.toString() << "[" << getGuid() << "]";
     os << "(";
     os << vecToString(inputs[0]->getDims()) << ",";
     os << "input=" << inputs[0]->getGuid() << ",";
@@ -88,15 +84,13 @@ std::string HardtanhObj::toString() const {
 }
 
 vector<int> HardtanhObj::getWorkloadVector() const {
-    vector<int> ret{enum_to_underlying(type)};
+    vector<int> ret{type.underlying()};
     const Shape shape = outputs[0]->getDims();
     ret.insert(ret.end(), shape.begin(), shape.end());
     return ret;
 }
 
-vector<int> HardtanhObj::getOpAttrVector() const {
-    return {enum_to_underlying(type)};
-}
+vector<int> HardtanhObj::getOpAttrVector() const { return {type.underlying()}; }
 
 FillObj::FillObj(GraphObj *graph, Tensor input, Tensor output, float value)
     : OperatorObj(OpType::Fill, {input}, {output}), setValue(value) {
@@ -110,22 +104,20 @@ optional<vector<Shape>> FillObj::inferShape(const TensorVec &inputs) const {
 
 std::string FillObj::toString() const {
     std::ostringstream os;
-    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]";
+    os << type.toString() << "[" << getGuid() << "]";
     os << "(";
     os << "output=" << outputs[0]->getGuid() << ")";
     return os.str();
 }
 
 vector<int> FillObj::getWorkloadVector() const {
-    vector<int> ret{enum_to_underlying(type)};
+    vector<int> ret{type.underlying()};
     const Shape shape = outputs[0]->getDims();
     ret.insert(ret.end(), shape.begin(), shape.end());
     return ret;
 }
 
-vector<int> FillObj::getOpAttrVector() const {
-    return {enum_to_underlying(type)};
-}
+vector<int> FillObj::getOpAttrVector() const { return {type.underlying()}; }
 
 L2LossObj::L2LossObj(GraphObj *graph, Tensor input, Tensor output)
     : OperatorObj(OpType::L2Loss, {input}, {output}) {
@@ -139,22 +131,20 @@ optional<vector<Shape>> L2LossObj::inferShape(const TensorVec &inputs) const {
 
 std::string L2LossObj::toString() const {
     std::ostringstream os;
-    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]";
+    os << type.toString() << "[" << getGuid() << "]";
     os << "(";
     os << "output=" << outputs[0]->getGuid() << ")";
     return os.str();
 }
 
 vector<int> L2LossObj::getWorkloadVector() const {
-    vector<int> ret{enum_to_underlying(type)};
+    vector<int> ret{type.underlying()};
     const Shape shape = outputs[0]->getDims();
     ret.insert(ret.end(), shape.begin(), shape.end());
     return ret;
 }
 
-vector<int> L2LossObj::getOpAttrVector() const {
-    return {enum_to_underlying(type)};
-}
+vector<int> L2LossObj::getOpAttrVector() const { return {type.underlying()}; }
 
 CastObj::CastObj(GraphObj *graph, Tensor input, Tensor output, CastType type)
     : OperatorObj(OpType::Cast, {input}, {output}), castType(type) {
@@ -176,65 +166,71 @@ optional<vector<Shape>> CastObj::inferShape(const TensorVec &inputs) const {
 
 std::string CastObj::toString() const {
     std::ostringstream os;
-    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]";
+    os << type.toString() << "[" << getGuid() << "]";
     os << "(";
     os << "output=" << outputs[0]->getGuid() << ")";
     return os.str();
 }
 
 vector<int> CastObj::getWorkloadVector() const {
-    vector<int> ret{enum_to_underlying(type)};
+    vector<int> ret{type.underlying()};
     const Shape shape = outputs[0]->getDims();
     ret.insert(ret.end(), shape.begin(), shape.end());
     return ret;
 }
 
-vector<int> CastObj::getOpAttrVector() const {
-    return {enum_to_underlying(type)};
-}
+vector<int> CastObj::getOpAttrVector() const { return {type.underlying()}; }
 
 DataType CastObj::getOutputDataType() const {
     switch (castType) {
-    case CastObj::Float2Int64:
+    case CastType::Float2Float16:
+        return DataType::Float16;
+    case CastType::Float2Int64:
         return DataType::Int64;
-    case CastObj::Float2Int32:
+    case CastType::Float2Int32:
         return DataType::Int32;
-    case CastObj::Float2Int16:
+    case CastType::Float2Int16:
         return DataType::Int16;
-    case CastObj::Float2Int8:
+    case CastType::Float2Int8:
         return DataType::Int8;
-    case CastObj::Int322Float:
+    case CastType::Int322Float:
         return DataType::Float32;
-    case CastObj::Int322Int8:
+    case CastType::Int322Int8:
         return DataType::Int8;
-    case CastObj::Int322Int16:
+    case CastType::Int322Int16:
         return DataType::Int16;
-    case CastObj::Int162Float:
+    case CastType::Int162Float:
         return DataType::Float32;
-    case CastObj::Int162Int32:
+    case CastType::Int162Int32:
         return DataType::Int32;
-    case CastObj::Int82Float:
+    case CastType::Int82Float:
         return DataType::Float32;
-    case CastObj::Int82Int16:
+    case CastType::Int82Int16:
         return DataType::Int16;
-    case CastObj::Int82Int32:
+    case CastType::Int82Int32:
         return DataType::Int32;
-    case CastObj::Uint82Float:
+    case CastType::Uint82Float:
         return DataType::Float32;
-    case CastObj::Uint82Int32:
+    case CastType::Uint82Int32:
         return DataType::Int32;
-    case CastObj::Uint82Int64:
+    case CastType::Uint82Int64:
         return DataType::Int64;
-    case CastObj::Int322Int64:
+    case CastType::Int322Int64:
         return DataType::Int64;
-    case CastObj::Int642Int32:
+    case CastType::Int642Int32:
         return DataType::Int32;
-    case CastObj::Int642Uint32:
+    case CastType::Int642Uint32:
         return DataType::UInt32;
-    case CastObj::Int642Float:
+    case CastType::Int642Float:
         return DataType::Float32;
-    case CastObj::Uint322Int64:
+    case CastType::Uint322Int64:
         return DataType::Int64;
+    case CastType::Float162Float:
+        return DataType::Float32;
+    case CastType::BFloat162Float:
+        return DataType::Float32;
+    case CastType::Float2BFloat16:
+        return DataType::BFloat16;
     default:
         IT_TODO_HALT();
     }
@@ -246,12 +242,12 @@ ShapeObj::ShapeObj(GraphObj *graph, Tensor input, Tensor output)
 }
 
 optional<vector<Shape>> ShapeObj::inferShape(const TensorVec &inputs) const {
-    return {{{static_cast<int>(inputs[0]->getDims().size())}}};
+    return {{{static_cast<int>(inputs[0]->getRank())}}};
 }
 
 std::string ShapeObj::toString() const {
     std::ostringstream os;
-    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]("
+    os << type.toString() << "[" << getGuid() << "]("
        << "output=" << outputs[0]->getGuid() << ")";
     return os.str();
 }
@@ -268,7 +264,7 @@ optional<vector<Shape>> PReluObj::inferShape(const TensorVec &inputs) const {
 
 std::string PReluObj::toString() const {
     std::ostringstream os;
-    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]";
+    os << type.toString() << "[" << getGuid() << "]";
     os << "(";
     os << vecToString(inputs[0]->getDims()) << ",";
     os << "input=" << inputs[0]->getGuid() << ",";
@@ -277,15 +273,13 @@ std::string PReluObj::toString() const {
 }
 
 vector<int> PReluObj::getWorkloadVector() const {
-    vector<int> ret{enum_to_underlying(type)};
+    vector<int> ret{type.underlying()};
     const Shape shape = outputs[0]->getDims();
     ret.insert(ret.end(), shape.begin(), shape.end());
     return ret;
 }
 
-vector<int> PReluObj::getOpAttrVector() const {
-    return {enum_to_underlying(type)};
-}
+vector<int> PReluObj::getOpAttrVector() const { return {type.underlying()}; }
 
 LogObj::LogObj(GraphObj *graph, Tensor input, Tensor output, LogType type)
     : OperatorObj(OpType::Log, {input}, {output}), logType(type) {
@@ -299,21 +293,19 @@ optional<vector<Shape>> LogObj::inferShape(const TensorVec &inputs) const {
 
 std::string LogObj::toString() const {
     std::ostringstream os;
-    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]";
+    os << type.toString() << "[" << getGuid() << "]";
     os << "(";
     os << "output=" << outputs[0]->getGuid() << ")";
     return os.str();
 }
 
 vector<int> LogObj::getWorkloadVector() const {
-    vector<int> ret{enum_to_underlying(type)};
+    vector<int> ret{type.underlying()};
     const Shape shape = outputs[0]->getDims();
     ret.insert(ret.end(), shape.begin(), shape.end());
     return ret;
 }
 
-vector<int> LogObj::getOpAttrVector() const {
-    return {enum_to_underlying(type)};
-}
+vector<int> LogObj::getOpAttrVector() const { return {type.underlying()}; }
 
 }; // namespace infini

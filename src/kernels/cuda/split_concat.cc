@@ -9,7 +9,7 @@ namespace infini {
 class CudaCompute {
     void initComposedTensorMetadata(ComposedTensorMetadata &metadata,
                                     Tensor tensor) const {
-        int nDims = tensor->getDims().size();
+        int nDims = tensor->getRank();
         auto strides = tensor->getStride();
         IT_ASSERT(strides.size() == (size_t)nDims);
         for (int i = 0; i < nDims; ++i) {
@@ -60,8 +60,8 @@ class ConcatCuda : private CudaCompute, public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         do_compute(_op->getOutput(), _op->getInputs(),
-                   as<ConcatObj>(_op)->getDim(),
-                   _op->getOutput()->getDims().size(), false);
+                   as<ConcatObj>(_op)->getDim(), _op->getOutput()->getRank(),
+                   false);
     }
 };
 
@@ -69,8 +69,8 @@ class SplitCuda : private CudaCompute, public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         do_compute(_op->getInputs(0), _op->getOutputs(),
-                   as<SplitObj>(_op)->getDim(),
-                   _op->getInputs(0)->getDims().size(), true);
+                   as<SplitObj>(_op)->getDim(), _op->getInputs(0)->getRank(),
+                   true);
     }
 };
 

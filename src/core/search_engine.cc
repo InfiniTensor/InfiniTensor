@@ -127,7 +127,7 @@ SearchEngine::buildMetaGraphWithGraph(const Graph graph) {
         std::vector<Operator> ops;
         ops.emplace_back(op);
         node.graph = make_ref<GraphObj>(runtimeExec, ops);
-        node.type = op->isComputeOp();
+        node.type = op->getOpType().isMatMulOrConv();
         node.cnt = op->getPredecessors().size();
         opMap.emplace(op->getGuid(), i);
         metaGraph->nodes.emplace_back(node);
@@ -196,7 +196,7 @@ std::shared_ptr<SearchEngine::MetaGraph> SearchEngine::buildMetaGraphWithPlan(
             }
             node.graph = make_ref<GraphObj>(runtimeExec, ops);
             node.cnt = node.pre.size();
-            node.type = ops[0]->isComputeOp();
+            node.type = ops[0]->getOpType().isMatMulOrConv();
             resultMetaGraph->nodes.emplace_back(node);
         }
     }
@@ -404,7 +404,7 @@ std::vector<Graph> SearchEngine::partitionGraph(const Graph graph) {
         headOps.emplace_back(op);
         if (op->getPredecessors().size() + op->getSuccessors().size() >=
                 (size_t)partitionThreshold &&
-            !op->isComputeOp()) {
+            !op->getOpType().isMatMulOrConv()) {
             auto preOrderI = preOrder[op->getGuid()];
             auto postOrderI = postOrder[op->getGuid()];
             for (size_t j = 0; j < i; j++) {

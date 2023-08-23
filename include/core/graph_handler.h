@@ -7,30 +7,6 @@
 
 namespace infini {
 
-// Use the indices from onnx to reduce delivery overhead,
-// which comes from onnx but may be not only used for onnx.
-//
-// see https://onnx.ai/onnx/intro/concepts.html#element-type
-enum OnnxDType : int {
-    UNDEFINED = 0,
-    FLOAT,
-    UINT8,
-    INT8,
-    UINT16,
-    INT16,
-    INT32,
-    INT64,
-    STRING,
-    BOOL,
-    FLOAT16,
-    DOUBLE,
-    UINT32,
-    UINT64,
-    COMPLEX64,
-    COMPLEX128,
-    BFLOAT16,
-};
-
 class GraphHandlerObj {
     Graph g;
 
@@ -51,9 +27,9 @@ class GraphHandlerObj {
                             int opw);
     Tensor matmul(Tensor a, Tensor b, Tensor y, bool transA, bool transB,
                   Tensor bias, ActType act);
-    Tensor batchNorm(Tensor input, Tensor output, Tensor mean, Tensor var,
-                     Tensor scale, Tensor bias, float momentum, float eps,
-                     bool training);
+    Tensor batchNormalization(Tensor input, Tensor output, Tensor mean,
+                              Tensor var, Tensor scale, Tensor bias,
+                              float momentum, float eps, bool training);
 
     Tensor maxPool(Tensor input, Tensor output, int kh, int kw, int dh, int dw,
                    int ph, int pw, int sh, int sw);
@@ -65,12 +41,15 @@ class GraphHandlerObj {
     Tensor mul(Tensor a, Tensor b, Tensor c);
     Tensor div(Tensor a, Tensor b, Tensor c);
     Tensor pow(Tensor a, Tensor b, Tensor c);
+    Tensor min(Tensor a, Tensor b, Tensor c);
+    Tensor max(Tensor a, Tensor b, Tensor c);
 
     Tensor relu(Tensor x, Tensor y);
     Tensor sigmoid(Tensor x, Tensor y);
     Tensor tanh(Tensor x, Tensor y);
     Tensor softmax(Tensor x, Tensor y, int axis);
     Tensor abs(Tensor x, Tensor y);
+    Tensor sqrt(Tensor x, Tensor y);
     Tensor shape(Tensor x, Tensor y);
     Tensor identity(Tensor x, Tensor y);
     Tensor flatten(Tensor s, Tensor y, int axis);
@@ -90,6 +69,7 @@ class GraphHandlerObj {
                  const optional<vector<int>> &steps);
     Tensor pad(Tensor input, Tensor output, const vector<int> &pads,
                const optional<vector<int>> &axes);
+    Tensor cast(Tensor input, Tensor output, int to);
 
     //------ modifiers
 

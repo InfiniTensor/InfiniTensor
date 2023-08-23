@@ -16,19 +16,19 @@ PoolingObj::PoolingObj(GraphObj *graph, OpType optype, Tensor input,
 
 optional<vector<Shape>> PoolingObj::inferShape(const TensorVec &inputs) const {
     const auto &input = inputs[0];
-    auto h = input->getDims()[input->getDims().size() - 2],
-         w = input->getDims()[input->getDims().size() - 1];
+    auto h = input->getDims()[input->getRank() - 2],
+         w = input->getDims()[input->getRank() - 1];
     int oh = (h - (kh - sh) + ph * 2) / sh;
     int ow = (w - (kw - sw) + pw * 2) / sw;
     auto ret = input->getDims();
-    ret[input->getDims().size() - 2] = oh;
-    ret[input->getDims().size() - 1] = ow;
+    ret[input->getRank() - 2] = oh;
+    ret[input->getRank() - 1] = ow;
     return {{ret}};
 }
 
 std::string PoolingObj::toString() const {
     std::ostringstream os;
-    os << OpRegistry::getOpName(type) << "[" << getGuid() << "]";
+    os << type.toString() << "[" << getGuid() << "]";
     os << "(";
     os << "k=[" << kh << "," << kw << "],";
     os << "p=[" << ph << "," << pw << "],";
@@ -40,12 +40,11 @@ std::string PoolingObj::toString() const {
 }
 
 vector<int> PoolingObj::getWorkloadVector() const {
-    return {
-        enum_to_underlying(type), n, c, h, w, kh, kw, ph, pw, sh, sw, dh, dw};
+    return {type.underlying(), n, c, h, w, kh, kw, ph, pw, sh, sw, dh, dw};
 }
 
 vector<int> PoolingObj::getOpAttrVector() const {
-    return {enum_to_underlying(type), kh, kw, ph, pw, sh, sw, dh, dw};
+    return {type.underlying(), kh, kw, ph, pw, sh, sw, dh, dw};
 }
 
 }; // namespace infini

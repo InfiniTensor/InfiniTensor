@@ -1,6 +1,6 @@
 ﻿.PHONY : build clean format install-python test-cpp test-onnx install-test clean-test
 
-TYPE ?= release
+TYPE ?= Release
 CUDA ?= OFF
 BANG ?= OFF
 INTELCPU ?= off
@@ -30,7 +30,7 @@ format:
 
 install-python: build
 	cp build/$(TYPE)/backend*.so pyinfinitensor/src/pyinfinitensor
-	pip install pyinfinitensor/
+	pip install -e pyinfinitensor/
 
 test-cpp:
 	@echo

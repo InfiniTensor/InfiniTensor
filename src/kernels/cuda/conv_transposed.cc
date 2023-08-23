@@ -300,7 +300,7 @@ class convBackwardDataCudnn : public Kernel {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::ConvTrans, DataType::Float32,
+REGISTER_KERNEL(Device::CUDA, OpType::ConvTranspose, DataType::Float32,
                 convBackwardDataCudnn, "ConvTranposed_cuDNN_CUDA_Float32");
 REGISTER_KERNEL(Device::CUDA, OpType::ConvTransNHWC, DataType::Float32,
                 convBackwardDataCudnn, "ConvTranposedNHWC_cuDNN_CUDA_Float32");

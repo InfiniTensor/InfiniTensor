@@ -15,15 +15,15 @@ void testClip(const std::function<void(void *, size_t, DataType)> &generator,
 
     // Build input data on CPU
     Tensor inputCpu = make_ref<TensorObj>(shape, DataType::Float32, cpuRuntime);
-    inputCpu->dataMalloc();
-    inputCpu->setData(generator);
 
     // GPU
     Graph Graph = make_ref<GraphObj>(cpuRuntime);
     float min = 1.0;
     float max = 4.0;
     auto Op = Graph->addOp<T>(inputCpu, nullptr, min, max);
+    Graph->addTensor(inputCpu);
     Graph->dataMalloc();
+    inputCpu->setData(generator);
     cpuRuntime->run(Graph);
     auto output = Op->getOutput();
     inputCpu->printData();

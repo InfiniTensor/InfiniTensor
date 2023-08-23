@@ -30,7 +30,7 @@ class MklResize : public MklKernelWithoutConfig {
             enum_to_underlying(ResizeObj::ECoordinateTransMode::halfPixel))
             IT_TODO_HALT();
 
-        int nDim = op->getInputs(0)->getDims().size();
+        int nDim = op->getInputs(0)->getRank();
         IT_ASSERT(nDim == 3 || nDim == 4 ||
                   nDim == 5 &&
                       (op->getInputs(0)->getDims()[0] == 1 &&
@@ -44,7 +44,7 @@ class MklResize : public MklKernelWithoutConfig {
 
         //  create user memory that describes data layout in the buffers
         std::vector<dnnl_dim_t> idims, odims;
-        for (size_t i = 0; i < op->getInputs(0)->getDims().size(); ++i) {
+        for (size_t i = 0; i < op->getInputs(0)->getRank(); ++i) {
             idims.push_back(op->getInputs(0)->getDims()[i]);
             odims.push_back(op->getOutput(0)->getDims()[i]);
         }

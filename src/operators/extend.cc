@@ -1,16 +1,18 @@
 #include "operators/extend.h"
+#include "utils/operator_utils.h"
 
 namespace infini {
 
 ExtendObj::ExtendObj(GraphObj *graph, Tensor input, Tensor output, int dim,
                      int num)
     : OperatorObj(OpType::Extend, {input}, {output}), dim(dim), num(num) {
+    int rank = input->getRank();
+    dim = get_real_axis(dim, rank);
     IT_ASSERT(checkValid(graph));
 }
 
 optional<vector<Shape>> ExtendObj::inferShape(const TensorVec &inputs) const {
     auto ret = inputs[0]->getDims();
-    IT_ASSERT((size_t)dim < ret.size());
     ret[dim] = ret[dim] * (num + 1);
     return {{ret}};
 }
@@ -30,12 +32,12 @@ vector<int> ExtendObj::getWorkloadVector() const {
     vector<int> ret = inputs[0]->getDims();
     ret.emplace_back(dim);
     ret.emplace_back(num);
-    ret.emplace(ret.begin(), enum_to_underlying(type));
+    ret.emplace(ret.begin(), type.underlying());
     return ret;
 }
 
 vector<int> ExtendObj::getOpAttrVector() const {
-    return {enum_to_underlying(type), dim, num};
+    return {type.underlying(), dim, num};
 }
 
 } // namespace infini
