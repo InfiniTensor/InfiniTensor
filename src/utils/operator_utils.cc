@@ -71,10 +71,11 @@ graph::NodeInfo getNodeInfo(const Operator &obj) {
         auto momentum = batchNorm->getMomentum();
         auto eps = batchNorm->getEps();
         auto trainingMode = batchNorm->getTrainingMode();
-        nodeInfo = {common::OpType::BatchNormalization,
-                    {{"epsilon", {static_cast<graph::Float>(eps)}},
-                     {"momentum", {static_cast<graph::Float>(momentum)}},
-                     {"training_mode", {static_cast<graph::Int>(trainingMode)}}}};
+        nodeInfo = {
+            common::OpType::BatchNormalization,
+            {{"epsilon", {static_cast<graph::Float>(eps)}},
+             {"momentum", {static_cast<graph::Float>(momentum)}},
+             {"training_mode", {static_cast<graph::Int>(trainingMode)}}}};
         break;
     }
     case OpType::Conv: {
