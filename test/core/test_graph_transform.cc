@@ -71,76 +71,7 @@ TEST(Graph, transform_refactor) {
     }
 }
 
-void cmpTensors(TensorVec tensors1, TensorVec tensors2) {
-	EXPECT_EQ(tensors1.size(), tensors2.size());
-	for (size_t i = 0; i < tensors1.size(); ++i) {
-		EXPECT_TRUE(tensors1[i]->equalData(tensors2[i]));
-	}
-}
 
-TEST(Graph, from_graph_topo) {
-	// build a compare InfiniTensor graph
-	Runtime runtime = NativeCpuRuntimeObj::getInstance();
-	Graph infiniG = make_ref<GraphObj>(runtime);
-	Tensor i0 = infiniG->addTensor({1, 3, 224, 336}, DataType::Float32);
-	Tensor w0 = infiniG->addTensor({6, 3, 5, 7}, DataType::Float32);
-	Tensor o0 = infiniG->addTensor({1, 6, 216, 294}, DataType::Float32);
-	auto conv = infiniG->addOpWithOutputs<ConvObj>(i0, w0, o0);
-	infiniG->addOp<ReluObj>(o0, nullptr);
-	infiniG->topo_sort();
-	infiniG->print();
-	using namespace refactor;
-	// build a graphtopo
-	GraphTopo<graph::NodeInfo, graph::EdgeInfo> topo;
-	{
-		using NodeInfo = graph::NodeInfo;
-		using EdgeInfo = graph::EdgeInfo;
-		using Tensor = graph::Tensor;
-		using Attributes = graph::Attributes;
-		using Attribute = graph::Attribute;
-		using Ints = graph::Ints;
-		NodeInfo op1 = NodeInfo{common::OpType::Conv, Attributes{{"dilations", Attribute{Ints{2, 7}}}}};
-		NodeInfo op2 = NodeInfo{common::OpType::Relu, Attributes{}};
-		EdgeInfo i0, w0, o0, o1;
-		i0.info = Tensor{common::DataType::F32, {1, 3, 224, 336}};
-		w0.info = Tensor{common::DataType::F32, {6, 3, 5, 7}};
-		o0.info = Tensor{common::DataType::F32, {1, 6, 216, 294}};
-		o1.info = Tensor{common::DataType::F32, {1, 6, 216, 294}};
-		auto i = topo.addEdge(i0);
-		auto w = topo.addEdge(w0);
-		auto conv = topo.addNode(op1, {i, w}, {o0});
-		auto relu = topo.addNode(op2, {conv[0]}, {o1});
-		topo.markOutput({relu[0]});
-	}
-	// transform topo graph to InfiniTensor graph
-	graph::Graph topoG = graph::Graph(std::move(topo));
-	Runtime runtime = NativeCpuRuntimeObj::getInstance();
-	Graph g = make_ref<GraphObj>(runtime);
-	g->transformFromGraphTopo(topoG);
-	g->topo_sort();
-	// compare tensor
-	TensorVec tensors1 = g->getTensors();
-	TensorVec tensors2 = infiniG->getTensors();
-	cmpTensors(tensors1, tensors2);
-	// compare op
-	OpVec ops1 = g->getOperators();
-	OpVec ops2 = g->getOperators();
-	EXPECT_EQ(ops1.size(), ops2.size());
-	for (size_t i = 0; i < ops1.size(); ++i) {
-		// compare op type
-		EXPECT_EQ(ops1[i]->getOpType(), ops2[i]->getOpType()); 
-		// compare op inputs
-		auto inputs1 = ops1[i]->getInputs();
-		auto inputs2 = ops2[i]->getInputs();
-		cmpTensors(inputs1, inputs2);
-		// compare op outputs
-		auto outputs1 = ops1[i]->getOutputs();
-		auto outputs2 = ops2[i]->getOutputs();
-		cmpTensors(outputs1, outputs2);
-	}
-}
-
-} // namesapce infini
 TEST(Graph, transform_reshape) {
     Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph g = make_ref<GraphObj>(runtime);
@@ -194,6 +125,131 @@ TEST(Graph, transform_reshape) {
     for (size_t i = 0; i < globalOutput.size(); ++i) {
         EXPECT_EQ(globalOutput[i].info(), globalOutput1[i].info());
     }
+}
+
+void cmpTensors(TensorVec tensors1, TensorVec tensors2) {
+	EXPECT_EQ(tensors1.size(), tensors2.size());
+	for (size_t i = 0; i < tensors1.size(); ++i) {
+		EXPECT_EQ(tensors1[i]->getDType(), tensors2[i]->getDType());
+		EXPECT_EQ(tensors1[i]->size(), tensors2[i]->size());
+	}
+}
+
+TEST(Graph, from_graph_topo_matmul_relu) {
+	// build a compare InfiniTensor graph
+	Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Graph infiniG = make_ref<GraphObj>(runtime);
+    Tensor i0 = infiniG->addTensor({1, 2, 3}, DataType::UInt32);
+    Tensor w0 = infiniG->addTensor({1, 3, 4}, DataType::UInt32);
+    Tensor o0 = infiniG->addTensor({1, 2, 4}, DataType::UInt32);
+    auto matmul = infiniG->addOpWithOutputs<MatmulObj>(i0, w0, o0);
+    infiniG->addOp<ReluObj>(o0, nullptr);
+	infiniG->topo_sort();
+    infiniG->print();	
+	using namespace refactor;
+	// build a graphtopo
+	GraphTopo<graph::NodeInfo, graph::EdgeInfo> topo;
+	{
+        using NodeInfo = graph::NodeInfo;
+        using EdgeInfo = graph::EdgeInfo;
+        using Tensor = graph::Tensor;
+        using Attributes = graph::Attributes;
+        NodeInfo op1 = NodeInfo{common::OpType::Gemm,
+                                Attributes{{"transA", {graph::Int(false)}},
+                                           {"transB", {graph::Int(false)}},
+										   {"alpha", {graph::Float(1.0)}},
+										   {"beta", {graph::Float(1.0)}}}};
+        NodeInfo op2 = NodeInfo{common::OpType::Relu, Attributes{}};
+        EdgeInfo i0, w0, o0, o1;
+        i0.info = Tensor{common::DataType::U32, {1, 2, 3}};
+        w0.info = Tensor{common::DataType::U32, {1, 3, 4}};
+        o0.info = Tensor{common::DataType::U32, {1, 2, 4}};
+        o1.info = Tensor{common::DataType::U32, {1, 2, 4}};
+        auto i = topo.addEdge(i0);
+        auto w = topo.addEdge(w0);
+        auto matmul = topo.addNode(op1, {i, w}, {o0});
+        auto relu = topo.addNode(op2, {matmul[0]}, {o1});
+        topo.markOutput({relu[0]});
+	}
+	// transform topo graph to InfiniTensor graph
+	graph::Graph topoG = graph::Graph(std::move(topo));
+	Graph g = make_ref<GraphObj>(runtime);
+	g->transformFromGraphTopo(topoG);
+	g->topo_sort();
+	// compare tensor
+	TensorVec tensors1 = g->getTensors();
+	TensorVec tensors2 = infiniG->getTensors();
+	cmpTensors(std::move(tensors1), std::move(tensors2));
+	// compare op
+	OpVec ops1 = g->getOperators();
+	OpVec ops2 = infiniG->getOperators();
+	EXPECT_EQ(ops1.size(), ops2.size());
+	for (size_t i = 0; i < ops1.size(); ++i) {
+		// compare op type
+		EXPECT_EQ(ops1[i]->getOpType(), ops2[i]->getOpType()); 
+		// compare op inputs
+		auto inputs1 = ops1[i]->getInputs();
+		auto inputs2 = ops2[i]->getInputs();
+		cmpTensors(std::move(inputs1), std::move(inputs2));
+		// compare op outputs
+		auto outputs1 = ops1[i]->getOutputs();
+		auto outputs2 = ops2[i]->getOutputs();
+		cmpTensors(std::move(outputs1), std::move(outputs2));
+	}
+}
+
+TEST(Graph, from_graph_topo_reshape) {
+	// build a compare InfiniTensor graph
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Graph infiniG = make_ref<GraphObj>(runtime);
+    Tensor i = infiniG->addTensor({2, 3, 3, 4}, DataType::Float32);
+    auto op = infiniG->addOp<ReshapeObj>(i, nullptr, Shape{3, 2, 4, 3});
+	infiniG->topo_sort();
+    infiniG->print();
+	using namespace refactor;
+	// build a graphtopo
+	GraphTopo<graph::NodeInfo, graph::EdgeInfo> topo;
+	{
+        using NodeInfo = graph::NodeInfo;
+        using EdgeInfo = graph::EdgeInfo;
+        using Tensor = graph::Tensor;
+        using ShapeVariable = graph::ShapeVariable;
+        using Attributes = graph::Attributes;
+        NodeInfo op1 = NodeInfo{common::OpType::Reshape, Attributes{}};
+        EdgeInfo input, shape, output;
+        input.info = Tensor{common::DataType::F32, {2, 3, 3, 4}};
+        shape.info = ShapeVariable{{3, 2, 4, 3}};
+        output.info = Tensor{common::DataType::F32, {3, 2, 4, 3}};
+        auto i = topo.addEdge(input);
+        auto s = topo.addEdge(shape);
+        auto reshape = topo.addNode(op1, {i, s}, {output});
+        topo.markOutput({reshape[0]});
+	}
+	// transform topo graph to InfiniTensor graph
+	graph::Graph topoG = graph::Graph(std::move(topo));
+	Graph g = make_ref<GraphObj>(runtime);
+	g->transformFromGraphTopo(topoG);
+	g->topo_sort();
+	// compare tensor
+	TensorVec tensors1 = g->getTensors();
+	TensorVec tensors2 = infiniG->getTensors();
+	cmpTensors(std::move(tensors1), std::move(tensors2));
+	// compare op
+	OpVec ops1 = g->getOperators();
+	OpVec ops2 = infiniG->getOperators();
+	EXPECT_EQ(ops1.size(), ops2.size());
+	for (size_t i = 0; i < ops1.size(); ++i) {
+		// compare op type
+		EXPECT_EQ(ops1[i]->getOpType(), ops2[i]->getOpType()); 
+		// compare op inputs
+		auto inputs1 = ops1[i]->getInputs();
+		auto inputs2 = ops2[i]->getInputs();
+		cmpTensors(std::move(inputs1), std::move(inputs2));
+		// compare op outputs
+		auto outputs1 = ops1[i]->getOutputs();
+		auto outputs2 = ops2[i]->getOutputs();
+		cmpTensors(std::move(outputs1), std::move(outputs2));
+	}
 }
 
 } // namespace infini
