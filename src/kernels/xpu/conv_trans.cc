@@ -1,6 +1,6 @@
+#include "operators/conv.h"
 #include "xpu/xpu_kernel_without_config.h"
 #include "xpu/xpu_runtime.h"
-#include "operators/conv.h"
 
 namespace infini {
 class ConvTransXdnn : public XPUKernelWithoutConfig {
@@ -13,16 +13,17 @@ class ConvTransXdnn : public XPUKernelWithoutConfig {
         const auto [n, c, h, w, f, r, s] = op->getNCHWFRS();
         const int cpg = op->getChannelPerGroup();
         const int g = c / cpg;
-        const bool isNCHW = (op->getOpType() == OpType::ConvTransNHWC) ? false : true;
+        const bool isNCHW =
+            (op->getOpType() == OpType::ConvTransNHWC) ? false : true;
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
 
         std::vector<int> pads = {ph, pw};
-	    std::vector<int> ksize = {r, s};
-	    std::vector<int> stride = {sh, sw};
-	    std::vector<int> dilation = {dh, dw};
+        std::vector<int> ksize = {r, s};
+        std::vector<int> stride = {sh, sw};
+        std::vector<int> dilation = {dh, dw};
 
         auto dimInputs0 = op->getInputs(0)->getDims();
         auto dimInputs1 = op->getInputs(1)->getDims();
@@ -35,8 +36,11 @@ class ConvTransXdnn : public XPUKernelWithoutConfig {
         if (dimOutput.size() != 4)
             IT_TODO_HALT();
 
-        auto ret = baidu::xpu::api::conv2d_transpose<float,float,float,float>(context->XPUHandle(), (float*)aData, (float*)bData, (float*)cData,
-			                          n,c,h,w,f,ksize,stride,pads,dilation,g,nullptr,nullptr,nullptr,isNCHW);
+        auto ret =
+            baidu::xpu::api::conv2d_transpose<float, float, float, float>(
+                context->XPUHandle(), (float *)aData, (float *)bData,
+                (float *)cData, n, c, h, w, f, ksize, stride, pads, dilation, g,
+                nullptr, nullptr, nullptr, isNCHW);
         assert(ret == 0);
         return;
     }

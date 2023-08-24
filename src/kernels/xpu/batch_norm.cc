@@ -1,6 +1,6 @@
+#include "operators/batch_norm.h"
 #include "xpu/xpu_kernel_without_config.h"
 #include "xpu/xpu_runtime.h"
-#include "operators/batch_norm.h"
 
 namespace infini {
 class BatchNormXdnn : public XPUKernelWithoutConfig {
@@ -25,9 +25,10 @@ class BatchNormXdnn : public XPUKernelWithoutConfig {
         int h = dims[2];
         int c = dims[1];
         int n = dims[0];
-        auto ret = baidu::xpu::api::batch_norm_infer<float>(context->XPUHandle(), (float*)input, (float*)output,
-                                                            n, c, h, w, op->getEps(), (float*)scale, (float*)bias, 
-                                                            (float*)mean, (float*)var, true);
+        auto ret = baidu::xpu::api::batch_norm_infer<float>(
+            context->XPUHandle(), (float *)input, (float *)output, n, c, h, w,
+            op->getEps(), (float *)scale, (float *)bias, (float *)mean,
+            (float *)var, true);
 
         assert(ret == 0);
         return;

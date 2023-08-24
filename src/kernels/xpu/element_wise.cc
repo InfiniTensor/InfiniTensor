@@ -353,8 +353,8 @@ class AndXdnn : public XPUKernelWithoutConfig {
         if (aDim.size() != 4 || bDim.size() != 4)
             IT_TODO_HALT();
         auto ret = baidu::xpu::api::logical_and<bool>(
-            context->XPUHandle(), (bool *)aData, (bool *)bData,
-            (bool *)wsData, len);
+            context->XPUHandle(), (bool *)aData, (bool *)bData, (bool *)wsData,
+            len);
         ret = baidu::xpu::api::cast<bool, float>(
             context->XPUHandle(), (bool *)wsData, (float *)cData, len);
         assert(ret == 0);
@@ -379,8 +379,8 @@ class OrXdnn : public XPUKernelWithoutConfig {
         if (aDim.size() != 4 || bDim.size() != 4)
             IT_TODO_HALT();
         auto ret = baidu::xpu::api::logical_or<bool>(
-            context->XPUHandle(), (bool *)aData, (bool *)bData,
-            (bool *)wsData, len);
+            context->XPUHandle(), (bool *)aData, (bool *)bData, (bool *)wsData,
+            len);
         ret = baidu::xpu::api::cast<bool, float>(
             context->XPUHandle(), (bool *)wsData, (float *)cData, len);
         assert(ret == 0);
@@ -405,8 +405,8 @@ class XorXdnn : public XPUKernelWithoutConfig {
         if (aDim.size() != 4 || bDim.size() != 4)
             IT_TODO_HALT();
         auto ret = baidu::xpu::api::logical_xor<bool>(
-            context->XPUHandle(), (bool *)aData, (bool *)bData,
-            (bool *)wsData, len);
+            context->XPUHandle(), (bool *)aData, (bool *)bData, (bool *)wsData,
+            len);
         ret = baidu::xpu::api::cast<bool, float>(
             context->XPUHandle(), (bool *)wsData, (float *)cData, len);
         assert(ret == 0);

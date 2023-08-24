@@ -22,11 +22,12 @@ class PadXdnn : public XPUKernelWithoutConfig {
         std::vector<int> paddings_right(pads.begin() + dim_size, pads.end());
 
         float paddingValue = 0.0;
-        auto ret = baidu::xpu::api::pad<float>(context->XPUHandle(), (float*)aData, (float*)cData,
-                                               dim, paddings_left, paddings_right, paddingValue);
+        auto ret = baidu::xpu::api::pad<float>(
+            context->XPUHandle(), (float *)aData, (float *)cData, dim,
+            paddings_left, paddings_right, paddingValue);
 
         assert(ret == 0);
-	    return;
+        return;
     }
 };
 

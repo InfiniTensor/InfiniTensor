@@ -1,7 +1,7 @@
 #pragma once
+#include "core/common.h"
 #include "xpu/runtime_ex.h"
 #include "xpu/xdnn.h"
-#include "core/common.h"
 
 #define checkXPUError(call)                                                    \
     {                                                                          \
