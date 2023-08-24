@@ -1,8 +1,8 @@
-#include "xpu/xpu_runtime.h"
 #include "core/graph.h"
 #include "core/kernel.h"
 #include "core/runtime.h"
 #include "operators/unary.h"
+#include "xpu/xpu_runtime.h"
 
 #include "test.h"
 
@@ -40,7 +40,7 @@ void testUnary(const std::function<void(void *, size_t, DataType)> &generator,
 }
 
 void testClip(const std::function<void(void *, size_t, DataType)> &generator,
-               const Shape &shape) {
+              const Shape &shape) {
     // Runtime
     Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     auto xpuRuntime = make_ref<XPURuntimeObj>();
@@ -72,7 +72,7 @@ void testClip(const std::function<void(void *, size_t, DataType)> &generator,
 }
 
 void testCast(const std::function<void(void *, size_t, DataType)> &generator,
-               const Shape &shape) {
+              const Shape &shape) {
     // Runtime
     Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     auto xpuRuntime = make_ref<XPURuntimeObj>();
@@ -83,7 +83,8 @@ void testCast(const std::function<void(void *, size_t, DataType)> &generator,
     // GPU
     Graph xpuGraph = make_ref<GraphObj>(xpuRuntime);
     auto inputGpu = xpuGraph->cloneTensor(inputCpu);
-    auto gpuOp = xpuGraph->addOp<CastObj>(inputGpu, nullptr, CastType::Float2Int32);
+    auto gpuOp =
+        xpuGraph->addOp<CastObj>(inputGpu, nullptr, CastType::Float2Int32);
     xpuGraph->dataMalloc();
     inputGpu->setData(generator);
     xpuRuntime->run(xpuGraph);
@@ -91,7 +92,8 @@ void testCast(const std::function<void(void *, size_t, DataType)> &generator,
     auto outputGpu2Cpu = outputGpu->clone(cpuRuntime);
     // CPU
     Graph cpuGraph = make_ref<GraphObj>(cpuRuntime);
-    auto cpuOp = cpuGraph->addOp<CastObj>(inputCpu, nullptr, CastType::Float2Int32);
+    auto cpuOp =
+        cpuGraph->addOp<CastObj>(inputCpu, nullptr, CastType::Float2Int32);
     cpuGraph->addTensor(inputCpu);
     cpuGraph->dataMalloc();
     inputCpu->setData(generator);
