@@ -42,6 +42,88 @@ int get_real_axis(const int &axis, const int &rank) {
     return newAxis;
 }
 
+void addOperatorFromGraphTopo(
+    GraphObj &g,
+    const GraphTopoSearcher<refactor::graph::NodeInfo,
+                            refactor::graph::EdgeInfo>::Node node,
+    const std::unordered_map<int32_t, Tensor> edgeIdxToTensor,
+    const std::unordered_map<int32_t, infini::Shape> edgeIdxToShape) {
+    vector<int> inputs, outputs;
+    std::vector<infini::Shape> shapes;
+    for (auto edge : node.inputs()) {
+        if (edge.info().isTensor()) {
+            IT_ASSERT(edgeIdxToTensor.count(edge.index()) > 0);
+            inputs.emplace_back(edge.index());
+        } else if (edge.info().isShapeVariable()) {
+            IT_ASSERT(edgeIdxToShape.count(edge.index()) > 0);
+            shapes.emplace_back(edgeIdxToShape.at(edge.index()));
+        }
+    }
+    for (auto edge : node.outputs()) {
+        IT_ASSERT(edge.info().isTensor());
+        IT_ASSERT(edgeIdxToTensor.count(edge.index()) > 0);
+        outputs.emplace_back(edge.index());
+    }
+    auto attr = node.info().attributes;
+    if (node.info().opType == refactor::common::OpType::Conv) {
+        auto p = attr["pads"].ints();
+        auto s = attr["strides"].ints();
+        auto d = attr["dilations"].ints();
+        g.addOpWithOutputs<ConvObj>(
+            edgeIdxToTensor.at(inputs[0]), edgeIdxToTensor.at(inputs[1]),
+            edgeIdxToTensor.at(outputs[0]), p[0], p[1], s[0], s[1], d[0], d[1]);
+    } else if (node.info().opType == refactor::common::OpType::Relu) {
+        g.addOpWithOutputs<ReluObj>(edgeIdxToTensor.at(inputs[0]),
+                                    edgeIdxToTensor.at(outputs[0]));
+    } else if (node.info().opType == refactor::common::OpType::Add) {
+        g.addOpWithOutputs<AddObj>(edgeIdxToTensor.at(inputs[0]),
+                                   edgeIdxToTensor.at(inputs[1]),
+                                   edgeIdxToTensor.at(outputs[0]));
+    } else if (node.info().opType == refactor::common::OpType::Identity) {
+        g.addOpWithOutputs<IdentityObj>(edgeIdxToTensor.at(inputs[0]),
+                                        edgeIdxToTensor.at(outputs[0]));
+    } else if (node.info().opType == refactor::common::OpType::AveragePool) {
+        auto p = attr["pads"].ints();
+        auto s = attr["strides"].ints();
+        auto d = attr["dilations"].ints();
+        int h = edgeIdxToTensor.at(inputs[0])->getDims()[2];
+        int w = edgeIdxToTensor.at(inputs[0])->getDims()[3];
+        g.addOpWithOutputs<AvgPoolObj>(edgeIdxToTensor.at(inputs[0]),
+                                       edgeIdxToTensor.at(outputs[0]), h, w,
+                                       d[0], d[1], p[0], p[1], s[0], s[1]);
+    } else if (node.info().opType == refactor::common::OpType::Reshape) {
+        g.addOpWithOutputs<ReshapeObj>(edgeIdxToTensor.at(inputs[0]),
+                                       edgeIdxToTensor.at(outputs[0]),
+                                       shapes[0]);
+    } else if (node.info().opType == refactor::common::OpType::Gemm) {
+        // FIXME unsupport attributes: `alpha` `beta`
+        auto alpha = attr["alpha"].float_();
+        auto beta = attr["beta"].float_();
+        auto transA = attr["transA"].int_();
+        auto transB = attr["transB"].int_();
+        IT_ASSERT(alpha == 1.0);
+        IT_ASSERT(beta == 1.0);
+        g.addOpWithOutputs<MatmulObj>(
+            edgeIdxToTensor.at(inputs[0]), edgeIdxToTensor.at(inputs[1]),
+            edgeIdxToTensor.at(outputs[0]), transA, transB,
+            inputs.size() > 2 ? edgeIdxToTensor.at(inputs[2]) : nullptr,
+            ActType::None);
+    } else if (node.info().opType ==
+               refactor::common::OpType::BatchNormalization) {
+        auto epsilon = attr["epsilon"].float_();
+        auto momentum = attr["momentum"].float_();
+        auto training_mode = attr["training_mode"].int_();
+        g.addOpWithOutputs<BatchNormObj>(
+            edgeIdxToTensor.at(inputs[0]), edgeIdxToTensor.at(outputs[0]),
+            edgeIdxToTensor.at(inputs[3]), edgeIdxToTensor.at(inputs[4]),
+            edgeIdxToTensor.at(inputs[1]), edgeIdxToTensor.at(inputs[2]),
+            momentum, epsilon, training_mode != 0);
+    } else {
+        IT_TODO_HALT_MSG("Don't support opType " +
+                         node.info().opType.toString());
+    }
+}
+
 // add batchnormalization conv gemm globalaveragepool maxpool relu reshape
 RefactorNodeInfoCell getNodeInfo(const Operator &obj) {
     using namespace refactor;
