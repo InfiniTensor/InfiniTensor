@@ -1,8 +1,8 @@
-#include "xpu/xpu_runtime.h"
 #include "core/graph.h"
 #include "core/kernel.h"
 #include "core/runtime.h"
 #include "operators/element_wise.h"
+#include "xpu/xpu_runtime.h"
 
 #include "test.h"
 
@@ -60,7 +60,7 @@ TEST(xdnn_ElementWise, run) {
         OneGenerator(), Shape{1, 2, 2, 3},
         ExpectOutput{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1});
     testElementWiseXdnn<PowObj>(IncrementalGenerator(), Shape{1, 2, 2, 1},
-                                 ExpectOutput{1, 1, 4, 27});
+                                ExpectOutput{1, 1, 4, 27});
 }
 
 } // namespace infini

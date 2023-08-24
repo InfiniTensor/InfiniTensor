@@ -1,9 +1,9 @@
 #include "core/graph.h"
 #include "core/runtime.h"
-#include "xpu/xpu_kernel_without_config.h"
-#include "xpu/xpu_runtime.h"
 #include "operators/pad.h"
 #include "test.h"
+#include "xpu/xpu_kernel_without_config.h"
+#include "xpu/xpu_runtime.h"
 
 namespace infini {
 TEST(xpu_Pad, run) {

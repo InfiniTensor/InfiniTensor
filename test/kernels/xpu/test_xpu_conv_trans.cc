@@ -2,9 +2,9 @@
 #include "core/kernel.h"
 #include "core/perf_engine.h"
 #include "core/runtime.h"
-#include "xpu/xpu_runtime.h"
-#include "xpu/xpu_kernel_without_config.h"
 #include "operators/conv.h"
+#include "xpu/xpu_kernel_without_config.h"
+#include "xpu/xpu_runtime.h"
 
 #include "test.h"
 
@@ -32,9 +32,9 @@ void testConvTransposedXdnn(
     Tensor i0Xpu = gXpu->cloneTensor(i0Cpu);
     Tensor w0Xpu = gXpu->cloneTensor(w0Cpu);
     // Build XPU graph
-    auto conv = gXpu->addOp<ConvTransposed2dObj>(i0Xpu, w0Xpu, nullptr,
-                                                  padding, padding, stride,
-                                                  stride, dilation, dilation);
+    auto conv = gXpu->addOp<ConvTransposed2dObj>(i0Xpu, w0Xpu, nullptr, padding,
+                                                 padding, stride, stride,
+                                                 dilation, dilation);
     gXpu->dataMalloc();
     i0Xpu->setData(generator);
     w0Xpu->setData(generator);
@@ -84,18 +84,18 @@ void testConvTransposedNHWCXdnn(
 
 TEST(XPU_ConvTransposed, run) {
     testConvTransposedXdnn(IncrementalGenerator(),
-                            vector<float>{0.,  0.,  1.,  2.,  3.,  0.,  6.,
-                                          12., 18., 16., 8.,  30., 36., 42.,
-                                          32., 16., 54., 60., 66., 48., 24.,
-                                          62., 67., 72., 45.});
+                           vector<float>{0.,  0.,  1.,  2.,  3.,  0.,  6.,
+                                         12., 18., 16., 8.,  30., 36., 42.,
+                                         32., 16., 54., 60., 66., 48., 24.,
+                                         62., 67., 72., 45.});
 }
 
 TEST(XPU_ConvTransposedNHWC, run) {
     testConvTransposedNHWCXdnn(IncrementalGenerator(),
-                                vector<float>{0.,  0.,  1.,  2.,  3.,  0.,  6.,
-                                          12., 18., 16., 8.,  30., 36., 42.,
-                                          32., 16., 54., 60., 66., 48., 24.,
-                                          62., 67., 72., 45.});
+                               vector<float>{0.,  0.,  1.,  2.,  3.,  0.,  6.,
+                                             12., 18., 16., 8.,  30., 36., 42.,
+                                             32., 16., 54., 60., 66., 48., 24.,
+                                             62., 67., 72., 45.});
 }
 
 TEST(XPU_ConvTransposed, run1) {
@@ -116,8 +116,7 @@ TEST(XPU_ConvTransposed, run1) {
     Tensor i0Xpu = gXpu->cloneTensor(i0Cpu);
     Tensor w0Xpu = gXpu->cloneTensor(w0Cpu);
     // Build XPU graph
-    auto conv =
-        gXpu->addOp<ConvTransposed2dObj>(i0Xpu, w0Xpu, nullptr, 0, 0);
+    auto conv = gXpu->addOp<ConvTransposed2dObj>(i0Xpu, w0Xpu, nullptr, 0, 0);
     gXpu->dataMalloc();
     i0Xpu->setData(IncrementalGenerator());
     w0Xpu->setData(IncrementalGenerator());
