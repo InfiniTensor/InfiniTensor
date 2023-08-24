@@ -28,12 +28,14 @@ Shape infer_broadcast(const Shape &A, const Shape &B);
 // Launch the real axis based on rank and current axis
 int get_real_axis(const int &axis, const int &rank);
 
-refactor::graph::NodeInfo getNodeInfo(const Operator &obj);
+using RefactorNodeInfoCell = refactor::graph::Cell<refactor::graph::NodeInfo>;
+using RefactorEdgeInfoCell = refactor::graph::Cell<refactor::graph::EdgeInfo>;
+using EdgeRef = GraphTopo<RefactorNodeInfoCell, RefactorEdgeInfoCell>::EdgeRef;
+RefactorNodeInfoCell getNodeInfo(const Operator &obj);
 void processShapeVariable(
     const Operator &obj,
-    GraphTopo<refactor::graph::NodeInfo, refactor::graph::EdgeInfo> &graphTopo,
-    std::vector<GraphTopo<refactor::graph::NodeInfo,
-                          refactor::graph::EdgeInfo>::EdgeRef> &nodeInputs);
+    GraphTopo<RefactorNodeInfoCell, RefactorEdgeInfoCell> &graphTopo,
+    std::vector<EdgeRef> &nodeInputs);
 } // namespace infini
 
 #endif

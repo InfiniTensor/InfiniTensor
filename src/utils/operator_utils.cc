@@ -42,9 +42,9 @@ int get_real_axis(const int &axis, const int &rank) {
     return newAxis;
 }
 
-using namespace refactor;
 // add batchnormalization conv gemm globalaveragepool maxpool relu reshape
-graph::NodeInfo getNodeInfo(const Operator &obj) {
+RefactorNodeInfoCell getNodeInfo(const Operator &obj) {
+    using namespace refactor;
     auto type = obj->getOpType().underlying();
     graph::NodeInfo nodeInfo{common::OpType::Unknown};
 #define CASE(T)                                                                \
@@ -59,7 +59,9 @@ graph::NodeInfo getNodeInfo(const Operator &obj) {
         auto transB = matmul->getTransB();
         if (transA || transB) {
             nodeInfo = {common::OpType::Gemm,
-                        {{"transA", {static_cast<graph::Int>(transA)}},
+                        {{"alpha", {static_cast<graph::Float>(1.0)}},
+                         {"beta", {static_cast<graph::Float>(1.0)}},
+                         {"transA", {static_cast<graph::Int>(transA)}},
                          {"transB", {static_cast<graph::Int>(transB)}}}};
         } else {
             nodeInfo = {common::OpType::MatMul, graph::Attributes{}};
@@ -140,19 +142,19 @@ graph::NodeInfo getNodeInfo(const Operator &obj) {
         CASE(Sub)
         CASE(Mul)
         CASE(Div)
+        CASE(Identity)
     default:
-        IT_TODO_HALT_MSG("Don't Support OpType");
+        IT_TODO_HALT_MSG("Don't Support OpType " + obj->getOpType().toString());
     }
 #undef CASE
-    return nodeInfo;
+    return {std::move(nodeInfo)};
 }
 
-using EdgeRef =
-    GraphTopo<refactor::graph::NodeInfo, refactor::graph::EdgeInfo>::EdgeRef;
 void processShapeVariable(
     const Operator &obj,
-    GraphTopo<refactor::graph::NodeInfo, refactor::graph::EdgeInfo> &graphTopo,
+    GraphTopo<RefactorNodeInfoCell, RefactorEdgeInfoCell> &graphTopo,
     std::vector<EdgeRef> &nodeInputs) {
+    using namespace refactor;
     auto type = obj->getOpType().underlying();
     if (type == OpType::Reshape) {
         auto reshape = dynamic_cast<const ReshapeObj *>(obj.get());
@@ -162,7 +164,7 @@ void processShapeVariable(
                        [](int x) { return static_cast<int64_t>(x); });
         graph::EdgeInfo edge;
         edge.info = graph::ShapeVariable{shape};
-        auto e = graphTopo.addEdge(edge);
+        auto e = graphTopo.addEdge({std::move(edge)});
         nodeInputs.emplace_back(e);
     }
     return;

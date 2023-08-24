@@ -124,38 +124,36 @@ bool GraphObj::topo_sort() {
     return this->sorted = true;
 }
 
-using namespace refactor;
-using EdgeRef = GraphTopo<graph::NodeInfo, graph::EdgeInfo>::EdgeRef;
-GraphTopo<graph::NodeInfo, graph::EdgeInfo>
+GraphTopo<RefactorNodeInfoCell, RefactorEdgeInfoCell>
 GraphObj::transformToGraphTopo(GraphObj &g) {
+    using namespace refactor;
     if (!g.sorted) {
         g.topo_sort();
     }
-    auto graphTopo = GraphTopo<graph::NodeInfo, graph::EdgeInfo>();
+    auto graphTopo = GraphTopo<RefactorNodeInfoCell, RefactorEdgeInfoCell>();
     std::map<int, EdgeRef> edgeToTensor;
     // add global input tensor
     for (auto tensor : g.tensors) {
         if (tensor->source.expired()) {
             auto shape = tensor->getDims();
-            std::vector<int64_t> shape_t(tensor->getRank());
-            graph::EdgeInfo edgeInfo;
-            std::transform(shape.begin(), shape.end(), shape_t.begin(),
-                           [](int x) { return int64_t(x); });
-            edgeInfo.info = graph::Tensor{
+            std::vector<int64_t> newshape(tensor->getRank());
+            std::transform(shape.begin(), shape.end(), newshape.begin(),
+                           [](int x) { return static_cast<int64_t>(x); });
+            graph::EdgeInfo edge{graph::Tensor{
                 static_cast<common::DataType>(tensor->getDType().getIndex()),
-                shape_t};
+                newshape}};
             edgeToTensor.emplace(tensor->getFuid(),
-                                 graphTopo.addEdge(edgeInfo));
+                                 graphTopo.addEdge({std::move(edge)}));
         }
     }
     // add graph ops
     for (auto node : g.ops) {
         // get add node info
-        graph::NodeInfo nodeInfo = getNodeInfo(node);
+        auto nodeInfo = getNodeInfo(node);
         auto opInputs = node->getInputs();
         auto opOutputs = node->getOutputs();
         std::vector<EdgeRef> nodeInputs;
-        std::vector<graph::EdgeInfo> nodeOutputs;
+        std::vector<RefactorEdgeInfoCell> nodeOutputs;
         // process reshape op
         processShapeVariable(node, graphTopo, nodeInputs);
         // get add node inputs
@@ -167,15 +165,14 @@ GraphObj::transformToGraphTopo(GraphObj &g) {
         // get add node outputs
         for (auto nodeOutputEle : opOutputs) {
             auto shape = nodeOutputEle->getDims();
-            std::vector<int64_t> shape_t(nodeOutputEle->getRank());
-            graph::EdgeInfo edgeInfo;
-            std::transform(shape.begin(), shape.end(), shape_t.begin(),
-                           [](int x) { return int64_t(x); });
-            edgeInfo.info =
+            std::vector<int64_t> newshape(nodeOutputEle->getRank());
+            std::transform(shape.begin(), shape.end(), newshape.begin(),
+                           [](int x) { return static_cast<int64_t>(x); });
+            graph::EdgeInfo edge{
                 graph::Tensor{static_cast<common::DataType>(
                                   nodeOutputEle->getDType().getIndex()),
-                              shape_t};
-            nodeOutputs.emplace_back(edgeInfo);
+                              newshape}};
+            nodeOutputs.emplace_back(RefactorEdgeInfoCell{std::move(edge)});
         }
         auto nodeProduct = graphTopo.addNode(nodeInfo, nodeInputs, nodeOutputs);
         // add node outputs edge_tensor to edgeToTensor
@@ -199,11 +196,14 @@ GraphObj::transformToGraphTopo(GraphObj &g) {
 
 void GraphObj::optimize() {
     using namespace refactor;
-    GraphTopo<graph::NodeInfo, graph::EdgeInfo> topo;
+    GraphTopo<graph::Cell<graph::NodeInfo>, graph::Cell<graph::EdgeInfo>> topo;
     topo = transformToGraphTopo(*this);
     // TODO: 构造 GraphTopo 和 Graph，再拆除，
     //       将结果直接存放在这个 `GraphOhj` 里规避 Runtime 等不同成员的问题
-    graph::Graph graph(std::move(topo));
+    graph::GraphMut graphMut(std::move(topo));
+    // -----------optimize------------
+    auto otherTopo = graphMut.intoGraphTopo();
+    auto graph = graph::Graph(std::move(otherTopo));
     transformFromGraphTopo(graph);
 }
 
@@ -255,10 +255,10 @@ void GraphObj::transformFromGraphTopo(refactor::graph::Graph &graph) {
             auto p = attr["pads"].ints();
             auto s = attr["strides"].ints();
             auto d = attr["dilations"].ints();
-            addOpWithOutputs<ConvObj>(
-                edgeIdxToTensor[inputs[0]], edgeIdxToTensor[inputs[1]],
-                edgeIdxToTensor[outputs[0]], p[0], p[1], s[0], s[1], d[0], d[1],
-                edgeIdxToTensor[inputs[2]]);
+            addOpWithOutputs<ConvObj>(edgeIdxToTensor[inputs[0]],
+                                      edgeIdxToTensor[inputs[1]],
+                                      edgeIdxToTensor[outputs[0]], p[0], p[1],
+                                      s[0], s[1], d[0], d[1]);
         } else if (node.info().opType == refactor::common::OpType::Relu) {
             addOpWithOutputs<ReluObj>(edgeIdxToTensor[inputs[0]],
                                       edgeIdxToTensor[outputs[0]]);
@@ -270,12 +270,15 @@ void GraphObj::transformFromGraphTopo(refactor::graph::Graph &graph) {
             addOpWithOutputs<IdentityObj>(edgeIdxToTensor[inputs[0]],
                                           edgeIdxToTensor[outputs[0]]);
         } else if (node.info().opType ==
-                   refactor::common::OpType::GlobalAveragePool) {
+                   refactor::common::OpType::AveragePool) {
+            auto p = attr["pads"].ints();
+            auto s = attr["strides"].ints();
+            auto d = attr["dilations"].ints();
             int h = edgeIdxToTensor[inputs[0]]->getDims()[2];
             int w = edgeIdxToTensor[inputs[0]]->getDims()[3];
             addOpWithOutputs<AvgPoolObj>(edgeIdxToTensor[inputs[0]],
-                                         edgeIdxToTensor[outputs[0]], h, w, 1,
-                                         1, 0, 0, 1, 1);
+                                         edgeIdxToTensor[outputs[0]], h, w,
+                                         d[0], d[1], p[0], p[1], s[0], s[1]);
         } else if (node.info().opType == refactor::common::OpType::Reshape) {
             addOpWithOutputs<ReshapeObj>(edgeIdxToTensor[inputs[0]],
                                          edgeIdxToTensor[outputs[0]],
@@ -303,6 +306,9 @@ void GraphObj::transformFromGraphTopo(refactor::graph::Graph &graph) {
                 edgeIdxToTensor[inputs[3]], edgeIdxToTensor[inputs[4]],
                 edgeIdxToTensor[inputs[1]], edgeIdxToTensor[inputs[2]],
                 momentum, epsilon, training_mode != 0);
+        } else {
+            IT_TODO_HALT_MSG("Don't support opType " +
+                             node.info().opType.toString());
         }
     }
 }
