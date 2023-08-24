@@ -348,6 +348,18 @@ class OnnxStub:
                         tensors[node.input[1]],
                         tensors.get(node.output[0]),
                     )
+                elif node.op_type == "Min":
+                    tensors[node.output[0]] = self.handler.min(
+                        tensors[node.input[0]],
+                        tensors[node.input[1]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "Max":
+                    tensors[node.output[0]] = self.handler.max(
+                        tensors[node.input[0]],
+                        tensors[node.input[1]],
+                        tensors.get(node.output[0]),
+                    )
                 elif node.op_type == "Relu":
                     tensors[node.output[0]] = self.handler.relu(
                         tensors[node.input[0]],
@@ -374,6 +386,11 @@ class OnnxStub:
                     )
                 elif node.op_type == "Abs":
                     tensors[node.output[0]] = self.handler.abs(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "Sqrt":
+                    tensors[node.output[0]] = self.handler.sqrt(
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
                     )
@@ -500,7 +517,7 @@ class OnnxStub:
                         tensors[node.input[1]],
                         tensors.get(node.output[0]),
                         next(
-                            (attr.i for attr in node.attribute if attr.name == "axis")
+                            (attr.i for attr in node.attribute if attr.name == "axis"), 0
                         ),
                     )
                 elif node.op_type == "ReduceMean":
@@ -521,7 +538,8 @@ class OnnxStub:
                                 attr.i
                                 for attr in node.attribute
                                 if attr.name == "keepdims"
-                            )
+                            ),
+                            1
                         )
                         != 0,
                     )
@@ -967,6 +985,17 @@ def _search_shape(model: ModelProto, name: str) -> List[int]:
                     for d in tensor.type.tensor_type.shape.dim
                 ]
                 for tensor in model.graph.input
+                if tensor.name == name
+            ),
+            None,
+        )
+        or next(
+            (
+                [
+                    (d.dim_value if d.dim_value > 0 else 1)
+                    for d in tensor.type.tensor_type.shape.dim
+                ]
+                for tensor in model.graph.output
                 if tensor.name == name
             ),
             None,

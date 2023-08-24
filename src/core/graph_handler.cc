@@ -137,6 +137,8 @@ DEFINE_ELEMENT_WISE_METHOD(sub, Sub)
 DEFINE_ELEMENT_WISE_METHOD(mul, Mul)
 DEFINE_ELEMENT_WISE_METHOD(div, Div)
 DEFINE_ELEMENT_WISE_METHOD(pow, Pow)
+DEFINE_ELEMENT_WISE_METHOD(min, Minimum)
+DEFINE_ELEMENT_WISE_METHOD(max, Maximum)
 
 // see operators/unary.h
 #define DEFINE_UNARY_METHOD(name, obj)                                         \
@@ -153,6 +155,7 @@ DEFINE_UNARY_METHOD(relu, Relu)
 DEFINE_UNARY_METHOD(sigmoid, Sigmoid)
 DEFINE_UNARY_METHOD(tanh, Tanh)
 DEFINE_UNARY_METHOD(abs, Abs)
+DEFINE_UNARY_METHOD(sqrt, Sqrt)
 DEFINE_UNARY_METHOD(shape, Shape)
 
 // see operators/reshape.h

@@ -41,12 +41,15 @@ class GraphHandlerObj {
     Tensor mul(Tensor a, Tensor b, Tensor c);
     Tensor div(Tensor a, Tensor b, Tensor c);
     Tensor pow(Tensor a, Tensor b, Tensor c);
+    Tensor min(Tensor a, Tensor b, Tensor c);
+    Tensor max(Tensor a, Tensor b, Tensor c);
 
     Tensor relu(Tensor x, Tensor y);
     Tensor sigmoid(Tensor x, Tensor y);
     Tensor tanh(Tensor x, Tensor y);
     Tensor softmax(Tensor x, Tensor y, int axis);
     Tensor abs(Tensor x, Tensor y);
+    Tensor sqrt(Tensor x, Tensor y);
     Tensor shape(Tensor x, Tensor y);
     Tensor identity(Tensor x, Tensor y);
     Tensor flatten(Tensor s, Tensor y, int axis);
