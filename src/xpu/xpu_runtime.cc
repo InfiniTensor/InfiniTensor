@@ -5,7 +5,7 @@
 namespace infini {
 
 void XPURuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
-                                    bool profiling = false) const {
+                                   bool profiling = false) const {
     const auto &kernelRegistry = KernelRegistry::getInstance();
     auto &perfEngine = PerfEngine::getInstance();
     double totalTime = 0;
