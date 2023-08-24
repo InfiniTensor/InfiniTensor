@@ -56,6 +56,11 @@ TEST(xdnn_ElementWise, run) {
     testElementWiseXdnn<MulObj>(
         IncrementalGenerator(), Shape{1, 2, 2, 3},
         ExpectOutput{0, 1, 4, 9, 16, 25, 36, 49, 64, 81, 100, 121});
+    testElementWiseXdnn<DivObj>(
+        OneGenerator(), Shape{1, 2, 2, 3},
+        ExpectOutput{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1});
+    testElementWiseXdnn<PowObj>(IncrementalGenerator(), Shape{1, 2, 2, 1},
+                                 ExpectOutput{1, 1, 4, 27});
 }
 
 } // namespace infini
