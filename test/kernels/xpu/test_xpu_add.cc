@@ -1,17 +1,16 @@
-#include "xpu/xpu_runtime.h"
 #include "core/graph.h"
 #include "core/kernel.h"
 #include "core/runtime.h"
 #include "operators/element_wise.h"
+#include "xpu/xpu_runtime.h"
 
 #include "test.h"
 
 namespace infini {
 
 template <class T>
-void testAdd(
-    const std::function<void(void *, size_t, DataType)> &generator,
-    const Shape &shape) {
+void testAdd(const std::function<void(void *, size_t, DataType)> &generator,
+             const Shape &shape) {
     // Runtime
     Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     auto xpuRuntime = make_ref<XPURuntimeObj>();

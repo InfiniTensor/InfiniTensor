@@ -13,10 +13,10 @@ class ReluXdnn : public XPUKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
 
-	auto ret = baidu::xpu::api::relu<float>(context->XPUHandle(), (float*)aData, (float*)cData, len);
-	assert(ret == 0);
-	return;
-
+        auto ret = baidu::xpu::api::relu<float>(
+            context->XPUHandle(), (float *)aData, (float *)cData, len);
+        assert(ret == 0);
+        return;
     }
 };
 
@@ -30,10 +30,10 @@ class SigmoidXdnn : public XPUKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
 
-	auto ret = baidu::xpu::api::sigmoid<float>(context->XPUHandle(), (float*)aData, (float*)cData, len);
-	assert(ret == 0);
-	return;
-
+        auto ret = baidu::xpu::api::sigmoid<float>(
+            context->XPUHandle(), (float *)aData, (float *)cData, len);
+        assert(ret == 0);
+        return;
     }
 };
 
@@ -47,10 +47,10 @@ class TanhXdnn : public XPUKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
 
-	auto ret = baidu::xpu::api::tanh<float>(context->XPUHandle(), (float*)aData, (float*)cData, len);
-	assert(ret == 0);
-	return;
-
+        auto ret = baidu::xpu::api::tanh<float>(
+            context->XPUHandle(), (float *)aData, (float *)cData, len);
+        assert(ret == 0);
+        return;
     }
 };
 
@@ -64,10 +64,10 @@ class SquareXdnn : public XPUKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
 
-	auto ret = baidu::xpu::api::square<float>(context->XPUHandle(), (float*)aData, (float*)cData, len);
-	assert(ret == 0);
-	return;
-
+        auto ret = baidu::xpu::api::square<float>(
+            context->XPUHandle(), (float *)aData, (float *)cData, len);
+        assert(ret == 0);
+        return;
     }
 };
 
@@ -81,10 +81,10 @@ class SqrtXdnn : public XPUKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
 
-	auto ret = baidu::xpu::api::sqrt<float>(context->XPUHandle(), (float*)aData, (float*)cData, len);
-	assert(ret == 0);
-	return;
-
+        auto ret = baidu::xpu::api::sqrt<float>(
+            context->XPUHandle(), (float *)aData, (float *)cData, len);
+        assert(ret == 0);
+        return;
     }
 };
 
@@ -98,10 +98,10 @@ class RsqrtXdnn : public XPUKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
 
-	auto ret = baidu::xpu::api::rsqrt<float>(context->XPUHandle(), (float*)aData, (float*)cData, len);
-	assert(ret == 0);
-	return;
-
+        auto ret = baidu::xpu::api::rsqrt<float>(
+            context->XPUHandle(), (float *)aData, (float *)cData, len);
+        assert(ret == 0);
+        return;
     }
 };
 
@@ -115,10 +115,10 @@ class ExpXdnn : public XPUKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
 
-	auto ret = baidu::xpu::api::exp<float>(context->XPUHandle(), (float*)aData, (float*)cData, len);
-	assert(ret == 0);
-	return;
-
+        auto ret = baidu::xpu::api::exp<float>(
+            context->XPUHandle(), (float *)aData, (float *)cData, len);
+        assert(ret == 0);
+        return;
     }
 };
 
@@ -132,10 +132,10 @@ class CeilXdnn : public XPUKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
 
-	auto ret = baidu::xpu::api::ceil<float>(context->XPUHandle(), (float*)aData, (float*)cData, len);
-	assert(ret == 0);
-	return;
-
+        auto ret = baidu::xpu::api::ceil<float>(
+            context->XPUHandle(), (float *)aData, (float *)cData, len);
+        assert(ret == 0);
+        return;
     }
 };
 
@@ -148,13 +148,14 @@ class ClipXdnn : public XPUKernelWithoutConfig {
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
-	float min = op->getMin().value();
-	float max = op->getMax().value();
+        float min = op->getMin().value();
+        float max = op->getMax().value();
 
-	auto ret = baidu::xpu::api::clip<float>(context->XPUHandle(), (float*)aData, (float*)cData, len, min, max);
-	assert(ret == 0);
-	return;
-
+        auto ret =
+            baidu::xpu::api::clip<float>(context->XPUHandle(), (float *)aData,
+                                         (float *)cData, len, min, max);
+        assert(ret == 0);
+        return;
     }
 };
 
@@ -168,10 +169,10 @@ class FloorXdnn : public XPUKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
 
-	auto ret = baidu::xpu::api::floor<float>(context->XPUHandle(), (float*)aData, (float*)cData, len);
-	assert(ret == 0);
-	return;
-
+        auto ret = baidu::xpu::api::floor<float>(
+            context->XPUHandle(), (float *)aData, (float *)cData, len);
+        assert(ret == 0);
+        return;
     }
 };
 
@@ -185,10 +186,10 @@ class NegXdnn : public XPUKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
 
-	auto ret = baidu::xpu::api::neg<float>(context->XPUHandle(), (float*)aData, (float*)cData, len);
-	assert(ret == 0);
-	return;
-
+        auto ret = baidu::xpu::api::neg<float>(
+            context->XPUHandle(), (float *)aData, (float *)cData, len);
+        assert(ret == 0);
+        return;
     }
 };
 
@@ -201,10 +202,10 @@ class CopyXdnn : public XPUKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
 
-       auto ret = baidu::xpu::api::copy<float>(context->XPUHandle(), (float*)aData, (float*)cData, len);
-       assert(ret == 0);
-       return;
-
+        auto ret = baidu::xpu::api::copy<float>(
+            context->XPUHandle(), (float *)aData, (float *)cData, len);
+        assert(ret == 0);
+        return;
     }
 };
 
@@ -218,10 +219,10 @@ class ReciprocalXdnn : public XPUKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
 
-	auto ret = baidu::xpu::api::reciprocal<float>(context->XPUHandle(), (float*)aData, (float*)cData, len);
-	assert(ret == 0);
-	return;
-
+        auto ret = baidu::xpu::api::reciprocal<float>(
+            context->XPUHandle(), (float *)aData, (float *)cData, len);
+        assert(ret == 0);
+        return;
     }
 };
 
@@ -481,8 +482,8 @@ REGISTER_KERNEL(Device::XPU, OpType::Floor, DataType::Float32, FloorXdnn,
                 "Floor_xdnn_XPU_Float32");
 REGISTER_KERNEL(Device::XPU, OpType::Neg, DataType::Float32, NegXdnn,
                 "Neg_xdnn_XPU_Float32");
-REGISTER_KERNEL(Device::XPU, OpType::Reciprocal, DataType::Float32, ReciprocalXdnn,
-                "Reciprocal_xdnn_XPU_Float32");
+REGISTER_KERNEL(Device::XPU, OpType::Reciprocal, DataType::Float32,
+                ReciprocalXdnn, "Reciprocal_xdnn_XPU_Float32");
 
 REGISTER_KERNEL(Device::XPU, OpType::Reshape, DataType::Float32, CopyXdnn,
                 "Reshape_xdnn_Float32");

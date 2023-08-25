@@ -1,6 +1,6 @@
 #pragma once
-#include "xpu/xpu_runtime.h"
 #include "core/kernel.h"
+#include "xpu/xpu_runtime.h"
 
 namespace infini {
 

@@ -1,19 +1,18 @@
 #include "xpu/operator_timer.h"
-#include "xpu/xpu_runtime.h"
 #include "core/graph.h"
 #include "core/kernel.h"
 #include "core/runtime.h"
 #include "operators/conv.h"
 #include "operators/matmul.h"
 #include "utils/data_generator.h"
+#include "xpu/xpu_runtime.h"
 
 namespace infini {
 namespace opTimer {
 
-double getPerfConvXPU(int n, int c, int h, int w, int f, int r, int s,
-                       int padh, int padw, int strideh, int stridew,
-                       int dilationh, int dilationw, int group,
-                       const char *name) {
+double getPerfConvXPU(int n, int c, int h, int w, int f, int r, int s, int padh,
+                      int padw, int strideh, int stridew, int dilationh,
+                      int dilationw, int group, const char *name) {
     Runtime cpu = NativeCpuRuntimeObj::getInstance(); // CPUruntime is singleton
     Graph gCpu = make_ref<GraphObj>(cpu);
     Runtime xpu = make_ref<XPURuntimeObj>();
@@ -31,8 +30,8 @@ double getPerfConvXPU(int n, int c, int h, int w, int f, int r, int s,
     Tensor i0XPU = gXpu->cloneTensor(i0Cpu);
     Tensor w0XPU = gXpu->cloneTensor(w0Cpu);
     // Build Xpu graph
-    auto conv = gXpu->addOp<ConvObj>(i0XPU, w0XPU, nullptr, padh, padw,
-                                      strideh, stridew, dilationh, dilationw);
+    auto conv = gXpu->addOp<ConvObj>(i0XPU, w0XPU, nullptr, padh, padw, strideh,
+                                     stridew, dilationh, dilationw);
     // allocate Xpu memory
     gXpu->dataMalloc();
     // Execute on Xpu
