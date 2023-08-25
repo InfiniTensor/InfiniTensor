@@ -1,7 +1,8 @@
 #pragma once
-#include "core/tensor.h"
+#include "core/data_type.h"
 namespace infini {
-typedef struct {
+
+struct GatherMetaData {
     void *indexValue;
     DataType indexType;
     int axis;
@@ -12,7 +13,7 @@ typedef struct {
     int idxDim[4];
     int idxStride[4];
     int inStride[4];
-} GatherMetaData;
+};
 
 void gather_kernel(float *in, float *out, GatherMetaData metaData, size_t num);
 } // namespace infini
