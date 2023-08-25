@@ -14,7 +14,7 @@ void where_kernel(const float *input, const float *other,
                   const float *condition, float *output, int size) {
     int blocksize = 32 * 16;
     int gridsize = (size + blocksize - 1) / blocksize;
-    _where_kernel<<<blocksize, gridsize>>>(input, other, condition, output,
+    _where_kernel<<<gridsize, blocksize>>>(input, other, condition, output,
                                            size);
 }
 } // namespace infini

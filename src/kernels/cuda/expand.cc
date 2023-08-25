@@ -12,16 +12,21 @@ class ExpandCuda : public CudaKernelWithoutConfig {
 
         void *const inputData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const outputData = (op->getOutput()->getRawDataPtr<void *>());
-        auto shapedim = op->getShape();
-        int shape = 1;
-        for (size_t i = 0; i < shapedim.size(); ++i)
-            shape *= shapedim[i];
-        auto dims = op->getInputs(0)->getDims();
-        int inputsize = 1;
-        for (size_t i = 0; i < dims.size(); ++i)
-            inputsize *= dims[i];
-        expand_kernel((float *)inputData, (float *)outputData, shape,
-                      inputsize);
+        const auto &in_Shape = op->getInputs(0)->getDims(); //输入的形状
+        const auto &out_Shape = op->getShape(); //扩张的目标形状
+
+        SmallArray inputShape, outputShape;
+        int nDims = op->getInputs(0)->getDims().size();
+        ; //输入的维度
+        IT_ASSERT(nDims <= SMALL_ARRAY_SIZE);
+        int outputsize = 1; //计算输出向量flatten以后的长度
+        for (int i = 0; i < nDims; ++i) {
+            outputShape.data[i] = out_Shape[i];
+            inputShape.data[i] = in_Shape[i];
+            outputsize *= out_Shape[i];
+        }
+        expand_kernel((float *)inputData, (float *)outputData, nDims,
+                      outputsize, inputShape, outputShape);
     }
 };
 
