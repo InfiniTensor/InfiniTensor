@@ -151,7 +151,8 @@ class TensorObj : public TensorBaseObj {
     }
 
     template <typename T>
-    bool equalDataImpl(const T *a, const T *b, size_t size, double relativeError = 1e-6) const {
+    bool equalDataImpl(const T *a, const T *b, size_t size,
+                       double relativeError = 1e-6) const {
         for (size_t i = 0; i < size; ++i) {
             if constexpr (std::is_integral_v<T>) {
                 if (a[i] != b[i])

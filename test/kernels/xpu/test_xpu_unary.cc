@@ -105,7 +105,7 @@ void testCast(const std::function<void(void *, size_t, DataType)> &generator,
 
 template <LogObj::LogType T>
 void testLog(const std::function<void(void *, size_t, DataType)> &generator,
-               const Shape &shape) {
+             const Shape &shape) {
     // Runtime
     Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     auto xpuRuntime = make_ref<XPURuntimeObj>();
@@ -136,7 +136,7 @@ void testLog(const std::function<void(void *, size_t, DataType)> &generator,
 
 template <class T>
 void testTrigon(const std::function<void(void *, size_t, DataType)> &generator,
-               const Shape &shape) {
+                const Shape &shape) {
     // Runtime
     Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     auto xpuRuntime = make_ref<XPURuntimeObj>();

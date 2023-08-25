@@ -61,50 +61,48 @@ template <typename T> class NaiveSqrt : public NativeUnary<T> {
 };
 
 template <typename T> class NaiveCos : public NativeUnary<T> {
-    T doCompute(T val) const override {return std::cos(val);}
+    T doCompute(T val) const override { return std::cos(val); }
 };
 
-template <typename T> class NaiveSin : public NativeUnary<T>{
-    T doCompute(T val) const override {return std::sin(val);}
+template <typename T> class NaiveSin : public NativeUnary<T> {
+    T doCompute(T val) const override { return std::sin(val); }
 };
 
-template <typename T> class NaiveTan : public NativeUnary<T>{
-    T doCompute(T val) const override {return std::tan(val);}
+template <typename T> class NaiveTan : public NativeUnary<T> {
+    T doCompute(T val) const override { return std::tan(val); }
 };
 
-template <typename T> class NaiveSinh : public NativeUnary<T>{
-    T doCompute(T val) const override {return std::sinh(val);}
+template <typename T> class NaiveSinh : public NativeUnary<T> {
+    T doCompute(T val) const override { return std::sinh(val); }
 };
 
-template <typename T> class NaiveCosh : public NativeUnary<T>{
-    T doCompute(T val) const override {return std::cosh(val);}
+template <typename T> class NaiveCosh : public NativeUnary<T> {
+    T doCompute(T val) const override { return std::cosh(val); }
 };
 
-template <typename T> class NaiveErf : public NativeUnary<T>{
-    T doCompute(T val) const override {return std::erf(val);}
+template <typename T> class NaiveErf : public NativeUnary<T> {
+    T doCompute(T val) const override { return std::erf(val); }
 };
 
-template <typename T> class NaiveACos : public NativeUnary<T>{
-    T doCompute(T val) const override {return std::acos(val);}
+template <typename T> class NaiveACos : public NativeUnary<T> {
+    T doCompute(T val) const override { return std::acos(val); }
 };
 
-template <typename T> class NaiveACosh : public NativeUnary<T>{
-    T doCompute(T val) const override {return std::acosh(val);}
+template <typename T> class NaiveACosh : public NativeUnary<T> {
+    T doCompute(T val) const override { return std::acosh(val); }
 };
 
-template <typename T> class NaiveASin : public NativeUnary<T>{
-    T doCompute(T val) const override {return std::asin(val);}
+template <typename T> class NaiveASin : public NativeUnary<T> {
+    T doCompute(T val) const override { return std::asin(val); }
 };
 
-template <typename T> class NaiveASinh : public NativeUnary<T>{
-    T doCompute(T val) const override {return std::asinh(val);}
+template <typename T> class NaiveASinh : public NativeUnary<T> {
+    T doCompute(T val) const override { return std::asinh(val); }
 };
 
-template <typename T> class NaiveATanh : public NativeUnary<T>{
-    T doCompute(T val) const override {return std::atanh(val);}
+template <typename T> class NaiveATanh : public NativeUnary<T> {
+    T doCompute(T val) const override { return std::atanh(val); }
 };
-
-
 
 template <typename T> class Clip : public CpuKernelWithoutConfig {
     void compute(const Operator &_op,
@@ -126,17 +124,18 @@ template <typename T> class Clip : public CpuKernelWithoutConfig {
 };
 
 template <typename T> class Log : public CpuKernelWithoutConfig {
-    void compute(const Operator & _op, const RuntimeObj *context) const override {
+    void compute(const Operator &_op,
+                 const RuntimeObj *context) const override {
         auto op = as<LogObj>(_op);
         T *inptr = op->getInputs(0)->getRawDataPtr<T *>();
         T *outptr = op->getOutput()->getRawDataPtr<T *>();
         auto logType = op->getType(); // get log type
 
         auto len = op->getOutput()->size();
-        for (size_t offset = 0; offset < len; offset ++){
+        for (size_t offset = 0; offset < len; offset++) {
             T res;
             auto val = *inptr++;
-            switch (logType){
+            switch (logType) {
             case LogObj::LogE:
                 res = std::log(val);
                 *outptr++ = res;
@@ -158,7 +157,7 @@ template <typename T> class Log : public CpuKernelWithoutConfig {
 };
 
 template <typename T> class NaiveATan : public NativeUnary<T> {
-    T doCompute(T val) const override { return std::atan(val);}
+    T doCompute(T val) const override { return std::atan(val); }
 };
 
 REGISTER_KERNEL(Device::CPU, OpType::Relu, DataType::UInt32,
@@ -185,17 +184,30 @@ REGISTER_KERNEL(Device::CPU, OpType::Softmax, DataType::Float32,
                 NaiveSoftmax<float>, "softmaxNaive_CPU_float32");
 REGISTER_KERNEL(Device::CPU, OpType::Clip, DataType::Float32, Clip<float>,
                 "Clip_CPU_float32");
-REGISTER_KERNEL(Device::CPU, OpType::Atan, DataType::Float32, NaiveATan<float>, "Atan_CPU_float32");
-REGISTER_KERNEL(Device::CPU, OpType::Log, DataType::Float32, Log<float>, "Log_CPU_float32");
-REGISTER_KERNEL(Device::CPU, OpType::Cos, DataType::Float32, NaiveCos<float>, "Cos_CPU_float32");
-REGISTER_KERNEL(Device::CPU, OpType::Sin, DataType::Float32, NaiveSin<float>, "Sin_CPU_float32");
-REGISTER_KERNEL(Device::CPU, OpType::Tan, DataType::Float32, NaiveTan<float>, "Tan_CPU_float32");
-REGISTER_KERNEL(Device::CPU, OpType::Sinh, DataType::Float32, NaiveSinh<float>, "Sinh_CPU_float32");
-REGISTER_KERNEL(Device::CPU, OpType::Cosh, DataType::Float32, NaiveCosh<float>, "Cosh_CPU_float32");
-REGISTER_KERNEL(Device::CPU, OpType::Erf, DataType::Float32, NaiveErf<float>, "Erf_CPU_float32");
-REGISTER_KERNEL(Device::CPU, OpType::Acos, DataType::Float32, NaiveACos<float>, "ACos_CPU_float32");
-REGISTER_KERNEL(Device::CPU, OpType::Acosh, DataType::Float32, NaiveACosh<float>, "ACosh_CPU_float32");
-REGISTER_KERNEL(Device::CPU, OpType::Asin, DataType::Float32, NaiveASin<float>, "ASin_CPU_float32");
-REGISTER_KERNEL(Device::CPU, OpType::Asinh, DataType::Float32, NaiveASinh<float>, "ASinh_CPU_float32");
-REGISTER_KERNEL(Device::CPU, OpType::Atanh, DataType::Float32, NaiveATanh<float>, "ATanh_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::Atan, DataType::Float32, NaiveATan<float>,
+                "Atan_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::Log, DataType::Float32, Log<float>,
+                "Log_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::Cos, DataType::Float32, NaiveCos<float>,
+                "Cos_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::Sin, DataType::Float32, NaiveSin<float>,
+                "Sin_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::Tan, DataType::Float32, NaiveTan<float>,
+                "Tan_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::Sinh, DataType::Float32, NaiveSinh<float>,
+                "Sinh_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::Cosh, DataType::Float32, NaiveCosh<float>,
+                "Cosh_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::Erf, DataType::Float32, NaiveErf<float>,
+                "Erf_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::Acos, DataType::Float32, NaiveACos<float>,
+                "ACos_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::Acosh, DataType::Float32,
+                NaiveACosh<float>, "ACosh_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::Asin, DataType::Float32, NaiveASin<float>,
+                "ASin_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::Asinh, DataType::Float32,
+                NaiveASinh<float>, "ASinh_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::Atanh, DataType::Float32,
+                NaiveATanh<float>, "ATanh_CPU_float32");
 }; // namespace infini
