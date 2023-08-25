@@ -280,10 +280,8 @@ class LogXdnn : public XPUKernelWithoutConfig {
             context->XPUHandle(), (float *)aData, (float *)temp, len);
         // get ptr of divider
         XPUPtr dd =
-            (float *)(context->getWorkspace((1 + len) * sizeof(float))) +
-            len * sizeof(float);
-        // printf("=================> ret after xpu::api::log<float>: %d\n",
-        // ret); choose from logE, log2, log10
+            (float *)(context->getWorkspace((1 + len) * sizeof(float))) + len;
+        // choose from logE, log2, log10
         switch (type) {
             float constant;
         case LogObj::LogE:
