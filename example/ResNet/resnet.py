@@ -362,7 +362,6 @@ if args.gofusion_infer == "True":
         gofusion_model = OnnxStub(model, backend.xpu_runtime())
 
     model = gofusion_model
-    model.init()
     model.convert_nhwc()
     print("[INFO] Gofusion strat infer " + args.which_net + " network on " + args.which_device)
     correct = 0 # 预测正确的图片数

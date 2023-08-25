@@ -480,7 +480,6 @@ if args.gofusion_infer == "True":
     elif args.which_device == "xpu":
         gofusion_model = OnnxStub(model, backend.xpu_runtime())
     model = gofusion_model
-    model.init()
     print("[INFO] Gofusion strat infer " + 'inceptionv3' + " network on " + args.which_device)
     correct = 0 # 预测正确的图片数
     total = 0 # 总共的图片数
