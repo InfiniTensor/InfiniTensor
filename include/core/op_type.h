@@ -23,8 +23,8 @@ struct OpType {
         ArgMax,             //
         Asin,               // Unary
         Asinh,              // Unary
-        Atan,               // Binary
-        Atanh,              // Binary
+        Atan,               // Unary
+        Atanh,              // Unary
         AveragePool,        // Pool
         BatchNormalization, //
         Bernoulli,          //
