@@ -344,6 +344,8 @@ void init_graph_builder(py::module &m) {
         .def("mul", &Handler::mul, policy::move)
         .def("div", &Handler::div, policy::move)
         .def("pow", &Handler::pow, policy::move)
+        .def("min", &Handler::min, policy::move)
+        .def("max", &Handler::max, policy::move)
         .def("relu", &Handler::relu, policy::move)
         .def("sigmoid", &Handler::sigmoid, policy::move)
         .def("tanh", &Handler::tanh, policy::move)
