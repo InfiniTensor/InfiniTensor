@@ -10,17 +10,28 @@ class WhereCuda : public CudaKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<WhereObj>(_op);
 
-        void *const inputData = (op->getInputs(0)->getRawDataPtr<void *>());
-        void *const otherData = (op->getInputs(1)->getRawDataPtr<void *>());
+        void *const inputxData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const inputyData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const conditionData = (op->getInputs(2)->getRawDataPtr<void *>());
         void *const outputData = (op->getOutput()->getRawDataPtr<void *>());
-        auto dims = op->getInputs(0)->getDims();
+        const auto &inputx_Shape = op->getInputs(0)->getDims();
+        const auto &inputy_Shape = op->getInputs(1)->getDims();
+        const auto &condition_Shape = op->getInputs(2)->getDims();
+        const auto &output_Shape = op->getOutput()->getDims();
 
-        int size = 1;
-        for (size_t i = 0; i < dims.size(); ++i)
-            size *= dims[i];
-        where_kernel((float *)inputData, (float *)otherData,
-                     (float *)conditionData, (float *)outputData, size);
+        int nDims = op->getInputs(0)->getDims().size();
+        IT_ASSERT(nDims <= SMALL_ARRAY_SIZE);
+
+        SmallArray inputxShape, inputyShape, conditionShape, outputShape;
+        for (int i = 0; i < nDims; ++i) {
+            inputxShape.data[i] = inputx_Shape[i];
+            inputyShape.data[i] = inputy_Shape[i];
+            conditionShape.data[i] = condition_Shape[i];
+            outputShape.data[i] = output_Shape[i];
+        }
+        where_kernel((float *)inputxData, (float *)inputyData,
+                     (float *)conditionData, (float *)outputData, nDims,
+                     inputxShape, inputyShape, conditionShape, outputShape);
     }
 };
 

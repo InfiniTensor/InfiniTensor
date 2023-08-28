@@ -20,8 +20,7 @@ __global__ void _clip_kernel(float *input, float *output, int n, float minValue,
 }
 
 namespace infini {
-void clip_kernel(float *input, float *output, int num,
-                 float minValue, // num表示向量长度
+void clip_kernel(float *input, float *output, int num, float minValue,
                  float maxValue) {
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
