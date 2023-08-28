@@ -1,7 +1,7 @@
 #pragma once
 #include "core/data_type.h"
-namespace infini {
 
+namespace infini {
 struct GatherMetaData {
     void *indexValue;
     DataType indexType;

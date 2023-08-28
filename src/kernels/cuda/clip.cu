@@ -13,9 +13,10 @@ __global__ void _clip_kernel(float *input, float *output, int n, float minValue,
     int index = threadIdx.x + blockIdx.x * blockDim.x;
     int stride = blockDim.x * gridDim.x;
     for (int i = index; i < n; i += stride) {
-        output[i] = (!isnan(minValue) && input[i] < minValue)   ? minValue
-                    : (!isnan(maxValue) && input[i] > maxValue) ? maxValue
-                                                                : input[i];
+        output[i] = (!isnan(minValue) && input[i] < minValue)
+                ? minValue
+                : (!isnan(maxValue) && input[i] > maxValue)
+                ? maxValue : input[i];
     }
 }
 

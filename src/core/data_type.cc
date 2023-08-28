@@ -18,5 +18,6 @@ const DataType DataType::Float16(10);
 const DataType DataType::Double(11);
 const DataType DataType::UInt32(12);
 const DataType DataType::UInt64(13);
+// TODO: Reserved for complex data type.
 const DataType DataType::BFloat16(16);
 } // namespace infini
