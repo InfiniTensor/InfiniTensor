@@ -7,6 +7,19 @@
 #endif
 #include "operators/conv.h"
 #include "operators/matmul.h"
+
+#ifdef DEBUG_MODE
+void CHECK_CUDA_KERNEL_ERROR(infini::Operator op) {
+    cudaError_t kernelError = cudaGetLastError();
+    if (kernelError != cudaSuccess) {
+        std::cerr << "CUDA kernel error: " << cudaGetErrorString(kernelError)
+                  << std::endl
+                  << "Failed Operator: " << op->toString() << std::endl;
+        exit(EXIT_FAILURE);
+    }
+}
+#endif
+
 namespace infini {
 
 void CudaRuntimeObj::runWithoutSync(const Graph &graph) const {
@@ -25,6 +38,10 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph) const {
         } else {
             kernel->compute(op, this);
         }
+
+#ifdef DEBUG_MODE
+        CHECK_CUDA_KERNEL_ERROR(op);
+#endif
     }
 }
 
@@ -60,6 +77,10 @@ void CudaRuntimeObj::tune(const Graph &graph, bool profiling = false) const {
             opTime[op->getOpType()] += t;
             opCnt[op->getOpType()]++;
         }
+
+#ifdef DEBUG_MODE
+        CHECK_CUDA_KERNEL_ERROR(op);
+#endif
     }
 }
 
