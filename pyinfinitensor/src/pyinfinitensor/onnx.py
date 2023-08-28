@@ -624,6 +624,19 @@ class OnnxStub:
                         ),
                     ):
                         tensors[name] = tensor
+                elif node.op_type == "Broadcast":
+                    tensors[node.output[0]] = self.handler.broadcast(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        next(
+                                (
+                                    attr.i
+                                    for attr in node.attribute
+                                    if attr.name == "root"
+                                ),
+                                0,
+                            ),
+                    )
                 else:
                     raise Exception('Unsupported operator "{}"'.format(node.op_type))
                 new_node_name.append(node.name)

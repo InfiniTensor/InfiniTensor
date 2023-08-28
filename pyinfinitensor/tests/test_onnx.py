@@ -372,7 +372,15 @@ class TestStringMethods(unittest.TestCase):
         split = make_node(
             "Split", ["input"], ["output"], name="split", axis=0
         )
-        graph = make_graph([split], "split", [input], [])
+        make_and_import_model(make_graph([split], "split", [input], []))
+    
+    def test_allBroadcast(self):
+        input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 2, 4])
+        broadcast = make_node(
+            "Broadcast", ["input"], ["output"], name="broadcast", root=1
+        )
+        graph = make_graph([broadcast], "broadcast", [input], [output])
         model = make_model(graph)
         from_onnx(model, backend.cpu_runtime())
 

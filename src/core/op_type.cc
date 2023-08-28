@@ -214,6 +214,15 @@ const char *OpType::toString() const {
         CASE(FloorMod);
         CASE(Square);
         CASE(SquaredDifference);
+
+        // Communcation
+        CASE(AllReduceSum);
+        CASE(AllReduceProd);
+        CASE(AllReduceMin);
+        CASE(AllReduceMax);
+        CASE(AllReduceAvg);
+        CASE(AllGather);
+        CASE(Broadcast);
     default:
         return "Unknown";
     }
