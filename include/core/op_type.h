@@ -21,10 +21,10 @@ struct OpType {
         Add,                // Binary
         And,                // Binary
         ArgMax,             //
-        Asin,               // Binary
-        Asinh,              // Binary
-        Atan,               // Binary
-        Atanh,              // Binary
+        Asin,               // Unary
+        Asinh,              // Unary
+        Atan,               // Unary
+        Atanh,              // Unary
         AveragePool,        // Pool
         BatchNormalization, //
         Bernoulli,          //
