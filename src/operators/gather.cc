@@ -24,8 +24,8 @@ optional<vector<Shape>> GatherObj::inferShape(const TensorVec &inputs) const {
 
 vector<DataType> GatherObj::inferDataType(const TensorVec &inputs) const {
     IT_ASSERT(inputs.size() == 2);
-    auto index = inputs[1];
-    IT_ASSERT(index->getDType() == DataType::Int32);
+    auto index_dtype = inputs[1]->getDType();
+    IT_ASSERT(index_dtype == DataType::Int32 || index_dtype == DataType::Int64)
     return {inputs[0]->getDType()};
 }
 
@@ -36,19 +36,31 @@ bool GatherObj::CheckIndexValid() const {
         return true;
 
     Runtime runtime = NativeCpuRuntimeObj::getInstance();
-    int *data = (int *)runtime->alloc(index->getBytes());
-    index->getRuntime()->copyBlobToCPU(
-        (void *)data, index->getRawDataPtr<void *>(), index->getBytes());
-
     bool ret = true;
     auto value = inputs[0]->getDims()[axis];
-    for (size_t i = 0; i < index->size(); ++i) {
-        if (data[i] < 0 || data[i] >= value) {
-            ret = false;
-            break;
+    if (index->getDType() == DataType::Int32) {
+        int *data = (int *)runtime->alloc(index->getBytes());
+        index->getRuntime()->copyBlobToCPU(
+            (void *)data, index->getRawDataPtr<void *>(), index->getBytes());
+        for (size_t i = 0; i < index->size(); ++i) {
+            if (data[i] < 0 || data[i] >= value) {
+                ret = false;
+                break;
+            }
         }
+        runtime->dealloc(data);
+    } else {
+        int64_t *data = (int64_t *)runtime->alloc(index->getBytes());
+        index->getRuntime()->copyBlobToCPU(
+            (void *)data, index->getRawDataPtr<void *>(), index->getBytes());
+        for (size_t i = 0; i < index->size(); ++i) {
+            if (data[i] < 0 || data[i] >= value) {
+                ret = false;
+                break;
+            }
+        }
+        runtime->dealloc(data);
     }
-    runtime->dealloc(data);
     return ret;
 }
 

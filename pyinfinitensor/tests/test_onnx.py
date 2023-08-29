@@ -207,6 +207,18 @@ class TestStringMethods(unittest.TestCase):
         relu = make_node("Relu", ["x"], ["y"], name="relu")
         make_and_import_model(make_graph([relu], "relu", [x], [y]))
 
+    def test_erf(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        erf = make_node("Erf", ["x"], ["y"], name="erf")
+        make_and_import_model(make_graph([erf], "erf", [x], [y]))
+
+    def test_sqrt(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        sqrt = make_node("Sqrt", ["x"], ["y"], name="sqrt")
+        make_and_import_model(make_graph([sqrt], "sqrt", [x], [y]))
+
     def test_sigmoid(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
@@ -351,6 +363,24 @@ class TestStringMethods(unittest.TestCase):
             "Cast", ["input1"], ["output"], to=TensorProto.FLOAT16, name="cast"
         )
         make_and_import_model(make_graph([cast], "cast", [input1], [output]))
+
+    def test_expand(self):
+        data = make_tensor_value_info("data", TensorProto.FLOAT, [3, 1])
+        dim = make_tensor_value_info("dim", TensorProto.INT64, [3])
+        dim_data = make_tensor("dim", TensorProto.INT64, [3], [2, 1, 6])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [2, 3, 6])
+        expand = make_node("Expand", ["data", "dim"], ["output"], name="expand")
+        make_and_import_model(
+            make_graph([expand], "expand", [data, dim], [output], [dim_data])
+        )
+
+    def test_where(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        con = make_tensor_value_info("con", TensorProto.BOOL, [1, 3, 5, 7])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 5, 7])
+        where = make_node("Where", ["x", "y", "con"], ["output"], name="where")
+        make_and_import_model(make_graph([where], "where", [x, y, con], [output]))
 
 
 if __name__ == "__main__":
