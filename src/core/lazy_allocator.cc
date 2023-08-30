@@ -126,7 +126,8 @@ void LazyAllocator::free(size_t addr, size_t size) {
 void *LazyAllocator::getPtr() {
     if (this->ptr == nullptr) {
         this->ptr = runtime->alloc(this->peak);
-        printf("LazyAllocator really alloc: %p %lu bytes\n", this->ptr, peak);
+        // printf("LazyAllocator really alloc: %p %lu bytes\n", this->ptr,
+        // peak);
     }
     return this->ptr;
 }
