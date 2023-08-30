@@ -25,6 +25,7 @@ from onnx.shape_inference import infer_shapes
 from onnx.numpy_helper import to_array
 from typing import Dict, List, Any, Tuple, Sequence, Union, Optional
 from functools import reduce
+from onnxsim import simplify
 
 
 class OnnxStub:
@@ -39,6 +40,10 @@ class OnnxStub:
     handler: backend.GraphHandler
 
     def __init__(self, model: ModelProto, runtime):
+        # see <https://github.com/daquexian/onnx-simplifier#in-script-workflow>
+        model, check = simplify(model)
+        assert check, "Simplified ONNX model could not be validated"
+
         model = infer_shapes(model)
         self.handler = backend.GraphHandler(runtime)
 
@@ -517,7 +522,8 @@ class OnnxStub:
                         tensors[node.input[1]],
                         tensors.get(node.output[0]),
                         next(
-                            (attr.i for attr in node.attribute if attr.name == "axis"), 0
+                            (attr.i for attr in node.attribute if attr.name == "axis"),
+                            0,
                         ),
                     )
                 elif node.op_type == "ReduceMean":
@@ -539,7 +545,7 @@ class OnnxStub:
                                 for attr in node.attribute
                                 if attr.name == "keepdims"
                             ),
-                            1
+                            1,
                         )
                         != 0,
                     )
