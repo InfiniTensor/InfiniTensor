@@ -3,6 +3,7 @@
 #include "operators/concat.h"
 #include "operators/conv.h"
 #include "operators/element_wise.h"
+#include "operators/expand.h"
 #include "operators/gather.h"
 #include "operators/matmul.h"
 #include "operators/pad.h"
@@ -14,6 +15,7 @@
 #include "operators/split.h"
 #include "operators/transpose.h"
 #include "operators/unary.h"
+#include "operators/where.h"
 
 namespace infini {
 
@@ -135,6 +137,8 @@ DEFINE_ELEMENT_WISE_METHOD(sub, Sub)
 DEFINE_ELEMENT_WISE_METHOD(mul, Mul)
 DEFINE_ELEMENT_WISE_METHOD(div, Div)
 DEFINE_ELEMENT_WISE_METHOD(pow, Pow)
+DEFINE_ELEMENT_WISE_METHOD(min, Minimum)
+DEFINE_ELEMENT_WISE_METHOD(max, Maximum)
 
 // see operators/unary.h
 #define DEFINE_UNARY_METHOD(name, obj)                                         \
@@ -153,6 +157,7 @@ DEFINE_UNARY_METHOD(tanh, Tanh)
 DEFINE_UNARY_METHOD(abs, Abs)
 DEFINE_UNARY_METHOD(sqrt, Sqrt)
 DEFINE_UNARY_METHOD(shape, Shape)
+DEFINE_UNARY_METHOD(erf, Erf)
 
 // see operators/reshape.h
 DEFINE_UNARY_METHOD(identity, Identity)
@@ -303,6 +308,31 @@ Tensor GraphHandlerObj::cast(Tensor input, Tensor output, int to) {
     } else {
         return g
             ->addOp<CastObj>(std::move(input), output, inferCastType(input, to))
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::expand(Tensor input, Tensor output, Shape dims) {
+    if (output) {
+        g->addOpWithOutputs<ExpandObj>(std::move(input), output,
+                                       std::move(dims));
+        return output;
+    } else {
+        return g->addOp<ExpandObj>(std::move(input), output, std::move(dims))
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::where(Tensor inputX, Tensor inputY, Tensor condition,
+                              Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<WhereObj>(std::move(inputX), std::move(inputY),
+                                      std::move(condition), output);
+        return output;
+    } else {
+        return g
+            ->addOp<WhereObj>(std::move(inputX), std::move(inputY),
+                              std::move(condition), output)
             ->getOutput();
     }
 }

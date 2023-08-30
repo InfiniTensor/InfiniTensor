@@ -20,7 +20,7 @@ MatmulObj::MatmulObj(GraphObj *graph, Tensor A, Tensor B, Tensor C, bool transA,
     if (ret.empty()) {
         b = 1;
     } else {
-        b = std::accumulate(ret.begin(), ret.end(), 1);
+        b = std::accumulate(ret.begin(), ret.end(), 1, std::multiplies<int>());
     }
     auto kA = *(transA ? shape_a.rbegin() + 1 : shape_a.rbegin());
     auto kB = *(transB ? shape_b.rbegin() : shape_b.rbegin() + 1);

@@ -137,6 +137,29 @@
 
    安装成功后，您就可以使用本项目的 Python 接口进行编码并运行。具体使用方式可以参考项目样例代码 example/Resnet/resnet.py 以及用户使用手册
 
+## Docker
+
+本项目也提供了 Docker 的环境，您可以使用 `make docker-build` 或 `make docker-build CUDA=ON` 命令启动并编译 Dockerfile，您可以通过添加编译选项或者修改 Makefile 变量修改 docker image 名称或者所选的 Dockerfile 文件。
+ 
+由于在拉取 github repo 时需要将 ssh key 加入到 github profile 中，因此暂时注释掉拉取 repo 并编译项目的过程，由用户在进入 docker 后自己维护 ssh key（将 host 中的 ssh key 复制到 docker 中可能会遇到环境不一致的问题）。
+
+```shell
+# Build docker container.
+make docker-build
+# Run docker image.
+make docker-run
+# Execute docker image.
+make docker-exec
+```
+
+如果需要编译 CUDA 版，请使用如下命令：
+```shell
+# Build docker container.
+make docker-build CUDA=ON
+# Run docker image.
+make docker-run CUDA=ON
+```
+
 ## 技术支持
 
 如遇到问题，请联系我们技术支持团队

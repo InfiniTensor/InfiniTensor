@@ -77,7 +77,7 @@ int gatheredOffset2Offset(int gOffset, GatherMetaData metaData) {
                 idxOffset += p * metaData.idxStride[j];
             }
 
-            idx = metaData.indexValue[idxOffset];
+            idx = static_cast<int *>(metaData.indexValue)[idxOffset];
             k = k - metaData.idxNDim;
 
         } else {
@@ -240,6 +240,31 @@ TEST(Gather, Cuda) {
         gCuda->dataMalloc();
         inputCuda->setData(IncrementalGenerator());
         indexCuda->copyin(vector<int>{0, 3, 1});
+        cudaRuntime->run(gCuda);
+
+        // cudaPrintTensor(op->getOutput());
+        //  copy output from CUDA to CPU
+        auto oCpu = gCpu->cloneTensor(op->getOutput());
+        EXPECT_TRUE(oCpu->equalData(
+            vector<float>{0, 1, 6, 7, 2, 3, 8, 9, 14, 15, 10, 11}));
+    }
+    {
+        Runtime runtime = NativeCpuRuntimeObj::getInstance();
+        Graph gCpu = make_ref<GraphObj>(runtime);
+        auto input = gCpu->addTensor({2, 4, 2}, DataType::Float32);
+        auto index = gCpu->addTensor({3, 1}, DataType::Int64);
+        gCpu->dataMalloc();
+        input->setData(IncrementalGenerator());
+        index->copyin(vector<int64_t>{0, 3, 1});
+        auto cudaRuntime = make_ref<CudaRuntimeObj>();
+        Graph gCuda = make_ref<GraphObj>(cudaRuntime);
+
+        auto inputCuda = gCuda->cloneTensor(input);
+        auto indexCuda = gCuda->cloneTensor(index);
+        auto op = gCuda->addOp<GatherObj>(inputCuda, indexCuda, nullptr, 1);
+        gCuda->dataMalloc();
+        inputCuda->setData(IncrementalGenerator());
+        indexCuda->copyin(vector<int64_t>{0, 3, 1});
         cudaRuntime->run(gCuda);
 
         // cudaPrintTensor(op->getOutput());

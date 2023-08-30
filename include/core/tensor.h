@@ -37,7 +37,7 @@ class TensorObj : public TensorBaseObj {
 
     Shape getDims() const { return shape; }
     size_t getRank() const { return shape.size(); }
-    vector<size_t> getStride() const;
+    Shape getStride() const;
     size_t getOffset(const vector<int> &ds) const;
     void dataMalloc();
     UidBaseType getFuid() const { return fuid; }
