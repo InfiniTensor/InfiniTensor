@@ -11,6 +11,7 @@ class CudaRuntimeObj : public RuntimeObj {
   private:
     cudnnHandle_t cudnn;
     cublasHandle_t cublas;
+    std::unique_ptr<CommunicatorObj> comm;
     CudaPtr workspace;
     size_t workspaceSize;
 
@@ -75,7 +76,9 @@ class CudaRuntimeObj : public RuntimeObj {
     void runWithoutSync(const Graph &graph) const;
 
     // init communicator
-    virtual void initComm(const string &name, int worldSize, int rank) final;
+    void initComm(const string &name, int worldSize, int rank) final;
+
+    CommunicatorObj &getCommunicator() const final { return *comm; }
 
   private:
     void tune(const Graph &graph, bool profiling) const;

@@ -37,7 +37,6 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
   protected:
     Device device;
     int deviceId;
-    std::unique_ptr<CommunicatorObj> comm;
 
   public:
     explicit RuntimeObj(Device device, int deviceId = 0)
@@ -45,8 +44,6 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
     RuntimeObj(RuntimeObj &other) = delete;
     RuntimeObj &operator=(RuntimeObj const &) = delete;
     virtual ~RuntimeObj() {}
-
-    CommunicatorObj &getCommunicator() const { return *comm; }
 
     /**
      * @brief Execute a graph.
@@ -87,6 +84,8 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
 
     virtual void initComm(const string &name, int worldSize, int rank) = 0;
 
+    virtual CommunicatorObj &getCommunicator() const = 0;
+
   protected:
     void printProfilingData(double totTime,
                             const std::map<OpType, double> &opTime,
@@ -108,6 +107,8 @@ class CpuRuntimeObj : public RuntimeObj {
     void copyBlobInsideRuntime(void *dst, const void *src,
                                size_t bytes) const override;
     void initComm(const string &, int, int) override { IT_TODO_HALT(); }
+
+    CommunicatorObj &getCommunicator() const override { IT_TODO_HALT(); }
 };
 
 class NativeCpuRuntimeObj : public CpuRuntimeObj {
