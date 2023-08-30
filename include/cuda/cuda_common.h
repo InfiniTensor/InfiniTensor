@@ -13,7 +13,9 @@
         if (cudaSuccess != err) {                                              \
             fprintf(stderr, "Cuda error in %s:%i : %s.\n", __FILE__, __LINE__, \
                     cudaGetErrorString(err));                                  \
-            exit(EXIT_FAILURE);                                                \
+            throw ::infini::Exception(std::string("[") + __FILE__ + ":" +      \
+                                      std::to_string(__LINE__) +               \
+                                      "] Cuda failed : ");                     \
         }                                                                      \
     }
 
