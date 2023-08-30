@@ -47,6 +47,7 @@ class GraphHandlerObj {
     Tensor relu(Tensor x, Tensor y);
     Tensor sigmoid(Tensor x, Tensor y);
     Tensor tanh(Tensor x, Tensor y);
+    Tensor erf(Tensor x, Tensor y);
     Tensor softmax(Tensor x, Tensor y, int axis);
     Tensor abs(Tensor x, Tensor y);
     Tensor sqrt(Tensor x, Tensor y);
@@ -70,6 +71,8 @@ class GraphHandlerObj {
     Tensor pad(Tensor input, Tensor output, const vector<int> &pads,
                const optional<vector<int>> &axes);
     Tensor cast(Tensor input, Tensor output, int to);
+    Tensor expand(Tensor input, Tensor output, Shape dims);
+    Tensor where(Tensor inputX, Tensor inputY, Tensor condition, Tensor output);
 
     Tensor allReduceSum(Tensor input, Tensor output);
     Tensor allReduceProd(Tensor input, Tensor output);
