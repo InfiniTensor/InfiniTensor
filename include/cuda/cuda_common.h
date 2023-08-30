@@ -6,18 +6,11 @@
 #include <cudnn.h>
 #include <curand.h>
 
-// TODO: replace with Exception (IT_ASSERT)
 #define checkCudaError(call)                                                   \
-    {                                                                          \
-        auto err = call;                                                       \
-        if (cudaSuccess != err) {                                              \
-            fprintf(stderr, "Cuda error in %s:%i : %s.\n", __FILE__, __LINE__, \
-                    cudaGetErrorString(err));                                  \
-            throw ::infini::Exception(std::string("[") + __FILE__ + ":" +      \
-                                      std::to_string(__LINE__) +               \
-                                      "] Cuda failed : ");                     \
-        }                                                                      \
-    }
+    if (auto err = call; err != cudaSuccess)                                   \
+    throw ::infini::Exception(std::string("[") + __FILE__ + ":" +              \
+                              std::to_string(__LINE__) + "] CUDA error (" +    \
+                              #call + "): " + cudaGetErrorString(err))
 
 #define checkCUresult(call)                                                    \
     {                                                                          \
