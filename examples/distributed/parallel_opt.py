@@ -72,7 +72,7 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
         if not is_sharded(node.input[0]):
             return
         tensor = data[node.input[1]]
-        dims = numpy_helper.to_array(tensor)
+        dims = numpy_helper.to_array(tensor).copy()
         assert dims[-1] % tp_world_size == 0, dims
         dims[-1] = dims[-1] // tp_world_size
         node.input[1] = node.output[0] + "_shape"
