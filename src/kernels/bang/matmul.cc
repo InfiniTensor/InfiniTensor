@@ -75,6 +75,6 @@ class MatmulCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Matmul, DataType::Float32, MatmulCnnl,
+REGISTER_KERNEL(Device::BANG, OpType::MatMul, DataType::Float32, MatmulCnnl,
                 "Matmul_cnnl_BANG_Float32");
 }; // namespace infini

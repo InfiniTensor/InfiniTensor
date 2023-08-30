@@ -58,37 +58,50 @@ __global__ void _abs_kernel(float *input, float *output, int n) {
     }
 }
 
+__global__ void _sqrt_kernel(float *input, float *output, int n) {
+    int index = threadIdx.x + blockIdx.x * blockDim.x;
+    int stride = blockDim.x * gridDim.x;
+    for (int i = index; i < n; i += stride) {
+        output[i] = sqrt(input[i]);
+    }
+}
+
 namespace infini {
 void softmax_kernel(float *input, float *output, int num) {
 
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     _softmax_kernel1<<<1, 1>>>(input, output, num);
-    _softmax_kernel2<<<blocksize, gridsize>>>(input, output, num);
+    _softmax_kernel2<<<gridsize, blocksize>>>(input, output, num);
 }
 void relu_kernel(float *input, float *output, int num) {
 
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
-    _relu_kernel<<<blocksize, gridsize>>>(input, output, num);
+    _relu_kernel<<<gridsize, blocksize>>>(input, output, num);
 }
 void sigmoid_kernel(float *input, float *output, int num) {
 
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
-    _sigmoid_kernel<<<blocksize, gridsize>>>(input, output, num);
+    _sigmoid_kernel<<<gridsize, blocksize>>>(input, output, num);
 }
 void tanh_kernel(float *input, float *output, int num) {
 
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
-    _tanh_kernel<<<blocksize, gridsize>>>(input, output, num);
+    _tanh_kernel<<<gridsize, blocksize>>>(input, output, num);
 }
 void abs_kernel(float *input, float *output, int num) {
 
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
-    _abs_kernel<<<blocksize, gridsize>>>(input, output, num);
+    _abs_kernel<<<gridsize, blocksize>>>(input, output, num);
 }
+void sqrt_kernel(float *input, float *output, int num) {
 
+    int blocksize = block_work_size();
+    int gridsize = (num + block_work_size() - 1) / block_work_size();
+    _sqrt_kernel<<<gridsize, blocksize>>>(input, output, num);
+}
 }; // namespace infini

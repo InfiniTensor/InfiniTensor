@@ -1,5 +1,6 @@
 #pragma once
 #include "core/common.h"
+#include "core/op_type.h"
 #include "core/ref.h"
 #include <memory>
 
@@ -21,7 +22,6 @@ using Graph = Ref<GraphObj>;
 using GraphHandler = Ref<GraphHandlerObj>;
 using Runtime = Ref<RuntimeObj>;
 using Blob = Ref<BlobObj>;
-enum class OpType;
 
 using TensorVec = vector<Tensor>;
 using OpVec = vector<Operator>;

@@ -64,6 +64,36 @@ class TestStringMethods(unittest.TestCase):
         )
         make_and_import_model(make_graph([conv], "conv", [i, w], [o]))
 
+    def test_conv_fp16(self):
+        i = make_tensor_value_info("i", TensorProto.FLOAT16, [1, 3, 4, 4])
+        w = make_tensor_value_info("w", TensorProto.FLOAT16, [2, 3, 3, 3])
+        o = make_tensor_value_info("o", TensorProto.FLOAT16, [1, 2, 2, 2])
+        conv = make_node(
+            "Conv",
+            ["i", "w"],
+            ["o"],
+            "conv",
+            pads=[1, 1, 1, 1],
+            strides=[2, 1],
+            dilations=[1, 2],
+        )
+        make_and_import_model(make_graph([conv], "conv_fp16", [i, w], [o]))
+
+    def test_conv_bfp16(self):
+        i = make_tensor_value_info("i", TensorProto.BFLOAT16, [1, 3, 4, 4])
+        w = make_tensor_value_info("w", TensorProto.BFLOAT16, [2, 3, 3, 3])
+        o = make_tensor_value_info("o", TensorProto.BFLOAT16, [1, 2, 2, 2])
+        conv = make_node(
+            "Conv",
+            ["i", "w"],
+            ["o"],
+            "conv",
+            pads=[1, 1, 1, 1],
+            strides=[2, 1],
+            dilations=[1, 2],
+        )
+        make_and_import_model(make_graph([conv], "conv_bfp16", [i, w], [o]))
+
     def test_matmul(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 2, 3])
         a = make_tensor_value_info("a", TensorProto.FLOAT, [1, 3, 4])
@@ -93,7 +123,7 @@ class TestStringMethods(unittest.TestCase):
             name="batchNormalization",
         )
         make_and_import_model(
-            make_graph([batch_norm], "batchNorm", [x, scale, b, mean, var], [y])
+            make_graph([batch_norm], "batchNormalzation", [x, scale, b, mean, var], [y])
         )
 
     def test_max_pool(self):
@@ -177,6 +207,18 @@ class TestStringMethods(unittest.TestCase):
         relu = make_node("Relu", ["x"], ["y"], name="relu")
         make_and_import_model(make_graph([relu], "relu", [x], [y]))
 
+    def test_erf(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        erf = make_node("Erf", ["x"], ["y"], name="erf")
+        make_and_import_model(make_graph([erf], "erf", [x], [y]))
+
+    def test_sqrt(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        sqrt = make_node("Sqrt", ["x"], ["y"], name="sqrt")
+        make_and_import_model(make_graph([sqrt], "sqrt", [x], [y]))
+
     def test_sigmoid(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
@@ -211,9 +253,7 @@ class TestStringMethods(unittest.TestCase):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1 * 3, 5 * 7])
         flatten = make_node("Flatten", ["x"], ["y"], axis=2, name="flatten")
-        # make_and_import_model(
-        make_graph([flatten], "flatten", [x], [y])
-        # )
+        make_and_import_model(make_graph([flatten], "flatten", [x], [y]))
 
     def test_reshape(self):
         data = make_tensor_value_info("data", TensorProto.FLOAT, [2, 3, 4, 5])
@@ -315,6 +355,32 @@ class TestStringMethods(unittest.TestCase):
         )
         y = handler.tensor([3, 2, 1], 12)
         handler.reshape(x, y, [3, 2, 1])
+
+    def test_cast(self):
+        input1 = make_tensor_value_info("input1", TensorProto.FLOAT, [1, 3, 2, 4])
+        output = make_tensor_value_info("output", TensorProto.FLOAT16, [1, 3, 2, 4])
+        cast = make_node(
+            "Cast", ["input1"], ["output"], to=TensorProto.FLOAT16, name="cast"
+        )
+        make_and_import_model(make_graph([cast], "cast", [input1], [output]))
+
+    def test_expand(self):
+        data = make_tensor_value_info("data", TensorProto.FLOAT, [3, 1])
+        dim = make_tensor_value_info("dim", TensorProto.INT64, [3])
+        dim_data = make_tensor("dim", TensorProto.INT64, [3], [2, 1, 6])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [2, 3, 6])
+        expand = make_node("Expand", ["data", "dim"], ["output"], name="expand")
+        make_and_import_model(
+            make_graph([expand], "expand", [data, dim], [output], [dim_data])
+        )
+
+    def test_where(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        con = make_tensor_value_info("con", TensorProto.BOOL, [1, 3, 5, 7])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 5, 7])
+        where = make_node("Where", ["x", "y", "con"], ["output"], name="where")
+        make_and_import_model(make_graph([where], "where", [x, y, con], [output]))
 
 
 if __name__ == "__main__":

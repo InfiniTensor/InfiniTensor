@@ -156,23 +156,23 @@ REGISTER_KERNEL(Device::BANG, OpType::Cos, DataType::Float32, CosCnnl,
                 "Cos_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::Tan, DataType::Float32, TanCnnl,
                 "Tan_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::ASin, DataType::Float32, ASinCnnl,
+REGISTER_KERNEL(Device::BANG, OpType::Asin, DataType::Float32, ASinCnnl,
                 "ASin_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::ACos, DataType::Float32, ACosCnnl,
+REGISTER_KERNEL(Device::BANG, OpType::Acos, DataType::Float32, ACosCnnl,
                 "ACos_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::ATan, DataType::Float32, ATanCnnl,
+REGISTER_KERNEL(Device::BANG, OpType::Atan, DataType::Float32, ATanCnnl,
                 "ATan_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::SinH, DataType::Float32, SinHCnnl,
+REGISTER_KERNEL(Device::BANG, OpType::Sinh, DataType::Float32, SinHCnnl,
                 "SinH_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::CosH, DataType::Float32, CosHCnnl,
+REGISTER_KERNEL(Device::BANG, OpType::Cosh, DataType::Float32, CosHCnnl,
                 "CosH_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::TanH, DataType::Float32, TanHCnnl,
+REGISTER_KERNEL(Device::BANG, OpType::Tanh, DataType::Float32, TanHCnnl,
                 "TanH_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::ASinH, DataType::Float32, ASinHCnnl,
+REGISTER_KERNEL(Device::BANG, OpType::Asinh, DataType::Float32, ASinHCnnl,
                 "ASinH_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::ACosH, DataType::Float32, ACosHCnnl,
+REGISTER_KERNEL(Device::BANG, OpType::Acosh, DataType::Float32, ACosHCnnl,
                 "ACosH_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::ATanH, DataType::Float32, ATanHCnnl,
+REGISTER_KERNEL(Device::BANG, OpType::Atanh, DataType::Float32, ATanHCnnl,
                 "ATanH_cnnl_BANG_Float32");
 
 }; // namespace infini

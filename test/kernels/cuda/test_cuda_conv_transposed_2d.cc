@@ -36,6 +36,8 @@ void testConvTransposedCudnn(
                                                   padding, padding, stride,
                                                   stride, dilation, dilation);
     gCuda->dataMalloc();
+    i0Cuda->setData(generator);
+    w0Cuda->setData(generator);
     // Execute on CUDA
     cuda->run(gCuda);
     // copy output from CUDA to CPU
@@ -70,6 +72,8 @@ void testConvTransposedNHWCCudnn(
         i0Cuda, w0Cuda, nullptr, padding, padding, stride, stride, dilation,
         dilation);
     gCuda->dataMalloc();
+    i0Cuda->setData(generator);
+    w0Cuda->setData(generator);
     // Execute on CUDA
     cuda->run(gCuda);
     // copy output from CUDA to CPU
@@ -115,6 +119,8 @@ TEST(cuDNN_ConvTransposed, run1) {
     auto conv =
         gCuda->addOp<ConvTransposed2dObj>(i0Cuda, w0Cuda, nullptr, 0, 0);
     gCuda->dataMalloc();
+    i0Cuda->setData(IncrementalGenerator());
+    w0Cuda->setData(IncrementalGenerator());
     // Execute on CUDA
     cuda->run(gCuda);
     // copy output from CUDA to CPU
@@ -148,12 +154,14 @@ TEST(cuDNN_ConvTransposed, tune) {
     auto conv = gCuda->addOp<ConvTransposed2dObj>(i0Cuda, w0Cuda, nullptr);
     // allocate CUDA memory
     gCuda->dataMalloc();
+    i0Cuda->setData(IncrementalGenerator());
+    w0Cuda->setData(IncrementalGenerator());
     // Execute on CUDA
     bool tune = true;
     cuda->run(gCuda, tune);
     // check record
-    auto kernelAttrs =
-        KernelAttrs{Device::CUDA, conv->getOpType(), DataType::Float32};
+    auto kernelAttrs = KernelAttrs{Device::CUDA, conv->getOpType().underlying(),
+                                   DataType::Float32};
     auto perfKey = PerfEngine::Key{kernelAttrs, conv->getOpPerfKey()};
     std::optional<PerfRecord> perfData =
         PerfEngine::getInstance().getPerfData(perfKey);

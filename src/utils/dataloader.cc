@@ -12,7 +12,7 @@ void saveTensorData(TensorObj *tensor, std::string file_path) {
 #ifdef TENSOR_PROTOBUF
     data::Tensor temp;
     temp.set_id("tensor_id");
-    for (size_t i = 0; i < tensor->getDims().size(); ++i) {
+    for (size_t i = 0; i < tensor->getRank(); ++i) {
         temp.add_shape(tensor->getDims()[i]);
     }
     temp.set_layout(data::LAYOUT_NHWC);

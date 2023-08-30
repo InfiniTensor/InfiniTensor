@@ -1,21 +1,18 @@
 #include "operators/gather.h"
+#include "utils/operator_utils.h"
 
 namespace infini {
 GatherObj::GatherObj(GraphObj *graph, Tensor input, Tensor indices,
                      Tensor output, int axis)
     : OperatorObj(OpType::Gather, {input, indices}, {output}), axis(axis) {
+    int rank = input->getRank();
+    axis = get_real_axis(axis, rank);
     IT_ASSERT(checkValid(graph));
 }
 
 optional<vector<Shape>> GatherObj::inferShape(const TensorVec &inputs) const {
     auto dims0 = inputs[0]->getDims();
     auto dims1 = inputs[1]->getDims();
-
-    if (axis < 0)
-        IT_TODO_HALT();
-
-    if ((size_t)axis >= dims0.size())
-        return {};
 
     IT_ASSERT(CheckIndexValid());
 
@@ -27,8 +24,8 @@ optional<vector<Shape>> GatherObj::inferShape(const TensorVec &inputs) const {
 
 vector<DataType> GatherObj::inferDataType(const TensorVec &inputs) const {
     IT_ASSERT(inputs.size() == 2);
-    auto index = inputs[1];
-    IT_ASSERT(index->getDType() == DataType::UInt32);
+    auto index_dtype = inputs[1]->getDType();
+    IT_ASSERT(index_dtype == DataType::Int32 || index_dtype == DataType::Int64)
     return {inputs[0]->getDType()};
 }
 
@@ -39,19 +36,31 @@ bool GatherObj::CheckIndexValid() const {
         return true;
 
     Runtime runtime = NativeCpuRuntimeObj::getInstance();
-    int *data = (int *)runtime->alloc(index->getBytes());
-    index->getRuntime()->copyBlobToCPU(
-        (void *)data, index->getRawDataPtr<void *>(), index->getBytes());
-
     bool ret = true;
     auto value = inputs[0]->getDims()[axis];
-    for (size_t i = 0; i < index->size(); ++i) {
-        if (data[i] < 0 || data[i] >= value) {
-            ret = false;
-            break;
+    if (index->getDType() == DataType::Int32) {
+        int *data = (int *)runtime->alloc(index->getBytes());
+        index->getRuntime()->copyBlobToCPU(
+            (void *)data, index->getRawDataPtr<void *>(), index->getBytes());
+        for (size_t i = 0; i < index->size(); ++i) {
+            if (data[i] < 0 || data[i] >= value) {
+                ret = false;
+                break;
+            }
         }
+        runtime->dealloc(data);
+    } else {
+        int64_t *data = (int64_t *)runtime->alloc(index->getBytes());
+        index->getRuntime()->copyBlobToCPU(
+            (void *)data, index->getRawDataPtr<void *>(), index->getBytes());
+        for (size_t i = 0; i < index->size(); ++i) {
+            if (data[i] < 0 || data[i] >= value) {
+                ret = false;
+                break;
+            }
+        }
+        runtime->dealloc(data);
     }
-    runtime->dealloc(data);
     return ret;
 }
 
@@ -72,7 +81,7 @@ std::string GatherObj::toString() const {
 
 vector<int> GatherObj::getWorkloadVector() const {
     vector<int> ret = inputs[0]->getDims();
-    ret.emplace(ret.begin(), enum_to_underlying(type));
+    ret.emplace(ret.begin(), type.underlying());
     for (auto it : inputs[1]->getDims())
         ret.emplace_back(it);
     ret.emplace_back(axis);
@@ -80,7 +89,7 @@ vector<int> GatherObj::getWorkloadVector() const {
 }
 
 vector<int> GatherObj::getOpAttrVector() const {
-    return {enum_to_underlying(type), axis};
+    return {type.underlying(), axis};
 }
 
 } // namespace infini

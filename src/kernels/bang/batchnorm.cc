@@ -65,7 +65,7 @@ class BatchNormCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::BatchNorm, DataType::Float32,
+REGISTER_KERNEL(Device::BANG, OpType::BatchNormalization, DataType::Float32,
                 BatchNormCnnl, "BatchNorm_cnnl_BANG_Float32");
 
 }; // namespace infini

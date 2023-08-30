@@ -14,14 +14,25 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
         auto op = as<ElementWiseObj>(_op);
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
 
-        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
-        void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
-        void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+        auto aTensor = op->getInputs(0);
+        auto bTensor = op->getInputs(1);
+        auto cTensor = op->getOutput();
+
+        // cudnnOpTensor only allows B to be broadcasted.
+        if (aTensor->getDims() != cTensor->getDims()) {
+            swap(aTensor, bTensor);
+        }
+        IT_ASSERT(aTensor->getDims() == cTensor->getDims(),
+                  "Shape does not match.");
+
+        void *const aData = (aTensor->getRawDataPtr<void *>());
+        void *const bData = (bTensor->getRawDataPtr<void *>());
+        void *const cData = (cTensor->getRawDataPtr<void *>());
 
         cudnnTensorDescriptor_t aDesc, bDesc, cDesc;
-        auto a_dim = op->getInputs(0)->getDims();
-        auto b_dim = op->getInputs(1)->getDims();
-        auto c_dim = op->getOutput()->getDims();
+        auto a_dim = aTensor->getDims();
+        auto b_dim = bTensor->getDims();
+        auto c_dim = cTensor->getDims();
 
         if (a_dim.size() > 4 || b_dim.size() > 4 || c_dim.size() > 4)
             IT_TODO_HALT();
@@ -87,6 +98,14 @@ class MulCudnn : public ElementWiseCudnn {
     cudnnOpTensorOp_t getOpType() const override { return CUDNN_OP_TENSOR_MUL; }
 };
 
+class MinCudnn : public ElementWiseCudnn {
+    cudnnOpTensorOp_t getOpType() const override { return CUDNN_OP_TENSOR_MIN; }
+};
+
+class MaxCudnn : public ElementWiseCudnn {
+    cudnnOpTensorOp_t getOpType() const override { return CUDNN_OP_TENSOR_MAX; }
+};
+
 class ElementWiseCuda : public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
@@ -126,6 +145,10 @@ REGISTER_KERNEL(Device::CUDA, OpType::Sub, DataType::Float32, SubCudnn,
                 "Sub_cuDNN_CUDA_Float32");
 REGISTER_KERNEL(Device::CUDA, OpType::Mul, DataType::Float32, MulCudnn,
                 "Mul_cuDNN_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Min, DataType::Float32, MinCudnn,
+                "Min_cuDNN_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Max, DataType::Float32, MaxCudnn,
+                "Max_cuDNN_CUDA_Float32");
 
 REGISTER_KERNEL(Device::CUDA, OpType::Div, DataType::Float32, ElementWiseCuda,
                 "Div_CUDA_Float32");

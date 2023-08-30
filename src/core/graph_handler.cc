@@ -3,6 +3,7 @@
 #include "operators/concat.h"
 #include "operators/conv.h"
 #include "operators/element_wise.h"
+#include "operators/expand.h"
 #include "operators/gather.h"
 #include "operators/matmul.h"
 #include "operators/pad.h"
@@ -14,10 +15,12 @@
 #include "operators/split.h"
 #include "operators/transpose.h"
 #include "operators/unary.h"
+#include "operators/where.h"
 
 namespace infini {
 
 static DataType dtype_repr_convert(int);
+static CastType inferCastType(Tensor input, int to);
 
 Tensor GraphHandlerObj::tensor(Shape dims, int dtype) {
     return g->addTensor(std::move(dims), dtype_repr_convert(dtype));
@@ -69,9 +72,11 @@ Tensor GraphHandlerObj::matmul(Tensor a, Tensor b, Tensor y, bool transA,
     }
 }
 
-Tensor GraphHandlerObj::batchNorm(Tensor input, Tensor output, Tensor mean,
-                                  Tensor var, Tensor scale, Tensor bias,
-                                  float momentum, float eps, bool training) {
+Tensor GraphHandlerObj::batchNormalization(Tensor input, Tensor output,
+                                           Tensor mean, Tensor var,
+                                           Tensor scale, Tensor bias,
+                                           float momentum, float eps,
+                                           bool training) {
     if (output) {
         g->addOpWithOutputs<BatchNormObj>(
             std::move(input), output, std::move(mean), std::move(var),
@@ -132,6 +137,8 @@ DEFINE_ELEMENT_WISE_METHOD(sub, Sub)
 DEFINE_ELEMENT_WISE_METHOD(mul, Mul)
 DEFINE_ELEMENT_WISE_METHOD(div, Div)
 DEFINE_ELEMENT_WISE_METHOD(pow, Pow)
+DEFINE_ELEMENT_WISE_METHOD(min, Minimum)
+DEFINE_ELEMENT_WISE_METHOD(max, Maximum)
 
 // see operators/unary.h
 #define DEFINE_UNARY_METHOD(name, obj)                                         \
@@ -148,7 +155,9 @@ DEFINE_UNARY_METHOD(relu, Relu)
 DEFINE_UNARY_METHOD(sigmoid, Sigmoid)
 DEFINE_UNARY_METHOD(tanh, Tanh)
 DEFINE_UNARY_METHOD(abs, Abs)
+DEFINE_UNARY_METHOD(sqrt, Sqrt)
 DEFINE_UNARY_METHOD(shape, Shape)
+DEFINE_UNARY_METHOD(erf, Erf)
 
 // see operators/reshape.h
 DEFINE_UNARY_METHOD(identity, Identity)
@@ -291,24 +300,133 @@ Tensor GraphHandlerObj::pad(Tensor input, Tensor output,
     }
 }
 
+Tensor GraphHandlerObj::cast(Tensor input, Tensor output, int to) {
+    if (output) {
+        g->addOpWithOutputs<CastObj>(std::move(input), output,
+                                     inferCastType(input, to));
+        return output;
+    } else {
+        return g
+            ->addOp<CastObj>(std::move(input), output, inferCastType(input, to))
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::expand(Tensor input, Tensor output, Shape dims) {
+    if (output) {
+        g->addOpWithOutputs<ExpandObj>(std::move(input), output,
+                                       std::move(dims));
+        return output;
+    } else {
+        return g->addOp<ExpandObj>(std::move(input), output, std::move(dims))
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::where(Tensor inputX, Tensor inputY, Tensor condition,
+                              Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<WhereObj>(std::move(inputX), std::move(inputY),
+                                      std::move(condition), output);
+        return output;
+    } else {
+        return g
+            ->addOp<WhereObj>(std::move(inputX), std::move(inputY),
+                              std::move(condition), output)
+            ->getOutput();
+    }
+}
+
+static CastType inferCastType(Tensor input, int to) {
+    auto iType = input->getDType();
+    auto oType = DataType(to);
+    if (iType == DataType::Float32 && oType == DataType::Float16) {
+        return CastType::Float2Float16;
+    } else if (iType == DataType::Float32 && oType == DataType::Int64) {
+        return CastType::Float2Int64;
+    } else if (iType == DataType::Float32 && oType == DataType::Int32) {
+        return CastType::Float2Int32;
+    } else if (iType == DataType::Float32 && oType == DataType::Int16) {
+        return CastType::Float2Int16;
+    } else if (iType == DataType::Float32 && oType == DataType::Int8) {
+        return CastType::Float2Int8;
+    } else if (iType == DataType::Float32 && oType == DataType::BFloat16) {
+        return CastType::Float2BFloat16;
+    } else if (iType == DataType::Int32 && oType == DataType::Float32) {
+        return CastType::Int322Float;
+    } else if (iType == DataType::Int32 && oType == DataType::Int8) {
+        return CastType::Int322Int8;
+    } else if (iType == DataType::Int32 && oType == DataType::Int16) {
+        return CastType::Int322Int16;
+    } else if (iType == DataType::Int32 && oType == DataType::Int64) {
+        return CastType::Int322Int64;
+    } else if (iType == DataType::Int16 && oType == DataType::Int32) {
+        return CastType::Int162Int32;
+    } else if (iType == DataType::Int16 && oType == DataType::Float32) {
+        return CastType::Int162Float;
+    } else if (iType == DataType::Int8 && oType == DataType::Float32) {
+        return CastType::Int82Float;
+    } else if (iType == DataType::Int8 && oType == DataType::Int16) {
+        return CastType::Int82Int16;
+    } else if (iType == DataType::Int8 && oType == DataType::Int32) {
+        return CastType::Int82Int32;
+    } else if (iType == DataType::UInt8 && oType == DataType::Int32) {
+        return CastType::Uint82Int32;
+    } else if (iType == DataType::UInt8 && oType == DataType::Float32) {
+        return CastType::Uint82Float;
+    } else if (iType == DataType::UInt8 && oType == DataType::Int64) {
+        return CastType::Uint82Int64;
+    } else if (iType == DataType::Int64 && oType == DataType::Float32) {
+        return CastType::Int642Float;
+    } else if (iType == DataType::Int64 && oType == DataType::UInt32) {
+        return CastType::Int642Uint32;
+    } else if (iType == DataType::Int64 && oType == DataType::Int32) {
+        return CastType::Int642Int32;
+    } else if (iType == DataType::UInt32 && oType == DataType::Int64) {
+        return CastType::Uint322Int64;
+    } else if (iType == DataType::Float16 && oType == DataType::Float32) {
+        return CastType::Float162Float;
+    } else if (iType == DataType::BFloat16 && oType == DataType::Float32) {
+        return CastType::BFloat162Float;
+    } else {
+        IT_TODO_HALT_MSG("Unsupported CastType : input_type is " +
+                         iType.toString() + " output_type is " +
+                         oType.toString());
+    }
+}
+
 static DataType dtype_repr_convert(int dtype) {
-    switch ((OnnxDType)dtype) {
-    case OnnxDType::FLOAT:
+    switch (dtype) {
+    case 0:
+        return DataType::Undefine;
+    case 1:
         return DataType::Float32;
-    case OnnxDType::UINT32:
-        return DataType::UInt32;
-    case OnnxDType::UINT8:
+    case 2:
         return DataType::UInt8;
-    case OnnxDType::INT8:
+    case 3:
         return DataType::Int8;
-    case OnnxDType::UINT16:
+    case 4:
         return DataType::UInt16;
-    case OnnxDType::INT16:
+    case 5:
         return DataType::Int16;
-    case OnnxDType::INT32:
+    case 6:
         return DataType::Int32;
-    case OnnxDType::INT64:
+    case 7:
         return DataType::Int64;
+    case 8:
+        return DataType::String;
+    case 9:
+        return DataType::Bool;
+    case 10:
+        return DataType::Float16;
+    case 11:
+        return DataType::Double;
+    case 12:
+        return DataType::UInt32;
+    case 13:
+        return DataType::UInt64;
+    case 16:
+        return DataType::BFloat16;
     default:
         IT_ASSERT(false, "Unsupported data type");
     }

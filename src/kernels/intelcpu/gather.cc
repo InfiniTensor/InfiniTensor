@@ -17,9 +17,9 @@ class MklGather : public MklKernelWithoutConfig {
         int oSize = out->size();
         int idxSize = index->size();
 
-        int inNDim = in->getDims().size();
-        int oNDim = out->getDims().size();
-        int idxNDim = index->getDims().size();
+        int inNDim = in->getRank();
+        int oNDim = out->getRank();
+        int idxNDim = index->getRank();
         int axis = op->getAxis();
 
         int outDim[4] = {0};

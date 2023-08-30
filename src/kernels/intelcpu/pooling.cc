@@ -17,7 +17,7 @@ class MklPooling : public MklKernelWithoutConfig {
         //  create user memory that describes data layout in the buffers
         auto [n, c, h, w, r, s] = op->getNCHWRS();
         auto [ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
-        auto nDim = op->getOutput()->getDims().size();
+        auto nDim = op->getOutput()->getRank();
         auto oh = op->getOutput()->getDims()[nDim - 2];
         auto ow = op->getOutput()->getDims()[nDim - 1];
 
@@ -77,7 +77,7 @@ class MklMaxPool : public MklPooling {
     }
 };
 
-REGISTER_KERNEL(Device::INTELCPU, OpType::AvgPool, DataType::Float32,
+REGISTER_KERNEL(Device::INTELCPU, OpType::AveragePool, DataType::Float32,
                 MklAvgPool, "AvgPool_Mkl_Float32");
 REGISTER_KERNEL(Device::INTELCPU, OpType::MaxPool, DataType::Float32,
                 MklMaxPool, "MaxPool_Mkl_Float32");
