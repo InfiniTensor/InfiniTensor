@@ -4,8 +4,9 @@ import time
 import multiprocessing as mp
 from pyinfinitensor.onnx import OnnxStub, backend
 import onnx
+from onnx.external_data_helper import convert_model_to_external_data
 import numpy as np
-from parallel import parallel_model
+from parallel_opt import parallel_model
 
 
 def parse_args():
@@ -24,32 +25,40 @@ def parse_args():
 
 def run_stub(stub: OnnxStub, inputs: np.array, n=100):
     # warm up
-    next(stub.inputs.items().__iter__())[1].copyin_float(inputs.reshape(-1).tolist())
+    next(stub.inputs.items().__iter__())[1].copyin_int32(inputs.reshape(-1).tolist())
     stub.tune()
     for _ in range(20):
         stub.run()
     outputs = np.array(next(stub.outputs.items().__iter__())[1].copyout_float())
 
     # bench
-    next(stub.inputs.items().__iter__())[1].copyin_float(inputs.reshape(-1).tolist())
+    next(stub.inputs.items().__iter__())[1].copyin_int32(inputs.reshape(-1).tolist())
     begin = time.time()
     for _ in range(n):
         stub.run()
     end = time.time()
     outputs = np.array(next(stub.outputs.items().__iter__())[1].copyout_float())
-    print("outputs sum:", outputs.sum())
-    # np.save("results", outputs)
-    results = np.load("results.npy")
-    print("max diff:", abs(outputs - results).max())
-    assert np.allclose(outputs, results, rtol=1e-6, atol=1e-6)
     avg_time = (end - begin) / n
-    return avg_time
+    print(f"average time: {avg_time}")
+    return outputs
 
 
 def start_worker(
     dist_name: str, world_size: int, rank: int, local_rank: int, model: onnx.ModelProto
 ):
     print("start worker")
+    model = parallel_model(model, world_size, rank)
+    extern_path = f"./dist_model_rank{rank}.pb"
+    if os.path.exists(extern_path):
+        os.remove(extern_path)
+    convert_model_to_external_data(
+        model,
+        all_tensors_to_one_file=True,
+        location=extern_path,
+        size_threshold=1024,
+        convert_attribute=False,
+    )
+    onnx.save(model, f"dist_model_rank{rank}.onnx")
     runtime = backend.CudaRuntime(local_rank)
     print("init comm")
     runtime.init_comm(
@@ -57,14 +66,26 @@ def start_worker(
         world_size,
         rank,
     )
-    model = parallel_model(model, world_size, rank)
-    onnx.save(model, f"dist_model_rank{rank}.onnx")
     print("load model")
     stub = OnnxStub(model, runtime)
     data = np.load("inputs.npy")
     print("run model")
-    avg_time = run_stub(stub, data)
-    print(f"average time: {avg_time}")
+    outputs = run_stub(stub, data)
+    print("outputs sum:", outputs.sum())
+    results = np.load("results.npy")
+    print("max diff:", abs(outputs - results).max())
+    assert np.allclose(outputs, results, rtol=1e-6, atol=1e-6)
+
+
+def run_standard(model, voc_size=50272, bs=1, len=2048):
+    # generate standard results
+    runtime = backend.CudaRuntime(0)
+    stub = OnnxStub(model, runtime)
+    data = np.random.randint(0, voc_size, (bs, len), dtype=np.int32)
+    np.save("inputs", data)
+    outputs = run_stub(stub, data)
+    print("outputs sum:", outputs.sum())
+    np.save("results", outputs)
 
 
 def main():
@@ -72,13 +93,9 @@ def main():
     world_size = nnodes * nproc_per_node
 
     model = onnx.load(model_path)
-    # generate standard results
-    # runtime = backend.CudaRuntime(0)
-    # stub = OnnxStub(model, runtime)
-    # data = np.random.randn(1, 3, 224, 224)
-    # np.save("inputs", data)
-    # run_stub(stub, data)
-    # del stub
+
+    # run_standard(model)
+    # return
 
     dist_name = f"dist_{os.getpid()}"
     workers = [
