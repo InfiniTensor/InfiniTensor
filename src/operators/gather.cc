@@ -6,7 +6,7 @@ GatherObj::GatherObj(GraphObj *graph, Tensor input, Tensor indices,
                      Tensor output, int axis)
     : OperatorObj(OpType::Gather, {input, indices}, {output}), axis(axis) {
     int rank = input->getRank();
-    axis = get_real_axis(axis, rank);
+    this->axis = get_real_axis(axis, rank);
     IT_ASSERT(checkValid(graph));
 }
 
