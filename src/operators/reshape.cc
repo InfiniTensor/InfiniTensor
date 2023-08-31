@@ -7,6 +7,11 @@ ReshapeObj::ReshapeObj(GraphObj *graph, Tensor input, Tensor output, Shape dims)
     IT_ASSERT(checkValid(graph));
 }
 
+ReshapeObj::ReshapeObj(GraphObj *graph, Tensor input, Tensor output, Shape dims, Shape dims_t)
+    : OperatorObj(OpType::Reshape, {input}, {output}), dims(std::move(dims)), dims_t(std::move(dims_t)) {
+    IT_ASSERT(checkValid(graph));
+}
+
 optional<vector<Shape>> ReshapeObj::inferShape(const TensorVec &inputs) const {
     size_t size = 1;
     for (size_t i = 0; i < dims.size(); ++i) {

@@ -25,9 +25,11 @@ class TensorObj : public TensorBaseObj {
     string toString() const override;
 
     size_t size() const { return _size; }
+	void setSize(size_t size) { _size = size;}
     size_t getBytes() const { return _size * dtype.getSize(); }
 
     Shape getDims() const { return shape; }
+	void setShape(Shape shape_) { shape = shape_; }
     size_t getRank() const { return shape.size(); }
     Shape getStride() const;
     size_t getOffset(const vector<int> &ds) const;
