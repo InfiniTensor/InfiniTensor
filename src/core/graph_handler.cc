@@ -215,13 +215,13 @@ Tensor GraphHandlerObj::transpose(Tensor data, Tensor transposed, Shape perm) {
     }
 }
 
-Tensor GraphHandlerObj::reshape(Tensor data, Tensor reshaped, Shape shape) {
+Tensor GraphHandlerObj::reshape(Tensor data, Tensor reshaped, Shape shape, Shape shape_t) {
     if (reshaped) {
         g->addOpWithOutputs<ReshapeObj>(std::move(data), reshaped,
-                                        std::move(shape));
+                                        std::move(shape), std::move(shape_t));
         return reshaped;
     } else {
-        return g->addOp<ReshapeObj>(std::move(data), reshaped, std::move(shape))
+        return g->addOp<ReshapeObj>(std::move(data), reshaped, std::move(shape), std::move(shape_t))
             ->getOutput();
     }
 }
@@ -500,6 +500,11 @@ static DataType dtype_repr_convert(int dtype) {
     default:
         IT_ASSERT(false, "Unsupported data type");
     }
+}
+
+void GraphHandlerObj::change_shape(const vector<int> &shape, int tensorId) {
+	auto tensor = g->getTensorWithUid(tensorId);
+	tensor->setShape(shape);
 }
 
 } // namespace infini

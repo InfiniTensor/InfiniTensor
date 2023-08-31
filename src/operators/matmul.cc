@@ -49,6 +49,8 @@ optional<vector<Shape>> MatmulObj::inferShape(const TensorVec &inputs) const {
     Shape shapeA1(shapeA.begin(), shapeA.begin() + (rankA - 2));
     Shape shapeB1(shapeB.begin(), shapeB.begin() + (rankB - 2));
     Shape ret = infer_broadcast(shapeA1, shapeB1);
+    auto m = *(this->getTransA() ? shapeA.rbegin() : shapeA.rbegin() + 1);
+    auto n = *(this->getTransB() ? shapeB.rbegin() + 1 : shapeB.rbegin());
     ret.emplace_back(m);
     ret.emplace_back(n);
     return {{ret}};

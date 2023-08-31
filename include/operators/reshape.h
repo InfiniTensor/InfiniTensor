@@ -9,6 +9,7 @@ namespace infini {
  */
 class ReshapeObj : public OperatorObj {
     Shape dims;
+	Shape dims_t = {};
 
   public:
     /**
@@ -18,8 +19,10 @@ class ReshapeObj : public OperatorObj {
      * @param input The input tensor.
      * @param output The output tensor.
      * @param dims The shape of the output tensor.
+	 * @param dims_t The origin data of change shape.
      */
     ReshapeObj(GraphObj *graph, Tensor input, Tensor output, Shape dims);
+    ReshapeObj(GraphObj *graph, Tensor input, Tensor output, Shape dims, Shape dims_t);
     OP_CLONE(ReshapeObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
@@ -29,6 +32,8 @@ class ReshapeObj : public OperatorObj {
     int numOutputs() const override { return 1; }
 
     inline Shape getShape() const { return dims; }
+    inline void setShape(Shape shape_) { dims = shape_; }
+    inline Shape getShape_t() const { return dims_t; }
 
   private:
     vector<int> getWorkloadVector() const override;
