@@ -47,7 +47,7 @@ class TensorObj : public TensorBaseObj {
     // Copy elements from `data`.
     template <typename T> void copyin(const vector<T> &data) {
         IT_ASSERT(DataType::get<T>() == dtype.cpuTypeInt());
-        IT_ASSERT(data.size() >= _size);
+        IT_ASSERT(data.size() == _size);
         copyin(data.data(), getBytes());
     }
     // Copy all the elements to a vector.

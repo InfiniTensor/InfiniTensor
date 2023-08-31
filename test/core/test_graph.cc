@@ -15,7 +15,7 @@ TEST(Graph, build_and_run) {
     Tensor w0 = g->addTensor({1, 3, 4}, DataType::UInt32);
     Tensor o0 = g->addTensor({1, 2, 4}, DataType::UInt32);
     g->dataMalloc();
-    i0->copyin(vector<uint32_t>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
+    i0->copyin(vector<uint32_t>{1, 2, 3, 4, 5, 6});
     w0->copyin(vector<uint32_t>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
     auto matmul = g->addOpWithOutputs<MatmulObj>(i0, w0, o0);
     g->print();
@@ -84,7 +84,7 @@ TEST(Graph, perf_engine) {
     auto matmul = g->addOp<MatmulObj>(i0, w0, nullptr);
 
     g->dataMalloc();
-    i0->copyin(vector<uint32_t>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
+    i0->copyin(vector<uint32_t>{1, 2, 3, 4, 5, 6});
     w0->copyin(vector<uint32_t>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
     runtime->run(g, true, true);
     double perfTime = runtime->getPerfTime(g);
@@ -105,7 +105,7 @@ TEST(Graph, test_tensor_id) {
     Tensor w0 = g->addTensor({1, 3, 4}, DataType::UInt32);
     Tensor o0 = g->addTensor({1, 2, 4}, DataType::UInt32);
     g->dataMalloc();
-    i0->copyin(vector<uint32_t>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
+    i0->copyin(vector<uint32_t>{1, 2, 3, 4, 5, 6});
     w0->copyin(vector<uint32_t>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
     auto i1 = g->addTensor(i0->clone());
     auto matmul = g->addOpWithOutputs<MatmulObj>(i0, w0, o0);
@@ -123,7 +123,7 @@ TEST(Graph, test_OpVec_ctor) {
     Tensor w0 = g->addTensor({1, 3, 4}, DataType::UInt32);
     Tensor o0 = g->addTensor({1, 2, 4}, DataType::UInt32);
     g->dataMalloc();
-    i0->copyin(vector<uint32_t>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
+    i0->copyin(vector<uint32_t>{1, 2, 3, 4, 5, 6});
     w0->copyin(vector<uint32_t>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
     auto o1 = g->addTensor(o0->clone());
     auto matmul = g->addOpWithOutputs<MatmulObj>(i0, w0, o0);
