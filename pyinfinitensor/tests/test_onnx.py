@@ -409,7 +409,7 @@ class TestStringMethods(unittest.TestCase):
         self.assertEqual(array1, array2)
         self.assertTrue(np.array_equal(np.array(array1).reshape(dims), np_array))
 
-    def test_copyout(self):
+    def test_to_numpy(self):
         dims = [2,3,5,4]
         np_array = np.random.random(dims).astype(np.float32)
         handler = backend.GraphHandler(backend.cpu_runtime())
@@ -419,8 +419,7 @@ class TestStringMethods(unittest.TestCase):
         tensor1.copyin_float(np_array.flatten().tolist())
         tensor2.copyin_float(np_array.flatten().tolist())
         array1 = np.array(tensor1.copyout_float()).reshape(dims)
-        buff_info = tensor2.to_numpy()
-        array2 = np.array(buff_info)
+        array2 = np.array(tensor2)
         self.assertTrue(np.array_equal(array2, np_array))
         self.assertTrue(np.array_equal(array1, array2))
 
@@ -429,9 +428,8 @@ class TestStringMethods(unittest.TestCase):
         tensor1 = handler.tensor(dims, TensorProto.FLOAT16)
         handler.data_malloc()
         tensor1.copyin_numpy(np_array)
-        array1 = tensor1.to_numpy()
+        array1 = np.array(tensor1, copy=False)
         self.assertTrue(np.array_equal(array1, np_array))
-
 
 if __name__ == "__main__":
     unittest.main()
