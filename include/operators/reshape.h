@@ -9,7 +9,7 @@ namespace infini {
  */
 class ReshapeObj : public OperatorObj {
     Shape dims;
-	Shape dims_t = {};
+    Shape outputShape;
 
   public:
     /**
@@ -18,22 +18,20 @@ class ReshapeObj : public OperatorObj {
      * @param graph The computation graph that this operator belongs to.
      * @param input The input tensor.
      * @param output The output tensor.
-     * @param dims The shape of the output tensor.
-	 * @param dims_t The origin data of change shape.
+     * @param dims The shape to infer the output shape.
+     * @param outputShape The real shape of output tensor.
      */
     ReshapeObj(GraphObj *graph, Tensor input, Tensor output, Shape dims);
-    ReshapeObj(GraphObj *graph, Tensor input, Tensor output, Shape dims, Shape dims_t);
     OP_CLONE(ReshapeObj);
 
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
     int numInputs() const override { return 1; }
     int numOutputs() const override { return 1; }
 
-    inline Shape getShape() const { return dims; }
-    inline void setShape(Shape shape_) { dims = shape_; }
-    inline Shape getShape_t() const { return dims_t; }
+    inline Shape getShape() const { return outputShape; }
+    inline Shape getDims() const { return dims; }
 
   private:
     vector<int> getWorkloadVector() const override;
@@ -60,7 +58,7 @@ class FlattenObj : public OperatorObj {
     FlattenObj(GraphObj *graph, Tensor input, Tensor output, int axis);
     OP_CLONE(FlattenObj);
 
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
     int numInputs() const override { return 1; }
@@ -90,7 +88,7 @@ class IdentityObj : public OperatorObj {
     IdentityObj(GraphObj *graph, Tensor input, Tensor output);
     OP_CLONE(IdentityObj);
 
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
     int numInputs() const override { return 1; }

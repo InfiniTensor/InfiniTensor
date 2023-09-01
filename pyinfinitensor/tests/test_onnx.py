@@ -461,7 +461,7 @@ class TestStringMethods(unittest.TestCase):
         make_and_import_model(make_graph([where], "where", [x, y, con], [output]))
 
     def test_copyin(self):
-        dims = [2,3,5,4]
+        dims = [2, 3, 5, 4]
         np_array = np.random.random(dims).astype(np.float32)
         handler = backend.GraphHandler(backend.cpu_runtime())
         tensor1 = handler.tensor(dims, TensorProto.FLOAT)
@@ -487,7 +487,7 @@ class TestStringMethods(unittest.TestCase):
         self.assertTrue(np.array_equal(np.array(array1).reshape(dims), np_array))
 
     def test_to_numpy(self):
-        dims = [2,3,5,4]
+        dims = [2, 3, 5, 4]
         np_array = np.random.random(dims).astype(np.float32)
         handler = backend.GraphHandler(backend.cpu_runtime())
         tensor1 = handler.tensor(dims, TensorProto.FLOAT)
@@ -507,6 +507,23 @@ class TestStringMethods(unittest.TestCase):
         tensor1.copyin_numpy(np_array)
         array1 = np.array(tensor1, copy=False)
         self.assertTrue(np.array_equal(array1, np_array))
+
+class TestDynamicTensor(unittest.TestCase):
+    def test_dynamic_tensor(self):
+        filename = r"resnet18-v2-7.onnx"
+        current_path = os.getcwd()
+        model_file = ""
+        for root, dirs, files in os.walk(current_path):
+            if filename in files:
+                model_file = os.path.join(root, filename)
+        model = OnnxStub(onnx.load(model_file), backend.cpu_runtime())
+        output_key = list(model.outputs.keys())[0]
+        old_output_shape = model.getShape(output_key)
+        self.assertEqual(old_output_shape, ([1, 1000]))
+        model.set_input([[5, 3, 224, 224]])
+        new_output_shape = model.getShape(output_key)
+        self.assertEqual(new_output_shape, ([5, 1000]))
+
 
 if __name__ == "__main__":
     unittest.main()

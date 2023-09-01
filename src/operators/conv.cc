@@ -82,7 +82,7 @@ ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> ConvObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> ConvObj::inferShape(const TensorVec &inputs) {
     const auto &input = inputs[0], &weight = inputs[1];
     auto n = input->getDims()[0];
     auto h = input->getDims()[2];
@@ -141,7 +141,7 @@ ConvTransposed2dObj::ConvTransposed2dObj(GraphObj *graph, Tensor input,
 }
 
 optional<vector<Shape>>
-ConvTransposed2dObj::inferShape(const TensorVec &inputs) const {
+ConvTransposed2dObj::inferShape(const TensorVec &inputs) {
     const Tensor &input = inputs[0], &weight = inputs[1];
     auto n = input->getDims()[0];
     auto f = input->getDims()[1];
@@ -219,7 +219,7 @@ ConvBackwardFilterObj::ConvBackwardFilterObj(GraphObj *graph, Tensor inputX,
 }
 
 optional<vector<Shape>>
-ConvBackwardFilterObj::inferShape(const TensorVec &inputs) const {
+ConvBackwardFilterObj::inferShape(const TensorVec &inputs) {
     const auto &inputX = inputs[0], &diffY = inputs[1];
     auto n = inputX->getDims()[0];
     auto h = inputX->getDims()[2];
@@ -280,7 +280,7 @@ ConvTransposed2dNHWCObj::ConvTransposed2dNHWCObj(GraphObj *graph, Tensor input,
 }
 
 optional<vector<Shape>>
-ConvTransposed2dNHWCObj::inferShape(const TensorVec &inputs) const {
+ConvTransposed2dNHWCObj::inferShape(const TensorVec &inputs) {
     const Tensor &input = inputs[0], &weight = inputs[1];
     auto n = input->getDims()[0];
     auto f = input->getDims()[3];

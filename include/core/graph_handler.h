@@ -58,7 +58,7 @@ class GraphHandlerObj {
     Tensor clip(Tensor x, Tensor y, std::optional<float> min,
                 std::optional<float> max);
     Tensor transpose(Tensor data, Tensor transposed, Shape perm);
-    Tensor reshape(Tensor data, Tensor reshaped, Shape shape, Shape shape_t);
+    Tensor reshape(Tensor data, Tensor reshaped, Shape shape);
     Tensor concat(TensorVec inputs, Tensor output, int dim);
     TensorVec split(Tensor input, std::optional<TensorVec> outputs, int axis,
                     int num_outputs);
@@ -73,7 +73,7 @@ class GraphHandlerObj {
     Tensor cast(Tensor input, Tensor output, int to);
     Tensor expand(Tensor input, Tensor output, Shape dims);
     Tensor where(Tensor inputX, Tensor inputY, Tensor condition, Tensor output);
-//	std::vector<int> getDims(Tensor x) { return x->getDims(); }
+    std::vector<int> getDims(Tensor x) { return x->getDims(); }
 
     Tensor allReduceSum(Tensor input, Tensor output);
     Tensor allReduceProd(Tensor input, Tensor output);
@@ -89,9 +89,9 @@ class GraphHandlerObj {
 
     inline void optimize() { g->optimize(); }
 
-	inline void shape_infer() { g->shape_infer(); }
+    inline void shape_infer() { g->shape_infer(); }
 
-	void change_shape(const vector<int> &shape, int tensorId);
+    void change_shape(const vector<int> &shape, int tensorId);
     //------ runtime
 
     inline void data_malloc() { g->dataMalloc(); }

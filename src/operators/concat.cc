@@ -9,7 +9,7 @@ ConcatObj::ConcatObj(GraphObj *graph, TensorVec inputs, Tensor output, int dim)
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> ConcatObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> ConcatObj::inferShape(const TensorVec &inputs) {
     IT_ASSERT(inputs.size() > 1);
     Shape dims = inputs[0]->getDims();
     auto rank = inputs[0]->getRank();

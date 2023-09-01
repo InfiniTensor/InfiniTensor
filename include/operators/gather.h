@@ -27,7 +27,7 @@ class GatherObj : public OperatorObj {
     std::string toString() const override;
     int numInputs() const override { return 2; }
     int numOutputs() const override { return 1; }
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
     int getAxis() const { return axis; }
     vector<DataType> inferDataType(const TensorVec &inputs) const override;
 
