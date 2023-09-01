@@ -48,11 +48,16 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
         node.input[1] = sharded.name
         data[input] = sharded
 
-        if len(node.input) > 2 and dim == -1:
-            input = node.input[2]
-            sharded = shard_tensor(data[input], dim, input + f":{plc.name}({dim})")
-            node.input[2] = sharded.name
-            data[input] = sharded
+        if len(node.input) > 2:
+            if dim == -1:  # column parallel
+                input = node.input[2]
+                sharded = shard_tensor(data[input], dim, input + f":{plc.name}({dim})")
+                node.input[2] = sharded.name
+                data[input] = sharded
+            else:  # row parallel
+                print("row parallel ", node.name)
+                if tp_rank != 0:
+                    del data[node.input.pop()]
 
         plc = Placement.Shard if plc == Placement.Replicate else Placement._Partial
         return plc, dim
@@ -130,6 +135,7 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
                         inputs=[new_name],
                         outputs=[node.output[0]],
                         name=node.name + "/all_reduce",
+                        noop_with_empty_axes=1,
                         communicator=0,  # hack to treat ReduceSum as AllReduceSum
                     )
                 )
