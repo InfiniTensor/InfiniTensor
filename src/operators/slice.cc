@@ -57,7 +57,7 @@ SliceObj::SliceObj(GraphObj *graph, Tensor input, Tensor output,
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> SliceObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> SliceObj::inferShape(const TensorVec &inputs) {
     Shape ans;
     ans.reserve(axes.size());
     for (const auto &range : axes) {

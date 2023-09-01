@@ -14,7 +14,7 @@ PoolingObj::PoolingObj(GraphObj *graph, OpType optype, Tensor input,
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> PoolingObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> PoolingObj::inferShape(const TensorVec &inputs) {
     const auto &input = inputs[0];
     auto h = input->getDims()[input->getRank() - 2],
          w = input->getDims()[input->getRank() - 1];

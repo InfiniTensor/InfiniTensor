@@ -20,7 +20,7 @@ string G2BMMObj::toString() const {
     return os.str();
 }
 
-optional<vector<Shape>> G2BMMObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> G2BMMObj::inferShape(const TensorVec &inputs) {
     auto A = inputs[0], B = inputs[1];
 
     IT_ASSERT(A->getRank() == 3 && B->getRank() == 3);

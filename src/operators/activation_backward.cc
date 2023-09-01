@@ -9,7 +9,7 @@ ActivationBackwardObj::ActivationBackwardObj(OpType type, GraphObj *graph,
 }
 
 optional<vector<Shape>>
-ActivationBackwardObj::inferShape(const TensorVec &inputs) const {
+ActivationBackwardObj::inferShape(const TensorVec &inputs) {
     return {{inputs[0]->getDims()}};
 }
 

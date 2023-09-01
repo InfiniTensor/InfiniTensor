@@ -206,7 +206,7 @@ float ResizeObj::round_int(float x) const {
 }
 
 // output shape is related to sizes/scales value.
-optional<vector<Shape>> ResizeObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> ResizeObj::inferShape(const TensorVec &inputs) {
     auto inDims = inputs[0]->getDims();
     Shape ret = inDims;
     int rank = inputs[0]->getRank();

@@ -8,8 +8,7 @@ ElementWiseObj::ElementWiseObj(OpType type, GraphObj *graph, Tensor input0,
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>>
-ElementWiseObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> ElementWiseObj::inferShape(const TensorVec &inputs) {
     const auto A = inputs[0], B = inputs[1];
     auto res = infer_broadcast(A->getDims(), B->getDims());
     return {{res}};
@@ -45,7 +44,7 @@ MSELossObj::MSELossObj(GraphObj *graph, Tensor input0, Tensor input1,
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> MSELossObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> MSELossObj::inferShape(const TensorVec &inputs) {
     const auto A = inputs[0], B = inputs[1];
     IT_ASSERT(A->getRank() == B->getRank());
     IT_ASSERT(A->getDims() == B->getDims());

@@ -448,7 +448,7 @@ void init_graph_builder(py::module &m) {
         .def("run", &Handler::run, policy::automatic)
         .def("shape_infer", &Handler::shape_infer, policy::automatic)
         .def("change_shape", &Handler::change_shape, policy::automatic)
-//		.def("getDims", &Handler::getDims, policy::automatic)
+        .def("getDims", &Handler::getDims, policy::automatic)
         .def("get_perf_time", &Handler::get_perf_time, policy::automatic);
 }
 

@@ -1,8 +1,8 @@
 #include "core/graph.h"
-#include <algorithm>
-#include <queue>
-#include <numeric>
 #include "operators/reshape.h"
+#include <algorithm>
+#include <numeric>
+#include <queue>
 
 namespace infini {
 
@@ -126,55 +126,35 @@ void GraphObj::optimize() {
 }
 
 Tensor GraphObj::getTensorWithUid(int fuid) const {
-	for (auto tensor : tensors) {
-		if (tensor->getFuid() == fuid) {
-			return tensor;
-		}
-	}
-	return nullptr;
+    for (auto tensor : tensors) {
+        if (tensor->getFuid() == fuid) {
+            return tensor;
+        }
+    }
+    return nullptr;
 }
 
 void GraphObj::shape_infer() {
-	for (auto &op : ops) {
-		if (op->getOpType() == OpType::Reshape) {
-			auto reshape = dynamic_cast<ReshapeObj *>(op.get());
-			auto input = reshape->getInputs(0)->getDims();
-			auto size = reshape->getInputs(0)->size();
-			Shape ans = reshape->getShape_t();
-			int index = -1;
-			for (int i = 0; i < (int)ans.size(); ++i) {
-				if (ans[i] == 0) {
-					ans[i] = input[i];
-				}
-				if (ans[i] == -1) {
-					index = i;
-				}
-			}
-			if (index != -1) {
-				int temp = (int)size / (-std::accumulate(ans.begin(), ans.end(), 1, [](auto acc, auto x) {return acc * x;}));
-				ans[index] = temp;
-			}
-			reshape->setShape(ans);
-		}
-		auto ans = op->inferShape();
-		IT_ASSERT(ans.has_value());
-		std::cout<<"optype = "<<op->getOpType().toString()<<std::endl;
-		auto oldOutputs = op->getOutputs();
-		IT_ASSERT(ans.value().size() == oldOutputs.size());
-		for (int i = 0; i < (int)ans.value().size(); ++i) {
-			auto newShape = ans.value()[i];
-			std::cout<<vecToString(newShape)<<std::endl;
-			auto oldShape = oldOutputs[i]->getDims();
-			auto fuid = oldOutputs[i]->getFuid();
-			if (newShape != oldShape) {
-				auto tensor = this->getTensorWithUid(fuid);
-				tensor->setShape(newShape);
-				size_t size = std::accumulate(newShape.begin(), newShape.end(), 1, [](auto acc, auto x) {return acc * x;});
-				tensor->setSize(size);
-				std::cout<<"replace newShape over"<<std::endl;
-			}
-		}
-	}
+    for (auto &op : ops) {
+        auto ans = op->inferShape();
+        IT_ASSERT(ans.has_value());
+        auto oldOutputs = op->getOutputs();
+        IT_ASSERT(ans.value().size() == oldOutputs.size());
+        // replace the old outputshape and size with new one
+        for (int i = 0; i < (int)ans.value().size(); ++i) {
+            auto newShape = ans.value()[i];
+            auto oldShape = oldOutputs[i]->getDims();
+            auto fuid = oldOutputs[i]->getFuid();
+            if (newShape != oldShape) {
+                auto tensor = this->getTensorWithUid(fuid);
+                tensor->setShape(newShape);
+                size_t size =
+                    std::accumulate(newShape.begin(), newShape.end(), 1,
+                                    [](auto acc, auto x) { return acc * x; });
+                tensor->setSize(size);
+            }
+        }
+    }
 }
 
 void GraphObj::dataMalloc() {

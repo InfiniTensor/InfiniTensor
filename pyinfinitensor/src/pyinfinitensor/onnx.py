@@ -441,21 +441,11 @@ class OnnxStub:
                         perm,
                     )
                 elif node.op_type == "Reshape":
-                    dims = _search_shape(model, node.input[0])
-                    size = reduce(lambda acc, x: acc * x, dims)
-                    input_shape = _parse_data(data[node.input[1]])
-                    origin_shape = input_shape.copy()
-                    for i, x in enumerate(input_shape):
-                        if x == 0:
-                            input_shape[i] = dims[i]
-                    temp = reduce(lambda acc, x: acc * x, input_shape, 1)
-                    if temp < 0:
-                        input_shape[input_shape.index(-1)] = size // -temp
+                    shape = _parse_data(data[node.input[1]])
                     tensors[node.output[0]] = self.handler.reshape(
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
-                        input_shape,
-                        origin_shape,
+                        shape,
                     )
                 elif node.op_type == "Squeeze":
                     input_shape = _search_shape(model, node.input[0])
@@ -957,23 +947,24 @@ class OnnxStub:
 
     def set_input(self, inputShapes: List[int]) -> None:
         for newInput, oldInput in zip(inputShapes, self.inputs):
-            oldTensor = self.inputs[oldInput];
+            oldTensor = self.inputs[oldInput]
             self.handler.change_shape(newInput, oldTensor.fuid())
         self.handler.shape_infer()
-        self.handler.data_malloc()
+
+    #        self.handler.data_malloc()
+
+    def getShape(self, name: str) -> List[int]:
+        if name in self.inputs:
+            ans = self.handler.getDims(self.inputs[name])
+        else:
+            ans = self.handler.getDims(self.outputs[name])
+        return ans
 
     def tune(self) -> None:
         self.handler.tune()
 
     def run(self) -> None:
         self.handler.run()
-
-#    def getShape(self, name: str) -> List[int]:
-#        if name in self.inputs:
-#            ans = self.handler.getDims(self.inputs[name])
-#        else:
-#            ans = self.handler.getDims(self.outputs[name])
-#        return ans
 
     def get_perf_time(self) -> float:
         self.handler.get_perf_time()

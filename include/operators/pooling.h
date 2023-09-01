@@ -37,7 +37,7 @@ class PoolingObj : public OperatorObj {
                int kh, int kw, int dh, int dw, int ph, int pw, int sh, int sw);
     OP_CLONE(PoolingObj);
 
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
     std::string toString() const override;
     int numInputs() const override { return 1; }
     int numOutputs() const override { return 1; }
