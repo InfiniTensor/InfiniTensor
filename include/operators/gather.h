@@ -39,7 +39,7 @@ class GatherObj : public GatherBaseObj {
               int axis);
     OP_CLONE(GatherObj);
     std::string toString() const override;
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
     vector<DataType> inferDataType(const TensorVec &inputs) const override;
 
   private:

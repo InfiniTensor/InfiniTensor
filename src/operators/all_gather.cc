@@ -11,7 +11,7 @@ AllGatherObj::AllGatherObj(GraphObj *graph, Tensor input,
 }
 
 optional<vector<Shape>>
-AllGatherObj::inferShape(const TensorVec &inputs) const {
+AllGatherObj::inferShape(const TensorVec &inputs) {
     Shape input_shape = inputs[0]->getDims();
     vector<Shape> output_shapes(getWorldSize(), input_shape);
     return output_shapes;

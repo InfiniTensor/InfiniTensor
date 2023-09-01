@@ -35,6 +35,16 @@ string ConvBaseObj::toString() const {
     return os.str();
 }
 
+void ConvBaseObj::setNCHWFRS(Tensor input, Tensor weight) {
+    n = input->getDims()[0];
+    c = input->getDims()[1];
+    h = input->getDims()[2];
+    w = input->getDims()[3];
+    f = weight->getDims()[0];
+    r = weight->getDims()[2];
+    s = weight->getDims()[3];
+}
+
 vector<int> ConvBaseObj::getWorkloadVector() const {
     return {type.underlying(), n, c, h, w, f, r, s, ph, pw, sh, sw, dh, dw};
 }
@@ -82,14 +92,9 @@ ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> ConvObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> ConvObj::inferShape(const TensorVec &inputs) {
     const auto &input = inputs[0], &weight = inputs[1];
-    auto n = input->getDims()[0];
-    auto h = input->getDims()[2];
-    auto w = input->getDims()[3];
-    auto f = weight->getDims()[0];
-    auto r = weight->getDims()[2];
-    auto s = weight->getDims()[3];
+    setNCHWFRS(input, weight);
     int on = n, oc = f;
     int oh = 0, ow = 0;
     // For NCHW+FCRS layout, C of input is divisable by C of weight
@@ -141,15 +146,15 @@ ConvTransposed2dObj::ConvTransposed2dObj(GraphObj *graph, Tensor input,
 }
 
 optional<vector<Shape>>
-ConvTransposed2dObj::inferShape(const TensorVec &inputs) const {
+ConvTransposed2dObj::inferShape(const TensorVec &inputs) {
     const Tensor &input = inputs[0], &weight = inputs[1];
-    auto n = input->getDims()[0];
-    auto f = input->getDims()[1];
-    auto h = input->getDims()[2];
-    auto w = input->getDims()[3];
-    auto c = weight->getDims()[1];
-    auto r = weight->getDims()[2];
-    auto s = weight->getDims()[3];
+    n = input->getDims()[0];
+    f = input->getDims()[1];
+    h = input->getDims()[2];
+    w = input->getDims()[3];
+    c = weight->getDims()[1];
+    r = weight->getDims()[2];
+    s = weight->getDims()[3];
     IT_ASSERT(f == weight->getDims()[0]);
 
     int on = n, oc = c * group;
@@ -219,14 +224,9 @@ ConvBackwardFilterObj::ConvBackwardFilterObj(GraphObj *graph, Tensor inputX,
 }
 
 optional<vector<Shape>>
-ConvBackwardFilterObj::inferShape(const TensorVec &inputs) const {
+ConvBackwardFilterObj::inferShape(const TensorVec &inputs) {
     const auto &inputX = inputs[0], &diffY = inputs[1];
-    auto n = inputX->getDims()[0];
-    auto h = inputX->getDims()[2];
-    auto w = inputX->getDims()[3];
-    auto f = diffY->getDims()[0];
-    auto r = diffY->getDims()[2];
-    auto s = diffY->getDims()[3];
+    setNCHWFRS(inputX, diffY);
     int on = n, oc = f;
     int oh = 0, ow = 0;
     // For NCHW+FCRS layout, C of input is divisable by C of weight
@@ -280,17 +280,16 @@ ConvTransposed2dNHWCObj::ConvTransposed2dNHWCObj(GraphObj *graph, Tensor input,
 }
 
 optional<vector<Shape>>
-ConvTransposed2dNHWCObj::inferShape(const TensorVec &inputs) const {
+ConvTransposed2dNHWCObj::inferShape(const TensorVec &inputs) {
     const Tensor &input = inputs[0], &weight = inputs[1];
-    auto n = input->getDims()[0];
-    auto f = input->getDims()[3];
-    auto h = input->getDims()[1];
-    auto w = input->getDims()[2];
-    auto c = weight->getDims()[3];
-    auto r = weight->getDims()[1];
-    auto s = weight->getDims()[2];
-    if (f != weight->getDims()[0])
-        return {};
+    n = input->getDims()[0];
+    f = input->getDims()[3];
+    h = input->getDims()[1];
+    w = input->getDims()[2];
+    c = weight->getDims()[3];
+    r = weight->getDims()[1];
+    s = weight->getDims()[2];
+    IT_ASSERT(f == weight->getDims()[0]);
 
     int on = n, oc = c * group;
     int oh = 0, ow = 0;
