@@ -347,7 +347,8 @@ void init_graph_builder(py::module &m) {
                  }
                  self.copyin(data_np, self.getBytes());
              })
-        // A buffer can be used to convert a TensorObj directly to Numpy array without copy
+        // A buffer can be used to convert a TensorObj directly to Numpy array
+        // without copy
         .def_buffer([](TensorObj &self) -> py::buffer_info {
             vector<size_t> stride_byte;
             for (int s : self.getStride()) {
@@ -386,9 +387,10 @@ void init_graph_builder(py::module &m) {
                                          "Numpy: unsupported datatype.\n");
             }
 
-            return py::buffer_info(
-                self.getRawDataPtr<void *>(), self.getDType().getSize(), format,
-                self.getRank(), self.getDims(), stride_byte, true); // Read-only = true
+            return py::buffer_info(self.getRawDataPtr<void *>(),
+                                   self.getDType().getSize(), format,
+                                   self.getRank(), self.getDims(), stride_byte,
+                                   true); // Read-only = true
         })
         .def("has_target", &TensorObj::hasTarget, policy::automatic)
         .def("src", &TensorObj::getSource, policy::move)
