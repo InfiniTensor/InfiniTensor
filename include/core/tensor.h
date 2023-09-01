@@ -19,14 +19,6 @@ class TensorObj : public TensorBaseObj {
     size_t _size; // Cache of Π(shape).
     Fuid fuid;    // Cloned tensors share the same id. Tensors constructed from
                   // scratch have a new id.
-
-    void copyin(const void *ptr, size_t size) {
-        runtime->copyBlobFromCPU(getRawDataPtr<void *>(), ptr, size);
-    }
-    void copyout(void *ptr, size_t size) const {
-        runtime->copyBlobToCPU(ptr, getRawDataPtr<void *>(), size);
-    }
-
   public:
     TensorObj(Shape shape, DataType dtype, Runtime runtime);
     virtual ~TensorObj() {}
@@ -45,10 +37,17 @@ class TensorObj : public TensorBaseObj {
     void load(std::string file_path);
     void save(std::string file_path);
 
+    void copyin(const void *ptr, size_t size) {
+        runtime->copyBlobFromCPU(getRawDataPtr<void *>(), ptr, size);
+    }
+    void copyout(void *ptr, size_t size) const {
+        runtime->copyBlobToCPU(ptr, getRawDataPtr<void *>(), size);
+    }
+
     // Copy elements from `data`.
     template <typename T> void copyin(const vector<T> &data) {
         IT_ASSERT(DataType::get<T>() == dtype.cpuTypeInt());
-        IT_ASSERT(data.size() >= _size);
+        IT_ASSERT(data.size() == _size);
         copyin(data.data(), getBytes());
     }
     // Copy all the elements to a vector.
