@@ -15,26 +15,21 @@ class TransposeCnnl : public BangKernelWithoutConfig {
         cnnlTensorDescriptor_t aDesc, cDesc;
         auto dimin = op->getInputs(0)->getDims();
         auto dimout = op->getOutput()->getDims();
-        if (dimin.size() != 4 || dimout.size() != 4)
-            IT_TODO_HALT();
 
-        int dimin_array[4] = {dimin[0], dimin[1], dimin[2], dimin[3]};
-        int dimout_array[4] = {dimout[0], dimout[1], dimout[2], dimout[3]};
-        // get inputs
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(
-            aDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT, 4, dimin_array));
-
-        // get outputs
+        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_ARRAY,
+                                               CNNL_DTYPE_FLOAT, dimin.size(),
+                                               dimin.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(
-            cDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT, 4, dimout_array));
+        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_ARRAY,
+                                               CNNL_DTYPE_FLOAT, dimout.size(),
+                                               dimout.data()));
 
-        // get op descriptor
         auto permute = op->getPermute();
         cnnlTransposeDescriptor_t opDesc;
         checkCnnlError(cnnlCreateTransposeDescriptor(&opDesc));
-        checkCnnlError(cnnlSetTransposeDescriptor(opDesc, 4, permute.data()));
+        checkCnnlError(
+            cnnlSetTransposeDescriptor(opDesc, permute.size(), permute.data()));
 
         size_t wsSize;
         cnnlGetTransposeWorkspaceSize(context->cnnlHandle(), aDesc, opDesc,
@@ -47,8 +42,6 @@ class TransposeCnnl : public BangKernelWithoutConfig {
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
-        // Destories in BANG does not require sync. But cnnl does not state
-        // whether sync is required before destories.
         checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
         checkCnnlError(cnnlDestroyTensorDescriptor(cDesc));
         checkCnnlError(cnnlDestroyTransposeDescriptor(opDesc));

@@ -22,7 +22,6 @@ class MatmulCnnl : public BangKernelWithoutConfig {
         int32_t transA = op->getTransA();
         int32_t transB = op->getTransB();
 
-        // get inputs
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(
             cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT,
@@ -33,7 +32,6 @@ class MatmulCnnl : public BangKernelWithoutConfig {
             cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT,
                                     dimInputs1.size(), dimInputs1.data()));
 
-        // get outputs
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(
             cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT,
@@ -68,8 +66,6 @@ class MatmulCnnl : public BangKernelWithoutConfig {
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
-        // Destories in BANG does not require sync. But cnnl does not state
-        // whether sync is required before destories.
         checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
         checkCnnlError(cnnlDestroyTensorDescriptor(bDesc));
         checkCnnlError(cnnlDestroyTensorDescriptor(cDesc));
