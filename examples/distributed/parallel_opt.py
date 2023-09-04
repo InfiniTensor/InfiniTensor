@@ -77,7 +77,7 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
                 s_dim = 0
             elif in_plc.dim == 2:
                 s_dim = 2
-        assert s_dim != -1, s_dim
+        assert s_dim != -1
         assert out_dims[s_dim] % tp_world_size == 0, out_dims
         out_dims[s_dim] //= tp_world_size
         # if ONNX uses the same tensor for multiple Reshape Nodes, then rename it to distingush from others.
@@ -92,26 +92,19 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
             place[node.output[0]] = Shard(list(perm).index(plc.dim))
 
     def shard_node(node: NodeProto):
-        # no fuse_qkv so no Split
-        # if node.op_type == "Split":
-        #     data.pop(node.input[1], None)
-        #     node.input.pop()
-        #     node.attribute.append(
-        #         helper.make_attribute("num_outputs", len(node.output))
-        #     )
-        #     for output in node.output:
-        #         place[output] = place[node.input[0]]
-        if node.op_type in ["Relu", "Tanh"]:
+        if node.op_type in ["Relu", "Tanh", "Softmax"]:
             place[node.output[0]] = place[node.input[0]]
-        if node.op_type in {"Add", "Mul", "Max"}:
+        if node.op_type in {"Add", "Mul", "Div", "Max"}:
             shard_binary(node)
         elif node.op_type == "Reshape":
             shard_reshape(node)
         elif node.op_type == "Transpose":
             shard_transpose(node)
         elif node.op_type == "MatMul":
-            if is_sharded(node.input[0]) or is_sharded(node.input[1]):
-                place[node.output[0]] = Shard(0)
+            assert (
+                place[node.input[0]] == place[node.input[1]]
+            ), f"{place[node.input[0]]} != {place[node.input[1]]}"
+            place[node.output[0]] = place[node.input[0]]
 
     # all tensors are initially replicated.
     for v in vinfo:
