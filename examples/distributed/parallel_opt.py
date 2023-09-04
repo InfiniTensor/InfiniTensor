@@ -1,18 +1,8 @@
-from enum import Enum
 import onnx
-from onnx import (
-    ModelProto,
-    TensorProto,
-    NodeProto,
-)
+from onnx import ModelProto, NodeProto, TensorProto, ValueInfoProto
 from onnx import helper, numpy_helper
-from typing import Dict, List, Set
-
-
-class Placement(Enum):
-    Replicate = 0
-    Shard = 1
-    _Partial = 2
+from typing import Dict, List
+from placement import Placement, Replicate, Shard, _Partial
 
 
 def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
@@ -20,114 +10,127 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
     vinfo = {info.name: info for info in model.graph.value_info}
     vinfo.update({info.name: info for info in model.graph.input})
     vinfo.update({info.name: info for info in model.graph.output})
+    place: Dict[str, Placement] = {}
     nodes: List[NodeProto] = []
-    renames: Dict[str, str] = {}
 
-    def is_sharded(tensor: str):
-        return Placement.Shard.name in tensor
+    def is_sharded(name: str):
+        return place[name].is_shard()
 
-    def shard_tensor(tensor: TensorProto, dim: int, name: str):
+    def shard_tensor(tensor: TensorProto, plc: Placement):
         # print(f"shard {tensor.name} at dim {dim}")
         ndim = len(tensor.dims)
-        if dim < 0:
-            dim += ndim
-        if tensor.dims[dim] == 1:  # broadcast dim, no need to shard.
+        if plc.dim < 0:
+            plc.dim += ndim
+        if tensor.dims[plc.dim] == 1:  # broadcast dim, no need to shard.
             return tensor
         array = numpy_helper.to_array(tensor)
-        assert array.shape[dim] % tp_world_size == 0, array.shape[dim]
-        seg = array.shape[dim] // tp_world_size
-        array = array.take(indices=range(tp_rank * seg, (tp_rank + 1) * seg), axis=dim)
-        return numpy_helper.from_array(array, name=name)
+        assert array.shape[plc.dim] % tp_world_size == 0, array.shape[plc.dim]
+        seg = array.shape[plc.dim] // tp_world_size
+        array = array.take(
+            indices=range(tp_rank * seg, (tp_rank + 1) * seg), axis=plc.dim
+        )
+        tensor = numpy_helper.from_array(array, name=tensor.name)
+        place[tensor.name] = plc
+        return tensor
 
-    def shard_gemm(node: NodeProto, plc: Placement):
+    def shard_gemm(node: NodeProto):
         # print("gemm", node.name)
-        dim = -1 if placement == Placement.Replicate else 0
+        in_plc = place[node.input[0]]
+        w_plc = Shard(-1) if in_plc.is_replicate() else Shard(0)
         transB = next((attr.i for attr in node.attribute if attr.name == "transB"), 0)
+        if transB:
+            w_plc.dim = ~w_plc.dim
         input = node.input[1]
-        sharded = shard_tensor(data[input], dim ^ transB, input + f":{plc.name}({dim})")
-        node.input[1] = sharded.name
-        data[input] = sharded
+        data[input] = shard_tensor(data[input], w_plc)
 
-        if len(node.input) > 2:
-            if dim == -1:  # column parallel
-                input = node.input[2]
-                sharded = shard_tensor(data[input], dim, input + f":{plc.name}({dim})")
-                node.input[2] = sharded.name
-                data[input] = sharded
-            else:  # row parallel
-                print("row parallel ", node.name)
-                if tp_rank != 0:
-                    del data[node.input.pop()]
+        output = node.output[0]
+        ndim = len(vinfo[output].type.tensor_type.shape.dim)
+        out_plc = Shard(ndim - 1) if in_plc.is_replicate() else _Partial()
+        place[node.output[0]] = out_plc
 
-        plc = Placement.Shard if plc == Placement.Replicate else Placement._Partial
-        return plc, dim
-
-    def shard_bias(node: NodeProto, plc: Placement):
-        # print("bias", node.name)
-        dim = 0
-        for i, input in enumerate(node.input):
-            if input in data and len(data[input].dims) == 1:
-                sharded = shard_tensor(data[input], dim, input + f":{plc.name}({dim})")
-                node.input[i] = sharded.name
-                data[input] = sharded
-        return plc, dim
+    def shard_binary(node: NodeProto):
+        # print("binary", node.name, node.input[0], place[node.input[0]])
+        a = node.input[0]
+        b = node.input[1]
+        if a in data:
+            a, b = b, a
+        place[node.output[0]] = place[a]
+        if is_sharded(a) and b in data and len(data[b].dims) == 1:  # broadcast
+            data[b] = shard_tensor(data[b], Shard(0))
 
     def shard_reshape(node: NodeProto):
-        # print("reshape", node.name, node.input[1])
+        # print("reshape", node.name, node.input[0], place[node.input[0]])
         if not is_sharded(node.input[0]):
             return
+        in_plc = place[node.input[0]]
+        s_dim = -1
+        in_dims = [d.dim_value for d in vinfo[node.input[0]].type.tensor_type.shape.dim]
         tensor = data[node.input[1]]
-        dims = numpy_helper.to_array(tensor).copy()
-        assert dims[-1] % tp_world_size == 0, dims
-        dims[-1] = dims[-1] // tp_world_size
-        node.input[1] = node.output[0] + "_shape"
-        data[node.input[1]] = numpy_helper.from_array(dims, name=node.input[1])
+        out_dims = numpy_helper.to_array(tensor).copy()
+        if len(in_dims) == 3 and len(out_dims) == 4:
+            if in_plc.dim == 0:
+                s_dim = 1
+            elif in_plc.dim == 2:
+                s_dim = 2
+        if len(in_dims) == 4 and len(out_dims) == 3:
+            if in_plc.dim == 1:
+                s_dim = 0
+            elif in_plc.dim == 2:
+                s_dim = 2
+        assert s_dim != -1, s_dim
+        assert out_dims[s_dim] % tp_world_size == 0, out_dims
+        out_dims[s_dim] //= tp_world_size
+        # if ONNX uses the same tensor for multiple Reshape Nodes, then rename it to distingush from others.
+        # node.input[1] = node.output[0] + "_shape"
+        data[node.input[1]] = numpy_helper.from_array(out_dims, name=node.input[1])
+        place[node.output[0]] = Shard(s_dim)
 
-    def shard_node(node: NodeProto, placement: Placement):
-        def rename_output(node: NodeProto, idx: int, dim: int):
-            new_name = node.output[idx] + f":{placement.name}({dim})"
-            renames[node.output[idx]] = new_name
-            vinfo[new_name] = vinfo.pop(node.output[idx])
-            node.output[idx] = new_name
+    def shard_transpose(node: NodeProto):
+        plc = place[node.input[0]]
+        if plc.is_shard():
+            perm = next(attr.ints for attr in node.attribute if attr.name == "perm")
+            place[node.output[0]] = Shard(list(perm).index(plc.dim))
 
-        if node.op_type == "Split" and is_sharded(node.input[0]):
-            data.pop(node.input[1], None)
-            node.input.pop()
-            node.attribute.append(
-                helper.make_attribute("num_outputs", len(node.output))
-            )
-            for i in range(len(node.output)):
-                rename_output(node, i, -1)
-        elif node.op_type in {"Add", "Mul", "Max"} and any(
-            t not in data and is_sharded(t) for t in node.input
-        ):
-            placement, dim = shard_bias(node, placement)
-            rename_output(node, 0, dim)
-        elif node.op_type == "Reshape" and is_sharded(node.input[0]):
+    def shard_node(node: NodeProto):
+        # no fuse_qkv so no Split
+        # if node.op_type == "Split":
+        #     data.pop(node.input[1], None)
+        #     node.input.pop()
+        #     node.attribute.append(
+        #         helper.make_attribute("num_outputs", len(node.output))
+        #     )
+        #     for output in node.output:
+        #         place[output] = place[node.input[0]]
+        if node.op_type in ["Relu", "Tanh"]:
+            place[node.output[0]] = place[node.input[0]]
+        if node.op_type in {"Add", "Mul", "Max"}:
+            shard_binary(node)
+        elif node.op_type == "Reshape":
             shard_reshape(node)
-            rename_output(node, 0, -1)
-        elif node.op_type == "Transpose" and is_sharded(node.input[0]):
-            rename_output(node, 0, -1)
-        elif node.op_type == "MatMul" and (
-            is_sharded(node.input[0]) ^ is_sharded(node.input[1])
-        ):
-            rename_output(node, 0, -1)
+        elif node.op_type == "Transpose":
+            shard_transpose(node)
+        elif node.op_type == "MatMul":
+            if is_sharded(node.input[0]) or is_sharded(node.input[1]):
+                place[node.output[0]] = Shard(0)
 
-    # current placement of activitions.
-    placement = Placement.Replicate
-    for i, node in enumerate(model.graph.node):
+    # all tensors are initially replicated.
+    for v in vinfo:
+        place[v] = Replicate()
+
+    for t in data:
+        place[t] = Replicate()
+
+    for node in model.graph.node:
         nodes.append(node)
-        # rename input
-        for i, input in enumerate(node.input):
-            if input in renames:
-                node.input[i] = renames[input]
-        # shard linear
+        # linear
         if (node.op_type == "MatMul" or node.op_type == "Gemm") and any(
             input in data for input in node.input
         ):
-            placement, dim = shard_gemm(node, placement)
-            new_name = node.output[0] + f":{placement.name}({dim})"
-            if placement == Placement._Partial:
+            shard_gemm(node)
+            plc = place[node.output[0]]
+            if plc.is_partial():
+                new_name = node.output[0] + f":{plc}"
+                place[new_name] = place[node.output[0]]
                 # insert all_reduce
                 nodes.append(
                     helper.make_node(
@@ -139,18 +142,25 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
                         communicator=0,  # hack to treat ReduceSum as AllReduceSum
                     )
                 )
-                placement = Placement.Replicate
-            else:
-                # rename output
-                renames[node.output[0]] = new_name
-                vinfo[new_name] = vinfo.pop(node.output[0])
-            node.output[0] = new_name
+                place[node.output[0]] = Replicate()
+                node.output[0] = new_name
+            if len(node.input) > 2:  # split bias to add
+                prev = nodes[-1]
+                new_name = prev.output[0] + "_no_bias"
+                place[new_name] = place[node.output[0]]
+                bias = helper.make_node(
+                    op_type="Add",
+                    inputs=[new_name, node.input[2]],
+                    outputs=[prev.output[0]],
+                    name=node.name + "/bias",
+                )
+                node.input.pop()
+                prev.output[0] = new_name
+                shard_binary(bias)
+                nodes.append(bias)
             continue
-        shard_node(node, placement)
+        shard_node(node)
 
-    for output in model.graph.output:
-        if output.name in renames:
-            output.name = renames[output.name]
     graph = helper.make_graph(
         nodes,
         model.graph.name + f"_{tp_rank}",
