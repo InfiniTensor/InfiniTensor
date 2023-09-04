@@ -40,11 +40,11 @@ def parse_args():
     )
 
 
-def run_stub(stub: OnnxStub, inputs: np.array, n=100):
+def run_stub(stub: OnnxStub, inputs: np.array, n=20):
     # warm up
     next(stub.inputs.items().__iter__())[1].copyin_numpy(inputs)
     stub.tune()
-    for _ in range(20):
+    for _ in range(10):
         stub.run()
     outputs = np.array(next(stub.outputs.items().__iter__())[1].copyout_float())
 
