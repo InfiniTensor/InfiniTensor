@@ -9,6 +9,9 @@ import numpy as np
 from parallel_opt import parallel_model
 
 
+os.environ["NVIDIA_TF32_OVERRIDE"] = "0"
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="launch distributed infinitensor")
     parser.add_argument("--num_nodes", type=int, default=1, help="number of nodes")
@@ -18,6 +21,8 @@ def parse_args():
     parser.add_argument(
         "--model", type=str, required=True, help="path to the ONNX model file."
     )
+    parser.add_argument("--batch_size", type=int, default=1, help="batch size.")
+    parser.add_argument("--length", type=int, default=1, help="sequence length.")
     parser.add_argument(
         "--gen_std",
         action="store_true",
@@ -25,14 +30,21 @@ def parse_args():
     )
     args = parser.parse_args()
     print("arg setting: ", args)
-    return args.num_nodes, args.nproc_per_node, args.model, args.gen_std
+    return (
+        args.num_nodes,
+        args.nproc_per_node,
+        args.model,
+        args.batch_size,
+        args.length,
+        args.gen_std,
+    )
 
 
-def run_stub(stub: OnnxStub, inputs: np.array, n=1):
+def run_stub(stub: OnnxStub, inputs: np.array, n=100):
     # warm up
     next(stub.inputs.items().__iter__())[1].copyin_int32(inputs.reshape(-1).tolist())
-    # stub.tune()
-    for _ in range(0):
+    stub.tune()
+    for _ in range(20):
         stub.run()
     outputs = np.array(next(stub.outputs.items().__iter__())[1].copyout_float())
 
@@ -87,8 +99,8 @@ def run_standard(model, voc_size=50272, bs=1, len=2048):
     # generate standard results
     runtime = backend.CudaRuntime(0)
     stub = OnnxStub(model, runtime)
-    data = np.zeros((bs, len), dtype=np.int32)
-    # data = np.random.randint(0, voc_size, (bs, len), dtype=np.int32)
+    # data = np.zeros((bs, len), dtype=np.int32)
+    data = np.random.randint(0, voc_size, (bs, len), dtype=np.int32)
     np.save("inputs", data)
     outputs = run_stub(stub, data)
     print("outputs sum:", outputs.sum())
@@ -96,12 +108,12 @@ def run_standard(model, voc_size=50272, bs=1, len=2048):
 
 
 def main():
-    nnodes, nproc_per_node, model_path, gen_std = parse_args()
+    nnodes, nproc_per_node, model_path, bs, length, gen_std = parse_args()
 
     model = onnx.load(model_path)
 
     if gen_std:
-        p = mp.Process(target=run_standard, args=(model,))
+        p = mp.Process(target=run_standard, args=(model, bs, length))
         p.start()
         p.join()
 
