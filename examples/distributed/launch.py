@@ -63,7 +63,7 @@ def run_stub(stub: OnnxStub, inputs: np.array, n=100):
 def start_worker(
     dist_name: str, world_size: int, rank: int, local_rank: int, model: onnx.ModelProto
 ):
-    print("start worker")
+    # print("start worker")
     model = parallel_model(model, world_size, rank)
     extern_path = f"./dist_model_rank{rank}.pb"
     if os.path.exists(extern_path):
@@ -77,16 +77,16 @@ def start_worker(
     )
     onnx.save(model, f"dist_model_rank{rank}.onnx")
     runtime = backend.CudaRuntime(local_rank)
-    print("init comm")
+    # print("init comm")
     runtime.init_comm(
         dist_name,
         world_size,
         rank,
     )
-    print("load model")
+    # print("load model")
     stub = OnnxStub(model, runtime)
     data = np.load("inputs.npy")
-    print("run model")
+    # print("run model")
     outputs = run_stub(stub, data)
     print("outputs sum:", outputs.sum())
     results = np.load("results.npy")
