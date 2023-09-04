@@ -123,6 +123,11 @@ class GraphObj : public Object {
      * @brief If the nodes is sorted in topological order.
      */
     bool sorted;
+
+    /**
+     * @brief If the persistent tensors are allocated.
+     */
+    bool persistentAllocated = false;
 };
 
 } // namespace infini

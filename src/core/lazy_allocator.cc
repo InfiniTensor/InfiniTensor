@@ -11,9 +11,6 @@ namespace infini {
 constexpr size_t alignmentInBytesForCUDA = 256;
 
 LazyAllocator::LazyAllocator(Runtime runtime) : runtime(runtime) {
-    used = 0;
-    peak = 0;
-    ptr = nullptr;
     if (runtime->isCuda()) {
         // TODO: the alignment on cuda might need further discussion
         alignment = alignmentInBytesForCUDA;
@@ -30,10 +27,21 @@ LazyAllocator::~LazyAllocator() {
     if (this->ptr != nullptr) {
         runtime->dealloc(this->ptr);
     }
+    if (this->persistentPtr != nullptr) {
+        runtime->dealloc(this->persistentPtr);
+    }
+}
+
+void LazyAllocator::init() {
+    used = 0;
+    peak = 0;
+    if (this->ptr != nullptr) {
+        runtime->dealloc(this->ptr);
+    }
+    this->ptr = nullptr;
 }
 
 size_t LazyAllocator::alloc(size_t size) {
-    IT_ASSERT(this->ptr == nullptr);
     // pad the size to the multiple of alignment
     size = this->getAlignedSize(size);
     auto it = this->freeBlocks.lower_bound(freeBlockInfo{(size_t)0, size});
@@ -83,6 +91,14 @@ size_t LazyAllocator::alloc(size_t size) {
     return retAddr;
 }
 
+size_t LazyAllocator::allocPersistent(size_t size) {
+    IT_ASSERT(this->persistentPtr == nullptr);
+    size = this->getAlignedSize(size);
+    size_t retAddr = this->persistentPeak;
+    this->persistentPeak += size;
+    return retAddr;
+}
+
 void LazyAllocator::free(size_t addr, size_t size) {
     IT_ASSERT(this->ptr == nullptr);
     size = getAlignedSize(size);
@@ -126,9 +142,23 @@ void LazyAllocator::free(size_t addr, size_t size) {
 void *LazyAllocator::getPtr() {
     if (this->ptr == nullptr) {
         this->ptr = runtime->alloc(this->peak);
-        printf("LazyAllocator really alloc: %p %lu bytes\n", this->ptr, peak);
+#ifdef DEBUG_MODE
+        printf("LazyAllocator really alloc non-persistent: %p %lu bytes\n",
+               this->ptr, peak);
+#endif
     }
     return this->ptr;
+}
+
+void *LazyAllocator::getPersistentPtr() {
+    if (this->persistentPtr == nullptr) {
+        this->persistentPtr = runtime->alloc(this->persistentPeak);
+#ifdef DEBUG_MODE
+        printf("LazyAllocator really alloc persistent: %p %lu bytes\n",
+               this->persistentPtr, persistentPeak);
+#endif
+    }
+    return this->persistentPtr;
 }
 
 size_t LazyAllocator::getAlignedSize(size_t size) {
@@ -136,8 +166,9 @@ size_t LazyAllocator::getAlignedSize(size_t size) {
 }
 
 void LazyAllocator::info() {
-    std::cout << "Used memory: " << this->used
-              << ", peak memory: " << this->peak << std::endl;
+    std::cout << "Used memory: " << this->used + this->persistentPeak
+              << ", peak memory: " << this->peak + this->persistentPeak
+              << std::endl;
 }
 
 } // namespace infini

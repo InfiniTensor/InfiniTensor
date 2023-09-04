@@ -165,16 +165,42 @@ void GraphObj::dataMalloc() {
     // record the memory address offsets of all tensors to be allocated
     std::unordered_map<TensorObj *, size_t> tensorToOffset;
 
-    // record all constant tensors, including weight tensors and input tensors
-    std::unordered_set<TensorObj *> constTensor;
+    // reinit allocator
+    allocator.init();
+
+    // record all persistent tensors, including weight tensors and kvcache
+    // tensors
+    std::unordered_set<TensorObj *> persistentTensors;
     for (auto &tensor : tensors) {
-        if (tensor.get()->getSource() == nullptr) {
-            // allocate memory for all constant tensors first, and this memory
+        if (tensor->isPersistent()) {
+            // allocate memory for all persistent tensors first, and this memory
             // will not be reused later
-            constTensor.insert(tensor.get());
-            tensorToOffset[tensor.get()] = allocator.alloc(tensor->getBytes());
+            persistentTensors.insert(tensor.get());
+            if (!this->persistentAllocated) {
+                tensorToOffset[tensor.get()] =
+                    allocator.allocPersistent(tensor->getBytes());
+            }
         } else {
             tensorToRefCount[tensor.get()] = tensor->getTargets().size();
+            if (tensor.get()->getSource() == nullptr) {
+                // allocate memory for input tensors, because it is not the
+                // output of any op
+                tensorToOffset[tensor.get()] =
+                    allocator.alloc(tensor->getBytes());
+            }
+        }
+    }
+    // if memory has not yet been allocated for persistent tensors,
+    // allocate memory now and do not allocate again in the future.
+    if (!this->persistentAllocated) {
+        this->persistentAllocated = true;
+        // only allocate once for persistent tensors
+        for (auto &tensor : persistentTensors) {
+            IT_ASSERT(tensorToOffset.find(tensor) != tensorToOffset.end());
+            tensor->setDataBlob(make_ref<BlobObj>(
+                tensor->runtime,
+                static_cast<uint8_t *>(allocator.getPersistentPtr()) +
+                    tensorToOffset[tensor]));
         }
     }
     // traverse in topological order and simulate memory allocation
@@ -186,7 +212,8 @@ void GraphObj::dataMalloc() {
         }
         auto inputs = op->getInputs();
         for (auto &tensor : inputs) {
-            if (constTensor.find(tensor.get()) == constTensor.end()) {
+            if (persistentTensors.find(tensor.get()) ==
+                persistentTensors.end()) {
                 auto tensorIter = tensorToRefCount.find(tensor.get());
                 IT_ASSERT(tensorIter != tensorToRefCount.end());
                 tensorToRefCount[tensor.get()] -= 1;
@@ -201,15 +228,20 @@ void GraphObj::dataMalloc() {
         }
     }
 
-    // perform actual memory allocation
+    // perform actual memory allocation for non-persistent tensors
     for (auto &tensor : tensors) {
-        IT_ASSERT(tensorToOffset.find(tensor.get()) != tensorToOffset.end());
-        tensor->setDataBlob(make_ref<BlobObj>(
-            tensor->runtime, static_cast<uint8_t *>(allocator.getPtr()) +
-                                 tensorToOffset[tensor.get()]));
+        if (!tensor->isPersistent()) {
+            IT_ASSERT(tensorToOffset.find(tensor.get()) !=
+                      tensorToOffset.end());
+            tensor->setDataBlob(make_ref<BlobObj>(
+                tensor->runtime, static_cast<uint8_t *>(allocator.getPtr()) +
+                                     tensorToOffset[tensor.get()]));
+        }
     }
 
+#ifdef DEBUG_MODE
     allocator.info();
+#endif
 }
 
 Tensor GraphObj::addTensor(Shape dim, DataType dtype) {
