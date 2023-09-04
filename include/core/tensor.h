@@ -19,6 +19,8 @@ class TensorObj : public TensorBaseObj {
     size_t _size; // Cache of Π(shape).
     Fuid fuid;    // Cloned tensors share the same id. Tensors constructed from
                   // scratch have a new id.
+    bool persistent = false;
+
   public:
     TensorObj(Shape shape, DataType dtype, Runtime runtime);
     virtual ~TensorObj() {}
@@ -35,6 +37,8 @@ class TensorObj : public TensorBaseObj {
     size_t getOffset(const vector<int> &ds) const;
     void dataMalloc();
     UidBaseType getFuid() const { return fuid; }
+    bool isPersistent() const { return persistent; }
+    void setPersistent() { persistent = true; }
 
     void load(std::string file_path);
     void save(std::string file_path);

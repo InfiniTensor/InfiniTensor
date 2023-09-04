@@ -609,6 +609,13 @@ class OnnxStub:
             node_list = list(set(node_name) - set(new_node_name))
 
         ################################
+        # Set weight tensors as persistent
+        ################################
+        for name, obj in tensors.items():
+            if data.get(name) != None:
+                obj.set_persistent()
+
+        ################################
         # Allocate memory space for data
         ################################
         self.handler.data_malloc()
@@ -950,8 +957,7 @@ class OnnxStub:
             oldTensor = self.inputs[oldInput]
             self.handler.change_shape(newInput, oldTensor.fuid())
         self.handler.shape_infer()
-
-    #        self.handler.data_malloc()
+        self.handler.data_malloc()
 
     def getShape(self, name: str) -> List[int]:
         if name in self.inputs:
