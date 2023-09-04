@@ -668,6 +668,13 @@ class OnnxStub:
             node_list = list(set(node_name) - set(new_node_name))
 
         ################################
+        # Set weight tensors as persistent
+        ################################
+        for name, obj in tensors.items():
+            if data.get(name) != None:
+                obj.set_persistent()
+
+        ################################
         # Allocate memory space for data
         ################################
         self.handler.data_malloc()
