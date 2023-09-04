@@ -42,14 +42,14 @@ def parse_args():
 
 def run_stub(stub: OnnxStub, inputs: np.array, n=100):
     # warm up
-    next(stub.inputs.items().__iter__())[1].copyin_int32(inputs.reshape(-1).tolist())
+    next(stub.inputs.items().__iter__())[1].copyin_numpy(inputs)
     stub.tune()
     for _ in range(20):
         stub.run()
     outputs = np.array(next(stub.outputs.items().__iter__())[1].copyout_float())
 
     # bench
-    next(stub.inputs.items().__iter__())[1].copyin_int32(inputs.reshape(-1).tolist())
+    next(stub.inputs.items().__iter__())[1].copyin_numpy(inputs)
     begin = time.time()
     for _ in range(n):
         stub.run()
@@ -95,7 +95,7 @@ def start_worker(
     # assert np.allclose(outputs, results, rtol=1e-3, atol=1e-6)
 
 
-def run_standard(model, voc_size=50272, bs=1, len=2048):
+def run_standard(model, voc_size, bs, len):
     # generate standard results
     runtime = backend.CudaRuntime(0)
     stub = OnnxStub(model, runtime)
@@ -113,7 +113,8 @@ def main():
     model = onnx.load(model_path)
 
     if gen_std:
-        p = mp.Process(target=run_standard, args=(model, bs, length))
+        voc_size = 50272
+        p = mp.Process(target=run_standard, args=(model, voc_size, bs, length))
         p.start()
         p.join()
 
