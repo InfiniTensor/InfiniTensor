@@ -14,7 +14,7 @@ class AllReduceNCCL : public CudaKernelWithoutConfig {
         void *input = op->getInputs(0)->getRawDataPtr<void *>();
         void *output = op->getOutput()->getRawDataPtr<void *>();
         IT_ASSERT(op->getDType() == DataType::Float32);
-        size_t count = op->getInputs(0)->getBytes() / op->getDType().getSize();
+        size_t count = op->getInputs(0)->size();
 
         ncclComm_t comm =
             dynamic_cast<NcclCommunicatorObj &>(context->getCommunicator())
