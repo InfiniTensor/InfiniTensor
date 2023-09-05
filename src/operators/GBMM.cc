@@ -23,13 +23,16 @@ string GBMMObj::toString() const {
 
 optional<vector<Shape>> GBMMObj::inferShape(const TensorVec &inputs) {
     auto A = inputs[0], B = inputs[1];
+    b = A->getDims()[0];
+    m = A->getDims()[1];
+    w = (A->getDims()[2] - 1) / 2;
+    n = B->getDims()[2];
 
     IT_ASSERT(A->getRank() == 3 && B->getRank() == 3);
     IT_ASSERT(A->getDims()[0] == B->getDims()[0]);
     IT_ASSERT(A->getDims()[1] == B->getDims()[1]);
     IT_ASSERT(A->getDims()[2] % 2 != 0);
-    int b(A->getDims()[0]), m(A->getDims()[1]), k(B->getDims()[2]);
-    return {{{b, m, k}}};
+    return {{{b, m, n}}};
 }
 
 vector<int> GBMMObj::getWorkloadVector() const {

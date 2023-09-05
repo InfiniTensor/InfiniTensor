@@ -19,6 +19,7 @@
 #include "operators/transpose.h"
 #include "operators/unary.h"
 #include "operators/where.h"
+#include <numeric>
 
 namespace infini {
 
@@ -507,6 +508,9 @@ void GraphHandlerObj::change_shape(const vector<int> &shape, int tensorId) {
     IT_ASSERT(tensor != nullptr);
     IT_ASSERT(shape.size() != 0);
     tensor->setShape(shape);
+    size_t size = std::accumulate(shape.begin(), shape.end(), 1,
+                                  [](auto acc, auto x) { return acc * x; });
+    tensor->setSize(size);
 }
 
 } // namespace infini

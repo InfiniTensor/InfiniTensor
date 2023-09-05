@@ -1,5 +1,4 @@
 #include "core/graph.h"
-#include "operators/reshape.h"
 #include <algorithm>
 #include <numeric>
 #include <queue>

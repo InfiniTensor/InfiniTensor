@@ -329,7 +329,7 @@ class TestStringMethods(unittest.TestCase):
                 [pads_data],
             )
         )
-    
+
     def test_allReduceSum(self):
         input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
         output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 2, 4])
@@ -349,7 +349,7 @@ class TestStringMethods(unittest.TestCase):
         graph = make_graph([allReduceProd], "allReduceProd", [input], [output])
         model = make_model(graph)
         from_onnx(model, backend.cpu_runtime())
-    
+
     def test_allReduceMin(self):
         input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
         output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 2, 4])
@@ -379,14 +379,12 @@ class TestStringMethods(unittest.TestCase):
         graph = make_graph([allReduceAvg], "allReduceAvg", [input], [output])
         model = make_model(graph)
         from_onnx(model, backend.cpu_runtime())
-    
+
     def test_split(self):
         input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
-        split = make_node(
-            "Split", ["input"], ["output"], name="split", axis=0
-        )
+        split = make_node("Split", ["input"], ["output"], name="split", axis=0)
         make_and_import_model(make_graph([split], "split", [input], []))
-    
+
     def test_allBroadcast(self):
         input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
         output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 2, 4])
@@ -507,6 +505,7 @@ class TestStringMethods(unittest.TestCase):
         tensor1.copyin_numpy(np_array)
         array1 = np.array(tensor1, copy=False)
         self.assertTrue(np.array_equal(array1, np_array))
+
 
 class TestDynamicTensor(unittest.TestCase):
     def test_dynamic_tensor(self):
