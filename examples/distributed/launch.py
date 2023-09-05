@@ -113,7 +113,7 @@ def main():
     model = onnx.load(model_path)
 
     if gen_std:
-        voc_size = 50272
+        voc_size = 1000  # a small vocabulary size to fit all LLM.
         p = mp.Process(target=run_standard, args=(model, voc_size, bs, length))
         p.start()
         p.join()
