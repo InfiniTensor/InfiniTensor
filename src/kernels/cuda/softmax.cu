@@ -5,7 +5,8 @@
 #define BLOCK_DIM_x 32
 #define BLOCK_DIM_y 32
 
-struct __align__(8) MD {
+struct __align__(8) MD { // update the global max and sum, store the output at
+                         // max_tmp and sum_tmp
     float max_tmp; // store max
     float sum_tmp; // store sum
 };
@@ -22,17 +23,19 @@ __device__ __forceinline__ MD reduce_md_op(MD a, MD b) {
 
 __global__ void _softmax_kernel(float *input, float *output, int size,
                                 infini::SmallArray inputShape, int axis,
-                                int nDims, float *res_sum, float *res_max) {
+                                int nDims, float *res_sum,
+                                float *res_max) {  // if set axis = 1
     int i = threadIdx.x + blockIdx.x * blockDim.x; // i < inputShape[axis]
     int j = threadIdx.y + blockIdx.y * blockDim.y; // j < size/inputShape[axis]
     int size_x = inputShape.data[axis];
     int size_y = size / inputShape.data[axis];
     if (j < size_y && i < size_x) {
         int v = j;
-        int tid = 0;
-        int stride = 1;
-        int temp = 1;
-        int ijks = 0;
+        int tid = 0;    // global index = i_0(a_1*a_2*a_3) + i_1 (a_2*a_3) + i_2
+                        // (a_3) + i_3
+        int stride = 1; // stride = [a_1*a_2*a_3, a_2*a_3, a_3, 1][axis]
+        int temp = 1;   // temp = 1, a_3, a_2*a_3, a_1*a_2*a_3
+        int ijks = 0;   // ijks = i_3,i_2,i_0,
         for (int k = nDims - 1; k >= 0; --k) {
             if (k == 0) {
                 ijks = v; // i
@@ -48,7 +51,7 @@ __global__ void _softmax_kernel(float *input, float *output, int size,
                 tid += ijks * temp;
             }
             temp *= inputShape.data[k];
-        }
+        } // now, tid = i_0(a_1*a_2*a_3) + i_2 (a_3) + i_3
         MD md_partial;
         md_partial.max_tmp = -__FLT_MAX__;
         md_partial.sum_tmp = 0.0f;
