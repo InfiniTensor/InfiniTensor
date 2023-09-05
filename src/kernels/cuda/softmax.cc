@@ -4,7 +4,7 @@
 #include "cuda/cuda_softmax.h"
 
 namespace infini {
-class SoftmaxCudnn : public CudaKernelWithoutConfig {
+class SoftmaxCuda : public CudaKernelWithoutConfig {
 
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
@@ -28,6 +28,6 @@ class SoftmaxCudnn : public CudaKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Softmax, DataType::Float32, SoftmaxCudnn,
+REGISTER_KERNEL(Device::CUDA, OpType::Softmax, DataType::Float32, SoftmaxCuda,
                 "Softmax_CUDA_Float32");
 } // namespace infini

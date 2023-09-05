@@ -50,14 +50,22 @@ TEST(CUDA_Where, run) {
         Shape{2, 2, 3, 1}, vector<int>{0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1},
         vector<float>{0., 1., 2., 0., 0., 0., 6., 7., 0., 9., 10., 11.});
 
-    test_where(Shape{2, 1, 1, 3},                                  // inputx
-               vector<float>{0, 1, 2, 3, 4, 5}, Shape{1, 2, 1, 1}, // inputy
-               vector<float>{1, 1}, Shape{2, 1, 3, 1},             // condition
-               vector<int>{0, 1, 1, 0, 0, 0},
+    test_where(Shape{2, 1, 1, 3}, vector<float>{0, 1, 2, 3, 4, 5}, // inputx
+               Shape{1, 2, 1, 1}, vector<float>{1, 1},             // inputy
+               Shape{2, 1, 3, 1}, vector<int>{0, 1, 1, 0, 0, 0},   // condition
                vector<float>{1., 1., 1., 0., 1., 2., 0., 1., 2., 1., 1., 1.,
                              0., 1., 2., 0., 1., 2., 1., 1., 1., 1., 1., 1.,
                              1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.});
-
+    test_where(
+        Shape{
+            3,
+        },
+        vector<float>{0, 1, 2},                           // inputx
+        Shape{2, 3, 1}, vector<float>{0, 1, 2, 3, 4, 5},  // inputy
+        Shape{2, 1, 3, 1}, vector<int>{0, 1, 1, 0, 0, 0}, // condition
+        vector<float>{0., 0., 0., 0., 1., 2., 0., 1., 2., 3., 3., 3.,
+                      0., 1., 2., 0., 1., 2., 0., 0., 0., 1., 1., 1.,
+                      2., 2., 2., 3., 3., 3., 4., 4., 4., 5., 5., 5.});
 } // python output
 
 } // namespace infini

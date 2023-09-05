@@ -2,7 +2,7 @@
 #include "utils/small_array.h"
 
 __global__ void _where_kernel(const float *inputx, const float *inputy,
-                              const float *condition, float *output, int nDims,
+                              const int *condition, float *output, int nDims,
                               int outputsize, infini::SmallArray inputxShape,
                               infini::SmallArray inputyShape,
                               infini::SmallArray conditionShape,
@@ -63,7 +63,7 @@ __global__ void _where_kernel(const float *inputx, const float *inputy,
 
 namespace infini {
 void where_kernel(const float *inputx, const float *inputy,
-                  const float *condition, float *output, int nDims,
+                  const int *condition, float *output, int nDims,
                   infini::SmallArray inputxShape,
                   infini::SmallArray inputyShape,
                   infini::SmallArray conditionShape,
