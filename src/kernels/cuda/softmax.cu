@@ -1,77 +1,96 @@
 #include "cuda/cuda_common.h"
-#include "cuda/softmax.h"
+#include "utils/small_array.h"
 #include <cub/cub.cuh>
 
-struct __align__(8) MD {
-    float data;
-    float d;
-};
+#define BLOCK_DIM_x 32
+#define BLOCK_DIM_y 32
 
+struct __align__(8) MD //引入MD结构体，同时更新最大值和全局求和
+{
+    float max_tmp; //负责存储最大值
+    float sum_tmp; //负责存储求和
+};
 __device__ __forceinline__ MD reduce_md_op(MD a, MD b) {
-    bool a_bigger = (a.data > b.data);
-    MD bigger_m = a_bigger ? a : b;
-    MD smaller_m = a_bigger ? b : a;
+    bool a_bigger = (a.max_tmp > b.max_tmp);
+    MD bigger = a_bigger ? a : b;
+    MD smaller = a_bigger ? b : a;
     MD res;
-    res.d = bigger_m.d + smaller_m.d * __expf(smaller_m.data - bigger_m.data);
-    res.data = bigger_m.data;
+    res.sum_tmp = bigger.sum_tmp +
+                  smaller.sum_tmp * __expf(smaller.max_tmp - bigger.max_tmp);
+    res.max_tmp = bigger.max_tmp;
     return res;
 }
 
-template <int THREADBLOCK_SIZE>
-__launch_bounds__(THREADBLOCK_SIZE) __global__
-    void online_softmax(const float *__restrict in, float *__restrict out,
-                        int dimSize, int stride) {
+__global__ void _softmax_kernel(float *input, float *output, int size,
+                                infini::SmallArray inputShape, int axis,
+                                int nDims, float *res_sum, float *res_max) {
+    int i = threadIdx.x + blockIdx.x * blockDim.x; // i < inputShape[axis]
+    int j = threadIdx.y + blockIdx.y * blockDim.y; // j < size/inputShape[axis]
+    int size_x = inputShape.data[axis];
+    int size_y = size / inputShape.data[axis];
+    if (j < size_y && i < size_x) {
+        int v = j;
+        int tid = 0;
+        int stride = 1;
+        int temp = 1;
+        int ijks = 0;
+        for (int k = nDims - 1; k >= 0; --k) {
+            if (k == 0) {
+                ijks = v; // i
+            } else if (k == axis) {
+                v /= 1;
+            } else {
+                ijks = v % inputShape.data[k]; // s,k,j
+                v /= inputShape.data[k];
+            }
+            if (k == axis) {
+                stride = temp;
+            } else {
+                tid += ijks * temp;
+            }
+            temp *= inputShape.data[k];
+        }
+        MD md_partial;
+        md_partial.max_tmp = -__FLT_MAX__;
+        md_partial.sum_tmp = 0.0f;
+        for (int id = threadIdx.x; id < size_x; id += blockDim.x) {
+            MD md_input;
+            md_input.max_tmp = input[tid + id * stride];
+            md_input.sum_tmp = 1.0f;
+            md_partial = reduce_md_op(
+                md_partial,
+                md_input); //每隔一个线程块就做一个比较，把所有信息集中到一个线程块
+        }
+        typedef cub::BlockReduce<MD, BLOCK_DIM_x> BlockReduce;
+        __shared__ typename BlockReduce::TempStorage temp_storage;
 
-    // reposition in and out to data for the current vector
-    int blockOffset = blockIdx.x;
-    if (blockIdx.x >= stride) {
-        int tmp = blockIdx.x % stride;
-        blockOffset = tmp + (blockIdx.x - tmp) * dimSize;
+        MD md_block =
+            BlockReduce(temp_storage).Reduce(md_partial, reduce_md_op);
+        if (threadIdx.x == 0) { //必须指定threadIdx.x = 0来写入全局内存
+            res_sum[j] = md_block.sum_tmp;
+            res_max[j] = md_block.max_tmp;
+        }
+        __syncthreads();
+        //-----------------
+
+        output[tid + i * stride] =
+            __expf(input[tid + i * stride] - res_max[j]) *
+            __fdividef(1.0F, res_sum[j]);
     }
-    in += blockOffset;
-    out += blockOffset;
-
-    MD md_partial;
-    md_partial.data = -FLT_MAX;
-    md_partial.d = 0.0F;
-
-    for (int elem_id = threadIdx.x; elem_id < dimSize;
-         elem_id += THREADBLOCK_SIZE) {
-        MD new_elem;
-        new_elem.data = in[elem_id * stride];
-        new_elem.d = 1.0F;
-        md_partial = reduce_md_op(md_partial, new_elem);
-    }
-
-    // blockreduce for THREADBLOCK_SIZE threads.
-    // The actrual threads num used in the block is "dimsSize"
-    typedef cub::BlockReduce<MD, THREADBLOCK_SIZE> BlockReduce;
-
-    __shared__ typename BlockReduce::TempStorage temp_storage;
-    __shared__ MD md_total;
-
-    MD md = BlockReduce(temp_storage).Reduce(md_partial, reduce_md_op);
-    if (threadIdx.x == 0)
-        md_total = md;
-    __syncthreads();
-
-    float d_total_inverse = __fdividef(1.0F, md_total.d);
-    for (int elem_id = threadIdx.x; elem_id < dimSize;
-         elem_id += THREADBLOCK_SIZE)
-        out[elem_id * stride] =
-            __expf(in[elem_id * stride] - md_total.data) * d_total_inverse;
 }
-
 namespace infini {
-void softmax_kernel(int max_threadblock_size, int blockNum, float *in,
-                    float *out, int dimSize, int stride) {
-    if (max_threadblock_size >= 255)
-        online_softmax<256><<<blockNum, 256>>>(in, out, dimSize, stride);
-    else if (max_threadblock_size >= 128)
-        online_softmax<128><<<blockNum, 128>>>(in, out, dimSize, stride);
-    else if (max_threadblock_size >= 64)
-        online_softmax<64><<<blockNum, 64>>>(in, out, dimSize, stride);
-    else
-        online_softmax<32><<<blockNum, 32>>>(in, out, dimSize, stride);
+void softmax_kernel(float *input, float *output, int size,
+                    SmallArray inputShape, int axis, int nDims) {
+    int size_x = inputShape.data[axis];
+    int size_y = size / inputShape.data[axis];
+    int num_block_x = ceil(size_x / (double)BLOCK_DIM_x);
+    int num_block_y = ceil(size_y / (double)BLOCK_DIM_y);
+    dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
+    dim3 grid_dim(num_block_x, num_block_y, 1);
+    float *res_sum, *res_max;
+    cudaMalloc((void **)&res_sum, size_y * sizeof(float));
+    cudaMalloc((void **)&res_max, size_y * sizeof(float));
+    _softmax_kernel<<<grid_dim, block_dim>>>(input, output, size, inputShape,
+                                             axis, nDims, res_sum, res_max);
 }
 } // namespace infini
