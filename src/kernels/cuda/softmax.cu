@@ -5,10 +5,9 @@
 #define BLOCK_DIM_x 32
 #define BLOCK_DIM_y 32
 
-struct __align__(8) MD //引入MD结构体，同时更新最大值和全局求和
-{
-    float max_tmp; //负责存储最大值
-    float sum_tmp; //负责存储求和
+struct __align__(8) MD {
+    float max_tmp; // store max
+    float sum_tmp; // store sum
 };
 __device__ __forceinline__ MD reduce_md_op(MD a, MD b) {
     bool a_bigger = (a.max_tmp > b.max_tmp);
@@ -57,16 +56,16 @@ __global__ void _softmax_kernel(float *input, float *output, int size,
             MD md_input;
             md_input.max_tmp = input[tid + id * stride];
             md_input.sum_tmp = 1.0f;
-            md_partial = reduce_md_op(
-                md_partial,
-                md_input); //每隔一个线程块就做一个比较，把所有信息集中到一个线程块
+            md_partial = reduce_md_op(md_partial,
+                                      md_input); // reduce the data to one block
         }
         typedef cub::BlockReduce<MD, BLOCK_DIM_x> BlockReduce;
         __shared__ typename BlockReduce::TempStorage temp_storage;
 
         MD md_block =
             BlockReduce(temp_storage).Reduce(md_partial, reduce_md_op);
-        if (threadIdx.x == 0) { //必须指定threadIdx.x = 0来写入全局内存
+        if (threadIdx.x ==
+            0) { // must set threadIdx.x = 0 write the output to memory
             res_sum[j] = md_block.sum_tmp;
             res_max[j] = md_block.max_tmp;
         }
