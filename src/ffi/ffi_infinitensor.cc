@@ -1,7 +1,9 @@
+#include "core/data_type.h"
 #include "core/graph_handler.h"
 #include "operators/batch_norm.h"
 #include "operators/concat.h"
 #include "operators/conv.h"
+#include "operators/expand.h"
 #include "operators/gather.h"
 #include "operators/matmul.h"
 #include "operators/pad.h"
@@ -12,8 +14,9 @@
 #include "operators/transpose.h"
 #include "operators/unary.h"
 #include <algorithm>
+#include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-
 #ifdef USE_CUDA
 #include "cuda/cuda_runtime.h"
 #include "cuda/operator_timer.h"
@@ -96,6 +99,10 @@ void export_values(py::module &m) {
         .VALUE(OpType, Resize)
         .VALUE(OpType, Dropout)
         .VALUE(OpType, Cast)
+        .VALUE(OpType, Sqrt)
+        .VALUE(OpType, Expand)
+        .VALUE(OpType, Erf)
+        .VALUE(OpType, Where)
         .export_values();
 
 #undef VALUE
@@ -229,6 +236,15 @@ static vector<int64_t> reshape_shape_of(Operator op) {
     return ans;
 }
 
+static vector<int64_t> expand_shape_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Expand);
+    auto shape = dynamic_cast<const ExpandObj *>(op.get())->getShape();
+    vector<int64_t> ans(shape.size());
+    std::transform(shape.begin(), shape.end(), ans.begin(),
+                   [](auto x) { return static_cast<int64_t>(x); });
+    return ans;
+}
+
 static vector<int64_t> pad_pads_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Pad);
     auto shape = dynamic_cast<const PadObj *>(op.get())->getPads();
@@ -279,6 +295,7 @@ void export_functions(py::module &m) {
         .FUNCTION(reduce_mean_attrs_of)
         .FUNCTION(tensor_dtype)
         .FUNCTION(reshape_shape_of)
+        .FUNCTION(expand_shape_of)
         .FUNCTION(pad_pads_of)
         .FUNCTION(transpose_permute_of)
         .FUNCTION(concat_axis_of)
@@ -305,7 +322,8 @@ void init_graph_builder(py::module &m) {
     py::class_<BangRuntimeObj, std::shared_ptr<BangRuntimeObj>, RuntimeObj>(
         m, "BangRuntime");
 #endif
-    py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "Tensor")
+    py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "Tensor",
+                                                      py::buffer_protocol())
         .def("fuid", &TensorObj::getFuid, policy::automatic)
         .def("shape", &TensorObj::getDims, policy::move)
         .def("copyin_float", &TensorObj::copyin<float>, policy::move)
@@ -320,6 +338,65 @@ void init_graph_builder(py::module &m) {
         .def("copyout_int8", &TensorObj::copyout<int8_t>, policy::move)
         .def("copyout_uint8", &TensorObj::copyout<uint8_t>, policy::move)
         .def("copyout_float16", &TensorObj::copyout<uint16_t>, policy::move)
+        // Copy data from a Numpy array
+        .def("copyin_numpy",
+             [](TensorObj &self, py::buffer buf) {
+                 py::buffer_info buf_info = buf.request();
+                 void *data_np = buf_info.ptr;
+                 size_t itemsize = buf_info.itemsize;
+                 size_t size = buf_info.size;
+                 IT_ASSERT(itemsize == self.getDType().getSize());
+                 IT_ASSERT(size == self.size());
+                 for (size_t i = 0; i < self.getRank(); i++) {
+                     IT_ASSERT(self.getDims()[i] == buf_info.shape[i]);
+                 }
+                 self.copyin(data_np, self.getBytes());
+             })
+        // A buffer can be used to convert a TensorObj directly to Numpy array
+        // without copy
+        .def_buffer([](TensorObj &self) -> py::buffer_info {
+            vector<size_t> stride_byte;
+            for (int s : self.getStride()) {
+                stride_byte.push_back(s * self.getDType().getSize());
+            }
+
+            std::string format;
+            if (self.getDType() == DataType::Float32) {
+                format = py::format_descriptor<float>::format();
+            } else if (self.getDType() == DataType::Double) {
+                format = py::format_descriptor<double>::format();
+            } else if (self.getDType() == DataType::Int32) {
+                format = py::format_descriptor<int>::format();
+            } else if (self.getDType() == DataType::UInt32) {
+                format = py::format_descriptor<uint32_t>::format();
+            } else if (self.getDType() == DataType::Int64) {
+                format = py::format_descriptor<int64_t>::format();
+            } else if (self.getDType() == DataType::UInt64) {
+                format = py::format_descriptor<uint64_t>::format();
+            } else if (self.getDType() == DataType::Int16) {
+                format = py::format_descriptor<int16_t>::format();
+            } else if (self.getDType() == DataType::UInt16) {
+                format = py::format_descriptor<uint16_t>::format();
+            } else if (self.getDType() == DataType::Int8) {
+                format = py::format_descriptor<int8_t>::format();
+            } else if (self.getDType() == DataType::UInt8) {
+                format = py::format_descriptor<uint8_t>::format();
+            } else if (self.getDType() == DataType::Float16 ||
+                       self.getDType() == DataType::BFloat16) {
+                // Python uses "e" for half precision float type code.
+                // Check the following link for more information.
+                // https://docs.python.org/3/library/struct.html#format-characters
+                format = "e";
+            } else {
+                throw std::runtime_error("Error converting TensorObj to "
+                                         "Numpy: unsupported datatype.\n");
+            }
+
+            return py::buffer_info(self.getRawDataPtr<void *>(),
+                                   self.getDType().getSize(), format,
+                                   self.getRank(), self.getDims(), stride_byte,
+                                   true); // Read-only = true
+        })
         .def("has_target", &TensorObj::hasTarget, policy::automatic)
         .def("src", &TensorObj::getSource, policy::move)
         .def("printData", &TensorObj::printData, policy::automatic);
@@ -371,6 +448,9 @@ void init_graph_builder(py::module &m) {
         .def("allGather", &Handler::allGather, policy::move)
         .def("broadcast", &Handler::broadcast, policy::move)
         .def("cast", &Handler::cast, policy::move)
+        .def("expand", &Handler::expand, policy::move)
+        .def("erf", &Handler::erf, policy::move)
+        .def("where", &Handler::where, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)
         .def("optimize", &Handler::optimize, policy::automatic)
         .def("operators", &Handler::operators, policy::move)

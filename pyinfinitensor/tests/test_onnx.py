@@ -9,7 +9,8 @@ from onnx.helper import (
 )
 from onnx.checker import check_model, check_graph
 from onnx.shape_inference import infer_shapes
-from pyinfinitensor.onnx import from_onnx, OnnxStub, backend
+from pyinfinitensor.onnx import from_onnx, OnnxStub, backend, _parse_data_fp16
+import numpy as np
 
 
 def make_and_import_model(graph: onnx.GraphProto):
@@ -206,6 +207,18 @@ class TestStringMethods(unittest.TestCase):
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
         relu = make_node("Relu", ["x"], ["y"], name="relu")
         make_and_import_model(make_graph([relu], "relu", [x], [y]))
+
+    def test_erf(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        erf = make_node("Erf", ["x"], ["y"], name="erf")
+        make_and_import_model(make_graph([erf], "erf", [x], [y]))
+
+    def test_sqrt(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        sqrt = make_node("Sqrt", ["x"], ["y"], name="sqrt")
+        make_and_import_model(make_graph([sqrt], "sqrt", [x], [y]))
 
     def test_sigmoid(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
@@ -429,6 +442,71 @@ class TestStringMethods(unittest.TestCase):
         )
         make_and_import_model(make_graph([cast], "cast", [input1], [output]))
 
+    def test_expand(self):
+        data = make_tensor_value_info("data", TensorProto.FLOAT, [3, 1])
+        dim = make_tensor_value_info("dim", TensorProto.INT64, [3])
+        dim_data = make_tensor("dim", TensorProto.INT64, [3], [2, 1, 6])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [2, 3, 6])
+        expand = make_node("Expand", ["data", "dim"], ["output"], name="expand")
+        make_and_import_model(
+            make_graph([expand], "expand", [data, dim], [output], [dim_data])
+        )
+
+    def test_where(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        con = make_tensor_value_info("con", TensorProto.BOOL, [1, 3, 5, 7])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 5, 7])
+        where = make_node("Where", ["x", "y", "con"], ["output"], name="where")
+        make_and_import_model(make_graph([where], "where", [x, y, con], [output]))
+
+    def test_copyin(self):
+        dims = [2,3,5,4]
+        np_array = np.random.random(dims).astype(np.float32)
+        handler = backend.GraphHandler(backend.cpu_runtime())
+        tensor1 = handler.tensor(dims, TensorProto.FLOAT)
+        tensor2 = handler.tensor(dims, TensorProto.FLOAT)
+        handler.data_malloc()
+        tensor1.copyin_numpy(np_array)
+        tensor2.copyin_float(np_array.flatten().tolist())
+        array1 = tensor1.copyout_float()
+        array2 = tensor2.copyout_float()
+        self.assertEqual(array1, array2)
+        self.assertTrue(np.array_equal(np.array(array1).reshape(dims), np_array))
+
+        np_array = np.random.random(dims).astype(np.int64)
+        handler = backend.GraphHandler(backend.cpu_runtime())
+        tensor1 = handler.tensor(dims, TensorProto.INT64)
+        tensor2 = handler.tensor(dims, TensorProto.INT64)
+        handler.data_malloc()
+        tensor1.copyin_numpy(np_array)
+        tensor2.copyin_int64(np_array.flatten().tolist())
+        array1 = tensor1.copyout_int64()
+        array2 = tensor2.copyout_int64()
+        self.assertEqual(array1, array2)
+        self.assertTrue(np.array_equal(np.array(array1).reshape(dims), np_array))
+
+    def test_to_numpy(self):
+        dims = [2,3,5,4]
+        np_array = np.random.random(dims).astype(np.float32)
+        handler = backend.GraphHandler(backend.cpu_runtime())
+        tensor1 = handler.tensor(dims, TensorProto.FLOAT)
+        tensor2 = handler.tensor(dims, TensorProto.FLOAT)
+        handler.data_malloc()
+        tensor1.copyin_float(np_array.flatten().tolist())
+        tensor2.copyin_float(np_array.flatten().tolist())
+        array1 = np.array(tensor1.copyout_float()).reshape(dims)
+        array2 = np.array(tensor2)
+        self.assertTrue(np.array_equal(array2, np_array))
+        self.assertTrue(np.array_equal(array1, array2))
+
+        np_array = np.random.random(dims).astype(np.float16)
+        handler = backend.GraphHandler(backend.cpu_runtime())
+        tensor1 = handler.tensor(dims, TensorProto.FLOAT16)
+        handler.data_malloc()
+        tensor1.copyin_numpy(np_array)
+        array1 = np.array(tensor1, copy=False)
+        self.assertTrue(np.array_equal(array1, np_array))
 
 if __name__ == "__main__":
     unittest.main()

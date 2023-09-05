@@ -15,23 +15,17 @@ class ClipCnnl : public BangKernelWithoutConfig {
         float max = op->getMax().value();
 
         cnnlTensorDescriptor_t aDesc;
-        auto dim = op->getInputs(0)->getDims();
-        if (dim.size() != 4)
-            IT_TODO_HALT();
+        auto aDim = op->getInputs(0)->getDims();
 
-        int dim_array[4] = {dim[0], dim[1], dim[2], dim[3]};
-        // get inputs
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, dim_array));
-
+                                               CNNL_DTYPE_FLOAT, aDim.size(),
+                                               aDim.data()));
         cnnlStatus_t stat =
             cnnlClip(context->cnnlHandle(), aDesc, aData, &min, &max, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
-        // Destories in BANG does not require sync. But cnnl does not state
-        // whether sync is required before destories.
         checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
     }
 };

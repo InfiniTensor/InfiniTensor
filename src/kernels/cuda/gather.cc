@@ -12,7 +12,8 @@ class GatherCuda : public CudaKernelWithoutConfig {
         auto in = op->getInputs(0);
         auto index = op->getInputs(1);
         auto out = op->getOutput();
-        metaData.indexValue = index->getRawDataPtr<int *>();
+        metaData.indexValue = index->getRawDataPtr<void *>();
+        metaData.indexType = index->getDType();
         metaData.axis = op->getAxis();
         metaData.inNDim = in->getRank();
         metaData.outNDim = out->getRank();

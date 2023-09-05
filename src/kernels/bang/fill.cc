@@ -13,23 +13,18 @@ class FillCnnl : public BangKernelWithoutConfig {
         float value = op->getValue();
 
         cnnlTensorDescriptor_t cDesc;
-        auto dim = op->getOutput()->getDims();
-        if (dim.size() != 4)
-            IT_TODO_HALT();
+        auto cDim = op->getOutput()->getDims();
 
-        int dim_array[4] = {dim[0], dim[1], dim[2], dim[3]};
-        // get outputs
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+                                               CNNL_DTYPE_FLOAT, cDim.size(),
+                                               cDim.data()));
 
         cnnlStatus_t stat =
             cnnlFill(context->cnnlHandle(), value, cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
-        // Destories in BANG does not require sync. But cnnl does not state
-        // whether sync is required before destories.
         checkCnnlError(cnnlDestroyTensorDescriptor(cDesc));
     }
 };
