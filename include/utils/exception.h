@@ -13,14 +13,10 @@ class Exception : public std::runtime_error {
 
     Exception &operator<<(const std::string &str) {
         info += str;
-        info += '\n';
         return *this;
     }
 
-    const char *what() const noexcept override {
-        std::string msg = std::runtime_error::what();
-        return (msg + '\n' + info).c_str();
-    }
+    const char *what() const noexcept override { return info.c_str(); }
 };
 
 } // namespace infini
