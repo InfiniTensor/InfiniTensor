@@ -1,6 +1,9 @@
 #pragma once
 #include "core/runtime.h"
 #include "cuda/cuda_common.h"
+#ifdef INFINI_USE_NCCL
+#include "cuda/nccl_communicator.h"
+#endif
 
 namespace infini {
 
@@ -8,12 +11,15 @@ class CudaRuntimeObj : public RuntimeObj {
   private:
     cudnnHandle_t cudnn;
     cublasHandle_t cublas;
+    std::unique_ptr<CommunicatorObj> comm;
     CudaPtr workspace;
     size_t workspaceSize;
 
   public:
-    CudaRuntimeObj() : RuntimeObj(Device::CUDA) {
+    explicit CudaRuntimeObj(int deviceId = 0)
+        : RuntimeObj(Device::CUDA, deviceId) {
 
+        checkCudaError(cudaSetDevice(deviceId));
         checkCudnnError(cudnnCreate(&cudnn));
         checkCublasError(cublasCreate(&cublas));
         // 10GB for Longformer
@@ -68,6 +74,11 @@ class CudaRuntimeObj : public RuntimeObj {
     }
 
     void runWithoutSync(const Graph &graph) const;
+
+    // init communicator
+    void initComm(const string &name, int worldSize, int rank) final;
+
+    CommunicatorObj &getCommunicator() const final { return *comm; }
 
   private:
     void tune(const Graph &graph, bool profiling) const;

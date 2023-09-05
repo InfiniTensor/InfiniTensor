@@ -591,6 +591,54 @@ class OnnxStub:
                         tensors.get(node.output[0]),
                         next((attr.i for attr in node.attribute if attr.name == "to")),
                     )
+                elif node.op_type == "AllReduceSum":
+                    tensors[node.output[0]] = self.handler.allReduceSum(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "AllReduceProd":
+                    tensors[node.output[0]] = self.handler.allReduceProd(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "AllReduceMin":
+                    tensors[node.output[0]] = self.handler.allReduceMin(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "AllReduceMax":
+                    tensors[node.output[0]] = self.handler.allReduceMax(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "AllReduceAvg":
+                    tensors[node.output[0]] = self.handler.allReduceAvg(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "AllGather":
+                    for name, tensor in zip(
+                        node.output,
+                        self.handler.allGather(
+                            tensors[node.input[0]],
+                            None,
+                            len(node.output),
+                        ),
+                    ):
+                        tensors[name] = tensor
+                elif node.op_type == "Broadcast":
+                    tensors[node.output[0]] = self.handler.broadcast(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        next(
+                                (
+                                    attr.i
+                                    for attr in node.attribute
+                                    if attr.name == "root"
+                                ),
+                                0,
+                            ),
+                    )
                 elif node.op_type == "Expand":
                     shape = _parse_data(data[node.input[1]])
                     tensors[node.output[0]] = self.handler.expand(

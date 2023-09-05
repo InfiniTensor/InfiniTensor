@@ -143,7 +143,10 @@ static int tensor_dtype(Tensor t) {
 }
 
 #ifdef USE_CUDA
-static Ref<CudaRuntimeObj> cuda_runtime() { return make_ref<CudaRuntimeObj>(); }
+// NOTE(lizhouyang): deprecate this, use CudaRuntime directly.
+[[deprecated]] static Ref<CudaRuntimeObj> cuda_runtime() {
+    return make_ref<CudaRuntimeObj>(0);
+}
 #endif
 
 #ifdef USE_BANG
@@ -311,7 +314,9 @@ void init_graph_builder(py::module &m) {
                RuntimeObj>(m, "CpuRuntime");
 #ifdef USE_CUDA
     py::class_<CudaRuntimeObj, std::shared_ptr<CudaRuntimeObj>, RuntimeObj>(
-        m, "CudaRuntime");
+        m, "CudaRuntime")
+        .def(py::init<int>(), py::arg("device") = 0)
+        .def("init_comm", &CudaRuntimeObj::initComm);
 #endif
 #ifdef USE_BANG
     py::class_<BangRuntimeObj, std::shared_ptr<BangRuntimeObj>, RuntimeObj>(
@@ -435,6 +440,13 @@ void init_graph_builder(py::module &m) {
         .def("reduce_mean", &Handler::reduceMean, policy::move)
         .def("slice", &Handler::slice, policy::move)
         .def("pad", &Handler::pad, policy::move)
+        .def("allReduceSum", &Handler::allReduceSum, policy::move)
+        .def("allReduceProd", &Handler::allReduceProd, policy::move)
+        .def("allReduceMin", &Handler::allReduceMin, policy::move)
+        .def("allReduceMax", &Handler::allReduceMax, policy::move)
+        .def("allReduceAvg", &Handler::allReduceAvg, policy::move)
+        .def("allGather", &Handler::allGather, policy::move)
+        .def("broadcast", &Handler::broadcast, policy::move)
         .def("cast", &Handler::cast, policy::move)
         .def("expand", &Handler::expand, policy::move)
         .def("erf", &Handler::erf, policy::move)
