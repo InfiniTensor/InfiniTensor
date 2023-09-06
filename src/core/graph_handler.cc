@@ -1,8 +1,12 @@
 ﻿#include "core/graph_handler.h"
+#include "operators/all_gather.h"
+#include "operators/all_reduce.h"
 #include "operators/batch_norm.h"
+#include "operators/broadcast.h"
 #include "operators/concat.h"
 #include "operators/conv.h"
 #include "operators/element_wise.h"
+#include "operators/expand.h"
 #include "operators/gather.h"
 #include "operators/matmul.h"
 #include "operators/pad.h"
@@ -14,6 +18,7 @@
 #include "operators/split.h"
 #include "operators/transpose.h"
 #include "operators/unary.h"
+#include "operators/where.h"
 
 namespace infini {
 
@@ -155,6 +160,7 @@ DEFINE_UNARY_METHOD(tanh, Tanh)
 DEFINE_UNARY_METHOD(abs, Abs)
 DEFINE_UNARY_METHOD(sqrt, Sqrt)
 DEFINE_UNARY_METHOD(shape, Shape)
+DEFINE_UNARY_METHOD(erf, Erf)
 
 // see operators/reshape.h
 DEFINE_UNARY_METHOD(identity, Identity)
@@ -297,6 +303,73 @@ Tensor GraphHandlerObj::pad(Tensor input, Tensor output,
     }
 }
 
+Tensor GraphHandlerObj::allReduceSum(Tensor input, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<AllReduceSumObj>(std::move(input), output);
+        return output;
+    } else {
+        return g->addOp<AllReduceSumObj>(std::move(input), output)->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::allReduceProd(Tensor input, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<AllReduceProdObj>(std::move(input), output);
+        return output;
+    } else {
+        return g->addOp<AllReduceProdObj>(std::move(input), output)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::allReduceMin(Tensor input, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<AllReduceMinObj>(std::move(input), output);
+        return output;
+    } else {
+        return g->addOp<AllReduceMinObj>(std::move(input), output)->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::allReduceMax(Tensor input, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<AllReduceMaxObj>(std::move(input), output);
+        return output;
+    } else {
+        return g->addOp<AllReduceMaxObj>(std::move(input), output)->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::allReduceAvg(Tensor input, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<AllReduceAvgObj>(std::move(input), output);
+        return output;
+    } else {
+        return g->addOp<AllReduceAvgObj>(std::move(input), output)->getOutput();
+    }
+}
+
+TensorVec GraphHandlerObj::allGather(Tensor input,
+                                     std::optional<TensorVec> outputs, int n) {
+    if (outputs) {
+        g->addOpWithOutputs<AllGatherObj>(std::move(input), outputs, n);
+        return *outputs;
+    } else {
+        return g->addOp<AllGatherObj>(std::move(input), outputs, n)
+            ->getOutputs();
+    }
+}
+
+Tensor GraphHandlerObj::broadcast(Tensor input, Tensor output, int root) {
+    if (output) {
+        g->addOpWithOutputs<BroadcastObj>(std::move(input), output, root);
+        return output;
+    } else {
+        return g->addOp<BroadcastObj>(std::move(input), output, root)
+            ->getOutput();
+    }
+}
+
 Tensor GraphHandlerObj::cast(Tensor input, Tensor output, int to) {
     if (output) {
         g->addOpWithOutputs<CastObj>(std::move(input), output,
@@ -305,6 +378,31 @@ Tensor GraphHandlerObj::cast(Tensor input, Tensor output, int to) {
     } else {
         return g
             ->addOp<CastObj>(std::move(input), output, inferCastType(input, to))
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::expand(Tensor input, Tensor output, Shape dims) {
+    if (output) {
+        g->addOpWithOutputs<ExpandObj>(std::move(input), output,
+                                       std::move(dims));
+        return output;
+    } else {
+        return g->addOp<ExpandObj>(std::move(input), output, std::move(dims))
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::where(Tensor inputX, Tensor inputY, Tensor condition,
+                              Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<WhereObj>(std::move(inputX), std::move(inputY),
+                                      std::move(condition), output);
+        return output;
+    } else {
+        return g
+            ->addOp<WhereObj>(std::move(inputX), std::move(inputY),
+                              std::move(condition), output)
             ->getOutput();
     }
 }

@@ -414,7 +414,8 @@ class OnnxStub:
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
                         next(
-                            (attr.i for attr in node.attribute if attr.name == "axis")
+                            (attr.i for attr in node.attribute if attr.name == "axis"),
+                            1,
                         ),
                     )
                 elif node.op_type == "PRelu":
@@ -595,14 +596,87 @@ class OnnxStub:
                         tensors.get(node.output[0]),
                         next((attr.i for attr in node.attribute if attr.name == "to")),
                     )
+                elif node.op_type == "AllReduceSum":
+                    tensors[node.output[0]] = self.handler.allReduceSum(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "AllReduceProd":
+                    tensors[node.output[0]] = self.handler.allReduceProd(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "AllReduceMin":
+                    tensors[node.output[0]] = self.handler.allReduceMin(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "AllReduceMax":
+                    tensors[node.output[0]] = self.handler.allReduceMax(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "AllReduceAvg":
+                    tensors[node.output[0]] = self.handler.allReduceAvg(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "AllGather":
+                    for name, tensor in zip(
+                        node.output,
+                        self.handler.allGather(
+                            tensors[node.input[0]],
+                            None,
+                            len(node.output),
+                        ),
+                    ):
+                        tensors[name] = tensor
+                elif node.op_type == "Broadcast":
+                    tensors[node.output[0]] = self.handler.broadcast(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        next(
+                                (
+                                    attr.i
+                                    for attr in node.attribute
+                                    if attr.name == "root"
+                                ),
+                                0,
+                            ),
+                    )
+                elif node.op_type == "Expand":
+                    shape = _parse_data(data[node.input[1]])
+                    tensors[node.output[0]] = self.handler.expand(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        shape,
+                    )
+                elif node.op_type == "Erf":
+                    tensors[node.output[0]] = self.handler.erf(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "Where":
+                    tensors[node.output[0]] = self.handler.where(
+                        tensors[node.input[1]],
+                        tensors[node.input[2]],
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
                 else:
                     raise Exception('Unsupported operator "{}"'.format(node.op_type))
                 new_node_name.append(node.name)
             # update the node_list
             node_list = list(set(node_name) - set(new_node_name))
 
+        ################################
+        # Allocate memory space for data
+        ################################
         self.handler.data_malloc()
 
+        #################################
+        # Copy in data to tensor objects
+        #################################
         for name, obj in tensors.items():
             tensor = data.get(name)
             if tensor == None:
@@ -610,22 +684,24 @@ class OnnxStub:
                     self.inputs[name] = obj
             else:
                 self.initializer[obj.fuid()] = tensor
-                if tensor.data_type == TensorProto.INT32:
-                    obj.copyin_int32(_parse_data(tensor))
-                elif tensor.data_type == TensorProto.INT64:
-                    obj.copyin_int64(_parse_data(tensor))
-                elif tensor.data_type == TensorProto.FLOAT:
-                    obj.copyin_float(_parse_data(tensor))
-                elif tensor.data_type == TensorProto.BOOL:
-                    obj.copyin_int8(_parse_data(tensor))
-                elif tensor.data_type == TensorProto.FLOAT16:
-                    obj.copyin_float16(_parse_data_fp16(tensor))
-                elif tensor.data_type == TensorProto.INT8:
-                    obj.copyin_uint8(_parse_data(tensor))
-                elif tensor.data_type == TensorProto.BFLOAT16:
-                    obj.copyin_float16(_parse_data_fp16(tensor))
-                else:
-                    assert False, "Unsupported Tensor Type: {}".format(tensor.data_type)
+                # TODO: delete these lines after copyin_numpy is stable
+                # if tensor.data_type == TensorProto.INT32:
+                #     obj.copyin_int32(_parse_data(tensor))
+                # elif tensor.data_type == TensorProto.INT64:
+                #     obj.copyin_int64(_parse_data(tensor))
+                # elif tensor.data_type == TensorProto.FLOAT:
+                #     obj.copyin_float(_parse_data(tensor))
+                # elif tensor.data_type == TensorProto.BOOL:
+                #     obj.copyin_int8(_parse_data(tensor))
+                # elif tensor.data_type == TensorProto.FLOAT16:
+                #     obj.copyin_float16(_parse_data_fp16(tensor))
+                # elif tensor.data_type == TensorProto.INT8:
+                #     obj.copyin_uint8(_parse_data(tensor))
+                # elif tensor.data_type == TensorProto.BFLOAT16:
+                #     obj.copyin_float16(_parse_data_fp16(tensor))
+                # else:
+                #     assert False, "Unsupported Tensor Type: {}".format(tensor.data_type)
+                obj.copyin_numpy(to_array(tensor))
 
         for output in model.graph.output:
             self.outputs[output.name] = tensors[output.name]
@@ -820,6 +896,8 @@ class OnnxStub:
                 backend.OpTypeId.Abs,
                 backend.OpTypeId.Identity,
                 backend.OpTypeId.PRelu,
+                backend.OpTypeId.Sqrt,
+                backend.OpTypeId.Erf,
             ]:
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Flatten:
@@ -910,6 +988,13 @@ class OnnxStub:
             elif ty == backend.OpTypeId.Cast:
                 to = backend.cast_to_of(op)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, to=to))
+            elif ty == backend.OpTypeId.Where:
+                assert len(inputs) == 3, "Check Where Op must have three inputs."
+                new_inputs = [inputs[2], inputs[0], inputs[1]]
+                ctx.push_node(make_node(ty.name, new_inputs, outputs, name))
+            elif ty == backend.OpTypeId.Expand:
+                shape = backend.expand_shape_of(op)
+                ctx.push_node(make_node(ty.name, inputs, outputs, name, shape=shape))
             else:
                 raise Exception("Unsupported OpType", ty)
 

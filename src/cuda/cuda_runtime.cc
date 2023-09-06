@@ -2,6 +2,9 @@
 #include "core/kernel.h"
 #include "core/perf_engine.h"
 #include "core/runtime.h"
+#ifdef INFINI_USE_NCCL
+#include "cuda/nccl_communicator.h"
+#endif
 #include "operators/conv.h"
 #include "operators/matmul.h"
 
@@ -95,5 +98,16 @@ void CudaRuntimeObj::run(const Graph &graph, bool runTune,
 void CudaRuntimeObj::sync() const { checkCudaError(cudaDeviceSynchronize()); }
 
 string CudaRuntimeObj::toString() const { return "CUDA Runtime"; }
+
+void CudaRuntimeObj::initComm(const string &name, int worldSize, int rank) {
+    IT_ASSERT(worldSize > 0);
+    IT_ASSERT(rank >= 0);
+    IT_ASSERT(rank < worldSize);
+#ifdef INFINI_USE_NCCL
+    comm = std::make_unique<NcclCommunicatorObj>(name, worldSize, rank);
+#else
+    IT_TODO_HALT_MSG("Not compiled with NCCL.");
+#endif
+}
 
 } // namespace infini

@@ -18,28 +18,27 @@ class ActivationBackwardCnnl : public BangKernelWithoutConfig {
         void *const diffXData = (op->getOutput()->getRawDataPtr<void *>());
 
         cnnlTensorDescriptor_t yDesc, diffYDesc, xDesc, diffXDesc;
-        auto dim = op->getInputs(0)->getDims();
-        if (dim.size() != 4)
-            IT_TODO_HALT();
+        auto yDim = op->getInputs(0)->getDims();
+        auto diffyDim = op->getInputs(1)->getDims();
+        auto xDim = op->getInputs(2)->getDims();
+        auto diffxDim = op->getOutput()->getDims();
 
-        int dim_array[4] = {dim[0], dim[1], dim[2], dim[3]};
-        // get inputs
         checkCnnlError(cnnlCreateTensorDescriptor(&yDesc));
         checkCnnlError(cnnlSetTensorDescriptor(yDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, dim_array));
-        // get inputs
+                                               CNNL_DTYPE_FLOAT, yDim.size(),
+                                               yDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&diffYDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(diffYDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, dim_array));
-        // get inputs
+        checkCnnlError(cnnlSetTensorDescriptor(
+            diffYDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, diffyDim.size(),
+            diffyDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&xDesc));
         checkCnnlError(cnnlSetTensorDescriptor(xDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, dim_array));
-        // get outputs
+                                               CNNL_DTYPE_FLOAT, xDim.size(),
+                                               xDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&diffXDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(diffXDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, dim_array));
-
+        checkCnnlError(cnnlSetTensorDescriptor(
+            diffXDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, diffxDim.size(),
+            diffxDim.data()));
         // get op descriptor
         cnnlActivationDescriptor_t opDesc;
         checkCnnlError(cnnlCreateActivationDescriptor(&opDesc));
@@ -53,8 +52,6 @@ class ActivationBackwardCnnl : public BangKernelWithoutConfig {
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
-        // Destories in BANG does not require sync. But cnnl does not state
-        // whether sync is required before destories.
         checkCnnlError(cnnlDestroyTensorDescriptor(yDesc));
         checkCnnlError(cnnlDestroyTensorDescriptor(diffYDesc));
         checkCnnlError(cnnlDestroyTensorDescriptor(xDesc));

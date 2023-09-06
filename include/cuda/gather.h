@@ -1,7 +1,10 @@
 #pragma once
+#include "core/data_type.h"
 
-typedef struct {
-    int *indexValue;
+namespace infini {
+struct GatherMetaData {
+    void *indexValue;
+    DataType indexType;
     int axis;
     int inNDim;
     int outNDim;
@@ -10,8 +13,7 @@ typedef struct {
     int idxDim[4];
     int idxStride[4];
     int inStride[4];
-} GatherMetaData;
+};
 
-namespace infini {
-void gather_kernel(float *in, float *out, GatherMetaData metaData, int num);
-}
+void gather_kernel(float *in, float *out, GatherMetaData metaData, size_t num);
+} // namespace infini

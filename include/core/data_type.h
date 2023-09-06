@@ -1,3 +1,4 @@
+#pragma once
 #include "core/common.h"
 
 namespace infini {
@@ -69,23 +70,6 @@ class DataType {
     int getIndex() const { return index; }
 };
 
-// to be consistent with onnx
-// https://github.com/onnx/onnx/blob/aeb21329122b96df1d3ef33b500a35ca140b1431/onnx/onnx.proto#L484
-inline const DataType DataType::Undefine(0);
-inline const DataType DataType::Float32(1);
-inline const DataType DataType::UInt8(2);
-inline const DataType DataType::Int8(3);
-inline const DataType DataType::UInt16(4);
-inline const DataType DataType::Int16(5);
-inline const DataType DataType::Int32(6);
-inline const DataType DataType::Int64(7);
-inline const DataType DataType::String(8);
-inline const DataType DataType::Bool(9);
-inline const DataType DataType::Float16(10);
-inline const DataType DataType::Double(11);
-inline const DataType DataType::UInt32(12);
-inline const DataType DataType::UInt64(13);
-inline const DataType DataType::BFloat16(16);
 // Method definitions are out of the declaration due to GCC bug:
 // https://stackoverflow.com/questions/49707184/explicit-specialization-in-non-namespace-scope-does-not-compile-in-gcc
 template <> inline int DataType::get<float>() { return 0; }
