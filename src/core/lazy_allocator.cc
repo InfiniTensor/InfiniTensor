@@ -35,6 +35,9 @@ LazyAllocator::~LazyAllocator() {
 void LazyAllocator::init() {
     used = 0;
     peak = 0;
+    freeBlocks.clear();
+    headAddrToBlockSize.clear();
+    tailAddrToBlockSize.clear();
     if (this->ptr != nullptr) {
         runtime->dealloc(this->ptr);
     }
