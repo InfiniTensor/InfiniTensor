@@ -33,12 +33,12 @@ class OnnxStub:
     It can be generated from an Onnx model object.
     """
 
-    inputs: Dict[str, backend.Tensor] = {}
-    outputs: Dict[str, backend.Tensor] = {}
-    initializer: Dict[int, TensorProto] = {}
-    handler: backend.GraphHandler
+
 
     def __init__(self, model: ModelProto, runtime):
+        self.inputs: Dict[str, backend.Tensor] = {}
+        self.outputs: Dict[str, backend.Tensor] = {}
+        self.initializer: Dict[int, TensorProto] = {}
         model = infer_shapes(model)
         self.handler = backend.GraphHandler(runtime)
 
