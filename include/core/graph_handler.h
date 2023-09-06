@@ -75,6 +75,14 @@ class GraphHandlerObj {
     Tensor where(Tensor inputX, Tensor inputY, Tensor condition, Tensor output);
     std::vector<int> getDims(Tensor x) { return x->getDims(); }
 
+    Tensor allReduceSum(Tensor input, Tensor output);
+    Tensor allReduceProd(Tensor input, Tensor output);
+    Tensor allReduceMin(Tensor input, Tensor output);
+    Tensor allReduceMax(Tensor input, Tensor output);
+    Tensor allReduceAvg(Tensor input, Tensor output);
+    TensorVec allGather(Tensor input, std::optional<TensorVec> outputs, int n);
+    Tensor broadcast(Tensor input, Tensor output, int root);
+
     //------ modifiers
 
     inline bool topo_sort() { return g->topo_sort(); }

@@ -10,39 +10,26 @@ class SplitCnnl : public BangKernelWithoutConfig {
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
         int num = op->numOutputs();
         int axis = op->getDim();
-        void *argv[num];
-        for (int i = 0; i < num; ++i) {
-            argv[i] = op->getOutput(i)->getRawDataPtr<void *>();
-        }
-        void *const inputData = (op->getInputs(0)->getRawDataPtr<void *>());
 
-        cnnlTensorDescriptor_t desc;
-
-        int dimout_array[num][4];
-        for (int i = 0; i < num; ++i) {
-            auto dim = op->getOutput(i)->getDims();
-            if (dim.size() != 4) {
-                IT_TODO_HALT();
-            }
-            dimout_array[i][0] = dim[0];
-            dimout_array[i][1] = dim[1];
-            dimout_array[i][2] = dim[2];
-            dimout_array[i][3] = dim[3];
-        }
         auto dim = op->getInputs(0)->getDims();
-        if (dim.size() != 4) {
-            IT_TODO_HALT();
-        }
-        int dim_array[4] = {dim[0], dim[1], dim[2], dim[3]};
+        cnnlTensorDescriptor_t desc;
         checkCnnlError(cnnlCreateTensorDescriptor(&desc));
-        checkCnnlError(cnnlSetTensorDescriptor(desc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            desc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, dim.size(), dim.data()));
+
         cnnlTensorDescriptor_t descArray[num];
         for (int i = 0; i < num; ++i) {
             checkCnnlError(cnnlCreateTensorDescriptor(&descArray[i]));
-            checkCnnlError(
-                cnnlSetTensorDescriptor(descArray[i], CNNL_LAYOUT_NCHW,
-                                        CNNL_DTYPE_FLOAT, 4, dimout_array[i]));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                descArray[i], CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT,
+                op->getOutput(i)->getDims().size(),
+                op->getOutput(i)->getDims().data()));
+        }
+
+        void *const inputData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *argv[num];
+        for (int i = 0; i < num; ++i) {
+            argv[i] = op->getOutput(i)->getRawDataPtr<void *>();
         }
 
         size_t wsSize;
@@ -55,8 +42,6 @@ class SplitCnnl : public BangKernelWithoutConfig {
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
-        // Destories in BANG does not require sync. But cnnl does not state
-        // whether sync is required before destories.
         for (int i = 0; i < num; ++i) {
             checkCnnlError(cnnlDestroyTensorDescriptor(descArray[i]));
         }

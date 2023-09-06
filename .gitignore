@@ -42,3 +42,5 @@ build_debug/
 
 # onnx model
 *.onnx
+*.pb
+*.npy

@@ -22,13 +22,16 @@ string G2BMMObj::toString() const {
 
 optional<vector<Shape>> G2BMMObj::inferShape(const TensorVec &inputs) {
     auto A = inputs[0], B = inputs[1];
+    b = A->getDims()[0];
+    m = A->getDims()[1];
+    k = A->getDims()[2];
 
     IT_ASSERT(A->getRank() == 3 && B->getRank() == 3);
     IT_ASSERT(A->getDims()[0] == B->getDims()[0]);
     IT_ASSERT(A->getDims()[1] == B->getDims()[1]);
     IT_ASSERT(A->getDims()[2] == B->getDims()[2]);
     IT_ASSERT(width >= 0);
-    int b(A->getDims()[0]), m(A->getDims()[1]), n(2 * width + 1);
+    int n(2 * width + 1);
     return {{{b, m, n}}};
 }
 
