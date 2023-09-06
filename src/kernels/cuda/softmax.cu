@@ -20,33 +20,16 @@ __device__ __forceinline__ MD reduce_md_op(MD a, MD b) {
 template <int BLOCK_DIM>
 __launch_bounds__(BLOCK_DIM) __global__
     void _softmax_kernel(float *input, float *output, int size,
-                         infini::SmallArray inputShape, int axis,
-                         int nDims) { // if set axis = 1
-    int i = threadIdx.x +
-            blockIdx.x * blockDim.x; // blockIdx.x < size/inputShape[axis]
-    int tid = 0;
-    int dimsize = inputShape.data[axis];
+                         infini::SmallArray inputShape, int axis, int nDims,
+                         int stride) { // if set axis = 1, inputShape=[I,J,K,S]
+    int tid = 0;                       // tid = i(JKS) + j(KS) + k(S) + s
+    int dimsize = inputShape.data[axis]; // set axis = 1, dimsize = J
+    // blockDim.x = size/dimsize = IKS
+    // blockIdx.x = i(KS) + k(S) + s,blockIdx.x%stride = k(S) + s
 
-    int v = blockIdx.x;
-    int stride = 1; // stride = [a_1*a_2*a_3, a_2*a_3, a_3, 1][axis]
-    int temp = 1;   // temp = 1, a_3, a_2*a_3, a_1*a_2*a_3
-    int ijks = 0;   // ijks = i_3,i_2,i_0,
-    for (int k = nDims - 1; k >= 0; --k) {
-        if (k == 0) {
-            ijks = v; // i
-        } else if (k == axis) {
-            v /= 1;
-        } else {
-            ijks = v % inputShape.data[k]; // s,k,j
-            v /= inputShape.data[k];
-        }
-        if (k == axis) {
-            stride = temp;
-        } else {
-            tid += ijks * temp;
-        }
-        temp *= inputShape.data[k];
-    } // now, tid = i_0(a_1*a_2*a_3) + i_2 (a_3) + i_3
+    tid = blockIdx.x % stride + (blockIdx.x - blockIdx.x % stride) *
+                                    dimsize; // now, tid = i(JKS) + k(S) + s;
+
     MD md_partial;
     md_partial.max_tmp = -__FLT_MAX__;
     md_partial.sum_tmp = 0.0f;
@@ -77,33 +60,33 @@ __launch_bounds__(BLOCK_DIM) __global__
 }
 namespace infini {
 void softmax_kernel(float *input, float *output, int size,
-                    SmallArray inputShape, int axis, int nDims) {
+                    SmallArray inputShape, int axis, int nDims, int stride) {
     int dimsize = inputShape.data[axis];
     int num_blocks = size / dimsize;
     if (dimsize > 1023) {
         int BLOCK_DIM = 1024;
         _softmax_kernel<1024><<<num_blocks, BLOCK_DIM>>>(
-            input, output, size, inputShape, axis, nDims);
+            input, output, size, inputShape, axis, nDims, stride);
     } else if (dimsize > 511) {
         int BLOCK_DIM = 512;
         _softmax_kernel<512><<<num_blocks, BLOCK_DIM>>>(
-            input, output, size, inputShape, axis, nDims);
+            input, output, size, inputShape, axis, nDims, stride);
     } else if (dimsize > 255) {
         int BLOCK_DIM = 256;
         _softmax_kernel<256><<<num_blocks, BLOCK_DIM>>>(
-            input, output, size, inputShape, axis, nDims);
+            input, output, size, inputShape, axis, nDims, stride);
     } else if (dimsize > 127) {
         int BLOCK_DIM = 128;
         _softmax_kernel<128><<<num_blocks, BLOCK_DIM>>>(
-            input, output, size, inputShape, axis, nDims);
+            input, output, size, inputShape, axis, nDims, stride);
     } else if (dimsize > 63) {
         int BLOCK_DIM = 64;
-        _softmax_kernel<64><<<num_blocks, BLOCK_DIM>>>(input, output, size,
-                                                       inputShape, axis, nDims);
+        _softmax_kernel<64><<<num_blocks, BLOCK_DIM>>>(
+            input, output, size, inputShape, axis, nDims, stride);
     } else {
         int BLOCK_DIM = 32;
-        _softmax_kernel<32><<<num_blocks, BLOCK_DIM>>>(input, output, size,
-                                                       inputShape, axis, nDims);
+        _softmax_kernel<32><<<num_blocks, BLOCK_DIM>>>(
+            input, output, size, inputShape, axis, nDims, stride);
     }
 }
 } // namespace infini

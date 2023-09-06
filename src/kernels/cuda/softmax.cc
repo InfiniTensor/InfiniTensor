@@ -11,20 +11,25 @@ class SoftmaxCuda : public CudaKernelWithoutConfig {
         auto op = as<SoftmaxObj>(_op);
         auto input = op->getInputs(0)->getRawDataPtr<float *>();
         auto output = op->getOutput(0)->getRawDataPtr<float *>();
-        const auto &in_Shape = op->getInputs(0)->getDims(); // input shape
+        const auto &inShape = op->getInputs(0)->getDims(); // input shape
         int nDims = op->getInputs(0)->getDims().size();
         IT_ASSERT(nDims <= SMALL_ARRAY_SIZE);
-        int size = 1;
+        int size = 1;             // size = i(JKS) + j(KS) + k(S) + s
+        int stride = 1, temp = 1; // stride=[JKS, KS, S, 1][axis]
+        int axis = op->getAxis();
         SmallArray inputShape;
-        for (int i = 0; i < nDims; ++i) {
-            size *= in_Shape[i];
-            inputShape.data[i] = in_Shape[i];
+        for (int i = nDims - 1; i >= 0;
+             --i) { // must i = nDims - 1, --i; can't i = 0, i++
+            size *= inShape[i];
+            inputShape.data[i] = inShape[i];
+            if (i == axis) {
+                stride = temp;
+            }
+            temp *= inShape[i];
         }
 
-        int axis = op->getAxis();
-
         softmax_kernel((float *)input, (float *)output, size, inputShape, axis,
-                       nDims);
+                       nDims, stride);
     }
 };
 
