@@ -14,22 +14,16 @@ class L2LossCnnl : public BangKernelWithoutConfig {
 
         cnnlTensorDescriptor_t aDesc;
         auto dim = op->getInputs(0)->getDims();
-        if (dim.size() != 4)
-            IT_TODO_HALT();
 
-        int dim_array[4] = {dim[0], dim[1], dim[2], dim[3]};
-        // get inputs
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, dim_array));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, dim.size(), dim.data()));
 
         cnnlStatus_t stat =
             cnnlL2Loss(context->cnnlHandle(), aDesc, aData, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
-        // Destories in BANG does not require sync. But cnnl does not state
-        // whether sync is required before destories.
         checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
     }
 };

@@ -1,5 +1,8 @@
 ﻿#include "core/graph_handler.h"
+#include "operators/all_gather.h"
+#include "operators/all_reduce.h"
 #include "operators/batch_norm.h"
+#include "operators/broadcast.h"
 #include "operators/concat.h"
 #include "operators/conv.h"
 #include "operators/element_wise.h"
@@ -296,6 +299,73 @@ Tensor GraphHandlerObj::pad(Tensor input, Tensor output,
         return output;
     } else {
         return g->addOp<PadObj>(std::move(input), output, pads, axes)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::allReduceSum(Tensor input, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<AllReduceSumObj>(std::move(input), output);
+        return output;
+    } else {
+        return g->addOp<AllReduceSumObj>(std::move(input), output)->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::allReduceProd(Tensor input, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<AllReduceProdObj>(std::move(input), output);
+        return output;
+    } else {
+        return g->addOp<AllReduceProdObj>(std::move(input), output)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::allReduceMin(Tensor input, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<AllReduceMinObj>(std::move(input), output);
+        return output;
+    } else {
+        return g->addOp<AllReduceMinObj>(std::move(input), output)->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::allReduceMax(Tensor input, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<AllReduceMaxObj>(std::move(input), output);
+        return output;
+    } else {
+        return g->addOp<AllReduceMaxObj>(std::move(input), output)->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::allReduceAvg(Tensor input, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<AllReduceAvgObj>(std::move(input), output);
+        return output;
+    } else {
+        return g->addOp<AllReduceAvgObj>(std::move(input), output)->getOutput();
+    }
+}
+
+TensorVec GraphHandlerObj::allGather(Tensor input,
+                                     std::optional<TensorVec> outputs, int n) {
+    if (outputs) {
+        g->addOpWithOutputs<AllGatherObj>(std::move(input), outputs, n);
+        return *outputs;
+    } else {
+        return g->addOp<AllGatherObj>(std::move(input), outputs, n)
+            ->getOutputs();
+    }
+}
+
+Tensor GraphHandlerObj::broadcast(Tensor input, Tensor output, int root) {
+    if (output) {
+        g->addOpWithOutputs<BroadcastObj>(std::move(input), output, root);
+        return output;
+    } else {
+        return g->addOp<BroadcastObj>(std::move(input), output, root)
             ->getOutput();
     }
 }

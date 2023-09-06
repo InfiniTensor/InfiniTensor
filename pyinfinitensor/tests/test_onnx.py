@@ -9,7 +9,8 @@ from onnx.helper import (
 )
 from onnx.checker import check_model, check_graph
 from onnx.shape_inference import infer_shapes
-from pyinfinitensor.onnx import from_onnx, OnnxStub, backend
+from pyinfinitensor.onnx import from_onnx, OnnxStub, backend, _parse_data_fp16
+import numpy as np
 
 
 def make_and_import_model(graph: onnx.GraphProto):
@@ -328,6 +329,83 @@ class TestStringMethods(unittest.TestCase):
                 [pads_data],
             )
         )
+    
+    def test_allReduceSum(self):
+        input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 2, 4])
+        allReduceSum = make_node(
+            "AllReduceSum", ["input"], ["output"], name="allReduceSum"
+        )
+        graph = make_graph([allReduceSum], "allReduceSum", [input], [output])
+        model = make_model(graph)
+        from_onnx(model, backend.cpu_runtime())
+
+    def test_allReduceProd(self):
+        input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 2, 4])
+        allReduceProd = make_node(
+            "AllReduceProd", ["input"], ["output"], name="allReduceProd"
+        )
+        graph = make_graph([allReduceProd], "allReduceProd", [input], [output])
+        model = make_model(graph)
+        from_onnx(model, backend.cpu_runtime())
+    
+    def test_allReduceMin(self):
+        input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 2, 4])
+        allReduceMin = make_node(
+            "AllReduceMin", ["input"], ["output"], name="allReduceMin"
+        )
+        graph = make_graph([allReduceMin], "allReduceMin", [input], [output])
+        model = make_model(graph)
+        from_onnx(model, backend.cpu_runtime())
+
+    def test_allReduceMax(self):
+        input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 2, 4])
+        allReduceMax = make_node(
+            "AllReduceMax", ["input"], ["output"], name="allReduceMax"
+        )
+        graph = make_graph([allReduceMax], "allReduceMax", [input], [output])
+        model = make_model(graph)
+        from_onnx(model, backend.cpu_runtime())
+
+    def test_allReduceAvg(self):
+        input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 2, 4])
+        allReduceAvg = make_node(
+            "AllReduceAvg", ["input"], ["output"], name="allReduceAvg"
+        )
+        graph = make_graph([allReduceAvg], "allReduceAvg", [input], [output])
+        model = make_model(graph)
+        from_onnx(model, backend.cpu_runtime())
+    
+    def test_split(self):
+        input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
+        split = make_node(
+            "Split", ["input"], ["output"], name="split", axis=0
+        )
+        make_and_import_model(make_graph([split], "split", [input], []))
+    
+    def test_allBroadcast(self):
+        input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 2, 4])
+        broadcast = make_node(
+            "Broadcast", ["input"], ["output"], name="broadcast", root=1
+        )
+        graph = make_graph([broadcast], "broadcast", [input], [output])
+        model = make_model(graph)
+        from_onnx(model, backend.cpu_runtime())
+
+    def test_allGather(self):
+        input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
+        world_size = make_tensor_value_info("world_size", TensorProto.INT32, [1])
+        allGather = make_node(
+            "AllGather", ["input", "world_size"], ["output"], name="allGather"
+        )
+        graph = make_graph([allGather], "allGather", [input, world_size], [])
+        model = make_model(graph)
+        from_onnx(model, backend.cpu_runtime())
 
     # see <https://onnx.ai/onnx/intro/python.html#a-simple-example-a-linear-regression>
     def test_linear(self):
@@ -382,6 +460,53 @@ class TestStringMethods(unittest.TestCase):
         where = make_node("Where", ["x", "y", "con"], ["output"], name="where")
         make_and_import_model(make_graph([where], "where", [x, y, con], [output]))
 
+    def test_copyin(self):
+        dims = [2,3,5,4]
+        np_array = np.random.random(dims).astype(np.float32)
+        handler = backend.GraphHandler(backend.cpu_runtime())
+        tensor1 = handler.tensor(dims, TensorProto.FLOAT)
+        tensor2 = handler.tensor(dims, TensorProto.FLOAT)
+        handler.data_malloc()
+        tensor1.copyin_numpy(np_array)
+        tensor2.copyin_float(np_array.flatten().tolist())
+        array1 = tensor1.copyout_float()
+        array2 = tensor2.copyout_float()
+        self.assertEqual(array1, array2)
+        self.assertTrue(np.array_equal(np.array(array1).reshape(dims), np_array))
+
+        np_array = np.random.random(dims).astype(np.int64)
+        handler = backend.GraphHandler(backend.cpu_runtime())
+        tensor1 = handler.tensor(dims, TensorProto.INT64)
+        tensor2 = handler.tensor(dims, TensorProto.INT64)
+        handler.data_malloc()
+        tensor1.copyin_numpy(np_array)
+        tensor2.copyin_int64(np_array.flatten().tolist())
+        array1 = tensor1.copyout_int64()
+        array2 = tensor2.copyout_int64()
+        self.assertEqual(array1, array2)
+        self.assertTrue(np.array_equal(np.array(array1).reshape(dims), np_array))
+
+    def test_to_numpy(self):
+        dims = [2,3,5,4]
+        np_array = np.random.random(dims).astype(np.float32)
+        handler = backend.GraphHandler(backend.cpu_runtime())
+        tensor1 = handler.tensor(dims, TensorProto.FLOAT)
+        tensor2 = handler.tensor(dims, TensorProto.FLOAT)
+        handler.data_malloc()
+        tensor1.copyin_float(np_array.flatten().tolist())
+        tensor2.copyin_float(np_array.flatten().tolist())
+        array1 = np.array(tensor1.copyout_float()).reshape(dims)
+        array2 = np.array(tensor2)
+        self.assertTrue(np.array_equal(array2, np_array))
+        self.assertTrue(np.array_equal(array1, array2))
+
+        np_array = np.random.random(dims).astype(np.float16)
+        handler = backend.GraphHandler(backend.cpu_runtime())
+        tensor1 = handler.tensor(dims, TensorProto.FLOAT16)
+        handler.data_malloc()
+        tensor1.copyin_numpy(np_array)
+        array1 = np.array(tensor1, copy=False)
+        self.assertTrue(np.array_equal(array1, np_array))
 
 if __name__ == "__main__":
     unittest.main()

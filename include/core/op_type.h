@@ -221,6 +221,15 @@ struct OpType {
         FloorMod,
         Square,
         SquaredDifference,
+
+        // Communication Ops
+        AllReduceSum,
+        AllReduceProd,
+        AllReduceMin,
+        AllReduceMax,
+        AllReduceAvg,
+        AllGather,
+        Broadcast,
     } type;
 
     constexpr OpType(decltype(type) t) : type(t) {}

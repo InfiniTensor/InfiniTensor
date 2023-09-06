@@ -1,5 +1,6 @@
 #pragma once
 #include "core/common.h"
+#include "core/communicator.h"
 #include "core/op_type.h"
 #include "core/ref.h"
 #include <memory>
@@ -35,9 +36,11 @@ enum class Device { CPU = 1, CUDA, BANG, INTELCPU, XPU };
 class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
   protected:
     Device device;
+    int deviceId;
 
   public:
-    RuntimeObj(Device device) : device(device) {}
+    explicit RuntimeObj(Device device, int deviceId = 0)
+        : device(device), deviceId(deviceId) {}
     RuntimeObj(RuntimeObj &other) = delete;
     RuntimeObj &operator=(RuntimeObj const &) = delete;
     virtual ~RuntimeObj() {}
@@ -78,6 +81,12 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
                                size_t bytes) const = 0;
     virtual string toString() const = 0;
 
+    int getDeviceId() const { return deviceId; }
+
+    virtual void initComm(const string &name, int worldSize, int rank) = 0;
+
+    virtual CommunicatorObj &getCommunicator() const = 0;
+
   protected:
     void printProfilingData(double totTime,
                             const std::map<OpType, double> &opTime,
@@ -98,6 +107,9 @@ class CpuRuntimeObj : public RuntimeObj {
     void copyBlobToCPU(void *dst, const void *src, size_t bytes) const override;
     void copyBlobInsideRuntime(void *dst, const void *src,
                                size_t bytes) const override;
+    void initComm(const string &, int, int) override { IT_TODO_HALT(); }
+
+    CommunicatorObj &getCommunicator() const override { IT_TODO_HALT(); }
 };
 
 class NativeCpuRuntimeObj : public CpuRuntimeObj {
