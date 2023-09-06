@@ -338,7 +338,7 @@ void init_graph_builder(py::module &m) {
         m, "XPURuntime");
 #endif
     py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "Tensor",
-                                                      py::buffer_protocol()
+                                                      py::buffer_protocol())
         .def("fuid", &TensorObj::getFuid, policy::automatic)
         .def("shape", &TensorObj::getDims, policy::move)
         .def("copyin_float", &TensorObj::copyin<float>, policy::move)
