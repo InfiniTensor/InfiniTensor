@@ -45,11 +45,17 @@ class OnnxStub:
         tensors: Dict[str, backend.Tensor] = dict()
         data: Dict[str, TensorProto] = dict()
 
+        for initializer in model.graph.initializer:
+            dims = [d for d in initializer.dims]
+            tensors[initializer.name] = self.handler.tensor(dims, initializer.data_type)
+            data[initializer.name] = initializer
+
         for input in model.graph.input:
             dims = _take_shape_dim(input.type.tensor_type.shape)
-            tensors[input.name] = self.handler.tensor(
-                dims, input.type.tensor_type.elem_type
-            )
+            if input.name not in tensors.keys():
+                tensors[input.name] = self.handler.tensor(
+                    dims, input.type.tensor_type.elem_type
+                )
 
         for output in model.graph.output:
             dims = _take_shape_dim(output.type.tensor_type.shape)
@@ -57,10 +63,6 @@ class OnnxStub:
                 dims, output.type.tensor_type.elem_type
             )
 
-        for initializer in model.graph.initializer:
-            dims = [d for d in initializer.dims]
-            tensors[initializer.name] = self.handler.tensor(dims, initializer.data_type)
-            data[initializer.name] = initializer
 
         node_name = []
         new_node_name = []
@@ -668,11 +670,17 @@ class OnnxStub:
             node_list = list(set(node_name) - set(new_node_name))
 
         ################################
-        # Set weight tensors as persistent
+        # Set tensor type
         ################################
-        for name, obj in tensors.items():
-            if data.get(name) != None:
-                obj.set_persistent()
+        for initializer in model.graph.initializer:
+            tensors[initializer.name].set_weight()
+
+        for input in model.graph.input:
+            tensors[input.name].set_input()
+        
+        for output in model.graph.output:
+            tensors[output.name].set_output()
+
 
         ################################
         # Allocate memory space for data

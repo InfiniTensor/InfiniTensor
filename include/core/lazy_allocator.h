@@ -24,15 +24,15 @@ class LazyAllocator {
 
     size_t peak = 0;
 
-    size_t persistentPeak = 0;
+    size_t weightPeak = 0;
 
     size_t alignment;
 
     // pointer to the memory actually allocated
     void *ptr = nullptr;
 
-    // pointer to the persistent memory space
-    void *persistentPtr = nullptr;
+    // pointer to the weight memory space
+    void *weightPtr = nullptr;
 
     // // a cache designed for a batch size that has already occurred
     // std::unordered_map<size_t, std::unordered_map<TensorObj *, size_t>>
@@ -74,7 +74,7 @@ class LazyAllocator {
     // return: head address offset of the allocated memory block
     size_t alloc(size_t size);
 
-    size_t allocPersistent(size_t size);
+    size_t allocWeight(size_t size);
 
     // function: simulate memory free
     // arguments:
@@ -90,7 +90,7 @@ class LazyAllocator {
 
     // std::unordered_map<TensorObj *, size_t> getCache(size_t batchsize);
 
-    void *getPersistentPtr();
+    void *getWeightPtr();
 
     void info();
 
