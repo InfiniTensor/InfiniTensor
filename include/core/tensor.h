@@ -1,5 +1,6 @@
 #pragma once
 #include "core/tensor_base.h"
+#include "core/tensor_type.h"
 #include "utils/data_convert.h"
 #include <cmath>
 #include <cstring>
@@ -19,7 +20,7 @@ class TensorObj : public TensorBaseObj {
     size_t _size; // Cache of Π(shape).
     Fuid fuid;    // Cloned tensors share the same id. Tensors constructed from
                   // scratch have a new id.
-    bool persistent = false;
+    TensorType tensorType = TensorType::others;
 
   public:
     TensorObj(Shape shape, DataType dtype, Runtime runtime);
@@ -37,8 +38,33 @@ class TensorObj : public TensorBaseObj {
     size_t getOffset(const vector<int> &ds) const;
     void dataMalloc();
     UidBaseType getFuid() const { return fuid; }
-    bool isPersistent() const { return persistent; }
-    void setPersistent() { persistent = true; }
+    bool isWeight() const { return tensorType == TensorType::weight; }
+    bool isInput() const { return tensorType == TensorType::input; }
+    bool isOutput() const { return tensorType == TensorType::output; }
+    bool isOthers() const { return tensorType == TensorType::others; }
+    void setWeight() { tensorType = TensorType::weight; }
+    void setInput() { tensorType = TensorType::input; }
+    void setOutput() { tensorType = TensorType::output; }
+    string tensorTypeToString() const {
+        switch (tensorType) {
+        case TensorType::weight:
+            return "weight";
+            break;
+        case TensorType::input:
+            return "input";
+            break;
+        case TensorType::output:
+            return "output";
+            break;
+        case TensorType::others:
+            return "others";
+            break;
+
+        default:
+            return "unknown tensor type";
+            break;
+        }
+    }
 
     void load(std::string file_path);
     void save(std::string file_path);

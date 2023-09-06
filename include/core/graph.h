@@ -125,9 +125,9 @@ class GraphObj : public Object {
     bool sorted;
 
     /**
-     * @brief If the persistent tensors are allocated.
+     * @brief If the weight tensors are allocated.
      */
-    bool persistentAllocated = false;
+    bool weightAllocated = false;
 };
 
 } // namespace infini

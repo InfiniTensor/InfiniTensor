@@ -27,8 +27,8 @@ LazyAllocator::~LazyAllocator() {
     if (this->ptr != nullptr) {
         runtime->dealloc(this->ptr);
     }
-    if (this->persistentPtr != nullptr) {
-        runtime->dealloc(this->persistentPtr);
+    if (this->weightPtr != nullptr) {
+        runtime->dealloc(this->weightPtr);
     }
 }
 
@@ -91,11 +91,11 @@ size_t LazyAllocator::alloc(size_t size) {
     return retAddr;
 }
 
-size_t LazyAllocator::allocPersistent(size_t size) {
-    IT_ASSERT(this->persistentPtr == nullptr);
+size_t LazyAllocator::allocWeight(size_t size) {
+    IT_ASSERT(this->weightPtr == nullptr);
     size = this->getAlignedSize(size);
-    size_t retAddr = this->persistentPeak;
-    this->persistentPeak += size;
+    size_t retAddr = this->weightPeak;
+    this->weightPeak += size;
     return retAddr;
 }
 
@@ -143,22 +143,22 @@ void *LazyAllocator::getPtr() {
     if (this->ptr == nullptr) {
         this->ptr = runtime->alloc(this->peak);
 #ifdef DEBUG_MODE
-        printf("LazyAllocator really alloc non-persistent: %p %lu bytes\n",
+        printf("LazyAllocator really alloc non-weight: %p %lu bytes\n",
                this->ptr, peak);
 #endif
     }
     return this->ptr;
 }
 
-void *LazyAllocator::getPersistentPtr() {
-    if (this->persistentPtr == nullptr) {
-        this->persistentPtr = runtime->alloc(this->persistentPeak);
+void *LazyAllocator::getWeightPtr() {
+    if (this->weightPtr == nullptr) {
+        this->weightPtr = runtime->alloc(this->weightPeak);
 #ifdef DEBUG_MODE
-        printf("LazyAllocator really alloc persistent: %p %lu bytes\n",
-               this->persistentPtr, persistentPeak);
+        printf("LazyAllocator really alloc weight: %p %lu bytes\n",
+               this->weightPtr, weightPeak);
 #endif
     }
-    return this->persistentPtr;
+    return this->weightPtr;
 }
 
 size_t LazyAllocator::getAlignedSize(size_t size) {
@@ -166,8 +166,8 @@ size_t LazyAllocator::getAlignedSize(size_t size) {
 }
 
 void LazyAllocator::info() {
-    std::cout << "Used memory: " << this->used + this->persistentPeak
-              << ", peak memory: " << this->peak + this->persistentPeak
+    std::cout << "Used memory: " << this->used + this->weightPeak
+              << ", peak memory: " << this->peak + this->weightPeak
               << std::endl;
 }
 

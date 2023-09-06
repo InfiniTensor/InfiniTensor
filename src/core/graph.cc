@@ -168,54 +168,60 @@ void GraphObj::dataMalloc() {
     // reinit allocator
     allocator.init();
 
-    // record all persistent tensors, including weight tensors and kvcache
+    // record all weight tensors, including weight tensors and kvcache
     // tensors
-    std::unordered_set<TensorObj *> persistentTensors;
+    std::unordered_set<TensorObj *> weightTensors;
     for (auto &tensor : tensors) {
-        if (tensor->isPersistent()) {
-            // allocate memory for all persistent tensors first, and this memory
-            // will not be reused later
-            persistentTensors.insert(tensor.get());
-            if (!this->persistentAllocated) {
+        if (tensor->isWeight()) {
+            // allocate memory for all weight tensors first, and this memory
+            // will not be freed until the graph is destroyed
+            weightTensors.insert(tensor.get());
+            if (!this->weightAllocated) {
                 tensorToOffset[tensor.get()] =
-                    allocator.allocPersistent(tensor->getBytes());
+                    allocator.allocWeight(tensor->getBytes());
             }
+        } else if (tensor->isInput() || tensor->isOutput()) {
+            // allocate memory for all input and output tensors, and this memory
+            // will not be reused later
+            tensorToOffset[tensor.get()] = allocator.alloc(tensor->getBytes());
         } else {
             tensorToRefCount[tensor.get()] = tensor->getTargets().size();
+            // allocate memory for all user-created tensors
             if (tensor.get()->getSource() == nullptr) {
-                // allocate memory for input tensors, because it is not the
-                // output of any op
                 tensorToOffset[tensor.get()] =
                     allocator.alloc(tensor->getBytes());
             }
         }
     }
-    // if memory has not yet been allocated for persistent tensors,
+    // if memory has not yet been allocated for weight tensors,
     // allocate memory now and do not allocate again in the future.
-    if (!this->persistentAllocated) {
-        this->persistentAllocated = true;
-        // only allocate once for persistent tensors
-        for (auto &tensor : persistentTensors) {
+    if (!this->weightAllocated) {
+        this->weightAllocated = true;
+        // only allocate once for weight tensors
+        for (auto &tensor : weightTensors) {
             IT_ASSERT(tensorToOffset.find(tensor) != tensorToOffset.end());
             tensor->setDataBlob(make_ref<BlobObj>(
                 tensor->runtime,
-                static_cast<uint8_t *>(allocator.getPersistentPtr()) +
+                static_cast<uint8_t *>(allocator.getWeightPtr()) +
                     tensorToOffset[tensor]));
         }
     }
     // traverse in topological order and simulate memory allocation
     for (auto &op : ops) {
-        // memory should be allocated for the output first
+        // memory should be allocated for the op's output first
         auto outputs = op->getOutputs();
         for (auto &tensor : outputs) {
-            tensorToOffset[tensor.get()] = allocator.alloc(tensor->getBytes());
+            if (tensor->isOthers()) {
+                tensorToOffset[tensor.get()] =
+                    allocator.alloc(tensor->getBytes());
+            }
         }
         auto inputs = op->getInputs();
         for (auto &tensor : inputs) {
-            if (persistentTensors.find(tensor.get()) ==
-                persistentTensors.end()) {
+            if (tensor->isOthers()) {
                 auto tensorIter = tensorToRefCount.find(tensor.get());
                 IT_ASSERT(tensorIter != tensorToRefCount.end());
+                IT_ASSERT(tensorToRefCount[tensor.get()] > 0);
                 tensorToRefCount[tensor.get()] -= 1;
                 if (tensorToRefCount[tensor.get()] == 0) {
                     // indicate that this tensor will no longer be used and
@@ -228,9 +234,9 @@ void GraphObj::dataMalloc() {
         }
     }
 
-    // perform actual memory allocation for non-persistent tensors
+    // perform actual memory allocation for non-weight tensors
     for (auto &tensor : tensors) {
-        if (!tensor->isPersistent()) {
+        if (!tensor->isWeight()) {
             IT_ASSERT(tensorToOffset.find(tensor.get()) !=
                       tensorToOffset.end());
             tensor->setDataBlob(make_ref<BlobObj>(
