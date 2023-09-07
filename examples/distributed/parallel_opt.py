@@ -3,7 +3,7 @@ from onnx import ModelProto, NodeProto, TensorProto, ValueInfoProto
 from onnx import helper, numpy_helper
 from typing import Dict, List
 from placement import Placement, Replicate, Shard, _Partial
-
+import numpy as np
 
 def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
     data = {init.name: init for init in model.graph.initializer}
@@ -16,7 +16,7 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
     def is_sharded(name: str):
         return place[name].is_shard()
 
-    def shard_tensor(tensor: TensorProto, plc: Placement):
+    def shard_tensor(tensor: TensorProto, plc: Placement, groups: int=1):
         # print(f"shard {tensor.name} at dim {dim}")
         ndim = len(tensor.dims)
         if plc.dim < 0:
@@ -25,15 +25,18 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
             return tensor
         array = numpy_helper.to_array(tensor)
         assert array.shape[plc.dim] % tp_world_size == 0, array.shape[plc.dim]
-        seg = array.shape[plc.dim] // tp_world_size
-        array = array.take(
-            indices=range(tp_rank * seg, (tp_rank + 1) * seg), axis=plc.dim
-        )
+        seg = array.shape[plc.dim] // tp_world_size // groups
+        array_group = np.split(array, groups, axis=plc.dim)
+        array = np.concatenate(
+            [np.copy(group.take(indices=range(tp_rank * seg, (tp_rank + 1) * seg), axis=plc.dim)) 
+             for group in array_group], 
+             axis=plc.dim
+             )
         tensor = numpy_helper.from_array(array, name=tensor.name)
         place[tensor.name] = plc
         return tensor
 
-    def shard_gemm(node: NodeProto):
+    def shard_gemm(node: NodeProto, groups: int = 1):
         # print("gemm", node.name)
         in_plc = place[node.input[0]]
         w_plc = Shard(-1) if in_plc.is_replicate() else Shard(0)
@@ -41,14 +44,14 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
         if transB:
             w_plc.dim = ~w_plc.dim
         input = node.input[1]
-        data[input] = shard_tensor(data[input], w_plc)
+        data[input] = shard_tensor(data[input], w_plc, groups)
 
         output = node.output[0]
         ndim = len(vinfo[output].type.tensor_type.shape.dim)
         out_plc = Shard(ndim - 1) if in_plc.is_replicate() else _Partial()
         place[node.output[0]] = out_plc
 
-    def shard_binary(node: NodeProto):
+    def shard_binary(node: NodeProto, groups: int=1):
         # print("binary", node.name, node.input[0], place[node.input[0]])
         a = node.input[0]
         b = node.input[1]
@@ -56,7 +59,7 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
             a, b = b, a
         place[node.output[0]] = place[a]
         if is_sharded(a) and b in data and len(data[b].dims) == 1:  # broadcast
-            data[b] = shard_tensor(data[b], Shard(0))
+            data[b] = shard_tensor(data[b], Shard(0), groups)
 
     def shard_reshape(node: NodeProto):
         # print("reshape", node.name, node.input[0], place[node.input[0]])
@@ -77,13 +80,39 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
                 s_dim = 0
             elif in_plc.dim == 2:
                 s_dim = 2
-        assert s_dim != -1
+        if len(in_dims) == 2 and len(out_dims) == 3:
+            if in_plc.dim == 1:
+                s_dim = 2
+        if len(in_dims) == 4 and len(out_dims) == 2:
+            if in_plc.dim == 1:
+                s_dim = 0
+            elif in_plc.dim == 2:
+                s_dim = 1
+        if len(in_dims) == 3 and len(out_dims) == 2:
+            if in_plc.dim == 1:
+                s_dim = 0
+            elif in_plc.dim == 2:
+                s_dim = 1
+        if(s_dim == -1):
+            assert s_dim != -1
         assert out_dims[s_dim] % tp_world_size == 0, out_dims
         out_dims[s_dim] //= tp_world_size
         # if ONNX uses the same tensor for multiple Reshape Nodes, then rename it to distingush from others.
         # node.input[1] = node.output[0] + "_shape"
         data[node.input[1]] = numpy_helper.from_array(out_dims, name=node.input[1])
         place[node.output[0]] = Shard(s_dim)
+
+    def shard_split(node: NodeProto):
+        if not is_sharded(node.input[0]):
+            return
+        in_plc = place[node.input[0]]
+        split_tensor = data[node.input[1]]
+        split = numpy_helper.to_array(split_tensor).copy()
+        split //= tp_world_size
+        data[node.input[1]] = numpy_helper.from_array(split, name=node.input[1])
+        for output in node.output:
+            place[output] = in_plc
+
 
     def shard_transpose(node: NodeProto):
         plc = place[node.input[0]]
@@ -94,12 +123,16 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
     def shard_node(node: NodeProto):
         if node.op_type in ["Relu", "Tanh", "Softmax"]:
             place[node.output[0]] = place[node.input[0]]
+        elif node.op_type in ["Where"]:
+            place[node.output[0]] = place[node.input[1]]
         if node.op_type in {"Add", "Mul", "Div", "Max"}:
             shard_binary(node)
         elif node.op_type == "Reshape":
             shard_reshape(node)
         elif node.op_type == "Transpose":
             shard_transpose(node)
+        elif node.op_type == "Split":
+            shard_split(node)
         elif node.op_type == "MatMul":
             assert (
                 place[node.input[0]] == place[node.input[1]]
@@ -113,13 +146,20 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
     for t in data:
         place[t] = Replicate()
 
-    for node in model.graph.node:
+    for index, node in enumerate(model.graph.node):
         nodes.append(node)
         # linear
         if (node.op_type == "MatMul" or node.op_type == "Gemm") and any(
             input in data for input in node.input
         ):
-            shard_gemm(node)
+            groups = 1
+            # If the Gemm is followed by a split, then the inputs are concatinated by groups
+            if(index + 2 < len(model.graph.node) and 
+               model.graph.node[index + 2].op_type == "Split"):
+                split_node = model.graph.node[index + 2]
+                groups = len(split_node.output)
+                
+            shard_gemm(node, groups)
             plc = place[node.output[0]]
             if plc.is_partial():
                 new_name = node.output[0] + f":{plc}"
@@ -149,7 +189,7 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
                 )
                 node.input.pop()
                 prev.output[0] = new_name
-                shard_binary(bias)
+                shard_binary(bias, groups)
                 nodes.append(bias)
             continue
         shard_node(node)
