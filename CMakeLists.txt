@@ -10,6 +10,7 @@ option(USE_BACKTRACE "Print backtrace on exception and segmentation fault" ON)
 option(USE_PROTOBUF "Serialize and deserialize tensors" OFF)
 option(BUILD_DIST "Build project for distributed running" OFF)
 option(BUILD_TEST "Build tests" OFF)
+option(USE_REFACTOR_GRAPH "Use refactor graph" ON)
 
 cmake_dependent_option(BUILD_TEST_CORE "Build tests for core components" ON BUILD_TEST OFF)
 cmake_dependent_option(BUILD_TEST_PET "Build tests for PET" OFF BUILD_TEST OFF)
@@ -23,14 +24,14 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_definitions(DEBUG_MODE)
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
     message("Configuring for Release build.")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2") 
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
     add_compile_definitions(NDEBUG)
 elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     message("Configuring for RelWithDebInfo build.")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2") 
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2")
 else()
     message("Build type not specified. Configuring for RelWithDebInfo build.")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2") 
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2")
 endif()
 
 
@@ -77,6 +78,22 @@ if(USE_PROTOBUF)
   target_link_libraries(tensor_proto PUBLIC ${PROTOBUF_LIBRARIES})
 endif()
 
+if(USE_REFACTOR_GRAPH)
+set(BUILD_SHARED ON CACHE BOOL "build shared refactor graph")
+add_subdirectory(RefactorGraph)
+
+include_directories(RefactorGraph/3rd-party/fmt/include)
+include_directories(RefactorGraph/3rd-party/googletest/googletest/include)
+include_directories(RefactorGraph/3rd-party/fmtlog)
+include_directories(RefactorGraph/3rd-party/result)
+include_directories(RefactorGraph/3rd-party/abseil-cpp)
+add_definitions(-D FMTLOG_HEADER_ONLY)
+
+include_directories(RefactorGraph/src/00common/include)
+include_directories(RefactorGraph/src/01graph_topo/include)
+include_directories(RefactorGraph/src/02computation/include)
+endif()
+
 include_directories(include)
 # Pybind11
 add_subdirectory(3rd-party/pybind11)
@@ -106,8 +123,8 @@ if(BUILD_TEST)
   set(INSTALL_GTEST
       OFF
       CACHE BOOL "Do not install gtest" FORCE)
-  add_subdirectory(3rd-party/googletest)
-  include_directories(3rd-party/googletest/googletest/include)
+  # add_subdirectory(3rd-party/googletest)
+  # include_directories(3rd-party/googletest/googletest/include)
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Werror -Wno-error=deprecated-declarations")
@@ -139,6 +156,10 @@ if(USE_PROTOBUF)
   target_link_libraries(InfiniTensor tensor_proto)
 endif()
 
+if(USE_REFACTOR_GRAPH)
+target_link_libraries(InfiniTensor graph)
+endif()
+
 target_link_libraries(InfiniTensor pybind11::embed)
 
 # TVM backend
@@ -153,7 +174,7 @@ target_link_libraries(backend PRIVATE InfiniTensor)
 
 if(USE_BACKTRACE)
   add_definitions(-D BACKWARD_TRACE)
-  add_subdirectory(3rd-party/backward-cpp)
+  # add_subdirectory(3rd-party/backward-cpp)
   include_directories(3rd-party/backward-cpp)
   add_backward(InfiniTensor)
   target_link_libraries(InfiniTensor dw)
