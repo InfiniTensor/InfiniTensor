@@ -93,8 +93,8 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
                 s_dim = 0
             elif in_plc.dim == 2:
                 s_dim = 1
-        if(s_dim == -1):
-            assert s_dim != -1
+
+        assert s_dim != -1
         assert out_dims[s_dim] % tp_world_size == 0, out_dims
         out_dims[s_dim] //= tp_world_size
         # if ONNX uses the same tensor for multiple Reshape Nodes, then rename it to distingush from others.
@@ -139,6 +139,12 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
             ), f"{place[node.input[0]]} != {place[node.input[1]]}"
             place[node.output[0]] = place[node.input[0]]
 
+    def find_successor(op_type: str, idx: int, search_limit: int=1):
+        for s_idx in range(idx + 1, idx + 1 + search_limit):
+            if s_idx < len(model.graph.node) and model.graph.node[s_idx].op_type == op_type:
+                return model.graph.node[s_idx]
+        return None
+
     # all tensors are initially replicated.
     for v in vinfo:
         place[v] = Replicate()
@@ -153,10 +159,9 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
             input in data for input in node.input
         ):
             groups = 1
-            # If the Gemm is followed by a split, then the inputs are concatinated by groups
-            if(index + 2 < len(model.graph.node) and 
-               model.graph.node[index + 2].op_type == "Split"):
-                split_node = model.graph.node[index + 2]
+            # If the Gemm or Matmul is followed by a split, then the inputs are concatinated by groups
+            split_node = find_successor("Split", index, search_limit=2)
+            if split_node is not None:
                 groups = len(split_node.output)
                 
             shard_gemm(node, groups)
