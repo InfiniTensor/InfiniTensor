@@ -7,8 +7,8 @@ namespace infini {
 // base class
 class CommunicatorObj : public Object {
   protected:
-    const int worldSize;
-    const int rank;
+    int worldSize;
+    int rank;
 
   public:
     CommunicatorObj(int worldSize, int rank)
