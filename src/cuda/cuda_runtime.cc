@@ -96,6 +96,7 @@ void CudaRuntimeObj::initComm(const string &name, int worldSize, int rank) {
     IT_ASSERT(worldSize > 0);
     IT_ASSERT(rank >= 0);
     IT_ASSERT(rank < worldSize);
+    IT_ASSERT(!comm) << "communicator is already initialized.";
 #ifdef INFINI_USE_NCCL
     comm = std::make_unique<NcclCommunicatorObj>(name, worldSize, rank);
 #else
