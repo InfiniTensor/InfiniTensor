@@ -37,7 +37,7 @@ def build_graph(model: ModelProto):
     )
 
 
-def _parse_tensor(tensor: TensorProto) -> backend.Tensor:
+def _parse_tensor(tensor: TensorProto) -> backend.Edge:
     refactor_tensor(
         tensor.data_type,
         [DimExpr(d) for d in tensor.dims],
