@@ -329,7 +329,7 @@ class TestStringMethods(unittest.TestCase):
                 [pads_data],
             )
         )
-    
+
     def test_allReduceSum(self):
         input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
         output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 2, 4])
@@ -349,7 +349,7 @@ class TestStringMethods(unittest.TestCase):
         graph = make_graph([allReduceProd], "allReduceProd", [input], [output])
         model = make_model(graph)
         from_onnx(model, backend.cpu_runtime())
-    
+
     def test_allReduceMin(self):
         input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
         output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 2, 4])
@@ -379,13 +379,19 @@ class TestStringMethods(unittest.TestCase):
         graph = make_graph([allReduceAvg], "allReduceAvg", [input], [output])
         model = make_model(graph)
         from_onnx(model, backend.cpu_runtime())
-    
+
     def test_split(self):
         input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
-        split = make_node(
-            "Split", ["input"], ["output"], name="split", axis=0
+        split = make_node("Split", ["input"], ["output"], name="split", axis=0)
+        make_and_import_model(make_graph([split], "split", [input], []))
+
+    def test_allBroadcast(self):
+        input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 2, 4])
+        broadcast = make_node(
+            "Broadcast", ["input"], ["output"], name="broadcast", root=1
         )
-        graph = make_graph([split], "split", [input], [])
+        graph = make_graph([broadcast], "broadcast", [input], [output])
         model = make_model(graph)
         from_onnx(model, backend.cpu_runtime())
 
@@ -453,7 +459,7 @@ class TestStringMethods(unittest.TestCase):
         make_and_import_model(make_graph([where], "where", [x, y, con], [output]))
 
     def test_copyin(self):
-        dims = [2,3,5,4]
+        dims = [2, 3, 5, 4]
         np_array = np.random.random(dims).astype(np.float32)
         handler = backend.GraphHandler(backend.cpu_runtime())
         tensor1 = handler.tensor(dims, TensorProto.FLOAT)
@@ -479,7 +485,7 @@ class TestStringMethods(unittest.TestCase):
         self.assertTrue(np.array_equal(np.array(array1).reshape(dims), np_array))
 
     def test_to_numpy(self):
-        dims = [2,3,5,4]
+        dims = [2, 3, 5, 4]
         np_array = np.random.random(dims).astype(np.float32)
         handler = backend.GraphHandler(backend.cpu_runtime())
         tensor1 = handler.tensor(dims, TensorProto.FLOAT)
@@ -499,6 +505,7 @@ class TestStringMethods(unittest.TestCase):
         tensor1.copyin_numpy(np_array)
         array1 = np.array(tensor1, copy=False)
         self.assertTrue(np.array_equal(array1, np_array))
+
 
 if __name__ == "__main__":
     unittest.main()

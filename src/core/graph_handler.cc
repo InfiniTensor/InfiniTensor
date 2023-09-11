@@ -2,6 +2,7 @@
 #include "operators/all_gather.h"
 #include "operators/all_reduce.h"
 #include "operators/batch_norm.h"
+#include "operators/broadcast.h"
 #include "operators/concat.h"
 #include "operators/conv.h"
 #include "operators/element_wise.h"
@@ -356,6 +357,16 @@ TensorVec GraphHandlerObj::allGather(Tensor input,
     } else {
         return g->addOp<AllGatherObj>(std::move(input), outputs, n)
             ->getOutputs();
+    }
+}
+
+Tensor GraphHandlerObj::broadcast(Tensor input, Tensor output, int root) {
+    if (output) {
+        g->addOpWithOutputs<BroadcastObj>(std::move(input), output, root);
+        return output;
+    } else {
+        return g->addOp<BroadcastObj>(std::move(input), output, root)
+            ->getOutput();
     }
 }
 

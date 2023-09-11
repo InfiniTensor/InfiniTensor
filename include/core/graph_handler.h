@@ -80,6 +80,7 @@ class GraphHandlerObj {
     Tensor allReduceMax(Tensor input, Tensor output);
     Tensor allReduceAvg(Tensor input, Tensor output);
     TensorVec allGather(Tensor input, std::optional<TensorVec> outputs, int n);
+    Tensor broadcast(Tensor input, Tensor output, int root);
 
     //------ modifiers
 
