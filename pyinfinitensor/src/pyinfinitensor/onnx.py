@@ -1,10 +1,10 @@
 ﻿import backend
 from onnx import ModelProto, NodeProto, TensorProto, AttributeProto, numpy_helper
-from backend import DimExpr, refactor_tensor
+from backend import DimExpr, refactor_tensor, refactor_operator, refactor_graph
 from typing import Any
 
 
-def build_graph(model: ModelProto):
+def build_graph(model: ModelProto) -> backend.Graph:
     nodes: dict[str, backend.Node] = dict()
     edges: dict[str, backend.Edge] = dict()
     topology: dict[str, tuple[list[str], list[str]]] = dict()
@@ -24,11 +24,9 @@ def build_graph(model: ModelProto):
 
     for node in model.graph.node:
         topology[node.name] = ([i for i in node.input], [o for o in node.output])
-        nodes[node.name] = backend.refactor_operator(
-            node.op_type, _parse_attribute(node)
-        )
+        nodes[node.name] = refactor_operator(node.op_type, _parse_attribute(node))
 
-    graph = backend.refactor_graph(
+    return refactor_graph(
         topology,
         nodes,
         edges,
@@ -38,7 +36,7 @@ def build_graph(model: ModelProto):
 
 
 def _parse_tensor(tensor: TensorProto) -> backend.Edge:
-    refactor_tensor(
+    return refactor_tensor(
         tensor.data_type,
         [DimExpr(d) for d in tensor.dims],
         [b for b in numpy_helper.to_array(tensor).data.tobytes()],

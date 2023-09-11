@@ -92,6 +92,7 @@ add_definitions(-D FMTLOG_HEADER_ONLY)
 include_directories(RefactorGraph/src/00common/include)
 include_directories(RefactorGraph/src/01graph_topo/include)
 include_directories(RefactorGraph/src/02computation/include)
+include_directories(RefactorGraph/src/03onnx/include)
 endif()
 
 include_directories(include)
@@ -157,7 +158,7 @@ if(USE_PROTOBUF)
 endif()
 
 if(USE_REFACTOR_GRAPH)
-target_link_libraries(InfiniTensor graph)
+target_link_libraries(InfiniTensor onnx)
 endif()
 
 target_link_libraries(InfiniTensor pybind11::embed)
