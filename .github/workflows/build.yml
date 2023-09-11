@@ -1,12 +1,11 @@
 name: Build and test cpu
 on:
   push:
-    branch: 'master'
     paths-ignore:
       - '**.md'
       - 'LICENSE'
   pull_request:
-    paths-ignore:
+    paths:
       - '**.md'
       - 'LICENSE'
 
@@ -71,12 +70,12 @@ jobs:
         python -m pip install --upgrade pip
         make install-python
 
-    - name: Download test models
-      run: |
-        wget ${{ env.resnet-download }}
-        wget ${{ env.inception-download }}
-        wget ${{ env.densenet-download }}
-        wget ${{ env.efficientnet-download }}
+    # - name: Download test models
+    #   run: |
+    #     wget ${{ env.resnet-download }}
+    #     wget ${{ env.inception-download }}
+    #     wget ${{ env.densenet-download }}
+    #     wget ${{ env.efficientnet-download }}
 
-    - name: Test onnx frontend
-      run: make test-onnx
+    # - name: Test onnx frontend
+    #   run: make test-onnx

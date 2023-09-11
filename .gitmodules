@@ -11,7 +11,7 @@
 	path = 3rd-party/backward-cpp
 	url = git@github.com:bombela/backward-cpp.git
 [submodule "example"]
-	path = examples/NNmodel
+	path = example
 	url = git@github.com:wanghailu0717/NNmodel.git
 [submodule "RefactorGraph"]
 	path = RefactorGraph
