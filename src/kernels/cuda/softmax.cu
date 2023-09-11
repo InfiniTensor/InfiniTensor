@@ -1,5 +1,5 @@
 #include "cuda/cuda_common.h"
-#include "utils/small_array.h"
+
 #include <cub/cub.cuh>
 
 struct __align__(8) MD { // update the global max and sum, store the output at
@@ -19,11 +19,11 @@ __device__ __forceinline__ MD reduce_md_op(MD a, MD b) {
 }
 template <int BLOCK_DIM>
 __launch_bounds__(BLOCK_DIM) __global__
-    void _softmax_kernel(float *input, float *output, int size,
-                         infini::SmallArray inputShape, int axis, int nDims,
+    void _softmax_kernel(float *__restrict input, float *__restrict output, int size,
+                         int dimsize,
                          int stride) { // if set axis = 1, inputShape=[I,J,K,S]
     int tid = 0;                       // tid = i(JKS) + j(KS) + k(S) + s
-    int dimsize = inputShape.data[axis]; // set axis = 1, dimsize = J
+    
     // blockDim.x = size/dimsize = IKS
     // blockIdx.x = i(KS) + k(S) + s,blockIdx.x%stride = k(S) + s
 
@@ -72,40 +72,38 @@ __launch_bounds__(BLOCK_DIM) __global__
     }
 }
 namespace infini {
-void softmax_kernel(float *input, float *output, int size,
-                    SmallArray inputShape, int axis, int nDims, int stride) {
-    int dimsize = inputShape.data[axis];
-    int num_blocks = size / dimsize;
+void softmax_kernel(int num_blocks, float *input, float *output, int size,
+                    int dimsize, int stride) {
     if (dimsize > 1023) {
         int BLOCK_DIM = 1024;
         int share_mem = BLOCK_DIM * sizeof(float);
         _softmax_kernel<1024><<<num_blocks, BLOCK_DIM, share_mem>>>(
-            input, output, size, inputShape, axis, nDims, stride);
+            input, output, size, dimsize, stride);
     } else if (dimsize > 511) {
         int BLOCK_DIM = 512;
         int share_mem = BLOCK_DIM * sizeof(float);
         _softmax_kernel<512><<<num_blocks, BLOCK_DIM, share_mem>>>(
-            input, output, size, inputShape, axis, nDims, stride);
+            input, output, size, dimsize, stride);
     } else if (dimsize > 255) {
         int BLOCK_DIM = 256;
         int share_mem = BLOCK_DIM * sizeof(float);
         _softmax_kernel<256><<<num_blocks, BLOCK_DIM, share_mem>>>(
-            input, output, size, inputShape, axis, nDims, stride);
+            input, output, size, dimsize, stride);
     } else if (dimsize > 127) {
         int BLOCK_DIM = 128;
         int share_mem = BLOCK_DIM * sizeof(float);
         _softmax_kernel<128><<<num_blocks, BLOCK_DIM, share_mem>>>(
-            input, output, size, inputShape, axis, nDims, stride);
+            input, output, size, dimsize, stride);
     } else if (dimsize > 63) {
         int BLOCK_DIM = 64;
         int share_mem = BLOCK_DIM * sizeof(float);
         _softmax_kernel<64><<<num_blocks, BLOCK_DIM, share_mem>>>(
-            input, output, size, inputShape, axis, nDims, stride);
+            input, output, size, dimsize, stride);
     } else {
         int BLOCK_DIM = 32;
         int share_mem = BLOCK_DIM * sizeof(float);
         _softmax_kernel<32><<<num_blocks, BLOCK_DIM, share_mem>>>(
-            input, output, size, inputShape, axis, nDims, stride);
+            input, output, size, dimsize, stride);
     }
 }
 } // namespace infini

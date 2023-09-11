@@ -12,24 +12,17 @@ class SoftmaxCuda : public CudaKernelWithoutConfig {
         auto input = op->getInputs(0)->getRawDataPtr<float *>();
         auto output = op->getOutput(0)->getRawDataPtr<float *>();
         const auto &inShape = op->getInputs(0)->getDims(); // input shape
-        int nDims = op->getInputs(0)->getDims().size();
-        IT_ASSERT(nDims <= SMALL_ARRAY_SIZE);
+        auto dims = op->getInputs(0)->getDims();
+        int nDims = dims.size();
         int size = 1;             // size = i(JKS) + j(KS) + k(S) + s
-        int stride = 1, temp = 1; // stride=[JKS, KS, S, 1][axis]
-        int axis = op->getAxis();
-        SmallArray inputShape;
+        int dimsize = dims[op->getAxis()];
+        int stride = op->getInputs(0)->getStride().at(op->getAxis());
         for (int i = nDims - 1; i >= 0;
              --i) { // must i = nDims - 1, --i; can't i = 0, i++
             size *= inShape[i];
-            inputShape.data[i] = inShape[i];
-            if (i == axis) {
-                stride = temp;
-            }
-            temp *= inShape[i];
         }
-
-        softmax_kernel((float *)input, (float *)output, size, inputShape, axis,
-                       nDims, stride);
+        int num_blocks = size/dimsize;
+        softmax_kernel(num_blocks, (float *)input, (float *)output, size, dimsize, stride);
     }
 };
 

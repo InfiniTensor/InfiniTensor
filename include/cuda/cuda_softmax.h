@@ -1,6 +1,6 @@
 #pragma once
 #include "utils/small_array.h"
 namespace infini {
-void softmax_kernel(float *input, float *output, int size,
-                    SmallArray inputShape, int axis, int nDims, int stride);
+void softmax_kernel(int num_blocks, float *input, float *output, int size,
+                    int dimsize, int stride);
 }
