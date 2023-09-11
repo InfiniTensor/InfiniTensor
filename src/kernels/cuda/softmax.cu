@@ -19,11 +19,11 @@ __device__ __forceinline__ MD reduce_md_op(MD a, MD b) {
 }
 template <int BLOCK_DIM>
 __launch_bounds__(BLOCK_DIM) __global__
-    void _softmax_kernel(float *__restrict input, float *__restrict output, int size,
-                         int dimsize,
+    void _softmax_kernel(float *__restrict input, float *__restrict output,
+                         int size, int dimsize,
                          int stride) { // if set axis = 1, inputShape=[I,J,K,S]
     int tid = 0;                       // tid = i(JKS) + j(KS) + k(S) + s
-    
+
     // blockDim.x = size/dimsize = IKS
     // blockIdx.x = i(KS) + k(S) + s,blockIdx.x%stride = k(S) + s
 
