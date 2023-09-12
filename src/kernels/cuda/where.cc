@@ -10,28 +10,40 @@ class WhereCuda : public CudaKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<WhereObj>(_op);
 
-        void *const inputxData = (op->getInputs(0)->getRawDataPtr<void *>());
-        void *const inputyData = (op->getInputs(1)->getRawDataPtr<void *>());
+        void *const inputXData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const inputYData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const conditionData = (op->getInputs(2)->getRawDataPtr<void *>());
         void *const outputData = (op->getOutput()->getRawDataPtr<void *>());
-        const auto &inputx_Shape = op->getInputs(0)->getDims();
-        const auto &inputy_Shape = op->getInputs(1)->getDims();
+        const auto &inputX_Shape = op->getInputs(0)->getDims();
+        const auto &inputY_Shape = op->getInputs(1)->getDims();
         const auto &condition_Shape = op->getInputs(2)->getDims();
         const auto &output_Shape = op->getOutput()->getDims();
 
-        int nDims = op->getInputs(0)->getDims().size();
+        const int xSize = op->getInputs(0)->getDims().size();
+        const int ySize = op->getInputs(1)->getDims().size();
+        const int cSize = op->getInputs(2)->getDims().size();
+        int nDims = op->getOutput()->getDims().size();
         IT_ASSERT(nDims <= SMALL_ARRAY_SIZE);
 
-        SmallArray inputxShape, inputyShape, conditionShape, outputShape;
-        for (int i = 0; i < nDims; ++i) {
-            inputxShape.data[i] = inputx_Shape[i];
-            inputyShape.data[i] = inputy_Shape[i];
-            conditionShape.data[i] = condition_Shape[i];
+        SmallArray inputXShape, inputYShape, conditionShape, outputShape;
+        for (int i = nDims - 1; i >= 0; --i) {
+            inputXShape.data[i] = 1;
+            inputYShape.data[i] = 1;
+            conditionShape.data[i] = 1;
             outputShape.data[i] = output_Shape[i];
         }
-        where_kernel((float *)inputxData, (float *)inputyData,
-                     (float *)conditionData, (float *)outputData, nDims,
-                     inputxShape, inputyShape, conditionShape, outputShape);
+        for (int i = xSize - 1; i >= 0; --i) {
+            inputXShape.data[i + nDims - xSize] = inputX_Shape[i];
+        }
+        for (int i = ySize - 1; i >= 0; --i) {
+            inputYShape.data[i + nDims - ySize] = inputY_Shape[i];
+        }
+        for (int i = cSize - 1; i >= 0; --i) {
+            conditionShape.data[i + nDims - cSize] = condition_Shape[i];
+        }
+        where_kernel((float *)inputXData, (float *)inputYData,
+                     (int *)conditionData, (float *)outputData, nDims,
+                     inputXShape, inputYShape, conditionShape, outputShape);
     }
 };
 

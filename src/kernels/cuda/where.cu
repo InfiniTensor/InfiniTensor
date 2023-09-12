@@ -1,20 +1,20 @@
 #include "cuda/cuda_common.h"
 #include "utils/small_array.h"
 
-__global__ void _where_kernel(const float *inputx, const float *inputy,
-                              const float *condition, float *output, int nDims,
-                              int outputsize, infini::SmallArray inputxShape,
-                              infini::SmallArray inputyShape,
+__global__ void _where_kernel(const float *inputX, const float *inputY,
+                              const int *condition, float *output, int nDims,
+                              int outputsize, infini::SmallArray inputXShape,
+                              infini::SmallArray inputYShape,
                               infini::SmallArray conditionShape,
                               infini::SmallArray outputShape) {
 
     int outputIdx = blockIdx.x * blockDim.x + threadIdx.x;
     if (outputIdx < outputsize) {
-        int inputxIdx = 0;
-        int temp_inputx = 1;
+        int inputXIdx = 0;
+        int temp_inputX = 1;
 
-        int inputyIdx = 0;
-        int temp_inputy = 1;
+        int inputYIdx = 0;
+        int temp_inputY = 1;
 
         int conditionIdx = 0;
         int temp_condition = 1;
@@ -27,23 +27,23 @@ __global__ void _where_kernel(const float *inputx, const float *inputy,
             } else {
                 tmp = v % outputShape.data[i]; // store s,k,j in order
             }
-            if (inputxShape.data[i] == 1) {
-                inputxIdx += 0;
+            if (inputXShape.data[i] == 1) {
+                inputXIdx += 0;
             } else {
-                inputxIdx +=
+                inputXIdx +=
                     tmp *
-                    temp_inputx; // otherwise +i(JKS) or j(KS) or k(S) or s
+                    temp_inputX; // otherwise +i(JKS) or j(KS) or k(S) or s
             }
-            temp_inputx *= inputxShape.data[i];
+            temp_inputX *= inputXShape.data[i];
             //----------------------------
-            if (inputyShape.data[i] == 1) {
-                inputyIdx += 0;
+            if (inputYShape.data[i] == 1) {
+                inputYIdx += 0;
             } else {
-                inputyIdx +=
+                inputYIdx +=
                     tmp *
-                    temp_inputy; // otherwise +i(JKS) or j(KS) or k(S) or s
+                    temp_inputY; // otherwise +i(JKS) or j(KS) or k(S) or s
             }
-            temp_inputy *= inputyShape.data[i];
+            temp_inputY *= inputYShape.data[i];
             //--------------------------
             if (conditionShape.data[i] == 1) {
                 conditionIdx += 0;
@@ -57,15 +57,15 @@ __global__ void _where_kernel(const float *inputx, const float *inputy,
             v = v / outputShape.data[i];
         }
         output[outputIdx] =
-            condition[conditionIdx] ? inputx[inputxIdx] : inputy[inputyIdx];
+            condition[conditionIdx] ? inputX[inputXIdx] : inputY[inputYIdx];
     }
 }
 
 namespace infini {
-void where_kernel(const float *inputx, const float *inputy,
-                  const float *condition, float *output, int nDims,
-                  infini::SmallArray inputxShape,
-                  infini::SmallArray inputyShape,
+void where_kernel(const float *inputX, const float *inputY,
+                  const int *condition, float *output, int nDims,
+                  infini::SmallArray inputXShape,
+                  infini::SmallArray inputYShape,
                   infini::SmallArray conditionShape,
                   infini::SmallArray outputShape) {
     int outputsize = 1;
@@ -76,7 +76,7 @@ void where_kernel(const float *inputx, const float *inputy,
     int blocksize = 32 * 16;
     int gridsize = (outputsize + blocksize - 1) / blocksize;
     _where_kernel<<<gridsize, blocksize>>>(
-        inputx, inputy, condition, output, nDims, outputsize, inputxShape,
-        inputyShape, conditionShape, outputShape);
+        inputX, inputY, condition, output, nDims, outputsize, inputXShape,
+        inputYShape, conditionShape, outputShape);
 }
 } // namespace infini
