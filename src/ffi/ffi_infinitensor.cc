@@ -1,5 +1,6 @@
 #include "common/error_handler.h"
 #include "computation/graph.h"
+#include "onnx/operators.h"
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -46,7 +47,8 @@ Node node(std::string opType,
         attrs_.insert({std::move(it->first), {std::move(it->second)}});
     }
     return std::make_shared<Operator>(
-        Operator{OpType::parse(opType.c_str()), std::move(attrs_)});
+        Operator{OpType::parse(fmt::format("onnx::{}", opType).c_str()),
+                 std::move(attrs_)});
 }
 
 std::shared_ptr<Handler>
@@ -70,6 +72,8 @@ graph(std::unordered_map<std::string, std::pair<std::vector<std::string>,
 }
 
 void register_refactor(py::module &m) {
+    onnx::register_();
+
     py::class_<DimExpr>(m, "DimExpr")
         .def(py::init<int64_t>())
         .def(py::init<std::string &&>());
