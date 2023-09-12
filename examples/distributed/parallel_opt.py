@@ -5,6 +5,7 @@ from typing import Dict, List
 from placement import Placement, Replicate, Shard, _Partial
 import numpy as np
 
+
 def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
     data = {init.name: init for init in model.graph.initializer}
     vinfo = {info.name: info for info in model.graph.value_info}
@@ -16,8 +17,9 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
     def is_sharded(name: str):
         return place[name].is_shard()
 
-    def shard_tensor(tensor: TensorProto, plc: Placement, groups: int=1):
+    def shard_tensor(tensor: TensorProto, plc: Shard, groups: int = 1):
         # print(f"shard {tensor.name} at dim {dim}")
+        assert plc.is_shard(), plc
         ndim = len(tensor.dims)
         if plc.dim < 0:
             plc.dim += ndim
@@ -25,13 +27,17 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
             return tensor
         array = numpy_helper.to_array(tensor)
         assert array.shape[plc.dim] % tp_world_size == 0, array.shape[plc.dim]
-        seg = array.shape[plc.dim] // tp_world_size // groups
-        array_group = np.split(array, groups, axis=plc.dim)
-        array = np.concatenate(
-            [np.copy(group.take(indices=range(tp_rank * seg, (tp_rank + 1) * seg), axis=plc.dim)) 
-             for group in array_group], 
-             axis=plc.dim
-             )
+        dims = list(tensor.dims)
+        dims.insert(plc.dim, groups)
+        dims[plc.dim + 1] //= groups
+        array = array.reshape(dims)
+        seg = array.shape[plc.dim + 1] // tp_world_size
+        array = array.take(
+            indices=range(tp_rank * seg, (tp_rank + 1) * seg), axis=plc.dim + 1
+        )
+        dims = list(tensor.dims)
+        dims[plc.dim] //= tp_world_size
+        array = array.reshape(dims)
         tensor = numpy_helper.from_array(array, name=tensor.name)
         place[tensor.name] = plc
         return tensor
@@ -51,7 +57,7 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
         out_plc = Shard(ndim - 1) if in_plc.is_replicate() else _Partial()
         place[node.output[0]] = out_plc
 
-    def shard_binary(node: NodeProto, groups: int=1):
+    def shard_binary(node: NodeProto, groups: int = 1):
         # print("binary", node.name, node.input[0], place[node.input[0]])
         a = node.input[0]
         b = node.input[1]
@@ -113,7 +119,6 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
         for output in node.output:
             place[output] = in_plc
 
-
     def shard_transpose(node: NodeProto):
         plc = place[node.input[0]]
         if plc.is_shard():
@@ -139,10 +144,10 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
             ), f"{place[node.input[0]]} != {place[node.input[1]]}"
             place[node.output[0]] = place[node.input[0]]
 
-    def find_successor(op_type: str, idx: int, search_limit: int=1):
-        for s_idx in range(idx + 1, idx + 1 + search_limit):
-            if s_idx < len(model.graph.node) and model.graph.node[s_idx].op_type == op_type:
-                return model.graph.node[s_idx]
+    def find_successor(op_type: str, idx: int, search_limit: int = 1):
+        for node in model.graph.node[idx + 1 : idx + 1 + search_limit]:
+            if node.op_type == op_type:
+                return node
         return None
 
     # all tensors are initially replicated.
@@ -163,7 +168,6 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
             split_node = find_successor("Split", index, search_limit=2)
             if split_node is not None:
                 groups = len(split_node.output)
-                
             shard_gemm(node, groups)
             plc = place[node.output[0]]
             if plc.is_partial():
