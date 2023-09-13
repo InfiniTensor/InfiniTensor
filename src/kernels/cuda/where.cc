@@ -19,9 +19,9 @@ class WhereCuda : public CudaKernelWithoutConfig {
         const auto &condition_Shape = op->getInputs(2)->getDims();
         const auto &output_Shape = op->getOutput()->getDims();
 
-        const int xSize = op->getInputs(0)->getDims().size();
-        const int ySize = op->getInputs(1)->getDims().size();
-        const int cSize = op->getInputs(2)->getDims().size();
+        const int xSize = op->getInputs(0)->getRank();
+        const int ySize = op->getInputs(1)->getRank();
+        const int cSize = op->getInputs(2)->getRank();
         int nDims = op->getOutput()->getDims().size();
         IT_ASSERT(nDims <= SMALL_ARRAY_SIZE);
 
@@ -42,7 +42,7 @@ class WhereCuda : public CudaKernelWithoutConfig {
             conditionShape.data[i + nDims - cSize] = condition_Shape[i];
         }
         where_kernel((float *)inputXData, (float *)inputYData,
-                     (int *)conditionData, (float *)outputData, nDims,
+                     (uint8_t *)conditionData, (float *)outputData, nDims,
                      inputXShape, inputYShape, conditionShape, outputShape);
     }
 };
