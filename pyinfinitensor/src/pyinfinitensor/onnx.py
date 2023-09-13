@@ -5,8 +5,8 @@ from typing import Any
 
 
 def build_graph(model: ModelProto) -> backend.Graph:
-    nodes: dict[str, backend.Node] = dict()
-    edges: dict[str, backend.Edge] = dict()
+    nodes: dict[str, backend.Operator] = dict()
+    edges: dict[str, backend.Tensor] = dict()
     topology: dict[str, tuple[list[str], list[str]]] = dict()
 
     for tensor in model.graph.initializer:
@@ -35,7 +35,7 @@ def build_graph(model: ModelProto) -> backend.Graph:
     )
 
 
-def _parse_tensor(tensor: TensorProto) -> backend.Edge:
+def _parse_tensor(tensor: TensorProto) -> backend.Tensor:
     return refactor_tensor(
         tensor.data_type,
         [DimExpr(d) for d in tensor.dims],

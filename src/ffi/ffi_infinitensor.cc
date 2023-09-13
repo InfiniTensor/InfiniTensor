@@ -9,6 +9,7 @@ namespace py = pybind11;
 namespace {
 using namespace refactor;
 using namespace computation;
+using Name = std::string;
 
 class Handler {
     Graph _g;
@@ -20,11 +21,11 @@ class Handler {
         ASSERT(_g.substitute(name, value),
                fmt::format("Variable {} not exist", name));
     }
-    std::unordered_set<std::string> fillEdgeInfo() { return _g.fillEdgeInfo(); }
+    std::unordered_set<Name> fillEdgeInfo() { return _g.fillEdgeInfo(); }
 };
 
-Edge edge(int dataType, std::vector<DimExpr> shape,
-          std::optional<std::vector<uint8_t>> data) {
+std::shared_ptr<Tensor> edge(int dataType, std::vector<DimExpr> shape,
+                             std::optional<std::vector<uint8_t>> data) {
     Shape s(shape.begin(), shape.end());
     auto ans = std::make_shared<Tensor>(static_cast<common::DataType>(dataType),
                                         std::move(s));
@@ -37,8 +38,9 @@ Edge edge(int dataType, std::vector<DimExpr> shape,
     return ans;
 }
 
-Node node(std::string opType,
-          std::unordered_map<std::string, decltype(Attribute::value)> attrs) {
+std::shared_ptr<Operator>
+node(std::string opType,
+     std::unordered_map<std::string, decltype(Attribute::value)> attrs) {
     std::unordered_map<std::string, Attribute> attrs_;
     for (auto it = attrs.begin(); it != attrs.end(); attrs.erase(it++)) {
         attrs_.insert({std::move(it->first), {std::move(it->second)}});
@@ -49,20 +51,26 @@ Node node(std::string opType,
 }
 
 std::shared_ptr<Handler>
-graph(std::unordered_map<std::string, std::pair<std::vector<std::string>,
-                                                std::vector<std::string>>>
+graph(std::unordered_map<Name, std::pair<std::vector<Name>, std::vector<Name>>>
           topology,
-      std::unordered_map<std::string, Node> nodes,
-      std::unordered_map<std::string, Edge> edges,
-      std::vector<std::string> inputs, std::vector<std::string> outputs) {
-    using Name = std::string;
+      std::unordered_map<Name, std::shared_ptr<Operator>> nodes,
+      std::unordered_map<Name, std::shared_ptr<Tensor>> edges,
+      std::vector<Name> inputs, std::vector<Name> outputs) {
     auto builder = graph_topo::Builder<Name, Node, Name, Edge>{};
     for (auto &[node, rels] : topology) {
         builder.topology.insert(
             {std::move(node), {std::move(rels.first), std::move(rels.second)}});
     }
-    builder.nodes = std::move(nodes);
-    builder.edges = std::move(edges);
+    builder.nodes.reserve(nodes.size());
+    builder.edges.reserve(edges.size());
+    for (auto &[name, operator_] : nodes) {
+        auto node = Node{std::move(operator_), name};
+        builder.nodes.insert({std::move(name), std::move(node)});
+    }
+    for (auto &[name, tensor] : edges) {
+        auto node = Edge{std::move(tensor), name};
+        builder.edges.insert({std::move(name), std::move(node)});
+    }
     builder.globalInputs = std::move(inputs);
     builder.globalOutputs = std::move(outputs);
     return std::make_shared<Handler>(Graph(builder.build()));
@@ -74,8 +82,8 @@ void register_refactor(py::module &m) {
     py::class_<DimExpr>(m, "DimExpr")
         .def(py::init<int64_t>())
         .def(py::init<std::string>());
-    py::class_<Operator, Node>(m, "Node");
-    py::class_<Tensor, Edge>(m, "Edge");
+    py::class_<Operator, std::shared_ptr<Operator>>(m, "Operator");
+    py::class_<Tensor, std::shared_ptr<Tensor>>(m, "Tensor");
     py::class_<Handler, std::shared_ptr<Handler>>(m, "Graph")
         .def("substitute", &Handler::substitute)
         .def("fill_edge_info", &Handler::fillEdgeInfo);
