@@ -50,6 +50,17 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
         ndim = len(vinfo[output].type.tensor_type.shape.dim)
         out_plc = Shard(ndim - 1) if in_plc.is_replicate() else _Partial()
         place[node.output[0]] = out_plc
+        
+    def shard_concat(node: NodeProto, groups: int = 1):
+        # hack for kvcache
+        in_plc = place[node.input[1]]
+        model.graph.input.remove(vinfo[node.input[0]])
+        seq_len_dim = vinfo[node.input[0]].type.tensor_type.shape.dim.pop(1)
+        seq_len_dim.dim_value //= tp_world_size
+        vinfo[node.input[0]].type.tensor_type.shape.dim.insert(1, seq_len_dim)
+        model.graph.input.append(vinfo[node.input[0]])
+        place[node.input[0]] = in_plc
+        place[node.output[0]] = in_plc
 
     def shard_binary(node: NodeProto, groups: int=1):
         # print("binary", node.name, node.input[0], place[node.input[0]])
@@ -138,6 +149,8 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
                 place[node.input[0]] == place[node.input[1]]
             ), f"{place[node.input[0]]} != {place[node.input[1]]}"
             place[node.output[0]] = place[node.input[0]]
+        elif node.op_type == "Concat":
+            shard_concat(node)            
 
     def find_successor(op_type: str, idx: int, search_limit: int=1):
         for s_idx in range(idx + 1, idx + 1 + search_limit):
