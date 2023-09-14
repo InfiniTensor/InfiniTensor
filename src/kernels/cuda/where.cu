@@ -1,13 +1,12 @@
 #include "cuda/cuda_common.h"
 #include "utils/small_array.h"
 
-__global__ void _where_kernel(const float *inputX, const float *inputY,
-                              const uint8_t *condition, float *output,
-                              int nDims, int outputsize,
-                              infini::SmallArray inputXShape,
-                              infini::SmallArray inputYShape,
-                              infini::SmallArray conditionShape,
-                              infini::SmallArray outputShape) {
+__global__ void _whereKernel(const float *inputX, const float *inputY,
+                             const uint8_t *condition, float *output, int nDims,
+                             int outputsize, infini::SmallArray inputXShape,
+                             infini::SmallArray inputYShape,
+                             infini::SmallArray conditionShape,
+                             infini::SmallArray outputShape) {
 
     int outputIdx = blockIdx.x * blockDim.x + threadIdx.x;
     if (outputIdx < outputsize) {
@@ -63,12 +62,11 @@ __global__ void _where_kernel(const float *inputX, const float *inputY,
 }
 
 namespace infini {
-void where_kernel(const float *inputX, const float *inputY,
-                  const uint8_t *condition, float *output, int nDims,
-                  infini::SmallArray inputXShape,
-                  infini::SmallArray inputYShape,
-                  infini::SmallArray conditionShape,
-                  infini::SmallArray outputShape) {
+void whereKernel(const float *inputX, const float *inputY,
+                 const uint8_t *condition, float *output, int nDims,
+                 infini::SmallArray inputXShape, infini::SmallArray inputYShape,
+                 infini::SmallArray conditionShape,
+                 infini::SmallArray outputShape) {
     int outputsize = 1;
 
     for (int i = 0; i < nDims; i++) {
@@ -76,7 +74,7 @@ void where_kernel(const float *inputX, const float *inputY,
     }
     int blocksize = 32 * 16;
     int gridsize = (outputsize + blocksize - 1) / blocksize;
-    _where_kernel<<<gridsize, blocksize>>>(
+    _whereKernel<<<gridsize, blocksize>>>(
         inputX, inputY, condition, output, nDims, outputsize, inputXShape,
         inputYShape, conditionShape, outputShape);
 }
