@@ -591,6 +591,13 @@ class OnnxStub:
                         tensors.get(node.output[0]),
                         next((attr.i for attr in node.attribute if attr.name == "to")),
                     )
+                elif node.op_type == "ReduceSum":
+                    # ReduceSum is only implemented as allReduceSum.
+                    assert any(attr.name == "communicator" for attr in node.attribute)
+                    tensors[node.output[0]] = self.handler.allReduceSum(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
                 elif node.op_type == "AllReduceSum":
                     tensors[node.output[0]] = self.handler.allReduceSum(
                         tensors[node.input[0]],
@@ -631,13 +638,9 @@ class OnnxStub:
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
                         next(
-                                (
-                                    attr.i
-                                    for attr in node.attribute
-                                    if attr.name == "root"
-                                ),
-                                0,
-                            ),
+                            (attr.i for attr in node.attribute if attr.name == "root"),
+                            0,
+                        ),
                     )
                 elif node.op_type == "Expand":
                     shape = _parse_data(data[node.input[1]])

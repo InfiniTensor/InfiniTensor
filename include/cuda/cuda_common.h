@@ -6,16 +6,11 @@
 #include <cudnn.h>
 #include <curand.h>
 
-// TODO: replace with Exception (IT_ASSERT)
 #define checkCudaError(call)                                                   \
-    {                                                                          \
-        auto err = call;                                                       \
-        if (cudaSuccess != err) {                                              \
-            fprintf(stderr, "Cuda error in %s:%i : %s.\n", __FILE__, __LINE__, \
-                    cudaGetErrorString(err));                                  \
-            exit(EXIT_FAILURE);                                                \
-        }                                                                      \
-    }
+    if (auto err = call; err != cudaSuccess)                                   \
+    throw ::infini::Exception(std::string("[") + __FILE__ + ":" +              \
+                              std::to_string(__LINE__) + "] CUDA error (" +    \
+                              #call + "): " + cudaGetErrorString(err))
 
 #define checkCUresult(call)                                                    \
     {                                                                          \
@@ -39,14 +34,10 @@
     }
 
 #define checkCudnnError(call)                                                  \
-    {                                                                          \
-        auto err = call;                                                       \
-        if (CUDNN_STATUS_SUCCESS != err) {                                     \
-            fprintf(stderr, "cuDNN error in %s:%i : %s.\n", __FILE__,          \
-                    __LINE__, cudnnGetErrorString(err));                       \
-            exit(EXIT_FAILURE);                                                \
-        }                                                                      \
-    }
+    if (auto err = call; err != CUDNN_STATUS_SUCCESS)                          \
+    throw ::infini::Exception(std::string("[") + __FILE__ + ":" +              \
+                              std::to_string(__LINE__) + "] cuDNN error (" +   \
+                              #call + "): " + cudnnGetErrorString(err))
 
 #define checkCurandError(call)                                                 \
     {                                                                          \

@@ -9,7 +9,8 @@ namespace backward_trace = backward;
 backward_trace::SignalHandling sh;
 
 namespace infini {
-Exception::Exception(const std::string &msg) : std::runtime_error(msg) {
+Exception::Exception(const std::string &msg)
+    : std::runtime_error(msg), info(msg) {
     backward_trace::StackTrace st;
     st.load_here(32);
     backward_trace::Printer p;
