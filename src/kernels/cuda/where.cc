@@ -30,29 +30,10 @@ class WhereCuda : public CudaKernelWithoutConfig {
         for (int i = nDims - 1; i >= 0; --i) {
             outputShape.data[i] = opOutputShape[i];
         }
-        /***
+
         broadcastShape(opInputXShape, inputXShape, nDims, xSize);
         broadcastShape(opInputYShape, inputYShape, nDims, ySize);
         broadcastShape(opConditionShape, conditionShape, nDims, cSize);
-        ***/
-        for (int i = nDims - 1; i >= 0; --i) {
-            inputXShape.data[i] = 1;
-        }
-        for (int i = xSize - 1; i >= 0; --i) {
-            inputXShape.data[i + nDims - xSize] = opInputXShape[i];
-        }
-        for (int i = nDims - 1; i >= 0; --i) {
-            inputYShape.data[i] = 1;
-        }
-        for (int i = ySize - 1; i >= 0; --i) {
-            inputYShape.data[i + nDims - ySize] = opInputYShape[i];
-        }
-        for (int i = nDims - 1; i >= 0; --i) {
-            conditionShape.data[i] = 1;
-        }
-        for (int i = cSize - 1; i >= 0; --i) {
-            conditionShape.data[i + nDims - cSize] = opConditionShape[i];
-        }
 
         whereKernel((float *)inputXData, (float *)inputYData,
                     (uint8_t *)conditionData, (float *)outputData, nDims,
