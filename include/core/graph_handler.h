@@ -16,6 +16,8 @@ class GraphHandlerObj {
 
     Tensor tensor(Shape dims, int dtype);
 
+    Dump &getDump() { return g->getDump(); }
+
     //------ operators
 
     inline OpVec operators() { return g->getOperators(); }

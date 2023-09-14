@@ -1,4 +1,5 @@
 #include "core/data_type.h"
+#include "core/dump.h"
 #include "core/graph_handler.h"
 #include "operators/batch_norm.h"
 #include "operators/concat.h"
@@ -326,6 +327,7 @@ void init_graph_builder(py::module &m) {
                                                       py::buffer_protocol())
         .def("fuid", &TensorObj::getFuid, policy::automatic)
         .def("shape", &TensorObj::getDims, policy::move)
+        .def("dtype", &TensorObj::getDTypeCode, policy::automatic)
         .def("copyin_float", &TensorObj::copyin<float>, policy::move)
         .def("copyin_int32", &TensorObj::copyin<int32_t>, policy::move)
         .def("copyin_int64", &TensorObj::copyin<int64_t>, policy::move)
@@ -381,6 +383,8 @@ void init_graph_builder(py::module &m) {
                 format = py::format_descriptor<int8_t>::format();
             } else if (self.getDType() == DataType::UInt8) {
                 format = py::format_descriptor<uint8_t>::format();
+            } else if (self.getDType() == DataType::Bool) {
+                format = py::format_descriptor<bool>::format();
             } else if (self.getDType() == DataType::Float16 ||
                        self.getDType() == DataType::BFloat16) {
                 // Python uses "e" for half precision float type code.
@@ -460,7 +464,13 @@ void init_graph_builder(py::module &m) {
         .def("get_perf_time", &Handler::get_perf_time, policy::automatic)
         .def("tune", &Handler::tune, policy::automatic)
         .def("run", &Handler::run, policy::automatic)
-        .def("get_perf_time", &Handler::get_perf_time, policy::automatic);
+        .def("get_perf_time", &Handler::get_perf_time, policy::automatic)
+        .def("getDump", &Handler::getDump, policy::reference);
+    py::class_<Dump, std::shared_ptr<Dump>>(m, "Dump")
+        .def("setOpQuery", &Dump::setOpQuery, policy::automatic)
+        .def("getOutputs", &Dump::getOutputs, policy::move)
+        .def("getOpKey", &Dump::getOpKey, policy::automatic)
+        .def("getInputs", &Dump::getInputs, policy::move);
 }
 
 } // namespace infini
