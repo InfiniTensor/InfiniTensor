@@ -43,7 +43,7 @@ class GraphObj : public Object {
     }
 
     void dumpOp(Operator op) { dump.dumpOp(op); }
-    Dump& getDump() { return dump; }
+    Dump &getDump() { return dump; }
 
     void deleteConnection(Tensor tensor, Operator op);
     void addConnection(Tensor tensor, Operator op);
