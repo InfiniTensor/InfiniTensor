@@ -69,8 +69,8 @@ class matmulCublas : public Kernel {
                     inputShape.data[i] = inC->getDims()[i - offset];
             }
             expandKernel(inC->getRawDataPtr<float *>(),
-                          out->getRawDataPtr<float *>(), nDims, outputsize,
-                          inputShape, outputShape);
+                         out->getRawDataPtr<float *>(), nDims, outputsize,
+                         inputShape, outputShape);
         }
         // TODO:use compute type
         cublasStatus_t stat;
