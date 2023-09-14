@@ -1,6 +1,7 @@
 #include "common/error_handler.h"
 #include "computation/graph.h"
 #include "onnx/operators.h"
+#include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -25,13 +26,13 @@ class Handler {
 };
 
 std::shared_ptr<Tensor> edge(int dataType, std::vector<DimExpr> shape,
-                             std::optional<std::vector<uint8_t>> data) {
-    Shape s(shape.begin(), shape.end());
-    auto ans = std::make_shared<Tensor>(static_cast<common::DataType>(dataType),
-                                        std::move(s));
+                             std::optional<py::array> data) {
+    auto ans = Tensor::share(static_cast<common::DataType>(dataType),
+                             Shape(shape.begin(), shape.end()));
     if (data) {
         auto const bytesSize = ans->bytesSize();
-        ASSERT(bytesSize == data->size(), "Data size mismatch");
+        ASSERT(bytesSize == static_cast<size_t>(data->nbytes()),
+               "Data size mismatch");
         ans->data = std::make_shared<Blob>(new uint8_t[bytesSize]);
         std::memcpy(ans->data->ptr, data->data(), bytesSize);
     }
@@ -39,15 +40,14 @@ std::shared_ptr<Tensor> edge(int dataType, std::vector<DimExpr> shape,
 }
 
 std::shared_ptr<Operator>
-node(std::string opType,
+node(const char *opType,
      std::unordered_map<std::string, decltype(Attribute::value)> attrs) {
     std::unordered_map<std::string, Attribute> attrs_;
     for (auto it = attrs.begin(); it != attrs.end(); attrs.erase(it++)) {
         attrs_.insert({std::move(it->first), {std::move(it->second)}});
     }
-    return std::make_shared<Operator>(
-        Operator{OpType::parse(fmt::format("onnx::{}", opType).c_str()),
-                 std::move(attrs_)});
+    return std::make_shared<Operator>(Operator{
+        OpType::parse(fmt::format("onnx::{}", opType)), std::move(attrs_)});
 }
 
 std::shared_ptr<Handler>
@@ -68,8 +68,8 @@ graph(std::unordered_map<Name, std::pair<std::vector<Name>, std::vector<Name>>>
         builder.nodes.insert({std::move(name), std::move(node)});
     }
     for (auto &[name, tensor] : edges) {
-        auto node = Edge{std::move(tensor), name};
-        builder.edges.insert({std::move(name), std::move(node)});
+        auto edge = Edge{std::move(tensor), name};
+        builder.edges.insert({std::move(name), std::move(edge)});
     }
     builder.globalInputs = std::move(inputs);
     builder.globalOutputs = std::move(outputs);

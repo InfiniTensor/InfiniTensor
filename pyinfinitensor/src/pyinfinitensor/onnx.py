@@ -5,30 +5,30 @@ from typing import Any
 
 
 def build_graph(model: ModelProto) -> backend.Graph:
-    nodes: dict[str, backend.Operator] = dict()
     edges: dict[str, backend.Tensor] = dict()
-    topology: dict[str, tuple[list[str], list[str]]] = dict()
 
     for tensor in model.graph.initializer:
         edges[tensor.name] = _parse_tensor(tensor)
 
     for tensor in model.graph.input:
         if tensor.name not in edges:
-            dim = [
-                DimExpr(d.dim_value) if d.dim_value > 0 else DimExpr(d.dim_param)
-                for d in tensor.type.tensor_type.shape.dim
-            ]
             edges[tensor.name] = refactor_tensor(
-                tensor.type.tensor_type.elem_type, dim, None
+                tensor.type.tensor_type.elem_type,
+                [
+                    DimExpr(d.dim_value)
+                    if d.HasField("dim_value")
+                    else DimExpr(d.dim_param)
+                    for d in tensor.type.tensor_type.shape.dim
+                ],
+                None,
             )
 
-    for node in model.graph.node:
-        topology[node.name] = ([i for i in node.input], [o for o in node.output])
-        nodes[node.name] = refactor_operator(node.op_type, _parse_attribute(node))
-
     return refactor_graph(
-        topology,
-        nodes,
+        {node.name: (node.input, node.output) for node in model.graph.node},
+        {
+            node.name: refactor_operator(node.op_type, _parse_attribute(node))
+            for node in model.graph.node
+        },
         edges,
         [i.name for i in model.graph.input],
         [o.name for o in model.graph.output],
@@ -39,29 +39,32 @@ def _parse_tensor(tensor: TensorProto) -> backend.Tensor:
     return refactor_tensor(
         tensor.data_type,
         [DimExpr(d) for d in tensor.dims],
-        [b for b in numpy_helper.to_array(tensor).data.tobytes()],
+        numpy_helper.to_array(tensor),
     )
 
 
+def _raise(attr: AttributeProto) -> None:
+    raise NotImplementedError("Unsupported Attribute Type: {}".format(attr.type))
+
+
 def _parse_attribute(node: NodeProto) -> dict[str, Any]:
-    ans: dict[str, Any] = dict()
-    for attr in node.attribute:
-        if attr.type == AttributeProto.INT:
-            ans[attr.name] = attr.i
-        elif attr.type == AttributeProto.INTS:
-            ans[attr.name] = attr.ints
-        elif attr.type == AttributeProto.FLOAT:
-            ans[attr.name] = attr.f
-        elif attr.type == AttributeProto.FLOATS:
-            ans[attr.name] = attr.floats
-        elif attr.type == AttributeProto.STRING:
-            ans[attr.name] = attr.s
-        elif attr.type == AttributeProto.STRINGS:
-            ans[attr.name] = attr.strings
-        elif attr.type == AttributeProto.TENSOR:
-            ans[attr.name] = _parse_tensor(attr.t)
-        elif attr.type == AttributeProto.TENSORS:
-            ans[attr.name] = [_parse_tensor(t) for t in attr.tensors]
-        else:
-            assert False, "Unsupported Attribute Type: {}".format(attr.type)
-    return ans
+    return {
+        attr.name: attr.i
+        if attr.type == AttributeProto.INT
+        else attr.ints
+        if attr.type == AttributeProto.INTS
+        else attr.f
+        if attr.type == AttributeProto.FLOAT
+        else attr.floats
+        if attr.type == AttributeProto.FLOATS
+        else attr.s
+        if attr.type == AttributeProto.STRING
+        else attr.strings
+        if attr.type == AttributeProto.STRINGS
+        else _parse_tensor(attr.t)
+        if attr.type == AttributeProto.TENSOR
+        else [_parse_tensor(t) for t in attr.tensors]
+        if attr.type == AttributeProto.TENSORS
+        else _raise(attr)
+        for attr in node.attribute
+    }
