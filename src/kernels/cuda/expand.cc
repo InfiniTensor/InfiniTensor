@@ -25,8 +25,8 @@ class ExpandCuda : public CudaKernelWithoutConfig {
             inputShape.data[i] = in_Shape[i];
             outputsize *= out_Shape[i];
         }
-        expand_kernel((float *)inputData, (float *)outputData, nDims,
-                      outputsize, inputShape, outputShape);
+        expandKernel((float *)inputData, (float *)outputData, nDims, outputsize,
+                     inputShape, outputShape);
     }
 };
 

@@ -2,6 +2,7 @@
 #include "cuda/cuda_kernel_wihtout_config.h"
 #include "cuda/cuda_runtime.h"
 #include "cuda/cuda_where.h"
+#include "utils/broadcast_shape.h"
 
 namespace infini {
 
@@ -10,28 +11,33 @@ class WhereCuda : public CudaKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<WhereObj>(_op);
 
-        void *const inputxData = (op->getInputs(0)->getRawDataPtr<void *>());
-        void *const inputyData = (op->getInputs(1)->getRawDataPtr<void *>());
+        void *const inputXData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const inputYData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const conditionData = (op->getInputs(2)->getRawDataPtr<void *>());
         void *const outputData = (op->getOutput()->getRawDataPtr<void *>());
-        const auto &inputx_Shape = op->getInputs(0)->getDims();
-        const auto &inputy_Shape = op->getInputs(1)->getDims();
-        const auto &condition_Shape = op->getInputs(2)->getDims();
-        const auto &output_Shape = op->getOutput()->getDims();
+        const auto &opInputXShape = op->getInputs(0)->getDims();
+        const auto &opInputYShape = op->getInputs(1)->getDims();
+        const auto &opConditionShape = op->getInputs(2)->getDims();
+        const auto &opOutputShape = op->getOutput()->getDims();
 
-        int nDims = op->getInputs(0)->getDims().size();
+        const int xSize = op->getInputs(0)->getRank();
+        const int ySize = op->getInputs(1)->getRank();
+        const int cSize = op->getInputs(2)->getRank();
+        int nDims = op->getOutput()->getDims().size();
         IT_ASSERT(nDims <= SMALL_ARRAY_SIZE);
 
-        SmallArray inputxShape, inputyShape, conditionShape, outputShape;
-        for (int i = 0; i < nDims; ++i) {
-            inputxShape.data[i] = inputx_Shape[i];
-            inputyShape.data[i] = inputy_Shape[i];
-            conditionShape.data[i] = condition_Shape[i];
-            outputShape.data[i] = output_Shape[i];
+        SmallArray inputXShape, inputYShape, conditionShape, outputShape;
+        for (int i = nDims - 1; i >= 0; --i) {
+            outputShape.data[i] = opOutputShape[i];
         }
-        where_kernel((float *)inputxData, (float *)inputyData,
-                     (float *)conditionData, (float *)outputData, nDims,
-                     inputxShape, inputyShape, conditionShape, outputShape);
+
+        broadcastShape(opInputXShape, inputXShape, nDims, xSize);
+        broadcastShape(opInputYShape, inputYShape, nDims, ySize);
+        broadcastShape(opConditionShape, conditionShape, nDims, cSize);
+
+        whereKernel((float *)inputXData, (float *)inputYData,
+                    (uint8_t *)conditionData, (float *)outputData, nDims,
+                    inputXShape, inputYShape, conditionShape, outputShape);
     }
 };
 
