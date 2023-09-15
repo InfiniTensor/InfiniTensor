@@ -22,8 +22,11 @@ def parse_args():
         "--name", type=str, default="test", help="name of this instance."
     )
     parser.add_argument(
-        "--model", type=str, required=True, help="path to the ONNX model file."
+        "--model1", type=str, required=True, help="path to the ONNX model file."
     )
+    parser.add_argument(
+        "--model2", type=str, required=True, help="path to the ONNX model file."
+    )    
     parser.add_argument("--batch_size", type=int, default=1, help="batch size.")
     parser.add_argument("--length", type=int, default=1, help="sequence length.")
     parser.add_argument(
@@ -37,7 +40,8 @@ def parse_args():
         args.num_nodes,
         args.nproc_per_node,
         args.name,
-        args.model,
+        args.model1,
+        args.model2,
         args.batch_size,
         args.length,
         args.gen_std,
@@ -137,7 +141,7 @@ def start_worker(
     # shard the first graph
     ####################################
     model1 = parallel_model(model1, world_size, rank)
-    extern_path = f"./{dist_name}_stub2_rank{rank}.pb"
+    extern_path = f"./{dist_name}_stub1_rank{rank}.pb"
     if os.path.exists(extern_path):
         os.remove(extern_path)
     convert_model_to_external_data(
@@ -201,10 +205,10 @@ def gen_standard(name, model1, model2, voc_size, bs, len):
 
 
 def main():
-    nnodes, nproc_per_node, name, model_path, bs, length, gen_std = parse_args()
+    nnodes, nproc_per_node, name, model1_path, model2_path, bs, length, gen_std = parse_args()
 
-    model1 = onnx.load(model_path)
-    model2 = onnx.load("/home/duanchenjie/workspace/opt_bs1_kvcache_dist.onnx")
+    model1 = onnx.load(model1_path)
+    model2 = onnx.load(model2_path)
 
     # generate standart output
     if gen_std:
