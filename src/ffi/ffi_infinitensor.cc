@@ -364,6 +364,7 @@ void init_graph_builder(py::module &m) {
                                                       py::buffer_protocol())
         .def("fuid", &TensorObj::getFuid, policy::automatic)
         .def("shape", &TensorObj::getDims, policy::move)
+        .def("dtype", &TensorObj::getDTypeIndex, policy::automatic)
         .def("copyin_float", &TensorObj::copyin<float>, policy::move)
         .def("copyin_int32", &TensorObj::copyin<int32_t>, policy::move)
         .def("copyin_int64", &TensorObj::copyin<int64_t>, policy::move)
