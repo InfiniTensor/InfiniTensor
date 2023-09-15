@@ -60,11 +60,9 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
     def shard_concat(node: NodeProto, groups: int = 1):
         # hack for kvcache
         in_plc = place[node.input[1]]
-        model.graph.input.remove(vinfo[node.input[0]])
         seq_len_dim = vinfo[node.input[0]].type.tensor_type.shape.dim.pop(1)
         seq_len_dim.dim_value //= tp_world_size
         vinfo[node.input[0]].type.tensor_type.shape.dim.insert(1, seq_len_dim)
-        model.graph.input.append(vinfo[node.input[0]])
         place[node.input[0]] = in_plc
         place[node.output[0]] = in_plc
 
@@ -216,10 +214,14 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
             continue
         shard_node(node)
 
+    new_input = []
+    for info in model.graph.input:
+        new_input.append(vinfo[info.name])
+    
     graph = helper.make_graph(
         nodes,
         model.graph.name + f"_{tp_rank}",
-        model.graph.input,
+        new_input,
         model.graph.output,
         data.values(),
         doc_string=model.graph.doc_string,
