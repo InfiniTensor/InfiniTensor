@@ -44,7 +44,7 @@ def parse_args():
     )
 
 
-def run_model(model1, model2, runtime1, runtime2, inputs1: np.array, inputs2: np.array, n=20, is_kvcache=False):
+def run_model(model1, model2, runtime1, runtime2, inputs1: np.array, inputs2: np.array, n=20):
     ####################################
     # run the first graph without kvcache
     ####################################
