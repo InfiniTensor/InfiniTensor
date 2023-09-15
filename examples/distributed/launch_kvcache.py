@@ -137,7 +137,7 @@ def start_worker(
     # shard the first graph
     ####################################
     model1 = parallel_model(model1, world_size, rank)
-    extern_path = f"./{dist_name}1_rank{rank}.pb"
+    extern_path = f"./{dist_name}_stub2_rank{rank}.pb"
     if os.path.exists(extern_path):
         os.remove(extern_path)
     convert_model_to_external_data(
