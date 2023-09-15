@@ -306,6 +306,44 @@ void export_functions(py::module &m) {
 #undef FUNCTION
 }
 
+// A helper function that converts DataType to python format string
+static std::string getFormat(DataType type) {
+    std::string format;
+    if (type == DataType::Float32) {
+        format = py::format_descriptor<float>::format();
+    } else if (type == DataType::Double) {
+        format = py::format_descriptor<double>::format();
+    } else if (type == DataType::Int32) {
+        format = py::format_descriptor<int>::format();
+    } else if (type == DataType::UInt32) {
+        format = py::format_descriptor<uint32_t>::format();
+    } else if (type == DataType::Int64) {
+        format = py::format_descriptor<int64_t>::format();
+    } else if (type == DataType::UInt64) {
+        format = py::format_descriptor<uint64_t>::format();
+    } else if (type == DataType::Int16) {
+        format = py::format_descriptor<int16_t>::format();
+    } else if (type == DataType::UInt16) {
+        format = py::format_descriptor<uint16_t>::format();
+    } else if (type == DataType::Int8) {
+        format = py::format_descriptor<int8_t>::format();
+    } else if (type == DataType::UInt8) {
+        format = py::format_descriptor<uint8_t>::format();
+    } else if (type == DataType::Bool) {
+        format = py::format_descriptor<bool>::format();
+    } else if (type == DataType::Float16 || type == DataType::BFloat16) {
+        // Python uses "e" for half precision float type code.
+        // Check the following link for more information.
+        // https://docs.python.org/3/library/struct.html#format-characters
+        format = "e";
+    } else {
+        throw std::runtime_error("Error converting TensorObj to "
+                                 "Numpy: unsupported datatype.\n");
+    }
+
+    return format;
+}
+
 void init_graph_builder(py::module &m) {
     using Handler = GraphHandlerObj;
 
@@ -352,51 +390,24 @@ void init_graph_builder(py::module &m) {
                  }
                  self.copyin(data_np, self.getBytes());
              })
-        // A buffer can be used to convert a TensorObj directly to Numpy array
-        // without copy
-        .def_buffer([](TensorObj &self) -> py::buffer_info {
-            vector<size_t> stride_byte;
-            for (int s : self.getStride()) {
-                stride_byte.push_back(s * self.getDType().getSize());
-            }
+        // Return a Numpy array which copies the values of this tensor
+        .def("copyout_numpy",
+             [](TensorObj &self) -> py::array {
+                 vector<size_t> stride_byte;
+                 for (int s : self.getStride()) {
+                     stride_byte.push_back(s * self.getDType().getSize());
+                 }
+                 std::string format = getFormat(self.getDType());
 
-            std::string format;
-            if (self.getDType() == DataType::Float32) {
-                format = py::format_descriptor<float>::format();
-            } else if (self.getDType() == DataType::Double) {
-                format = py::format_descriptor<double>::format();
-            } else if (self.getDType() == DataType::Int32) {
-                format = py::format_descriptor<int>::format();
-            } else if (self.getDType() == DataType::UInt32) {
-                format = py::format_descriptor<uint32_t>::format();
-            } else if (self.getDType() == DataType::Int64) {
-                format = py::format_descriptor<int64_t>::format();
-            } else if (self.getDType() == DataType::UInt64) {
-                format = py::format_descriptor<uint64_t>::format();
-            } else if (self.getDType() == DataType::Int16) {
-                format = py::format_descriptor<int16_t>::format();
-            } else if (self.getDType() == DataType::UInt16) {
-                format = py::format_descriptor<uint16_t>::format();
-            } else if (self.getDType() == DataType::Int8) {
-                format = py::format_descriptor<int8_t>::format();
-            } else if (self.getDType() == DataType::UInt8) {
-                format = py::format_descriptor<uint8_t>::format();
-            } else if (self.getDType() == DataType::Float16 ||
-                       self.getDType() == DataType::BFloat16) {
-                // Python uses "e" for half precision float type code.
-                // Check the following link for more information.
-                // https://docs.python.org/3/library/struct.html#format-characters
-                format = "e";
-            } else {
-                throw std::runtime_error("Error converting TensorObj to "
-                                         "Numpy: unsupported datatype.\n");
-            }
+                 py::array numpy_array(py::dtype(format), self.getDims(),
+                                       nullptr);
 
-            return py::buffer_info(self.getRawDataPtr<void *>(),
-                                   self.getDType().getSize(), format,
-                                   self.getRank(), self.getDims(), stride_byte,
-                                   true); // Read-only = true
-        })
+                 // Copy data to the numpy array
+                 auto ptr = numpy_array.mutable_data();
+                 self.copyout(ptr, self.getBytes());
+
+                 return numpy_array;
+             })
         .def("has_target", &TensorObj::hasTarget, policy::automatic)
         .def("src", &TensorObj::getSource, policy::move)
         .def("printData", &TensorObj::printData, policy::automatic);
