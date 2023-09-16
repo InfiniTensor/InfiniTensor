@@ -82,8 +82,9 @@ class Iterator {
         auto [nodeIdx, inputs_, outputs_] = *_it++;
         auto const &node = _internal->graph().nodes[nodeIdx];
         auto const &name = node.name;
-        auto const opType = node.op->opType.name();
-        ASSERT(opType.substr(0, 6) == "onnx::", "Invalid opType");
+        auto const opType_ = node.op->opType.name();
+        auto opType =
+            opType_.substr(0, 6) == "onnx::" ? opType_.substr(6) : opType_;
         auto const &attributes = node.op->attributes;
         std::vector<Name> inputs(inputs_.size()), outputs(outputs_.size());
         std::transform(inputs_.begin(), inputs_.end(), inputs.begin(),
@@ -101,7 +102,7 @@ class Iterator {
                 attributes_.insert({name, attr.value});
             }
         }
-        return O{name, opType.substr(6), attributes_, inputs, outputs};
+        return O{name, opType, attributes_, inputs, outputs};
     }
 };
 
