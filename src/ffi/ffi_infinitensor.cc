@@ -30,52 +30,39 @@ class Handler {
     void runCuda() { TODO("Not implemented"); }
 };
 
-class Iterator {
+using TExport = std::tuple<Name, int, std::vector<std::variant<Name, int>>>;
+using OExport =
+    std::tuple<Name, Name, std::unordered_map<Name, decltype(Attribute::value)>,
+               std::vector<Name>, std::vector<Name>>;
+
+class NodeExport {
     std::shared_ptr<Handler> _internal;
     graph_topo::GraphTopo::Iterator _it;
 
   public:
-    explicit Iterator(std::shared_ptr<Handler> internal)
+    explicit NodeExport(std::shared_ptr<Handler> internal)
         : _internal(std::move(internal)),
           _it(_internal->graph().topology.begin()) {}
-    using T = std::tuple<Name, int, std::vector<std::variant<Name, int>>>;
-    using O = std::tuple<Name, Name,
-                         std::unordered_map<Name, decltype(Attribute::value)>,
-                         std::vector<Name>, std::vector<Name>>;
 
-    T buildT(size_t edgeIdx) const {
-        auto const &edge = _internal->graph().edges[edgeIdx];
-        auto const &shape = edge.tensor->shape;
-        std::vector<std::variant<Name, int>> shape_(shape.size(), 1);
-        std::transform(shape.begin(), shape.end(), shape_.begin(),
-                       [](auto const &d) -> std::variant<Name, int> {
-                           if (d.isVariable()) {
-                               return d.variable()->name;
-                           } else {
-                               return static_cast<int>(d.value());
-                           }
-                       });
-        return T{edge.name, static_cast<int>(edge.tensor->dataType),
-                 std::move(shape_)};
-    }
-
-    std::vector<T> globalInputs() const {
+    std::vector<Name> globalInputs() const {
         auto inputs = _it.globalInputs();
-        std::vector<T> ans(inputs.size());
-        std::transform(inputs.begin(), inputs.end(), ans.begin(),
-                       [this](auto const &edgeIdx) { return buildT(edgeIdx); });
+        std::vector<Name> ans(inputs.size());
+        std::transform(
+            inputs.begin(), inputs.end(), ans.begin(),
+            [this](auto const &i) { return _internal->graph().edges[i].name; });
         return ans;
     }
 
-    std::vector<T> globalOutputs() const {
+    std::vector<Name> globalOutputs() const {
         auto outputs = _it.globalInputs();
-        std::vector<T> ans(outputs.size());
-        std::transform(outputs.begin(), outputs.end(), ans.begin(),
-                       [this](auto const &edgeIdx) { return buildT(edgeIdx); });
+        std::vector<Name> ans(outputs.size());
+        std::transform(
+            outputs.begin(), outputs.end(), ans.begin(),
+            [this](auto const &i) { return _internal->graph().edges[i].name; });
         return ans;
     }
 
-    std::optional<O> next() {
+    std::optional<OExport> next() {
         if (_it == _internal->graph().topology.end()) {
             return std::nullopt;
         }
@@ -102,7 +89,38 @@ class Iterator {
                 attributes_.insert({name, attr.value});
             }
         }
-        return O{name, opType, attributes_, inputs, outputs};
+        return OExport{name, opType, attributes_, inputs, outputs};
+    }
+};
+
+class EdgeExport {
+    std::shared_ptr<Handler> _internal;
+    size_t _i;
+
+  public:
+    explicit EdgeExport(std::shared_ptr<Handler> internal)
+        : _internal(std::move(internal)), _i(0) {}
+
+    std::optional<TExport> next() {
+        while (_i != _internal->graph().edges.size()) {
+            auto const &edge = _internal->graph().edges[_i++];
+            if (!edge.tensor) {
+                continue;
+            }
+            auto const &shape = edge.tensor->shape;
+            std::vector<std::variant<Name, int>> shape_(shape.size(), 1);
+            std::transform(shape.begin(), shape.end(), shape_.begin(),
+                           [](auto const &d) -> std::variant<Name, int> {
+                               if (d.isVariable()) {
+                                   return d.variable()->name;
+                               } else {
+                                   return static_cast<int>(d.value());
+                               }
+                           });
+            return TExport{edge.name, static_cast<int>(edge.tensor->dataType),
+                           std::move(shape_)};
+        }
+        return std::nullopt;
     }
 };
 
@@ -178,11 +196,14 @@ void register_refactor(py::module &m) {
         .def("substitute", &Handler::substitute)
         .def("set_input", &Handler::setInput)
         .def("run_cuda", &Handler::runCuda);
-    py::class_<Iterator>(m, "Iterator")
+    py::class_<NodeExport>(m, "NodeExport")
         .def(py::init<std::shared_ptr<Handler>>())
-        .def("global_inputs", &Iterator::globalInputs)
-        .def("global_outputs", &Iterator::globalOutputs)
-        .def("next", &Iterator::next);
+        .def("global_inputs", &NodeExport::globalInputs)
+        .def("global_outputs", &NodeExport::globalOutputs)
+        .def("next", &NodeExport::next);
+    py::class_<EdgeExport>(m, "EdgeExport")
+        .def(py::init<std::shared_ptr<Handler>>())
+        .def("next", &EdgeExport::next);
     m.def("refactor_tensor", edge)
         .def("refactor_operator", node)
         .def("refactor_graph", graph);

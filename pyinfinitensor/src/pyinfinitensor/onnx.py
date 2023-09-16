@@ -72,21 +72,41 @@ def _parse_attribute(node: NodeProto) -> dict[str, Any]:
 
 
 def build_onnx(grpah_name: str, graph: backend.Graph) -> ModelProto:
-    iterator = backend.Iterator(graph)
+    node_export = backend.NodeExport(graph)
+    edge_export = backend.EdgeExport(graph)
     nodes = []
-    global_inputs = []
-    global_outputs = []
+    edges = {}
+
     while True:
-        node = iterator.next()
+        node = node_export.next()
         if node is None:
             break
         (name, op_type, attributes, inputs, outputs) = node
         nodes.append(make_node(op_type, inputs, outputs, name=name, **attributes))
-    for tensor in iterator.global_inputs():
-        (name, data_type, shape) = tensor
-        global_inputs.append(make_tensor_value_info(name, data_type, shape))
-    for tensor in iterator.global_outputs():
-        (name, data_type, shape) = tensor
-        global_outputs.append(make_tensor_value_info(name, data_type, shape))
-    graph = make_graph(nodes, grpah_name, global_inputs, global_outputs)
-    return make_model(graph)
+
+    while True:
+        edge = edge_export.next()
+        if edge is None:
+            break
+        (name, data_type, shape) = edge
+        edges[name] = make_tensor_value_info(name, data_type, shape)
+
+    global_inputs = [
+        edges.pop(name)
+        if name in edges
+        else make_tensor_value_info(name, TensorProto.UNDEFINED, None)
+        for name in node_export.global_inputs()
+    ]
+    global_outputs = [
+        edges.pop(name)
+        if name in edges
+        else make_tensor_value_info(name, TensorProto.UNDEFINED, None)
+        for name in node_export.global_outputs()
+    ]
+    value_info = list(edges.values())
+
+    return make_model(
+        make_graph(
+            nodes, grpah_name, global_inputs, global_outputs, value_info=value_info
+        )
+    )
