@@ -1,5 +1,6 @@
 ﻿import backend
 from onnx import ModelProto, NodeProto, TensorProto, AttributeProto, numpy_helper
+from onnx.helper import make_model, make_node, make_graph, make_tensor_value_info
 from backend import DimExpr, refactor_tensor, refactor_operator, refactor_graph
 from typing import Any
 
@@ -68,3 +69,24 @@ def _parse_attribute(node: NodeProto) -> dict[str, Any]:
         else _raise(attr)
         for attr in node.attribute
     }
+
+
+def build_onnx(grpah_name: str, graph: backend.Graph) -> ModelProto:
+    iterator = backend.Iterator(graph)
+    nodes = []
+    global_inputs = []
+    global_outputs = []
+    while True:
+        node = iterator.next()
+        if node is None:
+            break
+        (name, op_type, attributes, inputs, outputs) = node
+        nodes.append(make_node(op_type, inputs, outputs, name=name, **attributes))
+    for tensor in iterator.global_inputs():
+        (name, data_type, shape) = tensor
+        global_inputs.append(make_tensor_value_info(name, data_type, shape))
+    for tensor in iterator.global_outputs():
+        (name, data_type, shape) = tensor
+        global_outputs.append(make_tensor_value_info(name, data_type, shape))
+    graph = make_graph(nodes, grpah_name, global_inputs, global_outputs)
+    return make_model(graph)
