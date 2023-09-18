@@ -8,7 +8,6 @@
 #include "operators/conv.h"
 #include "operators/matmul.h"
 
-#ifdef DEBUG_MODE
 void CHECK_CUDA_KERNEL_ERROR(infini::Operator op) {
     cudaError_t kernelError = cudaGetLastError();
     if (kernelError != cudaSuccess) {
@@ -18,7 +17,6 @@ void CHECK_CUDA_KERNEL_ERROR(infini::Operator op) {
         exit(EXIT_FAILURE);
     }
 }
-#endif
 
 namespace infini {
 
@@ -38,10 +36,7 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph) const {
         } else {
             kernel->compute(op, this);
         }
-
-#ifdef DEBUG_MODE
-        CHECK_CUDA_KERNEL_ERROR(op);
-#endif
+        checkCudaError(cudaGetLastError()) << op->toString();
     }
 }
 
@@ -78,9 +73,7 @@ void CudaRuntimeObj::tune(const Graph &graph, bool profiling = false) const {
             opCnt[op->getOpType()]++;
         }
 
-#ifdef DEBUG_MODE
-        CHECK_CUDA_KERNEL_ERROR(op);
-#endif
+        checkCudaError(cudaGetLastError()) << op->toString();
     }
 }
 
@@ -103,6 +96,7 @@ void CudaRuntimeObj::initComm(const string &name, int worldSize, int rank) {
     IT_ASSERT(worldSize > 0);
     IT_ASSERT(rank >= 0);
     IT_ASSERT(rank < worldSize);
+    IT_ASSERT(!comm) << "communicator is already initialized.";
 #ifdef INFINI_USE_NCCL
     comm = std::make_unique<NcclCommunicatorObj>(name, worldSize, rank);
 #else

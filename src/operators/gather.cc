@@ -6,7 +6,7 @@ GatherObj::GatherObj(GraphObj *graph, Tensor input, Tensor indices,
                      Tensor output, int axis)
     : OperatorObj(OpType::Gather, {input, indices}, {output}), axis(axis) {
     int rank = input->getRank();
-    axis = get_real_axis(axis, rank);
+    this->axis = get_real_axis(axis, rank);
     IT_ASSERT(checkValid(graph));
 }
 
@@ -25,7 +25,7 @@ optional<vector<Shape>> GatherObj::inferShape(const TensorVec &inputs) {
 vector<DataType> GatherObj::inferDataType(const TensorVec &inputs) const {
     IT_ASSERT(inputs.size() == 2);
     auto index_dtype = inputs[1]->getDType();
-    IT_ASSERT(index_dtype == DataType::Int32 || index_dtype == DataType::Int64)
+    IT_ASSERT(index_dtype == DataType::Int32 || index_dtype == DataType::Int64);
     return {inputs[0]->getDType()};
 }
 

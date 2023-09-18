@@ -6,9 +6,9 @@ constexpr unsigned int num_threads() { return 32 * 4; }
 constexpr int thread_work_size() { return 4; }
 constexpr int block_work_size() { return thread_work_size() * num_threads(); }
 
-__global__ void _expand_kernel(float *input, float *output, int nDims,
-                               int outputsize, infini::SmallArray inputShape,
-                               infini::SmallArray outputShape) {
+__global__ void _expandKernel(float *input, float *output, int nDims,
+                              int outputsize, infini::SmallArray inputShape,
+                              infini::SmallArray outputShape) {
 
     int outputIdx =
         blockIdx.x * blockDim.x + threadIdx.x; // i(JKS) + j(KS) + k(S) + s
@@ -38,12 +38,12 @@ __global__ void _expand_kernel(float *input, float *output, int nDims,
 }
 
 namespace infini {
-void expand_kernel(float *input, float *output, int nDims, int outputsize,
-                   SmallArray inputShape, SmallArray outputShape) {
+void expandKernel(float *input, float *output, int nDims, int outputsize,
+                  SmallArray inputShape, SmallArray outputShape) {
     int blocksize = block_work_size();
     int gridsize = (outputsize + block_work_size() - 1) / block_work_size();
-    _expand_kernel<<<gridsize, blocksize>>>(input, output, nDims, outputsize,
-                                            inputShape, outputShape);
+    _expandKernel<<<gridsize, blocksize>>>(input, output, nDims, outputsize,
+                                           inputShape, outputShape);
 }
 
 } // namespace infini
