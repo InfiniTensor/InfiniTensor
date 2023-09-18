@@ -2,6 +2,7 @@
 #include "communication/operators.h"
 #include "computation/graph.h"
 #include "core/graph.h"
+#include "core/tensor.h"
 #include "onnx/operators.h"
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
@@ -27,6 +28,7 @@ using Name = std::string;
 
 class Handler {
     Graph _g;
+    std::vector<infini::Tensor> _outputs;
 
   public:
     explicit Handler(Graph g) : _g(std::move(g)) {}
@@ -46,8 +48,7 @@ class Handler {
 #ifdef USE_CUDA
         auto cudaRuntime = make_ref<CudaRuntimeObj>();
         auto graph = make_ref<GraphObj>(cudaRuntime);
-        graph->transformFromGraphTopo(_g, cudaRuntime);
-        graph->dataMalloc();
+        _outputs = graph->transformFromGraphTopo(_g, cudaRuntime);
         graph->getRuntime()->run(graph);
 #endif
     }
