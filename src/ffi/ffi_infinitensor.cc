@@ -1,4 +1,5 @@
 #include "common/error_handler.h"
+#include "communication/operators.h"
 #include "computation/graph.h"
 #include "onnx/operators.h"
 #include <pybind11/numpy.h>
@@ -185,6 +186,7 @@ graph(std::unordered_map<Name, std::pair<std::vector<Name>, std::vector<Name>>>
 
 void register_refactor(py::module &m) {
     onnx::register_();
+    communication::register_();
 
     py::class_<DimExpr>(m, "DimExpr")
         .def(py::init<int64_t>())

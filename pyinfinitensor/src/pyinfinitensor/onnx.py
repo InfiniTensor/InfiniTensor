@@ -24,6 +24,11 @@ def build_graph(model: ModelProto) -> backend.Graph:
                 None,
             )
 
+    x = set()
+    for node in model.graph.node:
+        x.add(node.op_type)
+    print(x)
+
     return refactor_graph(
         {node.name: (node.input, node.output) for node in model.graph.node},
         {

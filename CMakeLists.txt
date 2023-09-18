@@ -93,6 +93,7 @@ include_directories(RefactorGraph/src/00common/include)
 include_directories(RefactorGraph/src/01graph_topo/include)
 include_directories(RefactorGraph/src/02computation/include)
 include_directories(RefactorGraph/src/03onnx/include)
+include_directories(RefactorGraph/src/04communication/include)
 endif()
 
 include_directories(include)
@@ -158,7 +159,7 @@ if(USE_PROTOBUF)
 endif()
 
 if(USE_REFACTOR_GRAPH)
-target_link_libraries(InfiniTensor onnx)
+target_link_libraries(InfiniTensor onnx communication)
 endif()
 
 target_link_libraries(InfiniTensor pybind11::embed)
