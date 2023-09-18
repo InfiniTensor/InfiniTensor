@@ -1,8 +1,13 @@
-﻿import backend
+﻿from numpy import ndarray
+import backend
 from onnx import ModelProto, NodeProto, TensorProto, AttributeProto, numpy_helper
 from onnx.helper import make_model, make_node, make_graph, make_tensor_value_info
 from backend import DimExpr, refactor_tensor, refactor_operator, refactor_graph
 from typing import Any
+
+
+def build_tensor(array: ndarray) -> backend.Tensor:
+    return _parse_tensor(numpy_helper.from_array(array))
 
 
 def build_graph(model: ModelProto) -> backend.Graph:

@@ -35,7 +35,7 @@ class Handler {
     std::unordered_set<Name> fillEdgeInfo() { return _g.fillEdgeInfo(); }
     void setInput(size_t index, std::shared_ptr<Tensor> tensor) {
         ASSERT(_g.setInput(index, std::move(tensor)),
-               fmt::format("set input {} failed", index));
+               fmt::format("set input {} failed with wrong shape", index));
     }
     void substitute(const char *name, int64_t value) {
         ASSERT(_g.substitute(name, value),
@@ -53,7 +53,7 @@ class Handler {
 #endif
     }
     template <class T> std::vector<T> copyout(size_t i) {
-        return _outputs[i]->copyout<T>();
+        return _outputs.at(i)->copyout<T>();
     }
 };
 
