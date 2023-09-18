@@ -71,10 +71,10 @@ bool OperatorObj::checkValid(GraphObj *graph) {
     } else { // if outputs have been created, check their shapes
         for (size_t i = 0; i < shapes.size(); ++i) {
             if (shapes[i] != outputs[i]->getDims()) {
-					std::cout<<"shapes"<<vecToString(shapes[i])<<std::endl;
-					std::cout<<vecToString(outputs[i]->getDims())<<std::endl;
-					IT_ASSERT(false);
-			}
+                std::cout << "shapes" << vecToString(shapes[i]) << std::endl;
+                std::cout << vecToString(outputs[i]->getDims()) << std::endl;
+                IT_ASSERT(false);
+            }
         }
     }
     return true;

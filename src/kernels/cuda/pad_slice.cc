@@ -16,7 +16,7 @@ class PadSliceCudaCompute {
             metadata.partNDim[i] = partTensor->getDims()[i];
             metadata.partStride[i] = partTensor->getStride()[i];
         }
-		metadata.DType = partTensor->getDType().getIndex();
+        metadata.DType = partTensor->getDType().getIndex();
         pad_slice_kernel(partTensor->getRawDataPtr<void *>(),
                          wholeTensor->getRawDataPtr<void *>(), metadata, nDims,
                          wholeTensor->size(), isPad);

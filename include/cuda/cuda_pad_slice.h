@@ -10,7 +10,7 @@ typedef struct {
     int wholeNDim[MAX_DIM];  // dim size after padding or before slicing
     int partNDim[MAX_DIM];   // dim size before padding or after slicing
     int partStride[MAX_DIM]; // stride before padding or after slicing
-	int DType;
+    int DType;
 } TransMetaData;
 
 namespace infini {

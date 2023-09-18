@@ -1,8 +1,8 @@
 #pragma once
+#include "computation/graph.h"
 #include "core/lazy_allocator.h"
 #include "core/operator.h"
 #include "core/tensor.h"
-#include "computation/graph.h"
 
 namespace infini {
 
@@ -114,7 +114,8 @@ class GraphObj : public Object {
 
     bool checkValid() const;
 
-	void transformFromGraphTopo(refactor::computation::Graph &graph, Runtime runtime);
+    void transformFromGraphTopo(refactor::computation::Graph &graph,
+                                Runtime runtime);
 
   private:
     /**

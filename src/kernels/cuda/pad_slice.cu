@@ -1,6 +1,6 @@
+#include "core/data_type.h"
 #include "cuda/cuda_common.h"
 #include "cuda/cuda_pad_slice.h"
-#include "core/data_type.h"
 
 __device__ int WholeTensorOffset2PartTensorOffset(int wholeOffset,
                                                   TransMetaData metaData,
@@ -21,9 +21,8 @@ __device__ int WholeTensorOffset2PartTensorOffset(int wholeOffset,
 }
 
 template <typename T>
-__global__ void _pad_slice_kernel(T *part, T *whole,
-                                  TransMetaData metaData, int nDims, int num,
-                                  bool isPad) {
+__global__ void _pad_slice_kernel(T *part, T *whole, TransMetaData metaData,
+                                  int nDims, int num, bool isPad) {
     int tid = threadIdx.x + blockIdx.x * blockDim.x;
     if (tid >= num)
         return;
@@ -48,12 +47,13 @@ void pad_slice_kernel(void *partData, void *wholeData,
                       bool isPad) {
     int blockSize = 32 * 16;
     int gridSize = (num + blockSize - 1) / blockSize;
-	if (metadata.DType == DataType::Int64.getIndex()) {
-    	_pad_slice_kernel<int64_t><<<gridSize, blockSize>>>((int64_t *)partData, (int64_t *)wholeData, metadata,
-                                               nDims, num, isPad);
-	} else if (metadata.DType == DataType::Float32.getIndex()) {
-    	_pad_slice_kernel<float><<<gridSize, blockSize>>>((float*)partData, (float*)wholeData, metadata,
-                                               nDims, num, isPad);
-	}
+    if (metadata.DType == DataType::Int64.getIndex()) {
+        _pad_slice_kernel<int64_t>
+            <<<gridSize, blockSize>>>((int64_t *)partData, (int64_t *)wholeData,
+                                      metadata, nDims, num, isPad);
+    } else if (metadata.DType == DataType::Float32.getIndex()) {
+        _pad_slice_kernel<float><<<gridSize, blockSize>>>(
+            (float *)partData, (float *)wholeData, metadata, nDims, num, isPad);
+    }
 }
 } // namespace infini
