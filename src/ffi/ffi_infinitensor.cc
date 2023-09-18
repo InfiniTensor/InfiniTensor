@@ -1,10 +1,22 @@
 #include "common/error_handler.h"
 #include "communication/operators.h"
+#include "core/graph.h"
 #include "computation/graph.h"
 #include "onnx/operators.h"
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#ifdef USE_CUDA
+#include "cuda/cuda_runtime.h"
+#include "cuda/operator_timer.h"
+#endif
+#ifdef USE_BANG
+#include "bang/bang_runtime.h"
+#endif
+#ifdef USE_INTELCPU
+#include "intelcpu/mkl_runtime.h"
+#include "intelcpu/operator_timer.h"
+#endif
 
 namespace py = pybind11;
 
@@ -28,7 +40,17 @@ class Handler {
                fmt::format("Variable {} not exist", name));
     }
     auto const &graph() const { return _g.internal(); }
-    void runCuda() { TODO("Not implemented"); }
+#ifdef USE_CUDA
+    void runCuda() { 
+		using namespace infini;
+		auto cudaRuntime = make_ref<CudaRuntimeObj>(0);
+		auto graph = make_ref<GraphObj>(std::move(cudaRuntime));
+		graph->transformFromGraphTopo(_g, cudaRuntime);
+		//graph->print();
+		graph->dataMalloc();
+		graph->getRuntime()->run(graph);
+	}
+#endif
 };
 
 using TExport = std::tuple<Name, int, std::vector<std::variant<Name, int>>>;
@@ -196,8 +218,10 @@ void register_refactor(py::module &m) {
     py::class_<Handler, std::shared_ptr<Handler>>(m, "Graph")
         .def("fill_edge_info", &Handler::fillEdgeInfo)
         .def("substitute", &Handler::substitute)
-        .def("set_input", &Handler::setInput)
-        .def("run_cuda", &Handler::runCuda);
+#ifdef USE_CUDA
+        .def("run_cuda", &Handler::runCuda)
+#endif
+        .def("set_input", &Handler::setInput);
     py::class_<NodeExport>(m, "NodeExport")
         .def(py::init<std::shared_ptr<Handler>>())
         .def("global_inputs", &NodeExport::globalInputs)
@@ -212,4 +236,6 @@ void register_refactor(py::module &m) {
 }
 } // namespace
 
-PYBIND11_MODULE(backend, m) { register_refactor(m); }
+PYBIND11_MODULE(backend, m) {
+	register_refactor(m);
+}

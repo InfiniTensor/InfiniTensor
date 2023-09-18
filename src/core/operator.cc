@@ -57,11 +57,11 @@ HashType OperatorObj::hash() const {
 bool OperatorObj::checkValid(GraphObj *graph) {
     auto optShapes = inferShape();
     if (!optShapes) // shape inference failed
-        return false;
+        IT_ASSERT(false);
 
     const vector<Shape> &shapes = *optShapes;
     if (shapes.size() != outputs.size())
-        return false;
+        IT_ASSERT(false);
     if (graph) { // if graph != nullptr, outputs should be created
         auto dataTypes = inferDataType();
         for (size_t i = 0; i < outputs.size(); i++) {
@@ -70,8 +70,11 @@ bool OperatorObj::checkValid(GraphObj *graph) {
         }
     } else { // if outputs have been created, check their shapes
         for (size_t i = 0; i < shapes.size(); ++i) {
-            if (shapes[i] != outputs[i]->getDims())
-                return false;
+            if (shapes[i] != outputs[i]->getDims()) {
+					std::cout<<"shapes"<<vecToString(shapes[i])<<std::endl;
+					std::cout<<vecToString(outputs[i]->getDims())<<std::endl;
+					IT_ASSERT(false);
+			}
         }
     }
     return true;

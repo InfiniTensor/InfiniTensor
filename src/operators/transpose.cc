@@ -6,8 +6,8 @@ TransposeObj::TransposeObj(GraphObj *graph, Tensor input, Tensor output,
     : OperatorObj(OpType::Transpose, {input}, {output}) {
     auto rank = input->getRank();
     if (permute.empty()) {
-        for (size_t i = 0; i < rank; ++i) {
-            transposePermute[i] = i;
+        for (size_t i = rank - 1; i >= 0; --i) {
+            transposePermute.emplace_back(i);
         }
     } else {
         IT_ASSERT(rank == permute.size());

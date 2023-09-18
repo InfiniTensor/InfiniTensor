@@ -1,5 +1,6 @@
 #include "core/graph.h"
 #include "operators/reshape.h"
+#include "utils/operator_utils.h"
 #include <algorithm>
 #include <numeric>
 #include <queue>
@@ -347,6 +348,39 @@ bool GraphObj::checkValid() const {
         s.insert(tensor->getFuid());
     }
     return true;
+}
+
+void GraphObj::transformFromGraphTopo(refactor::computation::Graph &graph, Runtime runtime) {
+	// create ops and tensors
+	ops.clear();
+	tensors.clear();
+	auto const& nodes = graph.internal().nodes;
+	auto const& edges = graph.internal().edges;
+	std::unordered_map<size_t, Tensor> edgeToTensor;
+	
+	for (auto [nodeIdx, inputs, outputs] : graph.internal().topology) {
+		// not dynamic_node
+		if (!std::all_of(outputs.begin(), outputs.end(), [&](auto e) { return edges[e].tensor->hasData(); })) {
+			auto nodeInfo = nodes[nodeIdx];
+			IT_ASSERT(refactor::computation::OpType::tryParse(nodeInfo.op->opType.name().data()));
+			std::vector<size_t> in, out;
+			for (auto i : inputs) {
+				if (edgeToTensor.find(i) == edgeToTensor.end()) {
+					addEdgeToTensor(*this, i, edges[i].tensor, edgeToTensor, runtime);
+				}
+				in.emplace_back(i);
+			}
+			for (auto i : outputs) {
+				if (edgeToTensor.find(i) == edgeToTensor.end()) {
+					addEdgeToTensor(*this, i, edges[i].tensor, edgeToTensor, runtime);
+				}
+				out.emplace_back(i);
+			}
+			IT_ASSERT(out.size() == outputs.size());
+			IT_ASSERT(in.size() == inputs.size());
+			addOperatorFromGraphTopo(*this, nodeInfo.op, in, out, edgeToTensor, edges);
+		}
+	}
 }
 
 } // namespace infini

@@ -10,10 +10,11 @@ typedef struct {
     int wholeNDim[MAX_DIM];  // dim size after padding or before slicing
     int partNDim[MAX_DIM];   // dim size before padding or after slicing
     int partStride[MAX_DIM]; // stride before padding or after slicing
+	int DType;
 } TransMetaData;
 
 namespace infini {
-void pad_slice_kernel(float *partData, float *wholeData,
+void pad_slice_kernel(void *partData, void *wholeData,
                       const TransMetaData &metadata, int nDims, int num,
                       bool isPad);
 } // namespace infini

@@ -44,7 +44,6 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
         std::copy(a_dim.begin(), a_dim.end(), a + (4 - a_dim.size()));
         std::copy(b_dim.begin(), b_dim.end(), b + (4 - b_dim.size()));
         std::copy(c_dim.begin(), c_dim.end(), c + (4 - c_dim.size()));
-
         // get inputs
         checkCudnnError(cudnnCreateTensorDescriptor(&aDesc));
         checkCudnnError(cudnnSetTensor4dDescriptor(aDesc, CUDNN_TENSOR_NCHW,
@@ -110,9 +109,9 @@ class ElementWiseCuda : public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
-        float *const aData = (op->getInputs(0)->getRawDataPtr<float *>());
-        float *const bData = (op->getInputs(1)->getRawDataPtr<float *>());
-        float *const cData = (op->getOutput()->getRawDataPtr<float *>());
+        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
+        void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto a_dim = op->getInputs(0)->getDims();
         auto b_dim = op->getInputs(1)->getDims();
         auto c_dim = op->getOutput()->getDims();
@@ -134,6 +133,10 @@ class ElementWiseCuda : public CudaKernelWithoutConfig {
         else if (op->getOpType() == OpType::Pow)
             pow_kernel(aData, bData, cData, a[0], a[1], a[2], a[3], b[0], b[1],
                        b[2], b[3], c[0], c[1], c[2], c[3]);
+		else if (op->getOpType() == OpType::Add) {
+            add_kernel(aData, bData, cData, a[0], a[1], a[2], a[3], b[0], b[1],
+                       b[2], b[3], c[0], c[1], c[2], c[3]);
+		}
         else
             IT_TODO_HALT();
     }
@@ -152,6 +155,8 @@ REGISTER_KERNEL(Device::CUDA, OpType::Max, DataType::Float32, MaxCudnn,
 
 REGISTER_KERNEL(Device::CUDA, OpType::Div, DataType::Float32, ElementWiseCuda,
                 "Div_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Add, DataType::Int64, ElementWiseCuda,
+                "Add_CUDA_Int64");
 REGISTER_KERNEL(Device::CUDA, OpType::Pow, DataType::Float32, ElementWiseCuda,
                 "Pow__CUDA_Float32");
 }; // namespace infini

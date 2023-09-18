@@ -46,10 +46,10 @@ SliceObj::SliceObj(GraphObj *graph, Tensor input, Tensor output,
     for (size_t i = 0; i < size; ++i)
         if (auto _i = axes.find(i); _i != axes.end()) {
             auto __i = _i->second;
-            auto start = starts[__i];
-            auto end = ends[__i];
-            this->axes.push_back({start >= 0 ? start : start + shape[__i],
-                                  end >= 0 ? end : end + shape[__i],
+            auto start = starts[__i] >= 0 ? starts[__i] : starts[__i] + shape[i];
+			auto end = ends[__i] >= 0 ? ends[__i] : ends[__i] + shape[i];
+            this->axes.push_back({start,
+                                  end,
                                   steps[__i]});
         } else {
             this->axes.push_back({0, shape[i], 1});
