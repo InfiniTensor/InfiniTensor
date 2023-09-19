@@ -34,6 +34,16 @@ def build_graph(model: ModelProto) -> backend.Graph:
         x.add(node.op_type)
     print(x)
 
+    names = {}
+    for node in model.graph.node:
+        if node.name == "":
+            node.name = "missing_name"
+        if node.name in names:
+            names[node.name] += 1
+            node.name += "_" + str(names[node.name])
+        else:
+            names[node.name] = 0
+
     return refactor_graph(
         {node.name: (node.input, node.output) for node in model.graph.node},
         {

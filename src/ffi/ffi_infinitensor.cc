@@ -202,7 +202,8 @@ graph(std::unordered_map<Name, std::pair<std::vector<Name>, std::vector<Name>>>
     for (auto &[name, tensor] : edges) {
         auto edge = Edge{std::move(tensor), name};
         auto it = builder.edges.find(name);
-        ASSERT(it != builder.edges.end(), "Edge not connected");
+        ASSERT(it != builder.edges.end(),
+               fmt::format("edge {} not connected", name));
         it->second.tensor = std::move(edge.tensor);
     }
     builder.globalInputs = std::move(inputs);
