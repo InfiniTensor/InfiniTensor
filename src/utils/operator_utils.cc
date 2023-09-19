@@ -1,4 +1,6 @@
 #include "utils/operator_utils.h"
+#include "operators/all_gather.h"
+#include "operators/all_reduce.h"
 #include "operators/batch_norm.h"
 #include "operators/concat.h"
 #include "operators/conv.h"
@@ -14,6 +16,7 @@
 #include "operators/split.h"
 #include "operators/transpose.h"
 #include "operators/unary.h"
+#include "operators/where.h"
 
 namespace infini {
 
@@ -263,16 +266,15 @@ void addOperatorFromGraphTopo(
             g.addOpWithOutputs<SplitObj>(edgeToTensor[input[0]], outputs, axis,
                                          num);
         }
-        // } else if (name == "onnx::Where") {
-        //     IT_ASSERT(input.size() == 3);
-        //     g.addOpWithOutputs<WhereObj>(
-        //         edgeToTensor[input[1]], edgeToTensor[input[2]],
-        //         edgeToTensor[input[0]], edgeToTensor[output[0]]);
-        // } else if (name == "onnx::Softmax") {
-        //     // auto axis = attr.find("axis") != attr.end() ?
-        //     attr["axis"].int_() :
-        //     // -1;
-
+    } else if (name == "onnx::Where") {
+        IT_ASSERT(input.size() == 3);
+        g.addOpWithOutputs<WhereObj>(
+            edgeToTensor[input[1]], edgeToTensor[input[2]],
+            edgeToTensor[input[0]], edgeToTensor[output[0]]);
+    } else if (name == "onnx::Softmax") {
+        auto axis = attr.find("axis") != attr.end() ? attr["axis"].int_() : -1;
+        g.addOpWithOutputs<SoftmaxObj>(edgeToTensor[input[0]],
+                                       edgeToTensor[output[0]], axis);
     } else if (name == "onnx::Sqrt") {
         g.addOpWithOutputs<SqrtObj>(edgeToTensor[input[0]],
                                     edgeToTensor[output[0]]);
@@ -285,6 +287,28 @@ void addOperatorFromGraphTopo(
     } else if (name == "onnx::Tanh") {
         g.addOpWithOutputs<TanhObj>(edgeToTensor[input[0]],
                                     edgeToTensor[output[0]]);
+    } else if (name == "onnx::AllReduceSum") {
+        g.addOpWithOutputs<AllReduceSumObj>(edgeToTensor[input[0]],
+                                            edgeToTensor[output[0]]);
+    } else if (name == "onnx::AllReduceProd") {
+        g.addOpWithOutputs<AllReduceProdObj>(edgeToTensor[input[0]],
+                                             edgeToTensor[output[0]]);
+    } else if (name == "onnx::AllReduceMin") {
+        g.addOpWithOutputs<AllReduceMinObj>(edgeToTensor[input[0]],
+                                            edgeToTensor[output[0]]);
+    } else if (name == "onnx::AllReduceMax") {
+        g.addOpWithOutputs<AllReduceMaxObj>(edgeToTensor[input[0]],
+                                            edgeToTensor[output[0]]);
+    } else if (name == "onnx::AllReduceAvg") {
+        g.addOpWithOutputs<AllReduceAvgObj>(edgeToTensor[input[0]],
+                                            edgeToTensor[output[0]]);
+    } else if (name == "onnx::AllGather") {
+        int size = output.size();
+        std::vector<Tensor> outputs;
+        for (auto i : output) {
+            outputs.emplace_back(edgeToTensor[i]);
+        }
+        g.addOpWithOutputs<AllGatherObj>(edgeToTensor[input[0]], outputs, size);
     } else {
         std::cerr << "Unknown operator: " << name << std::endl;
         IT_ASSERT_TODO("");
