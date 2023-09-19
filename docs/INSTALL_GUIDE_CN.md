@@ -135,7 +135,7 @@
 
 3. 使用方法
 
-   安装成功后，您就可以使用本项目的 Python 接口进行编码并运行。具体使用方式可以参考项目样例代码 example/Resnet/resnet.py 以及用户使用手册
+   安装成功后，您就可以使用本项目的 Python 接口进行编码并运行。具体使用方式可以参考项目样例代码 examples/NNModel/Resnet/resnet.py 以及用户使用手册
 
 ## Docker
 

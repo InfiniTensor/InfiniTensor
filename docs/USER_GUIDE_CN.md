@@ -136,7 +136,7 @@ for name, tensor in stub.outputs.items():
 
 ### 样例代码
 
-您可以参照[./example/Resnet/resnet.py](./example/ResNet/resnet.py)的样例代码进行了解，并尝试运行。在这个文件中，我们使用了 Pytorch 构建了 resnet 网络。您可以查阅该脚本使用方式：
+您可以参照[./examples/NNModel/Resnet/resnet.py](./examples/NNModel/ResNet/resnet.py)的样例代码进行了解，并尝试运行。在这个文件中，我们使用了 Pytorch 构建了 resnet 网络。您可以查阅该脚本使用方式：
 
 ```python
 python resnet.py -h
