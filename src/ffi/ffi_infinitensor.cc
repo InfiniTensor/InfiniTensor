@@ -28,7 +28,7 @@ using Name = std::string;
 
 class Handler {
     Graph _g;
-    std::vector<infini::Tensor> _outputs;
+    infini::Graph _lastBackend;
 
   public:
     explicit Handler(Graph g) : _g(std::move(g)) {}
@@ -47,13 +47,13 @@ class Handler {
         using namespace infini;
 #ifdef USE_CUDA
         auto cudaRuntime = make_ref<CudaRuntimeObj>();
-        auto graph = make_ref<GraphObj>(cudaRuntime);
-        _outputs = graph->transformFromGraphTopo(_g, cudaRuntime);
-        graph->getRuntime()->run(graph);
+        _lastBackend = make_ref<GraphObj>(cudaRuntime);
+        _lastBackend->transformFromGraphTopo(_g, cudaRuntime);
+        _lastBackend->getRuntime()->run(_lastBackend);
 #endif
     }
     template <class T> std::vector<T> copyout(size_t i) {
-        return _outputs.at(i)->copyout<T>();
+        return _lastBackend->getOutputs().at(i)->copyout<T>();
     }
 };
 
