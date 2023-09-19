@@ -34,8 +34,9 @@ class Handler {
     explicit Handler(Graph g) : _g(std::move(g)) {}
     std::unordered_set<Name> fillEdgeInfo() { return _g.fillEdgeInfo(); }
     void setInput(size_t index, std::shared_ptr<Tensor> tensor) {
-        ASSERT(_g.setInput(index, std::move(tensor)),
-               fmt::format("set input {} failed with wrong shape", index));
+        ASSERT(index < _g.internal().topology.globalInputsCount(),
+               fmt::format("set input {} failed with wrong index", index));
+        _g.internal().edges[index].tensor = std::move(tensor);
     }
     void substitute(const char *name, int64_t value) {
         ASSERT(_g.substitute(name, value),
