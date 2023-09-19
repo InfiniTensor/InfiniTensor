@@ -81,7 +81,7 @@ class NodeExport {
     }
 
     std::vector<Name> globalOutputs() const {
-        auto outputs = _it.globalInputs();
+        auto outputs = _it.globalOutputs();
         std::vector<Name> ans(outputs.size());
         std::transform(
             outputs.begin(), outputs.end(), ans.begin(),

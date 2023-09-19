@@ -11,7 +11,7 @@ FORMAT_ORIGIN ?=
 DOCKER_NAME ?= infinitensor
 DOCKER_IMAGE_NAME ?= infinitensor
 DOCKER_FILE ?= infinitensor_ubuntu_22.04.dockerfile
-DOCKER_RUN_OPTION ?= 
+DOCKER_RUN_OPTION ?=
 
 # CUDA option.
 ifeq ($(CUDA), ON)
@@ -58,7 +58,7 @@ test-api:
 	@echo
 	python3 pyinfinitensor/tests/test_api.py
 
-docker-build: 
+docker-build:
 	docker build -f scripts/dockerfile/$(DOCKER_FILE) -t $(DOCKER_NAME) .
 
 docker-run:
@@ -69,5 +69,3 @@ docker-start:
 
 docker-exec:
 	docker exec -it $(DOCKER_IMAGE_NAME) bash
-
-

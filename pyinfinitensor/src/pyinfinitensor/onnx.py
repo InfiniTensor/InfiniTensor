@@ -112,15 +112,11 @@ def build_onnx(grpah_name: str, graph: backend.Graph) -> ModelProto:
         edges[name] = make_tensor_value_info(name, data_type, shape)
 
     global_inputs = [
-        edges.pop(name)
-        if name in edges
-        else make_tensor_value_info(name, TensorProto.UNDEFINED, None)
+        edges.pop(name, make_tensor_value_info(name, TensorProto.UNDEFINED, None))
         for name in node_export.global_inputs()
     ]
     global_outputs = [
-        edges.pop(name)
-        if name in edges
-        else make_tensor_value_info(name, TensorProto.UNDEFINED, None)
+        edges.pop(name, make_tensor_value_info(name, TensorProto.UNDEFINED, None))
         for name in node_export.global_outputs()
     ]
     value_info = list(edges.values())
