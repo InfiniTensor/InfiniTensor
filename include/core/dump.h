@@ -25,7 +25,7 @@ class DumpObj {
     /*
      * Dump the info of a operator.
      */
-    void dumpOp(Operator op);
+    void dumpOp(const Operator op);
 
     vector<Tensor> getInputs() { return inputs; }
     vector<Tensor> getOutputs() { return outputs; }
@@ -42,7 +42,7 @@ class DumpObj {
     /*
      * True if op is queried.
      */
-    bool queriedOp(Operator op, int count = 0);
+    bool queriedOp(const Operator op, int count = 0);
 };
 
 using Dump = Ref<DumpObj>;

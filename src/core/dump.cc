@@ -3,7 +3,7 @@
 
 namespace infini {
 
-void DumpObj::dumpOp(Operator op) {
+void DumpObj::dumpOp(const Operator op) {
     inputs.clear();
     outputs.clear();
     // Clone the inputs and outputs to host and store in dump
@@ -15,7 +15,7 @@ void DumpObj::dumpOp(Operator op) {
     }
 }
 
-bool DumpObj::queriedOp(Operator op, int count) {
+bool DumpObj::queriedOp(const Operator op, int count) {
     return strcmp(op->getOpType().toString(), opKey.c_str()) == 0 &&
            location == count;
 }
