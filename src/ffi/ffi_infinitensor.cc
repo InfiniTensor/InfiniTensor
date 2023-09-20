@@ -43,10 +43,12 @@ class Compiler {
   public:
     explicit Compiler(Graph g) : _g(std::move(g)) {}
     std::unordered_set<Name> fillEdgeInfo() { return _g.fillEdgeInfo(); }
-    void setInput(size_t index, std::shared_ptr<Tensor> tensor) {
+    void setInput(size_t index, int dataType, std::vector<DimExpr> shape) {
         ASSERT(index < _g.internal().topology.globalInputsCount(),
                fmt::format("set input {} failed with wrong index", index));
-        _g.internal().edges[index].tensor = std::move(tensor);
+        _g.internal().edges[index].tensor =
+            std::move(Tensor::share(static_cast<common::DataType>(dataType),
+                                    Shape(shape.begin(), shape.end())));
     }
     void substitute(const char *name, int64_t value) {
         ASSERT(_g.substitute(name, value),
@@ -77,6 +79,7 @@ namespace infini {
 
 class Executor {
     infini::Graph _g;
+    std::vector<infini::Tensor> _inputs;
     std::vector<std::pair<refactor::computation::Edge, infini::Tensor>>
         _outputs;
 
@@ -88,7 +91,8 @@ class Executor {
         auto frontendOutputs = frontend.internal().topology.globalOutputs();
         auto outputsCount = frontendOutputs.size();
 
-        auto hwOutputs = _g->transformFromGraphTopo(frontend, _g->getRuntime());
+        auto [hwInputs, hwOutputs] =
+            _g->transformFromGraphTopo(frontend, _g->getRuntime());
 
         ASSERT(outputsCount == hwOutputs.size(), "Output size mismatch");
         _outputs.reserve(outputsCount);
@@ -101,6 +105,9 @@ class Executor {
 
     void run() { _g->getRuntime()->run(_g); }
 
+    void setInput(size_t i, py::array data) {
+        _inputs.at(i)->copyin(data.data(), data.nbytes());
+    }
     py::array getOutput(size_t i) {
         auto const &[edge, tensor] = _outputs.at(i);
 
@@ -342,6 +349,7 @@ infini::Runtime cudaRuntime(int deviceId) {
 void registerPy(py::module &m) {
     py::class_<Executor>(m, "Executor")
         .def("run", &Executor::run, policy::automatic)
+        .def("set_input", &Executor::setInput, policy::move)
         .def("get_output", &Executor::getOutput, policy::move);
     py::class_<RuntimeObj, Runtime>(m, "Runtime")
         .def("init_comm", &RuntimeObj::initComm, policy::automatic);
