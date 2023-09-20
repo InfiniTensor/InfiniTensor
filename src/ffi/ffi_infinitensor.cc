@@ -26,10 +26,23 @@ using namespace refactor;
 using namespace computation;
 using Name = std::string;
 
+static std::string getFormat(common::DataType);
+
 class Handler {
     Graph _g;
     infini::Graph _lastBackend;
     std::vector<infini::Tensor> _outputs;
+
+    py::array buildPyArray(size_t i) const {
+        auto const &tensor = *_g.internal().edges[i].tensor;
+
+        std::vector<int64_t> shape(tensor.shape.size());
+        std::transform(tensor.shape.begin(), tensor.shape.end(), shape.begin(),
+                       [](auto const &d) { return d.value(); });
+
+        return py::array(py::dtype(getFormat(tensor.dataType)),
+                         std::move(shape), nullptr);
+    }
 
   public:
     explicit Handler(Graph g) : _g(std::move(g)) {}
@@ -62,19 +75,27 @@ class Handler {
 #endif
     }
 
-    template <class T> std::vector<T> copyout(size_t i) {
-        if (auto ptr = _outputs.at(i); ptr) {
-            return ptr->copyout<T>();
+    py::array getTensor(size_t i) {
+        auto const &tensor = *_g.internal().edges.at(i).tensor;
+        auto ans = buildPyArray(i);
+        if (tensor.data) {
+            std::memcpy(ans.mutable_data(), tensor.data->ptr,
+                        tensor.bytesSize());
         }
+        return ans;
+    }
 
-        auto outputs = _g.internal().topology.globalOutputs();
-        ASSERT(i < outputs.size(), "Index out of range");
-
-        auto const &tensor = *_g.internal().edges[outputs[i]].tensor;
-        ASSERT(common::dataType<T>() == tensor.dataType, "Data type mismatch");
-
-        auto ptr = reinterpret_cast<T *>(tensor.data->ptr);
-        return std::vector<T>(ptr, ptr + tensor.elementsSize());
+    py::array getOutput(size_t i) {
+        auto j = _g.internal().topology.globalOutputs().at(i);
+        auto const &tensor = *_g.internal().edges.at(j).tensor;
+        auto ans = buildPyArray(j);
+        if (auto ptr = _outputs.at(i); ptr) {
+            ptr->copyout(ans.mutable_data(), tensor.bytesSize());
+        } else if (tensor.data) {
+            std::memcpy(ans.mutable_data(), tensor.data->ptr,
+                        tensor.bytesSize());
+        }
+        return ans;
     }
 };
 
@@ -232,7 +253,39 @@ graph(std::unordered_map<Name, std::pair<std::vector<Name>, std::vector<Name>>>
     return std::make_shared<Handler>(Graph(builder.build()));
 }
 
+// A helper function that converts DataType to python format string
+static std::string getFormat(common ::DataType type) {
+    using namespace common;
+
+#define CASE(T)                                                                \
+    case DataType::T:                                                          \
+        return py::format_descriptor<primitive_t<DataType::T>::type>::format();
+
+    switch (type) {
+        CASE(F32);
+        CASE(F64);
+        CASE(I32);
+        CASE(I64);
+        CASE(I8);
+        CASE(I16);
+        CASE(U8);
+        CASE(U16);
+        CASE(U32);
+        CASE(U64);
+    case DataType::FP16:
+    case DataType::BF16:
+        // Python uses "e" for half precision float type code.
+        // Check the following link for more information.
+        // https://docs.python.org/3/library/struct.html#format-characters
+        return "e";
+    default:
+        RUNTIME_ERROR("unsupported data type.");
+    }
+}
+
 void register_refactor(py::module &m) {
+    using policy = py::return_value_policy;
+
     onnx::register_();
     communication::register_();
 
@@ -242,23 +295,24 @@ void register_refactor(py::module &m) {
     py::class_<Operator, std::shared_ptr<Operator>>(m, "Operator");
     py::class_<Tensor, std::shared_ptr<Tensor>>(m, "Tensor");
     py::class_<Handler, std::shared_ptr<Handler>>(m, "Graph")
-        .def("fill_edge_info", &Handler::fillEdgeInfo)
-        .def("substitute", &Handler::substitute)
-        .def("run_cpu", &Handler::runCpu)
-        .def("run_cuda", &Handler::runCuda)
-        .def("copy_out_float", &Handler::copyout<float>)
-        .def("set_input", &Handler::setInput);
+        .def("fill_edge_info", &Handler::fillEdgeInfo, policy::move)
+        .def("substitute", &Handler::substitute, policy::automatic)
+        .def("run_cpu", &Handler::runCpu, policy::automatic)
+        .def("run_cuda", &Handler::runCuda, policy::automatic)
+        .def("set_input", &Handler::setInput, policy::automatic)
+        .def("get_output", &Handler::getOutput, policy::move)
+        .def("get_tensor", &Handler::getTensor, policy::move);
     py::class_<NodeExport>(m, "NodeExport")
         .def(py::init<std::shared_ptr<Handler>>())
-        .def("global_inputs", &NodeExport::globalInputs)
-        .def("global_outputs", &NodeExport::globalOutputs)
-        .def("next", &NodeExport::next);
+        .def("global_inputs", &NodeExport::globalInputs, policy::move)
+        .def("global_outputs", &NodeExport::globalOutputs, policy::move)
+        .def("next", &NodeExport::next, policy::move);
     py::class_<EdgeExport>(m, "EdgeExport")
         .def(py::init<std::shared_ptr<Handler>>())
-        .def("next", &EdgeExport::next);
-    m.def("refactor_tensor", edge)
-        .def("refactor_operator", node)
-        .def("refactor_graph", graph);
+        .def("next", &EdgeExport::next, policy::move);
+    m.def("refactor_tensor", edge, policy::move)
+        .def("refactor_operator", node, policy::move)
+        .def("refactor_graph", graph, policy::move);
 }
 } // namespace
 
