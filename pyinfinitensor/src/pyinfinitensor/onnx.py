@@ -96,6 +96,7 @@ def build_onnx(grpah_name: str, graph: backend.Graph) -> ModelProto:
     edge_export = backend.EdgeExport(graph)
     nodes = []
     edges = {}
+    initializer = []
 
     while True:
         node = node_export.next()
@@ -108,8 +109,10 @@ def build_onnx(grpah_name: str, graph: backend.Graph) -> ModelProto:
         edge = edge_export.next()
         if edge is None:
             break
-        (name, data_type, shape) = edge
+        (name, data_type, shape, array) = edge
         edges[name] = make_tensor_value_info(name, data_type, shape)
+        if array != None:
+            initializer.append(numpy_helper.from_array(array, name))
 
     global_inputs = [
         edges.pop(name, make_tensor_value_info(name, TensorProto.UNDEFINED, None))
@@ -123,6 +126,11 @@ def build_onnx(grpah_name: str, graph: backend.Graph) -> ModelProto:
 
     return make_model(
         make_graph(
-            nodes, grpah_name, global_inputs, global_outputs, value_info=value_info
+            nodes,
+            grpah_name,
+            global_inputs,
+            global_outputs,
+            initializer,
+            value_info=value_info,
         )
     )

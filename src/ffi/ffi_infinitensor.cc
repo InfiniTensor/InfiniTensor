@@ -99,7 +99,8 @@ class Handler {
     }
 };
 
-using TExport = std::tuple<Name, int, std::vector<std::variant<Name, int>>>;
+using TExport = std::tuple<Name, int, std::vector<std::variant<Name, int>>,
+                           std::optional<py::array>>;
 using OExport =
     std::tuple<Name, Name, std::unordered_map<Name, decltype(Attribute::value)>,
                std::vector<Name>, std::vector<Name>>;
@@ -186,8 +187,15 @@ class EdgeExport {
                                    return static_cast<int>(d.value());
                                }
                            });
-            return TExport{edge.name, static_cast<int>(edge.tensor->dataType),
-                           std::move(shape_)};
+            if (edge.tensor->data) {
+                return std::make_tuple(
+                    edge.name, static_cast<int>(edge.tensor->dataType),
+                    std::move(shape_), _internal->getTensor(_i - 1));
+            } else {
+                return std::make_tuple(edge.name,
+                                       static_cast<int>(edge.tensor->dataType),
+                                       std::move(shape_), std::nullopt);
+            }
         }
         return std::nullopt;
     }
