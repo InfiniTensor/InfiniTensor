@@ -55,7 +55,14 @@ class Handler {
 #endif
     }
     template <class T> std::vector<T> copyout(size_t i) {
-        return _outputs.at(i)->copyout<T>();
+        if (auto ptr = _outputs.at(i); ptr) {
+            return ptr->copyout<T>();
+        } else {
+            i += _g.internal().topology.globalOutputIndex();
+            auto tensor = _g.internal().edges[i].tensor;
+            auto ptr_ = reinterpret_cast<T *>(tensor->data->ptr);
+            return std::vector<T>(ptr_, ptr_ + tensor->elementsSize());
+        }
     }
 };
 

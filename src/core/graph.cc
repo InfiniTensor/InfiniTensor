@@ -394,9 +394,12 @@ GraphObj::transformFromGraphTopo(refactor::computation::Graph &graph,
 
     std::vector<Tensor> ans;
     for (auto edgeIdx : it.globalOutputs()) {
-        auto t = edgeToTensor.at(edgeIdx);
-        t->setOutput();
-        ans.push_back(std::move(t));
+        if (auto it = edgeToTensor.find(edgeIdx); it != edgeToTensor.end()) {
+            it->second->setOutput();
+            ans.push_back(it->second);
+        } else {
+            ans.push_back(nullptr);
+        }
     }
 
     dataMalloc();
