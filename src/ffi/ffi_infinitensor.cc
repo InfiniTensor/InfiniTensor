@@ -2,6 +2,7 @@
 #include "communication/operators.h"
 #include "computation/graph.h"
 #include "core/graph.h"
+#include "core/runtime.h"
 #include "core/tensor.h"
 #include "onnx/operators.h"
 #include <pybind11/numpy.h>
@@ -58,21 +59,11 @@ class Handler {
     }
     auto const &graph() const { return _g.internal(); }
 
-    void runCpu() {
+    void run(infini::Runtime runtime) {
         using namespace infini;
-        auto rt = make_ref<NativeCpuRuntimeObj>();
-        _lastBackend = make_ref<GraphObj>(rt);
-        _outputs = _lastBackend->transformFromGraphTopo(_g, rt);
-        // _lastBackend->getRuntime()->run(_lastBackend);
-    }
-    void runCuda() {
-        using namespace infini;
-#ifdef USE_CUDA
-        auto cudaRuntime = make_ref<CudaRuntimeObj>();
-        _lastBackend = make_ref<GraphObj>(cudaRuntime);
-        _outputs = _lastBackend->transformFromGraphTopo(_g, cudaRuntime);
+        _lastBackend = make_ref<GraphObj>(runtime);
+        _outputs = _lastBackend->transformFromGraphTopo(_g, std::move(runtime));
         _lastBackend->getRuntime()->run(_lastBackend);
-#endif
     }
 
     py::array getTensor(size_t i) {
@@ -291,7 +282,7 @@ static std::string getFormat(common ::DataType type) {
     }
 }
 
-void register_refactor(py::module &m) {
+void registerRefactor(py::module &m) {
     using policy = py::return_value_policy;
 
     onnx::register_();
@@ -305,8 +296,7 @@ void register_refactor(py::module &m) {
     py::class_<Handler, std::shared_ptr<Handler>>(m, "Graph")
         .def("fill_edge_info", &Handler::fillEdgeInfo, policy::move)
         .def("substitute", &Handler::substitute, policy::automatic)
-        .def("run_cpu", &Handler::runCpu, policy::automatic)
-        .def("run_cuda", &Handler::runCuda, policy::automatic)
+        .def("run_cpu", &Handler::run, policy::automatic)
         .def("set_input", &Handler::setInput, policy::automatic)
         .def("get_output", &Handler::getOutput, policy::move)
         .def("get_tensor", &Handler::getTensor, policy::move);
@@ -324,4 +314,30 @@ void register_refactor(py::module &m) {
 }
 } // namespace
 
-PYBIND11_MODULE(backend, m) { register_refactor(m); }
+namespace infini {
+using policy = py::return_value_policy;
+
+infini::Runtime cpuRuntime() {
+    return std::dynamic_pointer_cast<RuntimeObj>(
+        NativeCpuRuntimeObj::getInstance());
+}
+
+infini::Runtime cudaRuntime() {
+#ifdef USE_CUDA
+    return std::dynamic_pointer_cast<RuntimeObj>(make_ref<CudaRuntimeObj>());
+#endif
+    return nullptr;
+}
+
+void registerPy(py::module &m) {
+    py::class_<RuntimeObj, Runtime>(m, "Runtime")
+        .def("init_comm", &RuntimeObj::initComm, policy::automatic);
+    m.def("cpu_runtime", cpuRuntime, policy::move)
+        .def("cuda_runtime", cudaRuntime, policy::move);
+}
+} // namespace infini
+
+PYBIND11_MODULE(backend, m) {
+    registerRefactor(m);
+    infini::registerPy(m);
+}

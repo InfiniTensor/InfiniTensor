@@ -1,8 +1,8 @@
 ﻿from numpy import ndarray
 import backend
+from backend import DimExpr, refactor_tensor, refactor_operator, refactor_graph
 from onnx import ModelProto, NodeProto, TensorProto, AttributeProto, numpy_helper
 from onnx.helper import make_model, make_node, make_graph, make_tensor_value_info
-from backend import DimExpr, refactor_tensor, refactor_operator, refactor_graph
 from typing import Any
 
 
