@@ -296,7 +296,7 @@ void registerRefactor(py::module &m) {
     py::class_<Handler, std::shared_ptr<Handler>>(m, "Graph")
         .def("fill_edge_info", &Handler::fillEdgeInfo, policy::move)
         .def("substitute", &Handler::substitute, policy::automatic)
-        .def("run_cpu", &Handler::run, policy::automatic)
+        .def("run", &Handler::run, policy::automatic)
         .def("set_input", &Handler::setInput, policy::automatic)
         .def("get_output", &Handler::getOutput, policy::move)
         .def("get_tensor", &Handler::getTensor, policy::move);
