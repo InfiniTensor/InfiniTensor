@@ -54,6 +54,10 @@ test-onnx:
 	@echo
 	python3 pyinfinitensor/tests/test_onnx.py
 
+test-api:
+	@echo
+	python3 pyinfinitensor/tests/test_api.py
+
 docker-build: 
 	docker build -f scripts/dockerfile/$(DOCKER_FILE) -t $(DOCKER_NAME) .
 

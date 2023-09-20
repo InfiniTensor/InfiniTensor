@@ -125,6 +125,11 @@ class GraphObj : public Object {
      * @brief If the nodes is sorted in topological order.
      */
     bool sorted;
+
+    /**
+     * @brief If the weight tensors are allocated.
+     */
+    bool weightAllocated = false;
 };
 
 } // namespace infini

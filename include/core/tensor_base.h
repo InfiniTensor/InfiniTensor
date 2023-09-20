@@ -44,7 +44,7 @@ class TensorBaseObj : public Object {
     }
 
     DataType getDType() const { return dtype; }
-    int getDTypeCode() const { return dtype.getIndex(); }
+    int getDTypeIndex() const { return dtype.getIndex(); }
     Runtime getRuntime() const { return runtime; }
 
     //     std::pair<Operator *, int> getOutputOfWithIndex();
