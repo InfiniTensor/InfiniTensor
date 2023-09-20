@@ -43,12 +43,22 @@ class Compiler {
   public:
     explicit Compiler(Graph g) : _g(std::move(g)) {}
     std::unordered_set<Name> fillEdgeInfo() { return _g.fillEdgeInfo(); }
-    void setInput(size_t index, int dataType, std::vector<DimExpr> shape) {
+    void setInput(size_t index, int dataType,
+                  std::vector<std::variant<std::string, int64_t>> shape) {
         ASSERT(index < _g.internal().topology.globalInputsCount(),
                fmt::format("set input {} failed with wrong index", index));
+        auto dataType_ = static_cast<common::DataType>(dataType);
+        Shape shape_(shape.size(), DimExpr(1));
+        std::transform(shape.begin(), shape.end(), shape_.begin(),
+                       [](auto const &d) -> DimExpr {
+                           if (std::holds_alternative<std::string>(d)) {
+                               return DimExpr(std::get<std::string>(d));
+                           } else {
+                               return DimExpr(std::get<int64_t>(d));
+                           }
+                       });
         _g.internal().edges[index].tensor =
-            std::move(Tensor::share(static_cast<common::DataType>(dataType),
-                                    Shape(shape.begin(), shape.end())));
+            Tensor::share(dataType_, std::move(shape_));
     }
     void substitute(const char *name, int64_t value) {
         ASSERT(_g.substitute(name, value),
