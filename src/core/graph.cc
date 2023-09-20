@@ -350,8 +350,9 @@ bool GraphObj::checkValid() const {
     return true;
 }
 
-void GraphObj::transformFromGraphTopo(refactor::computation::Graph &graph,
-                                      Runtime runtime) {
+std::vector<Tensor>
+GraphObj::transformFromGraphTopo(refactor::computation::Graph &graph,
+                                 Runtime runtime) {
     // create ops and tensors
     ops.clear();
     tensors.clear();
@@ -391,8 +392,11 @@ void GraphObj::transformFromGraphTopo(refactor::computation::Graph &graph,
         }
     }
 
+    std::vector<Tensor> ans;
     for (auto edgeIdx : it.globalOutputs()) {
-        edgeToTensor.at(edgeIdx)->setOutput();
+        auto t = edgeToTensor.at(edgeIdx);
+        t->setOutput();
+        ans.push_back(std::move(t));
     }
 
     dataMalloc();
@@ -404,6 +408,8 @@ void GraphObj::transformFromGraphTopo(refactor::computation::Graph &graph,
             }
         }
     }
+
+    return ans;
 }
 
 } // namespace infini
