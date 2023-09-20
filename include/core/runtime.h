@@ -1,6 +1,7 @@
 #pragma once
 #include "core/common.h"
 #include "core/communicator.h"
+#include "core/dump.h"
 #include "core/op_type.h"
 #include "core/ref.h"
 #include <memory>
@@ -37,10 +38,12 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
   protected:
     Device device;
     int deviceId;
+    Dump dump;
 
   public:
     explicit RuntimeObj(Device device, int deviceId = 0)
-        : device(device), deviceId(deviceId) {}
+        : device(device), deviceId(deviceId),
+          dump(std::make_shared<DumpObj>()) {}
     RuntimeObj(RuntimeObj &other) = delete;
     RuntimeObj &operator=(RuntimeObj const &) = delete;
     virtual ~RuntimeObj() {}
@@ -85,6 +88,8 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
     virtual void initComm(const string &name, int worldSize, int rank) = 0;
 
     virtual CommunicatorObj &getCommunicator() const = 0;
+
+    Dump getDump() { return dump; }
 
   protected:
     void printProfilingData(double totTime,

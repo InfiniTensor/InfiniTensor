@@ -1,23 +1,26 @@
 #pragma once
-
-#include "core/common.h"
-#include "core/operator.h"
-#include "core/runtime.h"
-#include "core/tensor.h"
+#include "core/ref.h"
 /**
  * A Dump stores intermediate states of a model run, and exposes the info to
  * outside queries.
  */
 namespace infini {
-class Dump {
+/***************** Forward declaration begin *****************/
+class TensorObj;
+class OperatorObj;
+using Tensor = Ref<TensorObj>;
+using Operator = Ref<OperatorObj>;
+/***************** Forward declaration end *****************/
+
+class DumpObj {
   protected:
-    string opKey;
+    std::string opKey;
     int location = 0;
     vector<Tensor> inputs;
     vector<Tensor> outputs;
 
   public:
-    Dump() {}
+    DumpObj() {}
 
     /*
      * Dump the info of a operator.
@@ -29,7 +32,7 @@ class Dump {
 
     // TODO: For now, use type name and count to locate a specific operator.
     // In the future, use unique name or id of the queried operator.
-    void setOpQuery(string opKey, int location) {
+    void setOpQuery(std::string opKey, int location) {
         this->opKey = opKey;
         this->location = location;
     }
@@ -41,4 +44,6 @@ class Dump {
      */
     bool queriedOp(Operator op, int count = 0);
 };
+
+using Dump = Ref<DumpObj>;
 } // namespace infini

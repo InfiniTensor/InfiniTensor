@@ -42,8 +42,8 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph) const {
         checkCudaError(cudaGetLastError()) << op->toString();
 
 #ifdef DEBUG_MODE
-        if (graph->getDump().queriedOp(op, opCnt[op->getOpType()])) {
-            graph->dumpOp(op);
+        if (dump->queriedOp(op, opCnt[op->getOpType()])) {
+            dump->dumpOp(op);
         }
         opCnt[op->getOpType()]++;
 #endif

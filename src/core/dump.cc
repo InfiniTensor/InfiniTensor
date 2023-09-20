@@ -1,8 +1,9 @@
 #include "core/dump.h"
+#include "core/operator.h"
 
 namespace infini {
 
-void Dump::dumpOp(Operator op) {
+void DumpObj::dumpOp(Operator op) {
     inputs.clear();
     outputs.clear();
     // Clone the inputs and outputs to host and store in dump
@@ -14,7 +15,7 @@ void Dump::dumpOp(Operator op) {
     }
 }
 
-bool Dump::queriedOp(Operator op, int count) {
+bool DumpObj::queriedOp(Operator op, int count) {
     return strcmp(op->getOpType().toString(), opKey.c_str()) == 0 &&
            location == count;
 }

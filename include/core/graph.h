@@ -1,5 +1,4 @@
 #pragma once
-#include "core/dump.h"
 #include "core/lazy_allocator.h"
 #include "core/operator.h"
 #include "core/tensor.h"
@@ -12,11 +11,10 @@ class GraphObj : public Object {
     TensorVec tensors;
     OpVec ops;
     LazyAllocator allocator;
-    Dump dump;
 
   public:
     explicit GraphObj(Runtime runtime)
-        : runtime(runtime), allocator(runtime), dump(), sorted(false){};
+        : runtime(runtime), allocator(runtime), sorted(false){};
     GraphObj(Runtime runtime, OpVec ops_in);
     string toString() const override;
     Runtime getRuntime() const { return runtime; }
@@ -41,9 +39,6 @@ class GraphObj : public Object {
         if (it != tensors.end())
             tensors.erase(it);
     }
-
-    void dumpOp(Operator op) { dump.dumpOp(op); }
-    Dump &getDump() { return dump; }
 
     void deleteConnection(Tensor tensor, Operator op);
     void addConnection(Tensor tensor, Operator op);
