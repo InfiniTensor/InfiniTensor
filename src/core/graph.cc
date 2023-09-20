@@ -351,7 +351,7 @@ bool GraphObj::checkValid() const {
 }
 
 std::vector<Tensor>
-GraphObj::transformFromGraphTopo(refactor::computation::Graph &graph,
+GraphObj::transformFromGraphTopo(refactor::computation::Graph const &graph,
                                  Runtime runtime) {
     // create ops and tensors
     ops.clear();

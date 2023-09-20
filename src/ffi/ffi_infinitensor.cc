@@ -22,31 +22,26 @@
 
 namespace py = pybind11;
 
-namespace {
+namespace frontend {
+class Compiler;
+} // namespace frontend
+
+namespace infini {
+class Executor;
+} // namespace infini
+
+static std::string getFormat(refactor::common::DataType);
+
+namespace frontend {
 using namespace refactor;
 using namespace computation;
 using Name = std::string;
 
-static std::string getFormat(common::DataType);
-
-class Handler {
+class Compiler {
     Graph _g;
-    infini::Graph _lastBackend;
-    std::vector<infini::Tensor> _outputs;
-
-    py::array buildPyArray(size_t i) const {
-        auto const &tensor = *_g.internal().edges[i].tensor;
-
-        std::vector<int64_t> shape(tensor.shape.size());
-        std::transform(tensor.shape.begin(), tensor.shape.end(), shape.begin(),
-                       [](auto const &d) { return d.value(); });
-
-        return py::array(py::dtype(getFormat(tensor.dataType)),
-                         std::move(shape), nullptr);
-    }
 
   public:
-    explicit Handler(Graph g) : _g(std::move(g)) {}
+    explicit Compiler(Graph g) : _g(std::move(g)) {}
     std::unordered_set<Name> fillEdgeInfo() { return _g.fillEdgeInfo(); }
     void setInput(size_t index, std::shared_ptr<Tensor> tensor) {
         ASSERT(index < _g.internal().topology.globalInputsCount(),
@@ -59,36 +54,81 @@ class Handler {
     }
     auto const &graph() const { return _g.internal(); }
 
-    void run(infini::Runtime runtime) {
-        using namespace infini;
-        _lastBackend = make_ref<GraphObj>(runtime);
-        _outputs = _lastBackend->transformFromGraphTopo(_g, std::move(runtime));
-        _lastBackend->getRuntime()->run(_lastBackend);
-    }
+    infini::Executor compile(infini::Runtime);
 
     py::array getTensor(size_t i) {
         auto const &tensor = *_g.internal().edges.at(i).tensor;
-        auto ans = buildPyArray(i);
-        if (tensor.data) {
-            std::memcpy(ans.mutable_data(), tensor.data->ptr,
-                        tensor.bytesSize());
-        }
-        return ans;
-    }
 
-    py::array getOutput(size_t i) {
-        auto j = _g.internal().topology.globalOutputs().at(i);
-        auto const &tensor = *_g.internal().edges.at(j).tensor;
-        auto ans = buildPyArray(j);
-        if (auto ptr = _outputs.at(i); ptr) {
-            ptr->copyout(ans.mutable_data(), tensor.bytesSize());
-        } else if (tensor.data) {
-            std::memcpy(ans.mutable_data(), tensor.data->ptr,
-                        tensor.bytesSize());
+        std::vector<int64_t> shape(tensor.shape.size());
+        std::transform(tensor.shape.begin(), tensor.shape.end(), shape.begin(),
+                       [](auto const &d) { return d.value(); });
+
+        auto ans = py::array(py::dtype(getFormat(tensor.dataType)),
+                             std::move(shape), nullptr);
+        if (tensor.data) {
+            std::memcpy(ans.mutable_data(), tensor.data->ptr, ans.nbytes());
         }
         return ans;
     }
 };
+} // namespace frontend
+
+namespace infini {
+
+class Executor {
+    infini::Graph _g;
+    std::vector<std::pair<refactor::computation::Edge, infini::Tensor>>
+        _outputs;
+
+  public:
+    Executor(infini::Runtime rt, refactor::computation::Graph const &frontend)
+        : _g(infini::make_ref<infini::GraphObj>(std::move(rt))) {
+        using namespace infini;
+
+        auto frontendOutputs = frontend.internal().topology.globalOutputs();
+        auto outputsCount = frontendOutputs.size();
+
+        auto hwOutputs = _g->transformFromGraphTopo(frontend, _g->getRuntime());
+
+        ASSERT(outputsCount == hwOutputs.size(), "Output size mismatch");
+        _outputs.reserve(outputsCount);
+
+        for (size_t i = 0; i < hwOutputs.size(); ++i) {
+            _outputs.emplace_back(frontend.internal().edges[frontendOutputs[i]],
+                                  std::move(hwOutputs[i]));
+        }
+    }
+
+    void run() { _g->getRuntime()->run(_g); }
+
+    py::array getOutput(size_t i) {
+        auto const &[edge, tensor] = _outputs.at(i);
+
+        std::vector<int64_t> shape(edge.tensor->shape.size());
+        std::transform(edge.tensor->shape.begin(), edge.tensor->shape.end(),
+                       shape.begin(), [](auto const &d) { return d.value(); });
+
+        auto ans = py::array(py::dtype(getFormat(edge.tensor->dataType)),
+                             std::move(shape), nullptr);
+        if (tensor) {
+            tensor->copyout(ans.mutable_data(), ans.nbytes());
+        } else if (edge.tensor->data) {
+            std::memcpy(ans.mutable_data(), edge.tensor->data->ptr,
+                        ans.nbytes());
+        }
+        return ans;
+    }
+};
+
+} // namespace infini
+
+namespace frontend {
+
+infini::Executor Compiler::compile(infini::Runtime rt) {
+    _g.collectVariables();
+    ASSERT(_g.fillEdgeInfo().empty(), "Unknown variables");
+    return infini::Executor(std::move(rt), _g);
+}
 
 using TExport = std::tuple<Name, int, std::vector<std::variant<Name, int>>,
                            std::optional<py::array>>;
@@ -97,11 +137,11 @@ using OExport =
                std::vector<Name>, std::vector<Name>>;
 
 class NodeExport {
-    std::shared_ptr<Handler> _internal;
+    std::shared_ptr<Compiler> _internal;
     graph_topo::GraphTopo::Iterator _it;
 
   public:
-    explicit NodeExport(std::shared_ptr<Handler> internal)
+    explicit NodeExport(std::shared_ptr<Compiler> internal)
         : _internal(std::move(internal)),
           _it(_internal->graph().topology.begin()) {}
 
@@ -155,11 +195,11 @@ class NodeExport {
 };
 
 class EdgeExport {
-    std::shared_ptr<Handler> _internal;
+    std::shared_ptr<Compiler> _internal;
     size_t _i;
 
   public:
-    explicit EdgeExport(std::shared_ptr<Handler> internal)
+    explicit EdgeExport(std::shared_ptr<Compiler> internal)
         : _internal(std::move(internal)), _i(0) {}
 
     std::optional<TExport> next() {
@@ -217,7 +257,7 @@ node(const char *opType,
         OpType::parse(fmt::format("onnx::{}", opType)), std::move(attrs_)});
 }
 
-std::shared_ptr<Handler>
+std::shared_ptr<Compiler>
 graph(std::unordered_map<Name, std::pair<std::vector<Name>, std::vector<Name>>>
           topology,
       std::unordered_map<Name, std::shared_ptr<Operator>> nodes,
@@ -249,12 +289,70 @@ graph(std::unordered_map<Name, std::pair<std::vector<Name>, std::vector<Name>>>
     }
     builder.globalInputs = std::move(inputs);
     builder.globalOutputs = std::move(outputs);
-    return std::make_shared<Handler>(Graph(builder.build()));
+    return std::make_shared<Compiler>(Graph(builder.build()));
 }
 
+void registerRefactor(py::module &m) {
+    using policy = py::return_value_policy;
+
+    onnx::register_();
+    communication::register_();
+
+    py::class_<DimExpr>(m, "DimExpr")
+        .def(py::init<int64_t>())
+        .def(py::init<std::string>());
+    py::class_<Operator, std::shared_ptr<Operator>>(m, "Operator");
+    py::class_<Tensor, std::shared_ptr<Tensor>>(m, "Tensor");
+    py::class_<Compiler, std::shared_ptr<Compiler>>(m, "Graph")
+        .def("fill_edge_info", &Compiler::fillEdgeInfo, policy::move)
+        .def("substitute", &Compiler::substitute, policy::automatic)
+        .def("set_input", &Compiler::setInput, policy::automatic)
+        .def("compile", &Compiler::compile, policy::move)
+        .def("get_tensor", &Compiler::getTensor, policy::move);
+    py::class_<NodeExport>(m, "NodeExport")
+        .def(py::init<std::shared_ptr<Compiler>>())
+        .def("global_inputs", &NodeExport::globalInputs, policy::move)
+        .def("global_outputs", &NodeExport::globalOutputs, policy::move)
+        .def("next", &NodeExport::next, policy::move);
+    py::class_<EdgeExport>(m, "EdgeExport")
+        .def(py::init<std::shared_ptr<Compiler>>())
+        .def("next", &EdgeExport::next, policy::move);
+    m.def("refactor_tensor", edge, policy::move)
+        .def("refactor_operator", node, policy::move)
+        .def("refactor_graph", graph, policy::move);
+}
+} // namespace frontend
+
+namespace infini {
+using policy = py::return_value_policy;
+
+infini::Runtime cpuRuntime() {
+    return std::dynamic_pointer_cast<RuntimeObj>(
+        NativeCpuRuntimeObj::getInstance());
+}
+
+infini::Runtime cudaRuntime(int deviceId) {
+#ifdef USE_CUDA
+    return std::dynamic_pointer_cast<RuntimeObj>(
+        make_ref<CudaRuntimeObj>(deviceId));
+#endif
+    return nullptr;
+}
+
+void registerPy(py::module &m) {
+    py::class_<Executor>(m, "Executor")
+        .def("run", &Executor::run, policy::automatic)
+        .def("get_output", &Executor::getOutput, policy::move);
+    py::class_<RuntimeObj, Runtime>(m, "Runtime")
+        .def("init_comm", &RuntimeObj::initComm, policy::automatic);
+    m.def("cpu_runtime", cpuRuntime, policy::move)
+        .def("cuda_runtime", cudaRuntime, policy::move);
+}
+} // namespace infini
+
 // A helper function that converts DataType to python format string
-static std::string getFormat(common ::DataType type) {
-    using namespace common;
+static std::string getFormat(refactor::common::DataType type) {
+    using namespace refactor::common;
 
 #define CASE(T)                                                                \
     case DataType::T:                                                          \
@@ -282,62 +380,7 @@ static std::string getFormat(common ::DataType type) {
     }
 }
 
-void registerRefactor(py::module &m) {
-    using policy = py::return_value_policy;
-
-    onnx::register_();
-    communication::register_();
-
-    py::class_<DimExpr>(m, "DimExpr")
-        .def(py::init<int64_t>())
-        .def(py::init<std::string>());
-    py::class_<Operator, std::shared_ptr<Operator>>(m, "Operator");
-    py::class_<Tensor, std::shared_ptr<Tensor>>(m, "Tensor");
-    py::class_<Handler, std::shared_ptr<Handler>>(m, "Graph")
-        .def("fill_edge_info", &Handler::fillEdgeInfo, policy::move)
-        .def("substitute", &Handler::substitute, policy::automatic)
-        .def("run", &Handler::run, policy::automatic)
-        .def("set_input", &Handler::setInput, policy::automatic)
-        .def("get_output", &Handler::getOutput, policy::move)
-        .def("get_tensor", &Handler::getTensor, policy::move);
-    py::class_<NodeExport>(m, "NodeExport")
-        .def(py::init<std::shared_ptr<Handler>>())
-        .def("global_inputs", &NodeExport::globalInputs, policy::move)
-        .def("global_outputs", &NodeExport::globalOutputs, policy::move)
-        .def("next", &NodeExport::next, policy::move);
-    py::class_<EdgeExport>(m, "EdgeExport")
-        .def(py::init<std::shared_ptr<Handler>>())
-        .def("next", &EdgeExport::next, policy::move);
-    m.def("refactor_tensor", edge, policy::move)
-        .def("refactor_operator", node, policy::move)
-        .def("refactor_graph", graph, policy::move);
-}
-} // namespace
-
-namespace infini {
-using policy = py::return_value_policy;
-
-infini::Runtime cpuRuntime() {
-    return std::dynamic_pointer_cast<RuntimeObj>(
-        NativeCpuRuntimeObj::getInstance());
-}
-
-infini::Runtime cudaRuntime() {
-#ifdef USE_CUDA
-    return std::dynamic_pointer_cast<RuntimeObj>(make_ref<CudaRuntimeObj>());
-#endif
-    return nullptr;
-}
-
-void registerPy(py::module &m) {
-    py::class_<RuntimeObj, Runtime>(m, "Runtime")
-        .def("init_comm", &RuntimeObj::initComm, policy::automatic);
-    m.def("cpu_runtime", cpuRuntime, policy::move)
-        .def("cuda_runtime", cudaRuntime, policy::move);
-}
-} // namespace infini
-
 PYBIND11_MODULE(backend, m) {
-    registerRefactor(m);
+    frontend::registerRefactor(m);
     infini::registerPy(m);
 }

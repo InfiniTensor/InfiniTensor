@@ -115,7 +115,7 @@ class GraphObj : public Object {
     bool checkValid() const;
 
     std::vector<Tensor>
-    transformFromGraphTopo(refactor::computation::Graph &graph,
+    transformFromGraphTopo(refactor::computation::Graph const &graph,
                            Runtime runtime);
 
   private:
