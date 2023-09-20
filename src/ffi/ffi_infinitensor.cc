@@ -58,7 +58,7 @@ class Compiler {
                            }
                        });
         _g.internal().edges[index].tensor =
-            Tensor::share(dataType_, std::move(shape_));
+            Tensor::share(dataType_, std::move(shape_), {});
     }
     void substitute(const char *name, int64_t value) {
         ASSERT(_g.substitute(name, value),
@@ -252,7 +252,7 @@ class EdgeExport {
 std::shared_ptr<Tensor> edge(int dataType, std::vector<DimExpr> shape,
                              std::optional<py::array> data) {
     auto ans = Tensor::share(static_cast<common::DataType>(dataType),
-                             Shape(shape.begin(), shape.end()));
+                             Shape(shape.begin(), shape.end()), {});
     if (data) {
         auto const bytesSize = ans->bytesSize();
         ASSERT(bytesSize == static_cast<size_t>(data->nbytes()),
