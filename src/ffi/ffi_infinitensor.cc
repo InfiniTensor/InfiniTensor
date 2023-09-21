@@ -47,7 +47,7 @@ class Compiler {
                   std::vector<std::variant<std::string, int64_t>> shape) {
         ASSERT(index < _g.internal().topology.globalInputsCount(),
                fmt::format("set input {} failed with wrong index", index));
-        auto dataType_ = static_cast<common::DataType>(dataType);
+        auto dataType_ = *common::DataType::parse(dataType);
         Shape shape_(shape.size(), DimExpr(1));
         std::transform(shape.begin(), shape.end(), shape_.begin(),
                        [](auto const &d) -> DimExpr {
@@ -237,12 +237,12 @@ class EdgeExport {
                            });
             if (edge.tensor->data) {
                 return std::make_tuple(
-                    edge.name, static_cast<int>(edge.tensor->dataType),
+                    edge.name, static_cast<int>(edge.tensor->dataType.internal),
                     std::move(shape_), _internal->getTensor(_i - 1));
             } else {
-                return std::make_tuple(edge.name,
-                                       static_cast<int>(edge.tensor->dataType),
-                                       std::move(shape_), std::nullopt);
+                return std::make_tuple(
+                    edge.name, static_cast<int>(edge.tensor->dataType.internal),
+                    std::move(shape_), std::nullopt);
             }
         }
         return std::nullopt;
@@ -251,7 +251,7 @@ class EdgeExport {
 
 std::shared_ptr<Tensor> edge(int dataType, std::vector<DimExpr> shape,
                              std::optional<py::array> data) {
-    auto ans = Tensor::share(static_cast<common::DataType>(dataType),
+    auto ans = Tensor::share(*common::DataType::parse(dataType),
                              Shape(shape.begin(), shape.end()), {});
     if (data) {
         auto const bytesSize = ans->bytesSize();
@@ -376,7 +376,7 @@ static std::string getFormat(refactor::common::DataType type) {
     case DataType::T:                                                          \
         return py::format_descriptor<primitive_t<DataType::T>::type>::format();
 
-    switch (type) {
+    switch (type.internal) {
         CASE(F32);
         CASE(F64);
         CASE(I32);

@@ -319,14 +319,11 @@ void addEdgeToTensor(GraphObj &g, size_t index,
                      std::shared_ptr<refactor::computation::Tensor> tensor,
                      std::unordered_map<size_t, Tensor> &edgeToTensor,
                      Runtime runtime) {
-    auto refShape = tensor->shape;
-    Shape shape;
-    for (auto ele : refShape) {
-        IT_ASSERT(ele.hasValue());
-        shape.emplace_back(ele.value());
-    }
-    auto dType = tensor->dataType;
-    Tensor tensorInf = g.addTensor(shape, DataType(static_cast<int>(dType)));
-    edgeToTensor.insert(std::make_pair(index, tensorInf));
+    Shape shape(tensor->shape.size());
+    std::transform(tensor->shape.begin(), tensor->shape.end(), shape.begin(),
+                   [](auto const &ele) { return ele.value(); });
+    edgeToTensor.insert(std::make_pair(
+        index,
+        g.addTensor(std::move(shape), DataType(tensor->dataType.internal))));
 }
 } // namespace infini
