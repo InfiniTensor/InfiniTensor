@@ -1010,7 +1010,7 @@ class OnnxStub:
                 ctx.push_node(make_node(ty.name, new_inputs, outputs, name))
             elif ty == backend.OpTypeId.Attention:
                 assert len(inputs) == 3, "Check Attention Op must have three inputs."
-                new_inputs = [inputs[2], inputs[0], inputs[1]]
+                new_inputs = [inputs[0], inputs[1], inputs[2]]
                 ctx.push_node(make_node(ty.name, new_inputs, outputs, name))
             elif ty == backend.OpTypeId.Expand:
                 shape = backend.expand_shape_of(op)
