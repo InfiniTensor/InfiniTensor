@@ -1,8 +1,7 @@
 #include "operators/attention.h"
+#include "cuda/cuda_attention.h"
 #include "cuda/cuda_kernel_wihtout_config.h"
 #include "cuda/cuda_runtime.h"
-#include "cuda/cuda_attention.h"
-
 
 namespace infini {
 
@@ -19,11 +18,11 @@ class AttentionCuda : public CudaKernelWithoutConfig {
         int d = op->getInputs(0)->getDims()[1];
 
         attentionKernel((float *)inputQData, (float *)inputKData,
-                    (float *)inputVData, N, d, (float *)outputData);
+                        (float *)inputVData, N, d, (float *)outputData);
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Attention, DataType::Float32, AttentionCuda,
-                "Attention_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Attention, DataType::Float32,
+                AttentionCuda, "Attention_CUDA_Float32");
 
 }; // namespace infini

@@ -19,7 +19,7 @@ class AttentionObj : public OperatorObj {
      * @param inputV The input tensor V.
      */
     AttentionObj(GraphObj *graph, Tensor inputQ, Tensor inputK, Tensor inputV,
-             Tensor output);
+                 Tensor output);
     OP_CLONE(AttentionObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;

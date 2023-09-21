@@ -4,13 +4,14 @@
 namespace infini {
 
 AttentionObj::AttentionObj(GraphObj *graph, Tensor inputQ, Tensor inputK,
-                   Tensor inputV, Tensor output)
+                           Tensor inputV, Tensor output)
     : OperatorObj(OpType::Attention, TensorVec{inputQ, inputK, inputV},
                   {output}) {
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> AttentionObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>>
+AttentionObj::inferShape(const TensorVec &inputs) const {
     auto shapeQ = inputs[0]->getDims();
     auto shapeK = inputs[1]->getDims();
     auto shapeV = inputs[2]->getDims();
@@ -37,6 +38,8 @@ vector<int> AttentionObj::getWorkloadVector() const {
     return ret;
 }
 
-vector<int> AttentionObj::getOpAttrVector() const { return {type.underlying()}; }
+vector<int> AttentionObj::getOpAttrVector() const {
+    return {type.underlying()};
+}
 
 } // namespace infini
