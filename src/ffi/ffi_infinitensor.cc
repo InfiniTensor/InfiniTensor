@@ -104,6 +104,8 @@ class Executor {
         auto [hwInputs, hwOutputs] =
             _g->transformFromGraphTopo(frontend, _g->getRuntime());
 
+        _inputs = std::move(hwInputs);
+
         ASSERT(outputsCount == hwOutputs.size(), "Output size mismatch");
         _outputs.reserve(outputsCount);
 
