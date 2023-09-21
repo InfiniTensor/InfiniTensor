@@ -1,9 +1,9 @@
 #include "common/error_handler.h"
 #include "communication/operators.h"
-#include "computation/graph.h"
 #include "core/graph.h"
 #include "core/runtime.h"
 #include "core/tensor.h"
+#include "frontend/graph.h"
 #include "onnx/operators.h"
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
@@ -34,7 +34,7 @@ static std::string getFormat(refactor::common::DataType);
 
 namespace frontend {
 using namespace refactor;
-using namespace computation;
+using namespace refactor::frontend;
 using Name = std::string;
 
 class Compiler {
@@ -90,11 +90,10 @@ namespace infini {
 class Executor {
     infini::Graph _g;
     std::vector<infini::Tensor> _inputs;
-    std::vector<std::pair<refactor::computation::Edge, infini::Tensor>>
-        _outputs;
+    std::vector<std::pair<refactor::frontend::Edge, infini::Tensor>> _outputs;
 
   public:
-    Executor(infini::Runtime rt, refactor::computation::Graph const &frontend)
+    Executor(infini::Runtime rt, refactor::frontend::Graph const &frontend)
         : _g(infini::make_ref<infini::GraphObj>(std::move(rt))) {
         using namespace infini;
 

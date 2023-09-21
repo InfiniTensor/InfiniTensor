@@ -351,7 +351,7 @@ bool GraphObj::checkValid() const {
 }
 
 std::pair<std::vector<Tensor>, std::vector<Tensor>>
-GraphObj::transformFromGraphTopo(refactor::computation::Graph const &graph,
+GraphObj::transformFromGraphTopo(refactor::frontend::Graph const &graph,
                                  Runtime runtime) {
     // create ops and tensors
     ops.clear();
@@ -368,7 +368,7 @@ GraphObj::transformFromGraphTopo(refactor::computation::Graph const &graph,
         if (!std::all_of(outputs.begin(), outputs.end(),
                          [&](auto e) { return edges[e].tensor->hasData(); })) {
             auto nodeInfo = nodes[nodeIdx];
-            IT_ASSERT(refactor::computation::OpType::tryParse(
+            IT_ASSERT(refactor::frontend::OpType::tryParse(
                 nodeInfo.op->opType.name().data()));
             std::vector<size_t> in, out;
             for (auto i : inputs) {

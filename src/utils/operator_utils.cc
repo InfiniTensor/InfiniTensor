@@ -61,10 +61,10 @@ int get_real_axis(const int &axis, const int &rank) {
 }
 
 void addOperatorFromGraphTopo(
-    GraphObj &g, std::shared_ptr<refactor::computation::Operator> nodeInfo,
+    GraphObj &g, std::shared_ptr<refactor::frontend::Operator> nodeInfo,
     std::vector<size_t> input, std::vector<size_t> output,
     std::unordered_map<size_t, Tensor> &edgeToTensor,
-    std::vector<refactor::computation::Edge> edges) {
+    std::vector<refactor::frontend::Edge> edges) {
     std::string name(nodeInfo->opType.name());
     auto attr = nodeInfo->attributes;
     if (name == "onnx::Conv") {
@@ -316,7 +316,7 @@ void addOperatorFromGraphTopo(
 }
 
 void addEdgeToTensor(GraphObj &g, size_t index,
-                     std::shared_ptr<refactor::computation::Tensor> tensor,
+                     std::shared_ptr<refactor::frontend::Tensor> tensor,
                      std::unordered_map<size_t, Tensor> &edgeToTensor,
                      Runtime runtime) {
     Shape shape(tensor->shape.size());

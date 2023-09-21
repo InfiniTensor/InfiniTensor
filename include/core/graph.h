@@ -1,8 +1,8 @@
 #pragma once
-#include "computation/graph.h"
 #include "core/lazy_allocator.h"
 #include "core/operator.h"
 #include "core/tensor.h"
+#include "frontend/graph.h"
 
 namespace infini {
 
@@ -115,7 +115,7 @@ class GraphObj : public Object {
     bool checkValid() const;
 
     std::pair<std::vector<Tensor>, std::vector<Tensor>>
-    transformFromGraphTopo(refactor::computation::Graph const &graph,
+    transformFromGraphTopo(refactor::frontend::Graph const &graph,
                            Runtime runtime);
 
   private:
