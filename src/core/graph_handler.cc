@@ -1,6 +1,7 @@
 ﻿#include "core/graph_handler.h"
 #include "operators/all_gather.h"
 #include "operators/all_reduce.h"
+#include "operators/attention.h"
 #include "operators/batch_norm.h"
 #include "operators/broadcast.h"
 #include "operators/concat.h"
@@ -406,7 +407,19 @@ Tensor GraphHandlerObj::where(Tensor inputX, Tensor inputY, Tensor condition,
             ->getOutput();
     }
 }
-
+Tensor GraphHandlerObj::attention(Tensor inputQ, Tensor inputK, Tensor inputV,
+                                  Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<AttentionObj>(std::move(inputQ), std::move(inputK),
+                                          std::move(inputV), output);
+        return output;
+    } else {
+        return g
+            ->addOp<AttentionObj>(std::move(inputQ), std::move(inputK),
+                                  std::move(inputV), output)
+            ->getOutput();
+    }
+}
 static CastType inferCastType(Tensor input, int to) {
     auto iType = input->getDType();
     auto oType = DataType(to);

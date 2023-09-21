@@ -32,6 +32,7 @@ class OnnxStub:
     The Onnx model imported into infinitensor.
     It can be generated from an Onnx model object.
     """
+
     def __init__(self, model: ModelProto, runtime):
         self.inputs: Dict[str, backend.Tensor] = {}
         self.outputs: Dict[str, backend.Tensor] = {}
@@ -59,7 +60,6 @@ class OnnxStub:
             tensors[output.name] = self.handler.tensor(
                 dims, output.type.tensor_type.elem_type
             )
-
 
         node_name = []
         new_node_name = []
@@ -632,6 +632,13 @@ class OnnxStub:
                         ),
                     ):
                         tensors[name] = tensor
+                elif node.op_type == "Attention":
+                    tensors[node.output[0]] = self.handler.attention(
+                        tensors[node.input[0]],
+                        tensors[node.input[1]],
+                        tensors[node.input[2]],
+                        tensors.get(node.output[0]),
+                    )
                 elif node.op_type == "Broadcast":
                     tensors[node.output[0]] = self.handler.broadcast(
                         tensors[node.input[0]],
@@ -674,10 +681,9 @@ class OnnxStub:
 
         for input in model.graph.input:
             tensors[input.name].set_input()
-        
+
         for output in model.graph.output:
             tensors[output.name].set_output()
-
 
         ################################
         # Allocate memory space for data
@@ -1000,6 +1006,10 @@ class OnnxStub:
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, to=to))
             elif ty == backend.OpTypeId.Where:
                 assert len(inputs) == 3, "Check Where Op must have three inputs."
+                new_inputs = [inputs[2], inputs[0], inputs[1]]
+                ctx.push_node(make_node(ty.name, new_inputs, outputs, name))
+            elif ty == backend.OpTypeId.Attention:
+                assert len(inputs) == 3, "Check Attention Op must have three inputs."
                 new_inputs = [inputs[2], inputs[0], inputs[1]]
                 ctx.push_node(make_node(ty.name, new_inputs, outputs, name))
             elif ty == backend.OpTypeId.Expand:
