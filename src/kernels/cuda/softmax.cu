@@ -1,109 +1,108 @@
 #include "cuda/cuda_common.h"
-
 #include <cub/cub.cuh>
 
-struct __align__(8) MD { // update the global max and sum, store the output at
-                         // max_tmp and sum_tmp
-    float max_tmp;       // store max
-    float sum_tmp;       // store sum
-};
-__device__ __forceinline__ MD reduce_md_op(MD a, MD b) {
-    bool a_bigger = (a.max_tmp > b.max_tmp);
-    MD bigger = a_bigger ? a : b;
-    MD smaller = a_bigger ? b : a;
-    MD res;
-    res.sum_tmp = bigger.sum_tmp +
-                  smaller.sum_tmp * __expf(smaller.max_tmp - bigger.max_tmp);
-    res.max_tmp = bigger.max_tmp;
-    return res;
-}
-template <int BLOCK_DIM>
-__launch_bounds__(BLOCK_DIM) __global__
-    void _softmax_kernel(float *__restrict input, float *__restrict output,
-                         int size, int dimsize,
-                         int stride) { // if set axis = 1, inputShape=[I,J,K,S]
-    int tid = 0;                       // tid = i(JKS) + j(KS) + k(S) + s
+#define BLOCK_DIM_y 64
+#define BLOCK_DIM_x 16
 
-    // blockDim.x = size/dimsize = IKS
-    // blockIdx.x = i(KS) + k(S) + s,blockIdx.x%stride = k(S) + s
+__global__ void _softmax_kernel(float *input, float *output, int size,
+                                int size_y, int dimsize,
+                                int stride) {      // if set axis = 1
+    int i = threadIdx.x + blockIdx.x * blockDim.x; // i < inputShape[axis]
+    int j = threadIdx.y + blockIdx.y * blockDim.y; // j < size/inputShape[axis]
 
-    tid = blockIdx.x % stride + (blockIdx.x - blockIdx.x % stride) *
-                                    dimsize; // now, tid = i(JKS) + k(S) + s;
-    __shared__ float share_input[BLOCK_DIM];
-    share_input[threadIdx.x] = input[tid + threadIdx.x * stride];
-    __syncthreads();
-    MD md_partial;
-    md_partial.max_tmp = -__FLT_MAX__;
-    md_partial.sum_tmp = 0.0f;
-    for (int id = threadIdx.x; id < dimsize; id += blockDim.x) {
-        MD md_input;
-        if (id < BLOCK_DIM) {
-            md_input.max_tmp = share_input[id];
+    __shared__ float res_sum[BLOCK_DIM_x][BLOCK_DIM_y];
+    __shared__ float res_max[BLOCK_DIM_x][BLOCK_DIM_y];
+    __shared__ float share_input[BLOCK_DIM_x][BLOCK_DIM_y];
+
+    int tid = j % stride + (j - j % stride) * dimsize;
+    if (i < dimsize && j < size_y) {
+        share_input[threadIdx.x][threadIdx.y] = input[tid + i * stride];
+    } else {
+        share_input[threadIdx.x][threadIdx.y] = -__FLT_MAX__;
+    }
+
+    res_sum[threadIdx.x][threadIdx.y] = 0.0f;
+    res_max[threadIdx.x][threadIdx.y] = -__FLT_MAX__;
+    //__syncthreads();
+    for (int ph = 0; threadIdx.x + ph * blockDim.x < dimsize; ph++) {
+        if (ph == blockIdx.x) {
+            if (res_max[threadIdx.x][threadIdx.y] >
+                share_input[threadIdx.x][threadIdx.y]) {
+                res_sum[threadIdx.x][threadIdx.y] =
+                    res_sum[threadIdx.x][threadIdx.y] +
+                    __expf(share_input[threadIdx.x][threadIdx.y] -
+                           res_max[threadIdx.x][threadIdx.y]);
+
+            } else {
+                res_sum[threadIdx.x][threadIdx.y] =
+                    1 + res_sum[threadIdx.x][threadIdx.y] *
+                            __expf(res_max[threadIdx.x][threadIdx.y] -
+                                   share_input[threadIdx.x][threadIdx.y]);
+                res_max[threadIdx.x][threadIdx.y] =
+                    share_input[threadIdx.x][threadIdx.y];
+            }
         } else {
-            md_input.max_tmp = input[tid + id * stride];
-        }
+            if (res_max[threadIdx.x][threadIdx.y] >
+                input[tid + (threadIdx.x + ph * blockDim.x) * stride]) {
+                res_sum[threadIdx.x][threadIdx.y] =
+                    res_sum[threadIdx.x][threadIdx.y] +
+                    __expf(
+                        input[tid + (threadIdx.x + ph * blockDim.x) * stride] -
+                        res_max[threadIdx.x][threadIdx.y]);
 
-        md_input.sum_tmp = 1.0f;
-        md_partial = reduce_md_op(md_partial,
-                                  md_input); // reduce the data to one block
+            } else {
+                res_sum[threadIdx.x][threadIdx.y] =
+                    1 + res_sum[threadIdx.x][threadIdx.y] *
+                            __expf(res_max[threadIdx.x][threadIdx.y] -
+                                   input[tid + (threadIdx.x + ph * blockDim.x) *
+                                                   stride]);
+                res_max[threadIdx.x][threadIdx.y] =
+                    input[tid + (threadIdx.x + ph * blockDim.x) * stride];
+            }
+        }
     }
-    typedef cub::BlockReduce<MD, BLOCK_DIM> BlockReduce;
-    __shared__ typename BlockReduce::TempStorage temp_storage;
-    __shared__ MD md_total;
-    MD md_block = BlockReduce(temp_storage).Reduce(md_partial, reduce_md_op);
-    if (threadIdx.x ==
-        0) { // must set threadIdx.x = 0 write the output to memory
-        md_total = md_block;
+    __syncthreads();
+    for (int strip = blockDim.x / 2; strip > 0; strip = strip / 2) {
+        if (threadIdx.x < strip) {
+            if (res_max[threadIdx.x][threadIdx.y] >
+                res_max[threadIdx.x + strip][threadIdx.y]) {
+                res_sum[threadIdx.x][threadIdx.y] =
+                    res_sum[threadIdx.x][threadIdx.y] +
+                    res_sum[threadIdx.x + strip][threadIdx.y] *
+                        __expf(res_max[threadIdx.x + strip][threadIdx.y] -
+                               res_max[threadIdx.x][threadIdx.y]);
+            } else {
+                res_sum[threadIdx.x][threadIdx.y] =
+                    res_sum[threadIdx.x + strip][threadIdx.y] +
+                    res_sum[threadIdx.x][threadIdx.y] *
+                        __expf(res_max[threadIdx.x][threadIdx.y] -
+                               res_max[threadIdx.x + strip][threadIdx.y]);
+                res_max[threadIdx.x][threadIdx.y] =
+                    res_max[threadIdx.x + strip][threadIdx.y];
+            }
+        }
     }
+
     __syncthreads();
     //-----------------
-    float max_total, sum_inverse_total;
-    max_total = md_total.max_tmp;
-    sum_inverse_total = __fdividef(1.0F, md_total.sum_tmp);
-    for (int id = threadIdx.x; id < dimsize; id += blockDim.x) {
-        if (id < BLOCK_DIM) {
-            output[tid + id * stride] =
-                __expf(share_input[id] - max_total) * sum_inverse_total;
-        } else {
-            output[tid + id * stride] =
-                __expf(input[tid + id * stride] - max_total) *
-                sum_inverse_total;
-        }
+
+    if (i < dimsize && j < size_y) {
+        output[tid + i * stride] =
+            __expf(share_input[threadIdx.x][threadIdx.y] -
+                   res_max[0][threadIdx.y]) *
+            __fdividef(1.0F, res_sum[0][threadIdx.y]);
     }
 }
 namespace infini {
-void softmax_kernel(int num_blocks, float *input, float *output, int size,
+void softmax_kernel(float *input, float *output, int size, int size_y,
                     int dimsize, int stride) {
-    if (dimsize > 1023) {
-        int BLOCK_DIM = 1024;
-        int share_mem = BLOCK_DIM * sizeof(float);
-        _softmax_kernel<1024><<<num_blocks, BLOCK_DIM, share_mem>>>(
-            input, output, size, dimsize, stride);
-    } else if (dimsize > 511) {
-        int BLOCK_DIM = 512;
-        int share_mem = BLOCK_DIM * sizeof(float);
-        _softmax_kernel<512><<<num_blocks, BLOCK_DIM, share_mem>>>(
-            input, output, size, dimsize, stride);
-    } else if (dimsize > 255) {
-        int BLOCK_DIM = 256;
-        int share_mem = BLOCK_DIM * sizeof(float);
-        _softmax_kernel<256><<<num_blocks, BLOCK_DIM, share_mem>>>(
-            input, output, size, dimsize, stride);
-    } else if (dimsize > 127) {
-        int BLOCK_DIM = 128;
-        int share_mem = BLOCK_DIM * sizeof(float);
-        _softmax_kernel<128><<<num_blocks, BLOCK_DIM, share_mem>>>(
-            input, output, size, dimsize, stride);
-    } else if (dimsize > 63) {
-        int BLOCK_DIM = 64;
-        int share_mem = BLOCK_DIM * sizeof(float);
-        _softmax_kernel<64><<<num_blocks, BLOCK_DIM, share_mem>>>(
-            input, output, size, dimsize, stride);
-    } else {
-        int BLOCK_DIM = 32;
-        int share_mem = BLOCK_DIM * sizeof(float);
-        _softmax_kernel<32><<<num_blocks, BLOCK_DIM, share_mem>>>(
-            input, output, size, dimsize, stride);
-    }
+
+    int num_block_x = ceil(dimsize / (double)BLOCK_DIM_x);
+    int num_block_y = ceil(size_y / (double)(BLOCK_DIM_y));
+    dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y);
+    dim3 grid_dim(num_block_x, num_block_y);
+    int share_mem = (3 * BLOCK_DIM_x * BLOCK_DIM_y) * sizeof(float);
+    _softmax_kernel<<<grid_dim, block_dim, share_mem>>>(
+        input, output, size, size_y, dimsize, stride);
 }
 } // namespace infini
