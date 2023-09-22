@@ -395,11 +395,14 @@ GraphObj::transformFromGraphTopo(refactor::frontend::Graph const &graph,
     std::vector<Tensor> inputs, outputs;
     for (auto edgeIdx : it.globalInputs()) {
         inputs.push_back(edgeToTensor.at(edgeIdx));
+        if (auto it_ = edgeToTensor.find(edgeIdx); it_ != edgeToTensor.end()) {
+            it_->second->setInput();
+        }
     }
     for (auto edgeIdx : it.globalOutputs()) {
-        if (auto it = edgeToTensor.find(edgeIdx); it != edgeToTensor.end()) {
-            it->second->setOutput();
-            outputs.push_back(it->second);
+        if (auto it_ = edgeToTensor.find(edgeIdx); it_ != edgeToTensor.end()) {
+            it_->second->setOutput();
+            outputs.push_back(it_->second);
         } else {
             outputs.push_back(nullptr);
         }
@@ -410,6 +413,7 @@ GraphObj::transformFromGraphTopo(refactor::frontend::Graph const &graph,
         auto const &t = edges[i].tensor;
         if (t->hasData()) {
             if (auto it_ = edgeToTensor.find(i); it_ != edgeToTensor.end()) {
+                it_->second->setWeight();
                 it_->second->copyin(t->data->ptr, t->bytesSize());
             }
         }

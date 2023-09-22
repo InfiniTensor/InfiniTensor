@@ -258,7 +258,7 @@ std::shared_ptr<Tensor> edge(int dataType, std::vector<DimExpr> shape,
         auto const bytesSize = ans->bytesSize();
         ASSERT(bytesSize == static_cast<size_t>(data->nbytes()),
                "Data size mismatch");
-        ans->data = std::make_shared<Blob>(new uint8_t[bytesSize]);
+        ans->data = std::make_shared<common::Blob>(bytesSize);
         std::memcpy(ans->data->ptr, data->data(), bytesSize);
     }
     return ans;
