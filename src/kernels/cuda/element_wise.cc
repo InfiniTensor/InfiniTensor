@@ -136,6 +136,9 @@ class ElementWiseCuda : public CudaKernelWithoutConfig {
         else if (op->getOpType() == OpType::Add) {
             add_kernel(aData, bData, cData, a[0], a[1], a[2], a[3], b[0], b[1],
                        b[2], b[3], c[0], c[1], c[2], c[3]);
+        } else if (op->getOpType() == OpType::Less) {
+            less_kernel(aData, bData, cData, a[0], a[1], a[2], a[3], b[0], b[1],
+                        b[2], b[3], c[0], c[1], c[2], c[3]);
         } else
             IT_TODO_HALT();
     }
@@ -158,4 +161,6 @@ REGISTER_KERNEL(Device::CUDA, OpType::Add, DataType::Int64, ElementWiseCuda,
                 "Add_CUDA_Int64");
 REGISTER_KERNEL(Device::CUDA, OpType::Pow, DataType::Float32, ElementWiseCuda,
                 "Pow__CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Less, DataType::Int64, ElementWiseCuda,
+                "Less__CUDA_Int64");
 }; // namespace infini
