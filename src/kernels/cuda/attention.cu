@@ -1,129 +1,104 @@
 #include "cuda/cuda_common.h"
-
-#define BLOCK_DIM_x 2
-#define BLOCK_DIM_y 2
+#include <cub/cub.cuh>
+struct __align__(8) MD {
+    float max_tmp;
+    float sum_tmp;
+};
+__device__ __forceinline__ MD reduce_md_op(MD a, MD b) {
+    bool a_bigger = (a.max_tmp > b.max_tmp);
+    MD bigger = a_bigger ? a : b;
+    MD smaller = a_bigger ? b : a;
+    MD res;
+    res.sum_tmp = bigger.sum_tmp +
+                  smaller.sum_tmp * __expf(smaller.max_tmp - bigger.max_tmp);
+    res.max_tmp = bigger.max_tmp;
+    return res;
+}
 
 #define max_function(a, b) ((a) > (b) ? (a) : (b))
 
-__global__ void _attentionKernel(const float *inputQ, const float *inputK,
-                                 const float *inputV, int N, int d,
-                                 float *output) {
-    int i = threadIdx.x + blockIdx.x * blockDim.x; //
-    int phNumN = (N + BLOCK_DIM_y - 1) / BLOCK_DIM_y;
-
-    __shared__ float block_sum[BLOCK_DIM_x][BLOCK_DIM_y];
-    __shared__ float block_max[BLOCK_DIM_x][BLOCK_DIM_y];
-    block_max[threadIdx.x][threadIdx.y] = -__FLT_MAX__;
-    block_sum[threadIdx.x][threadIdx.y] = 0.0f;
-    __shared__ float grid_sum[BLOCK_DIM_x];
-    __shared__ float grid_max[BLOCK_DIM_x];
-    __shared__ float grid_max_old[BLOCK_DIM_x];
-    grid_max[threadIdx.x] = -__FLT_MAX__;
-    grid_max_old[threadIdx.x] = -__FLT_MAX__;
-    grid_sum[threadIdx.x] = 0.0f;
-    __shared__ float S[BLOCK_DIM_x][BLOCK_DIM_y];
-
-    __shared__ float Out_new[BLOCK_DIM_x][BLOCK_DIM_y];
-    Out_new[threadIdx.x][threadIdx.y] = 0.0f;
+template <int BLOCK_DIM>
+__launch_bounds__(BLOCK_DIM) __global__
+    void _attentionKernel(const float *inputQ, const float *inputK,
+                          const float *inputV, float *inputS, int N, int d,
+                          float *output) {
+    MD md_partial;
+    md_partial.max_tmp = -__FLT_MAX__;
+    md_partial.sum_tmp = 0.0f;
+    int phNumN = (N + BLOCK_DIM - 1) / BLOCK_DIM;
+    int i = blockIdx.x; // i must < N
     for (int phn = 0; phn < phNumN; phn++) {
-        int j = threadIdx.y + phn * BLOCK_DIM_y;
-        if (i < N && j < N) {
-            float sum_s = 0;
+
+        int j = threadIdx.x + phn * BLOCK_DIM;
+        MD md_input;
+        if (j < N) {
+            float sum_s = 0.0f;
             for (int index = 0; index < d; index++) {
                 sum_s += inputQ[i * d + index] * inputK[j * d + index];
             }
-
-            S[threadIdx.x][threadIdx.y] = sum_s;
-            block_sum[threadIdx.x][threadIdx.y] = 1.0f;
-            block_max[threadIdx.x][threadIdx.y] = sum_s;
+            inputS[i * N + j] = sum_s;
+            // printf("S--%d:%.4e\n",i * N + j,inputS[i * N + j]);
+            md_input.max_tmp = sum_s;
+            md_input.sum_tmp = 1.0f;
         } else {
-            S[threadIdx.x][threadIdx.y] = 0.0f;
-            block_sum[threadIdx.x][threadIdx.y] = 0.0f;
-            block_max[threadIdx.x][threadIdx.y] = -__FLT_MAX__;
+            md_input.max_tmp = -__FLT_MAX__;
+            md_input.sum_tmp = 0.0f;
         }
+        md_partial = reduce_md_op(md_partial, md_input);
+    }
+    typedef cub::BlockReduce<MD, BLOCK_DIM> BlockReduce;
+    __shared__ typename BlockReduce::TempStorage temp_storage;
 
-        //----------------fix i, compute the max S[i,j] of this block
-        __syncthreads();
-
-        for (int strip = BLOCK_DIM_y / 2; strip > 0; strip = strip / 2) {
-            if (threadIdx.y < strip) {
-                if (block_max[threadIdx.x][threadIdx.y] >
-                    block_max[threadIdx.x][threadIdx.y + strip]) {
-                    block_sum[threadIdx.x][threadIdx.y] =
-                        block_sum[threadIdx.x][threadIdx.y] +
-                        block_sum[threadIdx.x][threadIdx.y + strip] *
-                            __expf(block_max[threadIdx.x][threadIdx.y + strip] -
-                                   block_max[threadIdx.x][threadIdx.y]);
-                } else {
-                    block_sum[threadIdx.x][threadIdx.y] =
-                        block_sum[threadIdx.x][threadIdx.y + strip] +
-                        block_sum[threadIdx.x][threadIdx.y] *
-                            __expf(block_max[threadIdx.x][threadIdx.y] -
-                                   block_max[threadIdx.x][threadIdx.y + strip]);
-                    block_max[threadIdx.x][threadIdx.y] =
-                        block_max[threadIdx.x][threadIdx.y + strip];
-                }
-            }
-        } // block_max[threadIdx.x][0]store the local max of this block
-        __syncthreads();
-        if (threadIdx.y == 0) {
-            if (grid_max[threadIdx.x] > block_max[threadIdx.x][0]) {
-                grid_sum[threadIdx.x] = grid_sum[threadIdx.x] +
-                                        block_sum[threadIdx.x][0] *
-                                            __expf(block_max[threadIdx.x][0] -
-                                                   grid_max[threadIdx.x]);
-            } else {
-                grid_sum[threadIdx.x] =
-                    block_sum[threadIdx.x][0] +
-                    grid_sum[threadIdx.x] * __expf(grid_max[threadIdx.x] -
-                                                   block_max[threadIdx.x][0]);
-                grid_max[threadIdx.x] = block_max[threadIdx.x][0];
-            } // compare the max between the different blocks, when the loop
-              // end, grid_max store the global max
-        }
-        __syncthreads();
-
-        S[threadIdx.x][threadIdx.y] =
-            __expf(S[threadIdx.x][threadIdx.y] -
-                   grid_max[threadIdx.x]); // softmax(s)*L
-
-        __syncthreads();
-        int vj = threadIdx.y + blockIdx.y * blockDim.y;
-        // do not write vj = threadIdx.y + ph * blockDim.y
-        float sum_o;
-        if (vj < d) {
-            sum_o = 0;
-            for (int vid = 0; vid < BLOCK_DIM_y; vid++) {
-                if (vid + phn * BLOCK_DIM_y < N) {
-                    sum_o += S[threadIdx.x][vid] *
-                             inputV[(vid + phn * BLOCK_DIM_y) * d + vj];
-                }
-            }
-            Out_new[threadIdx.x][threadIdx.y] =
-                __expf(grid_max_old[threadIdx.x] - grid_max[threadIdx.x]) *
-                    Out_new[threadIdx.x][threadIdx.y] +
-                sum_o;
-            grid_max_old[threadIdx.x] = grid_max[threadIdx.x];
-        }
+    __shared__ MD md_total;
+    MD md_block = BlockReduce(temp_storage).Reduce(md_partial, reduce_md_op);
+    if (threadIdx.x ==
+        0) { // must set threadIdx.x = 0 write the output to memory
+        md_total = md_block;
+    }
+    __syncthreads();
+    // printf("max:%.4e\n",md_total.max_tmp);
+    for (int phn = 0; threadIdx.x + phn * BLOCK_DIM < N; phn++) {
+        int j = threadIdx.x + phn * BLOCK_DIM;
+        inputS[i * N + j] = __expf(inputS[i * N + j] - md_total.max_tmp) *
+                            __fdividef(1.0F, md_total.sum_tmp);
+        // printf("S:%.4e\n",inputS[i * N + j]);
     }
     __syncthreads();
 
-    int j = threadIdx.y + blockIdx.y * blockDim.y;
-    if (i < N && j < d) {
-
-        output[i * d + j] = Out_new[threadIdx.x][threadIdx.y] *
-                            __fdividef(1.0F, grid_sum[threadIdx.x]);
+    for (int phd = 0; threadIdx.x + phd * BLOCK_DIM < d; phd++) {
+        int j = threadIdx.x + phd * BLOCK_DIM;
+        float sum_o = 0;
+        for (int index = 0; index < N; index++) {
+            sum_o += inputS[i * N + index] * inputV[index * d + j];
+        }
+        output[i * d + j] = sum_o;
     }
 }
 namespace infini {
 void attentionKernel(const float *inputQ, const float *inputK,
                      const float *inputV, int N, int d, float *output) {
-    int num_block_y = (max_function(N, d) + BLOCK_DIM_y - 1) / BLOCK_DIM_y;
-    int num_block_x = (N + BLOCK_DIM_x - 1) / BLOCK_DIM_x;
-    int share_mem = (5 * BLOCK_DIM_y + 2) * BLOCK_DIM_x * sizeof(float);
-    dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
-    dim3 grid_dim(num_block_x, num_block_y, 1);
-    _attentionKernel<<<grid_dim, block_dim, share_mem>>>(inputQ, inputK, inputV,
-                                                         N, d, output);
+
+    float *inputS;
+    cudaMalloc((void **)&inputS, N * N * sizeof(float));
+    int nd = max_function(N, d);
+    if (nd > 1023) {
+        _attentionKernel<1024>
+            <<<N, 1024>>>(inputQ, inputK, inputV, inputS, N, d, output);
+    } else if (nd > 511) {
+        _attentionKernel<512>
+            <<<N, 512>>>(inputQ, inputK, inputV, inputS, N, d, output);
+    } else if (nd > 255) {
+        _attentionKernel<256>
+            <<<N, 256>>>(inputQ, inputK, inputV, inputS, N, d, output);
+    } else if (nd > 63) {
+        _attentionKernel<64>
+            <<<N, 64>>>(inputQ, inputK, inputV, inputS, N, d, output);
+    } else if (nd > 15) {
+        _attentionKernel<16>
+            <<<N, 16>>>(inputQ, inputK, inputV, inputS, N, d, output);
+    } else {
+        _attentionKernel<8>
+            <<<N, 8>>>(inputQ, inputK, inputV, inputS, N, d, output);
+    }
 }
 } // namespace infini
