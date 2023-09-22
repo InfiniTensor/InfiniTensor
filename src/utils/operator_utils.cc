@@ -5,6 +5,7 @@
 #include "operators/concat.h"
 #include "operators/conv.h"
 #include "operators/element_wise.h"
+#include "operators/expand.h"
 #include "operators/gather.h"
 #include "operators/matmul.h"
 #include "operators/pad.h"
@@ -96,6 +97,30 @@ void addOperatorFromGraphTopo(GraphObj &g,
         Shape shape(rank);
         for (size_t i = 0; i < (size_t)rank; ++i) {
             shape[i] = static_cast<int>(*(shapeValue + i));
+        }
+        g.addOpWithOutputs<ReshapeObj>(edgeToTensor[input[0]],
+                                       edgeToTensor[output[0]], shape);
+    } else if (name == "onnx::Expand") {
+        auto shapeValue =
+            reinterpret_cast<int64_t *>(edges[input[1]].tensor->data->ptr);
+        auto rank = edgeToTensor[input[1]]->getDims()[0];
+        Shape shape(rank);
+        for (size_t i = 0; i < (size_t)rank; ++i) {
+            shape[i] = static_cast<int>(*(shapeValue + i));
+        }
+        g.addOpWithOutputs<ExpandObj>(edgeToTensor[input[0]],
+                                      edgeToTensor[output[0]], shape);
+    } else if (name == "onnx::Unsqueeze") {
+        auto axesValue =
+            reinterpret_cast<int64_t *>(edges[input[1]].tensor->data->ptr);
+        auto rank = edgeToTensor[input[1]]->getDims()[0];
+        std::vector<int> axes(rank);
+        for (size_t i = 0; i < (size_t)rank; ++i) {
+            axes[i] = static_cast<int>(*(axesValue + i));
+        }
+        auto shape = edgeToTensor[input[0]]->getDims();
+        for (auto i : axes) {
+            shape.insert(shape.begin() + i, 1);
         }
         g.addOpWithOutputs<ReshapeObj>(edgeToTensor[input[0]],
                                        edgeToTensor[output[0]], shape);
@@ -305,6 +330,10 @@ void addOperatorFromGraphTopo(GraphObj &g,
             outputs.emplace_back(edgeToTensor[i]);
         }
         g.addOpWithOutputs<AllGatherObj>(edgeToTensor[input[0]], outputs, size);
+    } else if (name == "onnx::Less") {
+        g.addOpWithOutputs<LessThanObj>(edgeToTensor[input[0]],
+                                        edgeToTensor[input[1]],
+                                        edgeToTensor[output[0]]);
     } else {
         std::cerr << "Unknown operator: " << name << std::endl;
         IT_ASSERT_TODO("");
