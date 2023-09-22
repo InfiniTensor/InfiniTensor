@@ -66,6 +66,8 @@ class GraphObj : public Object {
 
     void dataMalloc();
 
+    void dataMalloc(bool useNaiveAllocator);
+
     /**
      * @brief Add an operator and create its outputs. Output tensor arguments
      * should be empty Refs (e.g., nullptr).
