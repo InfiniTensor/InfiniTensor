@@ -60,13 +60,13 @@ int get_real_axis(const int &axis, const int &rank) {
     return newAxis;
 }
 
-void addOperatorFromGraphTopo(
-    GraphObj &g, std::shared_ptr<refactor::frontend::Operator> nodeInfo,
-    std::vector<size_t> input, std::vector<size_t> output,
-    std::unordered_map<size_t, Tensor> &edgeToTensor,
-    std::vector<refactor::frontend::Edge> edges) {
-    std::string name(nodeInfo->opType.name());
-    auto attr = nodeInfo->attributes;
+void addOperatorFromGraphTopo(GraphObj &g,
+                              refactor::frontend::Operator const &op,
+                              std::vector<size_t> input,
+                              std::vector<size_t> output,
+                              std::unordered_map<size_t, Tensor> &edgeToTensor,
+                              std::vector<refactor::frontend::Edge> edges) {
+    auto name = op.opType.name();
     if (name == "onnx::Conv") {
         //	auto p = attr["pads"].ints();
         //	auto s = attr["strides"].ints();
@@ -100,14 +100,10 @@ void addOperatorFromGraphTopo(
         g.addOpWithOutputs<ReshapeObj>(edgeToTensor[input[0]],
                                        edgeToTensor[output[0]], shape);
     } else if (name == "onnx::Gemm") {
-        auto alpha =
-            attr.find("alpha") != attr.end() ? attr["alpha"].float_() : 1.0;
-        auto beta =
-            attr.find("beta") != attr.end() ? attr["beta"].float_() : 1.0;
-        auto transA =
-            attr.find("transA") != attr.end() ? attr["transA"].int_() : 0;
-        auto transB =
-            attr.find("transB") != attr.end() ? attr["transB"].int_() : 0;
+        auto alpha = op.attribute("alpha", {1.0}).float_();
+        auto beta = op.attribute("beta", {1.0}).float_();
+        auto transA = op.attribute("transA", {0}).int_() != 0;
+        auto transB = op.attribute("transB", {0}).int_() != 0;
         IT_ASSERT(alpha == 1.0);
         IT_ASSERT(beta == 1.0);
         g.addOpWithOutputs<MatmulObj>(
@@ -119,7 +115,7 @@ void addOperatorFromGraphTopo(
                                      edgeToTensor[input[1]],
                                      edgeToTensor[output[0]]);
     } else if (name == "onnx::Gather") {
-        auto axis = attr.find("axis") != attr.end() ? attr["axis"].int_() : 0;
+        auto axis = op.attribute("axis", {0}).int_();
         g.addOpWithOutputs<GatherObj>(edgeToTensor[input[0]],
                                       edgeToTensor[input[1]],
                                       edgeToTensor[output[0]], axis);
@@ -198,12 +194,11 @@ void addOperatorFromGraphTopo(
                                      edgeToTensor[output[0]], start, end, axes,
                                      steps);
     } else if (name == "onnx::Softmax") {
-        auto axis = attr.find("axis") != attr.end() ? attr["axis"].int_() : -1;
+        auto axis = op.attribute("axis", {-1}).int_();
         g.addOpWithOutputs<SoftmaxObj>(edgeToTensor[input[0]],
                                        edgeToTensor[output[0]], axis);
     } else if (name == "onnx::ReduceMean") {
-        auto keepdims =
-            attr.find("keepdims") != attr.end() ? attr["keepdims"].int_() : 1;
+        auto keepdims = op.attribute("keepdims", {1}).int_();
         std::vector<int> axesVal;
         std::optional<std::vector<int>> axes;
         if (input.size() > 1) {
@@ -218,7 +213,7 @@ void addOperatorFromGraphTopo(
         g.addOpWithOutputs<ReduceMeanObj>(
             edgeToTensor[input[0]], edgeToTensor[output[0]], axes, keepdims);
     } else if (name == "onnx::Concat") {
-        auto axis = attr["axis"].int_();
+        auto axis = op.attribute("axis").int_();
         std::vector<Tensor> inputs;
         for (auto i : input) {
             inputs.emplace_back(edgeToTensor[i]);
@@ -234,19 +229,20 @@ void addOperatorFromGraphTopo(
         for (int i = rank - 1; i >= 0; --i) {
             permDefault.emplace_back(i);
         }
+
         std::vector<int> perm;
-        if (attr.find("perm") != attr.end()) {
-            auto permAttr = attr["perm"].ints();
-            for (auto e : permAttr) {
-                perm.emplace_back(static_cast<int>(e));
-            }
+        if (auto it = op.attributes.find("perm"); it != op.attributes.end()) {
+            auto permAttr = it->second.ints();
+            std::transform(
+                permAttr.begin(), permAttr.end(), std::back_inserter(perm),
+                [](auto const &ele) { return static_cast<int>(ele); });
         } else {
-            perm = permDefault;
+            perm = std::move(permDefault);
         }
-        g.addOpWithOutputs<TransposeObj>(edgeToTensor[input[0]],
-                                         edgeToTensor[output[0]], perm);
+        g.addOpWithOutputs<TransposeObj>(
+            edgeToTensor[input[0]], edgeToTensor[output[0]], std::move(perm));
     } else if (name == "onnx::Split") {
-        auto axis = attr.find("axis") != attr.end() ? attr["axis"].int_() : 0;
+        auto axis = op.attribute("axis", {0}).int_();
         std::vector<Tensor> outputs;
         for (auto i : output) {
             outputs.emplace_back(edgeToTensor[i]);
@@ -272,7 +268,7 @@ void addOperatorFromGraphTopo(
             edgeToTensor[input[1]], edgeToTensor[input[2]],
             edgeToTensor[input[0]], edgeToTensor[output[0]]);
     } else if (name == "onnx::Softmax") {
-        auto axis = attr.find("axis") != attr.end() ? attr["axis"].int_() : -1;
+        auto axis = op.attribute("axis", {-1}).int_();
         g.addOpWithOutputs<SoftmaxObj>(edgeToTensor[input[0]],
                                        edgeToTensor[output[0]], axis);
     } else if (name == "onnx::Sqrt") {

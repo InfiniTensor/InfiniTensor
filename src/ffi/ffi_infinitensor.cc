@@ -188,10 +188,10 @@ class NodeExport {
         auto [nodeIdx, inputs_, outputs_] = *_it++;
         auto const &node = _internal->graph().nodes[nodeIdx];
         auto const &name = node.name;
-        auto const opType_ = node.op->opType.name();
+        auto const opType_ = node.op.opType.name();
         auto opType =
             opType_.substr(0, 6) == "onnx::" ? opType_.substr(6) : opType_;
-        auto const &attributes = node.op->attributes;
+        auto const &attributes = node.op.attributes;
         std::vector<Name> inputs(inputs_.size()), outputs(outputs_.size());
         std::transform(inputs_.begin(), inputs_.end(), inputs.begin(),
                        [this](auto const &idx) {
@@ -295,7 +295,7 @@ graph(std::unordered_map<Name, std::pair<std::vector<Name>, std::vector<Name>>>
     }
     builder.nodes.reserve(nodes.size());
     for (auto &[name, operator_] : nodes) {
-        auto node = Node{std::move(operator_), name};
+        auto node = Node{std::move(*operator_), name};
         builder.nodes.insert({std::move(name), std::move(node)});
     }
     for (auto &[name, tensor] : edges) {

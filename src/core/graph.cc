@@ -367,9 +367,9 @@ GraphObj::transformFromGraphTopo(refactor::frontend::Graph const &graph,
         // not dynamic_node
         if (!std::all_of(outputs.begin(), outputs.end(),
                          [&](auto e) { return edges[e].tensor->hasData(); })) {
-            auto nodeInfo = nodes[nodeIdx];
+            auto const &nodeInfo = nodes[nodeIdx];
             IT_ASSERT(refactor::frontend::OpType::tryParse(
-                nodeInfo.op->opType.name().data()));
+                nodeInfo.op.opType.name().data()));
             std::vector<size_t> in, out;
             for (auto i : inputs) {
                 if (edgeToTensor.find(i) == edgeToTensor.end()) {
