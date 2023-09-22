@@ -125,8 +125,8 @@ void addOperatorFromGraphTopo(GraphObj &g,
         g.addOpWithOutputs<ReshapeObj>(edgeToTensor[input[0]],
                                        edgeToTensor[output[0]], shape);
     } else if (name == "onnx::Gemm") {
-        auto alpha = op.attribute("alpha", {1.0}).float_();
-        auto beta = op.attribute("beta", {1.0}).float_();
+        auto alpha = op.attribute("alpha", {1.0f}).float_();
+        auto beta = op.attribute("beta", {1.0f}).float_();
         auto transA = op.attribute("transA", {0}).int_() != 0;
         auto transB = op.attribute("transB", {0}).int_() != 0;
         IT_ASSERT(alpha == 1.0);
