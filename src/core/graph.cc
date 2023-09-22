@@ -358,39 +358,43 @@ GraphObj::transformFromGraphTopo(refactor::frontend::Graph const &graph,
     tensors.clear();
     auto const &nodes = graph.internal().nodes;
     auto const &edges = graph.internal().edges;
-    std::unordered_map<size_t, Tensor> edgeToTensor;
-    auto it = graph.internal().topology.begin();
-    auto end = graph.internal().topology.end();
+    std::unordered_map<size_t, Tensor> edgeToTensor, weights;
+    auto it = graph.internal().topology.begin(),
+         end = graph.internal().topology.end();
     while (it != end) {
         auto [nodeIdx, inputs, outputs] = *it++;
         // not dynamic_node
         if (!std::all_of(outputs.begin(), outputs.end(),
                          [&](auto e) { return edges[e].tensor->hasData(); })) {
-            auto const &nodeInfo = nodes[nodeIdx];
-            IT_ASSERT(refactor::frontend::OpType::tryParse(
-                nodeInfo.op.opType.name().data()));
-            std::vector<size_t> in, out;
-            for (auto i : inputs) {
+            auto fn = [&edgeToTensor, &edges, &weights, this](size_t i) {
                 if (edgeToTensor.find(i) == edgeToTensor.end()) {
-                    addEdgeToTensor(*this, i, edges[i].tensor, edgeToTensor,
-                                    runtime);
+                    auto const &tensor = edges[i].tensor;
+                    Shape shape(tensor->shape.size());
+                    std::transform(tensor->shape.begin(), tensor->shape.end(),
+                                   shape.begin(),
+                                   [](auto const &ele) { return ele.value(); });
+                    auto tensor_ = addTensor(
+                        std::move(shape), DataType(tensor->dataType.internal));
+                    if (tensor->hasData()) {
+                        tensor_->setWeight();
+                        weights.insert({i, tensor_});
+                    }
+                    edgeToTensor.insert({i, std::move(tensor_)});
                 }
-                in.emplace_back(i);
+            };
+            for (auto i : inputs) {
+                fn(i);
             }
             for (auto i : outputs) {
-                if (edgeToTensor.find(i) == edgeToTensor.end()) {
-                    addEdgeToTensor(*this, i, edges[i].tensor, edgeToTensor,
-                                    runtime);
-                }
-                out.emplace_back(i);
+                fn(i);
             }
-            IT_ASSERT(out.size() == outputs.size());
-            IT_ASSERT(in.size() == inputs.size());
-            addOperatorFromGraphTopo(*this, nodeInfo.op, in, out, edgeToTensor,
-                                     edges);
+            addOperatorFromGraphTopo(*this, nodes[nodeIdx].op, inputs, outputs,
+                                     edgeToTensor, edges);
         }
     }
     std::vector<Tensor> inputs, outputs;
+    inputs.reserve(it.globalInputs().size());
+    outputs.reserve(it.globalOutputs().size());
     for (auto edgeIdx : it.globalInputs()) {
         inputs.push_back(edgeToTensor.at(edgeIdx));
         if (auto it_ = edgeToTensor.find(edgeIdx); it_ != edgeToTensor.end()) {
@@ -406,16 +410,6 @@ GraphObj::transformFromGraphTopo(refactor::frontend::Graph const &graph,
         }
     }
 
-    std::unordered_map<size_t, Tensor> weights;
-    for (size_t i = 0; i < edges.size(); ++i) {
-        auto const &t = edges[i].tensor;
-        if (t->hasData()) {
-            if (auto it_ = edgeToTensor.find(i); it_ != edgeToTensor.end()) {
-                it_->second->setWeight();
-                weights.insert({i, it_->second});
-            }
-        }
-    }
     dataMalloc();
     for (auto [i, tensor] : weights) {
         tensor->copyin(edges[i].tensor->data->ptr,

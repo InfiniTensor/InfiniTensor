@@ -16,14 +16,10 @@ int get_real_axis(const int &axis, const int &rank);
 // transform RefactorGraph node to InfiniTensorGraph operator
 void addOperatorFromGraphTopo(
     GraphObj &g, refactor::frontend::Operator const &nodeInfo,
-    std::vector<size_t> const &input, std::vector<size_t> const &output,
+    refactor::common::slice_t<size_t> input,
+    refactor::common::range_t<size_t> output,
     std::unordered_map<size_t, Tensor> &edgeToTensor,
     std::vector<refactor::frontend::Edge> const &edges);
-
-void addEdgeToTensor(GraphObj &g, size_t index,
-                     std::shared_ptr<refactor::frontend::Tensor> tensor,
-                     std::unordered_map<size_t, Tensor> &edgeToTensor,
-                     Runtime runtime);
 } // namespace infini
 
 #endif

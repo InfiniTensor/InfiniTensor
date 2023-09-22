@@ -63,7 +63,8 @@ int get_real_axis(const int &axis, const int &rank) {
 
 void addOperatorFromGraphTopo(
     GraphObj &g, refactor::frontend::Operator const &op,
-    std::vector<size_t> const &input, std::vector<size_t> const &output,
+    refactor::common::slice_t<size_t> input,
+    refactor::common::range_t<size_t> output,
     std::unordered_map<size_t, Tensor> &edgeToTensor,
     std::vector<refactor::frontend::Edge> const &edges) {
     auto name = op.opType.name();
@@ -336,17 +337,5 @@ void addOperatorFromGraphTopo(
         std::cerr << "Unknown operator: " << name << std::endl;
         IT_ASSERT_TODO("");
     }
-}
-
-void addEdgeToTensor(GraphObj &g, size_t index,
-                     std::shared_ptr<refactor::frontend::Tensor> tensor,
-                     std::unordered_map<size_t, Tensor> &edgeToTensor,
-                     Runtime runtime) {
-    Shape shape(tensor->shape.size());
-    std::transform(tensor->shape.begin(), tensor->shape.end(), shape.begin(),
-                   [](auto const &ele) { return ele.value(); });
-    edgeToTensor.insert(std::make_pair(
-        index,
-        g.addTensor(std::move(shape), DataType(tensor->dataType.internal))));
 }
 } // namespace infini
