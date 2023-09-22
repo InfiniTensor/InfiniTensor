@@ -2,8 +2,8 @@
 #include "operators/reshape.h"
 #include "utils/operator_utils.h"
 #include <algorithm>
+#include <execution>
 #include <numeric>
-#include <queue>
 
 namespace infini {
 
@@ -358,63 +358,63 @@ GraphObj::transformFromGraphTopo(refactor::frontend::Graph const &graph,
     tensors.clear();
     auto const &nodes = graph.internal().nodes;
     auto const &edges = graph.internal().edges;
-    std::unordered_map<size_t, Tensor> edgeToTensor, weights;
+    std::unordered_map<size_t, Tensor> edgeToTensor;
+    std::vector<std::pair<size_t, Tensor>> weights;
     auto it = graph.internal().topology.begin(),
          end = graph.internal().topology.end();
     while (it != end) {
-        auto [nodeIdx, inputs, outputs] = *it++;
+        auto [nodeIdx, i, o] = *it++;
         // not dynamic_node
-        if (!std::all_of(outputs.begin(), outputs.end(),
-                         [&](auto e) { return edges[e].tensor->hasData(); })) {
-            auto fn = [&edgeToTensor, &edges, &weights, this](size_t i) {
-                if (edgeToTensor.find(i) == edgeToTensor.end()) {
-                    auto const &tensor = edges[i].tensor;
-                    Shape shape(tensor->shape.size());
-                    std::transform(tensor->shape.begin(), tensor->shape.end(),
-                                   shape.begin(),
-                                   [](auto const &ele) { return ele.value(); });
-                    auto tensor_ = addTensor(
-                        std::move(shape), DataType(tensor->dataType.internal));
-                    if (tensor->hasData()) {
-                        tensor_->setWeight();
-                        weights.insert({i, tensor_});
-                    }
-                    edgeToTensor.insert({i, std::move(tensor_)});
-                }
-            };
-            for (auto i : inputs) {
-                fn(i);
-            }
-            for (auto i : outputs) {
-                fn(i);
-            }
-            addOperatorFromGraphTopo(*this, nodes[nodeIdx].op, inputs, outputs,
-                                     edgeToTensor, edges);
+        if (std::all_of(o.begin(), o.end(), [&edges](auto e) {
+                return edges[e].tensor->hasData();
+            })) {
+            continue;
         }
+        auto fn = [&edgeToTensor, &edges, &weights, this](size_t edgeIdx) {
+            if (edgeToTensor.find(edgeIdx) == edgeToTensor.end()) {
+                auto const &tensor = edges[edgeIdx].tensor;
+                Shape shape(tensor->shape.size());
+                std::transform(std::execution::par_unseq, tensor->shape.begin(),
+                               tensor->shape.end(), shape.begin(),
+                               [](auto const &ele) { return ele.value(); });
+                auto tensor_ = addTensor(std::move(shape),
+                                         DataType(tensor->dataType.internal));
+                if (tensor->hasData()) {
+                    tensor_->setWeight();
+                    weights.emplace_back(edgeIdx, tensor_);
+                }
+                edgeToTensor.insert({edgeIdx, std::move(tensor_)});
+            }
+        };
+        std::for_each(std::execution::unseq, i.begin(), i.end(), fn);
+        std::for_each(std::execution::unseq, o.begin(), o.end(), fn);
+        addOperatorFromGraphTopo(*this, nodes[nodeIdx].op, i, o, edgeToTensor,
+                                 edges);
     }
     std::vector<Tensor> inputs, outputs;
     inputs.reserve(it.globalInputs().size());
     outputs.reserve(it.globalOutputs().size());
     for (auto edgeIdx : it.globalInputs()) {
-        inputs.push_back(edgeToTensor.at(edgeIdx));
-        if (auto it_ = edgeToTensor.find(edgeIdx); it_ != edgeToTensor.end()) {
-            it_->second->setInput();
-        }
+        auto tensor = edgeToTensor.at(edgeIdx);
+        tensor->setInput();
+        inputs.emplace_back(tensor);
     }
     for (auto edgeIdx : it.globalOutputs()) {
         if (auto it_ = edgeToTensor.find(edgeIdx); it_ != edgeToTensor.end()) {
             it_->second->setOutput();
-            outputs.push_back(it_->second);
+            outputs.emplace_back(it_->second);
         } else {
-            outputs.push_back(nullptr);
+            outputs.emplace_back(nullptr);
         }
     }
 
     dataMalloc();
-    for (auto [i, tensor] : weights) {
-        tensor->copyin(edges[i].tensor->data->ptr,
-                       edges[i].tensor->bytesSize());
-    }
+    std::for_each(std::execution::par_unseq, weights.begin(), weights.end(),
+                  [&edges](auto &pair) {
+                      auto &[i, tensor] = pair;
+                      tensor->copyin(edges[i].tensor->data->ptr,
+                                     edges[i].tensor->bytesSize());
+                  });
 
     return {inputs, outputs};
 }
