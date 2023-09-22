@@ -91,9 +91,10 @@ add_definitions(-D FMTLOG_HEADER_ONLY)
 
 include_directories(RefactorGraph/src/00common/include)
 include_directories(RefactorGraph/src/01graph_topo/include)
-include_directories(RefactorGraph/src/02frontend/include)
-include_directories(RefactorGraph/src/03onnx/include)
-include_directories(RefactorGraph/src/04communication/include)
+include_directories(RefactorGraph/src/02computation/include)
+include_directories(RefactorGraph/src/03frontend/include)
+include_directories(RefactorGraph/src/04onnx/include)
+include_directories(RefactorGraph/src/05communication/include)
 endif()
 
 include_directories(include)
