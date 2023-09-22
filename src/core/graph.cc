@@ -359,7 +359,6 @@ GraphObj::transformFromGraphTopo(refactor::frontend::Graph const &graph,
     auto const &nodes = graph.internal().nodes;
     auto const &edges = graph.internal().edges;
     std::unordered_map<size_t, Tensor> edgeToTensor;
-
     auto it = graph.internal().topology.begin();
     auto end = graph.internal().topology.end();
     while (it != end) {
@@ -391,7 +390,6 @@ GraphObj::transformFromGraphTopo(refactor::frontend::Graph const &graph,
                                      edges);
         }
     }
-
     std::vector<Tensor> inputs, outputs;
     for (auto edgeIdx : it.globalInputs()) {
         inputs.push_back(edgeToTensor.at(edgeIdx));

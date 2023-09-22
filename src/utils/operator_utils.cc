@@ -61,12 +61,11 @@ int get_real_axis(const int &axis, const int &rank) {
     return newAxis;
 }
 
-void addOperatorFromGraphTopo(GraphObj &g,
-                              refactor::frontend::Operator const &op,
-                              std::vector<size_t> input,
-                              std::vector<size_t> output,
-                              std::unordered_map<size_t, Tensor> &edgeToTensor,
-                              std::vector<refactor::frontend::Edge> edges) {
+void addOperatorFromGraphTopo(
+    GraphObj &g, refactor::frontend::Operator const &op,
+    std::vector<size_t> const &input, std::vector<size_t> const &output,
+    std::unordered_map<size_t, Tensor> &edgeToTensor,
+    std::vector<refactor::frontend::Edge> const &edges) {
     auto name = op.opType.name();
     if (name == "onnx::Conv") {
         //	auto p = attr["pads"].ints();
@@ -95,35 +94,32 @@ void addOperatorFromGraphTopo(GraphObj &g,
             reinterpret_cast<int64_t *>(edges[input[1]].tensor->data->ptr);
         auto rank = edgeToTensor[input[1]]->getDims()[0];
         Shape shape(rank);
-        for (size_t i = 0; i < (size_t)rank; ++i) {
-            shape[i] = static_cast<int>(*(shapeValue + i));
-        }
-        g.addOpWithOutputs<ReshapeObj>(edgeToTensor[input[0]],
-                                       edgeToTensor[output[0]], shape);
+        std::transform(shapeValue, shapeValue + rank, shape.begin(),
+                       [](auto const &ele) { return static_cast<int>(ele); });
+        g.addOpWithOutputs<ReshapeObj>(
+            edgeToTensor[input[0]], edgeToTensor[output[0]], std::move(shape));
     } else if (name == "onnx::Expand") {
         auto shapeValue =
             reinterpret_cast<int64_t *>(edges[input[1]].tensor->data->ptr);
         auto rank = edgeToTensor[input[1]]->getDims()[0];
         Shape shape(rank);
-        for (size_t i = 0; i < (size_t)rank; ++i) {
-            shape[i] = static_cast<int>(*(shapeValue + i));
-        }
-        g.addOpWithOutputs<ExpandObj>(edgeToTensor[input[0]],
-                                      edgeToTensor[output[0]], shape);
+        std::transform(shapeValue, shapeValue + rank, shape.begin(),
+                       [](auto const &ele) { return static_cast<int>(ele); });
+        g.addOpWithOutputs<ExpandObj>(
+            edgeToTensor[input[0]], edgeToTensor[output[0]], std::move(shape));
     } else if (name == "onnx::Unsqueeze") {
         auto axesValue =
             reinterpret_cast<int64_t *>(edges[input[1]].tensor->data->ptr);
         auto rank = edgeToTensor[input[1]]->getDims()[0];
         std::vector<int> axes(rank);
-        for (size_t i = 0; i < (size_t)rank; ++i) {
-            axes[i] = static_cast<int>(*(axesValue + i));
-        }
+        std::transform(axesValue, axesValue + rank, axes.begin(),
+                       [](auto const &ele) { return static_cast<int>(ele); });
         auto shape = edgeToTensor[input[0]]->getDims();
         for (auto i : axes) {
             shape.insert(shape.begin() + i, 1);
         }
-        g.addOpWithOutputs<ReshapeObj>(edgeToTensor[input[0]],
-                                       edgeToTensor[output[0]], shape);
+        g.addOpWithOutputs<ReshapeObj>(
+            edgeToTensor[input[0]], edgeToTensor[output[0]], std::move(shape));
     } else if (name == "onnx::Gemm") {
         auto alpha = op.attribute("alpha", {1.0f}).float_();
         auto beta = op.attribute("beta", {1.0f}).float_();
@@ -215,35 +211,36 @@ void addOperatorFromGraphTopo(GraphObj &g,
             }
             end.emplace_back(static_cast<int>(endVal));
         }
-        g.addOpWithOutputs<SliceObj>(edgeToTensor[input[0]],
-                                     edgeToTensor[output[0]], start, end, axes,
-                                     steps);
+        g.addOpWithOutputs<SliceObj>(
+            edgeToTensor[input[0]], edgeToTensor[output[0]], std::move(start),
+            std::move(end), std::move(axes), std::move(steps));
     } else if (name == "onnx::Softmax") {
         auto axis = op.attribute("axis", {-1}).int_();
         g.addOpWithOutputs<SoftmaxObj>(edgeToTensor[input[0]],
                                        edgeToTensor[output[0]], axis);
     } else if (name == "onnx::ReduceMean") {
         auto keepdims = op.attribute("keepdims", {1}).int_();
-        std::vector<int> axesVal;
         std::optional<std::vector<int>> axes;
         if (input.size() > 1) {
             auto axesValue =
                 reinterpret_cast<int64_t *>(edges[input[1]].tensor->data->ptr);
             auto axesRank = edgeToTensor[input[1]]->getRank();
-            for (size_t i = 0; i < axesRank; ++i) {
-                axesVal.emplace_back(static_cast<int>(*(axesValue + i)));
-            }
-            axes = axesVal;
+            *axes = std::vector<int>(axesRank);
+            std::transform(
+                axesValue, axesValue + axesRank, axes->begin(),
+                [](auto const &ele) { return static_cast<int>(ele); });
         }
-        g.addOpWithOutputs<ReduceMeanObj>(
-            edgeToTensor[input[0]], edgeToTensor[output[0]], axes, keepdims);
+        g.addOpWithOutputs<ReduceMeanObj>(edgeToTensor[input[0]],
+                                          edgeToTensor[output[0]],
+                                          std::move(axes), keepdims);
     } else if (name == "onnx::Concat") {
         auto axis = op.attribute("axis").int_();
-        std::vector<Tensor> inputs;
-        for (auto i : input) {
-            inputs.emplace_back(edgeToTensor[i]);
-        }
-        g.addOpWithOutputs<ConcatObj>(inputs, edgeToTensor[output[0]], axis);
+        std::vector<Tensor> inputs(input.size());
+        std::transform(
+            input.begin(), input.end(), inputs.begin(),
+            [&edgeToTensor](auto const &ele) { return edgeToTensor[ele]; });
+        g.addOpWithOutputs<ConcatObj>(std::move(inputs),
+                                      edgeToTensor[output[0]], axis);
     } else if (name == "onnx::MatMul") {
         g.addOpWithOutputs<MatmulObj>(
             edgeToTensor[input[0]], edgeToTensor[input[1]],
@@ -254,7 +251,6 @@ void addOperatorFromGraphTopo(GraphObj &g,
         for (int i = rank - 1; i >= 0; --i) {
             permDefault.emplace_back(i);
         }
-
         std::vector<int> perm;
         if (auto it = op.attributes.find("perm"); it != op.attributes.end()) {
             auto permAttr = it->second.ints();
@@ -269,23 +265,24 @@ void addOperatorFromGraphTopo(GraphObj &g,
     } else if (name == "onnx::Split") {
         auto axis = op.attribute("axis", {0}).int_();
         std::vector<Tensor> outputs;
-        for (auto i : output) {
-            outputs.emplace_back(edgeToTensor[i]);
-        }
+        std::transform(
+            output.begin(), output.end(), std::back_inserter(outputs),
+            [&edgeToTensor](auto const &ele) { return edgeToTensor[ele]; });
         int num = output.size();
         if (input.size() == 2) {
             auto ratioValue =
                 reinterpret_cast<int64_t *>(edges[input[1]].tensor->data->ptr);
-            std::vector<int> ratio;
             auto rank = edgeToTensor[input[1]]->getDims()[0];
-            for (size_t i = 0; i < (size_t)rank; ++i) {
-                ratio.emplace_back(static_cast<int>(*(ratioValue + i)));
-            }
-            g.addOpWithOutputs<SplitObj>(edgeToTensor[input[0]], outputs, axis,
-                                         ratio);
+            std::vector<int> ratio(rank);
+            std::transform(
+                ratioValue, ratioValue + rank, ratio.begin(),
+                [](auto const &ele) { return static_cast<int>(ele); });
+            g.addOpWithOutputs<SplitObj>(edgeToTensor[input[0]],
+                                         std::move(outputs), axis,
+                                         std::move(ratio));
         } else {
-            g.addOpWithOutputs<SplitObj>(edgeToTensor[input[0]], outputs, axis,
-                                         num);
+            g.addOpWithOutputs<SplitObj>(edgeToTensor[input[0]],
+                                         std::move(outputs), axis, num);
         }
     } else if (name == "onnx::Where") {
         IT_ASSERT(input.size() == 3);
@@ -325,11 +322,12 @@ void addOperatorFromGraphTopo(GraphObj &g,
                                             edgeToTensor[output[0]]);
     } else if (name == "onnx::AllGather") {
         int size = output.size();
-        std::vector<Tensor> outputs;
-        for (auto i : output) {
-            outputs.emplace_back(edgeToTensor[i]);
-        }
-        g.addOpWithOutputs<AllGatherObj>(edgeToTensor[input[0]], outputs, size);
+        std::vector<Tensor> outputs(output.size());
+        std::transform(
+            output.begin(), output.end(), outputs.begin(),
+            [&edgeToTensor](auto const &ele) { return edgeToTensor[ele]; });
+        g.addOpWithOutputs<AllGatherObj>(edgeToTensor[input[0]],
+                                         std::move(outputs), size);
     } else if (name == "onnx::Less") {
         g.addOpWithOutputs<LessThanObj>(edgeToTensor[input[0]],
                                         edgeToTensor[input[1]],
