@@ -408,15 +408,20 @@ GraphObj::transformFromGraphTopo(refactor::frontend::Graph const &graph,
         }
     }
 
-    dataMalloc();
+    std::unordered_map<size_t, Tensor> weights;
     for (size_t i = 0; i < edges.size(); ++i) {
         auto const &t = edges[i].tensor;
         if (t->hasData()) {
             if (auto it_ = edgeToTensor.find(i); it_ != edgeToTensor.end()) {
                 it_->second->setWeight();
-                it_->second->copyin(t->data->ptr, t->bytesSize());
+                weights.insert({i, it_->second});
             }
         }
+    }
+    dataMalloc();
+    for (auto [i, tensor] : weights) {
+        tensor->copyin(edges[i].tensor->data->ptr,
+                       edges[i].tensor->bytesSize());
     }
 
     return {inputs, outputs};
