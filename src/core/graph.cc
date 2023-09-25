@@ -123,8 +123,6 @@ void GraphObj::optimize() {
     }
 }
 
-void GraphObj::dataMalloc() { this->dataMalloc(false); }
-
 void GraphObj::dataMalloc(bool useNaiveAllocator) {
     // topological sorting first
     IT_ASSERT(topo_sort() == true);
