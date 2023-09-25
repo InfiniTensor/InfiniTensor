@@ -374,7 +374,7 @@ GraphObj::transformFromGraphTopo(refactor::frontend::Graph const &graph,
             if (edgeToTensor.find(edgeIdx) == edgeToTensor.end()) {
                 auto const &tensor = edges[edgeIdx].tensor;
                 Shape shape(tensor->shape.size());
-                std::transform(std::execution::par_unseq, tensor->shape.begin(),
+                std::transform(std::execution::unseq, tensor->shape.begin(),
                                tensor->shape.end(), shape.begin(),
                                [](auto const &ele) { return ele.value(); });
                 auto tensor_ = addTensor(std::move(shape),
@@ -409,7 +409,7 @@ GraphObj::transformFromGraphTopo(refactor::frontend::Graph const &graph,
     }
 
     dataMalloc();
-    std::for_each(std::execution::par_unseq, weights.begin(), weights.end(),
+    std::for_each(std::execution::unseq, weights.begin(), weights.end(),
                   [&edges](auto &pair) {
                       auto &[i, tensor] = pair;
                       tensor->copyin(edges[i].tensor->data->ptr,
