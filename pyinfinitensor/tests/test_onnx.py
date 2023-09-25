@@ -499,6 +499,22 @@ class TestStringMethods(unittest.TestCase):
         where = make_node("Where", ["x", "y", "con"], ["output"], name="where")
         make_and_import_model(make_graph([where], "where", [x, y, con], [output]))
 
+class TestDynamicTensor(unittest.TestCase):
+    def test_dynamic_tensor(self):
+        filename = r"resnet18-v2-7.onnx"
+        current_path = os.getcwd()
+        model_file = ""
+        for root, dirs, files in os.walk(current_path):
+            if filename in files:
+                model_file = os.path.join(root, filename)
+        model = OnnxStub(onnx.load(model_file), backend.cpu_runtime())
+        output_key = list(model.outputs.keys())[0]
+        old_output_shape = model.getShape(output_key)
+        self.assertEqual(old_output_shape, ([1, 1000]))
+        model.set_input([[5, 3, 224, 224]])
+        new_output_shape = model.getShape(output_key)
+        self.assertEqual(new_output_shape, ([5, 1000]))
+
 
 if __name__ == "__main__":
     unittest.main()

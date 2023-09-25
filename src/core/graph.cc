@@ -1,5 +1,7 @@
 #include "core/graph.h"
+#include "operators/reshape.h"
 #include <algorithm>
+#include <numeric>
 #include <queue>
 
 namespace infini {
@@ -119,6 +121,38 @@ void GraphObj::optimize() {
         switch (op->getOpType().underlying()) {
         default:
             break;
+        }
+    }
+}
+
+Tensor GraphObj::getTensorWithUid(int fuid) const {
+    for (auto tensor : tensors) {
+        if (tensor->getFuid() == fuid) {
+            return tensor;
+        }
+    }
+    return nullptr;
+}
+
+void GraphObj::shape_infer() {
+    for (auto &op : ops) {
+        auto ans = op->inferShape();
+        IT_ASSERT(ans.has_value());
+        auto oldOutputs = op->getOutputs();
+        IT_ASSERT(ans.value().size() == oldOutputs.size());
+        // replace the old outputshape and size with new one
+        for (int i = 0; i < (int)ans.value().size(); ++i) {
+            auto newShape = ans.value()[i];
+            auto oldShape = oldOutputs[i]->getDims();
+            auto fuid = oldOutputs[i]->getFuid();
+            if (newShape != oldShape) {
+                auto tensor = this->getTensorWithUid(fuid);
+                tensor->setShape(newShape);
+                size_t size =
+                    std::accumulate(newShape.begin(), newShape.end(), 1,
+                                    [](auto acc, auto x) { return acc * x; });
+                tensor->setSize(size);
+            }
         }
     }
 }

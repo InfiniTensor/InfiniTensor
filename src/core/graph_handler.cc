@@ -19,6 +19,7 @@
 #include "operators/transpose.h"
 #include "operators/unary.h"
 #include "operators/where.h"
+#include <numeric>
 
 namespace infini {
 
@@ -531,6 +532,16 @@ static DataType dtype_repr_convert(int dtype) {
     default:
         IT_ASSERT(false, "Unsupported data type");
     }
+}
+
+void GraphHandlerObj::change_shape(const vector<int> &shape, int tensorId) {
+    auto tensor = g->getTensorWithUid(tensorId);
+    IT_ASSERT(tensor != nullptr);
+    IT_ASSERT(shape.size() != 0);
+    tensor->setShape(shape);
+    size_t size = std::accumulate(shape.begin(), shape.end(), 1,
+                                  [](auto acc, auto x) { return acc * x; });
+    tensor->setSize(size);
 }
 
 } // namespace infini

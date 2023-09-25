@@ -466,6 +466,7 @@ void init_graph_builder(py::module &m) {
         .def("add", &Handler::add, policy::move)
         .def("sub", &Handler::sub, policy::move)
         .def("mul", &Handler::mul, policy::move)
+        .def("max", &Handler::max, policy::move)
         .def("div", &Handler::div, policy::move)
         .def("pow", &Handler::pow, policy::move)
         .def("min", &Handler::min, policy::move)
@@ -513,6 +514,9 @@ void init_graph_builder(py::module &m) {
         .def("get_perf_time", &Handler::get_perf_time, policy::automatic)
         .def("tune", &Handler::tune, policy::automatic)
         .def("run", &Handler::run, policy::automatic)
+        .def("shape_infer", &Handler::shape_infer, policy::automatic)
+        .def("change_shape", &Handler::change_shape, policy::automatic)
+        .def("getDims", &Handler::getDims, policy::automatic)
         .def("get_perf_time", &Handler::get_perf_time, policy::automatic);
 }
 

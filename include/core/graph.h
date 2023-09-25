@@ -53,6 +53,7 @@ class GraphObj : public Object {
     const TensorVec &getTensors() const { return tensors; }
     const OpVec &getOperators() const { return ops; }
     OpVec getComputeOps() const;
+    Tensor getTensorWithUid(int fuid) const;
 
     /**
      * Sort the nodes in topological order.
@@ -65,6 +66,8 @@ class GraphObj : public Object {
     void optimize();
 
     void dataMalloc(bool useNaiveAllocator = false);
+
+    void shape_infer();
 
     /**
      * @brief Add an operator and create its outputs. Output tensor arguments
