@@ -1096,8 +1096,7 @@ class OnnxStub:
             oldTensor = self.inputs[oldInput]
             self.handler.change_shape(newInput, oldTensor.fuid())
         self.handler.shape_infer()
-
-    #        self.handler.data_malloc()
+        self.handler.data_malloc()
 
     def getShape(self, name: str) -> List[int]:
         if name in self.inputs:
