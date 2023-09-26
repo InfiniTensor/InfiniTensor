@@ -62,65 +62,155 @@ int get_real_axis(const int &axis, const int &rank) {
 }
 
 void addOperatorFromGraphTopo(
-    GraphObj &g, refactor::frontend::Operator const &op,
-    refactor::common::slice_t<size_t> input,
-    refactor::common::range_t<size_t> output,
+    GraphObj &g, std::vector<refactor::frontend::Edge> const &edges,
+    refactor::frontend::Operator const &op,
+    refactor::common::slice_t<size_t> i_, refactor::common::range_t<size_t> o,
     std::unordered_map<size_t, Tensor> &edgeToTensor,
-    std::vector<refactor::frontend::Edge> const &edges) {
-    auto name = op.opType.name();
-    if (name == "onnx::Conv") {
-        //	auto p = attr["pads"].ints();
-        //	auto s = attr["strides"].ints();
-        //	auto d = attr["dilations"].ints();
-        //	g.addOpWithOutputs<ConvObj>(edgeToTensor[input[0]],
-        // edgeToTensor[input[1]], edgeToTensor[output[0]], p[0], p[1], s[0],
-        // s[1], d[0], d[1]);
-    } else if (name == "onnx::Add") {
-        g.addOpWithOutputs<AddObj>(edgeToTensor[input[0]],
-                                   edgeToTensor[input[1]],
-                                   edgeToTensor[output[0]]);
-    } else if (name == "onnx::AveragePool") {
-        //	auto p = attr["pads"].ints();
-        //	auto s = attr["strides"].ints();
-        //	auto d = attr["dilations"].ints();
-        //	int h = edgeToTensor[input[0]]->getDims()[2];
-        //	int w = edgeToTensor[input[0]]->getDims()[3];
-        //	g.addOpWithOutputs<AvgPoolObj>(edgeToTensor[input[0]],
-        // edgeToTensor[output[0]], h, w,
-        //                                   d[0], d[1], p[0], p[1], s[0],
-        //                                   s[1]);
-    } else if (name == "onnx::Reshape") {
-        IT_ASSERT(input.size() == 2);
-        auto shapeValue =
-            reinterpret_cast<int64_t *>(edges[input[1]].tensor->data->ptr);
-        auto rank = edgeToTensor[input[1]]->getDims()[0];
-        Shape shape(rank);
-        std::transform(shapeValue, shapeValue + rank, shape.begin(),
-                       [](auto const &ele) { return static_cast<int>(ele); });
-        g.addOpWithOutputs<ReshapeObj>(
-            edgeToTensor[input[0]], edgeToTensor[output[0]], std::move(shape));
-    } else if (name == "onnx::Expand") {
-        auto shapeValue =
-            reinterpret_cast<int64_t *>(edges[input[1]].tensor->data->ptr);
-        auto rank = edgeToTensor[input[1]]->getDims()[0];
-        Shape shape(rank);
-        std::transform(shapeValue, shapeValue + rank, shape.begin(),
-                       [](auto const &ele) { return static_cast<int>(ele); });
-        g.addOpWithOutputs<ExpandObj>(
-            edgeToTensor[input[0]], edgeToTensor[output[0]], std::move(shape));
-    } else if (name == "onnx::Unsqueeze") {
-        auto axesValue =
-            reinterpret_cast<int64_t *>(edges[input[1]].tensor->data->ptr);
-        auto rank = edgeToTensor[input[1]]->getDims()[0];
-        std::vector<int> axes(rank);
-        std::transform(axesValue, axesValue + rank, axes.begin(),
-                       [](auto const &ele) { return static_cast<int>(ele); });
-        auto shape = edgeToTensor[input[0]]->getDims();
-        for (auto i : axes) {
-            shape.insert(shape.begin() + i, 1);
+    std::vector<std::pair<size_t, Tensor>> &weights) {
+    auto fn = [&edgeToTensor, &edges, &weights, &g](size_t edgeIdx) -> Tensor {
+        auto it = edgeToTensor.find(edgeIdx);
+        if (it != edgeToTensor.end()) {
+            return it->second;
         }
-        g.addOpWithOutputs<ReshapeObj>(
-            edgeToTensor[input[0]], edgeToTensor[output[0]], std::move(shape));
+        auto const &tensor = edges[edgeIdx].tensor;
+        Shape shape(tensor->shape.size());
+        std::transform(tensor->shape.begin(), tensor->shape.end(),
+                       shape.begin(),
+                       [](auto const &ele) { return ele.value(); });
+        auto tensor_ =
+            g.addTensor(std::move(shape), DataType(tensor->dataType.internal));
+        if (tensor->hasData()) {
+            tensor_->setWeight();
+            weights.emplace_back(edgeIdx, tensor_);
+        }
+        edgeToTensor.insert({edgeIdx, tensor_});
+        return tensor_;
+    };
+
+    auto name = op.opType.name();
+    if (name == "onnx::Reshape") {
+        auto const &shape = *edges[i_[1]].tensor;
+        auto shapeValue = reinterpret_cast<int64_t *>(shape.data->ptr);
+        Shape shape_(shape.shape[0].value());
+        std::transform(shapeValue, shapeValue + shape_.size(), shape_.begin(),
+                       [](auto const &ele) { return static_cast<int>(ele); });
+        g.addOpWithOutputs<ReshapeObj>(fn(i_[0]), fn(o[0]), std::move(shape_));
+    } else if (name == "onnx::Expand") {
+        auto const &shape = *edges[i_[1]].tensor;
+        auto shapeValue = reinterpret_cast<int64_t *>(shape.data->ptr);
+        Shape shape_(shape.shape[0].value());
+        std::transform(shapeValue, shapeValue + shape_.size(), shape_.begin(),
+                       [](auto const &ele) { return static_cast<int>(ele); });
+        g.addOpWithOutputs<ExpandObj>(fn(i_[0]), fn(o[0]), std::move(shape_));
+    } else if (name == "onnx::Unsqueeze") {
+        using refactor::common::slice;
+        auto const &data = *edges[i_[0]].tensor;
+        auto const &axes = *edges[i_[1]].tensor;
+
+        auto axesValue = reinterpret_cast<int64_t *>(axes.data->ptr);
+        auto axesSize = axes.shape[0].value();
+        auto rank = data.rank() + axesSize;
+
+        Shape shape(data.shape.size());
+        std::transform(
+            data.shape.begin(), data.shape.end(), shape.begin(),
+            [](auto const &ele) { return static_cast<int>(ele.value()); });
+        shape.reserve(rank);
+
+        for (auto axis : slice(axesValue, axesSize)) {
+            if (axis < 0) {
+                axis += rank;
+            }
+            shape.insert(shape.begin() + axis, 1);
+        }
+        g.addOpWithOutputs<ReshapeObj>(fn(i_[0]), fn(o[0]), std::move(shape));
+    } else if (name == "onnx::Add") {
+        g.addOpWithOutputs<AddObj>(fn(i_[0]), fn(i_[1]), fn(o[0]));
+    } else if (name == "onnx::Sub") {
+        g.addOpWithOutputs<SubObj>(fn(i_[0]), fn(i_[1]), fn(o[0]));
+    } else if (name == "onnx::Mul") {
+        g.addOpWithOutputs<MulObj>(fn(i_[0]), fn(i_[1]), fn(o[0]));
+    } else if (name == "onnx::Div") {
+        g.addOpWithOutputs<DivObj>(fn(i_[0]), fn(i_[1]), fn(o[0]));
+    } else if (name == "onnx::Pow") {
+        g.addOpWithOutputs<PowerObj>(fn(i_[0]), fn(i_[1]), fn(o[0]));
+    } else if (name == "onnx::Gather") {
+        auto axis = op.attribute("axis", {0}).int_();
+        g.addOpWithOutputs<GatherObj>(fn(i_[0]), fn(i_[1]), fn(o[0]), axis);
+    } else if (name == "onnx::Max") {
+        g.addOpWithOutputs<MaximumObj>(fn(i_[0]), fn(i_[1]), fn(o[0]));
+    } else if (name == "onnx::Slice") {
+        using refactor::common::range0_;
+
+        auto const &data = *edges[i_[0]].tensor;
+        auto const &starts__ = *edges[i_[1]].tensor;
+        auto const &ends__ = *edges[i_[2]].tensor;
+
+        // clang-format off
+            int64_t const
+            *starts = reinterpret_cast<int64_t *>(starts__.data->ptr),
+            *ends   = reinterpret_cast<int64_t *>(ends__.data->ptr),
+            *axes   = i_.size() >= 4 ? reinterpret_cast<int64_t *>(edges[i_[3]].tensor->data->ptr)
+                                    : nullptr,
+            *steps  = i_.size() == 5 ? reinterpret_cast<int64_t *>(edges[i_[4]].tensor->data->ptr)
+                                    : nullptr;
+        // clang-format on
+
+        auto rank = data.rank();
+        auto size = starts__.shape[0].value();
+
+        Shape starts_(size), ends_(size), axes_(size), steps_(size);
+
+        for (auto i_ : range0_(size)) {
+            int64_t axis = axes ? axes[i_] : i_, step = steps ? steps[i_] : 1,
+                    start = starts[i_], end = ends[i_];
+
+            if (axis < 0) {
+                axis += rank;
+            }
+
+            auto dim = data.shape[axis].value();
+            if (start < 0) {
+                start += dim;
+            }
+            if (end < 0) {
+                end += dim;
+            }
+
+            starts_[i_] = static_cast<int>(std::clamp(start, 0l, dim));
+            ends_[i_] = static_cast<int>(std::clamp(end, 0l, dim));
+            axes_[i_] = static_cast<int>(axis);
+            steps_[i_] = static_cast<int>(step);
+        }
+        g.addOpWithOutputs<SliceObj>(fn(i_[0]), fn(o[0]), std::move(starts_),
+                                     std::move(ends_), std::move(axes_),
+                                     std::move(steps_));
+
+    } else if (name == "onnx::Softmax") {
+        auto axis = op.attribute("axis", {-1}).int_();
+        g.addOpWithOutputs<SoftmaxObj>(fn(i_[0]), fn(o[0]), axis);
+    } else if (name == "onnx::ReduceMean") {
+        auto keepdims = op.attribute("keepdims", {1}).int_();
+        std::optional<std::vector<int>> axes;
+        if (i_.size() > 1) {
+            auto const axes_ = *edges[i_[1]].tensor;
+            auto axesValue = reinterpret_cast<int64_t *>(axes_.data->ptr);
+            auto axesRank = axes_.shape[0].value();
+            *axes = std::vector<int>(axesRank);
+            std::transform(
+                axesValue, axesValue + axesRank, axes->begin(),
+                [](auto const &ele) { return static_cast<int>(ele); });
+        }
+        g.addOpWithOutputs<ReduceMeanObj>(fn(i_[0]), fn(o[0]), std::move(axes),
+                                          keepdims);
+    } else if (name == "onnx::Concat") {
+        auto axis = op.attribute("axis").int_();
+        std::vector<Tensor> inputs(i_.size());
+        std::transform(i_.begin(), i_.end(), inputs.begin(), fn);
+        g.addOpWithOutputs<ConcatObj>(std::move(inputs), fn(o[0]), axis);
+    } else if (name == "onnx::MatMul") {
+        g.addOpWithOutputs<MatmulObj>(fn(i_[0]), fn(i_[1]), fn(o[0]), false,
+                                      false, nullptr, ActType::None);
     } else if (name == "onnx::Gemm") {
         auto alpha = op.attribute("alpha", {1.0f}).float_();
         auto beta = op.attribute("beta", {1.0f}).float_();
@@ -129,210 +219,80 @@ void addOperatorFromGraphTopo(
         IT_ASSERT(alpha == 1.0);
         IT_ASSERT(beta == 1.0);
         g.addOpWithOutputs<MatmulObj>(
-            edgeToTensor[input[0]], edgeToTensor[input[1]],
-            edgeToTensor[output[0]], transA, transB,
-            input.size() > 2 ? edgeToTensor[input[2]] : nullptr, ActType::None);
-    } else if (name == "onnx::Pow") {
-        g.addOpWithOutputs<PowerObj>(edgeToTensor[input[0]],
-                                     edgeToTensor[input[1]],
-                                     edgeToTensor[output[0]]);
-    } else if (name == "onnx::Gather") {
-        auto axis = op.attribute("axis", {0}).int_();
-        g.addOpWithOutputs<GatherObj>(edgeToTensor[input[0]],
-                                      edgeToTensor[input[1]],
-                                      edgeToTensor[output[0]], axis);
-    } else if (name == "onnx::Max") {
-        g.addOpWithOutputs<MaximumObj>(edgeToTensor[input[0]],
-                                       edgeToTensor[input[1]],
-                                       edgeToTensor[output[0]]);
-    } else if (name == "onnx::Div") {
-        g.addOpWithOutputs<DivObj>(edgeToTensor[input[0]],
-                                   edgeToTensor[input[1]],
-                                   edgeToTensor[output[0]]);
-    } else if (name == "onnx::Mul") {
-        g.addOpWithOutputs<MulObj>(edgeToTensor[input[0]],
-                                   edgeToTensor[input[1]],
-                                   edgeToTensor[output[0]]);
-    } else if (name == "onnx::Sub") {
-        g.addOpWithOutputs<SubObj>(edgeToTensor[input[0]],
-                                   edgeToTensor[input[1]],
-                                   edgeToTensor[output[0]]);
-    } else if (name == "onnx::Slice") {
-        auto startValue =
-            reinterpret_cast<int64_t *>(edges[input[1]].tensor->data->ptr);
-        auto startRank = edgeToTensor[input[1]]->getRank();
-        auto endValue =
-            reinterpret_cast<int64_t *>(edges[input[2]].tensor->data->ptr);
-        auto endRank = edgeToTensor[input[2]]->getRank();
-        std::vector<int> start, end, axesVal, stepsVal;
-        std::optional<std::vector<int>> axes, steps;
-        if (input.size() > 3) {
-            auto axesValue =
-                reinterpret_cast<int64_t *>(edges[input[3]].tensor->data->ptr);
-            auto axesRank = edgeToTensor[input[3]]->getRank();
-            for (size_t i = 0; i < axesRank; ++i) {
-                axesVal.emplace_back(static_cast<int>(*(axesValue + i)));
-            }
-            axes = axesVal;
-        }
-        if (input.size() > 4) {
-            auto stepsValue =
-                reinterpret_cast<int64_t *>(edges[input[4]].tensor->data->ptr);
-            auto stepsRank = edgeToTensor[input[4]]->getRank();
-            for (size_t i = 0; i < stepsRank; ++i) {
-                stepsVal.emplace_back(static_cast<int>(*(stepsValue + i)));
-            }
-            steps = stepsVal;
-        }
-        for (size_t i = 0; i < startRank; ++i) {
-            int64_t startVal = *(startValue + i);
-            if (axes.has_value()) {
-                startVal = std::min(
-                    startVal,
-                    static_cast<int64_t>(
-                        edgeToTensor[input[0]]->getDims()[axes.value()[i]]));
-            } else {
-                startVal = std::min(
-                    startVal,
-                    static_cast<int64_t>(edgeToTensor[input[0]]->getDims()[i]));
-            }
-            start.emplace_back(static_cast<int>(startVal));
-        }
-        for (size_t i = 0; i < endRank; ++i) {
-            int64_t endVal = *(endValue + i);
-            if (axes.has_value()) {
-                endVal = std::min(
-                    endVal,
-                    static_cast<int64_t>(
-                        edgeToTensor[input[0]]->getDims()[axes.value()[i]]));
-            } else {
-                endVal = std::min(
-                    endVal,
-                    static_cast<int64_t>(edgeToTensor[input[0]]->getDims()[i]));
-            }
-            end.emplace_back(static_cast<int>(endVal));
-        }
-        g.addOpWithOutputs<SliceObj>(
-            edgeToTensor[input[0]], edgeToTensor[output[0]], std::move(start),
-            std::move(end), std::move(axes), std::move(steps));
-    } else if (name == "onnx::Softmax") {
-        auto axis = op.attribute("axis", {-1}).int_();
-        g.addOpWithOutputs<SoftmaxObj>(edgeToTensor[input[0]],
-                                       edgeToTensor[output[0]], axis);
-    } else if (name == "onnx::ReduceMean") {
-        auto keepdims = op.attribute("keepdims", {1}).int_();
-        std::optional<std::vector<int>> axes;
-        if (input.size() > 1) {
-            auto axesValue =
-                reinterpret_cast<int64_t *>(edges[input[1]].tensor->data->ptr);
-            auto axesRank = edgeToTensor[input[1]]->getRank();
-            *axes = std::vector<int>(axesRank);
-            std::transform(
-                axesValue, axesValue + axesRank, axes->begin(),
-                [](auto const &ele) { return static_cast<int>(ele); });
-        }
-        g.addOpWithOutputs<ReduceMeanObj>(edgeToTensor[input[0]],
-                                          edgeToTensor[output[0]],
-                                          std::move(axes), keepdims);
-    } else if (name == "onnx::Concat") {
-        auto axis = op.attribute("axis").int_();
-        std::vector<Tensor> inputs(input.size());
-        std::transform(
-            input.begin(), input.end(), inputs.begin(),
-            [&edgeToTensor](auto const &ele) { return edgeToTensor[ele]; });
-        g.addOpWithOutputs<ConcatObj>(std::move(inputs),
-                                      edgeToTensor[output[0]], axis);
-    } else if (name == "onnx::MatMul") {
-        g.addOpWithOutputs<MatmulObj>(
-            edgeToTensor[input[0]], edgeToTensor[input[1]],
-            edgeToTensor[output[0]], false, false, nullptr, ActType::None);
+            fn(i_[0]), fn(i_[1]), fn(o[0]), transA, transB,
+            i_.size() > 2 ? fn(i_[2]) : nullptr, ActType::None);
     } else if (name == "onnx::Transpose") {
-        int rank = edgeToTensor[input[0]]->getRank();
-        std::vector<int> permDefault;
-        for (int i = rank - 1; i >= 0; --i) {
-            permDefault.emplace_back(i);
-        }
-        std::vector<int> perm;
-        if (auto it = op.attributes.find("perm"); it != op.attributes.end()) {
-            auto permAttr = it->second.ints();
+        auto const &data = *edges[i_[0]].tensor;
+        auto const &attrs = op.attributes;
+
+        if (auto it = attrs.find("perm"); it != attrs.end()) {
+            auto const &perm = it->second.ints();
+            Shape perm_(perm.size());
             std::transform(
-                permAttr.begin(), permAttr.end(), std::back_inserter(perm),
+                perm.begin(), perm.end(), perm_.begin(),
                 [](auto const &ele) { return static_cast<int>(ele); });
+            g.addOpWithOutputs<TransposeObj>(fn(i_[0]), fn(o[0]),
+                                             std::move(perm_));
         } else {
-            perm = std::move(permDefault);
+            using refactor::common::range0_;
+            Shape perm(data.rank());
+            auto num = range0_(data.rank());
+            std::copy(num.begin(), num.end(), perm.rbegin());
+            g.addOpWithOutputs<TransposeObj>(fn(i_[0]), fn(o[0]),
+                                             std::move(perm));
         }
-        g.addOpWithOutputs<TransposeObj>(
-            edgeToTensor[input[0]], edgeToTensor[output[0]], std::move(perm));
     } else if (name == "onnx::Split") {
         auto axis = op.attribute("axis", {0}).int_();
-        std::vector<Tensor> outputs;
-        std::transform(
-            output.begin(), output.end(), std::back_inserter(outputs),
-            [&edgeToTensor](auto const &ele) { return edgeToTensor[ele]; });
-        int num = output.size();
-        if (input.size() == 2) {
+        if (axis < 0) {
+            axis += edges[i_[0]].tensor->rank();
+        }
+        std::vector<Tensor> outputs(o.size());
+        std::transform(o.begin(), o.end(), outputs.begin(), fn);
+        int num = o.size();
+        if (i_.size() == 1) {
+            g.addOpWithOutputs<SplitObj>(fn(i_[0]), std::move(outputs), axis,
+                                         num);
+        } else {
             auto ratioValue =
-                reinterpret_cast<int64_t *>(edges[input[1]].tensor->data->ptr);
-            auto rank = edgeToTensor[input[1]]->getDims()[0];
+                reinterpret_cast<int64_t *>(edges[i_[1]].tensor->data->ptr);
+            auto rank = edges[i_[1]].tensor->shape[0].value();
             std::vector<int> ratio(rank);
             std::transform(
                 ratioValue, ratioValue + rank, ratio.begin(),
                 [](auto const &ele) { return static_cast<int>(ele); });
-            g.addOpWithOutputs<SplitObj>(edgeToTensor[input[0]],
-                                         std::move(outputs), axis,
+            g.addOpWithOutputs<SplitObj>(fn(i_[0]), std::move(outputs), axis,
                                          std::move(ratio));
-        } else {
-            g.addOpWithOutputs<SplitObj>(edgeToTensor[input[0]],
-                                         std::move(outputs), axis, num);
         }
     } else if (name == "onnx::Where") {
-        IT_ASSERT(input.size() == 3);
-        g.addOpWithOutputs<WhereObj>(
-            edgeToTensor[input[1]], edgeToTensor[input[2]],
-            edgeToTensor[input[0]], edgeToTensor[output[0]]);
+        g.addOpWithOutputs<WhereObj>(fn(i_[1]), fn(i_[2]), fn(i_[0]), fn(o[0]));
     } else if (name == "onnx::Softmax") {
         auto axis = op.attribute("axis", {-1}).int_();
-        g.addOpWithOutputs<SoftmaxObj>(edgeToTensor[input[0]],
-                                       edgeToTensor[output[0]], axis);
+        g.addOpWithOutputs<SoftmaxObj>(fn(i_[0]), fn(o[0]), axis);
     } else if (name == "onnx::Sqrt") {
-        g.addOpWithOutputs<SqrtObj>(edgeToTensor[input[0]],
-                                    edgeToTensor[output[0]]);
+        g.addOpWithOutputs<SqrtObj>(fn(i_[0]), fn(o[0]));
     } else if (name == "onnx::Relu") {
-        g.addOpWithOutputs<ReluObj>(edgeToTensor[input[0]],
-                                    edgeToTensor[output[0]]);
+        g.addOpWithOutputs<ReluObj>(fn(i_[0]), fn(o[0]));
     } else if (name == "onnx::Identity") {
-        g.addOpWithOutputs<IdentityObj>(edgeToTensor[input[0]],
-                                        edgeToTensor[output[0]]);
+        g.addOpWithOutputs<IdentityObj>(fn(i_[0]), fn(o[0]));
     } else if (name == "onnx::Tanh") {
-        g.addOpWithOutputs<TanhObj>(edgeToTensor[input[0]],
-                                    edgeToTensor[output[0]]);
+        g.addOpWithOutputs<TanhObj>(fn(i_[0]), fn(o[0]));
     } else if (name == "onnx::AllReduceSum") {
-        g.addOpWithOutputs<AllReduceSumObj>(edgeToTensor[input[0]],
-                                            edgeToTensor[output[0]]);
+        g.addOpWithOutputs<AllReduceSumObj>(fn(i_[0]), fn(o[0]));
     } else if (name == "onnx::AllReduceProd") {
-        g.addOpWithOutputs<AllReduceProdObj>(edgeToTensor[input[0]],
-                                             edgeToTensor[output[0]]);
+        g.addOpWithOutputs<AllReduceProdObj>(fn(i_[0]), fn(o[0]));
     } else if (name == "onnx::AllReduceMin") {
-        g.addOpWithOutputs<AllReduceMinObj>(edgeToTensor[input[0]],
-                                            edgeToTensor[output[0]]);
+        g.addOpWithOutputs<AllReduceMinObj>(fn(i_[0]), fn(o[0]));
     } else if (name == "onnx::AllReduceMax") {
-        g.addOpWithOutputs<AllReduceMaxObj>(edgeToTensor[input[0]],
-                                            edgeToTensor[output[0]]);
+        g.addOpWithOutputs<AllReduceMaxObj>(fn(i_[0]), fn(o[0]));
     } else if (name == "onnx::AllReduceAvg") {
-        g.addOpWithOutputs<AllReduceAvgObj>(edgeToTensor[input[0]],
-                                            edgeToTensor[output[0]]);
+        g.addOpWithOutputs<AllReduceAvgObj>(fn(i_[0]), fn(o[0]));
     } else if (name == "onnx::AllGather") {
-        int size = output.size();
-        std::vector<Tensor> outputs(output.size());
-        std::transform(
-            output.begin(), output.end(), outputs.begin(),
-            [&edgeToTensor](auto const &ele) { return edgeToTensor[ele]; });
-        g.addOpWithOutputs<AllGatherObj>(edgeToTensor[input[0]],
-                                         std::move(outputs), size);
+        auto size = o.size();
+        std::vector<Tensor> outputs(size);
+        std::transform(o.begin(), o.end(), outputs.begin(), fn);
+        g.addOpWithOutputs<AllGatherObj>(fn(i_[0]), std::move(outputs), size);
     } else if (name == "onnx::Less") {
-        g.addOpWithOutputs<LessThanObj>(edgeToTensor[input[0]],
-                                        edgeToTensor[input[1]],
-                                        edgeToTensor[output[0]]);
+        g.addOpWithOutputs<LessThanObj>(fn(i_[0]), fn(i_[1]), fn(o[0]));
     } else {
         std::cerr << "Unknown operator: " << name << std::endl;
         IT_ASSERT_TODO("");

@@ -365,31 +365,12 @@ GraphObj::transformFromGraphTopo(refactor::frontend::Graph const &graph,
     while (it != end) {
         auto [nodeIdx, i, o] = *it++;
         // not dynamic_node
-        if (std::all_of(o.begin(), o.end(), [&edges](auto e) {
-                return edges[e].tensor->hasData();
+        if (std::any_of(o.begin(), o.end(), [&edges](auto e) {
+                return !edges[e].tensor->hasData();
             })) {
-            continue;
+            addOperatorFromGraphTopo(*this, edges, nodes[nodeIdx].op, i, o,
+                                     edgeToTensor, weights);
         }
-        auto fn = [&edgeToTensor, &edges, &weights, this](size_t edgeIdx) {
-            if (edgeToTensor.find(edgeIdx) == edgeToTensor.end()) {
-                auto const &tensor = edges[edgeIdx].tensor;
-                Shape shape(tensor->shape.size());
-                std::transform(std::execution::unseq, tensor->shape.begin(),
-                               tensor->shape.end(), shape.begin(),
-                               [](auto const &ele) { return ele.value(); });
-                auto tensor_ = addTensor(std::move(shape),
-                                         DataType(tensor->dataType.internal));
-                if (tensor->hasData()) {
-                    tensor_->setWeight();
-                    weights.emplace_back(edgeIdx, tensor_);
-                }
-                edgeToTensor.insert({edgeIdx, std::move(tensor_)});
-            }
-        };
-        std::for_each(std::execution::unseq, i.begin(), i.end(), fn);
-        std::for_each(std::execution::unseq, o.begin(), o.end(), fn);
-        addOperatorFromGraphTopo(*this, nodes[nodeIdx].op, i, o, edgeToTensor,
-                                 edges);
     }
     std::vector<Tensor> inputs, outputs;
     inputs.reserve(it.globalInputs().size());
