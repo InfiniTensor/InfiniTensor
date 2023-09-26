@@ -15,16 +15,17 @@ struct OpType {
     // elements.
     enum : underlying_t {
         Unknown,
-        Abs,                // Unary
-        Acos,               // Unary
-        Acosh,              // Unary
-        Add,                // Binary
-        And,                // Binary
-        ArgMax,             //
-        Asin,               // Binary
-        Asinh,              // Binary
-        Atan,               // Binary
-        Atanh,              // Binary
+        Abs,    // Unary
+        Acos,   // Unary
+        Acosh,  // Unary
+        Add,    // Binary
+        And,    // Binary
+        ArgMax, //
+        Asin,   // Binary
+        Asinh,  // Binary
+        Atan,   // Binary
+        Atanh,  // Binary
+        Attention,
         AveragePool,        // Pool
         BatchNormalization, //
         Bernoulli,          //

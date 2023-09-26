@@ -73,6 +73,8 @@ class GraphHandlerObj {
     Tensor cast(Tensor input, Tensor output, int to);
     Tensor expand(Tensor input, Tensor output, Shape dims);
     Tensor where(Tensor inputX, Tensor inputY, Tensor condition, Tensor output);
+    Tensor attention(Tensor inputQ, Tensor inputK, Tensor inputV,
+                     Tensor output);
 
     Tensor allReduceSum(Tensor input, Tensor output);
     Tensor allReduceProd(Tensor input, Tensor output);
