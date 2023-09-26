@@ -62,6 +62,10 @@ class XPURuntimeObj : public RuntimeObj {
                    XPUMemcpyKind::XPU_DEVICE_TO_DEVICE);
     }
 
+    void initComm(const string &, int, int) override { IT_TODO_HALT(); }
+
+    CommunicatorObj &getCommunicator() const override { IT_TODO_HALT(); }
+
   private:
     void runWithoutSync(const Graph &graph, bool tune, bool profiling) const;
 };
