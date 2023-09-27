@@ -2,6 +2,7 @@
 #include "core/graph.h"
 #include "frontend/graph.h"
 #include "onnx/operators.h"
+#include "ffi_convert.h"
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -99,8 +100,8 @@ class Executor {
         auto frontendOutputs = frontend.internal().topology.globalOutputs();
         auto outputsCount = frontendOutputs.size();
 
-        auto [hwInputs, hwOutputs] =
-            _g->transformFromGraphTopo(frontend, _g->getRuntime());
+        static ConvertGraphObj convertObj;
+        auto [hwInputs, hwOutputs, graphObj] = convertObj.convert(frontend, _g->getRuntime());
 
         _inputs = std::move(hwInputs);
 

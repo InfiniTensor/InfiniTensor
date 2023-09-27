@@ -114,10 +114,6 @@ class GraphObj : public Object {
 
     bool checkValid() const;
 
-    std::pair<std::vector<Tensor>, std::vector<Tensor>>
-    transformFromGraphTopo(refactor::frontend::Graph const &graph,
-                           Runtime runtime);
-
   private:
     /**
      * @brief Add reverse connections and Op relationship in ctor.
