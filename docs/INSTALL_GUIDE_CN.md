@@ -133,6 +133,13 @@
    make install-python BANG=ON
    ```
 
+   编译 CPU 部分，同时编译昆仑 XPU 部分：
+
+   ```bash
+   export XPU_HOME=/path/to/your/xpu_home
+   make install-python KUNLUN=ON
+   ```
+
 3. 使用方法
 
    安装成功后，您就可以使用本项目的 Python 接口进行编码并运行。具体使用方式可以参考项目样例代码 example/Resnet/resnet.py 以及用户使用手册
