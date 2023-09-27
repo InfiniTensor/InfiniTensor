@@ -60,7 +60,7 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
     def shard_concat(node: NodeProto):
         # hack for kvcache
         in_plc = place[node.input[1]]
-        if in_plc.is_sharded():
+        if in_plc.is_shard():
             seq_len_dim = vinfo[node.input[0]].type.tensor_type.shape.dim.pop(1)
             seq_len_dim.dim_value //= tp_world_size
             vinfo[node.input[0]].type.tensor_type.shape.dim.insert(1, seq_len_dim)
