@@ -390,12 +390,20 @@ GraphObj::transformFromGraphTopo(refactor::frontend::Graph const &graph,
     }
 
     dataMalloc();
-    std::for_each(std::execution::unseq, weights.begin(), weights.end(),
-                  [&edges](auto &pair) {
-                      auto &[i, tensor] = pair;
-                      tensor->copyin(edges[i].tensor->data->ptr,
-                                     edges[i].tensor->bytesSize());
-                  });
+    for (auto &[i, map] : weights) {
+        auto const &tensor = edges[i].tensor;
+        auto const &variables = tensor->depVariables;
+        if (!variables.empty()) {
+            std::cout << edges[i].name << " "
+                      << refactor::frontend::shapeFormat(tensor->shape)
+                      << " [ ";
+            for (auto const &v : variables) {
+                std::cout << v->name << " ";
+            }
+            std::cout << "]" << std::endl;
+        }
+        map->copyin(tensor->data->get<void>(), tensor->bytesSize());
+    }
 
     return {inputs, outputs};
 }

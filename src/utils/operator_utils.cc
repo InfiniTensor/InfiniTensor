@@ -90,14 +90,14 @@ void addOperatorFromGraphTopo(
     auto name = op.opType.name();
     if (name == "onnx::Reshape") {
         auto const &shape = *edges[i_[1]].tensor;
-        auto shapeValue = reinterpret_cast<int64_t *>(shape.data->ptr);
+        auto shapeValue = shape.data->get<int64_t>();
         Shape shape_(shape.shape[0].value());
         std::transform(shapeValue, shapeValue + shape_.size(), shape_.begin(),
                        [](auto const &ele) { return static_cast<int>(ele); });
         g.addOpWithOutputs<ReshapeObj>(fn(i_[0]), fn(o[0]), std::move(shape_));
     } else if (name == "onnx::Expand") {
         auto const &shape = *edges[i_[1]].tensor;
-        auto shapeValue = reinterpret_cast<int64_t *>(shape.data->ptr);
+        auto shapeValue = shape.data->get<int64_t>();
         Shape shape_(shape.shape[0].value());
         std::transform(shapeValue, shapeValue + shape_.size(), shape_.begin(),
                        [](auto const &ele) { return static_cast<int>(ele); });
@@ -107,7 +107,7 @@ void addOperatorFromGraphTopo(
         auto const &data = *edges[i_[0]].tensor;
         auto const &axes = *edges[i_[1]].tensor;
 
-        auto axesValue = reinterpret_cast<int64_t *>(axes.data->ptr);
+        auto axesValue = axes.data->get<int64_t>();
         auto axesSize = axes.shape[0].value();
         auto rank = data.rank() + axesSize;
 
@@ -148,12 +148,10 @@ void addOperatorFromGraphTopo(
 
         // clang-format off
             int64_t const
-            *starts = reinterpret_cast<int64_t *>(starts__.data->ptr),
-            *ends   = reinterpret_cast<int64_t *>(ends__.data->ptr),
-            *axes   = i_.size() >= 4 ? reinterpret_cast<int64_t *>(edges[i_[3]].tensor->data->ptr)
-                                    : nullptr,
-            *steps  = i_.size() == 5 ? reinterpret_cast<int64_t *>(edges[i_[4]].tensor->data->ptr)
-                                    : nullptr;
+            *starts = starts__.data->get<int64_t>(),
+            *ends   = ends__  .data->get<int64_t>(),
+            *axes   = i_.size() >= 4 ? edges[i_[3]].tensor->data->get<int64_t>() : nullptr,
+            *steps  = i_.size() == 5 ? edges[i_[4]].tensor->data->get<int64_t>() : nullptr;
         // clang-format on
 
         auto rank = data.rank();
@@ -194,7 +192,7 @@ void addOperatorFromGraphTopo(
         std::optional<std::vector<int>> axes;
         if (i_.size() > 1) {
             auto const axes_ = *edges[i_[1]].tensor;
-            auto axesValue = reinterpret_cast<int64_t *>(axes_.data->ptr);
+            auto axesValue = axes_.data->get<int64_t>();
             auto axesRank = axes_.shape[0].value();
             *axes = std::vector<int>(axesRank);
             std::transform(
@@ -253,8 +251,7 @@ void addOperatorFromGraphTopo(
             g.addOpWithOutputs<SplitObj>(fn(i_[0]), std::move(outputs), axis,
                                          num);
         } else {
-            auto ratioValue =
-                reinterpret_cast<int64_t *>(edges[i_[1]].tensor->data->ptr);
+            auto ratioValue = edges[i_[1]].tensor->data->get<int64_t>();
             auto rank = edges[i_[1]].tensor->shape[0].value();
             std::vector<int> ratio(rank);
             std::transform(

@@ -1,8 +1,5 @@
-#include "common/error_handler.h"
 #include "communication/operators.h"
 #include "core/graph.h"
-#include "core/runtime.h"
-#include "core/tensor.h"
 #include "frontend/graph.h"
 #include "onnx/operators.h"
 #include <pybind11/numpy.h>
@@ -79,7 +76,8 @@ class Compiler {
         auto ans = py::array(buildNumpyDType(tensor.dataType), std::move(shape),
                              nullptr);
         if (tensor.data) {
-            std::memcpy(ans.mutable_data(), tensor.data->ptr, ans.nbytes());
+            std::memcpy(ans.mutable_data(), tensor.data->get<void>(),
+                        ans.nbytes());
         }
         return ans;
     }
@@ -132,7 +130,7 @@ class Executor {
         if (tensor) {
             tensor->copyout(ans.mutable_data(), ans.nbytes());
         } else if (edge.tensor->data) {
-            std::memcpy(ans.mutable_data(), edge.tensor->data->ptr,
+            std::memcpy(ans.mutable_data(), edge.tensor->data->get<void>(),
                         ans.nbytes());
         }
         return ans;
@@ -259,8 +257,7 @@ std::shared_ptr<Tensor> edge(int dataType, std::vector<DimExpr> shape,
         auto const bytesSize = ans->bytesSize();
         ASSERT(bytesSize == static_cast<size_t>(data->nbytes()),
                "Data size mismatch");
-        ans->data = std::make_shared<common::Blob>(bytesSize);
-        std::memcpy(ans->data->ptr, data->data(), bytesSize);
+        std::memcpy(ans->malloc(), data->data(), bytesSize);
     }
     return ans;
 }
