@@ -173,7 +173,9 @@ void GraphObj::dataMalloc() {
     // tensors
     std::unordered_set<TensorObj *> weightTensors;
     for (auto &tensor : tensors) {
-        if (tensor->isWeight()) {
+        if (tensor->isExternal()) {
+            continue;
+        } else if (tensor->isWeight()) {
             // allocate memory for all weight tensors first, and this memory
             // will not be freed until the graph is destroyed
             weightTensors.insert(tensor.get());
@@ -237,7 +239,7 @@ void GraphObj::dataMalloc() {
 
     // perform actual memory allocation for non-weight tensors
     for (auto &tensor : tensors) {
-        if (!tensor->isWeight()) {
+        if (!tensor->isWeight() && !tensor->isExternal()) {
             IT_ASSERT(tensorToOffset.find(tensor.get()) !=
                       tensorToOffset.end());
             tensor->setDataBlob(make_ref<BlobObj>(

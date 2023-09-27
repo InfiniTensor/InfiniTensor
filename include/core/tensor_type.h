@@ -2,6 +2,6 @@
 
 namespace infini {
 
-enum class TensorType { weight, input, output, others };
+enum class TensorType { external, weight, input, output, others };
 
 } // namespace infini
