@@ -1,7 +1,8 @@
 import sys
 import onnx
-from pyinfinitensor.onnx import OnnxStub, backend
 import torch
+import numpy as np
+from pyinfinitensor.onnx import OnnxStub, backend
 
 if __name__ == '__main__':
     args = sys.argv
@@ -18,12 +19,11 @@ if __name__ == '__main__':
     # Assume that there is only one input tensor
     input_shape = input_shape[0]
     # print(input_shape)
-    input_data = torch.randint(0, 100, input_shape, dtype=torch.float32)
+    input_data = np.random.random(input_shape).astype(np.float32)
 
     model = OnnxStub(onnx_model, backend.cuda_runtime())
-    next(model.inputs.items().__iter__())[
-        1].copyin_float(input_data.reshape(-1).tolist())
+    next(iter(model.inputs.values())).copyin_numpy(input_data)
     model.run()
-    outputs = next(model.outputs.items().__iter__())[1].copyout_float()
+    outputs = next(iter(model.outputs.values())).copyout_numpy()
     outputs = torch.tensor(outputs)
     print(outputs.shape)

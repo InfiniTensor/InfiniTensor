@@ -1,6 +1,7 @@
 import sys
 import onnx
 import torch
+import numpy as np
 from pyinfinitensor.onnx import OnnxStub, backend
 import torchvision.models as models
 
@@ -13,11 +14,10 @@ if __name__ == '__main__':
 
     onnx_model = onnx.load(model_path)
     model = OnnxStub(onnx_model, backend.cuda_runtime())
-    images = torch.randint(0, 100, input_shape, dtype=torch.float32)
-    next(model.inputs.items().__iter__())[
-        1].copyin_float(images.reshape(-1).tolist())
+    images = np.random.random(input_shape).astype(np.float32)
+    next(iter(model.inputs.values())).copyin_numpy(images)
     model.run()
-    outputs = next(model.outputs.items().__iter__())[1].copyout_float()
+    outputs = next(iter(model.outputs.values())).copyout_numpy()
     outputs = torch.tensor(outputs)
     outputs = torch.reshape(outputs, (1, 1000))
     _, predicted = torch.max(outputs, 1)
