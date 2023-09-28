@@ -17,41 +17,39 @@ __launch_bounds__(BLOCK_DIM_y) __global__
     old_max[threadIdx.y] = -__FLT_MAX__;
     new_max[threadIdx.y] = -__FLT_MAX__;
     new_sum[threadIdx.y] = 0.0f;
-    __shared__ float block_sum[BLOCK_DIM_y];
-    __shared__ float block_max[BLOCK_DIM_y];
 
-    __shared__ float inputS[BLOCK_DIM_y];
     __shared__ float shareV[BLOCK_DIM_y];
     __shared__ float out[BLOCK_DIM_y];
 
     int phNumD = (d + BLOCK_DIM_y - 1) / BLOCK_DIM_y;
-    __shared__ float shareQ[BLOCK_DIM_y];
-    __shared__ float shareK[BLOCK_DIM_y];
+    __shared__ float shareQ_times_K[BLOCK_DIM_y];
+
     for (int phn = 0; phn < N; phn++) {
         shareV[threadIdx.y] = 0.0f;
 
-        float sum_s = 0;
-
+        float sum_s = 0.0f;
         for (int ind = 0; ind < phNumD; ind++) {
             if (threadIdx.y + ind * BLOCK_DIM_y < d) {
-                shareQ[threadIdx.y] =
-                    inputQ[i * d + threadIdx.y + ind * BLOCK_DIM_y];
-                shareK[threadIdx.y] =
+                shareQ_times_K[threadIdx.y] =
+                    inputQ[i * d + threadIdx.y + ind * BLOCK_DIM_y] *
                     inputK[phn * d + threadIdx.y + ind * BLOCK_DIM_y];
+
             } else {
-                shareQ[threadIdx.y] = 0.0f;
-                shareK[threadIdx.y] = 0.0f;
+                shareQ_times_K[threadIdx.y] = 0.0f;
             }
             __syncthreads();
-            for (int index = 0; index < BLOCK_DIM_y; index++) {
-                sum_s += shareQ[index] * shareK[index];
+            for (int strip = BLOCK_DIM_y / 2; strip > 0; strip = strip / 2) {
+                if (threadIdx.y < strip) {
+                    shareQ_times_K[threadIdx.y] +=
+                        shareQ_times_K[threadIdx.y + strip];
+                }
+                __syncthreads();
             }
+            sum_s += shareQ_times_K[0];
             __syncthreads();
         }
 
-        inputS[threadIdx.y] = sum_s;
-        block_max[threadIdx.y] = sum_s;
-        block_sum[threadIdx.y] = 1.0f;
+        shareQ_times_K[threadIdx.y] = sum_s;
 
         if (phd < d) {
             shareV[threadIdx.y] = inputV[phn * d + phd];
@@ -59,34 +57,32 @@ __launch_bounds__(BLOCK_DIM_y) __global__
 
         __syncthreads();
 
-        if (new_max[threadIdx.y] > block_max[threadIdx.y]) {
+        if (new_max[threadIdx.y] > sum_s) {
             new_sum[threadIdx.y] =
-                new_sum[threadIdx.y] +
-                block_sum[threadIdx.y] *
-                    __expf(block_max[threadIdx.y] - new_max[threadIdx.y]);
+                new_sum[threadIdx.y] + __expf(sum_s - new_max[threadIdx.y]);
         } else {
             new_sum[threadIdx.y] =
-                block_sum[threadIdx.y] +
-                new_sum[threadIdx.y] *
-                    __expf(new_max[threadIdx.y] - block_max[threadIdx.y]);
-            new_max[threadIdx.y] = block_max[threadIdx.y];
+                1.0f +
+                new_sum[threadIdx.y] * __expf(new_max[threadIdx.y] - sum_s);
+            new_max[threadIdx.y] = sum_s;
         }
 
         __syncthreads();
 
-        inputS[threadIdx.y] =
-            __expf(inputS[threadIdx.y] - new_max[threadIdx.y]);
+        shareQ_times_K[threadIdx.y] =
+            __expf(shareQ_times_K[threadIdx.y] - new_max[threadIdx.y]);
 
         __syncthreads();
 
         if (phn == 0) {
-            out[threadIdx.y] = inputS[threadIdx.y] * shareV[threadIdx.y];
+            out[threadIdx.y] =
+                shareQ_times_K[threadIdx.y] * shareV[threadIdx.y];
 
         } else {
             out[threadIdx.y] =
                 __expf(old_max[threadIdx.y] - new_max[threadIdx.y]) *
                     out[threadIdx.y] +
-                inputS[threadIdx.y] * shareV[threadIdx.y];
+                shareQ_times_K[threadIdx.y] * shareV[threadIdx.y];
         }
 
         old_max[threadIdx.y] = new_max[threadIdx.y];
