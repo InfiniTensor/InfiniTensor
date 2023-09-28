@@ -94,16 +94,17 @@ class Executor {
 
   public:
     Executor(infini::Runtime rt, refactor::frontend::Graph const &frontend)
-        : _g(infini::make_ref<infini::GraphObj>(std::move(rt))) {
+        : _g(nullptr) {
         using namespace infini;
 
         auto frontendOutputs = frontend.internal().topology.globalOutputs();
         auto outputsCount = frontendOutputs.size();
 
         static ConvertGraphObj convertObj;
-        auto [hwInputs, hwOutputs, graphObj] =
-            convertObj.convert(frontend, _g->getRuntime());
+        auto [hwInputs, hwOutputs, g] =
+            convertObj.convert(frontend, std::move(rt));
 
+        _g = std::move(g);
         _inputs = std::move(hwInputs);
 
         ASSERT(outputsCount == hwOutputs.size(), "Output size mismatch");

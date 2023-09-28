@@ -261,25 +261,25 @@ void addOperatorFromGraphTopo(
 }
 
 struct ConvertGraphObj {
-    std::unordered_map<size_t, Blob> _caches;
+    std::unordered_map<void *, Blob> _caches;
 
     std::tuple<std::vector<Tensor>, std::vector<Tensor>, Graph>
-    convert(refactor::frontend::Graph const &graph, Runtime runtime) {
-        auto obj = make_ref<GraphObj>(runtime);
-        auto const &nodes = graph.internal().nodes;
-        auto const &edges = graph.internal().edges;
+    convert(refactor::frontend::Graph const &frontend, Runtime rt) {
+        auto graph = make_ref<GraphObj>(std::move(rt));
+        auto const &nodes = frontend.internal().nodes;
+        auto const &edges = frontend.internal().edges;
         std::unordered_map<size_t, Tensor> edgeToTensor;
         std::vector<std::pair<size_t, Tensor>> weights;
 
-        auto it = graph.internal().topology.begin(),
-             end = graph.internal().topology.end();
+        auto it = frontend.internal().topology.begin(),
+             end = frontend.internal().topology.end();
         while (it != end) {
             auto [nodeIdx, i, o] = *it++;
             // not dynamic_node
             if (std::any_of(o.begin(), o.end(), [&edges](auto e) {
                     return !edges[e].tensor->hasData();
                 })) {
-                addOperatorFromGraphTopo(*obj, edges, nodes[nodeIdx].op, i, o,
+                addOperatorFromGraphTopo(*graph, edges, nodes[nodeIdx].op, i, o,
                                          edgeToTensor, weights);
             }
         }
@@ -301,19 +301,21 @@ struct ConvertGraphObj {
             }
         }
 
-        obj->dataMalloc();
-        for (auto &[i, map] : weights) {
-            if (auto [it_, ok] = _caches.try_emplace(i, nullptr); ok) {
-                auto const &tensor = edges[i].tensor;
-                auto ptr = runtime->alloc(tensor->bytesSize());
-                map->setDataBlob(it_->second = make_ref<BlobObj>(runtime, ptr));
-                map->copyin(tensor->data->get<void>(), tensor->bytesSize());
-            } else {
-                map->setDataBlob(it_->second);
+        graph->dataMalloc();
+        auto const &rt_ = graph->getRuntime();
+        for (auto &[i, tensor] : weights) {
+            auto const &data = edges[i].tensor->data;
+            auto [it_, ok] = _caches.try_emplace(data.get(), nullptr);
+            if (ok) {
+                auto bs = tensor->getBytes();
+                it_->second = rt_->allocBlob(bs);
+                rt_->copyBlobFromCPU(it_->second->getPtr<void *>(),
+                                     data->get<void>(), bs);
             }
+            tensor->setDataBlob(it_->second);
         }
 
-        return {inputs, outputs, std::move(obj)};
+        return {inputs, outputs, std::move(graph)};
     }
 };
 
