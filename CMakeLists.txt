@@ -79,7 +79,6 @@ if(USE_PROTOBUF)
 endif()
 
 if(USE_REFACTOR_GRAPH)
-set(BUILD_SHARED ON CACHE BOOL "build shared refactor graph")
 add_subdirectory(RefactorGraph)
 
 include_directories(RefactorGraph/3rd-party/fmt/include)

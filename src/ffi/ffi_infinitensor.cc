@@ -41,7 +41,7 @@ class Compiler {
 
   public:
     explicit Compiler(Graph g) : _g(std::move(g)) {}
-    std::unordered_set<Name> fillEdgeInfo() { return _g.fillEdgeInfo(); }
+    std::unordered_set<Name> fillEdgeInfo() { return _g.fillEdgeInfo(true); }
     void setInput(size_t index, int dataType,
                   std::vector<std::variant<std::string, int64_t>> shape) {
         ASSERT(index < _g.internal().topology.globalInputsCount(),
@@ -146,7 +146,22 @@ namespace frontend {
 
 infini::Executor Compiler::compile(infini::Runtime rt) {
     _g.collectVariables();
-    ASSERT(_g.fillEdgeInfo().empty(), "Unknown variables");
+    std::vector<std::string_view> unknownVariables;
+    for (auto const &[_, v] : _g.variables()) {
+        if (!v->value.has_value()) {
+            unknownVariables.emplace_back(v->name);
+        }
+    }
+    if (!unknownVariables.empty()) {
+        std::string msg = "Unknown variables: [ ";
+        for (auto const &v : unknownVariables) {
+            msg += v;
+            msg += ' ';
+        }
+        msg += ']';
+        RUNTIME_ERROR(std::move(msg));
+    }
+    _g.fillEdgeInfo(true);
     return infini::Executor(std::move(rt), _g);
 }
 
