@@ -5,7 +5,7 @@ namespace infini {
 ConcatObj::ConcatObj(GraphObj *graph, TensorVec inputs, Tensor output, int dim)
     : OperatorObj(OpType::Concat, inputs, {output}), dim(dim) {
     int rank = inputs[0]->getRank();
-    dim = get_real_axis(dim, rank);
+    this->dim = get_real_axis(dim, rank);
     IT_ASSERT(checkValid(graph));
 }
 

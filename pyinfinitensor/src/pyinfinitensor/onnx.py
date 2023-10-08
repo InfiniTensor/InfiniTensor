@@ -548,15 +548,20 @@ class OnnxStub:
                         != 0,
                     )
                 elif node.op_type == "Slice":
+
+                    def clamp(x):
+                        MAX_INT = 0x7FFFFFFF
+                        return x if x[0] <= MAX_INT else [MAX_INT]
+
                     tensors[node.output[0]] = self.handler.slice(
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
-                        _parse_data(data[node.input[1]]),
-                        _parse_data(data[node.input[2]]),
-                        _parse_data(data[node.input[3]])
+                        clamp(_parse_data(data[node.input[1]])),
+                        clamp(_parse_data(data[node.input[2]])),
+                        clamp(_parse_data(data[node.input[3]]))
                         if len(node.input) > 3
                         else None,
-                        _parse_data(data[node.input[4]])
+                        clamp(_parse_data(data[node.input[4]]))
                         if len(node.input) > 4
                         else None,
                     )
