@@ -32,6 +32,7 @@ class OnnxStub:
     The Onnx model imported into infinitensor.
     It can be generated from an Onnx model object.
     """
+
     def __init__(self, model: ModelProto, runtime):
         self.inputs: Dict[str, backend.Tensor] = {}
         self.outputs: Dict[str, backend.Tensor] = {}
@@ -44,7 +45,8 @@ class OnnxStub:
 
         for initializer in model.graph.initializer:
             dims = [d for d in initializer.dims]
-            tensors[initializer.name] = self.handler.tensor(dims, initializer.data_type)
+            tensors[initializer.name] = self.handler.tensor(
+                dims, initializer.data_type)
             data[initializer.name] = initializer
             tensors[initializer.name].set_weight()
 
@@ -62,7 +64,6 @@ class OnnxStub:
                 dims, output.type.tensor_type.elem_type
             )
             tensors[output.name].set_output()
-
 
         node_name = []
         new_node_name = []
@@ -179,7 +180,8 @@ class OnnxStub:
                     )
                 elif node.op_type == "Gemm":
                     attributes = _parse_attribute(
-                        node, {"alpha": 1.0, "beta": 1.0, "transA": 0, "transB": 0}
+                        node, {"alpha": 1.0, "beta": 1.0,
+                               "transA": 0, "transB": 0}
                     )
                     (alpha, beta, transA, transB) = (
                         attributes[name]
@@ -194,7 +196,8 @@ class OnnxStub:
                         tensors.get(node.output[0]),
                         transA == 1,
                         transB == 1,
-                        tensors[node.input[2]] if len(node.input) > 2 else None,
+                        tensors[node.input[2]] if len(
+                            node.input) > 2 else None,
                         backend.ActType.Linear,
                     )
                 elif node.op_type == "BatchNormalization":
@@ -203,7 +206,8 @@ class OnnxStub:
                     )
                     output = tensors.get(node.output[0])
                     attributes = _parse_attribute(
-                        node, {"momentum": 0.9, "epsilon": 1e-05, "training_mode": 0}
+                        node, {"momentum": 0.9,
+                               "epsilon": 1e-05, "training_mode": 0}
                     )
                     (momentum, eps, training) = (
                         attributes[name]
@@ -595,7 +599,8 @@ class OnnxStub:
                     )
                 elif node.op_type == "ReduceSum":
                     # ReduceSum is only implemented as allReduceSum.
-                    assert any(attr.name == "communicator" for attr in node.attribute)
+                    assert any(
+                        attr.name == "communicator" for attr in node.attribute)
                     tensors[node.output[0]] = self.handler.allReduceSum(
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
@@ -663,8 +668,18 @@ class OnnxStub:
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
                     )
+                elif node.op_type == "Constant":
+                    output_name = node.output[0]
+                    attributes = _parse_attribute(node)
+                    tensor = attributes['value']
+                    dims = [d for d in tensor.dims]
+                    tensors[output_name] = self.handler.tensor(
+                        dims, tensor.data_type)
+                    data[output_name] = tensor
+                    tensors[output_name].set_weight()
                 else:
-                    raise Exception('Unsupported operator "{}"'.format(node.op_type))
+                    raise Exception(
+                        'Unsupported operator "{}"'.format(node.op_type))
                 new_node_name.append(node.name)
             # update the node_list
             node_list = list(set(node_name) - set(new_node_name))
@@ -725,7 +740,8 @@ class OnnxStub:
 
             def name_op(self, op: backend.Operator) -> Tuple[backend.OpTypeId, str]:
                 ty = op.op_type().id()
-                name = "{}{}".format(ty.name, self.count_op.setdefault(ty, 0) + 1)
+                name = "{}{}".format(
+                    ty.name, self.count_op.setdefault(ty, 0) + 1)
                 self.names[op] = name
                 self.count_op[ty] += 1
                 return ty, name
@@ -818,11 +834,13 @@ class OnnxStub:
                         pads=[ph, pw, ph, pw],
                         strides=[sh, sw],
                         dilations=[dh, dw],
-                        group=op.inputs()[0].shape()[1] // op.inputs()[1].shape()[1],
+                        group=op.inputs()[0].shape()[
+                            1] // op.inputs()[1].shape()[1],
                     )
                 )
             elif ty == backend.OpTypeId.ConvTranspose:
-                ph, pw, sh, sw, dh, dw, oph, opw = backend.conv_trans_attrs_of(op)
+                ph, pw, sh, sw, dh, dw, oph, opw = backend.conv_trans_attrs_of(
+                    op)
                 ctx.push_node(
                     make_node(
                         ty.name,
@@ -902,10 +920,12 @@ class OnnxStub:
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Flatten:
                 axis = backend.flatten_axis_of(op)
-                ctx.push_node(make_node(ty.name, inputs, outputs, name, axis=axis))
+                ctx.push_node(make_node(ty.name, inputs,
+                              outputs, name, axis=axis))
             elif ty == backend.OpTypeId.Transpose:
                 perm = backend.transpose_permute_of(op)
-                ctx.push_node(make_node(ty.name, inputs, outputs, name, perm=perm))
+                ctx.push_node(make_node(ty.name, inputs,
+                              outputs, name, perm=perm))
             elif ty == backend.OpTypeId.Reshape:
                 shape = backend.reshape_shape_of(op)
                 inputs.append(
@@ -920,7 +940,8 @@ class OnnxStub:
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Concat:
                 axis = backend.concat_axis_of(op)
-                ctx.push_node(make_node(ty.name, inputs, outputs, name, axis=axis))
+                ctx.push_node(make_node(ty.name, inputs,
+                              outputs, name, axis=axis))
             elif ty == backend.OpTypeId.Split:
                 axis = backend.split_axis_of(op)
                 num_outputs = len(outputs)
@@ -945,7 +966,8 @@ class OnnxStub:
                 )
             elif ty == backend.OpTypeId.Gather:
                 axis = backend.gather_axis_of(op)
-                ctx.push_node(make_node(ty.name, inputs, outputs, name, axis=axis))
+                ctx.push_node(make_node(ty.name, inputs,
+                              outputs, name, axis=axis))
             elif ty == backend.OpTypeId.ReduceMean:
                 axes, keepdims = backend.reduce_mean_attrs_of(op)
                 inputs.append(
@@ -954,7 +976,8 @@ class OnnxStub:
                     )
                 )
                 ctx.push_node(
-                    make_node(ty.name, inputs, outputs, name, keepdims=keepdims)
+                    make_node(ty.name, inputs, outputs,
+                              name, keepdims=keepdims)
                 )
             elif ty == backend.OpTypeId.Slice:
                 raise Exception("TODO")
@@ -970,31 +993,37 @@ class OnnxStub:
                 min, max = backend.clip_attrs_of(op)
                 if min != None:
                     inputs.append(
-                        ctx.push_data_input(name, "min", TensorProto.FLOAT, [], [min])
+                        ctx.push_data_input(
+                            name, "min", TensorProto.FLOAT, [], [min])
                     )
                 else:
                     inputs.append(
-                        ctx.push_data_input(name, "min", TensorProto.FLOAT, [], [])
+                        ctx.push_data_input(
+                            name, "min", TensorProto.FLOAT, [], [])
                     )
                 if max != None:
                     inputs.append(
-                        ctx.push_data_input(name, "max", TensorProto.FLOAT, [], [max])
+                        ctx.push_data_input(
+                            name, "max", TensorProto.FLOAT, [], [max])
                     )
                 else:
                     inputs.append(
-                        ctx.push_data_input(name, "max", TensorProto.FLOAT, [], [])
+                        ctx.push_data_input(
+                            name, "max", TensorProto.FLOAT, [], [])
                     )
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Cast:
                 to = backend.cast_to_of(op)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, to=to))
             elif ty == backend.OpTypeId.Where:
-                assert len(inputs) == 3, "Check Where Op must have three inputs."
+                assert len(
+                    inputs) == 3, "Check Where Op must have three inputs."
                 new_inputs = [inputs[2], inputs[0], inputs[1]]
                 ctx.push_node(make_node(ty.name, new_inputs, outputs, name))
             elif ty == backend.OpTypeId.Expand:
                 shape = backend.expand_shape_of(op)
-                ctx.push_node(make_node(ty.name, inputs, outputs, name, shape=shape))
+                ctx.push_node(make_node(ty.name, inputs,
+                              outputs, name, shape=shape))
             else:
                 raise Exception("Unsupported OpType", ty)
 
@@ -1067,19 +1096,19 @@ def _search_shape(model: ModelProto, name: str) -> List[int]:
 
 def _parse_attribute(node: NodeProto, attrs: Dict[str, Any] = dict()) -> Dict[str, Any]:
     for attr in node.attribute:
-        if attr.name in attrs:
-            if attr.type == AttributeProto.INT:
-                attrs[attr.name] = attr.i
-            elif attr.type == AttributeProto.INTS:
-                attrs[attr.name] = attr.ints
-            elif attr.type == AttributeProto.FLOAT:
-                attrs[attr.name] = attr.f
-            elif attr.type == AttributeProto.STRING:
-                attrs[attr.name] = attr.s
-            elif attr.type == AttributeProto.TENSOR:
-                attrs[attr.name] = attr.t
-            else:
-                assert False, "Unsupported Attribute Type: {}".format(attr.type)
+        if attr.type == AttributeProto.INT:
+            attrs[attr.name] = attr.i
+        elif attr.type == AttributeProto.INTS:
+            attrs[attr.name] = attr.ints
+        elif attr.type == AttributeProto.FLOAT:
+            attrs[attr.name] = attr.f
+        elif attr.type == AttributeProto.STRING:
+            attrs[attr.name] = attr.s
+        elif attr.type == AttributeProto.TENSOR:
+            attrs[attr.name] = attr.t
+        else:
+            assert False, "Unsupported Attribute Type: {}".format(
+                attr.type)
     return attrs
 
 
@@ -1095,7 +1124,8 @@ def _parse_data_fp16(tensor: TensorProto):
             list_.append(element_byte[0] + element_byte[1] * 256)
     elif len(tensor.raw_data) != 0:
         list_raw_data = list(tensor.raw_data)
-        list_data = [list_raw_data[i : i + 2] for i in range(0, len(list_raw_data), 2)]
+        list_data = [list_raw_data[i: i + 2]
+                     for i in range(0, len(list_raw_data), 2)]
         for ele in list_data:
             list_.append(ele[0] + ele[1] * 256)
     else:
