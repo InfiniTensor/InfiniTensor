@@ -63,6 +63,7 @@ class GraphHandlerObj {
     TensorVec split(Tensor input, std::optional<TensorVec> outputs, int axis,
                     int num_outputs);
     Tensor gather(Tensor data, Tensor indices, Tensor output, int axis);
+    Tensor gatherElements(Tensor data, Tensor indices, Tensor output, int axis);
     Tensor reduceMean(Tensor data, Tensor reduced,
                       const optional<vector<int>> &axes, bool keepdims);
     Tensor slice(Tensor input, Tensor output, const vector<int> &starts,

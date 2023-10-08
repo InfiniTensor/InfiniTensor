@@ -85,6 +85,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, Div)
         .VALUE(OpType, Pow)
         .VALUE(OpType, Gather)
+        .VALUE(OpType, GatherElements)
         .VALUE(OpType, ReduceMean)
         .VALUE(OpType, Reshape)
         .VALUE(OpType, Flatten)
@@ -223,8 +224,8 @@ static int split_axis_of(Operator op) {
 }
 
 static int gather_axis_of(Operator op) {
-    IT_ASSERT(op->getOpType() == OpType::Gather);
-    return dynamic_cast<const GatherObj *>(op.get())->getAxis();
+    IT_ASSERT(op->getOpType() == OpType::Gather || op->getOpType() == OpType::GatherElements);
+    return dynamic_cast<const GatherBaseObj *>(op.get())->getAxis();
 }
 
 static vector<int64_t> reshape_shape_of(Operator op) {
@@ -454,6 +455,7 @@ void init_graph_builder(py::module &m) {
         .def("concat", &Handler::concat, policy::move)
         .def("split", &Handler::split, policy::move)
         .def("gather", &Handler::gather, policy::move)
+        .def("gatherElements", &Handler::gatherElements, policy::move)
         .def("reduce_mean", &Handler::reduceMean, policy::move)
         .def("slice", &Handler::slice, policy::move)
         .def("pad", &Handler::pad, policy::move)
