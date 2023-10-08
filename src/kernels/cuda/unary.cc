@@ -140,6 +140,8 @@ REGISTER_KERNEL(Device::CUDA, OpType::Abs, DataType::Float32, UnaryCuda,
                 "Abs_CUDA_Float32");
 REGISTER_KERNEL(Device::CUDA, OpType::Sqrt, DataType::Float32, UnaryCuda,
                 "Sqrt_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Neg, DataType::Float32, UnaryCuda,
+                "Neg_CUDA_Float32");
 
 // REGISTER_KERNEL(Device::CUDA, OpType::Softmax, DataType::Float32, UnaryCuda,
 //                 "Softmax_CUDA_Float32");

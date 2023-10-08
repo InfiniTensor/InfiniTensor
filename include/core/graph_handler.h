@@ -51,6 +51,7 @@ class GraphHandlerObj {
     Tensor softmax(Tensor x, Tensor y, int axis);
     Tensor abs(Tensor x, Tensor y);
     Tensor sqrt(Tensor x, Tensor y);
+    Tensor neg(Tensor x, Tensor y);
     Tensor shape(Tensor x, Tensor y);
     Tensor identity(Tensor x, Tensor y);
     Tensor flatten(Tensor s, Tensor y, int axis);
