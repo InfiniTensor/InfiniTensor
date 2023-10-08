@@ -224,7 +224,8 @@ static int split_axis_of(Operator op) {
 }
 
 static int gather_axis_of(Operator op) {
-    IT_ASSERT(op->getOpType() == OpType::Gather || op->getOpType() == OpType::GatherElements);
+    IT_ASSERT(op->getOpType() == OpType::Gather ||
+              op->getOpType() == OpType::GatherElements);
     return dynamic_cast<const GatherBaseObj *>(op.get())->getAxis();
 }
 

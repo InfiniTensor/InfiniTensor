@@ -5,20 +5,32 @@
 
 namespace infini {
 struct GatherMetaData {
+    // Pointer to indices
     void *indexValue;
+    // Type of index values
     DataType indexType;
+    // Type of input and output data
     DataType dataType;
+    // Axis of the gather operation
     int axis;
+    // Rank of input
     int inNDim;
+    // Rank of output
     int outNDim;
+    // Rank of indices
     int idxNDim;
+    // Shape of output
     int outDim[4];
+    // Shape of indices
     int idxDim[4];
+    // Strides of indices
     int idxStride[4];
+    // Strides of input
     int inStride[4];
 };
 
-inline void initGatherMetaData(GatherMetaData &metaData, const Ref<OperatorObj> &_op) {
+inline void initGatherMetaData(GatherMetaData &metaData,
+                               const Ref<OperatorObj> &_op) {
     memset(&metaData, 0, sizeof(metaData));
     auto op = as<GatherBaseObj>(_op);
     Ref<TensorObj> in = op->getInputs(0);
