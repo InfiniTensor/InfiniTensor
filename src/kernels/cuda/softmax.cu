@@ -30,18 +30,12 @@ __launch_bounds__(BLOCK_DIM) __global__
     int tid =
         blockIdx.x % stride + (blockIdx.x - blockIdx.x % stride) *
                                   dimsize; // now, tid = i(JKS) + k(S) + s;
-    __shared__ float share_input[BLOCK_DIM];
-    if (threadIdx.x < dimsize) {
-        share_input[threadIdx.x] = input[tid + threadIdx.x * stride];
-    } else {
-        share_input[threadIdx.x] = -__FLT_MAX__;
-    }
-    __syncthreads();
+
     MD md_partial;
-    md_partial.max_tmp = share_input[threadIdx.x];
-    md_partial.sum_tmp = 1.0f;
+    md_partial.max_tmp = -__FLT_MAX__;
+    md_partial.sum_tmp = 0.0f;
     MD md_input;
-    for (int ph = 1; threadIdx.x + ph * BLOCK_DIM < dimsize; ph++) {
+    for (int ph = 0; threadIdx.x + ph * BLOCK_DIM < dimsize; ph++) {
 
         md_input.max_tmp = input[tid + (threadIdx.x + ph * BLOCK_DIM) * stride];
 
@@ -59,59 +53,52 @@ __launch_bounds__(BLOCK_DIM) __global__
     }
     __syncthreads();
     //-----------------
-    float max_total, sum_inverse_total;
-    max_total = md_total.max_tmp;
-    sum_inverse_total = __fdividef(1.0F, md_total.sum_tmp);
-    if (threadIdx.x < dimsize) {
-        output[tid + (threadIdx.x) * stride] =
-            __expf(share_input[threadIdx.x] - max_total) * sum_inverse_total;
-    }
 
-    for (int ph = 1; threadIdx.x + ph * BLOCK_DIM < dimsize; ph++) {
+    for (int ph = 0; threadIdx.x + ph * BLOCK_DIM < dimsize; ph++) {
         output[tid + (threadIdx.x + ph * BLOCK_DIM) * stride] =
             __expf(input[tid + (threadIdx.x + ph * BLOCK_DIM) * stride] -
-                   max_total) *
-            sum_inverse_total;
+                   md_total.max_tmp) *
+            __fdividef(1.0F, md_total.sum_tmp);
     }
 }
 namespace infini {
 void softmax_kernel(int num_blocks, float *input, float *output, int size,
                     int dimsize, int stride) {
-    if (dimsize > 1023) {
+    if (dimsize > 512) {
         int BLOCK_DIM = 1024;
-        int share_mem = BLOCK_DIM * sizeof(float);
-        _softmax_kernel<1024><<<num_blocks, BLOCK_DIM, share_mem>>>(
-            input, output, size, dimsize, stride);
-    } else if (dimsize > 511) {
+
+        _softmax_kernel<1024>
+            <<<num_blocks, BLOCK_DIM>>>(input, output, size, dimsize, stride);
+    } else if (dimsize > 256) {
         int BLOCK_DIM = 512;
-        int share_mem = BLOCK_DIM * sizeof(float);
-        _softmax_kernel<512><<<num_blocks, BLOCK_DIM, share_mem>>>(
-            input, output, size, dimsize, stride);
-    } else if (dimsize > 255) {
+
+        _softmax_kernel<512>
+            <<<num_blocks, BLOCK_DIM>>>(input, output, size, dimsize, stride);
+    } else if (dimsize > 128) {
         int BLOCK_DIM = 256;
-        int share_mem = BLOCK_DIM * sizeof(float);
-        _softmax_kernel<256><<<num_blocks, BLOCK_DIM, share_mem>>>(
-            input, output, size, dimsize, stride);
-    } else if (dimsize > 127) {
+
+        _softmax_kernel<256>
+            <<<num_blocks, BLOCK_DIM>>>(input, output, size, dimsize, stride);
+    } else if (dimsize > 64) {
         int BLOCK_DIM = 128;
-        int share_mem = BLOCK_DIM * sizeof(float);
-        _softmax_kernel<128><<<num_blocks, BLOCK_DIM, share_mem>>>(
-            input, output, size, dimsize, stride);
-    } else if (dimsize > 63) {
+
+        _softmax_kernel<128>
+            <<<num_blocks, BLOCK_DIM>>>(input, output, size, dimsize, stride);
+    } else if (dimsize > 32) {
         int BLOCK_DIM = 64;
-        int share_mem = BLOCK_DIM * sizeof(float);
-        _softmax_kernel<64><<<num_blocks, BLOCK_DIM, share_mem>>>(
-            input, output, size, dimsize, stride);
-    } else if (dimsize > 31) {
+
+        _softmax_kernel<64>
+            <<<num_blocks, BLOCK_DIM>>>(input, output, size, dimsize, stride);
+    } else if (dimsize > 16) {
         int BLOCK_DIM = 32;
-        int share_mem = BLOCK_DIM * sizeof(float);
-        _softmax_kernel<32><<<num_blocks, BLOCK_DIM, share_mem>>>(
-            input, output, size, dimsize, stride);
+
+        _softmax_kernel<32>
+            <<<num_blocks, BLOCK_DIM>>>(input, output, size, dimsize, stride);
     } else {
         int BLOCK_DIM = 16;
-        int share_mem = BLOCK_DIM * sizeof(float);
-        _softmax_kernel<16><<<num_blocks, BLOCK_DIM, share_mem>>>(
-            input, output, size, dimsize, stride);
+
+        _softmax_kernel<16>
+            <<<num_blocks, BLOCK_DIM>>>(input, output, size, dimsize, stride);
     }
 }
 } // namespace infini
