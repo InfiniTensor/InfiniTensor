@@ -39,9 +39,6 @@ inline void initGatherMetaData(GatherMetaData &metaData,
     metaData.indexValue = index->getRawDataPtr<void *>();
     metaData.indexType = index->getDType();
     metaData.dataType = in->getDType();
-
-    printf("%lu\n", sizeof(metaData.indexType));
-
     metaData.axis = op->getAxis();
     metaData.inNDim = in->getRank();
     metaData.outNDim = out->getRank();
