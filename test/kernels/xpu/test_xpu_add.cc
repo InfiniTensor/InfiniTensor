@@ -27,24 +27,23 @@ void testAdd(const std::function<void(void *, size_t, DataType)> &generator,
     auto inputGpu2 = xpuGraph->cloneTensor(inputCpu2);
     auto gpuOp = xpuGraph->addOp<T>(inputGpu1, inputGpu2, nullptr);
     xpuGraph->dataMalloc();
+    inputGpu1->setData(generator);
+    inputGpu2->setData(generator);
     xpuRuntime->run(xpuGraph);
     auto outputGpu = gpuOp->getOutput();
     auto outputGpu2Cpu = outputGpu->clone(cpuRuntime);
     // CPU
-    // Graph cpuGraph = make_ref<GraphObj>(cpuRuntime);
-    // auto cpuOp = cpuGraph->addOp<T>(inputCpu1, inputCpu2, nullptr);
-    // cpuGraph->addTensor(inputCpu1);
-    // cpuGraph->addTensor(inputCpu2);
-    // cpuGraph->dataMalloc();
-    // inputCpu1->setData(generator);
-    // inputCpu2->setData(generator);
-    // cpuRuntime->run(cpuGraph);
-    // auto outputCpu = cpuOp->getOutput();
-    // // Check
-    // outputCpu->printData();
-    outputGpu2Cpu->printData();
-    // EXPECT_TRUE(outputCpu->equalData(outputGpu2Cpu));
-    EXPECT_TRUE(true);
+    Graph cpuGraph = make_ref<GraphObj>(cpuRuntime);
+    auto cpuOp = cpuGraph->addOp<T>(inputCpu1, inputCpu2, nullptr);
+    cpuGraph->addTensor(inputCpu1);
+    cpuGraph->addTensor(inputCpu2);
+    cpuGraph->dataMalloc();
+    inputCpu1->setData(generator);
+    inputCpu2->setData(generator);
+    cpuRuntime->run(cpuGraph);
+    auto outputCpu = cpuOp->getOutput();
+    // Check
+    EXPECT_TRUE(outputCpu->equalData(outputGpu2Cpu));
 }
 
 TEST(xpu_add, run) {
