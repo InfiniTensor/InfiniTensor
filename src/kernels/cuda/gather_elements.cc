@@ -14,7 +14,6 @@ class GatherElementsCuda : public CudaKernelWithoutConfig {
         initGatherMetaData(metaData, op);
 
         auto input = op->getInputs(0);
-        auto index = op->getInputs(1);
         auto output = op->getOutput();
         void *inData = input->getRawDataPtr<void *>();
         void *outData = output->getRawDataPtr<void *>();
