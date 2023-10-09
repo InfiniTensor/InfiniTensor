@@ -25,6 +25,7 @@ from onnx.shape_inference import infer_shapes
 from onnx.numpy_helper import to_array
 from typing import Dict, List, Any, Tuple, Sequence, Union, Optional
 from functools import reduce
+from onnxsim import simplify
 
 
 class OnnxStub:
@@ -33,6 +34,9 @@ class OnnxStub:
     It can be generated from an Onnx model object.
     """
     def __init__(self, model: ModelProto, runtime):
+        model_simp, check = simplify(model)
+        if check:
+            model = model_simp
         self.inputs: Dict[str, backend.Tensor] = {}
         self.outputs: Dict[str, backend.Tensor] = {}
         self.initializer: Dict[int, TensorProto] = {}
