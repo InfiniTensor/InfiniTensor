@@ -9,8 +9,9 @@ namespace host_backtrace = backward;
 host_backtrace::SignalHandling sh;
 
 namespace infini {
-Exception::Exception(const std::string &msg) : std::runtime_error(msg) {
-    host_backtrace::StackTrace st;
+Exception::Exception(const std::string &msg)
+    : std::runtime_error(msg), info(msg) {
+    backward_trace::StackTrace st;
     st.load_here(32);
     host_backtrace::Printer p;
     p.print(st);

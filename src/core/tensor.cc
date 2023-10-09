@@ -23,7 +23,7 @@ string TensorObj::toString() const {
     string ret = "Tensor " + std::to_string(guid) + ", Fuid " +
                  std::to_string(fuid) + ", shape " + vecToString(shape) +
                  ", dtype " + dtype.toString() + ", " + runtime->toString() +
-                 ", " + ss.str() + "\n";
+                 ", " + ss.str() + ", " + tensorTypeToString() + "\n";
     vector<UidBaseType> targetGuids;
     for (const auto &op : targets)
         targetGuids.emplace_back(op.lock()->getGuid());

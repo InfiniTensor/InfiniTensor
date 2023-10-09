@@ -1,3 +1,4 @@
+#pragma once
 namespace infini {
 
 #define SMALL_ARRAY_SIZE 8

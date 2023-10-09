@@ -32,35 +32,37 @@ class OnnxStub:
     The Onnx model imported into infinitensor.
     It can be generated from an Onnx model object.
     """
-
-    inputs: Dict[str, backend.Tensor] = {}
-    outputs: Dict[str, backend.Tensor] = {}
-    initializer: Dict[int, TensorProto] = {}
-    handler: backend.GraphHandler
-
     def __init__(self, model: ModelProto, runtime):
+        self.inputs: Dict[str, backend.Tensor] = {}
+        self.outputs: Dict[str, backend.Tensor] = {}
+        self.initializer: Dict[int, TensorProto] = {}
         model = infer_shapes(model)
         self.handler = backend.GraphHandler(runtime)
 
         tensors: Dict[str, backend.Tensor] = dict()
         data: Dict[str, TensorProto] = dict()
 
+        for initializer in model.graph.initializer:
+            dims = [d for d in initializer.dims]
+            tensors[initializer.name] = self.handler.tensor(dims, initializer.data_type)
+            data[initializer.name] = initializer
+            tensors[initializer.name].set_weight()
+
         for input in model.graph.input:
             dims = _take_shape_dim(input.type.tensor_type.shape)
-            tensors[input.name] = self.handler.tensor(
-                dims, input.type.tensor_type.elem_type
-            )
+            if input.name not in tensors.keys():
+                tensors[input.name] = self.handler.tensor(
+                    dims, input.type.tensor_type.elem_type
+                )
+                tensors[input.name].set_input()
 
         for output in model.graph.output:
             dims = _take_shape_dim(output.type.tensor_type.shape)
             tensors[output.name] = self.handler.tensor(
                 dims, output.type.tensor_type.elem_type
             )
+            tensors[output.name].set_output()
 
-        for initializer in model.graph.initializer:
-            dims = [d for d in initializer.dims]
-            tensors[initializer.name] = self.handler.tensor(dims, initializer.data_type)
-            data[initializer.name] = initializer
 
         node_name = []
         new_node_name = []
@@ -591,6 +593,13 @@ class OnnxStub:
                         tensors.get(node.output[0]),
                         next((attr.i for attr in node.attribute if attr.name == "to")),
                     )
+                elif node.op_type == "ReduceSum":
+                    # ReduceSum is only implemented as allReduceSum.
+                    assert any(attr.name == "communicator" for attr in node.attribute)
+                    tensors[node.output[0]] = self.handler.allReduceSum(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
                 elif node.op_type == "AllReduceSum":
                     tensors[node.output[0]] = self.handler.allReduceSum(
                         tensors[node.input[0]],
@@ -631,13 +640,9 @@ class OnnxStub:
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
                         next(
-                                (
-                                    attr.i
-                                    for attr in node.attribute
-                                    if attr.name == "root"
-                                ),
-                                0,
-                            ),
+                            (attr.i for attr in node.attribute if attr.name == "root"),
+                            0,
+                        ),
                     )
                 elif node.op_type == "Expand":
                     shape = _parse_data(data[node.input[1]])
@@ -658,6 +663,15 @@ class OnnxStub:
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
                     )
+                elif node.op_type == "Constant":
+                    output_name = node.output[0]
+                    attributes = _parse_attribute(node)
+                    tensor = attributes['value']
+                    dims = [d for d in tensor.dims]
+                    tensors[output_name] = self.handler.tensor(
+                        dims, tensor.data_type)
+                    data[output_name] = tensor
+                    tensors[output_name].set_weight()
                 else:
                     raise Exception('Unsupported operator "{}"'.format(node.op_type))
                 new_node_name.append(node.name)
@@ -1062,19 +1076,18 @@ def _search_shape(model: ModelProto, name: str) -> List[int]:
 
 def _parse_attribute(node: NodeProto, attrs: Dict[str, Any] = dict()) -> Dict[str, Any]:
     for attr in node.attribute:
-        if attr.name in attrs:
-            if attr.type == AttributeProto.INT:
-                attrs[attr.name] = attr.i
-            elif attr.type == AttributeProto.INTS:
-                attrs[attr.name] = attr.ints
-            elif attr.type == AttributeProto.FLOAT:
-                attrs[attr.name] = attr.f
-            elif attr.type == AttributeProto.STRING:
-                attrs[attr.name] = attr.s
-            elif attr.type == AttributeProto.TENSOR:
-                attrs[attr.name] = attr.t
-            else:
-                assert False, "Unsupported Attribute Type: {}".format(attr.type)
+        if attr.type == AttributeProto.INT:
+            attrs[attr.name] = attr.i
+        elif attr.type == AttributeProto.INTS:
+            attrs[attr.name] = attr.ints
+        elif attr.type == AttributeProto.FLOAT:
+            attrs[attr.name] = attr.f
+        elif attr.type == AttributeProto.STRING:
+            attrs[attr.name] = attr.s
+        elif attr.type == AttributeProto.TENSOR:
+            attrs[attr.name] = attr.t
+        else:
+            assert False, "Unsupported Attribute Type: {}".format(attr.type)
     return attrs
 
 
