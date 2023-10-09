@@ -903,6 +903,7 @@ class OnnxStub:
                 backend.OpTypeId.PRelu,
                 backend.OpTypeId.Sqrt,
                 backend.OpTypeId.Erf,
+                backend.OpTypeId.Neg,
             ]:
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Flatten:
