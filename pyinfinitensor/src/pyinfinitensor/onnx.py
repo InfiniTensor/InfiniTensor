@@ -325,7 +325,7 @@ class OnnxStub:
                         0,
                         1,
                         1,
-                        ceil_mode,
+                        0,
                     )
                 elif node.op_type == "Add":
                     tensors[node.output[0]] = self.handler.add(
@@ -873,7 +873,7 @@ class OnnxStub:
                     )
                 )
             elif ty == backend.OpTypeId.MaxPool:
-                kh, kw, dh, dw, ph, pw, sh, sw = backend.pool_attrs_of(op)
+                kh, kw, dh, dw, ph, pw, sh, sw, ceil_mode = backend.pool_attrs_of(op)
                 ctx.push_node(
                     make_node(
                         ty.name,
@@ -884,10 +884,11 @@ class OnnxStub:
                         pads=[ph, pw, ph, pw],
                         dilations=[dh, dw],
                         strides=[sh, sw],
+                        ceil_mode=ceil_mode,
                     )
                 )
             elif ty == backend.OpTypeId.AveragePool:
-                kh, kw, dh, dw, ph, pw, sh, sw = backend.pool_attrs_of(op)
+                kh, kw, dh, dw, ph, pw, sh, sw, ceil_mode = backend.pool_attrs_of(op)
                 ctx.push_node(
                     make_node(
                         "AveragePool",
@@ -897,6 +898,7 @@ class OnnxStub:
                         kernel_shape=[kh, kw],
                         pads=[ph, pw, ph, pw],
                         strides=[sh, sw],
+                        ceil_mode=ceil_mode,
                     )
                 )
             elif ty in [
