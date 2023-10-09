@@ -663,6 +663,15 @@ class OnnxStub:
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
                     )
+                elif node.op_type == "Constant":
+                    output_name = node.output[0]
+                    attributes = _parse_attribute(node)
+                    tensor = attributes['value']
+                    dims = [d for d in tensor.dims]
+                    tensors[output_name] = self.handler.tensor(
+                        dims, tensor.data_type)
+                    data[output_name] = tensor
+                    tensors[output_name].set_weight()
                 else:
                     raise Exception('Unsupported operator "{}"'.format(node.op_type))
                 new_node_name.append(node.name)
@@ -1067,19 +1076,18 @@ def _search_shape(model: ModelProto, name: str) -> List[int]:
 
 def _parse_attribute(node: NodeProto, attrs: Dict[str, Any] = dict()) -> Dict[str, Any]:
     for attr in node.attribute:
-        if attr.name in attrs:
-            if attr.type == AttributeProto.INT:
-                attrs[attr.name] = attr.i
-            elif attr.type == AttributeProto.INTS:
-                attrs[attr.name] = attr.ints
-            elif attr.type == AttributeProto.FLOAT:
-                attrs[attr.name] = attr.f
-            elif attr.type == AttributeProto.STRING:
-                attrs[attr.name] = attr.s
-            elif attr.type == AttributeProto.TENSOR:
-                attrs[attr.name] = attr.t
-            else:
-                assert False, "Unsupported Attribute Type: {}".format(attr.type)
+        if attr.type == AttributeProto.INT:
+            attrs[attr.name] = attr.i
+        elif attr.type == AttributeProto.INTS:
+            attrs[attr.name] = attr.ints
+        elif attr.type == AttributeProto.FLOAT:
+            attrs[attr.name] = attr.f
+        elif attr.type == AttributeProto.STRING:
+            attrs[attr.name] = attr.s
+        elif attr.type == AttributeProto.TENSOR:
+            attrs[attr.name] = attr.t
+        else:
+            assert False, "Unsupported Attribute Type: {}".format(attr.type)
     return attrs
 
 
