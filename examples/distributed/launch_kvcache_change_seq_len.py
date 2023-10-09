@@ -27,7 +27,7 @@ def parse_args():
     )
     parser.add_argument(
         "--model2", type=str, required=True, help="path to the ONNX model file."
-    )    
+    )
     parser.add_argument("--batch_size", type=int, default=1, help="batch size.")
     parser.add_argument("--length", type=int, default=1, help="sequence length.")
     parser.add_argument(
@@ -49,14 +49,23 @@ def parse_args():
     )
 
 
-def run_model(model1, model2, runtime1, runtime2, inputs1: np.array, inputs2: np.array, world_size=1, n=20):
+def run_model(
+    model1,
+    model2,
+    runtime1,
+    runtime2,
+    inputs1: np.array,
+    inputs2: np.array,
+    world_size=1,
+    n=20,
+):
     batchsize = 1
     size = 1
     ####################################
     # run the first graph without kvcache
     ####################################
     stub1 = OnnxStub(model1, runtime1)
-    stub1.inputs['onnx::Reshape_0'].copyin_int32(inputs1.reshape(-1).tolist())
+    stub1.inputs["onnx::Reshape_0"].copyin_int32(inputs1.reshape(-1).tolist())
     stub1.tune()
     stub1.run()
     kvcache_it = []
@@ -67,7 +76,7 @@ def run_model(model1, model2, runtime1, runtime2, inputs1: np.array, inputs2: np
         else:
             kvcache_it.append(np.array(output[1].copyout_float(), dtype=np.float32))
         count = count + 1
-        
+
     # # bench for stub1
     # next(stub1.inputs.items().__iter__())[1].copyin_int32(inputs1.reshape(-1).tolist())
     # begin = time.time()
@@ -75,8 +84,8 @@ def run_model(model1, model2, runtime1, runtime2, inputs1: np.array, inputs2: np
     #     stub1.run()
     # end = time.time()
     # avg_time = (end - begin) / n
-    # print(f"stub1 average time: {avg_time}")        
-        
+    # print(f"stub1 average time: {avg_time}")
+
     ####################################
     # run the second graph with kvcache
     ####################################
@@ -90,12 +99,10 @@ def run_model(model1, model2, runtime1, runtime2, inputs1: np.array, inputs2: np
         input_shapes.append([batchsize, 1])
         stub2.set_input(input_shapes)
 
-        past_kvcache_length = (i+2)*np.ones((batchsize, 1), dtype=np.int32)
+        past_kvcache_length = (i + 2) * np.ones((batchsize, 1), dtype=np.int32)
         # copyin input
-        stub2.inputs['onnx::Reshape_0'].copyin_int32(
-            inputs2.reshape(-1).tolist())
-        stub2.inputs['input.3'].copyin_int32(
-            past_kvcache_length.reshape(-1).tolist())
+        stub2.inputs["onnx::Reshape_0"].copyin_int32(inputs2.reshape(-1).tolist())
+        stub2.inputs["input.3"].copyin_int32(past_kvcache_length.reshape(-1).tolist())
         count = -1
         for input in stub2.inputs.items().__iter__():
             if count in range(24):
@@ -144,7 +151,12 @@ def run_and_compare(name, model1, model2, runtime1, runtime2, world_size=1):
 
 
 def start_worker(
-    name: str, world_size: int, rank: int, local_rank: int, model1: onnx.ModelProto, model2: onnx.ModelProto
+    name: str,
+    world_size: int,
+    rank: int,
+    local_rank: int,
+    model1: onnx.ModelProto,
+    model2: onnx.ModelProto,
 ):
     dist_name = name + "_dist"
     ####################################
@@ -168,10 +180,10 @@ def start_worker(
         world_size,
         rank,
     )
-    
+
     ####################################
     # shard the second graph
-    ####################################    
+    ####################################
     model2 = parallel_model(model2, world_size, rank)
     extern_path = f"./{dist_name}_stub2_rank{rank}.pb"
     if os.path.exists(extern_path):
@@ -182,7 +194,7 @@ def start_worker(
         location=extern_path,
         size_threshold=1024,
         convert_attribute=False,
-    )    
+    )
     onnx.save(model2, f"./{dist_name}_stub2_rank{rank}.onnx")
     runtime2 = backend.CudaRuntime(local_rank)
     # print("init comm")
@@ -190,8 +202,8 @@ def start_worker(
         dist_name,
         world_size,
         rank,
-    )    
-    
+    )
+
     # run the two graphs
     run_and_compare(name, model1, model2, runtime1, runtime2, world_size)
 
@@ -215,7 +227,16 @@ def gen_standard(name, model1, model2, voc_size, bs, len):
 
 
 def main():
-    nnodes, nproc_per_node, name, model1_path, model2_path, bs, length, gen_std = parse_args()
+    (
+        nnodes,
+        nproc_per_node,
+        name,
+        model1_path,
+        model2_path,
+        bs,
+        length,
+        gen_std,
+    ) = parse_args()
 
     model1 = onnx.load(model1_path)
     model2 = onnx.load(model2_path)

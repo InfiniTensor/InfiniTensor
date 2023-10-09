@@ -12,6 +12,13 @@ ConcatObj::ConcatObj(GraphObj *graph, TensorVec inputs, Tensor output, int _dim)
 optional<vector<Shape>> ConcatObj::inferShape(const TensorVec &inputs) {
     Shape dims = inputs[0]->getDims();
     auto rank = inputs[0]->getRank();
+    if (inputs.size() == 2) {
+        for (size_t i = 0; i < inputs.size(); ++i) {
+            if (inputs[i]->size() == 0) {
+                return {{inputs[1-i]->getDims()}};
+            }
+        }
+    }
     ShapeElem n = dims.at(dim);
     for (auto itr = inputs.begin() + 1; itr != inputs.end(); ++itr) {
         auto input = *itr;

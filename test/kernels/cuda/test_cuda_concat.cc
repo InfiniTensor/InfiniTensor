@@ -158,4 +158,33 @@ TEST(Concat, CudaHigh) {
                       12., 13., 14., 15., 16., 17., 1., 1., 1., 1., 1., 1.,
                       18., 19., 20., 21., 22., 23., 1., 1., 1., 1., 1., 1.}));
 }
+
+TEST(ConcatToIdentity, Cuda) {
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Graph gCpu = make_ref<GraphObj>(runtime);
+
+    auto t1 = gCpu->addTensor({2, 2, 3, 1}, DataType::Float32);
+    auto t2 = gCpu->addTensor({0}, DataType::Float32);
+    gCpu->dataMalloc();
+    t1->setData(IncrementalGenerator());
+    t2->setData(OneGenerator());
+
+    auto cudaRuntime = make_ref<CudaRuntimeObj>();
+    Graph gCuda = make_ref<GraphObj>(cudaRuntime);
+
+    auto t1Gpu = gCuda->cloneTensor(t1);
+    auto t2Gpu = gCuda->cloneTensor(t2);
+
+    auto op = gCuda->addOp<ConcatObj>(TensorVec{t1Gpu, t2Gpu}, nullptr, 2);
+    gCuda->dataMalloc();
+    t1Gpu->setData(IncrementalGenerator());
+    t2Gpu->setData(OneGenerator());
+    cudaRuntime->run(gCuda);
+
+    // cudaPrintTensor(op->getOutput());
+    //  copy output from CUDA to CPU
+    auto oCpu = gCpu->cloneTensor(op->getOutput());
+    EXPECT_TRUE(
+        oCpu->equalData(vector<float>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}));
+}
 } // namespace infini

@@ -499,6 +499,7 @@ class TestStringMethods(unittest.TestCase):
         where = make_node("Where", ["x", "y", "con"], ["output"], name="where")
         make_and_import_model(make_graph([where], "where", [x, y, con], [output]))
 
+
 class TestDynamicTensor(unittest.TestCase):
     def test_dynamic_tensor(self):
         filename = r"resnet18-v2-7.onnx"
