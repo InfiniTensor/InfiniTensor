@@ -25,12 +25,20 @@ void testPooling(const std::function<void(void *, size_t, DataType)> &generator,
     auto inputGpu = xpuGraph->cloneTensor(inputCpu);
     auto gpuOp = xpuGraph->addOp<T>(inputGpu, nullptr, 3, 3, 1, 1, 0, 0, 2, 2);
     xpuGraph->dataMalloc();
+    inputGpu->setData(generator);
     xpuRuntime->run(xpuGraph);
     auto outputGpu = gpuOp->getOutput();
     auto outputGpu2Cpu = outputGpu->clone(cpuRuntime);
-    inputCpu->printData();
-    outputGpu2Cpu->printData();
-    EXPECT_TRUE(1);
+
+    // CPU
+    Graph cpuGraph = make_ref<GraphObj>(cpuRuntime);
+    cpuGraph->addTensor(inputCpu);
+    auto cpuOp = cpuGraph->addOp<T>(inputCpu, nullptr, 3, 3, 1, 1, 0, 0, 2, 2);
+    cpuGraph->dataMalloc();
+    inputCpu->setData(generator);
+    cpuRuntime->run(cpuGraph);
+    auto outputCpu = cpuOp->getOutput();
+    EXPECT_TRUE(outputCpu->equalData(outputGpu2Cpu));
 }
 
 TEST(xdnn_Pooling, run) {
