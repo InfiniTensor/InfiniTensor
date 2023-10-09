@@ -10,6 +10,7 @@ void sigmoid_kernel(float *input, float *output, int num);
 void tanh_kernel(float *input, float *output, int num);
 void abs_kernel(float *input, float *output, int num);
 void sqrt_kernel(float *input, float *output, int num);
+void erf_kernel(float *input, float *output, int num);
 
 void unary_kernel(const Operator &_op) {
     auto op = as<UnaryObj>(_op);
@@ -29,6 +30,8 @@ void unary_kernel(const Operator &_op) {
         abs_kernel(inputData, outputData, num);
     else if (op->getOpType() == OpType::Sqrt)
         sqrt_kernel(inputData, outputData, num);
+    else if (op->getOpType() == OpType::Erf)
+        erf_kernel(inputData, outputData, num);
     else
         IT_TODO_HALT();
 }
