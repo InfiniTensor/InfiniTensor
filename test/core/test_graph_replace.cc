@@ -208,16 +208,13 @@ TEST(MatchGraph, multi_output) {
     SubGraph subg0 = make_ref<SubGraphObj>(runtime, TensorVec{i});
     {
         auto maxpool =
-            subg0->addOp<MaxPoolObj>(i, nullptr, 3, 3, 0, 0, 0, 0, 2, 2, 0);
+            subg0->addOp<MaxPoolObj>(i, nullptr, 3, 3, 1, 1, 0, 0, 2, 2, 0);
         Tensor w0 = subg0->addTensor(Shape{64, 192, 1, 1}, DataType::UInt32);
         auto conv0 = subg0->addOp<ConvObj>(maxpool->getOutput(0), w0, nullptr);
         auto relu0 = subg0->addOp<ReluObj>(conv0->getOutput(0), nullptr);
 
-        auto pad = subg0->addOp<PadObj>(maxpool->getOutput(0), nullptr,
-                                        vector<int>{0, 0, 1, 1, 0, 0, 1, 1},
-                                        std::nullopt);
-        auto avgpool = subg0->addOp<AvgPoolObj>(pad->getOutput(0), nullptr, 3,
-                                                3, 0, 0, 0, 0, 1, 1, 0);
+        auto avgpool = subg0->addOp<AvgPoolObj>(maxpool->getOutput(0), nullptr,
+                                                3, 3, 0, 0, 0, 0, 1, 1, 0);
         subg0->setOutputs(
             TensorVec{relu0->getOutput(0), avgpool->getOutput(0)});
     }
@@ -227,7 +224,7 @@ TEST(MatchGraph, multi_output) {
     {
         auto avgpool =
             subg1->addOp<AvgPoolObj>(subg1->getInputsFromOutside()[0], nullptr,
-                                     3, 3, 0, 0, 0, 0, 2, 2, 0);
+                                     3, 3, 1, 1, 0, 0, 2, 2, 0);
 
         auto relu0 = subg1->addOp<ReluObj>(avgpool->getOutput(0), nullptr);
 
@@ -296,7 +293,7 @@ TEST(MatchGraph, multi_input_output) {
         Tensor w2 = subg0->addTensor(Shape{128, 256, 1, 1}, DataType::UInt32);
         auto conv2 = subg0->addOp<ConvObj>(relu1->getOutput(0), w2, nullptr);
         auto maxpool = subg0->addOp<MaxPoolObj>(relu1->getOutput(0), nullptr, 3,
-                                                3, 0, 0, 0, 0, 2, 2, 0);
+                                                3, 1, 1, 0, 0, 2, 2, 0);
         subg0->setOutputs(
             TensorVec{conv2->getOutput(0), maxpool->getOutput(0)});
     }
@@ -318,7 +315,7 @@ TEST(MatchGraph, multi_input_output) {
         Tensor w2 = subg1->addTensor(Shape{128, 256, 1, 1}, DataType::UInt32);
         auto conv2 = subg1->addOp<ConvObj>(relu1->getOutput(0), w2, nullptr);
         auto maxpool = subg1->addOp<MaxPoolObj>(relu1->getOutput(0), nullptr, 3,
-                                                3, 0, 0, 0, 0, 2, 2, 0);
+                                                3, 1, 1, 0, 0, 2, 2, 0);
         subg1->setOutputs(
             TensorVec{maxpool->getOutput(0), conv2->getOutput(0)});
     }
@@ -339,7 +336,7 @@ TEST(MatchGraph, multi_input_output) {
         Tensor w2 = subg2->addTensor(Shape{128, 256, 1, 1}, DataType::UInt32);
         auto conv2 = subg2->addOp<ConvObj>(relu1->getOutput(0), w2, nullptr);
         auto avgpool = subg2->addOp<AvgPoolObj>(relu1->getOutput(0), nullptr, 3,
-                                                3, 0, 0, 0, 0, 2, 2, 0);
+                                                3, 1, 1, 0, 0, 2, 2, 0);
         subg2->setOutputs(
             TensorVec{conv2->getOutput(0), avgpool->getOutput(0)});
     }
@@ -350,7 +347,7 @@ TEST(MatchGraph, multi_input_output) {
         auto i = g->addTensor(Shape{1, 64, 112, 112}, DataType::UInt32);
         auto relu = g->addOp<ReluObj>(i, nullptr);
         auto maxPool = g->addOp<MaxPoolObj>(relu->getOutput(0), nullptr, 3, 3,
-                                            0, 0, 1, 1, 2, 2, 0);
+                                            1, 1, 1, 1, 2, 2, 0);
         auto out0 =
             v.addSubGraph(subg0, {relu->getOutput(0), maxPool->getOutput(0)});
         auto out1 =

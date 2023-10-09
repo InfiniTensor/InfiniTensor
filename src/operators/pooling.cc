@@ -38,7 +38,7 @@ std::string PoolingObj::toString() const {
     os << "p=[" << ph << "," << pw << "],";
     os << "s=[" << sh << "," << sw << "],";
     os << "d=[" << dh << "," << dw << "],";
-    os << "ceil mode=" << ceilMode;
+    os << "ceil mode=" << ceilMode << ",";
     os << "input=" << inputs[0]->getGuid() << ",";
     os << "output=" << outputs[0]->getGuid() << ")";
     return os.str();
