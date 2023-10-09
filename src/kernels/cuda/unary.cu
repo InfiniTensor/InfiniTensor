@@ -66,6 +66,14 @@ __global__ void _sqrt_kernel(float *input, float *output, int n) {
     }
 }
 
+__global__ void _erf_kernel(float *input, float *output, int n) {
+    int index = threadIdx.x + blockIdx.x * blockDim.x;
+    int stride = blockDim.x * gridDim.x;
+    for (int i = index; i < n; i += stride) {
+        output[i] = erf(input[i]);
+    }
+}
+
 namespace infini {
 void softmax_kernel(float *input, float *output, int num) {
 
@@ -103,5 +111,11 @@ void sqrt_kernel(float *input, float *output, int num) {
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     _sqrt_kernel<<<gridsize, blocksize>>>(input, output, num);
+}
+void erf_kernel(float *input, float *output, int num) {
+
+    int blocksize = block_work_size();
+    int gridsize = (num + block_work_size() - 1) / block_work_size();
+    _erf_kernel<<<gridsize, blocksize>>>(input, output, num);
 }
 }; // namespace infini
