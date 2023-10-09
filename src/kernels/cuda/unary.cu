@@ -66,6 +66,14 @@ __global__ void _sqrt_kernel(float *input, float *output, size_t n) {
     }
 }
 
+__global__ void _erf_kernel(float *input, float *output, size_t n) {
+    size_t index = threadIdx.x + blockIdx.x * blockDim.x;
+    size_t stride = blockDim.x * gridDim.x;
+    for (int i = index; i < n; i += stride) {
+        output[i] = erf(input[i]);
+    }
+}
+
 template <typename T>
 __global__ void _neg_kernel(T *input, T *output, size_t n) {
     size_t index = threadIdx.x + blockIdx.x * blockDim.x;
@@ -112,6 +120,12 @@ void sqrt_kernel(float *input, float *output, size_t num) {
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     _sqrt_kernel<<<gridsize, blocksize>>>(input, output, num);
+}
+void erf_kernel(float *input, float *output, size_t num) {
+
+    int blocksize = block_work_size();
+    int gridsize = (num + block_work_size() - 1) / block_work_size();
+    _erf_kernel<<<gridsize, blocksize>>>(input, output, num);
 }
 void neg_kernel(float *input, float *output, size_t num) {
 

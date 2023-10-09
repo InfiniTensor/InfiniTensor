@@ -10,6 +10,7 @@ void tanh_kernel(float *input, float *output, size_t num);
 void abs_kernel(float *input, float *output, size_t num);
 void sqrt_kernel(float *input, float *output, size_t num);
 void neg_kernel(float *input, float *output, size_t num);
+void erf_kernel(float *input, float *output, size_t num);
 
 void unary_kernel(const Operator &_op) {
     auto op = as<UnaryObj>(_op);
@@ -31,6 +32,8 @@ void unary_kernel(const Operator &_op) {
         sqrt_kernel(inputData, outputData, num);
     else if (op->getOpType() == OpType::Neg)
         neg_kernel(inputData, outputData, num);
+    else if (op->getOpType() == OpType::Erf)
+        erf_kernel(inputData, outputData, num);
     else
         IT_TODO_HALT();
 }
