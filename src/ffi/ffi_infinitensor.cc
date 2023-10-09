@@ -187,14 +187,14 @@ static std::tuple<float, float, bool> batch_norm_attrs_of(Operator op) {
                            batchnorm->getTrainingMode());
 }
 
-static std::tuple<int, int, int, int, int, int, int, int>
+static std::tuple<int, int, int, int, int, int, int, int, int>
 pool_attrs_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::MaxPool ||
               op->getOpType() == OpType::AveragePool);
     auto pool = dynamic_cast<const PoolingObj *>(op.get());
     return std::make_tuple(pool->getKh(), pool->getKw(), pool->getDh(),
                            pool->getDw(), pool->getPh(), pool->getPw(),
-                           pool->getSh(), pool->getSw());
+                           pool->getSh(), pool->getSw(), pool->getCeilMode());
 }
 
 static std::tuple<std::optional<float>, std::optional<float>>
