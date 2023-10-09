@@ -28,6 +28,8 @@ void testConv(const std::function<void(void *, size_t, DataType)> &generatorA,
     auto mluOp =
         xpuGraph->addOp<T>(inputMlu1, inputMlu2, nullptr, 1, 1, 1, 1, 1, 1);
     xpuGraph->dataMalloc();
+    inputMlu1->setData(generatorA);
+    inputMlu2->setData(generatorB);
     xpuRuntime->run(xpuGraph);
     auto outputXpu = mluOp->getOutput();
     auto outputXpu2Cpu = outputXpu->clone(cpuRuntime);
@@ -42,16 +44,13 @@ void testConv(const std::function<void(void *, size_t, DataType)> &generatorA,
     inputCpu2->setData(generatorB);
     cpuRuntime->run(cpuGraph);
     auto outputCpu = cpuOp->getOutput();
-    outputCpu->print();
-    outputXpu2Cpu->print();
     // Check
-    // EXPECT_TRUE(outputCpu->equalData(outputMlu2Cpu));
-    EXPECT_TRUE(true);
+    EXPECT_TRUE(outputCpu->equalData(outputXpu2Cpu));
 }
 
 TEST(xpu_Conv, run) {
     testConv<ConvObj>(IncrementalGenerator(), IncrementalGenerator(),
-                      Shape{1, 3, 224, 224}, Shape{2, 3, 3, 3});
+                      Shape{1, 3, 32, 32}, Shape{2, 3, 3, 3});
 }
 
 } // namespace infini
