@@ -243,6 +243,12 @@ class TestStringMethods(unittest.TestCase):
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
         abs = make_node("Abs", ["x"], ["y"], name="abs")
         make_and_import_model(make_graph([abs], "abs", [x], [y]))
+    
+    def test_neg(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        neg = make_node("Neg", ["x"], ["y"], name="neg")
+        make_and_import_model(make_graph([neg], "neg", [x], [y]))
 
     def test_identity(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
