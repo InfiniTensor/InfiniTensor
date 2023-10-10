@@ -1,12 +1,14 @@
-#include "operators/reduce_mean.h"
 #include "cuda/cuda_kernel_wihtout_config.h"
 #include "cuda/cuda_runtime.h"
+#include "operators/reduce.h"
 
 namespace infini {
-class ReduceMeanCudnn : public CudaKernelWithoutConfig {
+class ReduceCudnnBase : public CudaKernelWithoutConfig {
+    virtual cudnnReduceTensorOp_t getReduceOp() const = 0;
+
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
-        auto op = as<ReduceMeanObj>(_op);
+        auto op = as<ReduceBaseObj>(_op);
         auto input = op->getInputs(0);
         auto output = op->getOutput();
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
@@ -71,7 +73,7 @@ class ReduceMeanCudnn : public CudaKernelWithoutConfig {
         cudnnReduceTensorDescriptor_t reduceDesc;
         checkCudnnError(cudnnCreateReduceTensorDescriptor(&reduceDesc));
         checkCudnnError(cudnnSetReduceTensorDescriptor(
-            reduceDesc, CUDNN_REDUCE_TENSOR_AVG, CUDNN_DATA_FLOAT,
+            reduceDesc, getReduceOp(), CUDNN_DATA_FLOAT,
             CUDNN_NOT_PROPAGATE_NAN, CUDNN_REDUCE_TENSOR_NO_INDICES,
             CUDNN_32BIT_INDICES));
 
@@ -106,6 +108,20 @@ class ReduceMeanCudnn : public CudaKernelWithoutConfig {
     }
 };
 
+class ReduceMeanCudnn : public ReduceCudnnBase {
+    cudnnReduceTensorOp_t getReduceOp() const override {
+        return CUDNN_REDUCE_TENSOR_AVG;
+    }
+};
+
+class ReduceSumCudnn : public ReduceCudnnBase {
+    cudnnReduceTensorOp_t getReduceOp() const override {
+        return CUDNN_REDUCE_TENSOR_ADD;
+    }
+};
+
 REGISTER_KERNEL(Device::CUDA, OpType::ReduceMean, DataType::Float32,
                 ReduceMeanCudnn, "ReduceMean_cuDNN_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::ReduceSum, DataType::Float32,
+                ReduceSumCudnn, "ReduceSum_cuDNN_CUDA_Float32");
 }; // namespace infini

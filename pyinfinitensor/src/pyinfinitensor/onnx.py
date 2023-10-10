@@ -573,7 +573,7 @@ class OnnxStub:
                         ),
                     )
                 elif node.op_type == "ReduceMean":
-                    tensors[node.output[0]] = self.handler.reduce_mean(
+                    tensors[node.output[0]] = self.handler.reduceMean(
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
                         # NOTE(constroy): `axes` is an attribute until opset version 13.
@@ -642,12 +642,40 @@ class OnnxStub:
                         next((attr.i for attr in node.attribute if attr.name == "to")),
                     )
                 elif node.op_type == "ReduceSum":
-                    # ReduceSum is only implemented as allReduceSum.
-                    assert any(attr.name == "communicator" for attr in node.attribute)
-                    tensors[node.output[0]] = self.handler.allReduceSum(
-                        tensors[node.input[0]],
-                        tensors.get(node.output[0]),
-                    )
+                    if any(attr.name == "communicator" for attr in node.attribute):
+                        # ReduceSum with communicator is treated as allReduceSum.
+                        tensors[node.output[0]] = self.handler.allReduceSum(
+                            tensors[node.input[0]],
+                            tensors.get(node.output[0]),
+                        )
+                    else: 
+                        # NOTE: `axes` is an attribute until opset version 13.
+                        if len(node.input) > 1:
+                            axis = _parse_data(data[node.input[1]])
+                        else:
+                            axis =  next(
+                                (
+                                    attr.ints
+                                    for attr in node.attribute
+                                    if attr.name == "axes"
+                                ),
+                                None,
+                            )
+                        keepdims = next(
+                            (
+                                attr.i
+                                for attr in node.attribute
+                                if attr.name == "keepdims"
+                            ),
+                            1,
+                        ) != 0
+
+                        tensors[node.output[0]] = self.handler.reduceSum(
+                            tensors[node.input[0]],
+                            tensors.get(node.output[0]),
+                            axis,
+                            keepdims,
+                        )
                 elif node.op_type == "AllReduceSum":
                     tensors[node.output[0]] = self.handler.allReduceSum(
                         tensors[node.input[0]],
@@ -1009,8 +1037,11 @@ class OnnxStub:
             elif ty == backend.OpTypeId.Gather:
                 axis = backend.gather_axis_of(op)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, axis=axis))
-            elif ty == backend.OpTypeId.ReduceMean:
-                axes, keepdims = backend.reduce_mean_attrs_of(op)
+            elif ty in [
+                backend.OpTypeId.ReduceMean,
+                backend.OpTypeId.ReduceSum
+            ]:
+                axes, keepdims = backend.reduce_attrs_of(op)
                 inputs.append(
                     ctx.push_data_input(
                         name, "axes", TensorProto.INT64, [len(axes)], axes

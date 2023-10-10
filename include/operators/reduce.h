@@ -3,16 +3,17 @@
 
 namespace infini {
 /**
- * @brief Compute the mean of input tensor's elements along certain axes.
+ * @brief Compute the reduction of input tensor's elements along certain axes.
  *
  */
-class ReduceMeanObj : public OperatorObj {
+class ReduceBaseObj : public OperatorObj {
+  protected:
     set<int> axes; // axis to reduce
     bool keepDims;
 
   public:
     /**
-     * @brief Construct a new ReduceMean object.
+     * @brief Construct a new Reduce object.
      *
      * @param graph The computation graph that this operator belongs to.
      * @param input The input tensor.
@@ -20,9 +21,10 @@ class ReduceMeanObj : public OperatorObj {
      * @param axes Axes to reduce.
      * @param keepDims Keep the reduced dimensions or not.
      */
-    ReduceMeanObj(GraphObj *graph, Tensor input, Tensor output,
-                  const optional<vector<int>> &axes, bool keepDims = true);
-    OP_CLONE(ReduceMeanObj);
+    ReduceBaseObj(GraphObj *graph, OpType opType, Tensor input, Tensor output,
+                  const optional<vector<int>> &axes, bool keepDims);
+    virtual ~ReduceBaseObj() {}
+    OP_CLONE(ReduceBaseObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
     std::string toString() const override;
@@ -38,4 +40,15 @@ class ReduceMeanObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 };
 
+class ReduceMeanObj : public ReduceBaseObj {
+  public:
+    ReduceMeanObj(GraphObj *graph, Tensor input, Tensor output,
+                  const optional<vector<int>> &axes, bool keepDims = true);
+};
+
+class ReduceSumObj : public ReduceBaseObj {
+  public:
+    ReduceSumObj(GraphObj *graph, Tensor input, Tensor output,
+                 const optional<vector<int>> &axes, bool keepDims = true);
+};
 } // namespace infini

@@ -11,7 +11,7 @@
 #include "operators/matmul.h"
 #include "operators/pad.h"
 #include "operators/pooling.h"
-#include "operators/reduce_mean.h"
+#include "operators/reduce.h"
 #include "operators/reshape.h"
 #include "operators/slice.h"
 #include "operators/softmax.h"
@@ -279,18 +279,36 @@ Tensor GraphHandlerObj::gatherElements(Tensor data, Tensor indices,
     }
 }
 
-Tensor GraphHandlerObj::reduceMean(Tensor data, Tensor reduced,
-                                   const optional<vector<int>> &axes,
-                                   bool keepdims) {
-    if (reduced) {
-        g->addOpWithOutputs<ReduceMeanObj>(std::move(data), reduced, axes,
-                                           keepdims);
-        return reduced;
+Tensor GraphHandlerObj::gatherElements(Tensor data, Tensor indices,
+                                       Tensor output, int axis) {
+    if (output) {
+        g->addOpWithOutputs<GatherElementsObj>(
+            std::move(data), std::move(indices), output, axis);
+        return output;
     } else {
-        return g->addOp<ReduceMeanObj>(std::move(data), reduced, axes, keepdims)
+        return g
+            ->addOp<GatherElementsObj>(std::move(data), std::move(indices),
+                                       output, axis)
             ->getOutput();
     }
 }
+
+#define DEFINE_REDUCE_METHOD(name, obj)                                        \
+    Tensor GraphHandlerObj::name(Tensor data, Tensor reduced,                  \
+                                 const optional<vector<int>> &axes,            \
+                                 bool keepdims) {                              \
+        if (reduced) {                                                         \
+            g->addOpWithOutputs<obj##Obj>(std::move(data), reduced, axes,      \
+                                          keepdims);                           \
+            return reduced;                                                    \
+        } else {                                                               \
+            return g                                                           \
+                ->addOp<obj##Obj>(std::move(data), reduced, axes, keepdims)    \
+                ->getOutput();                                                 \
+        }                                                                      \
+    }
+DEFINE_REDUCE_METHOD(reduceMean, ReduceMean)
+DEFINE_REDUCE_METHOD(reduceSum, ReduceSum)
 
 Tensor GraphHandlerObj::slice(Tensor input, Tensor output,
                               const vector<int> &starts,
