@@ -12,6 +12,7 @@ class PoolingObj : public OperatorObj {
     int dh, dw;
     int ph, pw;
     int sh, sw;
+    int ceilMode;
     int n, c, h, w;
 
   public:
@@ -32,9 +33,12 @@ class PoolingObj : public OperatorObj {
      * @param pw Padding at the width dimension.
      * @param sh Stride at the height dimension.
      * @param sw Stride at the width dimension.
+     * @param ceilMode Whether to use ceil(1) or floor(0) to compute the output
+     * shape.
      */
     PoolingObj(GraphObj *graph, OpType optype, Tensor input, Tensor output,
-               int kh, int kw, int dh, int dw, int ph, int pw, int sh, int sw);
+               int kh, int kw, int dh, int dw, int ph, int pw, int sh, int sw,
+               int ceilMode);
     OP_CLONE(PoolingObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
@@ -50,6 +54,7 @@ class PoolingObj : public OperatorObj {
     int getPw() const { return pw; }
     int getSh() const { return sh; }
     int getSw() const { return sw; }
+    int getCeilMode() const { return ceilMode; }
 
     auto getPadStrideDilation() const { return tuple(ph, pw, sh, sw, dh, dw); }
     auto getNCHWRS() const { return tuple(n, c, h, w, kh, kw); }
@@ -62,15 +67,15 @@ class PoolingObj : public OperatorObj {
 class MaxPoolObj : public PoolingObj {
   public:
     MaxPoolObj(GraphObj *graph, Tensor input, Tensor output, int kh, int kw,
-               int dh, int dw, int ph, int pw, int sh, int sw)
+               int dh, int dw, int ph, int pw, int sh, int sw, int ceilMode)
         : PoolingObj(graph, OpType::MaxPool, input, output, kh, kw, dh, dw, ph,
-                     pw, sh, sw) {}
+                     pw, sh, sw, ceilMode) {}
 };
 class AvgPoolObj : public PoolingObj {
   public:
     AvgPoolObj(GraphObj *graph, Tensor input, Tensor output, int kh, int kw,
-               int dh, int dw, int ph, int pw, int sh, int sw)
+               int dh, int dw, int ph, int pw, int sh, int sw, int ceilMode)
         : PoolingObj(graph, OpType::AveragePool, input, output, kh, kw, dh, dw,
-                     ph, pw, sh, sw) {}
+                     ph, pw, sh, sw, ceilMode) {}
 };
 }; // namespace infini

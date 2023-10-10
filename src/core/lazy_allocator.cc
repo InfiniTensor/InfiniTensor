@@ -145,10 +145,10 @@ void LazyAllocator::free(size_t addr, size_t size) {
 void *LazyAllocator::getPtr() {
     if (this->ptr == nullptr) {
         this->ptr = runtime->alloc(this->peak);
-#ifdef DEBUG_MODE
-        printf("LazyAllocator really alloc non-weight: %p %lu bytes\n",
-               this->ptr, peak);
-#endif
+        // #ifdef DEBUG_MODE
+        //         printf("LazyAllocator really alloc non-weight: %p %lu
+        //         bytes\n", this->ptr, peak);
+        // #endif
     }
     return this->ptr;
 }
@@ -156,10 +156,10 @@ void *LazyAllocator::getPtr() {
 void *LazyAllocator::getWeightPtr() {
     if (this->weightPtr == nullptr) {
         this->weightPtr = runtime->alloc(this->weightPeak);
-#ifdef DEBUG_MODE
-        printf("LazyAllocator really alloc weight: %p %lu bytes\n",
-               this->weightPtr, weightPeak);
-#endif
+        // #ifdef DEBUG_MODE
+        //         printf("LazyAllocator really alloc weight: %p %lu bytes\n",
+        //                this->weightPtr, weightPeak);
+        // #endif
     }
     return this->weightPtr;
 }

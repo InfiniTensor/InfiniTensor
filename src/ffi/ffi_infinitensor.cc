@@ -102,6 +102,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, Dropout)
         .VALUE(OpType, Cast)
         .VALUE(OpType, Sqrt)
+        .VALUE(OpType, Neg)
         .VALUE(OpType, Expand)
         .VALUE(OpType, Erf)
         .VALUE(OpType, Where)
@@ -189,14 +190,14 @@ static std::tuple<float, float, bool> batch_norm_attrs_of(Operator op) {
                            batchnorm->getTrainingMode());
 }
 
-static std::tuple<int, int, int, int, int, int, int, int>
+static std::tuple<int, int, int, int, int, int, int, int, int>
 pool_attrs_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::MaxPool ||
               op->getOpType() == OpType::AveragePool);
     auto pool = dynamic_cast<const PoolingObj *>(op.get());
     return std::make_tuple(pool->getKh(), pool->getKw(), pool->getDh(),
                            pool->getDw(), pool->getPh(), pool->getPw(),
-                           pool->getSh(), pool->getSw());
+                           pool->getSh(), pool->getSw(), pool->getCeilMode());
 }
 
 static std::tuple<std::optional<float>, std::optional<float>>
@@ -448,6 +449,7 @@ void init_graph_builder(py::module &m) {
         .def("softmax", &Handler::softmax, policy::move)
         .def("abs", &Handler::abs, policy::move)
         .def("sqrt", &Handler::sqrt, policy::move)
+        .def("neg", &Handler::neg, policy::move)
         .def("shape", &Handler::shape, policy::move)
         .def("identity", &Handler::identity, policy::move)
         .def("flatten", &Handler::flatten, policy::move)

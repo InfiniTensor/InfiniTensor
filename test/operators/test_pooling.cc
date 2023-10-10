@@ -12,16 +12,16 @@ TEST(MaxPool, ShapeInference) {
         Graph g = make_ref<GraphObj>(cpuRuntime);
         Tensor i = g->addTensor({1, 64, 162, 162}, DataType::UInt32);
         const int kh = 3, kw = 3, dh = 1, dw = 1, ph = 0, pw = 0, sh = 2,
-                  sw = 2;
-        auto op =
-            g->addOp<MaxPoolObj>(i, nullptr, kh, kw, dh, dw, ph, pw, sh, sw);
+                  sw = 2, ceilMode = 0;
+        auto op = g->addOp<MaxPoolObj>(i, nullptr, kh, kw, dh, dw, ph, pw, sh,
+                                       sw, ceilMode);
         EXPECT_EQ(op->getOutput()->getDims(), (Shape{1, 64, 80, 80}));
     }
 
     { // dilation & stride
         Graph g = make_ref<GraphObj>(cpuRuntime);
         Tensor i = g->addTensor({1, 64, 162, 162}, DataType::UInt32);
-        auto op = g->addOp<MaxPoolObj>(i, nullptr, 4, 3, 1, 1, 2, 1, 1, 2);
+        auto op = g->addOp<MaxPoolObj>(i, nullptr, 4, 3, 1, 1, 2, 1, 1, 2, 0);
         EXPECT_EQ(op->getOutput()->getDims(), (Shape{1, 64, 163, 81}));
     }
 }
@@ -30,7 +30,7 @@ TEST(MaxPool, NaiveCPU) {
     Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     Graph g = make_ref<GraphObj>(cpuRuntime);
     Tensor i = g->addTensor({1, 2, 5, 5}, DataType::UInt32);
-    auto op = g->addOp<MaxPoolObj>(i, nullptr, 3, 3, 1, 1, 1, 1, 2, 2);
+    auto op = g->addOp<MaxPoolObj>(i, nullptr, 3, 3, 1, 1, 1, 1, 2, 2, 0);
 
     g->dataMalloc();
     i->setData(IncrementalGenerator());
@@ -49,7 +49,7 @@ TEST(AvgPool, NaiveCPU) {
     Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     Graph g = make_ref<GraphObj>(cpuRuntime);
     Tensor i = g->addTensor({1, 2, 5, 5}, DataType::Float32);
-    auto op = g->addOp<AvgPoolObj>(i, nullptr, 3, 3, 1, 1, 1, 1, 2, 2);
+    auto op = g->addOp<AvgPoolObj>(i, nullptr, 3, 3, 1, 1, 1, 1, 2, 2, 0);
 
     g->dataMalloc();
     i->setData(IncrementalGenerator());
