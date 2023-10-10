@@ -27,6 +27,7 @@ from onnx.numpy_helper import to_array
 from typing import Dict, List, Any, Tuple, Sequence, Union, Optional
 from functools import reduce
 from onnxsim import simplify
+import copy
 
 
 class OnnxStub:
@@ -37,7 +38,8 @@ class OnnxStub:
     def __init__(self, model: ModelProto, runtime):
         # We use some user-defined operators for distributed inference
         try:
-            model_simp, check = simplify(model)
+            # onnx simplifier performs inplace simplify
+            model_simp, check = simplify(copy.deepcopy(model))
             if check:
                 model = model_simp
         except ValidationError:
