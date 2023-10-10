@@ -9,7 +9,8 @@ namespace infini {
 using KDPS = vector<int>;
 using ExpectOutput = vector<float>;
 
-template <class T>
+template <class T, typename std::enable_if<std::is_base_of<PoolingObj, T>{},
+                                           int>::type = 0>
 void testPoolCudnn(
     const std::function<void(void *, size_t, DataType)> &generator,
     const Shape &shape, const KDPS &kdps, const ExpectOutput &ansVec) {
@@ -24,7 +25,7 @@ void testPoolCudnn(
     Graph g = make_ref<GraphObj>(cudaRuntime);
     auto i0 = g->cloneTensor(i0cpu);
     auto pool = g->addOp<T>(i0, nullptr, kdps[0], kdps[1], kdps[2], kdps[3],
-                            kdps[4], kdps[5], kdps[6], kdps[7]);
+                            kdps[4], kdps[5], kdps[6], kdps[7], 0);
 
     // allocate CUDA memory
     g->dataMalloc();

@@ -12,7 +12,7 @@ requires-python = ">=3.7"
 keywords = ["optimizer"]
 license = { text = "Apache" }
 classifiers = ["Programming Language :: Python :: 3"]
-dependencies = ["onnx"]
+dependencies = ["onnx","onnx-simplifier"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

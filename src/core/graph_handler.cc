@@ -95,30 +95,30 @@ Tensor GraphHandlerObj::batchNormalization(Tensor input, Tensor output,
 }
 
 Tensor GraphHandlerObj::maxPool(Tensor input, Tensor output, int kh, int kw,
-                                int dh, int dw, int ph, int pw, int sh,
-                                int sw) {
+                                int dh, int dw, int ph, int pw, int sh, int sw,
+                                int ceilMode) {
     if (output) {
         g->addOpWithOutputs<MaxPoolObj>(std::move(input), output, kh, kw, dh,
-                                        dw, ph, pw, sh, sw);
+                                        dw, ph, pw, sh, sw, ceilMode);
         return output;
     } else {
         return g
             ->addOp<MaxPoolObj>(std::move(input), output, kh, kw, dh, dw, ph,
-                                pw, sh, sw)
+                                pw, sh, sw, ceilMode)
             ->getOutput();
     }
 }
 Tensor GraphHandlerObj::avgPool(Tensor input, Tensor output, int kh, int kw,
-                                int dh, int dw, int ph, int pw, int sh,
-                                int sw) {
+                                int dh, int dw, int ph, int pw, int sh, int sw,
+                                int ceilMode) {
     if (output) {
         g->addOpWithOutputs<AvgPoolObj>(std::move(input), output, kh, kw, dh,
-                                        dw, ph, pw, sh, sw);
+                                        dw, ph, pw, sh, sw, ceilMode);
         return output;
     } else {
         return g
             ->addOp<AvgPoolObj>(std::move(input), output, kh, kw, dh, dw, ph,
-                                pw, sh, sw)
+                                pw, sh, sw, ceilMode)
             ->getOutput();
     }
 }
@@ -155,10 +155,14 @@ DEFINE_ELEMENT_WISE_METHOD(max, Maximum)
     }
 
 DEFINE_UNARY_METHOD(relu, Relu)
+DEFINE_UNARY_METHOD(gelu, Gelu)
 DEFINE_UNARY_METHOD(sigmoid, Sigmoid)
 DEFINE_UNARY_METHOD(tanh, Tanh)
+DEFINE_UNARY_METHOD(hardSigmoid, HardSigmoid)
+DEFINE_UNARY_METHOD(hardSwish, HardSwish)
 DEFINE_UNARY_METHOD(abs, Abs)
 DEFINE_UNARY_METHOD(sqrt, Sqrt)
+DEFINE_UNARY_METHOD(neg, Neg)
 DEFINE_UNARY_METHOD(shape, Shape)
 DEFINE_UNARY_METHOD(erf, Erf)
 
