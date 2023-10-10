@@ -20,6 +20,7 @@ from onnx.checker import (
     check_node,
     check_value_info,
     check_tensor,
+    ValidationError,
 )
 from onnx.shape_inference import infer_shapes
 from onnx.numpy_helper import to_array
@@ -34,9 +35,13 @@ class OnnxStub:
     It can be generated from an Onnx model object.
     """
     def __init__(self, model: ModelProto, runtime):
-        model_simp, check = simplify(model)
-        if check:
-            model = model_simp
+        # We use some user-defined operators for distributed inference
+        try:
+            model_simp, check = simplify(model)
+            if check:
+                model = model_simp
+        except ValidationError:
+            pass
         self.inputs: Dict[str, backend.Tensor] = {}
         self.outputs: Dict[str, backend.Tensor] = {}
         self.initializer: Dict[int, TensorProto] = {}
