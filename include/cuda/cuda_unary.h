@@ -12,6 +12,8 @@ void sqrt_kernel(float *input, float *output, size_t num);
 void neg_kernel(float *input, float *output, size_t num);
 void gelu_kernel(float *input, float *output, size_t num);
 void erf_kernel(float *input, float *output, size_t num);
+void hard_sigmoid_kernel(float *input, float *output, size_t num);
+void hard_swish_kernel(float *input, float *output, size_t num);
 
 void unary_kernel(const Operator &_op) {
     auto op = as<UnaryObj>(_op);
@@ -25,6 +27,10 @@ void unary_kernel(const Operator &_op) {
         relu_kernel(inputData, outputData, num);
     else if (op->getOpType() == OpType::Sigmoid)
         sigmoid_kernel(inputData, outputData, num);
+    else if (op->getOpType() == OpType::HardSigmoid)
+        hard_sigmoid_kernel(inputData, outputData, num);
+    else if (op->getOpType() == OpType::HardSwish)
+        hard_swish_kernel(inputData, outputData, num);
     else if (op->getOpType() == OpType::Tanh)
         tanh_kernel(inputData, outputData, num);
     else if (op->getOpType() == OpType::Abs)

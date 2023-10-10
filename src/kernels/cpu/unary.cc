@@ -46,6 +46,17 @@ template <typename T> class NaiveSigmoid : public NativeUnary<T> {
         return 1 / (1 + pow(E_CONSTANT, -val));
     }
 };
+template <typename T> class NaiveHardSigmoid : public NativeUnary<T> {
+    T doCompute(T val) const override {
+        return std::max(T(0), std::min(T(1), T(0.2) * val + T(0.5)));
+    }
+};
+template <typename T> class NaiveHardSwish : public NativeUnary<T> {
+    T doCompute(T val) const override {
+        return val *
+               std::max(T(0), std::min(T(1), val * T(1.0 / 6.0) + T(0.5)));
+    }
+};
 template <typename T> class NaiveTanh : public NativeUnary<T> {
     T doCompute(T val) const override {
         return (pow(E_CONSTANT, val) - pow(E_CONSTANT, -val)) /
@@ -105,6 +116,10 @@ REGISTER_KERNEL(Device::CPU, OpType::Sigmoid, DataType::UInt32,
                 NaiveSigmoid<uint32_t>, "sigmoidNaive_CPU_uint32");
 REGISTER_KERNEL(Device::CPU, OpType::Sigmoid, DataType::Float32,
                 NaiveSigmoid<float>, "sigmoidNaive_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::HardSigmoid, DataType::Float32,
+                NaiveHardSigmoid<float>, "hardSigmoidNaive_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::HardSwish, DataType::Float32,
+                NaiveHardSwish<float>, "hardSwishNaive_CPU_float32");
 REGISTER_KERNEL(Device::CPU, OpType::Tanh, DataType::UInt32,
                 NaiveTanh<uint32_t>, "tanhNaive_CPU_uint32");
 REGISTER_KERNEL(Device::CPU, OpType::Tanh, DataType::Float32, NaiveTanh<float>,

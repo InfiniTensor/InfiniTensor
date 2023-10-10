@@ -395,6 +395,16 @@ class OnnxStub:
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
                     )
+                elif node.op_type == "HardSigmoid":
+                    tensors[node.output[0]] = self.handler.hardSigmoid(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "HardSwish":
+                    tensors[node.output[0]] = self.handler.hardSwish(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
                 elif node.op_type == "Tanh":
                     tensors[node.output[0]] = self.handler.tanh(
                         tensors[node.input[0]],
@@ -931,6 +941,8 @@ class OnnxStub:
                 backend.OpTypeId.Relu,
                 backend.OpTypeId.Gelu,
                 backend.OpTypeId.Sigmoid,
+                backend.OpTypeId.HardSigmoid,
+                backend.OpTypeId.HardSwish,
                 backend.OpTypeId.Tanh,
                 backend.OpTypeId.Softmax,
                 backend.OpTypeId.Abs,
