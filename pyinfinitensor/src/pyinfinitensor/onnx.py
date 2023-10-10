@@ -374,6 +374,11 @@ class OnnxStub:
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
                     )
+                elif node.op_type == "Gelu":
+                    tensors[node.output[0]] = self.handler.gelu(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
                 elif node.op_type == "Sigmoid":
                     tensors[node.output[0]] = self.handler.sigmoid(
                         tensors[node.input[0]],
@@ -913,6 +918,7 @@ class OnnxStub:
                 backend.OpTypeId.Div,
                 backend.OpTypeId.Pow,
                 backend.OpTypeId.Relu,
+                backend.OpTypeId.Gelu,
                 backend.OpTypeId.Sigmoid,
                 backend.OpTypeId.Tanh,
                 backend.OpTypeId.Softmax,
