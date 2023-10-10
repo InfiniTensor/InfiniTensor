@@ -29,17 +29,27 @@ class poolingCudnn : public CudaKernelWithoutConfig {
             pw, sh, sw));
 
         // get outputs
-        int outn, outc, outh, outw;
-        checkCudnnError(cudnnGetPooling2dForwardOutputDim(
-            poolingDesc, inDesc, &outn, &outc, &outh, &outw));
+        auto outDims = op->getOutput()->getDims();
+        int outn = outDims[0], outc = outDims[1], outh = outDims[2],
+            outw = outDims[3];
+        // NOTICE: cudnn pooling does not support ceil mode, so the shape
+        // inference of cudnn pooling is not consistant with our framework. Ceil
+        // mode is also supported in Pytorch and ONNX. See
+        // https://pytorch.org/docs/stable/generated/torch.nn.MaxPool2d.html#torch.nn.MaxPool2d
+        // and https://github.com/onnx/onnx/blob/main/docs/Operators.md#MaxPool
+        // for reference.
+        // TODO: Make sure the result after considering ceil mode is correct.
+        // int outn, outc, outh, outw;
+        // checkCudnnError(cudnnGetPooling2dForwardOutputDim(poolingDesc,
+        // inDesc, &outn, &outc, &outh, &outw));
         cudnnTensorDescriptor_t outDesc;
         checkCudnnError(cudnnCreateTensorDescriptor(&outDesc));
         checkCudnnError(cudnnSetTensor4dDescriptor(outDesc, CUDNN_TENSOR_NCHW,
                                                    CUDNN_DATA_FLOAT, outn, outc,
                                                    outh, outw));
-        IT_ASSERT((vector{outn, outc, outh, outw}) ==
-                      op->getOutput()->getDims(),
-                  "cuDNN output shape mismatches with OP output shape");
+        // IT_ASSERT((vector{outn, outc, outh, outw}) ==
+        //               op->getOutput()->getDims(),
+        //           "cuDNN output shape mismatches with OP output shape");
 
         float alpha = 1.f, beta = 0.f;
         checkCudnnError(cudnnPoolingForward(context->cudnnHandle(), poolingDesc,

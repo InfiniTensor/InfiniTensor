@@ -73,6 +73,7 @@ struct OpType {
         GatherElements,
         GatherND,
         Gemm,
+        Gelu,              // Unary
         GlobalAveragePool, // GlobalPool
         GlobalLpPool,      // GlobalPool
         GlobalMaxPool,     // GlobalPool

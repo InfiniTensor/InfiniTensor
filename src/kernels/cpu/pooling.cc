@@ -21,6 +21,7 @@ template <typename T> class NativePooling : public CpuKernelWithoutConfig {
                 auto inoffset = i * (c * ih * iw) + j * ih * iw;
                 for (auto h = 0; h < oh; h++) {
                     for (auto w = 0; w < ow; w++) {
+                        // TODO: verify ceil mode
                         T val =
                             getPoolingValue(kh, kw, h * sh - ph, w * sw - pw,
                                             ih, iw, inptr + inoffset);
