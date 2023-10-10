@@ -20,11 +20,14 @@ from onnx.checker import (
     check_node,
     check_value_info,
     check_tensor,
+    ValidationError,
 )
 from onnx.shape_inference import infer_shapes
 from onnx.numpy_helper import to_array
 from typing import Dict, List, Any, Tuple, Sequence, Union, Optional
 from functools import reduce
+from onnxsim import simplify
+import copy
 
 
 class OnnxStub:
@@ -33,6 +36,14 @@ class OnnxStub:
     It can be generated from an Onnx model object.
     """
     def __init__(self, model: ModelProto, runtime):
+        # We use some user-defined operators for distributed inference
+        try:
+            # onnx simplifier performs inplace simplify
+            model_simp, check = simplify(copy.deepcopy(model))
+            if check:
+                model = model_simp
+        except ValidationError:
+            pass
         self.inputs: Dict[str, backend.Tensor] = {}
         self.outputs: Dict[str, backend.Tensor] = {}
         self.initializer: Dict[int, TensorProto] = {}
@@ -381,6 +392,16 @@ class OnnxStub:
                     )
                 elif node.op_type == "Sigmoid":
                     tensors[node.output[0]] = self.handler.sigmoid(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "HardSigmoid":
+                    tensors[node.output[0]] = self.handler.hardSigmoid(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "HardSwish":
+                    tensors[node.output[0]] = self.handler.hardSwish(
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
                     )
@@ -920,6 +941,8 @@ class OnnxStub:
                 backend.OpTypeId.Relu,
                 backend.OpTypeId.Gelu,
                 backend.OpTypeId.Sigmoid,
+                backend.OpTypeId.HardSigmoid,
+                backend.OpTypeId.HardSwish,
                 backend.OpTypeId.Tanh,
                 backend.OpTypeId.Softmax,
                 backend.OpTypeId.Abs,
