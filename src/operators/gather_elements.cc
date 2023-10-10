@@ -34,8 +34,8 @@ GatherElementsObj::inferShape(const TensorVec &inputs) const {
 vector<DataType>
 GatherElementsObj::inferDataType(const TensorVec &inputs) const {
     IT_ASSERT(inputs.size() == 2);
-    auto index_dtype = inputs[1]->getDType();
-    IT_ASSERT(index_dtype == DataType::Int32 || index_dtype == DataType::Int64);
+    auto indexDtype = inputs[1]->getDType();
+    IT_ASSERT(indexDtype == DataType::Int32 || indexDtype == DataType::Int64);
     return {inputs[0]->getDType()};
 }
 

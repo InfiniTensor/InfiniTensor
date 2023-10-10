@@ -59,7 +59,7 @@ void gather_elements_kernel(void *in, void *out, GatherMetaData metaData,
             reinterpret_cast<int *>(in), reinterpret_cast<int *>(out), metaData,
             num);
     } else {
-        IT_TODO_HALT_MSG("GatherElements Cuda Kernel: Unsupported type.\n");
+        IT_TODO_HALT_MSG("GatherElements Cuda Kernel: Unsupported data type.\n");
     }
 }
 } // namespace infini

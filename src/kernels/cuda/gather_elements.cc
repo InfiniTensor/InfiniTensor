@@ -9,7 +9,6 @@ class GatherElementsCuda : public CudaKernelWithoutConfig {
 
     void compute(const Operator &op,
                  const RuntimeObj *_context) const override {
-
         GatherMetaData metaData;
         initGatherMetaData(metaData, op);
 

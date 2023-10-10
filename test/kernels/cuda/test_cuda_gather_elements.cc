@@ -18,10 +18,12 @@ TEST(GatherElements, intDataLongIndices) {
     gCuda->dataMalloc();
     inputCuda->copyin(vector<int>{1, 2, 3, 4, 5, 6, 7, 8, 9});
     indexCuda->copyin(vector<int64_t>{1, 2, 0, 2, 0, 0});
+
     cudaRuntime->run(gCuda);
     auto result = op->getOutput()->clone(cpuRuntime);
     EXPECT_TRUE(result->equalData<int>({4, 8, 3, 7, 2, 3}));
 }
+
 TEST(GatherElements, floatDataIntIndices) {
     auto cpuRuntime = NativeCpuRuntimeObj::getInstance();
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
@@ -33,6 +35,7 @@ TEST(GatherElements, floatDataIntIndices) {
     gCuda->dataMalloc();
     inputCuda->copyin(vector<float>{1., 2., 3., 4.});
     indexCuda->copyin(vector<int>{0, 0, 1, 0});
+    
     cudaRuntime->run(gCuda);
     auto result = op->getOutput()->clone(cpuRuntime);
     EXPECT_TRUE(result->equalData<float>({1., 1., 4., 3.}));
