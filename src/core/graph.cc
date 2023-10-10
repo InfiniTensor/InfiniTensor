@@ -123,9 +123,19 @@ void GraphObj::optimize() {
     }
 }
 
-void GraphObj::dataMalloc() {
+void GraphObj::dataMalloc(bool useNaiveAllocator) {
     // topological sorting first
     IT_ASSERT(topo_sort() == true);
+    if (useNaiveAllocator) {
+        // used for debugging memory out-of-bounds access, tensors will not be
+        // released correctly
+        // note: behavior may not match running in non-naive mode, and it may
+        // not reproduce the bug
+        for (auto &tensor : tensors) {
+            tensor->dataMalloc();
+        }
+        return;
+    }
     // count the number of times all tensors are used
     std::unordered_map<TensorObj *, size_t> tensorToRefCount;
     // record the memory address offsets of all tensors to be allocated
