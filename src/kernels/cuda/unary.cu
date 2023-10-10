@@ -66,6 +66,15 @@ __global__ void _sqrt_kernel(float *input, float *output, size_t n) {
     }
 }
 
+__global__ void _gelu_kernel(float *input, float *output, size_t n) {
+    int index = threadIdx.x + blockIdx.x * blockDim.x;
+    int stride = blockDim.x * gridDim.x;
+    for (int i = index; i < n; i += stride) {
+        float x = input[i];
+        output[i] = 0.5 * x * (1 + erf(x / sqrt(2.0f)));
+    }
+}
+
 __global__ void _erf_kernel(float *input, float *output, size_t n) {
     size_t index = threadIdx.x + blockIdx.x * blockDim.x;
     size_t stride = blockDim.x * gridDim.x;
@@ -120,6 +129,12 @@ void sqrt_kernel(float *input, float *output, size_t num) {
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     _sqrt_kernel<<<gridsize, blocksize>>>(input, output, num);
+}
+void gelu_kernel(float *input, float *output, size_t num) {
+
+    int blocksize = block_work_size();
+    int gridsize = (num + block_work_size() - 1) / block_work_size();
+    _gelu_kernel<<<gridsize, blocksize>>>(input, output, num);
 }
 void erf_kernel(float *input, float *output, size_t num) {
 

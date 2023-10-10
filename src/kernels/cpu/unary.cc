@@ -60,6 +60,12 @@ template <typename T> class NaiveSqrt : public NativeUnary<T> {
     T doCompute(T val) const override { return std::sqrt(val); }
 };
 
+template <typename T> class NaiveGelu : public NativeUnary<T> {
+    T doCompute(T val) const override {
+        return 0.5 * val * (1 + std::erf(val / std::sqrt(2)));
+    }
+};
+
 template <typename T> class NaiveErf : public NativeUnary<T> {
     T doCompute(T val) const override { return std::erf(val); }
 };
@@ -91,6 +97,10 @@ REGISTER_KERNEL(Device::CPU, OpType::Relu, DataType::UInt32,
                 NaiveRelu<uint32_t>, "reluNaive_CPU_uint32");
 REGISTER_KERNEL(Device::CPU, OpType::Relu, DataType::Float32, NaiveRelu<float>,
                 "reluNaive_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::Gelu, DataType::UInt32, NaiveGelu<float>,
+                "geluNaive_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::Gelu, DataType::Float32, NaiveGelu<float>,
+                "geluNaive_CPU_float32");
 REGISTER_KERNEL(Device::CPU, OpType::Sigmoid, DataType::UInt32,
                 NaiveSigmoid<uint32_t>, "sigmoidNaive_CPU_uint32");
 REGISTER_KERNEL(Device::CPU, OpType::Sigmoid, DataType::Float32,
