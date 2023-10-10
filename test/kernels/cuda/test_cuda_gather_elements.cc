@@ -35,7 +35,7 @@ TEST(GatherElements, floatDataIntIndices) {
     gCuda->dataMalloc();
     inputCuda->copyin(vector<float>{1., 2., 3., 4.});
     indexCuda->copyin(vector<int>{0, 0, 1, 0});
-    
+
     cudaRuntime->run(gCuda);
     auto result = op->getOutput()->clone(cpuRuntime);
     EXPECT_TRUE(result->equalData<float>({1., 1., 4., 3.}));
