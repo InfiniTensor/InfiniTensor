@@ -46,10 +46,16 @@ TEST(cuDNN_Unary, run) {
     testUnary<SigmoidObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     testUnary<TanhObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     testUnary<SqrtObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    testUnary<NegObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    testUnary<ErfObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     // more shapes
     testUnary<SqrtObj>(IncrementalGenerator(), Shape{13});
     testUnary<SqrtObj>(IncrementalGenerator(), Shape{4, 3});
     testUnary<SqrtObj>(IncrementalGenerator(), Shape{2, 3, 4, 5, 6});
+
+    testUnary<GeluObj>(IncrementalGenerator(), Shape{1});
+    testUnary<GeluObj>(IncrementalGenerator(), Shape{1, 2});
+    testUnary<GeluObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
 }
 
 } // namespace infini

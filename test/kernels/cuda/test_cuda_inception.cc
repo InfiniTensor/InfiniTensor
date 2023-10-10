@@ -29,7 +29,7 @@ TEST(CUDA_Inception_v3_block, run) {
     TensorVec outputs;
     vector<OpVec> ops;
     auto maxpool =
-        g->addOp<MaxPoolObj>(blockInput, nullptr, 3, 3, 1, 1, 1, 1, 1, 1);
+        g->addOp<MaxPoolObj>(blockInput, nullptr, 3, 3, 1, 1, 1, 1, 1, 1, 0);
     auto chainInput = maxpool->getOutput();
     for (auto &pathConfig : configs) {
         int inputChannels = initialChannels;
@@ -52,7 +52,7 @@ TEST(CUDA_Inception_v3_block, run) {
                 inputChannels = f;
             } else { // Add AveragePool
                 auto pool = g->addOp<AvgPoolObj>(input, nullptr, r, r, 1, 1,
-                                                 r / 2, r / 2, 1, 1);
+                                                 r / 2, r / 2, 1, 1, 0);
                 input = pool->getOutput();
                 ops.back().emplace_back(pool);
             }

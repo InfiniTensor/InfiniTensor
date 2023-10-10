@@ -220,10 +220,6 @@ void GraphObj::dataMalloc(bool useNaiveAllocator) {
                                      tensorToOffset[tensor.get()]));
         }
     }
-
-#ifdef DEBUG_MODE
-    allocator.info();
-#endif
 }
 
 Tensor GraphObj::addTensor(Shape dim, DataType dtype) {
