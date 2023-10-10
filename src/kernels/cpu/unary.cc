@@ -53,7 +53,8 @@ template <typename T> class NaiveHardSigmoid : public NativeUnary<T> {
 };
 template <typename T> class NaiveHardSwish : public NativeUnary<T> {
     T doCompute(T val) const override {
-        return val * std::max(T(0), std::min(T(1), val * T(1.0 / 6.0) + T(0.5)));
+        return val *
+               std::max(T(0), std::min(T(1), val * T(1.0 / 6.0) + T(0.5)));
     }
 };
 template <typename T> class NaiveTanh : public NativeUnary<T> {
