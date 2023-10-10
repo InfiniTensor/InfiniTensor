@@ -403,6 +403,11 @@ class OnnxStub:
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
                     )
+                elif node.op_type == "Neg":
+                    tensors[node.output[0]] = self.handler.neg(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
                 elif node.op_type == "Shape":
                     tensors[node.output[0]] = self.handler.shape(
                         tensors[node.input[0]],
@@ -916,6 +921,7 @@ class OnnxStub:
                 backend.OpTypeId.PRelu,
                 backend.OpTypeId.Sqrt,
                 backend.OpTypeId.Erf,
+                backend.OpTypeId.Neg,
             ]:
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Flatten:
