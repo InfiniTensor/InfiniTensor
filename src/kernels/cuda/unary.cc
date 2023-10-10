@@ -134,6 +134,10 @@ REGISTER_KERNEL(Device::CUDA, OpType::Relu, DataType::Float32, ReluCudnn,
                 "Relu_CUDA_Float32");
 REGISTER_KERNEL(Device::CUDA, OpType::Sigmoid, DataType::Float32, SigmoidCudnn,
                 "Sigmoid_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::HardSigmoid, DataType::Float32, UnaryCuda,
+                "Hard_Sigmoid_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::HardSwish, DataType::Float32, UnaryCuda,
+                "Hard_Swish_CUDA_Float32");
 REGISTER_KERNEL(Device::CUDA, OpType::Tanh, DataType::Float32, TanhCudnn,
                 "Tanh_CUDA_Float32");
 REGISTER_KERNEL(Device::CUDA, OpType::Abs, DataType::Float32, UnaryCuda,

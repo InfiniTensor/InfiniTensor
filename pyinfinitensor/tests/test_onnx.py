@@ -231,6 +231,18 @@ class TestStringMethods(unittest.TestCase):
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
         tanh = make_node("Tanh", ["x"], ["y"], name="tanh")
         make_and_import_model(make_graph([tanh], "tanh", [x], [y]))
+    
+    def test_hard_sigmoid(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        hardSigmoid = make_node("HardSigmoid", ["x"], ["y"], name="hardSigmoid")
+        make_and_import_model(make_graph([hardSigmoid], "hardSigmoid", [x], [y]))
+
+    def test_hard_swish(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        hardSwish = make_node("HardSwish", ["x"], ["y"], name="hardSwish")
+        make_and_import_model(make_graph([hardSwish], "hardSwish", [x], [y]))
 
     def test_softmax(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])

@@ -46,6 +46,8 @@ class GraphHandlerObj {
 
     Tensor relu(Tensor x, Tensor y);
     Tensor sigmoid(Tensor x, Tensor y);
+    Tensor hardSigmoid(Tensor x, Tensor y);
+    Tensor hardSwish(Tensor x, Tensor y);
     Tensor tanh(Tensor x, Tensor y);
     Tensor erf(Tensor x, Tensor y);
     Tensor softmax(Tensor x, Tensor y, int axis);
