@@ -208,6 +208,14 @@ class TestStringMethods(unittest.TestCase):
         relu = make_node("Relu", ["x"], ["y"], name="relu")
         make_and_import_model(make_graph([relu], "relu", [x], [y]))
 
+    '''Gelu operator is not supported by onnx 14.1 currently.'''
+    def test_gelu(self):
+        pass
+        # x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        # y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        # gelu = make_node("Gelu", ["x"], ["y"], name="gelu")
+        # make_and_import_model(make_graph([gelu], "gelu", [x], [y]))
+
     def test_erf(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
@@ -243,6 +251,12 @@ class TestStringMethods(unittest.TestCase):
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
         abs = make_node("Abs", ["x"], ["y"], name="abs")
         make_and_import_model(make_graph([abs], "abs", [x], [y]))
+    
+    def test_neg(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        neg = make_node("Neg", ["x"], ["y"], name="neg")
+        make_and_import_model(make_graph([neg], "neg", [x], [y]))
 
     def test_identity(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
