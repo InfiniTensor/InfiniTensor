@@ -258,10 +258,13 @@ class LogObj : public OperatorObj {
     };
 
 DEFINE_UNARY_OBJ(Relu, OpType::Relu)
+DEFINE_UNARY_OBJ(Gelu, OpType::Gelu)
 DEFINE_UNARY_OBJ(Sigmoid, OpType::Sigmoid)
 DEFINE_UNARY_OBJ(Tanh, OpType::Tanh)
 // DEFINE_UNARY_OBJ(Softmax, OpType::Softmax)
 DEFINE_UNARY_OBJ(Abs, OpType::Abs)
+DEFINE_UNARY_OBJ(HardSigmoid, OpType::HardSigmoid)
+DEFINE_UNARY_OBJ(HardSwish, OpType::HardSwish)
 
 DEFINE_UNARY_OBJ(Sin, OpType::Sin)
 DEFINE_UNARY_OBJ(Cos, OpType::Cos)

@@ -64,7 +64,7 @@ class GraphObj : public Object {
 
     void optimize();
 
-    void dataMalloc();
+    void dataMalloc(bool useNaiveAllocator = false);
 
     /**
      * @brief Add an operator and create its outputs. Output tensor arguments
