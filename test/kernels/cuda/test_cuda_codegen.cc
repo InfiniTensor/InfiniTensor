@@ -4,8 +4,8 @@
 #include "cuda/cuda_runtime.h"
 #include "cuda/cuda_utility.h"
 #include "operators/element_wise.h"
-#include "operators/unary.h"
 #include "operators/softmax.h"
+#include "operators/unary.h"
 
 #include "test.h"
 
