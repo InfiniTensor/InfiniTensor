@@ -231,8 +231,6 @@ REGISTER_KERNEL(Device::CPU, OpType::Sinh, DataType::Float32, NaiveSinh<float>,
                 "Sinh_CPU_float32");
 REGISTER_KERNEL(Device::CPU, OpType::Cosh, DataType::Float32, NaiveCosh<float>,
                 "Cosh_CPU_float32");
-REGISTER_KERNEL(Device::CPU, OpType::Erf, DataType::Float32, NaiveErf<float>,
-                "Erf_CPU_float32");
 REGISTER_KERNEL(Device::CPU, OpType::Acos, DataType::Float32, NaiveACos<float>,
                 "ACos_CPU_float32");
 REGISTER_KERNEL(Device::CPU, OpType::Acosh, DataType::Float32,
