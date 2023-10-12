@@ -1,6 +1,6 @@
-#include "operators/unary.h"
 #include "kunlun/kunlun_kernel_without_config.h"
 #include "kunlun/kunlun_runtime.h"
+#include "operators/unary.h"
 
 namespace infini {
 class CastXdnn : public KUNLUNKernelWithoutConfig {
@@ -62,7 +62,8 @@ class CastXdnn : public KUNLUNKernelWithoutConfig {
             break;
         case CastType::Int82Int16:
             ret = baidu::xpu::api::cast<int8_t, int16_t>(
-                context->KUNLUNHandle(), (int8_t *)aData, (int16_t *)cData, len);
+                context->KUNLUNHandle(), (int8_t *)aData, (int16_t *)cData,
+                len);
             break;
         case CastType::Int82Int32:
             ret = baidu::xpu::api::cast<int8_t, int>(

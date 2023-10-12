@@ -353,8 +353,8 @@ class AndXdnn : public KUNLUNKernelWithoutConfig {
         if (aDim.size() != 4 || bDim.size() != 4)
             IT_TODO_HALT();
         auto ret = baidu::xpu::api::logical_and<bool>(
-            context->KUNLUNHandle(), (bool *)aData, (bool *)bData, (bool *)wsData,
-            len);
+            context->KUNLUNHandle(), (bool *)aData, (bool *)bData,
+            (bool *)wsData, len);
         ret = baidu::xpu::api::cast<bool, float>(
             context->KUNLUNHandle(), (bool *)wsData, (float *)cData, len);
         assert(ret == 0);
@@ -379,8 +379,8 @@ class OrXdnn : public KUNLUNKernelWithoutConfig {
         if (aDim.size() != 4 || bDim.size() != 4)
             IT_TODO_HALT();
         auto ret = baidu::xpu::api::logical_or<bool>(
-            context->KUNLUNHandle(), (bool *)aData, (bool *)bData, (bool *)wsData,
-            len);
+            context->KUNLUNHandle(), (bool *)aData, (bool *)bData,
+            (bool *)wsData, len);
         ret = baidu::xpu::api::cast<bool, float>(
             context->KUNLUNHandle(), (bool *)wsData, (float *)cData, len);
         assert(ret == 0);
@@ -405,8 +405,8 @@ class XorXdnn : public KUNLUNKernelWithoutConfig {
         if (aDim.size() != 4 || bDim.size() != 4)
             IT_TODO_HALT();
         auto ret = baidu::xpu::api::logical_xor<bool>(
-            context->KUNLUNHandle(), (bool *)aData, (bool *)bData, (bool *)wsData,
-            len);
+            context->KUNLUNHandle(), (bool *)aData, (bool *)bData,
+            (bool *)wsData, len);
         ret = baidu::xpu::api::cast<bool, float>(
             context->KUNLUNHandle(), (bool *)wsData, (float *)cData, len);
         assert(ret == 0);
@@ -461,8 +461,8 @@ REGISTER_KERNEL(Device::KUNLUN, OpType::LessOrEqual, DataType::Float32,
                 LessEqualXdnn, "LessEqual_xdnn_KUNLUN_Float32");
 REGISTER_KERNEL(Device::KUNLUN, OpType::Less, DataType::Float32, LessThanXdnn,
                 "LessThan_xdnn_KUNLUN_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::FloorDiv, DataType::Float32, FloorDivXdnn,
-                "FloorDiv_xdnn_KUNLUN_Float32");
+REGISTER_KERNEL(Device::KUNLUN, OpType::FloorDiv, DataType::Float32,
+                FloorDivXdnn, "FloorDiv_xdnn_KUNLUN_Float32");
 REGISTER_KERNEL(Device::KUNLUN, OpType::MSELoss, DataType::Float32, MSELossXdnn,
                 "MSELoss_xdnn_KUNLUN_Float32");
 REGISTER_KERNEL(Device::KUNLUN, OpType::And, DataType::Float32, AndXdnn,

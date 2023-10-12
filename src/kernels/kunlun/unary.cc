@@ -151,9 +151,9 @@ class ClipXdnn : public KUNLUNKernelWithoutConfig {
         float min = op->getMin().value();
         float max = op->getMax().value();
 
-        auto ret =
-            baidu::xpu::api::clip<float>(context->KUNLUNHandle(), (float *)aData,
-                                         (float *)cData, len, min, max);
+        auto ret = baidu::xpu::api::clip<float>(context->KUNLUNHandle(),
+                                                (float *)aData, (float *)cData,
+                                                len, min, max);
         assert(ret == 0);
         return;
     }

@@ -1,6 +1,6 @@
-#include "operators/conv.h"
 #include "kunlun/kunlun_kernel_without_config.h"
 #include "kunlun/kunlun_runtime.h"
+#include "operators/conv.h"
 
 namespace infini {
 class ConvTransXdnn : public KUNLUNKernelWithoutConfig {

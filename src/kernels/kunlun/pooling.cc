@@ -57,6 +57,6 @@ class MaxPooling : public KUNLUNKernelWithoutConfig {
 
 REGISTER_KERNEL(Device::KUNLUN, OpType::MaxPool, DataType::Float32, MaxPooling,
                 "MaxPool_xdnn_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::AveragePool, DataType::Float32, AvgPooling,
-                "AvgPool_xdnn_Float32");
+REGISTER_KERNEL(Device::KUNLUN, OpType::AveragePool, DataType::Float32,
+                AvgPooling, "AvgPool_xdnn_Float32");
 }; // namespace infini
