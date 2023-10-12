@@ -40,7 +40,7 @@ TEST(BANG_Codegen, run) {
     aCpu->setData(IncrementalGenerator());
     bCpu->setData(IncrementalGenerator());
     cCpu->setData(OneGenerator());
-    dCpu->setData(OneGenerator());
+    dCpu->setData(IncrementalGenerator());
 
     // Build BANG graph
     Graph g = make_ref<GraphObj>(bangRuntime);
@@ -56,7 +56,7 @@ TEST(BANG_Codegen, run) {
     auto temp3 = sqrt->getOutput();
     auto mul = g->addOp<MulObj>(d, temp3, nullptr);
     auto temp4 = mul->getOutput();
-    auto softmax = g->addOp<SoftmaxObj>(temp4, nullptr, 0);
+    auto softmax = g->addOp<SigmoidObj>(temp4, nullptr, 0);
 
     // allocate BANG memory
     g->dataMalloc();
