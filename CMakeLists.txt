@@ -1,16 +1,22 @@
-cmake_minimum_required(VERSION 3.12) # FindCUDAToolkit
-include(CMakeDependentOption)
-project(InfiniTensor C CXX)
-
 # Do not change these options in this file. Use cmake.config, cmake -DOPTION=VALUE, or ccmake to specify them.
 option(USE_CUDA "Support CUDA GPU" OFF)
 option(USE_BANG "Support BANG MLU" OFF)
-option(USE_KUNLUN "Support KUNLUN MLU" ON)
+option(USE_KUNLUN "Support KUNLUN MLU" OFF)
 option(USE_INTELCPU "Support INTELCPU" OFF)
 option(USE_BACKTRACE "Print backtrace on exception and segmentation fault" OFF)
 option(USE_PROTOBUF "Serialize and deserialize tensors" OFF)
 option(BUILD_DIST "Build project for distributed running" OFF)
 option(BUILD_TEST "Build tests" OFF)
+
+if(USE_CUDA)
+    message("CMake 3.18 or higher is required for setting CUDAToolkit")
+    cmake_minimum_required(VERSION 3.18) # FindCUDAToolkit
+else()
+    cmake_minimum_required(VERSION 3.12)
+endif()
+
+include(CMakeDependentOption)
+project(InfiniTensor C CXX)
 
 cmake_dependent_option(BUILD_TEST_CORE "Build tests for core components" ON BUILD_TEST OFF)
 cmake_dependent_option(BUILD_TEST_PET "Build tests for PET" OFF BUILD_TEST OFF)
