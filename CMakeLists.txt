@@ -1,9 +1,9 @@
 # Do not change these options in this file. Use cmake.config, cmake -DOPTION=VALUE, or ccmake to specify them.
 option(USE_CUDA "Support CUDA GPU" OFF)
 option(USE_BANG "Support BANG MLU" OFF)
-option(USE_KUNLUN "Support KUNLUN MLU" OFF)
+option(USE_KUNLUN "Support KUNLUN XPU" OFF)
 option(USE_INTELCPU "Support INTELCPU" OFF)
-option(USE_BACKTRACE "Print backtrace on exception and segmentation fault" OFF)
+option(USE_BACKTRACE "Print backtrace on exception and segmentation fault" ON)
 option(USE_PROTOBUF "Serialize and deserialize tensors" OFF)
 option(BUILD_DIST "Build project for distributed running" OFF)
 option(BUILD_TEST "Build tests" OFF)
