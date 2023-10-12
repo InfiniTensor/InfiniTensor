@@ -1,9 +1,9 @@
 #include "core/graph.h"
 #include "core/runtime.h"
-#include "operators/pad.h"
-#include "test.h"
 #include "kunlun/kunlun_kernel_without_config.h"
 #include "kunlun/kunlun_runtime.h"
+#include "operators/pad.h"
+#include "test.h"
 
 namespace infini {
 TEST(xpu_Pad, run) {

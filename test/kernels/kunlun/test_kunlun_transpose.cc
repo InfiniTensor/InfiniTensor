@@ -1,8 +1,8 @@
 #include "core/graph.h"
 #include "core/kernel.h"
 #include "core/runtime.h"
-#include "operators/transpose.h"
 #include "kunlun/kunlun_runtime.h"
+#include "operators/transpose.h"
 
 #include "test.h"
 

@@ -1,8 +1,8 @@
 #include "core/graph.h"
 #include "core/kernel.h"
 #include "core/runtime.h"
-#include "operators/pooling.h"
 #include "kunlun/kunlun_runtime.h"
+#include "operators/pooling.h"
 
 #include "test.h"
 
@@ -23,7 +23,8 @@ void testPooling(const std::function<void(void *, size_t, DataType)> &generator,
     // GPU
     Graph xpuGraph = make_ref<GraphObj>(xpuRuntime);
     auto inputGpu = xpuGraph->cloneTensor(inputCpu);
-    auto gpuOp = xpuGraph->addOp<T>(inputGpu, nullptr, 3, 3, 1, 1, 0, 0, 2, 2, 0);
+    auto gpuOp =
+        xpuGraph->addOp<T>(inputGpu, nullptr, 3, 3, 1, 1, 0, 0, 2, 2, 0);
     xpuGraph->dataMalloc();
     inputGpu->setData(generator);
     xpuRuntime->run(xpuGraph);
@@ -33,7 +34,8 @@ void testPooling(const std::function<void(void *, size_t, DataType)> &generator,
     // CPU
     Graph cpuGraph = make_ref<GraphObj>(cpuRuntime);
     cpuGraph->addTensor(inputCpu);
-    auto cpuOp = cpuGraph->addOp<T>(inputCpu, nullptr, 3, 3, 1, 1, 0, 0, 2, 2, 0);
+    auto cpuOp =
+        cpuGraph->addOp<T>(inputCpu, nullptr, 3, 3, 1, 1, 0, 0, 2, 2, 0);
     cpuGraph->dataMalloc();
     inputCpu->setData(generator);
     cpuRuntime->run(cpuGraph);
