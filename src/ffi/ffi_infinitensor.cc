@@ -162,7 +162,9 @@ static Ref<BangRuntimeObj> bang_runtime() { return make_ref<BangRuntimeObj>(); }
 #endif
 
 #ifdef USE_KUNLUN
-static Ref<KUNLUNRuntimeObj> xpu_runtime() { return make_ref<KUNLUNRuntimeObj>(); }
+static Ref<KUNLUNRuntimeObj> xpu_runtime() {
+    return make_ref<KUNLUNRuntimeObj>();
+}
 #endif
 
 #ifdef USE_INTELCPU
