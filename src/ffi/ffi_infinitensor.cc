@@ -24,8 +24,8 @@
 #ifdef USE_BANG
 #include "bang/bang_runtime.h"
 #endif
-#ifdef USE_XPU
-#include "xpu/xpu_runtime.h"
+#ifdef USE_KUNLUN
+#include "kunlun/kunlun_runtime.h"
 #endif
 #ifdef USE_INTELCPU
 #include "intelcpu/mkl_runtime.h"
@@ -160,8 +160,8 @@ static int tensor_dtype(Tensor t) {
 static Ref<BangRuntimeObj> bang_runtime() { return make_ref<BangRuntimeObj>(); }
 #endif
 
-#ifdef USE_XPU
-static Ref<XPURuntimeObj> xpu_runtime() { return make_ref<XPURuntimeObj>(); }
+#ifdef USE_KUNLUN
+static Ref<KUNLUNRuntimeObj> xpu_runtime() { return make_ref<KUNLUNRuntimeObj>(); }
 #endif
 
 #ifdef USE_INTELCPU
@@ -298,7 +298,7 @@ void export_functions(py::module &m) {
         .FUNCTION(bang_runtime)
 #endif
 
-#ifdef USE_XPU
+#ifdef USE_KUNLUN
         .FUNCTION(xpu_runtime)
 #endif
         .FUNCTION(conv_attrs_of)
@@ -375,9 +375,9 @@ void init_graph_builder(py::module &m) {
     py::class_<BangRuntimeObj, std::shared_ptr<BangRuntimeObj>, RuntimeObj>(
         m, "BangRuntime");
 #endif
-#ifdef USE_XPU
-    py::class_<XPURuntimeObj, std::shared_ptr<XPURuntimeObj>, RuntimeObj>(
-        m, "XPURuntime");
+#ifdef USE_KUNLUN
+    py::class_<KUNLUNRuntimeObj, std::shared_ptr<KUNLUNRuntimeObj>, RuntimeObj>(
+        m, "KUNLUNRuntime");
 #endif
     py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "Tensor",
                                                       py::buffer_protocol())

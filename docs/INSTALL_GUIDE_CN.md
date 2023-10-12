@@ -136,7 +136,7 @@
    编译 CPU 部分，同时编译昆仑 XPU 部分：
 
    ```bash
-   export XPU_HOME=/path/to/your/xpu_home
+   export KUNLUN_HOME=/path/to/your/kunlun_home
    make install-python KUNLUN=ON
    ```
 
