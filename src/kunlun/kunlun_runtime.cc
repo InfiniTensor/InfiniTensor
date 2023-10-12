@@ -5,7 +5,7 @@
 namespace infini {
 
 void KUNLUNRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
-                                   bool profiling = false) const {
+                                      bool profiling = false) const {
     const auto &kernelRegistry = KernelRegistry::getInstance();
     auto &perfEngine = PerfEngine::getInstance();
     double totalTime = 0;
@@ -45,7 +45,8 @@ void KUNLUNRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
     }
 }
 
-void KUNLUNRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
+void KUNLUNRuntimeObj::run(const Graph &graph, bool tune,
+                           bool profiling) const {
     if (profiling)
         IT_TODO_HALT();
     runWithoutSync(graph, tune, profiling);
