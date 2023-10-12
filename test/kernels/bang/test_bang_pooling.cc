@@ -8,7 +8,8 @@
 
 namespace infini {
 
-template <class T>
+template <class T, typename std::enable_if<std::is_base_of<PoolingObj, T>{},
+                                           int>::type = 0>
 void testPooling(const std::function<void(void *, size_t, DataType)> &generator,
                  const Shape &shape) {
     // Runtime
@@ -23,7 +24,8 @@ void testPooling(const std::function<void(void *, size_t, DataType)> &generator,
     // GPU
     Graph bangGraph = make_ref<GraphObj>(bangRuntime);
     auto inputGpu = bangGraph->cloneTensor(inputCpu);
-    auto gpuOp = bangGraph->addOp<T>(inputGpu, nullptr, 3, 3, 1, 1, 1, 1, 2, 2);
+    auto gpuOp =
+        bangGraph->addOp<T>(inputGpu, nullptr, 3, 3, 1, 1, 1, 1, 2, 2, 0);
     bangGraph->dataMalloc();
     bangRuntime->run(bangGraph);
     auto outputGpu = gpuOp->getOutput();

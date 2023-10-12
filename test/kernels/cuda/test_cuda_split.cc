@@ -39,4 +39,30 @@ TEST(Split, Cuda) {
         12, 13, 14, 15, 16, 17, 18, 19, 32, 33, 34, 35, 36, 37, 38, 39}));
 }
 
+TEST(Split, Cuda_dim0) {
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Graph gCpu = make_ref<GraphObj>(runtime);
+
+    auto input = gCpu->addTensor({2, 3}, DataType::Float32);
+    gCpu->dataMalloc();
+    input->setData(IncrementalGenerator());
+
+    auto cudaRuntime = make_ref<CudaRuntimeObj>();
+    Graph gCuda = make_ref<GraphObj>(cudaRuntime);
+
+    auto inputGpu = gCuda->cloneTensor(input);
+    auto op = gCuda->addOp<SplitObj>(inputGpu, std::nullopt, 0, 2);
+    gCuda->dataMalloc();
+    inputGpu->setData(IncrementalGenerator());
+
+    cudaRuntime->run(gCuda);
+
+    //  copy output from CUDA to CPU
+    EXPECT_EQ(op->getOutputs().size(), (size_t)2);
+    auto o0Cpu = gCpu->cloneTensor(op->getOutput(0));
+    auto o1Cpu = gCpu->cloneTensor(op->getOutput(1));
+    EXPECT_TRUE(o0Cpu->equalData(vector<float>{0, 1, 2}));
+    EXPECT_TRUE(o1Cpu->equalData(vector<float>{3, 4, 5}));
+}
+
 } // namespace infini
