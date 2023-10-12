@@ -37,7 +37,7 @@ void KUNLUNRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
             double t = timeit([&]() { kernel->compute(op, record, this); },
                               [&]() { sync(); }, 1, 1);
             op->print();
-            printf(" op_time on xpu %lf\n", t);
+            printf(" op_time on kunlun xpu %lf\n", t);
             totalTime += t;
             opTime[op->getOpType()] += t;
             opCnt[op->getOpType()]++;

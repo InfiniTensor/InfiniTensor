@@ -36,6 +36,6 @@ class BatchNormXdnn : public KUNLUNKernelWithoutConfig {
 };
 
 REGISTER_KERNEL(Device::KUNLUN, OpType::BatchNormalization, DataType::Float32,
-                BatchNormXdnn, "BatchNorm_xdnn_XPU_Float32");
+                BatchNormXdnn, "BatchNorm_xdnn_KUNLUN_Float32");
 
 }; // namespace infini

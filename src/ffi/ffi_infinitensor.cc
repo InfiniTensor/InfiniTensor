@@ -162,7 +162,7 @@ static Ref<BangRuntimeObj> bang_runtime() { return make_ref<BangRuntimeObj>(); }
 #endif
 
 #ifdef USE_KUNLUN
-static Ref<KUNLUNRuntimeObj> xpu_runtime() {
+static Ref<KUNLUNRuntimeObj> kunlun_runtime() {
     return make_ref<KUNLUNRuntimeObj>();
 }
 #endif
@@ -303,7 +303,7 @@ void export_functions(py::module &m) {
 #endif
 
 #ifdef USE_KUNLUN
-        .FUNCTION(xpu_runtime)
+        .FUNCTION(kunlun_runtime)
 #endif
         .FUNCTION(conv_attrs_of)
         .FUNCTION(conv_trans_attrs_of)

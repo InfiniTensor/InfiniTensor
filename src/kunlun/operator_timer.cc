@@ -10,13 +10,13 @@
 namespace infini {
 namespace opTimer {
 
-double getPerfConvXPU(int n, int c, int h, int w, int f, int r, int s, int padh,
+double getPerfConvKunlun(int n, int c, int h, int w, int f, int r, int s, int padh,
                       int padw, int strideh, int stridew, int dilationh,
                       int dilationw, int group, const char *name) {
     Runtime cpu = NativeCpuRuntimeObj::getInstance(); // CPUruntime is singleton
     Graph gCpu = make_ref<GraphObj>(cpu);
-    Runtime xpu = make_ref<KUNLUNRuntimeObj>();
-    Graph gXpu = make_ref<GraphObj>(xpu);
+    Runtime kunlun = make_ref<KUNLUNRuntimeObj>();
+    Graph gKunlun = make_ref<GraphObj>(kunlun);
     // Set input data on CPU in a CPU Graph
     IT_ASSERT(c % group == 0);
     Tensor i0Cpu = gCpu->addTensor({n, h, w, c}, DataType::Float32);
@@ -26,25 +26,25 @@ double getPerfConvXPU(int n, int c, int h, int w, int f, int r, int s, int padh,
     i0Cpu->setData(IncrementalGenerator());
     w0Cpu->setData(IncrementalGenerator());
 
-    // Copy input tensors from CPU to Xpu
-    Tensor i0XPU = gXpu->cloneTensor(i0Cpu);
-    Tensor w0XPU = gXpu->cloneTensor(w0Cpu);
-    // Build Xpu graph
-    auto conv = gXpu->addOp<ConvObj>(i0XPU, w0XPU, nullptr, padh, padw, strideh,
+    // Copy input tensors from CPU to Kunlun
+    Tensor i0Kunlun = gKunlun->cloneTensor(i0Cpu);
+    Tensor w0Kunlun = gKunlun->cloneTensor(w0Cpu);
+    // Build Kunlun graph
+    auto conv = gKunlun->addOp<ConvObj>(i0Kunlun, w0Kunlun, nullptr, padh, padw, strideh,
                                      stridew, dilationh, dilationw);
-    // allocate Xpu memory
-    gXpu->dataMalloc();
-    // Execute on Xpu
+    // allocate Kunlun memory
+    gKunlun->dataMalloc();
+    // Execute on Kunlun
     bool tune = true;
-    xpu->run(gXpu, tune);
-    return xpu->getPerfTime(gXpu);
+    kunlun->run(gKunlun, tune);
+    return kunlun->getPerfTime(gKunlun);
 }
 
-double getPerfMatmulXPU(int b, int m, int n, int k, const char *name) {
+double getPerfMatmulKunlun(int b, int m, int n, int k, const char *name) {
     Runtime cpu = NativeCpuRuntimeObj::getInstance(); // CPUruntime is singleton
     Graph gCpu = make_ref<GraphObj>(cpu);
-    Runtime xpu = make_ref<KUNLUNRuntimeObj>();
-    Graph gXpu = make_ref<GraphObj>(xpu);
+    Runtime kunlun = make_ref<KUNLUNRuntimeObj>();
+    Graph gKunlun = make_ref<GraphObj>(kunlun);
     // Set input data on CPU in a CPU Graph
     Tensor i0Cpu = gCpu->addTensor({b, m, k}, DataType::Float32);
     Tensor w0Cpu = gCpu->addTensor({b, k, n}, DataType::Float32);
@@ -53,17 +53,17 @@ double getPerfMatmulXPU(int b, int m, int n, int k, const char *name) {
     i0Cpu->setData(IncrementalGenerator());
     w0Cpu->setData(IncrementalGenerator());
 
-    // Copy input tensors from CPU to Xpu
-    Tensor i0XPU = gXpu->cloneTensor(i0Cpu);
-    Tensor w0XPU = gXpu->cloneTensor(w0Cpu);
-    // Build Xpu graph
-    auto conv = gXpu->addOp<MatmulObj>(i0XPU, w0XPU, nullptr);
-    // allocate Xpu memory
-    gXpu->dataMalloc();
-    // Execute on Xpu
+    // Copy input tensors from CPU to Kunlun
+    Tensor i0Kunlun = gKunlun->cloneTensor(i0Cpu);
+    Tensor w0Kunlun = gKunlun->cloneTensor(w0Cpu);
+    // Build Kunlun graph
+    auto conv = gKunlun->addOp<MatmulObj>(i0Kunlun, w0Kunlun, nullptr);
+    // allocate Kunlun memory
+    gKunlun->dataMalloc();
+    // Execute on Kunlun
     bool tune = true;
-    xpu->run(gXpu, tune);
-    return xpu->getPerfTime(gXpu);
+    kunlun->run(gKunlun, tune);
+    return kunlun->getPerfTime(gKunlun);
 }
 
 } // namespace opTimer
