@@ -56,7 +56,7 @@ TEST(BANG_Codegen, run) {
     auto temp3 = sqrt->getOutput();
     auto mul = g->addOp<MulObj>(d, temp3, nullptr);
     auto temp4 = mul->getOutput();
-    auto softmax = g->addOp<SigmoidObj>(temp4, nullptr, 0);
+    auto softmax = g->addOp<SigmoidObj>(temp4, nullptr);
 
     // allocate BANG memory
     g->dataMalloc();
