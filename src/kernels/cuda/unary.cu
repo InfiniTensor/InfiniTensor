@@ -41,6 +41,23 @@ __global__ void _sigmoid_kernel(float *input, float *output, size_t n) {
     }
 }
 
+__global__ void _hard_sigmoid_kernel(float *input, float *output, size_t n) {
+    size_t index = threadIdx.x + blockIdx.x * blockDim.x;
+    size_t stride = blockDim.x * gridDim.x;
+    for (size_t i = index; i < n; i += stride) {
+        output[i] = max(0.0f, min(1.0f, 0.2f * input[i] + 0.5f));
+    }
+}
+
+__global__ void _hard_swish_kernel(float *input, float *output, size_t n) {
+    size_t index = threadIdx.x + blockIdx.x * blockDim.x;
+    size_t stride = blockDim.x * gridDim.x;
+    for (size_t i = index; i < n; i += stride) {
+        output[i] =
+            input[i] * max(0.f, min(1.f, (1.f / 6.f) * input[i] + 0.5f));
+    }
+}
+
 __global__ void _tanh_kernel(float *input, float *output, size_t n) {
     size_t index = threadIdx.x + blockIdx.x * blockDim.x;
     size_t stride = blockDim.x * gridDim.x;
@@ -111,6 +128,18 @@ void sigmoid_kernel(float *input, float *output, size_t num) {
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     _sigmoid_kernel<<<gridsize, blocksize>>>(input, output, num);
+}
+void hard_sigmoid_kernel(float *input, float *output, size_t num) {
+
+    int blocksize = block_work_size();
+    int gridsize = (num + block_work_size() - 1) / block_work_size();
+    _hard_sigmoid_kernel<<<gridsize, blocksize>>>(input, output, num);
+}
+void hard_swish_kernel(float *input, float *output, size_t num) {
+
+    int blocksize = block_work_size();
+    int gridsize = (num + block_work_size() - 1) / block_work_size();
+    _hard_swish_kernel<<<gridsize, blocksize>>>(input, output, num);
 }
 void tanh_kernel(float *input, float *output, size_t num) {
 
