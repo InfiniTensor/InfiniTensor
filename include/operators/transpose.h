@@ -19,4 +19,4 @@ class TransposeObj : public OperatorObj {
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;
 };
-}; // namespace infini
+} // namespace infini

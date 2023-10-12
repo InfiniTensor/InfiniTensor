@@ -307,12 +307,21 @@ class TestStringMethods(unittest.TestCase):
 
     def test_gather(self):
         data = make_tensor_value_info("data", TensorProto.FLOAT, [1, 3, 4, 4])
-        indices = make_tensor_value_info("indices", TensorProto.FLOAT, [2, 1, 2])
+        indices = make_tensor_value_info("indices", TensorProto.INT64, [2, 1, 2])
         output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 2, 1, 2, 4, 4])
         gather = make_node(
             "Gather", ["data", "indices"], ["output"], axis=1, name="gather"
         )
         make_and_import_model(make_graph([gather], "gather", [data, indices], [output]))
+
+    def test_gather_elements(self):
+        data = make_tensor_value_info("data", TensorProto.FLOAT, [2, 3, 2])
+        indices = make_tensor_value_info("indices", TensorProto.INT64, [2, 1, 2])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [2, 1, 2])
+        gatherElements = make_node(
+            "GatherElements", ["data", "indices"], ["output"], axis=1, name="gatherElements"
+        )
+        make_and_import_model(make_graph([gatherElements], "gatherElements", [data, indices], [output]))
 
     def test_reduce_mean(self):
         data = make_tensor_value_info("data", TensorProto.FLOAT, [2, 3, 3, 4])
