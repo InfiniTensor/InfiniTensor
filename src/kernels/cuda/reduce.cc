@@ -1,6 +1,6 @@
+#include "operators/reduce.h"
 #include "cuda/cuda_kernel_wihtout_config.h"
 #include "cuda/cuda_runtime.h"
-#include "operators/reduce.h"
 
 namespace infini {
 class ReduceCudnnBase : public CudaKernelWithoutConfig {

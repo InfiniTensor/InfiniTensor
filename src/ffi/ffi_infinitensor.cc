@@ -211,7 +211,8 @@ clip_attrs_of(Operator op) {
 }
 
 static std::tuple<vector<int>, bool> reduce_attrs_of(Operator op) {
-    IT_ASSERT(op->getOpType() == OpType::ReduceMean || op->getOpType() == OpType::ReduceSum);
+    IT_ASSERT(op->getOpType() == OpType::ReduceMean ||
+              op->getOpType() == OpType::ReduceSum);
     auto reduce = dynamic_cast<const ReduceBaseObj *>(op.get());
     auto &set = reduce->getAxes();
     return std::make_tuple(vector(set.begin(), set.end()),

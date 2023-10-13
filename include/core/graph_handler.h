@@ -71,7 +71,7 @@ class GraphHandlerObj {
     Tensor reduceMean(Tensor data, Tensor reduced,
                       const optional<vector<int>> &axes, bool keepdims);
     Tensor reduceSum(Tensor data, Tensor reduced,
-                      const optional<vector<int>> &axes, bool keepdims);
+                     const optional<vector<int>> &axes, bool keepdims);
     Tensor slice(Tensor input, Tensor output, const vector<int> &starts,
                  const vector<int> &ends, const optional<vector<int>> &axes,
                  const optional<vector<int>> &steps);

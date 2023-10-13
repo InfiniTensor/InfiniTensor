@@ -279,20 +279,6 @@ Tensor GraphHandlerObj::gatherElements(Tensor data, Tensor indices,
     }
 }
 
-Tensor GraphHandlerObj::gatherElements(Tensor data, Tensor indices,
-                                       Tensor output, int axis) {
-    if (output) {
-        g->addOpWithOutputs<GatherElementsObj>(
-            std::move(data), std::move(indices), output, axis);
-        return output;
-    } else {
-        return g
-            ->addOp<GatherElementsObj>(std::move(data), std::move(indices),
-                                       output, axis)
-            ->getOutput();
-    }
-}
-
 #define DEFINE_REDUCE_METHOD(name, obj)                                        \
     Tensor GraphHandlerObj::name(Tensor data, Tensor reduced,                  \
                                  const optional<vector<int>> &axes,            \
