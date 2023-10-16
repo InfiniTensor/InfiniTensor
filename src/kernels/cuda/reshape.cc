@@ -13,6 +13,8 @@ class CopyCuda : public CudaKernelWithoutConfig {
 // reshape/flatten/identity all act as copying from input to output.
 REGISTER_KERNEL(Device::CUDA, OpType::Reshape, DataType::Float32, CopyCuda,
                 "Reshape_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Reshape, DataType::Int64, CopyCuda,
+                "Reshape_CUDA_Int32");
 REGISTER_KERNEL(Device::CUDA, OpType::Flatten, DataType::Float32, CopyCuda,
                 "Flatten_CUDA_Float32");
 REGISTER_KERNEL(Device::CUDA, OpType::Identity, DataType::Float32, CopyCuda,
