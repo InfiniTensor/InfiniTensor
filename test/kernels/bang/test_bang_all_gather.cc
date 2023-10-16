@@ -1,8 +1,8 @@
 #ifdef INFINI_USE_CNCL
-#include "core/graph.h"
-#include "core/runtime.h"
 #include "bang/bang_runtime.h"
 #include "bang/bang_utility.h"
+#include "core/graph.h"
+#include "core/runtime.h"
 #include "operators/all_gather.h"
 #include "test.h"
 #include <cncl.h>

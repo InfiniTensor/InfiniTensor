@@ -1,9 +1,9 @@
 #ifdef INFINI_USE_CNCL
 #include "operators/broadcast.h"
-#include "bang/bang_kernel_wihtout_config.h"
+#include "bang/bang_kernel_without_config.h"
 #include "bang/bang_runtime.h"
-#include "bang/cnnl_communicator.h"
-
+#include "bang/cncl_communicator.h"
+#include <thread>
 namespace infini {
 class BroadcastCNCL : public BangKernelWithoutConfig {
   public:
@@ -16,12 +16,16 @@ class BroadcastCNCL : public BangKernelWithoutConfig {
         IT_ASSERT(op->getDType() == DataType::Float32);
         size_t count = op->getInputs(0)->getBytes() / op->getDType().getSize();
 
-        cnnlComm_t comm =
+        cnclComm_t comm =
             dynamic_cast<CnclCommunicatorObj &>(context->getCommunicator())
                 .getCnclComm();
+        cnrtQueue_t queue =
+            dynamic_cast<CnclCommunicatorObj &>(context->getCommunicator())
+                .getCnclQueue();
         // TODO: Using default stream 0 for now.
-        checkCnclError(cnnlBroadcast(input, output, count, cnnlFloat,
-                                     op->getRoot(), comm, 0));
+        CNCL_CHECK(cnclBroadcast(input, output, count, cnclFloat32,
+                                 op->getRoot(), comm, queue));
+        checkBangError(cnrtQueueSync(queue));
     }
 };
 

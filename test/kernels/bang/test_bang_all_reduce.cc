@@ -1,7 +1,7 @@
 #ifdef INFINI_USE_CNCL
+#include "bang/bang_runtime.h"
 #include "core/graph.h"
 #include "core/runtime.h"
-#include "bang/bang_runtime.h"
 #include "operators/all_reduce.h"
 #include "test.h"
 #include <cncl.h>
