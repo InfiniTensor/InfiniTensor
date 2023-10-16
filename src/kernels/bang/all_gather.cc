@@ -1,9 +1,9 @@
 #ifdef INFINI_USE_CNCL
 #include "operators/all_gather.h"
-#include "bang/bang_kernel_wihtout_config.h"
+#include "bang/bang_kernel_without_config.h"
 #include "bang/bang_runtime.h"
 #include "bang/cncl_communicator.h"
-
+#include <thread>
 namespace infini {
 class AllGatherCNCL : public BangKernelWithoutConfig {
   public:
@@ -26,10 +26,13 @@ class AllGatherCNCL : public BangKernelWithoutConfig {
         cnclComm_t comm =
             dynamic_cast<CnclCommunicatorObj &>(context->getCommunicator())
                 .getCnclComm();
+        cnrtQueue_t queue =
+            dynamic_cast<CnclCommunicatorObj &>(context->getCommunicator())
+                .getCnclQueue();
         // TODO: Using default stream 0 for now.
-        checkCnclError(
-            cnclAllGather(input, output_temp, count, cnclFloat, comm, 0));
-
+        CNCL_CHECK(
+            cnclAllGather(input, output_temp, count, cnclFloat, comm, queue));
+        checkBangError(cnrtQueueSync(queue));
         for (int i = 0; i < world_size; ++i) {
             Tensor output = op->getOutput(i);
             context->copyBlobInsideRuntime(

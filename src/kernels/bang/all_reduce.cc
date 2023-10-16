@@ -1,9 +1,9 @@
 #ifdef INFINI_USE_CNCL
 #include "operators/all_reduce.h"
-#include "bang/bang_kernel_wihtout_config.h"
+#include "bang/bang_kernel_without_config.h"
 #include "bang/bang_runtime.h"
 #include "bang/cncl_communicator.h"
-
+#include <thread>
 namespace infini {
 class AllReduceCNCL : public BangKernelWithoutConfig {
   public:
@@ -15,32 +15,31 @@ class AllReduceCNCL : public BangKernelWithoutConfig {
         void *output = op->getOutput()->getRawDataPtr<void *>();
         IT_ASSERT(op->getDType() == DataType::Float32);
         size_t count = op->getInputs(0)->size();
-
         cnclComm_t comm =
             dynamic_cast<CnclCommunicatorObj &>(context->getCommunicator())
                 .getCnclComm();
-        // TODO: Using default stream 0 for now.
-        checkCnclError(cnclAllReduce(input, output, count, cnclFloat32,//checkCnclError函数在bang/cncl_communicator.h定义
-                                     getRedOp(), comm, 0));//queues[i] = 0 ?
+        cnrtQueue_t queue =
+            dynamic_cast<CnclCommunicatorObj &>(context->getCommunicator())
+                .getCnclQueue();
+        CNCL_CHECK(cnclAllReduce(input, output, count, cnclFloat32, getRedOp(),
+                                 comm, queue)); // queues[i] = 0 ?
+        checkBangError(cnrtQueueSync(queue));
     }
 
-    virtual cnclRedOp_t getRedOp() const = 0;
+    virtual cnclReduceOp_t getRedOp() const = 0;
 };
 
 class AllReduceSumCNCL : public AllReduceCNCL {
-    cnclRedOp_t getRedOp() const override { return cnclSum; }
+    cnclReduceOp_t getRedOp() const override { return cnclSum; }
 };
 class AllReduceProdCNCL : public AllReduceCNCL {
-    cnclRedOp_t getRedOp() const override { return cnclProd; }
+    cnclReduceOp_t getRedOp() const override { return cnclProd; }
 };
 class AllReduceMinCNCL : public AllReduceCNCL {
-    cnclRedOp_t getRedOp() const override { return cnclMin; }
+    cnclReduceOp_t getRedOp() const override { return cnclMin; }
 };
 class AllReduceMaxCNCL : public AllReduceCNCL {
-    cnclRedOp_t getRedOp() const override { return cnclMax; }
-};
-class AllReduceAvgCNCL : public AllReduceCNCL {
-    cnclRedOp_t getRedOp() const override { return cnclAvg; }
+    cnclReduceOp_t getRedOp() const override { return cnclMax; }
 };
 
 REGISTER_KERNEL(Device::BANG, OpType::AllReduceSum, DataType::Float32,
@@ -51,7 +50,5 @@ REGISTER_KERNEL(Device::BANG, OpType::AllReduceMin, DataType::Float32,
                 AllReduceMinCNCL, "AllReduce_Min_CNCL_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::AllReduceMax, DataType::Float32,
                 AllReduceMaxCNCL, "AllReduce_Max_CNCL_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::AllReduceAvg, DataType::Float32,
-                AllReduceAvgCNCL, "AllReduce_Avg_CNCL_BANG_Float32");
 } // namespace infini
 #endif
