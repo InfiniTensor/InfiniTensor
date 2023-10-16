@@ -5,6 +5,7 @@ option(USE_KUNLUN "Support KUNLUN XPU" OFF)
 option(USE_INTELCPU "Support INTELCPU" OFF)
 option(USE_BACKTRACE "Print backtrace on exception and segmentation fault" ON)
 option(USE_PROTOBUF "Serialize and deserialize tensors" OFF)
+option(BUILD_NNET "Build nnet" OFF)
 option(BUILD_DIST "Build project for distributed running" OFF)
 option(BUILD_TEST "Build tests" OFF)
 
@@ -30,14 +31,14 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_definitions(DEBUG_MODE)
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
     message("Configuring for Release build.")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2") 
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
     add_compile_definitions(NDEBUG)
 elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     message("Configuring for RelWithDebInfo build.")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2") 
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2")
 else()
     message("Build type not specified. Configuring for RelWithDebInfo build.")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2") 
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2")
 endif()
 
 
@@ -123,7 +124,13 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -UNDEBUG")
 
 
 # Source files
-file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/kernels/cpu/*.cc src/nnet/*.cc src/operators/*.cc src/utils/*.cc)
+file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/kernels/cpu/*.cc src/operators/*.cc src/utils/*.cc)
+
+if(BUILD_NNET)
+  add_compile_definitions(BUILD_NNET=1)
+  file(GLOB_RECURSE SRC_NNET src/nnet/*.cc)
+  list (APPEND SRC ${SRC_NNET})
+endif()
 
 if(USE_CUDA)
   file(GLOB_RECURSE SRC_CUDA src/cuda/*.cc src/cuda/*.cu src/kernels/cuda/*.cc src/kernels/cuda/*.cu)
