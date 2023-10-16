@@ -100,7 +100,8 @@ bool TensorObj::equalData(const Tensor &rhs, double relativeError) const {
 #define TEST_EQUAL(N)                                                          \
     if (dtype == DataType(N))                                                  \
         return equalDataImpl(getRawDataPtr<DT<N>::t *>(),                      \
-                             rhs->getRawDataPtr<DT<N>::t *>(), size());
+                             rhs->getRawDataPtr<DT<N>::t *>(), size(),         \
+                             relativeError);
 
     TEST_EQUAL(0)           // fmt: new line
     else TEST_EQUAL(1)      //

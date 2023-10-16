@@ -11,7 +11,7 @@ proj_path = Path(sys.path[0]).parent
 def format_file(file):
     file = Path(proj_path.joinpath(file))
     if file.suffix in c_style_file:
-        run(f"clang-format-14 -i {file}", cwd=proj_path, shell=True)
+        run(f"clang-format-14 -style=file -i {file}", cwd=proj_path, shell=True)
         run(f"git add {file}", cwd=proj_path, shell=True)
     elif file.suffix == py_file:
         run(f"black {file}", cwd=proj_path, shell=True)
