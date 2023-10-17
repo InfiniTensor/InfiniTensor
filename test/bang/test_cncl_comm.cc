@@ -9,7 +9,7 @@ namespace infini {
 
 void allReduceSum(float *data, int deviceId) {
     // Create Runtime and setup communication
-    BangRuntimeObj *bang_runtime = new BangRuntimeObj(deviceId);
+    BangRuntimeObj *bang_runtime = new BangRuntimeObj();
     int rank = deviceId;
     bang_runtime->initComm("test_cncl_comm", WORLD_SIZE, rank);
     cnclComm_t comm =
@@ -18,18 +18,18 @@ void allReduceSum(float *data, int deviceId) {
 
     // Copy data
     float *data_mlu;
-    checkBangError(bangMalloc(&data_mlu, sizeof(float)));
+    checkBangError(cnrtMalloc((void**)&data_mlu, sizeof(float)));
     checkBangError(
-        bangMemcpy(data_mlu, data, sizeof(float), bangMemcpyHostToDevice));
+        cnrtMemcpy(data_mlu, data, sizeof(float), cnrtMemcpyHostToDev));
 
     // Do AllReduce
-    checkCnclError(
+    CNCL_CHECK(
         cnclAllReduce(data_mlu, data_mlu, 1, cnclFloat, cnclSum, comm, 0));
 
     // Copy data back and sync device
     checkBangError(
-        bangMemcpy(data, data_mlu, sizeof(float), bangMemcpyDeviceToHost));
-    checkBangError(bangDeviceSynchronize());
+        cnrtMemcpy(data, data_mlu, sizeof(float), cnrtMemcpyDevToHost));
+    //checkBangError(bangDeviceSynchronize());
 }
 
 // Setup communication between 2 threads, each controlling 1 MLU.
