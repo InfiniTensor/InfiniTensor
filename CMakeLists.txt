@@ -140,7 +140,7 @@ if(USE_CUDA)
 endif()
 
 if(USE_BANG)
-  file(GLOB_RECURSE SRC_BANG src/bang/*.cc src/kernels/bang/*.cc )
+  file(GLOB_RECURSE SRC_BANG src/bang/*.cc src/bang/*.mlu src/kernels/bang/*.cc )
   list (APPEND SRC ${SRC_BANG})
 endif()
 
@@ -265,10 +265,9 @@ if(USE_BANG)
   target_link_libraries(InfiniTensor ${CAMBRICON_CNCL} ${CAMBRICON_CNNL} ${CAMBRICON_CNRT} ${CAMBRICON_CNDRV} stdc++)
   if (BUILD_DIST)
     message(STATUS "Add BUILD_DIST, use CNCL with BANG")
-    list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-    find_package(CNCL REQUIRED)
+    
     add_compile_definitions(INFINI_USE_CNCL=1)
-    target_link_libraries(InfiniTensor cncl)
+    
   endif()
 endif()
 

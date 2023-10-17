@@ -16,7 +16,7 @@ void allGather(const string taskName, int deviceID, vector<float> data,
                vector<vector<float>> ans) {
     // Create Runtimes and initiate communication
     Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
-    Runtime bangRuntime = make_ref<BangRuntimeObj>(deviceID);
+    Runtime bangRuntime = make_ref<BangRuntimeObj>();
     bangRuntime->initComm(taskName, WORLD_SIZE, deviceID);
     // Create Graph and insert allReduce operation
     Graph g = make_ref<GraphObj>(bangRuntime);
