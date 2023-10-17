@@ -65,9 +65,13 @@ class GraphObj : public Object {
 
     void optimize();
 
-    void dataMalloc(bool useNaiveAllocator = false);
-
     void shape_infer();
+
+    void dataMalloc(bool useNaiveAllocator = false, size_t memPoolSize = 0);
+
+    Tensor cloneKV(Tensor &tensor);
+
+    void freeHeap();
 
     /**
      * @brief Add an operator and create its outputs. Output tensor arguments

@@ -209,6 +209,7 @@ class TestStringMethods(unittest.TestCase):
         make_and_import_model(make_graph([relu], "relu", [x], [y]))
 
     """Gelu operator is not supported by onnx 14.1 currently."""
+
     def test_gelu(self):
         pass
         # x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])

@@ -15,7 +15,7 @@ optional<vector<Shape>> ConcatObj::inferShape(const TensorVec &inputs) {
     if (inputs.size() == 2) {
         for (size_t i = 0; i < inputs.size(); ++i) {
             if (inputs[i]->size() == 0) {
-                return {{inputs[1-i]->getDims()}};
+                return {{inputs[1 - i]->getDims()}};
             }
         }
     }

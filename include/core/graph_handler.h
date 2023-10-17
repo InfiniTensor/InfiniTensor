@@ -101,7 +101,14 @@ class GraphHandlerObj {
     void change_shape(const vector<int> &shape, int tensorId);
     //------ runtime
 
-    inline void data_malloc() { g->dataMalloc(); }
+    inline void data_malloc(bool useNaiveAllocator = false,
+                            size_t memPoolSize = 0) {
+        g->dataMalloc(useNaiveAllocator, memPoolSize);
+    }
+
+    inline Tensor clone_KV(Tensor &tensor) { return g->cloneKV(tensor); }
+
+    inline void free_heap() { g->freeHeap(); }
 
     inline void tune() { g->getRuntime()->run(g, true); }
 

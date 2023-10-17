@@ -69,7 +69,7 @@ class GatherElementsObj : public GatherBaseObj {
                       Tensor output, int axis);
     OP_CLONE(GatherElementsObj);
     std::string toString() const override;
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
     vector<DataType> inferDataType(const TensorVec &inputs) const override;
 
   private:

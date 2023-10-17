@@ -65,15 +65,15 @@ class CudaCompute {
 class ConcatCuda : private CudaCompute, public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
-		auto inputs = _op->getInputs();
-		if (inputs.size() == 2) {
-        	for (size_t i = 0; i < 2; i++) {
-        	    if (inputs[i]->size() == 0) {
-        	        do_compute1(_op, 1-i);
-        	        return;
-        	    }
-        	}
-		}
+        auto inputs = _op->getInputs();
+        if (inputs.size() == 2) {
+            for (size_t i = 0; i < 2; i++) {
+                if (inputs[i]->size() == 0) {
+                    do_compute1(_op, 1 - i);
+                    return;
+                }
+            }
+        }
         do_compute(_op->getOutput(), _op->getInputs(),
                    as<ConcatObj>(_op)->getDim(), _op->getOutput()->getRank(),
                    false);
