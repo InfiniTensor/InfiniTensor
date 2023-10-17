@@ -1074,6 +1074,12 @@ class OnnxStub:
 
     def optimize(self) -> None:
         self.handler.optimize()
+        
+    def clone_KV(self, tensor: backend.Tensor) -> backend.Tensor:
+        return self.handler.clone_KV(tensor)
+    
+    def free_heap(self) -> None:
+        self.handler.free_heap()
 
     def tune(self) -> None:
         self.handler.tune()
