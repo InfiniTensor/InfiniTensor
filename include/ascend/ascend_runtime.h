@@ -27,9 +27,7 @@ class ASCENDRuntimeObj : public RuntimeObj {
   public:
     ASCENDRuntimeObj(int deviceId = 0)
 	    : RuntimeObj(Device::ASCEND, deviceId) {
-        std::cout<<"1------------------------------------"<< std::endl;
 	auto ret = aclrtSetDevice(deviceId);
-        std::cout<<"2------------------------------------"<< std::endl;
 	CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtSetDevice failed. ERROR: %d\n", ret));
         ret = aclrtCreateContext(&aclnn, deviceId);
 	CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtCreateContext failed. ERROR: %d\n", ret));
@@ -42,7 +40,6 @@ class ASCENDRuntimeObj : public RuntimeObj {
         // 10GB for Longformer
         // size_t longformerNum = 3lu * (1 << 30);
         workspaceSize = 3ll << 30; // 3 GB
-        std::cout<<"3------------------------------------"<< std::endl;
         // std::cout<<workspaceSize/1024/1024/1024<< std::endl;
         // std::cout<<std::bitset<64>(workspaceSize)<< std::endl;
         workspace = alloc(workspaceSize);

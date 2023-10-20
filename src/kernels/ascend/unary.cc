@@ -54,4 +54,7 @@ class ReluAclnn : public ASCENDKernelWithoutConfig {
         return;
     }
 };
-}
+
+REGISTER_KERNEL(Device::ASCEND, OpType::Relu, DataType::Float32, ReluAclnn,
+                "relu_ASCEND_float");
+};
