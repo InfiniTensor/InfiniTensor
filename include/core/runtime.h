@@ -30,7 +30,7 @@ using OpLists = list<Operator>;
 
 using VType = uint32_t;
 
-enum class Device { CPU = 1, CUDA, BANG, INTELCPU, KUNLUN };
+enum class Device { CPU = 1, CUDA, BANG, INTELCPU, KUNLUN, ASCEND };
 /***************** Forward declaration end *****************/
 
 class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
@@ -73,6 +73,7 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
     bool isCuda() const { return device == Device::CUDA; }
     bool isBang() const { return device == Device::BANG; }
     bool isKUNLUN() const { return device == Device::KUNLUN; }
+    bool isAscend() const { return device == Device::ASCEND; }
     void copyBlob(const TensorObj *dst, const TensorObj *src) const;
     // TODO: unify these copy APIs
     virtual void copyBlobFromCPU(void *dst, const void *src,
