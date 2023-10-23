@@ -1,19 +1,18 @@
 #pragma once
-#include "core/runtime.h"
 #include "ascend/ascend_common.h"
+#include "core/runtime.h"
 
+#define CHECK_RET(cond, return_expr)                                           \
+    do {                                                                       \
+        if (!(cond)) {                                                         \
+            return_expr;                                                       \
+        }                                                                      \
+    } while (0)
 
-#define CHECK_RET(cond, return_expr) \
-  do {                               \
-    if (!(cond)) {                   \
-      return_expr;                   \
-    }                                \
-  } while (0)
-
-#define LOG_PRINT(message, ...)     \
-  do {                              \
-    printf(message, ##__VA_ARGS__); \
-  } while (0)
+#define LOG_PRINT(message, ...)                                                \
+    do {                                                                       \
+        printf(message, ##__VA_ARGS__);                                        \
+    } while (0)
 
 namespace infini {
 
@@ -25,18 +24,22 @@ class ASCENDRuntimeObj : public RuntimeObj {
     size_t workspaceSize;
 
   public:
-    ASCENDRuntimeObj(int deviceId = 0)
-	    : RuntimeObj(Device::ASCEND, deviceId) {
-	auto ret = aclrtSetDevice(deviceId);
-	CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtSetDevice failed. ERROR: %d\n", ret));
+    ASCENDRuntimeObj(int deviceId = 0) : RuntimeObj(Device::ASCEND, deviceId) {
+        auto ret = aclrtSetDevice(deviceId);
+        CHECK_RET(ret == ACL_SUCCESS,
+                  LOG_PRINT("aclrtSetDevice failed. ERROR: %d\n", ret));
         ret = aclrtCreateContext(&aclnn, deviceId);
-	CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtCreateContext failed. ERROR: %d\n", ret));
-	ret = aclrtSetCurrentContext(aclnn);
-	CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtSetCurrentContext failed. ERROR: %d\n", ret));
+        CHECK_RET(ret == ACL_SUCCESS,
+                  LOG_PRINT("aclrtCreateContext failed. ERROR: %d\n", ret));
+        ret = aclrtSetCurrentContext(aclnn);
+        CHECK_RET(ret == ACL_SUCCESS,
+                  LOG_PRINT("aclrtSetCurrentContext failed. ERROR: %d\n", ret));
         ret = aclrtCreateStream(&stream);
-	CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtCreateStream failed. ERROR: %d\n", ret));
-	ret = aclInit(nullptr);
-	CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclInit failed. ERROR: %d\n", ret));
+        CHECK_RET(ret == ACL_SUCCESS,
+                  LOG_PRINT("aclrtCreateStream failed. ERROR: %d\n", ret));
+        ret = aclInit(nullptr);
+        CHECK_RET(ret == ACL_SUCCESS,
+                  LOG_PRINT("aclInit failed. ERROR: %d\n", ret));
         // 10GB for Longformer
         // size_t longformerNum = 3lu * (1 << 30);
         workspaceSize = 3ll << 30; // 3 GB
@@ -48,8 +51,8 @@ class ASCENDRuntimeObj : public RuntimeObj {
         dealloc(workspace);
         aclrtDestroyStream(stream);
         aclrtDestroyContext(aclnn);
-	aclrtResetDevice(deviceId);
-	aclFinalize();
+        aclrtResetDevice(deviceId);
+        aclFinalize();
     }
     string toString() const override;
 
@@ -73,20 +76,20 @@ class ASCENDRuntimeObj : public RuntimeObj {
 
     void copyBlobFromCPU(void *dst, const void *src,
                          size_t bytes) const override {
-        aclrtMemcpy(dst, 1024*1024*1024, const_cast<void *>(src), bytes,
-                   ACL_MEMCPY_HOST_TO_DEVICE);
+        aclrtMemcpy(dst, 1024 * 1024 * 1024, const_cast<void *>(src), bytes,
+                    ACL_MEMCPY_HOST_TO_DEVICE);
     }
 
     void copyBlobToCPU(void *dst, const void *src,
                        size_t bytes) const override {
-        aclrtMemcpy(dst, 1024*1024*1024, const_cast<void *>(src), bytes,
-                   ACL_MEMCPY_DEVICE_TO_HOST);
+        aclrtMemcpy(dst, 1024 * 1024 * 1024, const_cast<void *>(src), bytes,
+                    ACL_MEMCPY_DEVICE_TO_HOST);
     }
 
     void copyBlobInsideRuntime(void *dst, const void *src,
                                size_t bytes) const override {
-        aclrtMemcpy(dst, 1024*1024*1024, const_cast<void *>(src), bytes,
-                   ACL_MEMCPY_DEVICE_TO_DEVICE);
+        aclrtMemcpy(dst, 1024 * 1024 * 1024, const_cast<void *>(src), bytes,
+                    ACL_MEMCPY_DEVICE_TO_DEVICE);
     }
 
     void initComm(const string &, int, int) override { IT_TODO_HALT(); }
