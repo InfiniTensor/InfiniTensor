@@ -1,7 +1,7 @@
+#include "ascend/ascend_runtime.h"
 #include "core/graph.h"
 #include "core/kernel.h"
 #include "core/runtime.h"
-#include "ascend/ascend_runtime.h"
 #include "operators/unary.h"
 
 #include "test.h"
@@ -38,7 +38,6 @@ void testUnary(const std::function<void(void *, size_t, DataType)> &generator,
     // Check
     EXPECT_TRUE(outputCpu->equalData(outputGpu2Cpu, 1e-6));
 }
-
 
 TEST(ascend_Unary, run) {
     testUnary<ReluObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});

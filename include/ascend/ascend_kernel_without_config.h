@@ -1,6 +1,6 @@
 #pragma once
-#include "core/kernel.h"
 #include "ascend/ascend_runtime.h"
+#include "core/kernel.h"
 
 namespace infini {
 

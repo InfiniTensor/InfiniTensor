@@ -1,7 +1,7 @@
 #pragma once
-#include "core/common.h"
 #include "acl/acl.h"
 #include "acl/acl_op.h"
+#include "core/common.h"
 
 #define checkASCENDError(call)                                                 \
     {                                                                          \
