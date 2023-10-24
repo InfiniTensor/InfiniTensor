@@ -140,7 +140,7 @@ if(USE_CUDA)
 endif()
 
 if(USE_BANG)
-  file(GLOB_RECURSE SRC_BANG src/bang/*.cc src/bang/*.mlu src/kernels/bang/*.cc )
+  file(GLOB_RECURSE SRC_BANG src/bang/*.cc src/kernels/bang/*.cc )
   list (APPEND SRC ${SRC_BANG})
 endif()
 
