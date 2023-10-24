@@ -45,7 +45,7 @@ def parse_args():
     )
 
 
-def run_model(model, runtime, inputs, n=20):
+def run_model(model, runtime, inputs, n=10):
     stub = OnnxStub(model, runtime)
     for tensor, input in zip(stub.inputs.values(), inputs):
         tensor.copyin_numpy(input)
@@ -68,13 +68,11 @@ def run_model(model, runtime, inputs, n=20):
 
 def run_and_compare(name, model, runtime):
     input_ids = np.load(f"{name}_inputs.npy")
-    position_ids = np.arange(0, input_ids.shape[-1])
+    position_ids = np.arange(input_ids.shape[-1])
     results = np.load(f"{name}_results.npy")
     outputs = run_model(model, runtime, (input_ids, position_ids))
     print("outputs abs mean:", abs(outputs).mean())
-    print("max abs diff:", abs(outputs - results).max())
-    print("max rel diff:", abs((outputs - results) / results).max())
-    # assert np.allclose(outputs, results, rtol=1e-3, atol=1e-6)
+    np.testing.assert_allclose(outputs, results, rtol=1e-6, atol=1e-3)
 
 
 def start_worker(
@@ -110,7 +108,7 @@ def start_single(name, model):
 def gen_standard(name, model, voc_size, bs, len):
     # generate standard results
     input_ids = np.random.randint(0, voc_size, (bs, len))
-    position_ids = np.arange(0, len)
+    position_ids = np.arange(len)
     np.save(f"{name}_inputs", input_ids)
     runtime = backend.CudaRuntime(0)
     outputs = run_model(model, runtime, (input_ids, position_ids), 1)
