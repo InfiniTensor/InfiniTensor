@@ -35,6 +35,7 @@ class OnnxStub:
     The Onnx model imported into infinitensor.
     It can be generated from an Onnx model object.
     """
+
     def __init__(self, model: ModelProto, runtime):
         # We use some user-defined operators for distributed inference
         try:
@@ -47,7 +48,7 @@ class OnnxStub:
         self.inputs: Dict[str, backend.Tensor] = {}
         self.outputs: Dict[str, backend.Tensor] = {}
         self.initializer: Dict[int, TensorProto] = {}
-        model = infer_shapes(model)
+        # model = infer_shapes(model)
         self.handler = backend.GraphHandler(runtime)
 
         tensors: Dict[str, backend.Tensor] = dict()
@@ -73,7 +74,6 @@ class OnnxStub:
                 dims, output.type.tensor_type.elem_type
             )
             tensors[output.name].set_output()
-
 
         node_name = []
         new_node_name = []
@@ -244,7 +244,13 @@ class OnnxStub:
                     )
                     (k, d, p, s, ceil_mode) = (
                         attributes[name]
-                        for name in ["kernel_shape", "dilations", "pads", "strides", "ceil_mode"]
+                        for name in [
+                            "kernel_shape",
+                            "dilations",
+                            "pads",
+                            "strides",
+                            "ceil_mode",
+                        ]
                     )
                     if p[0] != p[2] or p[1] != p[3]:
                         adapt = "{}-adapt".format(node.output[0])
@@ -289,7 +295,8 @@ class OnnxStub:
                         },
                     )
                     (k, p, s, ceil_mode) = (
-                        attributes[name] for name in ["kernel_shape", "pads", "strides", "ceil_mode"]
+                        attributes[name]
+                        for name in ["kernel_shape", "pads", "strides", "ceil_mode"]
                     )
                     if p[0] != p[2] or p[1] != p[3]:
                         adapt = "{}-adapt".format(node.output[0])
@@ -709,10 +716,9 @@ class OnnxStub:
                 elif node.op_type == "Constant":
                     output_name = node.output[0]
                     attributes = _parse_attribute(node)
-                    tensor = attributes['value']
+                    tensor = attributes["value"]
                     dims = [d for d in tensor.dims]
-                    tensors[output_name] = self.handler.tensor(
-                        dims, tensor.data_type)
+                    tensors[output_name] = self.handler.tensor(dims, tensor.data_type)
                     data[output_name] = tensor
                     tensors[output_name].set_weight()
                 else:
