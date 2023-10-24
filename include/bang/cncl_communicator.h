@@ -20,9 +20,7 @@ class CnclCommunicatorObj final : public CommunicatorObj {
     int num_comms;
 
   public:
-    CnclCommunicatorObj(const string &name, int worldSize, int rank,
-                        int *dev_list, int *rank_list, cnclComm_t *comms,
-                        cnrtQueue_t *queues)
+    CnclCommunicatorObj(const string &name, int worldSize, int rank)
         : CommunicatorObj(worldSize, rank) {
         const std::string filePath("./" + name + "_cncl_id.bin");
 
@@ -32,7 +30,7 @@ class CnclCommunicatorObj final : public CommunicatorObj {
         comms = new cnclComm_t[num_comms];
         queues = new cnrtQueue_t[num_comms];
         uint32_t num_dev = 0;
-        cnrtGetDeviceCount(&num_dev);
+        checkBangError(cnrtGetDeviceCount(&num_dev));
 
         rank_list[rank] = rank; // comm's rank
         dev_list[rank] = rank_list[rank] % num_dev;

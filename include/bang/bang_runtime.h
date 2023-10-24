@@ -7,6 +7,7 @@ namespace infini {
 class BangRuntimeObj : public RuntimeObj {
   private:
     cnnlHandle_t cnnl;
+    std::unique_ptr<CommunicatorObj> comm;
     BangPtr workspace;
     size_t workspaceSize;
     mutable size_t cursor;
@@ -73,10 +74,8 @@ class BangRuntimeObj : public RuntimeObj {
         checkBangError(cnrtMemcpy(dst, const_cast<void *>(src), bytes,
                                   CNRT_MEM_TRANS_DIR_PEER2PEER));
     }
-
-    void initComm(const string &, int, int) override { IT_TODO_HALT(); }
-
-    CommunicatorObj &getCommunicator() const override { IT_TODO_HALT(); }
+    void initComm(const string &name, int worldSize, int rank) final;
+    CommunicatorObj &getCommunicator() const override { return *comm; }
 
   private:
     void runWithoutSync(const Graph &graph, bool tune, bool profiling) const;
