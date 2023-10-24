@@ -1,15 +1,23 @@
-cmake_minimum_required(VERSION 3.17) # FindCUDAToolkit
-include(CMakeDependentOption)
-project(InfiniTensor C CXX)
-
 # Do not change these options in this file. Use cmake.config, cmake -DOPTION=VALUE, or ccmake to specify them.
 option(USE_CUDA "Support CUDA GPU" OFF)
 option(USE_BANG "Support BANG MLU" OFF)
+option(USE_KUNLUN "Support KUNLUN XPU" OFF)
 option(USE_INTELCPU "Support INTELCPU" OFF)
 option(USE_BACKTRACE "Print backtrace on exception and segmentation fault" ON)
 option(USE_PROTOBUF "Serialize and deserialize tensors" OFF)
+option(BUILD_NNET "Build nnet" OFF)
 option(BUILD_DIST "Build project for distributed running" OFF)
 option(BUILD_TEST "Build tests" OFF)
+
+if(USE_CUDA)
+    message("CMake 3.18 or higher is required for setting CUDAToolkit")
+    cmake_minimum_required(VERSION 3.18) # FindCUDAToolkit
+else()
+    cmake_minimum_required(VERSION 3.12)
+endif()
+
+include(CMakeDependentOption)
+project(InfiniTensor C CXX)
 
 cmake_dependent_option(BUILD_TEST_CORE "Build tests for core components" ON BUILD_TEST OFF)
 cmake_dependent_option(BUILD_TEST_PET "Build tests for PET" OFF BUILD_TEST OFF)
@@ -23,14 +31,14 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_definitions(DEBUG_MODE)
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
     message("Configuring for Release build.")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2") 
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
     add_compile_definitions(NDEBUG)
 elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     message("Configuring for RelWithDebInfo build.")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2") 
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2")
 else()
     message("Build type not specified. Configuring for RelWithDebInfo build.")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2") 
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2")
 endif()
 
 
@@ -116,7 +124,13 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -UNDEBUG")
 
 
 # Source files
-file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/kernels/cpu/*.cc src/nnet/*.cc src/operators/*.cc src/utils/*.cc)
+file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/kernels/cpu/*.cc src/operators/*.cc src/utils/*.cc)
+
+if(BUILD_NNET)
+  add_compile_definitions(BUILD_NNET=1)
+  file(GLOB_RECURSE SRC_NNET src/nnet/*.cc)
+  list (APPEND SRC ${SRC_NNET})
+endif()
 
 if(USE_CUDA)
   file(GLOB_RECURSE SRC_CUDA src/cuda/*.cc src/cuda/*.cu src/kernels/cuda/*.cc src/kernels/cuda/*.cu)
@@ -126,6 +140,11 @@ endif()
 if(USE_BANG)
   file(GLOB_RECURSE SRC_BANG src/bang/*.cc src/kernels/bang/*.cc )
   list (APPEND SRC ${SRC_BANG})
+endif()
+
+if(USE_KUNLUN)
+  file(GLOB_RECURSE SRC_KUNLUN src/kunlun/*.cc src/kernels/kunlun/*.cc )
+  list (APPEND SRC ${SRC_KUNLUN})
 endif()
 
 if(USE_INTELCPU)
@@ -243,6 +262,35 @@ if(USE_BANG)
   target_link_libraries(InfiniTensor ${CAMBRICON_CNNL} ${CAMBRICON_CNRT} ${CAMBRICON_CNDRV} stdc++)
 endif()
 
+if(USE_KUNLUN)
+  add_compile_definitions(USE_KUNLUN=1)
+  if ((NOT DEFINED KUNLUN_HOME) AND (NOT DEFINED ENV{KUNLUN_HOME}))
+    message(FATAL_ERROR "KUNLUN_HOME is not defined from cmake or env")
+  elseif (DEFINED KUNLUN_HOME)
+          set(KUNLUN_HOME ${KUNLUN_HOME} CACHE STRING "KUNLUN_HOME directory for Kunlun development")
+  else()
+          set(KUNLUN_HOME $ENV{KUNLUN_HOME} CACHE STRING "KUNLUN_HOME directory for Kunlun development")
+  endif()
+  message(STATUS "KUNLUN_HOME: ${KUNLUN_HOME}")
+
+  include_directories("${KUNLUN_HOME}/XTDK/include/")
+  find_library(KUNLUN_RT libxpurt.so "${KUNLUN_HOME}/lib64")
+  find_library(KUNLUN_DNN libxpuapi.so "${KUNLUN_HOME}/XTDK/shlib")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lstdc++ -Wall -Werror")
+
+  if ((NOT DEFINED TARGET_CPU_ARCH) AND (NOT DEFINED ENV{TARGET_CPU_ARCH}))
+    execute_process(COMMAND uname -m OUTPUT_VARIABLE _uname_m OUTPUT_STRIP_TRAILING_WHITESPACE)
+    set(TARGET_CPU_ARCH "${_uname_m}" CACHE STRING "Target CPU ARCH")
+  elseif(DEFINED TARGET_CPU_ARCH)
+    set(TARGET_CPU_ARCH ${TARGET_CPU_ARCH} CACHE STRING "Target CPU ARCH")
+  else()
+    set(TARGET_CPU_ARCH $ENV{TARGET_CPU_ARCH} CACHE STRING "Target CPU ARCH")
+  endif()
+  message(STATUS "TARGET_CPU_ARCH: ${TARGET_CPU_ARCH}")
+
+  target_link_libraries(InfiniTensor ${KUNLUN_RT} ${KUNLUN_DNN} stdc++)
+endif()
+
 # # Python bindings
 # pybind11_add_module(infini MODULE ${FFI})
 # target_link_libraries(infini PRIVATE infini_cpp)
@@ -274,6 +322,9 @@ if(BUILD_TEST)
     endif()
     if (USE_BANG)
       build_test(test/kernels/bang/*.cc)
+    endif()
+    if (USE_KUNLUN)
+      build_test(test/kernels/kunlun/*.cc)
     endif()
     if (USE_INTELCPU)
       build_test(test/kernels/intelcpu/*.cc)
