@@ -1,5 +1,6 @@
 #include "bang/bang_kernel_without_config.h"
 #include "bang/bang_runtime.h"
+#include "operators/softmax.h"
 #include "operators/unary.h"
 
 namespace infini {
@@ -113,6 +114,75 @@ class PReluCnnl : public BangKernelWithoutConfig {
     }
 };
 
+class SoftmaxCnnl : public BangKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<SoftmaxObj>(_op);
+        auto context = dynamic_cast<const BangRuntimeObj *>(_context);
+
+        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+
+        cnnlTensorDescriptor_t aDesc, cDesc;
+        auto aDim = op->getInputs(0)->getDims();
+
+        cnnlSoftmaxMode_t mode;
+        size_t axis = op->getAxis();
+        std::vector<int> inDim = {1, 1, 1};
+        std::vector<int> outDim = inDim;
+
+        if (axis == 0) {
+            mode = CNNL_SOFTMAX_MODE_HIGH_DIMENSION;
+            inDim[0] = aDim[0];
+            inDim[1] = aDim[1];
+            for (size_t i = 2; i < aDim.size(); ++i) {
+                inDim[2] *= aDim[i];
+            }
+            outDim = inDim;
+            outDim[0] = 1;
+        } else if (axis == aDim.size() - 1) {
+            mode = CNNL_SOFTMAX_MODE_LOW_DIMENSION;
+            inDim[0] = aDim[0];
+            for (size_t i = 1; i < axis; ++i) {
+                inDim[1] *= aDim[i];
+            }
+            inDim[2] = aDim[axis];
+            outDim = inDim;
+            outDim[2] = 1;
+        } else {
+            mode = CNNL_SOFTMAX_MODE_MEDIUM_DIMENSION;
+            for (size_t i = 0; i < axis; ++i) {
+                inDim[0] *= aDim[i];
+            }
+            inDim[1] = aDim[axis];
+            for (size_t i = axis + 1; i < aDim.size(); ++i) {
+                inDim[2] *= aDim[i];
+            }
+            outDim = inDim;
+            outDim[1] = 1;
+        }
+
+        checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
+        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_ARRAY,
+                                               CNNL_DTYPE_FLOAT, inDim.size(),
+                                               inDim.data()));
+        checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
+        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_ARRAY,
+                                               CNNL_DTYPE_FLOAT, outDim.size(),
+                                               outDim.data()));
+        float alpha = 1.0;
+        float beta = 0.0;
+        cnnlStatus_t stat =
+            cnnlSoftmaxForward_v2(context->cnnlHandle(), CNNL_SOFTMAX_ACCURATE,
+                                  mode, CNNL_COMPUTATION_HIGH_PRECISION, &alpha,
+                                  aDesc, aData, &beta, cDesc, cData);
+        if (stat != CNNL_STATUS_SUCCESS)
+            return;
+        checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
+        checkCnnlError(cnnlDestroyTensorDescriptor(cDesc));
+    }
+};
+
 class ReluCnnl : public UnaryCnnl {
     cnnlActivationMode_t getOpType() const override {
         return CNNL_ACTIVATION_RELU;
@@ -135,5 +205,7 @@ REGISTER_KERNEL(Device::BANG, OpType::Sigmoid, DataType::Float32, SigmoidCnnl,
                 "Sigmoid_cnnl_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::Round, DataType::Float32, RoundCnnl,
                 "Round_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Softmax, DataType::Float32, SoftmaxCnnl,
+                "Softmax_cnnl_BANG_Float32");
 
 }; // namespace infini
