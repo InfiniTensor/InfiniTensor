@@ -7,51 +7,65 @@
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <mutex>
 #include <thread>
 
 namespace infini {
 
-class CnclCommunicatorObj final : public CommunicatorObj {
+class CnclCommManager {
   private:
+    static std::map<std::string, CnclCommSet> comm_sets;
+
+  public:
+    static CnclCommSet getComms(std::string task_name, int worldSize) {
+        if (comm_sets.find(task_name) == comm_sets.end()) {
+
+        } else {
+            return comm_sets.at(task_name);
+        }
+    }
+
+}
+
+class CnclCommSet {
+  public:
     cnclComm_t *comms;
     cnrtQueue_t *queues;
     int *dev_list;
     int *rank_list;
     int num_comms;
 
+  private:
+    CnclCommManager(int worldSize);
+    static Ref<CnclCommManager> instance;
+    static std::mutex mutex;
+    static std::once_flag flag;
+
+  public:
+    static Ref<CnclCommManager> getInstance(int worldSize);
+    static void destroyInstance();
+    ~CnclCommManager();
+};
+
+class CnclCommunicatorObj final : public CommunicatorObj {
+  private:
+    cnclComm_t comm;
+    cnrtQueue_t queue;
+
   public:
     CnclCommunicatorObj(const string &name, int worldSize, int rank)
         : CommunicatorObj(worldSize, rank) {
-        const std::string filePath("./" + name + "_cncl_id.bin");
-
-        num_comms = worldSize;
-        dev_list = new int[num_comms];
-        rank_list = new int[num_comms];
-        comms = new cnclComm_t[num_comms];
-        queues = new cnrtQueue_t[num_comms];
-        uint32_t num_dev = 0;
-        checkBangError(cnrtGetDeviceCount(&num_dev));
-
-        rank_list[rank] = rank; // comm's rank
-        dev_list[rank] = rank_list[rank] % num_dev;
-        checkBangError(cnrtQueueCreate(&queues[rank]));
-        CNCL_CHECK(cnclInitComms(comms, num_comms, dev_list, rank_list,
-                                 worldSize, nullptr));
-        if (rank == 0) {
-            std::filesystem::remove(filePath);
-        }
+        auto manager = CnclCommManager::getInstance(worldSize);
+        comm = manager->comms[rank];
+        queue = manager->queues[rank];
     }
 
     // Get the actual cnclComm_t
-    cnclComm_t getCnclComm() { return comms[rank]; }
-    cnrtQueue_t getCnclQueue() { return queues[rank]; }
+    cnclComm_t getCnclComm() { return comm; }
+    cnrtQueue_t getCnclQueue() { return queue; }
 
     ~CnclCommunicatorObj() final {
-
-        CNCL_CHECK(cnclDestroyComms(comms, num_comms));
-        checkBangError(cnrtQueueDestroy(queues[rank]));
-        delete[] dev_list;
-        delete[] rank_list;
+        // CNCL_CHECK(cnclFreeComm(comm));
     }
 
     virtual string toString() const final {
