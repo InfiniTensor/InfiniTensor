@@ -15,7 +15,9 @@ void allReduceSum(float *data, int deviceId) {
     cnclComm_t comm =
         dynamic_cast<CnclCommunicatorObj &>(bang_runtime->getCommunicator())
             .getCnclComm();
-
+    cnrtQueue_t queue =
+        dynamic_cast<CnclCommunicatorObj &>(bang_runtime->getCommunicator())
+            .getCnclQueue();
     // Copy data
     float *data_mlu;
     checkBangError(cnrtMalloc((void**)&data_mlu, sizeof(float)));
@@ -24,12 +26,13 @@ void allReduceSum(float *data, int deviceId) {
 
     // Do AllReduce
     CNCL_CHECK(
-        cnclAllReduce(data_mlu, data_mlu, 1, cnclFloat, cnclSum, comm, 0));
+        cnclAllReduce(data_mlu, data_mlu, 1, cnclFloat, cnclSum, comm, queue));
 
+    checkBangError(cnrtQueueSync(queue));
     // Copy data back and sync device
     checkBangError(
         cnrtMemcpy(data, data_mlu, sizeof(float), cnrtMemcpyDevToHost));
-    //checkBangError(bangDeviceSynchronize());
+    
 }
 
 // Setup communication between 2 threads, each controlling 1 MLU.

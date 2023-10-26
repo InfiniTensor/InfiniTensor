@@ -21,8 +21,8 @@ class AllReduceCNCL : public BangKernelWithoutConfig {
         cnrtQueue_t queue =
             dynamic_cast<CnclCommunicatorObj &>(context->getCommunicator())
                 .getCnclQueue();
-        CNCL_CHECK(cnclAllReduce(input, output, count, cnclFloat32, getRedOp(),
-                                 comm, queue)); // queues[i] = 0 ?
+        CNCL_CHECK(cnclAllReduce(input, output, count, cnclFloat, getRedOp(),
+                                 comm, queue));
         checkBangError(cnrtQueueSync(queue));
     }
 
