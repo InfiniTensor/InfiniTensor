@@ -1,17 +1,22 @@
 #pragma once
 #include "core/runtime.h"
 #include "kunlun/kunlun_common.h"
-
+#include "kunlun/xccl_communicator.h"
+#ifdef INFINI_USE_XCCL
+#include "xpu/bkcl.h"
+#endif
 namespace infini {
 
 class KUNLUNRuntimeObj : public RuntimeObj {
   private:
     baidu::xpu::api::Context *xdnn;
+    std::unique_ptr<CommunicatorObj> comm;
     KUNLUNPtr workspace;
     size_t workspaceSize;
 
   public:
-    KUNLUNRuntimeObj() : RuntimeObj(Device::KUNLUN) {
+    KUNLUNRuntimeObj(int deviceId = 0) : RuntimeObj(Device::KUNLUN) {
+        xpu_set_device(deviceId);
         xdnn = baidu::xpu::api::create_context();
         // 10GB for Longformer
         // size_t longformerNum = 3lu * (1 << 30);
@@ -62,9 +67,9 @@ class KUNLUNRuntimeObj : public RuntimeObj {
                    XPUMemcpyKind::XPU_DEVICE_TO_DEVICE);
     }
 
-    void initComm(const string &, int, int) override { IT_TODO_HALT(); }
+    void initComm(const string &name, int worldSize, int rank) final;
 
-    CommunicatorObj &getCommunicator() const override { IT_TODO_HALT(); }
+    CommunicatorObj &getCommunicator() const final {return *comm;}
 
   private:
     void runWithoutSync(const Graph &graph, bool tune, bool profiling) const;

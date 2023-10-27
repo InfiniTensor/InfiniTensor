@@ -6,7 +6,7 @@ option(USE_INTELCPU "Support INTELCPU" OFF)
 option(USE_BACKTRACE "Print backtrace on exception and segmentation fault" ON)
 option(USE_PROTOBUF "Serialize and deserialize tensors" OFF)
 option(BUILD_NNET "Build nnet" OFF)
-option(BUILD_DIST "Build project for distributed running" OFF)
+option(BUILD_DIST "Build project for distributed running" ON)
 option(BUILD_TEST "Build tests" OFF)
 
 if(USE_CUDA)
@@ -54,11 +54,13 @@ endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF) # -std=gnu++11 when on, -std=c++11 when off
+# add_compile_options(-Wno-error=unused-variable)
 
 find_package(
   Python
   COMPONENTS Interpreter Development
   REQUIRED)
+
 # OpenMP
 find_package(OpenMP)
 if(OpenMP_C_FOUND)
@@ -288,6 +290,13 @@ if(USE_KUNLUN)
   endif()
   message(STATUS "TARGET_CPU_ARCH: ${TARGET_CPU_ARCH}")
 
+  if (BUILD_DIST)
+    message(STATUS "Add BUILD_DIST, use XCCL with KUNLUN XPU")
+    list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+    find_package(XCCL REQUIRED)
+    add_compile_definitions(INFINI_USE_XCCL=1)
+    target_link_libraries(InfiniTensor ${XCCL_LIBRARIES})
+  endif()
   target_link_libraries(InfiniTensor ${KUNLUN_RT} ${KUNLUN_DNN} stdc++)
 endif()
 

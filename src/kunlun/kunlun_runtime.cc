@@ -57,4 +57,16 @@ void KUNLUNRuntimeObj::sync() const { ; }
 
 string KUNLUNRuntimeObj::toString() const { return "KUNLUN Runtime"; }
 
+void KUNLUNRuntimeObj::initComm(const string &name, int worldSize, int rank) {
+    IT_ASSERT(worldSize > 0);
+    IT_ASSERT(rank >= 0);
+    IT_ASSERT(rank < worldSize);
+    IT_ASSERT(!comm) << "communicator is already initialized.";
+#ifdef INFINI_USE_XCCL
+    comm = std::make_unique<XcclCommunicatorObj>(name, worldSize, rank);
+#else
+    IT_TODO_HALT_MSG("Not compiled with XCCL");
+#endif
+}
+
 } // namespace infini
