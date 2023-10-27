@@ -14,6 +14,8 @@ class CopyCuda : public CudaKernelWithoutConfig {
 REGISTER_KERNEL(Device::CUDA, OpType::Reshape, DataType::Float32, CopyCuda,
                 "Reshape_CUDA_Float32");
 REGISTER_KERNEL(Device::CUDA, OpType::Reshape, DataType::Int64, CopyCuda,
+                "Reshape_CUDA_Int64");
+REGISTER_KERNEL(Device::CUDA, OpType::Reshape, DataType::Int32, CopyCuda,
                 "Reshape_CUDA_Int32");
 REGISTER_KERNEL(Device::CUDA, OpType::Flatten, DataType::Float32, CopyCuda,
                 "Flatten_CUDA_Float32");
