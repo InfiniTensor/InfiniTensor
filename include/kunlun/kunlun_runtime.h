@@ -69,7 +69,7 @@ class KUNLUNRuntimeObj : public RuntimeObj {
 
     void initComm(const string &name, int worldSize, int rank) final;
 
-    CommunicatorObj &getCommunicator() const final {return *comm;}
+    CommunicatorObj &getCommunicator() const final { return *comm; }
 
   private:
     void runWithoutSync(const Graph &graph, bool tune, bool profiling) const;
