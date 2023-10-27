@@ -28,6 +28,7 @@ from typing import Dict, List, Any, Tuple, Sequence, Union, Optional
 from functools import reduce
 from onnxsim import simplify
 import copy
+import warnings
 
 
 class OnnxStub:
@@ -48,7 +49,10 @@ class OnnxStub:
         self.inputs: Dict[str, backend.Tensor] = {}
         self.outputs: Dict[str, backend.Tensor] = {}
         self.initializer: Dict[int, TensorProto] = {}
-        # model = infer_shapes(model)
+        try:
+            model = infer_shapes(model)
+        except:
+            warnings.warn("infer_shapes failed.")
         self.handler = backend.GraphHandler(runtime)
 
         tensors: Dict[str, backend.Tensor] = dict()
