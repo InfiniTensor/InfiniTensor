@@ -30,9 +30,13 @@ class GatherCnnl : public BangKernelWithoutConfig {
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_ARRAY,
                                                CNNL_DTYPE_FLOAT, cDim.size(),
                                                cDim.data()));
+
+        BangPtr wsData = context->getWorkspace(aDim.size() * 4);
+        context->copyBlobFromCPU(wsData, aDim.data(), aDim.size() * 4 );
+
         auto axis = op->getAxis();
-        cnnlStatus_t stat = cnnlGather(context->cnnlHandle(), axis, aDesc,
-                                       aData, bDesc, bData, cDesc, cData);
+        cnnlStatus_t stat = cnnlGatherV2(context->cnnlHandle(), axis, aDesc,
+                                       aData, (int*)wsData, bDesc, (int*)bData, cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
