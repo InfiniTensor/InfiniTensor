@@ -14,12 +14,11 @@ class GatherXdnn : public KUNLUNKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
 
         auto shape = op->getInputs(0)->getDims();
-        baidu::xpu::api::VectorParam<int> shapeVector = {
-            shape.data(), (int64_t)shape.size(), nullptr};
         auto index = op->getInputs(1)->getDims();
-        auto ret = baidu::xpu::api::gather_nd<float, int>(
+	auto axis = op->getAxis();
+        auto ret = baidu::xpu::api::gather<float, int>(
             context->KUNLUNHandle(), (float *)aData, (int *)bData,
-            (float *)cData, shapeVector, index);
+            (float *)cData, shape, index.size(), axis);
         assert(ret == 0);
         return;
     }
