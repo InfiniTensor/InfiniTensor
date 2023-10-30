@@ -1,8 +1,8 @@
 #ifdef INFINI_USE_XCCL
 #include "core/graph.h"
 #include "core/runtime.h"
-#include "operators/all_gather.h"
 #include "kunlun/kunlun_runtime.h"
+#include "operators/all_gather.h"
 #include "test.h"
 #include "xpu/bkcl.h"
 #include <thread>
