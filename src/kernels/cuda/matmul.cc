@@ -58,6 +58,7 @@ class matmulCublas : public Kernel {
             SmallArray inputShape, outputShape;
             int nDims = out->getRank();
             IT_ASSERT(nDims <= SMALL_ARRAY_SIZE);
+            // FIXME(constroy): use size_t for outputsize.
             int outputsize = 1; // the length of the output vector after flatten
             int offset = nDims - inC->getRank();
             for (int i = 0; i < offset; ++i)
