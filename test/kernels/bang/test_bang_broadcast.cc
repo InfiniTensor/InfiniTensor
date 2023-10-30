@@ -1,5 +1,6 @@
 #ifdef INFINI_USE_CNCL
 #include "bang/bang_runtime.h"
+#include "bang/cncl_communicator.h"
 #include "core/graph.h"
 #include "core/runtime.h"
 #include "operators/broadcast.h"
@@ -43,13 +44,17 @@ TEST(BANG_Broadcast, run) {
     vector<float> data = {2., 3., 5., 6.};
     vector<float> ans = {2., 3., 5., 6.};
 
+    auto manager = CnclCommManager::getInstance(WORLD_SIZE);
+
     std::vector<std::thread> threads;
-    for (int gpu = 0; gpu < WORLD_SIZE; ++gpu) {
-        threads.emplace_back(broadcast, "test_broadcast", gpu, data, ans);
+    for (int mlu = 0; mlu < WORLD_SIZE; ++mlu) {
+        threads.emplace_back(broadcast, "test_broadcast", mlu, data, ans);
     }
     for (auto &thread : threads) {
         thread.join();
     }
+
+    manager->reset();
 }
 } // namespace infini
 #endif
