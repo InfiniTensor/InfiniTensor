@@ -1,3 +1,4 @@
+#ifdef INFINI_USE_XCCL
 #include "operators/all_gather.h"
 #include "kunlun/kunlun_kernel_without_config.h"
 #include "kunlun/kunlun_runtime.h"
@@ -37,5 +38,5 @@ class AllGatherXCCL : public KUNLUNKernelWithoutConfig {
 
 REGISTER_KERNEL(Device::KUNLUN, OpType::AllGather, DataType::Float32,
                 AllGatherXCCL, "AllGatcher_XCCL_KUNLUN_Float32");
-
 } // namespace infini
+#endif
