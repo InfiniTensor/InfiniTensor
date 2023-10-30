@@ -23,30 +23,20 @@ class CnclCommManager {
   private:
     CnclCommManager(int worldSize);
     static Ref<CnclCommManager> instance;
-    static std::mutex mutex;
+    static void resetInstance();
 
   public:
     static Ref<CnclCommManager> getInstance(int worldSize);
-    void syncAll();
-    void check();
     void reset();
-    static void resetInstance();
-    // ~CnclCommManager();
 };
 
 class CnclCommunicatorObj final : public CommunicatorObj {
-    //   private:
-    //     cnclComm_t comm;
-    //     cnrtQueue_t queue;
   private:
     int num_comms_total;
 
   public:
     CnclCommunicatorObj(const string &name, int worldSize, int rank)
         : CommunicatorObj(worldSize, rank) {
-        // auto manager = CnclCommManager::getInstance(worldSize);
-        // comm = manager->comms[rank];
-        // queue = manager->queues[rank];
         num_comms_total = CnclCommManager::getInstance(worldSize)->num_comms;
     }
 
@@ -57,10 +47,6 @@ class CnclCommunicatorObj final : public CommunicatorObj {
     cnrtQueue_t getCnclQueue() {
         return CnclCommManager::getInstance(worldSize)->queues[rank];
     }
-
-    // ~CnclCommunicatorObj() final {
-    // CNCL_CHECK(cnclFreeComm(comm));
-    // }
 
     virtual string toString() const final {
         std::ostringstream oss;
