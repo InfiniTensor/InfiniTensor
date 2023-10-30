@@ -1,6 +1,6 @@
+#include "operators/softmax.h"
 #include "kunlun/kunlun_kernel_without_config.h"
 #include "kunlun/kunlun_runtime.h"
-#include "operators/softmax.h"
 
 namespace infini {
 class SoftmaxXdnn : public KUNLUNKernelWithoutConfig {
@@ -13,7 +13,7 @@ class SoftmaxXdnn : public KUNLUNKernelWithoutConfig {
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
-        
+
         auto ret = baidu::xpu::api::softmax<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)cData, dim, axis);
         assert(ret == 0);

@@ -25,7 +25,7 @@ TEST(XDNN_Softmax, run_axis1) {
     kunlunRuntime->run(kunlunGraph);
     auto outputKunlun = kunlunOp->getOutput();
     auto outputKunlun2Cpu = outputKunlun->clone(cpuRuntime);
-    
+
     // Check
     EXPECT_TRUE(outputKunlun2Cpu->equalData(
         vector<float>{0.032058604, 0.08714432, 0.23688284, 0.6439143,
@@ -50,7 +50,7 @@ TEST(XDNN_Softmax, run_axis0) {
     kunlunRuntime->run(kunlunGraph);
     auto outputKunlun = kunlunOp->getOutput();
     auto outputKunlun2Cpu = outputKunlun->clone(cpuRuntime);
-    
+
     // Check
     EXPECT_TRUE(
         outputKunlun2Cpu->equalData(vector<float>{0., 0., 0., 0., 1, 1, 1, 1}));
@@ -74,7 +74,7 @@ TEST(XDNN_Softmax2, run_axis1) {
     kunlunRuntime->run(kunlunGraph);
     auto outputKunlun = kunlunOp->getOutput();
     auto outputKunlun2Cpu = outputKunlun->clone(cpuRuntime);
-    
+
     // Check
     EXPECT_TRUE(outputKunlun2Cpu->equalData(vector<float>{
         0.0179862, 0.0179862, 0.0179862, 0.0179862, 0.9820138, 0.9820138,
@@ -100,7 +100,7 @@ TEST(XDNN_Softmax2, run_axis2) {
     kunlunRuntime->run(kunlunGraph);
     auto outputKunlun = kunlunOp->getOutput();
     auto outputKunlun2Cpu = outputKunlun->clone(cpuRuntime);
-    
+
     // Check
     EXPECT_TRUE(outputKunlun2Cpu->equalData(vector<float>{
         0.1192029, 0.1192029, 0.8807971, 0.8807971, 0.1192029, 0.1192029,
@@ -126,7 +126,7 @@ TEST(XDNN_Softmax2, run_axis3) {
     kunlunRuntime->run(kunlunGraph);
     auto outputKunlun = kunlunOp->getOutput();
     auto outputKunlun2Cpu = outputKunlun->clone(cpuRuntime);
-    
+
     // Check
     EXPECT_TRUE(outputKunlun2Cpu->equalData(vector<float>{
         0.2689414, 0.7310586, 0.2689414, 0.7310586, 0.2689414, 0.7310586,
