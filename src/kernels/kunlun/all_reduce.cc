@@ -22,13 +22,6 @@ class AllReduceXCCL : public KUNLUNKernelWithoutConfig {
         checkXcclError(bkcl_all_reduce(comm, input, output, count,
                                        BKCLDataType::BKCL_FLOAT, getRedOp(),
                                        0));
-        /**
-         * The XCCL interface is asynchronous by default.
-         * The host returns immediately after the call is completed.
-         * Therefore, the calculation results need to be synchronized
-         * by xpu_wait(comm_stream)
-         */
-        xpu_wait(0);
     }
     virtual BKCLOp getRedOp() const = 0;
 };
