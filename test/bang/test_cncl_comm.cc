@@ -20,7 +20,7 @@ void allReduceSum(float *data, int deviceId) {
             .getCnclQueue();
     // Copy data
     float *data_mlu;
-    checkBangError(cnrtMalloc((void**)&data_mlu, sizeof(float)));
+    checkBangError(cnrtMalloc((void **)&data_mlu, sizeof(float)));
     checkBangError(
         cnrtMemcpy(data_mlu, data, sizeof(float), cnrtMemcpyHostToDev));
     // Do AllReduce

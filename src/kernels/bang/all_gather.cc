@@ -20,8 +20,8 @@ class AllGatherCNCL : public BangKernelWithoutConfig {
             context->getWorkspace(op->getInputs(0)->getBytes() * world_size);
         // void *output = op->getOutput()->getRawDataPtr<void *>();
         // IT_ASSERT(op->getDType() == DataType::Float32);
-        checkBangError(
-            cnrtMalloc(&output_temp, op->getInputs(0)->getBytes() * world_size));
+        checkBangError(cnrtMalloc(&output_temp,
+                                  op->getInputs(0)->getBytes() * world_size));
         size_t bytes = op->getInputs(0)->getBytes();
         size_t count = bytes / op->getDType().getSize();
 
