@@ -1,5 +1,6 @@
 #ifdef INFINI_USE_CNCL
 #include "bang/bang_runtime.h"
+#include "bang/cncl_communicator.h"
 #include "core/graph.h"
 #include "core/runtime.h"
 #include "operators/all_gather.h"
@@ -38,6 +39,8 @@ TEST(BANG_AllGather, run) {
     vector<float> data[2] = {{2., 3.}, {5., 6.}};
     vector<vector<float>> ans = {{2., 3.}, {5., 6.}};
 
+    auto manager = CnclCommManager::getInstance(WORLD_SIZE);
+
     std::vector<std::thread> threads;
     for (int mlu = 0; mlu < WORLD_SIZE; ++mlu) {
         threads.emplace_back(allGather, "test_all_gather", mlu, data[mlu], ans);
@@ -45,6 +48,8 @@ TEST(BANG_AllGather, run) {
     for (auto &thread : threads) {
         thread.join();
     }
+
+    manager->reset();
 }
 } // namespace infini
 #endif

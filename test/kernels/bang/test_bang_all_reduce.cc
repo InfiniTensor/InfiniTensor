@@ -37,22 +37,9 @@ void allReduce(const string taskName, int deviceID, vector<float> data,
 
 TEST(BANG_AllReduce, sum) {
     vector<float> data[2] = {{2., 3.}, {5., 6.}};
-    vector<float> ans = {7., 9.};
-
-    std::vector<std::thread> threads;
-    for (int mlu = 0; mlu < WORLD_SIZE; ++mlu) {
-        threads.emplace_back(allReduce<AllReduceSumObj>, "test_allreduce_sum",
-                             mlu, data[mlu], ans);
-    }
-    for (auto &thread : threads) {
-        thread.join();
-    }
-    CnclCommManager::destroyInstance();
-}
-
-TEST(BANG_AllReduce, prod) {
-    vector<float> data[2] = {{2., 3.}, {5., 6.}};
     vector<float> ans = {10., 18.};
+
+    auto manager = CnclCommManager::getInstance(WORLD_SIZE);
 
     std::vector<std::thread> threads;
     for (int mlu = 0; mlu < WORLD_SIZE; ++mlu) {
@@ -62,49 +49,63 @@ TEST(BANG_AllReduce, prod) {
     for (auto &thread : threads) {
         thread.join();
     }
+
+    manager->reset();
 }
 
-// TEST(BANG_AllReduce, min) {
-//     vector<float> data[2] = {{2., 3.}, {5., 6.}};
-//     vector<float> ans = {2., 3.};
+TEST(BANG_AllReduce, prod) {
+    vector<float> data[2] = {{2., 3.}, {5., 6.}};
+    vector<float> ans = {10., 18.};
 
-//     std::vector<std::thread> threads;
-//     for (int mlu = 0; mlu < WORLD_SIZE; ++mlu) {
-//         threads.emplace_back(allReduce<AllReduceMinObj>, "test_allreduce_min",
-//                              mlu, data[mlu], ans);
-//     }
-//     for (auto &thread : threads) {
-//         thread.join();
-//     }
-// }
+    auto manager = CnclCommManager::getInstance(WORLD_SIZE);
 
-// TEST(BANG_AllReduce, max) {
-//     vector<float> data[2] = {{2., 3.}, {5., 6.}};
-//     vector<float> ans = {5., 6.};
+    std::vector<std::thread> threads;
+    for (int mlu = 0; mlu < WORLD_SIZE; ++mlu) {
+        threads.emplace_back(allReduce<AllReduceProdObj>, "test_allreduce_prod",
+                             mlu, data[mlu], ans);
+    }
+    for (auto &thread : threads) {
+        thread.join();
+    }
 
-//     std::vector<std::thread> threads;
-//     for (int mlu = 0; mlu < WORLD_SIZE; ++mlu) {
-//         threads.emplace_back(allReduce<AllReduceMaxObj>, "test_allreduce_max",
-//                              mlu, data[mlu], ans);
-//     }
-//     for (auto &thread : threads) {
-//         thread.join();
-//     }
-// }
+    manager->reset();
+}
 
-// TEST(BANG_AllReduce, avg) {
-//     vector<float> data[2] = {{2., 3.}, {5., 6.}};
-//     vector<float> ans = {3.5, 4.5};
+TEST(BANG_AllReduce, min) {
+    vector<float> data[2] = {{2., 3.}, {5., 6.}};
+    vector<float> ans = {2., 3.};
 
-//     std::vector<std::thread> threads;
-//     for (int mlu = 0; mlu < WORLD_SIZE; ++mlu) {
-//         threads.emplace_back(allReduce<AllReduceAvgObj>, "test_allreduce_avg",
-//                              mlu, data[mlu], ans);
-//     }
-//     for (auto &thread : threads) {
-//         thread.join();
-//     }
-// }
+    auto manager = CnclCommManager::getInstance(WORLD_SIZE);
+
+    std::vector<std::thread> threads;
+    for (int mlu = 0; mlu < WORLD_SIZE; ++mlu) {
+        threads.emplace_back(allReduce<AllReduceMinObj>, "test_allreduce_min",
+                             mlu, data[mlu], ans);
+    }
+    for (auto &thread : threads) {
+        thread.join();
+    }
+
+    manager->reset();
+}
+
+TEST(BANG_AllReduce, max) {
+    vector<float> data[2] = {{2., 3.}, {5., 6.}};
+    vector<float> ans = {5., 6.};
+
+    auto manager = CnclCommManager::getInstance(WORLD_SIZE);
+
+    std::vector<std::thread> threads;
+    for (int mlu = 0; mlu < WORLD_SIZE; ++mlu) {
+        threads.emplace_back(allReduce<AllReduceMaxObj>, "test_allreduce_max",
+                             mlu, data[mlu], ans);
+    }
+    for (auto &thread : threads) {
+        thread.join();
+    }
+
+    manager->reset();
+}
 
 } // namespace infini
 #endif
