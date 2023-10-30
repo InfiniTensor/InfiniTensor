@@ -1,9 +1,8 @@
 #pragma once
 #include "core/runtime.h"
 #include "kunlun/kunlun_common.h"
-#include "kunlun/xccl_communicator.h"
 #ifdef INFINI_USE_XCCL
-#include "xpu/bkcl.h"
+#include "kunlun/xccl_communicator.h"
 #endif
 namespace infini {
 

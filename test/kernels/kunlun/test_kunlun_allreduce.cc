@@ -1,4 +1,4 @@
-// #ifdef INFINI_USE_XCCL
+#ifdef INFINI_USE_XCCL
 #include "core/graph.h"
 #include "core/runtime.h"
 #include "kunlun/kunlun_runtime.h"
@@ -69,3 +69,4 @@ TEST(KUNLUN_AllReduce, min) {
         thread.join();
     }
 }
+#endif
