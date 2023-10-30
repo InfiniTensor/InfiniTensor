@@ -4,11 +4,11 @@ set(XCCL_LIB_DIR $ENV{KUNLUN_HOME}/XTDK  CACHE PATH "Folder contains KUNLUN XCCL
 
 list(APPEND CMAKE_PREFIX_PATH $ENV{KUNLUN_HOME}/XTDK)
 
-find_path(XCCL_INCLUDE_DIRS # /usr/local/xpu/XTDK/include
+find_path(XCCL_INCLUDE_DIRS # ${KUNLUN_HOME}/XTDK/include
   NAMES xpu/bkcl.h
   HINTS XCCL_INCLUDE_DIR)
 
-find_library(XCCL_LIBRARIES # /usr/local/xpu/XTDK/shlib
+find_library(XCCL_LIBRARIES # ${KUNLUN_HOME}/XTDK/shlib
   NAMES shlib/libbkcl.so
   HINTS XCCL_LIB_DIR)
 
