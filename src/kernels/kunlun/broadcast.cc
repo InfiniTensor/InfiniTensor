@@ -20,7 +20,8 @@ class BroadcastXCCL : public KUNLUNKernelWithoutConfig {
             dynamic_cast<XcclCommunicatorObj &>(context->getCommunicator())
                 .getXcclComm();
         // TODO: Using default stream 0 for now.
-        checkXcclError(bkcl_broadcast(comm, input, output, count, BKCL_FLOAT, op->getRoot(), 0));
+        checkXcclError(bkcl_broadcast(comm, input, output, count, BKCL_FLOAT,
+                                      op->getRoot(), 0));
     }
 };
 

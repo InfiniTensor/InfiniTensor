@@ -4,8 +4,8 @@
 #include "kunlun/kunlun_runtime.h"
 #include "operators/broadcast.h"
 #include "test.h"
-#include <xpu/bkcl.h>
 #include <thread>
+#include <xpu/bkcl.h>
 
 static int WORLD_SIZE = 2;
 static int root = 0;
