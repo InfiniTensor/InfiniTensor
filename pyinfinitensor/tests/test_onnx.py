@@ -208,7 +208,7 @@ class TestStringMethods(unittest.TestCase):
         relu = make_node("Relu", ["x"], ["y"], name="relu")
         make_and_import_model(make_graph([relu], "relu", [x], [y]))
 
-    '''Gelu operator is not supported by onnx 14.1 currently.'''
+    """Gelu operator is not supported by onnx 14.1 currently."""
     def test_gelu(self):
         pass
         # x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
@@ -239,7 +239,7 @@ class TestStringMethods(unittest.TestCase):
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
         tanh = make_node("Tanh", ["x"], ["y"], name="tanh")
         make_and_import_model(make_graph([tanh], "tanh", [x], [y]))
-    
+
     def test_hard_sigmoid(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
@@ -263,7 +263,7 @@ class TestStringMethods(unittest.TestCase):
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
         abs = make_node("Abs", ["x"], ["y"], name="abs")
         make_and_import_model(make_graph([abs], "abs", [x], [y]))
-    
+
     def test_neg(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
@@ -307,12 +307,27 @@ class TestStringMethods(unittest.TestCase):
 
     def test_gather(self):
         data = make_tensor_value_info("data", TensorProto.FLOAT, [1, 3, 4, 4])
-        indices = make_tensor_value_info("indices", TensorProto.FLOAT, [2, 1, 2])
+        indices = make_tensor_value_info("indices", TensorProto.INT64, [2, 1, 2])
         output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 2, 1, 2, 4, 4])
         gather = make_node(
             "Gather", ["data", "indices"], ["output"], axis=1, name="gather"
         )
         make_and_import_model(make_graph([gather], "gather", [data, indices], [output]))
+
+    def test_gather_elements(self):
+        data = make_tensor_value_info("data", TensorProto.FLOAT, [2, 3, 2])
+        indices = make_tensor_value_info("indices", TensorProto.INT64, [2, 1, 2])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [2, 1, 2])
+        gatherElements = make_node(
+            "GatherElements",
+            ["data", "indices"],
+            ["output"],
+            axis=1,
+            name="gatherElements",
+        )
+        make_and_import_model(
+            make_graph([gatherElements], "gatherElements", [data, indices], [output])
+        )
 
     def test_reduce_mean(self):
         data = make_tensor_value_info("data", TensorProto.FLOAT, [2, 3, 3, 4])

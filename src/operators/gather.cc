@@ -4,7 +4,7 @@
 namespace infini {
 GatherObj::GatherObj(GraphObj *graph, Tensor input, Tensor indices,
                      Tensor output, int axis)
-    : OperatorObj(OpType::Gather, {input, indices}, {output}), axis(axis) {
+    : GatherBaseObj(OpType::Gather, {input, indices}, {output}, axis) {
     int rank = input->getRank();
     this->axis = get_real_axis(axis, rank);
     IT_ASSERT(checkValid(graph));

@@ -24,6 +24,9 @@
 #ifdef USE_BANG
 #include "bang/bang_runtime.h"
 #endif
+#ifdef USE_KUNLUN
+#include "kunlun/kunlun_runtime.h"
+#endif
 #ifdef USE_INTELCPU
 #include "intelcpu/mkl_runtime.h"
 #include "intelcpu/operator_timer.h"
@@ -85,6 +88,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, Div)
         .VALUE(OpType, Pow)
         .VALUE(OpType, Gather)
+        .VALUE(OpType, GatherElements)
         .VALUE(OpType, ReduceMean)
         .VALUE(OpType, Reshape)
         .VALUE(OpType, Flatten)
@@ -157,6 +161,12 @@ static int tensor_dtype(Tensor t) {
 static Ref<BangRuntimeObj> bang_runtime() { return make_ref<BangRuntimeObj>(); }
 #endif
 
+#ifdef USE_KUNLUN
+static Ref<KUNLUNRuntimeObj> kunlun_runtime() {
+    return make_ref<KUNLUNRuntimeObj>();
+}
+#endif
+
 #ifdef USE_INTELCPU
 static Ref<RuntimeObj> intelcpu_runtime() { return make_ref<MklRuntimeObj>(); }
 #endif
@@ -227,8 +237,9 @@ static int split_axis_of(Operator op) {
 }
 
 static int gather_axis_of(Operator op) {
-    IT_ASSERT(op->getOpType() == OpType::Gather);
-    return dynamic_cast<const GatherObj *>(op.get())->getAxis();
+    IT_ASSERT(op->getOpType() == OpType::Gather ||
+              op->getOpType() == OpType::GatherElements);
+    return dynamic_cast<const GatherBaseObj *>(op.get())->getAxis();
 }
 
 static vector<int64_t> reshape_shape_of(Operator op) {
@@ -289,6 +300,10 @@ void export_functions(py::module &m) {
 #endif
 #ifdef USE_BANG
         .FUNCTION(bang_runtime)
+#endif
+
+#ifdef USE_KUNLUN
+        .FUNCTION(kunlun_runtime)
 #endif
         .FUNCTION(conv_attrs_of)
         .FUNCTION(conv_trans_attrs_of)
@@ -363,6 +378,10 @@ void init_graph_builder(py::module &m) {
 #ifdef USE_BANG
     py::class_<BangRuntimeObj, std::shared_ptr<BangRuntimeObj>, RuntimeObj>(
         m, "BangRuntime");
+#endif
+#ifdef USE_KUNLUN
+    py::class_<KUNLUNRuntimeObj, std::shared_ptr<KUNLUNRuntimeObj>, RuntimeObj>(
+        m, "KUNLUNRuntime");
 #endif
     py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "Tensor",
                                                       py::buffer_protocol())
@@ -462,6 +481,7 @@ void init_graph_builder(py::module &m) {
         .def("concat", &Handler::concat, policy::move)
         .def("split", &Handler::split, policy::move)
         .def("gather", &Handler::gather, policy::move)
+        .def("gatherElements", &Handler::gatherElements, policy::move)
         .def("reduce_mean", &Handler::reduceMean, policy::move)
         .def("slice", &Handler::slice, policy::move)
         .def("pad", &Handler::pad, policy::move)
