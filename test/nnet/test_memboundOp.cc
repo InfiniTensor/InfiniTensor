@@ -1,3 +1,5 @@
+#ifdef USE_CUDA
+
 #include "core/graph.h"
 #include "core/runtime.h"
 #include "cuda/cuda_runtime.h"
@@ -116,3 +118,5 @@ TEST(nnet, PRelu_Ansor_Codegen) {
     auto oCpu = gCpu->cloneTensor(o0);
     EXPECT_TRUE(oCpu->equalData(ans));
 }
+
+#endif
