@@ -139,7 +139,6 @@ class SoftmaxCnnl : public BangKernelWithoutConfig {
                 inDim[2] *= aDim[i];
             }
             outDim = inDim;
-            outDim[0] = 1;
         } else if (axis == aDim.size() - 1) {
             mode = CNNL_SOFTMAX_MODE_LOW_DIMENSION;
             inDim[0] = aDim[0];
@@ -148,7 +147,6 @@ class SoftmaxCnnl : public BangKernelWithoutConfig {
             }
             inDim[2] = aDim[axis];
             outDim = inDim;
-            outDim[2] = 1;
         } else {
             mode = CNNL_SOFTMAX_MODE_MEDIUM_DIMENSION;
             for (size_t i = 0; i < axis; ++i) {
@@ -159,7 +157,6 @@ class SoftmaxCnnl : public BangKernelWithoutConfig {
                 inDim[2] *= aDim[i];
             }
             outDim = inDim;
-            outDim[1] = 1;
         }
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
