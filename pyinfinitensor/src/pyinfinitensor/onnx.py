@@ -28,6 +28,7 @@ from typing import Dict, List, Any, Tuple, Sequence, Union, Optional
 from functools import reduce
 from onnxsim import simplify
 import copy
+import warnings
 
 
 class OnnxStub:
@@ -48,7 +49,10 @@ class OnnxStub:
         self.inputs: Dict[str, backend.Tensor] = {}
         self.outputs: Dict[str, backend.Tensor] = {}
         self.initializer: Dict[int, TensorProto] = {}
-        model = infer_shapes(model)
+        try:
+            model = infer_shapes(model)
+        except:
+            warnings.warn("infer_shapes failed.")
         self.handler = backend.GraphHandler(runtime)
 
         tensors: Dict[str, backend.Tensor] = dict()
@@ -603,15 +607,20 @@ class OnnxStub:
                         != 0,
                     )
                 elif node.op_type == "Slice":
+
+                    def clamp(nums):
+                        MAX_INT = 0x7FFFFFFF
+                        return [min(x, MAX_INT) for x in nums]
+
                     tensors[node.output[0]] = self.handler.slice(
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
-                        _parse_data(data[node.input[1]]),
-                        _parse_data(data[node.input[2]]),
-                        _parse_data(data[node.input[3]])
+                        clamp(_parse_data(data[node.input[1]])),
+                        clamp(_parse_data(data[node.input[2]])),
+                        clamp(_parse_data(data[node.input[3]]))
                         if len(node.input) > 3
                         else None,
-                        _parse_data(data[node.input[4]])
+                        clamp(_parse_data(data[node.input[4]]))
                         if len(node.input) > 4
                         else None,
                     )

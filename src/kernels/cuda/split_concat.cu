@@ -51,13 +51,15 @@ __global__ void _split_concat_kernel(ElementTensorMetadata elemMeta,
 
 namespace infini {
 
-// TODO: when dim=0, the operation can be executed in-place 
+// TODO: when dim=0, the operation can be executed in-place
 void split_concat_kernel(const ElementTensorMetadata &eleMeta,
                          const ComposedTensorMetadata &compMeta, int dim,
                          int batchSize, int nDims, bool isSplit) {
     dim3 blockSize = dim3(32 * 16);
-    // gridsize =n_elements / blockSize
-    int gridDimX = (eleMeta.nElements[0] - 1) / (32 * 16) + 1;
+    // gridsize = max_n_elements / blockSize
+    int max_n_elements =
+        *std::max_element(eleMeta.nElements, eleMeta.nElements + batchSize);
+    int gridDimX = (max_n_elements - 1) / (32 * 16) + 1;
     // each y is a split among the batch
     dim3 gridSize(gridDimX, batchSize);
 
