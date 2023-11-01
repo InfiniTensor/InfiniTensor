@@ -126,9 +126,6 @@ class PowXdnn : public KUNLUNKernelWithoutConfig {
 		bDim.push_back(1);
 	}
 
-	std::cout << vecToString(aDim) << std::endl;
-        std::cout << vecToString(bDim) << std::endl;
-
         auto ret = baidu::xpu::api::broadcast_pow<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
             (float *)cData, aDim, bDim);
