@@ -3,10 +3,30 @@
 #include "nnet/Visitor/HashVisitor.h"
 #include "nnet/Visitor/Interpreter.h"
 #include "nnet/Visitor/Serializer.h"
+#include <filesystem>
 namespace nnet {
 
-int matchExprResult(Derivator &derivator, string fn) {
-    auto ans = Serializer().deserialize(fn);
+std::filesystem::path getProjectHome() {
+#ifndef INFINI_PROJECT_HOME
+#error INFINI_PROJECT_HOME is not defined
+#endif
+
+#define Q(x) #x
+#define QUOTE(x) Q(x)
+#define PROJECT_HOME QUOTE(INFINI_PROJECT_HOME)
+    return std::filesystem::path(PROJECT_HOME);
+#undef PROJECT_HOME
+#undef QUOTE
+#undef Q
+}
+
+string getResourceFilePath(string path) {
+    return (getProjectHome() / path).string();
+}
+
+int matchExprResult(Derivator &derivator, string pathRelativeToProjectHome) {
+    auto fullPath = getResourceFilePath(pathRelativeToProjectHome);
+    auto ans = Serializer().deserialize(fullPath);
     auto hashAns = HashVisitor()(ans);
     int match = 0;
     for (const auto &candidate : derivator.getCandidates()) {
@@ -16,16 +36,17 @@ int matchExprResult(Derivator &derivator, string fn) {
     return match;
 }
 
-bool checkExprLogSame(string fnPrefix, int start, int end) {
+bool checkExprLogSame(string pathRelativeToProjectHome, int start, int end) {
+    auto fullPath = getResourceFilePath(pathRelativeToProjectHome);
     Serializer serializer;
-    string fn0 = fnPrefix + to_string(start) + ".expr";
+    string fn0 = fullPath + to_string(start) + ".expr";
     Expr expr0 = serializer.deserialize(fn0);
     RangeOp range0 = as<RangeOpNode>(expr0);
     Interpreter interpreter(range0);
     auto ans0 = interpreter.interpretUniformSample(range0);
     dbg(expr0, ans0);
     for (int i = start + 1; i < end; ++i) {
-        string fn1 = fnPrefix + to_string(i) + ".expr";
+        string fn1 = fullPath + to_string(i) + ".expr";
         Expr expr1 = serializer.deserialize(fn1);
         RangeOp range1 = as<RangeOpNode>(expr1);
         dbg(fn1, expr1);

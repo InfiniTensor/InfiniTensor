@@ -130,6 +130,8 @@ if(BUILD_NNET)
   add_compile_definitions(BUILD_NNET=1)
   file(GLOB_RECURSE SRC_NNET src/nnet/*.cc)
   list (APPEND SRC ${SRC_NNET})
+  # For locating resource files
+  set_source_files_properties(src/nnet/test.cc PROPERTIES COMPILE_OPTIONS "-DINFINI_PROJECT_HOME=${CMAKE_CURRENT_SOURCE_DIR}")
 endif()
 
 if(USE_CUDA)
