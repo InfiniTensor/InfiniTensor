@@ -284,12 +284,13 @@ Tensor GraphHandlerObj::gatherElements(Tensor data, Tensor indices,
                                  const optional<vector<int>> &axes,            \
                                  bool keepdims) {                              \
         if (reduced) {                                                         \
-            g->addOpWithOutputs<obj##Obj>(std::move(data), reduced, axes,      \
-                                          keepdims);                           \
+            g->addOpWithOutputs<_CAT(obj, Obj)>(std::move(data), reduced,      \
+                                                axes, keepdims);               \
             return reduced;                                                    \
         } else {                                                               \
             return g                                                           \
-                ->addOp<obj##Obj>(std::move(data), reduced, axes, keepdims)    \
+                ->addOp<_CAT(obj, Obj)>(std::move(data), reduced, axes,        \
+                                        keepdims)                              \
                 ->getOutput();                                                 \
         }                                                                      \
     }

@@ -16,6 +16,7 @@ class ReduceBaseObj : public OperatorObj {
      * @brief Construct a new Reduce object.
      *
      * @param graph The computation graph that this operator belongs to.
+     * @param opType The operation type. Should be a Reduce operation.
      * @param input The input tensor.
      * @param output The output tensor.
      * @param axes Axes to reduce.
