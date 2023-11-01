@@ -122,4 +122,40 @@ TEST(Concat, Cuda_dim0) {
     EXPECT_TRUE(oCpu->equalData(vector<float>{0, 1, 2, 1, 1, 1, 0, 1, 2}));
 }
 
+TEST(Concat, CudaHigh) {
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Graph gCpu = make_ref<GraphObj>(runtime);
+
+    auto t1 = gCpu->addTensor({2, 2, 3, 1, 2}, DataType::Float32);
+    auto t2 = gCpu->addTensor({2, 2, 1, 1, 2}, DataType::Float32);
+    auto t3 = gCpu->addTensor({2, 2, 2, 1, 2}, DataType::Float32);
+    gCpu->dataMalloc();
+    t1->setData(IncrementalGenerator());
+    t2->setData(OneGenerator());
+    t3->setData(OneGenerator());
+
+    auto cudaRuntime = make_ref<CudaRuntimeObj>();
+    Graph gCuda = make_ref<GraphObj>(cudaRuntime);
+
+    auto t1Gpu = gCuda->cloneTensor(t1);
+    auto t2Gpu = gCuda->cloneTensor(t2);
+    auto t3Gpu = gCuda->cloneTensor(t3);
+
+    auto op =
+        gCuda->addOp<ConcatObj>(TensorVec{t1Gpu, t2Gpu, t3Gpu}, nullptr, 2);
+    gCuda->dataMalloc();
+    t1Gpu->setData(IncrementalGenerator());
+    t2Gpu->setData(OneGenerator());
+    t3Gpu->setData(OneGenerator());
+    cudaRuntime->run(gCuda);
+
+    // cudaPrintTensor(op->getOutput());
+    //  copy output from CUDA to CPU
+    auto oCpu = gCpu->cloneTensor(op->getOutput());
+    EXPECT_TRUE(oCpu->equalData(
+        vector<float>{0.,  1.,  2.,  3.,  4.,  5.,  1., 1., 1., 1., 1., 1.,
+                      6.,  7.,  8.,  9.,  10., 11., 1., 1., 1., 1., 1., 1.,
+                      12., 13., 14., 15., 16., 17., 1., 1., 1., 1., 1., 1.,
+                      18., 19., 20., 21., 22., 23., 1., 1., 1., 1., 1., 1.}));
+}
 } // namespace infini

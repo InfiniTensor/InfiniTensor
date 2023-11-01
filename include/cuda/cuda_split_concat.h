@@ -3,7 +3,7 @@
 #include <cstdio>
 
 const int BATCH_SIZE = 32; // parallel tensor number.
-const int DIM_MAX_SIZE = 4;
+const int DIM_MAX_SIZE = 8;
 
 // Concat operator acts like element tensors composing to one big tensor,and
 // split operator acts like one big tensor being composed by element

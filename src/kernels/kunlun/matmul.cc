@@ -13,21 +13,16 @@ class MatmulXdnn : public KUNLUNKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         bool transA = op->getTransA();
         bool transB = op->getTransB();
-        if (op->getInputs(0)->getDims().size() != 2 ||
-            op->getInputs(1)->getDims().size() != 2) {
-            IT_TODO_HALT();
-        }
 
-        auto m = transA ? op->getInputs(0)->getDims()[1]
-                        : op->getInputs(0)->getDims()[0];
-        auto n = transB ? op->getInputs(1)->getDims()[0]
-                        : op->getInputs(1)->getDims()[1];
-        auto k = transA ? op->getInputs(0)->getDims()[0]
-                        : op->getInputs(0)->getDims()[1];
+	auto b = op->getB(); 
+	auto m = op->getM(); 
+	auto n = op->getN(); 
+	auto k = op->getK(); 
 
-        auto ret = baidu::xpu::api::fc<float, float, float, int>(
-            context->KUNLUNHandle(), (float *)aData, (float *)bData,
-            (float *)cData, m, n, k, transA, transB, nullptr, nullptr, nullptr);
+        auto ret = baidu::xpu::api::fc_batched<float, float, float, float>(
+            context->KUNLUNHandle(), b, transA, transB, m, n, k,
+	    1.0, (float *)aData, m*k, (float *)bData, n*k, 0.0, (float *)cData, m*n,
+	    nullptr, nullptr);
         assert(ret == 0);
         return;
     }
