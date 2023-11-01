@@ -118,10 +118,16 @@ if(BUILD_TEST)
   include_directories(3rd-party/googletest/googletest/include)
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Werror -Wno-error=deprecated-declarations")
+
+if(WIN32)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:preprocessor /permissive-")
+
+else()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Werror -Wno-error=deprecated-declarations")
+endif()
+
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -UNDEBUG") # Enable assertion
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -UNDEBUG") # Enable assertion
-
 
 # Source files
 file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/kernels/cpu/*.cc src/operators/*.cc src/utils/*.cc)
@@ -153,7 +159,12 @@ if(USE_INTELCPU)
 endif()
 
 # Libraries
-add_library(InfiniTensor SHARED ${SRC})
+if(WIN32)
+  add_library(InfiniTensor STATIC ${SRC})
+else()
+  add_library(InfiniTensor SHARED ${SRC})
+endif()
+
 if(USE_PROTOBUF)
   target_link_libraries(InfiniTensor tensor_proto)
 endif()

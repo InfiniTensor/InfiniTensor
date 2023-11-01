@@ -33,7 +33,7 @@ template <typename T> class NaiveSplit : public CpuKernelWithoutConfig {
             auto inPtr = input->getRawDataPtr<T *>(),
                  outPtr = output->getRawDataPtr<T *>();
 #pragma omp parallel for
-            for (size_t oOffset = 0; oOffset < outSize; ++oOffset) {
+            for (long long oOffset = 0; oOffset < outSize; ++oOffset) {
                 auto iOffset = oOffset % localBlockOffset + innerOffset +
                                oOffset / localBlockOffset * blockOffset;
                 outPtr[oOffset] = inPtr[iOffset];
