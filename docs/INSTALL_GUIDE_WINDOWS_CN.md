@@ -26,8 +26,8 @@
      > [CUDA Toolkit 安装](https://developer.nvidia.com/cuda-toolkit)，
      > [Cudnn 安装](https://developer.nvidia.com/rdp/cudnn-download)，
      > [Cublas 安装](https://developer.nvidia.com/cublas)，
-     
-     > CUDA Toolkit 、Cudnn 和 Cublas 一般安装在相同目录。CUDA Toolkit 安装完成后，会自动将可执行文件目录与库目录添加到系统环境变量 `PATH` 中。例如，CUDA Toolkit 安装在 `C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.1\` ，您查看系统变量 `PATH` 中会看到如下内容
+
+     > CUDA Toolkit 、Cudnn 和 Cublas 一般安装在相同目录。CUDA Toolkit 安装完成后，会自动将可执行文件目录与库目录添加到系统环境变量 `PATH` 中。例如，CUDA Toolkit 安装在 `C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.1\` ，您查看系统变量 `PATH` 中会看到如下内容。
      >
      > ```
      > C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.1\bin
