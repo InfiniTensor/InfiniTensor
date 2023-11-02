@@ -4,6 +4,8 @@
 
 - [环境准备](#环境准备)
 - [编译本项目](#编译本项目)
+- [Docker](#Docker)
+- [Windows](#Windows)
 - [技术支持](#技术支持)
 
 ## 环境准备
@@ -13,6 +15,7 @@
 | Host CPU | Device        | OS            |  Support   |
 | -------- | ------------  | -----------   | ---------- |
 | X86-64   | Nvidia GPU    |  Ubuntu-22.04 |  Yes       |
+| X86-64   | Nvidia GPU    |  Windows-10   |  Yes       |
 | X86-64   | Cambricon MLU |  Ubuntu-22.04 |  Yes       |
 
 推荐使用 X86-64 机器以及 Ubuntu-22.04，本文以此环境为例。
@@ -166,6 +169,9 @@ make docker-build CUDA=ON
 # Run docker image.
 make docker-run CUDA=ON
 ```
+
+## Windows
+参见 [Windows系统安装部署指南](./INSTALL_GUIDE_WINDOWS_CN.md)
 
 ## 技术支持
 

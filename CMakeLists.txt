@@ -183,7 +183,11 @@ endif()
 
 # Python bindings
 file(GLOB_RECURSE FFIS src/ffi/ffi_infinitensor.cc)
-pybind11_add_module(backend MODULE ${FFIS})
+if(WIN32)
+  pybind11_add_module(backend STATIC ${FFIS})
+else()
+  pybind11_add_module(backend MODULE ${FFIS})
+endif()
 target_link_libraries(backend PRIVATE InfiniTensor)
 
 if(USE_BACKTRACE)
