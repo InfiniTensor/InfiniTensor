@@ -40,12 +40,12 @@ using HashType = uint64_t; // compatible with std::hash
 
 // Assert: conditions should have no side effect
 #define _IT_ASSERT_2(condition, info)                                          \
-    (static_cast<bool>(condition)                                              \
-         ? void(0)                                                             \
-         : throw ::infini::Exception(                                          \
-               std::string("[") + __FILE__ + ":" + std::to_string(__LINE__) +  \
-               "] Assertion failed (" + #condition + "): " + info))
-#define _IT_ASSERT_1(condition) _IT_ASSERT_2(condition, "");
+    static_cast<bool>(condition)                                               \
+        ? void(0)                                                              \
+        : throw ::infini::Exception(                                           \
+              std::string("[") + __FILE__ + ":" + std::to_string(__LINE__) +   \
+              "] Assertion failed (" + #condition + "): " + info)
+#define _IT_ASSERT_1(condition) _IT_ASSERT_2(condition, "")
 #define IT_ASSERT(...) _VA_SELECT(_IT_ASSERT, __VA_ARGS__)
 
 #define IT_TODO_HALT() _IT_ASSERT_2(false, "Unimplemented")
@@ -75,7 +75,7 @@ template <typename T> std::string vecToString(const std::vector<T> &vec) {
 
 double timeit(
     const std::function<void()> &func,
-    const std::function<void(void)> &sync = []() {}, int warmupRounds = 200,
-    int timingRounds = 200);
+    const std::function<void(void)> &sync = []() {}, int warmupRounds = 10,
+    int timingRounds = 10);
 
 } // namespace infini

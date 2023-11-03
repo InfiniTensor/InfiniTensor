@@ -1,6 +1,8 @@
 #include "operators/matmul.h"
 #include "core/kernel.h"
+#include "cuda/cuda_expand.h"
 #include "cuda/cuda_runtime.h"
+#include "utils/small_array.h"
 
 namespace infini {
 
@@ -46,7 +48,31 @@ class matmulCublas : public Kernel {
         auto opB = op->getTransB() ? CUBLAS_OP_T : CUBLAS_OP_N;
         const int lda = op->getTransA() ? m : k, ldb = op->getTransB() ? k : n,
                   ldc = n;
-        const float alpha = 1.f, beta = 0.f;
+        float alpha = 1.f, beta = 0.f;
+        if (op->numInputs() == 2) { // no bias
+            beta = 0.f;
+        } else { // broadcast bias to output
+            beta = 1.f;
+            auto inC = op->getInputs(2);
+            auto out = op->getOutput();
+            SmallArray inputShape, outputShape;
+            int nDims = out->getRank();
+            IT_ASSERT(nDims <= SMALL_ARRAY_SIZE);
+            // FIXME(constroy): use size_t for outputsize.
+            int outputsize = 1; // the length of the output vector after flatten
+            int offset = nDims - inC->getRank();
+            for (int i = 0; i < offset; ++i)
+                inputShape.data[i] = 1;
+            for (int i = 0; i < nDims; ++i) {
+                outputShape.data[i] = out->getDims()[i];
+                outputsize *= outputShape.data[i];
+                if (i >= offset)
+                    inputShape.data[i] = inC->getDims()[i - offset];
+            }
+            expandKernel(inC->getRawDataPtr<float *>(),
+                         out->getRawDataPtr<float *>(), nDims, outputsize,
+                         inputShape, outputShape);
+        }
         // TODO:use compute type
         cublasStatus_t stat;
         if (b > 1) {

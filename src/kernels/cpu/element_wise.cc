@@ -58,6 +58,21 @@ template <typename T> class NaiveMul : public NativeElementWise<T> {
 template <typename T> class NaiveDiv : public NativeElementWise<T> {
     T doCompute(T val0, T val1) const override { return (T)(val0 / val1); }
 };
+template <typename T> class NaiveEqual : public NativeElementWise<T> {
+    T doCompute(T val0, T val1) const override { return (T)(val0 == val1); }
+};
+template <typename T> class NaiveGreaterEqual : public NativeElementWise<T> {
+    T doCompute(T val0, T val1) const override { return (T)(val0 >= val1); }
+};
+template <typename T> class NaiveGreaterThan : public NativeElementWise<T> {
+    T doCompute(T val0, T val1) const override { return (T)(val0 > val1); }
+};
+template <typename T> class NaiveLessEqual : public NativeElementWise<T> {
+    T doCompute(T val0, T val1) const override { return (T)(val0 <= val1); }
+};
+template <typename T> class NaiveLessThan : public NativeElementWise<T> {
+    T doCompute(T val0, T val1) const override { return (T)(val0 < val1); }
+};
 
 REGISTER_KERNEL(Device::CPU, OpType::Add, DataType::UInt32, NaiveAdd<uint32_t>,
                 "addNaive_CPU_uint32");
@@ -75,4 +90,24 @@ REGISTER_KERNEL(Device::CPU, OpType::Div, DataType::UInt32, NaiveDiv<uint32_t>,
                 "divNaive_CPU_uint32");
 REGISTER_KERNEL(Device::CPU, OpType::Div, DataType::Float32, NaiveDiv<float>,
                 "divNaive_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::Equal, DataType::UInt32,
+                NaiveEqual<uint32_t>, "equalNaive_CPU_uint32");
+REGISTER_KERNEL(Device::CPU, OpType::Equal, DataType::Float32,
+                NaiveEqual<float>, "equalNaive_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::GreaterOrEqual, DataType::UInt32,
+                NaiveGreaterEqual<uint32_t>, "greaterEqualNaive_CPU_uint32");
+REGISTER_KERNEL(Device::CPU, OpType::GreaterOrEqual, DataType::Float32,
+                NaiveGreaterEqual<float>, "greaterEqualNaive_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::Greater, DataType::UInt32,
+                NaiveGreaterThan<uint32_t>, "greaterThanNaive_CPU_uint32");
+REGISTER_KERNEL(Device::CPU, OpType::Greater, DataType::Float32,
+                NaiveGreaterThan<float>, "greaterThanNaive_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::LessOrEqual, DataType::UInt32,
+                NaiveLessEqual<uint32_t>, "lessEqualNaive_CPU_uint32");
+REGISTER_KERNEL(Device::CPU, OpType::LessOrEqual, DataType::Float32,
+                NaiveLessEqual<float>, "lessEqualNaive_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::Less, DataType::UInt32,
+                NaiveLessThan<uint32_t>, "lessEqualNaive_CPU_uint32");
+REGISTER_KERNEL(Device::CPU, OpType::Less, DataType::Float32,
+                NaiveLessThan<float>, "lessEqualNaive_CPU_float32");
 }; // namespace infini

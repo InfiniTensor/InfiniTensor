@@ -4,8 +4,13 @@ import time
 import multiprocessing as mp
 from pyinfinitensor.onnx import OnnxStub, backend
 import onnx
+from onnx.external_data_helper import convert_model_to_external_data
+from onnx.shape_inference import infer_shapes_path
 import numpy as np
-from parallel import parallel_model
+from parallel_opt import parallel_model
+
+
+os.environ["NVIDIA_TF32_OVERRIDE"] = "0"
 
 
 def parse_args():
@@ -15,76 +20,129 @@ def parse_args():
         "--nproc_per_node", type=int, default=1, help="number of processes per node"
     )
     parser.add_argument(
+        "--name", type=str, default="test", help="name of this instance."
+    )
+    parser.add_argument(
         "--model", type=str, required=True, help="path to the ONNX model file."
+    )
+    parser.add_argument("--batch_size", type=int, default=1, help="batch size.")
+    parser.add_argument("--length", type=int, default=1, help="sequence length.")
+    parser.add_argument(
+        "--gen_std",
+        action="store_true",
+        help="whether to generate the standard results.",
     )
     args = parser.parse_args()
     print("arg setting: ", args)
-    return args.num_nodes, args.nproc_per_node, args.model
+    return (
+        args.num_nodes,
+        args.nproc_per_node,
+        args.name,
+        args.model,
+        args.batch_size,
+        args.length,
+        args.gen_std,
+    )
 
 
-def run_stub(stub: OnnxStub, inputs: np.array, n=100):
-    # warm up
-    next(stub.inputs.items().__iter__())[1].copyin_float(inputs.reshape(-1).tolist())
-    stub.tune()
-    for _ in range(20):
-        stub.run()
-    outputs = np.array(next(stub.outputs.items().__iter__())[1].copyout_float())
+def run_model(model, runtime, inputs, n=10):
+    stub = OnnxStub(model, runtime)
+    for tensor, input in zip(stub.inputs.values(), inputs):
+        tensor.copyin_numpy(input)
+    # stub.tune()
+    stub.run()
+    # get outputs
+    outputs = next(stub.outputs.values().__iter__()).copyout_numpy()
 
     # bench
-    next(stub.inputs.items().__iter__())[1].copyin_float(inputs.reshape(-1).tolist())
+    for tensor, input in zip(stub.inputs.values(), inputs):
+        tensor.copyin_numpy(input)
     begin = time.time()
     for _ in range(n):
         stub.run()
     end = time.time()
-    outputs = np.array(next(stub.outputs.items().__iter__())[1].copyout_float())
-    print("outputs sum:", outputs.sum())
-    # np.save("results", outputs)
-    results = np.load("results.npy")
-    print("max diff:", abs(outputs - results).max())
-    assert np.allclose(outputs, results, rtol=1e-6, atol=1e-6)
     avg_time = (end - begin) / n
-    return avg_time
+    print(f"average time: {avg_time}")
+    return outputs
+
+
+def run_and_compare(name, model, runtime):
+    input_ids = np.load(f"{name}_inputs.npy")
+    position_ids = np.arange(input_ids.shape[-1])
+    results = np.load(f"{name}_results.npy")
+    outputs = run_model(model, runtime, (input_ids, position_ids))
+    print("outputs abs mean:", abs(outputs).mean())
+    np.testing.assert_allclose(outputs, results, rtol=1e-6, atol=1e-3)
 
 
 def start_worker(
-    dist_name: str, world_size: int, rank: int, local_rank: int, model: onnx.ModelProto
+    name: str, world_size: int, rank: int, local_rank: int, model: onnx.ModelProto
 ):
-    print("start worker")
+    dist_name = name + "_dist"
+    model = parallel_model(model, world_size, rank)
+    extern_path = f"./{dist_name}_rank{rank}.pb"
+    if os.path.exists(extern_path):
+        os.remove(extern_path)
+    onnx.save_model(
+        model,
+        f"./{dist_name}_rank{rank}.onnx",
+        save_as_external_data=True,
+        location=extern_path,
+    )
+    infer_shapes_path(f"./{dist_name}_rank{rank}.onnx")
     runtime = backend.CudaRuntime(local_rank)
-    print("init comm")
+    # print("init comm")
     runtime.init_comm(
         dist_name,
         world_size,
         rank,
     )
-    model = parallel_model(model, world_size, rank)
-    onnx.save(model, f"dist_model_rank{rank}.onnx")
-    print("load model")
-    stub = OnnxStub(model, runtime)
-    data = np.load("inputs.npy")
-    print("run model")
-    avg_time = run_stub(stub, data)
-    print(f"average time: {avg_time}")
+    run_and_compare(name, model, runtime)
+
+
+def start_single(name, model):
+    runtime = backend.CudaRuntime(0)
+    run_and_compare(name, model, runtime)
+
+
+def gen_standard(name, model, voc_size, bs, len):
+    # generate standard results
+    input_ids = np.random.randint(0, voc_size, (bs, len))
+    position_ids = np.arange(len)
+    np.save(f"{name}_inputs", input_ids)
+    runtime = backend.CudaRuntime(0)
+    outputs = run_model(model, runtime, (input_ids, position_ids), 1)
+    print("outputs abs mean:", abs(outputs).mean())
+    np.save(f"{name}_results", outputs)
 
 
 def main():
-    nnodes, nproc_per_node, model_path = parse_args()
-    world_size = nnodes * nproc_per_node
+    nnodes, nproc_per_node, name, model_path, bs, length, gen_std = parse_args()
 
     model = onnx.load(model_path)
-    # generate standard results
-    # runtime = backend.CudaRuntime(0)
-    # stub = OnnxStub(model, runtime)
-    # data = np.random.randn(1, 3, 224, 224)
-    # np.save("inputs", data)
-    # run_stub(stub, data)
-    # del stub
 
-    dist_name = f"dist_{os.getpid()}"
+    # generate standart output
+    if gen_std:
+        print(f"generate standard data for {name}.")
+        # a small vocabulary size to fit all LLM.
+        voc_size = 1000
+        gen_standard(name, model, voc_size, bs, length)
+        return
+
+    # run single process.
+    # use standalone process to isolate cuda.
+    print("run model by single GPU.")
+    p = mp.Process(target=start_single, args=(name, model))
+    p.start()
+    p.join()
+
+    # run distributed parallel.
+    world_size = nnodes * nproc_per_node
+    print(f"run model by {world_size} GPU in parallel.")
     workers = [
         mp.Process(
             target=start_worker,
-            args=(dist_name, world_size, rank, rank % nproc_per_node, model),
+            args=(name, world_size, rank, rank % nproc_per_node, model),
         )
         for rank in range(world_size)
     ]

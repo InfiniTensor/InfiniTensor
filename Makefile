@@ -3,6 +3,7 @@
 TYPE ?= Release
 CUDA ?= OFF
 BANG ?= OFF
+KUNLUN ?= OFF
 INTELCPU ?= off
 BACKTRACE ?= ON
 TEST ?= ON
@@ -25,6 +26,7 @@ endif
 CMAKE_OPT = -DCMAKE_BUILD_TYPE=$(TYPE)
 CMAKE_OPT += -DUSE_CUDA=$(CUDA)
 CMAKE_OPT += -DUSE_BANG=$(BANG)
+CMAKE_OPT += -DUSE_KUNLUN=$(KUNLUN)
 CMAKE_OPT += -DUSE_BACKTRACE=$(BACKTRACE)
 CMAKE_OPT += -DBUILD_TEST=$(TEST)
 
@@ -53,6 +55,10 @@ test-cpp:
 test-onnx:
 	@echo
 	python3 pyinfinitensor/tests/test_onnx.py
+
+test-api:
+	@echo
+	python3 pyinfinitensor/tests/test_api.py
 
 docker-build: 
 	docker build -f scripts/dockerfile/$(DOCKER_FILE) -t $(DOCKER_NAME) .

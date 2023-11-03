@@ -2,15 +2,14 @@
 #include "utils/operator_utils.h"
 
 namespace infini {
-ConcatObj::ConcatObj(GraphObj *graph, TensorVec inputs, Tensor output, int dim)
-    : OperatorObj(OpType::Concat, inputs, {output}), dim(dim) {
+ConcatObj::ConcatObj(GraphObj *graph, TensorVec inputs, Tensor output, int _dim)
+    : OperatorObj(OpType::Concat, inputs, {output}) {
     int rank = inputs[0]->getRank();
-    dim = get_real_axis(dim, rank);
+    dim = get_real_axis(_dim, rank);
     IT_ASSERT(checkValid(graph));
 }
 
 optional<vector<Shape>> ConcatObj::inferShape(const TensorVec &inputs) const {
-    IT_ASSERT(inputs.size() > 1);
     Shape dims = inputs[0]->getDims();
     auto rank = inputs[0]->getRank();
     ShapeElem n = dims.at(dim);

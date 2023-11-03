@@ -30,6 +30,7 @@ class PoolingCnnl : public BangKernelWithoutConfig {
             ph, pw, pw, sh, sw, dh, dw, false));
 
         // get outputs
+        // TODO: verify ceiling mode
         auto outVec = op->getOutput()->getDims();
         int outArray[4] = {outVec[0], outVec[1], outVec[2], outVec[3]};
         cnnlTensorDescriptor_t outDesc;

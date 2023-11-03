@@ -20,11 +20,15 @@ from onnx.checker import (
     check_node,
     check_value_info,
     check_tensor,
+    ValidationError,
 )
 from onnx.shape_inference import infer_shapes
 from onnx.numpy_helper import to_array
 from typing import Dict, List, Any, Tuple, Sequence, Union, Optional
 from functools import reduce
+from onnxsim import simplify
+import copy
+import warnings
 
 
 class OnnxStub:
@@ -33,34 +37,47 @@ class OnnxStub:
     It can be generated from an Onnx model object.
     """
 
-    inputs: Dict[str, backend.Tensor] = {}
-    outputs: Dict[str, backend.Tensor] = {}
-    initializer: Dict[int, TensorProto] = {}
-    handler: backend.GraphHandler
-
     def __init__(self, model: ModelProto, runtime):
-        model = infer_shapes(model)
+        # We use some user-defined operators for distributed inference
+        try:
+            # onnx simplifier performs inplace simplify
+            model_simp, check = simplify(copy.deepcopy(model))
+            if check:
+                model = model_simp
+        except ValidationError:
+            pass
+        self.inputs: Dict[str, backend.Tensor] = {}
+        self.outputs: Dict[str, backend.Tensor] = {}
+        self.initializer: Dict[int, TensorProto] = {}
+        try:
+            model = infer_shapes(model)
+        except:
+            warnings.warn("infer_shapes failed.")
         self.handler = backend.GraphHandler(runtime)
 
         tensors: Dict[str, backend.Tensor] = dict()
         data: Dict[str, TensorProto] = dict()
 
+        for initializer in model.graph.initializer:
+            dims = [d for d in initializer.dims]
+            tensors[initializer.name] = self.handler.tensor(dims, initializer.data_type)
+            data[initializer.name] = initializer
+            tensors[initializer.name].set_weight()
+
         for input in model.graph.input:
             dims = _take_shape_dim(input.type.tensor_type.shape)
-            tensors[input.name] = self.handler.tensor(
-                dims, input.type.tensor_type.elem_type
-            )
+            if input.name not in tensors.keys():
+                tensors[input.name] = self.handler.tensor(
+                    dims, input.type.tensor_type.elem_type
+                )
+                tensors[input.name].set_input()
 
         for output in model.graph.output:
             dims = _take_shape_dim(output.type.tensor_type.shape)
             tensors[output.name] = self.handler.tensor(
                 dims, output.type.tensor_type.elem_type
             )
-
-        for initializer in model.graph.initializer:
-            dims = [d for d in initializer.dims]
-            tensors[initializer.name] = self.handler.tensor(dims, initializer.data_type)
-            data[initializer.name] = initializer
+            tensors[output.name].set_output()
 
         node_name = []
         new_node_name = []
@@ -226,11 +243,18 @@ class OnnxStub:
                             "dilations": [1, 1],
                             "pads": [0, 0, 0, 0],
                             "strides": [1, 1],
+                            "ceil_mode": 0,
                         },
                     )
-                    (k, d, p, s) = (
+                    (k, d, p, s, ceil_mode) = (
                         attributes[name]
-                        for name in ["kernel_shape", "dilations", "pads", "strides"]
+                        for name in [
+                            "kernel_shape",
+                            "dilations",
+                            "pads",
+                            "strides",
+                            "ceil_mode",
+                        ]
                     )
                     if p[0] != p[2] or p[1] != p[3]:
                         adapt = "{}-adapt".format(node.output[0])
@@ -248,6 +272,7 @@ class OnnxStub:
                             0,
                             s[0],
                             s[1],
+                            ceil_mode,
                         )
                     else:
                         tensors[node.output[0]] = self.handler.maxPool(
@@ -261,6 +286,7 @@ class OnnxStub:
                             p[1],
                             s[0],
                             s[1],
+                            ceil_mode,
                         )
                 elif node.op_type == "AveragePool":
                     attributes = _parse_attribute(
@@ -269,10 +295,12 @@ class OnnxStub:
                             "kernel_shape": None,
                             "pads": [0, 0, 0, 0],
                             "strides": [1, 1],
+                            "ceil_mode": 0,
                         },
                     )
-                    (k, p, s) = (
-                        attributes[name] for name in ["kernel_shape", "pads", "strides"]
+                    (k, p, s, ceil_mode) = (
+                        attributes[name]
+                        for name in ["kernel_shape", "pads", "strides", "ceil_mode"]
                     )
                     if p[0] != p[2] or p[1] != p[3]:
                         adapt = "{}-adapt".format(node.output[0])
@@ -290,6 +318,7 @@ class OnnxStub:
                             0,
                             s[0],
                             s[1],
+                            ceil_mode,
                         )
                     else:
                         tensors[node.output[0]] = self.handler.avgPool(
@@ -303,6 +332,7 @@ class OnnxStub:
                             p[1],
                             s[0],
                             s[1],
+                            ceil_mode,
                         )
                 elif node.op_type == "GlobalAveragePool":
                     [_, _, h, w] = _search_shape(model, node.input[0])
@@ -317,6 +347,7 @@ class OnnxStub:
                         0,
                         1,
                         1,
+                        0,
                     )
                 elif node.op_type == "Add":
                     tensors[node.output[0]] = self.handler.add(
@@ -365,8 +396,23 @@ class OnnxStub:
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
                     )
+                elif node.op_type == "Gelu":
+                    tensors[node.output[0]] = self.handler.gelu(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
                 elif node.op_type == "Sigmoid":
                     tensors[node.output[0]] = self.handler.sigmoid(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "HardSigmoid":
+                    tensors[node.output[0]] = self.handler.hardSigmoid(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "HardSwish":
+                    tensors[node.output[0]] = self.handler.hardSwish(
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
                     )
@@ -391,6 +437,11 @@ class OnnxStub:
                     )
                 elif node.op_type == "Sqrt":
                     tensors[node.output[0]] = self.handler.sqrt(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "Neg":
+                    tensors[node.output[0]] = self.handler.neg(
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
                     )
@@ -522,6 +573,16 @@ class OnnxStub:
                             0,
                         ),
                     )
+                elif node.op_type == "GatherElements":
+                    tensors[node.output[0]] = self.handler.gatherElements(
+                        tensors[node.input[0]],
+                        tensors[node.input[1]],
+                        tensors.get(node.output[0]),
+                        next(
+                            (attr.i for attr in node.attribute if attr.name == "axis"),
+                            0,
+                        ),
+                    )
                 elif node.op_type == "ReduceMean":
                     tensors[node.output[0]] = self.handler.reduce_mean(
                         tensors[node.input[0]],
@@ -546,15 +607,20 @@ class OnnxStub:
                         != 0,
                     )
                 elif node.op_type == "Slice":
+
+                    def clamp(nums):
+                        MAX_INT = 0x7FFFFFFF
+                        return [min(x, MAX_INT) for x in nums]
+
                     tensors[node.output[0]] = self.handler.slice(
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
-                        _parse_data(data[node.input[1]]),
-                        _parse_data(data[node.input[2]]),
-                        _parse_data(data[node.input[3]])
+                        clamp(_parse_data(data[node.input[1]])),
+                        clamp(_parse_data(data[node.input[2]])),
+                        clamp(_parse_data(data[node.input[3]]))
                         if len(node.input) > 3
                         else None,
-                        _parse_data(data[node.input[4]])
+                        clamp(_parse_data(data[node.input[4]]))
                         if len(node.input) > 4
                         else None,
                     )
@@ -590,6 +656,13 @@ class OnnxStub:
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
                         next((attr.i for attr in node.attribute if attr.name == "to")),
+                    )
+                elif node.op_type == "ReduceSum":
+                    # ReduceSum is only implemented as allReduceSum.
+                    assert any(attr.name == "communicator" for attr in node.attribute)
+                    tensors[node.output[0]] = self.handler.allReduceSum(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
                     )
                 elif node.op_type == "AllReduceSum":
                     tensors[node.output[0]] = self.handler.allReduceSum(
@@ -654,6 +727,14 @@ class OnnxStub:
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
                     )
+                elif node.op_type == "Constant":
+                    output_name = node.output[0]
+                    attributes = _parse_attribute(node)
+                    tensor = attributes["value"]
+                    dims = [d for d in tensor.dims]
+                    tensors[output_name] = self.handler.tensor(dims, tensor.data_type)
+                    data[output_name] = tensor
+                    tensors[output_name].set_weight()
                 else:
                     raise Exception('Unsupported operator "{}"'.format(node.op_type))
                 new_node_name.append(node.name)
@@ -848,7 +929,7 @@ class OnnxStub:
                     )
                 )
             elif ty == backend.OpTypeId.MaxPool:
-                kh, kw, dh, dw, ph, pw, sh, sw = backend.pool_attrs_of(op)
+                kh, kw, dh, dw, ph, pw, sh, sw, ceil_mode = backend.pool_attrs_of(op)
                 ctx.push_node(
                     make_node(
                         ty.name,
@@ -859,10 +940,11 @@ class OnnxStub:
                         pads=[ph, pw, ph, pw],
                         dilations=[dh, dw],
                         strides=[sh, sw],
+                        ceil_mode=ceil_mode,
                     )
                 )
             elif ty == backend.OpTypeId.AveragePool:
-                kh, kw, dh, dw, ph, pw, sh, sw = backend.pool_attrs_of(op)
+                kh, kw, dh, dw, ph, pw, sh, sw, ceil_mode = backend.pool_attrs_of(op)
                 ctx.push_node(
                     make_node(
                         "AveragePool",
@@ -872,6 +954,7 @@ class OnnxStub:
                         kernel_shape=[kh, kw],
                         pads=[ph, pw, ph, pw],
                         strides=[sh, sw],
+                        ceil_mode=ceil_mode,
                     )
                 )
             elif ty in [
@@ -881,7 +964,10 @@ class OnnxStub:
                 backend.OpTypeId.Div,
                 backend.OpTypeId.Pow,
                 backend.OpTypeId.Relu,
+                backend.OpTypeId.Gelu,
                 backend.OpTypeId.Sigmoid,
+                backend.OpTypeId.HardSigmoid,
+                backend.OpTypeId.HardSwish,
                 backend.OpTypeId.Tanh,
                 backend.OpTypeId.Softmax,
                 backend.OpTypeId.Abs,
@@ -889,6 +975,7 @@ class OnnxStub:
                 backend.OpTypeId.PRelu,
                 backend.OpTypeId.Sqrt,
                 backend.OpTypeId.Erf,
+                backend.OpTypeId.Neg,
             ]:
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Flatten:
@@ -1058,19 +1145,18 @@ def _search_shape(model: ModelProto, name: str) -> List[int]:
 
 def _parse_attribute(node: NodeProto, attrs: Dict[str, Any] = dict()) -> Dict[str, Any]:
     for attr in node.attribute:
-        if attr.name in attrs:
-            if attr.type == AttributeProto.INT:
-                attrs[attr.name] = attr.i
-            elif attr.type == AttributeProto.INTS:
-                attrs[attr.name] = attr.ints
-            elif attr.type == AttributeProto.FLOAT:
-                attrs[attr.name] = attr.f
-            elif attr.type == AttributeProto.STRING:
-                attrs[attr.name] = attr.s
-            elif attr.type == AttributeProto.TENSOR:
-                attrs[attr.name] = attr.t
-            else:
-                assert False, "Unsupported Attribute Type: {}".format(attr.type)
+        if attr.type == AttributeProto.INT:
+            attrs[attr.name] = attr.i
+        elif attr.type == AttributeProto.INTS:
+            attrs[attr.name] = attr.ints
+        elif attr.type == AttributeProto.FLOAT:
+            attrs[attr.name] = attr.f
+        elif attr.type == AttributeProto.STRING:
+            attrs[attr.name] = attr.s
+        elif attr.type == AttributeProto.TENSOR:
+            attrs[attr.name] = attr.t
+        else:
+            assert False, "Unsupported Attribute Type: {}".format(attr.type)
     return attrs
 
 

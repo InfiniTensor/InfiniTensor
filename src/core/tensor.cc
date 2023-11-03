@@ -23,7 +23,7 @@ string TensorObj::toString() const {
     string ret = "Tensor " + std::to_string(guid) + ", Fuid " +
                  std::to_string(fuid) + ", shape " + vecToString(shape) +
                  ", dtype " + dtype.toString() + ", " + runtime->toString() +
-                 ", " + ss.str() + "\n";
+                 ", " + ss.str() + ", " + tensorTypeToString() + "\n";
     vector<UidBaseType> targetGuids;
     for (const auto &op : targets)
         targetGuids.emplace_back(op.lock()->getGuid());
@@ -100,7 +100,8 @@ bool TensorObj::equalData(const Tensor &rhs, double relativeError) const {
 #define TEST_EQUAL(N)                                                          \
     if (dtype == DataType(N))                                                  \
         return equalDataImpl(getRawDataPtr<DT<N>::t *>(),                      \
-                             rhs->getRawDataPtr<DT<N>::t *>(), size());
+                             rhs->getRawDataPtr<DT<N>::t *>(), size(),         \
+                             relativeError);
 
     TEST_EQUAL(0)           // fmt: new line
     else TEST_EQUAL(1)      //

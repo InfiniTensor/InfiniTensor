@@ -64,7 +64,7 @@ class GraphObj : public Object {
 
     void optimize();
 
-    void dataMalloc();
+    void dataMalloc(bool useNaiveAllocator = false);
 
     /**
      * @brief Add an operator and create its outputs. Output tensor arguments
@@ -120,6 +120,11 @@ class GraphObj : public Object {
      * @brief If the nodes is sorted in topological order.
      */
     bool sorted;
+
+    /**
+     * @brief If the weight tensors are allocated.
+     */
+    bool weightAllocated = false;
 };
 
 } // namespace infini

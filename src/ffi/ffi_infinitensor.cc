@@ -24,6 +24,9 @@
 #ifdef USE_BANG
 #include "bang/bang_runtime.h"
 #endif
+#ifdef USE_KUNLUN
+#include "kunlun/kunlun_runtime.h"
+#endif
 #ifdef USE_INTELCPU
 #include "intelcpu/mkl_runtime.h"
 #include "intelcpu/operator_timer.h"
@@ -85,6 +88,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, Div)
         .VALUE(OpType, Pow)
         .VALUE(OpType, Gather)
+        .VALUE(OpType, GatherElements)
         .VALUE(OpType, ReduceMean)
         .VALUE(OpType, Reshape)
         .VALUE(OpType, Flatten)
@@ -92,14 +96,18 @@ void export_values(py::module &m) {
         .VALUE(OpType, BatchNormalization)
         .VALUE(OpType, Softmax)
         .VALUE(OpType, Relu)
+        .VALUE(OpType, Gelu)
         .VALUE(OpType, PRelu)
         .VALUE(OpType, Sigmoid)
         .VALUE(OpType, Tanh)
+        .VALUE(OpType, HardSigmoid)
+        .VALUE(OpType, HardSwish)
         .VALUE(OpType, Abs)
         .VALUE(OpType, Resize)
         .VALUE(OpType, Dropout)
         .VALUE(OpType, Cast)
         .VALUE(OpType, Sqrt)
+        .VALUE(OpType, Neg)
         .VALUE(OpType, Expand)
         .VALUE(OpType, Erf)
         .VALUE(OpType, Where)
@@ -153,6 +161,12 @@ static int tensor_dtype(Tensor t) {
 static Ref<BangRuntimeObj> bang_runtime() { return make_ref<BangRuntimeObj>(); }
 #endif
 
+#ifdef USE_KUNLUN
+static Ref<KUNLUNRuntimeObj> kunlun_runtime() {
+    return make_ref<KUNLUNRuntimeObj>();
+}
+#endif
+
 #ifdef USE_INTELCPU
 static Ref<RuntimeObj> intelcpu_runtime() { return make_ref<MklRuntimeObj>(); }
 #endif
@@ -187,14 +201,14 @@ static std::tuple<float, float, bool> batch_norm_attrs_of(Operator op) {
                            batchnorm->getTrainingMode());
 }
 
-static std::tuple<int, int, int, int, int, int, int, int>
+static std::tuple<int, int, int, int, int, int, int, int, int>
 pool_attrs_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::MaxPool ||
               op->getOpType() == OpType::AveragePool);
     auto pool = dynamic_cast<const PoolingObj *>(op.get());
     return std::make_tuple(pool->getKh(), pool->getKw(), pool->getDh(),
                            pool->getDw(), pool->getPh(), pool->getPw(),
-                           pool->getSh(), pool->getSw());
+                           pool->getSh(), pool->getSw(), pool->getCeilMode());
 }
 
 static std::tuple<std::optional<float>, std::optional<float>>
@@ -223,8 +237,9 @@ static int split_axis_of(Operator op) {
 }
 
 static int gather_axis_of(Operator op) {
-    IT_ASSERT(op->getOpType() == OpType::Gather);
-    return dynamic_cast<const GatherObj *>(op.get())->getAxis();
+    IT_ASSERT(op->getOpType() == OpType::Gather ||
+              op->getOpType() == OpType::GatherElements);
+    return dynamic_cast<const GatherBaseObj *>(op.get())->getAxis();
 }
 
 static vector<int64_t> reshape_shape_of(Operator op) {
@@ -286,6 +301,10 @@ void export_functions(py::module &m) {
 #ifdef USE_BANG
         .FUNCTION(bang_runtime)
 #endif
+
+#ifdef USE_KUNLUN
+        .FUNCTION(kunlun_runtime)
+#endif
         .FUNCTION(conv_attrs_of)
         .FUNCTION(conv_trans_attrs_of)
         .FUNCTION(matmul_attrs_of)
@@ -306,6 +325,44 @@ void export_functions(py::module &m) {
 #undef FUNCTION
 }
 
+// A helper function that converts DataType to python format string
+static std::string getFormat(DataType type) {
+    std::string format;
+    if (type == DataType::Float32) {
+        format = py::format_descriptor<float>::format();
+    } else if (type == DataType::Double) {
+        format = py::format_descriptor<double>::format();
+    } else if (type == DataType::Int32) {
+        format = py::format_descriptor<int>::format();
+    } else if (type == DataType::UInt32) {
+        format = py::format_descriptor<uint32_t>::format();
+    } else if (type == DataType::Int64) {
+        format = py::format_descriptor<int64_t>::format();
+    } else if (type == DataType::UInt64) {
+        format = py::format_descriptor<uint64_t>::format();
+    } else if (type == DataType::Int16) {
+        format = py::format_descriptor<int16_t>::format();
+    } else if (type == DataType::UInt16) {
+        format = py::format_descriptor<uint16_t>::format();
+    } else if (type == DataType::Int8) {
+        format = py::format_descriptor<int8_t>::format();
+    } else if (type == DataType::UInt8) {
+        format = py::format_descriptor<uint8_t>::format();
+    } else if (type == DataType::Bool) {
+        format = py::format_descriptor<bool>::format();
+    } else if (type == DataType::Float16 || type == DataType::BFloat16) {
+        // Python uses "e" for half precision float type code.
+        // Check the following link for more information.
+        // https://docs.python.org/3/library/struct.html#format-characters
+        format = "e";
+    } else {
+        throw std::runtime_error("Error converting TensorObj to "
+                                 "Numpy: unsupported datatype.\n");
+    }
+
+    return format;
+}
+
 void init_graph_builder(py::module &m) {
     using Handler = GraphHandlerObj;
 
@@ -322,10 +379,18 @@ void init_graph_builder(py::module &m) {
     py::class_<BangRuntimeObj, std::shared_ptr<BangRuntimeObj>, RuntimeObj>(
         m, "BangRuntime");
 #endif
+#ifdef USE_KUNLUN
+    py::class_<KUNLUNRuntimeObj, std::shared_ptr<KUNLUNRuntimeObj>, RuntimeObj>(
+        m, "KUNLUNRuntime");
+#endif
     py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "Tensor",
                                                       py::buffer_protocol())
         .def("fuid", &TensorObj::getFuid, policy::automatic)
         .def("shape", &TensorObj::getDims, policy::move)
+        .def("set_weight", &TensorObj::setWeight, policy::move)
+        .def("set_input", &TensorObj::setInput, policy::move)
+        .def("set_output", &TensorObj::setOutput, policy::move)
+        .def("dtype", &TensorObj::getDTypeIndex, policy::automatic)
         .def("copyin_float", &TensorObj::copyin<float>, policy::move)
         .def("copyin_int32", &TensorObj::copyin<int32_t>, policy::move)
         .def("copyin_int64", &TensorObj::copyin<int64_t>, policy::move)
@@ -352,51 +417,24 @@ void init_graph_builder(py::module &m) {
                  }
                  self.copyin(data_np, self.getBytes());
              })
-        // A buffer can be used to convert a TensorObj directly to Numpy array
-        // without copy
-        .def_buffer([](TensorObj &self) -> py::buffer_info {
-            vector<size_t> stride_byte;
-            for (int s : self.getStride()) {
-                stride_byte.push_back(s * self.getDType().getSize());
-            }
+        // Return a Numpy array which copies the values of this tensor
+        .def("copyout_numpy",
+             [](TensorObj &self) -> py::array {
+                 vector<size_t> stride_byte;
+                 for (int s : self.getStride()) {
+                     stride_byte.push_back(s * self.getDType().getSize());
+                 }
+                 std::string format = getFormat(self.getDType());
 
-            std::string format;
-            if (self.getDType() == DataType::Float32) {
-                format = py::format_descriptor<float>::format();
-            } else if (self.getDType() == DataType::Double) {
-                format = py::format_descriptor<double>::format();
-            } else if (self.getDType() == DataType::Int32) {
-                format = py::format_descriptor<int>::format();
-            } else if (self.getDType() == DataType::UInt32) {
-                format = py::format_descriptor<uint32_t>::format();
-            } else if (self.getDType() == DataType::Int64) {
-                format = py::format_descriptor<int64_t>::format();
-            } else if (self.getDType() == DataType::UInt64) {
-                format = py::format_descriptor<uint64_t>::format();
-            } else if (self.getDType() == DataType::Int16) {
-                format = py::format_descriptor<int16_t>::format();
-            } else if (self.getDType() == DataType::UInt16) {
-                format = py::format_descriptor<uint16_t>::format();
-            } else if (self.getDType() == DataType::Int8) {
-                format = py::format_descriptor<int8_t>::format();
-            } else if (self.getDType() == DataType::UInt8) {
-                format = py::format_descriptor<uint8_t>::format();
-            } else if (self.getDType() == DataType::Float16 ||
-                       self.getDType() == DataType::BFloat16) {
-                // Python uses "e" for half precision float type code.
-                // Check the following link for more information.
-                // https://docs.python.org/3/library/struct.html#format-characters
-                format = "e";
-            } else {
-                throw std::runtime_error("Error converting TensorObj to "
-                                         "Numpy: unsupported datatype.\n");
-            }
+                 py::array numpy_array(py::dtype(format), self.getDims(),
+                                       nullptr);
 
-            return py::buffer_info(self.getRawDataPtr<void *>(),
-                                   self.getDType().getSize(), format,
-                                   self.getRank(), self.getDims(), stride_byte,
-                                   true); // Read-only = true
-        })
+                 // Copy data to the numpy array
+                 auto ptr = numpy_array.mutable_data();
+                 self.copyout(ptr, self.getBytes());
+
+                 return numpy_array;
+             })
         .def("has_target", &TensorObj::hasTarget, policy::automatic)
         .def("src", &TensorObj::getSource, policy::move)
         .def("printData", &TensorObj::printData, policy::automatic);
@@ -421,12 +459,18 @@ void init_graph_builder(py::module &m) {
         .def("mul", &Handler::mul, policy::move)
         .def("div", &Handler::div, policy::move)
         .def("pow", &Handler::pow, policy::move)
+        .def("min", &Handler::min, policy::move)
+        .def("max", &Handler::max, policy::move)
         .def("relu", &Handler::relu, policy::move)
+        .def("gelu", &Handler::gelu, policy::move)
         .def("sigmoid", &Handler::sigmoid, policy::move)
         .def("tanh", &Handler::tanh, policy::move)
+        .def("hardSigmoid", &Handler::hardSigmoid, policy::move)
+        .def("hardSwish", &Handler::hardSwish, policy::move)
         .def("softmax", &Handler::softmax, policy::move)
         .def("abs", &Handler::abs, policy::move)
         .def("sqrt", &Handler::sqrt, policy::move)
+        .def("neg", &Handler::neg, policy::move)
         .def("shape", &Handler::shape, policy::move)
         .def("identity", &Handler::identity, policy::move)
         .def("flatten", &Handler::flatten, policy::move)
@@ -437,6 +481,7 @@ void init_graph_builder(py::module &m) {
         .def("concat", &Handler::concat, policy::move)
         .def("split", &Handler::split, policy::move)
         .def("gather", &Handler::gather, policy::move)
+        .def("gatherElements", &Handler::gatherElements, policy::move)
         .def("reduce_mean", &Handler::reduceMean, policy::move)
         .def("slice", &Handler::slice, policy::move)
         .def("pad", &Handler::pad, policy::move)

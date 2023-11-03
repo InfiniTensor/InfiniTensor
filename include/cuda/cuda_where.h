@@ -3,11 +3,9 @@
 #include "utils/small_array.h"
 
 namespace infini {
-void where_kernel(const float *inputX, const float *inputY,
-                  const int *condition, float *output, int nDims,
-                  infini::SmallArray inputXShape,
-                  infini::SmallArray inputYShape,
-                  infini::SmallArray conditionShape,
-                  infini::SmallArray outputShape);
+void whereKernel(const float *inputX, const float *inputY,
+                 const uint8_t *condition, float *output, int nDims,
+                 SmallArray inputXShape, SmallArray inputYShape,
+                 SmallArray conditionShape, SmallArray outputShape);
 
 }; // namespace infini

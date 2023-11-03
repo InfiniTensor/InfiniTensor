@@ -123,38 +123,81 @@ void GraphObj::optimize() {
     }
 }
 
-void GraphObj::dataMalloc() {
+void GraphObj::dataMalloc(bool useNaiveAllocator) {
     // topological sorting first
     IT_ASSERT(topo_sort() == true);
+    if (useNaiveAllocator) {
+        // used for debugging memory out-of-bounds access, tensors will not be
+        // released correctly
+        // note: behavior may not match running in non-naive mode, and it may
+        // not reproduce the bug
+        for (auto &tensor : tensors) {
+            tensor->dataMalloc();
+        }
+        return;
+    }
     // count the number of times all tensors are used
     std::unordered_map<TensorObj *, size_t> tensorToRefCount;
     // record the memory address offsets of all tensors to be allocated
     std::unordered_map<TensorObj *, size_t> tensorToOffset;
 
-    // record all constant tensors, including weight tensors and input tensors
-    std::unordered_set<TensorObj *> constTensor;
+    // reinit allocator
+    allocator.init();
+
+    // record all weight tensors, including weight tensors and kvcache
+    // tensors
+    std::unordered_set<TensorObj *> weightTensors;
     for (auto &tensor : tensors) {
-        if (tensor.get()->getSource() == nullptr) {
-            // allocate memory for all constant tensors first, and this memory
+        if (tensor->isWeight()) {
+            // allocate memory for all weight tensors first, and this memory
+            // will not be freed until the graph is destroyed
+            weightTensors.insert(tensor.get());
+            if (!this->weightAllocated) {
+                tensorToOffset[tensor.get()] =
+                    allocator.allocWeight(tensor->getBytes());
+            }
+        } else if (tensor->isInput() || tensor->isOutput()) {
+            // allocate memory for all input and output tensors, and this memory
             // will not be reused later
-            constTensor.insert(tensor.get());
             tensorToOffset[tensor.get()] = allocator.alloc(tensor->getBytes());
         } else {
             tensorToRefCount[tensor.get()] = tensor->getTargets().size();
+            // allocate memory for all user-created tensors
+            if (tensor.get()->getSource() == nullptr) {
+                tensorToOffset[tensor.get()] =
+                    allocator.alloc(tensor->getBytes());
+            }
+        }
+    }
+    // if memory has not yet been allocated for weight tensors,
+    // allocate memory now and do not allocate again in the future.
+    if (!this->weightAllocated) {
+        this->weightAllocated = true;
+        // only allocate once for weight tensors
+        for (auto &tensor : weightTensors) {
+            IT_ASSERT(tensorToOffset.find(tensor) != tensorToOffset.end());
+            tensor->setDataBlob(make_ref<BlobObj>(
+                tensor->runtime,
+                static_cast<uint8_t *>(allocator.getWeightPtr()) +
+                    tensorToOffset[tensor]));
         }
     }
     // traverse in topological order and simulate memory allocation
     for (auto &op : ops) {
-        // memory should be allocated for the output first
+        // memory should be allocated for the op's output first
         auto outputs = op->getOutputs();
         for (auto &tensor : outputs) {
-            tensorToOffset[tensor.get()] = allocator.alloc(tensor->getBytes());
+            if (tensor->isOthers()) {
+                tensorToOffset[tensor.get()] =
+                    allocator.alloc(tensor->getBytes());
+            }
         }
         auto inputs = op->getInputs();
         for (auto &tensor : inputs) {
-            if (constTensor.find(tensor.get()) == constTensor.end()) {
+            if (tensor->isOthers()) {
                 auto tensorIter = tensorToRefCount.find(tensor.get());
                 IT_ASSERT(tensorIter != tensorToRefCount.end());
+                IT_ASSERT(tensorToRefCount[tensor.get()] > 0);
                 tensorToRefCount[tensor.get()] -= 1;
                 if (tensorToRefCount[tensor.get()] == 0) {
                     // indicate that this tensor will no longer be used and
@@ -167,15 +210,16 @@ void GraphObj::dataMalloc() {
         }
     }
 
-    // perform actual memory allocation
+    // perform actual memory allocation for non-weight tensors
     for (auto &tensor : tensors) {
-        IT_ASSERT(tensorToOffset.find(tensor.get()) != tensorToOffset.end());
-        tensor->setDataBlob(make_ref<BlobObj>(
-            tensor->runtime, static_cast<uint8_t *>(allocator.getPtr()) +
-                                 tensorToOffset[tensor.get()]));
+        if (!tensor->isWeight()) {
+            IT_ASSERT(tensorToOffset.find(tensor.get()) !=
+                      tensorToOffset.end());
+            tensor->setDataBlob(make_ref<BlobObj>(
+                tensor->runtime, static_cast<uint8_t *>(allocator.getPtr()) +
+                                     tensorToOffset[tensor.get()]));
+        }
     }
-
-    allocator.info();
 }
 
 Tensor GraphObj::addTensor(Shape dim, DataType dtype) {

@@ -1,3 +1,5 @@
+#ifdef BUILD_NNET
+
 #include "operators/membound.h"
 #include "core/kernel.h"
 #include "nnet/Visitor/Interpreter.h"
@@ -82,3 +84,5 @@ REGISTER_KERNEL(Device::CPU, OpType::MemBound, DataType::UInt32,
                 MemboundInterpreter, "MemboundInterpreter_CPU");
 
 } // namespace infini
+
+#endif

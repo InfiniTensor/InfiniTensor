@@ -26,6 +26,7 @@
 - `TYPE`：编译模式（`debug`/`release`），默认值为 `release`
 - `CUDA`：是否编译 CUDA 后端，默认为 `OFF`，`ON` 打开
 - `BANG`：是否编译寒武纪后端，默认为 `OFF`，`ON` 打开
+- `KUNLUN`：是否编译昆仑后端，默认为 `OFF`，`ON` 打开
 - `BACKTRACE`：是否启用栈回溯，默认为 `ON`，`OFF` 关闭，建议调试时打开
 - `TEST`：是否编译 `googletest`，默认为 `ON`，`OFF` 关闭，只有 `test-cpp` 时必要
 

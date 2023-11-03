@@ -208,6 +208,14 @@ class TestStringMethods(unittest.TestCase):
         relu = make_node("Relu", ["x"], ["y"], name="relu")
         make_and_import_model(make_graph([relu], "relu", [x], [y]))
 
+    """Gelu operator is not supported by onnx 14.1 currently."""
+    def test_gelu(self):
+        pass
+        # x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        # y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        # gelu = make_node("Gelu", ["x"], ["y"], name="gelu")
+        # make_and_import_model(make_graph([gelu], "gelu", [x], [y]))
+
     def test_erf(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
@@ -232,6 +240,18 @@ class TestStringMethods(unittest.TestCase):
         tanh = make_node("Tanh", ["x"], ["y"], name="tanh")
         make_and_import_model(make_graph([tanh], "tanh", [x], [y]))
 
+    def test_hard_sigmoid(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        hardSigmoid = make_node("HardSigmoid", ["x"], ["y"], name="hardSigmoid")
+        make_and_import_model(make_graph([hardSigmoid], "hardSigmoid", [x], [y]))
+
+    def test_hard_swish(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        hardSwish = make_node("HardSwish", ["x"], ["y"], name="hardSwish")
+        make_and_import_model(make_graph([hardSwish], "hardSwish", [x], [y]))
+
     def test_softmax(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
@@ -243,6 +263,12 @@ class TestStringMethods(unittest.TestCase):
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
         abs = make_node("Abs", ["x"], ["y"], name="abs")
         make_and_import_model(make_graph([abs], "abs", [x], [y]))
+
+    def test_neg(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        neg = make_node("Neg", ["x"], ["y"], name="neg")
+        make_and_import_model(make_graph([neg], "neg", [x], [y]))
 
     def test_identity(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
@@ -281,12 +307,27 @@ class TestStringMethods(unittest.TestCase):
 
     def test_gather(self):
         data = make_tensor_value_info("data", TensorProto.FLOAT, [1, 3, 4, 4])
-        indices = make_tensor_value_info("indices", TensorProto.FLOAT, [2, 1, 2])
+        indices = make_tensor_value_info("indices", TensorProto.INT64, [2, 1, 2])
         output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 2, 1, 2, 4, 4])
         gather = make_node(
             "Gather", ["data", "indices"], ["output"], axis=1, name="gather"
         )
         make_and_import_model(make_graph([gather], "gather", [data, indices], [output]))
+
+    def test_gather_elements(self):
+        data = make_tensor_value_info("data", TensorProto.FLOAT, [2, 3, 2])
+        indices = make_tensor_value_info("indices", TensorProto.INT64, [2, 1, 2])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [2, 1, 2])
+        gatherElements = make_node(
+            "GatherElements",
+            ["data", "indices"],
+            ["output"],
+            axis=1,
+            name="gatherElements",
+        )
+        make_and_import_model(
+            make_graph([gatherElements], "gatherElements", [data, indices], [output])
+        )
 
     def test_reduce_mean(self):
         data = make_tensor_value_info("data", TensorProto.FLOAT, [2, 3, 3, 4])
@@ -458,53 +499,6 @@ class TestStringMethods(unittest.TestCase):
         where = make_node("Where", ["x", "y", "con"], ["output"], name="where")
         make_and_import_model(make_graph([where], "where", [x, y, con], [output]))
 
-    def test_copyin(self):
-        dims = [2, 3, 5, 4]
-        np_array = np.random.random(dims).astype(np.float32)
-        handler = backend.GraphHandler(backend.cpu_runtime())
-        tensor1 = handler.tensor(dims, TensorProto.FLOAT)
-        tensor2 = handler.tensor(dims, TensorProto.FLOAT)
-        handler.data_malloc()
-        tensor1.copyin_numpy(np_array)
-        tensor2.copyin_float(np_array.flatten().tolist())
-        array1 = tensor1.copyout_float()
-        array2 = tensor2.copyout_float()
-        self.assertEqual(array1, array2)
-        self.assertTrue(np.array_equal(np.array(array1).reshape(dims), np_array))
-
-        np_array = np.random.random(dims).astype(np.int64)
-        handler = backend.GraphHandler(backend.cpu_runtime())
-        tensor1 = handler.tensor(dims, TensorProto.INT64)
-        tensor2 = handler.tensor(dims, TensorProto.INT64)
-        handler.data_malloc()
-        tensor1.copyin_numpy(np_array)
-        tensor2.copyin_int64(np_array.flatten().tolist())
-        array1 = tensor1.copyout_int64()
-        array2 = tensor2.copyout_int64()
-        self.assertEqual(array1, array2)
-        self.assertTrue(np.array_equal(np.array(array1).reshape(dims), np_array))
-
-    def test_to_numpy(self):
-        dims = [2, 3, 5, 4]
-        np_array = np.random.random(dims).astype(np.float32)
-        handler = backend.GraphHandler(backend.cpu_runtime())
-        tensor1 = handler.tensor(dims, TensorProto.FLOAT)
-        tensor2 = handler.tensor(dims, TensorProto.FLOAT)
-        handler.data_malloc()
-        tensor1.copyin_float(np_array.flatten().tolist())
-        tensor2.copyin_float(np_array.flatten().tolist())
-        array1 = np.array(tensor1.copyout_float()).reshape(dims)
-        array2 = np.array(tensor2)
-        self.assertTrue(np.array_equal(array2, np_array))
-        self.assertTrue(np.array_equal(array1, array2))
-
-        np_array = np.random.random(dims).astype(np.float16)
-        handler = backend.GraphHandler(backend.cpu_runtime())
-        tensor1 = handler.tensor(dims, TensorProto.FLOAT16)
-        handler.data_malloc()
-        tensor1.copyin_numpy(np_array)
-        array1 = np.array(tensor1, copy=False)
-        self.assertTrue(np.array_equal(array1, np_array))
 
 
 if __name__ == "__main__":

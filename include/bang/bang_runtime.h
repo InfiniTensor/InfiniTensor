@@ -67,6 +67,10 @@ class BangRuntimeObj : public RuntimeObj {
                                   CNRT_MEM_TRANS_DIR_PEER2PEER));
     }
 
+    void initComm(const string &, int, int) override { IT_TODO_HALT(); }
+
+    CommunicatorObj &getCommunicator() const override { IT_TODO_HALT(); }
+
   private:
     void runWithoutSync(const Graph &graph, bool tune, bool profiling) const;
 };

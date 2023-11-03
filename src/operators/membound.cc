@@ -1,3 +1,5 @@
+#ifdef BUILD_NNET
+
 #include "operators/membound.h"
 #include "nnet/Visitor/CheckOOBVisitor.h"
 #include "nnet/Visitor/HashVisitor.h"
@@ -84,3 +86,5 @@ bool MemBoundObj::checkOOB(nnet::Expr expr) {
 }
 
 } // namespace infini
+
+#endif
