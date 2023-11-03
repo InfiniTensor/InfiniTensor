@@ -40,15 +40,23 @@ void testUnary(const std::function<void(void *, size_t, DataType)> &generator,
 }
 
 TEST(ascend_Unary, run) {
-    //testUnary<ReluObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    //testUnary<AbsObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    //testUnary<SigmoidObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    //testUnary<HardSwishObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    //testUnary<TanhObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    //testUnary<SinObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    //testUnary<GeluObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    testUnary<ReluObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    testUnary<AbsObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    testUnary<SigmoidObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    testUnary<HardSwishObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    testUnary<TanhObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    testUnary<SinObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    testUnary<GeluObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     testUnary<CosObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    //testUnary<ACosObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    testUnary<ACosObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    testUnary<ATanObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    //testUnary<CeilObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    //testUnary<FloorObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    //testUnary<ExpObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    testUnary<NegObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    //testUnary<ReciprocalObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    testUnary<SqrtObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    //testUnary<RoundObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
 }
 
 } // namespace infini
