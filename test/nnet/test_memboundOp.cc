@@ -1,3 +1,5 @@
+#ifdef USE_CUDA
+
 #include "core/graph.h"
 #include "core/runtime.h"
 #include "cuda/cuda_runtime.h"
@@ -12,7 +14,22 @@
 using namespace infini;
 using namespace std;
 
-TEST(nnet, MemboundOpInterpretation) {
+class NNetMemboundOp : public ::testing::Test {
+  protected:
+    void SetUp() override {
+        if (!hasTVMBackend())
+            GTEST_SKIP() << "Skipping test since no TVM backend.\n";
+    }
+
+  private:
+    static bool hasTVMBackend() {
+        // TODO: as the dispatch mechanism of backend is going to change, this
+        // function is to be implemented.
+        return false;
+    }
+};
+
+TEST_F(NNetMemboundOp, MemboundOpInterpretation) {
     Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph g = make_ref<GraphObj>(runtime);
     Tensor i0 = g->addTensor({1, 2, 3}, DataType::UInt32);
@@ -41,7 +58,7 @@ TEST(nnet, MemboundOpInterpretation) {
     EXPECT_TRUE(membound->getOutput()->equalData(ans));
 }
 
-TEST(nnet, MemboundOp_Ansor_Codegen) {
+TEST_F(NNetMemboundOp, MemboundOp_Ansor_Codegen) {
     auto runtime = make_ref<CudaRuntimeObj>();
     Runtime cpu = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(cpu);
@@ -91,7 +108,7 @@ pair<std::vector<nnet::Tensor>, nnet::Expr> getPReluExpr(int size) {
     return {{A, B}, ret};
 }
 
-TEST(nnet, PRelu_Ansor_Codegen) {
+TEST_F(NNetMemboundOp, PRelu_Ansor_Codegen) {
     auto cuda = make_ref<CudaRuntimeObj>();
     Runtime cpu = NativeCpuRuntimeObj::getInstance();
     Graph g = make_ref<GraphObj>(cuda);
@@ -116,3 +133,5 @@ TEST(nnet, PRelu_Ansor_Codegen) {
     auto oCpu = gCpu->cloneTensor(o0);
     EXPECT_TRUE(oCpu->equalData(ans));
 }
+
+#endif

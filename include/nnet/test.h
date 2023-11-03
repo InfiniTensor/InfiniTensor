@@ -24,7 +24,7 @@
 // clang-format on
 
 namespace nnet {
-int matchExprResult(Derivator &derivator, string fn);
-bool checkExprLogSame(string fnPrefix, int start, int end);
+int matchExprResult(Derivator &derivator, string pathRelativeToProjectHome);
+bool checkExprLogSame(string pathRelativeToProjectHome, int start, int end);
 bool checkExprsEquvivalence(VecExpr exprs);
 } // namespace nnet
