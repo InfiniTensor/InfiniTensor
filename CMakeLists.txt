@@ -58,13 +58,16 @@ find_package(
   Python
   COMPONENTS Interpreter Development
   REQUIRED)
+
 # OpenMP
-find_package(OpenMP)
-if(OpenMP_C_FOUND)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-endif()
-if(OpenMP_CXX_FOUND)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+if(NOT WIN32)
+  find_package(OpenMP)
+  if(OpenMP_C_FOUND)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+  endif()
+  if(OpenMP_CXX_FOUND)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+  endif()
 endif()
 
 #Protobuf

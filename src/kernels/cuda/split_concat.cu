@@ -1,6 +1,7 @@
 #include "cuda/cuda_common.h"
 #include "cuda/cuda_split_concat.h"
 #include <algorithm>
+
 __host__ __device__ int
 elementIdx2ComposedIdx(int elementIndex, int dimBgNo, int dimSize, int dim,
                        int nDim, ComposedTensorMetadata wholeMeta) {

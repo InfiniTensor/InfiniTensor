@@ -29,14 +29,11 @@ template <typename T> class NaiveConcat : public CpuKernelWithoutConfig {
                  i >= (size_t)dim && i != (size_t)-1; --i)
                 localBlockOffset *= iDim[i];
             auto innerOffset = blockOffsetInner * dimOffset;
+            auto inSize = input->size();
             auto inPtr = input->getRawDataPtr<T *>(),
                  outPtr = output->getRawDataPtr<T *>();
-
-            // MSVC: index variable in OpenMP 'for' statement must have signed
-            // integral type
-            long long inSize = static_cast<long long>(input->size());
 #pragma omp parallel for
-            for (long long iOffset = 0; iOffset < inSize; ++iOffset) {
+            for (size_t iOffset = 0; iOffset < inSize; ++iOffset) {
                 auto oOffset = iOffset % localBlockOffset + innerOffset +
                                iOffset / localBlockOffset * blockOffset;
                 // output->setData(oOffset, input->getData(iOffset));
