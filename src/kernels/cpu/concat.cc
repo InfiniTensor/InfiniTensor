@@ -32,7 +32,8 @@ template <typename T> class NaiveConcat : public CpuKernelWithoutConfig {
             auto inPtr = input->getRawDataPtr<T *>(),
                  outPtr = output->getRawDataPtr<T *>();
 
-            // MSVC: index variable in OpenMP 'for' statement must have signed integral type
+            // MSVC: index variable in OpenMP 'for' statement must have signed
+            // integral type
             long long inSize = static_cast<long long>(input->size());
 #pragma omp parallel for
             for (long long iOffset = 0; iOffset < inSize; ++iOffset) {

@@ -65,11 +65,13 @@
 ## 编译本项目
 
 
-1. 打开命令提示符（CMD），运行工具集脚本设置环境。工具集相关内容可参考文档[通过命令行使用 Microsoft C++ 工具集](https://learn.microsoft.com/zh-cn/cpp/build/building-on-the-command-line?view=msvc-170)。例如，Visual Stuio 安装在 `C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional`，可执行以下命令：
+1. 打开命令提示符（CMD），运行工具集脚本设置环境。例如，Visual Stuio 安装在 `C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional`，可执行以下命令：
 
    ```bash
    C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Auxiliary\Build\vcvars64.bat
    ```
+
+   工具集相关内容可参考文档[通过命令行使用 Microsoft C++ 工具集](https://learn.microsoft.com/zh-cn/cpp/build/building-on-the-command-line?view=msvc-170)。
 
 2. 编译本项目并打包成 Python 库进行安装
 

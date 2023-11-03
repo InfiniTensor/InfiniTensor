@@ -31,8 +31,9 @@ template <typename T> class NaiveSplit : public CpuKernelWithoutConfig {
             auto innerOffset = blockOffsetInner * dimOffset;
             auto inPtr = input->getRawDataPtr<T *>(),
                  outPtr = output->getRawDataPtr<T *>();
-            
-            // MSVC: index variable in OpenMP 'for' statement must have signed integral type
+
+            // MSVC: index variable in OpenMP 'for' statement must have signed
+            // integral type
             long long outSize = static_cast<long long>(output->size());
 #pragma omp parallel for
             for (long long oOffset = 0; oOffset < outSize; ++oOffset) {
