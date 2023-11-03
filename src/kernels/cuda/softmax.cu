@@ -1,17 +1,16 @@
 #include "cuda/cuda_common.h"
 #include <cub/cub.cuh>
 
-#define max_function(a, b) ((a) > (b) ? (a) : (b))
-
-struct __align__(8) MD { // update the global max and sum, store the output at
-                         // max_tmp and sum_tmp
-    float max_tmp;       // store max
-    float sum_tmp;       // store sum
+struct __align__(8) DataMaxSum { // update the global max and sum, store the
+                                 // output at max_tmp and sum_tmp
+    float max_tmp;               // store max
+    float sum_tmp;               // store sum
 };
-__device__ __forceinline__ MD reduce_md_op(MD a, MD b) {
+__device__ __forceinline__ DataMaxSum reduce_dms_op(DataMaxSum a,
+                                                    DataMaxSum b) {
     bool a_bigger = (a.max_tmp > b.max_tmp);
-    MD bigger = a_bigger ? a : b;
-    MD smaller = a_bigger ? b : a;
+    DataMaxSum bigger = a_bigger ? a : b;
+    DataMaxSum smaller = a_bigger ? b : a;
     bigger.sum_tmp = bigger.sum_tmp +
                      smaller.sum_tmp * __expf(smaller.max_tmp - bigger.max_tmp);
 
@@ -30,25 +29,27 @@ __launch_bounds__(BLOCK_DIM) __global__ void _blockSoftmaxKernel(
         blockIdx.x % stride + (blockIdx.x - blockIdx.x % stride) *
                                   dimsize; // now, tid = i(JKS) + k(S) + s;
 
-    MD md_partial;
-    md_partial.max_tmp = -__FLT_MAX__;
-    md_partial.sum_tmp = 0.0f;
-    MD md_input;
+    DataMaxSum dms_partial;
+    dms_partial.max_tmp = -__FLT_MAX__;
+    dms_partial.sum_tmp = 0.0f;
+    DataMaxSum dms_input;
     for (int ph = 0; threadIdx.x + ph * BLOCK_DIM < dimsize; ph++) {
 
-        md_input.max_tmp = input[tid + (threadIdx.x + ph * BLOCK_DIM) * stride];
+        dms_input.max_tmp =
+            input[tid + (threadIdx.x + ph * BLOCK_DIM) * stride];
 
-        md_input.sum_tmp = 1.0f;
-        md_partial = reduce_md_op(md_partial,
-                                  md_input); // reduce the data to one block
+        dms_input.sum_tmp = 1.0f;
+        dms_partial = reduce_dms_op(dms_partial,
+                                    dms_input); // reduce the data to one block
     }
-    typedef cub::BlockReduce<MD, BLOCK_DIM> BlockReduce;
+    typedef cub::BlockReduce<DataMaxSum, BLOCK_DIM> BlockReduce;
     __shared__ typename BlockReduce::TempStorage temp_storage;
-    __shared__ MD md_total;
-    MD md_block = BlockReduce(temp_storage).Reduce(md_partial, reduce_md_op);
+    __shared__ DataMaxSum dms_total;
+    DataMaxSum dms_block =
+        BlockReduce(temp_storage).Reduce(dms_partial, reduce_dms_op);
     if (threadIdx.x ==
         0) { // must set threadIdx.x = 0 write the output to memory
-        md_total = md_block;
+        dms_total = dms_block;
     }
     __syncthreads();
     //-----------------
@@ -56,8 +57,8 @@ __launch_bounds__(BLOCK_DIM) __global__ void _blockSoftmaxKernel(
     for (int ph = 0; threadIdx.x + ph * BLOCK_DIM < dimsize; ph++) {
         output[tid + (threadIdx.x + ph * BLOCK_DIM) * stride] =
             __expf(input[tid + (threadIdx.x + ph * BLOCK_DIM) * stride] -
-                   md_total.max_tmp) *
-            __fdividef(1.0F, md_total.sum_tmp);
+                   dms_total.max_tmp) *
+            __fdividef(1.0F, dms_total.sum_tmp);
     }
 }
 
@@ -95,9 +96,9 @@ __global__ void _warpSoftmaxKernel(float *__restrict input,
         float max_data = -__FLT_MAX__;
 
         for (int ph = 0; threadIdx.x + ph * BLOCK_DIM_x < dimsize; ph++) {
-            max_data = max_function(
-                max_data,
-                input[tid + (threadIdx.x + ph * BLOCK_DIM_x) * stride]);
+            max_data =
+                max(max_data,
+                    input[tid + (threadIdx.x + ph * BLOCK_DIM_x) * stride]);
         }
 
         max_data = WarpAllReduce<MaxOp, float, BLOCK_DIM_x>(max_data);
