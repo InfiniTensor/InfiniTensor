@@ -500,6 +500,5 @@ class TestStringMethods(unittest.TestCase):
         make_and_import_model(make_graph([where], "where", [x, y, con], [output]))
 
 
-
 if __name__ == "__main__":
     unittest.main()
