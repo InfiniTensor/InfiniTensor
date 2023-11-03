@@ -12,11 +12,10 @@ __device__ __forceinline__ MD reduce_md_op(MD a, MD b) {
     bool a_bigger = (a.max_tmp > b.max_tmp);
     MD bigger = a_bigger ? a : b;
     MD smaller = a_bigger ? b : a;
-    MD res;
-    res.sum_tmp = bigger.sum_tmp +
-                  smaller.sum_tmp * __expf(smaller.max_tmp - bigger.max_tmp);
-    res.max_tmp = bigger.max_tmp;
-    return res;
+    bigger.sum_tmp = bigger.sum_tmp +
+                     smaller.sum_tmp * __expf(smaller.max_tmp - bigger.max_tmp);
+
+    return bigger;
 }
 template <int BLOCK_DIM>
 __launch_bounds__(BLOCK_DIM) __global__ void _blockSoftmaxKernel(

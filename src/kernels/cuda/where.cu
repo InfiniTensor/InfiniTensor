@@ -62,19 +62,10 @@ __global__ void _whereKernel(const float *inputX, const float *inputY,
 }
 
 namespace infini {
-<<<<<<< HEAD
-void where_kernel(const float *inputX, const float *inputY,
-                  const int *condition, float *output, int nDims,
-                  infini::SmallArray inputXShape,
-                  infini::SmallArray inputYShape,
-                  infini::SmallArray conditionShape,
-                  infini::SmallArray outputShape) {
-=======
 void whereKernel(const float *inputX, const float *inputY,
                  const uint8_t *condition, float *output, int nDims,
                  SmallArray inputXShape, SmallArray inputYShape,
                  SmallArray conditionShape, SmallArray outputShape) {
->>>>>>> ec3adf6fa73cc6390f09a9bbd23910640d9ed000
     int outputsize = 1;
 
     for (int i = 0; i < nDims; i++) {
@@ -82,11 +73,7 @@ void whereKernel(const float *inputX, const float *inputY,
     }
     int blocksize = 32 * 16;
     int gridsize = (outputsize + blocksize - 1) / blocksize;
-<<<<<<< HEAD
-    _where_kernel<<<gridsize, blocksize>>>(
-=======
     _whereKernel<<<gridsize, blocksize>>>(
->>>>>>> ec3adf6fa73cc6390f09a9bbd23910640d9ed000
         inputX, inputY, condition, output, nDims, outputsize, inputXShape,
         inputYShape, conditionShape, outputShape);
 }

@@ -28,25 +28,6 @@ class WhereCuda : public CudaKernelWithoutConfig {
 
         SmallArray inputXShape, inputYShape, conditionShape, outputShape;
         for (int i = nDims - 1; i >= 0; --i) {
-<<<<<<< HEAD
-            inputXShape.data[i] = 1;
-            inputYShape.data[i] = 1;
-            conditionShape.data[i] = 1;
-            outputShape.data[i] = output_Shape[i];
-        }
-        for (int i = xSize - 1; i >= 0; --i) {
-            inputXShape.data[i + nDims - xSize] = inputX_Shape[i];
-        }
-        for (int i = ySize - 1; i >= 0; --i) {
-            inputYShape.data[i + nDims - ySize] = inputY_Shape[i];
-        }
-        for (int i = cSize - 1; i >= 0; --i) {
-            conditionShape.data[i + nDims - cSize] = condition_Shape[i];
-        }
-        where_kernel((float *)inputXData, (float *)inputYData,
-                     (int *)conditionData, (float *)outputData, nDims,
-                     inputXShape, inputYShape, conditionShape, outputShape);
-=======
             outputShape.data[i] = opOutputShape[i];
         }
 
@@ -57,7 +38,6 @@ class WhereCuda : public CudaKernelWithoutConfig {
         whereKernel((float *)inputXData, (float *)inputYData,
                     (uint8_t *)conditionData, (float *)outputData, nDims,
                     inputXShape, inputYShape, conditionShape, outputShape);
->>>>>>> ec3adf6fa73cc6390f09a9bbd23910640d9ed000
     }
 };
 
