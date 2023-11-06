@@ -27,6 +27,33 @@ class TransposeXdnn : public KUNLUNKernelWithoutConfig {
     }
 };
 
+class DepthToSpaceXdnn : public KUNLUNKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<DepthToSpaceObj>(_op);
+        auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
+
+        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+
+        auto reshape = op->getReshapeDim();
+	auto mode = op->getMode(); 
+	std::vector<int> permute;
+	if (mode == 0) {
+	  permute = {0, 3, 4, 1, 5, 2}; 
+	} else {
+	  permute = {0, 1, 4, 2, 5, 3}; 
+	}
+        auto ret = baidu::xpu::api::transpose<float>(
+            context->KUNLUNHandle(), (float *)aData, (float *)cData, reshape,
+            permute);
+        assert(ret == 0);
+        return;
+    }
+};
+
 REGISTER_KERNEL(Device::KUNLUN, OpType::Transpose, DataType::Float32,
                 TransposeXdnn, "Transpose_xdnn_KUNLUN_Float32");
+REGISTER_KERNEL(Device::KUNLUN, OpType::DepthToSpace, DataType::Float32,
+                DepthToSpaceXdnn, "DepthToSpace_xdnn_KUNLUN_Float32");
 }; // namespace infini
