@@ -60,14 +60,15 @@ find_package(
   REQUIRED)
 
 # OpenMP
-if(NOT WIN32)
-  find_package(OpenMP)
-  if(OpenMP_C_FOUND)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-  endif()
-  if(OpenMP_CXX_FOUND)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-  endif()
+if(WIN32)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /openmp:llvm")
+endif()
+find_package(OpenMP)
+if(OpenMP_C_FOUND)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+endif()
+if(OpenMP_CXX_FOUND)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
 #Protobuf
@@ -122,7 +123,7 @@ if(BUILD_TEST)
 endif()
 
 if(WIN32)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:preprocessor /permissive- /W0")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W0 /Zc:preprocessor /permissive-")
   set(CMAKE_C_FLAGS
       "${CMAKE_C_FLAGS} /wd4244 /wd4267 /wd4819"
   )

@@ -8,7 +8,7 @@
 
 ## 环境准备
 
-1. 确认 Visual Stuio 版本为 2019 及以上的稳定版本，安装时选择“使用 C++ 的桌面开发”。
+1. 确认 Visual Stuio 2019 版本为 16.10 及以上的稳定版本，安装时选择“使用 C++ 的桌面开发”。
 
    - [Visual Studio 下载](https://visualstudio.microsoft.com/zh-hans/downloads/)
 
