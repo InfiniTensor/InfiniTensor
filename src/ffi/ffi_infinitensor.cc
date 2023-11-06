@@ -290,7 +290,8 @@ static int cast_to_of(Operator op) {
 static std::tuple<int, std::string> depth_to_space_attrs_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::DepthToSpace);
     auto depth_to_space = dynamic_cast<const DepthToSpaceObj *>(op.get());
-    return std::make_tuple(depth_to_space->getBlockSize(), depth_to_space->getModeString());
+    return std::make_tuple(depth_to_space->getBlockSize(),
+                           depth_to_space->getModeString());
 }
 
 void export_functions(py::module &m) {

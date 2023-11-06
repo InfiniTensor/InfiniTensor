@@ -425,9 +425,11 @@ Tensor GraphHandlerObj::where(Tensor inputX, Tensor inputY, Tensor condition,
     }
 }
 
-Tensor GraphHandlerObj::depthToSpace(Tensor input, Tensor output, int blocksize, std::string mode) {
+Tensor GraphHandlerObj::depthToSpace(Tensor input, Tensor output, int blocksize,
+                                     std::string mode) {
     if (output) {
-        g->addOpWithOutputs<DepthToSpaceObj>(std::move(input), output, blocksize, mode);
+        g->addOpWithOutputs<DepthToSpaceObj>(std::move(input), output,
+                                             blocksize, mode);
         return output;
     } else {
         return g

@@ -22,7 +22,8 @@ class TransposeObj : public OperatorObj {
 
 class DepthToSpaceObj : public OperatorObj {
   public:
-    DepthToSpaceObj(GraphObj *graph, Tensor input, Tensor output, int blocksize, std::string mode);
+    DepthToSpaceObj(GraphObj *graph, Tensor input, Tensor output, int blocksize,
+                    std::string mode);
     OP_CLONE(DepthToSpaceObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
 
@@ -40,9 +41,9 @@ class DepthToSpaceObj : public OperatorObj {
     int blockSize;
     int D2SMode;
     std::string D2SModeString;
-    mutable std::vector<int> reshapeDim = {1,1,1,1,1,1};
-    mutable std::vector<int> transposeDim = {1,1,1,1,1,1};
-    mutable std::vector<int> outDim = {1,1,1,1};
+    mutable std::vector<int> reshapeDim = {1, 1, 1, 1, 1, 1};
+    mutable std::vector<int> transposeDim = {1, 1, 1, 1, 1, 1};
+    mutable std::vector<int> outDim = {1, 1, 1, 1};
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;
 };

@@ -37,13 +37,13 @@ class DepthToSpaceXdnn : public KUNLUNKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
 
         auto reshape = op->getReshapeDim();
-	auto mode = op->getMode(); 
-	std::vector<int> permute;
-	if (mode == 0) {
-	  permute = {0, 3, 4, 1, 5, 2}; 
-	} else {
-	  permute = {0, 1, 4, 2, 5, 3}; 
-	}
+        auto mode = op->getMode();
+        std::vector<int> permute;
+        if (mode == 0) {
+            permute = {0, 3, 4, 1, 5, 2};
+        } else {
+            permute = {0, 1, 4, 2, 5, 3};
+        }
         auto ret = baidu::xpu::api::transpose<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)cData, reshape,
             permute);
