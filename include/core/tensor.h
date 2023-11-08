@@ -4,6 +4,7 @@
 #include "utils/data_convert.h"
 #include <cmath>
 #include <cstring>
+#include <fstream>
 
 #if USE_CUDA
 #include "cuda/cuda_runtime.h"
@@ -132,6 +133,7 @@ class TensorObj : public TensorBaseObj {
     }
 
     void printData() const;
+    void dumpData(std::ofstream& ofs) const;
     bool equalData(const Tensor &rhs, double relativeError = 1e-6) const;
 
     template <typename T> bool equalData(const vector<T> &dataVector) {

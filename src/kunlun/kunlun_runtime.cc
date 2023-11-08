@@ -1,6 +1,7 @@
 #include "kunlun/kunlun_runtime.h"
 #include "core/kernel.h"
 #include "core/perf_engine.h"
+#include <string>
 
 namespace infini {
 
@@ -11,6 +12,9 @@ void KUNLUNRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
     double totalTime = 0;
     std::map<OpType, double> opTime;
     std::map<OpType, int> opCnt;
+    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
+    std::ofstream ofs("./log.txt");
+    int i = 0;
     for (auto &op : graph->getOperators()) {
         // HACK: set correct data type
         auto kernelAttrs =
@@ -20,6 +24,14 @@ void KUNLUNRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
         auto perfData = perfEngine.getPerfData(perfKey);
         if (!perfData && !tune) {
             kernel->compute(op, this);
+            auto cpuTensor = op->getOutput(0)->clone(cpuRuntime);
+            std::cout << i++ << "th Op: " << op->getOpType().underlying() << std::endl;
+            std::cout << cpuTensor->getRawDataPtr<float*>()[0] << std::endl;
+            if (op->getDType() == OpType::Softmax){
+                cpuTensor->dumpData(ofs);
+                auto cpuTensorInput = op->getInputs(0)->clone(cpuRuntime);
+                cpuTensorInput->dumpData(ofs);
+            }
             continue;
         }
 
@@ -43,6 +55,7 @@ void KUNLUNRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
             opCnt[op->getOpType()]++;
         }
     }
+    ofs.close();
 }
 
 void KUNLUNRuntimeObj::run(const Graph &graph, bool tune,
