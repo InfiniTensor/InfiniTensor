@@ -15,7 +15,7 @@ class GatherXdnn : public KUNLUNKernelWithoutConfig {
 
         auto shape = op->getInputs(0)->getDims();
         auto index = op->getInputs(1)->getDims();
-	auto axis = op->getAxis();
+        auto axis = op->getAxis();
         auto ret = baidu::xpu::api::gather<float, int>(
             context->KUNLUNHandle(), (float *)aData, (int *)bData,
             (float *)cData, shape, index.size(), axis);

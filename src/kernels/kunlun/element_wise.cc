@@ -15,12 +15,12 @@ class AddXdnn : public KUNLUNKernelWithoutConfig {
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
-	if(aDim.size() == 0 ){
-		aDim.push_back(1);
-	}
-	if(bDim.size() == 0 ){
-		bDim.push_back(1);
-	}
+        if (aDim.size() == 0) {
+            aDim.push_back(1);
+        }
+        if (bDim.size() == 0) {
+            bDim.push_back(1);
+        }
         auto ret = baidu::xpu::api::broadcast_add<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
             (float *)cData, aDim, bDim);
@@ -41,12 +41,12 @@ class SubXdnn : public KUNLUNKernelWithoutConfig {
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
-	if(aDim.size() == 0 ){
-		aDim.push_back(1);
-	}
-	if(bDim.size() == 0 ){
-		bDim.push_back(1);
-	}
+        if (aDim.size() == 0) {
+            aDim.push_back(1);
+        }
+        if (bDim.size() == 0) {
+            bDim.push_back(1);
+        }
         auto ret = baidu::xpu::api::broadcast_sub<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
             (float *)cData, aDim, bDim);
@@ -67,12 +67,12 @@ class MulXdnn : public KUNLUNKernelWithoutConfig {
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
-	if(aDim.size() == 0 ){
-		aDim.push_back(1);
-	}
-	if(bDim.size() == 0 ){
-		bDim.push_back(1);
-	}
+        if (aDim.size() == 0) {
+            aDim.push_back(1);
+        }
+        if (bDim.size() == 0) {
+            bDim.push_back(1);
+        }
         auto ret = baidu::xpu::api::broadcast_mul<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
             (float *)cData, aDim, bDim);
@@ -93,12 +93,12 @@ class DivXdnn : public KUNLUNKernelWithoutConfig {
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
-	if(aDim.size() == 0 ){
-		aDim.push_back(1);
-	}
-	if(bDim.size() == 0 ){
-		bDim.push_back(1);
-	}
+        if (aDim.size() == 0) {
+            aDim.push_back(1);
+        }
+        if (bDim.size() == 0) {
+            bDim.push_back(1);
+        }
         auto ret = baidu::xpu::api::broadcast_div<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
             (float *)cData, aDim, bDim);
@@ -119,12 +119,12 @@ class PowXdnn : public KUNLUNKernelWithoutConfig {
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
-	if(aDim.size() == 0 ){
-		aDim.push_back(1);
-	}
-	if(bDim.size() == 0 ){
-		bDim.push_back(1);
-	}
+        if (aDim.size() == 0) {
+            aDim.push_back(1);
+        }
+        if (bDim.size() == 0) {
+            bDim.push_back(1);
+        }
 
         auto ret = baidu::xpu::api::broadcast_pow<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
@@ -146,12 +146,12 @@ class MaxXdnn : public KUNLUNKernelWithoutConfig {
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
-	if(aDim.size() == 0 ){
-		aDim.push_back(1);
-	}
-	if(bDim.size() == 0 ){
-		bDim.push_back(1);
-	}
+        if (aDim.size() == 0) {
+            aDim.push_back(1);
+        }
+        if (bDim.size() == 0) {
+            bDim.push_back(1);
+        }
         auto ret = baidu::xpu::api::broadcast_max<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
             (float *)cData, aDim, bDim);
@@ -172,12 +172,12 @@ class MinXdnn : public KUNLUNKernelWithoutConfig {
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
-	if(aDim.size() == 0 ){
-		aDim.push_back(1);
-	}
-	if(bDim.size() == 0 ){
-		bDim.push_back(1);
-	}
+        if (aDim.size() == 0) {
+            aDim.push_back(1);
+        }
+        if (bDim.size() == 0) {
+            bDim.push_back(1);
+        }
         auto ret = baidu::xpu::api::broadcast_min<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
             (float *)cData, aDim, bDim);
@@ -200,12 +200,12 @@ class EqualXdnn : public KUNLUNKernelWithoutConfig {
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
-	if(aDim.size() == 0 ){
-		aDim.push_back(1);
-	}
-	if(bDim.size() == 0 ){
-		bDim.push_back(1);
-	}
+        if (aDim.size() == 0) {
+            aDim.push_back(1);
+        }
+        if (bDim.size() == 0) {
+            bDim.push_back(1);
+        }
         auto ret = baidu::xpu::api::broadcast_equal<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
             (bool *)wsData, aDim, bDim);
@@ -230,12 +230,12 @@ class GreaterEqualXdnn : public KUNLUNKernelWithoutConfig {
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
-	if(aDim.size() == 0 ){
-		aDim.push_back(1);
-	}
-	if(bDim.size() == 0 ){
-		bDim.push_back(1);
-	}
+        if (aDim.size() == 0) {
+            aDim.push_back(1);
+        }
+        if (bDim.size() == 0) {
+            bDim.push_back(1);
+        }
         auto ret = baidu::xpu::api::broadcast_greater_equal<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
             (bool *)wsData, aDim, bDim);
@@ -260,12 +260,12 @@ class GreaterThanXdnn : public KUNLUNKernelWithoutConfig {
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
-	if(aDim.size() == 0 ){
-		aDim.push_back(1);
-	}
-	if(bDim.size() == 0 ){
-		bDim.push_back(1);
-	}
+        if (aDim.size() == 0) {
+            aDim.push_back(1);
+        }
+        if (bDim.size() == 0) {
+            bDim.push_back(1);
+        }
         auto ret = baidu::xpu::api::broadcast_greater_than<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
             (bool *)wsData, aDim, bDim);
@@ -290,12 +290,12 @@ class LessEqualXdnn : public KUNLUNKernelWithoutConfig {
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
-	if(aDim.size() == 0 ){
-		aDim.push_back(1);
-	}
-	if(bDim.size() == 0 ){
-		bDim.push_back(1);
-	}
+        if (aDim.size() == 0) {
+            aDim.push_back(1);
+        }
+        if (bDim.size() == 0) {
+            bDim.push_back(1);
+        }
         auto ret = baidu::xpu::api::broadcast_less_equal<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
             (bool *)wsData, aDim, bDim);
@@ -320,12 +320,12 @@ class LessThanXdnn : public KUNLUNKernelWithoutConfig {
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
-	if(aDim.size() == 0 ){
-		aDim.push_back(1);
-	}
-	if(bDim.size() == 0 ){
-		bDim.push_back(1);
-	}
+        if (aDim.size() == 0) {
+            aDim.push_back(1);
+        }
+        if (bDim.size() == 0) {
+            bDim.push_back(1);
+        }
         auto ret = baidu::xpu::api::broadcast_less_than<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
             (bool *)wsData, aDim, bDim);
@@ -348,12 +348,12 @@ class FloorDivXdnn : public KUNLUNKernelWithoutConfig {
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
-	if(aDim.size() == 0 ){
-		aDim.push_back(1);
-	}
-	if(bDim.size() == 0 ){
-		bDim.push_back(1);
-	}
+        if (aDim.size() == 0) {
+            aDim.push_back(1);
+        }
+        if (bDim.size() == 0) {
+            bDim.push_back(1);
+        }
         auto ret = baidu::xpu::api::broadcast_floordiv<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
             (float *)cData, aDim, bDim);
@@ -396,12 +396,12 @@ class AndXdnn : public KUNLUNKernelWithoutConfig {
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
-	if(aDim.size() == 0 ){
-		aDim.push_back(1);
-	}
-	if(bDim.size() == 0 ){
-		bDim.push_back(1);
-	}
+        if (aDim.size() == 0) {
+            aDim.push_back(1);
+        }
+        if (bDim.size() == 0) {
+            bDim.push_back(1);
+        }
         auto ret = baidu::xpu::api::logical_and<bool>(
             context->KUNLUNHandle(), (bool *)aData, (bool *)bData,
             (bool *)wsData, len);
@@ -426,12 +426,12 @@ class OrXdnn : public KUNLUNKernelWithoutConfig {
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
-	if(aDim.size() == 0 ){
-		aDim.push_back(1);
-	}
-	if(bDim.size() == 0 ){
-		bDim.push_back(1);
-	}
+        if (aDim.size() == 0) {
+            aDim.push_back(1);
+        }
+        if (bDim.size() == 0) {
+            bDim.push_back(1);
+        }
         auto ret = baidu::xpu::api::logical_or<bool>(
             context->KUNLUNHandle(), (bool *)aData, (bool *)bData,
             (bool *)wsData, len);
@@ -456,12 +456,12 @@ class XorXdnn : public KUNLUNKernelWithoutConfig {
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
-	if(aDim.size() == 0 ){
-		aDim.push_back(1);
-	}
-	if(bDim.size() == 0 ){
-		bDim.push_back(1);
-	}
+        if (aDim.size() == 0) {
+            aDim.push_back(1);
+        }
+        if (bDim.size() == 0) {
+            bDim.push_back(1);
+        }
         auto ret = baidu::xpu::api::logical_xor<bool>(
             context->KUNLUNHandle(), (bool *)aData, (bool *)bData,
             (bool *)wsData, len);
