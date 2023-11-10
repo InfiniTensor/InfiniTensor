@@ -48,7 +48,6 @@ class OnnxStub:
             pass
         except RuntimeError:
             pass
-
         self.inputs: Dict[str, backend.Tensor] = {}
         self.outputs: Dict[str, backend.Tensor] = {}
         self.initializer: Dict[int, TensorProto] = {}

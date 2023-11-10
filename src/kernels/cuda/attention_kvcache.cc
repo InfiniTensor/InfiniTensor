@@ -10,7 +10,6 @@ class AttentionKVCacheCompute {
                                       Tensor tensor) const {
         int nDims = tensor->getRank();
         auto strides = tensor->getStride();
-        IT_ASSERT(nDims == 4);
         IT_ASSERT(strides.size() == (size_t)nDims);
         for (int i = 0; i < nDims; ++i) {
             metadata.dimSize[i] = tensor->getDims().at(i);
