@@ -410,7 +410,8 @@ void Derivator::appendCanddiate(const Tensor &tensor, int depth) {
     // dbg("!!!!!!!!!!!!!!!Success!!!!!!!!!!!!!!!");
     if (enableEquivalenceCheck)
         checkDerivationEquivalence();
-    // printIntermediateStates();
+    if (candidates.size() > 2)
+        printIntermediateStates();
 }
 
 bool Derivator::checkOOB(const RangeOp &rangeOp, bool halt) {

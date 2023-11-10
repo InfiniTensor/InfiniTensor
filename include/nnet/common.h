@@ -68,8 +68,8 @@ static inline HashType genhash(string s) {
 #define nnet_unimplemented_halt()                                              \
     { IT_TODO_HALT(); }
 
-#define nnet_unimplemented_continue()                                          \
-    { dbg("Unimplemented"); }
+#define nnet_unimplemented_continue()                                          
+    // { dbg("Unimplemented"); }
 
 #define nnet_assert(expr, msg) assert(((void)(msg), (expr)))
 

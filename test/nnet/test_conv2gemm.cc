@@ -25,7 +25,7 @@ TEST(Conv2gemm, NCHW_FCRS_ruleBased) {
 
     // Derivation
     Formula conv_1x1_nhwc_fc(range, 0);
-    Derivator derivator(12);
+    Derivator derivator(12, true, nnet::Derivator::LogMode::DumpFristCandiate);
     // const vector<int> rules = {3, 2, 2, 5, 2, 2, 6, 6};
     const vector<int> rules = {3, 2, 2, 5, 8, 8, 6, 90};
     // derivator.ruleBasedDFS(conv_1x1_nhwc_fc, 0, rules);

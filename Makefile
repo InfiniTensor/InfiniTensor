@@ -1,13 +1,13 @@
 ﻿.PHONY : build clean format install-python test-cpp test-onnx
 
 TYPE ?= Release
-CUDA ?= OFF
+CUDA ?= ON
 BANG ?= OFF
 KUNLUN ?= OFF
 INTELCPU ?= off
 BACKTRACE ?= ON
 TEST ?= ON
-NNET ?= OFF
+NNET ?= ON
 FORMAT_ORIGIN ?=
 # Docker build options
 DOCKER_NAME ?= infinitensor
@@ -37,7 +37,7 @@ endif
 
 build:
 	mkdir -p build/$(TYPE)
-	cd build/$(TYPE) && cmake $(CMAKE_OPT) ../.. && make -j8
+	cd build/$(TYPE) && cmake $(CMAKE_OPT) ../.. && make -j99
 
 clean:
 	rm -rf build
