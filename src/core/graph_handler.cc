@@ -425,6 +425,19 @@ Tensor GraphHandlerObj::where(Tensor inputX, Tensor inputY, Tensor condition,
     }
 }
 
+Tensor GraphHandlerObj::depthToSpace(Tensor input, Tensor output, int blocksize,
+                                     std::string mode) {
+    if (output) {
+        g->addOpWithOutputs<DepthToSpaceObj>(std::move(input), output,
+                                             blocksize, mode);
+        return output;
+    } else {
+        return g
+            ->addOp<DepthToSpaceObj>(std::move(input), output, blocksize, mode)
+            ->getOutput();
+    }
+}
+
 static CastType inferCastType(Tensor input, int to) {
     auto iType = input->getDType();
     auto oType = DataType(to);
