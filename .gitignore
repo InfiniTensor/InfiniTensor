@@ -31,8 +31,7 @@
 *.out
 *.app
 
-build/
-build_debug/
+*build*/
 
 .vscode/
 
