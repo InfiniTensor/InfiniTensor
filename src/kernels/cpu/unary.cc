@@ -1,6 +1,7 @@
 #include "operators/unary.h"
 #include "core/constants.h"
 #include "core/kernel.h"
+#include "operators/softmax.h"
 
 namespace infini {
 template <typename T> class NativeUnary : public CpuKernelWithoutConfig {
@@ -22,7 +23,7 @@ template <typename T> class NativeUnary : public CpuKernelWithoutConfig {
 template <typename T> class NaiveSoftmax : public CpuKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *context) const override {
-        auto op = as<UnaryObj>(_op);
+        auto op = as<SoftmaxObj>(_op);
         T *inptr = op->getInputs(0)->getRawDataPtr<T *>();
         T *outptr = op->getOutput()->getRawDataPtr<T *>();
 

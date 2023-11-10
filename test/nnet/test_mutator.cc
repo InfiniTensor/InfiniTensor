@@ -1,3 +1,5 @@
+#ifdef USE_CUDA
+
 #include "core/blob.h"
 #include "core/dummy_mutator.h"
 #include "core/graph.h"
@@ -477,3 +479,5 @@ TEST(Mutator, InfoGAN_TConv_3_correctness) {
 //     EXPECT_TRUE(graph->verification(bestGraph.get(), true));
 // }
 } // namespace infini
+
+#endif

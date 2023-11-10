@@ -8,38 +8,38 @@
 
 namespace infini {
 
-void test_where(const Shape &inputxshape, const vector<float> &inputxdata,
-                const Shape &inputyshape, const vector<float> &inputydata,
-                const Shape &conditionshape,
-                const vector<uint8_t> &conditiondata,
+void test_where(const Shape &inputXShape, const vector<float> &inputXData,
+                const Shape &inputYShape, const vector<float> &inputYData,
+                const Shape &conditionShape,
+                const vector<uint8_t> &conditionData,
                 const vector<float> &ExpectData) {
     Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(runtime);
-    auto condition = gCpu->addTensor(conditionshape, DataType::UInt8);
-    auto inputx = gCpu->addTensor(inputxshape, DataType::Float32);
-    auto inputy = gCpu->addTensor(inputyshape, DataType::Float32);
+    auto condition = gCpu->addTensor(conditionShape, DataType::UInt8);
+    auto inputX = gCpu->addTensor(inputXShape, DataType::Float32);
+    auto inputY = gCpu->addTensor(inputYShape, DataType::Float32);
 
     gCpu->dataMalloc();
-    condition->copyin(conditiondata); //
-    inputx->copyin(inputxdata);
-    inputy->copyin(inputydata); //
+    condition->copyin(conditionData); //
+    inputX->copyin(inputXData);
+    inputY->copyin(inputYData); //
 
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
     Graph gCuda = make_ref<GraphObj>(cudaRuntime);
 
     auto conditionGpu = gCuda->cloneTensor(condition);
-    auto inputxGpu = gCuda->cloneTensor(inputx);
-    auto inputyGpu = gCuda->cloneTensor(inputy);
+    auto inputXGpu = gCuda->cloneTensor(inputX);
+    auto inputYGpu = gCuda->cloneTensor(inputY);
 
-    auto op = gCuda->addOp<WhereObj>(inputxGpu, inputyGpu, conditionGpu,
+    auto op = gCuda->addOp<WhereObj>(inputXGpu, inputYGpu, conditionGpu,
                                      nullptr); // WhereObj
     gCuda->dataMalloc();
-    conditionGpu->copyin(conditiondata);
-    inputxGpu->copyin(inputxdata);
-    inputyGpu->copyin(inputydata);
+    conditionGpu->copyin(conditionData);
+    inputXGpu->copyin(inputXData);
+    inputYGpu->copyin(inputYData);
     cudaRuntime->run(gCuda);
 
-    auto oCpu = gCpu->cloneTensor(op->getOutput()); // move data from gpu to cpu
+    auto oCpu = gCpu->cloneTensor(op->getOutput()); // move Data from gpu to cpu
     oCpu->printData();                              //->printData
     EXPECT_TRUE(oCpu->equalData(ExpectData));
 }

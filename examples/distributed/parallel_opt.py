@@ -11,6 +11,7 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
     vinfo = {info.name: info for info in model.graph.value_info}
     vinfo.update({info.name: info for info in model.graph.input})
     vinfo.update({info.name: info for info in model.graph.output})
+    output = {info.name: info for info in model.graph.output}
     place: Dict[str, Placement] = {}
     nodes: List[NodeProto] = []
 
@@ -56,7 +57,7 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
         ndim = len(vinfo[output].type.tensor_type.shape.dim)
         out_plc = Shard(ndim - 1) if in_plc.is_replicate() else _Partial()
         place[node.output[0]] = out_plc
-        
+
     def shard_concat(node: NodeProto):
         # hack for kvcache
         in_plc = place[node.input[1]]
@@ -154,7 +155,7 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
             ), f"{place[node.input[0]]} != {place[node.input[1]]}"
             place[node.output[0]] = place[node.input[0]]
         elif node.op_type == "Concat":
-            shard_concat(node)            
+            shard_concat(node)
 
     def find_successor(op_type: str, idx: int, search_limit: int = 1):
         for node in model.graph.node[idx + 1 : idx + 1 + search_limit]:
@@ -175,6 +176,9 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
         if (node.op_type == "MatMul" or node.op_type == "Gemm") and any(
             input in data for input in node.input
         ):
+            # FIXME(constroy): the last MatMul should not be sharded as TP.
+            if node.output[0] in output:
+                continue
             groups = 1
             # If the Gemm or Matmul is followed by a split, then the inputs are concatinated by groups
             split_node = find_successor("Split", index, search_limit=2)
@@ -218,7 +222,7 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
     new_input = []
     for info in model.graph.input:
         new_input.append(vinfo[info.name])
-    
+
     graph = helper.make_graph(
         nodes,
         model.graph.name + f"_{tp_rank}",

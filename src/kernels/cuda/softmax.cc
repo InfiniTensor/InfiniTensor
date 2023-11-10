@@ -1,30 +1,30 @@
 #include "operators/softmax.h"
 #include "cuda/cuda_kernel_wihtout_config.h"
 #include "cuda/cuda_runtime.h"
-#include "cuda/softmax.h"
+#include "cuda/cuda_softmax.h"
 
 namespace infini {
-class SoftmaxCudnn : public CudaKernelWithoutConfig {
+class SoftmaxCuda : public CudaKernelWithoutConfig {
 
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<SoftmaxObj>(_op);
-        auto x = op->getInputs(0)->getRawDataPtr<float *>();
-        auto y = op->getOutput(0)->getRawDataPtr<float *>();
+        auto input = op->getInputs(0)->getRawDataPtr<float *>();
+        auto output = op->getOutput(0)->getRawDataPtr<float *>();
+        const auto &inShape = op->getInputs(0)->getDims(); // input shape
         auto dims = op->getInputs(0)->getDims();
 
-        int batch_size = 1;
-        for (size_t i = 0; i < dims.size(); ++i)
-            batch_size *= dims[i];
-        int dim = dims[op->getAxis()];
+        int size; // size = i(JKS) + j(KS) + k(S) + s
+        size = op->getOutput(0)->size();
+        int dimsize = dims[op->getAxis()];
+        int stride = op->getInputs(0)->getStride().at(op->getAxis());
 
-        int block_num = batch_size / dim;
-        int max_threadblock_size = batch_size / block_num;
-        softmax_kernel(max_threadblock_size, block_num, x, y, dim,
-                       op->getInputs(0)->getStride().at(op->getAxis()));
+        int num_blocks = size / dimsize;
+        softmax_kernel(num_blocks, (float *)input, (float *)output, size,
+                       dimsize, stride);
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Softmax, DataType::Float32, SoftmaxCudnn,
+REGISTER_KERNEL(Device::CUDA, OpType::Softmax, DataType::Float32, SoftmaxCuda,
                 "Softmax_CUDA_Float32");
 } // namespace infini
