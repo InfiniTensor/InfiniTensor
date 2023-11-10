@@ -46,6 +46,9 @@ class OnnxStub:
                 model = model_simp
         except ValidationError:
             pass
+        except RuntimeError:
+            pass
+        
         self.inputs: Dict[str, backend.Tensor] = {}
         self.outputs: Dict[str, backend.Tensor] = {}
         self.initializer: Dict[int, TensorProto] = {}
@@ -544,6 +547,16 @@ class OnnxStub:
                         next(
                             (attr.i for attr in node.attribute if attr.name == "axis")
                         ),
+                    )
+                elif node.op_type == "AttentionKVCache":
+                    tensors[node.output[0]] = self.handler.attentionKVCache(
+                        tensors[node.input[0]],
+                        tensors[node.input[1]],
+                        tensors[node.input[2]],
+                        tensors[node.input[3]],
+                        tensors[node.input[4]],
+                        tensors[node.input[5]],
+                        tensors.get(node.output[0]),
                     )
                 elif node.op_type == "Split":
                     for name, tensor in zip(
