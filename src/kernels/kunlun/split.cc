@@ -22,9 +22,6 @@ class SplitXdnn : public KUNLUNKernelWithoutConfig {
         std::vector<int> splitList;
         for (int i = 0; i < num; ++i) {
             auto dim = op->getOutput(i)->getDims();
-            if (dim.size() != 4) {
-                IT_TODO_HALT();
-            }
             splitList.push_back(dim[axis]);
         }
 
