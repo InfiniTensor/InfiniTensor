@@ -21,6 +21,13 @@ class ElementWiseCnnl : public BangKernelWithoutConfig {
         auto a_dim = op->getInputs(0)->getDims();
         auto b_dim = op->getInputs(1)->getDims();
         auto c_dim = op->getOutput()->getDims();
+        if (a_dim.size() == 0) {
+            a_dim.push_back(1);
+        }
+
+        if (b_dim.size() == 0) {
+            b_dim.push_back(1);
+        }
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
@@ -77,6 +84,13 @@ class LogicOpCnnl : public BangKernelWithoutConfig {
         auto a_dim = op->getInputs(0)->getDims();
         auto b_dim = op->getInputs(1)->getDims();
         auto c_dim = op->getOutput()->getDims();
+        if (a_dim.size() == 0) {
+            a_dim.push_back(1);
+        }
+
+        if (b_dim.size() == 0) {
+            b_dim.push_back(1);
+        }
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
@@ -123,6 +137,13 @@ class BitComputeCnnl : public BangKernelWithoutConfig {
         auto a_dim = op->getInputs(0)->getDims();
         auto b_dim = op->getInputs(1)->getDims();
         auto c_dim = op->getOutput()->getDims();
+        if (a_dim.size() == 0) {
+            a_dim.push_back(1);
+        }
+
+        if (b_dim.size() == 0) {
+            b_dim.push_back(1);
+        }
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
@@ -168,6 +189,13 @@ class DivCnnl : public BangKernelWithoutConfig {
         auto a_dim = op->getInputs(0)->getDims();
         auto b_dim = op->getInputs(1)->getDims();
         auto c_dim = op->getOutput()->getDims();
+        if (a_dim.size() == 0) {
+            a_dim.push_back(1);
+        }
+
+        if (b_dim.size() == 0) {
+            b_dim.push_back(1);
+        }
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
@@ -213,6 +241,13 @@ class MaximumCnnl : public BangKernelWithoutConfig {
         auto a_dim = op->getInputs(0)->getDims();
         auto b_dim = op->getInputs(1)->getDims();
         auto c_dim = op->getOutput()->getDims();
+        if (a_dim.size() == 0) {
+            a_dim.push_back(1);
+        }
+
+        if (b_dim.size() == 0) {
+            b_dim.push_back(1);
+        }
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
@@ -257,6 +292,13 @@ class MinimumCnnl : public BangKernelWithoutConfig {
         auto a_dim = op->getInputs(0)->getDims();
         auto b_dim = op->getInputs(1)->getDims();
         auto c_dim = op->getOutput()->getDims();
+        if (a_dim.size() == 0) {
+            a_dim.push_back(1);
+        }
+
+        if (b_dim.size() == 0) {
+            b_dim.push_back(1);
+        }
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
@@ -301,6 +343,13 @@ class MSELossCnnl : public BangKernelWithoutConfig {
         auto a_dim = op->getInputs(0)->getDims();
         auto b_dim = op->getInputs(1)->getDims();
         auto c_dim = op->getOutput()->getDims();
+        if (a_dim.size() == 0) {
+            a_dim.push_back(1);
+        }
+
+        if (b_dim.size() == 0) {
+            b_dim.push_back(1);
+        }
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
@@ -351,6 +400,14 @@ class PowerCnnl : public BangKernelWithoutConfig {
         auto b_dim = op->getInputs(1)->getDims();
         auto c_dim = op->getOutput()->getDims();
 
+        if (a_dim.size() == 0) {
+            a_dim.push_back(1);
+        }
+
+        if (b_dim.size() == 0) {
+            b_dim.push_back(1);
+        }
+
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
                                                CNNL_DTYPE_FLOAT, a_dim.size(),
@@ -395,6 +452,13 @@ class FloorDivCnnl : public BangKernelWithoutConfig {
         auto a_dim = op->getInputs(0)->getDims();
         auto b_dim = op->getInputs(1)->getDims();
         auto c_dim = op->getOutput()->getDims();
+        if (a_dim.size() == 0) {
+            a_dim.push_back(1);
+        }
+
+        if (b_dim.size() == 0) {
+            b_dim.push_back(1);
+        }
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
@@ -440,6 +504,13 @@ class FloorModCnnl : public BangKernelWithoutConfig {
         auto a_dim = op->getInputs(0)->getDims();
         auto b_dim = op->getInputs(1)->getDims();
         auto c_dim = op->getOutput()->getDims();
+        if (a_dim.size() == 0) {
+            a_dim.push_back(1);
+        }
+
+        if (b_dim.size() == 0) {
+            b_dim.push_back(1);
+        }
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
@@ -485,6 +556,13 @@ class SquaredDifferenceCnnl : public BangKernelWithoutConfig {
         auto a_dim = op->getInputs(0)->getDims();
         auto b_dim = op->getInputs(1)->getDims();
         auto c_dim = op->getOutput()->getDims();
+        if (a_dim.size() == 0) {
+            a_dim.push_back(1);
+        }
+
+        if (b_dim.size() == 0) {
+            b_dim.push_back(1);
+        }
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,

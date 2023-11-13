@@ -491,6 +491,21 @@ class OnnxStub:
                         tensors.get(node.output[0]),
                         perm,
                     )
+                elif node.op_type == "DepthToSpace":
+                    blocksize = next(
+                        (attr.i for attr in node.attribute if attr.name == "blocksize"),
+                        None,
+                    )
+                    mode = next(
+                        (attr.s for attr in node.attribute if attr.name == "mode"),
+                        None,
+                    )
+                    tensors[node.output[0]] = self.handler.depthToSpace(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        blocksize,
+                        mode,
+                    )
                 elif node.op_type == "Reshape":
                     dims = _search_shape(model, node.input[0])
                     size = reduce(lambda acc, x: acc * x, dims)

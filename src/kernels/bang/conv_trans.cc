@@ -39,24 +39,17 @@ class ConvTransCnnl : public BangKernelWithoutConfig {
         if (dimOutput.size() != 4)
             IT_TODO_HALT();
 
-        int inputs0[4] = {dimInputs0[0], dimInputs0[1], dimInputs0[2],
-                          dimInputs0[3]};
-        int inputs1[4] = {dimInputs1[0], dimInputs1[1], dimInputs1[2],
-                          dimInputs1[3]};
-        int output[4] = {dimOutput[0], dimOutput[1], dimOutput[2],
-                         dimOutput[3]};
-
         // get inputs
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, inputs0));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, dimInputs0.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, inputs1));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            bDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, dimInputs1.data()));
         // get outputs
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, output));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, dimOutput.data()));
 
         cnnlConvolutionBwdDataAlgo_t algo;
         cnnlGetConvolutionBackwardDataAlgorithm(
@@ -69,7 +62,7 @@ class ConvTransCnnl : public BangKernelWithoutConfig {
         BangPtr wsData = context->getWorkspace(wsSize);
 
         cnnlStatus_t stat = cnnlConvolutionBackwardData(
-            context->cnnlHandle(), NULL, aDesc, aData, bDesc, bData, convDesc,
+            context->cnnlHandle(), NULL, bDesc, bData, aDesc, aData, convDesc,
             algo, wsData, wsSize, NULL, cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
