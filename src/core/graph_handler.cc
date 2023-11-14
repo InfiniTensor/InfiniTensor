@@ -96,18 +96,20 @@ Tensor GraphHandlerObj::batchNormalization(Tensor input, Tensor output,
     }
 }
 
-Tensor GraphHandlerObj::layerNormalization(Tensor input, Tensor output,
-                                           Tensor scale, Tensor bias, float eps,
-                                           int axis, int stash_type) {
+Tensor GraphHandlerObj::layerNormalization(Tensor input, Tensor scale,
+                                           Tensor bias, Tensor output,
+                                           float eps, int axis,
+                                           int stash_type) {
     if (output) {
-        g->addOpWithOutputs<LayerNormObj>(std::move(input), output,
-                                          std::move(scale), std::move(bias),
-                                          eps, axis, stash_type);
+        g->addOpWithOutputs<LayerNormObj>(std::move(input), std::move(scale),
+                                          std::move(bias), output, eps, axis,
+                                          stash_type);
         return output;
     } else {
         return g
-            ->addOp<LayerNormObj>(std::move(input), output, std::move(scale),
-                                  std::move(bias), eps, axis, stash_type)
+            ->addOp<LayerNormObj>(std::move(input), std::move(scale),
+                                  std::move(bias), output, eps, axis,
+                                  stash_type)
             ->getOutput();
     }
 }

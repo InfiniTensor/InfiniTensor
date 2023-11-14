@@ -1,8 +1,8 @@
 #include "operators/layer_norm.h"
 
 namespace infini {
-LayerNormObj::LayerNormObj(GraphObj *graph, Tensor input, Tensor output,
-                           Tensor scale, Tensor bias, float eps, int axis,
+LayerNormObj::LayerNormObj(GraphObj *graph, Tensor input, Tensor scale,
+                           Tensor bias, Tensor output, float eps, int axis,
                            int stash_type)
     : OperatorObj(OpType::LayerNormalization, {input, scale, bias}, {output}),
       eps(eps), axis(axis), stash_type(stash_type) {

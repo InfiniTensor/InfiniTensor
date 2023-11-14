@@ -30,8 +30,8 @@ class LayerNormObj : public OperatorObj {
      * 1e-5.
      * @param trainingMode Set to true when used for training.
      */
-    LayerNormObj(GraphObj *graph, Tensor input, Tensor output, Tensor scale,
-                 Tensor bias, float eps = 1e-5, int axis = -1,
+    LayerNormObj(GraphObj *graph, Tensor input, Tensor scale, Tensor bias,
+                 Tensor output, float eps = 1e-5, int axis = -1,
                  int stash_type = 1);
     // 这是用来干什么的？
     OP_CLONE(LayerNormObj);
@@ -42,6 +42,8 @@ class LayerNormObj : public OperatorObj {
     int numInputs() const override { return 5; }
     int numOutputs() const override { return outputs.size(); }
     float getEps() const { return eps; }
+    int getAxis() const { return axis; }
+    int getStashType() const { return stash_type; }
 
   private:
     vector<int> getWorkloadVector() const override;
