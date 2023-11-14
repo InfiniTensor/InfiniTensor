@@ -14,15 +14,15 @@ class MatmulXdnn : public KUNLUNKernelWithoutConfig {
         bool transA = op->getTransA();
         bool transB = op->getTransB();
 
-	auto b = op->getB(); 
-	auto m = op->getM(); 
-	auto n = op->getN(); 
-	auto k = op->getK(); 
+        auto b = op->getB();
+        auto m = op->getM();
+        auto n = op->getN();
+        auto k = op->getK();
 
         auto ret = baidu::xpu::api::fc_batched<float, float, float, float>(
-            context->KUNLUNHandle(), b, transA, transB, m, n, k,
-	    1.0, (float *)aData, m*k, (float *)bData, n*k, 0.0, (float *)cData, m*n,
-	    nullptr, nullptr);
+            context->KUNLUNHandle(), b, transA, transB, m, n, k, 1.0,
+            (float *)aData, m * k, (float *)bData, n * k, 0.0, (float *)cData,
+            m * n, nullptr, nullptr);
         assert(ret == 0);
         return;
     }

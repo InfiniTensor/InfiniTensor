@@ -1,6 +1,6 @@
-#include "operators/where.h"
 #include "kunlun/kunlun_kernel_without_config.h"
 #include "kunlun/kunlun_runtime.h"
+#include "operators/where.h"
 
 namespace infini {
 class WhereXdnn : public KUNLUNKernelWithoutConfig {
@@ -14,7 +14,7 @@ class WhereXdnn : public KUNLUNKernelWithoutConfig {
         void *const cData = (op->getInputs(2)->getRawDataPtr<void *>());
         void *const dData = (op->getOutput()->getRawDataPtr<void *>());
 
-	auto aDim = op->getInputs(0)->getDims();
+        auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
         auto cDim = op->getInputs(2)->getDims();
         auto dDim = op->getOutput()->getDims();
