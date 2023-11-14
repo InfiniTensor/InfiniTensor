@@ -25,6 +25,7 @@ struct OpType {
         Asinh,              // Unary
         Atan,               // Unary
         Atanh,              // Unary
+        AttentionKVCache,   // Fusion
         AveragePool,        // Pool
         BatchNormalization, //
         Bernoulli,          //

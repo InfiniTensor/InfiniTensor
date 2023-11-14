@@ -111,6 +111,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, Expand)
         .VALUE(OpType, Erf)
         .VALUE(OpType, Where)
+        .VALUE(OpType, DepthToSpace)
         .export_values();
 
 #undef VALUE
@@ -286,6 +287,13 @@ static int cast_to_of(Operator op) {
     return castOutputDtype.getIndex();
 }
 
+static std::tuple<int, std::string> depth_to_space_attrs_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::DepthToSpace);
+    auto depth_to_space = dynamic_cast<const DepthToSpaceObj *>(op.get());
+    return std::make_tuple(depth_to_space->getBlockSize(),
+                           depth_to_space->getModeString());
+}
+
 void export_functions(py::module &m) {
 #define FUNCTION(NAME) def(#NAME, &NAME)
     m.def("cpu_runtime", &NativeCpuRuntimeObj::getInstance)
@@ -321,7 +329,8 @@ void export_functions(py::module &m) {
         .FUNCTION(split_axis_of)
         .FUNCTION(gather_axis_of)
         .FUNCTION(flatten_axis_of)
-        .FUNCTION(cast_to_of);
+        .FUNCTION(cast_to_of)
+        .FUNCTION(depth_to_space_attrs_of);
 #undef FUNCTION
 }
 
@@ -477,8 +486,10 @@ void init_graph_builder(py::module &m) {
         .def("pRelu", &Handler::pRelu, policy::move)
         .def("clip", &Handler::clip, policy::move)
         .def("transpose", &Handler::transpose, policy::move)
+        .def("depthToSpace", &Handler::depthToSpace, policy::move)
         .def("reshape", &Handler::reshape, policy::move)
         .def("concat", &Handler::concat, policy::move)
+        .def("attentionKVCache", &Handler::attentionKVCache, policy::move)
         .def("split", &Handler::split, policy::move)
         .def("gather", &Handler::gather, policy::move)
         .def("gatherElements", &Handler::gatherElements, policy::move)
