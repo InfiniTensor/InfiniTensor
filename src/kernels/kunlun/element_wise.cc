@@ -396,12 +396,6 @@ class AndXdnn : public KUNLUNKernelWithoutConfig {
         if (bDim.size() == 0) {
             bDim.push_back(1);
         }
-	if(aDim.size() == 0 ){
-		aDim.push_back(1);
-	}
-	if(bDim.size() == 0 ){
-		bDim.push_back(1);
-	}
         auto ret = baidu::xpu::api::logical_and<bool>(
             context->KUNLUNHandle(), (bool *)aData, (bool *)bData,
             (bool *)wsData, len);
@@ -432,12 +426,6 @@ class OrXdnn : public KUNLUNKernelWithoutConfig {
         if (bDim.size() == 0) {
             bDim.push_back(1);
         }
-	if(aDim.size() == 0 ){
-		aDim.push_back(1);
-	}
-	if(bDim.size() == 0 ){
-		bDim.push_back(1);
-	}
         auto ret = baidu::xpu::api::logical_or<bool>(
             context->KUNLUNHandle(), (bool *)aData, (bool *)bData,
             (bool *)wsData, len);
@@ -468,12 +456,6 @@ class XorXdnn : public KUNLUNKernelWithoutConfig {
         if (bDim.size() == 0) {
             bDim.push_back(1);
         }
-	if(aDim.size() == 0 ){
-		aDim.push_back(1);
-	}
-	if(bDim.size() == 0 ){
-		bDim.push_back(1);
-	}
         auto ret = baidu::xpu::api::logical_xor<bool>(
             context->KUNLUNHandle(), (bool *)aData, (bool *)bData,
             (bool *)wsData, len);
