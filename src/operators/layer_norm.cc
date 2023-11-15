@@ -1,12 +1,18 @@
 #include "operators/layer_norm.h"
+#include "utils/operator_utils.h"
 
 namespace infini {
 LayerNormObj::LayerNormObj(GraphObj *graph, Tensor input, Tensor scale,
-                           Tensor bias, Tensor output, float eps, int axis,
+                           Tensor bias, Tensor output, float eps, int axis_,
                            int stash_type)
     : OperatorObj(OpType::LayerNormalization, {input, scale, bias}, {output}),
-      eps(eps), axis(axis), stash_type(stash_type) {
-
+      eps(eps), stash_type(stash_type) {
+    const auto size = input->getRank();
+    axis = get_real_axis(axis_, size);
+    IT_ASSERT(
+        is_unidirectional_broadcasting(input->getDims(), scale->getDims()));
+    IT_ASSERT(
+        is_unidirectional_broadcasting(input->getDims(), bias->getDims()));
     IT_ASSERT(checkValid(graph));
 }
 
@@ -16,9 +22,11 @@ LayerNormObj::inferShape(const TensorVec &inputs) const {
 }
 
 vector<DataType> LayerNormObj::inferDataType(const TensorVec &inputs) const {
-    IT_ASSERT(inputs.size() == 3);
+    IT_ASSERT(inputs.size() == 2 || inputs.size() == 3);
     IT_ASSERT(inputs[1]->getDType() == DataType::Float32);
-    IT_ASSERT(inputs[2]->getDType() == DataType::Float32);
+    if (inputs.size() == 3) {
+        IT_ASSERT(inputs[2]->getDType() == DataType::Float32);
+    }
     return {inputs[0]->getDType()};
 }
 

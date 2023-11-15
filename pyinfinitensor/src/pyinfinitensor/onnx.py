@@ -239,7 +239,8 @@ class OnnxStub:
                         training != 0,
                     )
                 elif node.op_type == "LayerNormalization":
-                    (input, scale, bias) = (tensors[node.input[i]] for i in [0, 1, 2])
+                    (input, scale) = (tensors[node.input[i]] for i in [0, 1])
+                    bias = None if len(node.input) < 3 else tensors[node.input[2]]
                     output = tensors.get(node.output[0])
                     attributes = _parse_attribute(
                         node, {"axis": -1, "epsilon": 1e-05, "stash_type": 1}
