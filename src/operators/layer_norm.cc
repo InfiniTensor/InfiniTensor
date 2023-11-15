@@ -6,7 +6,6 @@ LayerNormObj::LayerNormObj(GraphObj *graph, Tensor input, Tensor scale,
                            int stash_type)
     : OperatorObj(OpType::LayerNormalization, {input, scale, bias}, {output}),
       eps(eps), axis(axis), stash_type(stash_type) {
-    // 是否需要根据 stash_type 特判？
 
     IT_ASSERT(checkValid(graph));
 }
@@ -17,7 +16,6 @@ LayerNormObj::inferShape(const TensorVec &inputs) const {
 }
 
 vector<DataType> LayerNormObj::inferDataType(const TensorVec &inputs) const {
-    // 应该是什么 datatype 呢？
     IT_ASSERT(inputs.size() == 3);
     IT_ASSERT(inputs[1]->getDType() == DataType::Float32);
     IT_ASSERT(inputs[2]->getDType() == DataType::Float32);
