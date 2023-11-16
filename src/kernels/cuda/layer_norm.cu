@@ -40,8 +40,28 @@ __launch_bounds__(BLOCK_DIM) __global__
         sigma2 = sigma2Block / dimsize;
     }
     __syncthreads();
-    if (scaleSize == dimsize) {
-        if (biasSize == dimsize) {
+    if (bias == NULL) {
+        if (scaleSize == dimsize) {
+            for (int ph = 0; threadIdx.x + ph * BLOCK_DIM < dimsize; ph++) {
+
+                output[tid + (threadIdx.x + ph * BLOCK_DIM) * stride] =
+                    scale[threadIdx.x + ph * BLOCK_DIM] *
+                    (input[tid + (threadIdx.x + ph * BLOCK_DIM) * stride] -
+                     mu) /
+                    sqrt(sigma2 + eps);
+            }
+        } else {
+            for (int ph = 0; threadIdx.x + ph * BLOCK_DIM < dimsize; ph++) {
+
+                output[tid + (threadIdx.x + ph * BLOCK_DIM) * stride] =
+                    scale[0] *
+                    (input[tid + (threadIdx.x + ph * BLOCK_DIM) * stride] -
+                     mu) /
+                    sqrt(sigma2 + eps);
+            }
+        }
+    } else if (biasSize == dimsize) {
+        if (scaleSize == dimsize) {
             for (int ph = 0; threadIdx.x + ph * BLOCK_DIM < dimsize; ph++) {
 
                 output[tid + (threadIdx.x + ph * BLOCK_DIM) * stride] =
@@ -55,24 +75,23 @@ __launch_bounds__(BLOCK_DIM) __global__
             for (int ph = 0; threadIdx.x + ph * BLOCK_DIM < dimsize; ph++) {
 
                 output[tid + (threadIdx.x + ph * BLOCK_DIM) * stride] =
-                    scale[threadIdx.x + ph * BLOCK_DIM] *
-                        (input[tid + (threadIdx.x + ph * BLOCK_DIM) * stride] -
-                         mu) /
-                        sqrt(sigma2 + eps) +
-                    bias[0];
-            }
-        }
-
-    } else {
-        if (biasSize == dimsize) {
-            for (int ph = 0; threadIdx.x + ph * BLOCK_DIM < dimsize; ph++) {
-
-                output[tid + (threadIdx.x + ph * BLOCK_DIM) * stride] =
                     scale[0] *
                         (input[tid + (threadIdx.x + ph * BLOCK_DIM) * stride] -
                          mu) /
                         sqrt(sigma2 + eps) +
                     bias[threadIdx.x + ph * BLOCK_DIM];
+            }
+        }
+    } else {
+        if (scaleSize == dimsize) {
+            for (int ph = 0; threadIdx.x + ph * BLOCK_DIM < dimsize; ph++) {
+
+                output[tid + (threadIdx.x + ph * BLOCK_DIM) * stride] =
+                    scale[threadIdx.x + ph * BLOCK_DIM] *
+                        (input[tid + (threadIdx.x + ph * BLOCK_DIM) * stride] -
+                         mu) /
+                        sqrt(sigma2 + eps) +
+                    bias[0];
             }
         } else {
             for (int ph = 0; threadIdx.x + ph * BLOCK_DIM < dimsize; ph++) {
@@ -112,8 +131,8 @@ __global__ void warpLaynormKernel(const float *input, const float *scale,
     int tid = otherIdx % stride + (otherIdx - otherIdx % stride) * dimsize;
     if (otherIdx < otherSize) {
 
-        __shared__ float mu_total[BLOCK_DIM_y];
-        __shared__ float sigma2_total[BLOCK_DIM_y];
+        __shared__ float muTotal[BLOCK_DIM_y];
+        __shared__ float sigma2Total[BLOCK_DIM_y];
 
         float muPartial = 0.0f;
 
@@ -124,7 +143,7 @@ __global__ void warpLaynormKernel(const float *input, const float *scale,
         muPartial = WarpAllReduce<SumOp, float, BLOCK_DIM_x>(muPartial);
 
         if (threadIdx.x == 0)
-            mu_total[threadIdx.y] = muPartial / dimsize;
+            muTotal[threadIdx.y] = muPartial / dimsize;
 
         //--------------------------------------------
         float sigma2Partial = 0.0f;
@@ -132,55 +151,52 @@ __global__ void warpLaynormKernel(const float *input, const float *scale,
         for (int ph = 0; threadIdx.x + ph * BLOCK_DIM_x < dimsize; ph++) {
             sigma2Partial +=
                 (input[tid + (threadIdx.x + ph * BLOCK_DIM_x) * stride] -
-                 mu_total[threadIdx.y]) *
+                 muTotal[threadIdx.y]) *
                 (input[tid + (threadIdx.x + ph * BLOCK_DIM_x) * stride] -
-                 mu_total[threadIdx.y]);
+                 muTotal[threadIdx.y]);
         }
 
         sigma2Partial = WarpAllReduce<SumOp, float, BLOCK_DIM_x>(sigma2Partial);
 
         if (threadIdx.x == 0)
-            sigma2_total[threadIdx.y] = sigma2Partial / dimsize;
+            sigma2Total[threadIdx.y] = sigma2Partial / dimsize;
 
         //--------------------------------------------
-        if (scaleSize == dimsize) {
-            if (biasSize == dimsize) {
+        if (bias == NULL) {
+            if (scaleSize == dimsize) {
                 for (int ph = 0; threadIdx.x + ph * BLOCK_DIM_x < dimsize;
                      ph++) {
 
                     output[tid + (threadIdx.x + ph * BLOCK_DIM_x) * stride] =
                         scale[threadIdx.x + ph * BLOCK_DIM_x] *
-                            (input[tid +
-                                   (threadIdx.x + ph * BLOCK_DIM_x) * stride] -
-                             mu_total[threadIdx.y]) /
-                            sqrt(sigma2_total[threadIdx.y] + eps) +
-                        bias[threadIdx.x + ph * BLOCK_DIM_x];
+                        (input[tid +
+                               (threadIdx.x + ph * BLOCK_DIM_x) * stride] -
+                         muTotal[threadIdx.y]) /
+                        sqrt(sigma2Total[threadIdx.y] + eps);
                 }
             } else {
                 for (int ph = 0; threadIdx.x + ph * BLOCK_DIM_x < dimsize;
                      ph++) {
 
                     output[tid + (threadIdx.x + ph * BLOCK_DIM_x) * stride] =
-                        scale[threadIdx.x + ph * BLOCK_DIM_x] *
-                            (input[tid +
-                                   (threadIdx.x + ph * BLOCK_DIM_x) * stride] -
-                             mu_total[threadIdx.y]) /
-                            sqrt(sigma2_total[threadIdx.y] + eps) +
-                        bias[0];
+                        scale[0] *
+                        (input[tid +
+                               (threadIdx.x + ph * BLOCK_DIM_x) * stride] -
+                         muTotal[threadIdx.y]) /
+                        sqrt(sigma2Total[threadIdx.y] + eps);
                 }
             }
-
-        } else {
-            if (biasSize == dimsize) {
+        } else if (biasSize == dimsize) {
+            if (scaleSize == dimsize) {
                 for (int ph = 0; threadIdx.x + ph * BLOCK_DIM_x < dimsize;
                      ph++) {
 
                     output[tid + (threadIdx.x + ph * BLOCK_DIM_x) * stride] =
-                        scale[0] *
+                        scale[threadIdx.x + ph * BLOCK_DIM_x] *
                             (input[tid +
                                    (threadIdx.x + ph * BLOCK_DIM_x) * stride] -
-                             mu_total[threadIdx.y]) /
-                            sqrt(sigma2_total[threadIdx.y] + eps) +
+                             muTotal[threadIdx.y]) /
+                            sqrt(sigma2Total[threadIdx.y] + eps) +
                         bias[threadIdx.x + ph * BLOCK_DIM_x];
                 }
             } else {
@@ -191,8 +207,34 @@ __global__ void warpLaynormKernel(const float *input, const float *scale,
                         scale[0] *
                             (input[tid +
                                    (threadIdx.x + ph * BLOCK_DIM_x) * stride] -
-                             mu_total[threadIdx.y]) /
-                            sqrt(sigma2_total[threadIdx.y] + eps) +
+                             muTotal[threadIdx.y]) /
+                            sqrt(sigma2Total[threadIdx.y] + eps) +
+                        bias[threadIdx.x + ph * BLOCK_DIM_x];
+                }
+            }
+        } else {
+            if (scaleSize == dimsize) {
+                for (int ph = 0; threadIdx.x + ph * BLOCK_DIM_x < dimsize;
+                     ph++) {
+
+                    output[tid + (threadIdx.x + ph * BLOCK_DIM_x) * stride] =
+                        scale[threadIdx.x + ph * BLOCK_DIM_x] *
+                            (input[tid +
+                                   (threadIdx.x + ph * BLOCK_DIM_x) * stride] -
+                             muTotal[threadIdx.y]) /
+                            sqrt(sigma2Total[threadIdx.y] + eps) +
+                        bias[0];
+                }
+            } else {
+                for (int ph = 0; threadIdx.x + ph * BLOCK_DIM_x < dimsize;
+                     ph++) {
+
+                    output[tid + (threadIdx.x + ph * BLOCK_DIM_x) * stride] =
+                        scale[0] *
+                            (input[tid +
+                                   (threadIdx.x + ph * BLOCK_DIM_x) * stride] -
+                             muTotal[threadIdx.y]) /
+                            sqrt(sigma2Total[threadIdx.y] + eps) +
                         bias[0];
                 }
             }
