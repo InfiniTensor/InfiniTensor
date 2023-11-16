@@ -9,6 +9,7 @@ class BangRuntimeObj : public RuntimeObj {
     cnnlHandle_t cnnl;
     BangPtr workspace;
     size_t workspaceSize;
+    size_t cursor;
 
   public:
     BangRuntimeObj() : RuntimeObj(Device::BANG) {
@@ -24,6 +25,7 @@ class BangRuntimeObj : public RuntimeObj {
         // 10GB for Longformer
         // size_t longformerNum = 3lu * (1 << 30);
         workspaceSize = 7ll << 30; // 7 GB
+        cursor = 0;
         workspace = alloc(workspaceSize);
     }
     virtual ~BangRuntimeObj() {
@@ -45,9 +47,12 @@ class BangRuntimeObj : public RuntimeObj {
     void dealloc(void *ptr) override { checkBangError(cnrtFree(ptr)); }
     cnnlHandle_t cnnlHandle() const { return cnnl; }
     BangPtr getWorkspace(size_t size) const {
-        IT_ASSERT(size <= workspaceSize);
-        return workspace;
+        IT_ASSERT((cursor + size) <= workspaceSize);
+        cursor += size;
+        return workspace + cursor - size;
     }
+
+    void resetWorkspace() const { cursor = 0; }
 
     void copyBlobFromCPU(void *dst, const void *src,
                          size_t bytes) const override {
