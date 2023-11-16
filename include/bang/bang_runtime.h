@@ -9,7 +9,7 @@ class BangRuntimeObj : public RuntimeObj {
     cnnlHandle_t cnnl;
     BangPtr workspace;
     size_t workspaceSize;
-    size_t cursor;
+    mutable size_t cursor;
 
   public:
     BangRuntimeObj() : RuntimeObj(Device::BANG) {
@@ -49,7 +49,7 @@ class BangRuntimeObj : public RuntimeObj {
     BangPtr getWorkspace(size_t size) const {
         IT_ASSERT((cursor + size) <= workspaceSize);
         cursor += size;
-        return workspace + cursor - size;
+        return (void *)((char *)workspace + cursor - size);
     }
 
     void resetWorkspace() const { cursor = 0; }
