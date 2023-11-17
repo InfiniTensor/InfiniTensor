@@ -3,16 +3,21 @@
 
 namespace infini {
 LayerNormObj::LayerNormObj(GraphObj *graph, Tensor input, Tensor scale,
-                           Tensor bias, Tensor output, float eps, int axis_,
-                           int stash_type)
-    : OperatorObj(OpType::LayerNormalization, {input, scale, bias}, {output}),
+                           Tensor output, [[maybe_unused]] Tensor bias,
+                           float eps, int axis_, int stash_type)
+    : OperatorObj(OpType::LayerNormalization,
+                  bias ? TensorVec{input, scale, bias}
+                       : TensorVec{input, scale},
+                  {output}),
       eps(eps), stash_type(stash_type) {
     const auto size = input->getRank();
     axis = get_real_axis(axis_, size);
     IT_ASSERT(
         is_unidirectional_broadcasting(input->getDims(), scale->getDims()));
-    IT_ASSERT(
-        is_unidirectional_broadcasting(input->getDims(), bias->getDims()));
+    if (bias) {
+        IT_ASSERT(
+            is_unidirectional_broadcasting(input->getDims(), bias->getDims()));
+    }
     IT_ASSERT(checkValid(graph));
 }
 
@@ -40,7 +45,7 @@ std::string LayerNormObj::toString() const {
     os << "stash_type=" << stash_type << ",";
     os << "input=" << inputs[0]->getGuid() << ",";
     os << "scale=" << inputs[1]->getGuid() << ",";
-    os << "bias=" << inputs[2]->getGuid() << ",";
+    // os << "bias=" << inputs[2]->getGuid() << ",";
     os << "output=";
     for (auto output : outputs)
         os << output->getGuid() << ",";

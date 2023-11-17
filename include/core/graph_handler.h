@@ -30,9 +30,8 @@ class GraphHandlerObj {
     Tensor batchNormalization(Tensor input, Tensor output, Tensor mean,
                               Tensor var, Tensor scale, Tensor bias,
                               float momentum, float eps, bool training);
-    Tensor layerNormalization(Tensor input, Tensor scale, Tensor bias,
-                              Tensor output, float eps, int axis,
-                              int stash_type);
+    Tensor layerNormalization(Tensor input, Tensor scale, Tensor output,
+                              Tensor bias, float eps, int axis, int stash_type);
 
     Tensor maxPool(Tensor input, Tensor output, int kh, int kw, int dh, int dw,
                    int ph, int pw, int sh, int sw, int ceilMode);

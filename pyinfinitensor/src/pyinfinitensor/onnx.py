@@ -246,13 +246,12 @@ class OnnxStub:
                         node, {"axis": -1, "epsilon": 1e-05, "stash_type": 1}
                     )
                     (axis, eps, stash_type) = (
-                        attributes[name]
-                        for name in ["axis", "epsilon", "stash_type"]
+                        attributes[name] for name in ["axis", "epsilon", "stash_type"]
                     )
                     tensors[node.output[0]] = self.handler.layerNormalization(
                         input,
-                        output,
                         scale,
+                        output,
                         bias,
                         eps,
                         axis,

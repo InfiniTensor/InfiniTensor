@@ -12,7 +12,7 @@ class LayerNormCuda : public CudaKernelWithoutConfig {
 
         void *const inputData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const scaleData = (op->getInputs(1)->getRawDataPtr<void *>());
-        void *const biasData = (op->getInputs(2)->getRawDataPtr<void *>());
+
         void *const outputData = (op->getOutput()->getRawDataPtr<void *>());
         const auto &opOutputShape = op->getOutput()->getDims();
 
@@ -24,10 +24,18 @@ class LayerNormCuda : public CudaKernelWithoutConfig {
         int dimsize = dims[op->getAxis()];
         int size = op->getOutput(0)->size();
         int scaleSize = op->getInputs(1)->size();
-        int biasSize = op->getInputs(2)->size();
-        LaynormKernel((float *)inputData, (float *)scaleData, (float *)biasData,
-                      eps, size, scaleSize, biasSize, dimsize, stride,
-                      (float *)outputData);
+        if (op->numInputs() == 3) {
+            void *const biasData = (op->getInputs(2)->getRawDataPtr<void *>());
+            int biasSize = op->getInputs(2)->size();
+            // printf("kernel bias:true:%d\n", 1);
+            hasLaynormKernel((float *)inputData, (float *)scaleData, eps, size,
+                             scaleSize, dimsize, stride, (float *)outputData,
+                             (float *)biasData, biasSize);
+        } else {
+            // printf("kernel bias:false:%d\n", 0);
+            LaynormKernel((float *)inputData, (float *)scaleData, eps, size,
+                          scaleSize, dimsize, stride, (float *)outputData);
+        }
     }
 };
 
