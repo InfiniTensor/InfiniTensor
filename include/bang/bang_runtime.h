@@ -50,7 +50,7 @@ class BangRuntimeObj : public RuntimeObj {
         IT_ASSERT((cursor + size) <= workspaceSize);
         cursor += size;
         void *temp = new int64_t(0);
-        *(int64_t *)temp = *(int64_t *)workspace + (cursor - size);
+        *(uint64_t *)temp = *(uint64_t *)workspace + (cursor - size);
         return temp;
     }
 
