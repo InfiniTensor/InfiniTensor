@@ -49,7 +49,9 @@ class BangRuntimeObj : public RuntimeObj {
     BangPtr getWorkspace(size_t size) const {
         IT_ASSERT((cursor + size) <= workspaceSize);
         cursor += size;
-        return (void *)((char *)workspace + cursor - size);
+        void *temp = new int64_t(0);
+        *(int64_t *)temp = *(int64_t *)workspace + (cursor - size);
+        return temp;
     }
 
     void resetWorkspace() const { cursor = 0; }

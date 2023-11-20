@@ -130,10 +130,10 @@ class ConvCnnl : public BangKernelWithoutConfig {
 
         cnnlGetTransposeWorkspaceSize(context->cnnlHandle(), cInDesc, opOutDesc,
                                       &wsSize);
-        wsData = context->getWorkspace(wsSize);
+        BangPtr wsData2 = context->getWorkspace(wsSize);
 
         stat = cnnlTranspose_v2(context->cnnlHandle(), opOutDesc, cInDesc,
-                                cDataIn, cDesc, cData, wsData, wsSize);
+                                cDataIn, cDesc, cData, wsData2, wsSize);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
