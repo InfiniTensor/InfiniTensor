@@ -73,7 +73,7 @@ void split_concat_kernel(const ElementTensorMetadata<half> &eleMeta,
     // gridsize = max_n_elements / blockSize
     int max_n_elements =
         *std::max_element(eleMeta.nElements, eleMeta.nElements + batchSize);
-    int gridDimX = (max_n_elements - 1) / (32 * 16) + 1;
+    int gridDimX = (max_n_elements + 32 * 16 - 1) / (32 * 16);
     // each y is a split among the batch
     dim3 gridSize(gridDimX, batchSize);
 

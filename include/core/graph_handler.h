@@ -117,7 +117,7 @@ class GraphHandlerObj {
     void change_shape(const vector<int> &shape, int tensorId);
     //------ runtime
 
-    inline void data_malloc(bool useNaiveAllocator = false,
+    inline void data_malloc(bool useNaiveAllocator = true,
                             size_t memPoolSize = 0) {
         g->dataMalloc(useNaiveAllocator, memPoolSize);
     }
