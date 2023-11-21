@@ -48,7 +48,7 @@ class OnnxStub:
             pass
         except RuntimeError:
             pass
-        
+
         self.inputs: Dict[str, backend.Tensor] = {}
         self.outputs: Dict[str, backend.Tensor] = {}
         self.initializer: Dict[int, TensorProto] = {}
@@ -733,6 +733,27 @@ class OnnxStub:
                         tensors.get(node.output[0]),
                         next(
                             (attr.i for attr in node.attribute if attr.name == "root"),
+                            0,
+                        ),
+                    )
+                elif node.op_type == "SendRecv":
+                    tensors[node.output[0]] = self.handler.sendrecv(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        next(
+                            (
+                                attr.i
+                                for attr in node.attribute
+                                if attr.name == "source"
+                            ),
+                            0,
+                        ),
+                        next(
+                            (
+                                attr.i
+                                for attr in node.attribute
+                                if attr.name == "destination"
+                            ),
                             0,
                         ),
                     )

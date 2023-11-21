@@ -14,6 +14,7 @@
 #include "operators/pooling.h"
 #include "operators/reduce_mean.h"
 #include "operators/reshape.h"
+#include "operators/sendrecv.h"
 #include "operators/slice.h"
 #include "operators/softmax.h"
 #include "operators/split.h"
@@ -406,6 +407,19 @@ Tensor GraphHandlerObj::broadcast(Tensor input, Tensor output, int root) {
         return output;
     } else {
         return g->addOp<BroadcastObj>(std::move(input), output, root)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::sendrecv(Tensor input, Tensor output, int source,
+                                 int destination) {
+    if (output) {
+        g->addOpWithOutputs<SendRecvObj>(std::move(input), output, source,
+                                         destination);
+        return output;
+    } else {
+        return g
+            ->addOp<SendRecvObj>(std::move(input), output, source, destination)
             ->getOutput();
     }
 }

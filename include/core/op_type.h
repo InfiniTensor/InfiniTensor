@@ -232,6 +232,7 @@ struct OpType {
         AllReduceAvg,
         AllGather,
         Broadcast,
+        SendRecv,
     } type;
 
     constexpr OpType(decltype(type) t) : type(t) {}
