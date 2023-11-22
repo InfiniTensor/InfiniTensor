@@ -3,10 +3,10 @@
 
 template <int BLOCK_DIM>
 __launch_bounds__(BLOCK_DIM) __global__
-    void hasBlockLaynormKernel(const float *input, const float *scale,
-                               const int dimsize, const int stride,
-                               float *output, const float eps, int scaleSize,
-                               const float *bias, int biasSize) {
+    void blockLaynormKernel(const float *input, const float *scale,
+                            const int dimsize, const int stride, float *output,
+                            const float eps, int scaleSize, const float *bias,
+                            int biasSize) {
     // len(scale) = len(bias) = dimsize
     int tmp = blockIdx.x % stride;
     int tid = (blockIdx.x - tmp) * dimsize + tmp;
@@ -159,11 +159,11 @@ __inline__ __device__ T WarpAllReduce(T val) {
     return val;
 }
 template <int BLOCK_DIM_x, int BLOCK_DIM_y>
-__global__ void hasWarpLaynormKernel(const float *input, const float *scale,
-                                     const int dimsize, const int stride,
-                                     float *output, const float eps,
-                                     int scaleSize, int otherSize,
-                                     const float *bias, int biasSize) {
+__global__ void warpLaynormKernel(const float *input, const float *scale,
+                                  const int dimsize, const int stride,
+                                  float *output, const float eps, int scaleSize,
+                                  int otherSize, const float *bias,
+                                  int biasSize) {
     int otherIdx = blockIdx.x * blockDim.y + threadIdx.y;
 
     int tid = otherIdx % stride + (otherIdx - otherIdx % stride) * dimsize;
@@ -318,16 +318,14 @@ __global__ void warpLaynormKernel(const float *input, const float *scale,
     }
 }
 namespace infini {
-void hasLaynormKernel(const float *input, const float *scale, const float eps,
-                      int size, int scaleSize, const int dimsize,
-                      const int stride, float *output, const float *bias,
-                      int biasSize) {
+void LaynormKernel(const float *input, const float *scale, const float eps,
+                   int size, int scaleSize, const int dimsize, const int stride,
+                   float *output, const float *bias, int biasSize) {
     int num_block = size / dimsize;
-    // printf("kernel bias:%.2f--------\n", bias[0]);
     if (dimsize > 1024) {
         int BLOCK_DIM = 1024;
 
-        hasBlockLaynormKernel<1024>
+        blockLaynormKernel<1024>
             <<<num_block, BLOCK_DIM>>>(input, scale, dimsize, stride, output,
                                        eps, scaleSize, bias, biasSize);
     } else if (dimsize > 31) {
@@ -337,7 +335,7 @@ void hasLaynormKernel(const float *input, const float *scale, const float eps,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        hasWarpLaynormKernel<32, 32><<<grid_dim, block_dim>>>(
+        warpLaynormKernel<32, 32><<<grid_dim, block_dim>>>(
             input, scale, dimsize, stride, output, eps, scaleSize, num_block,
             bias, biasSize);
     } else if (dimsize > 15) {
@@ -347,7 +345,7 @@ void hasLaynormKernel(const float *input, const float *scale, const float eps,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        hasWarpLaynormKernel<16, 64><<<grid_dim, block_dim>>>(
+        warpLaynormKernel<16, 64><<<grid_dim, block_dim>>>(
             input, scale, dimsize, stride, output, eps, scaleSize, num_block,
             bias, biasSize);
     } else if (dimsize > 7) {
@@ -357,7 +355,7 @@ void hasLaynormKernel(const float *input, const float *scale, const float eps,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        hasWarpLaynormKernel<8, 128><<<grid_dim, block_dim>>>(
+        warpLaynormKernel<8, 128><<<grid_dim, block_dim>>>(
             input, scale, dimsize, stride, output, eps, scaleSize, num_block,
             bias, biasSize);
     } else {
@@ -367,16 +365,16 @@ void hasLaynormKernel(const float *input, const float *scale, const float eps,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        hasWarpLaynormKernel<4, 256><<<grid_dim, block_dim>>>(
+        warpLaynormKernel<4, 256><<<grid_dim, block_dim>>>(
             input, scale, dimsize, stride, output, eps, scaleSize, num_block,
             bias, biasSize);
     }
 }
+
 void LaynormKernel(const float *input, const float *scale, const float eps,
                    int size, int scaleSize, const int dimsize, const int stride,
                    float *output) {
     int num_block = size / dimsize;
-
     if (dimsize > 1024) {
         int BLOCK_DIM = 1024;
 

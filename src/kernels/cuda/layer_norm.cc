@@ -28,9 +28,9 @@ class LayerNormCuda : public CudaKernelWithoutConfig {
             void *const biasData = (op->getInputs(2)->getRawDataPtr<void *>());
             int biasSize = op->getInputs(2)->size();
             // printf("kernel bias:true:%d\n", 1);
-            hasLaynormKernel((float *)inputData, (float *)scaleData, eps, size,
-                             scaleSize, dimsize, stride, (float *)outputData,
-                             (float *)biasData, biasSize);
+            LaynormKernel((float *)inputData, (float *)scaleData, eps, size,
+                          scaleSize, dimsize, stride, (float *)outputData,
+                          (float *)biasData, biasSize);
         } else {
             // printf("kernel bias:false:%d\n", 0);
             LaynormKernel((float *)inputData, (float *)scaleData, eps, size,
