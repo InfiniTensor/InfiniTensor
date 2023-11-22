@@ -557,13 +557,10 @@ static DataType dtype_repr_convert(int dtype) {
 }
 
 void GraphHandlerObj::change_shape(const vector<int> &shape, int tensorId) {
-    auto tensor = g->getTensorWithUid(tensorId);
+    auto tensor = g->getTensor(tensorId);
     IT_ASSERT(tensor != nullptr);
     IT_ASSERT(shape.size() != 0);
     tensor->setShape(shape);
-    size_t size = std::accumulate(shape.begin(), shape.end(), 1,
-                                  [](auto acc, auto x) { return acc * x; });
-    tensor->setSize(size);
 }
 
 } // namespace infini

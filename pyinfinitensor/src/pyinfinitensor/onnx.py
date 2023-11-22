@@ -48,7 +48,7 @@ class OnnxStub:
             pass
         except RuntimeError:
             pass
-        
+
         self.inputs: Dict[str, backend.Tensor] = {}
         self.outputs: Dict[str, backend.Tensor] = {}
         self.initializer: Dict[int, TensorProto] = {}
@@ -1116,13 +1116,6 @@ class OnnxStub:
             self.handler.change_shape(newInput, oldTensor.fuid())
         self.handler.shape_infer()
         self.handler.data_malloc()
-
-    def getShape(self, name: str) -> List[int]:
-        if name in self.inputs:
-            ans = self.handler.getDims(self.inputs[name])
-        else:
-            ans = self.handler.getDims(self.outputs[name])
-        return ans
 
     def getShape(self, name: str) -> List[int]:
         if name in self.inputs:

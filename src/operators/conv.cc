@@ -35,16 +35,6 @@ string ConvBaseObj::toString() const {
     return os.str();
 }
 
-void ConvBaseObj::setNCHWFRS(Tensor input, Tensor weight) {
-    n = input->getDims()[0];
-    c = input->getDims()[1];
-    h = input->getDims()[2];
-    w = input->getDims()[3];
-    f = weight->getDims()[0];
-    r = weight->getDims()[2];
-    s = weight->getDims()[3];
-}
-
 vector<int> ConvBaseObj::getWorkloadVector() const {
     return {type.underlying(), n, c, h, w, f, r, s, ph, pw, sh, sw, dh, dw};
 }
@@ -94,7 +84,13 @@ ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
 
 optional<vector<Shape>> ConvObj::inferShape(const TensorVec &inputs) {
     const auto &input = inputs[0], &weight = inputs[1];
-    setNCHWFRS(input, weight);
+    n = input->getDims()[0];
+    c = input->getDims()[1];
+    h = input->getDims()[2];
+    w = input->getDims()[3];
+    f = weight->getDims()[0];
+    r = weight->getDims()[2];
+    s = weight->getDims()[3];
     int on = n, oc = f;
     int oh = 0, ow = 0;
     // For NCHW+FCRS layout, C of input is divisable by C of weight
@@ -226,7 +222,13 @@ ConvBackwardFilterObj::ConvBackwardFilterObj(GraphObj *graph, Tensor inputX,
 optional<vector<Shape>>
 ConvBackwardFilterObj::inferShape(const TensorVec &inputs) {
     const auto &inputX = inputs[0], &diffY = inputs[1];
-    setNCHWFRS(inputX, diffY);
+    n = inputX->getDims()[0];
+    c = inputX->getDims()[1];
+    h = inputX->getDims()[2];
+    w = inputX->getDims()[3];
+    f = diffY->getDims()[0];
+    r = diffY->getDims()[2];
+    s = diffY->getDims()[3];
     int on = n, oc = f;
     int oh = 0, ow = 0;
     // For NCHW+FCRS layout, C of input is divisable by C of weight

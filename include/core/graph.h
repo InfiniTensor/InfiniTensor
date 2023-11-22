@@ -53,7 +53,7 @@ class GraphObj : public Object {
     const TensorVec &getTensors() const { return tensors; }
     const OpVec &getOperators() const { return ops; }
     OpVec getComputeOps() const;
-    Tensor getTensorWithUid(int fuid) const;
+    Tensor getTensor(int) const;
 
     /**
      * Sort the nodes in topological order.

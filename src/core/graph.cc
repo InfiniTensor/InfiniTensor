@@ -125,7 +125,7 @@ void GraphObj::optimize() {
     }
 }
 
-Tensor GraphObj::getTensorWithUid(int fuid) const {
+Tensor GraphObj::getTensor(int fuid) const {
     for (auto tensor : tensors) {
         if (tensor->getFuid() == fuid) {
             return tensor;
@@ -146,12 +146,8 @@ void GraphObj::shape_infer() {
             auto oldShape = oldOutputs[i]->getDims();
             auto fuid = oldOutputs[i]->getFuid();
             if (newShape != oldShape) {
-                auto tensor = this->getTensorWithUid(fuid);
+                auto tensor = this->getTensor(fuid);
                 tensor->setShape(newShape);
-                size_t size =
-                    std::accumulate(newShape.begin(), newShape.end(), 1,
-                                    [](auto acc, auto x) { return acc * x; });
-                tensor->setSize(size);
             }
         }
     }

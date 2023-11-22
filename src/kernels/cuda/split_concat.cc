@@ -54,12 +54,6 @@ class CudaCompute {
                                 batchCounter, nDims, isSplit);
         }
     }
-    void do_compute1(const Operator &op, size_t index) const {
-        auto inData = op->getInputs(index)->getRawDataPtr<void *>();
-        auto outData = op->getOutputs()[0]->getRawDataPtr<void *>();
-        cudaMemcpyAsync(outData, inData, op->getInputs(index)->getBytes(),
-                        cudaMemcpyDeviceToDevice);
-    }
 };
 
 class ConcatCuda : private CudaCompute, public CudaKernelWithoutConfig {
@@ -69,7 +63,13 @@ class ConcatCuda : private CudaCompute, public CudaKernelWithoutConfig {
         if (inputs.size() == 2) {
             for (size_t i = 0; i < 2; i++) {
                 if (inputs[i]->size() == 0) {
-                    do_compute1(_op, 1 - i);
+                    auto inData =
+                        _op->getInputs(1 - i)->getRawDataPtr<void *>();
+                    auto outData =
+                        _op->getOutputs()[0]->getRawDataPtr<void *>();
+                    cudaMemcpyAsync(outData, inData,
+                                    _op->getInputs(1 - i)->getBytes(),
+                                    cudaMemcpyDeviceToDevice);
                     return;
                 }
             }

@@ -59,6 +59,13 @@ Shape TensorObj::getStride() const {
     return stride;
 }
 
+void TensorObj::setShape(Shape shape_) {
+    shape = shape_;
+    size_t size = std::accumulate(shape.begin(), shape.end(), 1,
+                                  [](auto acc, auto x) { return acc * x; });
+    _size = size;
+}
+
 void TensorObj::printData() const {
     IT_ASSERT(data != nullptr);
     if (!runtime->isCpu())

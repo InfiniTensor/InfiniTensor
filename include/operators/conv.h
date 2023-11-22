@@ -108,7 +108,6 @@ class ConvBaseObj : public OperatorObj {
     int getPw() const { return pw; }
     int getSh() const { return sh; }
     int getSw() const { return sw; }
-    void setNCHWFRS(Tensor input, Tensor weight);
     auto getNCHWFRS() const { return tuple(n, c, h, w, f, r, s); }
     auto getPadStrideDilation() const { return tuple(ph, pw, sh, sw, dh, dw); }
     int getChannelPerGroup() const {
