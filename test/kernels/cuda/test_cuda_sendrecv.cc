@@ -8,7 +8,7 @@
 #include <nccl.h>
 #include <thread>
 
-static int WORLD_SIZE = 2;
+static int WORLD_SIZE = 4;
 static int source = 0;
 static int destination = 1;
 
@@ -24,7 +24,8 @@ void sendrecv(const string taskName, int deviceID, vector<float> data,
     Graph g = make_ref<GraphObj>(cudaRuntime);
     auto input =
         g->addTensor(Shape{static_cast<int>(data.size())}, DataType::Float32);
-    auto op = g->addOp<SendRecvObj>(input, nullptr, source, destination);
+    auto op =
+        g->addOp<SendRecvObj>(input, nullptr, source, destination, deviceID);
     // Copy data from CPU to GPU
     g->dataMalloc();
     // Only rank 0 has the data
@@ -58,4 +59,3 @@ TEST(CUDA_SendRecv, run) {
 }
 } // namespace infini
 #endif
-

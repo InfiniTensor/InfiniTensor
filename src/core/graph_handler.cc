@@ -412,14 +412,15 @@ Tensor GraphHandlerObj::broadcast(Tensor input, Tensor output, int root) {
 }
 
 Tensor GraphHandlerObj::sendrecv(Tensor input, Tensor output, int source,
-                                 int destination) {
+                                 int destination, int rank) {
     if (output) {
         g->addOpWithOutputs<SendRecvObj>(std::move(input), output, source,
-                                         destination);
+                                         destination, rank);
         return output;
     } else {
         return g
-            ->addOp<SendRecvObj>(std::move(input), output, source, destination)
+            ->addOp<SendRecvObj>(std::move(input), output, source, destination,
+                                 rank)
             ->getOutput();
     }
 }

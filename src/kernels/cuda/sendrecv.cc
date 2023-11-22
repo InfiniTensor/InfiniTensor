@@ -22,8 +22,14 @@ class SendRecvNCCL : public CudaKernelWithoutConfig {
         // TODO: Using default stream 0 for now.
         int source = op->getSource();
         int destination = op->getDestination();
-        checkNcclError(ncclSend(input, count, ncclFloat, destination, comm, 0));
-        checkNcclError(ncclRecv(output, count, ncclFloat, source, comm, 0));
+        int rank = op->getRank();
+        if (rank == source) {
+            checkNcclError(
+                ncclSend(input, count, ncclFloat, destination, comm, 0));
+        }
+        if (rank == destination) {
+            checkNcclError(ncclRecv(output, count, ncclFloat, source, comm, 0));
+        }
     }
 };
 
@@ -32,4 +38,3 @@ REGISTER_KERNEL(Device::CUDA, OpType::SendRecv, DataType::Float32, SendRecvNCCL,
 } // namespace infini
 
 #endif
-

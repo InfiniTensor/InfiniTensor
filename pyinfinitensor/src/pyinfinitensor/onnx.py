@@ -756,6 +756,10 @@ class OnnxStub:
                             ),
                             0,
                         ),
+                        next(
+                            (attr.i for attr in node.attribute if attr.name == "rank"),
+                            0,
+                        ),
                     )
                 elif node.op_type == "Expand":
                     shape = _parse_data(data[node.input[1]])

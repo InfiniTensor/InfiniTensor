@@ -2,9 +2,9 @@
 
 namespace infini {
 SendRecvObj::SendRecvObj(GraphObj *graph, Tensor input, Tensor output,
-                         int source, int destination)
+                         int source, int destination, int rank)
     : OperatorObj(OpType::SendRecv, {input}, {output}), source(source),
-      destination(destination) {
+      destination(destination), rank(rank) {
     IT_ASSERT(checkValid(graph));
 }
 
@@ -34,11 +34,11 @@ vector<int> SendRecvObj::getWorkloadVector() const {
     ret.insert(ret.end(), shape.begin(), shape.end());
     ret.emplace_back(source);
     ret.emplace_back(destination);
+    ret.emplace_back(rank);
     return ret;
 }
 
 vector<int> SendRecvObj::getOpAttrVector() const {
-    return {type.underlying(), source, destination};
+    return {type.underlying(), source, destination, rank};
 }
 } // namespace infini
-
