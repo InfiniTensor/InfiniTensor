@@ -737,6 +737,7 @@ class OnnxStub:
                         ),
                     )
                 elif node.op_type == "SendRecv":
+                    dims = _search_shape(model, node.input[0])
                     tensors[node.output[0]] = self.handler.sendrecv(
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
@@ -756,6 +757,7 @@ class OnnxStub:
                             ),
                             0,
                         ),
+                        dims,
                     )
                 elif node.op_type == "Expand":
                     shape = _parse_data(data[node.input[1]])

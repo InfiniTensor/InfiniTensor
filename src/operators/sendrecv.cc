@@ -2,15 +2,21 @@
 
 namespace infini {
 SendRecvObj::SendRecvObj(GraphObj *graph, Tensor input, Tensor output,
-                         int source, int destination)
+                         int source, int destination, Shape dims)
     : OperatorObj(OpType::SendRecv, {input}, {output}), source(source),
-      destination(destination) {
+      destination(destination), dims(std::move(dims)) {
     IT_ASSERT(checkValid(graph));
 }
 
 optional<vector<Shape>> SendRecvObj::inferShape(const TensorVec &inputs) const {
 
-    return {{inputs[0]->getDims()}};
+    size_t size = 1;
+    for (size_t i = 0; i < dims.size(); ++i) {
+        size *= dims.at(i);
+    }
+    IT_ASSERT(size == inputs[0]->size());
+
+    return {{dims}};
 }
 
 vector<DataType> SendRecvObj::inferDataType(const TensorVec &inputs) const {
@@ -24,14 +30,16 @@ std::string SendRecvObj::toString() const {
     os << "(";
     os << vecToString(inputs[0]->getDims()) << ",";
     os << "input=" << inputs[0]->getGuid() << ",";
+    os << "dims=" << vecToString(dims) << ",";
     os << "output=" << outputs[0]->getGuid() << ")";
     return os.str();
 }
 
 vector<int> SendRecvObj::getWorkloadVector() const {
-    vector<int> ret{type.underlying()};
-    const Shape shape = inputs[0]->getDims();
-    ret.insert(ret.end(), shape.begin(), shape.end());
+    vector<int> ret = inputs[0]->getDims();
+    ret.insert(ret.end(), dims.begin(), dims.end());
+    ret.emplace(ret.begin(), type.underlying());
+
     ret.emplace_back(source);
     ret.emplace_back(destination);
 
@@ -39,6 +47,10 @@ vector<int> SendRecvObj::getWorkloadVector() const {
 }
 
 vector<int> SendRecvObj::getOpAttrVector() const {
-    return {type.underlying(), source, destination};
+    vector<int> ret = dims;
+    ret.emplace(ret.begin(), type.underlying());
+    ret.emplace_back(source);
+    ret.emplace_back(destination);
+    return ret;
 }
 } // namespace infini

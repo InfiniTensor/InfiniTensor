@@ -15,7 +15,7 @@ static int destination = 1;
 namespace infini {
 
 void sendrecv(const string taskName, int deviceID, vector<float> data,
-              vector<float> ans) {
+              vector<float> ans, const Shape &dataShape) {
     // Create Runtimes and initiate communication
     Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     Runtime cudaRuntime = make_ref<CudaRuntimeObj>(deviceID);
@@ -24,7 +24,8 @@ void sendrecv(const string taskName, int deviceID, vector<float> data,
     Graph g = make_ref<GraphObj>(cudaRuntime);
     auto input =
         g->addTensor(Shape{static_cast<int>(data.size())}, DataType::Float32);
-    auto op = g->addOp<SendRecvObj>(input, nullptr, source, destination);
+    auto op =
+        g->addOp<SendRecvObj>(input, nullptr, source, destination, dataShape);
     // Copy data from CPU to GPU
     g->dataMalloc();
     // Only rank 0 has the data
@@ -49,7 +50,8 @@ TEST(CUDA_SendRecv, run) {
 
     std::vector<std::thread> threads;
     for (int gpu = 0; gpu < WORLD_SIZE; ++gpu) {
-        threads.emplace_back(sendrecv, "test_sendrecv", gpu, data, ans);
+        threads.emplace_back(sendrecv, "test_sendrecv", gpu, data, ans,
+                             Shape{2, 2});
     }
 
     for (auto &thread : threads) {
