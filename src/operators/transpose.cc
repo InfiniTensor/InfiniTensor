@@ -16,8 +16,7 @@ TransposeObj::TransposeObj(GraphObj *graph, Tensor input, Tensor output,
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>>
-TransposeObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> TransposeObj::inferShape(const TensorVec &inputs) {
     const auto A = inputs[0];
     auto input_dim = A->getDims();
     auto output_dim = input_dim;
@@ -66,8 +65,7 @@ DepthToSpaceObj::DepthToSpaceObj(GraphObj *graph, Tensor input, Tensor output,
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>>
-DepthToSpaceObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> DepthToSpaceObj::inferShape(const TensorVec &inputs) {
     const auto A = inputs[0];
     auto inputDim = A->getDims();
     IT_ASSERT(inputDim.size() == 4);

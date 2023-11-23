@@ -13,8 +13,7 @@ BatchNormObj::BatchNormObj(GraphObj *graph, Tensor input, Tensor output,
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>>
-BatchNormObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> BatchNormObj::inferShape(const TensorVec &inputs) {
     auto input = inputs[0];
     auto mean = inputs[1];
     auto var = inputs[2];

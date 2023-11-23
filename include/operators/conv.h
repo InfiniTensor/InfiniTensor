@@ -142,7 +142,7 @@ class ConvObj : public ConvBaseObj {
             ActType act = ActType::None);
     OP_CLONE(ConvObj);
 
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
     int getNumGroups() const override { return c / getChannelPerGroup(); }
 
   private:
@@ -164,7 +164,7 @@ class ConvBackwardFilterObj : public ConvBaseObj {
                           int sh = 1, int sw = 1, int dh = 1, int dw = 1,
                           Tensor bias = nullptr, ActType act = ActType::None);
 
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
     ActType getAct() const { return act; }
     int getNumGroups() const override { return c / getChannelPerGroup(); }
 
@@ -191,7 +191,7 @@ class ConvTransposed2dObj : public ConvBaseObj {
                         Tensor bias = nullptr, ActType act = ActType::None);
     OP_CLONE(ConvTransposed2dObj);
 
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
     int getNumGroups() const override { return group; }
     std::pair<int, int> getOutputPadding() const { return {oph, opw}; }
 
@@ -218,7 +218,7 @@ class ConvTransposed2dNHWCObj : public ConvBaseObj {
                             Tensor bias = nullptr, ActType act = ActType::None);
     OP_CLONE(ConvTransposed2dNHWCObj);
 
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
     int getNumGroups() const override { return group; }
 
   private:

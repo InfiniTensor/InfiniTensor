@@ -21,8 +21,7 @@ bool ReduceMeanObj::isReduced(int idx) const {
     return axes.find(idx) != axes.end();
 }
 
-optional<vector<Shape>>
-ReduceMeanObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> ReduceMeanObj::inferShape(const TensorVec &inputs) {
     auto dims = inputs[0]->getDims();
     auto rank = inputs[0]->getRank();
 
