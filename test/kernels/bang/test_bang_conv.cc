@@ -42,11 +42,15 @@ void testConv(const std::function<void(void *, size_t, DataType)> &generatorA,
     cpuGraph->addTensor(inputCpu2);
     cpuGraph->dataMalloc();
     inputCpu1->setData(generatorA);
+    inputCpu1->printData();
     inputCpu2->setData(generatorB);
+    inputCpu2->printData();
     cpuRuntime->run(cpuGraph);
     auto outputCpu = cpuOp->getOutput();
     outputCpu->print();
+    outputCpu->printData();
     outputMlu2Cpu->print();
+    outputMlu2Cpu->printData();
     // Check
     // EXPECT_TRUE(outputCpu->equalData(outputMlu2Cpu));
     EXPECT_TRUE(true);
@@ -54,7 +58,7 @@ void testConv(const std::function<void(void *, size_t, DataType)> &generatorA,
 
 TEST(cnnl_Conv, run) {
     testConv<ConvObj>(IncrementalGenerator(), IncrementalGenerator(),
-                      Shape{1, 3, 224, 224}, Shape{2, 3, 3, 3});
+                      Shape{1, 3, 4, 4}, Shape{2, 3, 3, 3});
 }
 
 } // namespace infini

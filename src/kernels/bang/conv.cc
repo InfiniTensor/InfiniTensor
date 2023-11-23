@@ -118,8 +118,8 @@ class ConvCnnl : public BangKernelWithoutConfig {
             cnnlGetTensorElementNum(cInDesc) * sizeof(float));
 
         stat = cnnlConvolutionForward(
-            context->cnnlHandle(), convDesc, algo, NULL, aDesc, aData, bDesc,
-            bData, NULL, NULL, wsData, wsSize, NULL, cInDesc, cDataIn);
+            context->cnnlHandle(), convDesc, algo, NULL, aDesc, aDataOut, bDesc,
+            bDataOut, NULL, NULL, wsData, wsSize, NULL, cInDesc, cDataIn);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
