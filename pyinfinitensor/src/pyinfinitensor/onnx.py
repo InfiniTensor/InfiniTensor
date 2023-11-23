@@ -46,6 +46,9 @@ class OnnxStub:
                 model = model_simp
         except ValidationError:
             pass
+        except RuntimeError:
+            pass
+        
         self.inputs: Dict[str, backend.Tensor] = {}
         self.outputs: Dict[str, backend.Tensor] = {}
         self.initializer: Dict[int, TensorProto] = {}
@@ -491,6 +494,21 @@ class OnnxStub:
                         tensors.get(node.output[0]),
                         perm,
                     )
+                elif node.op_type == "DepthToSpace":
+                    blocksize = next(
+                        (attr.i for attr in node.attribute if attr.name == "blocksize"),
+                        None,
+                    )
+                    mode = next(
+                        (attr.s for attr in node.attribute if attr.name == "mode"),
+                        None,
+                    )
+                    tensors[node.output[0]] = self.handler.depthToSpace(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        blocksize,
+                        mode,
+                    )
                 elif node.op_type == "Reshape":
                     dims = _search_shape(model, node.input[0])
                     size = reduce(lambda acc, x: acc * x, dims)
@@ -544,6 +562,16 @@ class OnnxStub:
                         next(
                             (attr.i for attr in node.attribute if attr.name == "axis")
                         ),
+                    )
+                elif node.op_type == "AttentionKVCache":
+                    tensors[node.output[0]] = self.handler.attentionKVCache(
+                        tensors[node.input[0]],
+                        tensors[node.input[1]],
+                        tensors[node.input[2]],
+                        tensors[node.input[3]],
+                        tensors[node.input[4]],
+                        tensors[node.input[5]],
+                        tensors.get(node.output[0]),
                     )
                 elif node.op_type == "Split":
                     for name, tensor in zip(

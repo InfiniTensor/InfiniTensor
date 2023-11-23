@@ -1,6 +1,7 @@
 ﻿#include "core/graph_handler.h"
 #include "operators/all_gather.h"
 #include "operators/all_reduce.h"
+#include "operators/attention_kvcache.h"
 #include "operators/batch_norm.h"
 #include "operators/broadcast.h"
 #include "operators/concat.h"
@@ -239,6 +240,27 @@ Tensor GraphHandlerObj::concat(TensorVec inputs, Tensor output, int dim) {
     }
 }
 
+Tensor GraphHandlerObj::attentionKVCache(Tensor input_k_cache,
+                                         Tensor input_v_cache, Tensor input_q,
+                                         Tensor input_k, Tensor input_v,
+                                         Tensor position_id,
+                                         Tensor output_matmul) {
+    if (output_matmul) {
+        g->addOpWithOutputs<AttentionKVCacheObj>(
+            std::move(input_k_cache), std::move(input_v_cache),
+            std::move(input_q), std::move(input_k), std::move(input_v),
+            std::move(position_id), output_matmul);
+        return {output_matmul};
+    } else {
+        return g
+            ->addOp<AttentionKVCacheObj>(
+                std::move(input_k_cache), std::move(input_v_cache),
+                std::move(input_q), std::move(input_k), std::move(input_v),
+                std::move(position_id), output_matmul)
+            ->getOutput();
+    }
+}
+
 TensorVec GraphHandlerObj::split(Tensor input, std::optional<TensorVec> outputs,
                                  int axis, int num_outputs) {
     if (outputs) {
@@ -426,6 +448,19 @@ Tensor GraphHandlerObj::where(Tensor inputX, Tensor inputY, Tensor condition,
         return g
             ->addOp<WhereObj>(std::move(inputX), std::move(inputY),
                               std::move(condition), output)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::depthToSpace(Tensor input, Tensor output, int blocksize,
+                                     std::string mode) {
+    if (output) {
+        g->addOpWithOutputs<DepthToSpaceObj>(std::move(input), output,
+                                             blocksize, mode);
+        return output;
+    } else {
+        return g
+            ->addOp<DepthToSpaceObj>(std::move(input), output, blocksize, mode)
             ->getOutput();
     }
 }

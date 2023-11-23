@@ -64,6 +64,9 @@ class GraphHandlerObj {
     Tensor transpose(Tensor data, Tensor transposed, Shape perm);
     Tensor reshape(Tensor data, Tensor reshaped, Shape shape);
     Tensor concat(TensorVec inputs, Tensor output, int dim);
+    Tensor attentionKVCache(Tensor input_k_cache, Tensor input_v_cache,
+                            Tensor input_q, Tensor input_k, Tensor input_v,
+                            Tensor position_id, Tensor output_matmul);
     TensorVec split(Tensor input, std::optional<TensorVec> outputs, int axis,
                     int num_outputs);
     Tensor gather(Tensor data, Tensor indices, Tensor output, int axis);
@@ -88,6 +91,8 @@ class GraphHandlerObj {
     Tensor allReduceAvg(Tensor input, Tensor output);
     TensorVec allGather(Tensor input, std::optional<TensorVec> outputs, int n);
     Tensor broadcast(Tensor input, Tensor output, int root);
+    Tensor depthToSpace(Tensor input, Tensor output, int blocksize,
+                        std::string mode);
 
     //------ modifiers
 
