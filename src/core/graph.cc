@@ -1,5 +1,7 @@
 #include "core/graph.h"
+#include "operators/reshape.h"
 #include <algorithm>
+#include <numeric>
 #include <queue>
 
 namespace infini {
@@ -123,10 +125,40 @@ void GraphObj::optimize() {
     }
 }
 
-void GraphObj::dataMalloc(bool useNaiveAllocator) {
+Tensor GraphObj::getTensor(int fuid) const {
+    for (auto tensor : tensors) {
+        if (tensor->getFuid() == fuid) {
+            return tensor;
+        }
+    }
+    return nullptr;
+}
+
+void GraphObj::shape_infer() {
+    for (auto &op : ops) {
+        auto ans = op->inferShape();
+        IT_ASSERT(ans.has_value());
+        auto oldOutputs = op->getOutputs();
+        IT_ASSERT(ans.value().size() == oldOutputs.size());
+        // replace the old outputshape and size with new one
+        for (int i = 0; i < (int)ans.value().size(); ++i) {
+            auto newShape = ans.value()[i];
+            auto oldShape = oldOutputs[i]->getDims();
+            auto fuid = oldOutputs[i]->getFuid();
+            if (newShape != oldShape) {
+                auto tensor = this->getTensor(fuid);
+                tensor->setShape(newShape);
+            }
+        }
+    }
+}
+
+void GraphObj::dataMalloc(bool useNaiveAllocator, size_t memPoolSize) {
     // topological sorting first
     IT_ASSERT(topo_sort() == true);
     if (useNaiveAllocator) {
+        // can not set memory pool when use naive allocator
+        IT_ASSERT(memPoolSize == 0);
         // used for debugging memory out-of-bounds access, tensors will not be
         // released correctly
         // note: behavior may not match running in non-naive mode, and it may
@@ -135,6 +167,9 @@ void GraphObj::dataMalloc(bool useNaiveAllocator) {
             tensor->dataMalloc();
         }
         return;
+    }
+    if (memPoolSize > 0) {
+        allocator.setMemPool(memPoolSize);
     }
     // count the number of times all tensors are used
     std::unordered_map<TensorObj *, size_t> tensorToRefCount;
@@ -221,6 +256,27 @@ void GraphObj::dataMalloc(bool useNaiveAllocator) {
         }
     }
 }
+
+Tensor GraphObj::cloneKV(Tensor &tensor) {
+    auto obj = tensor->clone();
+    if (allocator.getMemPoolStatus()) {
+        if (tensor->hasData()) {
+            obj->setDataBlob(make_ref<BlobObj>(
+                tensor->runtime,
+                static_cast<uint8_t *>(allocator.getHeapPtr()) +
+                    allocator.heapAlloc(tensor->getBytes())));
+            obj->copyData(tensor);
+        }
+    } else {
+        if (tensor->hasData()) {
+            obj->dataMalloc();
+            obj->copyData(tensor);
+        }
+    }
+    return obj;
+}
+
+void GraphObj::freeHeap() { this->allocator.freeHeap(); }
 
 Tensor GraphObj::addTensor(Shape dim, DataType dtype) {
     return tensors.emplace_back(make_ref<TensorObj>(dim, dtype, runtime));

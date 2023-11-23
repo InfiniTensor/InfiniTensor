@@ -20,6 +20,7 @@
 #include "operators/transpose.h"
 #include "operators/unary.h"
 #include "operators/where.h"
+#include <numeric>
 
 namespace infini {
 
@@ -558,6 +559,13 @@ static DataType dtype_repr_convert(int dtype) {
     default:
         IT_ASSERT(false, "Unsupported data type");
     }
+}
+
+void GraphHandlerObj::change_shape(const vector<int> &shape, int tensorId) {
+    auto tensor = g->getTensor(tensorId);
+    IT_ASSERT(tensor != nullptr);
+    IT_ASSERT(shape.size() != 0);
+    tensor->setShape(shape);
 }
 
 } // namespace infini

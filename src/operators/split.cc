@@ -35,7 +35,7 @@ SplitObj::SplitObj(GraphObj *graph, Tensor input,
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> SplitObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> SplitObj::inferShape(const TensorVec &inputs) {
     IT_ASSERT(num != -1 && ratio.size() != 0);
     auto inputDims = inputs[0]->getDims();
     int totalSize = inputDims.at(dim);
