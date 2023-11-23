@@ -24,8 +24,7 @@ void sendrecv(const string taskName, int deviceID, vector<float> data,
     Graph g = make_ref<GraphObj>(cudaRuntime);
     auto input =
         g->addTensor(Shape{static_cast<int>(data.size())}, DataType::Float32);
-    auto op =
-        g->addOp<SendRecvObj>(input, nullptr, source, destination, deviceID);
+    auto op = g->addOp<SendRecvObj>(input, nullptr, source, destination);
     // Copy data from CPU to GPU
     g->dataMalloc();
     // Only rank 0 has the data

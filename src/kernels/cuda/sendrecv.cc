@@ -20,9 +20,12 @@ class SendRecvNCCL : public CudaKernelWithoutConfig {
             dynamic_cast<NcclCommunicatorObj &>(context->getCommunicator())
                 .getNcclComm();
         // TODO: Using default stream 0 for now.
+        int rank;
+        checkNcclError(ncclCommUserRank(comm, &rank));
+
         int source = op->getSource();
         int destination = op->getDestination();
-        int rank = op->getRank();
+
         if (rank == source) {
             checkNcclError(
                 ncclSend(input, count, ncclFloat, destination, comm, 0));

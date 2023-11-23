@@ -19,7 +19,7 @@ class SendRecvObj : public OperatorObj {
      * @param destination the recv rank
      */
     SendRecvObj(GraphObj *graph, Tensor input, Tensor output, int source,
-                int destination, int rank);
+                int destination);
     OP_CLONE(SendRecvObj);
 
     int numInputs() const override { return 1; }
@@ -30,7 +30,6 @@ class SendRecvObj : public OperatorObj {
 
     int getSource() const { return source; }
     int getDestination() const { return destination; }
-    int getRank() const { return rank; }
 
   private:
     vector<int> getWorkloadVector() const override;
@@ -40,6 +39,5 @@ class SendRecvObj : public OperatorObj {
   protected:
     int source;
     int destination;
-    int rank;
 };
 } // namespace infini
