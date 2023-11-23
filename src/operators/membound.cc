@@ -60,7 +60,7 @@ string MemBoundObj::toString() const {
     return os.str();
 }
 
-optional<vector<Shape>> MemBoundObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> MemBoundObj::inferShape(const TensorVec &inputs) {
     // inputs have to match nnetInputs excatly
     if (inputs.size() != nnetInputs.size())
         return {};

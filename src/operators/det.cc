@@ -6,7 +6,7 @@ DetObj::DetObj(GraphObj *graph, Tensor input, Tensor output, Mode mode)
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> DetObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> DetObj::inferShape(const TensorVec &inputs) {
     const auto A = inputs[0];
     auto input = A->getDims();
     int rank = A->getRank();

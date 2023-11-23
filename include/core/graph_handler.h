@@ -81,6 +81,7 @@ class GraphHandlerObj {
     Tensor cast(Tensor input, Tensor output, int to);
     Tensor expand(Tensor input, Tensor output, Shape dims);
     Tensor where(Tensor inputX, Tensor inputY, Tensor condition, Tensor output);
+    std::vector<int> getDims(Tensor x) { return x->getDims(); }
 
     Tensor allReduceSum(Tensor input, Tensor output);
     Tensor allReduceProd(Tensor input, Tensor output);
@@ -98,9 +99,19 @@ class GraphHandlerObj {
 
     inline void optimize() { g->optimize(); }
 
+    inline void shape_infer() { g->shape_infer(); }
+
+    void change_shape(const vector<int> &shape, int tensorId);
     //------ runtime
 
-    inline void data_malloc() { g->dataMalloc(); }
+    inline void data_malloc(bool useNaiveAllocator = false,
+                            size_t memPoolSize = 0) {
+        g->dataMalloc(useNaiveAllocator, memPoolSize);
+    }
+
+    inline Tensor clone_KV(Tensor &tensor) { return g->cloneKV(tensor); }
+
+    inline void free_heap() { g->freeHeap(); }
 
     inline void tune() { g->getRuntime()->run(g, true); }
 

@@ -446,7 +446,10 @@ void init_graph_builder(py::module &m) {
              })
         .def("has_target", &TensorObj::hasTarget, policy::automatic)
         .def("src", &TensorObj::getSource, policy::move)
-        .def("printData", &TensorObj::printData, policy::automatic);
+        .def("printData", &TensorObj::printData, policy::automatic)
+        .def("copy_data",
+             py::overload_cast<const Tensor &>(&TensorObj::copyData),
+             policy::move);
     py::class_<OperatorObj, std::shared_ptr<OperatorObj>>(m, "Operator")
         .def("op_type", &OperatorObj::getOpType, policy::automatic)
         .def("inputs", py::overload_cast<>(&OperatorObj::getInputs, py::const_),
@@ -466,6 +469,7 @@ void init_graph_builder(py::module &m) {
         .def("add", &Handler::add, policy::move)
         .def("sub", &Handler::sub, policy::move)
         .def("mul", &Handler::mul, policy::move)
+        .def("max", &Handler::max, policy::move)
         .def("div", &Handler::div, policy::move)
         .def("pow", &Handler::pow, policy::move)
         .def("min", &Handler::min, policy::move)
@@ -510,10 +514,17 @@ void init_graph_builder(py::module &m) {
         .def("topo_sort", &Handler::topo_sort, policy::automatic)
         .def("optimize", &Handler::optimize, policy::automatic)
         .def("operators", &Handler::operators, policy::move)
-        .def("data_malloc", &Handler::data_malloc, policy::automatic)
+        .def("data_malloc", &Handler::data_malloc,
+             py::arg("useNaiveAllocator") = false, py::arg("memPoolSize") = 0,
+             policy::automatic)
+        .def("clone_KV", &Handler::clone_KV, policy::move)
+        .def("free_heap", &Handler::free_heap, policy::move)
         .def("get_perf_time", &Handler::get_perf_time, policy::automatic)
         .def("tune", &Handler::tune, policy::automatic)
         .def("run", &Handler::run, policy::automatic)
+        .def("shape_infer", &Handler::shape_infer, policy::automatic)
+        .def("change_shape", &Handler::change_shape, policy::automatic)
+        .def("getDims", &Handler::getDims, policy::automatic)
         .def("get_perf_time", &Handler::get_perf_time, policy::automatic);
 }
 
