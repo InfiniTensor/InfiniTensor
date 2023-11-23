@@ -32,7 +32,7 @@ class SliceObj : public OperatorObj {
              const optional<vector<int>> &steps);
     OP_CLONE(SliceObj);
 
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
     std::string toString() const override;
     inline int numInputs() const override { return 1; }
     inline int numOutputs() const override { return 1; }

@@ -17,7 +17,7 @@ class UnaryObj : public OperatorObj {
      * @param output The output tensor.
      */
     UnaryObj(OpType type, GraphObj *graph, Tensor input, Tensor output);
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
     int numInputs() const override { return 1; }
@@ -33,7 +33,7 @@ class ClipObj : public OperatorObj {
     ClipObj(GraphObj *graph, Tensor input, Tensor output,
             std::optional<float> min, std::optional<float> max);
     OP_CLONE(ClipObj);
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
     std::optional<float> getMin() const { return minValue; };
@@ -52,7 +52,7 @@ class HardtanhObj : public OperatorObj {
     HardtanhObj(GraphObj *graph, Tensor input, Tensor output, float min,
                 float max);
     OP_CLONE(HardtanhObj);
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
     float getMin() const { return minValue; };
@@ -70,7 +70,7 @@ class FlipObj : public OperatorObj {
   public:
     FlipObj(GraphObj *graph, Tensor input, Tensor output, vector<int> axis);
     OP_CLONE(FlipObj);
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
     vector<int> getAxis() const { return axisValue; };
@@ -87,7 +87,7 @@ class FillObj : public OperatorObj {
   public:
     FillObj(GraphObj *graph, Tensor input, Tensor output, float value);
     OP_CLONE(FillObj);
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
     float getValue() const { return setValue; };
@@ -104,7 +104,7 @@ class L2LossObj : public OperatorObj {
   public:
     L2LossObj(GraphObj *graph, Tensor input, Tensor output);
     OP_CLONE(L2LossObj);
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
     int numInputs() const override { return 1; }
@@ -120,7 +120,7 @@ class TransformObj : public OperatorObj {
     TransformObj(GraphObj *graph, Tensor input, Tensor output, float alpha,
                  float beta);
     OP_CLONE(TransformObj);
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
     float getAlpha() const { return alphaValue; }
@@ -165,7 +165,7 @@ class CastObj : public OperatorObj {
   public:
     CastObj(GraphObj *graph, Tensor input, Tensor output, CastType type);
     OP_CLONE(CastObj);
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
     vector<DataType> inferDataType(const TensorVec &inputs) const override;
 
     std::string toString() const override;
@@ -185,7 +185,7 @@ class CumsumObj : public OperatorObj {
     CumsumObj(GraphObj *graph, Tensor input, Tensor output, int axis,
               bool exclusive, bool reverse);
     OP_CLONE(CumsumObj);
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
     int getAxis() const { return axisValue; }
@@ -205,7 +205,7 @@ class ShapeObj : public OperatorObj {
   public:
     ShapeObj(GraphObj *graph, Tensor input, Tensor output);
     OP_CLONE(ShapeObj);
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
     int numInputs() const override { return 1; }
@@ -216,7 +216,7 @@ class PReluObj : public OperatorObj {
   public:
     PReluObj(GraphObj *graph, Tensor input, Tensor alpha, Tensor output);
     OP_CLONE(PReluObj);
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
     int numInputs() const override { return 2; }
@@ -236,7 +236,7 @@ class LogObj : public OperatorObj {
     };
     LogObj(GraphObj *graph, Tensor input, Tensor output, LogType type);
     OP_CLONE(LogObj);
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
     LogType getType() const { return logType; }

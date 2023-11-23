@@ -29,7 +29,7 @@ class AttentionKVCacheObj : public OperatorObj {
                         Tensor output_matmul);
     OP_CLONE(AttentionKVCacheObj);
 
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
     int numInputs() const override { return 6; }

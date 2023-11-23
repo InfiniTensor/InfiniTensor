@@ -6,7 +6,7 @@ UnaryObj::UnaryObj(OpType type, GraphObj *graph, Tensor input, Tensor output)
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> UnaryObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> UnaryObj::inferShape(const TensorVec &inputs) {
     const auto A = inputs[0];
     return {{A->getDims()}};
 }
@@ -37,7 +37,7 @@ ClipObj::ClipObj(GraphObj *graph, Tensor input, Tensor output,
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> ClipObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> ClipObj::inferShape(const TensorVec &inputs) {
     const auto A = inputs[0];
     return {{A->getDims()}};
 }
@@ -68,7 +68,7 @@ HardtanhObj::HardtanhObj(GraphObj *graph, Tensor input, Tensor output,
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> HardtanhObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> HardtanhObj::inferShape(const TensorVec &inputs) {
     const auto A = inputs[0];
     return {{A->getDims()}};
 }
@@ -97,7 +97,7 @@ FillObj::FillObj(GraphObj *graph, Tensor input, Tensor output, float value)
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> FillObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> FillObj::inferShape(const TensorVec &inputs) {
     const auto A = inputs[0];
     return {{A->getDims()}};
 }
@@ -124,7 +124,7 @@ L2LossObj::L2LossObj(GraphObj *graph, Tensor input, Tensor output)
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> L2LossObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> L2LossObj::inferShape(const TensorVec &inputs) {
     Shape temp = {1};
     return {{temp}};
 }
@@ -159,7 +159,7 @@ vector<DataType> CastObj::inferDataType(const TensorVec &inputs) const {
     return vector(numOutputs(), output_dataType);
 }
 
-optional<vector<Shape>> CastObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> CastObj::inferShape(const TensorVec &inputs) {
     const auto A = inputs[0];
     return {{A->getDims()}};
 }
@@ -241,7 +241,7 @@ ShapeObj::ShapeObj(GraphObj *graph, Tensor input, Tensor output)
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> ShapeObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> ShapeObj::inferShape(const TensorVec &inputs) {
     return {{{static_cast<int>(inputs[0]->getRank())}}};
 }
 
@@ -257,7 +257,7 @@ PReluObj::PReluObj(GraphObj *graph, Tensor input, Tensor alpha, Tensor output)
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> PReluObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> PReluObj::inferShape(const TensorVec &inputs) {
     const auto A = inputs[0];
     return {{A->getDims()}};
 }
@@ -286,7 +286,7 @@ LogObj::LogObj(GraphObj *graph, Tensor input, Tensor output, LogType type)
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> LogObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> LogObj::inferShape(const TensorVec &inputs) {
     const auto A = inputs[0];
     return {{A->getDims()}};
 }

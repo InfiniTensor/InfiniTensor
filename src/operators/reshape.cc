@@ -1,5 +1,6 @@
 #include "operators/reshape.h"
 #include "utils/operator_utils.h"
+#include <numeric>
 
 namespace infini {
 ReshapeObj::ReshapeObj(GraphObj *graph, Tensor input, Tensor output, Shape dims)
@@ -7,14 +8,37 @@ ReshapeObj::ReshapeObj(GraphObj *graph, Tensor input, Tensor output, Shape dims)
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> ReshapeObj::inferShape(const TensorVec &inputs) const {
-    size_t size = 1;
-    for (size_t i = 0; i < dims.size(); ++i) {
-        size *= dims.at(i);
+optional<vector<Shape>> ReshapeObj::inferShape(const TensorVec &inputs) {
+    int count = 0;
+    for (auto x : dims) {
+        if (x == -1) {
+            count++;
+        }
+        IT_ASSERT(x == -1 || x >= 0);
     }
-    IT_ASSERT(size == inputs[0]->size());
+    IT_ASSERT(count == 0 || count == 1);
+    auto inputShape = inputs[0]->getDims();
+    int size = inputs[0]->size();
+    int index = -1;
+    outputShape = dims;
+    for (int i = 0; i < (int)dims.size(); ++i) {
+        if (dims[i] == 0) {
+            outputShape[i] = inputShape[i];
+        }
+        if (dims[i] == -1) {
+            index = i;
+        }
+    }
+    if (index != -1) {
+        outputShape[index] =
+            size / (-std::accumulate(outputShape.begin(), outputShape.end(), 1,
+                                     [](auto acc, auto x) { return acc * x; }));
+    }
+    int outputSize = std::accumulate(outputShape.begin(), outputShape.end(), 1,
+                                     [](auto acc, auto x) { return acc * x; });
+    IT_ASSERT(outputSize == size);
 
-    return {{dims}};
+    return {{outputShape}};
 }
 
 std::string ReshapeObj::toString() const {
@@ -22,7 +46,7 @@ std::string ReshapeObj::toString() const {
     os << "Reshape[" << getGuid() << "]";
     os << "(";
     os << vecToString(inputs[0]->getDims()) << ",";
-    os << "dims=" << vecToString(dims) << ",";
+    os << "outputShape=" << vecToString(outputShape) << ",";
     os << "input=" << inputs[0]->getGuid() << ",";
     os << "output=" << outputs[0]->getGuid() << ")";
     return os.str();
@@ -30,12 +54,12 @@ std::string ReshapeObj::toString() const {
 
 vector<int> ReshapeObj::getWorkloadVector() const {
     vector<int> ret = inputs[0]->getDims();
-    ret.insert(ret.end(), dims.begin(), dims.end());
+    ret.insert(ret.end(), outputShape.begin(), outputShape.end());
     ret.emplace(ret.begin(), type.underlying());
     return ret;
 }
 vector<int> ReshapeObj::getOpAttrVector() const {
-    vector<int> ret = dims;
+    vector<int> ret = outputShape;
     ret.emplace(ret.begin(), type.underlying());
     return ret;
 }
@@ -47,7 +71,7 @@ FlattenObj::FlattenObj(GraphObj *graph, Tensor input, Tensor output, int _axis)
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> FlattenObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> FlattenObj::inferShape(const TensorVec &inputs) {
     int sizeB = 1, sizeE = 1;
     auto dims = getInputs(0)->getDims();
     int rank = getInputs(0)->getRank();
@@ -84,7 +108,7 @@ IdentityObj::IdentityObj(GraphObj *graph, Tensor input, Tensor output)
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> IdentityObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> IdentityObj::inferShape(const TensorVec &inputs) {
     return {{getInputs(0)->getDims()}};
 }
 

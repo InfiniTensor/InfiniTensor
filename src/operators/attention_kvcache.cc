@@ -18,7 +18,7 @@ AttentionKVCacheObj::AttentionKVCacheObj(GraphObj *graph, Tensor input_k_cache,
 }
 
 optional<vector<Shape>>
-AttentionKVCacheObj::inferShape(const TensorVec &inputs) const {
+AttentionKVCacheObj::inferShape(const TensorVec &inputs) {
     IT_ASSERT(inputs.size() == 6);
     Shape dims = inputs[0]->getDims();
     ShapeElem n = dims.at(dim);
