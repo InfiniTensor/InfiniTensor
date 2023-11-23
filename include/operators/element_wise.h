@@ -21,7 +21,7 @@ class ElementWiseObj : public OperatorObj {
      */
     ElementWiseObj(OpType type, GraphObj *graph, Tensor input0, Tensor input1,
                    Tensor output);
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
     int numInputs() const override { return 2; }
@@ -38,7 +38,7 @@ class MSELossObj : public OperatorObj {
     MSELossObj(GraphObj *graph, Tensor input0, Tensor input1,
                Reduction reduction, Tensor output);
     OP_CLONE(MSELossObj);
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     Reduction getReduction() const { return reductionMode; }
     std::string toString() const override;
