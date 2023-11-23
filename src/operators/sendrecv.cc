@@ -8,7 +8,7 @@ SendRecvObj::SendRecvObj(GraphObj *graph, Tensor input, Tensor output,
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> SendRecvObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> SendRecvObj::inferShape(const TensorVec &inputs) {
 
     size_t size = 1;
     for (size_t i = 0; i < dims.size(); ++i) {

@@ -25,7 +25,7 @@ class SendRecvObj : public OperatorObj {
 
     int numInputs() const override { return 1; }
     int numOutputs() const override { return 1; }
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
 
