@@ -30,6 +30,8 @@ class GraphHandlerObj {
     Tensor batchNormalization(Tensor input, Tensor output, Tensor mean,
                               Tensor var, Tensor scale, Tensor bias,
                               float momentum, float eps, bool training);
+    Tensor layerNormalization(Tensor input, Tensor scale, Tensor output,
+                              Tensor bias, float eps, int axis, int stash_type);
 
     Tensor maxPool(Tensor input, Tensor output, int kh, int kw, int dh, int dw,
                    int ph, int pw, int sh, int sw, int ceilMode);
@@ -73,6 +75,8 @@ class GraphHandlerObj {
     Tensor gatherElements(Tensor data, Tensor indices, Tensor output, int axis);
     Tensor reduceMean(Tensor data, Tensor reduced,
                       const optional<vector<int>> &axes, bool keepdims);
+    Tensor reduceSum(Tensor data, Tensor reduced,
+                     const optional<vector<int>> &axes, bool keepdims);
     Tensor slice(Tensor input, Tensor output, const vector<int> &starts,
                  const vector<int> &ends, const optional<vector<int>> &axes,
                  const optional<vector<int>> &steps);

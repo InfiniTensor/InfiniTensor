@@ -57,7 +57,7 @@ class ConvTransCnnl : public BangKernelWithoutConfig {
             CNNL_CONVOLUTION_BWD_DATA_FASTEST, &algo);
         size_t wsSize;
         cnnlGetConvolutionBackwardDataWorkspaceSize(context->cnnlHandle(),
-                                                    aDesc, bDesc, convDesc,
+                                                    bDesc, aDesc, convDesc,
                                                     cDesc, algo, &wsSize);
         BangPtr wsData = context->getWorkspace(wsSize);
 
