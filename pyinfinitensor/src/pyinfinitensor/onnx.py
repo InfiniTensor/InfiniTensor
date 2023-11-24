@@ -238,6 +238,25 @@ class OnnxStub:
                         eps,
                         training != 0,
                     )
+                elif node.op_type == "LayerNormalization":
+                    (input, scale) = (tensors[node.input[i]] for i in [0, 1])
+                    bias = None if len(node.input) < 3 else tensors[node.input[2]]
+                    output = tensors.get(node.output[0])
+                    attributes = _parse_attribute(
+                        node, {"axis": -1, "epsilon": 1e-05, "stash_type": 1}
+                    )
+                    (axis, eps, stash_type) = (
+                        attributes[name] for name in ["axis", "epsilon", "stash_type"]
+                    )
+                    tensors[node.output[0]] = self.handler.layerNormalization(
+                        input,
+                        scale,
+                        output,
+                        bias,
+                        eps,
+                        axis,
+                        stash_type,
+                    )
                 elif node.op_type == "MaxPool":
                     attributes = _parse_attribute(
                         node,

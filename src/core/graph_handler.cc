@@ -9,6 +9,7 @@
 #include "operators/element_wise.h"
 #include "operators/expand.h"
 #include "operators/gather.h"
+#include "operators/layer_norm.h"
 #include "operators/matmul.h"
 #include "operators/pad.h"
 #include "operators/pooling.h"
@@ -92,6 +93,23 @@ Tensor GraphHandlerObj::batchNormalization(Tensor input, Tensor output,
             ->addOp<BatchNormObj>(std::move(input), output, std::move(mean),
                                   std::move(var), std::move(scale),
                                   std::move(bias), momentum, eps, training)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::layerNormalization(Tensor input, Tensor scale,
+                                           Tensor output, Tensor bias,
+                                           float eps, int axis,
+                                           int stash_type) {
+    if (output) {
+        g->addOpWithOutputs<LayerNormObj>(std::move(input), std::move(scale),
+                                          output, std::move(bias), eps, axis,
+                                          stash_type);
+        return output;
+    } else {
+        return g
+            ->addOp<LayerNormObj>(std::move(input), std::move(scale), output,
+                                  std::move(bias), eps, axis, stash_type)
             ->getOutput();
     }
 }
