@@ -23,21 +23,23 @@ class WhereCuda : public CudaKernelWithoutConfig {
         const int xSize = op->getInputs(0)->getRank();
         const int ySize = op->getInputs(1)->getRank();
         const int cSize = op->getInputs(2)->getRank();
+
         int nDims = op->getOutput()->getDims().size();
         IT_ASSERT(nDims <= SMALL_ARRAY_SIZE);
-
+        int outputsize = 1;
         SmallArray inputXShape, inputYShape, conditionShape, outputShape;
         for (int i = nDims - 1; i >= 0; --i) {
             outputShape.data[i] = opOutputShape[i];
+            outputsize *= outputShape.data[i];
         }
-
         broadcastShape(opInputXShape, inputXShape, nDims, xSize);
         broadcastShape(opInputYShape, inputYShape, nDims, ySize);
         broadcastShape(opConditionShape, conditionShape, nDims, cSize);
 
         whereKernel((float *)inputXData, (float *)inputYData,
                     (uint8_t *)conditionData, (float *)outputData, nDims,
-                    inputXShape, inputYShape, conditionShape, outputShape);
+                    outputsize, inputXShape, inputYShape, conditionShape,
+                    outputShape, xSize, ySize, cSize);
     }
 };
 
