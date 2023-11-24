@@ -23,7 +23,7 @@ TEST(AttentionKVCache, Cuda) {
 
     auto op = gCuda->addOp<AttentionKVCacheObj>(
         input_k_cache_d, input_v_cache_d, input_q_d, input_k_d, input_v_d,
-        position_id_d, nullptr);
+        position_id_d, nullptr, nullptr, nullptr);
     gCuda->dataMalloc();
 
     input_q_d->setData(OneGenerator());
@@ -32,7 +32,7 @@ TEST(AttentionKVCache, Cuda) {
     position_id_d->setData(IncrementalGenerator());
     cudaRuntime->run(gCuda);
 
-    auto oCpu = gCpu->cloneTensor(op->getOutput());
+    auto oCpu = gCpu->cloneTensor(op->getOutputs()[0]);
     EXPECT_TRUE(oCpu->equalData(vector<float>{
         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,

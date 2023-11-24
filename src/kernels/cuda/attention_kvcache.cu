@@ -648,9 +648,11 @@ __global__ void _attention_kvcache_kernel_128_sum_only_2(float* input_k_cache,
 }
 
 namespace infini {
-void attention_kvcache_kernel(float *input_k_cache, float *input_v_cache, float *input_q, float *input_k,
-                          float *input_v, int *position_id, float *output_matmul,
-                          const AttentionKVCacheMetadata &compMeta) {
+void attention_kvcache_kernel(float *input_k_cache, float *input_v_cache, 
+                          float *input_q, float *input_k,
+                          float *input_v, int *position_id, float *output_matmul, 
+                          const AttentionKVCacheMetadata &compMeta,
+                          float *output_O_temp, float *output_sum_temp) {
     IT_ASSERT(compMeta.dimSize[3] == 64 || compMeta.dimSize[3] == 128);
     int position_id_h;
     cudaMemcpy(&position_id_h, position_id, sizeof(int), cudaMemcpyDeviceToHost);
@@ -660,30 +662,20 @@ void attention_kvcache_kernel(float *input_k_cache, float *input_v_cache, float 
     dim3 gridDim(compMeta.dimSize[0]*compMeta.dimSize[1]/(BLOCKSIZE/WARP_SIZE), gridsize_y);
     dim3 blockDim(BLOCKSIZE, 1);
     bool needReduce = gridsize_y > 1 ? true : false;
-    float *output_O_temp, *output_sum_temp;
-    if(needReduce){
-        cudaMalloc((void **)&output_O_temp,   compMeta.dimSize[0]*compMeta.dimSize[1]*gridsize_y*WARP_SIZE*sizeof(float4));
-        cudaMalloc((void **)&output_sum_temp, compMeta.dimSize[0]*compMeta.dimSize[1]*sizeof(float)*gridsize_y);
-    }
 
     if(compMeta.dimSize[3] == 64)
         _attention_kvcache_kernel<<<gridDim, blockDim>>>(
             input_k_cache, input_v_cache, input_q, input_k, input_v, position_id, output_matmul, compMeta);
     else{
-        //IT_ASSERT(compMeta.dimSize[0]*compMeta.dimSize[1]*gridsize_y*WARP_SIZE*sizeof(float4) < 16777216);
         if(!needReduce){
             _attention_kvcache_kernel_128_sum_only_1<<<gridDim, blockDim>>>(
                 input_k_cache, input_v_cache, input_q, input_k, input_v, position_id_h, nullptr, compMeta, output_matmul, nullptr);
-            // cudaDeviceSynchronize();
         }
         else{
             _attention_kvcache_kernel_128_sum_only_1<<<gridDim, blockDim>>>(
                 input_k_cache, input_v_cache, input_q, input_k, input_v, position_id_h, nullptr, compMeta, output_O_temp, output_sum_temp);
-            cudaDeviceSynchronize();
-            //assert(gridsize_y < 33);
             _attention_kvcache_kernel_128_sum_only_2<<<compMeta.dimSize[0]*compMeta.dimSize[1]/(BLOCKSIZE/WARP_SIZE), WARP_SIZE>>>(
                 input_k_cache, input_v_cache, input_q, input_k, input_v, gridsize_y, output_matmul, compMeta, output_O_temp, output_sum_temp);
-            // cudaDeviceSynchronize();
         }
     }
 }
