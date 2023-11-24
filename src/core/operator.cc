@@ -77,9 +77,7 @@ bool OperatorObj::checkValid(GraphObj *graph) {
     return true;
 }
 
-optional<vector<Shape>> OperatorObj::inferShape() const {
-    return inferShape(inputs);
-}
+optional<vector<Shape>> OperatorObj::inferShape() { return inferShape(inputs); }
 
 vector<DataType> OperatorObj::inferDataType(const TensorVec &inputs) const {
     auto dataType = inputs[0]->getDType();

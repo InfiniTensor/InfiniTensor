@@ -7,7 +7,7 @@ class TransposeObj : public OperatorObj {
     TransposeObj(GraphObj *graph, Tensor input, Tensor output,
                  vector<int> permute);
     OP_CLONE(TransposeObj);
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
     int numInputs() const override { return 1; }
@@ -25,7 +25,7 @@ class DepthToSpaceObj : public OperatorObj {
     DepthToSpaceObj(GraphObj *graph, Tensor input, Tensor output, int blocksize,
                     std::string mode);
     OP_CLONE(DepthToSpaceObj);
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
     int numInputs() const override { return 1; }

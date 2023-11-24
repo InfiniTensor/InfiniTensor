@@ -34,7 +34,7 @@ class BatchNormObj : public OperatorObj {
                  Tensor var, Tensor scale, Tensor bias, float momentum = 0.9,
                  float eps = 1e-5, bool trainingMode = false);
     OP_CLONE(BatchNormObj);
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
     std::string toString() const override;
 
     // output size will be 3 when training

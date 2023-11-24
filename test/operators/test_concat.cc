@@ -14,4 +14,13 @@ TEST(Concat, ShapeInfer) {
     EXPECT_EQ(op->getOutput()->getDims(), (Shape{1, 3, 2, 9}));
 }
 
+TEST(Concat, ShapeInfer1) {
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Graph g = make_ref<GraphObj>(runtime);
+    auto t1 = g->addTensor({1, 3, 2, 4}, DataType::Float32);
+    auto t2 = g->addTensor({0}, DataType::Float32);
+
+    auto op = g->addOp<ConcatObj>(TensorVec{t1, t2}, nullptr, 3);
+    EXPECT_EQ(op->getOutput()->getDims(), (Shape{1, 3, 2, 4}));
+}
 } // namespace infini

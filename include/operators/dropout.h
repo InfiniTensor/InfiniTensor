@@ -37,7 +37,7 @@ class DropoutObj : public OperatorObj {
     DropoutObj(GraphObj *graph, Tensor data, Tensor output, Tensor mask,
                float ratio, bool training_mode);
     OP_CLONE(DropoutObj);
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
     int numInputs() const override { return 1; }
