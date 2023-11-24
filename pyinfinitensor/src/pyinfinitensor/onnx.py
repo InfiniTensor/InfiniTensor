@@ -776,27 +776,36 @@ class OnnxStub:
                         ),
                     )
                 elif node.op_type == "SendRecv":
-                    dims = _search_shape(model, node.input[0])
-                    tensors[node.output[0]] = self.handler.sendrecv(
-                        tensors[node.input[0]],
-                        tensors.get(node.output[0]),
-                        next(
+                    source = next(
                             (
                                 attr.i
                                 for attr in node.attribute
                                 if attr.name == "source"
                             ),
                             0,
-                        ),
-                        next(
+                        )
+                    destination = next(
                             (
                                 attr.i
                                 for attr in node.attribute
                                 if attr.name == "destination"
                             ),
                             0,
-                        ),
-                        dims,
+                        )
+                    shapeGenerator = (
+                                attr.i
+                                for attr in node.attribute
+                                if attr.name == "shape"
+                            )
+                    shape = []
+                    for val in shapeGenerator:
+                        shape.append(val)
+                    tensors[node.output[0]] = self.handler.sendrecv(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        source,
+                        destination,
+                        shape,
                     )
                 elif node.op_type == "Expand":
                     shape = _parse_data(data[node.input[1]])

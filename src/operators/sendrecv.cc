@@ -10,13 +10,7 @@ SendRecvObj::SendRecvObj(GraphObj *graph, Tensor input, Tensor output,
 
 optional<vector<Shape>> SendRecvObj::inferShape(const TensorVec &inputs) {
 
-    size_t size = 1;
-    for (size_t i = 0; i < dims.size(); ++i) {
-        size *= dims.at(i);
-    }
-    IT_ASSERT(size == inputs[0]->size());
-
-    return {{dims}};
+        return {{dims}};
 }
 
 vector<DataType> SendRecvObj::inferDataType(const TensorVec &inputs) const {
