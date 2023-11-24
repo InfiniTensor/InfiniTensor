@@ -7,7 +7,7 @@
 #include "operators/extend.h"
 #include "operators/pad.h"
 #include "operators/pooling.h"
-#include "operators/reduce_mean.h"
+#include "operators/reduce.h"
 #include "operators/slice.h"
 #include "operators/split.h"
 #include "operators/unary.h"

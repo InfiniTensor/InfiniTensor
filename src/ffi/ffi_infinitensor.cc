@@ -8,7 +8,7 @@
 #include "operators/matmul.h"
 #include "operators/pad.h"
 #include "operators/pooling.h"
-#include "operators/reduce_mean.h"
+#include "operators/reduce.h"
 #include "operators/reshape.h"
 #include "operators/split.h"
 #include "operators/transpose.h"
@@ -90,6 +90,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, Gather)
         .VALUE(OpType, GatherElements)
         .VALUE(OpType, ReduceMean)
+        .VALUE(OpType, ReduceSum)
         .VALUE(OpType, Reshape)
         .VALUE(OpType, Flatten)
         .VALUE(OpType, Identity)
@@ -219,12 +220,13 @@ clip_attrs_of(Operator op) {
     return std::make_tuple(clip->getMin(), clip->getMax());
 }
 
-static std::tuple<vector<int>, bool> reduce_mean_attrs_of(Operator op) {
-    IT_ASSERT(op->getOpType() == OpType::ReduceMean);
-    auto reduce_mean = dynamic_cast<const ReduceMeanObj *>(op.get());
-    auto &set = reduce_mean->getAxes();
+static std::tuple<vector<int>, bool> reduce_attrs_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::ReduceMean ||
+              op->getOpType() == OpType::ReduceSum);
+    auto reduce = dynamic_cast<const ReduceBaseObj *>(op.get());
+    auto &set = reduce->getAxes();
     return std::make_tuple(vector(set.begin(), set.end()),
-                           reduce_mean->getKeepDims());
+                           reduce->getKeepDims());
 }
 
 static int concat_axis_of(Operator op) {
@@ -319,7 +321,7 @@ void export_functions(py::module &m) {
         .FUNCTION(batch_norm_attrs_of)
         .FUNCTION(pool_attrs_of)
         .FUNCTION(clip_attrs_of)
-        .FUNCTION(reduce_mean_attrs_of)
+        .FUNCTION(reduce_attrs_of)
         .FUNCTION(tensor_dtype)
         .FUNCTION(reshape_shape_of)
         .FUNCTION(expand_shape_of)
@@ -498,7 +500,8 @@ void init_graph_builder(py::module &m) {
         .def("split", &Handler::split, policy::move)
         .def("gather", &Handler::gather, policy::move)
         .def("gatherElements", &Handler::gatherElements, policy::move)
-        .def("reduce_mean", &Handler::reduceMean, policy::move)
+        .def("reduceMean", &Handler::reduceMean, policy::move)
+        .def("reduceSum", &Handler::reduceSum, policy::move)
         .def("slice", &Handler::slice, policy::move)
         .def("pad", &Handler::pad, policy::move)
         .def("allReduceSum", &Handler::allReduceSum, policy::move)

@@ -1,10 +1,11 @@
-#include "operators/reduce_mean.h"
+#include "operators/reduce.h"
 #include "utils/operator_utils.h"
 
 namespace infini {
-ReduceMeanObj::ReduceMeanObj(GraphObj *graph, Tensor input, Tensor output,
-                             const optional<vector<int>> &_axes, bool keepDims)
-    : OperatorObj(OpType::ReduceMean, {input}, {output}), keepDims(keepDims) {
+ReduceBaseObj::ReduceBaseObj(GraphObj *graph, OpType opType, Tensor input,
+                             Tensor output, const optional<vector<int>> &_axes,
+                             bool keepDims)
+    : OperatorObj(opType, {input}, {output}), keepDims(keepDims) {
     const auto size = input->getRank();
     if (_axes) {
         for (auto idx : *_axes) {
@@ -17,11 +18,11 @@ ReduceMeanObj::ReduceMeanObj(GraphObj *graph, Tensor input, Tensor output,
     IT_ASSERT(checkValid(graph));
 }
 
-bool ReduceMeanObj::isReduced(int idx) const {
+bool ReduceBaseObj::isReduced(int idx) const {
     return axes.find(idx) != axes.end();
 }
 
-optional<vector<Shape>> ReduceMeanObj::inferShape(const TensorVec &inputs) {
+optional<vector<Shape>> ReduceBaseObj::inferShape(const TensorVec &inputs) {
     auto dims = inputs[0]->getDims();
     auto rank = inputs[0]->getRank();
 
@@ -43,10 +44,9 @@ optional<vector<Shape>> ReduceMeanObj::inferShape(const TensorVec &inputs) {
     }
 }
 
-std::string ReduceMeanObj::toString() const {
+std::string ReduceBaseObj::toString() const {
     std::ostringstream os;
-    os << "ReduceMean"
-       << "[" << getGuid() << "]";
+    os << type.toString() << "[" << getGuid() << "]";
     os << "(";
     os << vecToString(inputs[0]->getDims()) << ",";
 
@@ -66,7 +66,7 @@ std::string ReduceMeanObj::toString() const {
     return os.str();
 }
 
-vector<int> ReduceMeanObj::getWorkloadVector() const {
+vector<int> ReduceBaseObj::getWorkloadVector() const {
     vector<int> ret = inputs[0]->getDims();
     ret.emplace(ret.begin(), type.underlying());
     ret.emplace_back((int)keepDims);
@@ -74,9 +74,18 @@ vector<int> ReduceMeanObj::getWorkloadVector() const {
     return ret;
 }
 
-vector<int> ReduceMeanObj::getOpAttrVector() const {
+vector<int> ReduceBaseObj::getOpAttrVector() const {
     vector<int> ret = {type.underlying(), (int)keepDims};
     ret.insert(ret.end(), axes.begin(), axes.end());
     return ret;
 }
+
+ReduceMeanObj::ReduceMeanObj(GraphObj *graph, Tensor input, Tensor output,
+                             const optional<vector<int>> &_axes, bool keepDims)
+    : ReduceBaseObj(graph, OpType::ReduceMean, input, output, _axes, keepDims) {
+}
+
+ReduceSumObj::ReduceSumObj(GraphObj *graph, Tensor input, Tensor output,
+                           const optional<vector<int>> &_axes, bool keepDims)
+    : ReduceBaseObj(graph, OpType::ReduceSum, input, output, _axes, keepDims) {}
 } // namespace infini
