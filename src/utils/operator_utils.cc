@@ -41,4 +41,27 @@ int get_real_axis(const int &axis, const int &rank) {
     }
     return newAxis;
 }
+
+bool is_unidirectional_broadcasting(const Shape &A, const Shape &B) {
+    // check if tensor B is unidirectional broadcastable to tensor A
+    auto B_ = B;
+    int rankA = A.size();
+    int rankB = B.size();
+    if (rankA < rankB) {
+        return false;
+    }
+    if (rankA > rankB) {
+        for (auto i = 0; i < rankA - rankB; ++i) {
+            B_.insert(B_.begin(), 1);
+        }
+    }
+    for (auto i = 0; i < rankA; ++i) {
+        if (A[i] == B_[i] || B_[i] == 1) {
+            continue;
+        } else {
+            return false;
+        }
+    }
+    return true;
+}
 } // namespace infini
