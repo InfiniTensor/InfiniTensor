@@ -21,8 +21,7 @@ LayerNormObj::LayerNormObj(GraphObj *graph, Tensor input, Tensor scale,
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>>
-LayerNormObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> LayerNormObj::inferShape(const TensorVec &inputs) {
     return {{inputs[0]->getDims()}};
 }
 

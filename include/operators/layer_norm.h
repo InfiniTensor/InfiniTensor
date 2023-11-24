@@ -11,7 +11,7 @@ class LayerNormObj : public OperatorObj {
                  Tensor bias = nullptr, float eps = 1e-5, int axis = -1,
                  int stash_type = 1);
     OP_CLONE(LayerNormObj);
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
     std::string toString() const override;
 
     Tensor getBias() const { return inputs.size() > 2 ? inputs[2] : nullptr; }
