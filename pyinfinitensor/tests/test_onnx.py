@@ -337,6 +337,14 @@ class TestStringMethods(unittest.TestCase):
             "ReduceMean", ["data"], ["reduced"], keepdims=1, name="reduceMean"
         )
         make_and_import_model(make_graph([reduceMean], "reduceMean", [data], [reduced]))
+    
+    def test_reduce_sum(self):
+        data = make_tensor_value_info("data", TensorProto.FLOAT, [2, 3, 3, 4])
+        reduced = make_tensor_value_info("reduced", TensorProto.FLOAT, [1, 1, 1, 1])
+        reduceSum = make_node(
+            "ReduceSum", ["data"], ["reduced"], keepdims=1, name="reduceSum"
+        )
+        make_and_import_model(make_graph([reduceSum], "reduceSum", [data], [reduced]))
 
     def test_slice(self):
         data = make_tensor_value_info("data", TensorProto.UINT32, [10, 64, 162, 162])
