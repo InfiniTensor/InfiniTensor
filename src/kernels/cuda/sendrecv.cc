@@ -14,23 +14,33 @@ class SendRecvNCCL : public CudaKernelWithoutConfig {
         void *input = op->getInputs(0)->getRawDataPtr<void *>();
         void *output = op->getOutput(0)->getRawDataPtr<void *>();
         IT_ASSERT(op->getDType() == DataType::Float32);
-        size_t count = op->getInputs(0)->getBytes() / op->getDType().getSize();
+        // size_t count = op->getInputs(0)->getBytes() /
+        // op->getDType().getSize();
+        const auto shape = op->getShape();
+        int nDims = shape.size();
+        int count = 1;
+        for (int i = 0; i < nDims; i++) {
+            count *= shape[i];
+        }
 
         ncclComm_t comm =
             dynamic_cast<NcclCommunicatorObj &>(context->getCommunicator())
                 .getNcclComm();
         // TODO: Using default stream 0 for now.
         int rank;
-        checkNcclError(ncclCommUserRank(comm, &rank));
 
+        checkNcclError(ncclCommUserRank(comm, &rank));
+        // std::cout << rank << "," << count << std::endl;
         int source = op->getSource();
         int destination = op->getDestination();
 
         if (rank == source) {
+
             checkNcclError(
                 ncclSend(input, count, ncclFloat, destination, comm, 0));
         }
         if (rank == destination) {
+
             checkNcclError(ncclRecv(output, count, ncclFloat, source, comm, 0));
         }
     }

@@ -438,8 +438,10 @@ Tensor GraphHandlerObj::broadcast(Tensor input, Tensor output, int root) {
 Tensor GraphHandlerObj::sendrecv(Tensor input, Tensor output, int source,
                                  int destination, Shape dims) {
     if (output) {
+
         g->addOpWithOutputs<SendRecvObj>(std::move(input), output, source,
                                          destination, std::move(dims));
+
         return output;
     } else {
         return g

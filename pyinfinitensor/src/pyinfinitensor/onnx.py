@@ -703,12 +703,12 @@ class OnnxStub:
                             tensors[node.input[0]],
                             tensors.get(node.output[0]),
                         )
-                    else: 
+                    else:
                         # NOTE: `axes` is an attribute until opset version 13.
                         if len(node.input) > 1:
                             axis = _parse_data(data[node.input[1]])
                         else:
-                            axis =  next(
+                            axis = next(
                                 (
                                     attr.ints
                                     for attr in node.attribute
@@ -716,14 +716,17 @@ class OnnxStub:
                                 ),
                                 None,
                             )
-                        keepdims = next(
-                            (
-                                attr.i
-                                for attr in node.attribute
-                                if attr.name == "keepdims"
-                            ),
-                            1,
-                        ) != 0
+                        keepdims = (
+                            next(
+                                (
+                                    attr.i
+                                    for attr in node.attribute
+                                    if attr.name == "keepdims"
+                                ),
+                                1,
+                            )
+                            != 0
+                        )
 
                         tensors[node.output[0]] = self.handler.reduceSum(
                             tensors[node.input[0]],
@@ -777,29 +780,24 @@ class OnnxStub:
                     )
                 elif node.op_type == "SendRecv":
                     source = next(
-                            (
-                                attr.i
-                                for attr in node.attribute
-                                if attr.name == "source"
-                            ),
-                            0,
-                        )
+                        (attr.i for attr in node.attribute if attr.name == "source"),
+                        0,
+                    )
                     destination = next(
-                            (
-                                attr.i
-                                for attr in node.attribute
-                                if attr.name == "destination"
-                            ),
-                            0,
-                        )
-                    shapeGenerator = (
-                                attr.i
-                                for attr in node.attribute
-                                if attr.name == "shape"
-                            )
+                        (
+                            attr.i
+                            for attr in node.attribute
+                            if attr.name == "destination"
+                        ),
+                        0,
+                    )
+
+                    for attr in node.attribute:
+                        if attr.name == "shape":
+                            shapeBasic = attr.ints
                     shape = []
-                    for val in shapeGenerator:
-                        shape.append(val)
+                    for item in shapeBasic:
+                        shape.append(item)
                     tensors[node.output[0]] = self.handler.sendrecv(
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
@@ -1123,10 +1121,7 @@ class OnnxStub:
             elif ty == backend.OpTypeId.Gather:
                 axis = backend.gather_axis_of(op)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, axis=axis))
-            elif ty in [
-                backend.OpTypeId.ReduceMean,
-                backend.OpTypeId.ReduceSum
-            ]:
+            elif ty in [backend.OpTypeId.ReduceMean, backend.OpTypeId.ReduceSum]:
                 axes, keepdims = backend.reduce_attrs_of(op)
                 inputs.append(
                     ctx.push_data_input(
