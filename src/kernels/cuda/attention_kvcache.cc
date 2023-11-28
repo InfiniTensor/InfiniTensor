@@ -24,7 +24,6 @@ class AttentionKVCacheCompute {
                     Tensor output_matmul, Tensor output_temp_O, Tensor output_temp_sum) const {
         AttentionKVCacheMetadata metadata;
         initAttentionKVCacheMetadata(metadata, input_v_cache);
-        std::cout << "do compute" << std::endl;
 
         attention_kvcache_kernel(input_k_cache->getRawDataPtr<float *>(),
                                  input_v_cache->getRawDataPtr<float *>(),
