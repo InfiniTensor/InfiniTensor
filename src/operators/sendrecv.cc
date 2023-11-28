@@ -5,12 +5,13 @@ SendRecvObj::SendRecvObj(GraphObj *graph, Tensor input, Tensor output,
                          int source, int destination, Shape dims)
     : OperatorObj(OpType::SendRecv, {input}, {output}), source(source),
       destination(destination), dims(std::move(dims)) {
+
     IT_ASSERT(checkValid(graph));
 }
 
 optional<vector<Shape>> SendRecvObj::inferShape(const TensorVec &inputs) {
 
-        return {{dims}};
+    return {{dims}};
 }
 
 vector<DataType> SendRecvObj::inferDataType(const TensorVec &inputs) const {

@@ -14,13 +14,13 @@ class SendRecvNCCL : public CudaKernelWithoutConfig {
         void *input = op->getInputs(0)->getRawDataPtr<void *>();
         void *output = op->getOutput(0)->getRawDataPtr<void *>();
         IT_ASSERT(op->getDType() == DataType::Float32);
-        // size_t count = op->getInputs(0)->getBytes() /
-        // op->getDType().getSize();
+        size_t inputCount =
+            op->getInputs(0)->getBytes() / op->getDType().getSize();
         const auto shape = op->getShape();
         int nDims = shape.size();
-        int count = 1;
+        int outputCount = 1;
         for (int i = 0; i < nDims; i++) {
-            count *= shape[i];
+            outputCount *= shape[i];
         }
 
         ncclComm_t comm =
@@ -37,11 +37,12 @@ class SendRecvNCCL : public CudaKernelWithoutConfig {
         if (rank == source) {
 
             checkNcclError(
-                ncclSend(input, count, ncclFloat, destination, comm, 0));
+                ncclSend(input, inputCount, ncclFloat, destination, comm, 0));
         }
         if (rank == destination) {
 
-            checkNcclError(ncclRecv(output, count, ncclFloat, source, comm, 0));
+            checkNcclError(
+                ncclRecv(output, outputCount, ncclFloat, source, comm, 0));
         }
     }
 };
