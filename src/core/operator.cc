@@ -62,10 +62,10 @@ bool OperatorObj::checkValid(GraphObj *graph) {
     const vector<Shape> &shapes = *optShapes;
     if (shapes.size() != outputs.size())
         return false;
-    if (graph) { // if graph != nullptr, outputs should be created
+    if (graph) {
         auto dataTypes = inferDataType();
         for (size_t i = 0; i < outputs.size(); i++) {
-            if(!outputs[i])
+            if (!outputs[i])
                 outputs[i] = graph->addTensor(shapes[i], dataTypes[i]);
             else if (shapes[i] != outputs[i]->getDims())
                 return false;

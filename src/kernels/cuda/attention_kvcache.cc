@@ -21,7 +21,8 @@ class AttentionKVCacheCompute {
   public:
     void do_compute(Tensor input_k_cache, Tensor input_v_cache, Tensor input_q,
                     Tensor input_k, Tensor input_v, Tensor position_id,
-                    Tensor output_matmul, Tensor output_temp_O, Tensor output_temp_sum) const {
+                    Tensor output_matmul, Tensor output_temp_O,
+                    Tensor output_temp_sum) const {
         AttentionKVCacheMetadata metadata;
         initAttentionKVCacheMetadata(metadata, input_v_cache);
 
@@ -42,11 +43,10 @@ class AttentionKVCacheCuda : private AttentionKVCacheCompute,
                              public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
-        do_compute(_op->getInputs()[0], _op->getInputs()[1],
-                   _op->getInputs()[2], _op->getInputs()[3],
-                   _op->getInputs()[4], _op->getInputs()[5],
-                   _op->getOutputs()[0], _op->getOutputs()[1], 
-                   _op->getOutputs()[2]);
+        do_compute(
+            _op->getInputs()[0], _op->getInputs()[1], _op->getInputs()[2],
+            _op->getInputs()[3], _op->getInputs()[4], _op->getInputs()[5],
+            _op->getOutputs()[0], _op->getOutputs()[1], _op->getOutputs()[2]);
     }
 };
 
