@@ -30,8 +30,9 @@ class UnaryCnnl : public BangKernelWithoutConfig {
                                                cDim.data()));
         cnnlActivationDescriptor_t opDesc;
         checkCnnlError(cnnlCreateActivationDescriptor(&opDesc));
-        checkCnnlError(cnnlSetActivationDescriptor(
-            opDesc, getOpType(), CNNL_NOT_PROPAGATE_NAN, getCoef()));
+        checkCnnlError(cnnlSetActivationDescriptor_v2(
+            opDesc, getOpType(), CNNL_ACTIVATION_HIGH_PRECISION,
+            CNNL_NOT_PROPAGATE_NAN, getCoef()));
 
         auto [alpha, beta] = getAlphBeta();
         cnnlStatus_t stat =
