@@ -22,7 +22,7 @@ class ConcatObj : public OperatorObj {
     ConcatObj(GraphObj *graph, TensorVec inputs, Tensor output, int dim);
     OP_CLONE(ConcatObj);
 
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
     int numInputs() const override { return inputs.size(); }

@@ -32,6 +32,7 @@ class TensorObj : public TensorBaseObj {
     size_t getBytes() const { return _size * dtype.getSize(); }
 
     Shape getDims() const { return shape; }
+    void setShape(Shape shape_);
     size_t getRank() const { return shape.size(); }
     Shape getStride() const;
     size_t getOffset(const vector<int> &ds) const;

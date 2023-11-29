@@ -10,6 +10,8 @@ namespace infini {
 Shape infer_broadcast(const Shape &A, const Shape &B);
 // Launch the real axis based on rank and current axis
 int get_real_axis(const int &axis, const int &rank);
+// check if tensor B is unidirectional broadcastable to tensor A
+bool is_unidirectional_broadcasting(const Shape &A, const Shape &B);
 } // namespace infini
 
 #endif

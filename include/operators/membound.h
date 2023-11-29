@@ -21,7 +21,7 @@ class MemBoundObj : public OperatorObj {
     OP_CLONE(MemBoundObj);
 
     std::string toString() const override;
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     int numInputs() const override { return inputs.size(); }
     int numOutputs() const override { return outputs.size(); }

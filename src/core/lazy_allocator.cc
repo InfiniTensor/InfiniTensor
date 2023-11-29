@@ -30,6 +30,9 @@ LazyAllocator::~LazyAllocator() {
     if (this->weightPtr != nullptr) {
         runtime->dealloc(this->weightPtr);
     }
+    if (this->memPoolPtr != nullptr) {
+        runtime->dealloc(this->memPoolPtr);
+    }
 }
 
 void LazyAllocator::init() {
@@ -43,6 +46,17 @@ void LazyAllocator::init() {
     }
     this->ptr = nullptr;
 }
+
+void LazyAllocator::setMemPool(size_t memPoolSize) {
+    IT_ASSERT(memPoolSize > 0);
+    if (!this->hasMemPool) {
+        this->hasMemPool = true;
+        this->memPoolSize = memPoolSize;
+        this->memPoolPtr = runtime->alloc(memPoolSize);
+    }
+}
+
+bool LazyAllocator::getMemPoolStatus() { return this->hasMemPool; }
 
 size_t LazyAllocator::alloc(size_t size) {
     // pad the size to the multiple of alignment
@@ -102,6 +116,17 @@ size_t LazyAllocator::allocWeight(size_t size) {
     return retAddr;
 }
 
+size_t LazyAllocator::heapAlloc(size_t size) {
+    size = this->getAlignedSize(size);
+    this->heapPeak += size;
+    IT_ASSERT(this->memPoolSize >=
+              this->weightPeak + this->peak + this->heapPeak);
+    size_t retAddr = this->memPoolSize - this->heapPeak;
+    return retAddr;
+}
+
+void LazyAllocator::freeHeap() { this->heapPeak = 0; }
+
 void LazyAllocator::free(size_t addr, size_t size) {
     IT_ASSERT(this->ptr == nullptr);
     size = getAlignedSize(size);
@@ -143,25 +168,40 @@ void LazyAllocator::free(size_t addr, size_t size) {
 }
 
 void *LazyAllocator::getPtr() {
-    if (this->ptr == nullptr) {
-        this->ptr = runtime->alloc(this->peak);
-        // #ifdef DEBUG_MODE
-        //         printf("LazyAllocator really alloc non-weight: %p %lu
-        //         bytes\n", this->ptr, peak);
-        // #endif
+    if (!hasMemPool) {
+        if (this->ptr == nullptr) {
+            this->ptr = runtime->alloc(this->peak);
+            // #ifdef DEBUG_MODE
+            //         printf("LazyAllocator really alloc non-weight: %p %lu
+            //         bytes\n", this->ptr, peak);
+            // #endif
+        }
+        return this->ptr;
+    } else {
+        IT_ASSERT(this->memPoolSize >= this->weightPeak + this->peak);
+        return static_cast<uint8_t *>(this->memPoolPtr) + weightPeak;
     }
-    return this->ptr;
 }
 
 void *LazyAllocator::getWeightPtr() {
-    if (this->weightPtr == nullptr) {
-        this->weightPtr = runtime->alloc(this->weightPeak);
-        // #ifdef DEBUG_MODE
-        //         printf("LazyAllocator really alloc weight: %p %lu bytes\n",
-        //                this->weightPtr, weightPeak);
-        // #endif
+    if (!hasMemPool) {
+        if (this->weightPtr == nullptr) {
+            this->weightPtr = runtime->alloc(this->weightPeak);
+            // #ifdef DEBUG_MODE
+            //         printf("LazyAllocator really alloc weight: %p %lu
+            //         bytes\n",
+            //                this->weightPtr, weightPeak);
+            // #endif
+        }
+        return this->weightPtr;
+    } else {
+        return this->memPoolPtr;
     }
-    return this->weightPtr;
+}
+
+void *LazyAllocator::getHeapPtr() {
+    IT_ASSERT(hasMemPool);
+    return this->memPoolPtr;
 }
 
 size_t LazyAllocator::getAlignedSize(size_t size) {

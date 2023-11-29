@@ -10,7 +10,7 @@ WhereObj::WhereObj(GraphObj *graph, Tensor inputX, Tensor inputY,
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> WhereObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> WhereObj::inferShape(const TensorVec &inputs) {
     auto shapeX = inputs[0]->getDims();
     auto shapeY = inputs[1]->getDims();
     auto shapeCon = inputs[2]->getDims();

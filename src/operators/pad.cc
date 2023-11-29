@@ -22,7 +22,7 @@ PadObj::PadObj(GraphObj *graph, Tensor input, Tensor output,
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> PadObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> PadObj::inferShape(const TensorVec &inputs) {
     auto dims = inputs[0]->getDims();
     int rank = inputs[0]->getRank();
     IT_ASSERT(rank * 2 == (int)pads.size());

@@ -24,8 +24,7 @@ bool checkShape(Tensor input, Tensor indices, int axis) {
     return true;
 }
 
-optional<vector<Shape>>
-GatherElementsObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> GatherElementsObj::inferShape(const TensorVec &inputs) {
     IT_ASSERT(checkShape(inputs[0], inputs[1], axis));
     auto indicesDims = inputs[1]->getDims(); // output has same shape as indices
     return {{indicesDims}};

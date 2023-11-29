@@ -8,7 +8,7 @@ ExpandObj::ExpandObj(GraphObj *graph, Tensor input, Tensor output, Shape dims)
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> ExpandObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> ExpandObj::inferShape(const TensorVec &inputs) {
     auto shape_input = inputs[0]->getDims();
     Shape ret = infer_broadcast(shape_input, dims);
     return {{ret}};
