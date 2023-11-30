@@ -8,6 +8,7 @@ INTELCPU ?= off
 BACKTRACE ?= ON
 TEST ?= ON
 NNET ?= OFF
+DIST ?= OFF
 FORMAT_ORIGIN ?=
 # Docker build options
 DOCKER_NAME ?= infinitensor
@@ -31,8 +32,8 @@ CMAKE_OPT += -DUSE_BACKTRACE=$(BACKTRACE)
 CMAKE_OPT += -DBUILD_TEST=$(TEST)
 CMAKE_OPT += -DBUILD_DIST=$(DIST)
 # Choose gcc/g++ compiler in .210 KUNLUN server
-# CMAKE_OPT += -DCMAKE_CXX_COMPILER=/usr/local/gcc-11.3/bin/g++
-# CMAKE_OPT += -DCMAKE_C_COMPILER=/usr/local/gcc-11.3/bin/gcc
+CMAKE_OPT += -DCMAKE_CXX_COMPILER=/usr/local/gcc-11.3/bin/g++
+CMAKE_OPT += -DCMAKE_C_COMPILER=/usr/local/gcc-11.3/bin/gcc
 CMAKE_OPT += -DBUILD_NNET=$(NNET)
 
 ifeq ($(INTELCPU), ON)
@@ -41,7 +42,7 @@ endif
 
 build:
 	mkdir -p build/$(TYPE)
-	cd build/$(TYPE) && cmake $(CMAKE_OPT) ../.. && make -j8
+	cd build/$(TYPE) && cmake $(CMAKE_OPT) ../.. && make -j32
 
 clean:
 	rm -rf build

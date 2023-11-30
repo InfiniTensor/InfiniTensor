@@ -21,10 +21,9 @@ class AddXdnn : public KUNLUNKernelWithoutConfig {
         if (bDim.size() == 0) {
             bDim.push_back(1);
         }
-        auto ret = baidu::xpu::api::broadcast_add<float>(
+        checkKUNLUNError(baidu::xpu::api::broadcast_add<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
-            (float *)cData, aDim, bDim);
-        assert(ret == 0);
+            (float *)cData, aDim, bDim));
         return;
     }
 };
@@ -47,10 +46,9 @@ class SubXdnn : public KUNLUNKernelWithoutConfig {
         if (bDim.size() == 0) {
             bDim.push_back(1);
         }
-        auto ret = baidu::xpu::api::broadcast_sub<float>(
+        checkKUNLUNError(baidu::xpu::api::broadcast_sub<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
-            (float *)cData, aDim, bDim);
-        assert(ret == 0);
+            (float *)cData, aDim, bDim));
         return;
     }
 };
@@ -73,10 +71,9 @@ class MulXdnn : public KUNLUNKernelWithoutConfig {
         if (bDim.size() == 0) {
             bDim.push_back(1);
         }
-        auto ret = baidu::xpu::api::broadcast_mul<float>(
+        checkKUNLUNError(baidu::xpu::api::broadcast_mul<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
-            (float *)cData, aDim, bDim);
-        assert(ret == 0);
+            (float *)cData, aDim, bDim));
         return;
     }
 };
@@ -93,10 +90,12 @@ class DivXdnn : public KUNLUNKernelWithoutConfig {
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
-        auto ret = baidu::xpu::api::broadcast_div<float>(
+        if (bDim.size() == 0){
+            bDim.push_back(1);
+        }
+        checkKUNLUNError(baidu::xpu::api::broadcast_div<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
-            (float *)cData, aDim, bDim);
-        assert(ret == 0);
+            (float *)cData, aDim, bDim)); 
         return;
     }
 };
@@ -120,10 +119,9 @@ class PowXdnn : public KUNLUNKernelWithoutConfig {
             bDim.push_back(1);
         }
 
-        auto ret = baidu::xpu::api::broadcast_pow<float>(
+        checkKUNLUNError(baidu::xpu::api::broadcast_pow<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
-            (float *)cData, aDim, bDim);
-        assert(ret == 0);
+            (float *)cData, aDim, bDim));
         return;
     }
 };
@@ -146,10 +144,9 @@ class MaxXdnn : public KUNLUNKernelWithoutConfig {
         if (bDim.size() == 0) {
             bDim.push_back(1);
         }
-        auto ret = baidu::xpu::api::broadcast_max<float>(
+        checkKUNLUNError(baidu::xpu::api::broadcast_max<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
-            (float *)cData, aDim, bDim);
-        assert(ret == 0);
+            (float *)cData, aDim, bDim));
         return;
     }
 };
@@ -172,10 +169,9 @@ class MinXdnn : public KUNLUNKernelWithoutConfig {
         if (bDim.size() == 0) {
             bDim.push_back(1);
         }
-        auto ret = baidu::xpu::api::broadcast_min<float>(
+        checkKUNLUNError(baidu::xpu::api::broadcast_min<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
-            (float *)cData, aDim, bDim);
-        assert(ret == 0);
+            (float *)cData, aDim, bDim));
         return;
     }
 };
@@ -200,12 +196,11 @@ class EqualXdnn : public KUNLUNKernelWithoutConfig {
         if (bDim.size() == 0) {
             bDim.push_back(1);
         }
-        auto ret = baidu::xpu::api::broadcast_equal<float>(
+        checkKUNLUNError(baidu::xpu::api::broadcast_equal<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
-            (bool *)wsData, aDim, bDim);
-        ret = baidu::xpu::api::cast<bool, float>(
-            context->KUNLUNHandle(), (bool *)wsData, (float *)cData, len);
-        assert(ret == 0);
+            (bool *)wsData, aDim, bDim));
+        checkKUNLUNError((baidu::xpu::api::cast<bool,float>(
+            context->KUNLUNHandle(), (bool *)wsData, (float *)cData, len)));
         return;
     }
 };
@@ -230,12 +225,11 @@ class GreaterEqualXdnn : public KUNLUNKernelWithoutConfig {
         if (bDim.size() == 0) {
             bDim.push_back(1);
         }
-        auto ret = baidu::xpu::api::broadcast_greater_equal<float>(
+        checkKUNLUNError(baidu::xpu::api::broadcast_greater_equal<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
-            (bool *)wsData, aDim, bDim);
-        ret = baidu::xpu::api::cast<bool, float>(
-            context->KUNLUNHandle(), (bool *)wsData, (float *)cData, len);
-        assert(ret == 0);
+            (bool *)wsData, aDim, bDim));
+        checkKUNLUNError((baidu::xpu::api::cast<bool, float>(
+            context->KUNLUNHandle(), (bool *)wsData, (float *)cData, len)));
         return;
     }
 };
@@ -260,12 +254,11 @@ class GreaterThanXdnn : public KUNLUNKernelWithoutConfig {
         if (bDim.size() == 0) {
             bDim.push_back(1);
         }
-        auto ret = baidu::xpu::api::broadcast_greater_than<float>(
+        checkKUNLUNError(baidu::xpu::api::broadcast_greater_than<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
-            (bool *)wsData, aDim, bDim);
-        ret = baidu::xpu::api::cast<bool, float>(
-            context->KUNLUNHandle(), (bool *)wsData, (float *)cData, len);
-        assert(ret == 0);
+            (bool *)wsData, aDim, bDim));
+        checkKUNLUNError((baidu::xpu::api::cast<bool, float>(
+            context->KUNLUNHandle(), (bool *)wsData, (float *)cData, len)));
         return;
     }
 };
@@ -290,12 +283,11 @@ class LessEqualXdnn : public KUNLUNKernelWithoutConfig {
         if (bDim.size() == 0) {
             bDim.push_back(1);
         }
-        auto ret = baidu::xpu::api::broadcast_less_equal<float>(
+        checkKUNLUNError( baidu::xpu::api::broadcast_less_equal<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
-            (bool *)wsData, aDim, bDim);
-        ret = baidu::xpu::api::cast<bool, float>(
-            context->KUNLUNHandle(), (bool *)wsData, (float *)cData, len);
-        assert(ret == 0);
+            (bool *)wsData, aDim, bDim));
+        checkKUNLUNError( (baidu::xpu::api::cast<bool, float>(
+            context->KUNLUNHandle(), (bool *)wsData, (float *)cData, len)));
         return;
     }
 };
@@ -320,12 +312,11 @@ class LessThanXdnn : public KUNLUNKernelWithoutConfig {
         if (bDim.size() == 0) {
             bDim.push_back(1);
         }
-        auto ret = baidu::xpu::api::broadcast_less_than<float>(
+        checkKUNLUNError( baidu::xpu::api::broadcast_less_than<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
-            (bool *)wsData, aDim, bDim);
-        ret = baidu::xpu::api::cast<bool, float>(
-            context->KUNLUNHandle(), (bool *)wsData, (float *)cData, len);
-        assert(ret == 0);
+            (bool *)wsData, aDim, bDim));
+        checkKUNLUNError(( baidu::xpu::api::cast<bool, float>(
+            context->KUNLUNHandle(), (bool *)wsData, (float *)cData, len)));
         return;
     }
 };
@@ -348,10 +339,9 @@ class FloorDivXdnn : public KUNLUNKernelWithoutConfig {
         if (bDim.size() == 0) {
             bDim.push_back(1);
         }
-        auto ret = baidu::xpu::api::broadcast_floordiv<float>(
+        checkKUNLUNError( baidu::xpu::api::broadcast_floordiv<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
-            (float *)cData, aDim, bDim);
-        assert(ret == 0);
+            (float *)cData, aDim, bDim));
         return;
     }
 };
@@ -368,10 +358,9 @@ class MSELossXdnn : public KUNLUNKernelWithoutConfig {
         size_t len = op->getOutput()->size();
 
         auto dim = op->getInputs(0)->getDims();
-        auto ret = baidu::xpu::api::mse_loss<float>(
+        checkKUNLUNError( baidu::xpu::api::mse_loss<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
-            (float *)cData, len);
-        assert(ret == 0);
+            (float *)cData, len));
         return;
     }
 };
@@ -396,12 +385,11 @@ class AndXdnn : public KUNLUNKernelWithoutConfig {
         if (bDim.size() == 0) {
             bDim.push_back(1);
         }
-        auto ret = baidu::xpu::api::logical_and<bool>(
+        checkKUNLUNError(baidu::xpu::api::logical_and<bool>(
             context->KUNLUNHandle(), (bool *)aData, (bool *)bData,
-            (bool *)wsData, len);
-        ret = baidu::xpu::api::cast<bool, float>(
-            context->KUNLUNHandle(), (bool *)wsData, (float *)cData, len);
-        assert(ret == 0);
+            (bool *)wsData, len));
+        checkKUNLUNError(( baidu::xpu::api::cast<bool, float>(
+            context->KUNLUNHandle(), (bool *)wsData, (float *)cData, len)));
         return;
     }
 };
@@ -426,12 +414,11 @@ class OrXdnn : public KUNLUNKernelWithoutConfig {
         if (bDim.size() == 0) {
             bDim.push_back(1);
         }
-        auto ret = baidu::xpu::api::logical_or<bool>(
+        checkKUNLUNError(baidu::xpu::api::logical_or<bool>(
             context->KUNLUNHandle(), (bool *)aData, (bool *)bData,
-            (bool *)wsData, len);
-        ret = baidu::xpu::api::cast<bool, float>(
-            context->KUNLUNHandle(), (bool *)wsData, (float *)cData, len);
-        assert(ret == 0);
+            (bool *)wsData, len));
+        checkKUNLUNError(( baidu::xpu::api::cast<bool, float>(
+            context->KUNLUNHandle(), (bool *)wsData, (float *)cData, len)));
         return;
     }
 };
@@ -456,12 +443,11 @@ class XorXdnn : public KUNLUNKernelWithoutConfig {
         if (bDim.size() == 0) {
             bDim.push_back(1);
         }
-        auto ret = baidu::xpu::api::logical_xor<bool>(
+        checkKUNLUNError( baidu::xpu::api::logical_xor<bool>(
             context->KUNLUNHandle(), (bool *)aData, (bool *)bData,
-            (bool *)wsData, len);
-        ret = baidu::xpu::api::cast<bool, float>(
-            context->KUNLUNHandle(), (bool *)wsData, (float *)cData, len);
-        assert(ret == 0);
+            (bool *)wsData, len));
+        checkKUNLUNError(( baidu::xpu::api::cast<bool, float>(
+            context->KUNLUNHandle(), (bool *)wsData, (float *)cData, len)));
         return;
     }
 };
@@ -478,11 +464,10 @@ class NotXdnn : public KUNLUNKernelWithoutConfig {
         KUNLUNPtr wsData = context->getWorkspace(len);
 
         auto aDim = op->getInputs(0)->getDims();
-        auto ret = baidu::xpu::api::logical_not<bool>(
-            context->KUNLUNHandle(), (bool *)aData, (bool *)wsData, len);
-        ret = baidu::xpu::api::cast<bool, float>(
-            context->KUNLUNHandle(), (bool *)wsData, (float *)cData, len);
-        assert(ret == 0);
+        checkKUNLUNError( baidu::xpu::api::logical_not<bool>(
+            context->KUNLUNHandle(), (bool *)aData, (bool *)wsData, len));
+        checkKUNLUNError(( baidu::xpu::api::cast<bool, float>(
+            context->KUNLUNHandle(), (bool *)wsData, (float *)cData, len)));
         return;
     }
 };

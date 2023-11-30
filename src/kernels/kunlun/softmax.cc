@@ -31,7 +31,7 @@ class SoftmaxXdnn : public KUNLUNKernelWithoutConfig {
             (float *)temp2, dim, temp2Shape));
 
         auto ret = baidu::xpu::api::softmax<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)cData, dim, axis);
+            context->KUNLUNHandle(), (float *)temp2, (float *)cData, dim, axis);
         // auto ret = baidu::xpu::api::relu<float>(
         //     context->KUNLUNHandle(), (float *)aData, (float *)cData, op->getInputs(0)->size());
         assert(ret == 0);

@@ -27,10 +27,10 @@ void KUNLUNRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
             auto cpuTensor = op->getOutput(0)->clone(cpuRuntime);
             std::cout << i++ << "th Op: " << op->getOpType().underlying() << std::endl;
             std::cout << cpuTensor->getRawDataPtr<float*>()[0] << std::endl;
-            if (op->getDType() == OpType::Softmax){
-                cpuTensor->dumpData(ofs);
+            if (op->getOpType() == OpType::Softmax){
                 auto cpuTensorInput = op->getInputs(0)->clone(cpuRuntime);
                 cpuTensorInput->dumpData(ofs);
+                ofs.close();
             }
             continue;
         }
