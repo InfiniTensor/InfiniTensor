@@ -46,6 +46,9 @@ class OnnxStub:
                 model = model_simp
         except ValidationError:
             pass
+        except RuntimeError:
+            pass
+
         self.inputs: Dict[str, backend.Tensor] = {}
         self.outputs: Dict[str, backend.Tensor] = {}
         self.initializer: Dict[int, TensorProto] = {}
@@ -234,6 +237,25 @@ class OnnxStub:
                         momentum,
                         eps,
                         training != 0,
+                    )
+                elif node.op_type == "LayerNormalization":
+                    (input, scale) = (tensors[node.input[i]] for i in [0, 1])
+                    bias = None if len(node.input) < 3 else tensors[node.input[2]]
+                    output = tensors.get(node.output[0])
+                    attributes = _parse_attribute(
+                        node, {"axis": -1, "epsilon": 1e-05, "stash_type": 1}
+                    )
+                    (axis, eps, stash_type) = (
+                        attributes[name] for name in ["axis", "epsilon", "stash_type"]
+                    )
+                    tensors[node.output[0]] = self.handler.layerNormalization(
+                        input,
+                        scale,
+                        output,
+                        bias,
+                        eps,
+                        axis,
+                        stash_type,
                     )
                 elif node.op_type == "MaxPool":
                     attributes = _parse_attribute(
@@ -507,19 +529,11 @@ class OnnxStub:
                         mode,
                     )
                 elif node.op_type == "Reshape":
-                    dims = _search_shape(model, node.input[0])
-                    size = reduce(lambda acc, x: acc * x, dims)
-                    input_shape = _parse_data(data[node.input[1]])
-                    for i, x in enumerate(input_shape):
-                        if x == 0:
-                            input_shape[i] = dims[i]
-                    temp = reduce(lambda acc, x: acc * x, input_shape, 1)
-                    if temp < 0:
-                        input_shape[input_shape.index(-1)] = size // -temp
+                    shape = _parse_data(data[node.input[1]])
                     tensors[node.output[0]] = self.handler.reshape(
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
-                        input_shape,
+                        shape,
                     )
                 elif node.op_type == "Squeeze":
                     input_shape = _search_shape(model, node.input[0])
@@ -560,6 +574,16 @@ class OnnxStub:
                             (attr.i for attr in node.attribute if attr.name == "axis")
                         ),
                     )
+                elif node.op_type == "AttentionKVCache":
+                    tensors[node.output[0]] = self.handler.attentionKVCache(
+                        tensors[node.input[0]],
+                        tensors[node.input[1]],
+                        tensors[node.input[2]],
+                        tensors[node.input[3]],
+                        tensors[node.input[4]],
+                        tensors[node.input[5]],
+                        tensors.get(node.output[0]),
+                    )
                 elif node.op_type == "Split":
                     for name, tensor in zip(
                         node.output,
@@ -599,7 +623,7 @@ class OnnxStub:
                         ),
                     )
                 elif node.op_type == "ReduceMean":
-                    tensors[node.output[0]] = self.handler.reduce_mean(
+                    tensors[node.output[0]] = self.handler.reduceMean(
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
                         # NOTE(constroy): `axes` is an attribute until opset version 13.
@@ -673,12 +697,40 @@ class OnnxStub:
                         next((attr.i for attr in node.attribute if attr.name == "to")),
                     )
                 elif node.op_type == "ReduceSum":
-                    # ReduceSum is only implemented as allReduceSum.
-                    assert any(attr.name == "communicator" for attr in node.attribute)
-                    tensors[node.output[0]] = self.handler.allReduceSum(
-                        tensors[node.input[0]],
-                        tensors.get(node.output[0]),
-                    )
+                    if any(attr.name == "communicator" for attr in node.attribute):
+                        # ReduceSum with communicator is treated as allReduceSum.
+                        tensors[node.output[0]] = self.handler.allReduceSum(
+                            tensors[node.input[0]],
+                            tensors.get(node.output[0]),
+                        )
+                    else: 
+                        # NOTE: `axes` is an attribute until opset version 13.
+                        if len(node.input) > 1:
+                            axis = _parse_data(data[node.input[1]])
+                        else:
+                            axis =  next(
+                                (
+                                    attr.ints
+                                    for attr in node.attribute
+                                    if attr.name == "axes"
+                                ),
+                                None,
+                            )
+                        keepdims = next(
+                            (
+                                attr.i
+                                for attr in node.attribute
+                                if attr.name == "keepdims"
+                            ),
+                            1,
+                        ) != 0
+
+                        tensors[node.output[0]] = self.handler.reduceSum(
+                            tensors[node.input[0]],
+                            tensors.get(node.output[0]),
+                            axis,
+                            keepdims,
+                        )
                 elif node.op_type == "AllReduceSum":
                     tensors[node.output[0]] = self.handler.allReduceSum(
                         tensors[node.input[0]],
@@ -1039,8 +1091,11 @@ class OnnxStub:
             elif ty == backend.OpTypeId.Gather:
                 axis = backend.gather_axis_of(op)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, axis=axis))
-            elif ty == backend.OpTypeId.ReduceMean:
-                axes, keepdims = backend.reduce_mean_attrs_of(op)
+            elif ty in [
+                backend.OpTypeId.ReduceMean,
+                backend.OpTypeId.ReduceSum
+            ]:
+                axes, keepdims = backend.reduce_attrs_of(op)
                 inputs.append(
                     ctx.push_data_input(
                         name, "axes", TensorProto.INT64, [len(axes)], axes
@@ -1098,6 +1153,26 @@ class OnnxStub:
 
     def optimize(self) -> None:
         self.handler.optimize()
+
+    def clone_KV(self, tensor: backend.Tensor) -> backend.Tensor:
+        return self.handler.clone_KV(tensor)
+
+    def free_heap(self) -> None:
+        self.handler.free_heap()
+
+    def set_input(self, inputShapes: List[int]) -> None:
+        for newInput, oldInput in zip(inputShapes, self.inputs):
+            oldTensor = self.inputs[oldInput]
+            self.handler.change_shape(newInput, oldTensor.fuid())
+        self.handler.shape_infer()
+        self.handler.data_malloc()
+
+    def getShape(self, name: str) -> List[int]:
+        if name in self.inputs:
+            ans = self.handler.getDims(self.inputs[name])
+        else:
+            ans = self.handler.getDims(self.outputs[name])
+        return ans
 
     def tune(self) -> None:
         self.handler.tune()

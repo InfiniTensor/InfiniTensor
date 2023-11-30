@@ -20,12 +20,14 @@ void BangRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
         auto perfData = perfEngine.getPerfData(perfKey);
         if (!perfData && !tune) {
             kernel->compute(op, this);
+            this->resetWorkspace();
             continue;
         }
 
         PerfRecord record;
         if (!perfData) {
             record = kernel->tune(op, this);
+            this->resetWorkspace();
             perfEngine.setPerfData(perfKey, record);
         } else
             record = perfData;
@@ -36,6 +38,7 @@ void BangRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
         if (profiling) {
             double t = timeit([&]() { kernel->compute(op, record, this); },
                               [&]() { sync(); }, 1, 1);
+            this->resetWorkspace();
             op->print();
             printf(" op_time on bang %lf\n", t);
             totalTime += t;

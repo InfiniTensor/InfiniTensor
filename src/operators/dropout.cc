@@ -10,7 +10,7 @@ DropoutObj::DropoutObj(GraphObj *graph, Tensor data, Tensor output, Tensor mask,
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> DropoutObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> DropoutObj::inferShape(const TensorVec &inputs) {
     auto shape = inputs[0]->getDims();
     return {{shape, shape}};
 }

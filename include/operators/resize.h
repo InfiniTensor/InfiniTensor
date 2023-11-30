@@ -60,7 +60,7 @@ class ResizeObj : public OperatorObj {
 
     // Operator clone(TensorVec inputs, TensorVec outputs) override;
     vector<DataType> inferDataType(const TensorVec &inputs) const override;
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
     std::string toString() const override;
     int numInputs() const override { return inputs.size(); }
     int numOutputs() const override { return 1; }
