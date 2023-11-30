@@ -1,4 +1,5 @@
 #include "core/data_type.h"
+#include "core/dump.h"
 #include "core/graph_handler.h"
 #include "operators/batch_norm.h"
 #include "operators/concat.h"
@@ -379,16 +380,19 @@ void init_graph_builder(py::module &m) {
 
     py::class_<RuntimeObj, std::shared_ptr<RuntimeObj>>(m, "Runtime");
     py::class_<NativeCpuRuntimeObj, std::shared_ptr<NativeCpuRuntimeObj>,
-               RuntimeObj>(m, "CpuRuntime");
+               RuntimeObj>(m, "CpuRuntime")
+        .def("dump", &NativeCpuRuntimeObj::getDump, policy::automatic);
 #ifdef USE_CUDA
     py::class_<CudaRuntimeObj, std::shared_ptr<CudaRuntimeObj>, RuntimeObj>(
         m, "CudaRuntime")
         .def(py::init<int>(), py::arg("device") = 0)
-        .def("init_comm", &CudaRuntimeObj::initComm);
+        .def("init_comm", &CudaRuntimeObj::initComm)
+        .def("dump", &CudaRuntimeObj::getDump, policy::automatic);
 #endif
 #ifdef USE_BANG
     py::class_<BangRuntimeObj, std::shared_ptr<BangRuntimeObj>, RuntimeObj>(
-        m, "BangRuntime");
+        m, "BangRuntime")
+        .def("dump", &BangRuntimeObj::getDump, policy::automatic);
 #endif
 #ifdef USE_KUNLUN
     py::class_<KUNLUNRuntimeObj, std::shared_ptr<KUNLUNRuntimeObj>, RuntimeObj>(
@@ -530,6 +534,12 @@ void init_graph_builder(py::module &m) {
         .def("change_shape", &Handler::change_shape, policy::automatic)
         .def("getDims", &Handler::getDims, policy::automatic)
         .def("get_perf_time", &Handler::get_perf_time, policy::automatic);
+
+    py::class_<DumpObj, std::shared_ptr<DumpObj>>(m, "Dump")
+        .def("setOpQuery", &DumpObj::setOpQuery, policy::automatic)
+        .def("getOutputs", &DumpObj::getOutputs, policy::move)
+        .def("getOpKey", &DumpObj::getOpKey, policy::automatic)
+        .def("getInputs", &DumpObj::getInputs, policy::move);
 }
 
 } // namespace infini

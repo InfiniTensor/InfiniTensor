@@ -23,6 +23,9 @@ namespace infini {
 void CudaRuntimeObj::runWithoutSync(const Graph &graph) const {
     const auto &kernelRegistry = KernelRegistry::getInstance();
     auto &perfEngine = PerfEngine::getInstance();
+#ifdef DEBUG_MODE
+    std::map<OpType, int> opCnt;
+#endif
     for (auto &op : graph->getOperators()) {
         // HACK: set correct data type
         auto kernelAttrs =
@@ -37,6 +40,13 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph) const {
             kernel->compute(op, this);
         }
         checkCudaError(cudaGetLastError()) << op->toString();
+
+#ifdef DEBUG_MODE
+        if (dump->queriedOp(op, opCnt[op->getOpType()])) {
+            dump->dumpOp(op);
+        }
+        opCnt[op->getOpType()]++;
+#endif
     }
 }
 
