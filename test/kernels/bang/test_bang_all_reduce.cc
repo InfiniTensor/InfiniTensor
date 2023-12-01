@@ -39,8 +39,6 @@ TEST(BANG_AllReduce, sum) {
     vector<float> data[2] = {{2., 3.}, {5., 6.}};
     vector<float> ans = {10., 18.};
 
-    auto manager = CnclCommManager::getInstance(WORLD_SIZE);
-
     std::vector<std::thread> threads;
     for (int mlu = 0; mlu < WORLD_SIZE; ++mlu) {
         threads.emplace_back(allReduce<AllReduceProdObj>, "test_allreduce_prod",
@@ -49,16 +47,12 @@ TEST(BANG_AllReduce, sum) {
     for (auto &thread : threads) {
         thread.join();
     }
-
-    manager->reset();
 }
 
 TEST(BANG_AllReduce, prod) {
     vector<float> data[2] = {{2., 3.}, {5., 6.}};
     vector<float> ans = {10., 18.};
 
-    auto manager = CnclCommManager::getInstance(WORLD_SIZE);
-
     std::vector<std::thread> threads;
     for (int mlu = 0; mlu < WORLD_SIZE; ++mlu) {
         threads.emplace_back(allReduce<AllReduceProdObj>, "test_allreduce_prod",
@@ -67,15 +61,11 @@ TEST(BANG_AllReduce, prod) {
     for (auto &thread : threads) {
         thread.join();
     }
-
-    manager->reset();
 }
 
 TEST(BANG_AllReduce, min) {
     vector<float> data[2] = {{2., 3.}, {5., 6.}};
     vector<float> ans = {2., 3.};
-
-    auto manager = CnclCommManager::getInstance(WORLD_SIZE);
 
     std::vector<std::thread> threads;
     for (int mlu = 0; mlu < WORLD_SIZE; ++mlu) {
@@ -85,15 +75,11 @@ TEST(BANG_AllReduce, min) {
     for (auto &thread : threads) {
         thread.join();
     }
-
-    manager->reset();
 }
 
 TEST(BANG_AllReduce, max) {
     vector<float> data[2] = {{2., 3.}, {5., 6.}};
     vector<float> ans = {5., 6.};
-
-    auto manager = CnclCommManager::getInstance(WORLD_SIZE);
 
     std::vector<std::thread> threads;
     for (int mlu = 0; mlu < WORLD_SIZE; ++mlu) {
@@ -103,8 +89,6 @@ TEST(BANG_AllReduce, max) {
     for (auto &thread : threads) {
         thread.join();
     }
-
-    manager->reset();
 }
 
 } // namespace infini

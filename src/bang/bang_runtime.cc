@@ -70,8 +70,9 @@ void BangRuntimeObj::initComm(const string &name, int worldSize, int rank) {
 #ifdef INFINI_USE_CNCL
     comm = std::make_unique<CnclCommunicatorObj>(name, worldSize, rank);
     checkBangError(cnrtSetDevice(rank % worldSize));
-    checkBangError(cnrtQueueCreate(
-        &(CnclCommManager::getInstance(worldSize)->queues[rank])));
+    checkBangError(cnrtQueueCreate(&(CnclCommManager::getInstance()
+                                         ->getCommSet(name, worldSize)
+                                         .queues[rank])));
 #else
     IT_TODO_HALT_MSG("Not compiled with CNCL.");
 #endif

@@ -39,8 +39,6 @@ TEST(CNCL, multi_mlu_communication) {
     int num_threads = WORLD_SIZE;
     float data[] = {1.0, 4.0};
 
-    auto manager = CnclCommManager::getInstance(num_threads);
-
     std::vector<std::thread> threads;
     for (int mlu = 0; mlu < num_threads; ++mlu) {
         threads.emplace_back(allReduceSum, &data[mlu], mlu);
@@ -48,8 +46,6 @@ TEST(CNCL, multi_mlu_communication) {
     for (auto &thread : threads) {
         thread.join();
     }
-
-    manager->reset();
 
     for (int i = 0; i < num_threads; ++i) {
         ASSERT_EQ(data[i], 5.0f);
