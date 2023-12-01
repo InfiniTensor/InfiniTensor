@@ -44,8 +44,6 @@ TEST(BANG_Broadcast, run) {
     vector<float> data = {2., 3., 5., 6.};
     vector<float> ans = {2., 3., 5., 6.};
 
-    auto manager = CnclCommManager::getInstance(WORLD_SIZE);
-
     std::vector<std::thread> threads;
     for (int mlu = 0; mlu < WORLD_SIZE; ++mlu) {
         threads.emplace_back(broadcast, "test_broadcast", mlu, data, ans);
@@ -53,8 +51,6 @@ TEST(BANG_Broadcast, run) {
     for (auto &thread : threads) {
         thread.join();
     }
-
-    manager->reset();
 }
 } // namespace infini
 #endif
