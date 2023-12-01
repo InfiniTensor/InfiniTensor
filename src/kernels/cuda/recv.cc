@@ -1,21 +1,20 @@
 #ifdef INFINI_USE_NCCL
-#include "operators/sendrecv.h"
+#include "operators/recv.h"
 #include "cuda/cuda_kernel_wihtout_config.h"
 #include "cuda/cuda_runtime.h"
 #include "cuda/nccl_communicator.h"
 
 namespace infini {
-class SendRecvNCCL : public CudaKernelWithoutConfig {
+class RecvNCCL : public CudaKernelWithoutConfig {
   public:
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
-        auto op = as<SendRecvObj>(_op);
+        auto op = as<RecvObj>(_op);
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
-        void *input = op->getInputs(0)->getRawDataPtr<void *>();
+
         void *output = op->getOutput(0)->getRawDataPtr<void *>();
+
         IT_ASSERT(op->getDType() == DataType::Float32);
-        size_t inputCount =
-            op->getInputs(0)->getBytes() / op->getDType().getSize();
         const auto shape = op->getShape();
         int nDims = shape.size();
         int outputCount = 1;
@@ -30,15 +29,10 @@ class SendRecvNCCL : public CudaKernelWithoutConfig {
         int rank;
 
         checkNcclError(ncclCommUserRank(comm, &rank));
-        // std::cout << rank << "," << count << std::endl;
-        int source = op->getSource();
-        int destination = op->getDestination();
 
-        if (rank == source) {
+        int source = op->getSourceRank();
+        int destination = op->getDestinationRank();
 
-            checkNcclError(
-                ncclSend(input, inputCount, ncclFloat, destination, comm, 0));
-        }
         if (rank == destination) {
 
             checkNcclError(
@@ -47,8 +41,8 @@ class SendRecvNCCL : public CudaKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::SendRecv, DataType::Float32, SendRecvNCCL,
-                "SendRecv_NCCL_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Recv, DataType::Float32, RecvNCCL,
+                "Recv_NCCL_CUDA_Float32");
 } // namespace infini
 
 #endif

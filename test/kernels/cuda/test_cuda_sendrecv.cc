@@ -3,7 +3,8 @@
 #include "core/runtime.h"
 #include "cuda/cuda_runtime.h"
 #include "cuda/cuda_utility.h"
-#include "operators/sendrecv.h"
+#include "operators/recv.h"
+#include "operators/send.h"
 #include "test.h"
 #include <nccl.h>
 #include <thread>
@@ -17,24 +18,33 @@ void sendrecv(const string taskName, int deviceID, vector<float> data,
     Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     Runtime cudaRuntime = make_ref<CudaRuntimeObj>(deviceID);
     cudaRuntime->initComm(taskName, WORLD_SIZE, deviceID);
-    // Create Graph and insert allReduce operation
-    Graph g = make_ref<GraphObj>(cudaRuntime);
-    auto input =
-        g->addTensor(Shape{static_cast<int>(data.size())}, DataType::Float32);
-    auto op =
-        g->addOp<SendRecvObj>(input, nullptr, source, destination, dataShape);
-    // Copy data from CPU to GPU
-    g->dataMalloc();
-    // Only rank 0 has the data
+
     if (deviceID == source) {
+        Graph gSend = make_ref<GraphObj>(cudaRuntime);
+        auto input = gSend->addTensor(Shape{static_cast<int>(data.size())},
+                                      DataType::Float32);
+        auto opSend = gSend->addOp<SendObj>(input, source, destination,
+                                            dataShape, nullptr);
+
+        // Copy data from CPU to GPU
+        gSend->dataMalloc();
         input->copyin(data);
+        cudaRuntime->run(gSend);
     }
-    // Run sendrecv operation
-    cudaRuntime->run(g);
-    // Copy output from GPU to CPU
-    auto result = op->getOutput()->clone(cpuRuntime);
+
+    // ----------------
 
     if (deviceID == destination) {
+        Graph gRecv = make_ref<GraphObj>(cudaRuntime);
+        DataType outputType = DataType::Float32;
+        // auto input =
+        // gRecv->addTensor(Shape{static_cast<int>(data.size())},DataType::Float32);
+        auto opRecv = gRecv->addOp<RecvObj>(nullptr, source, destination,
+                                            dataShape, outputType, nullptr);
+        gRecv->dataMalloc();
+        cudaRuntime->run(gRecv);
+
+        auto result = opRecv->getOutput()->clone(cpuRuntime);
         EXPECT_TRUE(result->equalData(ans));
     }
 }

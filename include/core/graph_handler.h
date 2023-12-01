@@ -94,8 +94,10 @@ class GraphHandlerObj {
     Tensor allReduceAvg(Tensor input, Tensor output);
     TensorVec allGather(Tensor input, std::optional<TensorVec> outputs, int n);
     Tensor broadcast(Tensor input, Tensor output, int root);
-    Tensor sendrecv(Tensor input, Tensor output, int source, int destination,
-                    Shape dims);
+    Tensor send(Tensor input, int source, int destination, Shape dims,
+                Tensor output);
+    Tensor recv(Tensor output, int source, int destination, Shape dims,
+                DataType outputType, Tensor input);
     Tensor depthToSpace(Tensor input, Tensor output, int blocksize,
                         std::string mode);
 

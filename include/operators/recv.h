@@ -6,7 +6,7 @@ namespace infini {
  *
  * https://docs.nvidia.com/deeplearning/nccl/archives/nccl_2193/user-guide/docs/index.html
  */
-class SendRecvObj : public OperatorObj {
+class RecvObj : public OperatorObj {
 
   public:
     /**
@@ -19,18 +19,17 @@ class SendRecvObj : public OperatorObj {
      * @param destination the recv rank
      * @param dims The shape of the output tensor.
      */
-    SendRecvObj(GraphObj *graph, Tensor input, Tensor output, int source,
-                int destination, Shape dims);
-    OP_CLONE(SendRecvObj);
+    RecvObj(GraphObj *graph, Tensor output, int source, int destination,
+            Shape dims, DataType outputType, Tensor input = nullptr);
+    OP_CLONE(RecvObj);
 
-    int numInputs() const override { return 1; }
+    int numInputs() const override { return inputs.size(); }
     int numOutputs() const override { return 1; }
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
-
     std::string toString() const override;
 
-    int getSource() const { return source; }
-    int getDestination() const { return destination; }
+    int getSourceRank() const { return source; }
+    int getDestinationRank() const { return destination; }
     inline Shape getShape() const { return dims; }
 
   private:
@@ -42,5 +41,6 @@ class SendRecvObj : public OperatorObj {
     int source;
     int destination;
     Shape dims;
+    DataType outputType;
 };
 } // namespace infini

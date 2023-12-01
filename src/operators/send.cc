@@ -1,47 +1,43 @@
-#include "operators/sendrecv.h"
+#include "operators/send.h"
 
 namespace infini {
-SendRecvObj::SendRecvObj(GraphObj *graph, Tensor input, Tensor output,
-                         int source, int destination, Shape dims)
-    : OperatorObj(OpType::SendRecv, {input}, {output}), source(source),
-      destination(destination), dims(std::move(dims)) {
+SendObj::SendObj(GraphObj *graph, Tensor input, int source, int destination,
+                 Shape dims, [[maybe_unused]] Tensor output)
+    : OperatorObj(OpType::Send, TensorVec{input},
+                  TensorVec{output ? output : nullptr}),
+      source(source), destination(destination), dims(std::move(dims)) {
 
     IT_ASSERT(checkValid(graph));
 }
-
-optional<vector<Shape>> SendRecvObj::inferShape(const TensorVec &inputs) {
-
+optional<vector<Shape>> SendObj::inferShape(const TensorVec &inputs) {
     return {{dims}};
 }
-
-vector<DataType> SendRecvObj::inferDataType(const TensorVec &inputs) const {
+vector<DataType> SendObj::inferDataType(const TensorVec &inputs) const {
     return {{inputs[0]->getDType()}};
 }
 
-std::string SendRecvObj::toString() const {
+std::string SendObj::toString() const {
     std::ostringstream os;
-    os << "SendRecv"
+    os << "Send"
        << "[" << getGuid() << "]";
     os << "(";
     os << vecToString(inputs[0]->getDims()) << ",";
     os << "input=" << inputs[0]->getGuid() << ",";
-    os << "dims=" << vecToString(dims) << ",";
-    os << "output=" << outputs[0]->getGuid() << ")";
+    os << "dims=" << vecToString(dims) << ")";
     return os.str();
 }
 
-vector<int> SendRecvObj::getWorkloadVector() const {
+vector<int> SendObj::getWorkloadVector() const {
     vector<int> ret = inputs[0]->getDims();
     ret.insert(ret.end(), dims.begin(), dims.end());
     ret.emplace(ret.begin(), type.underlying());
-
     ret.emplace_back(source);
     ret.emplace_back(destination);
 
     return ret;
 }
 
-vector<int> SendRecvObj::getOpAttrVector() const {
+vector<int> SendObj::getOpAttrVector() const {
     vector<int> ret = dims;
     ret.emplace(ret.begin(), type.underlying());
     ret.emplace_back(source);

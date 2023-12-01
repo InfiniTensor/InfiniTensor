@@ -32,18 +32,22 @@ GraphObj::GraphObj(Runtime runtime, OpVec ops_in)
 void GraphObj::addOperatorAndConnect(const Operator &op) {
     sorted = false;
     ops.push_back(op);
-    for (auto &input : op->getInputs()) {
-        input->addTarget(op);
-        if (auto pred = input->getSource()) {
-            pred->addSuccessors(op);
-            op->addPredecessors(pred);
+    if (op->getOpType() != OpType::Recv) {
+        for (auto &input : op->getInputs()) {
+            input->addTarget(op);
+            if (auto pred = input->getSource()) {
+                pred->addSuccessors(op);
+                op->addPredecessors(pred);
+            }
         }
     }
-    for (auto &output : op->getOutputs()) {
-        output->setSource(op);
-        for (auto &succ : output->getTargets()) {
-            succ->addPredecessors(op);
-            op->addSuccessors(succ);
+    if (op->getOpType() != OpType::Send) {
+        for (auto &output : op->getOutputs()) {
+            output->setSource(op);
+            for (auto &succ : output->getTargets()) {
+                succ->addPredecessors(op);
+                op->addSuccessors(succ);
+            }
         }
     }
 }
@@ -70,50 +74,55 @@ string GraphObj::toString() const {
 }
 
 bool GraphObj::topo_sort() {
-    if (this->sorted)
+    if (ops.back()->getOpType() != OpType::Recv) {
         return true;
+    } else {
+        if (this->sorted)
+            return true;
 
-    // std::unordered_set<Tensor> inputs;
-    std::unordered_set<Operator> waiting(this->ops.begin(), this->ops.end());
-    std::vector<Operator> sorted;
+        // std::unordered_set<Tensor> inputs;
+        std::unordered_set<Operator> waiting(this->ops.begin(),
+                                             this->ops.end());
+        std::vector<Operator> sorted;
 
-    while (!waiting.empty()) {
-        // Any node is move to sorted in this loop.
-        auto modified = false;
-        // Find head nodes.
-        for (auto it = waiting.begin(); it != waiting.end();) {
-            const auto &this_inputs = (*it)->getInputs();
-            // If none of the input tensors is in waiting list,
-            // this node is a head node.
-            const auto is_head = std::all_of(
-                this_inputs.begin(), this_inputs.end(), [&](const auto &input) {
-                    auto src = input->getSource();
-                    return src // If the source node is in the waiting list,
-                               // means that this node is not the head node.
-                               ? waiting.find(src) == waiting.end()
-                               // This tensor has no source node,
-                               // it must be a input tensor.
-                               : (/*inputs.insert(input),*/ true);
-                });
-            // Moves head node to sorted.
-            if (is_head) {
-                modified = true;
-                sorted.emplace_back(std::move(*it));
-                it = waiting.erase(it);
-            } else {
-                ++it;
+        while (!waiting.empty()) {
+            // Any node is move to sorted in this loop.
+            auto modified = false;
+            // Find head nodes.
+            for (auto it = waiting.begin(); it != waiting.end();) {
+                const auto &this_inputs = (*it)->getInputs();
+                // If none of the input tensors is in waiting list,
+                // this node is a head node.
+                const auto is_head = std::all_of(
+                    this_inputs.begin(), this_inputs.end(),
+                    [&](const auto &input) {
+                        auto src = input->getSource();
+                        return src // If the source node is in the waiting list,
+                                   // means that this node is not the head node.
+                                   ? waiting.find(src) == waiting.end()
+                                   // This tensor has no source node,
+                                   // it must be a input tensor.
+                                   : (/*inputs.insert(input),*/ true);
+                    });
+                // Moves head node to sorted.
+                if (is_head) {
+                    modified = true;
+                    sorted.emplace_back(std::move(*it));
+                    it = waiting.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+            // Waiting list never modifies during a pass,
+            // sorting fails.
+            if (!modified) {
+                return false;
             }
         }
-        // Waiting list never modifies during a pass,
-        // sorting fails.
-        if (!modified) {
-            return false;
-        }
+        // Done.
+        this->ops = std::move(sorted);
+        return this->sorted = true;
     }
-
-    // Done.
-    this->ops = std::move(sorted);
-    return this->sorted = true;
 }
 
 void GraphObj::optimize() {
@@ -155,7 +164,9 @@ void GraphObj::shape_infer() {
 
 void GraphObj::dataMalloc(bool useNaiveAllocator, size_t memPoolSize) {
     // topological sorting first
-    IT_ASSERT(topo_sort() == true);
+    if (ops.back()->getOpType() != OpType::Recv) {
+        IT_ASSERT(topo_sort() == true);
+    }
     if (useNaiveAllocator) {
         // can not set memory pool when use naive allocator
         IT_ASSERT(memPoolSize == 0);
@@ -227,19 +238,21 @@ void GraphObj::dataMalloc(bool useNaiveAllocator, size_t memPoolSize) {
                     allocator.alloc(tensor->getBytes());
             }
         }
-        auto inputs = op->getInputs();
-        for (auto &tensor : inputs) {
-            if (tensor->isOthers()) {
-                auto tensorIter = tensorToRefCount.find(tensor.get());
-                IT_ASSERT(tensorIter != tensorToRefCount.end());
-                IT_ASSERT(tensorToRefCount[tensor.get()] > 0);
-                tensorToRefCount[tensor.get()] -= 1;
-                if (tensorToRefCount[tensor.get()] == 0) {
-                    // indicate that this tensor will no longer be used and
-                    // perform memory free
-                    tensorToRefCount.erase(tensor.get());
-                    allocator.free(tensorToOffset[tensor.get()],
-                                   tensor->getBytes());
+        if (op->getOpType() != OpType::Recv) {
+            auto inputs = op->getInputs();
+            for (auto &tensor : inputs) {
+                if (tensor->isOthers()) {
+                    auto tensorIter = tensorToRefCount.find(tensor.get());
+                    IT_ASSERT(tensorIter != tensorToRefCount.end());
+                    IT_ASSERT(tensorToRefCount[tensor.get()] > 0);
+                    tensorToRefCount[tensor.get()] -= 1;
+                    if (tensorToRefCount[tensor.get()] == 0) {
+                        // indicate that this tensor will no longer be used and
+                        // perform memory free
+                        tensorToRefCount.erase(tensor.get());
+                        allocator.free(tensorToOffset[tensor.get()],
+                                       tensor->getBytes());
+                    }
                 }
             }
         }
