@@ -1,4 +1,5 @@
 #include "utils/operator_utils.h"
+#include "core/runtime.h"
 
 namespace infini {
 
@@ -63,5 +64,31 @@ bool is_unidirectional_broadcasting(const Shape &A, const Shape &B) {
         }
     }
     return true;
+}
+
+std::string get_kernel_attrs_str(const KernelAttrs &kernelAttrs) {
+    std::string deviceStr = "UNKNOWN_DEVICE";
+    switch (std::get<0>(kernelAttrs)) {
+    case Device::CPU:
+        deviceStr = "CPU";
+        break;
+    case Device::CUDA:
+        deviceStr = "CUDA";
+        break;
+    case Device::BANG:
+        deviceStr = "BANG";
+        break;
+    case Device::INTELCPU:
+        deviceStr = "INTELCPU";
+        break;
+    case Device::KUNLUN:
+        deviceStr = "KUNLUN";
+        break;
+    default:
+        deviceStr = "UNKNOWN_DEVICE";
+    }
+    std::string opStr = OpType(std::get<1>(kernelAttrs)).toString();
+    std::string datatypeStr = std::get<2>(kernelAttrs).toString();
+    return deviceStr + ", " + opStr + ", " + datatypeStr;
 }
 } // namespace infini
