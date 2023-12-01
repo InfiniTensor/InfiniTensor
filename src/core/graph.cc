@@ -74,55 +74,49 @@ string GraphObj::toString() const {
 }
 
 bool GraphObj::topo_sort() {
-    if (ops.back()->getOpType() != OpType::Recv) {
+    if (this->sorted)
         return true;
-    } else {
-        if (this->sorted)
-            return true;
 
-        // std::unordered_set<Tensor> inputs;
-        std::unordered_set<Operator> waiting(this->ops.begin(),
-                                             this->ops.end());
-        std::vector<Operator> sorted;
+    // std::unordered_set<Tensor> inputs;
+    std::unordered_set<Operator> waiting(this->ops.begin(), this->ops.end());
+    std::vector<Operator> sorted;
 
-        while (!waiting.empty()) {
-            // Any node is move to sorted in this loop.
-            auto modified = false;
-            // Find head nodes.
-            for (auto it = waiting.begin(); it != waiting.end();) {
-                const auto &this_inputs = (*it)->getInputs();
-                // If none of the input tensors is in waiting list,
-                // this node is a head node.
-                const auto is_head = std::all_of(
-                    this_inputs.begin(), this_inputs.end(),
-                    [&](const auto &input) {
-                        auto src = input->getSource();
-                        return src // If the source node is in the waiting list,
-                                   // means that this node is not the head node.
-                                   ? waiting.find(src) == waiting.end()
-                                   // This tensor has no source node,
-                                   // it must be a input tensor.
-                                   : (/*inputs.insert(input),*/ true);
-                    });
-                // Moves head node to sorted.
-                if (is_head) {
-                    modified = true;
-                    sorted.emplace_back(std::move(*it));
-                    it = waiting.erase(it);
-                } else {
-                    ++it;
-                }
-            }
-            // Waiting list never modifies during a pass,
-            // sorting fails.
-            if (!modified) {
-                return false;
+    while (!waiting.empty()) {
+        // Any node is move to sorted in this loop.
+        auto modified = false;
+        // Find head nodes.
+        for (auto it = waiting.begin(); it != waiting.end();) {
+            const auto &this_inputs = (*it)->getInputs();
+            // If none of the input tensors is in waiting list,
+            // this node is a head node.
+            const auto is_head = std::all_of(
+                this_inputs.begin(), this_inputs.end(), [&](const auto &input) {
+                    auto src = input->getSource();
+                    return src // If the source node is in the waiting list,
+                               // means that this node is not the head node.
+                               ? waiting.find(src) == waiting.end()
+                               // This tensor has no source node,
+                               // it must be a input tensor.
+                               : (/*inputs.insert(input),*/ true);
+                });
+            // Moves head node to sorted.
+            if (is_head) {
+                modified = true;
+                sorted.emplace_back(std::move(*it));
+                it = waiting.erase(it);
+            } else {
+                ++it;
             }
         }
-        // Done.
-        this->ops = std::move(sorted);
-        return this->sorted = true;
+        // Waiting list never modifies during a pass,
+        // sorting fails.
+        if (!modified) {
+            return false;
+        }
     }
+    // Done.
+    this->ops = std::move(sorted);
+    return this->sorted = true;
 }
 
 void GraphObj::optimize() {
@@ -164,9 +158,12 @@ void GraphObj::shape_infer() {
 
 void GraphObj::dataMalloc(bool useNaiveAllocator, size_t memPoolSize) {
     // topological sorting first
-    if (ops.back()->getOpType() != OpType::Recv) {
-        IT_ASSERT(topo_sort() == true);
+    for (auto &op : ops) {
+        if (op->getOpType() != OpType::Recv) {
+            IT_ASSERT(topo_sort() == true);
+        }
     }
+
     if (useNaiveAllocator) {
         // can not set memory pool when use naive allocator
         IT_ASSERT(memPoolSize == 0);
