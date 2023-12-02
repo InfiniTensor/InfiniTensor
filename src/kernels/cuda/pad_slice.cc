@@ -16,8 +16,9 @@ class PadSliceCudaCompute {
             metadata.partNDim[i] = partTensor->getDims()[i];
             metadata.partStride[i] = partTensor->getStride()[i];
         }
-        pad_slice_kernel(partTensor->getRawDataPtr<float *>(),
-                         wholeTensor->getRawDataPtr<float *>(), metadata, nDims,
+        metadata.DType = partTensor->getDType().getIndex();
+        pad_slice_kernel(partTensor->getRawDataPtr<void *>(),
+                         wholeTensor->getRawDataPtr<void *>(), metadata, nDims,
                          wholeTensor->size(), isPad);
     }
 };
@@ -40,6 +41,8 @@ class SliceCuda : private PadSliceCudaCompute, public CudaKernelWithoutConfig {
 
 REGISTER_KERNEL(Device::CUDA, OpType::Slice, DataType::Float32, SliceCuda,
                 "Slice__CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Slice, DataType::Int64, SliceCuda,
+                "Slice__CUDA_Int64");
 REGISTER_KERNEL(Device::CUDA, OpType::Pad, DataType::Float32, PadCuda,
                 "Pad__CUDA_Float32");
 } // namespace infini

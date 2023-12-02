@@ -1,6 +1,6 @@
-#include "operators/reduce_mean.h"
 #include "kunlun/kunlun_kernel_without_config.h"
 #include "kunlun/kunlun_runtime.h"
+#include "operators/reduce.h"
 
 namespace infini {
 class ReduceMeanXdnn : public KUNLUNKernelWithoutConfig {

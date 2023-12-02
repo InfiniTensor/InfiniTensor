@@ -10,7 +10,7 @@ GatherObj::GatherObj(GraphObj *graph, Tensor input, Tensor indices,
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> GatherObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> GatherObj::inferShape(const TensorVec &inputs) {
     auto dims0 = inputs[0]->getDims();
     auto dims1 = inputs[1]->getDims();
 

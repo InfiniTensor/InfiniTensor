@@ -10,7 +10,7 @@ class SoftmaxObj : public OperatorObj {
 
     OP_CLONE(SoftmaxObj);
 
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override {
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override {
         return {{inputs[0]->getDims()}};
     };
 

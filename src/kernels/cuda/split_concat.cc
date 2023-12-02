@@ -59,6 +59,21 @@ class CudaCompute {
 class ConcatCuda : private CudaCompute, public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
+        auto inputs = _op->getInputs();
+        if (inputs.size() == 2) {
+            for (size_t i = 0; i < 2; i++) {
+                if (inputs[i]->size() == 0) {
+                    auto inData =
+                        _op->getInputs(1 - i)->getRawDataPtr<void *>();
+                    auto outData =
+                        _op->getOutputs()[0]->getRawDataPtr<void *>();
+                    cudaMemcpyAsync(outData, inData,
+                                    _op->getInputs(1 - i)->getBytes(),
+                                    cudaMemcpyDeviceToDevice);
+                    return;
+                }
+            }
+        }
         do_compute(_op->getOutput(), _op->getInputs(),
                    as<ConcatObj>(_op)->getDim(), _op->getOutput()->getRank(),
                    false);
