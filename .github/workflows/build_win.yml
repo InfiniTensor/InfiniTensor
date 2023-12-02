@@ -18,12 +18,13 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Set up Python ${{ env.python-version }}
+    - name: Set up Python 3.10
       uses: actions/setup-python@v4
       with:
-        python-version: ${{ env.python-version }}
+        python-version: '3.10' 
       
     - name: Build
+      shell: cmd
       run: |
         mkdir build && cd build
         C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat
@@ -32,6 +33,7 @@ jobs:
         copy backend*.pyd ..\pyinfinitensor\src\pyinfinitensor\
     
     - name: Install python-frontend
+      shell: cmd
       run: |
         python -m pip install --upgrade pip
         pip install -e ..\pyinfinitensor
