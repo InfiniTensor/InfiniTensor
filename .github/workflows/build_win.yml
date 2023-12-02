@@ -36,4 +36,5 @@ jobs:
       shell: cmd
       run: |
         python -m pip install --upgrade pip
-        pip install -e ..\pyinfinitensor
+        pip install -e pyinfinitensor
+        python -c "import pyinfinitensor" 
