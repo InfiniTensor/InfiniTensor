@@ -26,8 +26,7 @@ jobs:
     - name: Build
       run: |
         mkdir build && cd build
-        C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build
-vcvars64.bat
+        C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat
         cmake .. -G "NMake Makefiles" -DUSE_BACKTRACE=OFF -DBUILD_TEST=ON -DCMAKE_BUILD_TYPE=Release
         nmake
         copy backend*.pyd ..\pyinfinitensor\src\pyinfinitensor\
