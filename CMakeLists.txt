@@ -203,7 +203,7 @@ endif()
 
 # Libraries
 if(WIN32)
-  add_library(InfiniTensor SHARED ${SRC})
+  add_library(InfiniTensor STATIC ${SRC})
 else()
   add_library(InfiniTensor SHARED ${SRC})
 endif()
@@ -222,7 +222,7 @@ endif()
 # Python bindings
 file(GLOB_RECURSE FFIS src/ffi/ffi_infinitensor.cc)
 if(WIN32)
-  pybind11_add_module(backend MODULE ${FFIS})
+  pybind11_add_module(backend STATIC ${FFIS})
 else()
   pybind11_add_module(backend MODULE ${FFIS})
 endif()
