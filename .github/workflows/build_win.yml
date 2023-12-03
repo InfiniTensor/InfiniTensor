@@ -32,6 +32,9 @@ jobs:
         nmake
         copy backend*.pyd ..\pyinfinitensor\src\pyinfinitensor\backend.pyd
     
+    - name: Test cpu
+      run: cd build && nmake test
+    
     - name: Install python-frontend
       shell: cmd
       run: |
