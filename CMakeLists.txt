@@ -123,7 +123,8 @@ if(BUILD_TEST)
 endif()
 
 if(WIN32)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W0 /Zc:preprocessor /permissive-")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:preprocessor /permissive- /bigobj")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /Zc:preprocessor /permissive- /bigobj")
   set(CMAKE_C_FLAGS
       "${CMAKE_C_FLAGS} /wd4244 /wd4267 /wd4819"
   )
