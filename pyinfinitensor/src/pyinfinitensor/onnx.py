@@ -809,7 +809,6 @@ class OnnxStub:
                         Output,
                     )
                 elif node.op_type == "Recv":
-                    print("xiao onnx")
                     source = next(
                         (attr.i for attr in node.attribute if attr.name == "source"),
                         0,

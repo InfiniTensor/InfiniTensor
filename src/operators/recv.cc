@@ -3,7 +3,7 @@
 namespace infini {
 RecvObj::RecvObj(GraphObj *graph, Tensor output, int source, int destination,
                  Shape dims, int outputType, [[maybe_unused]] Tensor input)
-    : OperatorObj(OpType::Recv, TensorVec{input ? input : nullptr},
+    : OperatorObj(OpType::Recv, input ? TensorVec{input} : TensorVec{},
                   TensorVec{output}),
       source(source), destination(destination), dims(std::move(dims)),
       outputType(outputType) {

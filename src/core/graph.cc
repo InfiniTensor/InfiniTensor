@@ -103,8 +103,9 @@ bool GraphObj::topo_sort() {
             const auto is_head = std::all_of(
                 this_inputs.begin(), this_inputs.end(), [&](const auto &input) {
                     auto src = input->getSource();
-                    return src // If the source node is in the waiting list,
-                               // means that this node is not the head node.
+                    return src // If the source node is in the waiting
+                               // list, means that this node is not the
+                               // head node.
                                ? waiting.find(src) == waiting.end()
                                // This tensor has no source node,
                                // it must be a input tensor.
@@ -169,12 +170,13 @@ void GraphObj::shape_infer() {
 
 void GraphObj::dataMalloc(bool useNaiveAllocator, size_t memPoolSize) {
     // topological sorting first
-    for (auto &op : ops) {
-        if (op->getOpType() != OpType::Recv) {
-            IT_ASSERT(topo_sort() == true);
-        }
-    }
-
+    // size_t m = ops.size();
+    // for (size_t i = 0; i < m; ++i) {
+    //     if (ops[i]->getOpType() != OpType::Recv) {
+    //         IT_ASSERT(topo_sort() == true);
+    //     }
+    // }
+    IT_ASSERT(topo_sort() == true);
     if (useNaiveAllocator) {
         // can not set memory pool when use naive allocator
         IT_ASSERT(memPoolSize == 0);
