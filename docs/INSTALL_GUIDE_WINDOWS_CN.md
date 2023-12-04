@@ -65,9 +65,7 @@
 ## 编译本项目
 
 
-1. 运行 VS 工具集环境，在“开始”菜单中，打开 `Visual Studio 2019` -> `x64 Native Tools Command Prompt for VS 2019`。
-
-   如未找到上述快捷方式，可自行打开命令提示符（CMD），运行工具集脚本。例如，Visual Stuio 安装在 `C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional`，可执行以下命令：
+1. 打开命令提示符（CMD），运行工具集脚本设置环境。例如，Visual Stuio 安装在 `C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional`，可执行以下命令：
 
    ```bash
    C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Auxiliary\Build\vcvars64.bat
@@ -91,7 +89,7 @@
    ```bash
    cmake .. -G "NMake Makefiles" -DUSE_BACKTRACE=OFF -DBUILD_TEST=ON -DCMAKE_BUILD_TYPE=Release
    nmake
-   copy backend*.pyd ..\pyinfinitensor\src\pyinfinitensor\backend.pyd
+   copy backend*.pyd ..\pyinfinitensor\src\pyinfinitensor\
    pip install -e ..\pyinfinitensor
    ```
 
@@ -100,7 +98,7 @@
    ```bash
    cmake .. -G "NMake Makefiles" -DUSE_CUDA=ON -DUSE_BACKTRACE=OFF -DBUILD_TEST=ON -DCMAKE_BUILD_TYPE=Release
    nmake
-   copy backend*.pyd ..\pyinfinitensor\src\pyinfinitensor\backend.pyd
+   copy backend*.pyd ..\pyinfinitensor\src\pyinfinitensor\
    pip install -e ..\pyinfinitensor
    ```
 
