@@ -2,7 +2,7 @@
 
 namespace infini {
 RecvObj::RecvObj(GraphObj *graph, Tensor output, int source, int destination,
-                 Shape dims, DataType outputType, [[maybe_unused]] Tensor input)
+                 Shape dims, int outputType, [[maybe_unused]] Tensor input)
     : OperatorObj(OpType::Recv, TensorVec{input ? input : nullptr},
                   TensorVec{output}),
       source(source), destination(destination), dims(std::move(dims)),
@@ -14,7 +14,7 @@ optional<vector<Shape>> RecvObj::inferShape(const TensorVec &inputs) {
     return {{dims}};
 }
 vector<DataType> RecvObj::inferDataType(const TensorVec &inputs) const {
-    return {{outputType}};
+    return {{DataType(outputType)}};
 }
 
 std::string RecvObj::toString() const {

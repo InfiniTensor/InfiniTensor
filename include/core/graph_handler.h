@@ -97,7 +97,7 @@ class GraphHandlerObj {
     Tensor send(Tensor input, int source, int destination, Shape dims,
                 Tensor output);
     Tensor recv(Tensor output, int source, int destination, Shape dims,
-                DataType outputType, Tensor input);
+                int outputType, Tensor input);
     Tensor depthToSpace(Tensor input, Tensor output, int blocksize,
                         std::string mode);
 

@@ -801,7 +801,7 @@ class OnnxStub:
                     Output = (
                         None if len(node.output) == 0 else tensors.get(node.output[0])
                     )
-                    tensors[node.output[0]] = self.handler.sendrecv(
+                    self.handler.send(
                         tensors[node.input[0]],
                         source,
                         destination,
@@ -830,10 +830,11 @@ class OnnxStub:
                     for item in shapeBasic:
                         shape.append(item)
                     Input = None if len(node.input) == 0 else tensors[node.input[0]]
+
                     for attr in node.attribute:
                         if attr.name == "dataType":
-                            outputType = attr.ints
-                    tensors[node.output[0]] = self.handler.sendrecv(
+                            outputType = attr.i
+                    tensors[node.output[0]] = self.handler.recv(
                         tensors[node.output[0]],
                         source,
                         destination,

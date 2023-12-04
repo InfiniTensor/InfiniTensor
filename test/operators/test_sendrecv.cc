@@ -24,7 +24,7 @@ TEST(Recv, ShapeTypeInfer) {
     int source = 0;
     int destination = 1;
     Shape dims = {1, 3, 2, 4};
-    DataType outputType = DataType::Float32;
+    int outputType = 1;
     {
         Graph g = make_ref<GraphObj>(runtime);
         Tensor input = g->addTensor(dims, DataType::Float32);

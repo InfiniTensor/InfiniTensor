@@ -36,7 +36,7 @@ void sendrecv(const string taskName, int deviceID, vector<float> data,
 
     if (deviceID == destination) {
         Graph gRecv = make_ref<GraphObj>(cudaRuntime);
-        DataType outputType = DataType::Float32;
+        int outputType = 1;
         // auto input =
         // gRecv->addTensor(Shape{static_cast<int>(data.size())},DataType::Float32);
         auto opRecv = gRecv->addOp<RecvObj>(nullptr, source, destination,

@@ -517,6 +517,9 @@ class TestDynamicTensor(unittest.TestCase):
         for root, dirs, files in os.walk(current_path):
             if filename in files:
                 model_file = os.path.join(root, filename)
+        print("xiao")
+        print(model_file)
+        print("guang")
         model = OnnxStub(onnx.load(model_file), backend.cpu_runtime())
         output_key = list(model.outputs.keys())[0]
         old_output_shape = model.getShape(output_key)

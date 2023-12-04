@@ -453,7 +453,7 @@ Tensor GraphHandlerObj::send(Tensor input, int source, int destination,
 }
 
 Tensor GraphHandlerObj::recv(Tensor output, int source, int destination,
-                             Shape dims, DataType outputType, Tensor input) {
+                             Shape dims, int outputType, Tensor input) {
 
     if (output) {
 

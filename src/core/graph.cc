@@ -11,21 +11,32 @@ GraphObj::GraphObj(Runtime runtime, OpVec ops_in)
     map<UidBaseType, Tensor> tensorPool;
     // Clone tensors
     for (const auto &op : ops_in) {
-        for (const auto &t : op->getInputs())
-            if (tensorPool.find(t->getFuid()) == tensorPool.end())
-                tensorPool[t->getFuid()] = cloneTensor(t);
-        for (const auto &t : op->getOutputs())
-            if (tensorPool.find(t->getFuid()) == tensorPool.end())
-                tensorPool[t->getFuid()] = cloneTensor(t);
+        if (op->getOpType() != OpType::Recv) {
+            for (const auto &t : op->getInputs())
+                if (tensorPool.find(t->getFuid()) == tensorPool.end())
+                    tensorPool[t->getFuid()] = cloneTensor(t);
+        }
+        if (op->getOpType() != OpType::Send) {
+            for (const auto &t : op->getOutputs())
+                if (tensorPool.find(t->getFuid()) == tensorPool.end())
+                    tensorPool[t->getFuid()] = cloneTensor(t);
+        }
     }
     // Clone operators and add connections
     for (const auto &op : ops_in) {
         TensorVec inputs, outputs;
-        for (const auto &t : op->getInputs())
-            inputs.emplace_back(tensorPool.at(t->getFuid()));
-        for (const auto &t : op->getOutputs())
-            outputs.emplace_back(tensorPool.at(t->getFuid()));
-        addOperatorAndConnect(op->clone(inputs, outputs));
+        if (op->getOpType() != OpType::Recv) {
+            for (const auto &t : op->getInputs())
+                inputs.emplace_back(tensorPool.at(t->getFuid()));
+        }
+        if (op->getOpType() != OpType::Send) {
+            for (const auto &t : op->getOutputs())
+                outputs.emplace_back(tensorPool.at(t->getFuid()));
+        }
+        if (op->getOpType() != OpType::Send &&
+            op->getOpType() != OpType::Recv) {
+            addOperatorAndConnect(op->clone(inputs, outputs));
+        }
     }
 }
 

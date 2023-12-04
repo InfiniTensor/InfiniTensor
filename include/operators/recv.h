@@ -20,7 +20,7 @@ class RecvObj : public OperatorObj {
      * @param dims The shape of the output tensor.
      */
     RecvObj(GraphObj *graph, Tensor output, int source, int destination,
-            Shape dims, DataType outputType, Tensor input = nullptr);
+            Shape dims, int outputType, Tensor input = nullptr);
     OP_CLONE(RecvObj);
 
     int numInputs() const override { return inputs.size(); }
@@ -41,6 +41,6 @@ class RecvObj : public OperatorObj {
     int source;
     int destination;
     Shape dims;
-    DataType outputType;
+    int outputType;
 };
 } // namespace infini
