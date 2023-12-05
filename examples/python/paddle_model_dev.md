@@ -8,7 +8,7 @@ This is a doc to tell you how to run paddle*.py in your machine. If your model r
 
 2. Export paddle model to onnx model
 
-3. Load onnx model, nfer with InfiniTensor and 
+3. Load onnx model, infer with InfiniTensor and calculate the inference accuracy
 
 ## Command
 
@@ -21,3 +21,11 @@ This is a doc to tell you how to run paddle*.py in your machine. If your model r
       python paddle_densenet.py
       python paddle_inception.py
       ```
+
+## What should I do if I use other device(MLU, XPU, NPU)?
+
+You need to change this code:
+
+```
+paddle.device.set_device("gpu") # Change gpu to mlu, xpu or npu
+```
