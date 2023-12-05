@@ -2,10 +2,45 @@
 #include "core/kernel.h"
 
 namespace infini {
-template <typename T> class NativeElementWise : public CpuKernelWithoutConfig {
-    virtual T doCompute(T val0, T val1) const = 0;
-    void compute(const Operator &_op,
-                 const RuntimeObj *context) const override {
+class NativeElementWise : public CpuKernelWithoutConfig {
+    template <typename T> static T addCompute(T val0, T val1) {
+        return val0 + val1;
+    }
+
+    template <typename T> static T subCompute(T val0, T val1) {
+        return val0 - val1;
+    }
+
+    template <typename T> static T mulCompute(T val0, T val1) {
+        return val0 * val1;
+    }
+
+    template <typename T> static T divCompute(T val0, T val1) {
+        return (T)(val0 / val1);
+    }
+
+    template <typename T> static T equalCompute(T val0, T val1) {
+        return (T)(val0 == val1);
+    }
+
+    template <typename T> static T greaterOrEqualCompute(T val0, T val1) {
+        return (T)(val0 >= val1);
+    }
+
+    template <typename T> static T greaterCompute(T val0, T val1) {
+        return (T)(val0 > val1);
+    }
+
+    template <typename T> static T lessOrEqualCompute(T val0, T val1) {
+        return (T)(val0 <= val1);
+    }
+
+    template <typename T> static T lessCompute(T val0, T val1) {
+        return (T)(val0 < val1);
+    }
+
+    template <typename T>
+    void doCompute(const Operator &_op, const RuntimeObj *context) const {
         auto op = as<ElementWiseObj>(_op);
         T *inptr0 = op->getInputs(0)->getRawDataPtr<T *>();
         T *inptr1 = op->getInputs(1)->getRawDataPtr<T *>();
@@ -22,6 +57,39 @@ template <typename T> class NativeElementWise : public CpuKernelWithoutConfig {
         std::copy(c_output.begin(), c_output.end(), c + (4 - c_output.size()));
 
         auto n = op->getOutput()->size();
+        T (*_doCompute)(T val0, T val1);
+        switch (op->getOpType().underlying()) {
+        case OpType::Add:
+            _doCompute = addCompute<T>;
+            break;
+        case OpType::Sub:
+            _doCompute = subCompute<T>;
+            break;
+        case OpType::Mul:
+            _doCompute = mulCompute<T>;
+            break;
+        case OpType::Div:
+            _doCompute = divCompute<T>;
+            break;
+        case OpType::Equal:
+            _doCompute = equalCompute<T>;
+            break;
+        case OpType::GreaterOrEqual:
+            _doCompute = greaterOrEqualCompute<T>;
+            break;
+        case OpType::Greater:
+            _doCompute = greaterCompute<T>;
+            break;
+        case OpType::LessOrEqual:
+            _doCompute = lessOrEqualCompute<T>;
+            break;
+        case OpType::Less:
+            _doCompute = lessCompute<T>;
+            break;
+        default:
+            IT_TODO_HALT();
+        }
+
         for (size_t i = 0; i < n; ++i) {
             int c0_index = i / (c[1] * c[2] * c[3]);
             int c1_index = (i % (c[1] * c[2] * c[3])) / (c[2] * c[3]);
@@ -37,77 +105,44 @@ template <typename T> class NativeElementWise : public CpuKernelWithoutConfig {
             int b1_index = c1_index % b[1];
             int b2_index = c2_index % b[2];
             int b3_index = c3_index % b[3];
-            outptr[i] = doCompute(
+            outptr[i] = _doCompute(
                 inptr0[a0_index * a[1] * a[2] * a[3] + a1_index * a[2] * a[3] +
                        a2_index * a[3] + a3_index],
                 inptr1[b0_index * b[1] * b[2] * b[3] + b1_index * b[2] * b[3] +
                        b2_index * b[3] + b3_index]);
         }
     }
+
+    void compute(const Operator &_op,
+                 const RuntimeObj *context) const override {
+#define CASE(N)                                                                \
+    case N:                                                                    \
+        doCompute<DT<N>::t>(_op, context)
+
+        int dataTypeIdx = _op->getDType().getIndex();
+        switch (dataTypeIdx) {
+            CASE(1); // DataType::Float32
+            break;
+            CASE(12); // DataType::UInt32
+            break;
+        default:
+            IT_TODO_HALT();
+        }
+    }
 };
 
-template <typename T> class NaiveAdd : public NativeElementWise<T> {
-    T doCompute(T val0, T val1) const override { return val0 + val1; }
-};
-template <typename T> class NaiveSub : public NativeElementWise<T> {
-    T doCompute(T val0, T val1) const override { return val0 - val1; }
-};
-template <typename T> class NaiveMul : public NativeElementWise<T> {
-    T doCompute(T val0, T val1) const override { return val0 * val1; }
-};
-template <typename T> class NaiveDiv : public NativeElementWise<T> {
-    T doCompute(T val0, T val1) const override { return (T)(val0 / val1); }
-};
-template <typename T> class NaiveEqual : public NativeElementWise<T> {
-    T doCompute(T val0, T val1) const override { return (T)(val0 == val1); }
-};
-template <typename T> class NaiveGreaterEqual : public NativeElementWise<T> {
-    T doCompute(T val0, T val1) const override { return (T)(val0 >= val1); }
-};
-template <typename T> class NaiveGreaterThan : public NativeElementWise<T> {
-    T doCompute(T val0, T val1) const override { return (T)(val0 > val1); }
-};
-template <typename T> class NaiveLessEqual : public NativeElementWise<T> {
-    T doCompute(T val0, T val1) const override { return (T)(val0 <= val1); }
-};
-template <typename T> class NaiveLessThan : public NativeElementWise<T> {
-    T doCompute(T val0, T val1) const override { return (T)(val0 < val1); }
-};
-
-REGISTER_KERNEL(Device::CPU, OpType::Add, DataType::UInt32, NaiveAdd<uint32_t>,
-                "addNaive_CPU_uint32");
-REGISTER_KERNEL(Device::CPU, OpType::Add, DataType::Float32, NaiveAdd<float>,
-                "addNaive_CPU_float32");
-REGISTER_KERNEL(Device::CPU, OpType::Sub, DataType::UInt32, NaiveSub<uint32_t>,
-                "subNaive_CPU_uint32");
-REGISTER_KERNEL(Device::CPU, OpType::Sub, DataType::Float32, NaiveSub<float>,
-                "subNaive_CPU_float32");
-REGISTER_KERNEL(Device::CPU, OpType::Mul, DataType::UInt32, NaiveMul<uint32_t>,
-                "mulNaive_CPU_uint32");
-REGISTER_KERNEL(Device::CPU, OpType::Mul, DataType::Float32, NaiveMul<float>,
-                "mulNaive_CPU_float32");
-REGISTER_KERNEL(Device::CPU, OpType::Div, DataType::UInt32, NaiveDiv<uint32_t>,
-                "divNaive_CPU_uint32");
-REGISTER_KERNEL(Device::CPU, OpType::Div, DataType::Float32, NaiveDiv<float>,
-                "divNaive_CPU_float32");
-REGISTER_KERNEL(Device::CPU, OpType::Equal, DataType::UInt32,
-                NaiveEqual<uint32_t>, "equalNaive_CPU_uint32");
-REGISTER_KERNEL(Device::CPU, OpType::Equal, DataType::Float32,
-                NaiveEqual<float>, "equalNaive_CPU_float32");
-REGISTER_KERNEL(Device::CPU, OpType::GreaterOrEqual, DataType::UInt32,
-                NaiveGreaterEqual<uint32_t>, "greaterEqualNaive_CPU_uint32");
-REGISTER_KERNEL(Device::CPU, OpType::GreaterOrEqual, DataType::Float32,
-                NaiveGreaterEqual<float>, "greaterEqualNaive_CPU_float32");
-REGISTER_KERNEL(Device::CPU, OpType::Greater, DataType::UInt32,
-                NaiveGreaterThan<uint32_t>, "greaterThanNaive_CPU_uint32");
-REGISTER_KERNEL(Device::CPU, OpType::Greater, DataType::Float32,
-                NaiveGreaterThan<float>, "greaterThanNaive_CPU_float32");
-REGISTER_KERNEL(Device::CPU, OpType::LessOrEqual, DataType::UInt32,
-                NaiveLessEqual<uint32_t>, "lessEqualNaive_CPU_uint32");
-REGISTER_KERNEL(Device::CPU, OpType::LessOrEqual, DataType::Float32,
-                NaiveLessEqual<float>, "lessEqualNaive_CPU_float32");
-REGISTER_KERNEL(Device::CPU, OpType::Less, DataType::UInt32,
-                NaiveLessThan<uint32_t>, "lessEqualNaive_CPU_uint32");
-REGISTER_KERNEL(Device::CPU, OpType::Less, DataType::Float32,
-                NaiveLessThan<float>, "lessEqualNaive_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::Add, NativeElementWise, "addNaive_CPU");
+REGISTER_KERNEL(Device::CPU, OpType::Sub, NativeElementWise, "subNaive_CPU");
+REGISTER_KERNEL(Device::CPU, OpType::Mul, NativeElementWise, "mulNaive_CPU");
+REGISTER_KERNEL(Device::CPU, OpType::Div, NativeElementWise, "divNaive_CPU");
+REGISTER_KERNEL(Device::CPU, OpType::Equal, NativeElementWise,
+                "equalNaive_CPU");
+REGISTER_KERNEL(Device::CPU, OpType::GreaterOrEqual, NativeElementWise,
+                "greaterEqualNaive_CPU");
+REGISTER_KERNEL(Device::CPU, OpType::Greater, NativeElementWise,
+                "greaterThanNaive_CPU");
+REGISTER_KERNEL(Device::CPU, OpType::LessOrEqual, NativeElementWise,
+                "lessEqualNaive_CPU");
+REGISTER_KERNEL(Device::CPU, OpType::Less, NativeElementWise,
+                "lessEqualNaive_CPU");
 }; // namespace infini

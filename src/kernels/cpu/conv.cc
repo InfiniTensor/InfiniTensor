@@ -3,9 +3,9 @@
 
 namespace infini {
 
-template <typename T> class NaiveConv : public CpuKernelWithoutConfig {
-    void compute(const Operator &_op,
-                 const RuntimeObj *context) const override {
+class NaiveConv : public CpuKernelWithoutConfig {
+    template <typename T>
+    void doCompute(const Operator &_op, const RuntimeObj *context) const {
         auto op = as<ConvObj>(_op);
         T *iptr = op->getInputs(0)->getRawDataPtr<T *>();
         T *wptr = op->getInputs(1)->getRawDataPtr<T *>();
@@ -50,11 +50,25 @@ template <typename T> class NaiveConv : public CpuKernelWithoutConfig {
             }
         }
     }
+
+    void compute(const Operator &_op,
+                 const RuntimeObj *context) const override {
+#define CASE(N)                                                                \
+    case N:                                                                    \
+        doCompute<DT<N>::t>(_op, context)
+
+        int dataTypeIdx = _op->getDType().getIndex();
+        switch (dataTypeIdx) {
+            CASE(1); // DataType::Float32
+            break;
+            CASE(12); // DataType::UInt32
+            break;
+        default:
+            IT_TODO_HALT();
+        }
+    }
 };
 
-REGISTER_KERNEL(Device::CPU, OpType::Conv, DataType::UInt32,
-                NaiveConv<uint32_t>, "ConvNaive_CPU_uint32");
-REGISTER_KERNEL(Device::CPU, OpType::Conv, DataType::Float32, NaiveConv<float>,
-                "ConvNaive_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::Conv, NaiveConv, "ConvNaive_CPU");
 
 } // namespace infini
