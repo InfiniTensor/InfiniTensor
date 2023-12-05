@@ -6,7 +6,7 @@ from pyinfinitensor.onnx import OnnxStub, backend
 import onnx
 import itertools
 
-def run_mnist_train_and_infer():
+def run_cifar_train_and_infer():
     
     paddle.device.set_device("gpu")
 
@@ -78,4 +78,4 @@ def run_mnist_train_and_infer():
 
 
 if __name__ == "__main__":
-    run_mnist_train_and_infer() 
+    run_cifar_train_and_infer() 

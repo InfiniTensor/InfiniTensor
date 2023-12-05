@@ -8,7 +8,7 @@ import onnx
 import itertools
 from paddle.vision.models.resnet import BasicBlock
 
-def run_mnist_train_and_infer():
+def run_cifar_train_and_infer():
     
     paddle.device.set_device("gpu")
 
@@ -79,4 +79,4 @@ def run_mnist_train_and_infer():
 
 
 if __name__ == "__main__":
-    run_mnist_train_and_infer()
+    run_cifar_train_and_infer()
