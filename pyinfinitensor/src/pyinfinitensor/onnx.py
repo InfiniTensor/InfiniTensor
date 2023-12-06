@@ -834,7 +834,7 @@ class OnnxStub:
                         if attr.name == "dataType":
                             outputType = attr.i
                     tensors[node.output[0]] = self.handler.recv(
-                        tensors[node.output[0]],
+                        tensors.get(node.output[0]),
                         source,
                         destination,
                         shape,
