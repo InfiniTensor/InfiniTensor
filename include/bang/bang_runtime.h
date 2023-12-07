@@ -13,7 +13,8 @@ class BangRuntimeObj : public RuntimeObj {
     mutable size_t cursor;
 
   public:
-    explicit BangRuntimeObj(int deviceId = 0) : RuntimeObj(Device::BANG, deviceId) {
+    explicit BangRuntimeObj(int deviceId = 0)
+        : RuntimeObj(Device::BANG, deviceId) {
         cnInit(0);
         CNdev dev;
         cnDeviceGet(&dev, deviceId);
