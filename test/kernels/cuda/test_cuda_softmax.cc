@@ -7,131 +7,82 @@
 #include "test.h"
 #include <cmath>
 namespace infini {
+void test_softmax(const Shape &inputShape, const vector<float> &inputData,
+                  int axis, const vector<float> &ExpectData) {
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Graph gCpu = make_ref<GraphObj>(runtime);
 
-TEST(cuDNN_Softmax, run_axis1) {
-    // Runtime
-    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
+    auto input = gCpu->addTensor(inputShape, DataType::Float32);
+
+    gCpu->dataMalloc();
+
+    input->copyin(inputData);
+
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
+    Graph gCuda = make_ref<GraphObj>(cudaRuntime);
 
-    // Build input data on CPU
-    Tensor inputCpu =
-        make_ref<TensorObj>(Shape{2, 4}, DataType::Float32, cpuRuntime);
+    auto inputGpu = gCuda->cloneTensor(input);
 
-    // GPU
-    Graph cudaGraph = make_ref<GraphObj>(cudaRuntime);
-    auto inputGpu = cudaGraph->cloneTensor(inputCpu);
-    auto gpuOp = cudaGraph->addOp<SoftmaxObj>(inputGpu, nullptr, 1);
-    cudaGraph->dataMalloc();
-    inputGpu->copyin(vector<float>{0, 1, 2, 3, 10000, 10001, 10002, 10003});
-    cudaRuntime->run(cudaGraph);
-    auto outputGpu = gpuOp->getOutput();
-    auto outputGpu2Cpu = outputGpu->clone(cpuRuntime);
-    cudaPrintTensor(outputGpu);
-    // Check
-    EXPECT_TRUE(outputGpu2Cpu->equalData(
-        vector<float>{0.032058604, 0.08714432, 0.23688284, 0.6439143,
-                      0.032058604, 0.08714432, 0.23688284, 0.6439143}));
+    auto op = gCuda->addOp<SoftmaxObj>(inputGpu, nullptr, axis);
+    gCuda->dataMalloc();
+
+    inputGpu->copyin(inputData);
+
+    cudaRuntime->run(gCuda);
+
+    auto oCpu = gCpu->cloneTensor(op->getOutput()); // move Data from gpu to cpu
+    oCpu->printData();                              //->printData
+    EXPECT_TRUE(oCpu->equalData(ExpectData));
 }
+TEST(CUDA_Softmax, run) {
+    test_softmax(Shape{2, 3, 2, 2},
+                 vector<float>{0.,  1.,  2.,  3.,  4.,  5.,  6.,  7.,
+                               8.,  9.,  10., 11., 12., 13., 14., 15.,
+                               16., 17., 18., 19., 20., 21., 22., 23.},
+                 0,
+                 vector<float>{6.14417422e-06, 6.14417422e-06, 6.14417422e-06,
+                               6.14417422e-06, 6.14417422e-06, 6.14417422e-06,
+                               6.14417422e-06, 6.14417422e-06, 6.14417422e-06,
+                               6.14417422e-06, 6.14417422e-06, 6.14417422e-06,
+                               9.99993801e-01, 9.99993801e-01, 9.99993801e-01,
+                               9.99993801e-01, 9.99993801e-01, 9.99993801e-01,
+                               9.99993801e-01, 9.99993801e-01, 9.99993801e-01,
+                               9.99993801e-01, 9.99993801e-01, 9.99993801e-01});
+    test_softmax(Shape{2, 3, 2, 2},
+                 vector<float>{0.,  1.,  2.,  3.,  4.,  5.,  6.,  7.,
+                               8.,  9.,  10., 11., 12., 13., 14., 15.,
+                               16., 17., 18., 19., 20., 21., 22., 23.},
+                 1,
+                 vector<float>{3.29320435e-04, 3.29320435e-04, 3.29320435e-04,
+                               3.29320435e-04, 1.79802869e-02, 1.79802869e-02,
+                               1.79802869e-02, 1.79802869e-02, 9.81690347e-01,
+                               9.81690347e-01, 9.81690347e-01, 9.81690347e-01,
+                               3.29320435e-04, 3.29320435e-04, 3.29320435e-04,
+                               3.29320435e-04, 1.79802869e-02, 1.79802869e-02,
+                               1.79802869e-02, 1.79802869e-02, 9.81690347e-01,
+                               9.81690347e-01, 9.81690347e-01, 9.81690347e-01});
+    test_softmax(Shape{2, 3, 2, 2},
+                 vector<float>{0.,  1.,  2.,  3.,  4.,  5.,  6.,  7.,
+                               8.,  9.,  10., 11., 12., 13., 14., 15.,
+                               16., 17., 18., 19., 20., 21., 22., 23.},
+                 2,
+                 vector<float>{0.11920292, 0.11920292, 0.88079703, 0.88079703,
+                               0.11920292, 0.11920292, 0.88079703, 0.88079703,
+                               0.11920292, 0.11920292, 0.88079703, 0.88079703,
+                               0.11920292, 0.11920292, 0.88079703, 0.88079703,
+                               0.11920292, 0.11920292, 0.88079703, 0.88079703,
+                               0.11920292, 0.11920292, 0.88079703, 0.88079703});
+    test_softmax(Shape{2, 3, 2, 2},
+                 vector<float>{0.,  1.,  2.,  3.,  4.,  5.,  6.,  7.,
+                               8.,  9.,  10., 11., 12., 13., 14., 15.,
+                               16., 17., 18., 19., 20., 21., 22., 23.},
+                 3,
+                 vector<float>{0.26894143, 0.73105860, 0.26894143, 0.73105860,
+                               0.26894143, 0.73105860, 0.26894143, 0.73105860,
+                               0.26894143, 0.73105860, 0.26894143, 0.73105860,
+                               0.26894143, 0.73105860, 0.26894143, 0.73105860,
+                               0.26894143, 0.73105860, 0.26894143, 0.73105860,
+                               0.26894143, 0.73105860, 0.26894143, 0.73105860});
+} // python output
 
-TEST(cuDNN_Softmax, run_axis0) {
-    // Runtime
-    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
-    auto cudaRuntime = make_ref<CudaRuntimeObj>();
-
-    // Build input data on CPU
-    Tensor inputCpu =
-        make_ref<TensorObj>(Shape{2, 4}, DataType::Float32, cpuRuntime);
-
-    // GPU
-    Graph cudaGraph = make_ref<GraphObj>(cudaRuntime);
-    auto inputGpu = cudaGraph->cloneTensor(inputCpu);
-    auto gpuOp = cudaGraph->addOp<SoftmaxObj>(inputGpu, nullptr, 0);
-    cudaGraph->dataMalloc();
-    inputGpu->copyin(vector<float>{0, 1, 2, 3, 10000, 10001, 10002, 10003});
-    cudaRuntime->run(cudaGraph);
-    auto outputGpu = gpuOp->getOutput();
-    auto outputGpu2Cpu = outputGpu->clone(cpuRuntime);
-    cudaPrintTensor(outputGpu);
-    // Check
-    EXPECT_TRUE(
-        outputGpu2Cpu->equalData(vector<float>{0., 0., 0., 0., 1, 1, 1, 1}));
-}
-
-TEST(cuDNN_Softmax2, run_axis1) {
-    // Runtime
-    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
-    auto cudaRuntime = make_ref<CudaRuntimeObj>();
-
-    // Build input data on CPU
-    Tensor inputCpu =
-        make_ref<TensorObj>(Shape{2, 2, 2, 2}, DataType::Float32, cpuRuntime);
-
-    // GPU
-    Graph cudaGraph = make_ref<GraphObj>(cudaRuntime);
-    auto inputGpu = cudaGraph->cloneTensor(inputCpu);
-    auto gpuOp = cudaGraph->addOp<SoftmaxObj>(inputGpu, nullptr, 1);
-    cudaGraph->dataMalloc();
-    inputGpu->setData(IncrementalGenerator());
-    cudaRuntime->run(cudaGraph);
-    auto outputGpu = gpuOp->getOutput();
-    auto outputGpu2Cpu = outputGpu->clone(cpuRuntime);
-    cudaPrintTensor(outputGpu);
-    // Check
-    EXPECT_TRUE(outputGpu2Cpu->equalData(vector<float>{
-        0.0179862, 0.0179862, 0.0179862, 0.0179862, 0.9820138, 0.9820138,
-        0.9820138, 0.9820138, 0.0179862, 0.0179862, 0.0179862, 0.0179862,
-        0.9820138, 0.9820138, 0.9820138, 0.9820138}));
-}
-
-TEST(cuDNN_Softmax2, run_axis2) {
-    // Runtime
-    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
-    auto cudaRuntime = make_ref<CudaRuntimeObj>();
-
-    // Build input data on CPU
-    Tensor inputCpu =
-        make_ref<TensorObj>(Shape{2, 2, 2, 2}, DataType::Float32, cpuRuntime);
-
-    // GPU
-    Graph cudaGraph = make_ref<GraphObj>(cudaRuntime);
-    auto inputGpu = cudaGraph->cloneTensor(inputCpu);
-    auto gpuOp = cudaGraph->addOp<SoftmaxObj>(inputGpu, nullptr, 2);
-    cudaGraph->dataMalloc();
-    inputGpu->setData(IncrementalGenerator());
-    cudaRuntime->run(cudaGraph);
-    auto outputGpu = gpuOp->getOutput();
-    auto outputGpu2Cpu = outputGpu->clone(cpuRuntime);
-    cudaPrintTensor(outputGpu);
-    // Check
-    EXPECT_TRUE(outputGpu2Cpu->equalData(vector<float>{
-        0.1192029, 0.1192029, 0.8807971, 0.8807971, 0.1192029, 0.1192029,
-        0.8807971, 0.8807971, 0.1192029, 0.1192029, 0.8807971, 0.8807971,
-        0.1192029, 0.1192029, 0.8807971, 0.8807971}));
-}
-
-TEST(cuDNN_Softmax2, run_axis3) {
-    // Runtime
-    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
-    auto cudaRuntime = make_ref<CudaRuntimeObj>();
-
-    // Build input data on CPU
-    Tensor inputCpu =
-        make_ref<TensorObj>(Shape{2, 2, 2, 2}, DataType::Float32, cpuRuntime);
-
-    // GPU
-    Graph cudaGraph = make_ref<GraphObj>(cudaRuntime);
-    auto inputGpu = cudaGraph->cloneTensor(inputCpu);
-    auto gpuOp = cudaGraph->addOp<SoftmaxObj>(inputGpu, nullptr, 3);
-    cudaGraph->dataMalloc();
-    inputGpu->setData(IncrementalGenerator());
-    cudaRuntime->run(cudaGraph);
-    auto outputGpu = gpuOp->getOutput();
-    auto outputGpu2Cpu = outputGpu->clone(cpuRuntime);
-    cudaPrintTensor(outputGpu);
-    // Check
-    EXPECT_TRUE(outputGpu2Cpu->equalData(vector<float>{
-        0.2689414, 0.7310586, 0.2689414, 0.7310586, 0.2689414, 0.7310586,
-        0.2689414, 0.7310586, 0.2689414, 0.7310586, 0.2689414, 0.7310586,
-        0.2689414, 0.7310586, 0.2689414, 0.7310586}));
-}
 } // namespace infini
