@@ -13,10 +13,10 @@ class BangRuntimeObj : public RuntimeObj {
     mutable size_t cursor;
 
   public:
-    BangRuntimeObj() : RuntimeObj(Device::BANG) {
+    explicit BangRuntimeObj(int deviceId = 0) : RuntimeObj(Device::BANG, deviceId) {
         cnInit(0);
         CNdev dev;
-        cnDeviceGet(&dev, 0);
+        cnDeviceGet(&dev, deviceId);
         checkBangError(cnrtSetDevice(dev));
         cnrtQueue_t queue;
         checkBangError(cnrtQueueCreate(&queue));
