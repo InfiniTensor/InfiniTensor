@@ -120,8 +120,9 @@ class ReduceSumCudnn : public ReduceCudnnBase {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::ReduceMean, DataType::Float32,
-                ReduceMeanCudnn, "ReduceMean_cuDNN_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::ReduceSum, DataType::Float32,
-                ReduceSumCudnn, "ReduceSum_cuDNN_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::ReduceMean, ReduceMeanCudnn,
+                "ReduceMean_cuDNN_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::ReduceSum, ReduceSumCudnn,
+                "ReduceSum_cuDNN_CUDA");
+
 }; // namespace infini

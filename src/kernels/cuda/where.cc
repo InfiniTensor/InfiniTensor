@@ -43,7 +43,6 @@ class WhereCuda : public CudaKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Where, DataType::Float32, WhereCuda,
-                "Where_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Where, WhereCuda, "Where_CUDA");
 
 }; // namespace infini

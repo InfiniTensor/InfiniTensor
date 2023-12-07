@@ -39,7 +39,7 @@ class LayerNormCuda : public CudaKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::LayerNormalization, DataType::Float32,
-                LayerNormCuda, "LayerNorm_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::LayerNormalization, LayerNormCuda,
+                "LayerNorm_CUDA");
 
 }; // namespace infini

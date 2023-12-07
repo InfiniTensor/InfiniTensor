@@ -144,23 +144,15 @@ class ElementWiseCuda : public CudaKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Add, DataType::Float32, AddCudnn,
-                "Add_cuDNN_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::Sub, DataType::Float32, SubCudnn,
-                "Sub_cuDNN_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::Mul, DataType::Float32, MulCudnn,
-                "Mul_cuDNN_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::Min, DataType::Float32, MinCudnn,
-                "Min_cuDNN_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::Max, DataType::Float32, MaxCudnn,
-                "Max_cuDNN_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Add, AddCudnn, "Add_cuDNN_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Sub, SubCudnn, "Sub_cuDNN_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Mul, MulCudnn, "Mul_cuDNN_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Min, MinCudnn, "Min_cuDNN_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Max, MaxCudnn, "Max_cuDNN_CUDA");
 
-REGISTER_KERNEL(Device::CUDA, OpType::Div, DataType::Float32, ElementWiseCuda,
-                "Div_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::Add, DataType::Int64, ElementWiseCuda,
-                "Add_CUDA_Int64");
-REGISTER_KERNEL(Device::CUDA, OpType::Pow, DataType::Float32, ElementWiseCuda,
-                "Pow__CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::Less, DataType::Int64, ElementWiseCuda,
-                "Less__CUDA_Int64");
+REGISTER_KERNEL(Device::CUDA, OpType::Div, ElementWiseCuda, "Div_CUDA");
+
+REGISTER_KERNEL(Device::CUDA, OpType::Pow, ElementWiseCuda, "Pow__CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Less, ElementWiseCuda, "Less__CUDA");
+
 }; // namespace infini

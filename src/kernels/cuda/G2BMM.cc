@@ -54,7 +54,6 @@ class G2BMMCudnn : public CudaKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::G2BMM, DataType::Float32, G2BMMCudnn,
-                "G2BMM_cuDNN_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::G2BMM, G2BMMCudnn, "G2BMM_cuDNN_CUDA");
 
 } // namespace infini

@@ -21,6 +21,5 @@ class GatherCuda : public CudaKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Gather, DataType::Float32, GatherCuda,
-                "Gather_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Gather, GatherCuda, "Gather_CUDA");
 } // namespace infini

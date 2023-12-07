@@ -130,35 +130,26 @@ class TanhCudnn : public ActivationCudnn {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Relu, DataType::Float32, ReluCudnn,
-                "Relu_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::Sigmoid, DataType::Float32, SigmoidCudnn,
-                "Sigmoid_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::HardSigmoid, DataType::Float32, UnaryCuda,
-                "Hard_Sigmoid_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::HardSwish, DataType::Float32, UnaryCuda,
-                "Hard_Swish_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::Tanh, DataType::Float32, TanhCudnn,
-                "Tanh_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::Abs, DataType::Float32, UnaryCuda,
-                "Abs_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::Sqrt, DataType::Float32, UnaryCuda,
-                "Sqrt_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::Gelu, DataType::Float32, UnaryCuda,
-                "Gelu_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::Neg, DataType::Float32, UnaryCuda,
-                "Neg_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::Erf, DataType::Float32, UnaryCuda,
-                "Erf_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Relu, ReluCudnn, "Relu_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Sigmoid, SigmoidCudnn, "Sigmoid_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::HardSigmoid, UnaryCuda,
+                "Hard_Sigmoid_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::HardSwish, UnaryCuda, "Hard_Swish_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Tanh, TanhCudnn, "Tanh_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Abs, UnaryCuda, "Abs_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Sqrt, UnaryCuda, "Sqrt_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Gelu, UnaryCuda, "Gelu_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Neg, UnaryCuda, "Neg_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Erf, UnaryCuda, "Erf_CUDA");
 
-// REGISTER_KERNEL(Device::CUDA, OpType::Softmax, DataType::Float32, UnaryCuda,
-//                 "Softmax_CUDA_Float32");
-// REGISTER_KERNEL(Device::CUDA, OpType::Relu, DataType::Float32, UnaryCuda,
-//                 "Relu_CUDA_Float32");
-// REGISTER_KERNEL(Device::CUDA, OpType::Sigmoid, DataType::Float32, UnaryCuda,
-//                 "Sigmoid_CUDA_Float32");
-// REGISTER_KERNEL(Device::CUDA, OpType::Tanh, DataType::Float32, UnaryCuda,
-//                 "Tanh_CUDA_Float32");
-// REGISTER_KERNEL(Device::CUDA, OpType::Abs, DataType::Float32, UnaryCuda,
-//                 "Abs_CUDA_Float32");
+// REGISTER_KERNEL(Device::CUDA, OpType::Softmax, UnaryCuda,
+//                 "Softmax_CUDA");
+// REGISTER_KERNEL(Device::CUDA, OpType::Relu, UnaryCuda,
+//                 "Relu_CUDA");
+// REGISTER_KERNEL(Device::CUDA, OpType::Sigmoid, UnaryCuda,
+//                 "Sigmoid_CUDA");
+// REGISTER_KERNEL(Device::CUDA, OpType::Tanh, UnaryCuda,
+//                 "Tanh_CUDA");
+// REGISTER_KERNEL(Device::CUDA, OpType::Abs, UnaryCuda,
+//                 "Abs_CUDA");
 }; // namespace infini

@@ -48,7 +48,6 @@ class ResizeCuda : public CudaKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Resize, DataType::Float32, ResizeCuda,
-                "Resize_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Resize, ResizeCuda, "Resize_CUDA");
 
 } // namespace infini

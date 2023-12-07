@@ -140,8 +140,9 @@ class matmulCublas : public Kernel {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::MatMul, DataType::Float32, matmulCublas,
-                "Matmul_cuBLAS_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::MatMul, matmulCublas,
+                "Matmul_cuBLAS_CUDA");
 
 REGISTER_CONSTRUCTOR(2, MatmulCublasPerfRecordObj::from_json);
+
 }; // namespace infini

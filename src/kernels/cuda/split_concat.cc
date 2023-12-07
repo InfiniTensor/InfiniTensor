@@ -89,8 +89,7 @@ class SplitCuda : private CudaCompute, public CudaKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Concat, DataType::Float32, ConcatCuda,
-                "Concat_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::Split, DataType::Float32, SplitCuda,
-                "Split_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Concat, ConcatCuda, "Concat_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Split, SplitCuda, "Split_CUDA");
+
 } // namespace infini

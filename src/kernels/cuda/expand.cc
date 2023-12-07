@@ -30,7 +30,6 @@ class ExpandCuda : public CudaKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Expand, DataType::Float32, ExpandCuda,
-                "Expand_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Expand, ExpandCuda, "Expand_CUDA");
 
 }; // namespace infini

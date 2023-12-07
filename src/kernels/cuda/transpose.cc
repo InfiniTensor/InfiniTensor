@@ -88,9 +88,10 @@ class DepthToSpaceCuda : public CudaKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Transpose, DataType::Float32,
-                TransposeCuda, "Transpose_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Transpose, TransposeCuda,
+                "Transpose_CUDA");
 
-REGISTER_KERNEL(Device::CUDA, OpType::DepthToSpace, DataType::Float32,
-                DepthToSpaceCuda, "DepthToSpace_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::DepthToSpace, DepthToSpaceCuda,
+                "DepthToSpace_CUDA");
+
 } // namespace infini

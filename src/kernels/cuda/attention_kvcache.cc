@@ -47,6 +47,6 @@ class AttentionKVCacheCuda : private AttentionKVCacheCompute,
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::AttentionKVCache, DataType::Float32,
-                AttentionKVCacheCuda, "AttentionKVCache_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::AttentionKVCache, AttentionKVCacheCuda,
+                "AttentionKVCache_CUDA");
 } // namespace infini
