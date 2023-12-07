@@ -15,9 +15,9 @@ __device__ __forceinline__ DataMaxSum reduce_dms_op(DataMaxSum a,
 
     return bigger;
 }
-template <int BLOCK_DIM>
+template <typename T, int BLOCK_DIM>
 __launch_bounds__(BLOCK_DIM) __global__ void _blockSoftmaxKernel(
-    float *__restrict input, float *__restrict output, int size, int dimsize,
+    T *__restrict input, T *__restrict output, int size, int dimsize,
     int stride) { // if set axis = 1, inputShape=[I,J,K,S]
                   // tid = i(JKS) + j(KS) + k(S) + s
 
@@ -74,7 +74,8 @@ __launch_bounds__(BLOCK_DIM) __global__ void _blockSoftmaxKernel(
         for (int ind = 0; ind < step; ind++) {
 
             output[tid + (threadIdx.x * step + ind) * stride] =
-                __expf(input[tid + (threadIdx.x * step + ind) * stride] -
+                __expf(static_cast<float>(
+                           input[tid + (threadIdx.x * step + ind) * stride]) -
                        dms_total.max_tmp) *
                 __fdividef(1.0F, dms_total.sum_tmp);
         }
@@ -84,24 +85,20 @@ __launch_bounds__(BLOCK_DIM) __global__ void _blockSoftmaxKernel(
             output[tid +
                    (remain * step + (threadIdx.x - remain) * (step - 1) + ind) *
                        stride] =
-                __expf(input[tid + (remain * step +
-                                    (threadIdx.x - remain) * (step - 1) + ind) *
-                                       stride] -
+                __expf(static_cast<float>(
+                           input[tid +
+                                 (remain * step +
+                                  (threadIdx.x - remain) * (step - 1) + ind) *
+                                     stride]) -
                        dms_total.max_tmp) *
                 __fdividef(1.0F, dms_total.sum_tmp);
         }
     }
-    for (int ph = 0; threadIdx.x + ph * BLOCK_DIM < dimsize; ph++) {
-        output[tid + (threadIdx.x + ph * BLOCK_DIM) * stride] =
-            __expf(input[tid + (threadIdx.x + ph * BLOCK_DIM) * stride] -
-                   dms_total.max_tmp) *
-            __fdividef(1.0F, dms_total.sum_tmp);
-    }
 }
 
-template <int BLOCK_DIM, int numPerThread>
+template <typename T, int BLOCK_DIM, int numPerThread>
 __global__ void
-_blockSoftmaxKernel(float *__restrict input, float *__restrict output, int size,
+_blockSoftmaxKernel(T *__restrict input, T *__restrict output, int size,
                     int dimsize,
                     int stride) { // if set axis = 1, inputShape=[I,J,K,S]
                                   // tid = i(JKS) + j(KS) + k(S) + s
@@ -192,10 +189,9 @@ __inline__ __device__ T WarpAllReduce(T val) {
     return val;
 }
 
-template <int BLOCK_DIM_x, int BLOCK_DIM_y, int numPerThreadx>
-__global__ void _warpSoftmaxKernel(float *__restrict input,
-                                   float *__restrict output, int size,
-                                   int dimsize, int stride) {
+template <typename T, int BLOCK_DIM_x, int BLOCK_DIM_y, int numPerThreadx>
+__global__ void _warpSoftmaxKernel(T *__restrict input, T *__restrict output,
+                                   int size, int dimsize, int stride) {
     int otherIdx = blockIdx.x * blockDim.y + threadIdx.y;
     int otherSize = size / dimsize;
     int tid = otherIdx % stride + (otherIdx - otherIdx % stride) * dimsize;
@@ -249,32 +245,32 @@ void softmax_kernel(int num_blocks, float *input, float *output, int size,
     if (dimsize > 1024 * 128) {
 
         int BLOCK_DIM = 1024;
-        _blockSoftmaxKernel<1024>
+        _blockSoftmaxKernel<float, 1024>
             <<<num_blocks, BLOCK_DIM>>>(input, output, size, dimsize, stride);
     } else if (dimsize > 1024 * 64) {
 
         int BLOCK_DIM = 1024;
-        _blockSoftmaxKernel<1024, 128>
+        _blockSoftmaxKernel<float, 1024, 128>
             <<<num_blocks, BLOCK_DIM>>>(input, output, size, dimsize, stride);
     } else if (dimsize > 1024 * 32) {
 
         int BLOCK_DIM = 1024;
-        _blockSoftmaxKernel<1024, 64>
+        _blockSoftmaxKernel<float, 1024, 64>
             <<<num_blocks, BLOCK_DIM>>>(input, output, size, dimsize, stride);
     } else if (dimsize > 1024 * 16) {
 
         int BLOCK_DIM = 1024;
-        _blockSoftmaxKernel<1024, 32>
+        _blockSoftmaxKernel<float, 1024, 32>
             <<<num_blocks, BLOCK_DIM>>>(input, output, size, dimsize, stride);
     } else if (dimsize > 1024 * 4) {
 
         int BLOCK_DIM = 1024;
-        _blockSoftmaxKernel<1024, 16>
+        _blockSoftmaxKernel<float, 1024, 16>
             <<<num_blocks, BLOCK_DIM>>>(input, output, size, dimsize, stride);
     } else if (dimsize > 1024) {
 
         int BLOCK_DIM = 1024;
-        _blockSoftmaxKernel<1024, 4>
+        _blockSoftmaxKernel<float, 1024, 4>
             <<<num_blocks, BLOCK_DIM>>>(input, output, size, dimsize, stride);
     } else if (dimsize > 31) {
         int BLOCK_DIM_x = 32;
@@ -283,7 +279,7 @@ void softmax_kernel(int num_blocks, float *input, float *output, int size,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        _warpSoftmaxKernel<32, 32, 32>
+        _warpSoftmaxKernel<float, 32, 32, 32>
             <<<grid_dim, block_dim>>>(input, output, size, dimsize, stride);
     } else if (dimsize > 15) {
         int BLOCK_DIM_x = 16;
@@ -292,7 +288,7 @@ void softmax_kernel(int num_blocks, float *input, float *output, int size,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        _warpSoftmaxKernel<16, 64, 2>
+        _warpSoftmaxKernel<float, 16, 64, 2>
             <<<grid_dim, block_dim>>>(input, output, size, dimsize, stride);
     } else if (dimsize > 7) {
         int BLOCK_DIM_x = 8;
@@ -301,7 +297,7 @@ void softmax_kernel(int num_blocks, float *input, float *output, int size,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        _warpSoftmaxKernel<8, 128, 2>
+        _warpSoftmaxKernel<float, 8, 128, 2>
             <<<grid_dim, block_dim>>>(input, output, size, dimsize, stride);
     } else {
         int BLOCK_DIM_x = 4;
@@ -310,10 +306,80 @@ void softmax_kernel(int num_blocks, float *input, float *output, int size,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        _warpSoftmaxKernel<4, 256, 2>
+        _warpSoftmaxKernel<float, 4, 256, 2>
             <<<grid_dim, block_dim>>>(input, output, size, dimsize, stride);
     }
 }
 //------------------
+void softmax_kernel(int num_blocks, half *input, half *output, int size,
+                    int dimsize, int stride) {
 
+    if (dimsize > 1024 * 128) {
+
+        int BLOCK_DIM = 1024;
+        _blockSoftmaxKernel<half, 1024>
+            <<<num_blocks, BLOCK_DIM>>>(input, output, size, dimsize, stride);
+    } else if (dimsize > 1024 * 64) {
+
+        int BLOCK_DIM = 1024;
+        _blockSoftmaxKernel<half, 1024, 128>
+            <<<num_blocks, BLOCK_DIM>>>(input, output, size, dimsize, stride);
+    } else if (dimsize > 1024 * 32) {
+
+        int BLOCK_DIM = 1024;
+        _blockSoftmaxKernel<half, 1024, 64>
+            <<<num_blocks, BLOCK_DIM>>>(input, output, size, dimsize, stride);
+    } else if (dimsize > 1024 * 16) {
+
+        int BLOCK_DIM = 1024;
+        _blockSoftmaxKernel<half, 1024, 32>
+            <<<num_blocks, BLOCK_DIM>>>(input, output, size, dimsize, stride);
+    } else if (dimsize > 1024 * 4) {
+
+        int BLOCK_DIM = 1024;
+        _blockSoftmaxKernel<half, 1024, 16>
+            <<<num_blocks, BLOCK_DIM>>>(input, output, size, dimsize, stride);
+    } else if (dimsize > 1024) {
+
+        int BLOCK_DIM = 1024;
+        _blockSoftmaxKernel<half, 1024, 4>
+            <<<num_blocks, BLOCK_DIM>>>(input, output, size, dimsize, stride);
+    } else if (dimsize > 31) {
+        int BLOCK_DIM_x = 32;
+        int BLOCK_DIM_y = 32;
+        int num_block_x = (num_blocks + BLOCK_DIM_y - 1) / BLOCK_DIM_y;
+        dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
+        dim3 grid_dim(num_block_x, 1, 1);
+
+        _warpSoftmaxKernel<half, 32, 32, 32>
+            <<<grid_dim, block_dim>>>(input, output, size, dimsize, stride);
+    } else if (dimsize > 15) {
+        int BLOCK_DIM_x = 16;
+        int BLOCK_DIM_y = 64;
+        int num_block_x = (num_blocks + BLOCK_DIM_y - 1) / BLOCK_DIM_y;
+        dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
+        dim3 grid_dim(num_block_x, 1, 1);
+
+        _warpSoftmaxKernel<half, 16, 64, 2>
+            <<<grid_dim, block_dim>>>(input, output, size, dimsize, stride);
+    } else if (dimsize > 7) {
+        int BLOCK_DIM_x = 8;
+        int BLOCK_DIM_y = 128;
+        int num_block_x = (num_blocks + BLOCK_DIM_y - 1) / BLOCK_DIM_y;
+        dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
+        dim3 grid_dim(num_block_x, 1, 1);
+
+        _warpSoftmaxKernel<half, 8, 128, 2>
+            <<<grid_dim, block_dim>>>(input, output, size, dimsize, stride);
+    } else {
+        int BLOCK_DIM_x = 4;
+        int BLOCK_DIM_y = 256;
+        int num_block_x = (num_blocks + BLOCK_DIM_y - 1) / BLOCK_DIM_y;
+        dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
+        dim3 grid_dim(num_block_x, 1, 1);
+
+        _warpSoftmaxKernel<half, 4, 256, 2>
+            <<<grid_dim, block_dim>>>(input, output, size, dimsize, stride);
+    }
+}
 } // namespace infini

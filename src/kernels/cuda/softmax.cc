@@ -20,8 +20,13 @@ class SoftmaxCuda : public CudaKernelWithoutConfig {
         int stride = op->getInputs(0)->getStride().at(op->getAxis());
 
         int num_blocks = size / dimsize;
-        softmax_kernel(num_blocks, (float *)input, (float *)output, size,
-                       dimsize, stride);
+        if (op->getDType() == DataType::Float32) {
+            softmax_kernel(num_blocks, (float *)input, (float *)output, size,
+                           dimsize, stride);
+        } else if (op->getDType() == DataType::Float16) {
+            softmax_kernel(num_blocks, (half *)input, (half *)output, size,
+                           dimsize, stride);
+        }
     }
 };
 
