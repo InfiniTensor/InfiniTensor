@@ -13,7 +13,6 @@ class RecvNCCL : public CudaKernelWithoutConfig {
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
 
         void *output = op->getOutput(0)->getRawDataPtr<void *>();
-
         IT_ASSERT(op->getDType() == DataType::Float32);
         const auto shape = op->getShape();
         int nDims = shape.size();

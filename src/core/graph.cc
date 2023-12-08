@@ -11,40 +11,42 @@ GraphObj::GraphObj(Runtime runtime, OpVec ops_in)
     map<UidBaseType, Tensor> tensorPool;
     // Clone tensors
     for (const auto &op : ops_in) {
-        if (op->getOpType() != OpType::Recv) {
-            for (const auto &t : op->getInputs())
+        for (const auto &t : op->getInputs()) {
+            if (t) {
                 if (tensorPool.find(t->getFuid()) == tensorPool.end())
                     tensorPool[t->getFuid()] = cloneTensor(t);
+            }
         }
-        if (op->getOpType() != OpType::Send) {
-            for (const auto &t : op->getOutputs())
+        for (const auto &t : op->getOutputs()) {
+            if (t) {
                 if (tensorPool.find(t->getFuid()) == tensorPool.end())
                     tensorPool[t->getFuid()] = cloneTensor(t);
+            }
         }
     }
     // Clone operators and add connections
     for (const auto &op : ops_in) {
         TensorVec inputs, outputs;
-        if (op->getOpType() != OpType::Recv) {
-            for (const auto &t : op->getInputs())
+        for (const auto &t : op->getInputs()) {
+            if (t) {
                 inputs.emplace_back(tensorPool.at(t->getFuid()));
+            }
         }
-        if (op->getOpType() != OpType::Send) {
-            for (const auto &t : op->getOutputs())
+
+        for (const auto &t : op->getOutputs()) {
+            if (t) {
                 outputs.emplace_back(tensorPool.at(t->getFuid()));
+            }
         }
-        if (op->getOpType() != OpType::Send &&
-            op->getOpType() != OpType::Recv) {
-            addOperatorAndConnect(op->clone(inputs, outputs));
-        }
+        addOperatorAndConnect(op->clone(inputs, outputs));
     }
 }
 
 void GraphObj::addOperatorAndConnect(const Operator &op) {
     sorted = false;
     ops.push_back(op);
-    if (op->getOpType() != OpType::Recv) {
-        for (auto &input : op->getInputs()) {
+    for (auto &input : op->getInputs()) {
+        if (input) {
             input->addTarget(op);
             if (auto pred = input->getSource()) {
                 pred->addSuccessors(op);
@@ -52,8 +54,8 @@ void GraphObj::addOperatorAndConnect(const Operator &op) {
             }
         }
     }
-    if (op->getOpType() != OpType::Send) {
-        for (auto &output : op->getOutputs()) {
+    for (auto &output : op->getOutputs()) {
+        if (output) {
             output->setSource(op);
             for (auto &succ : output->getTargets()) {
                 succ->addPredecessors(op);
@@ -170,12 +172,7 @@ void GraphObj::shape_infer() {
 
 void GraphObj::dataMalloc(bool useNaiveAllocator, size_t memPoolSize) {
     // topological sorting first
-    // size_t m = ops.size();
-    // for (size_t i = 0; i < m; ++i) {
-    //     if (ops[i]->getOpType() != OpType::Recv) {
-    //         IT_ASSERT(topo_sort() == true);
-    //     }
-    // }
+
     IT_ASSERT(topo_sort() == true);
     if (useNaiveAllocator) {
         // can not set memory pool when use naive allocator
@@ -243,14 +240,16 @@ void GraphObj::dataMalloc(bool useNaiveAllocator, size_t memPoolSize) {
         // memory should be allocated for the op's output first
         auto outputs = op->getOutputs();
         for (auto &tensor : outputs) {
-            if (tensor->isOthers()) {
-                tensorToOffset[tensor.get()] =
-                    allocator.alloc(tensor->getBytes());
+            if (tensor) {
+                if (tensor->isOthers()) {
+                    tensorToOffset[tensor.get()] =
+                        allocator.alloc(tensor->getBytes());
+                }
             }
         }
-        if (op->getOpType() != OpType::Recv) {
-            auto inputs = op->getInputs();
-            for (auto &tensor : inputs) {
+        auto inputs = op->getInputs();
+        for (auto &tensor : inputs) {
+            if (tensor) {
                 if (tensor->isOthers()) {
                     auto tensorIter = tensorToRefCount.find(tensor.get());
                     IT_ASSERT(tensorIter != tensorToRefCount.end());

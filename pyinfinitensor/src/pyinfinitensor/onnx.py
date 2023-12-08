@@ -792,21 +792,11 @@ class OnnxStub:
                         0,
                     )
 
-                    for attr in node.attribute:
-                        if attr.name == "shape":
-                            shapeBasic = attr.ints
-                    shape = []
-                    for item in shapeBasic:
-                        shape.append(item)
-                    Output = (
-                        None if len(node.output) == 0 else tensors.get(node.output[0])
-                    )
                     self.handler.send(
                         tensors[node.input[0]],
                         source,
                         destination,
-                        shape,
-                        Output,
+                        None,
                     )
                 elif node.op_type == "Recv":
                     source = next(
@@ -828,7 +818,6 @@ class OnnxStub:
                     shape = []
                     for item in shapeBasic:
                         shape.append(item)
-                    Input = None if len(node.input) == 0 else tensors[node.input[0]]
 
                     for attr in node.attribute:
                         if attr.name == "dataType":
@@ -839,7 +828,7 @@ class OnnxStub:
                         destination,
                         shape,
                         outputType,
-                        Input,
+                        None,
                     )
                 elif node.op_type == "Expand":
                     shape = _parse_data(data[node.input[1]])

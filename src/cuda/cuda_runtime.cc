@@ -83,11 +83,8 @@ void CudaRuntimeObj::run(const Graph &graph, bool runTune,
         IT_TODO_HALT();
     if (runTune)
         tune(graph, profiling);
-    else {
-
+    else
         runWithoutSync(graph);
-    }
-
     sync();
 }
 

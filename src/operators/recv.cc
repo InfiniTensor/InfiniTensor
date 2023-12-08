@@ -16,7 +16,7 @@ optional<vector<Shape>> RecvObj::inferShape(const TensorVec &inputs) {
 vector<DataType> RecvObj::inferDataType(const TensorVec &inputs) const {
     return {{DataType(outputType)}};
 }
-
+DataType RecvObj::getDType() const { return getOutput(0)->getDType(); }
 std::string RecvObj::toString() const {
     std::ostringstream os;
     os << "Recv"

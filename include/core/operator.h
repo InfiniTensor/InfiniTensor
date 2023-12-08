@@ -89,13 +89,7 @@ class OperatorObj : public Object {
     OpVec getSuccessors() const { return wrefs_to_refs(successors); }
     OpType getOpType() const { return type; }
     // HACK: set correct data type
-    DataType getDType() const {
-        if (getOpType() != OpType::Recv) {
-            return getInputs(0)->getDType();
-        } else {
-            return getOutput(0)->getDType();
-        }
-    }
+    DataType getDType() const { return getInputs(0)->getDType(); }
     virtual int numInputs() const = 0;
     virtual int numOutputs() const = 0;
 

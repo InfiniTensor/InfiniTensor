@@ -13,7 +13,7 @@ TEST(Send, ShapeTypeInfer) {
     {
         Graph g = make_ref<GraphObj>(runtime);
         Tensor input = g->addTensor(dims, DataType::Float32);
-        auto op = g->addOp<SendObj>(input, source, destination, dims, nullptr);
+        auto op = g->addOp<SendObj>(input, source, destination, nullptr);
         EXPECT_EQ(op->getOpType(), OpType::Send);
         EXPECT_EQ(op->getInputs(0)->getDims(), (dims));
         EXPECT_EQ(op->getInputs(0)->getDType(), DataType::Float32);

@@ -437,17 +437,15 @@ Tensor GraphHandlerObj::broadcast(Tensor input, Tensor output, int root) {
 }
 
 Tensor GraphHandlerObj::send(Tensor input, int source, int destination,
-                             Shape dims, Tensor output) {
+                             Tensor output) {
     if (output) {
 
         g->addOpWithOutputs<SendObj>(std::move(input), source, destination,
-                                     std::move(dims), output);
+                                     output);
 
         return output;
     } else {
-        return g
-            ->addOp<SendObj>(std::move(input), source, destination,
-                             std::move(dims), output)
+        return g->addOp<SendObj>(std::move(input), source, destination, output)
             ->getOutput();
     }
 }

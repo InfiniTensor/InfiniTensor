@@ -2,15 +2,15 @@
 
 namespace infini {
 SendObj::SendObj(GraphObj *graph, Tensor input, int source, int destination,
-                 Shape dims, [[maybe_unused]] Tensor output)
+                 [[maybe_unused]] Tensor output)
     : OperatorObj(OpType::Send, TensorVec{input},
                   TensorVec{output ? output : nullptr}),
-      source(source), destination(destination), dims(std::move(dims)) {
+      source(source), destination(destination) {
 
     IT_ASSERT(checkValid(graph));
 }
 optional<vector<Shape>> SendObj::inferShape(const TensorVec &inputs) {
-    return {{dims}};
+    return {{inputs[0]->getDims()}};
 }
 vector<DataType> SendObj::inferDataType(const TensorVec &inputs) const {
     return {{inputs[0]->getDType()}};
@@ -22,14 +22,13 @@ std::string SendObj::toString() const {
        << "[" << getGuid() << "]";
     os << "(";
     os << vecToString(inputs[0]->getDims()) << ",";
-    os << "input=" << inputs[0]->getGuid() << ",";
-    os << "dims=" << vecToString(dims) << ")";
+    os << "input=" << inputs[0]->getGuid() << ")";
     return os.str();
 }
 
 vector<int> SendObj::getWorkloadVector() const {
     vector<int> ret = inputs[0]->getDims();
-    ret.insert(ret.end(), dims.begin(), dims.end());
+
     ret.emplace(ret.begin(), type.underlying());
     ret.emplace_back(source);
     ret.emplace_back(destination);
@@ -38,7 +37,7 @@ vector<int> SendObj::getWorkloadVector() const {
 }
 
 vector<int> SendObj::getOpAttrVector() const {
-    vector<int> ret = dims;
+    vector<int> ret = inputs[0]->getDims();
     ret.emplace(ret.begin(), type.underlying());
     ret.emplace_back(source);
     ret.emplace_back(destination);

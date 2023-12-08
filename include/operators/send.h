@@ -17,10 +17,9 @@ class SendObj : public OperatorObj {
      * @param output recv output
      * @param source the send rank
      * @param destination the recv rank
-     * @param dims The shape of the output tensor.
      */
     SendObj(GraphObj *graph, Tensor input, int source, int destination,
-            Shape dims, Tensor output = nullptr);
+            Tensor output = nullptr);
     OP_CLONE(SendObj);
 
     int numInputs() const override { return 1; }
@@ -30,7 +29,6 @@ class SendObj : public OperatorObj {
 
     int getSourceRank() const { return source; }
     int getDestinationRank() const { return destination; }
-    inline Shape getShape() const { return dims; }
 
   private:
     vector<int> getWorkloadVector() const override;
@@ -40,6 +38,5 @@ class SendObj : public OperatorObj {
   protected:
     int source;
     int destination;
-    Shape dims;
 };
 } // namespace infini

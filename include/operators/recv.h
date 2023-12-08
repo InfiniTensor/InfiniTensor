@@ -13,7 +13,7 @@ class RecvObj : public OperatorObj {
      * @brief Construct a new SendRecv object
      *
      * @param graph The computation graph that this operator belongs to.
-     * @param input send input
+     * @param input default nullptr, because recv does not have input.
      * @param output recv output
      * @param source the send rank
      * @param destination the recv rank
@@ -27,7 +27,7 @@ class RecvObj : public OperatorObj {
     int numOutputs() const override { return 1; }
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
     std::string toString() const override;
-
+    DataType getDType() const;
     int getSourceRank() const { return source; }
     int getDestinationRank() const { return destination; }
     inline Shape getShape() const { return dims; }

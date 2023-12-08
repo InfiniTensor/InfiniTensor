@@ -508,6 +508,29 @@ class TestStringMethods(unittest.TestCase):
         where = make_node("Where", ["x", "y", "con"], ["output"], name="where")
         make_and_import_model(make_graph([where], "where", [x, y, con], [output]))
 
+    def test_send(self):
+        sendInput = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 5, 7])
+        send = make_node("Send", ["input"], [], name="send", source=0, destination=1)
+        graph = make_graph([send], "send", [sendInput], [])
+        model = make_model(graph)
+        from_onnx(model, backend.cpu_runtime())
+
+    def test_recv(self):
+        recvOutput = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 5, 7])
+        recv = make_node(
+            "Recv",
+            [],
+            ["output"],
+            name="recv",
+            source=0,
+            destination=1,
+            shape=[1, 3, 5, 7],
+            dataType=1,
+        )
+        graph = make_graph([recv], "recv", [], [recvOutput])
+        model = make_model(graph)
+        from_onnx(model, backend.cpu_runtime())
+
 
 class TestDynamicTensor(unittest.TestCase):
     def test_dynamic_tensor(self):

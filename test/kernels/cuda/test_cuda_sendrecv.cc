@@ -12,8 +12,8 @@
 namespace infini {
 
 void sendrecv(const string taskName, int deviceID, vector<float> data,
-              vector<float> ans, const Shape &dataShape, int WORLD_SIZE,
-              int source, int destination) {
+              const Shape &dataShape, int WORLD_SIZE, int source,
+              int destination) {
     // Create Runtimes and initiate communication
     Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     Runtime cudaRuntime = make_ref<CudaRuntimeObj>(deviceID);
@@ -23,8 +23,8 @@ void sendrecv(const string taskName, int deviceID, vector<float> data,
         Graph gSend = make_ref<GraphObj>(cudaRuntime);
         auto input = gSend->addTensor(Shape{static_cast<int>(data.size())},
                                       DataType::Float32);
-        auto opSend = gSend->addOp<SendObj>(input, source, destination,
-                                            dataShape, nullptr);
+        auto opSend =
+            gSend->addOp<SendObj>(input, source, destination, nullptr);
 
         // Copy data from CPU to GPU
         gSend->dataMalloc();
@@ -45,7 +45,7 @@ void sendrecv(const string taskName, int deviceID, vector<float> data,
         cudaRuntime->run(gRecv);
 
         auto result = opRecv->getOutput()->clone(cpuRuntime);
-        EXPECT_TRUE(result->equalData(ans));
+        EXPECT_TRUE(result->equalData(data));
     }
 }
 
@@ -53,14 +53,14 @@ TEST(CUDA_SendRecv1, run) {
     // Only 1 device gets data. Every rank should have the same data after
     // sendrecv.
     vector<float> data = {2., 3., 5., 6.};
-    vector<float> ans = {2., 3., 5., 6.};
+
     int WORLD_SIZE = 4;
     int source = 0;
     int destination = 2;
     std::vector<std::thread> threads;
     for (int gpu = 0; gpu < WORLD_SIZE; ++gpu) {
-        threads.emplace_back(sendrecv, "test_sendrecv", gpu, data, ans,
-                             Shape{2, 2}, WORLD_SIZE, source, destination);
+        threads.emplace_back(sendrecv, "test_sendrecv", gpu, data, Shape{2, 2},
+                             WORLD_SIZE, source, destination);
     }
 
     for (auto &thread : threads) {
@@ -72,14 +72,14 @@ TEST(CUDA_SendRecv2, run) {
     // Only 1 device gets data. Every rank should have the same data after
     // sendrecv.
     vector<float> data = {2., 3., 5., 6.};
-    vector<float> ans = {2., 3., 5., 6.};
+
     int WORLD_SIZE = 3;
     int source = 0;
     int destination = 2;
     std::vector<std::thread> threads;
     for (int gpu = 0; gpu < WORLD_SIZE; ++gpu) {
-        threads.emplace_back(sendrecv, "test_sendrecv", gpu, data, ans,
-                             Shape{2, 2}, WORLD_SIZE, source, destination);
+        threads.emplace_back(sendrecv, "test_sendrecv", gpu, data, Shape{2, 2},
+                             WORLD_SIZE, source, destination);
     }
 
     for (auto &thread : threads) {
