@@ -15,6 +15,7 @@
 #include "operators/pooling.h"
 #include "operators/reduce.h"
 #include "operators/reshape.h"
+#include "operators/resize.h"
 #include "operators/slice.h"
 #include "operators/softmax.h"
 #include "operators/split.h"
@@ -249,6 +250,12 @@ Tensor GraphHandlerObj::reshape(Tensor data, Tensor reshaped, Shape shape) {
             ->getOutput();
     }
 }
+
+Tensor GraphHandlerObj::resize(Tensor input, Tensor output,
+                               const std::optional<vector<int>> &axes,
+                               Tensor sizes, Tensor scales, Tensor roi,
+                               string ratioPolicy, string nearestMode,
+                               string coordTransMode) {}
 
 Tensor GraphHandlerObj::concat(TensorVec inputs, Tensor output, int dim) {
     if (output) {

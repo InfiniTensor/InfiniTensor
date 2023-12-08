@@ -535,6 +535,39 @@ class OnnxStub:
                         tensors.get(node.output[0]),
                         shape,
                     )
+                elif node.op_type == "Resize":
+                    output = tensors.get(node.output[0])
+                    attributes = _parse_attribute(
+                        node,
+                        {
+                            "antialias": 0,
+                            "axes": None,
+                            "coordinate_transformation_mode": "half_pixel",
+                            "cubic_coeff_a": -0.75,
+                            "exclude_outside": 0,
+                            "extrapolation_value": 0.0,
+                            "keep_aspect_ratio_policy": "stretch",
+                            "mode": "nearest",
+                            "nearest_mode": "round_prefer_floor",
+                        },
+                    )
+                    (keep_aspect_ratio_policy, coordinate_transformation_mode) = (
+                        attributes[name]
+                        for name in [
+                            "keep_aspect_ratio_polic",
+                            "coordinate_transformation_mode",
+                        ]
+                    )
+                    tensors[node.output[0]] = self.handler.resize(
+                        tensors[node.input[0]],
+                        output,
+                        axes,
+                        tensors[node.input[3]] if len(node.input) > 3 else None,
+                        tensors[node.input[2]] if len(node.input) > 2 else None,
+                        tensors[node.input[1]] if len(node.input) > 1 else None,
+                        keep_aspect_ratio_policy,
+                        coordinate_transformation_mode,
+                    )
                 elif node.op_type == "Squeeze":
                     input_shape = _search_shape(model, node.input[0])
                     axes = set(
@@ -703,12 +736,12 @@ class OnnxStub:
                             tensors[node.input[0]],
                             tensors.get(node.output[0]),
                         )
-                    else: 
+                    else:
                         # NOTE: `axes` is an attribute until opset version 13.
                         if len(node.input) > 1:
                             axis = _parse_data(data[node.input[1]])
                         else:
-                            axis =  next(
+                            axis = next(
                                 (
                                     attr.ints
                                     for attr in node.attribute
@@ -716,14 +749,17 @@ class OnnxStub:
                                 ),
                                 None,
                             )
-                        keepdims = next(
-                            (
-                                attr.i
-                                for attr in node.attribute
-                                if attr.name == "keepdims"
-                            ),
-                            1,
-                        ) != 0
+                        keepdims = (
+                            next(
+                                (
+                                    attr.i
+                                    for attr in node.attribute
+                                    if attr.name == "keepdims"
+                                ),
+                                1,
+                            )
+                            != 0
+                        )
 
                         tensors[node.output[0]] = self.handler.reduceSum(
                             tensors[node.input[0]],
@@ -1091,10 +1127,7 @@ class OnnxStub:
             elif ty == backend.OpTypeId.Gather:
                 axis = backend.gather_axis_of(op)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, axis=axis))
-            elif ty in [
-                backend.OpTypeId.ReduceMean,
-                backend.OpTypeId.ReduceSum
-            ]:
+            elif ty in [backend.OpTypeId.ReduceMean, backend.OpTypeId.ReduceSum]:
                 axes, keepdims = backend.reduce_attrs_of(op)
                 inputs.append(
                     ctx.push_data_input(
