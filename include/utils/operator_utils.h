@@ -12,6 +12,10 @@ Shape infer_broadcast(const Shape &A, const Shape &B);
 int get_real_axis(const int &axis, const int &rank);
 // check if tensor B is unidirectional broadcastable to tensor A
 bool is_unidirectional_broadcasting(const Shape &A, const Shape &B);
+// Locate the index with size from Shape
+Shape locate_index(size_t, Shape const &);
+// Delocate the ShapeIndex from Shape with broadcast
+size_t delocate_index(Shape const &, vector<int> const &, vector<int> const &);
 } // namespace infini
 
 #endif

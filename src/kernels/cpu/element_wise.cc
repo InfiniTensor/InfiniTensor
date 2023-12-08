@@ -1,5 +1,6 @@
 #include "operators/element_wise.h"
 #include "core/kernel.h"
+#include "utils/operator_utils.h"
 
 namespace infini {
 template <typename T> class NativeElementWise : public CpuKernelWithoutConfig {
@@ -11,37 +12,34 @@ template <typename T> class NativeElementWise : public CpuKernelWithoutConfig {
         T *inptr1 = op->getInputs(1)->getRawDataPtr<T *>();
         T *outptr = op->getOutput()->getRawDataPtr<T *>();
 
-        int a[4] = {1, 1, 1, 1};
-        int b[4] = {1, 1, 1, 1};
-        int c[4] = {1, 1, 1, 1};
-        auto a_input = op->getInputs(0)->getDims();
-        auto b_input = op->getInputs(1)->getDims();
-        auto c_output = op->getOutput()->getDims();
-        std::copy(a_input.begin(), a_input.end(), a + (4 - a_input.size()));
-        std::copy(b_input.begin(), b_input.end(), b + (4 - b_input.size()));
-        std::copy(c_output.begin(), c_output.end(), c + (4 - c_output.size()));
+        auto inputA = op->getInputs(0)->getDims();
+        auto inputB = op->getInputs(1)->getDims();
+        auto outputC = op->getOutput()->getDims();
+        auto rank = op->getOutput()->getRank();
+        vector<int> a(rank, 1);
+        vector<int> b(rank, 1);
+        std::copy(inputA.begin(), inputA.end(),
+                  a.begin() + (rank - inputA.size()));
+        std::copy(inputB.begin(), inputB.end(),
+                  b.begin() + (rank - inputB.size()));
+        auto getStride = [&](vector<int> const &shape) {
+            int p = 1;
+            vector<int> stride(rank);
+            for (auto i = rank; i > 0; --i) {
+                stride[i - 1] = p;
+                p = p * shape[i - 1];
+            }
+            return stride;
+        };
+        vector<int> strideA = getStride(a);
+        vector<int> strideB = getStride(b);
 
         auto n = op->getOutput()->size();
         for (size_t i = 0; i < n; ++i) {
-            int c0_index = i / (c[1] * c[2] * c[3]);
-            int c1_index = (i % (c[1] * c[2] * c[3])) / (c[2] * c[3]);
-            int c2_index = ((i % (c[1] * c[2] * c[3])) % (c[2] * c[3])) / c[3];
-            int c3_index = ((i % (c[1] * c[2] * c[3])) % (c[2] * c[3])) % c[3];
-
-            int a0_index = c0_index % a[0];
-            int a1_index = c1_index % a[1];
-            int a2_index = c2_index % a[2];
-            int a3_index = c3_index % a[3];
-
-            int b0_index = c0_index % b[0];
-            int b1_index = c1_index % b[1];
-            int b2_index = c2_index % b[2];
-            int b3_index = c3_index % b[3];
-            outptr[i] = doCompute(
-                inptr0[a0_index * a[1] * a[2] * a[3] + a1_index * a[2] * a[3] +
-                       a2_index * a[3] + a3_index],
-                inptr1[b0_index * b[1] * b[2] * b[3] + b1_index * b[2] * b[3] +
-                       b2_index * b[3] + b3_index]);
+            auto shapeIndexC = locate_index(i, outputC);
+            auto indexA = delocate_index(shapeIndexC, a, strideA);
+            auto indexB = delocate_index(shapeIndexC, b, strideB);
+            outptr[i] = doCompute(inptr0[indexA], inptr1[indexB]);
         }
     }
 };
