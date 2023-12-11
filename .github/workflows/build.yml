@@ -14,10 +14,10 @@ env:
   protobuf-version: "3.21.12"
   python-version: "3.10"
 
-  resnet-download: https://github.com/onnx/models/raw/main/vision/classification/resnet/model/resnet18-v2-7.onnx
-  inception-download: https://media.githubusercontent.com/media/onnx/models/main/vision/classification/inception_and_googlenet/inception_v2/model/inception-v2-9.onnx
-  densenet-download: https://github.com/onnx/models/raw/main/vision/classification/densenet-121/model/densenet-12.onnx
-  efficientnet-download: https://github.com/onnx/models/raw/main/vision/classification/efficientnet-lite4/model/efficientnet-lite4-11.onnx
+  resnet-download: https://github.com/InfiniTensor/InfiniTensor/releases/download/test-models/resnet18-v2-7.onnx
+  inception-download: https://github.com/InfiniTensor/InfiniTensor/releases/download/test-models/inception-v2-9.onnx
+  densenet-download: https://github.com/InfiniTensor/InfiniTensor/releases/download/test-models/densenet-12.onnx
+  efficientnet-download: https://github.com/InfiniTensor/InfiniTensor/releases/download/test-models/efficientnet-lite4-11.onnx
 
 jobs:
   build:
