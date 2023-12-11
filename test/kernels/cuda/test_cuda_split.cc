@@ -98,5 +98,35 @@ TEST(Split, Cuda_dim0) {
     EXPECT_TRUE(o0Cpu->equalData(vector<float>{0, 1, 2}));
     EXPECT_TRUE(o1Cpu->equalData(vector<float>{3, 4, 5}));
 }
+//----------------
+TEST(SplitFp16, CudaHigh) {
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Graph gCpu = make_ref<GraphObj>(runtime);
 
+    auto input = gCpu->addTensor({2, 6, 2, 1, 2}, DataType::Float16);
+    gCpu->dataMalloc();
+    input->setData(ValGenerator<2>());
+
+    auto cudaRuntime = make_ref<CudaRuntimeObj>();
+    Graph gCuda = make_ref<GraphObj>(cudaRuntime);
+
+    auto inputGpu = gCuda->cloneTensor(input);
+    auto op = gCuda->addOp<SplitObj>(inputGpu, std::nullopt, 1, 3);
+    gCuda->dataMalloc();
+    inputGpu->setData(ValGenerator<2>());
+
+    cudaRuntime->run(gCuda);
+
+    //  copy output from CUDA to CPU
+    EXPECT_EQ(op->getOutputs().size(), (size_t)3);
+    auto o0Cpu = gCpu->cloneTensor(op->getOutput(0));
+    auto o1Cpu = gCpu->cloneTensor(op->getOutput(1));
+    auto o2Cpu = gCpu->cloneTensor(op->getOutput(2));
+    EXPECT_TRUE(o0Cpu->equalData(vector<float>{
+        2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2.}));
+    EXPECT_TRUE(o1Cpu->equalData(vector<float>{
+        2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2.}));
+    EXPECT_TRUE(o2Cpu->equalData(vector<float>{
+        2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2.}));
+}
 } // namespace infini
