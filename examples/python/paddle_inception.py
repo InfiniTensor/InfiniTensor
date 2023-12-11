@@ -1,5 +1,4 @@
 import paddle
-import numpy as np
 import paddle.vision.transforms as T
 from paddle.vision.datasets import Cifar10
 from pyinfinitensor.onnx import OnnxStub, backend
