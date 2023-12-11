@@ -193,7 +193,7 @@ vector<DataType> ResizeObj::inferDataType(const TensorVec &inputs) const {
     }
     if (isResizeBySizes()) {
         auto sizes = inputs[1];
-        IT_ASSERT(sizes && sizes->getDType() == DataType::UInt32);
+        IT_ASSERT(sizes && sizes->getDType() == DataType::UInt64);
     } else {
         auto scales = inputs[1];
         IT_ASSERT(scales && scales->getDType() == DataType::Float32);

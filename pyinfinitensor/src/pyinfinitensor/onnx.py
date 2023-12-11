@@ -546,18 +546,39 @@ class OnnxStub:
                             "cubic_coeff_a": -0.75,
                             "exclude_outside": 0,
                             "extrapolation_value": 0.0,
-                            "keep_aspect_ratio_policy": "stretch",
+                            "keep_aspect_ratio_policy": "none",
                             "mode": "nearest",
-                            "nearest_mode": "round_prefer_floor",
+                            "nearest_mode": "none",
                         },
                     )
-                    (keep_aspect_ratio_policy, coordinate_transformation_mode) = (
+                    (
+                        axes,
+                        keep_aspect_ratio_policy,
+                        coordinate_transformation_mode,
+                        mode,
+                        nearest_mode,
+                    ) = (
                         attributes[name]
                         for name in [
-                            "keep_aspect_ratio_polic",
+                            "axes",
+                            "keep_aspect_ratio_policy",
                             "coordinate_transformation_mode",
+                            "mode",
+                            "nearest_mode",
                         ]
                     )
+                    if len(node.input) > 1:
+                        roiVal = _parse_data(data[node.input[1]])
+                    else:
+                        roiVal = []
+                    if len(node.input) > 2:
+                        scalesVal = _parse_data(data[node.input[2]])
+                    else:
+                        scalesVal = []
+                    if len(node.input) > 3:
+                        sizesVal = _parse_data(data[node.input[3]])
+                    else:
+                        sizesVal = []
                     tensors[node.output[0]] = self.handler.resize(
                         tensors[node.input[0]],
                         output,
@@ -565,7 +586,12 @@ class OnnxStub:
                         tensors[node.input[3]] if len(node.input) > 3 else None,
                         tensors[node.input[2]] if len(node.input) > 2 else None,
                         tensors[node.input[1]] if len(node.input) > 1 else None,
+                        sizesVal,
+                        scalesVal,
+                        roiVal,
+                        mode,
                         keep_aspect_ratio_policy,
+                        nearest_mode,
                         coordinate_transformation_mode,
                     )
                 elif node.op_type == "Squeeze":
