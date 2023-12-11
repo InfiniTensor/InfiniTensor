@@ -66,27 +66,26 @@ bool is_unidirectional_broadcasting(const Shape &A, const Shape &B) {
     return true;
 }
 
-std::string get_kernel_attrs_str(const KernelAttrs &kernelAttrs) {
-    std::string deviceStr = "UNKNOWN_DEVICE";
-    switch (std::get<0>(kernelAttrs)) {
+std::string device_to_str(Device device) {
+    std::string deviceStr;
+    switch (device) {
     case Device::CPU:
-        deviceStr = "CPU";
-        break;
+        return "CPU";
     case Device::CUDA:
-        deviceStr = "CUDA";
-        break;
+        return "CUDA";
     case Device::BANG:
-        deviceStr = "BANG";
-        break;
+        return "BANG";
     case Device::INTELCPU:
-        deviceStr = "INTELCPU";
-        break;
+        return "INTELCPU";
     case Device::KUNLUN:
-        deviceStr = "KUNLUN";
-        break;
+        return "KUNLUN";
     default:
-        deviceStr = "UNKNOWN_DEVICE";
+        IT_TODO_HALT();
     }
+}
+
+std::string get_kernel_attrs_str(const KernelAttrs &kernelAttrs) {
+    std::string deviceStr = device_to_str(std::get<0>(kernelAttrs));
     std::string opStr = OpType(std::get<1>(kernelAttrs)).toString();
     std::string datatypeStr = std::get<2>(kernelAttrs).toString();
     return deviceStr + ", " + opStr + ", " + datatypeStr;
