@@ -24,17 +24,34 @@ class LayerNormCuda : public CudaKernelWithoutConfig {
         int dimsize = dims[op->getAxis()];
         int size = op->getOutput(0)->size();
         int scaleSize = op->getInputs(1)->size();
-        if (op->numInputs() == 3) {
-            void *const biasData = (op->getInputs(2)->getRawDataPtr<void *>());
-            int biasSize = op->getInputs(2)->size();
-            // printf("kernel bias:true:%d\n", 1);
-            LaynormKernel((float *)inputData, (float *)scaleData, eps, size,
-                          scaleSize, dimsize, stride, (float *)outputData,
-                          (float *)biasData, biasSize);
-        } else {
-            // printf("kernel bias:false:%d\n", 0);
-            LaynormKernel((float *)inputData, (float *)scaleData, eps, size,
-                          scaleSize, dimsize, stride, (float *)outputData);
+        if (op->getDType() == DataType::Float32) {
+            if (op->numInputs() == 3) {
+                void *const biasData =
+                    (op->getInputs(2)->getRawDataPtr<void *>());
+                int biasSize = op->getInputs(2)->size();
+                // printf("kernel bias:true:%d\n", 1);
+                LaynormKernel((float *)inputData, (float *)scaleData, eps, size,
+                              scaleSize, dimsize, stride, (float *)outputData,
+                              (float *)biasData, biasSize);
+            } else {
+                // printf("kernel bias:false:%d\n", 0);
+                LaynormKernel((float *)inputData, (float *)scaleData, eps, size,
+                              scaleSize, dimsize, stride, (float *)outputData);
+            }
+        } else if (op->getDType() == DataType::Float16) {
+            if (op->numInputs() == 3) {
+                void *const biasData =
+                    (op->getInputs(2)->getRawDataPtr<void *>());
+                int biasSize = op->getInputs(2)->size();
+                // printf("kernel bias:true:%d\n", 1);
+                LaynormKernel((half *)inputData, (half *)scaleData, eps, size,
+                              scaleSize, dimsize, stride, (half *)outputData,
+                              (half *)biasData, biasSize);
+            } else {
+                // printf("kernel bias:false:%d\n", 0);
+                LaynormKernel((half *)inputData, (half *)scaleData, eps, size,
+                              scaleSize, dimsize, stride, (half *)outputData);
+            }
         }
     }
 };
