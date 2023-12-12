@@ -22,6 +22,7 @@
 #include "operators/unary.h"
 #include "operators/where.h"
 #include <numeric>
+#include <variant>
 
 namespace infini {
 
@@ -281,14 +282,29 @@ Tensor GraphHandlerObj::attentionKVCache(Tensor input_k_cache,
 }
 
 TensorVec GraphHandlerObj::split(Tensor input, std::optional<TensorVec> outputs,
-                                 int axis, int num_outputs) {
+                                 int axis,
+                                 std::variant<int, vector<int>> numOrRatio) {
     if (outputs) {
-        g->addOpWithOutputs<SplitObj>(std::move(input), outputs, axis,
-                                      num_outputs);
+        if (std::holds_alternative<int>(numOrRatio)) {
+            g->addOpWithOutputs<SplitObj>(std::move(input), outputs, axis,
+                                          std::get<int>(numOrRatio));
+        } else {
+            g->addOpWithOutputs<SplitObj>(std::move(input), outputs, axis,
+                                          std::get<vector<int>>(numOrRatio));
+        }
         return *outputs;
     } else {
-        return g->addOp<SplitObj>(std::move(input), outputs, axis, num_outputs)
-            ->getOutputs();
+        if (std::holds_alternative<int>(numOrRatio)) {
+            return g
+                ->addOp<SplitObj>(std::move(input), outputs, axis,
+                                  std::get<int>(numOrRatio))
+                ->getOutputs();
+        } else {
+            return g
+                ->addOp<SplitObj>(std::move(input), outputs, axis,
+                                  std::get<vector<int>>(numOrRatio))
+                ->getOutputs();
+        }
     }
 }
 

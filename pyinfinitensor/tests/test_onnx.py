@@ -337,7 +337,7 @@ class TestStringMethods(unittest.TestCase):
             "ReduceMean", ["data"], ["reduced"], keepdims=1, name="reduceMean"
         )
         make_and_import_model(make_graph([reduceMean], "reduceMean", [data], [reduced]))
-    
+
     def test_reduce_sum(self):
         data = make_tensor_value_info("data", TensorProto.FLOAT, [2, 3, 3, 4])
         reduced = make_tensor_value_info("reduced", TensorProto.FLOAT, [1, 1, 1, 1])
@@ -434,6 +434,12 @@ class TestStringMethods(unittest.TestCase):
         input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
         split = make_node("Split", ["input"], ["output"], name="split", axis=0)
         make_and_import_model(make_graph([split], "split", [input], []))
+
+    def test_split1(self):
+        input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
+        splitAttr = make_tensor_value_info("split", TensorProto.INT64, [2, 1])
+        split = make_node("Split", ["input", "split"], ["output"], name="split", axis=1)
+        make_and_import_model(make_graph([split], "split", [input, splitAttr], []))
 
     def test_allBroadcast(self):
         input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
