@@ -67,7 +67,7 @@ class GraphHandlerObj {
     Tensor reshape(Tensor data, Tensor reshaped, Shape shape);
     Tensor resize(Tensor input, Tensor output,
                   const std::optional<vector<int>> &axes, Tensor sizes,
-                  Tensor scales, Tensor roi, vector<int64_t> sizes_,
+                  Tensor scales, Tensor roi, vector<uint32_t> sizes_,
                   vector<float> scales_, vector<float> roi_, string mode,
                   string ratioPolicy, string nearestMode,
                   string coordTransMode);
