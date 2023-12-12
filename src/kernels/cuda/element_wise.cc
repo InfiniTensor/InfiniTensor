@@ -2,6 +2,7 @@
 #include "cuda/cuda_element_wise.h"
 #include "cuda/cuda_kernel_wihtout_config.h"
 #include "cuda/cuda_runtime.h"
+#include "cuda/cuda_utility.h"
 
 namespace infini {
 class ElementWiseCudnn : public CudaKernelWithoutConfig {
@@ -44,28 +45,27 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
         std::copy(a_dim.begin(), a_dim.end(), a + (4 - a_dim.size()));
         std::copy(b_dim.begin(), b_dim.end(), b + (4 - b_dim.size()));
         std::copy(c_dim.begin(), c_dim.end(), c + (4 - c_dim.size()));
+
+        auto cudnnDataType = cudnnDataTypeConvert(op->getDType());
         // get inputs
         checkCudnnError(cudnnCreateTensorDescriptor(&aDesc));
-        checkCudnnError(cudnnSetTensor4dDescriptor(aDesc, CUDNN_TENSOR_NCHW,
-                                                   CUDNN_DATA_FLOAT, a[0], a[1],
-                                                   a[2], a[3]));
+        checkCudnnError(cudnnSetTensor4dDescriptor(
+            aDesc, CUDNN_TENSOR_NCHW, cudnnDataType, a[0], a[1], a[2], a[3]));
 
         checkCudnnError(cudnnCreateTensorDescriptor(&bDesc));
-        checkCudnnError(cudnnSetTensor4dDescriptor(bDesc, CUDNN_TENSOR_NCHW,
-                                                   CUDNN_DATA_FLOAT, b[0], b[1],
-                                                   b[2], b[3]));
+        checkCudnnError(cudnnSetTensor4dDescriptor(
+            bDesc, CUDNN_TENSOR_NCHW, cudnnDataType, b[0], b[1], b[2], b[3]));
 
         // get outputs
         checkCudnnError(cudnnCreateTensorDescriptor(&cDesc));
-        checkCudnnError(cudnnSetTensor4dDescriptor(cDesc, CUDNN_TENSOR_NCHW,
-                                                   CUDNN_DATA_FLOAT, c[0], c[1],
-                                                   c[2], c[3]));
+        checkCudnnError(cudnnSetTensor4dDescriptor(
+            cDesc, CUDNN_TENSOR_NCHW, cudnnDataType, c[0], c[1], c[2], c[3]));
 
         // get op descriptor
         cudnnOpTensorDescriptor_t opDesc;
         checkCudnnError(cudnnCreateOpTensorDescriptor(&opDesc));
         checkCudnnError(cudnnSetOpTensorDescriptor(
-            opDesc, getOpType(), CUDNN_DATA_FLOAT, CUDNN_NOT_PROPAGATE_NAN));
+            opDesc, getOpType(), cudnnDataType, CUDNN_NOT_PROPAGATE_NAN));
 
         auto [aAlpha, bAlpha, beta] = getAlphBeta();
 
@@ -127,20 +127,22 @@ class ElementWiseCuda : public CudaKernelWithoutConfig {
         std::copy(b_dim.begin(), b_dim.end(), b + (4 - b_dim.size()));
         std::copy(c_dim.begin(), c_dim.end(), c + (4 - c_dim.size()));
 
-        if (op->getOpType() == OpType::Div)
-            div_kernel(aData, bData, cData, a[0], a[1], a[2], a[3], b[0], b[1],
-                       b[2], b[3], c[0], c[1], c[2], c[3]);
-        else if (op->getOpType() == OpType::Pow)
-            pow_kernel(aData, bData, cData, a[0], a[1], a[2], a[3], b[0], b[1],
-                       b[2], b[3], c[0], c[1], c[2], c[3]);
-        else if (op->getOpType() == OpType::Add) {
-            add_kernel(aData, bData, cData, a[0], a[1], a[2], a[3], b[0], b[1],
-                       b[2], b[3], c[0], c[1], c[2], c[3]);
+        const int dType = _op->getDType().getIndex();
+        if (op->getOpType() == OpType::Div) {
+            div_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
+                       b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
+        } else if (op->getOpType() == OpType::Add) {
+            add_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
+                       b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
+        } else if (op->getOpType() == OpType::Pow) {
+            pow_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
+                       b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
         } else if (op->getOpType() == OpType::Less) {
-            less_kernel(aData, bData, cData, a[0], a[1], a[2], a[3], b[0], b[1],
-                        b[2], b[3], c[0], c[1], c[2], c[3]);
-        } else
+            less_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3],
+                        b[0], b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
+        } else {
             IT_TODO_HALT();
+        }
     }
 };
 
@@ -151,8 +153,7 @@ REGISTER_KERNEL(Device::CUDA, OpType::Min, MinCudnn, "Min_cuDNN_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Max, MaxCudnn, "Max_cuDNN_CUDA");
 
 REGISTER_KERNEL(Device::CUDA, OpType::Div, ElementWiseCuda, "Div_CUDA");
-
-REGISTER_KERNEL(Device::CUDA, OpType::Pow, ElementWiseCuda, "Pow__CUDA");
-REGISTER_KERNEL(Device::CUDA, OpType::Less, ElementWiseCuda, "Less__CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Pow, ElementWiseCuda, "Pow_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Less, ElementWiseCuda, "Less_CUDA");
 
 }; // namespace infini
