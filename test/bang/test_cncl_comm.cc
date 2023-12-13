@@ -15,9 +15,7 @@ void allReduceSum(float *data, int deviceId) {
     cnclComm_t comm =
         dynamic_cast<CnclCommunicatorObj &>(bang_runtime->getCommunicator())
             .getCnclComm();
-    cnrtQueue_t queue =
-        dynamic_cast<CnclCommunicatorObj &>(bang_runtime->getCommunicator())
-            .getCnclQueue();
+    cnrtQueue_t queue = bang_runtime->getBangQueue();
     // Copy data
     float *data_mlu;
     checkBangError(cnrtMalloc((void **)&data_mlu, sizeof(float)));
