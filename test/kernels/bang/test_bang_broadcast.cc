@@ -17,7 +17,7 @@ void broadcast(const string taskName, int deviceID, vector<float> data,
                vector<float> ans) {
     // Create Runtimes and initiate communication
     Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
-    Runtime bangRuntime = make_ref<BangRuntimeObj>();
+    Runtime bangRuntime = make_ref<BangRuntimeObj>(deviceID);
     bangRuntime->initComm(taskName, WORLD_SIZE, deviceID);
     // Create Graph and insert allReduce operation
     Graph g = make_ref<GraphObj>(bangRuntime);
@@ -44,13 +44,22 @@ TEST(BANG_Broadcast, run) {
     vector<float> data = {2., 3., 5., 6.};
     vector<float> ans = {2., 3., 5., 6.};
 
-    std::vector<std::thread> threads;
-    for (int mlu = 0; mlu < WORLD_SIZE; ++mlu) {
-        threads.emplace_back(broadcast, "test_broadcast", mlu, data, ans);
+    for (int i = 0; i < WORLD_SIZE; ++i) {
+        pid_t pid = fork();
+        if (pid == 0) {
+            // Child process
+            broadcast("test_broadcast", i, data, ans);
+            exit(0); // Ensure child process exits to avoid unnecessary
+                     // repetition in parent
+        } else if (pid < 0) {
+            std::cerr << "Error creating process" << std::endl;
+        }
     }
-    for (auto &thread : threads) {
-        thread.join();
+    // Wait for all child processes to finish
+    for (int i = 0; i < WORLD_SIZE; ++i) {
+        wait(NULL);
     }
 }
+
 } // namespace infini
 #endif

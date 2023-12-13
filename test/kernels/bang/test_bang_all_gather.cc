@@ -16,7 +16,7 @@ void allGather(const string taskName, int deviceID, vector<float> data,
                vector<vector<float>> ans) {
     // Create Runtimes and initiate communication
     Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
-    Runtime bangRuntime = make_ref<BangRuntimeObj>();
+    Runtime bangRuntime = make_ref<BangRuntimeObj>(deviceID);
     bangRuntime->initComm(taskName, WORLD_SIZE, deviceID);
     // Create Graph and insert allReduce operation
     Graph g = make_ref<GraphObj>(bangRuntime);
@@ -39,13 +39,22 @@ TEST(BANG_AllGather, run) {
     vector<float> data[2] = {{2., 3.}, {5., 6.}};
     vector<vector<float>> ans = {{2., 3.}, {5., 6.}};
 
-    std::vector<std::thread> threads;
-    for (int mlu = 0; mlu < WORLD_SIZE; ++mlu) {
-        threads.emplace_back(allGather, "test_all_gather", mlu, data[mlu], ans);
+    for (int i = 0; i < WORLD_SIZE; ++i) {
+        pid_t pid = fork();
+        if (pid == 0) {
+            // Child process
+            allGather("test_all_gather", i, data[i], ans);
+            exit(0); // Ensure child process exits to avoid unnecessary
+                     // repetition in parent
+        } else if (pid < 0) {
+            std::cerr << "Error creating process" << std::endl;
+        }
     }
-    for (auto &thread : threads) {
-        thread.join();
+    // Wait for all child processes to finish
+    for (int i = 0; i < WORLD_SIZE; ++i) {
+        wait(NULL);
     }
 }
+
 } // namespace infini
 #endif

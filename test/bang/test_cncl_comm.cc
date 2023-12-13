@@ -9,7 +9,7 @@ namespace infini {
 
 void allReduceSum(float *data, int deviceId) {
     // Create Runtime and setup communication
-    BangRuntimeObj *bang_runtime = new BangRuntimeObj();
+    BangRuntimeObj *bang_runtime = new BangRuntimeObj(deviceId);
     int rank = deviceId;
     bang_runtime->initComm("test_cncl_comm", WORLD_SIZE, rank);
     cnclComm_t comm =
@@ -29,24 +29,28 @@ void allReduceSum(float *data, int deviceId) {
     // Copy data back and sync device
     checkBangError(
         cnrtMemcpy(data, data_mlu, sizeof(float), cnrtMemcpyDevToHost));
+    ASSERT_EQ(*data, 5.0f);
 }
 
 // Setup communication between 2 threads, each controlling 1 MLU.
 // Do AllReduce Sum on {1.0, 4.0}. Results should be {5.0, 5.0}.
 TEST(CNCL, multi_mlu_communication) {
-    int num_threads = WORLD_SIZE;
     float data[] = {1.0, 4.0};
 
-    std::vector<std::thread> threads;
-    for (int mlu = 0; mlu < num_threads; ++mlu) {
-        threads.emplace_back(allReduceSum, &data[mlu], mlu);
+    for (int i = 0; i < WORLD_SIZE; ++i) {
+        pid_t pid = fork();
+        if (pid == 0) {
+            // Child process
+            allReduceSum(&data[i], i);
+            exit(0); // Ensure child process exits to avoid unnecessary
+                     // repetition in parent
+        } else if (pid < 0) {
+            std::cerr << "Error creating process" << std::endl;
+        }
     }
-    for (auto &thread : threads) {
-        thread.join();
-    }
-
-    for (int i = 0; i < num_threads; ++i) {
-        ASSERT_EQ(data[i], 5.0f);
+    // Wait for all child processes to finish
+    for (int i = 0; i < WORLD_SIZE; ++i) {
+        wait(NULL);
     }
 }
 
