@@ -3,10 +3,12 @@
 #include "operators/reduce.h"
 
 namespace infini {
-class ReduceMeanCnnl : public BangKernelWithoutConfig {
+class ReduceCnnlBase : public BangKernelWithoutConfig {
+    virtual cnnlReduceOp_t getReduceOp() const = 0;
+
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
-        auto op = as<ReduceMeanObj>(_op);
+        auto op = as<ReduceBaseObj>(_op);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
@@ -34,7 +36,7 @@ class ReduceMeanCnnl : public BangKernelWithoutConfig {
         cnnlReduceDescriptor_t reduceDesc;
         checkCnnlError(cnnlCreateReduceDescriptor(&reduceDesc));
         checkCnnlError(cnnlSetReduceDescriptor_v2(
-            reduceDesc, axes.data(), axes.size(), CNNL_REDUCE_AVG,
+            reduceDesc, axes.data(), axes.size(), getReduceOp(),
             CNNL_DTYPE_FLOAT, CNNL_NOT_PROPAGATE_NAN, CNNL_REDUCE_NO_INDICES,
             CNNL_32BIT_INDICES, 0.0));
 
@@ -63,7 +65,17 @@ class ReduceMeanCnnl : public BangKernelWithoutConfig {
     }
 };
 
+class ReduceMeanCnnl : public ReduceCnnlBase {
+    cnnlReduceOp_t getReduceOp() const override { return CNNL_REDUCE_AVG; }
+};
+
+class ReduceSumCnnl : public ReduceCnnlBase {
+    cnnlReduceOp_t getReduceOp() const override { return CNNL_REDUCE_ADD; }
+};
+
 REGISTER_KERNEL(Device::BANG, OpType::ReduceMean, DataType::Float32,
                 ReduceMeanCnnl, "ReduceMean_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::ReduceSum, DataType::Float32,
+                ReduceSumCnnl, "ReduceSum_cnnl_BANG_Float32");
 
 }; // namespace infini
