@@ -14,9 +14,9 @@ void BangRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
     double totalTime = 0;
     std::map<OpType, double> opTime;
     std::map<OpType, int> opCnt;
-    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
+    // Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     // std::ofstream ofs("./log.txt");
-    int i = 0;
+    // int i = 0;
     for (auto &op : graph->getOperators()) {
         // HACK: set correct data type
         auto kernelAttrs =
@@ -25,17 +25,18 @@ void BangRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
         auto perfData = perfEngine.getPerfData(perfKey);
         if (!perfData && !tune) {
-            std::cout << i++ << "th Op: " << op->getOpType().underlying()
-                      << std::endl;
+            // std::cout << i++ << "th Op: " << op->getOpType().underlying()
+            //           << std::endl;
             kernel->compute(op, this);
-            auto cpuTensor = op->getOutput(0)->clone(cpuRuntime);
-            std::cout << cpuTensor->getRawDataPtr<float *>()[0] << std::endl;
+            // auto cpuTensor = op->getOutput(0)->clone(cpuRuntime);
+            // std::cout << cpuTensor->getRawDataPtr<float *>()[0] << std::endl;
             // if (op->getOpType() == OpType::Softmax) {
             //     auto cpuTensorInput = op->getInputs(0)->clone(cpuRuntime);
             //     cpuTensorInput->dumpData(ofs);
             //     ofs.close();
             // }
             this->resetWorkspace();
+            // std::this_thread::sleep_for(std::chrono::milliseconds(100));
             continue;
         }
 
@@ -80,13 +81,7 @@ void BangRuntimeObj::initComm(const string &name, int worldSize, int rank) {
     IT_ASSERT(rank < worldSize);
     IT_ASSERT(!comm) << "communicator is already initialized.";
 #ifdef INFINI_USE_CNCL
-    std::cout << "Rank: " << rank;
     comm = std::make_unique<CnclCommunicatorObj>(name, worldSize, rank);
-    checkBangError(cnrtSetDevice(rank % worldSize));
-    checkBangError(cnrtQueueCreate(&(CnclCommManager::getInstance()
-                                         ->getCommSet(name, worldSize)
-                                         .queues[rank])));
-    
 #else
     IT_TODO_HALT_MSG("Not compiled with CNCL.");
 #endif

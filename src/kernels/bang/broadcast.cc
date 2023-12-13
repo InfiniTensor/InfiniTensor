@@ -19,9 +19,7 @@ class BroadcastCNCL : public BangKernelWithoutConfig {
         cnclComm_t comm =
             dynamic_cast<CnclCommunicatorObj &>(context->getCommunicator())
                 .getCnclComm();
-        cnrtQueue_t queue =
-            dynamic_cast<CnclCommunicatorObj &>(context->getCommunicator())
-                .getCnclQueue();
+        cnrtQueue_t queue = context->getBangQueue();
         // TODO: Using default stream 0 for now.
         CNCL_CHECK(cnclBroadcast(input, output, count, cnclFloat32,
                                  op->getRoot(), comm, queue));

@@ -28,9 +28,7 @@ class AllGatherCNCL : public BangKernelWithoutConfig {
         cnclComm_t comm =
             dynamic_cast<CnclCommunicatorObj &>(context->getCommunicator())
                 .getCnclComm();
-        cnrtQueue_t queue =
-            dynamic_cast<CnclCommunicatorObj &>(context->getCommunicator())
-                .getCnclQueue();
+        cnrtQueue_t queue = context->getBangQueue();
         CNCL_CHECK(
             cnclAllGather(input, output_temp, count, cnclFloat32, comm, queue));
         checkBangError(cnrtQueueSync(queue));

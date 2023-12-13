@@ -9,7 +9,6 @@ class AllReduceCNCL : public BangKernelWithoutConfig {
   public:
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
-        std::cout << "Start AllReduce";
         auto op = as<AllReduceBaseObj>(_op);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
         void *input = op->getInputs(0)->getRawDataPtr<void *>();
@@ -19,14 +18,11 @@ class AllReduceCNCL : public BangKernelWithoutConfig {
         cnclComm_t comm =
             dynamic_cast<CnclCommunicatorObj &>(context->getCommunicator())
                 .getCnclComm();
-        cnrtQueue_t queue =
-            dynamic_cast<CnclCommunicatorObj &>(context->getCommunicator())
-                .getCnclQueue();
+        cnrtQueue_t queue = context->getBangQueue();
+        // checkBangError(cnrtQueueSync(queue));
         CNCL_CHECK(cnclAllReduce(input, output, count, cnclFloat, getRedOp(),
                                  comm, queue));
-        std::cout << "Start Sync" << std::endl;
         checkBangError(cnrtQueueSync(queue));
-        std::cout << "End AllReduce" << std::endl;
     }
 
     virtual cnclReduceOp_t getRedOp() const = 0;

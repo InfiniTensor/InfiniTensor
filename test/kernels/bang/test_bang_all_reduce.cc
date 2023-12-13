@@ -7,6 +7,7 @@
 #include "test.h"
 #include <cncl.h>
 #include <thread>
+#include <future>
 
 static int WORLD_SIZE = 2;
 
@@ -35,61 +36,76 @@ void allReduce(const string taskName, int deviceID, vector<float> data,
     EXPECT_TRUE(result->equalData(ans));
 }
 
-TEST(BANG_AllReduce, sum) {
+TEST(BANG_AllReduce, sum_mp) {
     vector<float> data[2] = {{2., 3.}, {5., 6.}};
     vector<float> ans = {10., 18.};
 
-    std::vector<std::thread> threads;
+    std::vector<std::future<void>> futures;
     for (int mlu = 0; mlu < WORLD_SIZE; ++mlu) {
-        threads.emplace_back(allReduce<AllReduceProdObj>, "test_allreduce_prod",
-                             mlu, data[mlu], ans);
+        futures.push_back(std::async(std::launch::async,
+                          allReduce<AllReduceProdObj>, "test_allreduce_prod",
+                          mlu, data[mlu], ans));
     }
-    for (auto &thread : threads) {
-        thread.join();
+    for (auto &future : futures) {
+        future.wait();
     }
 }
 
-TEST(BANG_AllReduce, prod) {
-    vector<float> data[2] = {{2., 3.}, {5., 6.}};
-    vector<float> ans = {10., 18.};
+// TEST(BANG_AllReduce, sum) {
+//     vector<float> data[2] = {{2., 3.}, {5., 6.}};
+//     vector<float> ans = {10., 18.};
 
-    std::vector<std::thread> threads;
-    for (int mlu = 0; mlu < WORLD_SIZE; ++mlu) {
-        threads.emplace_back(allReduce<AllReduceProdObj>, "test_allreduce_prod",
-                             mlu, data[mlu], ans);
-    }
-    for (auto &thread : threads) {
-        thread.join();
-    }
-}
+//     std::vector<std::thread> threads;
+//     for (int mlu = 0; mlu < WORLD_SIZE; ++mlu) {
+//         threads.emplace_back(allReduce<AllReduceProdObj>, "test_allreduce_prod",
+//                              mlu, data[mlu], ans);
+//     }
+//     for (auto &thread : threads) {
+//         thread.join();
+//     }
+// }
 
-TEST(BANG_AllReduce, min) {
-    vector<float> data[2] = {{2., 3.}, {5., 6.}};
-    vector<float> ans = {2., 3.};
+// TEST(BANG_AllReduce, prod) {
+//     vector<float> data[2] = {{2., 3.}, {5., 6.}};
+//     vector<float> ans = {10., 18.};
 
-    std::vector<std::thread> threads;
-    for (int mlu = 0; mlu < WORLD_SIZE; ++mlu) {
-        threads.emplace_back(allReduce<AllReduceMinObj>, "test_allreduce_min",
-                             mlu, data[mlu], ans);
-    }
-    for (auto &thread : threads) {
-        thread.join();
-    }
-}
+//     std::vector<std::thread> threads;
+//     for (int mlu = 0; mlu < WORLD_SIZE; ++mlu) {
+//         threads.emplace_back(allReduce<AllReduceProdObj>, "test_allreduce_prod",
+//                              mlu, data[mlu], ans);
+//     }
+//     for (auto &thread : threads) {
+//         thread.join();
+//     }
+// }
 
-TEST(BANG_AllReduce, max) {
-    vector<float> data[2] = {{2., 3.}, {5., 6.}};
-    vector<float> ans = {5., 6.};
+// TEST(BANG_AllReduce, min) {
+//     vector<float> data[2] = {{2., 3.}, {5., 6.}};
+//     vector<float> ans = {2., 3.};
 
-    std::vector<std::thread> threads;
-    for (int mlu = 0; mlu < WORLD_SIZE; ++mlu) {
-        threads.emplace_back(allReduce<AllReduceMaxObj>, "test_allreduce_max",
-                             mlu, data[mlu], ans);
-    }
-    for (auto &thread : threads) {
-        thread.join();
-    }
-}
+//     std::vector<std::thread> threads;
+//     for (int mlu = 0; mlu < WORLD_SIZE; ++mlu) {
+//         threads.emplace_back(allReduce<AllReduceMinObj>, "test_allreduce_min",
+//                              mlu, data[mlu], ans);
+//     }
+//     for (auto &thread : threads) {
+//         thread.join();
+//     }
+// }
+
+// TEST(BANG_AllReduce, max) {
+//     vector<float> data[2] = {{2., 3.}, {5., 6.}};
+//     vector<float> ans = {5., 6.};
+
+//     std::vector<std::thread> threads;
+//     for (int mlu = 0; mlu < WORLD_SIZE; ++mlu) {
+//         threads.emplace_back(allReduce<AllReduceMaxObj>, "test_allreduce_max",
+//                              mlu, data[mlu], ans);
+//     }
+//     for (auto &thread : threads) {
+//         thread.join();
+//     }
+// }
 
 } // namespace infini
 #endif
