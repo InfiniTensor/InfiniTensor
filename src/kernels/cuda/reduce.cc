@@ -1,6 +1,7 @@
 #include "operators/reduce.h"
 #include "cuda/cuda_kernel_wihtout_config.h"
 #include "cuda/cuda_runtime.h"
+#include "cuda/cuda_utility.h"
 
 namespace infini {
 class ReduceCudnnBase : public CudaKernelWithoutConfig {
@@ -46,12 +47,12 @@ class ReduceCudnnBase : public CudaKernelWithoutConfig {
         checkCudnnError(cudnnCreateTensorDescriptor(&inDesc));
         cudnnTensorDescriptor_t outDesc;
         checkCudnnError(cudnnCreateTensorDescriptor(&outDesc));
+        auto cudnnDataType = cudnnDataTypeConvert(op->getDType());
         if (nInDims > 3) {
             checkCudnnError(cudnnSetTensorNdDescriptor(
-                inDesc, CUDNN_DATA_FLOAT, nInDims, inDimArray, inStrideArray));
-            checkCudnnError(
-                cudnnSetTensorNdDescriptor(outDesc, CUDNN_DATA_FLOAT, nInDims,
-                                           outDimArray, outStrideArray));
+                inDesc, cudnnDataType, nInDims, inDimArray, inStrideArray));
+            checkCudnnError(cudnnSetTensorNdDescriptor(
+                outDesc, cudnnDataType, nInDims, outDimArray, outStrideArray));
         } else {
             int idims[4] = {1, 1, 1, 1}, odims[4] = {1, 1, 1, 1};
             for (int i = 0; i < nInDims; ++i) {
@@ -62,20 +63,19 @@ class ReduceCudnnBase : public CudaKernelWithoutConfig {
             }
 
             checkCudnnError(cudnnSetTensor4dDescriptor(
-                inDesc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, idims[0], idims[1],
+                inDesc, CUDNN_TENSOR_NCHW, cudnnDataType, idims[0], idims[1],
                 idims[2], idims[3]));
             checkCudnnError(cudnnSetTensor4dDescriptor(
-                outDesc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, odims[0],
-                odims[1], odims[2], odims[3]));
+                outDesc, CUDNN_TENSOR_NCHW, cudnnDataType, odims[0], odims[1],
+                odims[2], odims[3]));
         }
 
         // get reduce descriptor
         cudnnReduceTensorDescriptor_t reduceDesc;
         checkCudnnError(cudnnCreateReduceTensorDescriptor(&reduceDesc));
         checkCudnnError(cudnnSetReduceTensorDescriptor(
-            reduceDesc, getReduceOp(), CUDNN_DATA_FLOAT,
-            CUDNN_NOT_PROPAGATE_NAN, CUDNN_REDUCE_TENSOR_NO_INDICES,
-            CUDNN_32BIT_INDICES));
+            reduceDesc, getReduceOp(), cudnnDataType, CUDNN_NOT_PROPAGATE_NAN,
+            CUDNN_REDUCE_TENSOR_NO_INDICES, CUDNN_32BIT_INDICES));
 
         // get workspace
         size_t workspaceSize = 0;
