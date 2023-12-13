@@ -19,11 +19,13 @@ CnclCommSet CnclCommManager::getCommSet(const string &name, int worldSize) {
     auto it = comm_sets.find(key);
     if (it != comm_sets.end()) {
         CnclCommSet &target = it->second;
+        std::cout << "Get existing " + name << std::endl;
         return target;
     } else {
         CnclCommSet new_comm_set = CnclCommSet(worldSize);
         comm_sets.insert(std::make_pair(key, new_comm_set));
         alive_comms[key] = worldSize;
+        std::cout << "Create new " + name << std::endl;
         return new_comm_set;
     }
 }

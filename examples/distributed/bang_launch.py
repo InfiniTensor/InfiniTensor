@@ -65,9 +65,10 @@ def run_model(model, runtime, inputs, n=10):
 
 def run_and_compare(name, model, runtime):
     input_ids = np.load(f"{name}_inputs.npy")
-    # position_ids = np.arange(input_ids.shape[-1])
+    mask = np.load(f"{name}_mask.npy")
+    position_ids = np.load(f"{name}_position_ids.npy")
     results = np.load(f"{name}_results.npy")
-    outputs = run_model(model, runtime, (input_ids,))
+    outputs = run_model(model, runtime, (input_ids, mask, position_ids), 1)
     print("outputs abs mean:", abs(outputs).mean())
     np.testing.assert_allclose(outputs, results, rtol=1e-6, atol=1e-3)
 
@@ -105,11 +106,14 @@ def start_single(name, model):
 def gen_standard(name, model, voc_size, bs, len):
     # generate standard results
     input_ids = np.random.randint(0, voc_size, (bs, len), dtype=np.int64)
-    # position_ids = np.arange(len)
+    mask = np.random.rand(bs, len).astype(np.float32)
+    position_ids = np.arange(len).astype(np.int64)
     np.save(f"{name}_inputs", input_ids)
+    np.save(f"{name}_mask", mask)
+    np.save(f"{name}_position_ids", position_ids)
     runtime = backend.BangRuntime(0)
-    # outputs = run_model(model, runtime, (input_ids, position_ids), 1)
-    outputs = run_model(model, runtime, (input_ids,), 1)
+    outputs = run_model(model, runtime, (input_ids, mask, position_ids), 1)
+    # outputs = run_model(model, runtime, (input_ids,), 1)
     print("outputs abs mean:", abs(outputs).mean())
     np.save(f"{name}_results", outputs)
 
@@ -129,10 +133,10 @@ def main():
 
     # run single process.
     # use standalone process to isolate cuda.
-    print("run model by single GPU.")
-    p = mp.Process(target=start_single, args=(name, model))
-    p.start()
-    p.join()
+    # print("run model by single GPU.")
+    # p = mp.Process(target=start_single, args=(name, model))
+    # p.start()
+    # p.join()
 
     # run distributed parallel.
     world_size = nnodes * nproc_per_node
