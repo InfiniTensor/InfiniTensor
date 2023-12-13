@@ -212,7 +212,7 @@ if(USE_CUDA)
       ${CMAKE_CXX_COMPILER}
       CACHE STRING "Set cuda host compiler path")
   # CMP0104 requires CUDA_ARCHITECTURES
-  set_target_properties(InfiniTensor PROPERTIES CUDA_ARCHITECTURES "70;80")
+  set_target_properties(InfiniTensor PROPERTIES CUDA_ARCHITECTURES 80)
   enable_language(CUDA)
   find_package(CUDAToolkit) # For nvrtc and cuda driver
   target_link_libraries(InfiniTensor cudnn CUDA::curand CUDA::cublas CUDA::nvrtc CUDA::cudart CUDA::cuda_driver)

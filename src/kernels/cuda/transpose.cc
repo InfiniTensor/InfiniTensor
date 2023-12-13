@@ -38,8 +38,9 @@ class TransposeCuda : public CudaKernelWithoutConfig {
             outputDims.data[i] = outputShape[i];
         }
 
-        transpose_kernel((float *)inputData, (float *)outputData, nDims, size,
-                         strides, outputDims);
+        const int dType = op->getDType().getIndex();
+        transpose_kernel(dType, inputData, outputData, nDims, size, strides,
+                         outputDims);
     }
 };
 
@@ -82,9 +83,9 @@ class DepthToSpaceCuda : public CudaKernelWithoutConfig {
         for (int i = 0; i < nDims; ++i) {
             outputDims.data[i] = transpose[i];
         }
-
-        transpose_kernel((float *)inputData, (float *)outputData, nDims, size,
-                         strides, outputDims);
+        const int dType = op->getDType().getIndex();
+        transpose_kernel(dType, inputData, outputData, nDims, size, strides,
+                         outputDims);
     }
 };
 
