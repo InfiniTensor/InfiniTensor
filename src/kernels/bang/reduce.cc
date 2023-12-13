@@ -1,6 +1,6 @@
+#include "operators/reduce.h"
 #include "bang/bang_kernel_without_config.h"
 #include "bang/bang_runtime.h"
-#include "operators/reduce.h"
 
 namespace infini {
 class ReduceCnnlBase : public BangKernelWithoutConfig {
