@@ -10,13 +10,24 @@ class MatmulCnnl : public BangKernelWithoutConfig {
         auto op = as<MatmulObj>(_op);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
+
+        auto input_num = op->numInputs();
+
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
+        void *biasData = NULL;
+        if ( input_num > 2) {
+            biasData = (op->getInputs(2)->getRawDataPtr<void *>());
+        }
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
 
-        cnnlTensorDescriptor_t aDesc, bDesc, cDesc;
+        cnnlTensorDescriptor_t aDesc, bDesc, cDesc, biasDesc;
         auto dimInputs0 = op->getInputs(0)->getDims();
         auto dimInputs1 = op->getInputs(1)->getDims();
+        std::vector<int> dimBias;
+        if ( input_num > 2) {
+            dimBias = op->getInputs(2)->getDims();
+        }
         auto dimOutput = op->getOutput()->getDims();
 
         int32_t transA = op->getTransA();
@@ -36,6 +47,13 @@ class MatmulCnnl : public BangKernelWithoutConfig {
         checkCnnlError(
             cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT,
                                     dimOutput.size(), dimOutput.data()));
+
+        if ( input_num > 2) {
+            checkCnnlError(cnnlCreateTensorDescriptor(&biasDesc));
+            checkCnnlError(
+                cnnlSetTensorDescriptor(biasDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT,
+                                        dimBias.size(), dimBias.data()));
+        }
 
         cnnlMatMulDescriptor_t bmm_desc;
         cnnlMatMulDescCreate(&bmm_desc);
@@ -66,9 +84,20 @@ class MatmulCnnl : public BangKernelWithoutConfig {
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
+        wsData = NULL;
+        if ( input_num > 2) {
+            cnnlGetBiasAddWorkspaceSize(context->cnnlHandle(), biasDesc, cDesc, &wsSize);
+            stat = cnnlBiasAdd(context->cnnlHandle(), &alpha, biasDesc, biasData,
+                               wsData, wsSize, &alpha, cDesc, cData); 
+            if (stat != CNNL_STATUS_SUCCESS)
+                return;
+
+        }
+
         checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
         checkCnnlError(cnnlDestroyTensorDescriptor(bDesc));
         checkCnnlError(cnnlDestroyTensorDescriptor(cDesc));
+        checkCnnlError(cnnlDestroyTensorDescriptor(biasDesc));
         checkCnnlError(cnnlMatMulDescDestroy(bmm_desc));
         checkCnnlError(cnnlMatMulAlgoDestroy(bmm_algo));
         checkCnnlError(cnnlDestroyMatMulHeuristicResult(desc));
