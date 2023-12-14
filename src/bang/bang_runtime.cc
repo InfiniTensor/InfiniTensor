@@ -14,9 +14,6 @@ void BangRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
     double totalTime = 0;
     std::map<OpType, double> opTime;
     std::map<OpType, int> opCnt;
-    // Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
-    // std::ofstream ofs("./log.txt");
-    // int i = 0;
     for (auto &op : graph->getOperators()) {
         // HACK: set correct data type
         auto kernelAttrs =
@@ -25,18 +22,8 @@ void BangRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
         auto perfData = perfEngine.getPerfData(perfKey);
         if (!perfData && !tune) {
-            // std::cout << i++ << "th Op: " << op->getOpType().underlying()
-            //           << std::endl;
             kernel->compute(op, this);
-            // auto cpuTensor = op->getOutput(0)->clone(cpuRuntime);
-            // std::cout << cpuTensor->getRawDataPtr<float *>()[0] << std::endl;
-            // if (op->getOpType() == OpType::Softmax) {
-            //     auto cpuTensorInput = op->getInputs(0)->clone(cpuRuntime);
-            //     cpuTensorInput->dumpData(ofs);
-            //     ofs.close();
-            // }
             this->resetWorkspace();
-            // std::this_thread::sleep_for(std::chrono::milliseconds(100));
             continue;
         }
 
