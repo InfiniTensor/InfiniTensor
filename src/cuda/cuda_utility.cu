@@ -55,4 +55,20 @@ cudnnDataType_t cudnnDataTypeConvert(DataType dataType) {
     IT_ASSERT(false, "Unsupported data type");
 }
 
+cudaDataType cublasDataTypeConvert(DataType dataType) {
+    switch (dataType.getIndex()) {
+    case 1:
+        return CUDA_R_32F;
+    // case 3:
+    //     return CUDA_R_8I;
+    case 10:
+        return CUDA_R_16F;
+    case 11:
+        return CUDA_R_64F;
+    // case 16:
+    //     return CUDA_R_16BF;
+    default:
+        IT_ASSERT(false, "MatMul Unsupported data type");
+    }
+}
 } // namespace infini

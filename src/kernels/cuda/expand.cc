@@ -25,7 +25,8 @@ class ExpandCuda : public CudaKernelWithoutConfig {
             inputShape.data[i] = in_Shape[i];
             outputsize *= out_Shape[i];
         }
-        expandKernel((float *)inputData, (float *)outputData, nDims, outputsize,
+        const int dType = op->getDType().getIndex();
+        expandKernel(dType, inputData, outputData, nDims, outputsize,
                      inputShape, outputShape);
     }
 };

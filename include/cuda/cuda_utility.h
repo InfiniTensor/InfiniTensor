@@ -9,6 +9,7 @@ void cudaPrintFloat(float *x, int len);
 void cudaPrintTensor(const Tensor &tensor);
 
 cudnnDataType_t cudnnDataTypeConvert(DataType dataType);
+cudaDataType cublasDataTypeConvert(DataType);
 
 template <int index> struct DT_CUDA {};
 template <> struct DT_CUDA<0> { using t = bool; };
