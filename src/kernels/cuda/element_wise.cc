@@ -65,7 +65,7 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
         cudnnOpTensorDescriptor_t opDesc;
         checkCudnnError(cudnnCreateOpTensorDescriptor(&opDesc));
         checkCudnnError(cudnnSetOpTensorDescriptor(
-            opDesc, getOpType(), cudnnDataType, CUDNN_NOT_PROPAGATE_NAN));
+            opDesc, getOpType(), CUDNN_DATA_FLOAT, CUDNN_NOT_PROPAGATE_NAN));
 
         auto [aAlpha, bAlpha, beta] = getAlphBeta();
 

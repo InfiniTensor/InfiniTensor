@@ -13,15 +13,20 @@ class AllReduceNCCL : public CudaKernelWithoutConfig {
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         void *input = op->getInputs(0)->getRawDataPtr<void *>();
         void *output = op->getOutput()->getRawDataPtr<void *>();
-        IT_ASSERT(op->getDType() == DataType::Float32);
+        ncclDataType_t ncclType = ncclFloat;
+        if (op->getDType() == DataType::Float16) {
+            ncclType = ncclFloat16;
+        } else if (op->getDType() == DataType::Int8) {
+            ncclType = ncclInt8;
+        }
         size_t count = op->getInputs(0)->size();
 
         ncclComm_t comm =
             dynamic_cast<NcclCommunicatorObj &>(context->getCommunicator())
                 .getNcclComm();
         // TODO: Using default stream 0 for now.
-        checkNcclError(ncclAllReduce(input, output, count, ncclFloat,
-                                     getRedOp(), comm, 0));
+        checkNcclError(
+            ncclAllReduce(input, output, count, ncclType, getRedOp(), comm, 0));
     }
 
     virtual ncclRedOp_t getRedOp() const = 0;

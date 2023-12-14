@@ -137,7 +137,9 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
             place[node.output[0]] = Shard(list(perm).index(plc.dim))
 
     def shard_node(node: NodeProto):
-        if node.op_type in ["Relu", "Tanh", "Softmax"]:
+        if node.name == "/model/layers.1/Add_1":
+            print(place[node.input[0]].is_shard(), place[node.input[1]].is_shard())
+        if node.op_type in ["Relu", "Tanh", "Softmax", "Cast"]:
             place[node.output[0]] = place[node.input[0]]
         elif node.op_type in ["Where"]:
             place[node.output[0]] = place[node.input[1]]
@@ -152,7 +154,7 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
         elif node.op_type == "MatMul":
             assert (
                 place[node.input[0]] == place[node.input[1]]
-            ), f"{place[node.input[0]]} != {place[node.input[1]]}"
+            ), f"{place[node.input[0]]} != {place[node.input[1]]}, {place[node.input[0]].is_shard()}, {place[node.input[1]].is_shard()}"
             place[node.output[0]] = place[node.input[0]]
         elif node.op_type == "Concat":
             shard_concat(node)
@@ -177,7 +179,14 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
             input in data for input in node.input
         ):
             # FIXME(constroy): the last MatMul should not be sharded as TP.
-            if node.output[0] in output:
+            if (
+                node.output[0] in output
+                or (
+                    index + 1 < len(model.graph.node)
+                    and model.graph.node[index + 1].output[0]
+                )
+                in output
+            ):
                 continue
             groups = 1
             # If the Gemm or Matmul is followed by a split, then the inputs are concatinated by groups
