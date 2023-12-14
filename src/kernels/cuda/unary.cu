@@ -2,8 +2,8 @@
 #include "core/constants.h"
 #include "cuda/cuda_common.h"
 #include "cuda/cuda_unary.h"
-#include <math.h>
 #include <cub/cub.cuh>
+#include <math.h>
 
 using infini::E_CONSTANT;
 constexpr unsigned int num_threads() { return 32 * 4; }
@@ -121,15 +121,15 @@ __global__ void _neg_kernel(T *input, T *output, size_t n) {
     }
 }
 
-template<typename INPUT, typename OUTPUT>
+template <typename INPUT, typename OUTPUT>
 __global__ void _cast_kernel(INPUT *input, OUTPUT *output, size_t n) {
 
     size_t index = threadIdx.x + blockIdx.x * blockDim.x;
 
-    if(index < n){
+    if (index < n) {
         cub::CastOp<OUTPUT> _CastOp;
         output[index] = _CastOp(input[index]);
-    }    
+    }
 }
 
 namespace infini {
@@ -287,7 +287,7 @@ void unary_kernel(const Operator &_op) {
         IT_TODO_HALT();
 }
 
-template<typename INPUT, typename OUTPUT>
+template <typename INPUT, typename OUTPUT>
 void cast_kernel(INPUT *input, OUTPUT *output, size_t num) {
 
     int blocksize = block_work_size();
@@ -297,8 +297,11 @@ void cast_kernel(INPUT *input, OUTPUT *output, size_t num) {
 
 template void cast_kernel<float, half>(float *input, half *output, size_t num);
 template void cast_kernel<half, float>(half *input, float *output, size_t num);
-template void cast_kernel<float, int32_t>(float *input, int32_t *output, size_t num);
-template void cast_kernel<float, int8_t>(float *input, int8_t *output, size_t num);
-template void cast_kernel<int8_t, float>(int8_t *input, float *output, size_t num);
+template void cast_kernel<float, int32_t>(float *input, int32_t *output,
+                                          size_t num);
+template void cast_kernel<float, int8_t>(float *input, int8_t *output,
+                                         size_t num);
+template void cast_kernel<int8_t, float>(int8_t *input, float *output,
+                                         size_t num);
 
 }; // namespace infini

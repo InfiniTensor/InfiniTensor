@@ -39,7 +39,7 @@ __global__ void _gather_kernel(dataT *in, dataT *out,
 }
 
 namespace infini {
-template<typename T>
+template <typename T>
 void gather_kernel(T *in, T *out, GatherMetaData metaData, size_t num) {
     int blockSize = 32 * 16;
     int gridSize = (num + blockSize - 1) / blockSize;
@@ -47,10 +47,13 @@ void gather_kernel(T *in, T *out, GatherMetaData metaData, size_t num) {
         _gather_kernel<T, int64_t>
             <<<gridSize, blockSize>>>(in, out, metaData, num);
     } else {
-        _gather_kernel<T,int><<<gridSize, blockSize>>>(in, out, metaData, num);
+        _gather_kernel<T, int><<<gridSize, blockSize>>>(in, out, metaData, num);
     }
 }
-template void gather_kernel<float>(float *in, float *out, GatherMetaData metaData, size_t num);
-template void gather_kernel<half>(half *in, half *out, GatherMetaData metaData, size_t num);
-template void gather_kernel<int8_t>(int8_t *in, int8_t *out, GatherMetaData metaData, size_t num);
+template void gather_kernel<float>(float *in, float *out,
+                                   GatherMetaData metaData, size_t num);
+template void gather_kernel<half>(half *in, half *out, GatherMetaData metaData,
+                                  size_t num);
+template void gather_kernel<int8_t>(int8_t *in, int8_t *out,
+                                    GatherMetaData metaData, size_t num);
 } // namespace infini

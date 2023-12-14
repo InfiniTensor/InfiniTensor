@@ -15,7 +15,8 @@ template <typename T> void erf_kernel(T *input, T *output, size_t num);
 template <typename T> void hard_sigmoid_kernel(T *input, T *output, size_t num);
 template <typename T> void hard_swish_kernel(T *input, T *output, size_t num);
 
-template<typename INPUT, typename OUTPUT> void cast_kernel(INPUT *input, OUTPUT *output, size_t num);
+template <typename INPUT, typename OUTPUT>
+void cast_kernel(INPUT *input, OUTPUT *output, size_t num);
 
 void unary_kernel(const Operator &_op);
 
