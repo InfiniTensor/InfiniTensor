@@ -10,14 +10,23 @@ class GatherCuda : public CudaKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
 
         auto input = op->getInputs(0);
-        auto index = op->getInputs(1);
+        auto index = op->getInputs(1);        
 
         GatherMetaData metaData;
         initGatherMetaData(metaData, op);
 
-        auto inData = input->getRawDataPtr<float *>();
-        auto outData = op->getOutput()->getRawDataPtr<float *>();
-        gather_kernel(inData, outData, metaData, op->getOutput()->size());
+        void *const inputData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const outputData = (op->getOutput()->getRawDataPtr<void *>());
+    
+    
+        
+        if (op->getDType() == DataType::Float32) {
+            gather_kernel<float>((float*)inputData, (float*)outputData, metaData, op->getOutput()->size());
+        }
+        else if(op->getDType() == DataType::Float32){
+            gather_kernel<half>((half*)inputData, (half*)outputData, metaData, op->getOutput()->size());
+        }
+       
     }
 };
 

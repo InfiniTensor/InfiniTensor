@@ -13,6 +13,42 @@ class UnaryCuda : public CudaKernelWithoutConfig {
     }
 };
 
+class CastCuda : public CudaKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {          
+        auto op = as<CastObj>(_op);
+
+        size_t num = op->getOutput()->size();      
+        void *const inputData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const outputData = (op->getOutput()->getRawDataPtr<void *>());
+        
+
+        if (op->getType() == CastType::Float162Float) {
+            IT_ASSERT(op->getInDType() == DataType::Float16 && op->getOutDType() == DataType::Float32);
+            cast_kernel<half, float>((half *)inputData, (float*)outputData, num);
+        }
+        else if(op->getType() == CastType::Float2Float16){
+            IT_ASSERT(op->getInDType() == DataType::Float32 && op->getOutDType() == DataType::Float16);
+            cast_kernel<float, half>((float*)inputData, (half *)outputData, num);            
+        }
+        else if(op->getType() == CastType::Float2Int32){
+            IT_ASSERT(op->getInDType() == DataType::Float32 && op->getOutDType() == DataType::Int32);          
+            cast_kernel<float, int32_t>((float*)inputData, (int32_t *)outputData, num);            
+        }
+        else if(op->getType() == CastType::Float2Int8){
+            IT_ASSERT(op->getInDType() == DataType::Float32 && op->getOutDType() == DataType::Int8);          
+            cast_kernel<float, int8_t>((float*)inputData, (int8_t *)outputData, num);            
+        }
+        else if(op->getType() == CastType::Int82Float){
+            IT_ASSERT(op->getInDType() == DataType::Int8 && op->getOutDType() == DataType::Float32);          
+            cast_kernel<int8_t, float>((int8_t*)inputData, (float *)outputData, num);            
+        }
+        else{
+            IT_ASSERT(false);
+        }  
+    }
+};
+
 class ActivationCudnn : public CudaKernelWithoutConfig {
     virtual cudnnActivationMode_t getOpType() const = 0;
     virtual tuple<float, float> getAlphBeta() const { return {1.f, 0.f}; }
@@ -144,6 +180,8 @@ REGISTER_KERNEL(Device::CUDA, OpType::Sqrt, UnaryCuda, "Sqrt_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Gelu, UnaryCuda, "Gelu_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Neg, UnaryCuda, "Neg_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Erf, UnaryCuda, "Erf_CUDA");
+
+REGISTER_KERNEL(Device::CUDA, OpType::Cast, CastCuda, "Cast_CUDA");
 
 // REGISTER_KERNEL(Device::CUDA, OpType::Softmax, UnaryCuda, "Softmax_CUDA");
 // REGISTER_KERNEL(Device::CUDA, OpType::Relu, UnaryCuda,

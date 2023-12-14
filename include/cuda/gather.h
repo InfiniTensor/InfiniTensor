@@ -53,7 +53,8 @@ inline void initGatherMetaData(GatherMetaData &metaData,
         metaData.inStride[i] = in->getStride()[i];
     }
 }
-void gather_kernel(float *in, float *out, GatherMetaData metaData, size_t num);
+template<typename T>
+void gather_kernel(T *in, T *out, GatherMetaData metaData, size_t num);
 
 void gather_elements_kernel(void *in, void *out, GatherMetaData metaData,
                             size_t num);
