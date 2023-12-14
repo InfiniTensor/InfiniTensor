@@ -24,10 +24,11 @@ class GatherCuda : public CudaKernelWithoutConfig {
         } else if (op->getDType() == DataType::Float16) {
             gather_kernel<half>((half *)inputData, (half *)outputData, metaData,
                                 op->getOutput()->size());
-        }
-        else if (op->getDType() == DataType::Int8) {
-            gather_kernel<int8_t>((int8_t *)inputData, (int8_t *)outputData, metaData,
-                                op->getOutput()->size());
+        } else if (op->getDType() == DataType::Int8) {
+            gather_kernel<int8_t>((int8_t *)inputData, (int8_t *)outputData,
+                                  metaData, op->getOutput()->size());
+        } else {
+            IT_ASSERT(false);
         }
     }
 };
