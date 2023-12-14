@@ -204,6 +204,9 @@ void pow_kernel(int dType, void *a, void *b, void *c, int a0, int a1, int a2,
     if (dType == 1) {
         _pow_kernel<float><<<gridsize, blocksize>>>(a, b, c, a0, a1, a2, a3, b0,
                                                     b1, b2, b3, c0, c1, c2, c3);
+    } else if (dType == 3) {
+        _pow_kernel<int8_t><<<gridsize, blocksize>>>(
+            a, b, c, a0, a1, a2, a3, b0, b1, b2, b3, c0, c1, c2, c3);
     } else if (dType == 10) {
         int a_size = a0 * a1 * a2 * a3;
         int b_size = b0 * b1 * b2 * b3;
