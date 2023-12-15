@@ -137,8 +137,6 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
             place[node.output[0]] = Shard(list(perm).index(plc.dim))
 
     def shard_node(node: NodeProto):
-        if node.name == "/model/layers.1/Add_1":
-            print(place[node.input[0]].is_shard(), place[node.input[1]].is_shard())
         if node.op_type in ["Relu", "Tanh", "Softmax", "Cast"]:
             place[node.output[0]] = place[node.input[0]]
         elif node.op_type in ["Where"]:
@@ -154,7 +152,7 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
         elif node.op_type == "MatMul":
             assert (
                 place[node.input[0]] == place[node.input[1]]
-            ), f"{place[node.input[0]]} != {place[node.input[1]]}, {place[node.input[0]].is_shard()}, {place[node.input[1]].is_shard()}"
+            ), f"{place[node.input[0]]} != {place[node.input[1]]}"
             place[node.output[0]] = place[node.input[0]]
         elif node.op_type == "Concat":
             shard_concat(node)
