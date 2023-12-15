@@ -1,6 +1,7 @@
 #include "operators/where.h"
 #include "cuda/cuda_kernel_wihtout_config.h"
 #include "cuda/cuda_runtime.h"
+#include "cuda/cuda_utility.h"
 #include "cuda/cuda_where.h"
 #include "utils/broadcast_shape.h"
 
@@ -35,18 +36,11 @@ class WhereCuda : public CudaKernelWithoutConfig {
         broadcastShape(opInputXShape, inputXShape, nDims, xSize);
         broadcastShape(opInputYShape, inputYShape, nDims, ySize);
         broadcastShape(opConditionShape, conditionShape, nDims, cSize);
-
-        if (op->getDType() == DataType::Float32) {
-            whereKernel((float *)inputXData, (float *)inputYData,
-                        (uint8_t *)conditionData, (float *)outputData, nDims,
-                        outputsize, inputXShape, inputYShape, conditionShape,
-                        outputShape, xSize, ySize, cSize);
-        } else if (op->getDType() == DataType::Float16) {
-            whereKernel((half *)inputXData, (half *)inputYData,
-                        (uint8_t *)conditionData, (half *)outputData, nDims,
-                        outputsize, inputXShape, inputYShape, conditionShape,
-                        outputShape, xSize, ySize, cSize);
-        }
+        const int dTypeIndex = op->getDType().getIndex();
+        whereKernel(dTypeIndex, inputXData, inputYData,
+                    (uint8_t *)conditionData, outputData, nDims, outputsize,
+                    inputXShape, inputYShape, conditionShape, outputShape,
+                    xSize, ySize, cSize);
     }
 };
 

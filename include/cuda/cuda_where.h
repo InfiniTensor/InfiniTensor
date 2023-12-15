@@ -4,13 +4,8 @@
 
 namespace infini {
 
-void whereKernel(const float *inputX, const float *inputY,
-                 const uint8_t *condition, float *output, int nDims,
-                 int outputsize, SmallArray inputXShape, SmallArray inputYShape,
-                 SmallArray conditionShape, SmallArray outputShape, int xSize,
-                 int ySize, int cSize);
-void whereKernel(const half *inputX, const half *inputY,
-                 const uint8_t *condition, half *output, int nDims,
+void whereKernel(int dTypeIndex, void *inputX, void *inputY,
+                 const uint8_t *condition, void *output, int nDims,
                  int outputsize, SmallArray inputXShape, SmallArray inputYShape,
                  SmallArray conditionShape, SmallArray outputShape, int xSize,
                  int ySize, int cSize);

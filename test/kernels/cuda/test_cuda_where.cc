@@ -82,6 +82,41 @@ void test_whereFp16(
     oCpu->printData();                              //->printData
     EXPECT_TRUE(oCpu->equalData(ExpectData));
 }
+void test_whereUI8(const Shape &inputXShape, const vector<uint8_t> &inputXData,
+                   const Shape &inputYShape, const vector<uint8_t> &inputYData,
+                   const Shape &conditionShape,
+                   const vector<uint8_t> &conditionData,
+                   const vector<uint8_t> &ExpectData) {
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Graph gCpu = make_ref<GraphObj>(runtime);
+    auto condition = gCpu->addTensor(conditionShape, DataType::UInt8);
+    auto inputX = gCpu->addTensor(inputXShape, DataType::UInt8);
+    auto inputY = gCpu->addTensor(inputYShape, DataType::UInt8);
+
+    gCpu->dataMalloc();
+    condition->copyin(conditionData); //
+    inputX->copyin(inputXData);
+    inputY->copyin(inputYData); //
+
+    auto cudaRuntime = make_ref<CudaRuntimeObj>();
+    Graph gCuda = make_ref<GraphObj>(cudaRuntime);
+
+    auto conditionGpu = gCuda->cloneTensor(condition);
+    auto inputXGpu = gCuda->cloneTensor(inputX);
+    auto inputYGpu = gCuda->cloneTensor(inputY);
+
+    auto op = gCuda->addOp<WhereObj>(inputXGpu, inputYGpu, conditionGpu,
+                                     nullptr); // WhereObj
+    gCuda->dataMalloc();
+    conditionGpu->copyin(conditionData);
+    inputXGpu->copyin(inputXData);
+    inputYGpu->copyin(inputYData);
+    cudaRuntime->run(gCuda);
+
+    auto oCpu = gCpu->cloneTensor(op->getOutput()); // move Data from gpu to cpu
+    oCpu->printData();                              //->printData
+    EXPECT_TRUE(oCpu->equalData(ExpectData));
+}
 
 TEST(CUDA_WhereFp32, run) {
     test_whereFp32(
@@ -143,6 +178,15 @@ TEST(CUDA_WhereFp16, run) {
         vector<float>{2., 2., 2., 1., 1., 1., 1., 1., 1., 2., 2., 2.,
                       1., 1., 1., 1., 1., 1., 2., 2., 2., 2., 2., 2.,
                       2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2.});
+
+} // python output
+TEST(CUDA_WhereUI8, run) {
+    test_whereUI8(
+        Shape{2, 2, 3, 1},
+        vector<uint8_t>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
+        Shape{2, 2, 3, 1}, vector<uint8_t>{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        Shape{2, 2, 3, 1}, vector<uint8_t>{0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1},
+        vector<uint8_t>{0, 1, 2, 0, 0, 0, 6, 7, 0, 9, 10, 11});
 
 } // python output
 
