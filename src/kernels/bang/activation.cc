@@ -132,31 +132,51 @@ class SoftmaxCnnl : public BangKernelWithoutConfig {
         std::vector<int> inDim = {1, 1, 1};
         std::vector<int> outDim = inDim;
 
-        if (axis == 0) {
-            mode = CNNL_SOFTMAX_MODE_HIGH_DIMENSION;
-            inDim[0] = aDim[0];
-            inDim[1] = aDim[1];
-            for (size_t i = 2; i < aDim.size(); ++i) {
-                inDim[2] *= aDim[i];
+        if (aDim.size() >= 3) {
+            if (axis == 0) {
+                mode = CNNL_SOFTMAX_MODE_HIGH_DIMENSION;
+                inDim[0] = aDim[0];
+                inDim[1] = aDim[1];
+                for (size_t i = 2; i < aDim.size(); ++i) {
+                    inDim[2] *= aDim[i];
+                }
+                outDim = inDim;
+            } else if (axis == aDim.size() - 1) {
+                mode = CNNL_SOFTMAX_MODE_LOW_DIMENSION;
+                inDim[0] = aDim[0];
+                for (size_t i = 1; i < axis; ++i) {
+                    inDim[1] *= aDim[i];
+                }
+                inDim[2] = aDim[axis];
+                outDim = inDim;
+            } else {
+                mode = CNNL_SOFTMAX_MODE_MEDIUM_DIMENSION;
+                for (size_t i = 0; i < axis; ++i) {
+                    inDim[0] *= aDim[i];
+                }
+                inDim[1] = aDim[axis];
+                for (size_t i = axis + 1; i < aDim.size(); ++i) {
+                    inDim[2] *= aDim[i];
+                }
+                outDim = inDim;
             }
-            outDim = inDim;
-        } else if (axis == aDim.size() - 1) {
-            mode = CNNL_SOFTMAX_MODE_LOW_DIMENSION;
-            inDim[0] = aDim[0];
-            for (size_t i = 1; i < axis; ++i) {
-                inDim[1] *= aDim[i];
+        } else if (aDim.size() == 2) {
+            if (axis == 0) {
+                mode = CNNL_SOFTMAX_MODE_HIGH_DIMENSION;
+                inDim = aDim;
+                inDim.push_back(1);
+                outDim = inDim;
+            } else {
+                mode = CNNL_SOFTMAX_MODE_LOW_DIMENSION;
+                inDim = aDim;
+                inDim.insert(inDim.begin(), 1);
+                outDim = inDim;
             }
-            inDim[2] = aDim[axis];
-            outDim = inDim;
         } else {
-            mode = CNNL_SOFTMAX_MODE_MEDIUM_DIMENSION;
-            for (size_t i = 0; i < axis; ++i) {
-                inDim[0] *= aDim[i];
-            }
-            inDim[1] = aDim[axis];
-            for (size_t i = axis + 1; i < aDim.size(); ++i) {
-                inDim[2] *= aDim[i];
-            }
+            mode = CNNL_SOFTMAX_MODE_HIGH_DIMENSION;
+            inDim = aDim;
+            inDim.push_back(1);
+            inDim.push_back(1);
             outDim = inDim;
         }
 
@@ -172,8 +192,8 @@ class SoftmaxCnnl : public BangKernelWithoutConfig {
         float beta = 0.0;
         cnnlStatus_t stat =
             cnnlSoftmaxForward_v2(context->cnnlHandle(), CNNL_SOFTMAX_ACCURATE,
-                                  mode, CNNL_COMPUTATION_HIGH_PRECISION, &alpha,
-                                  aDesc, aData, &beta, cDesc, cData);
+                                  mode, CNNL_COMPUTATION_ULTRAHIGH_PRECISION,
+                                  &alpha, aDesc, aData, &beta, cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
         checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
