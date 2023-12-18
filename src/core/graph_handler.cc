@@ -6,7 +6,7 @@
 #include "operators/broadcast.h"
 #include "operators/concat.h"
 #include "operators/conv.h"
-#include "operators/dequantize_linear.h"
+#include "operators/dequantizeLinear.h"
 #include "operators/dynamic_quantize_linear.h"
 #include "operators/element_wise.h"
 #include "operators/expand.h"
@@ -521,18 +521,19 @@ GraphHandlerObj::dynamicQuantizeLinear(Tensor input,
     }
 }
 
-Tensor GraphHandlerObj::dequantizeLinear(Tensor input, Tensor scale,
-                                         Tensor zero_point, Tensor output,
+Tensor GraphHandlerObj::dequantizeLinear(Tensor inputX, Tensor inputScale,
+                                         Tensor output, Tensor inputZeroPoint,
                                          int axis) {
     if (output) {
         g->addOpWithOutputs<DequantizeLinearObj>(
-            std::move(input), std::move(scale), std::move(zero_point), output,
-            axis);
+            std::move(inputX), std::move(inputScale), output,
+            std::move(inputZeroPoint), axis);
         return output;
     } else {
         return g
-            ->addOp<DequantizeLinearObj>(std::move(input), std::move(scale),
-                                         std::move(zero_point), output, axis)
+            ->addOp<DequantizeLinearObj>(std::move(inputX),
+                                         std::move(inputScale), output,
+                                         std::move(inputZeroPoint), axis)
             ->getOutput();
     }
 }

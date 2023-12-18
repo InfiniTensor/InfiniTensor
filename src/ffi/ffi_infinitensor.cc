@@ -517,6 +517,7 @@ void init_graph_builder(py::module &m) {
         .def("expand", &Handler::expand, policy::move)
         .def("erf", &Handler::erf, policy::move)
         .def("where", &Handler::where, policy::move)
+        .def("dequantizeLinear", &Handler::dequantizeLinear, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)
         .def("optimize", &Handler::optimize, policy::automatic)
         .def("operators", &Handler::operators, policy::move)

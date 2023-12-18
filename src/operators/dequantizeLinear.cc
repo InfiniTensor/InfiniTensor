@@ -1,13 +1,15 @@
-#include "operators/dequantize_linear.h"
+#include "operators/dequantizeLinear.h"
 #include "utils/operator_utils.h"
 
 namespace infini {
-DequantizeLinearObj::DequantizeLinearObj(GraphObj *graph, Tensor input,
-                                         Tensor scale, Tensor zero_point,
-                                         Tensor output, int axis)
+
+DequantizeLinearObj::DequantizeLinearObj(GraphObj *graph, Tensor inputX,
+                                         Tensor inputScale, Tensor output,
+                                         [[maybe_unused]] Tensor inputZeroPoint,
+                                         int axis)
     : OperatorObj(OpType::DequantizeLinear,
-                  zero_point ? TensorVec{input, scale, zero_point}
-                             : TensorVec{input, scale},
+                  inputZeroPoint ? TensorVec{inputX, inputScale, inputZeroPoint}
+                                 : TensorVec{inputX, inputScale},
                   {output}),
       axis(axis) {
     IT_ASSERT(checkValid(graph));
@@ -15,13 +17,14 @@ DequantizeLinearObj::DequantizeLinearObj(GraphObj *graph, Tensor input,
 
 optional<vector<Shape>>
 DequantizeLinearObj::inferShape(const TensorVec &inputs) {
-    return {{inputs[0]->getDims()}};
+    return {{inputs[0]->getDims()}}; // x.shape = output.shape = inputs[0].shape
 }
-
 vector<DataType>
 DequantizeLinearObj::inferDataType(const TensorVec &inputs) const {
     IT_ASSERT(inputs.size() == 2 || inputs.size() == 3);
-    return {inputs[1]->getDType()};
+
+    return {
+        inputs[1]->getDType()}; // scale.dtype = output.dtype = inputs[1].dtype
 }
 
 std::string DequantizeLinearObj::toString() const {
@@ -29,12 +32,11 @@ std::string DequantizeLinearObj::toString() const {
     os << "DequantizeLinear[" << getGuid() << "]";
     os << "(";
     os << vecToString(inputs[0]->getDims()) << ",";
-    os << "input=" << inputs[0]->getGuid() << ",";
-    os << "scale=" << inputs[1]->getGuid() << ",";
+    os << "inputX=" << inputs[0]->getGuid() << ",";
+    os << "inputScale=" << inputs[1]->getGuid() << ",";
+    // os << "inputZeroPoint=" << inputs[2]->getGuid() << ",";
     os << "axis=" << axis << ",";
-    os << "output=";
-    for (auto output : outputs)
-        os << output->getGuid() << ",";
+    os << "output=" << outputs[0]->getGuid() << ")";
     return os.str();
 }
 
@@ -45,7 +47,7 @@ vector<int> DequantizeLinearObj::getWorkloadVector() const {
 }
 
 vector<int> DequantizeLinearObj::getOpAttrVector() const {
-    return {type.underlying()};
+    return {type.underlying(), axis};
 }
 
 } // namespace infini

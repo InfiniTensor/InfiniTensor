@@ -866,19 +866,23 @@ class OnnxStub:
                     ):
                         tensors[name] = tensor
                 elif node.op_type == "DequantizeLinear":
-                    attributes = _parse_attribute(
-                        node,
-                        {
-                            "axis": 1,
-                        },
+                    (inputX, inputScale) = (tensors[node.input[i]] for i in [0, 1])
+                    inputZeroPoint = (
+                        None if len(node.input) < 3 else tensors[node.input[2]]
                     )
-                    axis = attributes["axis"]
+                    output = tensors.get(node.output[0])
+                    axis = next(
+                        (attr.i for attr in node.attribute if attr.name == "axis"),
+                        0,
+                    )
                     tensors[node.output[0]] = self.handler.dequantizeLinear(
-                        tensor[node.input[0]],
-                        tensor[node.input[1]],
-                        tensor[node.input[2]] if len(node.input) > 2 else None,
+                        inputX,
+                        inputScale,
+                        output,
+                        inputZeroPoint,
                         axis,
                     )
+
                 else:
                     raise Exception('Unsupported operator "{}"'.format(node.op_type))
                 new_node_name.append(node.name)

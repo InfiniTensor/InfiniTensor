@@ -85,6 +85,8 @@ class GraphHandlerObj {
     Tensor cast(Tensor input, Tensor output, int to);
     Tensor expand(Tensor input, Tensor output, Shape dims);
     Tensor where(Tensor inputX, Tensor inputY, Tensor condition, Tensor output);
+    Tensor dequantizeLinear(Tensor inputX, Tensor inputScale, Tensor output,
+                            Tensor inputZeroPoint, int axis);
     std::vector<int> getDims(Tensor x) { return x->getDims(); }
 
     Tensor allReduceSum(Tensor input, Tensor output);
@@ -101,9 +103,6 @@ class GraphHandlerObj {
                         std::string mode);
     TensorVec dynamicQuantizeLinear(Tensor input,
                                     std::optional<TensorVec> outputs);
-
-    Tensor dequantizeLinear(Tensor input, Tensor scale, Tensor zero_point,
-                            Tensor output, int axis);
 
     //------ modifiers
 
