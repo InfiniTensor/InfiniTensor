@@ -99,6 +99,11 @@ class GraphHandlerObj {
                 int outputType, Tensor input);
     Tensor depthToSpace(Tensor input, Tensor output, int blocksize,
                         std::string mode);
+    TensorVec dynamicQuantizeLinear(Tensor input,
+                                    std::optional<TensorVec> outputs);
+
+    Tensor dequantizeLinear(Tensor input, Tensor scale, Tensor zero_point,
+                            Tensor output, int axis);
 
     //------ modifiers
 

@@ -857,6 +857,28 @@ class OnnxStub:
                     tensors[output_name] = self.handler.tensor(dims, tensor.data_type)
                     data[output_name] = tensor
                     tensors[output_name].set_weight()
+                elif node.op_type == "DynamicQuantizeLinear":
+                    for name, tensor in zip(
+                        node.output,
+                        self.handler.dynamicQuantizeLinear(
+                            tensors[node.input[0]], None
+                        ),
+                    ):
+                        tensors[name] = tensor
+                elif node.op_type == "DequantizeLinear":
+                    attributes = _parse_attribute(
+                        node,
+                        {
+                            "axis": 1,
+                        },
+                    )
+                    axis = attributes["axis"]
+                    tensors[node.output[0]] = self.handler.dequantizeLinear(
+                        tensor[node.input[0]],
+                        tensor[node.input[1]],
+                        tensor[node.input[2]] if len(node.input) > 2 else None,
+                        axis,
+                    )
                 else:
                     raise Exception('Unsupported operator "{}"'.format(node.op_type))
                 new_node_name.append(node.name)

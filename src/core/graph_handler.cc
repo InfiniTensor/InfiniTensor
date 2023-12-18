@@ -6,6 +6,8 @@
 #include "operators/broadcast.h"
 #include "operators/concat.h"
 #include "operators/conv.h"
+#include "operators/dequantize_linear.h"
+#include "operators/dynamic_quantize_linear.h"
 #include "operators/element_wise.h"
 #include "operators/expand.h"
 #include "operators/gather.h"
@@ -502,6 +504,35 @@ Tensor GraphHandlerObj::where(Tensor inputX, Tensor inputY, Tensor condition,
         return g
             ->addOp<WhereObj>(std::move(inputX), std::move(inputY),
                               std::move(condition), output)
+            ->getOutput();
+    }
+}
+
+TensorVec
+GraphHandlerObj::dynamicQuantizeLinear(Tensor input,
+                                       std::optional<TensorVec> outputs) {
+    if (outputs) {
+        g->addOpWithOutputs<DynamicQuantizeLinearObj>(std::move(input),
+                                                      outputs);
+        return *outputs;
+    } else {
+        return g->addOp<DynamicQuantizeLinearObj>(std::move(input), outputs)
+            ->getOutputs();
+    }
+}
+
+Tensor GraphHandlerObj::dequantizeLinear(Tensor input, Tensor scale,
+                                         Tensor zero_point, Tensor output,
+                                         int axis) {
+    if (output) {
+        g->addOpWithOutputs<DequantizeLinearObj>(
+            std::move(input), std::move(scale), std::move(zero_point), output,
+            axis);
+        return output;
+    } else {
+        return g
+            ->addOp<DequantizeLinearObj>(std::move(input), std::move(scale),
+                                         std::move(zero_point), output, axis)
             ->getOutput();
     }
 }
