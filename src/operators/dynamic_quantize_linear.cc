@@ -17,7 +17,7 @@ DynamicQuantizeLinearObj::inferShape(const TensorVec &inputs) {
 vector<DataType>
 DynamicQuantizeLinearObj::inferDataType(const TensorVec &inputs) const {
     IT_ASSERT(inputs.size() == 1);
-    return {inputs[1]->getDType()};
+    return {DataType(2), DataType(1), DataType(2)};
 }
 
 std::string DynamicQuantizeLinearObj::toString() const {

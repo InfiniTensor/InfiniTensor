@@ -2,7 +2,7 @@
 #include "core/runtime.h"
 #include "cuda/cuda_runtime.h"
 #include "cuda/cuda_utility.h"
-#include "operators/dequantizeLinear.h"
+#include "operators/dequantize_linear.h"
 
 #include "test.h"
 

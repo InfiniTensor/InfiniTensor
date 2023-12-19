@@ -1,5 +1,5 @@
-#include "operators/dequantizeLinear.h"
-#include "cuda/cuda_dequantizeLinear.h"
+#include "operators/dequantize_linear.h"
+#include "cuda/cuda_dequantize_linear.h"
 #include "cuda/cuda_kernel_wihtout_config.h"
 #include "cuda/cuda_runtime.h"
 

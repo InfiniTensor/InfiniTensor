@@ -1,4 +1,4 @@
-#include "operators/dequantizeLinear.h"
+#include "operators/dequantize_linear.h"
 #include "utils/operator_utils.h"
 
 namespace infini {

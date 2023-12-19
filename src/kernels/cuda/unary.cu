@@ -287,9 +287,7 @@ void unary_kernel(const Operator &_op) {
         } else {
             IT_TODO_HALT();
         }
-    }
-
-    else if (op->getOpType() == OpType::Erf) {
+    } else if (op->getOpType() == OpType::Erf) {
         if (_op->getDType() == DataType::Float32) {
             erf_kernel<float>((float *)inputData, (float *)outputData, num);
         } else {

@@ -6,7 +6,7 @@
 #include "operators/broadcast.h"
 #include "operators/concat.h"
 #include "operators/conv.h"
-#include "operators/dequantizeLinear.h"
+#include "operators/dequantize_linear.h"
 #include "operators/dynamic_quantize_linear.h"
 #include "operators/element_wise.h"
 #include "operators/expand.h"
