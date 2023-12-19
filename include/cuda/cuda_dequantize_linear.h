@@ -1,5 +1,5 @@
 #pragma once
-#include "operators/unary.h"
+#include "operators/dequantize_linear.h"
 
 namespace infini {
 void DequantizeLinearKernel(const uint8_t *inputX, const float *inputScale,
