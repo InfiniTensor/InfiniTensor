@@ -518,6 +518,8 @@ void init_graph_builder(py::module &m) {
         .def("erf", &Handler::erf, policy::move)
         .def("where", &Handler::where, policy::move)
         .def("dequantizeLinear", &Handler::dequantizeLinear, policy::move)
+        .def("dynamicQuantizeLinear", &Handler::dynamicQuantizeLinear,
+             policy::move)
         .def("matmulInteger", &Handler::matmulInteger, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)
         .def("optimize", &Handler::optimize, policy::automatic)

@@ -47,6 +47,11 @@ class CastCuda : public CudaKernelWithoutConfig {
                       op->getOutDType() == DataType::Float32);
             cast_kernel<int8_t, float>((int8_t *)inputData, (float *)outputData,
                                        num);
+        } else if (op->getType() == CastType::Int322Float) {
+            IT_ASSERT(op->getInDType() == DataType::Int32 &&
+                      op->getOutDType() == DataType::Float32);
+            cast_kernel<int32_t, float>((int32_t *)inputData,
+                                        (float *)outputData, num);
         } else {
             IT_ASSERT(false);
         }

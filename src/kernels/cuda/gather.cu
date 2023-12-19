@@ -56,4 +56,6 @@ template void gather_kernel<half>(half *in, half *out, GatherMetaData metaData,
                                   size_t num);
 template void gather_kernel<int8_t>(int8_t *in, int8_t *out,
                                     GatherMetaData metaData, size_t num);
+template void gather_kernel<uint8_t>(uint8_t *in, uint8_t *out,
+                                     GatherMetaData metaData, size_t num);
 } // namespace infini

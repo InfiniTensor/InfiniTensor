@@ -27,6 +27,9 @@ class GatherCuda : public CudaKernelWithoutConfig {
         } else if (op->getDType() == DataType::Int8) {
             gather_kernel<int8_t>((int8_t *)inputData, (int8_t *)outputData,
                                   metaData, op->getOutput()->size());
+        } else if (op->getDType() == DataType::UInt8) {
+            gather_kernel<uint8_t>((uint8_t *)inputData, (uint8_t *)outputData,
+                                   metaData, op->getOutput()->size());
         } else {
             IT_ASSERT(false);
         }

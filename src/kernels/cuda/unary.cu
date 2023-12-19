@@ -313,5 +313,7 @@ template void cast_kernel<float, int8_t>(float *input, int8_t *output,
                                          size_t num);
 template void cast_kernel<int8_t, float>(int8_t *input, float *output,
                                          size_t num);
+template void cast_kernel<int32_t, float>(int32_t *input, float *output,
+                                          size_t num);
 
 }; // namespace infini

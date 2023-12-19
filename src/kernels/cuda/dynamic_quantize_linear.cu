@@ -63,8 +63,9 @@ __launch_bounds__(BLOCK_DIM) __global__
     __syncthreads();
     int qmax = 255;
     int qmin = 0;
-    yScale[0] = (max___(0.f, maxTotal) - min___(0.f, minTotal)) / (qmax - qmin);
-    float intermediate_zero_point = qmin - minTotal / yScale[0];
+    float absMax = max___(abs(maxTotal), abs(minTotal));
+    yScale[0] = absMax * 2 / (254 - qmin);
+    float intermediate_zero_point = 254 - absMax / yScale[0];
     float _yZeroPoint = round(_saturate(intermediate_zero_point));
     yZeroPoint[0] = static_cast<uint8_t>(_yZeroPoint);
     if (i < size) {
@@ -121,8 +122,9 @@ __launch_bounds__(BLOCK_DIM) __global__
     __syncthreads();
     int qmax = 255;
     int qmin = 0;
-    yScale[0] = (max___(0.f, maxTotal) - min___(0.f, minTotal)) / (qmax - qmin);
-    float intermediate_zero_point = qmin - minTotal / yScale[0];
+    float absMax = max___(abs(maxTotal), abs(minTotal));
+    yScale[0] = absMax * 2 / (254 - qmin);
+    float intermediate_zero_point = 254 - absMax / yScale[0];
     float _yZeroPoint = round(_saturate(intermediate_zero_point));
     yZeroPoint[0] = static_cast<uint8_t>(_yZeroPoint);
     if (i < size) {

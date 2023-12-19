@@ -11,7 +11,7 @@ DynamicQuantizeLinearObj::DynamicQuantizeLinearObj(
 
 optional<vector<Shape>>
 DynamicQuantizeLinearObj::inferShape(const TensorVec &inputs) {
-    return {{inputs[0]->getDims()}};
+    return {{inputs[0]->getDims(), {}, {}}};
 }
 
 vector<DataType>
