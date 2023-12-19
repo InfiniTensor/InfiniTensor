@@ -102,6 +102,18 @@ class TestStringMethods(unittest.TestCase):
         matmul = make_node("MatMul", ["x", "a"], ["xa"], name="matmul")
         make_and_import_model(make_graph([matmul], "matmul", [x, a], [xa]))
 
+    def test_matmul_integer(self):
+        A = make_tensor_value_info("A", TensorProto.INT8, [1, 2, 4])
+        B = make_tensor_value_info("B", TensorProto.UINT8, [1, 4, 4])
+        A_ZeroPoint = make_tensor_value_info("A_ZeroPoint", TensorProto.INT8, [1, 2, 1])
+        y = make_tensor_value_info("y", TensorProto.INT32, [1, 2, 4])
+        matmulInteger = make_node(
+            "MatMulInteger", ["A", "B", "A_ZeroPoint"], ["y"], name="matmul_integer"
+        )
+        make_and_import_model(
+            make_graph([matmulInteger], "matmul_integer", [A, B, A_ZeroPoint], [y])
+        )
+
     def test_gemm(self):
         a = make_tensor_value_info("a", TensorProto.FLOAT, [1, 2, 3])
         b = make_tensor_value_info("b", TensorProto.FLOAT, [1, 4, 3])

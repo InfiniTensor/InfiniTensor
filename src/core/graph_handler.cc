@@ -13,6 +13,7 @@
 #include "operators/gather.h"
 #include "operators/layer_norm.h"
 #include "operators/matmul.h"
+#include "operators/matmul_integer.h"
 #include "operators/pad.h"
 #include "operators/pooling.h"
 #include "operators/recv.h"
@@ -143,6 +144,23 @@ Tensor GraphHandlerObj::avgPool(Tensor input, Tensor output, int kh, int kw,
         return g
             ->addOp<AvgPoolObj>(std::move(input), output, kh, kw, dh, dw, ph,
                                 pw, sh, sw, ceilMode)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::matmulInteger(Tensor inputA, Tensor inputB,
+                                      Tensor output, Tensor a_zero_point,
+                                      Tensor b_zero_point) {
+    if (output) {
+        g->addOpWithOutputs<MatmulIntegerObj>(
+            std::move(inputA), std::move(inputB), output,
+            std::move(a_zero_point), std::move(b_zero_point));
+        return output;
+    } else {
+        return g
+            ->addOp<MatmulIntegerObj>(std::move(inputA), std::move(inputB),
+                                      output, std::move(a_zero_point),
+                                      std::move(b_zero_point))
             ->getOutput();
     }
 }

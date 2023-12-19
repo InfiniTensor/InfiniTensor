@@ -882,7 +882,14 @@ class OnnxStub:
                         inputZeroPoint,
                         axis,
                     )
-
+                elif node.op_type == "MatMulInteger":
+                    tensors[node.output[0]] = self.handler.matmulInteger(
+                        tensors[node.input[0]],
+                        tensors[node.input[1]],
+                        tensors.get(node.output[0]),
+                        tensors[node.input[2]] if len(node.input) > 2 else None,
+                        tensors[node.input[3]] if len(node.input) > 3 else None,
+                    )
                 else:
                     raise Exception('Unsupported operator "{}"'.format(node.op_type))
                 new_node_name.append(node.name)

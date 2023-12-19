@@ -52,11 +52,10 @@ class matmulCublas : public Kernel {
         float alpha = 1.f, beta = 0.f;
         auto dataType = op->getDType();
         auto cuDataType = cublasDataTypeConvert(dataType);
+        IT_ASSERT(cuDataType != CUDA_R_8I, "matmul don't support int8 dtype.");
         if (op->numInputs() == 2) { // no bias
             beta = 0.f;
         } else { // broadcast bias to output
-            // IT_ASSERT(cuDataType != CUDA_R_8I,
-            //           "MatMul bias  don't support INT8.");
             beta = 1.f;
             auto inC = op->getInputs(2);
             auto out = op->getOutput();

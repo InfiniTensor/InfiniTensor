@@ -59,8 +59,8 @@ cudaDataType cublasDataTypeConvert(DataType dataType) {
     switch (dataType.getIndex()) {
     case 1:
         return CUDA_R_32F;
-    // case 3:
-    //     return CUDA_R_8I;
+        //    case 3:
+        //        return CUDA_R_8I;
     case 10:
         return CUDA_R_16F;
     case 11:

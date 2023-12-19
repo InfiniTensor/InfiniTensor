@@ -58,12 +58,13 @@ HashType OperatorObj::hash() const {
 
 bool OperatorObj::checkValid(GraphObj *graph) {
     auto optShapes = inferShape();
-    if (!optShapes) // shape inference failed
+    if (!optShapes) { // shape inference failed
         return false;
-
+    }
     const vector<Shape> &shapes = *optShapes;
-    if (shapes.size() != outputs.size())
+    if (shapes.size() != outputs.size()) {
         return false;
+    }
     if (graph) { // if graph != nullptr, outputs should be created
         auto dataTypes = inferDataType();
         for (size_t i = 0; i < outputs.size(); i++) {

@@ -103,6 +103,8 @@ class GraphHandlerObj {
                         std::string mode);
     TensorVec dynamicQuantizeLinear(Tensor input,
                                     std::optional<TensorVec> outputs);
+    Tensor matmulInteger(Tensor inputA, Tensor inputB, Tensor output,
+                         Tensor a_zero_point, Tensor b_zero_point);
 
     //------ modifiers
 
