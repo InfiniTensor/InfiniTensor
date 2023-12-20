@@ -20,6 +20,7 @@ void KUNLUNRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
         auto perfData = perfEngine.getPerfData(perfKey);
         if (!perfData && !tune) {
             kernel->compute(op, this);
+            this->sync();
             continue;
         }
 
@@ -53,7 +54,7 @@ void KUNLUNRuntimeObj::run(const Graph &graph, bool tune,
     sync();
 }
 
-void KUNLUNRuntimeObj::sync() const { ; }
+void KUNLUNRuntimeObj::sync() const { xpu_wait(); }
 
 string KUNLUNRuntimeObj::toString() const { return "KUNLUN Runtime"; }
 

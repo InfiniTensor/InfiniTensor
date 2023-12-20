@@ -30,6 +30,8 @@ CMAKE_OPT += -DUSE_KUNLUN=$(KUNLUN)
 CMAKE_OPT += -DUSE_BACKTRACE=$(BACKTRACE)
 CMAKE_OPT += -DBUILD_TEST=$(TEST)
 CMAKE_OPT += -DBUILD_NNET=$(NNET)
+CMAKE_OPT += -DCMAKE_CXX_COMPILER=/usr/local/gcc-11.3/bin/g++
+CMAKE_OPT += -DCMAKE_C_COMPILER=/usr/local/gcc-11.3/bin/gcc
 
 ifeq ($(INTELCPU), ON)
 	CMAKE_OPT += -DUSE_INTELCPU=ON -DCMAKE_CXX_COMPILER=dpcpp
@@ -37,7 +39,7 @@ endif
 
 build:
 	mkdir -p build/$(TYPE)
-	cd build/$(TYPE) && cmake $(CMAKE_OPT) ../.. && make -j8
+	cd build/$(TYPE) && cmake $(CMAKE_OPT) ../.. && make -j64
 
 clean:
 	rm -rf build
