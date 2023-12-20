@@ -837,6 +837,58 @@ class OnnxStub:
                             0,
                         ),
                     )
+                elif node.op_type == "Send":
+                    source = next(
+                        (attr.i for attr in node.attribute if attr.name == "source"),
+                        0,
+                    )
+                    destination = next(
+                        (
+                            attr.i
+                            for attr in node.attribute
+                            if attr.name == "destination"
+                        ),
+                        0,
+                    )
+
+                    self.handler.send(
+                        tensors[node.input[0]],
+                        source,
+                        destination,
+                        None,
+                    )
+                elif node.op_type == "Recv":
+                    source = next(
+                        (attr.i for attr in node.attribute if attr.name == "source"),
+                        0,
+                    )
+                    destination = next(
+                        (
+                            attr.i
+                            for attr in node.attribute
+                            if attr.name == "destination"
+                        ),
+                        0,
+                    )
+
+                    for attr in node.attribute:
+                        if attr.name == "shape":
+                            shapeBasic = attr.ints
+                    shape = []
+                    for item in shapeBasic:
+                        shape.append(item)
+
+                    for attr in node.attribute:
+                        if attr.name == "dataType":
+                            outputType = attr.i
+                    tensors[node.output[0]] = self.handler.recv(
+                        tensors.get(node.output[0]),
+                        source,
+                        destination,
+                        shape,
+                        outputType,
+                        None,
+                    )
                 elif node.op_type == "Expand":
                     shape = _parse_data(data[node.input[1]])
                     tensors[node.output[0]] = self.handler.expand(

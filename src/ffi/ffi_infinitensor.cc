@@ -512,6 +512,8 @@ void init_graph_builder(py::module &m) {
         .def("allReduceAvg", &Handler::allReduceAvg, policy::move)
         .def("allGather", &Handler::allGather, policy::move)
         .def("broadcast", &Handler::broadcast, policy::move)
+        .def("send", &Handler::send, policy::move)
+        .def("recv", &Handler::recv, policy::move)
         .def("cast", &Handler::cast, policy::move)
         .def("expand", &Handler::expand, policy::move)
         .def("erf", &Handler::erf, policy::move)

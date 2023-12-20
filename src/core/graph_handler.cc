@@ -13,9 +13,11 @@
 #include "operators/matmul.h"
 #include "operators/pad.h"
 #include "operators/pooling.h"
+#include "operators/recv.h"
 #include "operators/reduce.h"
 #include "operators/reshape.h"
 #include "operators/resize.h"
+#include "operators/send.h"
 #include "operators/slice.h"
 #include "operators/softmax.h"
 #include "operators/split.h"
@@ -490,6 +492,39 @@ Tensor GraphHandlerObj::broadcast(Tensor input, Tensor output, int root) {
         return output;
     } else {
         return g->addOp<BroadcastObj>(std::move(input), output, root)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::send(Tensor input, int source, int destination,
+                             Tensor output) {
+    if (output) {
+
+        g->addOpWithOutputs<SendObj>(std::move(input), source, destination,
+                                     output);
+
+        return output;
+    } else {
+        return g->addOp<SendObj>(std::move(input), source, destination, output)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::recv(Tensor output, int source, int destination,
+                             Shape dims, int outputType, Tensor input) {
+
+    if (output) {
+
+        g->addOpWithOutputs<RecvObj>(output, source, destination,
+                                     std::move(dims), outputType,
+                                     std::move(input));
+
+        return output;
+    } else {
+
+        return g
+            ->addOp<RecvObj>(output, source, destination, std::move(dims),
+                             outputType, std::move(input))
             ->getOutput();
     }
 }
