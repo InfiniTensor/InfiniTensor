@@ -10,13 +10,12 @@ class MatmulCnnl : public BangKernelWithoutConfig {
         auto op = as<MatmulObj>(_op);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
-
         auto input_num = op->numInputs();
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *biasData = NULL;
-        if ( input_num > 2) {
+        if (input_num > 2) {
             biasData = (op->getInputs(2)->getRawDataPtr<void *>());
         }
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
@@ -25,10 +24,14 @@ class MatmulCnnl : public BangKernelWithoutConfig {
         auto dimInputs0 = op->getInputs(0)->getDims();
         auto dimInputs1 = op->getInputs(1)->getDims();
         std::vector<int> dimBias;
-        if ( input_num > 2) {
+        if (input_num > 2) {
             dimBias = op->getInputs(2)->getDims();
         }
+
         auto dimOutput = op->getOutput()->getDims();
+
+        float alpha = 1.0;
+        float beta = 0.0;
 
         int32_t transA = op->getTransA();
         int32_t transB = op->getTransB();
@@ -48,11 +51,11 @@ class MatmulCnnl : public BangKernelWithoutConfig {
             cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT,
                                     dimOutput.size(), dimOutput.data()));
 
-        if ( input_num > 2) {
+        if (input_num > 2) {
             checkCnnlError(cnnlCreateTensorDescriptor(&biasDesc));
-            checkCnnlError(
-                cnnlSetTensorDescriptor(biasDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT,
-                                        dimBias.size(), dimBias.data()));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                biasDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT, dimBias.size(),
+                dimBias.data()));
         }
 
         cnnlMatMulDescriptor_t bmm_desc;
@@ -65,8 +68,6 @@ class MatmulCnnl : public BangKernelWithoutConfig {
         cnnlMatMulAlgo_t bmm_algo;
         cnnlMatMulAlgoCreate(&bmm_algo);
 
-        float alpha = 1.0;
-        float beta = 0.0;
         int count = 0;
 
         cnnlMatMulHeuristicResult_t desc;
@@ -85,13 +86,13 @@ class MatmulCnnl : public BangKernelWithoutConfig {
             return;
 
         wsData = NULL;
-        if ( input_num > 2) {
-            cnnlGetBiasAddWorkspaceSize(context->cnnlHandle(), biasDesc, cDesc, &wsSize);
-            stat = cnnlBiasAdd(context->cnnlHandle(), &alpha, biasDesc, biasData,
-                               wsData, wsSize, &alpha, cDesc, cData); 
+        if (input_num > 2) {
+            cnnlGetBiasAddWorkspaceSize(context->cnnlHandle(), biasDesc, cDesc,
+                                        &wsSize);
+            stat = cnnlBiasAdd(context->cnnlHandle(), &alpha, biasDesc,
+                               biasData, wsData, wsSize, &alpha, cDesc, cData);
             if (stat != CNNL_STATUS_SUCCESS)
                 return;
-
         }
 
         checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
