@@ -27,7 +27,7 @@ jobs:
       shell: cmd
       run: |
         mkdir build && cd build
-        call "C:\Program Files\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         cmake .. -G "NMake Makefiles" -DUSE_BACKTRACE=OFF -DBUILD_TEST=ON -DCMAKE_BUILD_TYPE=Release
         nmake
         copy backend*.pyd ..\pyinfinitensor\src\pyinfinitensor\backend.pyd
@@ -36,7 +36,7 @@ jobs:
       shell: cmd
       run: |
         cd build
-        call "C:\Program Files\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         nmake test
     
     - name: Install python-frontend
