@@ -98,7 +98,9 @@ class MatmulCnnl : public BangKernelWithoutConfig {
         checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
         checkCnnlError(cnnlDestroyTensorDescriptor(bDesc));
         checkCnnlError(cnnlDestroyTensorDescriptor(cDesc));
-        checkCnnlError(cnnlDestroyTensorDescriptor(biasDesc));
+        if (input_num > 2) {
+            checkCnnlError(cnnlDestroyTensorDescriptor(biasDesc));
+        }
         checkCnnlError(cnnlMatMulDescDestroy(bmm_desc));
         checkCnnlError(cnnlMatMulAlgoDestroy(bmm_algo));
         checkCnnlError(cnnlDestroyMatMulHeuristicResult(desc));
