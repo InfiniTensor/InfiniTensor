@@ -16,7 +16,7 @@ env:
 
   resnet-download: https://github.com/onnx/models/blob/main/archive/vision/classification/resnet/model/resnet18-v2-7.onnx
   inception-download: https://github.com/onnx/models/blob/main/archive/vision/classification/inception_and_googlenet/inception_v2/model/inception-v2-9.onnx
-  densenet-download: https://github.com/onnx/models/blob/main/Computer_Vision/densenet121_Opset16_timm/densenet121_Opset16.onnx
+  densenet-download: https://github.com/onnx/models/blob/main/archive/vision/classification/densenet-121/model/densenet-12.onnx
   efficientnet-download: https://github.com/onnx/models/blob/main/archive/vision/classification/efficientnet-lite4/model/efficientnet-lite4-11.onnx
 
 jobs:
