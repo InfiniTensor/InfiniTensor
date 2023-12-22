@@ -66,7 +66,7 @@ class OnnxStub:
             tensors[initializer.name] = self.handler.tensor(dims, initializer.data_type)
             data[initializer.name] = initializer
             tensors[initializer.name].set_weight()
-
+        
         for input in model.graph.input:
             dims = _take_shape_dim(input.type.tensor_type.shape)
             if input.name not in tensors.keys():
@@ -186,6 +186,7 @@ class OnnxStub:
                         op[1],
                     )
                 elif node.op_type == "MatMul":
+                    '''
                     if tensors[node.input[0]].shape()[0] == 1 and tensors[node.input[0]].shape()[1] == 1 \
                         and len(tensors[node.input[1]].shape()) == 2 and node.input[1] in data.keys():
                         data[node.input[1]] = from_array(
@@ -202,6 +203,9 @@ class OnnxStub:
                             None,
                             backend.ActType.Linear,
                         )
+                    '''
+                    if False:
+                        pass
                     else:
                         tensors[node.output[0]] = self.handler.matmul(
                             tensors[node.input[0]],
@@ -1283,6 +1287,9 @@ class OnnxStub:
 
     def run(self) -> None:
         self.handler.run()
+
+    def run_with_cudagraph(self) -> None:
+        self.handler.run_with_cudagraph()
 
     def get_perf_time(self) -> float:
         self.handler.get_perf_time()

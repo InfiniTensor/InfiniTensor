@@ -139,37 +139,37 @@ void dynamicQuantizeLinearKernel(float *input, uint8_t *outputY, float *yScale,
     if (size > 1024 * 128) {
         int BLOCK_DIM = 1024;
         int num_blocks = (size + BLOCK_DIM - 1) / BLOCK_DIM;
-        _dynamicQuantizeLinearKernel<1024><<<num_blocks, BLOCK_DIM>>>(
+        _dynamicQuantizeLinearKernel<1024><<<num_blocks, BLOCK_DIM, 0, CUDAStream::stream>>>(
             input, outputY, yScale, yZeroPoint, size);
     } else if (size > 1024 * 64) {
         int BLOCK_DIM = 1024;
         int num_blocks = (size + BLOCK_DIM - 1) / BLOCK_DIM;
-        _dynamicQuantizeLinearKernel<1024, 128><<<num_blocks, BLOCK_DIM>>>(
+        _dynamicQuantizeLinearKernel<1024, 128><<<num_blocks, BLOCK_DIM, 0, CUDAStream::stream>>>(
             input, outputY, yScale, yZeroPoint, size);
     } else if (size > 1024 * 32) {
         int BLOCK_DIM = 1024;
         int num_blocks = (size + BLOCK_DIM - 1) / BLOCK_DIM;
-        _dynamicQuantizeLinearKernel<1024, 64><<<num_blocks, BLOCK_DIM>>>(
+        _dynamicQuantizeLinearKernel<1024, 64><<<num_blocks, BLOCK_DIM, 0, CUDAStream::stream>>>(
             input, outputY, yScale, yZeroPoint, size);
     } else if (size > 1024 * 16) {
         int BLOCK_DIM = 1024;
         int num_blocks = (size + BLOCK_DIM - 1) / BLOCK_DIM;
-        _dynamicQuantizeLinearKernel<1024, 32><<<num_blocks, BLOCK_DIM>>>(
+        _dynamicQuantizeLinearKernel<1024, 32><<<num_blocks, BLOCK_DIM, 0, CUDAStream::stream>>>(
             input, outputY, yScale, yZeroPoint, size);
     } else if (size > 1024 * 4) {
         int BLOCK_DIM = 1024;
         int num_blocks = (size + BLOCK_DIM - 1) / BLOCK_DIM;
-        _dynamicQuantizeLinearKernel<1024, 16><<<num_blocks, BLOCK_DIM>>>(
+        _dynamicQuantizeLinearKernel<1024, 16><<<num_blocks, BLOCK_DIM, 0, CUDAStream::stream>>>(
             input, outputY, yScale, yZeroPoint, size);
     } else if (size > 1024) {
         int BLOCK_DIM = 1024;
         int num_blocks = (size + BLOCK_DIM - 1) / BLOCK_DIM;
-        _dynamicQuantizeLinearKernel<1024, 4><<<num_blocks, BLOCK_DIM>>>(
+        _dynamicQuantizeLinearKernel<1024, 4><<<num_blocks, BLOCK_DIM, 0, CUDAStream::stream>>>(
             input, outputY, yScale, yZeroPoint, size);
     } else {
         int BLOCK_DIM = 1024;
         int num_blocks = (size + BLOCK_DIM - 1) / BLOCK_DIM;
-        _dynamicQuantizeLinearKernel<1024, 1><<<num_blocks, BLOCK_DIM>>>(
+        _dynamicQuantizeLinearKernel<1024, 1><<<num_blocks, BLOCK_DIM, 0, CUDAStream::stream>>>(
             input, outputY, yScale, yZeroPoint, size);
     }
 }

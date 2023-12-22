@@ -41,7 +41,7 @@ _whereKernel(void *inputX, void *inputY, const uint8_t *condition, void *output,
     }
 }
 #define CASE(T)                                                                \
-    _whereKernel<DT_CUDA<T>::t><<<gridsize, blocksize>>>(                      \
+    _whereKernel<DT_CUDA<T>::t><<<gridsize, blocksize, 0, CUDAStream::stream>>>(                      \
         inputX, inputY, condition, output, nDims, outputsize, inputXShape,     \
         inputYShape, conditionShape, outputShape, xSize, ySize, cSize);
 

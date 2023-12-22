@@ -535,6 +535,9 @@ void init_graph_builder(py::module &m) {
         .def("shape_infer", &Handler::shape_infer, policy::automatic)
         .def("change_shape", &Handler::change_shape, policy::automatic)
         .def("getDims", &Handler::getDims, policy::automatic)
+#ifdef USE_CUDA
+        .def("run_with_cudagraph", &Handler::run_with_cudagraph, policy::automatic)
+#endif
         .def("get_perf_time", &Handler::get_perf_time, policy::automatic);
 }
 

@@ -344,7 +344,7 @@ void LaynormKernel(const float *input, const float *scale, const float eps,
         int BLOCK_DIM = 1024;
 
         blockLaynormKernel<float, 1024>
-            <<<num_block, BLOCK_DIM>>>(input, scale, dimsize, stride, output,
+            <<<num_block, BLOCK_DIM, 0, CUDAStream::stream>>>(input, scale, dimsize, stride, output,
                                        eps, scaleSize, bias, biasSize);
     } else if (dimsize > 31) {
         int BLOCK_DIM_x = 32;
@@ -353,7 +353,7 @@ void LaynormKernel(const float *input, const float *scale, const float eps,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        warpLaynormKernel<float, 32, 32><<<grid_dim, block_dim>>>(
+        warpLaynormKernel<float, 32, 32><<<grid_dim, block_dim, 0, CUDAStream::stream>>>(
             input, scale, dimsize, stride, output, eps, scaleSize, num_block,
             bias, biasSize);
     } else if (dimsize > 15) {
@@ -363,7 +363,7 @@ void LaynormKernel(const float *input, const float *scale, const float eps,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        warpLaynormKernel<float, 16, 64><<<grid_dim, block_dim>>>(
+        warpLaynormKernel<float, 16, 64><<<grid_dim, block_dim, 0, CUDAStream::stream>>>(
             input, scale, dimsize, stride, output, eps, scaleSize, num_block,
             bias, biasSize);
     } else if (dimsize > 7) {
@@ -373,7 +373,7 @@ void LaynormKernel(const float *input, const float *scale, const float eps,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        warpLaynormKernel<float, 8, 128><<<grid_dim, block_dim>>>(
+        warpLaynormKernel<float, 8, 128><<<grid_dim, block_dim, 0, CUDAStream::stream>>>(
             input, scale, dimsize, stride, output, eps, scaleSize, num_block,
             bias, biasSize);
     } else {
@@ -383,7 +383,7 @@ void LaynormKernel(const float *input, const float *scale, const float eps,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        warpLaynormKernel<float, 4, 256><<<grid_dim, block_dim>>>(
+        warpLaynormKernel<float, 4, 256><<<grid_dim, block_dim, 0, CUDAStream::stream>>>(
             input, scale, dimsize, stride, output, eps, scaleSize, num_block,
             bias, biasSize);
     }
@@ -396,7 +396,7 @@ void LaynormKernel(const float *input, const float *scale, const float eps,
     if (dimsize > 1024) {
         int BLOCK_DIM = 1024;
 
-        blockLaynormKernel<float, 1024><<<num_block, BLOCK_DIM>>>(
+        blockLaynormKernel<float, 1024><<<num_block, BLOCK_DIM, 0, CUDAStream::stream>>>(
             input, scale, dimsize, stride, output, eps, scaleSize);
     } else if (dimsize > 31) {
         int BLOCK_DIM_x = 32;
@@ -405,7 +405,7 @@ void LaynormKernel(const float *input, const float *scale, const float eps,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        warpLaynormKernel<float, 32, 32><<<grid_dim, block_dim>>>(
+        warpLaynormKernel<float, 32, 32><<<grid_dim, block_dim, 0, CUDAStream::stream>>>(
             input, scale, dimsize, stride, output, eps, scaleSize, num_block);
     } else if (dimsize > 15) {
         int BLOCK_DIM_x = 16;
@@ -414,7 +414,7 @@ void LaynormKernel(const float *input, const float *scale, const float eps,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        warpLaynormKernel<float, 16, 64><<<grid_dim, block_dim>>>(
+        warpLaynormKernel<float, 16, 64><<<grid_dim, block_dim, 0, CUDAStream::stream>>>(
             input, scale, dimsize, stride, output, eps, scaleSize, num_block);
     } else if (dimsize > 7) {
         int BLOCK_DIM_x = 8;
@@ -423,7 +423,7 @@ void LaynormKernel(const float *input, const float *scale, const float eps,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        warpLaynormKernel<float, 8, 128><<<grid_dim, block_dim>>>(
+        warpLaynormKernel<float, 8, 128><<<grid_dim, block_dim, 0, CUDAStream::stream>>>(
             input, scale, dimsize, stride, output, eps, scaleSize, num_block);
     } else {
         int BLOCK_DIM_x = 4;
@@ -432,7 +432,7 @@ void LaynormKernel(const float *input, const float *scale, const float eps,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        warpLaynormKernel<float, 4, 256><<<grid_dim, block_dim>>>(
+        warpLaynormKernel<float, 4, 256><<<grid_dim, block_dim, 0, CUDAStream::stream>>>(
             input, scale, dimsize, stride, output, eps, scaleSize, num_block);
     }
 }
@@ -445,7 +445,7 @@ void LaynormKernel(const half *input, const half *scale, const half eps,
         int BLOCK_DIM = 1024;
 
         blockLaynormKernel<half, 1024>
-            <<<num_block, BLOCK_DIM>>>(input, scale, dimsize, stride, output,
+            <<<num_block, BLOCK_DIM, 0, CUDAStream::stream>>>(input, scale, dimsize, stride, output,
                                        eps, scaleSize, bias, biasSize);
     } else if (dimsize > 31) {
         int BLOCK_DIM_x = 32;
@@ -454,7 +454,7 @@ void LaynormKernel(const half *input, const half *scale, const half eps,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        warpLaynormKernel<half, 32, 32><<<grid_dim, block_dim>>>(
+        warpLaynormKernel<half, 32, 32><<<grid_dim, block_dim, 0, CUDAStream::stream>>>(
             input, scale, dimsize, stride, output, eps, scaleSize, num_block,
             bias, biasSize);
     } else if (dimsize > 15) {
@@ -464,7 +464,7 @@ void LaynormKernel(const half *input, const half *scale, const half eps,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        warpLaynormKernel<half, 16, 64><<<grid_dim, block_dim>>>(
+        warpLaynormKernel<half, 16, 64><<<grid_dim, block_dim, 0, CUDAStream::stream>>>(
             input, scale, dimsize, stride, output, eps, scaleSize, num_block,
             bias, biasSize);
     } else if (dimsize > 7) {
@@ -474,7 +474,7 @@ void LaynormKernel(const half *input, const half *scale, const half eps,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        warpLaynormKernel<half, 8, 128><<<grid_dim, block_dim>>>(
+        warpLaynormKernel<half, 8, 128><<<grid_dim, block_dim, 0, CUDAStream::stream>>>(
             input, scale, dimsize, stride, output, eps, scaleSize, num_block,
             bias, biasSize);
     } else {
@@ -484,7 +484,7 @@ void LaynormKernel(const half *input, const half *scale, const half eps,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        warpLaynormKernel<half, 4, 256><<<grid_dim, block_dim>>>(
+        warpLaynormKernel<half, 4, 256><<<grid_dim, block_dim, 0, CUDAStream::stream>>>(
             input, scale, dimsize, stride, output, eps, scaleSize, num_block,
             bias, biasSize);
     }
@@ -497,7 +497,7 @@ void LaynormKernel(const half *input, const half *scale, const half eps,
     if (dimsize > 1024) {
         int BLOCK_DIM = 1024;
 
-        blockLaynormKernel<half, 1024><<<num_block, BLOCK_DIM>>>(
+        blockLaynormKernel<half, 1024><<<num_block, BLOCK_DIM, 0, CUDAStream::stream>>>(
             input, scale, dimsize, stride, output, eps, scaleSize);
     } else if (dimsize > 31) {
         int BLOCK_DIM_x = 32;
@@ -506,7 +506,7 @@ void LaynormKernel(const half *input, const half *scale, const half eps,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        warpLaynormKernel<half, 32, 32><<<grid_dim, block_dim>>>(
+        warpLaynormKernel<half, 32, 32><<<grid_dim, block_dim, 0, CUDAStream::stream>>>(
             input, scale, dimsize, stride, output, eps, scaleSize, num_block);
     } else if (dimsize > 15) {
         int BLOCK_DIM_x = 16;
@@ -515,7 +515,7 @@ void LaynormKernel(const half *input, const half *scale, const half eps,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        warpLaynormKernel<half, 16, 64><<<grid_dim, block_dim>>>(
+        warpLaynormKernel<half, 16, 64><<<grid_dim, block_dim, 0, CUDAStream::stream>>>(
             input, scale, dimsize, stride, output, eps, scaleSize, num_block);
     } else if (dimsize > 7) {
         int BLOCK_DIM_x = 8;
@@ -524,7 +524,7 @@ void LaynormKernel(const half *input, const half *scale, const half eps,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        warpLaynormKernel<half, 8, 128><<<grid_dim, block_dim>>>(
+        warpLaynormKernel<half, 8, 128><<<grid_dim, block_dim, 0, CUDAStream::stream>>>(
             input, scale, dimsize, stride, output, eps, scaleSize, num_block);
     } else {
         int BLOCK_DIM_x = 4;
@@ -533,7 +533,7 @@ void LaynormKernel(const half *input, const half *scale, const half eps,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        warpLaynormKernel<half, 4, 256><<<grid_dim, block_dim>>>(
+        warpLaynormKernel<half, 4, 256><<<grid_dim, block_dim, 0, CUDAStream::stream>>>(
             input, scale, dimsize, stride, output, eps, scaleSize, num_block);
     }
 }

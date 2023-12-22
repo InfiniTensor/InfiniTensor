@@ -5,6 +5,9 @@
 #include <cstdint>
 #include <iostream>
 
+#ifdef USE_CUDA
+#include "cuda/cuda_runtime.h"
+#endif
 namespace infini {
 
 class GraphHandlerObj {
@@ -132,6 +135,9 @@ class GraphHandlerObj {
     inline void run() { g->getRuntime()->run(g); }
 
     inline double get_perf_time() { return g->getRuntime()->getPerfTime(g); }
+#ifdef USE_CUDA
+    inline void run_with_cudagraph() {(as<CudaRuntimeObj>(g->getRuntime()))->runWithCudaGraph(g);}
+#endif
 };
 
 } // namespace infini

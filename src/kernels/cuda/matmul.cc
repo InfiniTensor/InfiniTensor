@@ -100,6 +100,7 @@ class matmulCublas : public Kernel {
                 &beta, outData, cuDataType, ldc, m * n, b, cuDataType,
                 (cublasGemmAlgo_t)record->algo);
         } else {
+            std::cout << "cublasGemmEx" << " " << cuDataType << std::endl;
             stat = cublasGemmEx(
                 context->cublasHandle(), opB, opA, n, m, k, &alpha, inBData,
                 cuDataType, ldb, inAData, cuDataType, lda, &beta, outData,

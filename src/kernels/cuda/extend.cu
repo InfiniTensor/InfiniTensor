@@ -19,7 +19,7 @@ void extend_kernel(float *in, float *out, int blockSize, int blockSizeOuter,
                    int oSize) {
     int blocksize = 32 * 16;
     int gridsize = (oSize + blocksize - 1) / blocksize;
-    _extend_kernel<<<gridsize, blocksize>>>(in, out, blockSize, blockSizeOuter,
+    _extend_kernel<<<gridsize, blocksize, 0, CUDAStream::stream>>>(in, out, blockSize, blockSizeOuter,
                                             oSize);
 }
 } // namespace infini

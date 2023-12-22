@@ -52,9 +52,9 @@ void subA_kernel(int dType, void *a, void *b, int size, int k, int delta) {
     int blocksize = block_work_size();
     int gridsize = (size + block_work_size() - 1) / block_work_size();
     if (dType == 3) {
-        _subA_kernel<<<gridsize, blocksize>>>(a, b, size, k, delta);
+        _subA_kernel<<<gridsize, blocksize, 0, CUDAStream::stream>>>(a, b, size, k, delta);
     } else if (dType == 2) {
-        _subA_u8_kernel<<<gridsize, blocksize>>>(a, b, size, k, delta);
+        _subA_u8_kernel<<<gridsize, blocksize, 0, CUDAStream::stream>>>(a, b, size, k, delta);
     } else {
         IT_TODO_HALT();
     }
@@ -65,9 +65,9 @@ void subB_kernel(int dType, void *a, void *b, int size, int k, int n,
     int blocksize = block_work_size();
     int gridsize = (size + block_work_size() - 1) / block_work_size();
     if (dType == 3) {
-        _subB_kernel<<<gridsize, blocksize>>>(a, b, size, k, n, delta);
+        _subB_kernel<<<gridsize, blocksize, 0, CUDAStream::stream>>>(a, b, size, k, n, delta);
     } else if (dType == 2) {
-        _subB_u8_kernel<<<gridsize, blocksize>>>(a, b, size, k, n, delta);
+        _subB_u8_kernel<<<gridsize, blocksize, 0, CUDAStream::stream>>>(a, b, size, k, n, delta);
     } else {
         IT_TODO_HALT();
     }

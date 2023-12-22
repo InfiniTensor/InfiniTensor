@@ -15,6 +15,10 @@ class CudaRuntimeObj : public RuntimeObj {
     CudaPtr workspace;
     size_t workspaceSize;
 
+    bool cudaGraphCreated=false;
+    cudaGraph_t cudaGraph;
+    cudaGraphExec_t cudaGraphInstance;
+
   public:
     explicit CudaRuntimeObj(int deviceId = 0)
         : RuntimeObj(Device::CUDA, deviceId) {
@@ -26,9 +30,17 @@ class CudaRuntimeObj : public RuntimeObj {
         // size_t longformerNum = 3lu * (1 << 30);
         workspaceSize = 7ll << 30; // 7 GB
         workspace = alloc(workspaceSize);
+        checkCudaError(cudaStreamCreate(&CUDAStream::stream));
+        checkCudnnError(cudnnSetStream(cudnn, CUDAStream::stream));
+        checkCublasError(cublasSetStream(cublas, CUDAStream::stream));
     }
     virtual ~CudaRuntimeObj() {
         try {
+            if(cudaGraphCreated){
+                checkCudaError(cudaGraphExecDestroy(cudaGraphInstance));
+                checkCudaError(cudaGraphDestroy(cudaGraph));
+                checkCudaError(cudaStreamDestroy(CUDAStream::stream));
+            }
             dealloc(workspace);
             checkCudnnError(cudnnDestroy(cudnn));
             checkCublasError(cublasDestroy(cublas));
@@ -74,6 +86,8 @@ class CudaRuntimeObj : public RuntimeObj {
     }
 
     void runWithoutSync(const Graph &graph) const;
+
+    void runWithCudaGraph(const Graph &graph);
 
     // init communicator
     void initComm(const string &name, int worldSize, int rank) final;

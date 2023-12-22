@@ -259,12 +259,12 @@ void attention_kvcache_kernel(float *input_k_cache, float *input_v_cache,
     dim3 blockDim(BLOCKSIZE, 1);
 
     if(compMeta.dimSize[3] == 64)
-        _attention_kvcache_kernel_64<<<gridDim.x, blockDim>>>(
+        _attention_kvcache_kernel_64<<<gridDim.x, blockDim, 0, CUDAStream::stream>>>(
             input_k_cache, input_v_cache, input_q, input_k, input_v, position_id, output_matmul, compMeta);
     else{
-        _attention_kvcache_kernel_128_1<<<gridDim, blockDim>>>(
+        _attention_kvcache_kernel_128_1<<<gridDim, blockDim, 0, CUDAStream::stream>>>(
             input_k_cache, input_v_cache, input_q, input_k, input_v, position_id, compMeta, output_O_temp, output_sum_temp);
-        _attention_kvcache_kernel_128_2<<<compMeta.dimSize[0]*compMeta.dimSize[1]/(BLOCKSIZE/WARP_SIZE), WARP_SIZE>>>(
+        _attention_kvcache_kernel_128_2<<<compMeta.dimSize[0]*compMeta.dimSize[1]/(BLOCKSIZE/WARP_SIZE), WARP_SIZE, 0, CUDAStream::stream>>>(
             position_id, output_matmul, compMeta, output_O_temp, output_sum_temp);
     }
 }

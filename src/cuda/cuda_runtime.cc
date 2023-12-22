@@ -2,6 +2,7 @@
 #include "core/kernel.h"
 #include "core/perf_engine.h"
 #include "core/runtime.h"
+#include "cuda/cuda_common.h"
 #ifdef INFINI_USE_NCCL
 #include "cuda/nccl_communicator.h"
 #endif
@@ -17,6 +18,8 @@ void CHECK_CUDA_KERNEL_ERROR(infini::Operator op) {
         exit(EXIT_FAILURE);
     }
 }
+
+cudaStream_t infini::CUDAStream::stream;
 
 namespace infini {
 
@@ -37,6 +40,20 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph) const {
         }
         checkCudaError(cudaGetLastError()) << op->toString();
     }
+}
+
+void CudaRuntimeObj::runWithCudaGraph(const Graph &graph) {
+    if(!cudaGraphCreated){
+        checkCudaError(cudaStreamBeginCapture(CUDAStream::stream, cudaStreamCaptureModeGlobal));
+        runWithoutSync(graph);
+        checkCudaError(cudaStreamEndCapture(CUDAStream::stream, &cudaGraph));
+        checkCudaError(cudaGraphInstantiate(&cudaGraphInstance, cudaGraph, NULL, NULL, 0));
+        cudaGraphCreated=true;
+    }
+    else{
+        checkCudaError(cudaGraphLaunch(cudaGraphInstance, CUDAStream::stream));
+    }
+    checkCudaError(cudaStreamSynchronize(CUDAStream::stream));
 }
 
 void CudaRuntimeObj::tune(const Graph &graph, bool profiling = false) const {
