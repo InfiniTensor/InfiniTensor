@@ -15,7 +15,7 @@ env:
   python-version: "3.10"
 
   resnet-download: https://github.com/onnx/models/blob/main/Computer_Vision/resnet18_Opset16_timm/resnet18_Opset16.onnx
-  inception-download: https://media.githubusercontent.com/media/onnx/models/main/vision/classification/inception_and_googlenet/inception_v2/model/inception-v2-9.onnx
+  inception-download: https://github.com/onnx/models/blob/main/archive/vision/classification/inception_and_googlenet/inception_v2/model/inception-v2-9.onnx
   densenet-download: https://github.com/onnx/models/blob/main/Computer_Vision/densenet121_Opset16_timm/densenet121_Opset16.onnx
   efficientnet-download: https://github.com/onnx/models/blob/main/archive/vision/classification/efficientnet-lite4/model/efficientnet-lite4-11.onnx
 
