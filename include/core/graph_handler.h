@@ -99,6 +99,8 @@ class GraphHandlerObj {
                 int outputType, Tensor input);
     Tensor depthToSpace(Tensor input, Tensor output, int blocksize,
                         std::string mode);
+    Tensor lrn(Tensor input, Tensor output, float alpha, float beta, float bias,
+               int size);
 
     //------ modifiers
 
