@@ -51,6 +51,7 @@ class OnnxStub:
 
         self.inputs: Dict[str, backend.Tensor] = {}
         self.outputs: Dict[str, backend.Tensor] = {}
+        self.tensors: Dict[str, backend.Tensor] = {}
         self.initializer: Dict[int, TensorProto] = {}
         try:
             model = infer_shapes(model)
@@ -896,6 +897,9 @@ class OnnxStub:
                 # else:
                 #     assert False, "Unsupported Tensor Type: {}".format(tensor.data_type)
                 obj.copyin_numpy(to_array(tensor))
+
+        for name, obj in tensors.items():
+            self.tensors[name] = obj
 
         for output in model.graph.output:
             self.outputs[output.name] = tensors[output.name]
