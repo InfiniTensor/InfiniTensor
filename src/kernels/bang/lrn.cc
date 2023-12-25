@@ -20,11 +20,11 @@ class LRNCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, aDim.size(),
+                                               CNNL_DTYPE_NCHW, aDim.size(),
                                                aDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, cDim.size(),
+                                               CNNL_DTYPE_NCHW, cDim.size(),
                                                cDim.data()));
 
         size_t extra_size;
