@@ -29,7 +29,7 @@ __global__ void _subB_kernel(void *a, void *b, int size, int k, int n,
     int index = threadIdx.x + blockIdx.x * blockDim.x;
     int stride = blockDim.x * gridDim.x;
     for (int i = index; i < size; i += stride) {
-        int j = delta * (i / k) + (i % n);
+        int j = delta * ((i / k) + (i % n));
         ((int8_t *)a)[i] = ((int8_t *)a)[i] - ((int8_t *)b)[j];
     }
 }
@@ -39,7 +39,7 @@ __global__ void _subB_u8_kernel(void *a, void *b, int size, int k, int n,
     int index = threadIdx.x + blockIdx.x * blockDim.x;
     int stride = blockDim.x * gridDim.x;
     for (int i = index; i < size; i += stride) {
-        int j = delta * (i / k) + (i % n);
+        int j = delta * ((i / k) + (i % n));
         auto aData = static_cast<int16_t>(((uint8_t *)a)[i]);
         auto bData = static_cast<int16_t>(((uint8_t *)b)[j]);
         ((int8_t *)a)[i] = static_cast<int8_t>(aData - bData);
