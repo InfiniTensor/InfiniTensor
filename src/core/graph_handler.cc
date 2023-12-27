@@ -272,41 +272,40 @@ Tensor GraphHandlerObj::resize(Tensor input, Tensor output,
         roi->dataMalloc();
         roi->copyin<float>(roi_);
     }
+    ResizeObj::EKeepAspectRatioPolicy ratioPolicy_ =
+        ResizeObj::fromRatioPolicyStr(ratioPolicy);
+    ResizeObj::ENearestMode nearestMode_ =
+        ResizeObj::fromENearestModeStr(nearestMode);
+    ResizeObj::ECoordinateTransMode coordTransMode_ =
+        ResizeObj::fromECoordinateTransModeStr(coordTransMode);
+    ResizeObj::ECoeffMode mode_ = ResizeObj::fromECoeffModeStr(mode);
     if (output) {
         if (mode == "nearest") {
             g->addOpWithOutputs<ResizeObj>(
                 std::move(input), output, std::move(axes), std::move(sizes),
-                std::move(scales), std::move(roi),
-                ResizeObj::fromRatioPolicyStr(ratioPolicy),
-                ResizeObj::fromENearestModeStr(nearestMode),
-                ResizeObj::fromECoordinateTransModeStr(coordTransMode));
+                std::move(scales), std::move(roi), ratioPolicy_, nearestMode_,
+                coordTransMode_);
         } else {
             g->addOpWithOutputs<ResizeObj>(
                 std::move(input), output, std::move(axes), std::move(sizes),
-                std::move(scales), std::move(roi),
-                ResizeObj::fromECoeffModeStr(mode),
-                ResizeObj::fromRatioPolicyStr(ratioPolicy),
-                ResizeObj::fromECoordinateTransModeStr(coordTransMode));
+                std::move(scales), std::move(roi), mode_, ratioPolicy_,
+                coordTransMode_);
         }
         return output;
     } else {
         if (mode == "nearest") {
             return g
-                ->addOp<ResizeObj>(
-                    std::move(input), output, std::move(axes), std::move(sizes),
-                    std::move(scales), std::move(roi),
-                    ResizeObj::fromRatioPolicyStr(ratioPolicy),
-                    ResizeObj::fromENearestModeStr(nearestMode),
-                    ResizeObj::fromECoordinateTransModeStr(coordTransMode))
+                ->addOp<ResizeObj>(std::move(input), output, std::move(axes),
+                                   std::move(sizes), std::move(scales),
+                                   std::move(roi), ratioPolicy_, nearestMode_,
+                                   coordTransMode_)
                 ->getOutput();
         } else {
             return g
-                ->addOp<ResizeObj>(
-                    std::move(input), output, std::move(axes), std::move(sizes),
-                    std::move(scales), std::move(roi),
-                    ResizeObj::fromECoeffModeStr(mode),
-                    ResizeObj::fromRatioPolicyStr(ratioPolicy),
-                    ResizeObj::fromECoordinateTransModeStr(coordTransMode))
+                ->addOp<ResizeObj>(std::move(input), output, std::move(axes),
+                                   std::move(sizes), std::move(scales),
+                                   std::move(roi), mode_, ratioPolicy_,
+                                   coordTransMode_)
                 ->getOutput();
         }
     }
