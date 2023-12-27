@@ -52,6 +52,7 @@ class OnnxStub:
         self.inputs: Dict[str, backend.Tensor] = {}
         self.outputs: Dict[str, backend.Tensor] = {}
         self.tensors: Dict[str, backend.Tensor] = {}
+        self.tensor_node_map: Dict[str, str] = {}
         self.initializer: Dict[int, TensorProto] = {}
         try:
             model = infer_shapes(model)
@@ -80,6 +81,8 @@ class OnnxStub:
                     node.name = str(len(sorted_nodes)) + "_" + node.name
                     sorted_nodes.append(i)
                     known_edge.update(node.output)
+                    for t_ in node.output:
+                        self.tensor_node_map[t_] = node.name
                     updated = True
             if not updated:
                 raise Exception("Graph has cycle")
