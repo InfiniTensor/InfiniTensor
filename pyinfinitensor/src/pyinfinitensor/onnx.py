@@ -673,23 +673,19 @@ class OnnxStub:
                         else None,
                     )
                 elif node.op_type == "Dropout":
-                    for name, tensor in zip(
-                        node.output,
-                        self.handler.dropout(
+                    attributes = _parse_attribute(
+                            node, {"ratio": 0.5, "training_mode: 0"})
+                    (ratio, training_mode) = (
+                        attribute[name]
+                        for name in ["ratio", "training_mode"]
+                    )
+                    tensors[node.output[0]] = self.handler.dropout(
                             tensors[node.input[0]],
                             tensors.get(node.output[0]),
-                            tensors.get(node.output[1])
-                            if len(node.output) > 1
-                            else None,
-                            _parse_data(data[node.input[1]])[0]
-                            if len(node.input) > 1
-                            else 0.5,
-                            _parse_data(data[node.input[2]])[0]
-                            if len(node.input) > 2
-                            else False,
-                        ),
-                    ):
-                        tensors[name] = tensor
+                            tensors.get(node.output[1]),
+                            ratio,
+                            (bool)training_mode,
+                    )
                 elif node.op_type == "Cast":
                     tensors[node.output[0]] = self.handler.cast(
                         tensors[node.input[0]],
@@ -1223,6 +1219,18 @@ class OnnxStub:
                         beta,
                         bias,
                         size,
+                    )
+                )
+            elif ty == backend.OpTypeId.Dropout:
+                ratio, training_mode = backend.dropout_attrs_of(op)
+                ctx.push_node(
+                    make_node(
+                        ty.name,
+                        inputs,
+                        outputs,
+                        name,
+                        ratio,
+                        training_mode,
                     )
                 )
             else:

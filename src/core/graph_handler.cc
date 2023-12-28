@@ -6,6 +6,7 @@
 #include "operators/broadcast.h"
 #include "operators/concat.h"
 #include "operators/conv.h"
+#include "operators/dropout.h"
 #include "operators/element_wise.h"
 #include "operators/expand.h"
 #include "operators/gather.h"
@@ -529,6 +530,20 @@ Tensor GraphHandlerObj::lrn(Tensor input, Tensor output, float alpha,
     } else {
         return g
             ->addOp<LRNObj>(std::move(input), output, alpha, beta, bias, size)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::dropout(Tensor input, Tensor output, Tensor mask,
+                                float ratio, bool training_mode) {
+    if (output) {
+        g->addOpWithOutputs<DropoutObj>(std::move(input), output, mask, ratio,
+                                        training_mode);
+        return output;
+    } else {
+        return g
+            ->addOp<DropoutObj>(std::move(input), output, mask, ratio,
+                                training_mode)
             ->getOutput();
     }
 }

@@ -3,6 +3,7 @@
 #include "operators/batch_norm.h"
 #include "operators/concat.h"
 #include "operators/conv.h"
+#include "operators/dropout.h"
 #include "operators/expand.h"
 #include "operators/gather.h"
 #include "operators/lrn.h"
@@ -306,6 +307,14 @@ static std::tuple<float, float, float, int> lrn_attrs_of(Operator op) {
     return std::make_tuple(alpha, beta, bias, size);
 }
 
+static std::tuple<float, bool> dropout_attrs_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Dropout);
+    auto dropout = dynamic_cast<const DropoutObj *>(op.get());
+    auto ratio = dropout->getRatio();
+    auto train = dropout->getTrainingMode();
+    return std::make_tuple(ratio, train);
+}
+
 void export_functions(py::module &m) {
 #define FUNCTION(NAME) def(#NAME, &NAME)
     m.def("cpu_runtime", &NativeCpuRuntimeObj::getInstance)
@@ -343,7 +352,8 @@ void export_functions(py::module &m) {
         .FUNCTION(flatten_axis_of)
         .FUNCTION(cast_to_of)
         .FUNCTION(depth_to_space_attrs_of)
-        .FUNCTION(lrn_attrs_of);
+        .FUNCTION(lrn_attrs_of)
+        .FUNCTION(dropout_attrs_of);
 #undef FUNCTION
 }
 
@@ -529,6 +539,7 @@ void init_graph_builder(py::module &m) {
         .def("erf", &Handler::erf, policy::move)
         .def("where", &Handler::where, policy::move)
         .def("lrn", &Handler::lrn, policy::move)
+        .def("dropout", &Handler::dropout, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)
         .def("optimize", &Handler::optimize, policy::automatic)
         .def("operators", &Handler::operators, policy::move)
