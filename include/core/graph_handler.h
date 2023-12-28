@@ -70,7 +70,7 @@ class GraphHandlerObj {
                             Tensor input_q, Tensor input_k, Tensor input_v,
                             Tensor position_id, Tensor output_matmul);
     TensorVec split(Tensor input, std::optional<TensorVec> outputs, int axis,
-                    int num_outputs);
+                    std::variant<int, vector<int>> numOrRatio);
     Tensor gather(Tensor data, Tensor indices, Tensor output, int axis);
     Tensor gatherElements(Tensor data, Tensor indices, Tensor output, int axis);
     Tensor reduceMean(Tensor data, Tensor reduced,
@@ -99,6 +99,8 @@ class GraphHandlerObj {
                 int outputType, Tensor input);
     Tensor depthToSpace(Tensor input, Tensor output, int blocksize,
                         std::string mode);
+    Tensor lrn(Tensor input, Tensor output, float alpha, float beta, float bias,
+               int size);
 
     //------ modifiers
 

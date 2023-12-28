@@ -10,6 +10,7 @@
 #include "operators/expand.h"
 #include "operators/gather.h"
 #include "operators/layer_norm.h"
+#include "operators/lrn.h"
 #include "operators/matmul.h"
 #include "operators/pad.h"
 #include "operators/pooling.h"
@@ -24,6 +25,7 @@
 #include "operators/unary.h"
 #include "operators/where.h"
 #include <numeric>
+#include <variant>
 
 namespace infini {
 
@@ -283,14 +285,29 @@ Tensor GraphHandlerObj::attentionKVCache(Tensor input_k_cache,
 }
 
 TensorVec GraphHandlerObj::split(Tensor input, std::optional<TensorVec> outputs,
-                                 int axis, int num_outputs) {
+                                 int axis,
+                                 std::variant<int, vector<int>> numOrRatio) {
     if (outputs) {
-        g->addOpWithOutputs<SplitObj>(std::move(input), outputs, axis,
-                                      num_outputs);
+        if (std::holds_alternative<int>(numOrRatio)) {
+            g->addOpWithOutputs<SplitObj>(std::move(input), outputs, axis,
+                                          std::get<int>(numOrRatio));
+        } else {
+            g->addOpWithOutputs<SplitObj>(std::move(input), outputs, axis,
+                                          std::get<vector<int>>(numOrRatio));
+        }
         return *outputs;
     } else {
-        return g->addOp<SplitObj>(std::move(input), outputs, axis, num_outputs)
-            ->getOutputs();
+        if (std::holds_alternative<int>(numOrRatio)) {
+            return g
+                ->addOp<SplitObj>(std::move(input), outputs, axis,
+                                  std::get<int>(numOrRatio))
+                ->getOutputs();
+        } else {
+            return g
+                ->addOp<SplitObj>(std::move(input), outputs, axis,
+                                  std::get<vector<int>>(numOrRatio))
+                ->getOutputs();
+        }
     }
 }
 
@@ -515,6 +532,19 @@ Tensor GraphHandlerObj::depthToSpace(Tensor input, Tensor output, int blocksize,
     } else {
         return g
             ->addOp<DepthToSpaceObj>(std::move(input), output, blocksize, mode)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::lrn(Tensor input, Tensor output, float alpha,
+                            float beta, float bias, int size) {
+    if (output) {
+        g->addOpWithOutputs<LRNObj>(std::move(input), output, alpha, beta, bias,
+                                    size);
+        return output;
+    } else {
+        return g
+            ->addOp<LRNObj>(std::move(input), output, alpha, beta, bias, size)
             ->getOutput();
     }
 }
