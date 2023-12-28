@@ -36,8 +36,7 @@ class SendNCCL : public CudaKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Send, DataType::Float32, SendNCCL,
-                "Send_NCCL_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Send, SendNCCL, "Send_NCCL_CUDA");
 } // namespace infini
 
 #endif
