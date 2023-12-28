@@ -13,14 +13,14 @@ class PadCnnl : public BangKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
 
         cnnlTensorDescriptor_t aDesc, cDesc;
-        auto dim = op->getOutput()->getDims();
-        int dim_size = dim.size();
-        int dim_array[dim_size];
-        for (int i = 0; i < dim_size; ++i) {
-            dim_array[i] = dim[i];
-        }
+        auto dimIn = op->getInputs(0)->getDims();
+        auto dimOut = op->getOutput()->getDims();
+
+        int dim_size = dimIn.size();
         int paddings[dim_size * 2];
+
         std::vector<int> pads = op->getPads();
+
         if (pads.size() == 2 && dim_size != 1) {
             for (int i = 0; i < dim_size * 2; i += 2) {
                 paddings[i] = pads[0];
@@ -32,20 +32,18 @@ class PadCnnl : public BangKernelWithoutConfig {
                 paddings[i + 1] = pads[i / 2 + dim_size];
             }
         }
-        int dimout_array[dim_size];
-        for (int i = 0; i < dim_size; ++i) {
-            dimout_array[i] = dim[i] + paddings[2 * i] + paddings[2 * i + 1];
-        }
+
         float paddingValue = 0.0;
         // input
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(
-            aDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT, dim_size, dim_array));
+        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_ARRAY,
+                                               CNNL_DTYPE_FLOAT, dimIn.size(),
+                                               dimIn.data()));
         // output
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, dim_size,
-                                               dimout_array));
+                                               CNNL_DTYPE_FLOAT, dimOut.size(),
+                                               dimOut.data()));
 
         cnnlStatus_t stat = cnnlPad(context->cnnlHandle(), aDesc, aData,
                                     paddings, &paddingValue, cDesc, cData);

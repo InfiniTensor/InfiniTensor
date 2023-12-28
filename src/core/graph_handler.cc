@@ -10,11 +10,14 @@
 #include "operators/expand.h"
 #include "operators/gather.h"
 #include "operators/layer_norm.h"
+#include "operators/lrn.h"
 #include "operators/matmul.h"
 #include "operators/pad.h"
 #include "operators/pooling.h"
+#include "operators/recv.h"
 #include "operators/reduce.h"
 #include "operators/reshape.h"
+#include "operators/send.h"
 #include "operators/slice.h"
 #include "operators/softmax.h"
 #include "operators/split.h"
@@ -434,6 +437,39 @@ Tensor GraphHandlerObj::broadcast(Tensor input, Tensor output, int root) {
     }
 }
 
+Tensor GraphHandlerObj::send(Tensor input, int source, int destination,
+                             Tensor output) {
+    if (output) {
+
+        g->addOpWithOutputs<SendObj>(std::move(input), source, destination,
+                                     output);
+
+        return output;
+    } else {
+        return g->addOp<SendObj>(std::move(input), source, destination, output)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::recv(Tensor output, int source, int destination,
+                             Shape dims, int outputType, Tensor input) {
+
+    if (output) {
+
+        g->addOpWithOutputs<RecvObj>(output, source, destination,
+                                     std::move(dims), outputType,
+                                     std::move(input));
+
+        return output;
+    } else {
+
+        return g
+            ->addOp<RecvObj>(output, source, destination, std::move(dims),
+                             outputType, std::move(input))
+            ->getOutput();
+    }
+}
+
 Tensor GraphHandlerObj::cast(Tensor input, Tensor output, int to) {
     if (output) {
         g->addOpWithOutputs<CastObj>(std::move(input), output,
@@ -480,6 +516,19 @@ Tensor GraphHandlerObj::depthToSpace(Tensor input, Tensor output, int blocksize,
     } else {
         return g
             ->addOp<DepthToSpaceObj>(std::move(input), output, blocksize, mode)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::lrn(Tensor input, Tensor output, float alpha,
+                            float beta, float bias, int size) {
+    if (output) {
+        g->addOpWithOutputs<LRNObj>(std::move(input), output, alpha, beta, bias,
+                                    size);
+        return output;
+    } else {
+        return g
+            ->addOp<LRNObj>(std::move(input), output, alpha, beta, bias, size)
             ->getOutput();
     }
 }
