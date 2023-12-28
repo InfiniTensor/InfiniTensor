@@ -18,8 +18,14 @@ void testPooling(const std::function<void(void *, size_t, DataType)> &generator,
 
     // Build input data on CPU
     Tensor inputCpu = make_ref<TensorObj>(shape, DataType::Float32, cpuRuntime);
-    inputCpu->dataMalloc();
+    Graph cpuGraph = make_ref<GraphObj>(cpuRuntime);
+    auto cpuOp =
+        cpuGraph->addOp<T>(inputCpu, nullptr, 3, 3, 1, 1, 1, 1, 2, 2, 0);
+    cpuGraph->addTensor(inputCpu);
+    cpuGraph->dataMalloc();
     inputCpu->setData(generator);
+    cpuRuntime->run(cpuGraph);
+    auto outputCpu = cpuOp->getOutput();
 
     // GPU
     Graph bangGraph = make_ref<GraphObj>(bangRuntime);
@@ -27,17 +33,16 @@ void testPooling(const std::function<void(void *, size_t, DataType)> &generator,
     auto gpuOp =
         bangGraph->addOp<T>(inputGpu, nullptr, 3, 3, 1, 1, 1, 1, 2, 2, 0);
     bangGraph->dataMalloc();
+    inputGpu->setData(generator);
     bangRuntime->run(bangGraph);
     auto outputGpu = gpuOp->getOutput();
     auto outputGpu2Cpu = outputGpu->clone(cpuRuntime);
-    inputCpu->printData();
-    outputGpu2Cpu->printData();
     EXPECT_TRUE(1);
 }
 
 TEST(cnnl_Pooling, run) {
-    testPooling<MaxPoolObj>(IncrementalGenerator(), Shape{1, 1, 5, 5});
-    testPooling<AvgPoolObj>(IncrementalGenerator(), Shape{1, 1, 5, 5});
+    testPooling<MaxPoolObj>(IncrementalGenerator(), Shape{1, 3, 5, 5});
+    testPooling<AvgPoolObj>(IncrementalGenerator(), Shape{1, 3, 5, 5});
 }
 
 } // namespace infini
