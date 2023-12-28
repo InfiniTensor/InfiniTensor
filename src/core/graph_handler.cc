@@ -10,6 +10,7 @@
 #include "operators/expand.h"
 #include "operators/gather.h"
 #include "operators/layer_norm.h"
+#include "operators/lrn.h"
 #include "operators/matmul.h"
 #include "operators/pad.h"
 #include "operators/pooling.h"
@@ -531,6 +532,19 @@ Tensor GraphHandlerObj::depthToSpace(Tensor input, Tensor output, int blocksize,
     } else {
         return g
             ->addOp<DepthToSpaceObj>(std::move(input), output, blocksize, mode)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::lrn(Tensor input, Tensor output, float alpha,
+                            float beta, float bias, int size) {
+    if (output) {
+        g->addOpWithOutputs<LRNObj>(std::move(input), output, alpha, beta, bias,
+                                    size);
+        return output;
+    } else {
+        return g
+            ->addOp<LRNObj>(std::move(input), output, alpha, beta, bias, size)
             ->getOutput();
     }
 }
