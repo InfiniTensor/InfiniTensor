@@ -101,8 +101,8 @@ class GraphHandlerObj {
                         std::string mode);
     Tensor lrn(Tensor input, Tensor output, float alpha, float beta, float bias,
                int size);
-    Tensor dropout(Tensor input, Tensor output, Tensor mask, float ratio,
-                   bool training_mode);
+    TensorVec dropout(Tensor input, Tensor output, Tensor mask, float ratio,
+                      bool training_mode);
 
     //------ modifiers
 

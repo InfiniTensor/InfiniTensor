@@ -534,17 +534,17 @@ Tensor GraphHandlerObj::lrn(Tensor input, Tensor output, float alpha,
     }
 }
 
-Tensor GraphHandlerObj::dropout(Tensor input, Tensor output, Tensor mask,
-                                float ratio, bool training_mode) {
+TensorVec GraphHandlerObj::dropout(Tensor input, Tensor output, Tensor mask,
+                                   float ratio, bool training_mode) {
     if (output) {
         g->addOpWithOutputs<DropoutObj>(std::move(input), output, mask, ratio,
                                         training_mode);
-        return output;
+        return {output, mask};
     } else {
         return g
             ->addOp<DropoutObj>(std::move(input), output, mask, ratio,
                                 training_mode)
-            ->getOutput();
+            ->getOutputs();
     }
 }
 

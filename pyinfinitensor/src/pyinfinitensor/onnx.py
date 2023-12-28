@@ -674,18 +674,22 @@ class OnnxStub:
                     )
                 elif node.op_type == "Dropout":
                     attributes = _parse_attribute(
-                            node, {"ratio": 0.5, "training_mode: 0"})
+                            node, {"ratio": 0.5, "training_mode": 0})
                     (ratio, training_mode) = (
-                        attribute[name]
+                        attributes[name]
                         for name in ["ratio", "training_mode"]
                     )
-                    tensors[node.output[0]] = self.handler.dropout(
+                    for name, tensor in zip(
+                        node.output,
+                        self.handler.dropout(
                             tensors[node.input[0]],
                             tensors.get(node.output[0]),
                             tensors.get(node.output[1]),
                             ratio,
-                            (bool)training_mode,
-                    )
+                            training_mode,
+                        ),
+                    ):
+                        tensors[name] = tensor
                 elif node.op_type == "Cast":
                     tensors[node.output[0]] = self.handler.cast(
                         tensors[node.input[0]],

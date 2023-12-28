@@ -24,13 +24,18 @@ class DropoutCnnl : public BangKernelWithoutConfig {
         checkCnnlError(cnnlSetTensorDescriptor(oDesc, CNNL_LAYOUT_ARRAY,
                                                CNNL_DTYPE_FLOAT, oDim.size(),
                                                oDim.data()));
+        cnnlTensorDescriptor_t mDesc;
+        checkCnnlError(cnnlCreateTensorDescriptor(&mDesc));
+        checkCnnlError(cnnlSetTensorDescriptor(mDesc, CNNL_LAYOUT_ARRAY,
+                                               CNNL_DTYPE_UINT8, oDim.size(),
+                                               oDim.data()));
 
         auto ratio = op->getRatio();
         // auto train = op->getTrainingMode();
 
         cnnlStatus_t stat =
             cnnlFusedDropout_v2(context->cnnlHandle(), generator, oDesc, iData,
-                                ratio, NULL, oDesc, mData, oDesc, oData);
+                                ratio, NULL, mDesc, mData, oDesc, oData);
 
         if (stat != CNNL_STATUS_SUCCESS)
             return;
