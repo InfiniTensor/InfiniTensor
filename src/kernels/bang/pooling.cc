@@ -21,13 +21,14 @@ class PoolingCnnl : public BangKernelWithoutConfig {
         checkCnnlError(cnnlCreateTensorDescriptor(&inDesc));
         checkCnnlError(cnnlSetTensorDescriptor(inDesc, CNNL_LAYOUT_NCHW,
                                                CNNL_DTYPE_FLOAT, 4, inArray));
+        bool mode = op->getCeilMode();
 
         // get maxpool descriptor
         cnnlPoolingDescriptor_t poolingDesc;
         checkCnnlError(cnnlCreatePoolingDescriptor(&poolingDesc));
         checkCnnlError(cnnlSetPooling2dDescriptor_v2(
             poolingDesc, getPoolingMode(), CNNL_NOT_PROPAGATE_NAN, kh, kw, ph,
-            ph, pw, pw, sh, sw, dh, dw, false));
+            ph, pw, pw, sh, sw, dh, dw, mode));
 
         // get outputs
         // TODO: verify ceiling mode
