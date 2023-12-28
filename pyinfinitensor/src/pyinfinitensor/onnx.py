@@ -595,21 +595,13 @@ class OnnxStub:
                         coordinate_transformation_mode,
                     )
                 elif node.op_type == "Squeeze":
-                    input_shape = _search_shape(model, node.input[0])
-                    axes = set(
-                        [int(i) for i in data[node.input[1]].int64_data]
-                        if len(node.input) > 1
-                        else _parse_attribute(node, {"axes": None})["axes"]
-                    )
-                    assert all(input_shape[d] == 1 for d in axes)
-                    output_shape = []
-                    for i, x in enumerate(input_shape):
-                        if i not in axes:
-                            output_shape.append(x)
-                    tensors[node.output[0]] = self.handler.reshape(
+                    axes = (_parse_data(data[node.input[1]]) if len(node.input) > 1 else None)
+                    if axes is None:
+                        axes = next( (attr.ints for attr in node.attribute if attr.name == "axes"), None)
+                    tensors[node.output[0]] = self.handler.squeeze(
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
-                        output_shape,
+                        axes,
                     )
                 elif node.op_type == "Unsqueeze":
                     input_shape = _search_shape(model, node.input[0])

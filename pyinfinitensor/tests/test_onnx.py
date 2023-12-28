@@ -303,6 +303,18 @@ class TestStringMethods(unittest.TestCase):
         reshape = make_node("Resize", ["x", "roi", "scales"], ["y"], name="resize")
         make_and_import_model(make_graph([reshape], "resize", [x], [y], [roi, scales]))
 
+    def test_squeeze(self):
+        input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 1, 5])
+        axes = make_tensor_value_info("axes", TensorProto.INT64, [2])
+        axes_data = make_tensor("axes", TensorProto.INT64, [2], [0, 2])
+        output = make_tensor_value_info(
+            "output", TensorProto.FLOAT, [3, 5]
+        )
+        squeeze = make_node("Squeeze", ["input", "axes"], ["output"], name="squeeze")
+        make_and_import_model(
+            make_graph([squeeze], "squeeze", [input, axes], [output], [axes_data])
+        )
+
     def test_concat(self):
         input1 = make_tensor_value_info("input1", TensorProto.FLOAT, [1, 3, 2, 4])
         input2 = make_tensor_value_info("input2", TensorProto.FLOAT, [1, 3, 2, 5])

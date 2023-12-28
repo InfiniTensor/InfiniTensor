@@ -22,6 +22,7 @@
 #include "operators/slice.h"
 #include "operators/softmax.h"
 #include "operators/split.h"
+#include "operators/squeeze.h"
 #include "operators/transpose.h"
 #include "operators/unary.h"
 #include "operators/where.h"
@@ -604,6 +605,17 @@ Tensor GraphHandlerObj::lrn(Tensor input, Tensor output, float alpha,
     } else {
         return g
             ->addOp<LRNObj>(std::move(input), output, alpha, beta, bias, size)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::squeeze(Tensor input, Tensor output, Shape axes) {
+    if (output) {
+        g->addOpWithOutputs<SqueezeObj>(std::move(input), output,
+                                        std::move(axes));
+        return output;
+    } else {
+        return g->addOp<SqueezeObj>(std::move(input), output, std::move(axes))
             ->getOutput();
     }
 }
