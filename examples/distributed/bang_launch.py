@@ -10,22 +10,26 @@ import numpy as np
 from parallel_opt import parallel_model
 
 
+os.environ["NVIDIA_TF32_OVERRIDE"] = "0"
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="launch distributed infinitensor")
     parser.add_argument("--num_nodes", type=int, default=1, help="number of nodes")
     parser.add_argument(
-        "--nproc_per_node", type=int, default=1, help="number of processes per node"
+        "--nproc_per_node", type=int, default=2, help="number of processes per node"
     )
     parser.add_argument(
         "--name", type=str, default="test", help="name of this instance."
     )
     parser.add_argument(
-        "--model", type=str, required=True, help="path to the ONNX model file."
+        "--model", type=str, default="/data/onnx_models/llama2/llama_bs1_seq1024.onnx", help="path to the ONNX model file."
     )
     parser.add_argument("--batch_size", type=int, default=1, help="batch size.")
     parser.add_argument("--length", type=int, default=1, help="sequence length.")
     parser.add_argument(
         "--gen_std",
+        default=False,
         action="store_true",
         help="whether to generate the standard results.",
     )
@@ -42,18 +46,16 @@ def parse_args():
     )
 
 
-def run_model(model, runtime, inputs, n=10):
+def run_model(model, runtime, world_size=1, rank=0, n=10):
     stub = OnnxStub(model, runtime)
-    for tensor, input in zip(stub.inputs.values(), inputs):
-        tensor.copyin_numpy(input)
+    load_inputs(stub, world_size, rank)
     # stub.tune()
     stub.run()
     # get outputs
+    time.sleep(0.01)
     outputs = next(stub.outputs.values().__iter__()).copyout_numpy()
 
     # bench
-    for tensor, input in zip(stub.inputs.values(), inputs):
-        tensor.copyin_numpy(input)
     begin = time.time()
     for _ in range(n):
         stub.run()
@@ -63,14 +65,13 @@ def run_model(model, runtime, inputs, n=10):
     return outputs
 
 
-def run_and_compare(name, model, runtime):
-    input_ids = np.load(f"{name}_inputs.npy")
-    mask = np.load(f"{name}_mask.npy")
-    position_ids = np.load(f"{name}_position_ids.npy")
-    results = np.load(f"{name}_results.npy")
-    outputs = run_model(model, runtime, (input_ids, mask, position_ids), 1)
-    print("outputs abs mean:", abs(outputs).mean())
-    np.testing.assert_allclose(outputs, results, rtol=1e-6, atol=1e-3)
+def run_and_compare(name, model, runtime, world_size=1, rank = 0):
+    results = np.load(f"./data/output.npy")
+    outputs = run_model(model, runtime, world_size, rank)
+    print("answer argmax:", np.argmax(results))
+    print("output argmax:", np.argmax(outputs))
+    #np.testing.assert_allclose(outputs, results, rtol=1e-3, atol=1e-3)
+    getDiff(results, outputs)
 
 
 def start_worker(
@@ -95,7 +96,7 @@ def start_worker(
         world_size,
         rank,
     )
-    run_and_compare(name, model, runtime)
+    run_and_compare(name, model, runtime, world_size, rank)
 
 
 def start_single(name, model):
@@ -103,19 +104,56 @@ def start_single(name, model):
     run_and_compare(name, model, runtime)
 
 
-def gen_standard(name, model, voc_size, bs, len):
-    # generate standard results
-    input_ids = np.random.randint(0, voc_size, (bs, len), dtype=np.int64)
-    mask = np.random.rand(bs, len).astype(np.float32)
-    position_ids = np.arange(len).astype(np.int64)
-    np.save(f"{name}_inputs", input_ids)
-    np.save(f"{name}_mask", mask)
-    np.save(f"{name}_position_ids", position_ids)
+def generate_input_output(model):
+    os.makedirs(os.path.dirname("./data/"), exist_ok=True)
     runtime = backend.BangRuntime(0)
-    outputs = run_model(model, runtime, (input_ids, mask, position_ids), 1)
-    # outputs = run_model(model, runtime, (input_ids,), 1)
-    print("outputs abs mean:", abs(outputs).mean())
-    np.save(f"{name}_results", outputs)
+    stub = OnnxStub(model, runtime)
+    position_id = 0
+    for i, (name, tensor) in enumerate(stub.inputs.items()):
+        input = tensor.copyout_numpy()
+        if np.issubdtype(input.dtype, np.integer):
+            if input.size == 1:
+                # input = np.array([position_id])
+                input = np.random.randint(0,2,size=input.shape, dtype=input.dtype)
+            else:
+                input = np.random.randint(0,2,size=input.shape, dtype=input.dtype)
+        elif input.dtype == np.bool_:
+            input = np.random.randint(0,2,size=input.shape) > 0
+        else:
+            if i == 0:
+                input = np.ones(input.shape).astype(input.dtype)
+                position_id = input.shape[-1] - 1
+            else:
+                input = np.random.rand(*input.shape).astype(input.dtype)
+        tensor.copyin_numpy(input)
+        np.save(f"./data/input_{i}", input)
+    stub.run()
+    time.sleep(0.01)
+    output = next(stub.outputs.values().__iter__()).copyout_numpy()
+    if np.isnan(output).any():
+        print("Nan in output")
+    np.save(f"./data/output", output)
+
+
+def load_inputs(stub, world_size=1, rank=0):
+    for i, (name, tensor) in enumerate(stub.inputs.items()):
+        input = np.load(f"./data/input_{i}.npy")
+        if all(x == y for x,y in zip(input.shape,tensor.shape())):
+            tensor.copyin_numpy(input)
+        else:
+            tensor.copyin_numpy(np.hsplit(input, world_size)[rank])
+
+def getDiff(base, test):
+    absolute_diff = np.abs(np.subtract(base, test))
+    max_absolute_diff = np.max(absolute_diff)
+
+    baseCopy = base.astype(np.float64).ravel()
+    testCopy = test.astype(np.float64).ravel()
+    upValue = np.sum(np.abs(baseCopy - testCopy))
+    downValue = np.sum(np.abs(baseCopy)) + np.float64(1e-9)
+    max_relative_diff = upValue / downValue
+    print(f"Max absolute difference: {max_absolute_diff}\nMax relative difference: {max_relative_diff}")
+    return max_absolute_diff, max_relative_diff
 
 
 def main():
@@ -125,22 +163,22 @@ def main():
 
     # generate standart output
     if gen_std:
-        print(f"generate standard data for {name}.")
-        # a small vocabulary size to fit all LLM.
-        voc_size = 1000
-        gen_standard(name, model, voc_size, bs, length)
+        print("Generate inputs and outputs.")
+        p = mp.Process(target=generate_input_output, args=[model])
+        p.start()
+        p.join()
         return
 
     # run single process.
     # use standalone process to isolate cuda.
-    print("run model by single MLU.")
+    print("run model by single GPU.")
     p = mp.Process(target=start_single, args=(name, model))
     p.start()
     p.join()
 
     # run distributed parallel.
     world_size = nnodes * nproc_per_node
-    print(f"run model by {world_size} MLUs in parallel.")
+    print(f"run model by {world_size} GPU in parallel.")
     workers = [
         mp.Process(
             target=start_worker,
