@@ -39,7 +39,7 @@ __global__ void _pad_slice_kernel(void *part, void *whole,
             } else {
                 ((T *)whole)[tid] = ((T *)part)[offset];
             }
-        } else {
+        } else if (offset >= 0) {
             ((T *)part)[offset] = ((T *)whole)[tid];
         }
         tid += stride;
