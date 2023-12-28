@@ -171,14 +171,14 @@ def main():
 
     # run single process.
     # use standalone process to isolate cuda.
-    print("run model by single GPU.")
+    print("run model by single MLU.")
     p = mp.Process(target=start_single, args=(name, model))
     p.start()
     p.join()
 
     # run distributed parallel.
     world_size = nnodes * nproc_per_node
-    print(f"run model by {world_size} GPU in parallel.")
+    print(f"run model by {world_size} MLUs in parallel.")
     workers = [
         mp.Process(
             target=start_worker,
