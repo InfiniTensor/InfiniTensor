@@ -167,7 +167,10 @@ void GraphObj::dataMalloc(bool useNaiveAllocator, size_t memPoolSize) {
         // note: behavior may not match running in non-naive mode, and it may
         // not reproduce the bug
         for (auto &tensor : tensors) {
-            tensor->dataMalloc();
+            if (!tensor->isWeight() ||
+                (tensor->isWeight() && !weightAllocated)) {
+                tensor->dataMalloc();
+            }
         }
         return;
     }

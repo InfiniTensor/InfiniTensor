@@ -42,8 +42,16 @@ class TensorObj : public TensorBaseObj {
     bool isOutput() const { return tensorType == TensorType::output; }
     bool isOthers() const { return tensorType == TensorType::others; }
     void setWeight() { tensorType = TensorType::weight; }
-    void setInput() { tensorType = TensorType::input; }
-    void setOutput() { tensorType = TensorType::output; }
+    void setInput() {
+        if (!this->isWeight()) {
+            tensorType = TensorType::input;
+        }
+    }
+    void setOutput() {
+        if (!this->isWeight()) {
+            tensorType = TensorType::output;
+        }
+    }
     string tensorTypeToString() const {
         switch (tensorType) {
         case TensorType::weight:
