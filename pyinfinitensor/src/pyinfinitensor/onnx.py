@@ -644,6 +644,20 @@ class OnnxStub:
                         tensors.get(node.output[0]),
                     )
                 elif node.op_type == "Split":
+                    split = (
+                        _parse_data(data[node.input[1]])
+                        if (len(node.input) > 1)
+                        else None
+                    )
+                    if split is None:
+                        split = next(
+                            (
+                                attr.ints
+                                for attr in node.attribute
+                                if attr.name == "split"
+                            ),
+                            None,
+                        )
                     for name, tensor in zip(
                         node.output,
                         self.handler.split(
@@ -657,7 +671,7 @@ class OnnxStub:
                                 ),
                                 0,
                             ),
-                            len(node.output),
+                            split if split is not None else len(node.output),
                         ),
                     ):
                         tensors[name] = tensor
@@ -916,6 +930,22 @@ class OnnxStub:
                     tensors[output_name] = self.handler.tensor(dims, tensor.data_type)
                     data[output_name] = tensor
                     tensors[output_name].set_weight()
+                elif node.op_type == "LRN":
+                    attributes = _parse_attribute(
+                        node, {"alpha": 0.0001, "beta": 0.75, "bias": 1.0, "size": 1}
+                    )
+                    (alpha, beta, bias, size) = (
+                        attributes[name]
+                        for name in ["alpha", "beta", "bias", "size"]
+                    )
+                    tensors[node.output[0]] = self.handler.lrn(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        alpha,
+                        beta,
+                        bias,
+                        size,
+                    )
                 else:
                     raise Exception('Unsupported operator "{}"'.format(node.op_type))
                 new_node_name.append(node.name)
@@ -1254,6 +1284,20 @@ class OnnxStub:
             elif ty == backend.OpTypeId.Expand:
                 shape = backend.expand_shape_of(op)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, shape=shape))
+            elif ty == backend.OpTypeId.LRN:
+                alpha, beta, bias, size = backend.lrn_attrs_of(op)
+                ctx.push_node(
+                    make_node(
+                        ty.name,
+                        inputs,
+                        outputs,
+                        name,
+                        alpha,
+                        beta,
+                        bias,
+                        size,
+                    )
+                )
             else:
                 raise Exception("Unsupported OpType", ty)
 
