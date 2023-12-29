@@ -14,9 +14,10 @@ int get_real_axis(const int &axis, const int &rank);
 // Check if tensor B is unidirectional broadcastable to tensor A
 bool is_unidirectional_broadcasting(const Shape &A, const Shape &B);
 // Locate the index with size from Shape
-Shape locate_index(size_t, Shape const &);
+Shape locate_index(size_t inputN, const Shape &shape);
 // Delocate the ShapeIndex from Shape with broadcast
-size_t delocate_index(Shape const &, vector<int> const &, vector<int> const &);
+size_t delocate_index(const Shape &shapeIndex, const Shape &shape,
+                      const Shape &stride);
 // Convert KernelAttrs to a string representation
 std::string get_kernel_attrs_str(const KernelAttrs &kernelAttrs);
 } // namespace infini

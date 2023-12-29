@@ -12,31 +12,31 @@ template <typename T> class NativeElementWise : public CpuKernelWithoutConfig {
         T *inptr1 = op->getInputs(1)->getRawDataPtr<T *>();
         T *outptr = op->getOutput()->getRawDataPtr<T *>();
 
-        auto inputA = op->getInputs(0)->getDims();
-        auto inputB = op->getInputs(1)->getDims();
-        auto outputC = op->getOutput()->getDims();
+        auto shapeA = op->getInputs(0)->getDims();
+        auto shapeB = op->getInputs(1)->getDims();
+        auto shapeC = op->getOutput()->getDims();
         auto rank = op->getOutput()->getRank();
-        vector<int> a(rank, 1);
-        vector<int> b(rank, 1);
-        std::copy(inputA.begin(), inputA.end(),
-                  a.begin() + (rank - inputA.size()));
-        std::copy(inputB.begin(), inputB.end(),
-                  b.begin() + (rank - inputB.size()));
-        auto getStride = [&](vector<int> const &shape) {
+        Shape a(rank, 1);
+        Shape b(rank, 1);
+        std::copy(shapeA.begin(), shapeA.end(),
+                  a.begin() + (rank - shapeA.size()));
+        std::copy(shapeB.begin(), shapeB.end(),
+                  b.begin() + (rank - shapeB.size()));
+        auto getStride = [&](const Shape &shape) {
             int p = 1;
-            vector<int> stride(rank);
+            Shape stride(rank);
             for (auto i = rank; i > 0; --i) {
                 stride[i - 1] = p;
                 p = p * shape[i - 1];
             }
             return stride;
         };
-        vector<int> strideA = getStride(a);
-        vector<int> strideB = getStride(b);
+        Shape strideA = getStride(a);
+        Shape strideB = getStride(b);
 
         auto n = op->getOutput()->size();
         for (size_t i = 0; i < n; ++i) {
-            auto shapeIndexC = locate_index(i, outputC);
+            auto shapeIndexC = locate_index(i, shapeC);
             auto indexA = delocate_index(shapeIndexC, a, strideA);
             auto indexB = delocate_index(shapeIndexC, b, strideB);
             outptr[i] = doCompute(inptr0[indexA], inptr1[indexB]);

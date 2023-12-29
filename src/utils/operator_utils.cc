@@ -66,7 +66,7 @@ bool is_unidirectional_broadcasting(const Shape &A, const Shape &B) {
     return true;
 }
 
-Shape locate_index(size_t inputN, Shape const &shape) {
+Shape locate_index(size_t inputN, const Shape &shape) {
     Shape ans(shape.size());
     auto i = ans.rbegin();
     auto j = shape.rbegin(), ej = shape.rend();
@@ -78,10 +78,10 @@ Shape locate_index(size_t inputN, Shape const &shape) {
     return ans;
 }
 
-size_t delocate_index(Shape const &shapeIndex, vector<int> const &shape,
-                      vector<int> const &stride) {
+size_t delocate_index(const Shape &shapeIndex, const Shape &shape,
+                      const Shape &stride) {
     size_t ans = 0;
-    vector<int> index(shapeIndex.size());
+    Shape index(shapeIndex.size());
     IT_ASSERT(shapeIndex.size() == shape.size());
     IT_ASSERT(shape.size() == stride.size());
     for (size_t i = 0; i < shape.size(); ++i) {
