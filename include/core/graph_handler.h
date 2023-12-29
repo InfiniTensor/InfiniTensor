@@ -65,6 +65,12 @@ class GraphHandlerObj {
                 std::optional<float> max);
     Tensor transpose(Tensor data, Tensor transposed, Shape perm);
     Tensor reshape(Tensor data, Tensor reshaped, Shape shape);
+    Tensor resize(Tensor input, Tensor output,
+                  const std::optional<vector<int>> &axes, Tensor sizes,
+                  Tensor scales, Tensor roi, vector<uint32_t> sizes_,
+                  vector<float> scales_, vector<float> roi_, string mode,
+                  string ratioPolicy, string nearestMode,
+                  string coordTransMode);
     Tensor concat(TensorVec inputs, Tensor output, int dim);
     Tensor attentionKVCache(Tensor input_k_cache, Tensor input_v_cache,
                             Tensor input_q, Tensor input_k, Tensor input_v,
