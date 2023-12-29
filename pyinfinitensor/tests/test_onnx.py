@@ -307,9 +307,7 @@ class TestStringMethods(unittest.TestCase):
         input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 1, 5])
         axes = make_tensor_value_info("axes", TensorProto.INT64, [2])
         axes_data = make_tensor("axes", TensorProto.INT64, [2], [0, 2])
-        output = make_tensor_value_info(
-            "output", TensorProto.FLOAT, [3, 5]
-        )
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [3, 5])
         squeeze = make_node("Squeeze", ["input", "axes"], ["output"], name="squeeze")
         make_and_import_model(
             make_graph([squeeze], "squeeze", [input, axes], [output], [axes_data])
@@ -319,10 +317,10 @@ class TestStringMethods(unittest.TestCase):
         input = make_tensor_value_info("input", TensorProto.FLOAT, [2, 3, 4, 5])
         axes = make_tensor_value_info("axes", TensorProto.INT64, [2])
         axes_data = make_tensor("axes", TensorProto.INT64, [2], [0, 2])
-        output = make_tensor_value_info(
-            "output", TensorProto.FLOAT, [1, 2, 1, 3, 4, 5]
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 2, 1, 3, 4, 5])
+        unsqueeze = make_node(
+            "Unsqueeze", ["input", "axes"], ["output"], name="unsqueeze"
         )
-        unsqueeze = make_node("Unsqueeze", ["input", "axes"], ["output"], name="unsqueeze")
         make_and_import_model(
             make_graph([unsqueeze], "unsqueeze", [input, axes], [output], [axes_data])
         )

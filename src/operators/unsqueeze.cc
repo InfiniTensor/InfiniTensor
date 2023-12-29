@@ -4,7 +4,7 @@
 namespace infini {
 UnsqueezeObj::UnsqueezeObj(GraphObj *graph, Tensor input, Tensor output,
                            Shape axes)
-    : OperatorObj(OpType::Reshape, {input}, {output}), axes(std::move(axes)) {
+    : OperatorObj(OpType::Unsqueeze, {input}, {output}), axes(std::move(axes)) {
     IT_ASSERT(checkValid(graph));
 }
 
