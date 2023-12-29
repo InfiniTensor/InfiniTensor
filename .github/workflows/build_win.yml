@@ -12,22 +12,22 @@ on:
 jobs:
   build:
     name: Build
-    runs-on: windows-2019
+    runs-on: windows-latest
     steps:
     - uses: actions/checkout@v3
       with:
         submodules: recursive
 
-    - name: Set up Python 3.10
+    - name: Set up Python 3.12
       uses: actions/setup-python@v4
       with:
-        python-version: '3.10' 
+        python-version: '3.12' 
       
     - name: Build
       shell: cmd
       run: |
         mkdir build && cd build
-        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         cmake .. -G "NMake Makefiles" -DUSE_BACKTRACE=OFF -DBUILD_TEST=ON -DCMAKE_BUILD_TYPE=Release
         nmake
         copy backend*.pyd ..\pyinfinitensor\src\pyinfinitensor\backend.pyd
@@ -36,7 +36,7 @@ jobs:
       shell: cmd
       run: |
         cd build
-        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         nmake test
     
     - name: Install python-frontend
