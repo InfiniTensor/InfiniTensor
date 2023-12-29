@@ -4,6 +4,7 @@
 #include "core/runtime.h"
 #include <cstdint>
 #include <iostream>
+#include <variant>
 
 namespace infini {
 
