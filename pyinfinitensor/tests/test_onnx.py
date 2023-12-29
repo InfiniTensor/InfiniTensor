@@ -295,6 +295,14 @@ class TestStringMethods(unittest.TestCase):
             make_graph([reshape], "reshape", [data, shape], [reshaped], [shape_data])
         )
 
+    def test_resize(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 128, 40, 40])
+        roi = make_tensor("roi", TensorProto.FLOAT, [0], [])
+        scales = make_tensor("scales", TensorProto.FLOAT, [4], [1, 1, 2, 2])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 128, 80, 80])
+        reshape = make_node("Resize", ["x", "roi", "scales"], ["y"], name="resize")
+        make_and_import_model(make_graph([reshape], "resize", [x], [y], [roi, scales]))
+
     def test_concat(self):
         input1 = make_tensor_value_info("input1", TensorProto.FLOAT, [1, 3, 2, 4])
         input2 = make_tensor_value_info("input2", TensorProto.FLOAT, [1, 3, 2, 5])
@@ -337,7 +345,7 @@ class TestStringMethods(unittest.TestCase):
             "ReduceMean", ["data"], ["reduced"], keepdims=1, name="reduceMean"
         )
         make_and_import_model(make_graph([reduceMean], "reduceMean", [data], [reduced]))
-    
+
     def test_reduce_sum(self):
         data = make_tensor_value_info("data", TensorProto.FLOAT, [2, 3, 3, 4])
         reduced = make_tensor_value_info("reduced", TensorProto.FLOAT, [1, 1, 1, 1])
@@ -435,6 +443,12 @@ class TestStringMethods(unittest.TestCase):
         split = make_node("Split", ["input"], ["output"], name="split", axis=0)
         make_and_import_model(make_graph([split], "split", [input], []))
 
+    def test_split1(self):
+        input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
+        splitAttr = make_tensor_value_info("split", TensorProto.INT64, [2, 1])
+        split = make_node("Split", ["input", "split"], ["output"], name="split", axis=1)
+        make_and_import_model(make_graph([split], "split", [input, splitAttr], []))
+
     def test_allBroadcast(self):
         input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
         output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 2, 4])
@@ -508,6 +522,29 @@ class TestStringMethods(unittest.TestCase):
         where = make_node("Where", ["x", "y", "con"], ["output"], name="where")
         make_and_import_model(make_graph([where], "where", [x, y, con], [output]))
 
+    def test_send(self):
+        sendInput = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 5, 7])
+        send = make_node("Send", ["input"], [], name="send", source=0, destination=1)
+        graph = make_graph([send], "send", [sendInput], [])
+        model = make_model(graph)
+        from_onnx(model, backend.cpu_runtime())
+
+    def test_recv(self):
+        recvOutput = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 5, 7])
+        recv = make_node(
+            "Recv",
+            [],
+            ["output"],
+            name="recv",
+            source=0,
+            destination=1,
+            shape=[1, 3, 5, 7],
+            dataType=1,
+        )
+        graph = make_graph([recv], "recv", [], [recvOutput])
+        model = make_model(graph)
+        from_onnx(model, backend.cpu_runtime())
+
 
 class TestDynamicTensor(unittest.TestCase):
     def test_dynamic_tensor(self):
@@ -517,6 +554,7 @@ class TestDynamicTensor(unittest.TestCase):
         for root, dirs, files in os.walk(current_path):
             if filename in files:
                 model_file = os.path.join(root, filename)
+
         model = OnnxStub(onnx.load(model_file), backend.cpu_runtime())
         output_key = list(model.outputs.keys())[0]
         old_output_shape = model.getShape(output_key)

@@ -10,11 +10,15 @@
 #include "operators/expand.h"
 #include "operators/gather.h"
 #include "operators/layer_norm.h"
+#include "operators/lrn.h"
 #include "operators/matmul.h"
 #include "operators/pad.h"
 #include "operators/pooling.h"
+#include "operators/recv.h"
 #include "operators/reduce.h"
 #include "operators/reshape.h"
+#include "operators/resize.h"
+#include "operators/send.h"
 #include "operators/slice.h"
 #include "operators/softmax.h"
 #include "operators/split.h"
@@ -22,6 +26,7 @@
 #include "operators/unary.h"
 #include "operators/where.h"
 #include <numeric>
+#include <variant>
 
 namespace infini {
 
@@ -250,6 +255,64 @@ Tensor GraphHandlerObj::reshape(Tensor data, Tensor reshaped, Shape shape) {
     }
 }
 
+Tensor GraphHandlerObj::resize(Tensor input, Tensor output,
+                               const std::optional<vector<int>> &axes,
+                               Tensor sizes, Tensor scales, Tensor roi,
+                               vector<uint32_t> sizes_, vector<float> scales_,
+                               vector<float> roi_, string mode,
+                               string ratioPolicy, string nearestMode,
+                               string coordTransMode) {
+    if (sizes_.size() > 0) {
+        sizes->dataMalloc();
+        sizes->copyin<uint32_t>(sizes_);
+    }
+    if (scales_.size() > 0) {
+        scales->dataMalloc();
+        scales->copyin<float>(scales_);
+    }
+    if (roi_.size() > 0) {
+        roi->dataMalloc();
+        roi->copyin<float>(roi_);
+    }
+    ResizeObj::EKeepAspectRatioPolicy ratioPolicy_ =
+        ResizeObj::fromRatioPolicyStr(ratioPolicy);
+    ResizeObj::ENearestMode nearestMode_ =
+        ResizeObj::fromENearestModeStr(nearestMode);
+    ResizeObj::ECoordinateTransMode coordTransMode_ =
+        ResizeObj::fromECoordinateTransModeStr(coordTransMode);
+    ResizeObj::ECoeffMode mode_ = ResizeObj::fromECoeffModeStr(mode);
+    if (output) {
+        if (mode == "nearest") {
+            g->addOpWithOutputs<ResizeObj>(
+                std::move(input), output, std::move(axes), std::move(sizes),
+                std::move(scales), std::move(roi), ratioPolicy_, nearestMode_,
+                coordTransMode_);
+        } else {
+            g->addOpWithOutputs<ResizeObj>(
+                std::move(input), output, std::move(axes), std::move(sizes),
+                std::move(scales), std::move(roi), mode_, ratioPolicy_,
+                coordTransMode_);
+        }
+        return output;
+    } else {
+        if (mode == "nearest") {
+            return g
+                ->addOp<ResizeObj>(std::move(input), output, std::move(axes),
+                                   std::move(sizes), std::move(scales),
+                                   std::move(roi), ratioPolicy_, nearestMode_,
+                                   coordTransMode_)
+                ->getOutput();
+        } else {
+            return g
+                ->addOp<ResizeObj>(std::move(input), output, std::move(axes),
+                                   std::move(sizes), std::move(scales),
+                                   std::move(roi), mode_, ratioPolicy_,
+                                   coordTransMode_)
+                ->getOutput();
+        }
+    }
+}
+
 Tensor GraphHandlerObj::concat(TensorVec inputs, Tensor output, int dim) {
     if (output) {
         g->addOpWithOutputs<ConcatObj>(std::move(inputs), output, dim);
@@ -281,14 +344,29 @@ Tensor GraphHandlerObj::attentionKVCache(Tensor input_k_cache,
 }
 
 TensorVec GraphHandlerObj::split(Tensor input, std::optional<TensorVec> outputs,
-                                 int axis, int num_outputs) {
+                                 int axis,
+                                 std::variant<int, vector<int>> numOrRatio) {
     if (outputs) {
-        g->addOpWithOutputs<SplitObj>(std::move(input), outputs, axis,
-                                      num_outputs);
+        if (std::holds_alternative<int>(numOrRatio)) {
+            g->addOpWithOutputs<SplitObj>(std::move(input), outputs, axis,
+                                          std::get<int>(numOrRatio));
+        } else {
+            g->addOpWithOutputs<SplitObj>(std::move(input), outputs, axis,
+                                          std::get<vector<int>>(numOrRatio));
+        }
         return *outputs;
     } else {
-        return g->addOp<SplitObj>(std::move(input), outputs, axis, num_outputs)
-            ->getOutputs();
+        if (std::holds_alternative<int>(numOrRatio)) {
+            return g
+                ->addOp<SplitObj>(std::move(input), outputs, axis,
+                                  std::get<int>(numOrRatio))
+                ->getOutputs();
+        } else {
+            return g
+                ->addOp<SplitObj>(std::move(input), outputs, axis,
+                                  std::get<vector<int>>(numOrRatio))
+                ->getOutputs();
+        }
     }
 }
 
@@ -434,6 +512,39 @@ Tensor GraphHandlerObj::broadcast(Tensor input, Tensor output, int root) {
     }
 }
 
+Tensor GraphHandlerObj::send(Tensor input, int source, int destination,
+                             Tensor output) {
+    if (output) {
+
+        g->addOpWithOutputs<SendObj>(std::move(input), source, destination,
+                                     output);
+
+        return output;
+    } else {
+        return g->addOp<SendObj>(std::move(input), source, destination, output)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::recv(Tensor output, int source, int destination,
+                             Shape dims, int outputType, Tensor input) {
+
+    if (output) {
+
+        g->addOpWithOutputs<RecvObj>(output, source, destination,
+                                     std::move(dims), outputType,
+                                     std::move(input));
+
+        return output;
+    } else {
+
+        return g
+            ->addOp<RecvObj>(output, source, destination, std::move(dims),
+                             outputType, std::move(input))
+            ->getOutput();
+    }
+}
+
 Tensor GraphHandlerObj::cast(Tensor input, Tensor output, int to) {
     if (output) {
         g->addOpWithOutputs<CastObj>(std::move(input), output,
@@ -480,6 +591,19 @@ Tensor GraphHandlerObj::depthToSpace(Tensor input, Tensor output, int blocksize,
     } else {
         return g
             ->addOp<DepthToSpaceObj>(std::move(input), output, blocksize, mode)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::lrn(Tensor input, Tensor output, float alpha,
+                            float beta, float bias, int size) {
+    if (output) {
+        g->addOpWithOutputs<LRNObj>(std::move(input), output, alpha, beta, bias,
+                                    size);
+        return output;
+    } else {
+        return g
+            ->addOp<LRNObj>(std::move(input), output, alpha, beta, bias, size)
             ->getOutput();
     }
 }
