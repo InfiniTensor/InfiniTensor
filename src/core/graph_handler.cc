@@ -25,6 +25,7 @@
 #include "operators/squeeze.h"
 #include "operators/transpose.h"
 #include "operators/unary.h"
+#include "operators/unsqueeze.h"
 #include "operators/where.h"
 #include <numeric>
 #include <variant>
@@ -616,6 +617,17 @@ Tensor GraphHandlerObj::squeeze(Tensor input, Tensor output, Shape axes) {
         return output;
     } else {
         return g->addOp<SqueezeObj>(std::move(input), output, std::move(axes))
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::unsqueeze(Tensor input, Tensor output, Shape axes) {
+    if (output) {
+        g->addOpWithOutputs<UnsqueezeObj>(std::move(input), output,
+                                          std::move(axes));
+        return output;
+    } else {
+        return g->addOp<UnsqueezeObj>(std::move(input), output, std::move(axes))
             ->getOutput();
     }
 }

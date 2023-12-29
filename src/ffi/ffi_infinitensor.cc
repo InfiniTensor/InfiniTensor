@@ -510,6 +510,7 @@ void init_graph_builder(py::module &m) {
         .def("reshape", &Handler::reshape, policy::move)
         .def("resize", &Handler::resize, policy::move)
         .def("squeeze", &Handler::squeeze, policy::move)
+        .def("unsqueeze", &Handler::unsqueeze, policy::move)
         .def("concat", &Handler::concat, policy::move)
         .def("attentionKVCache", &Handler::attentionKVCache, policy::move)
         .def("split", &Handler::split, policy::move)
