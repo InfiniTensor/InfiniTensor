@@ -295,6 +295,14 @@ class TestStringMethods(unittest.TestCase):
             make_graph([reshape], "reshape", [data, shape], [reshaped], [shape_data])
         )
 
+    def test_resize(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 128, 40, 40])
+        roi = make_tensor("roi", TensorProto.FLOAT, [0], [])
+        scales = make_tensor("scales", TensorProto.FLOAT, [4], [1, 1, 2, 2])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 128, 80, 80])
+        reshape = make_node("Resize", ["x", "roi", "scales"], ["y"], name="resize")
+        make_and_import_model(make_graph([reshape], "resize", [x], [y], [roi, scales]))
+
     def test_concat(self):
         input1 = make_tensor_value_info("input1", TensorProto.FLOAT, [1, 3, 2, 4])
         input2 = make_tensor_value_info("input2", TensorProto.FLOAT, [1, 3, 2, 5])
