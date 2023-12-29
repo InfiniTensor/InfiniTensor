@@ -435,6 +435,12 @@ class TestStringMethods(unittest.TestCase):
         split = make_node("Split", ["input"], ["output"], name="split", axis=0)
         make_and_import_model(make_graph([split], "split", [input], []))
 
+    def test_split1(self):
+        input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
+        splitAttr = make_tensor_value_info("split", TensorProto.INT64, [2, 1])
+        split = make_node("Split", ["input", "split"], ["output"], name="split", axis=1)
+        make_and_import_model(make_graph([split], "split", [input, splitAttr], []))
+
     def test_allBroadcast(self):
         input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
         output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 2, 4])

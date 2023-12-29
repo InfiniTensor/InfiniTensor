@@ -585,6 +585,20 @@ class OnnxStub:
                         tensors.get(node.output[0]),
                     )
                 elif node.op_type == "Split":
+                    split = (
+                        _parse_data(data[node.input[1]])
+                        if (len(node.input) > 1)
+                        else None
+                    )
+                    if split is None:
+                        split = next(
+                            (
+                                attr.ints
+                                for attr in node.attribute
+                                if attr.name == "split"
+                            ),
+                            None,
+                        )
                     for name, tensor in zip(
                         node.output,
                         self.handler.split(
@@ -598,7 +612,7 @@ class OnnxStub:
                                 ),
                                 0,
                             ),
-                            len(node.output),
+                            split if split is not None else len(node.output),
                         ),
                     ):
                         tensors[name] = tensor
