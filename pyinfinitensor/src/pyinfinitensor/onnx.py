@@ -37,7 +37,7 @@ class OnnxStub:
     It can be generated from an Onnx model object.
     """
 
-    def __init__(self, model: ModelProto, runtime):
+    def __init__(self, model: ModelProto, runtime, use_naive_allocator: bool = False):
         # We use some user-defined operators for distributed inference
         try:
             # onnx simplifier performs inplace simplify
@@ -54,6 +54,7 @@ class OnnxStub:
         self.tensors: Dict[str, backend.Tensor] = {}
         self.tensor_node_map: Dict[str, str] = {}
         self.initializer: Dict[int, TensorProto] = {}
+        self.use_naive_allocator: bool = use_naive_allocator
         try:
             model = infer_shapes(model)
         except:
@@ -856,7 +857,7 @@ class OnnxStub:
         ################################
         # Allocate memory space for data
         ################################
-        self.handler.data_malloc()
+        self.handler.data_malloc(self.use_naive_allocator)
 
         #################################
         # Copy in data to tensor objects
@@ -1194,7 +1195,7 @@ class OnnxStub:
         return ctx.build(name)
 
     def init(self) -> None:
-        self.handler.data_malloc()
+        self.handler.data_malloc(self.use_naive_allocator)
 
     def optimize(self) -> None:
         self.handler.optimize()
@@ -1210,7 +1211,7 @@ class OnnxStub:
             oldTensor = self.inputs[oldInput]
             self.handler.change_shape(newInput, oldTensor.fuid())
         self.handler.shape_infer()
-        self.handler.data_malloc()
+        self.handler.data_malloc(self.use_naive_allocator)
 
     def getShape(self, name: str) -> List[int]:
         if name in self.inputs:
