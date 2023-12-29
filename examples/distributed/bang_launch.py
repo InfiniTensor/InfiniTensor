@@ -4,13 +4,9 @@ import time
 import multiprocessing as mp
 from pyinfinitensor.onnx import OnnxStub, backend
 import onnx
-from onnx.external_data_helper import convert_model_to_external_data
 from onnx.shape_inference import infer_shapes_path
 import numpy as np
 from parallel_opt import parallel_model
-
-
-os.environ["NVIDIA_TF32_OVERRIDE"] = "0"
 
 
 def parse_args():
@@ -23,7 +19,8 @@ def parse_args():
         "--name", type=str, default="test", help="name of this instance."
     )
     parser.add_argument(
-        "--model", type=str, default="/data/onnx_models/llama2/llama_bs1_seq1024.onnx", help="path to the ONNX model file."
+        "--model", type=str, default="/data/onnx_models/llama2/llama_bs1_seq1024.onnx", 
+        help="path to the ONNX model file."
     )
     parser.add_argument("--batch_size", type=int, default=1, help="batch size.")
     parser.add_argument("--length", type=int, default=1, help="sequence length.")
@@ -152,7 +149,8 @@ def getDiff(base, test):
     upValue = np.sum(np.abs(baseCopy - testCopy))
     downValue = np.sum(np.abs(baseCopy)) + np.float64(1e-9)
     max_relative_diff = upValue / downValue
-    print(f"Max absolute difference: {max_absolute_diff}\nMax relative difference: {max_relative_diff}")
+    print(f"Max absolute difference: {max_absolute_diff}\n"
+          f"Max relative difference: {max_relative_diff}")
     return max_absolute_diff, max_relative_diff
 
 
