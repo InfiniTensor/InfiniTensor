@@ -41,6 +41,7 @@ class DropoutCnnl : public BangKernelWithoutConfig {
             return;
 
         checkCnnlError(cnnlDestroyTensorDescriptor(oDesc));
+        checkCnnlError(cnnlDestroyTensorDescriptor(mDesc));
         checkCnnlError(cnnlRandDestroyGenerator(generator));
     }
 };
