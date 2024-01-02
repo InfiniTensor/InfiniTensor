@@ -35,7 +35,7 @@ __global__ void _pad_slice_kernel(void *part, void *whole,
         int offset = WholeTensorOffset2PartTensorOffset(tid, metaData, nDims);
         if (isPad) {
             if (offset < 0) {
-                ((T *)whole)[tid] = 0;
+                ((T *)whole)[tid] = static_cast<T>(0.f);
             } else {
                 ((T *)whole)[tid] = ((T *)part)[offset];
             }
