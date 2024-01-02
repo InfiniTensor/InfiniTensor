@@ -2,6 +2,7 @@
 #include "core/common.h"
 #include "core/operator.h"
 #include "core/tensor.h"
+#include "utils/operator_utils.h"
 #include <functional>
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
@@ -101,10 +102,9 @@ class KernelRegistry {
     }
     Kernel *getKernel(const KernelAttrs &kernelAttrs) const {
         auto it = kernels.find(kernelAttrs);
-        IT_ASSERT(it != kernels.end(),
-                  "Kernel not found for key {" +
-                      to_string(enum_to_underlying(std::get<0>(kernelAttrs))) +
-                      ", " + std::to_string(std::get<1>(kernelAttrs)) + "}");
+        IT_ASSERT(it != kernels.end(), "Kernel not found for key {" +
+                                           get_kernel_attrs_str(kernelAttrs) +
+                                           "}");
         return std::get<0>(it->second);
     }
     const KernelRecord &getKernelItem(const KernelAttrs &kernelAttrs) const {
