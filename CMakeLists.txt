@@ -277,9 +277,9 @@ if(USE_KUNLUN)
   endif()
   message(STATUS "KUNLUN_HOME: ${KUNLUN_HOME}")
 
-  include_directories("${KUNLUN_HOME}/XTDK/include/")
-  find_library(KUNLUN_RT libxpurt.so "${KUNLUN_HOME}/lib64")
-  find_library(KUNLUN_DNN libxpuapi.so "${KUNLUN_HOME}/XTDK/shlib")
+  include_directories("/usr/local/xpu/include/")
+  find_library(KUNLUN_RT libxpurt.so "/usr/local/xpu/runtime/shlib/")
+  find_library(KUNLUN_DNN libxpuapi.so "/usr/local/xpu/so/")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lstdc++ -Wall -Werror")
 
   if ((NOT DEFINED TARGET_CPU_ARCH) AND (NOT DEFINED ENV{TARGET_CPU_ARCH}))

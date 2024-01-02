@@ -42,7 +42,7 @@ endif
 
 build:
 	mkdir -p build/$(TYPE)
-	cd build/$(TYPE) && cmake $(CMAKE_OPT) ../.. && make -j32
+	cd build/$(TYPE) && cmake $(CMAKE_OPT) ../.. && make -j128
 
 clean:
 	rm -rf build
