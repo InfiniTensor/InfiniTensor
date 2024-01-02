@@ -7,6 +7,7 @@ class ConvTransXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ConvBaseObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         const auto [ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
@@ -46,9 +47,9 @@ class ConvTransXdnn : public KUNLUNKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::KUNLUN, OpType::ConvTranspose, DataType::Float32,
-                ConvTransXdnn, "ConvTrans_xdnn_KUNLUN_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::ConvTransNHWC, DataType::Float32,
-                ConvTransXdnn, "ConvTranposedNHWC_xdnn_KUNLUN_Float32");
+REGISTER_KERNEL(Device::KUNLUN, OpType::ConvTranspose, ConvTransXdnn,
+                "ConvTrans_xdnn_KUNLUN");
+REGISTER_KERNEL(Device::KUNLUN, OpType::ConvTransNHWC, ConvTransXdnn,
+                "ConvTranposedNHWC_xdnn_KUNLUN");
 
 }; // namespace infini
