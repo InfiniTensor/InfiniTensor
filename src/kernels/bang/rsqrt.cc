@@ -37,6 +37,6 @@ class RsqrtCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Rsqrt RsqrtCnnl, "Rsqrt_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Rsqrt, RsqrtCnnl, "Rsqrt_cnnl_BANG");
 
 }; // namespace infini

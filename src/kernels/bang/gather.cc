@@ -48,6 +48,6 @@ class GatherCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Gather GatherCnnl, "Gather_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Gather, GatherCnnl, "Gather_cnnl_BANG");
 
 }; // namespace infini

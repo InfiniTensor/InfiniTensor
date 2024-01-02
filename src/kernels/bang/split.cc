@@ -50,5 +50,5 @@ class SplitCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Split SplitCnnl, "Split_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Split, SplitCnnl, "Split_cnnl_BANG");
 }; // namespace infini
