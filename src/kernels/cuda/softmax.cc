@@ -26,6 +26,8 @@ class SoftmaxCuda : public CudaKernelWithoutConfig {
         } else if (op->getDType() == DataType::Float16) {
             softmax_kernel(num_blocks, (half *)input, (half *)output, size,
                            dimsize, stride);
+        } else {
+            IT_ASSERT(false);
         }
     }
 };

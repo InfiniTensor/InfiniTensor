@@ -219,6 +219,7 @@ class convBackwardDataCudnn : public Kernel {
     void compute(const Operator &op, const RuntimeObj *context) const override {
         // with paramters in default ctor
         auto record = make_ref<ConvTransposedCuDnnPerfRecordObj>();
+        IT_ASSERT(op->getDType() == DataType::Float32);
         compute(op, record, context);
     }
 

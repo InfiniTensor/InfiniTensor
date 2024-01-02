@@ -8,6 +8,7 @@ class ExtendCuda : public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ExtendObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto inData = op->getInputs(0)->getRawDataPtr<float *>();
         auto outData = op->getOutputs()[0]->getRawDataPtr<float *>();
         int blockSize = 1;

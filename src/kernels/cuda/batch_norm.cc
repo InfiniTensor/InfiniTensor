@@ -10,6 +10,7 @@ class BatchNormCudnn : public CudaKernelWithoutConfig {
         auto op = as<BatchNormObj>(_op);
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         cudnnStatus_t stat;
+        IT_ASSERT(op->getDType() == DataType::Float32);
         void *const inData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const outData = (op->getOutput()->getRawDataPtr<void *>());
         void *const meanData = (op->getInputs(1)->getRawDataPtr<void *>());

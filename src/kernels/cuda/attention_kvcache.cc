@@ -40,6 +40,7 @@ class AttentionKVCacheCuda : private AttentionKVCacheCompute,
                              public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
+        IT_ASSERT(_op->getDType() == DataType::Float32);
         do_compute(_op->getInputs()[0], _op->getInputs()[1],
                    _op->getInputs()[2], _op->getInputs()[3],
                    _op->getInputs()[4], _op->getInputs()[5],

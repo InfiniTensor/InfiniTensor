@@ -52,6 +52,8 @@ class LayerNormCuda : public CudaKernelWithoutConfig {
                 LaynormKernel((half *)inputData, (half *)scaleData, eps, size,
                               scaleSize, dimsize, stride, (half *)outputData);
             }
+        } else {
+            IT_ASSERT(false);
         }
     }
 };
