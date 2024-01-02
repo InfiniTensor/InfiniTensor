@@ -7,6 +7,7 @@ class MklConcat : public MklKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ConcatObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const MklRuntimeObj *>(_context);
 
         //  create user memory that describes data layout in the buffers
@@ -53,6 +54,5 @@ class MklConcat : public MklKernelWithoutConfig {
         dnnl::concat(primDesc).execute(context->getStream(), args);
     }
 };
-REGISTER_KERNEL(Device::INTELCPU, OpType::Concat, DataType::Float32, MklConcat,
-                "Concat_Mkl_Float32");
+REGISTER_KERNEL(Device::INTELCPU, OpType::Concat, MklConcat, "Concat_Mkl");
 }; // namespace infini
