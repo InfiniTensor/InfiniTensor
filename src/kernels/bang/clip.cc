@@ -7,6 +7,7 @@ class ClipCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ClipObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -30,7 +31,6 @@ class ClipCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Clip, DataType::Float32, ClipCnnl,
-                "Clip_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Clip, ClipCnnl, "Clip_cnnl_BANG");
 
 }; // namespace infini
