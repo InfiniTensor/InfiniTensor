@@ -1,6 +1,6 @@
+#include "operators/reduce.h"
 #include "intelcpu/mkl_kernel_without_config.h"
 #include "intelcpu/mkl_runtime.h"
-#include "operators/reduce_mean.h"
 
 namespace infini {
 class MklReduce : public MklKernelWithoutConfig {
