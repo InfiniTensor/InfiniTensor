@@ -6,7 +6,6 @@ namespace infini {
 class CopyBang : public BangKernelWithoutConfig {
     void compute(const Operator &op,
                  const RuntimeObj *_context) const override {
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
         auto inData = op->getInputs(0)->getRawDataPtr<void *>();
         auto outData = op->getOutputs()[0]->getRawDataPtr<void *>();
@@ -14,9 +13,9 @@ class CopyBang : public BangKernelWithoutConfig {
         auto dim = op->getInputs(0)->getDims();
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, dim.size(),
-                                               dim.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            aDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_INT8,
+            dim.size() * op->getDType().getSize(), dim.data()));
         cnnlStatus_t stat =
             cnnlCopy(context->cnnlHandle(), aDesc, inData, aDesc, outData);
         if (stat != CNNL_STATUS_SUCCESS)
