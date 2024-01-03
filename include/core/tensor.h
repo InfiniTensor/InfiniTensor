@@ -8,7 +8,9 @@
 #if USE_CUDA
 #include "cuda/cuda_runtime.h"
 #endif
-
+#if USE_BANG
+#include "bang/bang_runtime.h"
+#endif
 namespace infini {
 
 // TODO: how to deal with this

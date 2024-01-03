@@ -7,17 +7,19 @@ namespace infini {
 class BangRuntimeObj : public RuntimeObj {
   private:
     cnnlHandle_t cnnl;
+    cnrtQueue_t queue;
+    std::unique_ptr<CommunicatorObj> comm;
     BangPtr workspace;
     size_t workspaceSize;
     mutable size_t cursor;
 
   public:
-    BangRuntimeObj() : RuntimeObj(Device::BANG) {
+    explicit BangRuntimeObj(int deviceId = 0)
+        : RuntimeObj(Device::BANG, deviceId) {
         cnInit(0);
         CNdev dev;
-        cnDeviceGet(&dev, 0);
+        cnDeviceGet(&dev, deviceId);
         checkBangError(cnrtSetDevice(dev));
-        cnrtQueue_t queue;
         checkBangError(cnrtQueueCreate(&queue));
 
         checkCnnlError(cnnlCreate(&cnnl));
@@ -30,6 +32,7 @@ class BangRuntimeObj : public RuntimeObj {
     }
     virtual ~BangRuntimeObj() {
         dealloc(workspace);
+        checkBangError(cnrtQueueDestroy(queue));
         checkCnnlError(cnnlDestroy(cnnl));
     }
     string toString() const override;
@@ -73,10 +76,9 @@ class BangRuntimeObj : public RuntimeObj {
         checkBangError(cnrtMemcpy(dst, const_cast<void *>(src), bytes,
                                   CNRT_MEM_TRANS_DIR_PEER2PEER));
     }
-
-    void initComm(const string &, int, int) override { IT_TODO_HALT(); }
-
-    CommunicatorObj &getCommunicator() const override { IT_TODO_HALT(); }
+    void initComm(const string &name, int worldSize, int rank) final;
+    CommunicatorObj &getCommunicator() const override { return *comm; }
+    cnrtQueue_t getBangQueue() const { return queue; }
 
   private:
     void runWithoutSync(const Graph &graph, bool tune, bool profiling) const;
