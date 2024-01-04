@@ -6,11 +6,9 @@ __global__ void _extend_kernel(float *in, float *out, int blockSize,
     if (index >= oSize)
         return;
 
-    int stride = blockDim.x * gridDim.x;
-    while (index < oSize) {
+    if (index < oSize) {
         auto iIdx = index % blockSize + index / blockSizeOuter * blockSize;
         out[index] = in[iIdx];
-        index += stride;
     }
 }
 
@@ -19,7 +17,7 @@ void extend_kernel(float *in, float *out, int blockSize, int blockSizeOuter,
                    int oSize) {
     int blocksize = 32 * 16;
     int gridsize = (oSize + blocksize - 1) / blocksize;
-    _extend_kernel<<<gridsize, blocksize, 0, CUDAStream::stream>>>(in, out, blockSize, blockSizeOuter,
-                                            oSize);
+    _extend_kernel<<<gridsize, blocksize, 0, CUDAStream::stream>>>(
+        in, out, blockSize, blockSizeOuter, oSize);
 }
 } // namespace infini

@@ -43,14 +43,15 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph) const {
 }
 
 void CudaRuntimeObj::runWithCudaGraph(const Graph &graph) {
-    if(!cudaGraphCreated){
-        checkCudaError(cudaStreamBeginCapture(CUDAStream::stream, cudaStreamCaptureModeGlobal));
+    if (!cudaGraphCreated) {
+        checkCudaError(cudaStreamBeginCapture(CUDAStream::stream,
+                                              cudaStreamCaptureModeGlobal));
         runWithoutSync(graph);
         checkCudaError(cudaStreamEndCapture(CUDAStream::stream, &cudaGraph));
-        checkCudaError(cudaGraphInstantiate(&cudaGraphInstance, cudaGraph, NULL, NULL, 0));
-        cudaGraphCreated=true;
-    }
-    else{
+        checkCudaError(
+            cudaGraphInstantiate(&cudaGraphInstance, cudaGraph, NULL, NULL, 0));
+        cudaGraphCreated = true;
+    } else {
         checkCudaError(cudaGraphLaunch(cudaGraphInstance, CUDAStream::stream));
     }
     checkCudaError(cudaStreamSynchronize(CUDAStream::stream));

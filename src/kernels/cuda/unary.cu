@@ -21,110 +21,110 @@ __global__ void _softmax_kernel1(T *input, T *output, size_t n) {
 template <typename T>
 __global__ void _softmax_kernel2(T *input, T *output, size_t n) {
     float sum = *output;
-    size_t index = threadIdx.x + blockIdx.x * blockDim.x;
-    size_t stride = blockDim.x * gridDim.x;
-    for (size_t i = index; i < n; i += stride) {
+    size_t i = threadIdx.x + blockIdx.x * blockDim.x;
+
+    if (i < n) {
         output[i] = pow(E_CONSTANT, input[i]) / sum;
     }
 }
 template <typename T>
 __global__ void _relu_kernel(T *input, T *output, size_t n) {
-    size_t index = threadIdx.x + blockIdx.x * blockDim.x;
-    size_t stride = blockDim.x * gridDim.x;
-    for (size_t i = index; i < n; i += stride) {
+    size_t i = threadIdx.x + blockIdx.x * blockDim.x;
+
+    if (i < n) {
         output[i] = max(input[i], float(0));
     }
 }
 template <typename T>
 __global__ void _sigmoid_kernel(T *input, T *output, size_t n) {
-    size_t index = threadIdx.x + blockIdx.x * blockDim.x;
-    size_t stride = blockDim.x * gridDim.x;
-    for (size_t i = index; i < n; i += stride) {
+    size_t i = threadIdx.x + blockIdx.x * blockDim.x;
+
+    if (i < n) {
         output[i] = 1 / (1 + pow(E_CONSTANT, -input[i]));
     }
 }
 template <typename T>
 __global__ void _hard_sigmoid_kernel(T *input, T *output, size_t n) {
-    size_t index = threadIdx.x + blockIdx.x * blockDim.x;
-    size_t stride = blockDim.x * gridDim.x;
-    for (size_t i = index; i < n; i += stride) {
+    size_t i = threadIdx.x + blockIdx.x * blockDim.x;
+
+    if (i < n) {
         output[i] = max(0.0f, min(1.0f, 0.2f * input[i] + 0.5f));
     }
 }
 template <typename T>
 __global__ void _hard_swish_kernel(T *input, T *output, size_t n) {
-    size_t index = threadIdx.x + blockIdx.x * blockDim.x;
-    size_t stride = blockDim.x * gridDim.x;
-    for (size_t i = index; i < n; i += stride) {
+    size_t i = threadIdx.x + blockIdx.x * blockDim.x;
+
+    if (i < n) {
         output[i] =
             input[i] * max(0.f, min(1.f, (1.f / 6.f) * input[i] + 0.5f));
     }
 }
 template <typename T>
 __global__ void _tanh_kernel(T *input, T *output, size_t n) {
-    size_t index = threadIdx.x + blockIdx.x * blockDim.x;
-    size_t stride = blockDim.x * gridDim.x;
-    for (size_t i = index; i < n; i += stride) {
+    size_t i = threadIdx.x + blockIdx.x * blockDim.x;
+
+    if (i < n) {
         output[i] = (pow(E_CONSTANT, input[i]) - pow(E_CONSTANT, -input[i])) /
                     (pow(E_CONSTANT, input[i]) + pow(E_CONSTANT, -input[i]));
     }
 }
 template <typename T>
 __global__ void _abs_kernel(T *input, T *output, size_t n) {
-    size_t index = threadIdx.x + blockIdx.x * blockDim.x;
-    size_t stride = blockDim.x * gridDim.x;
-    for (size_t i = index; i < n; i += stride) {
+    size_t i = threadIdx.x + blockIdx.x * blockDim.x;
+
+    if (i < n) {
         output[i] = input[i] < 0 ? -input[i] : input[i];
     }
 }
 
 __global__ void _sqrt_kernel(float *input, float *output, size_t n) {
-    size_t index = threadIdx.x + blockIdx.x * blockDim.x;
-    size_t stride = blockDim.x * gridDim.x;
-    for (size_t i = index; i < n; i += stride) {
+    size_t i = threadIdx.x + blockIdx.x * blockDim.x;
+
+    if (i < n) {
         output[i] = sqrt(input[i]);
     }
 }
 
 __global__ void _sqrt_kernel(half *input, half *output, size_t n) {
-    size_t index = threadIdx.x + blockIdx.x * blockDim.x;
-    size_t stride = blockDim.x * gridDim.x;
-    for (size_t i = index; i < n; i += stride) {
+    size_t i = threadIdx.x + blockIdx.x * blockDim.x;
+
+    if (i < n) {
         output[i] = hsqrt(input[i]);
     }
 }
 
 __global__ void _sqrt_kernel(int8_t *input, int8_t *output, size_t n) {
-    size_t index = threadIdx.x + blockIdx.x * blockDim.x;
-    size_t stride = blockDim.x * gridDim.x;
-    for (size_t i = index; i < n; i += stride) {
+    size_t i = threadIdx.x + blockIdx.x * blockDim.x;
+
+    if (i < n) {
         output[i] = __fsqrt_rn(static_cast<float>(input[i]));
     }
 }
 
 template <typename T>
 __global__ void _gelu_kernel(T *input, T *output, size_t n) {
-    int index = threadIdx.x + blockIdx.x * blockDim.x;
-    int stride = blockDim.x * gridDim.x;
-    for (int i = index; i < n; i += stride) {
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+
+    if (i < n) {
         float x = input[i];
         output[i] = 0.5 * x * (1 + erf(x / sqrt(2.0f)));
     }
 }
 template <typename T>
 __global__ void _erf_kernel(T *input, T *output, size_t n) {
-    size_t index = threadIdx.x + blockIdx.x * blockDim.x;
-    size_t stride = blockDim.x * gridDim.x;
-    for (int i = index; i < n; i += stride) {
+    size_t i = threadIdx.x + blockIdx.x * blockDim.x;
+
+    if (i < n) {
         output[i] = erf(input[i]);
     }
 }
 
 template <typename T>
 __global__ void _neg_kernel(T *input, T *output, size_t n) {
-    size_t index = threadIdx.x + blockIdx.x * blockDim.x;
-    size_t stride = blockDim.x * gridDim.x;
-    for (size_t i = index; i < n; i += stride) {
+    size_t i = threadIdx.x + blockIdx.x * blockDim.x;
+
+    if (i < n) {
         output[i] = -input[i];
     }
 }
@@ -132,11 +132,11 @@ __global__ void _neg_kernel(T *input, T *output, size_t n) {
 template <typename INPUT, typename OUTPUT>
 __global__ void _cast_kernel(INPUT *input, OUTPUT *output, size_t n) {
 
-    size_t index = threadIdx.x + blockIdx.x * blockDim.x;
+    size_t i = threadIdx.x + blockIdx.x * blockDim.x;
 
-    if (index < n) {
+    if (i < n) {
         cub::CastOp<OUTPUT> _CastOp;
-        output[index] = _CastOp(input[index]);
+        output[i] = _CastOp(input[i]);
     }
 }
 
@@ -146,69 +146,80 @@ template <typename T> void softmax_kernel(T *input, T *output, size_t num) {
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     _softmax_kernel1<T><<<1, 1, 0, CUDAStream::stream>>>(input, output, num);
-    _softmax_kernel2<T><<<gridsize, blocksize, 0, CUDAStream::stream>>>(input, output, num);
+    _softmax_kernel2<T>
+        <<<gridsize, blocksize, 0, CUDAStream::stream>>>(input, output, num);
 }
 template <typename T> void relu_kernel(T *input, T *output, size_t num) {
 
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
-    _relu_kernel<T><<<gridsize, blocksize, 0, CUDAStream::stream>>>(input, output, num);
+    _relu_kernel<T>
+        <<<gridsize, blocksize, 0, CUDAStream::stream>>>(input, output, num);
 }
 template <typename T> void sigmoid_kernel(T *input, T *output, size_t num) {
 
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
-    _sigmoid_kernel<T><<<gridsize, blocksize, 0, CUDAStream::stream>>>(input, output, num);
+    _sigmoid_kernel<T>
+        <<<gridsize, blocksize, 0, CUDAStream::stream>>>(input, output, num);
 }
 template <typename T>
 void hard_sigmoid_kernel(T *input, T *output, size_t num) {
 
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
-    _hard_sigmoid_kernel<T><<<gridsize, blocksize, 0, CUDAStream::stream>>>(input, output, num);
+    _hard_sigmoid_kernel<T>
+        <<<gridsize, blocksize, 0, CUDAStream::stream>>>(input, output, num);
 }
 template <typename T> void hard_swish_kernel(T *input, T *output, size_t num) {
 
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
-    _hard_swish_kernel<T><<<gridsize, blocksize, 0, CUDAStream::stream>>>(input, output, num);
+    _hard_swish_kernel<T>
+        <<<gridsize, blocksize, 0, CUDAStream::stream>>>(input, output, num);
 }
 template <typename T> void tanh_kernel(T *input, T *output, size_t num) {
 
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
-    _tanh_kernel<T><<<gridsize, blocksize, 0, CUDAStream::stream>>>(input, output, num);
+    _tanh_kernel<T>
+        <<<gridsize, blocksize, 0, CUDAStream::stream>>>(input, output, num);
 }
 template <typename T> void abs_kernel(T *input, T *output, size_t num) {
 
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
-    _abs_kernel<T><<<gridsize, blocksize, 0, CUDAStream::stream>>>(input, output, num);
+    _abs_kernel<T>
+        <<<gridsize, blocksize, 0, CUDAStream::stream>>>(input, output, num);
 }
 template <typename T> void sqrt_kernel(T *input, T *output, size_t num) {
 
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
-    _sqrt_kernel<<<gridsize, blocksize, 0, CUDAStream::stream>>>((T *)input, (T *)output, num);
+    _sqrt_kernel<<<gridsize, blocksize, 0, CUDAStream::stream>>>(
+        (T *)input, (T *)output, num);
 }
 
 template <typename T> void gelu_kernel(T *input, T *output, size_t num) {
 
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
-    _gelu_kernel<T><<<gridsize, blocksize, 0, CUDAStream::stream>>>(input, output, num);
+    _gelu_kernel<T>
+        <<<gridsize, blocksize, 0, CUDAStream::stream>>>(input, output, num);
 }
 template <typename T> void erf_kernel(T *input, T *output, size_t num) {
 
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
-    _erf_kernel<T><<<gridsize, blocksize, 0, CUDAStream::stream>>>(input, output, num);
+    _erf_kernel<T>
+        <<<gridsize, blocksize, 0, CUDAStream::stream>>>(input, output, num);
 }
 template <typename T> void neg_kernel(T *input, T *output, size_t num) {
 
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
-    _neg_kernel<T><<<gridsize, blocksize, 0, CUDAStream::stream>>>(input, output, num);
+    _neg_kernel<T>
+        <<<gridsize, blocksize, 0, CUDAStream::stream>>>(input, output, num);
 }
 
 void unary_kernel(const Operator &_op) {
@@ -302,7 +313,8 @@ void cast_kernel(INPUT *input, OUTPUT *output, size_t num) {
 
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
-    _cast_kernel<INPUT, OUTPUT><<<gridsize, blocksize, 0, CUDAStream::stream>>>(input, output, num);
+    _cast_kernel<INPUT, OUTPUT>
+        <<<gridsize, blocksize, 0, CUDAStream::stream>>>(input, output, num);
 }
 
 template void cast_kernel<float, half>(float *input, half *output, size_t num);

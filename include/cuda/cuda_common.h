@@ -111,8 +111,8 @@ inline const char *curandGetErrorString(curandStatus_t error) {
 
 using CudaPtr = void *;
 
-class CUDAStream{
-public:
+class CUDAStream {
+  public:
     static cudaStream_t stream;
 };
 

@@ -15,7 +15,7 @@ class CudaRuntimeObj : public RuntimeObj {
     CudaPtr workspace;
     size_t workspaceSize;
 
-    bool cudaGraphCreated=false;
+    bool cudaGraphCreated = false;
     cudaGraph_t cudaGraph;
     cudaGraphExec_t cudaGraphInstance;
 
@@ -36,7 +36,7 @@ class CudaRuntimeObj : public RuntimeObj {
     }
     virtual ~CudaRuntimeObj() {
         try {
-            if(cudaGraphCreated){
+            if (cudaGraphCreated) {
                 checkCudaError(cudaGraphExecDestroy(cudaGraphInstance));
                 checkCudaError(cudaGraphDestroy(cudaGraph));
                 checkCudaError(cudaStreamDestroy(CUDAStream::stream));

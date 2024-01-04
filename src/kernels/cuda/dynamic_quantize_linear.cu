@@ -3,7 +3,7 @@
 #include "cuda/cuda_common.h"
 
 __device__ float _saturate(float x) {
-    return x < 0.f ? 0.f : (x > 255.0 ? 255.0 : x);
+    return x < 0.f ? 0.f : (x > 255.0f ? 255.0f : x);
 }
 
 template <class T>
@@ -22,8 +22,8 @@ __launch_bounds__(BLOCK_DIM) __global__
                                       float *yScale, uint8_t *yZeroPoint,
                                       int size) {
     int i = threadIdx.x + blockIdx.x * BLOCK_DIM;
-    float maxData = __FLT_MAX__;
-    float minData = -__FLT_MAX__;
+    float maxData = -__FLT_MAX__;
+    float minData = __FLT_MAX__;
     int remain = size % BLOCK_DIM;
     int step = (size - remain) / BLOCK_DIM + 1;
 
@@ -38,6 +38,7 @@ __launch_bounds__(BLOCK_DIM) __global__
                                    (threadIdx.x - remain) * (step - 1) + ind]);
         }
     }
+
     if (threadIdx.x < remain) {
         for (int ind = 0; ind < step; ind++) {
             minData = min___(minData, input[threadIdx.x * step + ind]);
@@ -49,25 +50,27 @@ __launch_bounds__(BLOCK_DIM) __global__
                                    (threadIdx.x - remain) * (step - 1) + ind]);
         }
     }
-    typedef cub::BlockReduce<float, BLOCK_DIM> BlockReduce;
-    __shared__ typename BlockReduce::TempStorage temp_storage;
-    __shared__ float maxTotal;
-    float blockMax = BlockReduce(temp_storage).Reduce(maxData, cub::Max());
 
-    __shared__ float minTotal;
-    float blockMin = BlockReduce(temp_storage).Reduce(minData, cub::Min());
-    if (threadIdx.x == 0) {
-        maxTotal = blockMax;
-        minTotal = blockMin;
-    }
-    __syncthreads();
+    typedef cub::BlockReduce<float, BLOCK_DIM> BlockReduce;
+    __shared__ typename BlockReduce::TempStorage temp_storageMax;
+
+    float blockMax = BlockReduce(temp_storageMax).Reduce(maxData, cub::Max());
+
+    __shared__ typename BlockReduce::TempStorage temp_storageMin;
+
+    float blockMin = BlockReduce(temp_storageMin).Reduce(minData, cub::Min());
+    //-----
     int qmax = 255;
     int qmin = 0;
-    float absMax = max___(abs(maxTotal), abs(minTotal));
-    yScale[0] = absMax * 2 / (254 - qmin);
-    float intermediate_zero_point = 254 - absMax / yScale[0];
-    float _yZeroPoint = round(_saturate(intermediate_zero_point));
-    yZeroPoint[0] = static_cast<uint8_t>(_yZeroPoint);
+    __shared__ float _yZeroPoint;
+    if (threadIdx.x == 0) {
+        yScale[0] = (max(0.0f, blockMax) - min(0.0f, blockMin)) / (qmax - qmin);
+        float intermediate_zero_point = qmin - blockMin / yScale[0];
+        _yZeroPoint = round(_saturate(intermediate_zero_point));
+        yZeroPoint[0] = static_cast<uint8_t>(_yZeroPoint);
+    }
+    __syncthreads();
+
     if (i < size) {
         outputY[i] = static_cast<uint8_t>(
             _saturate(round(input[i] / yScale[0]) + _yZeroPoint));
@@ -81,8 +84,8 @@ __launch_bounds__(BLOCK_DIM) __global__
                                       float *yScale, uint8_t *yZeroPoint,
                                       int size) {
     int i = threadIdx.x + blockIdx.x * BLOCK_DIM;
-    float maxData = __FLT_MAX__;
-    float minData = -__FLT_MAX__;
+    float maxData = -__FLT_MAX__;
+    float minData = __FLT_MAX__;
     int remain = size % BLOCK_DIM;
     int step = (size - remain) / BLOCK_DIM + 1;
     float dataPerThread[numPerThread];
@@ -99,6 +102,7 @@ __launch_bounds__(BLOCK_DIM) __global__
             maxData = max___(maxData, dataPerThread[ind]);
         }
     }
+
     if (threadIdx.x < remain) {
         for (int ind = 0; ind < step; ind++) {
             minData = min___(minData, dataPerThread[ind]);
@@ -108,25 +112,27 @@ __launch_bounds__(BLOCK_DIM) __global__
             minData = min___(minData, dataPerThread[ind]);
         }
     }
-    typedef cub::BlockReduce<float, BLOCK_DIM> BlockReduce;
-    __shared__ typename BlockReduce::TempStorage temp_storage;
-    __shared__ float maxTotal;
-    float blockMax = BlockReduce(temp_storage).Reduce(maxData, cub::Max());
 
-    __shared__ float minTotal;
-    float blockMin = BlockReduce(temp_storage).Reduce(minData, cub::Min());
-    if (threadIdx.x == 0) {
-        maxTotal = blockMax;
-        minTotal = blockMin;
-    }
-    __syncthreads();
+    typedef cub::BlockReduce<float, BLOCK_DIM> BlockReduce;
+    __shared__ typename BlockReduce::TempStorage temp_storageMax;
+
+    float blockMax = BlockReduce(temp_storageMax).Reduce(maxData, cub::Max());
+
+    __shared__ typename BlockReduce::TempStorage temp_storageMin;
+
+    float blockMin = BlockReduce(temp_storageMin).Reduce(minData, cub::Min());
+    //-----
     int qmax = 255;
     int qmin = 0;
-    float absMax = max___(abs(maxTotal), abs(minTotal));
-    yScale[0] = absMax * 2 / (254 - qmin);
-    float intermediate_zero_point = 254 - absMax / yScale[0];
-    float _yZeroPoint = round(_saturate(intermediate_zero_point));
-    yZeroPoint[0] = static_cast<uint8_t>(_yZeroPoint);
+    __shared__ float _yZeroPoint;
+    if (threadIdx.x == 0) {
+        yScale[0] = (max(0.0f, blockMax) - min(0.0f, blockMin)) / (qmax - qmin);
+        float intermediate_zero_point = qmin - blockMin / yScale[0];
+        _yZeroPoint = round(_saturate(intermediate_zero_point));
+        yZeroPoint[0] = static_cast<uint8_t>(_yZeroPoint);
+    }
+    __syncthreads();
+
     if (i < size) {
         outputY[i] = static_cast<uint8_t>(
             _saturate(round(input[i] / yScale[0]) + _yZeroPoint));
@@ -139,37 +145,37 @@ void dynamicQuantizeLinearKernel(float *input, uint8_t *outputY, float *yScale,
     if (size > 1024 * 128) {
         int BLOCK_DIM = 1024;
         int num_blocks = (size + BLOCK_DIM - 1) / BLOCK_DIM;
-        _dynamicQuantizeLinearKernel<1024><<<num_blocks, BLOCK_DIM, 0, CUDAStream::stream>>>(
+        _dynamicQuantizeLinearKernel<1024><<<num_blocks, BLOCK_DIM>>>(
             input, outputY, yScale, yZeroPoint, size);
     } else if (size > 1024 * 64) {
         int BLOCK_DIM = 1024;
         int num_blocks = (size + BLOCK_DIM - 1) / BLOCK_DIM;
-        _dynamicQuantizeLinearKernel<1024, 128><<<num_blocks, BLOCK_DIM, 0, CUDAStream::stream>>>(
+        _dynamicQuantizeLinearKernel<1024, 128><<<num_blocks, BLOCK_DIM>>>(
             input, outputY, yScale, yZeroPoint, size);
     } else if (size > 1024 * 32) {
         int BLOCK_DIM = 1024;
         int num_blocks = (size + BLOCK_DIM - 1) / BLOCK_DIM;
-        _dynamicQuantizeLinearKernel<1024, 64><<<num_blocks, BLOCK_DIM, 0, CUDAStream::stream>>>(
+        _dynamicQuantizeLinearKernel<1024, 64><<<num_blocks, BLOCK_DIM>>>(
             input, outputY, yScale, yZeroPoint, size);
     } else if (size > 1024 * 16) {
         int BLOCK_DIM = 1024;
         int num_blocks = (size + BLOCK_DIM - 1) / BLOCK_DIM;
-        _dynamicQuantizeLinearKernel<1024, 32><<<num_blocks, BLOCK_DIM, 0, CUDAStream::stream>>>(
+        _dynamicQuantizeLinearKernel<1024, 32><<<num_blocks, BLOCK_DIM>>>(
             input, outputY, yScale, yZeroPoint, size);
     } else if (size > 1024 * 4) {
         int BLOCK_DIM = 1024;
         int num_blocks = (size + BLOCK_DIM - 1) / BLOCK_DIM;
-        _dynamicQuantizeLinearKernel<1024, 16><<<num_blocks, BLOCK_DIM, 0, CUDAStream::stream>>>(
+        _dynamicQuantizeLinearKernel<1024, 16><<<num_blocks, BLOCK_DIM>>>(
             input, outputY, yScale, yZeroPoint, size);
     } else if (size > 1024) {
         int BLOCK_DIM = 1024;
         int num_blocks = (size + BLOCK_DIM - 1) / BLOCK_DIM;
-        _dynamicQuantizeLinearKernel<1024, 4><<<num_blocks, BLOCK_DIM, 0, CUDAStream::stream>>>(
+        _dynamicQuantizeLinearKernel<1024, 4><<<num_blocks, BLOCK_DIM>>>(
             input, outputY, yScale, yZeroPoint, size);
     } else {
         int BLOCK_DIM = 1024;
         int num_blocks = (size + BLOCK_DIM - 1) / BLOCK_DIM;
-        _dynamicQuantizeLinearKernel<1024, 1><<<num_blocks, BLOCK_DIM, 0, CUDAStream::stream>>>(
+        _dynamicQuantizeLinearKernel<1024, 1><<<num_blocks, BLOCK_DIM>>>(
             input, outputY, yScale, yZeroPoint, size);
     }
 }

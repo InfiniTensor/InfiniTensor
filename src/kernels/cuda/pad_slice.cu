@@ -30,8 +30,7 @@ __global__ void _pad_slice_kernel(void *part, void *whole,
         return;
     }
 
-    int stride = blockDim.x * gridDim.x;
-    while (tid < num) {
+    if (tid < num) {
         int offset = WholeTensorOffset2PartTensorOffset(tid, metaData, nDims);
         if (isPad) {
             if (offset < 0) {
@@ -42,14 +41,14 @@ __global__ void _pad_slice_kernel(void *part, void *whole,
         } else {
             ((T *)part)[offset] = ((T *)whole)[tid];
         }
-        tid += stride;
     }
 }
 
 namespace infini {
 #define CASE(T)                                                                \
-    _pad_slice_kernel<DT_CUDA<T>::t><<<gridSize, blockSize, 0, CUDAStream::stream>>>(                 \
-        partData, wholeData, metadata, nDims, num, isPad);
+    _pad_slice_kernel<DT_CUDA<T>::t>                                           \
+        <<<gridSize, blockSize, 0, CUDAStream::stream>>>(                      \
+            partData, wholeData, metadata, nDims, num, isPad);
 
 #define SWITCH_DTYPE(DTYPE)                                                    \
     switch (DTYPE) {                                                           \

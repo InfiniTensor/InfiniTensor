@@ -87,14 +87,12 @@ __global__ void _resize_kernel_nearest(float *in, float *out, MetaData metaData,
                                        size_t num, int coordinateMode,
                                        int nearestMode) {
     auto tid = threadIdx.x + blockIdx.x * blockDim.x;
-    auto stride = blockDim.x * gridDim.x;
 
-    while (tid < num) {
+    if (tid < num) {
         int offset = nearestCoordinateTrans(
             tid, metaData, p_cooridnate_trans_mode_func[coordinateMode],
             p_nearest_mode_fun[nearestMode]);
         out[tid] = in[offset];
-        tid += stride;
     }
 }
 
@@ -139,9 +137,8 @@ __device__ void _resize_kernel_coeff(float *in, float *out, MetaData metaData,
                                      coordinate_trans_mod_func_t coTransFunc,
                                      get_coef_func_t getCoefFunc) {
     auto tid = threadIdx.x + blockIdx.x * blockDim.x;
-    auto stride = blockDim.x * gridDim.x;
 
-    while (tid < num) {
+    if (tid < num) {
         auto dOffset = tid;
         auto neighborCnt = 1;
         int offsetList[totalNeighborNum], offsetListOld[totalNeighborNum];
@@ -184,7 +181,6 @@ __device__ void _resize_kernel_coeff(float *in, float *out, MetaData metaData,
             val += in[offsetList[i]] * powerList[i];
         }
         out[tid] = val;
-        tid += stride;
     }
 }
 
@@ -223,8 +219,8 @@ void resize_kernel_linear(float *in, float *out, const MetaData &metaData,
     auto gridsize = (num + blocksize - 1) / blocksize;
     IT_ASSERT(coordinateMode < sizeof(p_cooridnate_trans_mode_func) /
                                    sizeof(p_cooridnate_trans_mode_func[0]));
-    _resize_kernel_linear_coeff<<<gridsize, blocksize, 0, CUDAStream::stream>>>(in, out, metaData, num,
-                                                         coordinateMode);
+    _resize_kernel_linear_coeff<<<gridsize, blocksize, 0, CUDAStream::stream>>>(
+        in, out, metaData, num, coordinateMode);
 }
 
 void resize_kernel_cubic(float *in, float *out, const MetaData &metaData,
@@ -233,7 +229,7 @@ void resize_kernel_cubic(float *in, float *out, const MetaData &metaData,
     auto gridsize = (num + blocksize - 1) / blocksize;
     IT_ASSERT(coordinateMode < sizeof(p_cooridnate_trans_mode_func) /
                                    sizeof(p_cooridnate_trans_mode_func[0]));
-    _resize_kernel_cubic_coeff<<<gridsize, blocksize, 0, CUDAStream::stream>>>(in, out, metaData, num,
-                                                        coordinateMode);
+    _resize_kernel_cubic_coeff<<<gridsize, blocksize, 0, CUDAStream::stream>>>(
+        in, out, metaData, num, coordinateMode);
 }
 } // namespace infini

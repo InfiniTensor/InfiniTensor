@@ -26,7 +26,10 @@ class AllReduceNCCL : public CudaKernelWithoutConfig {
                 .getNcclComm();
         // TODO: Using default stream 0 for now.
         checkNcclError(
-            ncclAllReduce(input, output, count, ncclType, getRedOp(), comm, CUDAStream::stream));
+            ncclAllReduce(input, output, count, ncclType, getRedOp(), comm, 0));
+        // checkNcclError(ncclAllReduce(input, output, count, ncclType,
+        // getRedOp(),
+        //                              comm, CUDAStream::stream));
     }
 
     virtual ncclRedOp_t getRedOp() const = 0;

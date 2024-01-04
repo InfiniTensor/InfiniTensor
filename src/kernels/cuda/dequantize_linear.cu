@@ -149,7 +149,7 @@ void DequantizeLinearKernel(const uint8_t *inputX, const float *inputScale,
     if (dimsize > 1024) {
         int BLOCK_DIM = 1024;
 
-        blockDequantizeLinearKernel<float, 1024><<<num_block, BLOCK_DIM, 0, CUDAStream::stream>>>(
+        blockDequantizeLinearKernel<float, 1024><<<num_block, BLOCK_DIM>>>(
             inputX, inputScale, output, dimsize, stride, inputZeroPoint);
     } else if (dimsize > 31) {
         int BLOCK_DIM_x = 32;
@@ -159,7 +159,7 @@ void DequantizeLinearKernel(const uint8_t *inputX, const float *inputScale,
         dim3 grid_dim(num_block_x, 1, 1);
 
         warpDequantizeLinearKernel<float, 32, 32>
-            <<<grid_dim, block_dim, 0, CUDAStream::stream>>>(inputX, inputScale, output, dimsize,
+            <<<grid_dim, block_dim>>>(inputX, inputScale, output, dimsize,
                                       num_block, stride, inputZeroPoint);
     } else if (dimsize > 15) {
         int BLOCK_DIM_x = 16;
@@ -169,7 +169,7 @@ void DequantizeLinearKernel(const uint8_t *inputX, const float *inputScale,
         dim3 grid_dim(num_block_x, 1, 1);
 
         warpDequantizeLinearKernel<float, 16, 64>
-            <<<grid_dim, block_dim, 0, CUDAStream::stream>>>(inputX, inputScale, output, dimsize,
+            <<<grid_dim, block_dim>>>(inputX, inputScale, output, dimsize,
                                       num_block, stride, inputZeroPoint);
     } else if (dimsize > 7) {
         int BLOCK_DIM_x = 8;
@@ -179,7 +179,7 @@ void DequantizeLinearKernel(const uint8_t *inputX, const float *inputScale,
         dim3 grid_dim(num_block_x, 1, 1);
 
         warpDequantizeLinearKernel<float, 8, 128>
-            <<<grid_dim, block_dim, 0, CUDAStream::stream>>>(inputX, inputScale, output, dimsize,
+            <<<grid_dim, block_dim>>>(inputX, inputScale, output, dimsize,
                                       num_block, stride, inputZeroPoint);
     } else {
         int BLOCK_DIM_x = 4;
@@ -189,7 +189,7 @@ void DequantizeLinearKernel(const uint8_t *inputX, const float *inputScale,
         dim3 grid_dim(num_block_x, 1, 1);
 
         warpDequantizeLinearKernel<float, 4, 256>
-            <<<grid_dim, block_dim, 0, CUDAStream::stream>>>(inputX, inputScale, output, dimsize,
+            <<<grid_dim, block_dim>>>(inputX, inputScale, output, dimsize,
                                       num_block, stride, inputZeroPoint);
     }
 }
@@ -201,7 +201,7 @@ void DequantizeLinearKernel(const uint8_t *inputX, const float *inputScale,
     if (dimsize > 1024) {
         int BLOCK_DIM = 1024;
 
-        blockDequantizeLinearKernel<float, 1024><<<num_block, BLOCK_DIM, 0, CUDAStream::stream>>>(
+        blockDequantizeLinearKernel<float, 1024><<<num_block, BLOCK_DIM>>>(
             inputX, inputScale, output, dimsize, stride);
     } else if (dimsize > 31) {
         int BLOCK_DIM_x = 32;
@@ -210,7 +210,7 @@ void DequantizeLinearKernel(const uint8_t *inputX, const float *inputScale,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        warpDequantizeLinearKernel<float, 32, 32><<<grid_dim, block_dim, 0, CUDAStream::stream>>>(
+        warpDequantizeLinearKernel<float, 32, 32><<<grid_dim, block_dim>>>(
             inputX, inputScale, output, dimsize, num_block, stride);
     } else if (dimsize > 15) {
         int BLOCK_DIM_x = 16;
@@ -219,7 +219,7 @@ void DequantizeLinearKernel(const uint8_t *inputX, const float *inputScale,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        warpDequantizeLinearKernel<float, 16, 64><<<grid_dim, block_dim, 0, CUDAStream::stream>>>(
+        warpDequantizeLinearKernel<float, 16, 64><<<grid_dim, block_dim>>>(
             inputX, inputScale, output, dimsize, num_block, stride);
     } else if (dimsize > 7) {
         int BLOCK_DIM_x = 8;
@@ -228,7 +228,7 @@ void DequantizeLinearKernel(const uint8_t *inputX, const float *inputScale,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        warpDequantizeLinearKernel<float, 8, 128><<<grid_dim, block_dim, 0, CUDAStream::stream>>>(
+        warpDequantizeLinearKernel<float, 8, 128><<<grid_dim, block_dim>>>(
             inputX, inputScale, output, dimsize, num_block, stride);
     } else {
         int BLOCK_DIM_x = 4;
@@ -237,7 +237,7 @@ void DequantizeLinearKernel(const uint8_t *inputX, const float *inputScale,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        warpDequantizeLinearKernel<float, 4, 256><<<grid_dim, block_dim, 0, CUDAStream::stream>>>(
+        warpDequantizeLinearKernel<float, 4, 256><<<grid_dim, block_dim>>>(
             inputX, inputScale, output, dimsize, num_block, stride);
     }
 }
@@ -249,7 +249,7 @@ void DequantizeLinearKernel(const uint8_t *inputX, const half *inputScale,
     if (dimsize > 1024) {
         int BLOCK_DIM = 1024;
 
-        blockDequantizeLinearKernel<half, 1024><<<num_block, BLOCK_DIM, 0, CUDAStream::stream>>>(
+        blockDequantizeLinearKernel<half, 1024><<<num_block, BLOCK_DIM>>>(
             inputX, inputScale, output, dimsize, stride, inputZeroPoint);
     } else if (dimsize > 31) {
         int BLOCK_DIM_x = 32;
@@ -259,7 +259,7 @@ void DequantizeLinearKernel(const uint8_t *inputX, const half *inputScale,
         dim3 grid_dim(num_block_x, 1, 1);
 
         warpDequantizeLinearKernel<half, 32, 32>
-            <<<grid_dim, block_dim, 0, CUDAStream::stream>>>(inputX, inputScale, output, dimsize,
+            <<<grid_dim, block_dim>>>(inputX, inputScale, output, dimsize,
                                       num_block, stride, inputZeroPoint);
     } else if (dimsize > 15) {
         int BLOCK_DIM_x = 16;
@@ -269,7 +269,7 @@ void DequantizeLinearKernel(const uint8_t *inputX, const half *inputScale,
         dim3 grid_dim(num_block_x, 1, 1);
 
         warpDequantizeLinearKernel<half, 16, 64>
-            <<<grid_dim, block_dim, 0, CUDAStream::stream>>>(inputX, inputScale, output, dimsize,
+            <<<grid_dim, block_dim>>>(inputX, inputScale, output, dimsize,
                                       num_block, stride, inputZeroPoint);
     } else if (dimsize > 7) {
         int BLOCK_DIM_x = 8;
@@ -279,7 +279,7 @@ void DequantizeLinearKernel(const uint8_t *inputX, const half *inputScale,
         dim3 grid_dim(num_block_x, 1, 1);
 
         warpDequantizeLinearKernel<half, 8, 128>
-            <<<grid_dim, block_dim, 0, CUDAStream::stream>>>(inputX, inputScale, output, dimsize,
+            <<<grid_dim, block_dim>>>(inputX, inputScale, output, dimsize,
                                       num_block, stride, inputZeroPoint);
     } else {
         int BLOCK_DIM_x = 4;
@@ -289,7 +289,7 @@ void DequantizeLinearKernel(const uint8_t *inputX, const half *inputScale,
         dim3 grid_dim(num_block_x, 1, 1);
 
         warpDequantizeLinearKernel<half, 4, 256>
-            <<<grid_dim, block_dim, 0, CUDAStream::stream>>>(inputX, inputScale, output, dimsize,
+            <<<grid_dim, block_dim>>>(inputX, inputScale, output, dimsize,
                                       num_block, stride, inputZeroPoint);
     }
 }
@@ -301,7 +301,7 @@ void DequantizeLinearKernel(const uint8_t *inputX, const half *inputScale,
     if (dimsize > 1024) {
         int BLOCK_DIM = 1024;
 
-        blockDequantizeLinearKernel<half, 1024><<<num_block, BLOCK_DIM, 0, CUDAStream::stream>>>(
+        blockDequantizeLinearKernel<half, 1024><<<num_block, BLOCK_DIM>>>(
             inputX, inputScale, output, dimsize, stride);
     } else if (dimsize > 31) {
         int BLOCK_DIM_x = 32;
@@ -310,7 +310,7 @@ void DequantizeLinearKernel(const uint8_t *inputX, const half *inputScale,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        warpDequantizeLinearKernel<half, 32, 32><<<grid_dim, block_dim, 0, CUDAStream::stream>>>(
+        warpDequantizeLinearKernel<half, 32, 32><<<grid_dim, block_dim>>>(
             inputX, inputScale, output, dimsize, num_block, stride);
     } else if (dimsize > 15) {
         int BLOCK_DIM_x = 16;
@@ -319,7 +319,7 @@ void DequantizeLinearKernel(const uint8_t *inputX, const half *inputScale,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        warpDequantizeLinearKernel<half, 16, 64><<<grid_dim, block_dim, 0, CUDAStream::stream>>>(
+        warpDequantizeLinearKernel<half, 16, 64><<<grid_dim, block_dim>>>(
             inputX, inputScale, output, dimsize, num_block, stride);
     } else if (dimsize > 7) {
         int BLOCK_DIM_x = 8;
@@ -328,7 +328,7 @@ void DequantizeLinearKernel(const uint8_t *inputX, const half *inputScale,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        warpDequantizeLinearKernel<half, 8, 128><<<grid_dim, block_dim, 0, CUDAStream::stream>>>(
+        warpDequantizeLinearKernel<half, 8, 128><<<grid_dim, block_dim>>>(
             inputX, inputScale, output, dimsize, num_block, stride);
     } else {
         int BLOCK_DIM_x = 4;
@@ -337,7 +337,7 @@ void DequantizeLinearKernel(const uint8_t *inputX, const half *inputScale,
         dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
         dim3 grid_dim(num_block_x, 1, 1);
 
-        warpDequantizeLinearKernel<half, 4, 256><<<grid_dim, block_dim, 0, CUDAStream::stream>>>(
+        warpDequantizeLinearKernel<half, 4, 256><<<grid_dim, block_dim>>>(
             inputX, inputScale, output, dimsize, num_block, stride);
     }
 }
