@@ -18,6 +18,7 @@
 #include "operators/recv.h"
 #include "operators/reduce.h"
 #include "operators/reshape.h"
+#include "operators/resize.h"
 #include "operators/send.h"
 #include "operators/slice.h"
 #include "operators/softmax.h"
@@ -26,6 +27,7 @@
 #include "operators/unary.h"
 #include "operators/where.h"
 #include <numeric>
+#include <variant>
 
 namespace infini {
 
@@ -254,6 +256,64 @@ Tensor GraphHandlerObj::reshape(Tensor data, Tensor reshaped, Shape shape) {
     }
 }
 
+Tensor GraphHandlerObj::resize(Tensor input, Tensor output,
+                               const std::optional<vector<int>> &axes,
+                               Tensor sizes, Tensor scales, Tensor roi,
+                               vector<uint32_t> sizes_, vector<float> scales_,
+                               vector<float> roi_, string mode,
+                               string ratioPolicy, string nearestMode,
+                               string coordTransMode) {
+    if (sizes_.size() > 0) {
+        sizes->dataMalloc();
+        sizes->copyin<uint32_t>(sizes_);
+    }
+    if (scales_.size() > 0) {
+        scales->dataMalloc();
+        scales->copyin<float>(scales_);
+    }
+    if (roi_.size() > 0) {
+        roi->dataMalloc();
+        roi->copyin<float>(roi_);
+    }
+    ResizeObj::EKeepAspectRatioPolicy ratioPolicy_ =
+        ResizeObj::fromRatioPolicyStr(ratioPolicy);
+    ResizeObj::ENearestMode nearestMode_ =
+        ResizeObj::fromENearestModeStr(nearestMode);
+    ResizeObj::ECoordinateTransMode coordTransMode_ =
+        ResizeObj::fromECoordinateTransModeStr(coordTransMode);
+    ResizeObj::ECoeffMode mode_ = ResizeObj::fromECoeffModeStr(mode);
+    if (output) {
+        if (mode == "nearest") {
+            g->addOpWithOutputs<ResizeObj>(
+                std::move(input), output, std::move(axes), std::move(sizes),
+                std::move(scales), std::move(roi), ratioPolicy_, nearestMode_,
+                coordTransMode_);
+        } else {
+            g->addOpWithOutputs<ResizeObj>(
+                std::move(input), output, std::move(axes), std::move(sizes),
+                std::move(scales), std::move(roi), mode_, ratioPolicy_,
+                coordTransMode_);
+        }
+        return output;
+    } else {
+        if (mode == "nearest") {
+            return g
+                ->addOp<ResizeObj>(std::move(input), output, std::move(axes),
+                                   std::move(sizes), std::move(scales),
+                                   std::move(roi), ratioPolicy_, nearestMode_,
+                                   coordTransMode_)
+                ->getOutput();
+        } else {
+            return g
+                ->addOp<ResizeObj>(std::move(input), output, std::move(axes),
+                                   std::move(sizes), std::move(scales),
+                                   std::move(roi), mode_, ratioPolicy_,
+                                   coordTransMode_)
+                ->getOutput();
+        }
+    }
+}
+
 Tensor GraphHandlerObj::concat(TensorVec inputs, Tensor output, int dim) {
     if (output) {
         g->addOpWithOutputs<ConcatObj>(std::move(inputs), output, dim);
@@ -285,14 +345,29 @@ Tensor GraphHandlerObj::attentionKVCache(Tensor input_k_cache,
 }
 
 TensorVec GraphHandlerObj::split(Tensor input, std::optional<TensorVec> outputs,
-                                 int axis, int num_outputs) {
+                                 int axis,
+                                 std::variant<int, vector<int>> numOrRatio) {
     if (outputs) {
-        g->addOpWithOutputs<SplitObj>(std::move(input), outputs, axis,
-                                      num_outputs);
+        if (std::holds_alternative<int>(numOrRatio)) {
+            g->addOpWithOutputs<SplitObj>(std::move(input), outputs, axis,
+                                          std::get<int>(numOrRatio));
+        } else {
+            g->addOpWithOutputs<SplitObj>(std::move(input), outputs, axis,
+                                          std::get<vector<int>>(numOrRatio));
+        }
         return *outputs;
     } else {
-        return g->addOp<SplitObj>(std::move(input), outputs, axis, num_outputs)
-            ->getOutputs();
+        if (std::holds_alternative<int>(numOrRatio)) {
+            return g
+                ->addOp<SplitObj>(std::move(input), outputs, axis,
+                                  std::get<int>(numOrRatio))
+                ->getOutputs();
+        } else {
+            return g
+                ->addOp<SplitObj>(std::move(input), outputs, axis,
+                                  std::get<vector<int>>(numOrRatio))
+                ->getOutputs();
+        }
     }
 }
 

@@ -409,7 +409,9 @@ void init_graph_builder(py::module &m) {
 #endif
 #ifdef USE_BANG
     py::class_<BangRuntimeObj, std::shared_ptr<BangRuntimeObj>, RuntimeObj>(
-        m, "BangRuntime");
+        m, "BangRuntime")
+        .def(py::init<int>(), py::arg("device") = 0)
+        .def("init_comm", &BangRuntimeObj::initComm);
 #endif
 #ifdef USE_KUNLUN
     py::class_<KUNLUNRuntimeObj, std::shared_ptr<KUNLUNRuntimeObj>, RuntimeObj>(
@@ -516,6 +518,7 @@ void init_graph_builder(py::module &m) {
         .def("transpose", &Handler::transpose, policy::move)
         .def("depthToSpace", &Handler::depthToSpace, policy::move)
         .def("reshape", &Handler::reshape, policy::move)
+        .def("resize", &Handler::resize, policy::move)
         .def("concat", &Handler::concat, policy::move)
         .def("attentionKVCache", &Handler::attentionKVCache, policy::move)
         .def("split", &Handler::split, policy::move)
