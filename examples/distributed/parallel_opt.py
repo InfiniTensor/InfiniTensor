@@ -115,7 +115,7 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
         assert out_dims[s_dim] % tp_world_size == 0, out_dims
         out_dims[s_dim] //= tp_world_size
         # if ONNX uses the same tensor for multiple Reshape Nodes, then rename it to distingush from others.
-        # node.input[1] = node.output[0] + "_shape"
+        node.input[1] = node.output[0] + "_shape"
         data[node.input[1]] = numpy_helper.from_array(out_dims, name=node.input[1])
         place[node.output[0]] = Shard(s_dim)
 
