@@ -73,7 +73,7 @@ template <typename T> std::string vecToString(const std::vector<T> &vec) {
     return ret;
 }
 
-template <typename T> std::string vecToString(const T* st, size_t length){
+template <typename T> std::string vecToString(const T *st, size_t length) {
     std::string ret;
     ret.append("[");
     size_t i = 0;
