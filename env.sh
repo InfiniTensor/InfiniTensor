@@ -35,6 +35,7 @@ export LD_LIBRARY_PATH="${NEUWARE_HOME}/lib64:${LD_LIBRARY_PATH}"
 # ├── tools
 # ├── version
 # └── XTDK
+export PATH="/usr/bin:${PATH}"
 export KUNLUN_HOME=/usr/local/xpu
 
 # .210机器专有设置

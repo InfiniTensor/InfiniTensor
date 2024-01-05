@@ -54,7 +54,7 @@ void KUNLUNRuntimeObj::run(const Graph &graph, bool tune,
     sync();
 }
 
-void KUNLUNRuntimeObj::sync() const { ; }
+void KUNLUNRuntimeObj::sync() const { xpu_wait(); }
 
 string KUNLUNRuntimeObj::toString() const { return "KUNLUN Runtime"; }
 
