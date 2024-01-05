@@ -13,7 +13,7 @@ if(USE_CUDA)
     message("CMake 3.18 or higher is required for setting CUDAToolkit")
     cmake_minimum_required(VERSION 3.18) # FindCUDAToolkit
 else()
-    cmake_minimum_required(VERSION 3.12)
+    cmake_minimum_required(VERSION 3.17)
 endif()
 
 include(CMakeDependentOption)
@@ -247,6 +247,7 @@ if(USE_BANG)
   find_library(CAMBRICON_CNNL libcnnl.so "${NEUWARE_HOME}/lib64")
   find_library(CAMBRICON_CNRT libcnrt.so "${NEUWARE_HOME}/lib64")
   find_library(CAMBRICON_CNDRV libcndrv.so "${NEUWARE_HOME}/lib64")
+  find_library(CAMBRICON_CNCL libcncl.so "${NEUWARE_HOME}/lib64")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lstdc++ -Wall -Werror")
 
   if ((NOT DEFINED TARGET_CPU_ARCH) AND (NOT DEFINED ENV{TARGET_CPU_ARCH}))
@@ -263,7 +264,13 @@ if(USE_BANG)
   # BangC Kernels
   ################################################################################
 
-  target_link_libraries(InfiniTensor ${CAMBRICON_CNNL} ${CAMBRICON_CNRT} ${CAMBRICON_CNDRV} stdc++)
+  target_link_libraries(InfiniTensor ${CAMBRICON_CNCL} ${CAMBRICON_CNNL} ${CAMBRICON_CNRT} ${CAMBRICON_CNDRV} stdc++)
+  if (BUILD_DIST)
+    message(STATUS "Add BUILD_DIST, use CNCL with BANG")
+    
+    add_compile_definitions(INFINI_USE_CNCL=1)
+    
+  endif()
 endif()
 
 if(USE_KUNLUN)
@@ -333,6 +340,7 @@ if(BUILD_TEST)
     endif()
     if (USE_BANG)
       build_test(test/kernels/bang/*.cc)
+      build_test(test/bang/*.cc)
     endif()
     if (USE_KUNLUN)
       build_test(test/kernels/kunlun/*.cc)
