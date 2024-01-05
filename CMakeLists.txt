@@ -13,7 +13,7 @@ if(USE_CUDA)
     message("CMake 3.18 or higher is required for setting CUDAToolkit")
     cmake_minimum_required(VERSION 3.18) # FindCUDAToolkit
 else()
-    cmake_minimum_required(VERSION 3.17)
+    cmake_minimum_required(VERSION 3.12)
 endif()
 
 include(CMakeDependentOption)
