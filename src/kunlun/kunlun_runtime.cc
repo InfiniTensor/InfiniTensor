@@ -13,24 +13,14 @@ void KUNLUNRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
     std::map<OpType, double> opTime;
     std::map<OpType, int> opCnt;
     Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
-    // std::ofstream ofs("./log.txt");
     for (auto &op : graph->getOperators()) {
-        // HACK: set correct data type
         auto kernelAttrs =
             KernelAttrs{device, op->getOpType().underlying(), op->getDType()};
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
         auto perfData = perfEngine.getPerfData(perfKey);
         if (!perfData && !tune) {
-            kernel->compute(op, this);
-            // auto cpuTensor = op->getOutput(0)->clone(cpuRuntime);
-            // std::cout << i++ << "th Op: " << op->getOpType().underlying() << std::endl;
-            // std::cout << cpuTensor->getRawDataPtr<float*>()[0] << std::endl;
-            // if (op->getOpType() == OpType::Softmax){
-            //     auto cpuTensorInput = op->getInputs(0)->clone(cpuRuntime);
-            //     cpuTensorInput->dumpData(ofs);
-            //     ofs.close();
-            // }
+            kernel->compute(op, this); 
             continue;
         }
 

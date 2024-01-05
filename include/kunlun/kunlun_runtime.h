@@ -8,7 +8,7 @@ namespace infini {
 
 class KUNLUNRuntimeObj : public RuntimeObj {
   private:
-    baidu::xpu::api::Context *xdnn;
+    xdnn::Context *ctx;
     std::unique_ptr<CommunicatorObj> comm;
     KUNLUNPtr workspace;
     size_t workspaceSize;
@@ -16,7 +16,7 @@ class KUNLUNRuntimeObj : public RuntimeObj {
   public:
     KUNLUNRuntimeObj(int deviceId = 0) : RuntimeObj(Device::KUNLUN) {
         xpu_set_device(deviceId);
-        xdnn = baidu::xpu::api::create_context();
+        ctx = xdnn::create_context();
         // 10GB for Longformer
         // size_t longformerNum = 3lu * (1 << 30);
         workspaceSize = 3ll << 30; // 3 GB
@@ -26,7 +26,7 @@ class KUNLUNRuntimeObj : public RuntimeObj {
     }
     virtual ~KUNLUNRuntimeObj() {
         dealloc(workspace);
-        baidu::xpu::api::destroy_context(xdnn);
+        xdnn::destroy_context(ctx);
     }
     string toString() const override;
 
@@ -42,7 +42,7 @@ class KUNLUNRuntimeObj : public RuntimeObj {
         return ptr;
     }
     void dealloc(void *ptr) override { xpu_free(ptr); }
-    baidu::xpu::api::Context *KUNLUNHandle() const { return xdnn; }
+    xdnn::Context *KUNLUNHandle() const { return ctx; }
     KUNLUNPtr getWorkspace(size_t size) const {
         IT_ASSERT(size <= workspaceSize);
         return workspace;

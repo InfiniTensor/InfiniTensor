@@ -50,6 +50,7 @@ TEST(XDNN_Softmax, run_axis0) {
     kunlunRuntime->run(kunlunGraph);
     auto outputKunlun = kunlunOp->getOutput();
     auto outputKunlun2Cpu = outputKunlun->clone(cpuRuntime);
+    outputKunlun2Cpu->printData();
 
     // Check
     EXPECT_TRUE(

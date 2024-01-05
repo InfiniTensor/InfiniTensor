@@ -1,3 +1,4 @@
+#include "core/common.h"
 #include "operators/gather.h"
 #include "kunlun/kunlun_kernel_without_config.h"
 #include "kunlun/kunlun_runtime.h"
@@ -13,12 +14,12 @@ class GatherXdnn : public KUNLUNKernelWithoutConfig {
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
 
-        auto shape = op->getInputs(0)->getDims();
-        auto index = op->getInputs(1)->getDims();
+        Shape aShape = op->getInputs(0)->getDims();
+        Tensor bTensor = op->getInputs(1);
         auto axis = op->getAxis();
         auto ret = baidu::xpu::api::gather<float, int>(
             context->KUNLUNHandle(), (float *)aData, (int *)bData,
-            (float *)cData, shape, index.size(), axis);
+            (float *)cData, aShape, bTensor->size(), axis);
         assert(ret == 0);
         return;
     }

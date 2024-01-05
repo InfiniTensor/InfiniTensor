@@ -23,7 +23,7 @@ class ConvXdnn : public KUNLUNKernelWithoutConfig {
         std::vector<int> stride = {sh, sw};
         std::vector<int> dilation = {dh, dw};
 
-        auto ret = baidu::xpu::api::conv2d<float, float, float, float>(
+        auto ret = xdnn::conv2d<float, float, float, float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
             (float *)cData, n, c, h, w, f, ksize, stride, pads, dilation, g,
             nullptr, nullptr, nullptr, true);

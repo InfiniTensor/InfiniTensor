@@ -73,6 +73,20 @@ template <typename T> std::string vecToString(const std::vector<T> &vec) {
     return ret;
 }
 
+template <typename T> std::string vecToString(const T* st, size_t length){
+    std::string ret;
+    ret.append("[");
+    size_t i = 0;
+    for (i = 0; i < length; i++) {
+        ret.append(std::to_string(*(st + i)));
+        ret.append(",");
+    }
+    if (i == length)
+        ret.pop_back();
+    ret.append("]");
+    return ret;
+}
+
 double timeit(
     const std::function<void()> &func,
     const std::function<void(void)> &sync = []() {}, int warmupRounds = 10,

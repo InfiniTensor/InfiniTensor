@@ -77,7 +77,7 @@ Tensor GraphHandlerObj::matmul(Tensor a, Tensor b, Tensor y, bool transA,
             ->getOutput();
     }
 }
-
+ 
 Tensor GraphHandlerObj::batchNormalization(Tensor input, Tensor output,
                                            Tensor mean, Tensor var,
                                            Tensor scale, Tensor bias,
@@ -535,6 +535,8 @@ static CastType inferCastType(Tensor input, int to) {
         return CastType::Float162Float;
     } else if (iType == DataType::BFloat16 && oType == DataType::Float32) {
         return CastType::BFloat162Float;
+    } else if (iType == DataType::Float32 && oType == DataType::Float32){
+        return CastType::Float2Float;
     } else {
         IT_TODO_HALT_MSG("Unsupported CastType : input_type is " +
                          iType.toString() + " output_type is " +

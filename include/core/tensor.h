@@ -134,7 +134,7 @@ class TensorObj : public TensorBaseObj {
     }
 
     void printData() const;
-    void dumpData(std::ofstream& ofs) const;
+    void dumpData(std::ofstream &ofs) const;
     bool equalData(const Tensor &rhs, double relativeError = 1e-6) const;
 
     template <typename T> bool equalData(const vector<T> &dataVector) {
@@ -190,13 +190,20 @@ class TensorObj : public TensorBaseObj {
                 if (a[i] != b[i])
                     return false;
             } else if constexpr (std::is_floating_point_v<T>) {
-                if (fabs(a[i] - b[i]) / std::max(fabs(a[i]), fabs(b[i])) >
-                    relativeError) {
+                if (std::min(fabs(a[i]), fabs(b[i])) == 0. &&
+                    fabs(a[i] - b[i]) > relativeError) {
+                    printf("Error on %lu: %f %f\n", i, a[i], b[i]);
+                    return false;
+                } else if (std::min(fabs(a[i]), fabs(b[i])) != 0. &&
+                           fabs(a[i] - b[i]) /
+                                   std::max(fabs(a[i]), fabs(b[i])) >
+                               relativeError) {
                     printf("Error on %lu: %f %f\n", i, a[i], b[i]);
                     return false;
                 }
-            } else
+            } else {
                 static_assert(!sizeof(T), "Unsupported data type");
+            }
         }
         return true;
     }
@@ -231,8 +238,8 @@ class TensorObj : public TensorBaseObj {
     //         // std::cerr << "Init beginned " << std::endl;
     // #pragma omp parallel for
     //         for (size_t i = 0; i < iEnd; ++i)
-    //             data[i] = fastrand(random_seed[omp_get_thread_num() * 16]) %
-    //             10000;
+    //             data[i] = fastrand(random_seed[omp_get_thread_num() *
+    //             16]) % 10000;
     //         // std::cerr << "Init finished" << std::endl;
     //         computed = ComputedFull;
     //         return true;
@@ -277,8 +284,8 @@ class TensorObj : public TensorBaseObj {
     //         auto nDim = dims.size();
     //         auto nBroadcastDim = ds.size() - nDim;
     //         for (size_t i = 0; i < nDim; ++i)
-    //             if (ds[nBroadcastDim + i] < 0 || ds[nBroadcastDim + i] >=
-    //             dims[i])
+    //             if (ds[nBroadcastDim + i] < 0 || ds[nBroadcastDim +
+    //             i] >= dims[i])
     //                 return (size_t)-1;
     //         size_t idx = 0;
     //         for (size_t i = 0; i < nDim; ++i)
@@ -337,12 +344,14 @@ class TensorObj : public TensorBaseObj {
     //         return (g_seed >> 16) & 0x7FFF;
     //     }
 
-    //     std::vector<std::vector<int>> const *getSplittingPoints() const {
+    //     std::vector<std::vector<int>> const *getSplittingPoints()
+    //     const {
     //         assert(!splittingPoints.empty());
     //         return &splittingPoints;
     //     }
 
-    //     bool setSplittingPoints(std::vector<std::vector<int>> value) {
+    //     bool setSplittingPoints(std::vector<std::vector<int>> value)
+    //     {
     //         assert(!value.empty());
     //         splittingPoints = value;
     //         return true;

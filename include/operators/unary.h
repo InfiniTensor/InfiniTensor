@@ -159,6 +159,7 @@ enum class CastType {
     Uint322Int64,
     Float162Float,
     BFloat162Float,
+    Float2Float,
 };
 
 class CastObj : public OperatorObj {

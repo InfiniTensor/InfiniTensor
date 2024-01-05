@@ -37,7 +37,7 @@ class ConvTransXdnn : public KUNLUNKernelWithoutConfig {
             IT_TODO_HALT();
 
         auto ret =
-            baidu::xpu::api::conv2d_transpose<float, float, float, float>(
+            xdnn::conv2d_transpose<float, float, float, float>(
                 context->KUNLUNHandle(), (float *)aData, (float *)bData,
                 (float *)cData, n, c, h, w, f, ksize, stride, pads, dilation, g,
                 nullptr, nullptr, nullptr, isNCHW);

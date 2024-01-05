@@ -1,15 +1,15 @@
 # Find the xccl libraries
-set(XCCL_INCLUDE_DIR $ENV{KUNLUN_HOME}/XTDK CACHE PATH "Folder contains KUNLUN XCCL headers")
-set(XCCL_LIB_DIR $ENV{KUNLUN_HOME}/XTDK  CACHE PATH "Folder contains KUNLUN XCCL libraries")
+set(XCCL_INCLUDE_DIR $ENV{KUNLUN_HOME}/include CACHE PATH "Folder contains KUNLUN XCCL headers")
+set(XCCL_LIB_DIR $ENV{KUNLUN_HOME}  CACHE PATH "Folder contains KUNLUN XCCL libraries")
 
-list(APPEND CMAKE_PREFIX_PATH $ENV{KUNLUN_HOME}/XTDK)
+list(APPEND CMAKE_PREFIX_PATH $ENV{KUNLUN_HOME})
 
-find_path(XCCL_INCLUDE_DIRS # ${KUNLUN_HOME}/XTDK/include
+find_path(XCCL_INCLUDE_DIRS # ${XCCL_INCLUDE_DIR}
   NAMES xpu/bkcl.h
   HINTS XCCL_INCLUDE_DIR)
 
-find_library(XCCL_LIBRARIES # ${KUNLUN_HOME}/XTDK/shlib
-  NAMES shlib/libbkcl.so
+find_library(XCCL_LIBRARIES # ${XCCL_LIB_DIR}
+  NAMES so/libbkcl.so
   HINTS XCCL_LIB_DIR)
 
 message(STATUS "XCCL_INCLUDE_DIRS: ${XCCL_INCLUDE_DIRS}")

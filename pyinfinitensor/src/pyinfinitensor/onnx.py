@@ -39,28 +39,26 @@ class OnnxStub:
 
     def __init__(self, model: ModelProto, runtime):
         # We use some user-defined operators for distributed inference
-        try:
-            # onnx simplifier performs inplace simplify
-            model_simp, check = simplify(copy.deepcopy(model))
-            if check:
-                model = model_simp
-        except ValidationError:
-            pass
-        except RuntimeError:
-            pass
-
+        # try:
+        #     # onnx simplifier performs inplace simplify
+        #     model_simp, check = simplify(copy.deepcopy(model), skipped_optimizers=['eliminate_duplicate_initializer'])
+        #     if check:
+        #         model = model_simp
+        # except ValidationError:
+        #     pass
+        # except RuntimeError:
+        #     pass
         self.inputs: Dict[str, backend.Tensor] = {}
         self.outputs: Dict[str, backend.Tensor] = {}
         self.initializer: Dict[int, TensorProto] = {}
-        try:
-            model = infer_shapes(model)
-        except:
-            warnings.warn("infer_shapes failed.")
+        # try:
+        #     model = infer_shapes(model)
+        # except:
+        #     warnings.warn("infer_shapes failed.")
         self.handler = backend.GraphHandler(runtime)
 
         tensors: Dict[str, backend.Tensor] = dict()
         data: Dict[str, TensorProto] = dict()
-
         for initializer in model.graph.initializer:
             dims = [d for d in initializer.dims]
             tensors[initializer.name] = self.handler.tensor(dims, initializer.data_type)
@@ -807,7 +805,7 @@ class OnnxStub:
                 new_node_name.append(node.name)
             # update the node_list
             node_list = list(set(node_name) - set(new_node_name))
-
+ 
         ################################
         # Allocate memory space for data
         ################################
