@@ -13,7 +13,7 @@ if(USE_CUDA)
     message("CMake 3.18 or higher is required for setting CUDAToolkit")
     cmake_minimum_required(VERSION 3.18) # FindCUDAToolkit
 else()
-    cmake_minimum_required(VERSION 3.12)
+    cmake_minimum_required(VERSION 3.17)
 endif()
 
 include(CMakeDependentOption)
@@ -124,12 +124,15 @@ endif()
 
 if(WIN32)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:preprocessor /permissive- /bigobj")
-  set(CMAKE_C_FLAGS
-      "${CMAKE_C_FLAGS} /wd4244 /wd4267 /wd4819"
-  )
-  set(CMAKE_CXX_FLAGS
-      "${CMAKE_CXX_FLAGS} /wd4244 /wd4267 /wd4819"
-  )
+
+  ## ignore warnning
+  # set(CMAKE_C_FLAGS
+  #     "${CMAKE_C_FLAGS} /wd4244 /wd4267 /wd4819"
+  # )
+  # set(CMAKE_CXX_FLAGS
+  #     "${CMAKE_CXX_FLAGS} /wd4244 /wd4267 /wd4819"
+  # )
+  
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DUNDEBUG") # Enable assertion
   set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -DUNDEBUG") # Enable assertion
   
@@ -149,21 +152,23 @@ if(WIN32)
       string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
     endif()
   endforeach()
+  
+  ## ignore warnning
+  # foreach(
+  #   flag_var
+  #   CMAKE_CXX_FLAGS
+  #   CMAKE_CXX_FLAGS_DEBUG
+  #   CMAKE_CXX_FLAGS_RELEASE
+  #   CMAKE_CXX_FLAGS_MINSIZEREL
+  #   CMAKE_CXX_FLAGS_RELWITHDEBINFO
+  #   CMAKE_C_FLAGS
+  #   CMAKE_C_FLAGS_DEBUG
+  #   CMAKE_C_FLAGS_RELEASE
+  #   CMAKE_C_FLAGS_MINSIZEREL
+  #   CMAKE_C_FLAGS_RELWITHDEBINFO)
+  #   string(REGEX REPLACE "/W[1-4]" " /W0 " ${flag_var} "${${flag_var}}")
+  # endforeach()
 
-  foreach(
-    flag_var
-    CMAKE_CXX_FLAGS
-    CMAKE_CXX_FLAGS_DEBUG
-    CMAKE_CXX_FLAGS_RELEASE
-    CMAKE_CXX_FLAGS_MINSIZEREL
-    CMAKE_CXX_FLAGS_RELWITHDEBINFO
-    CMAKE_C_FLAGS
-    CMAKE_C_FLAGS_DEBUG
-    CMAKE_C_FLAGS_RELEASE
-    CMAKE_C_FLAGS_MINSIZEREL
-    CMAKE_C_FLAGS_RELWITHDEBINFO)
-    string(REGEX REPLACE "/W[1-4]" " /W0 " ${flag_var} "${${flag_var}}")
-  endforeach()
 else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Werror -Wno-error=deprecated-declarations -Wno-error=pointer-arith")
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -UNDEBUG") # Enable assertion
@@ -301,6 +306,7 @@ if(USE_BANG)
   find_library(CAMBRICON_CNNL libcnnl.so "${NEUWARE_HOME}/lib64")
   find_library(CAMBRICON_CNRT libcnrt.so "${NEUWARE_HOME}/lib64")
   find_library(CAMBRICON_CNDRV libcndrv.so "${NEUWARE_HOME}/lib64")
+  find_library(CAMBRICON_CNCL libcncl.so "${NEUWARE_HOME}/lib64")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lstdc++ -Wall -Werror")
 
   if ((NOT DEFINED TARGET_CPU_ARCH) AND (NOT DEFINED ENV{TARGET_CPU_ARCH}))
@@ -317,7 +323,13 @@ if(USE_BANG)
   # BangC Kernels
   ################################################################################
 
-  target_link_libraries(InfiniTensor ${CAMBRICON_CNNL} ${CAMBRICON_CNRT} ${CAMBRICON_CNDRV} stdc++)
+  target_link_libraries(InfiniTensor ${CAMBRICON_CNCL} ${CAMBRICON_CNNL} ${CAMBRICON_CNRT} ${CAMBRICON_CNDRV} stdc++)
+  if (BUILD_DIST)
+    message(STATUS "Add BUILD_DIST, use CNCL with BANG")
+    
+    add_compile_definitions(INFINI_USE_CNCL=1)
+    
+  endif()
 endif()
 
 if(USE_KUNLUN)
@@ -380,6 +392,7 @@ if(BUILD_TEST)
     endif()
     if (USE_BANG)
       build_test(test/kernels/bang/*.cc)
+      build_test(test/bang/*.cc)
     endif()
     if (USE_KUNLUN)
       build_test(test/kernels/kunlun/*.cc)
