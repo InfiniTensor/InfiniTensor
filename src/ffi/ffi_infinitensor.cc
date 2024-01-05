@@ -5,6 +5,7 @@
 #include "operators/conv.h"
 #include "operators/expand.h"
 #include "operators/gather.h"
+#include "operators/lrn.h"
 #include "operators/matmul.h"
 #include "operators/pad.h"
 #include "operators/pooling.h"
@@ -113,6 +114,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, Erf)
         .VALUE(OpType, Where)
         .VALUE(OpType, DepthToSpace)
+        .VALUE(OpType, LRN)
         .export_values();
 
 #undef VALUE
@@ -296,6 +298,14 @@ static std::tuple<int, std::string> depth_to_space_attrs_of(Operator op) {
                            depth_to_space->getModeString());
 }
 
+static std::tuple<float, float, float, int> lrn_attrs_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::LRN);
+    auto lrn = dynamic_cast<const LRNObj *>(op.get());
+    auto [alpha, beta, bias] = lrn->getAlphaBetaBias();
+    auto size = lrn->getSize();
+    return std::make_tuple(alpha, beta, bias, size);
+}
+
 void export_functions(py::module &m) {
 #define FUNCTION(NAME) def(#NAME, &NAME)
     m.def("cpu_runtime", &NativeCpuRuntimeObj::getInstance)
@@ -332,7 +342,8 @@ void export_functions(py::module &m) {
         .FUNCTION(gather_axis_of)
         .FUNCTION(flatten_axis_of)
         .FUNCTION(cast_to_of)
-        .FUNCTION(depth_to_space_attrs_of);
+        .FUNCTION(depth_to_space_attrs_of)
+        .FUNCTION(lrn_attrs_of);
 #undef FUNCTION
 }
 
@@ -388,7 +399,9 @@ void init_graph_builder(py::module &m) {
 #endif
 #ifdef USE_BANG
     py::class_<BangRuntimeObj, std::shared_ptr<BangRuntimeObj>, RuntimeObj>(
-        m, "BangRuntime");
+        m, "BangRuntime")
+        .def(py::init<int>(), py::arg("device") = 0)
+        .def("init_comm", &BangRuntimeObj::initComm);
 #endif
 #ifdef USE_KUNLUN
     py::class_<KUNLUNRuntimeObj, std::shared_ptr<KUNLUNRuntimeObj>, RuntimeObj>(
@@ -495,6 +508,7 @@ void init_graph_builder(py::module &m) {
         .def("transpose", &Handler::transpose, policy::move)
         .def("depthToSpace", &Handler::depthToSpace, policy::move)
         .def("reshape", &Handler::reshape, policy::move)
+        .def("resize", &Handler::resize, policy::move)
         .def("concat", &Handler::concat, policy::move)
         .def("attentionKVCache", &Handler::attentionKVCache, policy::move)
         .def("split", &Handler::split, policy::move)
@@ -517,6 +531,7 @@ void init_graph_builder(py::module &m) {
         .def("expand", &Handler::expand, policy::move)
         .def("erf", &Handler::erf, policy::move)
         .def("where", &Handler::where, policy::move)
+        .def("lrn", &Handler::lrn, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)
         .def("optimize", &Handler::optimize, policy::automatic)
         .def("operators", &Handler::operators, policy::move)

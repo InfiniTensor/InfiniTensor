@@ -35,7 +35,7 @@ __global__ void _pad_slice_kernel(T *part, T *whole, TransMetaData metaData,
                 whole[tid] = 0;
             else
                 whole[tid] = part[offset];
-        else
+        else if (offset >= 0)
             part[offset] = whole[tid];
         tid += stride;
     }
