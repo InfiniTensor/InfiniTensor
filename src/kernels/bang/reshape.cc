@@ -27,6 +27,8 @@ class CopyBang : public BangKernelWithoutConfig {
 // reshape/flatten/identity all act as copying from input to output.
 REGISTER_KERNEL(Device::BANG, OpType::Reshape, DataType::Float32, CopyBang,
                 "Reshape_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Reshape, DataType::Int64, CopyBang,
+                "Reshape_BANG_Int64");
 REGISTER_KERNEL(Device::BANG, OpType::Flatten, DataType::Float32, CopyBang,
                 "Flatten_BANG_Float32");
 REGISTER_KERNEL(Device::BANG, OpType::Identity, DataType::Float32, CopyBang,

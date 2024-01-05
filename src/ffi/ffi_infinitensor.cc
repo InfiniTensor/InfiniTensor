@@ -399,7 +399,9 @@ void init_graph_builder(py::module &m) {
 #endif
 #ifdef USE_BANG
     py::class_<BangRuntimeObj, std::shared_ptr<BangRuntimeObj>, RuntimeObj>(
-        m, "BangRuntime");
+        m, "BangRuntime")
+        .def(py::init<int>(), py::arg("device") = 0)
+        .def("init_comm", &BangRuntimeObj::initComm);
 #endif
 #ifdef USE_KUNLUN
     py::class_<KUNLUNRuntimeObj, std::shared_ptr<KUNLUNRuntimeObj>, RuntimeObj>(
