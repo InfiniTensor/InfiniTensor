@@ -13,8 +13,8 @@ class ReluXdnn : public KUNLUNKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
 
-        auto ret = xdnn::relu<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)cData, len);
+        auto ret = xdnn::relu<float>(context->KUNLUNHandle(), (float *)aData,
+                                     (float *)cData, len);
         assert(ret == 0);
         return;
     }
@@ -30,8 +30,8 @@ class SigmoidXdnn : public KUNLUNKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
 
-        auto ret = xdnn::sigmoid<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)cData, len);
+        auto ret = xdnn::sigmoid<float>(context->KUNLUNHandle(), (float *)aData,
+                                        (float *)cData, len);
         assert(ret == 0);
         return;
     }
@@ -47,8 +47,8 @@ class TanhXdnn : public KUNLUNKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
 
-        auto ret = xdnn::tanh<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)cData, len);
+        auto ret = xdnn::tanh<float>(context->KUNLUNHandle(), (float *)aData,
+                                     (float *)cData, len);
         assert(ret == 0);
         return;
     }
@@ -64,8 +64,8 @@ class SquareXdnn : public KUNLUNKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
 
-        auto ret = xdnn::square<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)cData, len);
+        auto ret = xdnn::square<float>(context->KUNLUNHandle(), (float *)aData,
+                                       (float *)cData, len);
         assert(ret == 0);
         return;
     }
@@ -81,8 +81,8 @@ class SqrtXdnn : public KUNLUNKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
 
-        auto ret = xdnn::sqrt<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)cData, len);
+        auto ret = xdnn::sqrt<float>(context->KUNLUNHandle(), (float *)aData,
+                                     (float *)cData, len);
         assert(ret == 0);
         return;
     }
@@ -98,8 +98,8 @@ class RsqrtXdnn : public KUNLUNKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
 
-        auto ret = xdnn::rsqrt<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)cData, len);
+        auto ret = xdnn::rsqrt<float>(context->KUNLUNHandle(), (float *)aData,
+                                      (float *)cData, len);
         assert(ret == 0);
         return;
     }
@@ -115,8 +115,8 @@ class ExpXdnn : public KUNLUNKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
 
-        auto ret = xdnn::exp<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)cData, len);
+        auto ret = xdnn::exp<float>(context->KUNLUNHandle(), (float *)aData,
+                                    (float *)cData, len);
         assert(ret == 0);
         return;
     }
@@ -132,8 +132,8 @@ class CeilXdnn : public KUNLUNKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
 
-        auto ret = xdnn::ceil<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)cData, len);
+        auto ret = xdnn::ceil<float>(context->KUNLUNHandle(), (float *)aData,
+                                     (float *)cData, len);
         assert(ret == 0);
         return;
     }
@@ -151,9 +151,8 @@ class ClipXdnn : public KUNLUNKernelWithoutConfig {
         float min = op->getMin().value();
         float max = op->getMax().value();
 
-        auto ret = xdnn::clip<float>(context->KUNLUNHandle(),
-                                                (float *)aData, (float *)cData,
-                                                len, min, max);
+        auto ret = xdnn::clip<float>(context->KUNLUNHandle(), (float *)aData,
+                                     (float *)cData, len, min, max);
         assert(ret == 0);
         return;
     }
@@ -169,8 +168,8 @@ class FloorXdnn : public KUNLUNKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
 
-        auto ret = xdnn::floor<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)cData, len);
+        auto ret = xdnn::floor<float>(context->KUNLUNHandle(), (float *)aData,
+                                      (float *)cData, len);
         assert(ret == 0);
         return;
     }
@@ -186,8 +185,8 @@ class NegXdnn : public KUNLUNKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
 
-        auto ret = xdnn::neg<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)cData, len);
+        auto ret = xdnn::neg<float>(context->KUNLUNHandle(), (float *)aData,
+                                    (float *)cData, len);
         assert(ret == 0);
         return;
     }
@@ -202,8 +201,8 @@ class CopyXdnn : public KUNLUNKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
 
-        auto ret = xdnn::copy<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)cData, len);
+        auto ret = xdnn::copy<float>(context->KUNLUNHandle(), (float *)aData,
+                                     (float *)cData, len);
         assert(ret == 0);
         return;
     }
@@ -219,8 +218,8 @@ class ReciprocalXdnn : public KUNLUNKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
 
-        auto ret = xdnn::reciprocal<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)cData, len);
+        auto ret = xdnn::reciprocal<float>(context->KUNLUNHandle(),
+                                           (float *)aData, (float *)cData, len);
         assert(ret == 0);
         return;
     }
@@ -236,8 +235,8 @@ class AbsXdnn : public KUNLUNKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
 
-        auto ret = xdnn::abs<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)cData, len);
+        auto ret = xdnn::abs<float>(context->KUNLUNHandle(), (float *)aData,
+                                    (float *)cData, len);
         assert(ret == 0);
         return;
     }
@@ -253,8 +252,8 @@ class ATanXdnn : public KUNLUNKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
 
-        auto ret = xdnn::arctan<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)cData, len);
+        auto ret = xdnn::arctan<float>(context->KUNLUNHandle(), (float *)aData,
+                                       (float *)cData, len);
         assert(ret == 0);
         return;
     }
@@ -276,8 +275,8 @@ class LogXdnn : public KUNLUNKernelWithoutConfig {
         KUNLUNPtr temp = context->getWorkspace(len * sizeof(float));
         LogObj::LogType type = op->getType();
         // get output of xpu::api::loge(x)
-        auto ret = xdnn::log<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)temp, len);
+        auto ret = xdnn::log<float>(context->KUNLUNHandle(), (float *)aData,
+                                    (float *)temp, len);
         // get ptr of divider
         KUNLUNPtr dd =
             (float *)(context->getWorkspace((1 + len) * sizeof(float))) + len;
@@ -286,22 +285,22 @@ class LogXdnn : public KUNLUNKernelWithoutConfig {
             float constant;
         case LogObj::LogE:
             // if use loge, copy from temp to cData
-            ret = xdnn::copy<float>(
-                context->KUNLUNHandle(), (float *)temp, (float *)cData, len);
+            ret = xdnn::copy<float>(context->KUNLUNHandle(), (float *)temp,
+                                    (float *)cData, len);
             break;
         case LogObj::Log2:
             constant = std::log(2);
             context->copyBlobFromCPU(dd, &constant, sizeof(float));
-            ret = xdnn::broadcast_div<float>(
-                context->KUNLUNHandle(), (float *)temp, (float *)dd,
-                (float *)cData, aDim, divDim);
+            ret = xdnn::broadcast_div<float>(context->KUNLUNHandle(),
+                                             (float *)temp, (float *)dd,
+                                             (float *)cData, aDim, divDim);
             break;
         case LogObj::Log10:
             constant = std::log(10);
             context->copyBlobFromCPU(dd, &constant, sizeof(float));
-            ret = xdnn::broadcast_div<float>(
-                context->KUNLUNHandle(), (float *)temp, (float *)dd,
-                (float *)cData, aDim, divDim);
+            ret = xdnn::broadcast_div<float>(context->KUNLUNHandle(),
+                                             (float *)temp, (float *)dd,
+                                             (float *)cData, aDim, divDim);
             break;
         default:
             printf("LogType not support!");
@@ -320,8 +319,8 @@ class CosXdnn : public KUNLUNKernelWithoutConfig {
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
-        auto ret = xdnn::cos<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)cData, len);
+        auto ret = xdnn::cos<float>(context->KUNLUNHandle(), (float *)aData,
+                                    (float *)cData, len);
 
         assert(ret == 0);
         return;
@@ -336,8 +335,8 @@ class SinXdnn : public KUNLUNKernelWithoutConfig {
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
-        auto ret = xdnn::sin<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)cData, len);
+        auto ret = xdnn::sin<float>(context->KUNLUNHandle(), (float *)aData,
+                                    (float *)cData, len);
 
         assert(ret == 0);
         return;
@@ -352,8 +351,8 @@ class TanXdnn : public KUNLUNKernelWithoutConfig {
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
-        auto ret = xdnn::tan<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)cData, len);
+        auto ret = xdnn::tan<float>(context->KUNLUNHandle(), (float *)aData,
+                                    (float *)cData, len);
 
         assert(ret == 0);
         return;
@@ -368,8 +367,8 @@ class SinhXdnn : public KUNLUNKernelWithoutConfig {
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
-        auto ret = xdnn::sinh<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)cData, len);
+        auto ret = xdnn::sinh<float>(context->KUNLUNHandle(), (float *)aData,
+                                     (float *)cData, len);
 
         assert(ret == 0);
         return;
@@ -384,8 +383,8 @@ class CoshXdnn : public KUNLUNKernelWithoutConfig {
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
-        auto ret = xdnn::cosh<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)cData, len);
+        auto ret = xdnn::cosh<float>(context->KUNLUNHandle(), (float *)aData,
+                                     (float *)cData, len);
 
         assert(ret == 0);
         return;
@@ -400,8 +399,8 @@ class ErfXdnn : public KUNLUNKernelWithoutConfig {
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
-        auto ret = xdnn::erf<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)cData, len);
+        auto ret = xdnn::erf<float>(context->KUNLUNHandle(), (float *)aData,
+                                    (float *)cData, len);
 
         assert(ret == 0);
         return;
@@ -416,8 +415,8 @@ class ACosXdnn : public KUNLUNKernelWithoutConfig {
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
-        auto ret = xdnn::arccos<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)cData, len);
+        auto ret = xdnn::arccos<float>(context->KUNLUNHandle(), (float *)aData,
+                                       (float *)cData, len);
 
         assert(ret == 0);
         return;
@@ -432,8 +431,8 @@ class ACoshXdnn : public KUNLUNKernelWithoutConfig {
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
-        auto ret = xdnn::acosh<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)cData, len);
+        auto ret = xdnn::acosh<float>(context->KUNLUNHandle(), (float *)aData,
+                                      (float *)cData, len);
 
         assert(ret == 0);
         return;
@@ -448,8 +447,8 @@ class ASinXdnn : public KUNLUNKernelWithoutConfig {
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
-        auto ret = xdnn::arcsin<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)cData, len);
+        auto ret = xdnn::arcsin<float>(context->KUNLUNHandle(), (float *)aData,
+                                       (float *)cData, len);
 
         assert(ret == 0);
         return;
@@ -464,8 +463,8 @@ class ASinhXdnn : public KUNLUNKernelWithoutConfig {
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
-        auto ret = xdnn::asinh<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)cData, len);
+        auto ret = xdnn::asinh<float>(context->KUNLUNHandle(), (float *)aData,
+                                      (float *)cData, len);
 
         assert(ret == 0);
         return;
@@ -480,8 +479,8 @@ class ATanhXdnn : public KUNLUNKernelWithoutConfig {
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
-        auto ret = xdnn::atanh<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)cData, len);
+        auto ret = xdnn::atanh<float>(context->KUNLUNHandle(), (float *)aData,
+                                      (float *)cData, len);
 
         assert(ret == 0);
         return;

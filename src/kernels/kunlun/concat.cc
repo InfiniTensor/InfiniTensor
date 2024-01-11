@@ -25,8 +25,8 @@ class ConcatXdnn : public KUNLUNKernelWithoutConfig {
             }
             dims.push_back(dim);
         }
-        auto ret = xdnn::concat<float>(
-            context->KUNLUNHandle(), inputsData, (float *)cData, dims, axis);
+        auto ret = xdnn::concat<float>(context->KUNLUNHandle(), inputsData,
+                                       (float *)cData, dims, axis);
         assert(ret == 0);
         return;
     }
