@@ -20,7 +20,7 @@ void KUNLUNRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
         auto perfData = perfEngine.getPerfData(perfKey);
         if (!perfData && !tune) {
-            kernel->compute(op, this); 
+            kernel->compute(op, this);
             continue;
         }
 

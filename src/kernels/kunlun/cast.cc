@@ -25,8 +25,8 @@ class CastXdnn : public KUNLUNKernelWithoutConfig {
                 context->KUNLUNHandle(), (float *)aData, (int64_t *)cData, len);
             break;
         case CastType::Float2Int32:
-            ret = xdnn::cast<float, int>(
-                context->KUNLUNHandle(), (float *)aData, (int *)cData, len);
+            ret = xdnn::cast<float, int>(context->KUNLUNHandle(),
+                                         (float *)aData, (int *)cData, len);
             break;
         case CastType::Float2Int16:
             ret = xdnn::cast<float, int16_t>(
@@ -37,45 +37,45 @@ class CastXdnn : public KUNLUNKernelWithoutConfig {
                 context->KUNLUNHandle(), (float *)aData, (int8_t *)cData, len);
             break;
         case CastType::Int322Float:
-            ret = xdnn::cast<int, float>(
-                context->KUNLUNHandle(), (int *)aData, (float *)cData, len);
+            ret = xdnn::cast<int, float>(context->KUNLUNHandle(), (int *)aData,
+                                         (float *)cData, len);
             break;
         case CastType::Int322Int8:
-            ret = xdnn::cast<int, int8_t>(
-                context->KUNLUNHandle(), (int *)aData, (int8_t *)cData, len);
+            ret = xdnn::cast<int, int8_t>(context->KUNLUNHandle(), (int *)aData,
+                                          (int8_t *)cData, len);
             break;
         case CastType::Int322Int16:
-            ret = xdnn::cast<int, int16_t>(
-                context->KUNLUNHandle(), (int *)aData, (int16_t *)cData, len);
+            ret = xdnn::cast<int, int16_t>(context->KUNLUNHandle(),
+                                           (int *)aData, (int16_t *)cData, len);
             break;
         case CastType::Int162Float:
             ret = xdnn::cast<int16_t, float>(
                 context->KUNLUNHandle(), (int16_t *)aData, (float *)cData, len);
             break;
         case CastType::Int162Int32:
-            ret = xdnn::cast<int16_t, int>(
-                context->KUNLUNHandle(), (int16_t *)aData, (int *)cData, len);
+            ret = xdnn::cast<int16_t, int>(context->KUNLUNHandle(),
+                                           (int16_t *)aData, (int *)cData, len);
             break;
         case CastType::Int82Float:
             ret = xdnn::cast<int8_t, float>(
                 context->KUNLUNHandle(), (int8_t *)aData, (float *)cData, len);
             break;
         case CastType::Int82Int16:
-            ret = xdnn::cast<int8_t, int16_t>(
-                context->KUNLUNHandle(), (int8_t *)aData, (int16_t *)cData,
-                len);
+            ret = xdnn::cast<int8_t, int16_t>(context->KUNLUNHandle(),
+                                              (int8_t *)aData, (int16_t *)cData,
+                                              len);
             break;
         case CastType::Int82Int32:
-            ret = xdnn::cast<int8_t, int>(
-                context->KUNLUNHandle(), (int8_t *)aData, (int *)cData, len);
+            ret = xdnn::cast<int8_t, int>(context->KUNLUNHandle(),
+                                          (int8_t *)aData, (int *)cData, len);
             break;
         case CastType::Int322Int64:
-            ret = xdnn::cast<int, int64_t>(
-                context->KUNLUNHandle(), (int *)aData, (int64_t *)cData, len);
+            ret = xdnn::cast<int, int64_t>(context->KUNLUNHandle(),
+                                           (int *)aData, (int64_t *)cData, len);
             break;
         case CastType::Int642Int32:
-            ret = xdnn::cast<int64_t, int>(
-                context->KUNLUNHandle(), (int64_t *)aData, (int *)cData, len);
+            ret = xdnn::cast<int64_t, int>(context->KUNLUNHandle(),
+                                           (int64_t *)aData, (int *)cData, len);
             break;
         case CastType::Int642Float:
             ret = xdnn::cast<int64_t, float>(
@@ -86,8 +86,8 @@ class CastXdnn : public KUNLUNKernelWithoutConfig {
                 context->KUNLUNHandle(), (float16 *)aData, (float *)cData, len);
             break;
         case CastType::Float2Float:
-            ret = xdnn::copy<float>(
-                context->KUNLUNHandle(), (float *)aData, (float *)cData, len); 
+            ret = xdnn::copy<float>(context->KUNLUNHandle(), (float *)aData,
+                                    (float *)cData, len);
             break;
         default:
             IT_TODO_HALT();

@@ -94,15 +94,15 @@ class DivXdnn : public KUNLUNKernelWithoutConfig {
         auto bSize = op->getInputs(1)->size();
         auto bDim = op->getInputs(1)->getDims();
 
-        if (bDim.size() == 0){
+        if (bDim.size() == 0) {
             bDim.push_back(1);
         }
 
         if (aSize == bSize) {
             // Do ElementWise Sub with no broadcast
-            checkKUNLUNError(xdnn::div<float>(
-                context->KUNLUNHandle(), (float *)aData, (float *)bData,
-                (float *)cData, aSize));
+            checkKUNLUNError(xdnn::div<float>(context->KUNLUNHandle(),
+                                              (float *)aData, (float *)bData,
+                                              (float *)cData, aSize));
         } else {
             // Do broadcast div
             Shape aligned = infer_broadcast(aDim, bDim);
@@ -117,9 +117,9 @@ class DivXdnn : public KUNLUNKernelWithoutConfig {
                 checkKUNLUNError(xdnn::broadcast<float>(
                     context->KUNLUNHandle(), (float *)aData, (float *)wks, aDim,
                     bDim));
-                checkKUNLUNError(xdnn::div<float>(
-                    context->KUNLUNHandle(), (float *)wks, (float *)bData,
-                    (float *)cData, bSize));
+                checkKUNLUNError(xdnn::div<float>(context->KUNLUNHandle(),
+                                                  (float *)wks, (float *)bData,
+                                                  (float *)cData, bSize));
             }
         }
         return;
@@ -384,9 +384,9 @@ class MSELossXdnn : public KUNLUNKernelWithoutConfig {
         size_t len = op->getOutput()->size();
 
         auto dim = op->getInputs(0)->getDims();
-        checkKUNLUNError(xdnn::mse_loss<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)bData,
-            (float *)cData, len));
+        checkKUNLUNError(xdnn::mse_loss<float>(context->KUNLUNHandle(),
+                                               (float *)aData, (float *)bData,
+                                               (float *)cData, len));
         return;
     }
 };
@@ -411,9 +411,9 @@ class AndXdnn : public KUNLUNKernelWithoutConfig {
         if (bDim.size() == 0) {
             bDim.push_back(1);
         }
-        checkKUNLUNError(xdnn::logical_and<bool>(
-            context->KUNLUNHandle(), (bool *)aData, (bool *)bData,
-            (bool *)wsData, len));
+        checkKUNLUNError(xdnn::logical_and<bool>(context->KUNLUNHandle(),
+                                                 (bool *)aData, (bool *)bData,
+                                                 (bool *)wsData, len));
         checkKUNLUNError((xdnn::cast<bool, float>(
             context->KUNLUNHandle(), (bool *)wsData, (float *)cData, len)));
         return;
@@ -440,9 +440,9 @@ class OrXdnn : public KUNLUNKernelWithoutConfig {
         if (bDim.size() == 0) {
             bDim.push_back(1);
         }
-        checkKUNLUNError(xdnn::logical_or<bool>(
-            context->KUNLUNHandle(), (bool *)aData, (bool *)bData,
-            (bool *)wsData, len));
+        checkKUNLUNError(xdnn::logical_or<bool>(context->KUNLUNHandle(),
+                                                (bool *)aData, (bool *)bData,
+                                                (bool *)wsData, len));
         checkKUNLUNError((xdnn::cast<bool, float>(
             context->KUNLUNHandle(), (bool *)wsData, (float *)cData, len)));
         return;
@@ -469,9 +469,9 @@ class XorXdnn : public KUNLUNKernelWithoutConfig {
         if (bDim.size() == 0) {
             bDim.push_back(1);
         }
-        checkKUNLUNError(xdnn::logical_xor<bool>(
-            context->KUNLUNHandle(), (bool *)aData, (bool *)bData,
-            (bool *)wsData, len));
+        checkKUNLUNError(xdnn::logical_xor<bool>(context->KUNLUNHandle(),
+                                                 (bool *)aData, (bool *)bData,
+                                                 (bool *)wsData, len));
         checkKUNLUNError((xdnn::cast<bool, float>(
             context->KUNLUNHandle(), (bool *)wsData, (float *)cData, len)));
         return;

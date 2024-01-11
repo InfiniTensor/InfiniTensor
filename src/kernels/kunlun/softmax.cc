@@ -12,10 +12,11 @@ class SoftmaxXdnn : public KUNLUNKernelWithoutConfig {
         auto axis = op->getAxis();
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
-        void *const cData = (op->getOutput()->getRawDataPtr<void *>()); 
+        void *const cData = (op->getOutput()->getRawDataPtr<void *>());
 
-        checkKUNLUNError(xdnn::softmax<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)cData, dim, axis));
+        checkKUNLUNError(xdnn::softmax<float>(context->KUNLUNHandle(),
+                                              (float *)aData, (float *)cData,
+                                              dim, axis));
         return;
     }
 };
