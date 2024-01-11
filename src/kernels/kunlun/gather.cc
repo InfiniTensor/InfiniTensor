@@ -10,17 +10,17 @@ class GatherXdnn : public KUNLUNKernelWithoutConfig {
         auto op = as<GatherObj>(_op);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
-        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
-        void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
+        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>()); // data
+        void *const bData = (op->getInputs(1)->getRawDataPtr<void *>()); // indice
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
 
         Shape aShape = op->getInputs(0)->getDims();
         Tensor bTensor = op->getInputs(1);
         auto axis = op->getAxis();
-        auto ret = baidu::xpu::api::gather<float, int>(
+        checkKUNLUNError((baidu::xpu::api::gather<float, int>(
             context->KUNLUNHandle(), (float *)aData, (int *)bData,
-            (float *)cData, aShape, bTensor->size(), axis);
-        assert(ret == 0);
+            (float *)cData, aShape, bTensor->size(), axis)));
+        
         return;
     }
 };
