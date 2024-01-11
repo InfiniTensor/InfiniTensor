@@ -18,6 +18,10 @@ class AllReduceNCCL : public CudaKernelWithoutConfig {
             ncclType = ncclFloat16;
         } else if (op->getDType() == DataType::Int8) {
             ncclType = ncclInt8;
+        } else if (op->getDType() == DataType::Float32) {
+            ncclType = ncclFloat;
+        } else {
+            IT_TODO_HALT();
         }
         size_t count = op->getInputs(0)->size();
 

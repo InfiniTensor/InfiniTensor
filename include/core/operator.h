@@ -90,7 +90,6 @@ class OperatorObj : public Object {
     OpType getOpType() const { return type; }
     // HACK: set correct data type
     DataType getDType() const { return getInputs(0)->getDType(); }
-    DataType getInDType() const { return getInputs(0)->getDType(); }
     DataType getOutDType() const { return getOutput()->getDType(); }
     virtual int numInputs() const = 0;
     virtual int numOutputs() const = 0;

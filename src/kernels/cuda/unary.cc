@@ -23,27 +23,27 @@ class CastCuda : public CudaKernelWithoutConfig {
         void *const outputData = (op->getOutput()->getRawDataPtr<void *>());
 
         if (op->getType() == CastType::Float162Float) {
-            IT_ASSERT(op->getInDType() == DataType::Float16 &&
+            IT_ASSERT(op->getDType() == DataType::Float16 &&
                       op->getOutDType() == DataType::Float32);
             cast_kernel<half, float>((half *)inputData, (float *)outputData,
                                      num);
         } else if (op->getType() == CastType::Float2Float16) {
-            IT_ASSERT(op->getInDType() == DataType::Float32 &&
+            IT_ASSERT(op->getDType() == DataType::Float32 &&
                       op->getOutDType() == DataType::Float16);
             cast_kernel<float, half>((float *)inputData, (half *)outputData,
                                      num);
         } else if (op->getType() == CastType::Float2Int32) {
-            IT_ASSERT(op->getInDType() == DataType::Float32 &&
+            IT_ASSERT(op->getDType() == DataType::Float32 &&
                       op->getOutDType() == DataType::Int32);
             cast_kernel<float, int32_t>((float *)inputData,
                                         (int32_t *)outputData, num);
         } else if (op->getType() == CastType::Float2Int8) {
-            IT_ASSERT(op->getInDType() == DataType::Float32 &&
+            IT_ASSERT(op->getDType() == DataType::Float32 &&
                       op->getOutDType() == DataType::Int8);
             cast_kernel<float, int8_t>((float *)inputData, (int8_t *)outputData,
                                        num);
         } else if (op->getType() == CastType::Int82Float) {
-            IT_ASSERT(op->getInDType() == DataType::Int8 &&
+            IT_ASSERT(op->getDType() == DataType::Int8 &&
                       op->getOutDType() == DataType::Float32);
             cast_kernel<int8_t, float>((int8_t *)inputData, (float *)outputData,
                                        num);
