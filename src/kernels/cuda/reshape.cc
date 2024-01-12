@@ -19,6 +19,10 @@ REGISTER_KERNEL(Device::CUDA, OpType::Reshape, DataType::Int32, CopyCuda,
                 "Reshape_CUDA_Int32");
 REGISTER_KERNEL(Device::CUDA, OpType::Flatten, DataType::Float32, CopyCuda,
                 "Flatten_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Squeeze, DataType::Float32, CopyCuda,
+                "Squeeze_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Unsqueeze, DataType::Float32, CopyCuda,
+                "Unsqueeze_CUDA_Float32");
 REGISTER_KERNEL(Device::CUDA, OpType::Identity, DataType::Float32, CopyCuda,
                 "Identity_CUDA_Float32");
 
