@@ -55,10 +55,10 @@ class OnnxStub:
         self.tensor_node_map: Dict[str, str] = {}
         self.initializer: Dict[int, TensorProto] = {}
         self.use_naive_allocator: bool = use_naive_allocator
-        try:
-            model = infer_shapes(model)
-        except:
-            warnings.warn("infer_shapes failed.")
+        # try:
+        #     model = infer_shapes(model)
+        # except:
+        #     warnings.warn("infer_shapes failed.")
         self.handler = backend.GraphHandler(runtime)
 
         # 处理重名和匿名算子
@@ -156,7 +156,7 @@ class OnnxStub:
                             1,
                             reduce(
                                 lambda acc, x: acc * x,
-                                _search_shape(model, node.input[2]),
+                                tensors[node.input[2]].shape(),
                             ),
                             1,
                             1,
@@ -377,7 +377,7 @@ class OnnxStub:
                         ceil_mode,
                     )
             elif node.op_type == "GlobalAveragePool":
-                [_, _, h, w] = _search_shape(model, node.input[0])
+                [_, _, h, w] = tensors[node.input[0]].shape()
                 tensors[node.output[0]] = self.handler.avgPool(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
@@ -615,35 +615,43 @@ class OnnxStub:
                     coordinate_transformation_mode,
                 )                
             elif node.op_type == "Squeeze":
-                input_shape = _search_shape(model, node.input[0])
-                axes = set(
-                    [int(i) for i in data[node.input[1]].int64_data]
+                axes = (
+                    _parse_data(data[node.input[1]])
                     if len(node.input) > 1
-                    else _parse_attribute(node, {"axes": None})["axes"]
+                    else None
                 )
-                assert all(input_shape[d] == 1 for d in axes)
-                output_shape = []
-                for i, x in enumerate(input_shape):
-                    if i not in axes:
-                        output_shape.append(x)
-                tensors[node.output[0]] = self.handler.reshape(
+                if axes is None:
+                    axes = next(
+                        (
+                            attr.ints
+                            for attr in node.attribute
+                            if attr.name == "axes"
+                        ),
+                        [],
+                    )
+                tensors[node.output[0]] = self.handler.squeeze(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
-                    output_shape,
+                    axes,
                 )
             elif node.op_type == "Unsqueeze":
-                input_shape = _search_shape(model, node.input[0])
                 axes = (
-                    [int(i) for i in data[node.input[1]].int64_data]
+                    _parse_data(data[node.input[1]])
                     if len(node.input) > 1
-                    else _parse_attribute(node, {"axes": None})["axes"]
+                    else None
                 )
-                for i in axes:
-                    input_shape.insert(i, 1)
-                tensors[node.output[0]] = self.handler.reshape(
+                if axes is None:
+                    axes = next(
+                        (
+                            attr.ints
+                            for attr in node.attribute
+                            if attr.name == "axes"
+                        )
+                    )
+                tensors[node.output[0]] = self.handler.unsqueeze(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
-                    input_shape,
+                    axes,
                 )
             elif node.op_type == "Concat":
                 tensors[node.output[0]] = self.handler.concat(
@@ -1205,6 +1213,30 @@ class OnnxStub:
                     )
                 )
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
+            elif ty == backend.OpTypeId.Squeeze:
+                axes = backend.squeeze_axes_of(op)
+                inputs.append(
+                    ctx.push_data_input(
+                        name,
+                        "axes",
+                        TensorProto.INT64,
+                        [len(axes)],
+                        axes,
+                    )
+                )
+                ctx.push_node(make_node(ty.name, inputs, outputs, name))
+            elif ty == backend.OpTypeId.Unsqueeze:
+                axes = backend.unsqueeze_axes_of(op)
+                inputs.append(
+                    ctx.push_data_input(
+                        name,
+                        "axes",
+                        TensorProto.INT64,
+                        [len(axes)],
+                        axes,
+                    )
+                )
+                ctx.push_node(make_node(ty.name, inputs, outputs, name))                
             elif ty == backend.OpTypeId.Concat:
                 axis = backend.concat_axis_of(op)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, axis=axis))
@@ -1340,50 +1372,6 @@ class OnnxStub:
 def from_onnx(model: ModelProto, runtime):
     stub = OnnxStub(model, runtime)
     return stub.inputs, stub.outputs, stub.handler
-
-
-def _search_shape(model: ModelProto, name: str) -> List[int]:
-    ans = (
-        next(
-            (
-                [
-                    (d.dim_value if d.dim_value > 0 else 1)
-                    for d in tensor.type.tensor_type.shape.dim
-                ]
-                for tensor in model.graph.value_info
-                if tensor.name == name
-            ),
-            None,
-        )
-        or next(
-            (
-                [
-                    (d.dim_value if d.dim_value > 0 else 1)
-                    for d in tensor.type.tensor_type.shape.dim
-                ]
-                for tensor in model.graph.input
-                if tensor.name == name
-            ),
-            None,
-        )
-        or next(
-            (
-                [
-                    (d.dim_value if d.dim_value > 0 else 1)
-                    for d in tensor.type.tensor_type.shape.dim
-                ]
-                for tensor in model.graph.output
-                if tensor.name == name
-            ),
-            None,
-        )
-        or next(
-            [int(d) for d in tensor.dims]
-            for tensor in model.graph.initializer
-            if tensor.name == name
-        )
-    )
-    return ans
 
 
 def _parse_attribute(node: NodeProto, attrs: Dict[str, Any] = dict()) -> Dict[str, Any]:
