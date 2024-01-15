@@ -19,7 +19,7 @@ void testPoolMkl(const std::function<void(void *, size_t, DataType)> &generator,
     // Build input data
     Tensor i0 = g->addTensor(shape, DataType::Float32);
     auto pool = g->addOp<T>(i0, nullptr, kdps[0], kdps[1], kdps[2], kdps[3],
-                            kdps[4], kdps[5], kdps[6], kdps[7]);
+                            kdps[4], kdps[5], kdps[6], kdps[7], 0);
     g->dataMalloc();
     i0->setData(generator);
 

@@ -11,6 +11,7 @@ class MklPow : public MklKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<PowObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto in0Data = op->getInputs(0)->getRawDataPtr<float *>();
         auto in1Data = op->getInputs(1)->getRawDataPtr<float *>();
         auto outData = op->getOutput(0)->getRawDataPtr<float *>();
@@ -37,7 +38,6 @@ class MklPow : public MklKernelWithoutConfig {
         sycl::free(outDevice, q);
     }
 };
-REGISTER_KERNEL(Device::INTELCPU, OpType::Pow, DataType::Float32, MklPow,
-                "Pow_Mkl_Float32");
+REGISTER_KERNEL(Device::INTELCPU, OpType::Pow, MklPow, "Pow_Mkl");
 
 }; // namespace infini

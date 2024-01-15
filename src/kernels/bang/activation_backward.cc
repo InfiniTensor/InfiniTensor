@@ -10,6 +10,7 @@ class ActivationBackwardCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ActivationBackwardObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const yData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -81,11 +82,11 @@ class TanhBackwardCnnl : public ActivationBackwardCnnl {
     float getCoef() const override { return 0.0; }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::ReluBackward, DataType::Float32,
-                ReluBackwardCnnl, "ReluBackward_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::SigmoidBackward, DataType::Float32,
-                SigmoidBackwardCnnl, "SigmoidBackward_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::TanhBackward, DataType::Float32,
-                TanhBackwardCnnl, "TanhBackward_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::ReluBackward, ReluBackwardCnnl,
+                "ReluBackward_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::SigmoidBackward, SigmoidBackwardCnnl,
+                "SigmoidBackward_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::TanhBackward, TanhBackwardCnnl,
+                "TanhBackward_cnnl_BANG");
 
 }; // namespace infini

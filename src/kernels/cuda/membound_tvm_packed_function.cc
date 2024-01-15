@@ -216,9 +216,9 @@ class MemboundTVMPackedFunction : public Kernel {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::MemBound, DataType::Float32,
-                MemboundTVMPackedFunction,
+REGISTER_KERNEL(Device::CUDA, OpType::MemBound, MemboundTVMPackedFunction,
                 "Memobund_TVM_Ansor_packed_funciton");
+
 }; // namespace infini
 
 #endif

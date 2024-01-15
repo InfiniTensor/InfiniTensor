@@ -3,9 +3,9 @@
 
 namespace infini {
 
-template <typename T> class NaiveSplit : public CpuKernelWithoutConfig {
-    void compute(const Operator &_op,
-                 const RuntimeObj *context) const override {
+class NaiveSplit : public CpuKernelWithoutConfig {
+    template <typename T>
+    void doCompute(const Operator &_op, const RuntimeObj *context) const {
         auto op = as<SplitObj>(_op);
         auto inputs = op->getInputs(), outputs = op->getOutputs();
         auto dim = op->getDim();
@@ -40,11 +40,24 @@ template <typename T> class NaiveSplit : public CpuKernelWithoutConfig {
             }
         }
     }
+    void compute(const Operator &_op,
+                 const RuntimeObj *context) const override {
+#define CASE(N)                                                                \
+    case N:                                                                    \
+        doCompute<DT<N>::t>(_op, context)
+
+        int dataTypeIdx = _op->getDType().getIndex();
+        switch (dataTypeIdx) {
+            CASE(1); // DataType::Float32
+            break;
+            CASE(12); // DataType::UInt32
+            break;
+        default:
+            IT_TODO_HALT();
+        }
+    }
 };
 
-REGISTER_KERNEL(Device::CPU, OpType::Split, DataType::UInt32,
-                NaiveSplit<uint32_t>, "SplitNaive_CPU_uint32");
-REGISTER_KERNEL(Device::CPU, OpType::Split, DataType::Float32,
-                NaiveSplit<float>, "SplitNaive_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::Split, NaiveSplit, "SplitNaive_CPU");
 
 } // namespace infini

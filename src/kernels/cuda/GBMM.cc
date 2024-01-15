@@ -49,13 +49,13 @@ class GBMMCudnn : public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<GBMMObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         bool success = gbmmKernel(op, context);
         IT_ASSERT(success);
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::GBMM, DataType::Float32, GBMMCudnn,
-                "GBMM_cuDNN_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::GBMM, GBMMCudnn, "GBMM_cuDNN_CUDA");
 
 } // namespace infini

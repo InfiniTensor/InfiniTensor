@@ -23,8 +23,10 @@
 #include "operators/slice.h"
 #include "operators/softmax.h"
 #include "operators/split.h"
+#include "operators/squeeze.h"
 #include "operators/transpose.h"
 #include "operators/unary.h"
+#include "operators/unsqueeze.h"
 #include "operators/where.h"
 #include <numeric>
 #include <variant>
@@ -620,6 +622,28 @@ TensorVec GraphHandlerObj::dropout(Tensor input, Tensor output, Tensor mask,
             ->addOp<DropoutObj>(std::move(input), output, mask, ratio,
                                 training_mode)
             ->getOutputs();
+    }
+}
+
+Tensor GraphHandlerObj::squeeze(Tensor input, Tensor output, Shape axes) {
+    if (output) {
+        g->addOpWithOutputs<SqueezeObj>(std::move(input), output,
+                                        std::move(axes));
+        return output;
+    } else {
+        return g->addOp<SqueezeObj>(std::move(input), output, std::move(axes))
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::unsqueeze(Tensor input, Tensor output, Shape axes) {
+    if (output) {
+        g->addOpWithOutputs<UnsqueezeObj>(std::move(input), output,
+                                          std::move(axes));
+        return output;
+    } else {
+        return g->addOp<UnsqueezeObj>(std::move(input), output, std::move(axes))
+            ->getOutput();
     }
 }
 

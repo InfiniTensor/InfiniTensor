@@ -91,6 +91,12 @@ template <int val> class ValGenerator : public DataGenerator {
         fill<uint32_t>(data, size);
     }
     void fill(float *data, size_t size) override { fill<float>(data, size); }
+    void fill_fp16(uint16_t *data, size_t size) {
+        for (size_t i = 0; i < size; i++) {
+            float x = 1.0f * val;
+            data[i] = float_to_fp16(x);
+        }
+    }
 };
 typedef ValGenerator<1> OneGenerator;
 typedef ValGenerator<0> ZeroGenerator;

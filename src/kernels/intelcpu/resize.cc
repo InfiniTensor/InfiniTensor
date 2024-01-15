@@ -24,6 +24,7 @@ class MklResize : public MklKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ResizeObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
 
         // only support default coordinate transmode??
         if (op->getCoordinateTransMode() !=
@@ -75,6 +76,5 @@ class MklResize : public MklKernelWithoutConfig {
             {{DNNL_ARG_SRC, srcMemory}, {DNNL_ARG_DST, output}});
     }
 };
-REGISTER_KERNEL(Device::INTELCPU, OpType::Resize, DataType::Float32, MklResize,
-                "Resize_Mkl_Float32");
+REGISTER_KERNEL(Device::INTELCPU, OpType::Resize, MklResize, "Resize_Mkl");
 }; // namespace infini

@@ -9,6 +9,7 @@ class TrigonCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<UnaryObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -150,29 +151,17 @@ class ATanHCnnl : public TrigonCnnl {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Sin, DataType::Float32, SinCnnl,
-                "Sin_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Cos, DataType::Float32, CosCnnl,
-                "Cos_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Tan, DataType::Float32, TanCnnl,
-                "Tan_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Asin, DataType::Float32, ASinCnnl,
-                "ASin_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Acos, DataType::Float32, ACosCnnl,
-                "ACos_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Atan, DataType::Float32, ATanCnnl,
-                "ATan_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Sinh, DataType::Float32, SinHCnnl,
-                "SinH_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Cosh, DataType::Float32, CosHCnnl,
-                "CosH_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Tanh, DataType::Float32, TanHCnnl,
-                "TanH_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Asinh, DataType::Float32, ASinHCnnl,
-                "ASinH_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Acosh, DataType::Float32, ACosHCnnl,
-                "ACosH_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Atanh, DataType::Float32, ATanHCnnl,
-                "ATanH_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Sin, SinCnnl, "Sin_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Cos, CosCnnl, "Cos_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Tan, TanCnnl, "Tan_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Asin, ASinCnnl, "ASin_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Acos, ACosCnnl, "ACos_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Atan, ATanCnnl, "ATan_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Sinh, SinHCnnl, "SinH_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Cosh, CosHCnnl, "CosH_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Tanh, TanHCnnl, "TanH_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Asinh, ASinHCnnl, "ASinH_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Acosh, ACosHCnnl, "ACosH_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Atanh, ATanHCnnl, "ATanH_cnnl_BANG");
 
 }; // namespace infini
