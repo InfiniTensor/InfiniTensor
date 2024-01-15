@@ -66,43 +66,28 @@ void testCast(const std::function<void(void *, size_t, DataType)> &generator,
     inputCpu->printData();
     outputGpu2Cpu->printData();
     EXPECT_TRUE(outputGpu2Cpu->equalData(ansVec));
-
-    // GPU
-    // Graph cudaGraph2 = make_ref<GraphObj>(cudaRuntime);
-    ////auto inputGpu2 = cudaGraph2->cloneTensor(outputGpu2Cpu);
-    // auto gpuOp2 = cudaGraph2->addOp<T>(outputGpu, nullptr,
-    // CastType::Float162Float); cudaGraph2->dataMalloc();
-    ////inputGpu2->setData(generator);
-    // cudaRuntime->run(cudaGraph2);
-    // auto outputGpu2 = gpuOp2->getOutput();
-    // auto outputGpu2Cpu2 = outputGpu2->clone(cpuRuntime);
-
-    // outputGpu2Cpu->printData();
-    // outputGpu2Cpu2->printData();
-    // EXPECT_TRUE(1);
 }
 
 TEST(cuDNN_Unary, run) {
-    // testUnary<ReluObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    // testUnary<AbsObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    // testUnary<SigmoidObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    // testUnary<TanhObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    // testUnary<HardSigmoidObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    // testUnary<HardSwishObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    // testUnary<SqrtObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    // testUnary<NegObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    // testUnary<ErfObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    //// more shapes
-    // testUnary<SqrtObj>(IncrementalGenerator(), Shape{13});
-    // testUnary<SqrtObj>(IncrementalGenerator(), Shape{4, 3});
-    // testUnary<SqrtObj>(IncrementalGenerator(), Shape{2, 3, 4, 5, 6});
-
-    // testUnary<GeluObj>(IncrementalGenerator(), Shape{1});
-    // testUnary<GeluObj>(IncrementalGenerator(), Shape{1, 2});
-    // testUnary<GeluObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-
+    testUnary<ReluObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    testUnary<AbsObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    testUnary<SigmoidObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    testUnary<TanhObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    testUnary<HardSigmoidObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    testUnary<HardSwishObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    testUnary<SqrtObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    testUnary<NegObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    testUnary<ErfObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     testCast<CastObj>(IncrementalGenerator(), Shape{8, 1},
                       vector<float>{0, 1, 2, 3, 4, 5, 6, 7});
+    // more shapes
+    testUnary<SqrtObj>(IncrementalGenerator(), Shape{13});
+    testUnary<SqrtObj>(IncrementalGenerator(), Shape{4, 3});
+    testUnary<SqrtObj>(IncrementalGenerator(), Shape{2, 3, 4, 5, 6});
+
+    testUnary<GeluObj>(IncrementalGenerator(), Shape{1});
+    testUnary<GeluObj>(IncrementalGenerator(), Shape{1, 2});
+    testUnary<GeluObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
 }
 
 } // namespace infini
