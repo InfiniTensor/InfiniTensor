@@ -7,6 +7,7 @@ class ReciprocalCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<UnaryObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -35,7 +36,7 @@ class ReciprocalCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Reciprocal, DataType::Float32,
-                ReciprocalCnnl, "Reciprocal_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Reciprocal, ReciprocalCnnl,
+                "Reciprocal_cnnl_BANG");
 
 }; // namespace infini

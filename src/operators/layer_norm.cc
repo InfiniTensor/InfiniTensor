@@ -27,10 +27,7 @@ optional<vector<Shape>> LayerNormObj::inferShape(const TensorVec &inputs) {
 
 vector<DataType> LayerNormObj::inferDataType(const TensorVec &inputs) const {
     IT_ASSERT(inputs.size() == 2 || inputs.size() == 3);
-    IT_ASSERT(inputs[1]->getDType() == DataType::Float32);
-    if (inputs.size() == 3) {
-        IT_ASSERT(inputs[2]->getDType() == DataType::Float32);
-    }
+
     return {inputs[0]->getDType()};
 }
 

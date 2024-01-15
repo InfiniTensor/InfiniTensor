@@ -7,6 +7,7 @@ class MatmulXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<MatmulObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
@@ -28,6 +29,6 @@ class MatmulXdnn : public KUNLUNKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::KUNLUN, OpType::MatMul, DataType::Float32, MatmulXdnn,
-                "Matmul_xdnn_KUNLUN_Float32");
+REGISTER_KERNEL(Device::KUNLUN, OpType::MatMul, MatmulXdnn,
+                "Matmul_xdnn_KUNLUN");
 }; // namespace infini

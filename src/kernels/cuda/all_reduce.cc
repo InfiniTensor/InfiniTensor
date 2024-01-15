@@ -13,15 +13,24 @@ class AllReduceNCCL : public CudaKernelWithoutConfig {
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         void *input = op->getInputs(0)->getRawDataPtr<void *>();
         void *output = op->getOutput()->getRawDataPtr<void *>();
-        IT_ASSERT(op->getDType() == DataType::Float32);
+        ncclDataType_t ncclType = ncclFloat;
+        if (op->getDType() == DataType::Float16) {
+            ncclType = ncclFloat16;
+        } else if (op->getDType() == DataType::Int8) {
+            ncclType = ncclInt8;
+        } else if (op->getDType() == DataType::Float32) {
+            ncclType = ncclFloat;
+        } else {
+            IT_TODO_HALT();
+        }
         size_t count = op->getInputs(0)->size();
 
         ncclComm_t comm =
             dynamic_cast<NcclCommunicatorObj &>(context->getCommunicator())
                 .getNcclComm();
         // TODO: Using default stream 0 for now.
-        checkNcclError(ncclAllReduce(input, output, count, ncclFloat,
-                                     getRedOp(), comm, 0));
+        checkNcclError(
+            ncclAllReduce(input, output, count, ncclType, getRedOp(), comm, 0));
     }
 
     virtual ncclRedOp_t getRedOp() const = 0;
@@ -43,16 +52,16 @@ class AllReduceAvgNCCL : public AllReduceNCCL {
     ncclRedOp_t getRedOp() const override { return ncclAvg; }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::AllReduceSum, DataType::Float32,
-                AllReduceSumNCCL, "AllReduce_Sum_NCCL_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::AllReduceProd, DataType::Float32,
-                AllReduceProdNCCL, "AllReduce_Prod_NCCL_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::AllReduceMin, DataType::Float32,
-                AllReduceMinNCCL, "AllReduce_Min_NCCL_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::AllReduceMax, DataType::Float32,
-                AllReduceMaxNCCL, "AllReduce_Max_NCCL_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::AllReduceAvg, DataType::Float32,
-                AllReduceAvgNCCL, "AllReduce_Avg_NCCL_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::AllReduceSum, AllReduceSumNCCL,
+                "AllReduce_Sum_NCCL_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::AllReduceProd, AllReduceProdNCCL,
+                "AllReduce_Prod_NCCL_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::AllReduceMin, AllReduceMinNCCL,
+                "AllReduce_Min_NCCL_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::AllReduceMax, AllReduceMaxNCCL,
+                "AllReduce_Max_NCCL_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::AllReduceAvg, AllReduceAvgNCCL,
+                "AllReduce_Avg_NCCL_CUDA");
 
 } // namespace infini
 #endif

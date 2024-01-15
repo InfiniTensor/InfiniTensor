@@ -7,7 +7,7 @@
 
 namespace infini {
 
-TEST(Where, ShapeInference) {
+TEST(WhereFp32, ShapeInference) {
     Runtime runtime = NativeCpuRuntimeObj::getInstance();
     {
         Graph g = make_ref<GraphObj>(runtime);
@@ -42,5 +42,39 @@ TEST(Where, ShapeInference) {
         EXPECT_EQ(op->getOutput()->getDims(), (Shape{2, 1, 12, 224, 224}));
     }
 }
-
+TEST(WhereFp16, ShapeInference) {
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    {
+        Graph g = make_ref<GraphObj>(runtime);
+        Tensor x = g->addTensor({2, 2}, DataType::Float16);
+        Tensor y = g->addTensor({2, 2}, DataType::Float16);
+        Tensor con = g->addTensor({2, 2}, DataType::Bool);
+        auto op = g->addOp<WhereObj>(x, y, con, nullptr);
+        EXPECT_EQ(op->getOutput()->getDims(), (Shape{2, 2}));
+    }
+    {
+        Graph g = make_ref<GraphObj>(runtime);
+        Tensor x = g->addTensor({1, 12, 224, 224}, DataType::Float16);
+        Tensor y = g->addTensor({1, 1, 224, 224}, DataType::Float16);
+        Tensor con = g->addTensor({1, 224, 1}, DataType::Bool);
+        auto op = g->addOp<WhereObj>(x, y, con, nullptr);
+        EXPECT_EQ(op->getOutput()->getDims(), (Shape{1, 12, 224, 224}));
+    }
+    {
+        Graph g = make_ref<GraphObj>(runtime);
+        Tensor x = g->addTensor({12, 224, 224}, DataType::Float16);
+        Tensor y = g->addTensor({1, 1, 224, 224}, DataType::Float16);
+        Tensor con = g->addTensor({1, 224}, DataType::Bool);
+        auto op = g->addOp<WhereObj>(x, y, con, nullptr);
+        EXPECT_EQ(op->getOutput()->getDims(), (Shape{1, 12, 224, 224}));
+    }
+    {
+        Graph g = make_ref<GraphObj>(runtime);
+        Tensor x = g->addTensor({12, 224, 224}, DataType::Float16);
+        Tensor y = g->addTensor({1, 1, 224, 224}, DataType::Float16);
+        Tensor con = g->addTensor({2, 1, 1, 1, 224}, DataType::Bool);
+        auto op = g->addOp<WhereObj>(x, y, con, nullptr);
+        EXPECT_EQ(op->getOutput()->getDims(), (Shape{2, 1, 12, 224, 224}));
+    }
+}
 } // namespace infini

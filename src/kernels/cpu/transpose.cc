@@ -14,9 +14,9 @@ inline Shape idx2Pos(const Shape &shape, size_t idx) {
     return pos;
 }
 
-template <typename T> class NaiveTranspose : public CpuKernelWithoutConfig {
-    void compute(const Operator &_op,
-                 const RuntimeObj *context) const override {
+class NaiveTranspose : public CpuKernelWithoutConfig {
+    template <typename T>
+    void doCompute(const Operator &_op, const RuntimeObj *context) const {
         auto op = as<TransposeObj>(_op);
         auto inputs = op->getInputs(), outputs = op->getOutputs();
         const auto &inDim = inputs[0]->getDims();
@@ -35,11 +35,26 @@ template <typename T> class NaiveTranspose : public CpuKernelWithoutConfig {
             outPtr[outIdx] = inPtr[inIdx];
         }
     }
+
+    void compute(const Operator &_op,
+                 const RuntimeObj *context) const override {
+#define CASE(N)                                                                \
+    case N:                                                                    \
+        doCompute<DT<N>::t>(_op, context)
+
+        int dataTypeIdx = _op->getDType().getIndex();
+        switch (dataTypeIdx) {
+            CASE(1); // DataType::Float32
+            break;
+            CASE(12); // DataType::UInt32
+            break;
+        default:
+            IT_TODO_HALT();
+        }
+    }
 };
 
-REGISTER_KERNEL(Device::CPU, OpType::Transpose, DataType::UInt32,
-                NaiveTranspose<uint32_t>, "TransposeNaive_CPU_uint32");
-REGISTER_KERNEL(Device::CPU, OpType::Transpose, DataType::Float32,
-                NaiveTranspose<float>, "TransposeNaive_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::Transpose, NaiveTranspose,
+                "TransposeNaive_CPU");
 
 } // namespace infini

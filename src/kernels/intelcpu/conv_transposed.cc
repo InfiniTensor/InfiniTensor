@@ -197,6 +197,7 @@ class MklConvTranspose : public Kernel {
 
     void compute(const Operator &op, const RuntimeObj *context) const override {
         auto record = make_ref<ConvTransposeMklPerfRecordObj>();
+        IT_ASSERT(op->getDType() == DataType::Float32);
         compute(op, record, context);
     }
 
@@ -244,7 +245,7 @@ class MklConvTranspose : public Kernel {
         return make_ref<ConvTransposeMklPerfRecordObj>(ret);
     }
 };
-REGISTER_KERNEL(Device::INTELCPU, OpType::ConvTranspose, DataType::Float32,
-                MklConvTranspose, "MklConvTrans_CPU_float32");
+REGISTER_KERNEL(Device::INTELCPU, OpType::ConvTranspose, MklConvTranspose,
+                "MklConvTrans_CPU");
 
 } // namespace infini

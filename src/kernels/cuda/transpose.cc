@@ -38,8 +38,9 @@ class TransposeCuda : public CudaKernelWithoutConfig {
             outputDims.data[i] = outputShape[i];
         }
 
-        transpose_kernel((float *)inputData, (float *)outputData, nDims, size,
-                         strides, outputDims);
+        const int dType = op->getDType().getIndex();
+        transpose_kernel(dType, inputData, outputData, nDims, size, strides,
+                         outputDims);
     }
 };
 
@@ -82,15 +83,16 @@ class DepthToSpaceCuda : public CudaKernelWithoutConfig {
         for (int i = 0; i < nDims; ++i) {
             outputDims.data[i] = transpose[i];
         }
-
-        transpose_kernel((float *)inputData, (float *)outputData, nDims, size,
-                         strides, outputDims);
+        const int dType = op->getDType().getIndex();
+        transpose_kernel(dType, inputData, outputData, nDims, size, strides,
+                         outputDims);
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Transpose, DataType::Float32,
-                TransposeCuda, "Transpose_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Transpose, TransposeCuda,
+                "Transpose_CUDA");
 
-REGISTER_KERNEL(Device::CUDA, OpType::DepthToSpace, DataType::Float32,
-                DepthToSpaceCuda, "DepthToSpace_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::DepthToSpace, DepthToSpaceCuda,
+                "DepthToSpace_CUDA");
+
 } // namespace infini

@@ -15,12 +15,23 @@ class GatherCuda : public CudaKernelWithoutConfig {
         GatherMetaData metaData;
         initGatherMetaData(metaData, op);
 
-        auto inData = input->getRawDataPtr<float *>();
-        auto outData = op->getOutput()->getRawDataPtr<float *>();
-        gather_kernel(inData, outData, metaData, op->getOutput()->size());
+        void *const inputData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const outputData = (op->getOutput()->getRawDataPtr<void *>());
+
+        if (op->getDType() == DataType::Float32) {
+            gather_kernel<float>((float *)inputData, (float *)outputData,
+                                 metaData, op->getOutput()->size());
+        } else if (op->getDType() == DataType::Float16) {
+            gather_kernel<half>((half *)inputData, (half *)outputData, metaData,
+                                op->getOutput()->size());
+        } else if (op->getDType() == DataType::Int8) {
+            gather_kernel<int8_t>((int8_t *)inputData, (int8_t *)outputData,
+                                  metaData, op->getOutput()->size());
+        } else {
+            IT_ASSERT(false);
+        }
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Gather, DataType::Float32, GatherCuda,
-                "Gather_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Gather, GatherCuda, "Gather_CUDA");
 } // namespace infini

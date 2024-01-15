@@ -93,6 +93,5 @@ class CastXdnn : public KUNLUNKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::KUNLUN, OpType::Cast, DataType::Float32, CastXdnn,
-                "Cast_xdnn_KUNLUN_Float32");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Cast, CastXdnn, "Cast_xdnn_KUNLUN");
 }; // namespace infini

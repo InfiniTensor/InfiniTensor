@@ -11,19 +11,12 @@ class CopyCuda : public CudaKernelWithoutConfig {
     }
 };
 // reshape/flatten/identity all act as copying from input to output.
-REGISTER_KERNEL(Device::CUDA, OpType::Reshape, DataType::Float32, CopyCuda,
-                "Reshape_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::Reshape, DataType::Int64, CopyCuda,
-                "Reshape_CUDA_Int64");
-REGISTER_KERNEL(Device::CUDA, OpType::Reshape, DataType::Int32, CopyCuda,
-                "Reshape_CUDA_Int32");
-REGISTER_KERNEL(Device::CUDA, OpType::Flatten, DataType::Float32, CopyCuda,
-                "Flatten_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::Squeeze, DataType::Float32, CopyCuda,
-                "Squeeze_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::Unsqueeze, DataType::Float32, CopyCuda,
-                "Unsqueeze_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::Identity, DataType::Float32, CopyCuda,
-                "Identity_CUDA_Float32");
+
+REGISTER_KERNEL(Device::CUDA, OpType::Reshape, CopyCuda, "Reshape_CUDA");
+
+REGISTER_KERNEL(Device::CUDA, OpType::Flatten, CopyCuda, "Flatten_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Identity, CopyCuda, "Identity_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Squeeze, CopyCuda, "Squeeze_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Unsqueeze, CopyCuda, "Unsqueeze_CUDA");
 
 } // namespace infini

@@ -7,6 +7,7 @@ class ConcatCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ConcatObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
         int num = op->numInputs();
         int axis = op->getDim();
@@ -50,6 +51,5 @@ class ConcatCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Concat, DataType::Float32, ConcatCnnl,
-                "Concat_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Concat, ConcatCnnl, "Concat_cnnl_BANG");
 }; // namespace infini

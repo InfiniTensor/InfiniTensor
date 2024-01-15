@@ -7,6 +7,7 @@ class MklSlice : public MklKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<SliceObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const MklRuntimeObj *>(_context);
 
         std::vector<dnnl_dim_t> dims;
@@ -41,6 +42,5 @@ class MklSlice : public MklKernelWithoutConfig {
                      {{DNNL_ARG_FROM, sliceMemory}, {DNNL_ARG_TO, output}});
     }
 };
-REGISTER_KERNEL(Device::INTELCPU, OpType::Slice, DataType::Float32, MklSlice,
-                "Slice_Mkl_Float32");
+REGISTER_KERNEL(Device::INTELCPU, OpType::Slice, MklSlice, "Slice_Mkl");
 } // namespace infini

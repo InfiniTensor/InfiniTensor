@@ -5,7 +5,7 @@
 
 namespace infini {
 
-void transpose_kernel(float *input, float *output, int nDims, int size,
+void transpose_kernel(int dType, void *input, void *output, int nDims, int size,
                       SmallArray strides, SmallArray outputShape);
 
 }; // namespace infini

@@ -40,8 +40,7 @@ class RecvNCCL : public CudaKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Recv, DataType::Float32, RecvNCCL,
-                "Recv_NCCL_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Recv, RecvNCCL, "Recv_NCCL_CUDA");
 } // namespace infini
 
 #endif
