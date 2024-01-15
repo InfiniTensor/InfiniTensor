@@ -7,6 +7,7 @@ class DropoutCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<DropoutObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const iData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -46,7 +47,6 @@ class DropoutCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Dropout, DataType::Float32, DropoutCnnl,
-                "Dropout_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Dropout, DropoutCnnl, "Dropout_cnnl_BANG_Float32");
 
 }; // namespace infini

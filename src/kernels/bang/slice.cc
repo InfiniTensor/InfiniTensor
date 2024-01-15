@@ -7,6 +7,7 @@ class SliceCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<SliceObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         auto starts = op->getStarts();
@@ -59,6 +60,6 @@ class SliceCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Slice, DataType::Float32, SliceCnnl,
+REGISTER_KERNEL(Device::BANG, OpType::Slice, SliceCnnl,
                 "Slice_cnnl_BANG_Float32");
 }; // namespace infini
