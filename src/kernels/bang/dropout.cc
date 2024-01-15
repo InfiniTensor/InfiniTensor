@@ -47,6 +47,7 @@ class DropoutCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Dropout, DropoutCnnl, "Dropout_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Dropout, DropoutCnnl,
+                "Dropout_cnnl_BANG_Float32");
 
 }; // namespace infini
