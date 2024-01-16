@@ -952,6 +952,8 @@ class OnnxStub:
                     size,
                 )
             elif node.op_type == "Dropout":
+                // HACK: Currently we only support model inference,
+                // so training_mode is set to false.
                 attributes = _parse_attribute(
                         node, {"ratio": 0.5, "training_mode": 0})
                 (ratio, training_mode) = (
