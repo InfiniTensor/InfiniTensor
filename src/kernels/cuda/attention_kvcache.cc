@@ -21,7 +21,8 @@ class AttentionKVCacheCompute {
   public:
     void do_compute(Tensor input_k_cache, Tensor input_v_cache, Tensor input_q,
                     Tensor input_k, Tensor input_v, Tensor position_id,
-                    Tensor output_matmul) const {
+                    Tensor output_matmul, Tensor output_temp_O,
+                    Tensor output_temp_sum) const {
         AttentionKVCacheMetadata metadata;
         initAttentionKVCacheMetadata(metadata, input_v_cache);
 
@@ -32,7 +33,9 @@ class AttentionKVCacheCompute {
                                  input_v->getRawDataPtr<float *>(),
                                  position_id->getRawDataPtr<int *>(),
                                  output_matmul->getRawDataPtr<float *>(),
-                                 metadata);
+                                 metadata,
+                                 output_temp_O->getRawDataPtr<float *>(),
+                                 output_temp_sum->getRawDataPtr<float *>());
     }
 };
 
@@ -41,10 +44,10 @@ class AttentionKVCacheCuda : private AttentionKVCacheCompute,
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         IT_ASSERT(_op->getDType() == DataType::Float32);
-        do_compute(_op->getInputs()[0], _op->getInputs()[1],
-                   _op->getInputs()[2], _op->getInputs()[3],
-                   _op->getInputs()[4], _op->getInputs()[5],
-                   _op->getOutputs()[0]);
+        do_compute(
+            _op->getInputs()[0], _op->getInputs()[1], _op->getInputs()[2],
+            _op->getInputs()[3], _op->getInputs()[4], _op->getInputs()[5],
+            _op->getOutputs()[0], _op->getOutputs()[1], _op->getOutputs()[2]);
     }
 };
 

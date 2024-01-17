@@ -22,18 +22,21 @@ class AttentionKVCacheObj : public OperatorObj {
      * @param input_v The value input tensor.
      * @param position_id The positon id of the query,
      * @param output_matmul The query output tensor.
+     * @param output_k_cache The output k_cache tensor.
+     * @param output_v_cache The output v_cache tensor.
      */
     AttentionKVCacheObj(GraphObj *graph, Tensor input_k_cache,
                         Tensor input_v_cache, Tensor input_q, Tensor input_k,
                         Tensor input_v, Tensor position_id,
-                        Tensor output_matmul);
+                        Tensor output_matmul, Tensor output_k_cache,
+                        Tensor output_v_cache);
     OP_CLONE(AttentionKVCacheObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
     int numInputs() const override { return 6; }
-    int numOutputs() const override { return 1; }
+    int numOutputs() const override { return 3; }
     int getDim() const { return dim; }
 
   private:

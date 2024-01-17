@@ -660,7 +660,7 @@ class OnnxStub:
                     next((attr.i for attr in node.attribute if attr.name == "axis")),
                 )
             elif node.op_type == "AttentionKVCache":
-                tensors[node.output[0]] = self.handler.attentionKVCache(
+                tensors[node.output[0]], tensors[node.output[1]], tensors[node.output[2]] = self.handler.attentionKVCache(
                     tensors[node.input[0]],
                     tensors[node.input[1]],
                     tensors[node.input[2]],
@@ -668,6 +668,8 @@ class OnnxStub:
                     tensors[node.input[4]],
                     tensors[node.input[5]],
                     tensors.get(node.output[0]),
+                    tensors.get(node.output[1]),
+                    tensors.get(node.output[2]),
                 )
             elif node.op_type == "Split":
                 split = (

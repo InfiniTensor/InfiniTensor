@@ -67,8 +67,10 @@ bool OperatorObj::checkValid(GraphObj *graph) {
     if (graph) { // if graph != nullptr, outputs should be created
         auto dataTypes = inferDataType();
         for (size_t i = 0; i < outputs.size(); i++) {
-            IT_ASSERT(!outputs[i], "Find empty output while operator creation");
-            outputs[i] = graph->addTensor(shapes[i], dataTypes[i]);
+            if (!outputs[i])
+                outputs[i] = graph->addTensor(shapes[i], dataTypes[i]);
+            else if (shapes[i] != outputs[i]->getDims())
+                return false;
         }
     } else { // if outputs have been created, check their shapes
         for (size_t i = 0; i < shapes.size(); ++i) {
