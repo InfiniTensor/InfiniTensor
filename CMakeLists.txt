@@ -245,7 +245,6 @@ if(USE_BANG)
   find_library(CAMBRICON_CNNL libcnnl.so "${NEUWARE_HOME}/lib64")
   find_library(CAMBRICON_CNRT libcnrt.so "${NEUWARE_HOME}/lib64")
   find_library(CAMBRICON_CNDRV libcndrv.so "${NEUWARE_HOME}/lib64")
-  find_library(CAMBRICON_CNCL libcncl.so "${NEUWARE_HOME}/lib64")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lstdc++ -Wall -Werror")
 
   if ((NOT DEFINED TARGET_CPU_ARCH) AND (NOT DEFINED ENV{TARGET_CPU_ARCH}))
@@ -265,6 +264,7 @@ if(USE_BANG)
   target_link_libraries(InfiniTensor ${CAMBRICON_CNCL} ${CAMBRICON_CNNL} ${CAMBRICON_CNRT} ${CAMBRICON_CNDRV} stdc++)
   if (BUILD_DIST)
     message(STATUS "Add BUILD_DIST, use CNCL with BANG")
+    find_library(CAMBRICON_CNCL libcncl.so "${NEUWARE_HOME}/lib64")
     
     add_compile_definitions(INFINI_USE_CNCL=1)
     

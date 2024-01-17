@@ -10,6 +10,7 @@ class AllReduceCNCL : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<AllReduceBaseObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
         void *input = op->getInputs(0)->getRawDataPtr<void *>();
         void *output = op->getOutput()->getRawDataPtr<void *>();
@@ -41,13 +42,13 @@ class AllReduceMaxCNCL : public AllReduceCNCL {
     cnclReduceOp_t getRedOp() const override { return cnclMax; }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::AllReduceSum, DataType::Float32,
-                AllReduceSumCNCL, "AllReduce_Sum_CNCL_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::AllReduceProd, DataType::Float32,
-                AllReduceProdCNCL, "AllReduce_Prod_CNCL_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::AllReduceMin, DataType::Float32,
-                AllReduceMinCNCL, "AllReduce_Min_CNCL_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::AllReduceMax, DataType::Float32,
-                AllReduceMaxCNCL, "AllReduce_Max_CNCL_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::AllReduceSum, AllReduceSumCNCL,
+                "AllReduce_Sum_CNCL_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::AllReduceProd, AllReduceProdCNCL,
+                "AllReduce_Prod_CNCL_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::AllReduceMin, AllReduceMinCNCL,
+                "AllReduce_Min_CNCL_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::AllReduceMax, AllReduceMaxCNCL,
+                "AllReduce_Max_CNCL_BANG_Float32");
 } // namespace infini
 #endif

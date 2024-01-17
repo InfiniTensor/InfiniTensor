@@ -24,8 +24,9 @@ class GatherCnnl : public BangKernelWithoutConfig {
                                                CNNL_DTYPE_FLOAT, aDim.size(),
                                                aDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
-        checkCnnlError(
-            cnnlSetTensorDescriptorPointerMode(bDesc, CNNL_POINTER_MODE_HOST));
+        // checkCnnlError(
+        //     cnnlSetTensorDescriptorPointerMode(bDesc,
+        //     CNNL_POINTER_MODE_HOST));
         checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_ARRAY,
                                                CNNL_DTYPE_INT32, bDim.size(),
                                                bDim.data()));
@@ -40,7 +41,8 @@ class GatherCnnl : public BangKernelWithoutConfig {
         auto axis = op->getAxis();
         cnnlStatus_t stat =
             cnnlGatherV2(context->cnnlHandle(), axis, aDesc, aData,
-                         (int *)wsData, bDesc, (int *)bData, cDesc, cData);
+                         reinterpret_cast<const int *>(wsData), bDesc,
+                         reinterpret_cast<const int *>(bData), cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
