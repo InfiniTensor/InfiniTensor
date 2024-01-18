@@ -7,6 +7,7 @@ class MklBatchNorm : public MklKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<BatchNormObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const MklRuntimeObj *>(_context);
 
         float *const srcData = op->getInputs(0)->getRawDataPtr<float *>();
@@ -63,6 +64,6 @@ class MklBatchNorm : public MklKernelWithoutConfig {
                                    {DNNL_ARG_SHIFT, baisMemory}});
     }
 };
-REGISTER_KERNEL(Device::INTELCPU, OpType::BatchNormalization, DataType::Float32,
-                MklBatchNorm, "BatchNorm_Mkl_Float32");
+REGISTER_KERNEL(Device::INTELCPU, OpType::BatchNormalization, MklBatchNorm,
+                "BatchNorm_Mkl");
 }; // namespace infini

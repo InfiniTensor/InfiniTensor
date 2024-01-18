@@ -6,8 +6,10 @@ namespace infini {
 
 OperatorObj::OperatorObj(OpType opType, TensorVec inputs, TensorVec outputs)
     : type(opType), inputs(inputs), outputs(outputs) {
-    for (const auto &t : inputs)
-        IT_ASSERT(t);
+    if (opType != OpType::Recv) {
+        for (const auto &t : inputs)
+            IT_ASSERT(t);
+    }
 }
 
 void OperatorObj::removePredecessors(const Operator &op) {
@@ -77,9 +79,7 @@ bool OperatorObj::checkValid(GraphObj *graph) {
     return true;
 }
 
-optional<vector<Shape>> OperatorObj::inferShape() const {
-    return inferShape(inputs);
-}
+optional<vector<Shape>> OperatorObj::inferShape() { return inferShape(inputs); }
 
 vector<DataType> OperatorObj::inferDataType(const TensorVec &inputs) const {
     auto dataType = inputs[0]->getDType();

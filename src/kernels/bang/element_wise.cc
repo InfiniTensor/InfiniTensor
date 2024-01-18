@@ -11,6 +11,7 @@ class ElementWiseCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -21,6 +22,13 @@ class ElementWiseCnnl : public BangKernelWithoutConfig {
         auto a_dim = op->getInputs(0)->getDims();
         auto b_dim = op->getInputs(1)->getDims();
         auto c_dim = op->getOutput()->getDims();
+        if (a_dim.size() == 0) {
+            a_dim.push_back(1);
+        }
+
+        if (b_dim.size() == 0) {
+            b_dim.push_back(1);
+        }
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
@@ -67,6 +75,7 @@ class LogicOpCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -77,6 +86,13 @@ class LogicOpCnnl : public BangKernelWithoutConfig {
         auto a_dim = op->getInputs(0)->getDims();
         auto b_dim = op->getInputs(1)->getDims();
         auto c_dim = op->getOutput()->getDims();
+        if (a_dim.size() == 0) {
+            a_dim.push_back(1);
+        }
+
+        if (b_dim.size() == 0) {
+            b_dim.push_back(1);
+        }
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
@@ -113,6 +129,7 @@ class BitComputeCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -123,6 +140,13 @@ class BitComputeCnnl : public BangKernelWithoutConfig {
         auto a_dim = op->getInputs(0)->getDims();
         auto b_dim = op->getInputs(1)->getDims();
         auto c_dim = op->getOutput()->getDims();
+        if (a_dim.size() == 0) {
+            a_dim.push_back(1);
+        }
+
+        if (b_dim.size() == 0) {
+            b_dim.push_back(1);
+        }
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
@@ -158,6 +182,7 @@ class DivCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -168,6 +193,13 @@ class DivCnnl : public BangKernelWithoutConfig {
         auto a_dim = op->getInputs(0)->getDims();
         auto b_dim = op->getInputs(1)->getDims();
         auto c_dim = op->getOutput()->getDims();
+        if (a_dim.size() == 0) {
+            a_dim.push_back(1);
+        }
+
+        if (b_dim.size() == 0) {
+            b_dim.push_back(1);
+        }
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
@@ -203,6 +235,7 @@ class MaximumCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -213,6 +246,13 @@ class MaximumCnnl : public BangKernelWithoutConfig {
         auto a_dim = op->getInputs(0)->getDims();
         auto b_dim = op->getInputs(1)->getDims();
         auto c_dim = op->getOutput()->getDims();
+        if (a_dim.size() == 0) {
+            a_dim.push_back(1);
+        }
+
+        if (b_dim.size() == 0) {
+            b_dim.push_back(1);
+        }
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
@@ -247,6 +287,7 @@ class MinimumCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -257,6 +298,13 @@ class MinimumCnnl : public BangKernelWithoutConfig {
         auto a_dim = op->getInputs(0)->getDims();
         auto b_dim = op->getInputs(1)->getDims();
         auto c_dim = op->getOutput()->getDims();
+        if (a_dim.size() == 0) {
+            a_dim.push_back(1);
+        }
+
+        if (b_dim.size() == 0) {
+            b_dim.push_back(1);
+        }
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
@@ -291,6 +339,7 @@ class MSELossCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<MSELossObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -301,6 +350,13 @@ class MSELossCnnl : public BangKernelWithoutConfig {
         auto a_dim = op->getInputs(0)->getDims();
         auto b_dim = op->getInputs(1)->getDims();
         auto c_dim = op->getOutput()->getDims();
+        if (a_dim.size() == 0) {
+            a_dim.push_back(1);
+        }
+
+        if (b_dim.size() == 0) {
+            b_dim.push_back(1);
+        }
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
@@ -340,6 +396,7 @@ class PowerCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -350,6 +407,14 @@ class PowerCnnl : public BangKernelWithoutConfig {
         auto a_dim = op->getInputs(0)->getDims();
         auto b_dim = op->getInputs(1)->getDims();
         auto c_dim = op->getOutput()->getDims();
+
+        if (a_dim.size() == 0) {
+            a_dim.push_back(1);
+        }
+
+        if (b_dim.size() == 0) {
+            b_dim.push_back(1);
+        }
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
@@ -385,6 +450,7 @@ class FloorDivCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -395,6 +461,13 @@ class FloorDivCnnl : public BangKernelWithoutConfig {
         auto a_dim = op->getInputs(0)->getDims();
         auto b_dim = op->getInputs(1)->getDims();
         auto c_dim = op->getOutput()->getDims();
+        if (a_dim.size() == 0) {
+            a_dim.push_back(1);
+        }
+
+        if (b_dim.size() == 0) {
+            b_dim.push_back(1);
+        }
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
@@ -430,6 +503,7 @@ class FloorModCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -440,6 +514,13 @@ class FloorModCnnl : public BangKernelWithoutConfig {
         auto a_dim = op->getInputs(0)->getDims();
         auto b_dim = op->getInputs(1)->getDims();
         auto c_dim = op->getOutput()->getDims();
+        if (a_dim.size() == 0) {
+            a_dim.push_back(1);
+        }
+
+        if (b_dim.size() == 0) {
+            b_dim.push_back(1);
+        }
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
@@ -475,6 +556,7 @@ class SquaredDifferenceCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -485,6 +567,13 @@ class SquaredDifferenceCnnl : public BangKernelWithoutConfig {
         auto a_dim = op->getInputs(0)->getDims();
         auto b_dim = op->getInputs(1)->getDims();
         auto c_dim = op->getOutput()->getDims();
+        if (a_dim.size() == 0) {
+            a_dim.push_back(1);
+        }
+
+        if (b_dim.size() == 0) {
+            b_dim.push_back(1);
+        }
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
@@ -580,62 +669,48 @@ class BitNotCnnl : public BitComputeCnnl {
 //     CNNL_BLEFT_SHIFT_OP_V2; }
 // };
 
-REGISTER_KERNEL(Device::BANG, OpType::Add, DataType::Float32, AddCnnl,
-                "Add_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Sub, DataType::Float32, SubCnnl,
-                "Sub_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Mul, DataType::Float32, MulCnnl,
-                "Mul_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Add, AddCnnl, "Add_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Sub, SubCnnl, "Sub_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Mul, MulCnnl, "Mul_cnnl_BANG");
 
-REGISTER_KERNEL(Device::BANG, OpType::Div, DataType::Float32, DivCnnl,
-                "Div_cnnl_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Max, DataType::Float32, MaximumCnnl,
-                "Maximum_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Min, DataType::Float32, MinimumCnnl,
-                "Minimum_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::MSELoss, DataType::Float32, MSELossCnnl,
-                "MSELoss_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Pow, DataType::Float32, PowerCnnl,
-                "Power_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::FloorDiv, DataType::Float32, FloorDivCnnl,
-                "FloorDiv_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::FloorMod, DataType::Float32, FloorModCnnl,
-                "FloorMod_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::SquaredDifference, DataType::Float32,
-                SquaredDifferenceCnnl, "SquaredDifference_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Equal, DataType::Float32, EqualCnnl,
-                "Equal_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Greater, DataType::Float32,
-                GreaterThanCnnl, "GreaterThan_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::GreaterOrEqual, DataType::Float32,
-                GreaterEqualCnnl, "GreaterEqual_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Less, DataType::Float32, LessThanCnnl,
-                "LessThan_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::LessOrEqual, DataType::Float32,
-                LessEqualCnnl, "LessEqual_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::And, DataType::Float32, AndCnnl,
-                "And_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Or, DataType::Float32, OrCnnl,
-                "Or_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Xor, DataType::Float32, XorCnnl,
-                "Xor_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Not, DataType::Float32, NotCnnl,
-                "Not_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::BitwiseAnd, DataType::Float32, BitAndCnnl,
-                "BitAnd_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::BitwiseOr, DataType::Float32, BitOrCnnl,
-                "BitOr_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::BitwiseXor, DataType::Float32, BitXorCnnl,
-                "BitXor_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::BitwiseNot, DataType::Float32, BitNotCnnl,
-                "BitNot_cnnl_BANG_Float32");
-// REGISTER_KERNEL(Device::BANG, OpType::BitLeftShift, DataType::Float32,
+REGISTER_KERNEL(Device::BANG, OpType::Div, DivCnnl, "Div_cnnl");
+REGISTER_KERNEL(Device::BANG, OpType::Max, MaximumCnnl, "Maximum_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Min, MinimumCnnl, "Minimum_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::MSELoss, MSELossCnnl,
+                "MSELoss_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Pow, PowerCnnl, "Power_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::FloorDiv, FloorDivCnnl,
+                "FloorDiv_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::FloorMod, FloorModCnnl,
+                "FloorMod_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::SquaredDifference, SquaredDifferenceCnnl,
+                "SquaredDifference_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Equal, EqualCnnl, "Equal_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Greater, GreaterThanCnnl,
+                "GreaterThan_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::GreaterOrEqual, GreaterEqualCnnl,
+                "GreaterEqual_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Less, LessThanCnnl, "LessThan_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::LessOrEqual, LessEqualCnnl,
+                "LessEqual_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::And, AndCnnl, "And_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Or, OrCnnl, "Or_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Xor, XorCnnl, "Xor_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Not, NotCnnl, "Not_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::BitwiseAnd, BitAndCnnl,
+                "BitAnd_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::BitwiseOr, BitOrCnnl, "BitOr_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::BitwiseXor, BitXorCnnl,
+                "BitXor_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::BitwiseNot, BitNotCnnl,
+                "BitNot_cnnl_BANG");
+// REGISTER_KERNEL(Device::BANG, OpType::BitLeftShift,
 // BitLeftShiftCnnl,
-//                 "BitLeftShift_cnnl_BANG_Float32");
-// REGISTER_KERNEL(Device::BANG, OpType::BitRightShift, DataType::Float32,
+//                 "BitLeftShift_cnnl_BANG");
+// REGISTER_KERNEL(Device::BANG, OpType::BitRightShift,
 // BitRightShiftCnnl,
-//                 "BitRightShift_cnnl_BANG_Float32");
-// REGISTER_KERNEL(Device::BANG, OpType::Pow, DataType::Float32,
+//                 "BitRightShift_cnnl_BANG");
+// REGISTER_KERNEL(Device::BANG, OpType::Pow,
 // ElementWiseBang,
-//                 "Pow_Bang_Float32");
+//                 "Pow_Bang");
 }; // namespace infini

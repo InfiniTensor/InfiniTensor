@@ -25,6 +25,7 @@ struct OpType {
         Asinh,              // Unary
         Atan,               // Unary
         Atanh,              // Unary
+        AttentionKVCache,   // Fusion
         AveragePool,        // Pool
         BatchNormalization, //
         Bernoulli,          //
@@ -231,6 +232,8 @@ struct OpType {
         AllReduceAvg,
         AllGather,
         Broadcast,
+        Send,
+        Recv,
     } type;
 
     constexpr OpType(decltype(type) t) : type(t) {}

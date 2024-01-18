@@ -7,6 +7,7 @@ class SplitXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<SplitObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
         int axis = op->getDim();
         int num = op->numOutputs();
@@ -22,9 +23,6 @@ class SplitXdnn : public KUNLUNKernelWithoutConfig {
         std::vector<int> splitList;
         for (int i = 0; i < num; ++i) {
             auto dim = op->getOutput(i)->getDims();
-            if (dim.size() != 4) {
-                IT_TODO_HALT();
-            }
             splitList.push_back(dim[axis]);
         }
 
@@ -36,6 +34,5 @@ class SplitXdnn : public KUNLUNKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::KUNLUN, OpType::Split, DataType::Float32, SplitXdnn,
-                "Split_xdnn_KUNLUN_Float32");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Split, SplitXdnn, "Split_xdnn_KUNLUN");
 }; // namespace infini

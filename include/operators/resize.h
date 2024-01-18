@@ -27,6 +27,60 @@ class ResizeObj : public OperatorObj {
     enum class EKeepAspectRatioPolicy { stretch, notLarger, notSmaller, none };
     enum class ECoeffMode { nearest, linear, cubic };
 
+    static ECoordinateTransMode fromECoordinateTransModeStr(string mode) {
+        if (mode == "half_pixel") {
+            return ECoordinateTransMode::halfPixel;
+        } else if (mode == "asymmetric") {
+            return ECoordinateTransMode::asymmetric;
+        } else if (mode == "align_corners") {
+            return ECoordinateTransMode::alignCorners;
+        } else if (mode == "pytorch_half_pixel") {
+            return ECoordinateTransMode::pytorchHalfPixel;
+        } else if (mode == "tf_crop_and_resize") {
+            return ECoordinateTransMode::tfCropAndResize;
+        } else {
+            IT_TODO_HALT();
+        }
+    }
+
+    static ENearestMode fromENearestModeStr(string mode) {
+        if (mode == "round_prefer_floor") {
+            return ENearestMode::roundPreferFloor;
+        } else if (mode == "round_prefer_ceil") {
+            return ENearestMode::roundPreferCeil;
+        } else if (mode == "floor") {
+            return ENearestMode::floor;
+        } else if (mode == "ceil") {
+            return ENearestMode::ceil;
+        } else {
+            return ENearestMode::none;
+        }
+    }
+
+    static EKeepAspectRatioPolicy fromRatioPolicyStr(string ratioPolicyStr) {
+        if (ratioPolicyStr == "stretch") {
+            return EKeepAspectRatioPolicy::stretch;
+        } else if (ratioPolicyStr == "not_larger") {
+            return EKeepAspectRatioPolicy::notLarger;
+        } else if (ratioPolicyStr == "not_smaller") {
+            return EKeepAspectRatioPolicy::notSmaller;
+        } else {
+            return EKeepAspectRatioPolicy::none;
+        }
+    }
+
+    static ECoeffMode fromECoeffModeStr(string mode) {
+        if (mode == "nearest") {
+            return ECoeffMode::nearest;
+        } else if (mode == "linear") {
+            return ECoeffMode::linear;
+        } else if (mode == "cubic") {
+            return ECoeffMode::cubic;
+        } else {
+            IT_TODO_HALT();
+        }
+    }
+
   private:
     vector<int> axes;
     vector<float> scales;
@@ -60,7 +114,7 @@ class ResizeObj : public OperatorObj {
 
     // Operator clone(TensorVec inputs, TensorVec outputs) override;
     vector<DataType> inferDataType(const TensorVec &inputs) const override;
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
     std::string toString() const override;
     int numInputs() const override { return inputs.size(); }
     int numOutputs() const override { return 1; }

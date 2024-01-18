@@ -38,12 +38,61 @@ class TransposeCuda : public CudaKernelWithoutConfig {
             outputDims.data[i] = outputShape[i];
         }
 
-        transpose_kernel((float *)inputData, (float *)outputData, nDims, size,
-                         strides, outputDims);
+        const int dType = op->getDType().getIndex();
+        transpose_kernel(dType, inputData, outputData, nDims, size, strides,
+                         outputDims);
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Transpose, DataType::Float32,
-                TransposeCuda, "Transpose_CUDA_Float32");
+class DepthToSpaceCuda : public CudaKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<DepthToSpaceObj>(_op);
+
+        auto input = op->getInputs(0);
+        auto output = op->getOutput();
+        void *const inputData = input->getRawDataPtr<void *>();
+        void *const outputData = output->getRawDataPtr<void *>();
+        const auto &reshape = op->getReshapeDim();
+        const auto &transpose = op->getTransposeDim();
+        auto mode = op->getMode();
+
+        std::vector<int> perm;
+        if (mode == 0) {
+            perm = {0, 3, 4, 1, 5, 2};
+        } else {
+            perm = {0, 1, 4, 2, 5, 3};
+        }
+
+        int size = input->size();
+        int nDims = reshape.size();
+
+        // Compute strides
+        SmallArray strides, buffer;
+        IT_ASSERT(nDims <= SMALL_ARRAY_SIZE);
+        int curStride = 1;
+        for (int i = nDims - 1; i >= 0; --i) {
+            buffer.data[i] = curStride;
+            curStride *= reshape[i];
+        }
+        for (int i = 0; i < nDims; ++i) {
+            strides.data[i] = buffer.data[perm[i]];
+        }
+
+        SmallArray outputDims;
+        for (int i = 0; i < nDims; ++i) {
+            outputDims.data[i] = transpose[i];
+        }
+        const int dType = op->getDType().getIndex();
+        transpose_kernel(dType, inputData, outputData, nDims, size, strides,
+                         outputDims);
+    }
+};
+
+REGISTER_KERNEL(Device::CUDA, OpType::Transpose, TransposeCuda,
+                "Transpose_CUDA");
+
+REGISTER_KERNEL(Device::CUDA, OpType::DepthToSpace, DepthToSpaceCuda,
+                "DepthToSpace_CUDA");
 
 } // namespace infini

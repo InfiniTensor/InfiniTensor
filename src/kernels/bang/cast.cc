@@ -212,7 +212,6 @@ class CastCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Cast, DataType::Float32, CastCnnl,
-                "Cast_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Cast, CastCnnl, "Cast_cnnl_BANG");
 
 }; // namespace infini

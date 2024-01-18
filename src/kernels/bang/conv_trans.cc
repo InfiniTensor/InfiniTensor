@@ -7,6 +7,7 @@ class ConvTransCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ConvBaseObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         const auto [ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
@@ -39,24 +40,17 @@ class ConvTransCnnl : public BangKernelWithoutConfig {
         if (dimOutput.size() != 4)
             IT_TODO_HALT();
 
-        int inputs0[4] = {dimInputs0[0], dimInputs0[1], dimInputs0[2],
-                          dimInputs0[3]};
-        int inputs1[4] = {dimInputs1[0], dimInputs1[1], dimInputs1[2],
-                          dimInputs1[3]};
-        int output[4] = {dimOutput[0], dimOutput[1], dimOutput[2],
-                         dimOutput[3]};
-
         // get inputs
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, inputs0));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, dimInputs0.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, inputs1));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            bDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, dimInputs1.data()));
         // get outputs
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, output));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, dimOutput.data()));
 
         cnnlConvolutionBwdDataAlgo_t algo;
         cnnlGetConvolutionBackwardDataAlgorithm(
@@ -64,12 +58,12 @@ class ConvTransCnnl : public BangKernelWithoutConfig {
             CNNL_CONVOLUTION_BWD_DATA_FASTEST, &algo);
         size_t wsSize;
         cnnlGetConvolutionBackwardDataWorkspaceSize(context->cnnlHandle(),
-                                                    aDesc, bDesc, convDesc,
+                                                    bDesc, aDesc, convDesc,
                                                     cDesc, algo, &wsSize);
         BangPtr wsData = context->getWorkspace(wsSize);
 
         cnnlStatus_t stat = cnnlConvolutionBackwardData(
-            context->cnnlHandle(), NULL, aDesc, aData, bDesc, bData, convDesc,
+            context->cnnlHandle(), NULL, bDesc, bData, aDesc, aData, convDesc,
             algo, wsData, wsSize, NULL, cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
@@ -83,6 +77,6 @@ class ConvTransCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::ConvTranspose, DataType::Float32,
-                ConvTransCnnl, "ConvTrans_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::ConvTranspose, ConvTransCnnl,
+                "ConvTrans_cnnl_BANG");
 }; // namespace infini

@@ -11,6 +11,7 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
     vinfo = {info.name: info for info in model.graph.value_info}
     vinfo.update({info.name: info for info in model.graph.input})
     vinfo.update({info.name: info for info in model.graph.output})
+    output = {info.name: info for info in model.graph.output}
     place: Dict[str, Placement] = {}
     nodes: List[NodeProto] = []
 
@@ -56,7 +57,7 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
         ndim = len(vinfo[output].type.tensor_type.shape.dim)
         out_plc = Shard(ndim - 1) if in_plc.is_replicate() else _Partial()
         place[node.output[0]] = out_plc
-        
+
     def shard_concat(node: NodeProto):
         # hack for kvcache
         in_plc = place[node.input[1]]
@@ -114,7 +115,7 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
         assert out_dims[s_dim] % tp_world_size == 0, out_dims
         out_dims[s_dim] //= tp_world_size
         # if ONNX uses the same tensor for multiple Reshape Nodes, then rename it to distingush from others.
-        # node.input[1] = node.output[0] + "_shape"
+        node.input[1] = node.output[0] + "_shape"
         data[node.input[1]] = numpy_helper.from_array(out_dims, name=node.input[1])
         place[node.output[0]] = Shard(s_dim)
 
@@ -136,7 +137,7 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
             place[node.output[0]] = Shard(list(perm).index(plc.dim))
 
     def shard_node(node: NodeProto):
-        if node.op_type in ["Relu", "Tanh", "Softmax"]:
+        if node.op_type in ["Relu", "Tanh", "Softmax", "Cast"]:
             place[node.output[0]] = place[node.input[0]]
         elif node.op_type in ["Where"]:
             place[node.output[0]] = place[node.input[1]]
@@ -154,7 +155,7 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
             ), f"{place[node.input[0]]} != {place[node.input[1]]}"
             place[node.output[0]] = place[node.input[0]]
         elif node.op_type == "Concat":
-            shard_concat(node)            
+            shard_concat(node)
 
     def find_successor(op_type: str, idx: int, search_limit: int = 1):
         for node in model.graph.node[idx + 1 : idx + 1 + search_limit]:
@@ -175,6 +176,16 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
         if (node.op_type == "MatMul" or node.op_type == "Gemm") and any(
             input in data for input in node.input
         ):
+            # FIXME(constroy): the last MatMul should not be sharded as TP.
+            if (
+                node.output[0] in output
+                or (
+                    index + 1 < len(model.graph.node)
+                    and model.graph.node[index + 1].output[0]
+                )
+                in output
+            ):
+                continue
             groups = 1
             # If the Gemm or Matmul is followed by a split, then the inputs are concatinated by groups
             split_node = find_successor("Split", index, search_limit=2)
@@ -218,7 +229,7 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
     new_input = []
     for info in model.graph.input:
         new_input.append(vinfo[info.name])
-    
+
     graph = helper.make_graph(
         nodes,
         model.graph.name + f"_{tp_rank}",

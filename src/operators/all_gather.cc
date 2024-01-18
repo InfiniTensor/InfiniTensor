@@ -10,8 +10,7 @@ AllGatherObj::AllGatherObj(GraphObj *graph, Tensor input,
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>>
-AllGatherObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> AllGatherObj::inferShape(const TensorVec &inputs) {
     Shape input_shape = inputs[0]->getDims();
     vector<Shape> output_shapes(getWorldSize(), input_shape);
     return output_shapes;

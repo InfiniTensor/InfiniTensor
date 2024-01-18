@@ -43,21 +43,26 @@ SliceObj::SliceObj(GraphObj *graph, Tensor input, Tensor output,
 
     auto size = shape.size();
     this->axes.reserve(size);
-    for (size_t i = 0; i < size; ++i)
+    for (size_t i = 0; i < size; ++i) {
+        auto len = shape[i];
         if (auto _i = axes.find(i); _i != axes.end()) {
             auto __i = _i->second;
             auto start = starts[__i];
             auto end = ends[__i];
-            this->axes.push_back({start >= 0 ? start : start + shape[__i],
-                                  end >= 0 ? end : end + shape[__i],
-                                  steps[__i]});
+            if (start > len)
+                start = len;
+            if (end > len)
+                end = len;
+            this->axes.push_back({start >= 0 ? start : start + len,
+                                  end >= 0 ? end : end + len, steps[__i]});
         } else {
-            this->axes.push_back({0, shape[i], 1});
+            this->axes.push_back({0, len, 1});
         }
+    }
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> SliceObj::inferShape(const TensorVec &inputs) const {
+optional<vector<Shape>> SliceObj::inferShape(const TensorVec &inputs) {
     Shape ans;
     ans.reserve(axes.size());
     for (const auto &range : axes) {

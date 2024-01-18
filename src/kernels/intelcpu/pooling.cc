@@ -9,6 +9,7 @@ class MklPooling : public MklKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<PoolingObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const MklRuntimeObj *>(_context);
 
         float *const srcData = op->getInputs(0)->getRawDataPtr<float *>();
@@ -77,8 +78,7 @@ class MklMaxPool : public MklPooling {
     }
 };
 
-REGISTER_KERNEL(Device::INTELCPU, OpType::AveragePool, DataType::Float32,
-                MklAvgPool, "AvgPool_Mkl_Float32");
-REGISTER_KERNEL(Device::INTELCPU, OpType::MaxPool, DataType::Float32,
-                MklMaxPool, "MaxPool_Mkl_Float32");
+REGISTER_KERNEL(Device::INTELCPU, OpType::AveragePool, MklAvgPool,
+                "AvgPool_Mkl");
+REGISTER_KERNEL(Device::INTELCPU, OpType::MaxPool, MklMaxPool, "MaxPool_Mkl");
 } // namespace infini

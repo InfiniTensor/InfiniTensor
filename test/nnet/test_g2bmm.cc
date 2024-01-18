@@ -36,10 +36,8 @@ TEST(GBMM, RuleBased) {
     } else {
         derivator.search(dialted_g2bmm, 0);
     }
-
     ASSERT_GE(derivator.getNumCandidates(), 1);
-    int nMatches =
-        matchExprResult(derivator, "../test/nnet/log/gbmm/GBMM_9.expr");
+    int nMatches = matchExprResult(derivator, "test/nnet/log/gbmm/GBMM_9.expr");
     EXPECT_GE(nMatches, 1);
     derivator.print();
     derivator.printStatistics();
@@ -78,7 +76,7 @@ TEST(G2BMM, RuleBased) {
 
     ASSERT_GE(derivator.getNumCandidates(), 1);
     int nMatches =
-        matchExprResult(derivator, "../test/nnet/log/g2bmm/G2BMM_9.expr");
+        matchExprResult(derivator, "test/nnet/log/g2bmm/G2BMM_9.expr");
     EXPECT_GE(nMatches, 1);
     derivator.print();
     derivator.printStatistics();

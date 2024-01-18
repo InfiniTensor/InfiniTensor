@@ -1,6 +1,6 @@
+#include "operators/reduce.h"
 #include "intelcpu/mkl_kernel_without_config.h"
 #include "intelcpu/mkl_runtime.h"
-#include "operators/reduce_mean.h"
 
 namespace infini {
 class MklReduce : public MklKernelWithoutConfig {
@@ -11,6 +11,7 @@ class MklReduce : public MklKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ReduceMeanObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const MklRuntimeObj *>(_context);
 
         float *const srcData = op->getInputs(0)->getRawDataPtr<float *>();
@@ -64,6 +65,6 @@ class MklReduce : public MklKernelWithoutConfig {
             {{DNNL_ARG_SRC, srcMemory}, {DNNL_ARG_DST, output}});
     }
 };
-REGISTER_KERNEL(Device::INTELCPU, OpType::ReduceMean, DataType::Float32,
-                MklReduce, "ReduceMean_Mkl_Float32");
+REGISTER_KERNEL(Device::INTELCPU, OpType::ReduceMean, MklReduce,
+                "ReduceMean_Mkl");
 }; // namespace infini

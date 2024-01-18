@@ -30,6 +30,8 @@ class GraphHandlerObj {
     Tensor batchNormalization(Tensor input, Tensor output, Tensor mean,
                               Tensor var, Tensor scale, Tensor bias,
                               float momentum, float eps, bool training);
+    Tensor layerNormalization(Tensor input, Tensor scale, Tensor output,
+                              Tensor bias, float eps, int axis, int stash_type);
 
     Tensor maxPool(Tensor input, Tensor output, int kh, int kw, int dh, int dw,
                    int ph, int pw, int sh, int sw, int ceilMode);
@@ -63,13 +65,26 @@ class GraphHandlerObj {
                 std::optional<float> max);
     Tensor transpose(Tensor data, Tensor transposed, Shape perm);
     Tensor reshape(Tensor data, Tensor reshaped, Shape shape);
+    Tensor resize(Tensor input, Tensor output,
+                  const std::optional<vector<int>> &axes, Tensor sizes,
+                  Tensor scales, Tensor roi, vector<uint32_t> sizes_,
+                  vector<float> scales_, vector<float> roi_, string mode,
+                  string ratioPolicy, string nearestMode,
+                  string coordTransMode);
+    Tensor squeeze(Tensor input, Tensor output, Shape axes);
+    Tensor unsqueeze(Tensor input, Tensor output, Shape axes);
     Tensor concat(TensorVec inputs, Tensor output, int dim);
+    Tensor attentionKVCache(Tensor input_k_cache, Tensor input_v_cache,
+                            Tensor input_q, Tensor input_k, Tensor input_v,
+                            Tensor position_id, Tensor output_matmul);
     TensorVec split(Tensor input, std::optional<TensorVec> outputs, int axis,
-                    int num_outputs);
+                    std::variant<int, vector<int>> numOrRatio);
     Tensor gather(Tensor data, Tensor indices, Tensor output, int axis);
     Tensor gatherElements(Tensor data, Tensor indices, Tensor output, int axis);
     Tensor reduceMean(Tensor data, Tensor reduced,
                       const optional<vector<int>> &axes, bool keepdims);
+    Tensor reduceSum(Tensor data, Tensor reduced,
+                     const optional<vector<int>> &axes, bool keepdims);
     Tensor slice(Tensor input, Tensor output, const vector<int> &starts,
                  const vector<int> &ends, const optional<vector<int>> &axes,
                  const optional<vector<int>> &steps);
@@ -78,6 +93,7 @@ class GraphHandlerObj {
     Tensor cast(Tensor input, Tensor output, int to);
     Tensor expand(Tensor input, Tensor output, Shape dims);
     Tensor where(Tensor inputX, Tensor inputY, Tensor condition, Tensor output);
+    std::vector<int> getDims(Tensor x) { return x->getDims(); }
 
     Tensor allReduceSum(Tensor input, Tensor output);
     Tensor allReduceProd(Tensor input, Tensor output);
@@ -86,6 +102,13 @@ class GraphHandlerObj {
     Tensor allReduceAvg(Tensor input, Tensor output);
     TensorVec allGather(Tensor input, std::optional<TensorVec> outputs, int n);
     Tensor broadcast(Tensor input, Tensor output, int root);
+    Tensor send(Tensor input, int source, int destination, Tensor output);
+    Tensor recv(Tensor output, int source, int destination, Shape dims,
+                int outputType, Tensor input);
+    Tensor depthToSpace(Tensor input, Tensor output, int blocksize,
+                        std::string mode);
+    Tensor lrn(Tensor input, Tensor output, float alpha, float beta, float bias,
+               int size);
 
     //------ modifiers
 
@@ -93,9 +116,19 @@ class GraphHandlerObj {
 
     inline void optimize() { g->optimize(); }
 
+    inline void shape_infer() { g->shape_infer(); }
+
+    void change_shape(const vector<int> &shape, int tensorId);
     //------ runtime
 
-    inline void data_malloc() { g->dataMalloc(); }
+    inline void data_malloc(bool useNaiveAllocator = false,
+                            size_t memPoolSize = 0) {
+        g->dataMalloc(useNaiveAllocator, memPoolSize);
+    }
+
+    inline Tensor clone_KV(Tensor &tensor) { return g->cloneKV(tensor); }
+
+    inline void free_heap() { g->freeHeap(); }
 
     inline void tune() { g->getRuntime()->run(g, true); }
 

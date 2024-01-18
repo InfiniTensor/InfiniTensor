@@ -10,6 +10,7 @@ class MklExtend : public MklKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ExtendObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto inData = op->getInputs(0)->getRawDataPtr<float *>();
         auto outData = op->getOutput(0)->getRawDataPtr<float *>();
         int iSize = op->getInputs(0)->size();
@@ -40,6 +41,5 @@ class MklExtend : public MklKernelWithoutConfig {
         sycl::free(outDevice, q);
     }
 };
-REGISTER_KERNEL(Device::INTELCPU, OpType::Extend, DataType::Float32, MklExtend,
-                "Extend_Mkl_Float32");
+REGISTER_KERNEL(Device::INTELCPU, OpType::Extend, MklExtend, "Extend_Mkl");
 }; // namespace infini

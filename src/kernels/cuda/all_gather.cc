@@ -39,8 +39,8 @@ class AllGatherNCCL : public CudaKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::AllGather, DataType::Float32,
-                AllGatherNCCL, "AllGather_NCCL_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::AllGather, AllGatherNCCL,
+                "AllGather_NCCL_CUDA");
 } // namespace infini
 
 #endif

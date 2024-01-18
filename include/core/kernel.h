@@ -2,6 +2,7 @@
 #include "core/common.h"
 #include "core/operator.h"
 #include "core/tensor.h"
+#include "utils/operator_utils.h"
 #include <functional>
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
@@ -29,7 +30,6 @@ class Kernel {
   public:
     Kernel() {}
     virtual ~Kernel() {}
-
     /**
      * @param op The operator to be executed.
      * @param record The parameters for kernel execution. If extra parameters
@@ -102,11 +102,9 @@ class KernelRegistry {
     }
     Kernel *getKernel(const KernelAttrs &kernelAttrs) const {
         auto it = kernels.find(kernelAttrs);
-        IT_ASSERT(it != kernels.end(),
-                  "Kernel not found for key {" +
-                      to_string(enum_to_underlying(std::get<0>(kernelAttrs))) +
-                      ", " + std::to_string(std::get<1>(kernelAttrs)) + ", " +
-                      std::get<2>(kernelAttrs).toString() + "}");
+        IT_ASSERT(it != kernels.end(), "Kernel not found for key {" +
+                                           get_kernel_attrs_str(kernelAttrs) +
+                                           "}");
         return std::get<0>(it->second);
     }
     const KernelRecord &getKernelItem(const KernelAttrs &kernelAttrs) const {
@@ -131,15 +129,16 @@ class CpuKernelWithoutConfig : public Kernel {
 
 } // namespace infini
 
-#define _REGISTER_KERNEL_1(device, opType, dataType, kernel, name, cnt)        \
+#define _REGISTER_KERNEL_1(device, opType, kernel, name, cnt)                  \
     namespace infini {                                                         \
     static const bool _CAT(_register_kernel_, cnt) =                           \
-        KernelRegistry::getInstance().registerKernel(                          \
-            KernelAttrs{device, opType, dataType}, new kernel(), name);        \
+        KernelRegistry::getInstance().registerKernel(KernelAttrs{device,       \
+                                                                 opType},      \
+                                                     new kernel(), name);      \
     }
 
-#define REGISTER_KERNEL(device, opType, dataType, kernel, name)                \
-    _REGISTER_KERNEL_1(device, opType, dataType, kernel, name, __COUNTER__)
+#define REGISTER_KERNEL(device, opType, kernel, name)                          \
+    _REGISTER_KERNEL_1(device, opType, kernel, name, __COUNTER__)
 
 #define _REGISTER_CONSTRUCTOR_1(type, constructor, cnt)                        \
     namespace infini {                                                         \

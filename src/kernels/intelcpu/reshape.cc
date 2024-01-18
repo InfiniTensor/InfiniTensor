@@ -6,7 +6,7 @@ namespace infini {
 class MklReshape : public MklKernelWithoutConfig {
     void compute(const Operator &op,
                  const RuntimeObj *_context) const override {
-
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const MklRuntimeObj *>(_context);
 
         std::vector<dnnl_dim_t> dims;
@@ -41,10 +41,7 @@ class MklReshape : public MklKernelWithoutConfig {
                      {{DNNL_ARG_FROM, reshapeMemory}, {DNNL_ARG_TO, output}});
     }
 };
-REGISTER_KERNEL(Device::INTELCPU, OpType::Reshape, DataType::Float32,
-                MklReshape, "Reshape_Mkl_Float32");
-REGISTER_KERNEL(Device::INTELCPU, OpType::Identity, DataType::Float32,
-                MklReshape, "Identify_Mkl_Float32");
-REGISTER_KERNEL(Device::INTELCPU, OpType::Flatten, DataType::Float32,
-                MklReshape, "Flatten_Mkl_Float32");
+REGISTER_KERNEL(Device::INTELCPU, OpType::Reshape, MklReshape, "Reshape_Mkl");
+REGISTER_KERNEL(Device::INTELCPU, OpType::Identity, MklReshape, "Identify_Mkl");
+REGISTER_KERNEL(Device::INTELCPU, OpType::Flatten, MklReshape, "Flatten_Mkl");
 }; // namespace infini

@@ -4,7 +4,7 @@
 #include "core/tensor.h"
 
 namespace infini {
-using KernelAttrs = std::tuple<Device, OpType::underlying_t, DataType>;
+using KernelAttrs = std::tuple<Device, OpType::underlying_t>;
 
 struct OpPerfKey {
     HashType hash;
@@ -55,8 +55,7 @@ class OperatorObj : public Object {
 
   public:
     OperatorObj(OpType opType, TensorVec inputs, TensorVec outputs);
-    virtual optional<vector<Shape>>
-    inferShape(const TensorVec &inputs) const = 0;
+    virtual optional<vector<Shape>> inferShape(const TensorVec &inputs) = 0;
     virtual vector<DataType> inferDataType(const TensorVec &inputs) const;
     /**
      * @brief Constructs outputs (if requried) and check whether the operator is
@@ -91,6 +90,7 @@ class OperatorObj : public Object {
     OpType getOpType() const { return type; }
     // HACK: set correct data type
     DataType getDType() const { return getInputs(0)->getDType(); }
+    DataType getOutDType() const { return getOutput()->getDType(); }
     virtual int numInputs() const = 0;
     virtual int numOutputs() const = 0;
 
@@ -105,7 +105,7 @@ class OperatorObj : public Object {
                            const TensorVec &newOutputs) const = 0;
 
   protected:
-    optional<vector<Shape>> inferShape() const;
+    optional<vector<Shape>> inferShape();
     vector<DataType> inferDataType() const;
 
   private:

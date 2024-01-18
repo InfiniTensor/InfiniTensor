@@ -7,7 +7,7 @@ class DetObj : public OperatorObj {
     enum Mode { NormalDet = 0, LogDet };
     DetObj(GraphObj *graph, Tensor input, Tensor output, Mode mode);
     OP_CLONE(DetObj);
-    optional<vector<Shape>> inferShape(const TensorVec &inputs) const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
     int numInputs() const override { return 1; }

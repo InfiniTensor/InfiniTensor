@@ -10,6 +10,7 @@ template <typename T> class MklDpcppMatmul : public CpuKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *context) const override {
         auto op = as<MatmulObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         IT_ASSERT(op->getInputs().size() == 2, "Bias is not supported yet.");
         const T *A = op->getInputs(0)->getRawDataPtr<T *>();
         const T *B = op->getInputs(1)->getRawDataPtr<T *>();
@@ -69,7 +70,7 @@ template <typename T> class MklDpcppMatmul : public CpuKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::INTELCPU, OpType::MatMul, DataType::Float32,
-                MklDpcppMatmul<float>, "MklDpcppMatmul_CPU_float32");
+REGISTER_KERNEL(Device::INTELCPU, OpType::MatMul, MklDpcppMatmul<float>,
+                "MklDpcppMatmul_CPU");
 
 } // namespace infini

@@ -5,14 +5,17 @@
 #include "operators/conv.h"
 #include "operators/expand.h"
 #include "operators/gather.h"
+#include "operators/lrn.h"
 #include "operators/matmul.h"
 #include "operators/pad.h"
 #include "operators/pooling.h"
-#include "operators/reduce_mean.h"
+#include "operators/reduce.h"
 #include "operators/reshape.h"
 #include "operators/split.h"
+#include "operators/squeeze.h"
 #include "operators/transpose.h"
 #include "operators/unary.h"
+#include "operators/unsqueeze.h"
 #include <algorithm>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
@@ -93,7 +96,10 @@ void export_values(py::module &m) {
         .VALUE(OpType, Gather)
         .VALUE(OpType, GatherElements)
         .VALUE(OpType, ReduceMean)
+        .VALUE(OpType, ReduceSum)
         .VALUE(OpType, Reshape)
+        .VALUE(OpType, Squeeze)
+        .VALUE(OpType, Unsqueeze)
         .VALUE(OpType, Flatten)
         .VALUE(OpType, Identity)
         .VALUE(OpType, BatchNormalization)
@@ -114,6 +120,8 @@ void export_values(py::module &m) {
         .VALUE(OpType, Expand)
         .VALUE(OpType, Erf)
         .VALUE(OpType, Where)
+        .VALUE(OpType, DepthToSpace)
+        .VALUE(OpType, LRN)
         .export_values();
 
 #undef VALUE
@@ -227,12 +235,13 @@ clip_attrs_of(Operator op) {
     return std::make_tuple(clip->getMin(), clip->getMax());
 }
 
-static std::tuple<vector<int>, bool> reduce_mean_attrs_of(Operator op) {
-    IT_ASSERT(op->getOpType() == OpType::ReduceMean);
-    auto reduce_mean = dynamic_cast<const ReduceMeanObj *>(op.get());
-    auto &set = reduce_mean->getAxes();
+static std::tuple<vector<int>, bool> reduce_attrs_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::ReduceMean ||
+              op->getOpType() == OpType::ReduceSum);
+    auto reduce = dynamic_cast<const ReduceBaseObj *>(op.get());
+    auto &set = reduce->getAxes();
     return std::make_tuple(vector(set.begin(), set.end()),
-                           reduce_mean->getKeepDims());
+                           reduce->getKeepDims());
 }
 
 static int concat_axis_of(Operator op) {
@@ -256,6 +265,24 @@ static vector<int64_t> reshape_shape_of(Operator op) {
     auto shape = dynamic_cast<const ReshapeObj *>(op.get())->getShape();
     vector<int64_t> ans(shape.size());
     std::transform(shape.begin(), shape.end(), ans.begin(),
+                   [](auto x) { return static_cast<int64_t>(x); });
+    return ans;
+}
+
+static vector<int64_t> squeeze_axes_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Squeeze);
+    auto axes = dynamic_cast<const SqueezeObj *>(op.get())->getAxes();
+    vector<int64_t> ans(axes.size());
+    std::transform(axes.begin(), axes.end(), ans.begin(),
+                   [](auto x) { return static_cast<int64_t>(x); });
+    return ans;
+}
+
+static vector<int64_t> unsqueeze_axes_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Unsqueeze);
+    auto axes = dynamic_cast<const UnsqueezeObj *>(op.get())->getAxes();
+    vector<int64_t> ans(axes.size());
+    std::transform(axes.begin(), axes.end(), ans.begin(),
                    [](auto x) { return static_cast<int64_t>(x); });
     return ans;
 }
@@ -295,6 +322,21 @@ static int cast_to_of(Operator op) {
     return castOutputDtype.getIndex();
 }
 
+static std::tuple<int, std::string> depth_to_space_attrs_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::DepthToSpace);
+    auto depth_to_space = dynamic_cast<const DepthToSpaceObj *>(op.get());
+    return std::make_tuple(depth_to_space->getBlockSize(),
+                           depth_to_space->getModeString());
+}
+
+static std::tuple<float, float, float, int> lrn_attrs_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::LRN);
+    auto lrn = dynamic_cast<const LRNObj *>(op.get());
+    auto [alpha, beta, bias] = lrn->getAlphaBetaBias();
+    auto size = lrn->getSize();
+    return std::make_tuple(alpha, beta, bias, size);
+}
+
 void export_functions(py::module &m) {
 #define FUNCTION(NAME) def(#NAME, &NAME)
     m.def("cpu_runtime", &NativeCpuRuntimeObj::getInstance)
@@ -324,7 +366,7 @@ void export_functions(py::module &m) {
         .FUNCTION(batch_norm_attrs_of)
         .FUNCTION(pool_attrs_of)
         .FUNCTION(clip_attrs_of)
-        .FUNCTION(reduce_mean_attrs_of)
+        .FUNCTION(reduce_attrs_of)
         .FUNCTION(tensor_dtype)
         .FUNCTION(reshape_shape_of)
         .FUNCTION(expand_shape_of)
@@ -334,7 +376,11 @@ void export_functions(py::module &m) {
         .FUNCTION(split_axis_of)
         .FUNCTION(gather_axis_of)
         .FUNCTION(flatten_axis_of)
-        .FUNCTION(cast_to_of);
+        .FUNCTION(cast_to_of)
+        .FUNCTION(depth_to_space_attrs_of)
+        .FUNCTION(squeeze_axes_of)
+        .FUNCTION(unsqueeze_axes_of)
+        .FUNCTION(lrn_attrs_of);
 #undef FUNCTION
 }
 
@@ -390,7 +436,9 @@ void init_graph_builder(py::module &m) {
 #endif
 #ifdef USE_BANG
     py::class_<BangRuntimeObj, std::shared_ptr<BangRuntimeObj>, RuntimeObj>(
-        m, "BangRuntime");
+        m, "BangRuntime")
+        .def(py::init<int>(), py::arg("device") = 0)
+        .def("init_comm", &BangRuntimeObj::initComm);
 #endif
 #ifdef USE_KUNLUN
     py::class_<KUNLUNRuntimeObj, std::shared_ptr<KUNLUNRuntimeObj>, RuntimeObj>(
@@ -455,7 +503,10 @@ void init_graph_builder(py::module &m) {
              })
         .def("has_target", &TensorObj::hasTarget, policy::automatic)
         .def("src", &TensorObj::getSource, policy::move)
-        .def("printData", &TensorObj::printData, policy::automatic);
+        .def("printData", &TensorObj::printData, policy::automatic)
+        .def("copy_data",
+             py::overload_cast<const Tensor &>(&TensorObj::copyData),
+             policy::move);
     py::class_<OperatorObj, std::shared_ptr<OperatorObj>>(m, "Operator")
         .def("op_type", &OperatorObj::getOpType, policy::automatic)
         .def("inputs", py::overload_cast<>(&OperatorObj::getInputs, py::const_),
@@ -470,11 +521,13 @@ void init_graph_builder(py::module &m) {
         .def("convTransposed2d", &Handler::convTransposed2d, policy::move)
         .def("matmul", &Handler::matmul, policy::move)
         .def("batchNormalization", &Handler::batchNormalization, policy::move)
+        .def("layerNormalization", &Handler::layerNormalization, policy::move)
         .def("maxPool", &Handler::maxPool, policy::move)
         .def("avgPool", &Handler::avgPool, policy::move)
         .def("add", &Handler::add, policy::move)
         .def("sub", &Handler::sub, policy::move)
         .def("mul", &Handler::mul, policy::move)
+        .def("max", &Handler::max, policy::move)
         .def("div", &Handler::div, policy::move)
         .def("pow", &Handler::pow, policy::move)
         .def("min", &Handler::min, policy::move)
@@ -495,12 +548,18 @@ void init_graph_builder(py::module &m) {
         .def("pRelu", &Handler::pRelu, policy::move)
         .def("clip", &Handler::clip, policy::move)
         .def("transpose", &Handler::transpose, policy::move)
+        .def("depthToSpace", &Handler::depthToSpace, policy::move)
         .def("reshape", &Handler::reshape, policy::move)
+        .def("resize", &Handler::resize, policy::move)
+        .def("squeeze", &Handler::squeeze, policy::move)
+        .def("unsqueeze", &Handler::unsqueeze, policy::move)
         .def("concat", &Handler::concat, policy::move)
+        .def("attentionKVCache", &Handler::attentionKVCache, policy::move)
         .def("split", &Handler::split, policy::move)
         .def("gather", &Handler::gather, policy::move)
         .def("gatherElements", &Handler::gatherElements, policy::move)
-        .def("reduce_mean", &Handler::reduceMean, policy::move)
+        .def("reduceMean", &Handler::reduceMean, policy::move)
+        .def("reduceSum", &Handler::reduceSum, policy::move)
         .def("slice", &Handler::slice, policy::move)
         .def("pad", &Handler::pad, policy::move)
         .def("allReduceSum", &Handler::allReduceSum, policy::move)
@@ -510,17 +569,27 @@ void init_graph_builder(py::module &m) {
         .def("allReduceAvg", &Handler::allReduceAvg, policy::move)
         .def("allGather", &Handler::allGather, policy::move)
         .def("broadcast", &Handler::broadcast, policy::move)
+        .def("send", &Handler::send, policy::move)
+        .def("recv", &Handler::recv, policy::move)
         .def("cast", &Handler::cast, policy::move)
         .def("expand", &Handler::expand, policy::move)
         .def("erf", &Handler::erf, policy::move)
         .def("where", &Handler::where, policy::move)
+        .def("lrn", &Handler::lrn, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)
         .def("optimize", &Handler::optimize, policy::automatic)
         .def("operators", &Handler::operators, policy::move)
-        .def("data_malloc", &Handler::data_malloc, policy::automatic)
+        .def("data_malloc", &Handler::data_malloc,
+             py::arg("useNaiveAllocator") = false, py::arg("memPoolSize") = 0,
+             policy::automatic)
+        .def("clone_KV", &Handler::clone_KV, policy::move)
+        .def("free_heap", &Handler::free_heap, policy::move)
         .def("get_perf_time", &Handler::get_perf_time, policy::automatic)
         .def("tune", &Handler::tune, policy::automatic)
         .def("run", &Handler::run, policy::automatic)
+        .def("shape_infer", &Handler::shape_infer, policy::automatic)
+        .def("change_shape", &Handler::change_shape, policy::automatic)
+        .def("getDims", &Handler::getDims, policy::automatic)
         .def("get_perf_time", &Handler::get_perf_time, policy::automatic);
 }
 

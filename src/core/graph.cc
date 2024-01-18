@@ -1,5 +1,7 @@
 #include "core/graph.h"
+#include "operators/reshape.h"
 #include <algorithm>
+#include <numeric>
 #include <queue>
 
 namespace infini {
@@ -9,20 +11,33 @@ GraphObj::GraphObj(Runtime runtime, OpVec ops_in)
     map<UidBaseType, Tensor> tensorPool;
     // Clone tensors
     for (const auto &op : ops_in) {
-        for (const auto &t : op->getInputs())
-            if (tensorPool.find(t->getFuid()) == tensorPool.end())
-                tensorPool[t->getFuid()] = cloneTensor(t);
-        for (const auto &t : op->getOutputs())
-            if (tensorPool.find(t->getFuid()) == tensorPool.end())
-                tensorPool[t->getFuid()] = cloneTensor(t);
+        for (const auto &t : op->getInputs()) {
+            if (t) {
+                if (tensorPool.find(t->getFuid()) == tensorPool.end())
+                    tensorPool[t->getFuid()] = cloneTensor(t);
+            }
+        }
+        for (const auto &t : op->getOutputs()) {
+            if (t) {
+                if (tensorPool.find(t->getFuid()) == tensorPool.end())
+                    tensorPool[t->getFuid()] = cloneTensor(t);
+            }
+        }
     }
     // Clone operators and add connections
     for (const auto &op : ops_in) {
         TensorVec inputs, outputs;
-        for (const auto &t : op->getInputs())
-            inputs.emplace_back(tensorPool.at(t->getFuid()));
-        for (const auto &t : op->getOutputs())
-            outputs.emplace_back(tensorPool.at(t->getFuid()));
+        for (const auto &t : op->getInputs()) {
+            if (t) {
+                inputs.emplace_back(tensorPool.at(t->getFuid()));
+            }
+        }
+
+        for (const auto &t : op->getOutputs()) {
+            if (t) {
+                outputs.emplace_back(tensorPool.at(t->getFuid()));
+            }
+        }
         addOperatorAndConnect(op->clone(inputs, outputs));
     }
 }
@@ -31,17 +46,21 @@ void GraphObj::addOperatorAndConnect(const Operator &op) {
     sorted = false;
     ops.push_back(op);
     for (auto &input : op->getInputs()) {
-        input->addTarget(op);
-        if (auto pred = input->getSource()) {
-            pred->addSuccessors(op);
-            op->addPredecessors(pred);
+        if (input) {
+            input->addTarget(op);
+            if (auto pred = input->getSource()) {
+                pred->addSuccessors(op);
+                op->addPredecessors(pred);
+            }
         }
     }
     for (auto &output : op->getOutputs()) {
-        output->setSource(op);
-        for (auto &succ : output->getTargets()) {
-            succ->addPredecessors(op);
-            op->addSuccessors(succ);
+        if (output) {
+            output->setSource(op);
+            for (auto &succ : output->getTargets()) {
+                succ->addPredecessors(op);
+                op->addSuccessors(succ);
+            }
         }
     }
 }
@@ -68,48 +87,33 @@ string GraphObj::toString() const {
 }
 
 bool GraphObj::topo_sort() {
-    if (this->sorted)
+    if (this->sorted) {
         return true;
-
-    // std::unordered_set<Tensor> inputs;
-    std::unordered_set<Operator> waiting(this->ops.begin(), this->ops.end());
+    }
     std::vector<Operator> sorted;
-
-    while (!waiting.empty()) {
+    std::unordered_set<OperatorObj *> flags;
+    sorted.reserve(ops.size());
+    flags.reserve(ops.size());
+    while (sorted.size() < ops.size()) {
         // Any node is move to sorted in this loop.
         auto modified = false;
-        // Find head nodes.
-        for (auto it = waiting.begin(); it != waiting.end();) {
-            const auto &this_inputs = (*it)->getInputs();
-            // If none of the input tensors is in waiting list,
-            // this node is a head node.
-            const auto is_head = std::all_of(
-                this_inputs.begin(), this_inputs.end(), [&](const auto &input) {
-                    auto src = input->getSource();
-                    return src // If the source node is in the waiting list,
-                               // means that this node is not the head node.
-                               ? waiting.find(src) == waiting.end()
-                               // This tensor has no source node,
-                               // it must be a input tensor.
-                               : (/*inputs.insert(input),*/ true);
-                });
-            // Moves head node to sorted.
-            if (is_head) {
+        for (auto const &op : ops) {
+            if (auto const &inputs = op->getInputs();
+                flags.find(op.get()) == flags.end() &&
+                std::all_of(inputs.begin(), inputs.end(),
+                            [&flags](auto const &input) {
+                                auto ptr = input->getSource().get();
+                                return !ptr || flags.find(ptr) != flags.end();
+                            })) {
                 modified = true;
-                sorted.emplace_back(std::move(*it));
-                it = waiting.erase(it);
-            } else {
-                ++it;
+                sorted.emplace_back(op);
+                flags.insert(op.get());
             }
         }
-        // Waiting list never modifies during a pass,
-        // sorting fails.
         if (!modified) {
             return false;
         }
     }
-
-    // Done.
     this->ops = std::move(sorted);
     return this->sorted = true;
 }
@@ -123,18 +127,55 @@ void GraphObj::optimize() {
     }
 }
 
-void GraphObj::dataMalloc(bool useNaiveAllocator) {
+Tensor GraphObj::getTensor(int fuid) const {
+    for (auto tensor : tensors) {
+        if (tensor->getFuid() == fuid) {
+            return tensor;
+        }
+    }
+    return nullptr;
+}
+
+void GraphObj::shape_infer() {
+    for (auto &op : ops) {
+        auto ans = op->inferShape();
+        IT_ASSERT(ans.has_value());
+        auto oldOutputs = op->getOutputs();
+        IT_ASSERT(ans.value().size() == oldOutputs.size());
+        // replace the old outputshape and size with new one
+        for (int i = 0; i < (int)ans.value().size(); ++i) {
+            auto newShape = ans.value()[i];
+            auto oldShape = oldOutputs[i]->getDims();
+            auto fuid = oldOutputs[i]->getFuid();
+            if (newShape != oldShape) {
+                auto tensor = this->getTensor(fuid);
+                tensor->setShape(newShape);
+            }
+        }
+    }
+}
+
+void GraphObj::dataMalloc(bool useNaiveAllocator, size_t memPoolSize) {
     // topological sorting first
+
     IT_ASSERT(topo_sort() == true);
     if (useNaiveAllocator) {
+        // can not set memory pool when use naive allocator
+        IT_ASSERT(memPoolSize == 0);
         // used for debugging memory out-of-bounds access, tensors will not be
         // released correctly
         // note: behavior may not match running in non-naive mode, and it may
         // not reproduce the bug
         for (auto &tensor : tensors) {
-            tensor->dataMalloc();
+            if (!tensor->isWeight() ||
+                (tensor->isWeight() && !weightAllocated)) {
+                tensor->dataMalloc();
+            }
         }
         return;
+    }
+    if (memPoolSize > 0) {
+        allocator.setMemPool(memPoolSize);
     }
     // count the number of times all tensors are used
     std::unordered_map<TensorObj *, size_t> tensorToRefCount;
@@ -187,24 +228,28 @@ void GraphObj::dataMalloc(bool useNaiveAllocator) {
         // memory should be allocated for the op's output first
         auto outputs = op->getOutputs();
         for (auto &tensor : outputs) {
-            if (tensor->isOthers()) {
-                tensorToOffset[tensor.get()] =
-                    allocator.alloc(tensor->getBytes());
+            if (tensor) {
+                if (tensor->isOthers()) {
+                    tensorToOffset[tensor.get()] =
+                        allocator.alloc(tensor->getBytes());
+                }
             }
         }
         auto inputs = op->getInputs();
         for (auto &tensor : inputs) {
-            if (tensor->isOthers()) {
-                auto tensorIter = tensorToRefCount.find(tensor.get());
-                IT_ASSERT(tensorIter != tensorToRefCount.end());
-                IT_ASSERT(tensorToRefCount[tensor.get()] > 0);
-                tensorToRefCount[tensor.get()] -= 1;
-                if (tensorToRefCount[tensor.get()] == 0) {
-                    // indicate that this tensor will no longer be used and
-                    // perform memory free
-                    tensorToRefCount.erase(tensor.get());
-                    allocator.free(tensorToOffset[tensor.get()],
-                                   tensor->getBytes());
+            if (tensor) {
+                if (tensor->isOthers()) {
+                    auto tensorIter = tensorToRefCount.find(tensor.get());
+                    IT_ASSERT(tensorIter != tensorToRefCount.end());
+                    IT_ASSERT(tensorToRefCount[tensor.get()] > 0);
+                    tensorToRefCount[tensor.get()] -= 1;
+                    if (tensorToRefCount[tensor.get()] == 0) {
+                        // indicate that this tensor will no longer be used and
+                        // perform memory free
+                        tensorToRefCount.erase(tensor.get());
+                        allocator.free(tensorToOffset[tensor.get()],
+                                       tensor->getBytes());
+                    }
                 }
             }
         }
@@ -221,6 +266,27 @@ void GraphObj::dataMalloc(bool useNaiveAllocator) {
         }
     }
 }
+
+Tensor GraphObj::cloneKV(Tensor &tensor) {
+    auto obj = tensor->clone();
+    if (allocator.getMemPoolStatus()) {
+        if (tensor->hasData()) {
+            obj->setDataBlob(make_ref<BlobObj>(
+                tensor->runtime,
+                static_cast<uint8_t *>(allocator.getHeapPtr()) +
+                    allocator.heapAlloc(tensor->getBytes())));
+            obj->copyData(tensor);
+        }
+    } else {
+        if (tensor->hasData()) {
+            obj->dataMalloc();
+            obj->copyData(tensor);
+        }
+    }
+    return obj;
+}
+
+void GraphObj::freeHeap() { this->allocator.freeHeap(); }
 
 Tensor GraphObj::addTensor(Shape dim, DataType dtype) {
     return tensors.emplace_back(make_ref<TensorObj>(dim, dtype, runtime));

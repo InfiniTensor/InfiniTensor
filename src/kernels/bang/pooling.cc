@@ -8,6 +8,7 @@ class PoolingCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<PoolingObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
         void *const inData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const outData = (op->getOutput()->getRawDataPtr<void *>());
@@ -21,13 +22,14 @@ class PoolingCnnl : public BangKernelWithoutConfig {
         checkCnnlError(cnnlCreateTensorDescriptor(&inDesc));
         checkCnnlError(cnnlSetTensorDescriptor(inDesc, CNNL_LAYOUT_NCHW,
                                                CNNL_DTYPE_FLOAT, 4, inArray));
+        bool mode = op->getCeilMode();
 
         // get maxpool descriptor
         cnnlPoolingDescriptor_t poolingDesc;
         checkCnnlError(cnnlCreatePoolingDescriptor(&poolingDesc));
         checkCnnlError(cnnlSetPooling2dDescriptor_v2(
             poolingDesc, getPoolingMode(), CNNL_NOT_PROPAGATE_NAN, kh, kw, ph,
-            ph, pw, pw, sh, sw, dh, dw, false));
+            ph, pw, pw, sh, sw, dh, dw, mode));
 
         // get outputs
         // TODO: verify ceiling mode
@@ -67,8 +69,8 @@ class avgPoolCnnl : public PoolingCnnl {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::MaxPool, DataType::Float32, maxPoolCnnl,
-                "MaxPool_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::AveragePool, DataType::Float32,
-                avgPoolCnnl, "AvgPool_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::MaxPool, maxPoolCnnl,
+                "MaxPool_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::AveragePool, avgPoolCnnl,
+                "AvgPool_cnnl_BANG");
 }; // namespace infini

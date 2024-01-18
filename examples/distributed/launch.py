@@ -5,6 +5,7 @@ import multiprocessing as mp
 from pyinfinitensor.onnx import OnnxStub, backend
 import onnx
 from onnx.external_data_helper import convert_model_to_external_data
+from onnx.shape_inference import infer_shapes_path
 import numpy as np
 from parallel_opt import parallel_model
 
@@ -44,16 +45,18 @@ def parse_args():
     )
 
 
-def run_model(model, runtime, inputs: np.array, n=20):
+def run_model(model, runtime, inputs, n=10):
     stub = OnnxStub(model, runtime)
-    next(stub.inputs.items().__iter__())[1].copyin_numpy(inputs)
-    stub.tune()
+    for tensor, input in zip(stub.inputs.values(), inputs):
+        tensor.copyin_numpy(input)
+    # stub.tune()
     stub.run()
     # get outputs
-    outputs = np.array(next(stub.outputs.items().__iter__())[1].copyout_float())
+    outputs = next(stub.outputs.values().__iter__()).copyout_numpy()
 
     # bench
-    next(stub.inputs.items().__iter__())[1].copyin_numpy(inputs)
+    for tensor, input in zip(stub.inputs.values(), inputs):
+        tensor.copyin_numpy(input)
     begin = time.time()
     for _ in range(n):
         stub.run()
@@ -64,13 +67,12 @@ def run_model(model, runtime, inputs: np.array, n=20):
 
 
 def run_and_compare(name, model, runtime):
-    data = np.load(f"{name}_inputs.npy")
+    input_ids = np.load(f"{name}_inputs.npy")
+    position_ids = np.arange(input_ids.shape[-1])
     results = np.load(f"{name}_results.npy")
-    outputs = run_model(model, runtime, data)
-    print("outputs sum:", outputs.sum())
-    print("max abs diff:", abs(outputs - results).max())
-    print("max rel diff:", abs((outputs - results) / results).max())
-    # assert np.allclose(outputs, results, rtol=1e-3, atol=1e-6)
+    outputs = run_model(model, runtime, (input_ids, position_ids))
+    print("outputs abs mean:", abs(outputs).mean())
+    np.testing.assert_allclose(outputs, results, rtol=1e-6, atol=1e-3)
 
 
 def start_worker(
@@ -81,14 +83,13 @@ def start_worker(
     extern_path = f"./{dist_name}_rank{rank}.pb"
     if os.path.exists(extern_path):
         os.remove(extern_path)
-    convert_model_to_external_data(
+    onnx.save_model(
         model,
-        all_tensors_to_one_file=True,
+        f"./{dist_name}_rank{rank}.onnx",
+        save_as_external_data=True,
         location=extern_path,
-        size_threshold=1024,
-        convert_attribute=False,
     )
-    onnx.save(model, f"./{dist_name}_rank{rank}.onnx")
+    infer_shapes_path(f"./{dist_name}_rank{rank}.onnx")
     runtime = backend.CudaRuntime(local_rank)
     # print("init comm")
     runtime.init_comm(
@@ -106,10 +107,12 @@ def start_single(name, model):
 
 def gen_standard(name, model, voc_size, bs, len):
     # generate standard results
-    data = np.random.randint(0, voc_size, (bs, len), dtype=np.int32)
-    np.save(f"{name}_inputs", data)
+    input_ids = np.random.randint(0, voc_size, (bs, len))
+    position_ids = np.arange(len)
+    np.save(f"{name}_inputs", input_ids)
     runtime = backend.CudaRuntime(0)
-    outputs = run_model(model, runtime, data, 1)
+    outputs = run_model(model, runtime, (input_ids, position_ids), 1)
+    print("outputs abs mean:", abs(outputs).mean())
     np.save(f"{name}_results", outputs)
 
 
@@ -128,12 +131,14 @@ def main():
 
     # run single process.
     # use standalone process to isolate cuda.
+    print("run model by single GPU.")
     p = mp.Process(target=start_single, args=(name, model))
     p.start()
     p.join()
 
     # run distributed parallel.
     world_size = nnodes * nproc_per_node
+    print(f"run model by {world_size} GPU in parallel.")
     workers = [
         mp.Process(
             target=start_worker,

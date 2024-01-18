@@ -8,12 +8,13 @@ ASCEND ?= OFF
 INTELCPU ?= off
 BACKTRACE ?= ON
 TEST ?= ON
+NNET ?= OFF
 FORMAT_ORIGIN ?=
 # Docker build options
 DOCKER_NAME ?= infinitensor
 DOCKER_IMAGE_NAME ?= infinitensor
 DOCKER_FILE ?= infinitensor_ubuntu_22.04.dockerfile
-DOCKER_RUN_OPTION ?= 
+DOCKER_RUN_OPTION ?=
 
 # CUDA option.
 ifeq ($(CUDA), ON)
@@ -23,7 +24,6 @@ ifeq ($(CUDA), ON)
 	DOCKER_RUN_OPTION += --gpus all -it --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 -v `pwd`:`pwd` -w `pwd`
 endif
 
-
 CMAKE_OPT = -DCMAKE_BUILD_TYPE=$(TYPE)
 CMAKE_OPT += -DUSE_CUDA=$(CUDA)
 CMAKE_OPT += -DUSE_BANG=$(BANG)
@@ -31,6 +31,7 @@ CMAKE_OPT += -DUSE_KUNLUN=$(KUNLUN)
 CMAKE_OPT += -DUSE_ASCEND=$(ASCEND)
 CMAKE_OPT += -DUSE_BACKTRACE=$(BACKTRACE)
 CMAKE_OPT += -DBUILD_TEST=$(TEST)
+CMAKE_OPT += -DBUILD_NNET=$(NNET)
 
 ifeq ($(INTELCPU), ON)
 	CMAKE_OPT += -DUSE_INTELCPU=ON -DCMAKE_CXX_COMPILER=dpcpp
@@ -62,7 +63,7 @@ test-api:
 	@echo
 	python3 pyinfinitensor/tests/test_api.py
 
-docker-build: 
+docker-build:
 	docker build -f scripts/dockerfile/$(DOCKER_FILE) -t $(DOCKER_NAME) .
 
 docker-run:
@@ -73,5 +74,3 @@ docker-start:
 
 docker-exec:
 	docker exec -it $(DOCKER_IMAGE_NAME) bash
-
-

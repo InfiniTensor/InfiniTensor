@@ -23,25 +23,35 @@ class WhereCuda : public CudaKernelWithoutConfig {
         const int xSize = op->getInputs(0)->getRank();
         const int ySize = op->getInputs(1)->getRank();
         const int cSize = op->getInputs(2)->getRank();
+
         int nDims = op->getOutput()->getDims().size();
         IT_ASSERT(nDims <= SMALL_ARRAY_SIZE);
-
+        int outputsize = 1;
         SmallArray inputXShape, inputYShape, conditionShape, outputShape;
         for (int i = nDims - 1; i >= 0; --i) {
             outputShape.data[i] = opOutputShape[i];
+            outputsize *= outputShape.data[i];
         }
-
         broadcastShape(opInputXShape, inputXShape, nDims, xSize);
         broadcastShape(opInputYShape, inputYShape, nDims, ySize);
         broadcastShape(opConditionShape, conditionShape, nDims, cSize);
 
-        whereKernel((float *)inputXData, (float *)inputYData,
-                    (uint8_t *)conditionData, (float *)outputData, nDims,
-                    inputXShape, inputYShape, conditionShape, outputShape);
+        if (op->getDType() == DataType::Float32) {
+            whereKernel((float *)inputXData, (float *)inputYData,
+                        (uint8_t *)conditionData, (float *)outputData, nDims,
+                        outputsize, inputXShape, inputYShape, conditionShape,
+                        outputShape, xSize, ySize, cSize);
+        } else if (op->getDType() == DataType::Float16) {
+            whereKernel((half *)inputXData, (half *)inputYData,
+                        (uint8_t *)conditionData, (half *)outputData, nDims,
+                        outputsize, inputXShape, inputYShape, conditionShape,
+                        outputShape, xSize, ySize, cSize);
+        } else {
+            IT_ASSERT(false);
+        }
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Where, DataType::Float32, WhereCuda,
-                "Where_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Where, WhereCuda, "Where_CUDA");
 
 }; // namespace infini

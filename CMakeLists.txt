@@ -14,7 +14,7 @@ if(USE_CUDA)
     message("CMake 3.18 or higher is required for setting CUDAToolkit")
     cmake_minimum_required(VERSION 3.18) # FindCUDAToolkit
 else()
-    cmake_minimum_required(VERSION 3.12)
+    cmake_minimum_required(VERSION 3.17)
 endif()
 
 include(CMakeDependentOption)
@@ -22,7 +22,6 @@ project(InfiniTensor C CXX)
 
 cmake_dependent_option(BUILD_TEST_CORE "Build tests for core components" ON BUILD_TEST OFF)
 cmake_dependent_option(BUILD_TEST_PET "Build tests for PET" OFF BUILD_TEST OFF)
-cmake_dependent_option(BUILD_TEST_EINNET "Build tests for EINNET" OFF BUILD_TEST OFF)
 
 set(DEFAULT_BUILD_TYPE "RelWithDebInfo")
 # Build Type
@@ -96,16 +95,17 @@ add_subdirectory(3rd-party/nlohmann_json_cmake_fetchcontent)
 include_directories(3rd-party/nlohmann_json_cmake_fetchcontent/single_include)
 
 # TVM backend
-if(BUILD_TEST_EINNET)
-  if (NOT TVM_INCLUDE_DIR OR NOT DMLC_INCLUDE_DIR OR NOT DLPACK_INCLUDE_DIR OR NOT DLPACK_INCLUDE_DIR)
-    message(FATAL_ERROR "TVM_INCLUDE_DIR, DMLC_INCLUDE_DIR, and DLPACK_INCLUDE_DIR must be set when BUILD_TEST_EINNET is ON")
-  endif()
+if(BUILD_NNET AND BUILD_TEST)
   # TVM and DMLC for invoking TVM packed functions
   include_directories(${TVM_INCLUDE_DIR})
   include_directories(${DMLC_INCLUDE_DIR})
   include_directories(${DLPACK_INCLUDE_DIR})
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDMLC_USE_LOGGING_LIBRARY=\\\<${TVM_INCLUDE_DIR}/tvm/runtime/logging.h\\\> ")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DINFINI_USE_TVM=1") # Enable TVM codegen kernels
+  if (TVM_INCLUDE_DIR AND DMLC_INCLUDE_DIR AND DLPACK_INCLUDE_DIR AND DLPACK_INCLUDE_DIR)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDMLC_USE_LOGGING_LIBRARY=\\\<${TVM_INCLUDE_DIR}/tvm/runtime/logging.h\\\> ")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DINFINI_USE_TVM=1") # Enable TVM codegen kernels
+  else()
+    # message(FATAL_ERROR "TVM_INCLUDE_DIR, DMLC_INCLUDE_DIR, and DLPACK_INCLUDE_DIR must be set when BUILD_NNET AND BUILD_TEST is ON")
+  endif()
 endif()
 
 if(BUILD_TEST)
@@ -119,7 +119,7 @@ if(BUILD_TEST)
   include_directories(3rd-party/googletest/googletest/include)
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Werror -Wno-error=deprecated-declarations")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Werror -Wno-error=deprecated-declarations -Wno-error=pointer-arith")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -UNDEBUG") # Enable assertion
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -UNDEBUG") # Enable assertion
 
@@ -131,6 +131,8 @@ if(BUILD_NNET)
   add_compile_definitions(BUILD_NNET=1)
   file(GLOB_RECURSE SRC_NNET src/nnet/*.cc)
   list (APPEND SRC ${SRC_NNET})
+  # For locating resource files
+  set_source_files_properties(src/nnet/test.cc PROPERTIES COMPILE_OPTIONS "-DINFINI_PROJECT_HOME=${CMAKE_CURRENT_SOURCE_DIR}")
 endif()
 
 if(USE_CUDA)
@@ -167,7 +169,7 @@ endif()
 target_link_libraries(InfiniTensor pybind11::embed)
 
 # TVM backend
-if(BUILD_TEST_EINNET)
+if(BUILD_NNET AND BUILD_TEST AND TVM_LIB_DIR)
   target_link_libraries(InfiniTensor ${TVM_LIB_DIR}/libtvm.so)
 endif()
 
@@ -249,6 +251,7 @@ if(USE_BANG)
   find_library(CAMBRICON_CNNL libcnnl.so "${NEUWARE_HOME}/lib64")
   find_library(CAMBRICON_CNRT libcnrt.so "${NEUWARE_HOME}/lib64")
   find_library(CAMBRICON_CNDRV libcndrv.so "${NEUWARE_HOME}/lib64")
+  find_library(CAMBRICON_CNCL libcncl.so "${NEUWARE_HOME}/lib64")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lstdc++ -Wall -Werror")
 
   if ((NOT DEFINED TARGET_CPU_ARCH) AND (NOT DEFINED ENV{TARGET_CPU_ARCH}))
@@ -265,7 +268,13 @@ if(USE_BANG)
   # BangC Kernels
   ################################################################################
 
-  target_link_libraries(InfiniTensor ${CAMBRICON_CNNL} ${CAMBRICON_CNRT} ${CAMBRICON_CNDRV} stdc++)
+  target_link_libraries(InfiniTensor ${CAMBRICON_CNCL} ${CAMBRICON_CNNL} ${CAMBRICON_CNRT} ${CAMBRICON_CNDRV} stdc++)
+  if (BUILD_DIST)
+    message(STATUS "Add BUILD_DIST, use CNCL with BANG")
+    
+    add_compile_definitions(INFINI_USE_CNCL=1)
+    
+  endif()
 endif()
 
 if(USE_KUNLUN)
@@ -357,6 +366,7 @@ if(BUILD_TEST)
     endif()
     if (USE_BANG)
       build_test(test/kernels/bang/*.cc)
+      build_test(test/bang/*.cc)
     endif()
     if (USE_KUNLUN)
       build_test(test/kernels/kunlun/*.cc)
@@ -371,7 +381,7 @@ if(BUILD_TEST)
   if(BUILD_TEST_PET)
     build_test(test/pet/*.cc)
   endif()
-  if(BUILD_TEST_EINNET)
+  if(BUILD_NNET AND BUILD_TEST)
     build_test(test/nnet/test_*.cc)
 
     # Build expression reader

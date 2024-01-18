@@ -7,6 +7,7 @@ class ExpCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<UnaryObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -36,7 +37,6 @@ class ExpCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Exp, DataType::Float32, ExpCnnl,
-                "Exp_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Exp, ExpCnnl, "Exp_cnnl_BANG");
 
 }; // namespace infini

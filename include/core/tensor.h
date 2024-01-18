@@ -8,7 +8,9 @@
 #if USE_CUDA
 #include "cuda/cuda_runtime.h"
 #endif
-
+#if USE_BANG
+#include "bang/bang_runtime.h"
+#endif
 namespace infini {
 
 // TODO: how to deal with this
@@ -31,6 +33,7 @@ class TensorObj : public TensorBaseObj {
     size_t getBytes() const { return _size * dtype.getSize(); }
 
     Shape getDims() const { return shape; }
+    void setShape(Shape shape_);
     size_t getRank() const { return shape.size(); }
     Shape getStride() const;
     size_t getOffset(const vector<int> &ds) const;
@@ -41,8 +44,16 @@ class TensorObj : public TensorBaseObj {
     bool isOutput() const { return tensorType == TensorType::output; }
     bool isOthers() const { return tensorType == TensorType::others; }
     void setWeight() { tensorType = TensorType::weight; }
-    void setInput() { tensorType = TensorType::input; }
-    void setOutput() { tensorType = TensorType::output; }
+    void setInput() {
+        if (!this->isWeight()) {
+            tensorType = TensorType::input;
+        }
+    }
+    void setOutput() {
+        if (!this->isWeight()) {
+            tensorType = TensorType::output;
+        }
+    }
     string tensorTypeToString() const {
         switch (tensorType) {
         case TensorType::weight:
