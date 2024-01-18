@@ -27,6 +27,7 @@ void testPooling(const std::function<void(void *, size_t, DataType)> &generator,
     auto npuOp =
         npuGraph->addOp<T>(inputNpu, nullptr, 3, 3, 1, 1, 1, 1, 2, 2, 0);
     npuGraph->dataMalloc();
+    inputNpu->setData(generator);
     npuRuntime->run(npuGraph);
     auto outputNpu = npuOp->getOutput();
     auto outputNpu2Cpu = outputNpu->clone(cpuRuntime);
@@ -36,7 +37,7 @@ void testPooling(const std::function<void(void *, size_t, DataType)> &generator,
 }
 
 TEST(cnnl_Pooling, run) {
-    //testPooling<MaxPoolObj>(IncrementalGenerator(), Shape{1, 1, 5, 5});
+    // testPooling<MaxPoolObj>(IncrementalGenerator(), Shape{1, 1, 5, 5});
     testPooling<AvgPoolObj>(IncrementalGenerator(), Shape{1, 1, 5, 5});
 }
 

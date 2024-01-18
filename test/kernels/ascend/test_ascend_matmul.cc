@@ -44,8 +44,7 @@ void testMatmul(const std::function<void(void *, size_t, DataType)> &generatorA,
     inputCpu2->setData(generatorB);
     cpuRuntime->run(cpuGraph);
     auto outputCpu = cpuOp->getOutput();
-    outputCpu->print();
-    outputNpu2Cpu->print();
+
     // Check
     EXPECT_TRUE(outputCpu->equalData(outputNpu2Cpu));
 }

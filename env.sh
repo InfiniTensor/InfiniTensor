@@ -47,6 +47,7 @@ export KUNLUN_HOME=/usr/local/xpu
 # ├── tools
 # ├── version
 # └── XTDK
-export ASCEND_HOME=/usr/local/Ascend/ascend-toolkit/6.3
+#export ASCEND_HOME=/usr/local/Ascend/ascend-toolkit/6.3
+export ASCEND_HOME=/usr/local/Ascend/ascend-toolkit/latest
 source /usr/local/Ascend/ascend-toolkit/set_env.sh
 source /usr/local/Ascend/toolbox/set_env.sh

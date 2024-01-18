@@ -50,13 +50,13 @@ TEST(ascend_Unary, run) {
     testUnary<CosObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     testUnary<ACosObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     testUnary<ATanObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    //testUnary<CeilObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    //testUnary<FloorObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    //testUnary<ExpObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    // testUnary<CeilObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    // testUnary<FloorObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    // testUnary<ExpObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     testUnary<NegObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    //testUnary<ReciprocalObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    // testUnary<ReciprocalObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     testUnary<SqrtObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    //testUnary<RoundObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    // testUnary<RoundObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
 }
 
 } // namespace infini
