@@ -7,7 +7,6 @@ class NegTensorCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<UnaryObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -19,11 +18,11 @@ class NegTensorCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, aDim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), aDim.size(),
                                                aDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, cDim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), cDim.size(),
                                                cDim.data()));
 
         cnnlStatus_t stat =

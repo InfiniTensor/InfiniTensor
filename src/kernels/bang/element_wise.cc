@@ -11,7 +11,6 @@ class ElementWiseCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -32,23 +31,23 @@ class ElementWiseCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, a_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), a_dim.size(),
                                                a_dim.data()));
 
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
         checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, b_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), b_dim.size(),
                                                b_dim.data()));
 
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, c_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), c_dim.size(),
                                                c_dim.data()));
 
         cnnlOpTensorDescriptor_t opDesc;
         checkCnnlError(cnnlCreateOpTensorDescriptor(&opDesc));
         checkCnnlError(cnnlSetOpTensorDescriptor(
-            opDesc, getOpType(), CNNL_DTYPE_FLOAT, CNNL_NOT_PROPAGATE_NAN));
+            opDesc, getOpType(), cnnlDataTypeConvert(op->getDType()), CNNL_NOT_PROPAGATE_NAN));
 
         size_t wsSize;
         cnnlGetOpTensorWorkspaceSize(context->cnnlHandle(), aDesc, bDesc, cDesc,
@@ -75,7 +74,6 @@ class LogicOpCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -96,15 +94,15 @@ class LogicOpCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, a_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), a_dim.size(),
                                                a_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
         checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, b_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), b_dim.size(),
                                                b_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, c_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), c_dim.size(),
                                                c_dim.data()));
 
         size_t wsSize;
@@ -129,7 +127,6 @@ class BitComputeCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -182,7 +179,6 @@ class DivCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -203,15 +199,15 @@ class DivCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, a_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), a_dim.size(),
                                                a_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
         checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, b_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), b_dim.size(),
                                                b_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, c_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), c_dim.size(),
                                                c_dim.data()));
 
         size_t wsSize;
@@ -235,7 +231,6 @@ class MaximumCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -256,15 +251,15 @@ class MaximumCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, a_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), a_dim.size(),
                                                a_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
         checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, b_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), b_dim.size(),
                                                b_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, c_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), c_dim.size(),
                                                c_dim.data()));
 
         size_t wsSize;
@@ -287,7 +282,6 @@ class MinimumCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -308,15 +302,15 @@ class MinimumCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, a_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), a_dim.size(),
                                                a_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
         checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, b_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), b_dim.size(),
                                                b_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, c_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), c_dim.size(),
                                                c_dim.data()));
 
         size_t wsSize;
@@ -339,7 +333,6 @@ class MSELossCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<MSELossObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -360,16 +353,16 @@ class MSELossCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, a_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), a_dim.size(),
                                                a_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
         checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, b_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), b_dim.size(),
                                                b_dim.data()));
 
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, c_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), c_dim.size(),
                                                c_dim.data()));
         cnnlStatus_t stat;
         if (reduction == MSELossObj::None) {
@@ -396,7 +389,6 @@ class PowerCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -418,15 +410,15 @@ class PowerCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, a_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), a_dim.size(),
                                                a_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
         checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, b_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), b_dim.size(),
                                                b_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, c_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), c_dim.size(),
                                                c_dim.data()));
 
         size_t wsSize;
@@ -450,7 +442,6 @@ class FloorDivCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -471,15 +462,15 @@ class FloorDivCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, a_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), a_dim.size(),
                                                a_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
         checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, b_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), b_dim.size(),
                                                b_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, c_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), c_dim.size(),
                                                c_dim.data()));
 
         size_t wsSize;
@@ -503,7 +494,6 @@ class FloorModCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -524,15 +514,15 @@ class FloorModCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, a_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), a_dim.size(),
                                                a_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
         checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, b_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), b_dim.size(),
                                                b_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, c_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), c_dim.size(),
                                                c_dim.data()));
 
         size_t wsSize;
@@ -556,7 +546,6 @@ class SquaredDifferenceCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -577,15 +566,15 @@ class SquaredDifferenceCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, a_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), a_dim.size(),
                                                a_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
         checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, b_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), b_dim.size(),
                                                b_dim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, c_dim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), c_dim.size(),
                                                c_dim.data()));
 
         size_t wsSize;

@@ -7,7 +7,6 @@ class FillCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<FillObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
@@ -18,7 +17,7 @@ class FillCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, cDim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), cDim.size(),
                                                cDim.data()));
 
         cnnlStatus_t stat =

@@ -7,7 +7,6 @@ class ConvCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ConvObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         const auto [ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
@@ -22,7 +21,7 @@ class ConvCnnl : public BangKernelWithoutConfig {
         cnnlConvolutionDescriptor_t convDesc;
         checkCnnlError(cnnlCreateConvolutionDescriptor(&convDesc));
         checkCnnlError(cnnlSetConvolutionDescriptor(
-            convDesc, 4, pad, stride, dilation, g, CNNL_DTYPE_FLOAT));
+            convDesc, 4, pad, stride, dilation, g, cnnlDataTypeConvert(op->getDType())));
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
@@ -56,19 +55,19 @@ class ConvCnnl : public BangKernelWithoutConfig {
         // get inputs
         checkCnnlError(cnnlCreateTensorDescriptor(&aInDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aInDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, inputs0));
+                                               cnnlDataTypeConvert(op->getDType()), 4, inputs0));
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            aDesc, CNNL_LAYOUT_NHWC, CNNL_DTYPE_FLOAT, 4, inputs0Array));
+            aDesc, CNNL_LAYOUT_NHWC, cnnlDataTypeConvert(op->getDType()), 4, inputs0Array));
 
         checkCnnlError(cnnlCreateTensorDescriptor(&bInDesc));
         checkCnnlError(cnnlSetTensorDescriptor(bInDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, inputs1));
+                                               cnnlDataTypeConvert(op->getDType()), 4, inputs1));
 
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            bDesc, CNNL_LAYOUT_NHWC, CNNL_DTYPE_FLOAT, 4, inputs1Array));
+            bDesc, CNNL_LAYOUT_NHWC, cnnlDataTypeConvert(op->getDType()), 4, inputs1Array));
 
         int permute[4] = {0, 2, 3, 1};
         cnnlTransposeDescriptor_t opDesc;
@@ -100,11 +99,11 @@ class ConvCnnl : public BangKernelWithoutConfig {
         // get outputs
         checkCnnlError(cnnlCreateTensorDescriptor(&cInDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            cInDesc, CNNL_LAYOUT_NHWC, CNNL_DTYPE_FLOAT, 4, outputArray));
+            cInDesc, CNNL_LAYOUT_NHWC, cnnlDataTypeConvert(op->getDType()), 4, outputArray));
 
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, output));
+                                               cnnlDataTypeConvert(op->getDType()), 4, output));
 
         cnnlConvolutionForwardAlgo_t algo;
         cnnlGetConvolutionForwardAlgorithm(context->cnnlHandle(), convDesc,

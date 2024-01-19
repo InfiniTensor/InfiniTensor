@@ -7,7 +7,6 @@ class WhereCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<WhereObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -36,11 +35,11 @@ class WhereCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, aDim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), aDim.size(),
                                                aDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
         checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, bDim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), bDim.size(),
                                                bDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_ARRAY,
@@ -48,7 +47,7 @@ class WhereCnnl : public BangKernelWithoutConfig {
                                                cDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&dDesc));
         checkCnnlError(cnnlSetTensorDescriptor(dDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, dDim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), dDim.size(),
                                                dDim.data()));
         size_t wsSize;
         cnnlGetSelectV2WorkspaceSize(context->cnnlHandle(), cDesc, aDesc, bDesc,

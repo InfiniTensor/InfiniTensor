@@ -7,7 +7,6 @@ class L2LossCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<L2LossObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -18,7 +17,7 @@ class L2LossCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, dim.size(), dim.data()));
+            aDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()), dim.size(), dim.data()));
 
         cnnlStatus_t stat =
             cnnlL2Loss(context->cnnlHandle(), aDesc, aData, cData);

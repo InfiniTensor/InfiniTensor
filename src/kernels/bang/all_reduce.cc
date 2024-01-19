@@ -13,7 +13,6 @@ class AllReduceCNCL : public BangKernelWithoutConfig {
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
         void *input = op->getInputs(0)->getRawDataPtr<void *>();
         void *output = op->getOutput()->getRawDataPtr<void *>();
-        IT_ASSERT(op->getDType() == DataType::Float32);
         size_t count = op->getInputs(0)->size();
         cnclComm_t comm =
             dynamic_cast<CnclCommunicatorObj &>(context->getCommunicator())

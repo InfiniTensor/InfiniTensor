@@ -11,7 +11,6 @@ class UnaryCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<UnaryObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -23,11 +22,11 @@ class UnaryCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, aDim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), aDim.size(),
                                                aDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, cDim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), cDim.size(),
                                                cDim.data()));
         cnnlActivationDescriptor_t opDesc;
         checkCnnlError(cnnlCreateActivationDescriptor(&opDesc));
@@ -51,7 +50,6 @@ class RoundCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<UnaryObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -63,11 +61,11 @@ class RoundCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, aDim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), aDim.size(),
                                                aDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, cDim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), cDim.size(),
                                                cDim.data()));
         cnnlStatus_t stat =
             cnnlRound(context->cnnlHandle(), aDesc, aData, cDesc, cData);
@@ -82,7 +80,6 @@ class PReluCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<PReluObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -96,15 +93,15 @@ class PReluCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, aDim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), aDim.size(),
                                                aDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
         checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, bDim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), bDim.size(),
                                                bDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, cDim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), cDim.size(),
                                                cDim.data()));
 
         cnnlStatus_t stat = cnnlPrelu(context->cnnlHandle(), aDesc, aData,
@@ -122,7 +119,6 @@ class SoftmaxCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<SoftmaxObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -186,11 +182,11 @@ class SoftmaxCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, inDim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), inDim.size(),
                                                inDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, outDim.size(),
+                                               cnnlDataTypeConvert(op->getDType()), outDim.size(),
                                                outDim.data()));
         float alpha = 1.0;
         float beta = 0.0;

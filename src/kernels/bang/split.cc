@@ -7,7 +7,6 @@ class SplitCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<SplitObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
         int num = op->numOutputs();
         int axis = op->getDim();
@@ -16,13 +15,13 @@ class SplitCnnl : public BangKernelWithoutConfig {
         cnnlTensorDescriptor_t desc;
         checkCnnlError(cnnlCreateTensorDescriptor(&desc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            desc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, dim.size(), dim.data()));
+            desc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()), dim.size(), dim.data()));
 
         cnnlTensorDescriptor_t descArray[num];
         for (int i = 0; i < num; ++i) {
             checkCnnlError(cnnlCreateTensorDescriptor(&descArray[i]));
             checkCnnlError(cnnlSetTensorDescriptor(
-                descArray[i], CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT,
+                descArray[i], CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
                 op->getOutput(i)->getDims().size(),
                 op->getOutput(i)->getDims().data()));
         }
