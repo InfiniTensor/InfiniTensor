@@ -19,13 +19,13 @@ class LRNCnnl : public BangKernelWithoutConfig {
         auto size = op->getSize();
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               cnnlDataTypeConvert(op->getDType()), aDim.size(),
-                                               aDim.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            aDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
+            aDim.size(), aDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               cnnlDataTypeConvert(op->getDType()), cDim.size(),
-                                               cDim.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            cDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
+            cDim.size(), cDim.data()));
 
         size_t extra_size;
         cnnlGetLrnExtraInputSize_v2(context->cnnlHandle(), cDesc,

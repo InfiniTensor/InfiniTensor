@@ -15,15 +15,17 @@ class SplitCnnl : public BangKernelWithoutConfig {
         cnnlTensorDescriptor_t desc;
         checkCnnlError(cnnlCreateTensorDescriptor(&desc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            desc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()), dim.size(), dim.data()));
+            desc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
+            dim.size(), dim.data()));
 
         cnnlTensorDescriptor_t descArray[num];
         for (int i = 0; i < num; ++i) {
             checkCnnlError(cnnlCreateTensorDescriptor(&descArray[i]));
-            checkCnnlError(cnnlSetTensorDescriptor(
-                descArray[i], CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
-                op->getOutput(i)->getDims().size(),
-                op->getOutput(i)->getDims().data()));
+            checkCnnlError(
+                cnnlSetTensorDescriptor(descArray[i], CNNL_LAYOUT_NCHW,
+                                        cnnlDataTypeConvert(op->getDType()),
+                                        op->getOutput(i)->getDims().size(),
+                                        op->getOutput(i)->getDims().data()));
         }
 
         void *const inputData = (op->getInputs(0)->getRawDataPtr<void *>());

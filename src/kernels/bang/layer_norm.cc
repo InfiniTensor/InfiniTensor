@@ -28,17 +28,17 @@ class LayerNormCnnl : public BangKernelWithoutConfig {
         cnnlTensorDescriptor_t inDesc, fiterDesc, outDesc;
 
         checkCnnlError(cnnlCreateTensorDescriptor(&inDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(inDesc, CNNL_LAYOUT_ARRAY,
-                                               cnnlDataTypeConvert(op->getDType()), inDims.size(),
-                                               inDims.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            inDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            inDims.size(), inDims.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&fiterDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            fiterDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()), fiterDims.size(),
-            fiterDims.data()));
+            fiterDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            fiterDims.size(), fiterDims.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&outDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(outDesc, CNNL_LAYOUT_ARRAY,
-                                               cnnlDataTypeConvert(op->getDType()), outDims.size(),
-                                               outDims.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            outDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            outDims.size(), outDims.data()));
         size_t wsSize;
         cnnlGetLayerNormOpWorkspaceSize(context->cnnlHandle(), axis, inDesc,
                                         &wsSize);

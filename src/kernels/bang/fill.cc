@@ -16,9 +16,9 @@ class FillCnnl : public BangKernelWithoutConfig {
         auto cDim = op->getOutput()->getDims();
 
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               cnnlDataTypeConvert(op->getDType()), cDim.size(),
-                                               cDim.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            cDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
+            cDim.size(), cDim.data()));
 
         cnnlStatus_t stat =
             cnnlFill(context->cnnlHandle(), value, cDesc, cData);

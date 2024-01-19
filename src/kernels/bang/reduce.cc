@@ -25,20 +25,20 @@ class ReduceCnnlBase : public BangKernelWithoutConfig {
         cnnlTensorDescriptor_t inDesc, outDesc;
         checkCnnlError(cnnlCreateTensorDescriptor(&inDesc));
         checkCnnlError(cnnlCreateTensorDescriptor(&outDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(inDesc, CNNL_LAYOUT_ARRAY,
-                                               cnnlDataTypeConvert(op->getDType()), aDim.size(),
-                                               aDim.data()));
-        checkCnnlError(cnnlSetTensorDescriptor(outDesc, CNNL_LAYOUT_ARRAY,
-                                               cnnlDataTypeConvert(op->getDType()), bDim.size(),
-                                               bDim.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            inDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            aDim.size(), aDim.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            outDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            bDim.size(), bDim.data()));
 
         // get reduce descriptor
         cnnlReduceDescriptor_t reduceDesc;
         checkCnnlError(cnnlCreateReduceDescriptor(&reduceDesc));
         checkCnnlError(cnnlSetReduceDescriptor_v2(
             reduceDesc, axes.data(), axes.size(), getReduceOp(),
-            cnnlDataTypeConvert(op->getDType()), CNNL_NOT_PROPAGATE_NAN, CNNL_REDUCE_NO_INDICES,
-            CNNL_32BIT_INDICES, 0.0));
+            cnnlDataTypeConvert(op->getDType()), CNNL_NOT_PROPAGATE_NAN,
+            CNNL_REDUCE_NO_INDICES, CNNL_32BIT_INDICES, 0.0));
 
         // get workspace
         size_t workspaceSize = 0;

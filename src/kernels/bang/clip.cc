@@ -18,9 +18,9 @@ class ClipCnnl : public BangKernelWithoutConfig {
         auto aDim = op->getInputs(0)->getDims();
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               cnnlDataTypeConvert(op->getDType()), aDim.size(),
-                                               aDim.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            aDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
+            aDim.size(), aDim.data()));
         cnnlStatus_t stat =
             cnnlClip(context->cnnlHandle(), aDesc, aData, &min, &max, cData);
         if (stat != CNNL_STATUS_SUCCESS)

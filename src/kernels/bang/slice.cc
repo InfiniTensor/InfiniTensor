@@ -42,11 +42,13 @@ class SliceCnnl : public BangKernelWithoutConfig {
         // input
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            aDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()), aDim_size, aDim_array));
+            aDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            aDim_size, aDim_array));
         // output
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            cDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()), cDim_size, cDim_array));
+            cDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            cDim_size, cDim_array));
 
         cnnlStatus_t stat =
             cnnlStridedSlice(context->cnnlHandle(), aDesc, aData, starts_array,

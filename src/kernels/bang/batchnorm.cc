@@ -32,18 +32,18 @@ class BatchNormCnnl : public BangKernelWithoutConfig {
         checkCnnlError(cnnlCreateTensorDescriptor(&intransDesc));
         checkCnnlError(cnnlCreateTensorDescriptor(&outDesc));
         checkCnnlError(cnnlCreateTensorDescriptor(&outtransDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(inDesc, CNNL_LAYOUT_NCHW,
-                                               cnnlDataTypeConvert(op->getDType()), dims.size(),
-                                               dims.data()));
-        checkCnnlError(cnnlSetTensorDescriptor(intransDesc, CNNL_LAYOUT_NHWC,
-                                               cnnlDataTypeConvert(op->getDType()), dims.size(),
-                                               dimsTrans));
-        checkCnnlError(cnnlSetTensorDescriptor(outDesc, CNNL_LAYOUT_NCHW,
-                                               cnnlDataTypeConvert(op->getDType()), outDims.size(),
-                                               outDims.data()));
-        checkCnnlError(cnnlSetTensorDescriptor(outtransDesc, CNNL_LAYOUT_NHWC,
-                                               cnnlDataTypeConvert(op->getDType()), outDims.size(),
-                                               dimsOutTrans));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            inDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
+            dims.size(), dims.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            intransDesc, CNNL_LAYOUT_NHWC, cnnlDataTypeConvert(op->getDType()),
+            dims.size(), dimsTrans));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            outDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
+            outDims.size(), outDims.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            outtransDesc, CNNL_LAYOUT_NHWC, cnnlDataTypeConvert(op->getDType()),
+            outDims.size(), dimsOutTrans));
         cnnlTransposeDescriptor_t opDesc;
         checkCnnlError(cnnlCreateTransposeDescriptor(&opDesc));
         checkCnnlError(cnnlSetTransposeDescriptor(opDesc, 4, permute));

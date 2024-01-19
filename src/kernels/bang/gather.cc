@@ -19,9 +19,9 @@ class GatherCnnl : public BangKernelWithoutConfig {
         auto cDim = op->getOutput()->getDims();
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_ARRAY,
-                                               cnnlDataTypeConvert(op->getDType()), aDim.size(),
-                                               aDim.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            aDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            aDim.size(), aDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
         checkCnnlError(
             cnnlSetTensorDescriptorPointerMode(bDesc, CNNL_POINTER_MODE_HOST));
@@ -29,9 +29,9 @@ class GatherCnnl : public BangKernelWithoutConfig {
                                                CNNL_DTYPE_INT32, bDim.size(),
                                                bDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_ARRAY,
-                                               cnnlDataTypeConvert(op->getDType()), cDim.size(),
-                                               cDim.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            cDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            cDim.size(), cDim.data()));
 
         BangPtr wsData = context->getWorkspace(aDim.size() * 4);
         context->copyBlobFromCPU(wsData, aDim.data(), aDim.size() * 4);

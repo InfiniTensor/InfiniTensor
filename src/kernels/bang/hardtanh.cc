@@ -19,7 +19,8 @@ class HardtanhCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            aDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()), dim.size(), dim.data()));
+            aDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
+            dim.size(), dim.data()));
 
         cnnlStatus_t stat = cnnlHardtanh(context->cnnlHandle(), aDesc, aData,
                                          max, min, aDesc, cData);
