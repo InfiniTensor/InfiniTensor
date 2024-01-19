@@ -72,7 +72,7 @@ class ConvBackwardFilterCnnl : public BangKernelWithoutConfig {
             4, inputs0ArrayTrans));
 
         size_t wsTrans1Size = dimInputs0[0] * dimInputs0[1] * dimInputs0[2] *
-                              dimInputs0[3] * sizeof(float);
+                              dimInputs0[3] * op->getDType().getSize();
         BangPtr wsTrans1Data = context->getWorkspace(wsTrans1Size);
 
         cnnlStatus_t stat =
@@ -92,7 +92,7 @@ class ConvBackwardFilterCnnl : public BangKernelWithoutConfig {
             4, inputs1ArrayTrans));
 
         size_t wsTrans2Size = dimInputs1[0] * dimInputs1[1] * dimInputs1[2] *
-                              dimInputs1[3] * sizeof(float);
+                              dimInputs1[3] * op->getDType().getSize();
         BangPtr wsTrans2Data = context->getWorkspace(wsTrans2Size);
 
         stat = cnnlTranspose(context->cnnlHandle(), transDesc, bDesc, bData,
@@ -112,7 +112,7 @@ class ConvBackwardFilterCnnl : public BangKernelWithoutConfig {
             4, outputArrayTrans));
 
         size_t wsTrans3Size = dimOutput[0] * dimOutput[1] * dimOutput[2] *
-                              dimOutput[3] * sizeof(float);
+                              dimOutput[3] * op->getDType().getSize();
         BangPtr wsTrans3Data = context->getWorkspace(wsTrans3Size);
 
         cnnlConvolutionBwdFilterAlgo_t algo;

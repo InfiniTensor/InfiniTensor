@@ -84,7 +84,7 @@ class ConvCnnl : public BangKernelWithoutConfig {
                                       &wsSize);
         BangPtr wsData = context->getWorkspace(wsSize);
         BangPtr aDataOut = context->getWorkspace(
-            cnnlGetTensorElementNum(aInDesc) * sizeof(float));
+            cnnlGetTensorElementNum(aInDesc) * op->getDType().getSize());
         cnnlStatus_t stat =
             cnnlTranspose_v2(context->cnnlHandle(), opDesc, aInDesc, aData,
                              aDesc, aDataOut, wsData, wsSize);
@@ -95,7 +95,7 @@ class ConvCnnl : public BangKernelWithoutConfig {
                                       &wsSize);
         wsData = context->getWorkspace(wsSize);
         BangPtr bDataOut = context->getWorkspace(
-            cnnlGetTensorElementNum(bInDesc) * sizeof(float));
+            cnnlGetTensorElementNum(bInDesc) * op->getDType().getSize());
         stat = cnnlTranspose_v2(context->cnnlHandle(), opDesc, bInDesc, bData,
                                 bDesc, bDataOut, wsData, wsSize);
         if (stat != CNNL_STATUS_SUCCESS)
@@ -122,7 +122,7 @@ class ConvCnnl : public BangKernelWithoutConfig {
                                                algo, &wsSize);
         wsData = context->getWorkspace(wsSize);
         BangPtr cDataIn = context->getWorkspace(
-            cnnlGetTensorElementNum(cInDesc) * sizeof(float));
+            cnnlGetTensorElementNum(cInDesc) * op->getDType().getSize());
 
         stat = cnnlConvolutionForward(
             context->cnnlHandle(), convDesc, algo, NULL, aDesc, aDataOut, bDesc,

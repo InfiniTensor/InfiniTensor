@@ -52,9 +52,9 @@ class BatchNormCnnl : public BangKernelWithoutConfig {
                                       &wsSize);
         BangPtr wsData = context->getWorkspace(wsSize);
         BangPtr inputTrans = context->getWorkspace(
-            cnnlGetTensorElementNum(inDesc) * sizeof(float));
+            cnnlGetTensorElementNum(inDesc) * op->getDType().getSize());
         BangPtr outputTrans = context->getWorkspace(
-            cnnlGetTensorElementNum(inDesc) * sizeof(float));
+            cnnlGetTensorElementNum(inDesc) * op->getDType().getSize());
         cnnlStatus_t stat =
             cnnlTranspose_v2(context->cnnlHandle(), opDesc, inDesc, input,
                              intransDesc, inputTrans, wsData, wsSize);
