@@ -112,7 +112,6 @@ std::string device_to_str(Device device) {
 std::string get_kernel_attrs_str(const KernelAttrs &kernelAttrs) {
     std::string deviceStr = device_to_str(std::get<0>(kernelAttrs));
     std::string opStr = OpType(std::get<1>(kernelAttrs)).toString();
-    std::string datatypeStr = std::get<2>(kernelAttrs).toString();
-    return deviceStr + ", " + opStr + ", " + datatypeStr;
+    return deviceStr + ", " + opStr;
 }
 } // namespace infini

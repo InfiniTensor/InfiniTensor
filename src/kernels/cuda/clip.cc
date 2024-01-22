@@ -9,7 +9,7 @@ class ClipCuda : public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ClipObj>(_op);
-
+        IT_ASSERT(op->getDType() == DataType::Float32);
         void *const inputData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const outputData = (op->getOutput()->getRawDataPtr<void *>());
         auto min = op->getMin();
@@ -21,7 +21,6 @@ class ClipCuda : public CudaKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Clip, DataType::Float32, ClipCuda,
-                "Clip_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Clip, ClipCuda, "Clip_CUDA");
 
 }; // namespace infini

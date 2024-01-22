@@ -11,6 +11,7 @@ class UnaryCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<UnaryObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -50,6 +51,7 @@ class RoundCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<UnaryObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -80,6 +82,7 @@ class PReluCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<PReluObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -119,6 +122,7 @@ class SoftmaxCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<SoftmaxObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -215,15 +219,12 @@ class SigmoidCnnl : public UnaryCnnl {
     float getCoef() const override { return 0.0; }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Relu, DataType::Float32, ReluCnnl,
-                "Relu_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::PRelu, DataType::Float32, PReluCnnl,
-                "PRelu_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Sigmoid, DataType::Float32, SigmoidCnnl,
-                "Sigmoid_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Round, DataType::Float32, RoundCnnl,
-                "Round_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Softmax, DataType::Float32, SoftmaxCnnl,
-                "Softmax_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Relu, ReluCnnl, "Relu_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::PRelu, PReluCnnl, "PRelu_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Sigmoid, SigmoidCnnl,
+                "Sigmoid_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Round, RoundCnnl, "Round_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Softmax, SoftmaxCnnl,
+                "Softmax_cnnl_BANG");
 
 }; // namespace infini

@@ -7,6 +7,7 @@ class ConvTransCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ConvBaseObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         const auto [ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
@@ -76,6 +77,6 @@ class ConvTransCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::ConvTranspose, DataType::Float32,
-                ConvTransCnnl, "ConvTrans_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::ConvTranspose, ConvTransCnnl,
+                "ConvTrans_cnnl_BANG");
 }; // namespace infini

@@ -8,6 +8,7 @@ class ExtendCuda : public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ExtendObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto inData = op->getInputs(0)->getRawDataPtr<float *>();
         auto outData = op->getOutputs()[0]->getRawDataPtr<float *>();
         int blockSize = 1;
@@ -22,6 +23,5 @@ class ExtendCuda : public CudaKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Extend, DataType::Float32, ExtendCuda,
-                "Extend_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Extend, ExtendCuda, "Extend_CUDA");
 } // namespace infini

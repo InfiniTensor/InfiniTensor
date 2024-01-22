@@ -28,27 +28,32 @@ __device__ T gatheredOffset2Offset(int gOffset,
     return offset;
 }
 
-template <typename T>
-__global__ void _gather_kernel(float *in, float *out,
+template <typename dataT, typename T>
+__global__ void _gather_kernel(dataT *in, dataT *out,
                                infini::GatherMetaData metaData, size_t num) {
     T tid = threadIdx.x + blockIdx.x * blockDim.x;
-    int stride = blockDim.x * gridDim.x;
-    while (tid < num) {
+    if (tid < num) {
         T offset = gatheredOffset2Offset<T>(tid, metaData);
         out[tid] = in[offset];
-        tid += stride;
     }
 }
 
 namespace infini {
-void gather_kernel(float *in, float *out, GatherMetaData metaData, size_t num) {
+template <typename T>
+void gather_kernel(T *in, T *out, GatherMetaData metaData, size_t num) {
     int blockSize = 32 * 16;
     int gridSize = (num + blockSize - 1) / blockSize;
     if (metaData.indexType == DataType::Int64) {
-        _gather_kernel<int64_t>
+        _gather_kernel<T, int64_t>
             <<<gridSize, blockSize>>>(in, out, metaData, num);
     } else {
-        _gather_kernel<int><<<gridSize, blockSize>>>(in, out, metaData, num);
+        _gather_kernel<T, int><<<gridSize, blockSize>>>(in, out, metaData, num);
     }
 }
+template void gather_kernel<float>(float *in, float *out,
+                                   GatherMetaData metaData, size_t num);
+template void gather_kernel<half>(half *in, half *out, GatherMetaData metaData,
+                                  size_t num);
+template void gather_kernel<int8_t>(int8_t *in, int8_t *out,
+                                    GatherMetaData metaData, size_t num);
 } // namespace infini

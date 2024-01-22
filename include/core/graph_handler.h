@@ -71,6 +71,8 @@ class GraphHandlerObj {
                   vector<float> scales_, vector<float> roi_, string mode,
                   string ratioPolicy, string nearestMode,
                   string coordTransMode);
+    Tensor squeeze(Tensor input, Tensor output, Shape axes);
+    Tensor unsqueeze(Tensor input, Tensor output, Shape axes);
     Tensor concat(TensorVec inputs, Tensor output, int dim);
     Tensor attentionKVCache(Tensor input_k_cache, Tensor input_v_cache,
                             Tensor input_q, Tensor input_k, Tensor input_v,

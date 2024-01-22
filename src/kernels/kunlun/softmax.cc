@@ -7,6 +7,7 @@ class SoftmaxXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<SoftmaxObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
         auto dim = op->getInputs(0)->getDims();
         auto axis = op->getAxis();
@@ -21,6 +22,6 @@ class SoftmaxXdnn : public KUNLUNKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::KUNLUN, OpType::Softmax, DataType::Float32, SoftmaxXdnn,
-                "Softmax_xdnn_KUNLUN_Float32");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Softmax, SoftmaxXdnn,
+                "Softmax_xdnn_KUNLUN");
 }; // namespace infini

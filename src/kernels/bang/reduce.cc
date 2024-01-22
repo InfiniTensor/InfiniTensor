@@ -9,6 +9,7 @@ class ReduceCnnlBase : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ReduceBaseObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
@@ -73,9 +74,9 @@ class ReduceSumCnnl : public ReduceCnnlBase {
     cnnlReduceOp_t getReduceOp() const override { return CNNL_REDUCE_ADD; }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::ReduceMean, DataType::Float32,
-                ReduceMeanCnnl, "ReduceMean_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::ReduceSum, DataType::Float32,
-                ReduceSumCnnl, "ReduceSum_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::ReduceMean, ReduceMeanCnnl,
+                "ReduceMean_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::ReduceSum, ReduceSumCnnl,
+                "ReduceSum_cnnl_BANG");
 
 }; // namespace infini

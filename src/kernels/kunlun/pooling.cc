@@ -7,6 +7,7 @@ class AvgPooling : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<PoolingObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
@@ -30,6 +31,7 @@ class MaxPooling : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<PoolingObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
@@ -55,8 +57,7 @@ class MaxPooling : public KUNLUNKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::KUNLUN, OpType::MaxPool, DataType::Float32, MaxPooling,
-                "MaxPool_xdnn_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::AveragePool, DataType::Float32,
-                AvgPooling, "AvgPool_xdnn_Float32");
+REGISTER_KERNEL(Device::KUNLUN, OpType::MaxPool, MaxPooling, "MaxPool_xdnn");
+REGISTER_KERNEL(Device::KUNLUN, OpType::AveragePool, AvgPooling,
+                "AvgPool_xdnn");
 }; // namespace infini

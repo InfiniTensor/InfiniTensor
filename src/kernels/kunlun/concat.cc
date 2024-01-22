@@ -7,6 +7,7 @@ class ConcatXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ConcatObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
         int axis = op->getDim();
         int num = op->numInputs();
@@ -32,6 +33,6 @@ class ConcatXdnn : public KUNLUNKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::KUNLUN, OpType::Concat, DataType::Float32, ConcatXdnn,
-                "Concat_xdnn_KUNLUN_Float32");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Concat, ConcatXdnn,
+                "Concat_xdnn_KUNLUN");
 }; // namespace infini

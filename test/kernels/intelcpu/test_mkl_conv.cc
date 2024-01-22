@@ -53,8 +53,8 @@ TEST(mkl_Conv, tune) {
     mklRuntime->run(gMkl, tune);
 
     // check record
-    auto kernelAttrs = KernelAttrs{
-        Device::INTELCPU, conv->getOpType().underlying(), DataType::Float32};
+    auto kernelAttrs =
+        KernelAttrs{Device::INTELCPU, conv->getOpType().underlying()};
     auto perfKey = PerfEngine::Key{kernelAttrs, conv->getOpPerfKey()};
     std::optional<PerfRecord> perfData =
         PerfEngine::getInstance().getPerfData(perfKey);

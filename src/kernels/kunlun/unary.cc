@@ -7,6 +7,7 @@ class ReluXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<UnaryObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -24,6 +25,7 @@ class SigmoidXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<UnaryObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -41,6 +43,7 @@ class TanhXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<UnaryObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -58,6 +61,7 @@ class SquareXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<UnaryObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -75,6 +79,7 @@ class SqrtXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<UnaryObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -92,6 +97,7 @@ class RsqrtXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<UnaryObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -109,6 +115,7 @@ class ExpXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<UnaryObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -126,6 +133,7 @@ class CeilXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<UnaryObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -143,6 +151,7 @@ class ClipXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ClipObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -162,6 +171,7 @@ class FloorXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<UnaryObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -179,6 +189,7 @@ class NegXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<UnaryObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -195,6 +206,7 @@ class NegXdnn : public KUNLUNKernelWithoutConfig {
 class CopyXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &op,
                  const RuntimeObj *_context) const override {
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -212,6 +224,7 @@ class ReciprocalXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<UnaryObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -229,6 +242,7 @@ class AbsXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<UnaryObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -246,6 +260,7 @@ class ATanXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<UnaryObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -263,6 +278,7 @@ class LogXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<LogObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
@@ -315,6 +331,7 @@ class CosXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<CosObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
@@ -331,6 +348,7 @@ class SinXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<SinObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
@@ -347,6 +365,7 @@ class TanXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<TanObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
@@ -363,6 +382,7 @@ class SinhXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<SinHObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
@@ -379,6 +399,7 @@ class CoshXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<CosHObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
@@ -395,6 +416,7 @@ class ErfXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ErfObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
@@ -411,6 +433,7 @@ class ACosXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ACosObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
@@ -427,6 +450,7 @@ class ACoshXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ACosHObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
@@ -443,6 +467,7 @@ class ASinXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ASinObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
@@ -459,6 +484,7 @@ class ASinhXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ASinHObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
@@ -475,6 +501,7 @@ class ATanhXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ATanHObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
@@ -487,63 +514,38 @@ class ATanhXdnn : public KUNLUNKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::KUNLUN, OpType::Relu, DataType::Float32, ReluXdnn,
-                "Relu_xdnn_KUNLUN_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Sigmoid, DataType::Float32, SigmoidXdnn,
-                "Sigmoid_xdnn_KUNLUN_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Tanh, DataType::Float32, TanhXdnn,
-                "Tanh_xdnn_KUNLUN_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Square, DataType::Float32, SquareXdnn,
-                "Square_xdnn_KUNLUN_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Sqrt, DataType::Float32, SqrtXdnn,
-                "Sqrt_xdnn_KUNLUN_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Rsqrt, DataType::Float32, RsqrtXdnn,
-                "Rsqrt_xdnn_KUNLUN_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Exp, DataType::Float32, ExpXdnn,
-                "Exp_xdnn_KUNLUN_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Ceil, DataType::Float32, CeilXdnn,
-                "Ceil_xdnn_KUNLUN_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Clip, DataType::Float32, ClipXdnn,
-                "Clip_xdnn_KUNLUN_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Floor, DataType::Float32, FloorXdnn,
-                "Floor_xdnn_KUNLUN_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Neg, DataType::Float32, NegXdnn,
-                "Neg_xdnn_KUNLUN_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Reciprocal, DataType::Float32,
-                ReciprocalXdnn, "Reciprocal_xdnn_KUNLUN_Float32");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Relu, ReluXdnn, "Relu_xdnn_KUNLUN");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Sigmoid, SigmoidXdnn,
+                "Sigmoid_xdnn_KUNLUN");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Tanh, TanhXdnn, "Tanh_xdnn_KUNLUN");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Square, SquareXdnn,
+                "Square_xdnn_KUNLUN");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Sqrt, SqrtXdnn, "Sqrt_xdnn_KUNLUN");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Rsqrt, RsqrtXdnn, "Rsqrt_xdnn_KUNLUN");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Exp, ExpXdnn, "Exp_xdnn_KUNLUN");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Ceil, CeilXdnn, "Ceil_xdnn_KUNLUN");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Clip, ClipXdnn, "Clip_xdnn_KUNLUN");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Floor, FloorXdnn, "Floor_xdnn_KUNLUN");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Neg, NegXdnn, "Neg_xdnn_KUNLUN");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Reciprocal, ReciprocalXdnn,
+                "Reciprocal_xdnn_KUNLUN");
 
-REGISTER_KERNEL(Device::KUNLUN, OpType::Reshape, DataType::Float32, CopyXdnn,
-                "Reshape_xdnn_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Flatten, DataType::Float32, CopyXdnn,
-                "Flatten_xdnn_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Identity, DataType::Float32, CopyXdnn,
-                "Identity_xdnn_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Abs, DataType::Float32, AbsXdnn,
-                "Abs_xdnn_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Atan, DataType::Float32, ATanXdnn,
-                "Atan_xdnn_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Log, DataType::Float32, LogXdnn,
-                "Log_xdnn_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Cos, DataType::Float32, CosXdnn,
-                "Cos_xdnn_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Sin, DataType::Float32, SinXdnn,
-                "Sin_xdnn_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Tan, DataType::Float32, TanXdnn,
-                "Tan_xdnn_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Sinh, DataType::Float32, SinhXdnn,
-                "Sinh_xdnn_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Cosh, DataType::Float32, CoshXdnn,
-                "Cosh_xdnn_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Erf, DataType::Float32, ErfXdnn,
-                "Erf_xdnn_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Acos, DataType::Float32, ACosXdnn,
-                "ACos_xdnn_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Acosh, DataType::Float32, ACoshXdnn,
-                "ACosh_xdnn_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Asin, DataType::Float32, ASinXdnn,
-                "ASin_xdnn_Float32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Asinh, DataType::Float32, ASinhXdnn,
+REGISTER_KERNEL(Device::KUNLUN, OpType::Reshape, CopyXdnn, "Reshape_xdnn");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Flatten, CopyXdnn, "Flatten_xdnn");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Identity, CopyXdnn, "Identity_xdnn");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Abs, AbsXdnn, "Abs_xdnn");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Atan, ATanXdnn, "Atan_xdnn");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Log, LogXdnn, "Log_xdnn");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Cos, CosXdnn, "Cos_xdnn");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Sin, SinXdnn, "Sin_xdnn");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Tan, TanXdnn, "Tan_xdnn");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Sinh, SinhXdnn, "Sinh_xdnn");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Cosh, CoshXdnn, "Cosh_xdnn");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Erf, ErfXdnn, "Erf_xdnn");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Acos, ACosXdnn, "ACos_xdnn");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Acosh, ACoshXdnn, "ACosh_xdnn");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Asin, ASinXdnn, "ASin_xdnn");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Asinh, ASinhXdnn,
                 "ASinh_xdnn_Float3 2");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Atanh, DataType::Float32, ATanhXdnn,
-                "ATanh_xdnn_Float32");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Atanh, ATanhXdnn, "ATanh_xdnn");
 }; // namespace infini

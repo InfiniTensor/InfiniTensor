@@ -40,6 +40,34 @@ void testUnary(const std::function<void(void *, size_t, DataType)> &generator,
     EXPECT_TRUE(outputCpu->equalData(outputGpu2Cpu));
 }
 
+template <class T>
+void testCast(const std::function<void(void *, size_t, DataType)> &generator,
+              const Shape &shape, vector<float> ansVec) {
+    // Runtime
+    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
+    auto cudaRuntime = make_ref<CudaRuntimeObj>();
+
+    // Build input data on CPU
+    Tensor inputCpu = make_ref<TensorObj>(shape, DataType::Float32, cpuRuntime);
+    inputCpu->dataMalloc();
+    inputCpu->setData(generator);
+
+    // GPU
+    Graph cudaGraph = make_ref<GraphObj>(cudaRuntime);
+    auto inputGpu = cudaGraph->cloneTensor(inputCpu);
+    auto gpuOp =
+        cudaGraph->addOp<T>(inputGpu, nullptr, CastType::Float2Float16);
+    cudaGraph->dataMalloc();
+    inputGpu->setData(generator);
+    cudaRuntime->run(cudaGraph);
+    auto outputGpu = gpuOp->getOutput();
+    auto outputGpu2Cpu = outputGpu->clone(cpuRuntime);
+
+    inputCpu->printData();
+    outputGpu2Cpu->printData();
+    EXPECT_TRUE(outputGpu2Cpu->equalData(ansVec));
+}
+
 TEST(cuDNN_Unary, run) {
     testUnary<ReluObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     testUnary<AbsObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
@@ -50,6 +78,8 @@ TEST(cuDNN_Unary, run) {
     testUnary<SqrtObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     testUnary<NegObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     testUnary<ErfObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    testCast<CastObj>(IncrementalGenerator(), Shape{8, 1},
+                      vector<float>{0, 1, 2, 3, 4, 5, 6, 7});
     // more shapes
     testUnary<SqrtObj>(IncrementalGenerator(), Shape{13});
     testUnary<SqrtObj>(IncrementalGenerator(), Shape{4, 3});

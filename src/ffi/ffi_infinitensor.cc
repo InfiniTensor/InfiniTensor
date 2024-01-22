@@ -12,8 +12,10 @@
 #include "operators/reduce.h"
 #include "operators/reshape.h"
 #include "operators/split.h"
+#include "operators/squeeze.h"
 #include "operators/transpose.h"
 #include "operators/unary.h"
+#include "operators/unsqueeze.h"
 #include <algorithm>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
@@ -93,6 +95,8 @@ void export_values(py::module &m) {
         .VALUE(OpType, ReduceMean)
         .VALUE(OpType, ReduceSum)
         .VALUE(OpType, Reshape)
+        .VALUE(OpType, Squeeze)
+        .VALUE(OpType, Unsqueeze)
         .VALUE(OpType, Flatten)
         .VALUE(OpType, Identity)
         .VALUE(OpType, BatchNormalization)
@@ -256,6 +260,24 @@ static vector<int64_t> reshape_shape_of(Operator op) {
     return ans;
 }
 
+static vector<int64_t> squeeze_axes_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Squeeze);
+    auto axes = dynamic_cast<const SqueezeObj *>(op.get())->getAxes();
+    vector<int64_t> ans(axes.size());
+    std::transform(axes.begin(), axes.end(), ans.begin(),
+                   [](auto x) { return static_cast<int64_t>(x); });
+    return ans;
+}
+
+static vector<int64_t> unsqueeze_axes_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Unsqueeze);
+    auto axes = dynamic_cast<const UnsqueezeObj *>(op.get())->getAxes();
+    vector<int64_t> ans(axes.size());
+    std::transform(axes.begin(), axes.end(), ans.begin(),
+                   [](auto x) { return static_cast<int64_t>(x); });
+    return ans;
+}
+
 static vector<int64_t> expand_shape_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Expand);
     auto shape = dynamic_cast<const ExpandObj *>(op.get())->getShape();
@@ -343,6 +365,8 @@ void export_functions(py::module &m) {
         .FUNCTION(flatten_axis_of)
         .FUNCTION(cast_to_of)
         .FUNCTION(depth_to_space_attrs_of)
+        .FUNCTION(squeeze_axes_of)
+        .FUNCTION(unsqueeze_axes_of)
         .FUNCTION(lrn_attrs_of);
 #undef FUNCTION
 }
@@ -511,6 +535,8 @@ void init_graph_builder(py::module &m) {
         .def("depthToSpace", &Handler::depthToSpace, policy::move)
         .def("reshape", &Handler::reshape, policy::move)
         .def("resize", &Handler::resize, policy::move)
+        .def("squeeze", &Handler::squeeze, policy::move)
+        .def("unsqueeze", &Handler::unsqueeze, policy::move)
         .def("concat", &Handler::concat, policy::move)
         .def("attentionKVCache", &Handler::attentionKVCache, policy::move)
         .def("split", &Handler::split, policy::move)
