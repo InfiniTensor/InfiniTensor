@@ -21,14 +21,14 @@ class BroadcastCNCL : public BangKernelWithoutConfig {
                 .getCnclComm();
         cnrtQueue_t queue = context->getBangQueue();
         // TODO: Using default stream 0 for now.
-        CNCL_CHECK(cnclBroadcast(input, output, count, cnclUint8,
-                                 op->getRoot(), comm, queue));
+        CNCL_CHECK(cnclBroadcast(input, output, count, cnclUint8, op->getRoot(),
+                                 comm, queue));
         checkBangError(cnrtQueueSync(queue));
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Broadcast,
-                BroadcastCNCL, "Broadcast_CNCL_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Broadcast, BroadcastCNCL,
+                "Broadcast_CNCL_BANG");
 } // namespace infini
 
 #endif

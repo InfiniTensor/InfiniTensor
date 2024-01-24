@@ -41,13 +41,13 @@ class AllReduceMaxCNCL : public AllReduceCNCL {
     cnclReduceOp_t getRedOp() const override { return cnclMax; }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::AllReduceSum, 
-                AllReduceSumCNCL, "AllReduce_Sum_CNCL_BANG");
-REGISTER_KERNEL(Device::BANG, OpType::AllReduceProd, 
-                AllReduceProdCNCL, "AllReduce_Prod_CNCL_BANG");
-REGISTER_KERNEL(Device::BANG, OpType::AllReduceMin, 
-                AllReduceMinCNCL, "AllReduce_Min_CNCL_BANG");
-REGISTER_KERNEL(Device::BANG, OpType::AllReduceMax, 
-                AllReduceMaxCNCL, "AllReduce_Max_CNCL_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::AllReduceSum, AllReduceSumCNCL,
+                "AllReduce_Sum_CNCL_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::AllReduceProd, AllReduceProdCNCL,
+                "AllReduce_Prod_CNCL_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::AllReduceMin, AllReduceMinCNCL,
+                "AllReduce_Min_CNCL_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::AllReduceMax, AllReduceMaxCNCL,
+                "AllReduce_Max_CNCL_BANG");
 } // namespace infini
 #endif

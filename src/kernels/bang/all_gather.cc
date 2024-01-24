@@ -41,8 +41,8 @@ class AllGatherCNCL : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::AllGather, 
-                AllGatherCNCL, "AllGather_CNCL_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::AllGather, AllGatherCNCL,
+                "AllGather_CNCL_BANG");
 } // namespace infini
 
 #endif
