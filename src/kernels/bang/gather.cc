@@ -23,9 +23,11 @@ class GatherCnnl : public BangKernelWithoutConfig {
             aDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
             aDim.size(), aDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
-        // checkCnnlError(
-        //     cnnlSetTensorDescriptorPointerMode(bDesc,
-        //     CNNL_POINTER_MODE_HOST));
+#if (CNNL_MAJOR <= 1) && (CNNL_MINOR <= 21)
+#else
+        checkCnnlError(
+            cnnlSetTensorDescriptorPointerMode(bDesc, CNNL_POINTER_MODE_HOST));
+#endif
         checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_ARRAY,
                                                CNNL_DTYPE_INT32, bDim.size(),
                                                bDim.data()));
