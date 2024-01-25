@@ -10,7 +10,6 @@ class ActivationBackwardCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ActivationBackwardObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const yData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -25,21 +24,21 @@ class ActivationBackwardCnnl : public BangKernelWithoutConfig {
         auto diffxDim = op->getOutput()->getDims();
 
         checkCnnlError(cnnlCreateTensorDescriptor(&yDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(yDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, yDim.size(),
-                                               yDim.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            yDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
+            yDim.size(), yDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&diffYDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            diffYDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, diffyDim.size(),
-            diffyDim.data()));
+            diffYDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
+            diffyDim.size(), diffyDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&xDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(xDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, xDim.size(),
-                                               xDim.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            xDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
+            xDim.size(), xDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&diffXDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            diffXDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, diffxDim.size(),
-            diffxDim.data()));
+            diffXDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
+            diffxDim.size(), diffxDim.data()));
         // get op descriptor
         cnnlActivationDescriptor_t opDesc;
         checkCnnlError(cnnlCreateActivationDescriptor(&opDesc));

@@ -14,22 +14,22 @@ class BroadcastCNCL : public BangKernelWithoutConfig {
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
         void *input = op->getInputs(0)->getRawDataPtr<void *>();
         void *output = op->getOutput()->getRawDataPtr<void *>();
-        IT_ASSERT(op->getDType() == DataType::Float32);
-        size_t count = op->getInputs(0)->getBytes() / op->getDType().getSize();
+        size_t bytes = op->getInputs(0)->getBytes();
+        size_t count = bytes / sizeof(uint8_t);
 
         cnclComm_t comm =
             dynamic_cast<CnclCommunicatorObj &>(context->getCommunicator())
                 .getCnclComm();
         cnrtQueue_t queue = context->getBangQueue();
         // TODO: Using default stream 0 for now.
-        CNCL_CHECK(cnclBroadcast(input, output, count, cnclFloat32,
-                                 op->getRoot(), comm, queue));
+        CNCL_CHECK(cnclBroadcast(input, output, count, cnclUint8, op->getRoot(),
+                                 comm, queue));
         checkBangError(cnrtQueueSync(queue));
     }
 };
 
 REGISTER_KERNEL(Device::BANG, OpType::Broadcast, BroadcastCNCL,
-                "Broadcast_CNCL_BANG_Float32");
+                "Broadcast_CNCL_BANG");
 } // namespace infini
 
 #endif
