@@ -261,13 +261,13 @@ if(USE_BANG)
   # BangC Kernels
   ################################################################################
 
-  target_link_libraries(InfiniTensor ${CAMBRICON_CNCL} ${CAMBRICON_CNNL} ${CAMBRICON_CNRT} ${CAMBRICON_CNDRV} stdc++)
   if (BUILD_DIST)
-    message(STATUS "Add BUILD_DIST, use CNCL with BANG")
     find_library(CAMBRICON_CNCL libcncl.so "${NEUWARE_HOME}/lib64")
-    
+    target_link_libraries(InfiniTensor ${CAMBRICON_CNCL} ${CAMBRICON_CNNL} ${CAMBRICON_CNRT} ${CAMBRICON_CNDRV} stdc++)
+    message(STATUS "Add BUILD_DIST, use CNCL with BANG")
     add_compile_definitions(INFINI_USE_CNCL=1)
-    
+  else()
+    target_link_libraries(InfiniTensor ${CAMBRICON_CNNL} ${CAMBRICON_CNRT} ${CAMBRICON_CNDRV} stdc++)
   endif()
 endif()
 
