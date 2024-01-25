@@ -8,7 +8,6 @@ class LayerNormCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<LayerNormObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const inputData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -29,17 +28,17 @@ class LayerNormCnnl : public BangKernelWithoutConfig {
         cnnlTensorDescriptor_t inDesc, fiterDesc, outDesc;
 
         checkCnnlError(cnnlCreateTensorDescriptor(&inDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(inDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, inDims.size(),
-                                               inDims.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            inDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            inDims.size(), inDims.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&fiterDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            fiterDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT, fiterDims.size(),
-            fiterDims.data()));
+            fiterDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            fiterDims.size(), fiterDims.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&outDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(outDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, outDims.size(),
-                                               outDims.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            outDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            outDims.size(), outDims.data()));
         size_t wsSize;
         cnnlGetLayerNormOpWorkspaceSize(context->cnnlHandle(), axis, inDesc,
                                         &wsSize);
