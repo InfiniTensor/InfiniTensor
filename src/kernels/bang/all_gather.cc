@@ -10,7 +10,6 @@ class AllGatherCNCL : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<AllGatherObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
         int world_size = op->getWorldSize();
         // Check if world size info in operator matches runtime

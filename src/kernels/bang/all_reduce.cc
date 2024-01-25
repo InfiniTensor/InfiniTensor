@@ -10,7 +10,6 @@ class AllReduceCNCL : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<AllReduceBaseObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
         void *input = op->getInputs(0)->getRawDataPtr<void *>();
         void *output = op->getOutput()->getRawDataPtr<void *>();
