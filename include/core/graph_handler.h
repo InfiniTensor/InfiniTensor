@@ -74,10 +74,9 @@ class GraphHandlerObj {
     Tensor squeeze(Tensor input, Tensor output, Shape axes);
     Tensor unsqueeze(Tensor input, Tensor output, Shape axes);
     Tensor concat(TensorVec inputs, Tensor output, int dim);
-    TensorVec attentionKVCache(Tensor input_k_cache, Tensor input_v_cache,
-                               Tensor input_q, Tensor input_k, Tensor input_v,
-                               Tensor position_id, Tensor output_matmul,
-                               Tensor output_k_cache, Tensor output_v_cache);
+    Tensor attentionKVCache(Tensor input_k_cache, Tensor input_v_cache,
+                            Tensor input_q, Tensor input_k, Tensor input_v,
+                            Tensor position_id, Tensor output_matmul);
     TensorVec split(Tensor input, std::optional<TensorVec> outputs, int axis,
                     std::variant<int, vector<int>> numOrRatio);
     Tensor gather(Tensor data, Tensor indices, Tensor output, int axis);

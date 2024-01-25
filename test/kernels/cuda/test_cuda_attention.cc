@@ -23,7 +23,7 @@ TEST(AttentionKVCache, Cuda) {
 
     auto op = gCuda->addOp<AttentionKVCacheObj>(
         input_k_cache_d, input_v_cache_d, input_q_d, input_k_d, input_v_d,
-        position_id_d, nullptr, nullptr, nullptr);
+        position_id_d, nullptr);
     gCuda->dataMalloc();
 
     input_q_d->setData(OneGenerator());

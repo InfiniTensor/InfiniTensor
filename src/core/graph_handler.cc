@@ -324,25 +324,24 @@ Tensor GraphHandlerObj::concat(TensorVec inputs, Tensor output, int dim) {
     }
 }
 
-TensorVec GraphHandlerObj::attentionKVCache(
-    Tensor input_k_cache, Tensor input_v_cache, Tensor input_q, Tensor input_k,
-    Tensor input_v, Tensor position_id, Tensor output_matmul,
-    Tensor output_k_cache, Tensor output_v_cache) {
-    if (output_matmul && output_k_cache && output_v_cache) {
+Tensor GraphHandlerObj::attentionKVCache(Tensor input_k_cache,
+                                         Tensor input_v_cache, Tensor input_q,
+                                         Tensor input_k, Tensor input_v,
+                                         Tensor position_id,
+                                         Tensor output_matmul) {
+    if (output_matmul) {
         g->addOpWithOutputs<AttentionKVCacheObj>(
             std::move(input_k_cache), std::move(input_v_cache),
             std::move(input_q), std::move(input_k), std::move(input_v),
-            std::move(position_id), output_matmul, output_k_cache,
-            output_v_cache);
-        return {output_matmul, output_k_cache, output_v_cache};
+            std::move(position_id), output_matmul);
+        return output_matmul;
     } else {
         return g
             ->addOp<AttentionKVCacheObj>(
                 std::move(input_k_cache), std::move(input_v_cache),
                 std::move(input_q), std::move(input_k), std::move(input_v),
-                std::move(position_id), output_matmul, output_k_cache,
-                output_v_cache)
-            ->getOutputs();
+                std::move(position_id), output_matmul)
+            ->getOutput();
     }
 }
 

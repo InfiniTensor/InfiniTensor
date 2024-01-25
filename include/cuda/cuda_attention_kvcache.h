@@ -1,4 +1,5 @@
 #pragma once
+#include "core/common.h"
 #include <cstdio>
 
 struct AttentionKVCacheMetadata {

@@ -67,16 +67,15 @@ def replace_onnx_with_attention_op():
             tmap["/model/layers." + str(i) + "/self_attn/Add_1_output_0"],
             tmap["/model/layers." + str(i) + "/self_attn/Transpose_2_output_0"]]
         outputs = [
-            tmap["/model/layers." + str(i) + "/self_attn/MatMul_1_output_0"],
-            tmap[graph.outputs[1+i*2].name],
-            tmap[graph.outputs[2+i*2].name]]
+            tmap["/model/layers." + str(i) + "/self_attn/MatMul_1_output_0"]]
 
         inputs_added = [graph.inputs[1]]
         outputs_removed = []
 
         graph.replace_with_attention(
             inputs, outputs, inputs_added, outputs_removed)
-    
+        
+    graph.outputs = [tmap[graph.outputs[0].name]]
     graph.cleanup(True).toposort()
     onnx.save(gs.export_onnx(graph), ONNX_MODEL_PATH, save_as_external_data=True)
 
