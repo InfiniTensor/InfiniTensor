@@ -334,7 +334,7 @@ Tensor GraphHandlerObj::attentionKVCache(Tensor input_k_cache,
             std::move(input_k_cache), std::move(input_v_cache),
             std::move(input_q), std::move(input_k), std::move(input_v),
             std::move(position_id), output_matmul);
-        return {output_matmul};
+        return output_matmul;
     } else {
         return g
             ->addOp<AttentionKVCacheObj>(

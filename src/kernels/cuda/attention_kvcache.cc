@@ -21,7 +21,7 @@ class AttentionKVCacheCompute {
   public:
     void do_compute(Tensor input_k_cache, Tensor input_v_cache, Tensor input_q,
                     Tensor input_k, Tensor input_v, Tensor position_id,
-                    Tensor output_matmul) const {
+                    Tensor output_matmul, CudaPtr p_workspace) const {
         AttentionKVCacheMetadata metadata;
         initAttentionKVCacheMetadata(metadata, input_v_cache);
 
@@ -32,7 +32,8 @@ class AttentionKVCacheCompute {
                                  input_v->getRawDataPtr<float *>(),
                                  position_id->getRawDataPtr<int *>(),
                                  output_matmul->getRawDataPtr<float *>(),
-                                 metadata);
+                                 metadata, (float *)p_workspace,
+                                 (float *)(p_workspace + (1ll << 30)));
     }
 };
 
@@ -41,10 +42,14 @@ class AttentionKVCacheCuda : private AttentionKVCacheCompute,
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         IT_ASSERT(_op->getDType() == DataType::Float32);
+
+        size_t workspaceSize = 2ll << 30;
+        auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
+        CudaPtr idxWsData = context->getWorkspace(workspaceSize);
         do_compute(_op->getInputs()[0], _op->getInputs()[1],
                    _op->getInputs()[2], _op->getInputs()[3],
                    _op->getInputs()[4], _op->getInputs()[5],
-                   _op->getOutputs()[0]);
+                   _op->getOutputs()[0], idxWsData);
     }
 };
 
