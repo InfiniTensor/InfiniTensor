@@ -3,6 +3,9 @@
 #include "cnrt.h"
 #include "core/common.h"
 #include "core/data_type.h"
+#ifdef INFINI_USE_CNCL
+#include "cncl.h"
+#endif
 
 #define checkBangError(call)                                                   \
     {                                                                          \
@@ -58,5 +61,38 @@ inline cnnlDataType_t cnnlDataTypeConvert(DataType dataType) {
     }
     return CNNL_DTYPE_INVALID;
 }
+
+#ifdef INFINI_USE_CNCL
+inline cnclDataType_t cnclDataTypeConvert(DataType dataType) {
+    if (dataType == DataType::Float32) {
+        return cnclFloat32;
+    }
+    if (dataType == DataType::Float16) {
+        return cnclHalf;
+    }
+    if (dataType == DataType::Int8) {
+        return cnclInt8;
+    }
+    if (dataType == DataType::Int16) {
+        return cnclInt16;
+    }
+    if (dataType == DataType::Int32) {
+        return cnclInt32;
+    }
+    if (dataType == DataType::UInt8) {
+        return cnclUint8;
+    }
+    if (dataType == DataType::UInt16) {
+        return cnclUint16;
+    }
+    if (dataType == DataType::UInt16) {
+        return cnclUint32;
+    }
+    if (dataType == DataType::BFloat16) {
+        return cnclBfloat16;
+    }
+    return cnclInvalid;
+}
+#endif
 
 } // namespace infini
