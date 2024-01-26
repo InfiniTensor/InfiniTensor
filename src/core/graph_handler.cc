@@ -181,7 +181,7 @@ DEFINE_ELEMENT_WISE_METHOD(max, Maximum)
             return g->addOp<obj##Obj>(std::move(x), y)->getOutput();           \
         }                                                                      \
     }
-    
+
 DEFINE_UNARY_METHOD(silu, Silu)
 DEFINE_UNARY_METHOD(relu, Relu)
 DEFINE_UNARY_METHOD(gelu, Gelu)

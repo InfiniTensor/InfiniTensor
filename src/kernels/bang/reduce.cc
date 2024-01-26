@@ -9,7 +9,6 @@ class ReduceCnnlBase : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ReduceBaseObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
@@ -26,20 +25,20 @@ class ReduceCnnlBase : public BangKernelWithoutConfig {
         cnnlTensorDescriptor_t inDesc, outDesc;
         checkCnnlError(cnnlCreateTensorDescriptor(&inDesc));
         checkCnnlError(cnnlCreateTensorDescriptor(&outDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(inDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, aDim.size(),
-                                               aDim.data()));
-        checkCnnlError(cnnlSetTensorDescriptor(outDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, bDim.size(),
-                                               bDim.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            inDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            aDim.size(), aDim.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            outDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            bDim.size(), bDim.data()));
 
         // get reduce descriptor
         cnnlReduceDescriptor_t reduceDesc;
         checkCnnlError(cnnlCreateReduceDescriptor(&reduceDesc));
         checkCnnlError(cnnlSetReduceDescriptor_v2(
             reduceDesc, axes.data(), axes.size(), getReduceOp(),
-            CNNL_DTYPE_FLOAT, CNNL_NOT_PROPAGATE_NAN, CNNL_REDUCE_NO_INDICES,
-            CNNL_32BIT_INDICES, 0.0));
+            cnnlDataTypeConvert(op->getDType()), CNNL_NOT_PROPAGATE_NAN,
+            CNNL_REDUCE_NO_INDICES, CNNL_32BIT_INDICES, 0.0));
 
         // get workspace
         size_t workspaceSize = 0;

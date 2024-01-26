@@ -7,7 +7,6 @@ class BatchNormCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<BatchNormObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const input = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -33,18 +32,18 @@ class BatchNormCnnl : public BangKernelWithoutConfig {
         checkCnnlError(cnnlCreateTensorDescriptor(&intransDesc));
         checkCnnlError(cnnlCreateTensorDescriptor(&outDesc));
         checkCnnlError(cnnlCreateTensorDescriptor(&outtransDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(inDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, dims.size(),
-                                               dims.data()));
-        checkCnnlError(cnnlSetTensorDescriptor(intransDesc, CNNL_LAYOUT_NHWC,
-                                               CNNL_DTYPE_FLOAT, dims.size(),
-                                               dimsTrans));
-        checkCnnlError(cnnlSetTensorDescriptor(outDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, outDims.size(),
-                                               outDims.data()));
-        checkCnnlError(cnnlSetTensorDescriptor(outtransDesc, CNNL_LAYOUT_NHWC,
-                                               CNNL_DTYPE_FLOAT, outDims.size(),
-                                               dimsOutTrans));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            inDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
+            dims.size(), dims.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            intransDesc, CNNL_LAYOUT_NHWC, cnnlDataTypeConvert(op->getDType()),
+            dims.size(), dimsTrans));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            outDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
+            outDims.size(), outDims.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            outtransDesc, CNNL_LAYOUT_NHWC, cnnlDataTypeConvert(op->getDType()),
+            outDims.size(), dimsOutTrans));
         cnnlTransposeDescriptor_t opDesc;
         checkCnnlError(cnnlCreateTransposeDescriptor(&opDesc));
         checkCnnlError(cnnlSetTransposeDescriptor(opDesc, 4, permute));
@@ -53,9 +52,9 @@ class BatchNormCnnl : public BangKernelWithoutConfig {
                                       &wsSize);
         BangPtr wsData = context->getWorkspace(wsSize);
         BangPtr inputTrans = context->getWorkspace(
-            cnnlGetTensorElementNum(inDesc) * sizeof(float));
+            cnnlGetTensorElementNum(inDesc) * op->getDType().getSize());
         BangPtr outputTrans = context->getWorkspace(
-            cnnlGetTensorElementNum(inDesc) * sizeof(float));
+            cnnlGetTensorElementNum(inDesc) * op->getDType().getSize());
         cnnlStatus_t stat =
             cnnlTranspose_v2(context->cnnlHandle(), opDesc, inDesc, input,
                              intransDesc, inputTrans, wsData, wsSize);
@@ -67,7 +66,7 @@ class BatchNormCnnl : public BangKernelWithoutConfig {
         cnnlTensorDescriptor_t paraDesc;
         checkCnnlError(cnnlCreateTensorDescriptor(&paraDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            paraDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT,
+            paraDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
             dimsScaleBiasMeanVar.size(), dimsScaleBiasMeanVar.data()));
 
         float alpha = 1.f, beta = 0.f;

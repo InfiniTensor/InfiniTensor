@@ -157,7 +157,6 @@ class SoftmaxCudnn : public CudaKernelWithoutConfig {
 
 class ReluCudnn : public ActivationCudnn {
     cudnnActivationMode_t getOpType() const override {
-
         return CUDNN_ACTIVATION_RELU;
     }
 };

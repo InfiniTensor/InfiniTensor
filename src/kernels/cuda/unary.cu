@@ -228,7 +228,6 @@ void unary_kernel(const Operator &_op) {
     void *const outputData = (op->getOutput()->getRawDataPtr<void *>());
 
     size_t num = op->getOutput()->size();
-    
     if (op->getOpType() == OpType::Softmax) {
         if (_op->getDType() == DataType::Float32) {
             softmax_kernel<float>((float *)inputData, (float *)outputData, num);
