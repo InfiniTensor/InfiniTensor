@@ -50,8 +50,10 @@ void testMatmul(const std::function<void(void *, size_t, DataType)> &generatorA,
 }
 
 TEST(ascend_Matmul, run) {
+    aclInit(nullptr);
     testMatmul<MatmulObj>(IncrementalGenerator(), IncrementalGenerator(), false,
                           false, Shape{1, 2, 3}, Shape{1, 3, 4});
+    aclFinalize();
 }
 
 } // namespace infini

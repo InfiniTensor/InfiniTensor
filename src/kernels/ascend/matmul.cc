@@ -5,9 +5,7 @@
 
 namespace infini {
 
-
 class MatmulAclnn : public ASCENDKernelWithoutConfig {
-
 
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
@@ -38,40 +36,36 @@ class MatmulAclnn : public ASCENDKernelWithoutConfig {
         auto matTensor = aclCreateTensor(
             matDim.data(), matDim.size(), ACL_FLOAT, matStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, matDim.data(), matDim.size(), bData);
-        auto outputTensor = aclCreateTensor(
-            outputDim.data(), outputDim.size(), ACL_FLOAT, outputStride.data(), 0,
-            aclFormat::ACL_FORMAT_ND, outputDim.data(), outputDim.size(), cData);
+        auto outputTensor =
+            aclCreateTensor(outputDim.data(), outputDim.size(), ACL_FLOAT,
+                            outputStride.data(), 0, aclFormat::ACL_FORMAT_ND,
+                            outputDim.data(), outputDim.size(), cData);
 
         uint64_t workspaceSize = 0;
         aclOpExecutor *executor;
 
-        auto ret =
-            aclnnMatmulGetWorkspaceSize(selfTensor, matTensor, outputTensor, 1, &workspaceSize, &executor);
+        auto ret = aclnnMatmulGetWorkspaceSize(
+            selfTensor, matTensor, outputTensor, 1, &workspaceSize, &executor);
         void *workspaceAddr = nullptr;
         if (workspaceSize > 0) {
-            ret = aclrtMalloc(&workspaceAddr, workspaceSize,
-                              ACL_MEM_MALLOC_HUGE_FIRST);
+            workspaceAddr = context->getWorkspace(workspaceSize);
         }
         assert(ret == ACL_SUCCESS);
         ret = aclnnMatmul(workspaceAddr, workspaceSize, executor,
-                        context->ASCENDHandle());
+                          context->ASCENDHandle());
         assert(ret == ACL_SUCCESS);
 
         ret = aclrtSynchronizeStream(context->ASCENDHandle());
         assert(ret == ACL_SUCCESS);
 
-	aclDestroyTensor(selfTensor);
-	aclDestroyTensor(matTensor);
-	aclDestroyTensor(outputTensor);
+        // aclDestroyTensor(selfTensor);
+        // aclDestroyTensor(matTensor);
+        // aclDestroyTensor(outputTensor);
 
         return;
     }
 };
 
-
-
-
-
-REGISTER_KERNEL(Device::ASCEND, OpType::MatMul, DataType::Float32, MatmulAclnn,
+REGISTER_KERNEL(Device::ASCEND, OpType::MatMul, MatmulAclnn,
                 "matmul_ASCEND_float");
 }; // namespace infini

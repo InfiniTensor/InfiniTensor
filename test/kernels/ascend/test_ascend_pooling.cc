@@ -29,6 +29,7 @@ void testPooling(const std::function<void(void *, size_t, DataType)> &generator,
     npuGraph->dataMalloc();
     inputNpu->setData(generator);
     npuRuntime->run(npuGraph);
+
     auto outputNpu = npuOp->getOutput();
     auto outputNpu2Cpu = outputNpu->clone(cpuRuntime);
     inputCpu->printData();
@@ -37,8 +38,10 @@ void testPooling(const std::function<void(void *, size_t, DataType)> &generator,
 }
 
 TEST(cnnl_Pooling, run) {
+    aclInit(nullptr);
     // testPooling<MaxPoolObj>(IncrementalGenerator(), Shape{1, 1, 5, 5});
     testPooling<AvgPoolObj>(IncrementalGenerator(), Shape{1, 1, 5, 5});
+    aclFinalize();
 }
 
 } // namespace infini

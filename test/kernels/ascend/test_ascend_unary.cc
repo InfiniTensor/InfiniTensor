@@ -13,20 +13,20 @@ void testUnary(const std::function<void(void *, size_t, DataType)> &generator,
                const Shape &shape) {
     // Runtime
     Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
-    auto xpuRuntime = make_ref<ASCENDRuntimeObj>();
+    auto npuRuntime = make_ref<ASCENDRuntimeObj>();
 
     // Build input data on CPU
     Tensor inputCpu = make_ref<TensorObj>(shape, DataType::Float32, cpuRuntime);
 
     // GPU
-    Graph xpuGraph = make_ref<GraphObj>(xpuRuntime);
-    auto inputGpu = xpuGraph->cloneTensor(inputCpu);
-    auto gpuOp = xpuGraph->addOp<T>(inputGpu, nullptr);
-    xpuGraph->dataMalloc();
-    inputGpu->setData(generator);
-    xpuRuntime->run(xpuGraph);
-    auto outputGpu = gpuOp->getOutput();
-    auto outputGpu2Cpu = outputGpu->clone(cpuRuntime);
+    Graph npuGraph = make_ref<GraphObj>(npuRuntime);
+    auto inputNpu = npuGraph->cloneTensor(inputCpu);
+    auto npuOp = npuGraph->addOp<T>(inputNpu, nullptr);
+    npuGraph->dataMalloc();
+    inputNpu->setData(generator);
+    npuRuntime->run(npuGraph);
+    auto outputNpu = npuOp->getOutput();
+    auto outputNpu2Cpu = outputNpu->clone(cpuRuntime);
     // CPU
     Graph cpuGraph = make_ref<GraphObj>(cpuRuntime);
     auto cpuOp = cpuGraph->addOp<T>(inputCpu, nullptr);
@@ -36,10 +36,11 @@ void testUnary(const std::function<void(void *, size_t, DataType)> &generator,
     cpuRuntime->run(cpuGraph);
     auto outputCpu = cpuOp->getOutput();
     // Check
-    EXPECT_TRUE(outputCpu->equalData(outputGpu2Cpu, 1e-3));
+    EXPECT_TRUE(outputCpu->equalData(outputNpu2Cpu, 1e-3));
 }
 
 TEST(ascend_Unary, run) {
+    aclInit(nullptr);
     testUnary<ReluObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     testUnary<AbsObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     testUnary<SigmoidObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
@@ -52,11 +53,12 @@ TEST(ascend_Unary, run) {
     testUnary<ATanObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     // testUnary<CeilObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     // testUnary<FloorObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    // testUnary<ExpObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    // testUnary<ExpObj>(IncrementalGenerators(), Shape{1, 2, 2, 3});
     testUnary<NegObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     // testUnary<ReciprocalObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     testUnary<SqrtObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     // testUnary<RoundObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    aclFinalize();
 }
 
 } // namespace infini

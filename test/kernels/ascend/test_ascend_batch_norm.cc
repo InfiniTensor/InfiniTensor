@@ -9,6 +9,7 @@
 namespace infini {
 
 TEST(ascend_BatchNorm, run) {
+    aclInit(nullptr);
     Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     auto npuRuntime = make_ref<ASCENDRuntimeObj>();
 
@@ -51,5 +52,7 @@ TEST(ascend_BatchNorm, run) {
     // check results on CPU
     EXPECT_TRUE(ocpu->equalData(vector<float>{
         -0.5, 0, 0.5, 1, -2, -1, 0, 1, -0.333333, 0, 0.333333, 0.666667}));
+
+    aclFinalize();
 }
 } // namespace infini

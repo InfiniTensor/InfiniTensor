@@ -1,11 +1,10 @@
+#include "ascend/ascend_runtime.h"
 #include "core/graph.h"
 #include "core/kernel.h"
 #include "core/runtime.h"
-#include "ascend/ascend_runtime.h"
 #include "operators/conv.h"
 
 #include "test.h"
-
 
 namespace infini {
 
@@ -50,8 +49,10 @@ void testConv(const std::function<void(void *, size_t, DataType)> &generatorA,
 }
 
 TEST(ascend_Conv, run) {
+    aclInit(nullptr);
     testConv<ConvObj>(IncrementalGenerator(), IncrementalGenerator(),
                       Shape{1, 3, 32, 32}, Shape{2, 3, 3, 3});
+    aclFinalize();
 }
 
 } // namespace infini

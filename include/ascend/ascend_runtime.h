@@ -18,28 +18,34 @@ namespace infini {
 
 class ASCENDRuntimeObj : public RuntimeObj {
   private:
-    aclrtContext aclnn;
+    aclrtContext context;
     aclrtStream stream;
-    ASCENDPtr workspace;
+    ASCENDPtr workspace = nullptr;
     size_t workspaceSize;
 
   public:
     ASCENDRuntimeObj(int deviceId = 0) : RuntimeObj(Device::ASCEND, deviceId) {
+        // #ifndef _ACL_INIT
+        // #define _ACL_INIT
+        //         aclInit(nullptr);
+        //         //  auto ret_init =
+        //         //   CHECK_RET(ret == ACL_SUCCESS,
+        //         //             LOG_PRINT("aclInit failed. ERROR: %d\n",
+        //         ret));
+        // #endif
         auto ret = aclrtSetDevice(deviceId);
         CHECK_RET(ret == ACL_SUCCESS,
                   LOG_PRINT("aclrtSetDevice failed. ERROR: %d\n", ret));
-        ret = aclrtCreateContext(&aclnn, deviceId);
+        ret = aclrtCreateContext(&context, deviceId);
         CHECK_RET(ret == ACL_SUCCESS,
                   LOG_PRINT("aclrtCreateContext failed. ERROR: %d\n", ret));
-        ret = aclrtSetCurrentContext(aclnn);
+        ret = aclrtSetCurrentContext(context);
         CHECK_RET(ret == ACL_SUCCESS,
                   LOG_PRINT("aclrtSetCurrentContext failed. ERROR: %d\n", ret));
         ret = aclrtCreateStream(&stream);
         CHECK_RET(ret == ACL_SUCCESS,
                   LOG_PRINT("aclrtCreateStream failed. ERROR: %d\n", ret));
-        ret = aclInit(nullptr);
-        CHECK_RET(ret == ACL_SUCCESS,
-                  LOG_PRINT("aclInit failed. ERROR: %d\n", ret));
+
         // 10GB for Longformer
         // size_t longformerNum = 3lu * (1 << 30);
         workspaceSize = 3ll << 30; // 3 GB
@@ -50,9 +56,9 @@ class ASCENDRuntimeObj : public RuntimeObj {
     virtual ~ASCENDRuntimeObj() {
         dealloc(workspace);
         aclrtDestroyStream(stream);
-        aclrtDestroyContext(aclnn);
+        aclrtDestroyContext(context);
         aclrtResetDevice(deviceId);
-        aclFinalize();
+        // aclFinalize();
     }
     string toString() const override;
 
@@ -68,7 +74,7 @@ class ASCENDRuntimeObj : public RuntimeObj {
         return ptr;
     }
     void dealloc(void *ptr) override { aclrtFree(ptr); }
-    aclrtContext *ASCENDHandle() const { return nullptr; }
+    aclrtStream ASCENDHandle() const { return stream; }
     ASCENDPtr getWorkspace(size_t size) const {
         IT_ASSERT(size <= workspaceSize);
         return workspace;
@@ -76,19 +82,19 @@ class ASCENDRuntimeObj : public RuntimeObj {
 
     void copyBlobFromCPU(void *dst, const void *src,
                          size_t bytes) const override {
-        aclrtMemcpy(dst, 1024 * 1024 * 1024, const_cast<void *>(src), bytes,
+        aclrtMemcpy(dst, bytes, const_cast<void *>(src), bytes,
                     ACL_MEMCPY_HOST_TO_DEVICE);
     }
 
     void copyBlobToCPU(void *dst, const void *src,
                        size_t bytes) const override {
-        aclrtMemcpy(dst, 1024 * 1024 * 1024, const_cast<void *>(src), bytes,
+        aclrtMemcpy(dst, bytes, const_cast<void *>(src), bytes,
                     ACL_MEMCPY_DEVICE_TO_HOST);
     }
 
     void copyBlobInsideRuntime(void *dst, const void *src,
                                size_t bytes) const override {
-        aclrtMemcpy(dst, 1024 * 1024 * 1024, const_cast<void *>(src), bytes,
+        aclrtMemcpy(dst, bytes, const_cast<void *>(src), bytes,
                     ACL_MEMCPY_DEVICE_TO_DEVICE);
     }
 
