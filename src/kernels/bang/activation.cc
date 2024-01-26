@@ -215,6 +215,20 @@ class SigmoidCnnl : public UnaryCnnl {
     float getCoef() const override { return 0.0; }
 };
 
+class HardSwishCnnl : public UnaryCnnl {
+    cnnlActivationMode_t getOpType() const override {
+        return CNNL_ACTIVATION_HARDSWISH;
+    }
+    float getCoef() const override { return 0.0; }
+};
+
+class HardSigmoidCnnl : public UnaryCnnl {
+    cnnlActivationMode_t getOpType() const override {
+        return CNNL_ACTIVATION_HARDSIGMOID;
+    }
+    float getCoef() const override { return 0.0; }
+};
+
 REGISTER_KERNEL(Device::BANG, OpType::Relu, ReluCnnl, "Relu_cnnl_BANG");
 REGISTER_KERNEL(Device::BANG, OpType::PRelu, PReluCnnl, "PRelu_cnnl_BANG");
 REGISTER_KERNEL(Device::BANG, OpType::Sigmoid, SigmoidCnnl,
@@ -222,5 +236,9 @@ REGISTER_KERNEL(Device::BANG, OpType::Sigmoid, SigmoidCnnl,
 REGISTER_KERNEL(Device::BANG, OpType::Round, RoundCnnl, "Round_cnnl_BANG");
 REGISTER_KERNEL(Device::BANG, OpType::Softmax, SoftmaxCnnl,
                 "Softmax_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::HardSigmoid, HardSigmoidCnnl,
+                "HardSigmoid_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::HardSwish, HardSwishCnnl,
+                "HardSwish_cnnl_BANG");
 
 }; // namespace infini
