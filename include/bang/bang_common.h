@@ -85,7 +85,7 @@ inline cnclDataType_t cnclDataTypeConvert(DataType dataType) {
     if (dataType == DataType::UInt16) {
         return cnclUint16;
     }
-    if (dataType == DataType::UInt16) {
+    if (dataType == DataType::UInt32) {
         return cnclUint32;
     }
     if (dataType == DataType::BFloat16) {
