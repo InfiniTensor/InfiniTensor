@@ -59,7 +59,8 @@ inline cnnlDataType_t cnnlDataTypeConvert(DataType dataType) {
     if (dataType == DataType::Bool) {
         return CNNL_DTYPE_BOOL;
     }
-    return CNNL_DTYPE_INVALID;
+    IT_TODO_HALT_MSG("Data type " + dataType.toString() +
+                     " not supported in CNNL.");
 }
 
 #ifdef INFINI_USE_CNCL
@@ -91,7 +92,8 @@ inline cnclDataType_t cnclDataTypeConvert(DataType dataType) {
     if (dataType == DataType::BFloat16) {
         return cnclBfloat16;
     }
-    return cnclInvalid;
+    IT_TODO_HALT_MSG("Data type " + dataType.toString() +
+                     " not supported in CNCL.");
 }
 #endif
 
