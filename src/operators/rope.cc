@@ -30,8 +30,6 @@ vector<int> RoPEObj::getWorkloadVector() const {
     return ret;
 }
 
-vector<int> RoPEObj::getOpAttrVector() const {
-    return {type.underlying()};
-}
+vector<int> RoPEObj::getOpAttrVector() const { return {type.underlying()}; }
 
 }; // namespace infini

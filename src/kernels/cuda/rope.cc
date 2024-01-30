@@ -1,7 +1,7 @@
 #include "operators/rope.h"
 #include "cuda/cuda_kernel_wihtout_config.h"
-#include "cuda/cuda_runtime.h"
 #include "cuda/cuda_rope.h"
+#include "cuda/cuda_runtime.h"
 
 namespace infini {
 
@@ -27,12 +27,11 @@ class RoPECuda : public CudaKernelWithoutConfig {
         int pos_stride = inputShape[1];
 
         const int dType = op->getDType().getIndex();
-        rope_kernel(dType, pos->getRawDataPtr<int *>(), inputData, outputData, size, dim_model, dim_head, hidden_stride, pos_stride);
+        rope_kernel(dType, pos->getRawDataPtr<int *>(), inputData, outputData,
+                    size, dim_model, dim_head, hidden_stride, pos_stride);
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::RoPE, RoPECuda,
-                "RoPE_CUDA");
-
+REGISTER_KERNEL(Device::CUDA, OpType::RoPE, RoPECuda, "RoPE_CUDA");
 
 } // namespace infini

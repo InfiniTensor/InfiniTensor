@@ -156,7 +156,7 @@ struct OpType {
         Resize,
         ReverseSequence,
         RoiAlign,
-        RoPE,            // Fusion
+        RoPE,  // Fusion
         Round, // Unary
         STFT,
         Scan,
