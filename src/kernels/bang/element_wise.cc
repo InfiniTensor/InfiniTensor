@@ -18,7 +18,6 @@ class ElementWiseCnnl : public BangKernelWithoutConfig {
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
 
-
         cnnlTensorDescriptor_t aDesc, bDesc, cDesc;
         auto a_dim = op->getInputs(0)->getDims();
         auto b_dim = op->getInputs(1)->getDims();
