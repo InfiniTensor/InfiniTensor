@@ -46,6 +46,7 @@ class GatherCnnl : public BangKernelWithoutConfig {
             checkCnnlError(cnnlCastDataType(context->cnnlHandle(), bDescInt64,
                                             bData, CNNL_CAST_INT64_TO_INT32,
                                             bDesc, indices));
+            cnrtQueueSync(context->getBangQueue());
             checkCnnlError(cnnlDestroyTensorDescriptor(bDescInt64));
         } else if (indicesDataType == DataType::Int32) {
             indices = bData;

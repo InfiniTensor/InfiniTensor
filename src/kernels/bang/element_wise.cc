@@ -12,10 +12,12 @@ class ElementWiseCnnl : public BangKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
+        auto [aAlpha, bAlpha, beta] = getAlphBeta();
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+
 
         cnnlTensorDescriptor_t aDesc, bDesc, cDesc;
         auto a_dim = op->getInputs(0)->getDims();
@@ -51,12 +53,12 @@ class ElementWiseCnnl : public BangKernelWithoutConfig {
             CNNL_NOT_PROPAGATE_NAN));
 
         size_t wsSize;
-        cnnlGetOpTensorWorkspaceSize(context->cnnlHandle(), aDesc, bDesc, cDesc,
-                                     &wsSize);
+        cnnlGetOpTensorWorkspaceSize_v2(context->cnnlHandle(), opDesc, &aAlpha,
+                                        aDesc, aData, &bAlpha, bDesc, bData,
+                                        &beta, cDesc, cData, &wsSize);
 
         BangPtr wsData = context->getWorkspace(wsSize);
 
-        auto [aAlpha, bAlpha, beta] = getAlphBeta();
         cnnlStatus_t stat = cnnlOpTensor(context->cnnlHandle(), opDesc, &aAlpha,
                                          aDesc, aData, &bAlpha, bDesc, bData,
                                          wsData, wsSize, &beta, cDesc, cData);
