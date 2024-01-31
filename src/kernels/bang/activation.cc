@@ -10,8 +10,8 @@ class UnaryCnnl : public BangKernelWithoutConfig {
     virtual float getCoef() const = 0;
     virtual tuple<float, float> getAlphBeta() const { return {1.f, 0.f}; }
     virtual float getSlicedDim() const { return 0.0; }
-    virtual float getGamma() const { return 1.67326319217681884765625f; }
-    virtual float getScale() const { return 1.05070102214813232421875f; }
+    virtual float getGamma() const { return 0.0; }
+    virtual float getScale() const { return 0.0; }
 
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
