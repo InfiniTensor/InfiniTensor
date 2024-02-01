@@ -14,14 +14,15 @@ class AllReduceCNCL : public BangKernelWithoutConfig {
         void *input = op->getInputs(0)->getRawDataPtr<void *>();
         void *output = op->getOutput()->getRawDataPtr<void *>();
         size_t bytes = op->getInputs(0)->getBytes();
-        size_t count = bytes / sizeof(uint8_t);
+        size_t count = bytes / op->getDType().getSize();
         cnclComm_t comm =
             dynamic_cast<CnclCommunicatorObj &>(context->getCommunicator())
                 .getCnclComm();
         cnrtQueue_t queue = context->getBangQueue();
         // checkBangError(cnrtQueueSync(queue));
-        CNCL_CHECK(cnclAllReduce(input, output, count, cnclUint8, getRedOp(),
-                                 comm, queue));
+        CNCL_CHECK(cnclAllReduce(input, output, count,
+                                 cnclDataTypeConvert(op->getDType()),
+                                 getRedOp(), comm, queue));
         checkBangError(cnrtQueueSync(queue));
     }
 

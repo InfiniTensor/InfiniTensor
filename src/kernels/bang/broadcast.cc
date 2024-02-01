@@ -14,15 +14,16 @@ class BroadcastCNCL : public BangKernelWithoutConfig {
         void *input = op->getInputs(0)->getRawDataPtr<void *>();
         void *output = op->getOutput()->getRawDataPtr<void *>();
         size_t bytes = op->getInputs(0)->getBytes();
-        size_t count = bytes / sizeof(uint8_t);
+        size_t count = bytes / op->getDType().getSize();
 
         cnclComm_t comm =
             dynamic_cast<CnclCommunicatorObj &>(context->getCommunicator())
                 .getCnclComm();
         cnrtQueue_t queue = context->getBangQueue();
         // TODO: Using default stream 0 for now.
-        CNCL_CHECK(cnclBroadcast(input, output, count, cnclUint8, op->getRoot(),
-                                 comm, queue));
+        CNCL_CHECK(cnclBroadcast(input, output, count,
+                                 cnclDataTypeConvert(op->getDType()),
+                                 op->getRoot(), comm, queue));
         checkBangError(cnrtQueueSync(queue));
     }
 };

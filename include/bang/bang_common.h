@@ -3,6 +3,9 @@
 #include "cnrt.h"
 #include "core/common.h"
 #include "core/data_type.h"
+#ifdef INFINI_USE_CNCL
+#include "cncl.h"
+#endif
 
 #define checkBangError(call)                                                   \
     {                                                                          \
@@ -56,7 +59,42 @@ inline cnnlDataType_t cnnlDataTypeConvert(DataType dataType) {
     if (dataType == DataType::Bool) {
         return CNNL_DTYPE_BOOL;
     }
-    return CNNL_DTYPE_INVALID;
+    IT_TODO_HALT_MSG("Data type " + dataType.toString() +
+                     " not supported in CNNL.");
 }
+
+#ifdef INFINI_USE_CNCL
+inline cnclDataType_t cnclDataTypeConvert(DataType dataType) {
+    if (dataType == DataType::Float32) {
+        return cnclFloat32;
+    }
+    if (dataType == DataType::Float16) {
+        return cnclHalf;
+    }
+    if (dataType == DataType::Int8) {
+        return cnclInt8;
+    }
+    if (dataType == DataType::Int16) {
+        return cnclInt16;
+    }
+    if (dataType == DataType::Int32) {
+        return cnclInt32;
+    }
+    if (dataType == DataType::UInt8) {
+        return cnclUint8;
+    }
+    if (dataType == DataType::UInt16) {
+        return cnclUint16;
+    }
+    if (dataType == DataType::UInt32) {
+        return cnclUint32;
+    }
+    if (dataType == DataType::BFloat16) {
+        return cnclBfloat16;
+    }
+    IT_TODO_HALT_MSG("Data type " + dataType.toString() +
+                     " not supported in CNCL.");
+}
+#endif
 
 } // namespace infini

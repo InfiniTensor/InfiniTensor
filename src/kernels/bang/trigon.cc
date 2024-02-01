@@ -29,7 +29,8 @@ class TrigonCnnl : public BangKernelWithoutConfig {
 
         cnnlTrigonDescriptor_t opDesc;
         checkCnnlError(cnnlCreateTrigonDescriptor(&opDesc));
-        checkCnnlError(cnnlSetTrigonDescriptor(opDesc, getOpType()));
+        checkCnnlError(
+            cnnlSetTrigonDescriptor_v2(opDesc, getOpType(), getPrefer()));
 
         cnnlStatus_t stat = cnnlTrigonForward(context->cnnlHandle(), opDesc,
                                               aDesc, aData, cDesc, cData);
