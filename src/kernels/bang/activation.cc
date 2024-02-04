@@ -2,12 +2,17 @@
 #include "bang/bang_runtime.h"
 #include "operators/softmax.h"
 #include "operators/unary.h"
+#include <iostream>
 
 namespace infini {
 class UnaryCnnl : public BangKernelWithoutConfig {
     virtual cnnlActivationMode_t getOpType() const = 0;
     virtual float getCoef() const = 0;
     virtual tuple<float, float> getAlphBeta() const { return {1.f, 0.f}; }
+    virtual float getSlicedDim() const { return 0.0; }
+    virtual float getGamma() const { return 0.0; }
+    virtual float getScale() const { return 0.0; }
+
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<UnaryObj>(_op);
@@ -30,9 +35,10 @@ class UnaryCnnl : public BangKernelWithoutConfig {
             cDim.size(), cDim.data()));
         cnnlActivationDescriptor_t opDesc;
         checkCnnlError(cnnlCreateActivationDescriptor(&opDesc));
-        checkCnnlError(cnnlSetActivationDescriptor_v2(
+        checkCnnlError(cnnlSetActivationDescriptor_v5(
             opDesc, getOpType(), CNNL_ACTIVATION_HIGH_PRECISION,
-            CNNL_NOT_PROPAGATE_NAN, getCoef()));
+            CNNL_NOT_PROPAGATE_NAN, getCoef(), getSlicedDim(), getGamma(),
+            getScale(), true));
 
         auto [alpha, beta] = getAlphBeta();
         cnnlStatus_t stat =
@@ -90,6 +96,10 @@ class PReluCnnl : public BangKernelWithoutConfig {
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
         auto cDim = op->getOutput()->getDims();
+
+        if (auto alignSize = aDim.size() - bDim.size(); alignSize) {
+            bDim.insert(bDim.begin(), alignSize, 1);
+        }
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
@@ -215,6 +225,22 @@ class SigmoidCnnl : public UnaryCnnl {
     float getCoef() const override { return 0.0; }
 };
 
+class HardSwishCnnl : public UnaryCnnl {
+    cnnlActivationMode_t getOpType() const override {
+        return CNNL_ACTIVATION_HARDSWISH;
+    }
+    float getCoef() const override { return 0.0; }
+};
+
+class HardSigmoidCnnl : public UnaryCnnl {
+    cnnlActivationMode_t getOpType() const override {
+        return CNNL_ACTIVATION_HARDSIGMOID;
+    }
+    float getCoef() const override { return 0.0; }
+    float getGamma() const override { return 1.f / 6.f; }
+    float getScale() const override { return 0.5f; }
+};
+
 REGISTER_KERNEL(Device::BANG, OpType::Relu, ReluCnnl, "Relu_cnnl_BANG");
 REGISTER_KERNEL(Device::BANG, OpType::PRelu, PReluCnnl, "PRelu_cnnl_BANG");
 REGISTER_KERNEL(Device::BANG, OpType::Sigmoid, SigmoidCnnl,
@@ -222,5 +248,9 @@ REGISTER_KERNEL(Device::BANG, OpType::Sigmoid, SigmoidCnnl,
 REGISTER_KERNEL(Device::BANG, OpType::Round, RoundCnnl, "Round_cnnl_BANG");
 REGISTER_KERNEL(Device::BANG, OpType::Softmax, SoftmaxCnnl,
                 "Softmax_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::HardSigmoid, HardSigmoidCnnl,
+                "HardSigmoid_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::HardSwish, HardSwishCnnl,
+                "HardSwish_cnnl_BANG");
 
 }; // namespace infini

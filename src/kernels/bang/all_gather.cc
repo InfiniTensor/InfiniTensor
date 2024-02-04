@@ -22,14 +22,15 @@ class AllGatherCNCL : public BangKernelWithoutConfig {
         checkBangError(cnrtMalloc(&output_temp,
                                   op->getInputs(0)->getBytes() * world_size));
         size_t bytes = op->getInputs(0)->getBytes();
-        size_t count = bytes / sizeof(uint8_t);
+        size_t count = bytes / op->getDType().getSize();
 
         cnclComm_t comm =
             dynamic_cast<CnclCommunicatorObj &>(context->getCommunicator())
                 .getCnclComm();
         cnrtQueue_t queue = context->getBangQueue();
-        CNCL_CHECK(
-            cnclAllGather(input, output_temp, count, cnclUint8, comm, queue));
+        CNCL_CHECK(cnclAllGather(input, output_temp, count,
+                                 cnclDataTypeConvert(op->getDType()), comm,
+                                 queue));
         checkBangError(cnrtQueueSync(queue));
         for (int i = 0; i < world_size; ++i) {
             Tensor output = op->getOutput(i);
