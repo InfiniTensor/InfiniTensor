@@ -4,6 +4,14 @@
 namespace infini {
 class RoPEObj : public OperatorObj {
   public:
+    /**
+     * @brief Construct a new RotaryEmbedding object.
+     *
+     * @param graph The computation graph that this operator belongs to.
+     * @param pos The positon id of the query.
+     * @param input The input tensor.
+     * @param output The output tensor.
+     */
     RoPEObj(GraphObj *graph, Tensor pos, Tensor input, Tensor output);
     OP_CLONE(RoPEObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
