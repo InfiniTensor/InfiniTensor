@@ -151,10 +151,12 @@ struct OpType {
         ReduceSum,       // Reduce
         ReduceSumSquare, // Reduce
         Relu,            // Unary
+        Silu,            // Unary
         Reshape,
         Resize,
         ReverseSequence,
         RoiAlign,
+        RoPE,  // Fusion
         Round, // Unary
         STFT,
         Scan,

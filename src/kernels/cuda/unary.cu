@@ -103,6 +103,17 @@ __global__ void _gelu_kernel(T *input, T *output, size_t n) {
         output[i] = 0.5 * x * (1 + erf(x / sqrt(2.0f)));
     }
 }
+
+template <typename T>
+__global__ void _silu_kernel(T *input, T *output, size_t n) {
+    int index = threadIdx.x + blockIdx.x * blockDim.x;
+    int stride = blockDim.x * gridDim.x;
+    for (int i = index; i < n; i += stride) {
+        float x = input[i];
+        output[i] = x / (1.0 + expf(-x));;
+    }
+}
+
 template <typename T>
 __global__ void _erf_kernel(T *input, T *output, size_t n) {
     size_t index = threadIdx.x + blockIdx.x * blockDim.x;
@@ -190,6 +201,14 @@ template <typename T> void gelu_kernel(T *input, T *output, size_t num) {
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     _gelu_kernel<T><<<gridsize, blocksize>>>(input, output, num);
 }
+
+template <typename T> void silu_kernel(T *input, T *output, size_t num) {
+
+    int blocksize = block_work_size();
+    int gridsize = (num + block_work_size() - 1) / block_work_size();
+    _silu_kernel<T><<<gridsize, blocksize>>>(input, output, num);
+}
+
 template <typename T> void erf_kernel(T *input, T *output, size_t num) {
 
     int blocksize = block_work_size();
@@ -264,6 +283,12 @@ void unary_kernel(const Operator &_op) {
     } else if (op->getOpType() == OpType::Gelu) {
         if (_op->getDType() == DataType::Float32) {
             gelu_kernel<float>((float *)inputData, (float *)outputData, num);
+        } else {
+            IT_TODO_HALT();
+        }
+    } else if (op->getOpType() == OpType::Silu) {
+        if (_op->getDType() == DataType::Float32) {
+            silu_kernel<float>((float *)inputData, (float *)outputData, num);
         } else {
             IT_TODO_HALT();
         }

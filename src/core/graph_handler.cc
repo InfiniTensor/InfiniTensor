@@ -18,6 +18,7 @@
 #include "operators/reduce.h"
 #include "operators/reshape.h"
 #include "operators/resize.h"
+#include "operators/rope.h"
 #include "operators/send.h"
 #include "operators/slice.h"
 #include "operators/softmax.h"
@@ -181,6 +182,7 @@ DEFINE_ELEMENT_WISE_METHOD(max, Maximum)
         }                                                                      \
     }
 
+DEFINE_UNARY_METHOD(silu, Silu)
 DEFINE_UNARY_METHOD(relu, Relu)
 DEFINE_UNARY_METHOD(gelu, Gelu)
 DEFINE_UNARY_METHOD(sigmoid, Sigmoid)
@@ -341,6 +343,16 @@ Tensor GraphHandlerObj::attentionKVCache(Tensor input_k_cache,
                 std::move(input_k_cache), std::move(input_v_cache),
                 std::move(input_q), std::move(input_k), std::move(input_v),
                 std::move(position_id), output_matmul)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::RoPE(Tensor pos, Tensor input, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<RoPEObj>(std::move(pos), std::move(input), output);
+        return output;
+    } else {
+        return g->addOp<RoPEObj>(std::move(pos), std::move(input), output)
             ->getOutput();
     }
 }
