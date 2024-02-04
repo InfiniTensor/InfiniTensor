@@ -53,5 +53,5 @@ class ReduceSumXdnn : public KUNLUNKernelWithoutConfig {
 REGISTER_KERNEL(Device::KUNLUN, OpType::ReduceMean, ReduceMeanXdnn,
                 "ReduceMean_xdnn_KUNLUN");
 REGISTER_KERNEL(Device::KUNLUN, OpType::ReduceSum, ReduceSumXdnn,
-            "ReduceSum_xdnn_KUNLUN");
+                "ReduceSum_xdnn_KUNLUN");
 }; // namespace infini

@@ -284,7 +284,8 @@ class GreaterThanXdnn : public KUNLUNKernelWithoutConfig {
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         size_t len = op->getOutput()->size();
-        KUNLUNPtr wsData = context->getWorkspace(len * (op->getDType()).getSize());
+        KUNLUNPtr wsData =
+            context->getWorkspace(len * (op->getDType()).getSize());
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();

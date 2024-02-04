@@ -28,19 +28,21 @@ class ConvXdnn : public KUNLUNKernelWithoutConfig {
         // std::cout << vecToString<int>(ksize) << std::endl;
         // std::cout << vecToString<int>(stride) << std::endl;
         // std::cout << vecToString<int>(dilation) << std::endl;
-        // std::cout << vecToString<int>(op->getInputs(0)->getDims()) << std::endl;
-        // std::cout << vecToString<int>(op->getInputs(1)->getDims()) << std::endl;
-        // std::cout << vecToString<int>(op->getOutput()->getDims()) << std::endl;
+        // std::cout << vecToString<int>(op->getInputs(0)->getDims()) <<
+        // std::endl; std::cout << vecToString<int>(op->getInputs(1)->getDims())
+        // << std::endl; std::cout <<
+        // vecToString<int>(op->getOutput()->getDims()) << std::endl;
 
+        // TODO: Convolution operators still have some accuracy problems
         checkKUNLUNError((xdnn::conv2d<float, float, float, float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
             (float *)cData, n, c, h, w, f, ksize, stride, pads, dilation, g,
             nullptr, nullptr, nullptr, true)));
 
         // checkKUNLUNError((xdnn::conv2d_fusion<float, float, float, float>(
-        //     context->KUNLUNHandle(), (float *const)aData, (float *const)bData,
-        //     (float *)cData, n, c, h, w, f, ksize, stride, pads, dilation, g,
-        //     nullptr, nullptr, nullptr, true, nullptr, nullptr,
+        //     context->KUNLUNHandle(), (float *const)aData, (float
+        //     *const)bData, (float *)cData, n, c, h, w, f, ksize, stride, pads,
+        //     dilation, g, nullptr, nullptr, nullptr, true, nullptr, nullptr,
         //     xdnn::Activation_t::LINEAR)));
         return;
     }
