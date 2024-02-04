@@ -14,10 +14,14 @@ class AvgPooling : public KUNLUNKernelWithoutConfig {
 
         auto [n, c, h, w, kh, kw] = op->getNCHWRS();
         auto [ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
+        auto outShape = op->getOutput()->getDims();
 
         std::vector<int> ksize = {kh, kw};
         std::vector<int> stride = {sh, sw};
         std::vector<int> pad = {ph, pw};
+
+        int yh = outShape[op->getOutput()->getRank() - 2];
+        int yw = outShape[op->getOutput()->getRank() - 1];
 
         // If Maxpool with ceilMode true
         // We need to change padding in order to call xdnn api
