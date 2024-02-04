@@ -10,6 +10,7 @@ class AllGatherXCCL : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<AllGatherObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
         int world_size = op->getWorldSize();
         IT_ASSERT(world_size == context->getCommunicator().getWorldSize());
@@ -36,7 +37,7 @@ class AllGatherXCCL : public KUNLUNKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::KUNLUN, OpType::AllGather, DataType::Float32,
-                AllGatherXCCL, "AllGatcher_XCCL_KUNLUN_Float32");
+REGISTER_KERNEL(Device::KUNLUN, OpType::AllGather, AllGatherXCCL,
+                "AllGatcher_XCCL_KUNLUN");
 } // namespace infini
 #endif

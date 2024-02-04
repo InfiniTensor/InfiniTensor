@@ -10,6 +10,7 @@ class AllReduceXCCL : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<AllReduceBaseObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
         void *input = op->getInputs(0)->getRawDataPtr<void *>();
         void *output = op->getOutput(0)->getRawDataPtr<void *>();
@@ -38,11 +39,11 @@ class AllReduceMaxXCCL : public AllReduceXCCL {
     BKCLOp getRedOp() const override { return BKCLOp::BKCL_MAX; }
 };
 
-REGISTER_KERNEL(Device::KUNLUN, OpType::AllReduceSum, DataType::Float32,
-                AllReduceSumXCCL, "AllReduce_Sum_XCCL_KUNLUN_FLOAT32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::AllReduceMax, DataType::Float32,
-                AllReduceMaxXCCL, "AllReduce_Max_XCCL_KUNLUN_FLOAT32");
-REGISTER_KERNEL(Device::KUNLUN, OpType::AllReduceMin, DataType::Float32,
-                AllReduceMinXCCL, "AllReduce_Min_XCCL_KUNLUN_FLOAT32");
+REGISTER_KERNEL(Device::KUNLUN, OpType::AllReduceSum, AllReduceSumXCCL,
+                "AllReduce_Sum_XCCL_KUNLUN");
+REGISTER_KERNEL(Device::KUNLUN, OpType::AllReduceMax, AllReduceMaxXCCL,
+                "AllReduce_Max_XCCL_KUNLUN");
+REGISTER_KERNEL(Device::KUNLUN, OpType::AllReduceMin, AllReduceMinXCCL,
+                "AllReduce_Min_XCCL_KUNLUN");
 } // namespace infini
 #endif

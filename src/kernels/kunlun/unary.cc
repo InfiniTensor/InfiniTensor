@@ -57,6 +57,43 @@ class TanhXdnn : public KUNLUNKernelWithoutConfig {
     }
 };
 
+class HardSwishXdnn : public KUNLUNKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<UnaryObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
+        auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
+
+        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+        auto len = op->getInputs(0)->size();
+
+        auto ret = xdnn::hard_swish<float>(context->KUNLUNHandle(),
+                                           (float *)aData, (float *)cData, len);
+        assert(ret == 0);
+        return;
+    }
+};
+
+class HardSigmoidXdnn : public KUNLUNKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<UnaryObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
+        auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
+
+        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+        auto len = op->getInputs(0)->size();
+
+        // Slop set to 0.2 as default
+        auto ret = xdnn::hard_sigmoid<float>(
+            context->KUNLUNHandle(), (float *)aData, (float *)cData, len, 0.2);
+        assert(ret == 0);
+        return;
+    }
+};
+
 class SquareXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
@@ -287,15 +324,15 @@ class LogXdnn : public KUNLUNKernelWithoutConfig {
             1,
         };
         auto len = op->getInputs(0)->size();
+        auto dtype = op->getDType();
         // get ptr of tempspace
-        KUNLUNPtr temp = context->getWorkspace(len * sizeof(float));
+        KUNLUNPtr temp = context->getWorkspace(len * dtype.getSize());
         LogObj::LogType type = op->getType();
         // get output of xpu::api::loge(x)
         auto ret = xdnn::log<float>(context->KUNLUNHandle(), (float *)aData,
                                     (float *)temp, len);
         // get ptr of divider
-        KUNLUNPtr dd =
-            (float *)(context->getWorkspace((1 + len) * sizeof(float))) + len;
+        KUNLUNPtr dd = context->getWorkspace(1 * dtype.getSize());
         // choose from logE, log2, log10
         switch (type) {
             float constant;
@@ -545,7 +582,10 @@ REGISTER_KERNEL(Device::KUNLUN, OpType::Erf, ErfXdnn, "Erf_xdnn");
 REGISTER_KERNEL(Device::KUNLUN, OpType::Acos, ACosXdnn, "ACos_xdnn");
 REGISTER_KERNEL(Device::KUNLUN, OpType::Acosh, ACoshXdnn, "ACosh_xdnn");
 REGISTER_KERNEL(Device::KUNLUN, OpType::Asin, ASinXdnn, "ASin_xdnn");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Asinh, ASinhXdnn,
-                "ASinh_xdnn_Float3 2");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Asinh, ASinhXdnn, "ASinh_xdnn");
 REGISTER_KERNEL(Device::KUNLUN, OpType::Atanh, ATanhXdnn, "ATanh_xdnn");
+REGISTER_KERNEL(Device::KUNLUN, OpType::HardSwish, HardSwishXdnn,
+                "HardSwish_xdnn");
+REGISTER_KERNEL(Device::KUNLUN, OpType::HardSigmoid, HardSigmoidXdnn,
+                "HardSigmoid_xdnn");
 }; // namespace infini

@@ -7,6 +7,7 @@ class SliceXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<SliceObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *inData = op->getInputs(0)->getRawDataPtr<void *>();
@@ -34,6 +35,5 @@ class SliceXdnn : public KUNLUNKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::KUNLUN, OpType::Slice, DataType::Float32, SliceXdnn,
-                "Slice_xdnn_KUNLUN_Float32")
+REGISTER_KERNEL(Device::KUNLUN, OpType::Slice, SliceXdnn, "Slice_xdnn_KUNLUN")
 }; // namespace infini

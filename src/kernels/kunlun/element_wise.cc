@@ -97,6 +97,7 @@ class DivXdnn : public KUNLUNKernelWithoutConfig {
         auto aDim = op->getInputs(0)->getDims();
         auto bSize = op->getInputs(1)->size();
         auto bDim = op->getInputs(1)->getDims();
+        auto dtype = op->getDType();
 
         if (bDim.size() == 0) {
             bDim.push_back(1);
@@ -117,7 +118,7 @@ class DivXdnn : public KUNLUNKernelWithoutConfig {
                     (float *)cData, aDim, bDim));
             } else {
                 // Use workspace to broadcast aData
-                KUNLUNPtr wks = context->getWorkspace(bSize * sizeof(float));
+                KUNLUNPtr wks = context->getWorkspace(bSize * dtype.getSize());
                 checkKUNLUNError(xdnn::broadcast<float>(
                     context->KUNLUNHandle(), (float *)aData, (float *)wks, aDim,
                     bDim));
@@ -220,7 +221,9 @@ class EqualXdnn : public KUNLUNKernelWithoutConfig {
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         size_t len = op->getOutput()->size();
-        KUNLUNPtr wsData = context->getWorkspace(len);
+        auto dtype = op->getDType();
+
+        KUNLUNPtr wsData = context->getWorkspace(len * dtype.getSize());
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
@@ -250,7 +253,8 @@ class GreaterEqualXdnn : public KUNLUNKernelWithoutConfig {
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         size_t len = op->getOutput()->size();
-        KUNLUNPtr wsData = context->getWorkspace(len);
+        auto dtype = op->getDType();
+        KUNLUNPtr wsData = context->getWorkspace(len * dtype.getSize());
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
@@ -280,7 +284,7 @@ class GreaterThanXdnn : public KUNLUNKernelWithoutConfig {
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         size_t len = op->getOutput()->size();
-        KUNLUNPtr wsData = context->getWorkspace(len);
+        KUNLUNPtr wsData = context->getWorkspace(len * (op->getDType()).getSize());
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
@@ -310,7 +314,8 @@ class LessEqualXdnn : public KUNLUNKernelWithoutConfig {
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         size_t len = op->getOutput()->size();
-        KUNLUNPtr wsData = context->getWorkspace(len);
+        auto dtype = op->getDType();
+        KUNLUNPtr wsData = context->getWorkspace(len * dtype.getSize());
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
@@ -340,7 +345,8 @@ class LessThanXdnn : public KUNLUNKernelWithoutConfig {
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         size_t len = op->getOutput()->size();
-        KUNLUNPtr wsData = context->getWorkspace(len);
+        auto dtype = op->getDType();
+        KUNLUNPtr wsData = context->getWorkspace(len * dtype.getSize());
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
@@ -416,7 +422,8 @@ class AndXdnn : public KUNLUNKernelWithoutConfig {
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         size_t len = op->getOutput()->size();
-        KUNLUNPtr wsData = context->getWorkspace(len);
+        auto dtype = op->getDType();
+        KUNLUNPtr wsData = context->getWorkspace(len * dtype.getSize());
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
@@ -446,7 +453,8 @@ class OrXdnn : public KUNLUNKernelWithoutConfig {
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         size_t len = op->getOutput()->size();
-        KUNLUNPtr wsData = context->getWorkspace(len);
+        auto dtype = op->getDType();
+        KUNLUNPtr wsData = context->getWorkspace(len * dtype.getSize());
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
@@ -476,7 +484,8 @@ class XorXdnn : public KUNLUNKernelWithoutConfig {
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         size_t len = op->getOutput()->size();
-        KUNLUNPtr wsData = context->getWorkspace(len);
+        auto dtype = op->getDType();
+        KUNLUNPtr wsData = context->getWorkspace(len * dtype.getSize());
 
         auto aDim = op->getInputs(0)->getDims();
         auto bDim = op->getInputs(1)->getDims();
@@ -505,7 +514,8 @@ class NotXdnn : public KUNLUNKernelWithoutConfig {
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         size_t len = op->getOutput()->size();
-        KUNLUNPtr wsData = context->getWorkspace(len);
+        auto dtype = op->getDType();
+        KUNLUNPtr wsData = context->getWorkspace(len * dtype.getSize());
 
         auto aDim = op->getInputs(0)->getDims();
         checkKUNLUNError(xdnn::logical_not<bool>(

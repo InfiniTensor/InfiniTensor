@@ -13,7 +13,7 @@ if(USE_CUDA)
     message("CMake 3.18 or higher is required for setting CUDAToolkit")
     cmake_minimum_required(VERSION 3.18) # FindCUDAToolkit
 else()
-    cmake_minimum_required(VERSION 3.12)
+    cmake_minimum_required(VERSION 3.17)
 endif()
 
 include(CMakeDependentOption)
@@ -53,7 +53,7 @@ endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF) # -std=gnu++11 when on, -std=c++11 when off
-# add_compile_options(-Wno-error=unused-variable)
+add_compile_options(-Wno-error=unused-variable)
 
 find_package(
   Python
@@ -344,6 +344,7 @@ if(BUILD_TEST)
     endif()
     if (USE_KUNLUN)
       build_test(test/kernels/kunlun/*.cc)
+      build_test(test/kunlun/*.cc)
     endif()
     if (USE_INTELCPU)
       build_test(test/kernels/intelcpu/*.cc)

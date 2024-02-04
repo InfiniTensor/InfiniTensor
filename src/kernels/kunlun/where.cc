@@ -6,18 +6,11 @@
 
 namespace infini {
 
-void broadcastShape(const Shape &originShape, Shape &smallShape) {
-    // Align Rank, Add 1 in the start of smallShape
-    IT_ASSERT(originShape.size() >= smallShape.size());
-    smallShape.insert(smallShape.begin(),
-                      originShape.size() - smallShape.size(), 1);
-    return;
-}
-
 class WhereXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<WhereObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const aData =
@@ -34,6 +27,8 @@ class WhereXdnn : public KUNLUNKernelWithoutConfig {
         auto cDim = op->getInputs(2)->getDims(); // dimCondition
         auto dDim = op->getOutput()->getDims();  //  dimOutput
 
+        auto dtype = op->getDType();
+
         if (aDim != bDim) {
             // Infer broadcast for X and Y
             Shape XYDim = infer_broadcast(aDim, bDim);
@@ -43,7 +38,7 @@ class WhereXdnn : public KUNLUNKernelWithoutConfig {
             broadcastShape(XYDim, aDim);
             broadcastShape(XYDim, bDim);
             // Get workspace
-            void *wkspace = context->getWorkspace(XYSize * sizeof(float));
+            void *wkspace = context->getWorkspace(XYSize * dtype.getSize());
             // Broadcast X Y
             checkKUNLUNError(xdnn::broadcast<float>(
                 context->KUNLUNHandle(),
@@ -68,6 +63,5 @@ class WhereXdnn : public KUNLUNKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::KUNLUN, OpType::Where, DataType::Float32, WhereXdnn,
-                "Where_xdnn_KUNLUN_Float32");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Where, WhereXdnn, "Where_xdnn_KUNLUN");
 }; // namespace infini

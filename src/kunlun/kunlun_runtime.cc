@@ -1,7 +1,6 @@
 #include "kunlun/kunlun_runtime.h"
 #include "core/kernel.h"
 #include "core/perf_engine.h"
-#include <string>
 
 namespace infini {
 
@@ -12,7 +11,6 @@ void KUNLUNRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
     double totalTime = 0;
     std::map<OpType, double> opTime;
     std::map<OpType, int> opCnt;
-    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     for (auto &op : graph->getOperators()) {
         // HACK: set correct data type
         auto kernelAttrs = KernelAttrs{device, op->getOpType().underlying()};
@@ -21,6 +19,7 @@ void KUNLUNRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
         auto perfData = perfEngine.getPerfData(perfKey);
         if (!perfData && !tune) {
             kernel->compute(op, this);
+            workspace->resetWorkspace();
             continue;
         }
 

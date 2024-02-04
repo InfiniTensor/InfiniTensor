@@ -10,6 +10,7 @@ class BroadcastXCCL : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<BroadcastObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
         void *input = op->getInputs(0)->getRawDataPtr<void *>();
         void *output = op->getOutput()->getRawDataPtr<void *>();
@@ -25,7 +26,7 @@ class BroadcastXCCL : public KUNLUNKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::KUNLUN, OpType::Broadcast, DataType::Float32,
-                BroadcastXCCL, "Broadcast_XCCL_KUNLUN_Float32");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Broadcast, BroadcastXCCL,
+                "Broadcast_XCCL_KUNLUN");
 } // namespace infini
 #endif
