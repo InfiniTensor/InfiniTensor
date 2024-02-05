@@ -16,7 +16,8 @@ __global__ void cudaPrintFloatImpl(float *x, int len) {
 namespace infini {
 
 void cudaPrintFloat(float *x, int len) {
-    cudaPrintFloatImpl<<<1, 1>>>(x, len);
+    cudaPrintFloatImpl
+        <<<1, 1, 0, CUDAStream::p_CUDAStream->getCurrentStream()>>>(x, len);
     cudaDeviceSynchronize();
 }
 

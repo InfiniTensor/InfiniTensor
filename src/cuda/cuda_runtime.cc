@@ -19,7 +19,6 @@ void CHECK_CUDA_KERNEL_ERROR(infini::Operator op) {
 }
 
 namespace infini {
-
 void CudaRuntimeObj::runWithoutSync(const Graph &graph) const {
     const auto &kernelRegistry = KernelRegistry::getInstance();
     auto &perfEngine = PerfEngine::getInstance();
@@ -37,6 +36,25 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph) const {
         }
         checkCudaError(cudaGetLastError()) << op->toString();
     }
+}
+
+void CudaRuntimeObj::runWithCudaGraph(const Graph &graph) {
+    if (!isCudaGraphCreated) {
+        checkCudaError(
+            cudaStreamBeginCapture(CUDAStream::p_CUDAStream->getCurrentStream(),
+                                   cudaStreamCaptureModeGlobal));
+        runWithoutSync(graph);
+        checkCudaError(cudaStreamEndCapture(
+            CUDAStream::p_CUDAStream->getCurrentStream(), &cudaGraph));
+        checkCudaError(
+            cudaGraphInstantiate(&cudaGraphInstance, cudaGraph, NULL, NULL, 0));
+        isCudaGraphCreated = true;
+    } else {
+        checkCudaError(cudaGraphLaunch(
+            cudaGraphInstance, CUDAStream::p_CUDAStream->getCurrentStream()));
+    }
+    checkCudaError(
+        cudaStreamSynchronize(CUDAStream::p_CUDAStream->getCurrentStream()));
 }
 
 void CudaRuntimeObj::tune(const Graph &graph, bool profiling = false) const {

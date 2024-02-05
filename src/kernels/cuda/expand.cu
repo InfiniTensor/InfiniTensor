@@ -42,7 +42,8 @@ __global__ void _expandKernel(void *input, void *output, int nDims,
 namespace infini {
 
 #define CASE(T)                                                                \
-    _expandKernel<DT_CUDA<T>::t><<<gridsize, blocksize>>>(                     \
+    _expandKernel<DT_CUDA<T>::t><<<gridsize, blocksize,                        \
+        0, CUDAStream::p_CUDAStream->getCurrentStream()>>>(                    \
         input, output, nDims, outputsize, inputShape, outputShape);
 
 #define SWITCH_DTYPE(DTYPE)                                                    \
