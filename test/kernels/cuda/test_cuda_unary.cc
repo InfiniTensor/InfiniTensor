@@ -70,6 +70,7 @@ void testCast(const std::function<void(void *, size_t, DataType)> &generator,
 
 TEST(cuDNN_Unary, run) {
     testUnary<ReluObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    testUnary<SiluObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     testUnary<AbsObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     testUnary<SigmoidObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     testUnary<TanhObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});

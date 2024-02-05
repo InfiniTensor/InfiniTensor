@@ -14,8 +14,8 @@ class CopyBang : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            aDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_INT8,
-            dim.size() * op->getDType().getSize(), dim.data()));
+            aDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            dim.size(), dim.data()));
         cnnlStatus_t stat =
             cnnlCopy(context->cnnlHandle(), aDesc, inData, aDesc, outData);
         if (stat != CNNL_STATUS_SUCCESS)
@@ -28,5 +28,7 @@ class CopyBang : public BangKernelWithoutConfig {
 REGISTER_KERNEL(Device::BANG, OpType::Reshape, CopyBang, "Reshape_BANG");
 REGISTER_KERNEL(Device::BANG, OpType::Flatten, CopyBang, "Flatten_BANG");
 REGISTER_KERNEL(Device::BANG, OpType::Identity, CopyBang, "Identity_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Squeeze, CopyBang, "Squeeze_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Unsqueeze, CopyBang, "Unsqueeze_BANG");
 
 } // namespace infini

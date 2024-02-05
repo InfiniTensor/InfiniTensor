@@ -47,6 +47,7 @@ class GraphHandlerObj {
     Tensor max(Tensor a, Tensor b, Tensor c);
 
     Tensor relu(Tensor x, Tensor y);
+    Tensor silu(Tensor x, Tensor y);
     Tensor gelu(Tensor x, Tensor y);
     Tensor sigmoid(Tensor x, Tensor y);
     Tensor hardSigmoid(Tensor x, Tensor y);
@@ -77,6 +78,7 @@ class GraphHandlerObj {
     Tensor attentionKVCache(Tensor input_k_cache, Tensor input_v_cache,
                             Tensor input_q, Tensor input_k, Tensor input_v,
                             Tensor position_id, Tensor output_matmul);
+    Tensor RoPE(Tensor pos, Tensor input, Tensor output);
     TensorVec split(Tensor input, std::optional<TensorVec> outputs, int axis,
                     std::variant<int, vector<int>> numOrRatio);
     Tensor gather(Tensor data, Tensor indices, Tensor output, int axis);
