@@ -30,19 +30,14 @@ class CudaRuntimeObj : public RuntimeObj {
         workspaceSize = 7ll << 30; // 7 GB
         workspace = alloc(workspaceSize);
         isCudaGraphCreated = false;
-        CUDAStream::init();
-        CUDAStream::p_CUDAStream->createStream();
-        checkCudnnError(cudnnSetStream(
-            cudnn, CUDAStream::p_CUDAStream->getCurrentStream()));
-        checkCublasError(cublasSetStream(
-            cublas, CUDAStream::p_CUDAStream->getCurrentStream()));
+        CUDAStream::Init();
     }
     virtual ~CudaRuntimeObj() {
         try {
             if (isCudaGraphCreated) {
                 checkCudaError(cudaGraphExecDestroy(cudaGraphInstance));
                 checkCudaError(cudaGraphDestroy(cudaGraph));
-                CUDAStream::p_CUDAStream->destroyStream();
+                CUDAStream::destroyStream();
             }
             dealloc(workspace);
             checkCudnnError(cudnnDestroy(cudnn));

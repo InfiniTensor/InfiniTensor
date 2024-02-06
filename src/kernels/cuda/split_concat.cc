@@ -68,10 +68,10 @@ class ConcatCuda : private CudaCompute, public CudaKernelWithoutConfig {
                         _op->getInputs(1 - i)->getRawDataPtr<void *>();
                     auto outData =
                         _op->getOutputs()[0]->getRawDataPtr<void *>();
-                    cudaMemcpyAsync(
-                        outData, inData, _op->getInputs(1 - i)->getBytes(),
-                        cudaMemcpyDeviceToDevice,
-                        CUDAStream::p_CUDAStream->getCurrentStream());
+                    cudaMemcpyAsync(outData, inData,
+                                    _op->getInputs(1 - i)->getBytes(),
+                                    cudaMemcpyDeviceToDevice,
+                                    CUDAStream::getCurrentStream());
                     return;
                 }
             }

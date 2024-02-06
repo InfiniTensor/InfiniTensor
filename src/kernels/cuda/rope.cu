@@ -36,9 +36,9 @@ __global__ void _rope_kernel(int* pos, void *in, void *out, int size, int dim_mo
 }
 
 
-#define CASE(T)                                                                    \
-    _rope_kernel<DT_CUDA<T>::t>                                                    \
-        <<<gridsize, blocksize, 0, CUDAStream::p_CUDAStream->getCurrentStream()>>> \
+#define CASE(T)                                                                \
+    _rope_kernel<DT_CUDA<T>::t>                                                \
+        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>           \
         (pos, input, output, size, dim_model, dim_head, hidden_stride, pos_stride);
 
 #define SWITCH_DTYPE(DTYPE)                                                    \

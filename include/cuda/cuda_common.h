@@ -118,15 +118,14 @@ class CUDAStream {
     CUDAStream(CUDAStream &&) = delete;
     void operator=(const CUDAStream &) = delete;
     void operator=(CUDAStream &&) = delete;
-    cudaStream_t getCurrentStream() { return _stream; }
-    static std::unique_ptr<CUDAStream> p_CUDAStream;
-    static void init() { p_CUDAStream.reset(new CUDAStream); }
-    void createStream() { checkCudaError(cudaStreamCreate(&_stream)); }
-    void destroyStream() { checkCudaError(cudaStreamDestroy(_stream)); }
+    static cudaStream_t getCurrentStream() { return _stream; }
+    static void Init() { CUDAStream::_stream = 0; };
+    static void createStream() { checkCudaError(cudaStreamCreate(&_stream)); }
+    static void destroyStream() { checkCudaError(cudaStreamDestroy(_stream)); }
 
   private:
-    CUDAStream();
-    cudaStream_t _stream;
+    CUDAStream(){};
+    static cudaStream_t _stream;
 };
 
 } // namespace infini

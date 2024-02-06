@@ -149,10 +149,10 @@ template <typename T> void softmax_kernel(T *input, T *output, size_t num) {
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     _softmax_kernel1<T>
-        <<<1, 1, 0, CUDAStream::p_CUDAStream->getCurrentStream()>>>
+        <<<1, 1, 0, CUDAStream::getCurrentStream()>>>
         (input, output, num);
     _softmax_kernel2<T>
-        <<<gridsize, blocksize, 0, CUDAStream::p_CUDAStream->getCurrentStream()>>>
+        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
         (input, output, num);
 }
 template <typename T> void relu_kernel(T *input, T *output, size_t num) {
@@ -160,7 +160,7 @@ template <typename T> void relu_kernel(T *input, T *output, size_t num) {
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     _relu_kernel<T>
-        <<<gridsize, blocksize, 0, CUDAStream::p_CUDAStream->getCurrentStream()>>>
+        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
         (input, output, num);
 }
 template <typename T> void sigmoid_kernel(T *input, T *output, size_t num) {
@@ -168,7 +168,7 @@ template <typename T> void sigmoid_kernel(T *input, T *output, size_t num) {
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     _sigmoid_kernel<T>
-        <<<gridsize, blocksize, 0, CUDAStream::p_CUDAStream->getCurrentStream()>>>
+        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
         (input, output, num);
 }
 template <typename T>
@@ -177,7 +177,7 @@ void hard_sigmoid_kernel(T *input, T *output, size_t num) {
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     _hard_sigmoid_kernel<T>
-        <<<gridsize, blocksize, 0, CUDAStream::p_CUDAStream->getCurrentStream()>>>
+        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
         (input, output, num);
 }
 template <typename T> void hard_swish_kernel(T *input, T *output, size_t num) {
@@ -185,7 +185,7 @@ template <typename T> void hard_swish_kernel(T *input, T *output, size_t num) {
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     _hard_swish_kernel<T>
-        <<<gridsize, blocksize, 0, CUDAStream::p_CUDAStream->getCurrentStream()>>>
+        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
         (input, output, num);
 }
 template <typename T> void tanh_kernel(T *input, T *output, size_t num) {
@@ -193,7 +193,7 @@ template <typename T> void tanh_kernel(T *input, T *output, size_t num) {
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     _tanh_kernel<T>
-        <<<gridsize, blocksize, 0, CUDAStream::p_CUDAStream->getCurrentStream()>>>
+        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
         (input, output, num);
 }
 template <typename T> void abs_kernel(T *input, T *output, size_t num) {
@@ -201,7 +201,7 @@ template <typename T> void abs_kernel(T *input, T *output, size_t num) {
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     _abs_kernel<T>
-        <<<gridsize, blocksize, 0, CUDAStream::p_CUDAStream->getCurrentStream()>>>
+        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
         (input, output, num);
 }
 template <typename T> void sqrt_kernel(T *input, T *output, size_t num) {
@@ -209,7 +209,7 @@ template <typename T> void sqrt_kernel(T *input, T *output, size_t num) {
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     _sqrt_kernel
-        <<<gridsize, blocksize, 0, CUDAStream::p_CUDAStream->getCurrentStream()>>>
+        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
         ((T *)input, (T *)output, num);
 }
 
@@ -218,7 +218,7 @@ template <typename T> void gelu_kernel(T *input, T *output, size_t num) {
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     _gelu_kernel<T>
-        <<<gridsize, blocksize, 0, CUDAStream::p_CUDAStream->getCurrentStream()>>>
+        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
         (input, output, num);
 }
 
@@ -227,7 +227,7 @@ template <typename T> void silu_kernel(T *input, T *output, size_t num) {
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     _silu_kernel<T>
-        <<<gridsize, blocksize, 0, CUDAStream::p_CUDAStream->getCurrentStream()>>>
+        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
         (input, output, num);
 }
 
@@ -236,7 +236,7 @@ template <typename T> void erf_kernel(T *input, T *output, size_t num) {
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     _erf_kernel<T>
-        <<<gridsize, blocksize, 0, CUDAStream::p_CUDAStream->getCurrentStream()>>>
+        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
         (input, output, num);
 }
 template <typename T> void neg_kernel(T *input, T *output, size_t num) {
@@ -244,7 +244,7 @@ template <typename T> void neg_kernel(T *input, T *output, size_t num) {
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     _neg_kernel<T>
-        <<<gridsize, blocksize, 0, CUDAStream::p_CUDAStream->getCurrentStream()>>>
+        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
         (input, output, num);
 }
 
@@ -344,7 +344,7 @@ void cast_kernel(INPUT *input, OUTPUT *output, size_t num) {
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     _cast_kernel<INPUT, OUTPUT>
-        <<<gridsize, blocksize, 0, CUDAStream::p_CUDAStream->getCurrentStream()>>>
+        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
         (input, output, num);
 }
 

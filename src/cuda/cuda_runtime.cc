@@ -40,21 +40,23 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph) const {
 
 void CudaRuntimeObj::runWithCudaGraph(const Graph &graph) {
     if (!isCudaGraphCreated) {
-        checkCudaError(
-            cudaStreamBeginCapture(CUDAStream::p_CUDAStream->getCurrentStream(),
-                                   cudaStreamCaptureModeGlobal));
+        CUDAStream::createStream();
+        checkCudnnError(cudnnSetStream(cudnn, CUDAStream::getCurrentStream()));
+        checkCublasError(
+            cublasSetStream(cublas, CUDAStream::getCurrentStream()));
+        checkCudaError(cudaStreamBeginCapture(CUDAStream::getCurrentStream(),
+                                              cudaStreamCaptureModeGlobal));
         runWithoutSync(graph);
-        checkCudaError(cudaStreamEndCapture(
-            CUDAStream::p_CUDAStream->getCurrentStream(), &cudaGraph));
+        checkCudaError(
+            cudaStreamEndCapture(CUDAStream::getCurrentStream(), &cudaGraph));
         checkCudaError(
             cudaGraphInstantiate(&cudaGraphInstance, cudaGraph, NULL, NULL, 0));
         isCudaGraphCreated = true;
     } else {
-        checkCudaError(cudaGraphLaunch(
-            cudaGraphInstance, CUDAStream::p_CUDAStream->getCurrentStream()));
+        checkCudaError(
+            cudaGraphLaunch(cudaGraphInstance, CUDAStream::getCurrentStream()));
     }
-    checkCudaError(
-        cudaStreamSynchronize(CUDAStream::p_CUDAStream->getCurrentStream()));
+    checkCudaError(cudaStreamSynchronize(CUDAStream::getCurrentStream()));
 }
 
 void CudaRuntimeObj::tune(const Graph &graph, bool profiling = false) const {
@@ -120,4 +122,5 @@ void CudaRuntimeObj::initComm(const string &name, int worldSize, int rank) {
 #endif
 }
 
+cudaStream_t CUDAStream::_stream = 0;
 } // namespace infini

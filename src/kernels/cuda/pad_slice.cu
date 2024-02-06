@@ -49,7 +49,7 @@ __global__ void _pad_slice_kernel(void *part, void *whole,
 namespace infini {
 #define CASE(T)                                                                \
     _pad_slice_kernel<DT_CUDA<T>::t>                                           \
-        <<<gridSize, blockSize, 0, CUDAStream::p_CUDAStream->getCurrentStream()>>> \
+        <<<gridSize, blockSize, 0, CUDAStream::getCurrentStream()>>>           \
         (partData, wholeData, metadata, nDims, num, isPad);
 
 #define SWITCH_DTYPE(DTYPE)                                                    \

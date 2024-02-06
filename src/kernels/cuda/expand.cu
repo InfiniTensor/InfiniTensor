@@ -43,7 +43,7 @@ namespace infini {
 
 #define CASE(T)                                                                \
     _expandKernel<DT_CUDA<T>::t><<<gridsize, blocksize,                        \
-        0, CUDAStream::p_CUDAStream->getCurrentStream()>>>(                    \
+        0, CUDAStream::getCurrentStream()>>>(                                  \
         input, output, nDims, outputsize, inputShape, outputShape);
 
 #define SWITCH_DTYPE(DTYPE)                                                    \

@@ -26,7 +26,7 @@ void clip_kernel(float *input, float *output, int num, float minValue,
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     _clip_kernel
-        <<<gridsize, blocksize, 0, CUDAStream::p_CUDAStream->getCurrentStream()>>>(
+        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
         input, output, num, minValue, maxValue);
 }
 

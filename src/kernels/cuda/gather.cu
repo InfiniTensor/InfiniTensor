@@ -45,11 +45,11 @@ void gather_kernel(T *in, T *out, GatherMetaData metaData, size_t num) {
     int gridSize = (num + blockSize - 1) / blockSize;
     if (metaData.indexType == DataType::Int64) {
         _gather_kernel<T, int64_t>
-            <<<gridSize, blockSize, 0, CUDAStream::p_CUDAStream->getCurrentStream()>>>
+            <<<gridSize, blockSize, 0, CUDAStream::getCurrentStream()>>>
             (in, out, metaData, num);
     } else {
         _gather_kernel<T, int>
-            <<<gridSize, blockSize, 0, CUDAStream::p_CUDAStream->getCurrentStream()>>>
+            <<<gridSize, blockSize, 0, CUDAStream::getCurrentStream()>>>
             (in, out, metaData, num);
     }
 }

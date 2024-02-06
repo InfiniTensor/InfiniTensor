@@ -8,7 +8,7 @@ class CopyCuda : public CudaKernelWithoutConfig {
         auto outData = op->getOutputs()[0]->getRawDataPtr<void *>();
         cudaMemcpyAsync(outData, inData, op->getInputs(0)->getBytes(),
                         cudaMemcpyDeviceToDevice,
-                        CUDAStream::p_CUDAStream->getCurrentStream());
+                        CUDAStream::getCurrentStream());
     }
 };
 // reshape/flatten/identity all act as copying from input to output.

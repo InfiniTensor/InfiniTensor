@@ -130,9 +130,9 @@ __global__ void _less_kernel(void *x, void *y, void *z, int a0, int a1, int a2,
     }
 }
 
-#define CASE(OP, T)                                                                \
-    _##OP##_kernel<DT_CUDA<T>::t>                                                  \
-        <<<gridsize, blocksize, 0, CUDAStream::p_CUDAStream->getCurrentStream()>>> \
+#define CASE(OP, T)                                                            \
+    _##OP##_kernel<DT_CUDA<T>::t>                                              \
+        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>           \
         (a, b, c, a0, a1, a2, a3, b0, b1, b2, b3, c0, c1, c2, c3);
 
 #define SWITCH_DTYPE(OP, DTYPE)                                                \
@@ -204,11 +204,11 @@ void pow_kernel(int dType, void *a, void *b, void *c, int a0, int a1, int a2,
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     if (dType == 1) {
         _pow_kernel<float>
-            <<<gridsize, blocksize, 0, CUDAStream::p_CUDAStream->getCurrentStream()>>>
+            <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
             (a, b, c, a0, a1, a2, a3, b0, b1, b2, b3, c0, c1, c2, c3);
     } else if (dType == 3) {
         _pow_kernel<int8_t>
-            <<<gridsize, blocksize, 0, CUDAStream::p_CUDAStream->getCurrentStream()>>>
+            <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
             (a, b, c, a0, a1, a2, a3, b0, b1, b2, b3, c0, c1, c2, c3);
     } else if (dType == 10) {
         int a_size = a0 * a1 * a2 * a3;
@@ -224,7 +224,7 @@ void pow_kernel(int dType, void *a, void *b, void *c, int a0, int a1, int a2,
             b_float[i] = __half2float(((half *)b)[i]);
         }
         _pow_kernel<float>
-            <<<gridsize, blocksize, 0, CUDAStream::p_CUDAStream->getCurrentStream()>>>
+            <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
             (a_float.data(), b_float.data(), c_float.data(), a0, a1, a2, a3, b0,
             b1, b2, b3, c0, c1, c2, c3);
         for (int i = 0; i < c_size; ++i) {

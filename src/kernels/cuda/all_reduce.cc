@@ -28,9 +28,8 @@ class AllReduceNCCL : public CudaKernelWithoutConfig {
         ncclComm_t comm =
             dynamic_cast<NcclCommunicatorObj &>(context->getCommunicator())
                 .getNcclComm();
-        checkNcclError(
-            ncclAllReduce(input, output, count, ncclType, getRedOp(), comm,
-                          CUDAStream::p_CUDAStream->getCurrentStream()));
+        checkNcclError(ncclAllReduce(input, output, count, ncclType, getRedOp(),
+                                     comm, CUDAStream::getCurrentStream()));
     }
 
     virtual ncclRedOp_t getRedOp() const = 0;

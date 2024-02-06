@@ -64,7 +64,7 @@ void split_concat_kernel(const ElementTensorMetadata<float> &eleMeta,
     dim3 gridSize(gridDimX, batchSize);
 
     _split_concat_kernel
-        <<<gridSize, blockSize, 0, CUDAStream::p_CUDAStream->getCurrentStream()>>>
+        <<<gridSize, blockSize, 0, CUDAStream::getCurrentStream()>>>
         (eleMeta, compMeta, dim, nDims, isSplit);
 }
 void split_concat_kernel(const ElementTensorMetadata<half> &eleMeta,
@@ -79,7 +79,7 @@ void split_concat_kernel(const ElementTensorMetadata<half> &eleMeta,
     dim3 gridSize(gridDimX, batchSize);
 
     _split_concat_kernel
-        <<<gridSize, blockSize, 0, CUDAStream::p_CUDAStream->getCurrentStream()>>>
+        <<<gridSize, blockSize, 0, CUDAStream::getCurrentStream()>>>
         (eleMeta, compMeta, dim, nDims, isSplit);
 }
 
