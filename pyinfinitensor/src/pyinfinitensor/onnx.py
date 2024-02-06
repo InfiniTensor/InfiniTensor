@@ -39,15 +39,15 @@ class OnnxStub:
 
     def __init__(self, model: ModelProto, runtime, use_naive_allocator: bool = False):
         # We use some user-defined operators for distributed inference
-        try:
-            # onnx simplifier performs inplace simplify
-            model_simp, check = simplify(copy.deepcopy(model))
-            if check:
-                model = model_simp
-        except ValidationError:
-            pass
-        except RuntimeError:
-            pass
+        # try:
+        #     # onnx simplifier performs inplace simplify
+        #     model_simp, check = simplify(copy.deepcopy(model))
+        #     if check:
+        #         model = model_simp
+        # except ValidationError:
+        #     pass
+        # except RuntimeError:
+        #     pass
 
         self.inputs: Dict[str, backend.Tensor] = {}
         self.outputs: Dict[str, backend.Tensor] = {}

@@ -3,11 +3,6 @@
 #include "cuda/cuda_utility.h"
 #include "utils/small_array.h"
 
-constexpr unsigned int num_threads() { return 32 * 4; }
-constexpr int thread_work_size() { return 4; }
-constexpr int block_work_size() { return thread_work_size() * num_threads(); }
-
-// gridDim (batch, seq_len, dim_model / 1024),   blockDim (1024, 1, 1)
 template <class T>
 __global__ void _rope_kernel(int* pos, void *in, void *out, int size, int dim_model,
                              int dim_head, int hidden_stride, int pos_stride) {
@@ -86,8 +81,8 @@ __global__ void _rope_kernel(int* pos, void *in, void *out, int size, int dim_mo
 namespace infini {
 void rope_kernel(int dType, int * pos, void *input, void *output, int size,
                  int dim_model, int dim_head, int hidden_stride, int pos_stride) {
-    dim3 blocksize = dim3(1024,1,1);
-    dim3 gridsize = dim3(1, 1, 4);
+    dim3 blocksize = dim3(32,1,1);
+    dim3 gridsize = dim3(1, 1, dim_model/32);
     SWITCH_DTYPE(dType)
 }
 
