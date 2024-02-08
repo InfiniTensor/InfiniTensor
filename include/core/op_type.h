@@ -158,6 +158,7 @@ struct OpType {
         RoiAlign,
         RoPE,  // Fusion
         Round, // Unary
+        RMSNorm, // Fusion
         STFT,
         Scan,
         Scatter,

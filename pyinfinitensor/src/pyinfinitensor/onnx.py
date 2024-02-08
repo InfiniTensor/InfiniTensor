@@ -277,6 +277,12 @@ class OnnxStub:
                     axis,
                     stash_type,
                 )
+            elif node.op_type == "RMSNorm":
+                tensors[node.output[0]] = self.handler.RMSNorm(
+                    tensors[node.input[0]],
+                    tensors[node.input[1]],
+                    tensors.get(node.output[0]),
+                )
             elif node.op_type == "MaxPool":
                 attributes = _parse_attribute(
                     node,

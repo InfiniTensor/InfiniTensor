@@ -18,6 +18,7 @@
 #include "operators/reduce.h"
 #include "operators/reshape.h"
 #include "operators/resize.h"
+#include "operators/rms_norm.h"
 #include "operators/rope.h"
 #include "operators/send.h"
 #include "operators/slice.h"
@@ -118,6 +119,16 @@ Tensor GraphHandlerObj::layerNormalization(Tensor input, Tensor scale,
         return g
             ->addOp<LayerNormObj>(std::move(input), std::move(scale), output,
                                   std::move(bias), eps, axis, stash_type)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::rmsNorm(Tensor input, Tensor weight, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<RMSNormObj>(std::move(input), std::move(weight), output);
+        return output;
+    } else {
+        return g->addOp<RMSNormObj>(std::move(input), std::move(weight), output)
             ->getOutput();
     }
 }
