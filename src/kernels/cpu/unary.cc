@@ -47,6 +47,10 @@ class NativeUnary : public CpuKernelWithoutConfig {
         return 0.5 * val * (1 + std::erf(val / std::sqrt(2)));
     }
 
+    template <typename T> static T siluCompute(T val) {
+        return val / (1 + pow(E_CONSTANT, -val));
+    }
+
     template <typename T> static T erfCompute(T val) { return std::erf(val); }
 
     template <typename T> static T aCosCompute(T val) { return std::acos(val); }
@@ -83,6 +87,9 @@ class NativeUnary : public CpuKernelWithoutConfig {
             break;
         case OpType::Gelu:
             _doCompute = geluCompute<T>;
+            break;
+        case OpType::Silu:
+            _doCompute = siluCompute<T>;
             break;
         case OpType::Sigmoid:
             _doCompute = sigmoidCompute<T>;
@@ -292,6 +299,7 @@ class Log : public CpuKernelWithoutConfig {
 
 REGISTER_KERNEL(Device::CPU, OpType::Relu, NativeUnary, "reluNaive_CPU");
 REGISTER_KERNEL(Device::CPU, OpType::Gelu, NativeUnary, "geluNaive_CPU");
+REGISTER_KERNEL(Device::CPU, OpType::Silu, NativeUnary, "siluNaive_CPU");
 REGISTER_KERNEL(Device::CPU, OpType::Sigmoid, NativeUnary, "sigmoidNaive_CPU");
 REGISTER_KERNEL(Device::CPU, OpType::HardSigmoid, NativeUnary,
                 "hardSigmoidNaive_CPU");

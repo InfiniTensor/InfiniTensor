@@ -19,7 +19,6 @@ class AllGatherCNCL : public BangKernelWithoutConfig {
         BangPtr output_temp =
             context->getWorkspace(op->getInputs(0)->getBytes() * world_size);
         // void *output = op->getOutput()->getRawDataPtr<void *>();
-        // IT_ASSERT(op->getDType() == DataType::Float32);
         checkBangError(cnrtMalloc(&output_temp,
                                   op->getInputs(0)->getBytes() * world_size));
         size_t bytes = op->getInputs(0)->getBytes();
@@ -29,8 +28,9 @@ class AllGatherCNCL : public BangKernelWithoutConfig {
             dynamic_cast<CnclCommunicatorObj &>(context->getCommunicator())
                 .getCnclComm();
         cnrtQueue_t queue = context->getBangQueue();
-        CNCL_CHECK(
-            cnclAllGather(input, output_temp, count, cnclFloat32, comm, queue));
+        CNCL_CHECK(cnclAllGather(input, output_temp, count,
+                                 cnclDataTypeConvert(op->getDType()), comm,
+                                 queue));
         checkBangError(cnrtQueueSync(queue));
         for (int i = 0; i < world_size; ++i) {
             Tensor output = op->getOutput(i);
@@ -42,8 +42,8 @@ class AllGatherCNCL : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::AllGather, DataType::Float32,
-                AllGatherCNCL, "AllGather_CNCL_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::AllGather, AllGatherCNCL,
+                "AllGather_CNCL_BANG");
 } // namespace infini
 
 #endif

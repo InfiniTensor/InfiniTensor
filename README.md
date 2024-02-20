@@ -33,13 +33,14 @@ There are several configurable CMake options, see the [CMakeLists.txt](/CMakeLis
 
 ## Roadmap
 
+- [RefactorGraph](https://github.com/InfiniTensor/RefactorGraph) is a newly designed AI framework that is set to replace the current main branch.
 - [EinNet](https://github.com/InfiniTensor/InfiniTensor/tree/NNET_e2e) is going to be merged into the main branch.
 - Integration of [PET](https://github.com/thu-pacman/PET), a tensor program optimizer supporting partially equivalent transformations.
 - Supported hardware
   - ✔ NVIDIA GPU
   - ✔ Cambricon MLU
+  - ✔ Kunlunxin XPU
   - ⬜ Ascend NPU
-  - ⬜ Kunlunxin XPU
 
 ## Contributor Guide
 

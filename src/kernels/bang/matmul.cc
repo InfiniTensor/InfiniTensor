@@ -8,7 +8,6 @@ class MatmulCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<MatmulObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         auto input_num = op->numInputs();
@@ -38,25 +37,26 @@ class MatmulCnnl : public BangKernelWithoutConfig {
         int32_t transB = op->getTransB();
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(
-            cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT,
-                                    dimInputs0.size(), dimInputs0.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            aDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            dimInputs0.size(), dimInputs0.data()));
 
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
-        checkCnnlError(
-            cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT,
-                                    dimInputs1.size(), dimInputs1.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            bDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            dimInputs1.size(), dimInputs1.data()));
 
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
-        checkCnnlError(
-            cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT,
-                                    dimOutput.size(), dimOutput.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            cDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            dimOutput.size(), dimOutput.data()));
 
         if (input_num > 2) {
             checkCnnlError(cnnlCreateTensorDescriptor(&biasDesc));
-            checkCnnlError(cnnlSetTensorDescriptor(
-                biasDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT, dimBias.size(),
-                dimBias.data()));
+            checkCnnlError(
+                cnnlSetTensorDescriptor(biasDesc, CNNL_LAYOUT_ARRAY,
+                                        cnnlDataTypeConvert(op->getDType()),
+                                        dimBias.size(), dimBias.data()));
         }
 
         cnnlMatMulDescriptor_t bmm_desc;

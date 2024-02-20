@@ -438,6 +438,11 @@ class OnnxStub:
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
                 )
+            elif node.op_type == "Silu":
+                tensors[node.output[0]] = self.handler.silu(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                )
             elif node.op_type == "Gelu":
                 tensors[node.output[0]] = self.handler.gelu(
                     tensors[node.input[0]],
@@ -667,6 +672,12 @@ class OnnxStub:
                     tensors[node.input[3]],
                     tensors[node.input[4]],
                     tensors[node.input[5]],
+                    tensors.get(node.output[0]),
+                )
+            elif node.op_type == "RoPE":
+                tensors[node.output[0]]= self.handler.RoPE(
+                    tensors[node.input[0]],
+                    tensors[node.input[1]],
                     tensors.get(node.output[0]),
                 )
             elif node.op_type == "Split":
