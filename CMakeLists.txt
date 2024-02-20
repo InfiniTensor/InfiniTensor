@@ -285,7 +285,7 @@ if(USE_KUNLUN)
   message(STATUS "KUNLUN_HOME: ${KUNLUN_HOME}")
 
   include_directories("${KUNLUN_HOME}/include/")
-  find_library(KUNLUN_RT libxpurt.so "${KUNLUN_HOME}/runtime/shlib/")
+  find_library(KUNLUN_RT libxpurt.so "${KUNLUN_HOME}/so/")
   find_library(KUNLUN_DNN libxpuapi.so "${KUNLUN_HOME}/so/")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lstdc++ -Wall -Werror")
 
