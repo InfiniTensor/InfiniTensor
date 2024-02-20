@@ -38,7 +38,7 @@ __global__ void _rmsnorm_kernel(void *in, void *weight, void *out, int num_token
     float variance = 0.0f;
 
     for(int idx = threadIdx.x; idx < hidden_size; idx += blockDim.x){
-        const float x = ((float*) in)[blockIdx.x * hidden_size + idx];
+        const float x = ((T*) in)[blockIdx.x * hidden_size + idx];
         variance += x * x; 
     }
     variance = blockReduceSum<float>(variance);
@@ -48,7 +48,7 @@ __global__ void _rmsnorm_kernel(void *in, void *weight, void *out, int num_token
     __syncthreads();
 
     for(int idx = threadIdx.x; idx < hidden_size; idx += blockDim.x){
-        float x = ((float*) in)[blockIdx.x * hidden_size + idx];
+        float x = ((T*) in)[blockIdx.x * hidden_size + idx];
         ((T*)out)[blockIdx.x * hidden_size + idx] = ((T)(x * s_variance)) * ((T*)weight)[idx];
     }
 }

@@ -125,7 +125,8 @@ Tensor GraphHandlerObj::layerNormalization(Tensor input, Tensor scale,
 
 Tensor GraphHandlerObj::rmsNorm(Tensor input, Tensor weight, Tensor output) {
     if (output) {
-        g->addOpWithOutputs<RMSNormObj>(std::move(input), std::move(weight), output);
+        g->addOpWithOutputs<RMSNormObj>(std::move(input), std::move(weight),
+                                        output);
         return output;
     } else {
         return g->addOp<RMSNormObj>(std::move(input), std::move(weight), output)
