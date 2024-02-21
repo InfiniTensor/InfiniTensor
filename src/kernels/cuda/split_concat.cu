@@ -63,8 +63,9 @@ void split_concat_kernel(const ElementTensorMetadata<float> &eleMeta,
     // each y is a split among the batch
     dim3 gridSize(gridDimX, batchSize);
 
-    _split_concat_kernel<<<gridSize, blockSize>>>(eleMeta, compMeta, dim, nDims,
-                                                  isSplit);
+    _split_concat_kernel
+        <<<gridSize, blockSize, 0, CUDAStream::getCurrentStream()>>>
+        (eleMeta, compMeta, dim, nDims, isSplit);
 }
 void split_concat_kernel(const ElementTensorMetadata<half> &eleMeta,
                          const ComposedTensorMetadata<half> &compMeta, int dim,
@@ -77,8 +78,9 @@ void split_concat_kernel(const ElementTensorMetadata<half> &eleMeta,
     // each y is a split among the batch
     dim3 gridSize(gridDimX, batchSize);
 
-    _split_concat_kernel<<<gridSize, blockSize>>>(eleMeta, compMeta, dim, nDims,
-                                                  isSplit);
+    _split_concat_kernel
+        <<<gridSize, blockSize, 0, CUDAStream::getCurrentStream()>>>
+        (eleMeta, compMeta, dim, nDims, isSplit);
 }
 
 } // namespace infini
