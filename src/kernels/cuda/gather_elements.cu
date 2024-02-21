@@ -40,22 +40,26 @@ void gather_elements_kernel(void *in, void *out, GatherMetaData metaData,
     int gridSize = (num + blockSize - 1) / blockSize;
     if (metaData.dataType == DataType::Float32 &&
         metaData.indexType == DataType::Int64) {
-        _gather_elements_kernel<float, int64_t><<<gridSize, blockSize>>>(
+        _gather_elements_kernel<float, int64_t>
+            <<<gridSize, blockSize, 0, CUDAStream::getCurrentStream()>>>(
             reinterpret_cast<float *>(in), reinterpret_cast<float *>(out),
             metaData, num);
     } else if (metaData.dataType == DataType::Int32 &&
                metaData.indexType == DataType::Int64) {
-        _gather_elements_kernel<int, int64_t><<<gridSize, blockSize>>>(
+        _gather_elements_kernel<int, int64_t>
+            <<<gridSize, blockSize, 0, CUDAStream::getCurrentStream()>>>(
             reinterpret_cast<int *>(in), reinterpret_cast<int *>(out), metaData,
             num);
     } else if (metaData.dataType == DataType::Float32 &&
                metaData.indexType == DataType::Int32) {
-        _gather_elements_kernel<float, int><<<gridSize, blockSize>>>(
+        _gather_elements_kernel<float, int>
+            <<<gridSize, blockSize, 0, CUDAStream::getCurrentStream()>>>(
             reinterpret_cast<float *>(in), reinterpret_cast<float *>(out),
             metaData, num);
     } else if (metaData.dataType == DataType::Int32 &&
                metaData.indexType == DataType::Int32) {
-        _gather_elements_kernel<int, int><<<gridSize, blockSize>>>(
+        _gather_elements_kernel<int, int>
+            <<<gridSize, blockSize, 0, CUDAStream::getCurrentStream()>>>(
             reinterpret_cast<int *>(in), reinterpret_cast<int *>(out), metaData,
             num);
     } else {

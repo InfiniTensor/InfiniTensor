@@ -23,8 +23,9 @@ __global__ void _transpose_kernel(void *input, void *output, int nDims,
     }
 }
 #define CASE(T)                                                                \
-    _transpose_kernel<DT_CUDA<T>::t><<<gridsize, blocksize>>>(                 \
-        input, output, nDims, size, strides, outputShape);
+    _transpose_kernel<DT_CUDA<T>::t>                                           \
+        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>           \
+        (input, output, nDims, size, strides, outputShape);
 
 #define SWITCH_DTYPE(DTYPE)                                                    \
     switch (DTYPE) {                                                           \
