@@ -5,6 +5,7 @@
 #include <cuda_profiler_api.h>
 #include <cudnn.h>
 #include <curand.h>
+#include <memory>
 
 #define checkCudaError(call)                                                   \
     if (auto err = call; err != cudaSuccess)                                   \
@@ -110,5 +111,21 @@ inline const char *curandGetErrorString(curandStatus_t error) {
 }
 
 using CudaPtr = void *;
+
+class CUDAStream {
+  public:
+    CUDAStream(const CUDAStream &) = delete;
+    CUDAStream(CUDAStream &&) = delete;
+    void operator=(const CUDAStream &) = delete;
+    void operator=(CUDAStream &&) = delete;
+    static cudaStream_t getCurrentStream() { return _stream; }
+    static void Init() { CUDAStream::_stream = 0; };
+    static void createStream() { checkCudaError(cudaStreamCreate(&_stream)); }
+    static void destroyStream() { checkCudaError(cudaStreamDestroy(_stream)); }
+
+  private:
+    CUDAStream(){};
+    static cudaStream_t _stream;
+};
 
 } // namespace infini
