@@ -2,7 +2,7 @@
 #include "cuda/cuda_attention_kvcache.h"
 #define WARP_SIZE 32
 #define BLOCKSIZE WARP_SIZE
-#define SEQ_UNIT 32
+#define SEQ_UNIT 16
 
 // ASSUME SEQ_LEN OF Q IS 1
 __global__ void _attention_kvcache_kernel_128_1(float* input_k_cache,
@@ -103,7 +103,7 @@ __global__ void _attention_kvcache_kernel_128_1(float* input_k_cache,
         ptr_O[i] /= ptr_sum[0];
 
     (float4 &)output_O_temp[(lane_id * 4) + (blockIdx.y * compMeta.dimSize[3]) + (parallel_idx * compMeta.dimSize[3] * stride)] = (float4 &)ptr_O[0];
-    if(threadIdx.x == 0){
+    if(lane_id == 0){
         output_sum_temp[blockIdx.y + parallel_idx * stride] = ptr_sum[0];
     }
 
@@ -157,13 +157,15 @@ void attention_kvcache_kernel(float *input_k_cache, float *input_v_cache,
     dim3 gridDim(compMeta.dimSize[0]*compMeta.dimSize[1]/(BLOCKSIZE/WARP_SIZE), gridsize_y);
     dim3 blockDim(BLOCKSIZE, 1);
 
-    assert(compMeta.dimSize[3] == 128);
-    _attention_kvcache_kernel_128_1<<<gridDim, blockDim>>>(
-        input_k_cache, input_v_cache, input_q, input_k, input_v, position_id, 
+    _attention_kvcache_kernel_128_1
+        <<<gridDim, blockDim, 0, CUDAStream::getCurrentStream()>>>
+        (input_k_cache, input_v_cache, input_q, input_k, input_v, position_id,
         compMeta, output_O_temp, output_sum_temp);
-    _attention_kvcache_kernel_128_2<<<compMeta.dimSize[0]*compMeta.dimSize[1]/(BLOCKSIZE/WARP_SIZE), WARP_SIZE>>>(
-        position_id, output_matmul, compMeta, output_O_temp, output_sum_temp);
-    
+
+    _attention_kvcache_kernel_128_2
+        <<<compMeta.dimSize[0]*compMeta.dimSize[1]/(BLOCKSIZE/WARP_SIZE), WARP_SIZE,
+        0, CUDAStream::getCurrentStream()>>>
+        (position_id, output_matmul, compMeta, output_O_temp, output_sum_temp);
 }
 
 } // namespace infini
