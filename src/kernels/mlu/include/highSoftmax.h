@@ -2,7 +2,7 @@
 #define BANG_KERNELS_DIVOPERATION_DIV_H_
 
 __mlu_global__ void softmaxUnion1(float *mlu_destination, float *mlu_src,
-                                  int axis, int othersize, int frontsize,
-                                  int dimsize, int stride);
+                                  int nDim, int axis, int othersize,
+                                  int frontsize, int dimsize, int stride);
 
 #endif // BANG_KERNELS_DIVOPERATION_DIV_H_

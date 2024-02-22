@@ -521,15 +521,15 @@ __mlu_device__ void softmaxKernelAxis_s(float* destination, float* source, int o
   
 }
 
-__mlu_global__ void softmaxUnion1(float *mlu_destination, float *mlu_src, int axis, int othersize, int frontsize, int dimsize, int stride){
-  if(axis == 3){
+__mlu_global__ void softmaxUnion1(float *mlu_destination, float *mlu_src, int nDim, int axis, int othersize, int frontsize, int dimsize, int stride){
+  if(axis == nDim - 1){
     softmaxKernelAxis_e(mlu_destination, mlu_src, othersize, dimsize);
-  }
-  else if (axis > 0 && axis < 3){
-    softmaxKernelAxis_m(mlu_destination, mlu_src, frontsize, dimsize, stride);
   }
   else if(axis == 0){
     softmaxKernelAxis_s(mlu_destination, mlu_src, othersize, dimsize, stride);
+  }
+  else{
+    softmaxKernelAxis_m(mlu_destination, mlu_src, frontsize, dimsize, stride);
   }
 }
 

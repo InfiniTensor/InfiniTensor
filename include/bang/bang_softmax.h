@@ -11,7 +11,7 @@ void softmax_kernel(const RuntimeObj *obj, const Operator &_op) {
 
     auto context = dynamic_cast<const BangRuntimeObj *>(obj);
     auto shape = op->getInputs(0)->getDims();
-
+    int nDim = shape.size();
     int axis = op->getAxis();
     int stride = 1;
     int dimsize = shape[axis];
@@ -19,7 +19,7 @@ void softmax_kernel(const RuntimeObj *obj, const Operator &_op) {
     int othersize = 1;
     int frontsize = 1;
 
-    for (int s = 3; s >= 0; s--) {
+    for (int s = nDim - 1; s >= 0; s--) {
         num *= shape[s];
         if (s > axis) {
             stride *= shape[s];
@@ -33,8 +33,8 @@ void softmax_kernel(const RuntimeObj *obj, const Operator &_op) {
     }
     if (op->getOpType() == OpType::Softmax)
         softmaxKernel(context->cnnlHandle(), (float *)mlu_destination,
-                      (float *)mlu_src, axis, othersize, frontsize, dimsize,
-                      stride);
+                      (float *)mlu_src, nDim, axis, othersize, frontsize,
+                      dimsize, stride);
     else
         IT_TODO_HALT();
 }

@@ -2,7 +2,7 @@
 #include "highSoftmax.h"
 
 namespace infini{
-void softmaxKernel(cnnlHandle_t handle, float *mlu_destination, float *mlu_src, int axis, int othersize, int frontsize, int dimsize, int stride){
+void softmaxKernel(cnnlHandle_t handle, float *mlu_destination, float *mlu_src, int nDim, int axis, int othersize, int frontsize, int dimsize, int stride){
   cnrtDim3_t k_dim;
   cnrtFunctionType_t k_type;
   cnrtQueue_t queue;
@@ -12,7 +12,7 @@ void softmaxKernel(cnnlHandle_t handle, float *mlu_destination, float *mlu_src, 
   k_dim.z = 1;
   k_type = CNRT_FUNC_TYPE_UNION1;
   // launch 任务
-  softmaxUnion1<<<k_dim, k_type, queue>>>(mlu_destination, mlu_src, axis, othersize, frontsize, dimsize, stride);
+  softmaxUnion1<<<k_dim, k_type, queue>>>(mlu_destination, mlu_src, nDim, axis, othersize, frontsize, dimsize, stride);
   
 }
 };
