@@ -45,7 +45,7 @@ __mlu_device__ void softmaxKernelAxis_m(float* destination, float* source, int f
           __bang_add(tmpSum, tmpSum, src, maxNum);//sum += exp(x - M)
           __memcpy(tmpOldMax, tmpNewMax, maxNum * sizeof(float), NRAM2NRAM);//oldM = newM
         }
-        __bang_active_recip(tmpSum, tmpSum, maxNum);//计算1/sum
+        __bang_active_reciphp(tmpSum, tmpSum, maxNum);//计算1/sum
         //开始指数变换并且写回GDRAM
         __bang_mul(src, src, tmpSum, maxNum);//上面循环结束src存储的数据可以利用
         __memcpy(destination + (dimsize - 1) * stride + frontIdx + j * maxNum, src, maxNum * sizeof(float), NRAM2GDRAM);
@@ -75,7 +75,7 @@ __mlu_device__ void softmaxKernelAxis_m(float* destination, float* source, int f
           __memcpy(tmpOldMax, tmpNewMax, maxNum * sizeof(float), NRAM2NRAM);//oldM = newM
         }
         //-------------------
-        __bang_active_recip(tmpSum, tmpSum, maxNum);//计算1/sum
+        __bang_active_reciphp(tmpSum, tmpSum, maxNum);//计算1/sum
         //开始指数变换并且写回GDRAM
         __bang_mul(src, src, tmpSum, maxNum);//上面循环结束src存储的数据可以利用
         __memcpy(destination + (dimsize - 1) * stride + frontIdx + repeat * maxNum, src, remain * sizeof(float), NRAM2GDRAM);
@@ -157,7 +157,7 @@ __mlu_device__ void softmaxKernelAxis_m(float* destination, float* source, int f
       
       //此时tmpNewMax存储的是对应于固定frontIdx，behindsize对应数据的最大值，而tmpSum存储的就是对应数值和
       //__bang_printf("tmpOldMax[0]:%.2f,tmpSum[0]:%.2f\n", tmpNewMax[2],tmpSum[2]);
-      __bang_active_recip(tmpSum, tmpSum, strideS);
+      __bang_active_reciphp(tmpSum, tmpSum, strideS);
       //__bang_printf("tmpOldMax[0]:%.2f,tmpSum[0]:%.2f\n", tmpNewMax[2],tmpSum[2]);
       if(remain){
         for(int m = 0; m < remain; m++){
@@ -225,7 +225,7 @@ __mlu_device__ void softmaxKernelAxis_m(float* destination, float* source, int f
           __bang_add(tmpSum, tmpSum, tmp, strideS);//sum += exp(x - M)
           __memcpy(tmpOldMax, tmpNewMax, stride * sizeof(float), NRAM2NRAM);//oldM = newM
         }
-        __bang_active_recip(tmpSum, tmpSum, strideS);
+        __bang_active_reciphp(tmpSum, tmpSum, strideS);
         __bang_mul(tmp, tmp, tmpSum, strideS);//上面循环结束tmp存储的数据可以利用
         //__memcpy(destination + tid + m * behindsize + (dimsize - 1) * stride, tmp, stride * sizeof(float), NRAM2GDRAM);
         __memcpy(src + m * behindsize + (dimsize - 1) * stride, tmp, stride * sizeof(float), NRAM2NRAM);
@@ -262,7 +262,7 @@ __mlu_device__ void softmaxKernelAxis_m(float* destination, float* source, int f
           __memcpy(tmpOldMax, tmpNewMax, stride * sizeof(float), NRAM2NRAM);//oldM = newM
         }
         //__bang_printf("max:%.2f,%.2f, sum:%.2f,sum:%.2f\n", tmpNewMax[0], tmpNewMax[1], tmpSum[0], tmpSum[0]);
-        __bang_active_recip(tmpSum, tmpSum, strideS);
+        __bang_active_reciphp(tmpSum, tmpSum, strideS);
         __bang_mul(tmp, tmp, tmpSum, strideS);//上面循环结束tmp存储的数据可以利用
         //__memcpy(destination + tid + m * behindsize + (dimsize - 1) * stride, tmp, stride * sizeof(float), NRAM2GDRAM);
         __memcpy(src + m * behindsize + (dimsize - 1) * stride, tmp, stride * sizeof(float), NRAM2NRAM);
@@ -473,7 +473,7 @@ __mlu_device__ void softmaxKernelAxis_s(float* destination, float* source, int o
       __bang_add(tmpSum, tmpSum, src, maxNum);//sum += exp(x - M)
       __memcpy(tmpOldMax, tmpNewMax, maxNum * sizeof(float), NRAM2NRAM);//oldM = newM
     } 
-    __bang_active_recip(tmpSum, tmpSum, maxNum);//计算1/sum
+    __bang_active_reciphp(tmpSum, tmpSum, maxNum);//计算1/sum
     //开始指数变换并且写回GDRAM
     __bang_mul(src, src, tmpSum, maxNum);//上面循环结束src存储的数据可以利用
     __memcpy(destination + (dimsize - 1) * stride + indStart + j * maxNum, src, maxNum * sizeof(float), NRAM2GDRAM);
@@ -505,7 +505,7 @@ __mlu_device__ void softmaxKernelAxis_s(float* destination, float* source, int o
       __memcpy(tmpOldMax, tmpNewMax, maxNum * sizeof(float), NRAM2NRAM);//oldM = newM
     } 
     
-    __bang_active_recip(tmpSum, tmpSum, maxNum);//计算1/sum
+    __bang_active_reciphp(tmpSum, tmpSum, maxNum);//计算1/sum
     //开始指数变换并且写回GDRAM
     __bang_mul(src, src, tmpSum, maxNum);//上面循环结束src存储的数据可以利用
     __memcpy(destination + (dimsize - 1) * stride + indStart + repeat * maxNum, src, remainNram * sizeof(float), NRAM2GDRAM);

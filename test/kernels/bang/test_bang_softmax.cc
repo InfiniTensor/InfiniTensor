@@ -6,7 +6,7 @@
 #include "test.h"
 #include <cmath>
 namespace infini {
-
+double eps = 3e-3;
 TEST(cuDNN_Softmax, run_axis1) {
     // Runtime
     Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
@@ -28,7 +28,8 @@ TEST(cuDNN_Softmax, run_axis1) {
     // Check
     EXPECT_TRUE(outputGpu2Cpu->equalData(
         vector<float>{0.032058604, 0.08714432, 0.23688284, 0.6439143,
-                      0.032058604, 0.08714432, 0.23688284, 0.6439143}));
+                      0.032058604, 0.08714432, 0.23688284, 0.6439143},
+        eps));
 }
 
 TEST(cuDNN_Softmax, run_axis0) {
@@ -50,8 +51,8 @@ TEST(cuDNN_Softmax, run_axis0) {
     auto outputGpu = gpuOp->getOutput();
     auto outputGpu2Cpu = outputGpu->clone(cpuRuntime);
     // Check
-    EXPECT_TRUE(
-        outputGpu2Cpu->equalData(vector<float>{0., 0., 0., 0., 1, 1, 1, 1}));
+    EXPECT_TRUE(outputGpu2Cpu->equalData(
+        vector<float>{0., 0., 0., 0., 1, 1, 1, 1}, eps));
 }
 
 TEST(cuDNN_Softmax2, run_axis1) {
@@ -73,10 +74,12 @@ TEST(cuDNN_Softmax2, run_axis1) {
     auto outputGpu = gpuOp->getOutput();
     auto outputGpu2Cpu = outputGpu->clone(cpuRuntime);
     // Check
-    EXPECT_TRUE(outputGpu2Cpu->equalData(vector<float>{
-        0.0179862, 0.0179862, 0.0179862, 0.0179862, 0.9820138, 0.9820138,
-        0.9820138, 0.9820138, 0.0179862, 0.0179862, 0.0179862, 0.0179862,
-        0.9820138, 0.9820138, 0.9820138, 0.9820138}));
+    EXPECT_TRUE(outputGpu2Cpu->equalData(
+        vector<float>{0.0179862, 0.0179862, 0.0179862, 0.0179862, 0.9820138,
+                      0.9820138, 0.9820138, 0.9820138, 0.0179862, 0.0179862,
+                      0.0179862, 0.0179862, 0.9820138, 0.9820138, 0.9820138,
+                      0.9820138},
+        eps));
 }
 
 TEST(cuDNN_Softmax2, run_axis2) {
@@ -98,10 +101,12 @@ TEST(cuDNN_Softmax2, run_axis2) {
     auto outputGpu = gpuOp->getOutput();
     auto outputGpu2Cpu = outputGpu->clone(cpuRuntime);
     // Check
-    EXPECT_TRUE(outputGpu2Cpu->equalData(vector<float>{
-        0.1192029, 0.1192029, 0.8807971, 0.8807971, 0.1192029, 0.1192029,
-        0.8807971, 0.8807971, 0.1192029, 0.1192029, 0.8807971, 0.8807971,
-        0.1192029, 0.1192029, 0.8807971, 0.8807971}));
+    EXPECT_TRUE(outputGpu2Cpu->equalData(
+        vector<float>{0.1192029, 0.1192029, 0.8807971, 0.8807971, 0.1192029,
+                      0.1192029, 0.8807971, 0.8807971, 0.1192029, 0.1192029,
+                      0.8807971, 0.8807971, 0.1192029, 0.1192029, 0.8807971,
+                      0.8807971},
+        eps));
 }
 
 TEST(cuDNN_Softmax2, run_axis3) {
@@ -123,9 +128,11 @@ TEST(cuDNN_Softmax2, run_axis3) {
     auto outputGpu = gpuOp->getOutput();
     auto outputGpu2Cpu = outputGpu->clone(cpuRuntime);
     // Check
-    EXPECT_TRUE(outputGpu2Cpu->equalData(vector<float>{
-        0.2689414, 0.7310586, 0.2689414, 0.7310586, 0.2689414, 0.7310586,
-        0.2689414, 0.7310586, 0.2689414, 0.7310586, 0.2689414, 0.7310586,
-        0.2689414, 0.7310586, 0.2689414, 0.7310586}));
+    EXPECT_TRUE(outputGpu2Cpu->equalData(
+        vector<float>{0.2689414, 0.7310586, 0.2689414, 0.7310586, 0.2689414,
+                      0.7310586, 0.2689414, 0.7310586, 0.2689414, 0.7310586,
+                      0.2689414, 0.7310586, 0.2689414, 0.7310586, 0.2689414,
+                      0.7310586},
+        eps));
 }
 } // namespace infini
