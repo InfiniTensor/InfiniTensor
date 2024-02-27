@@ -70,7 +70,7 @@ template <typename T> std::string vecToString(const std::vector<T> &vec) {
         }
     }
     ss << "]";
-    return ret;
+    return ss.str();
 }
 
 template <typename T> std::string vecToString(const T *st, size_t length) {
@@ -84,7 +84,7 @@ template <typename T> std::string vecToString(const T *st, size_t length) {
         }
     }
     ss << "]";
-    return ret;
+    return ss.str();
 }
 
 double timeit(
