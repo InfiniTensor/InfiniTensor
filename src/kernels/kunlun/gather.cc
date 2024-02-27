@@ -18,7 +18,7 @@ class GatherXdnn : public KUNLUNKernelWithoutConfig {
 
         Shape aShape = op->getInputs(0)->getDims();
         Tensor bTensor = op->getInputs(1);
-        auto axis = op->getAxis();
+        int axis = op->getAxis();
         checkKUNLUNError((baidu::xpu::api::gather<float, int>(
             context->KUNLUNHandle(), (float *)aData, (int *)bData,
             (float *)cData, aShape, bTensor->size(), axis)));

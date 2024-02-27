@@ -23,16 +23,7 @@ class ConvXdnn : public KUNLUNKernelWithoutConfig {
         std::vector<int> ksize = {r, s};
         std::vector<int> stride = {sh, sw};
         std::vector<int> dilation = {dh, dw};
-
-        // std::cout << vecToString<int>(pads) << std::endl;
-        // std::cout << vecToString<int>(ksize) << std::endl;
-        // std::cout << vecToString<int>(stride) << std::endl;
-        // std::cout << vecToString<int>(dilation) << std::endl;
-        // std::cout << vecToString<int>(op->getInputs(0)->getDims()) <<
-        // std::endl; std::cout << vecToString<int>(op->getInputs(1)->getDims())
-        // << std::endl; std::cout <<
-        // vecToString<int>(op->getOutput()->getDims()) << std::endl;
-
+        
         // TODO: Convolution operators still have some accuracy problems
         checkKUNLUNError((xdnn::conv2d<float, float, float, float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,

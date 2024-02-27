@@ -1,10 +1,7 @@
 #pragma once
-// #include "core/ref.h"
 #include "core/runtime.h"
 
 namespace infini {
-
-// template <typename T> using Workspace = Ref<WorkspaceObj<T>>;
 
 template <class T> class WorkspaceObj {
   private:

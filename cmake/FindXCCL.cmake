@@ -25,5 +25,3 @@ if (XCCL_FOUND)
   message(STATUS "Found XCCL (include: ${XCCL_INCLUDE_DIRS}, library: ${XCCL_LIBRARIES})")
   mark_as_advanced(XCCL_INCLUDE_DIRS XCCL_LIBRARIES)
 endif()
-
-

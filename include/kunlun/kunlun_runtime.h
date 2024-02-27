@@ -21,7 +21,7 @@ class KUNLUNRuntimeObj : public RuntimeObj {
         ctx = xdnn::create_context();
         // 10GB for Longformer
         // size_t longformerNum = 3lu * (1 << 30);
-        size_t workspaceSize = 3ll << 30; // 3 GB
+        size_t workspaceSize = 3llu << 30; // 3 GB
         KUNLUNPtr wkspacePtr = alloc(workspaceSize);
         workspace =
             make_ref<WorkspaceObj<KUNLUNPtr>>(wkspacePtr, workspaceSize);

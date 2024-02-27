@@ -115,4 +115,4 @@ TEST(XDNN_Matmul_With_Bias, run) {
                                           449, 425, 476, 449, 503, 473, 530});
 }
 
-}; // namespace infini
+} // namespace infini
