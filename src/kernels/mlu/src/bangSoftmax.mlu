@@ -1,5 +1,5 @@
-#include "bang_highSoftmax.h"
-#include "highSoftmax.h"
+#include "bang_bangSoftmax.h"
+#include "bangSoftmax.h"
 
 namespace infini{
 void softmaxKernel(cnnlHandle_t handle, float *mlu_destination, float *mlu_src, int nDim, int axis, int othersize, int frontsize, int dimsize, int stride){

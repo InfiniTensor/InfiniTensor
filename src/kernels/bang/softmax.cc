@@ -10,5 +10,5 @@ class SoftmaxBang : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Softmax, SoftmaxBang, "Softmax_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::BangSoftmax, SoftmaxBang, "Softmax_BANG");
 }; // namespace infini

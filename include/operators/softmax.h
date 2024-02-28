@@ -24,4 +24,26 @@ class SoftmaxObj : public OperatorObj {
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;
 };
+class BangSoftmaxObj : public OperatorObj {
+    int axis;
+
+  public:
+    BangSoftmaxObj(GraphObj *graph, Tensor input, Tensor output, int axis);
+
+    OP_CLONE(BangSoftmaxObj);
+
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override {
+        return {{inputs[0]->getDims()}};
+    };
+
+    std::string toString() const override;
+    int numInputs() const override { return 1; }
+    int numOutputs() const override { return 1; }
+
+    int getAxis() const { return axis; }
+
+  private:
+    vector<int> getWorkloadVector() const override;
+    vector<int> getOpAttrVector() const override;
+};
 } // namespace infini

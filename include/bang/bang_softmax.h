@@ -1,11 +1,11 @@
 #pragma once
 #include "bang/bang_runtime.h"
-#include "bang_highSoftmax.h"
+#include "bang_bangSoftmax.h"
 #include "operators/softmax.h"
 namespace infini {
 
 void softmax_kernel(const RuntimeObj *obj, const Operator &_op) {
-    auto op = as<SoftmaxObj>(_op);
+    auto op = as<BangSoftmaxObj>(_op);
     void *const mlu_src = (op->getInputs(0)->getRawDataPtr<void *>());
     void *const mlu_destination = (op->getOutput()->getRawDataPtr<void *>());
 
@@ -31,7 +31,7 @@ void softmax_kernel(const RuntimeObj *obj, const Operator &_op) {
             othersize *= shape[s];
         }
     }
-    if (op->getOpType() == OpType::Softmax)
+    if (op->getOpType() == OpType::BangSoftmax)
         softmaxKernel(context->cnnlHandle(), (float *)mlu_destination,
                       (float *)mlu_src, nDim, axis, othersize, frontsize,
                       dimsize, stride);

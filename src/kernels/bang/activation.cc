@@ -246,7 +246,8 @@ REGISTER_KERNEL(Device::BANG, OpType::PRelu, PReluCnnl, "PRelu_cnnl_BANG");
 REGISTER_KERNEL(Device::BANG, OpType::Sigmoid, SigmoidCnnl,
                 "Sigmoid_cnnl_BANG");
 REGISTER_KERNEL(Device::BANG, OpType::Round, RoundCnnl, "Round_cnnl_BANG");
-
+REGISTER_KERNEL(Device::BANG, OpType::Softmax, SoftmaxCnnl,
+                "Softmax_cnnl_BANG");
 REGISTER_KERNEL(Device::BANG, OpType::HardSigmoid, HardSigmoidCnnl,
                 "HardSigmoid_cnnl_BANG");
 REGISTER_KERNEL(Device::BANG, OpType::HardSwish, HardSwishCnnl,
