@@ -46,7 +46,7 @@ __mlu_device__ void softmaxKernelAxis_m(float* destination, float* source, int f
           __bang_add(tmpSum, tmpSum, src, maxNum);//sum += exp(x - M)
           __memcpy(tmpOldMax, tmpNewMax, maxNum * sizeof(float), NRAM2NRAM);//oldM = newM
         }
-        __bang_active_recip_greater_1(tmpSum, tmpSum, maxNum);//计算1/sum
+        __bang_active_recip_greater_1(tmpSum, tmpSum, maxNum);//compute 1/sum
         //Start exponential transformation and write back to GDRAM
         __bang_mul(src, src, tmpSum, maxNum);//The data stored in the src at the end of the loop above can be utilized
         __memcpy(destination + (dimsize - 1) * stride + frontIdx + j * maxNum, src, maxNum * sizeof(float), NRAM2GDRAM);
@@ -76,7 +76,7 @@ __mlu_device__ void softmaxKernelAxis_m(float* destination, float* source, int f
           __memcpy(tmpOldMax, tmpNewMax, maxNum * sizeof(float), NRAM2NRAM);//oldM = newM
         }
         //-------------------
-        __bang_active_recip_greater_1(tmpSum, tmpSum, maxNum);//计算1/sum
+        __bang_active_recip_greater_1(tmpSum, tmpSum, maxNum);//compute 1/sum
         //Start exponential transformation and write back to GDRAM
         __bang_mul(src, src, tmpSum, maxNum);//The data stored in the src at the end of the loop above can be utilized
         __memcpy(destination + (dimsize - 1) * stride + frontIdx + repeat * maxNum, src, remain * sizeof(float), NRAM2GDRAM);

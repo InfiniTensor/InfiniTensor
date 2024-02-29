@@ -18,20 +18,23 @@ void test_softmaxFp32(const Shape &inputShape, const vector<float> &inputData,
         make_ref<TensorObj>(inputShape, DataType::Float32, cpuRuntime);
 
     // GPU
-    Graph bangGraph = make_ref<GraphObj>(bangRuntime);
-    auto inputGpu = bangGraph->cloneTensor(inputCpu);
-    // cnnlSoftmax
-    auto gpuOp = bangGraph->addOp<SoftmaxObj>(inputGpu, nullptr, axis);
-    bangGraph->dataMalloc();
+    // cnnlSoftmax----------------
+    Graph bangGraphCnnl = make_ref<GraphObj>(bangRuntime);
+    auto inputGpu = bangGraphCnnl->cloneTensor(inputCpu);
+    auto gpuOp = bangGraphCnnl->addOp<SoftmaxObj>(inputGpu, nullptr, axis);
+    bangGraphCnnl->dataMalloc();
     inputGpu->copyin(inputData);
-    bangRuntime->run(bangGraph);
+    bangRuntime->run(bangGraphCnnl);
     auto outputGpu = gpuOp->getOutput();
     auto outputGpu2Cpu = outputGpu->clone(cpuRuntime);
-    // bangSoftmax
-    auto bangGpuOp = bangGraph->addOp<BangSoftmaxObj>(inputGpu, nullptr, axis);
-    bangGraph->dataMalloc();
+    // bangSoftmax--------------
+    Graph bangGraphBang = make_ref<GraphObj>(bangRuntime);
+    inputGpu = bangGraphBang->cloneTensor(inputCpu);
+    auto bangGpuOp =
+        bangGraphBang->addOp<BangSoftmaxObj>(inputGpu, nullptr, axis);
+    bangGraphBang->dataMalloc();
     inputGpu->copyin(inputData);
-    bangRuntime->run(bangGraph);
+    bangRuntime->run(bangGraphBang);
     auto bangOutputGpu = gpuOp->getOutput();
     auto bangOutputGpu2Cpu = bangOutputGpu->clone(cpuRuntime);
     // Check
@@ -56,6 +59,7 @@ float err(float *x, float *y, const Shape &inputShape, int nDim) {
     }
     return error;
 }
+
 void test_compareSoftmaxFp32(
     int axis, const Shape &inputShape, int nDim,
     const std::function<void(void *, size_t, DataType)> &generator) {
@@ -67,33 +71,45 @@ void test_compareSoftmaxFp32(
         make_ref<TensorObj>(inputShape, DataType::Float32, cpuRuntime);
 
     // GPU
-    Graph bangGraph = make_ref<GraphObj>(bangRuntime);
-    auto inputGpu = bangGraph->cloneTensor(inputCpu);
-    // cnnlSoftmax
-    auto gpuOp = bangGraph->addOp<SoftmaxObj>(inputGpu, nullptr, axis);
-    bangGraph->dataMalloc();
+    // cnnlSoftmax---------------------------
+    Graph bangGraphCnnl = make_ref<GraphObj>(bangRuntime);
+    auto inputGpu = bangGraphCnnl->cloneTensor(inputCpu);
+
+    auto gpuOp = bangGraphCnnl->addOp<SoftmaxObj>(inputGpu, nullptr, axis);
+    inputGpu->setInput();
+    bangGraphCnnl->dataMalloc();
     inputGpu->setData(generator);
+    vector<float> inputData = inputGpu->copyout<float>();
+
     double bangst, bangela;
     bangst = get_walltime();
-    bangRuntime->run(bangGraph);
+    bangRuntime->run(bangGraphCnnl);
     bangela = 1000 * (get_walltime() - bangst);
     auto outputGpu = gpuOp->getOutput();
     auto outputGpu2Cpu = outputGpu->clone(cpuRuntime);
-    // bangSoftmax
-    auto bangGpuOp = bangGraph->addOp<BangSoftmaxObj>(inputGpu, nullptr, axis);
-    bangGraph->dataMalloc();
-    inputGpu->setData(generator);
+    // bangSoftmax--------------------------------
+
+    Graph bangGraphBang = make_ref<GraphObj>(bangRuntime);
+    auto bangInputGpu = bangGraphBang->cloneTensor(inputCpu);
+    auto bangGpuOp =
+        bangGraphBang->addOp<BangSoftmaxObj>(bangInputGpu, nullptr, axis);
+    inputGpu->setInput();
+    bangInputGpu->setInput();
+    bangGraphBang->dataMalloc();
+    // bangInputGpu->setData(generator);
+    bangInputGpu->copyin(inputData);
+
     double cnnlst, cnnlela;
     cnnlst = get_walltime();
-    bangRuntime->run(bangGraph);
+    bangRuntime->run(bangGraphBang);
     cnnlela = 1000 * (get_walltime() - cnnlst);
-    auto bangOutputGpu = gpuOp->getOutput();
+    auto bangOutputGpu = bangGpuOp->getOutput();
     auto bangOutputGpu2Cpu = bangOutputGpu->clone(cpuRuntime);
     // Check
-    float error =
-        err(outputGpu2Cpu->getRawDataPtr<float *>(),
-            bangOutputGpu2Cpu->getRawDataPtr<float *>(), inputShape, nDim);
-    printf("axis:%d. bang time:%.2f ms, cnnl time:%.2f ms, err:%.4e\n", axis,
+    float *cnnlOutput = outputGpu2Cpu->getRawDataPtr<float *>();
+    float *bangOutput = bangOutputGpu2Cpu->getRawDataPtr<float *>();
+    float error = err(cnnlOutput, bangOutput, inputShape, nDim);
+    printf("axis:%d. bang time:%.2f ms, cnnl time:%.2f ms, err:%.8e\n", axis,
            bangela, cnnlela, error);
 }
 TEST(BANG_SoftmaxFp32, run) {
@@ -118,8 +134,14 @@ TEST(BANG_SoftmaxFp32, run) {
 TEST(BANG_CompareSoftmaxFp32, run) {
     test_compareSoftmaxFp32(3, Shape{1, 32, 1, 5}, 4, RandomGenerator());
     test_compareSoftmaxFp32(3, Shape{1, 32, 128, 5}, 4, RandomGenerator());
-    test_compareSoftmaxFp32(3, Shape{1, 32, 1, 5}, 4, IncrementalGenerator());
-    test_compareSoftmaxFp32(3, Shape{1, 32, 128, 5}, 4, IncrementalGenerator());
+    test_compareSoftmaxFp32(0, Shape{1024, 128, 64, 32}, 4, RandomGenerator());
+    test_compareSoftmaxFp32(1, Shape{1024, 128, 64, 32}, 4, RandomGenerator());
+    test_compareSoftmaxFp32(2, Shape{1024, 128, 64, 32}, 4, RandomGenerator());
+    test_compareSoftmaxFp32(3, Shape{1024, 128, 64, 32}, 4, RandomGenerator());
+    test_compareSoftmaxFp32(2, Shape{1024, 128, 64, 32}, 4,
+                            IncrementalGenerator());
+    test_compareSoftmaxFp32(3, Shape{1024, 128, 64, 32}, 4,
+                            IncrementalGenerator());
 }
 
 } // namespace infini
