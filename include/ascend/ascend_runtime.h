@@ -33,6 +33,7 @@ class ASCENDRuntimeObj : public RuntimeObj {
         //         //             LOG_PRINT("aclInit failed. ERROR: %d\n",
         //         ret));
         // #endif
+        aclInit(nullptr);
         auto ret = aclrtSetDevice(deviceId);
         CHECK_RET(ret == ACL_SUCCESS,
                   LOG_PRINT("aclrtSetDevice failed. ERROR: %d\n", ret));
@@ -58,7 +59,7 @@ class ASCENDRuntimeObj : public RuntimeObj {
         aclrtDestroyStream(stream);
         aclrtDestroyContext(context);
         aclrtResetDevice(deviceId);
-        // aclFinalize();
+        aclFinalize();
     }
     string toString() const override;
 

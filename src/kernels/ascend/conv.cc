@@ -42,12 +42,12 @@ class ConvAclnn : public ASCENDKernelWithoutConfig {
         auto outD = op->getOutput()->getDims();
         auto outS = op->getOutput()->getStride();
 
-        std::vector<int64_t> inputDim = MycastTo64(inputD);
-        std::vector<int64_t> inputStride = MycastTo64(inputS);
-        std::vector<int64_t> weightDim = MycastTo64(weightD);
-        std::vector<int64_t> weightStride = MycastTo64(weightS);
-        std::vector<int64_t> outputDim = MycastTo64(outD);
-        std::vector<int64_t> outputStride = MycastTo64(outS);
+        std::vector<int64_t> inputDim = castTo64(inputD);
+        std::vector<int64_t> inputStride = castTo64(inputS);
+        std::vector<int64_t> weightDim = castTo64(weightD);
+        std::vector<int64_t> weightStride = castTo64(weightS);
+        std::vector<int64_t> outputDim = castTo64(outD);
+        std::vector<int64_t> outputStride = castTo64(outS);
 
         auto inputTensor =
             aclCreateTensor(inputDim.data(), inputDim.size(), ACL_FLOAT,

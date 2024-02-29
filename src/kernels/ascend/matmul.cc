@@ -23,12 +23,12 @@ class MatmulAclnn : public ASCENDKernelWithoutConfig {
         auto outD = op->getOutput()->getDims();
         auto outS = op->getOutput()->getStride();
 
-        std::vector<int64_t> selfDim = MycastTo64(selfD);
-        std::vector<int64_t> selfStride = MycastTo64(selfS);
-        std::vector<int64_t> matDim = MycastTo64(matD);
-        std::vector<int64_t> matStride = MycastTo64(matS);
-        std::vector<int64_t> outputDim = MycastTo64(outD);
-        std::vector<int64_t> outputStride = MycastTo64(outS);
+        std::vector<int64_t> selfDim = castTo64(selfD);
+        std::vector<int64_t> selfStride = castTo64(selfS);
+        std::vector<int64_t> matDim = castTo64(matD);
+        std::vector<int64_t> matStride = castTo64(matS);
+        std::vector<int64_t> outputDim = castTo64(outD);
+        std::vector<int64_t> outputStride = castTo64(outS);
 
         auto selfTensor = aclCreateTensor(
             selfDim.data(), selfDim.size(), ACL_FLOAT, selfStride.data(), 0,

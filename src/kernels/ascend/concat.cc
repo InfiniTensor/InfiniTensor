@@ -19,8 +19,8 @@ class ConcatAclnn : public ASCENDKernelWithoutConfig {
         for (int i = 0; i < num; ++i) {
             auto inD = op->getInputs(i)->getDims();
             auto inS = op->getInputs(i)->getStride();
-            std::vector<int64_t> inputDim = MycastTo64(inD);
-            std::vector<int64_t> inputStride = MycastTo64(inS);
+            std::vector<int64_t> inputDim = castTo64(inD);
+            std::vector<int64_t> inputStride = castTo64(inS);
 
             void *const inData = (op->getInputs(i)->getRawDataPtr<void *>());
             auto tmpTensor =
@@ -36,8 +36,8 @@ class ConcatAclnn : public ASCENDKernelWithoutConfig {
         void *const outData = (op->getOutput()->getRawDataPtr<void *>());
         auto outD = op->getOutput()->getDims();
         auto outS = op->getOutput()->getStride();
-        std::vector<int64_t> outputDim = MycastTo64(outD);
-        std::vector<int64_t> outputStride = MycastTo64(outS);
+        std::vector<int64_t> outputDim = castTo64(outD);
+        std::vector<int64_t> outputStride = castTo64(outS);
 
         auto outputTensor =
             aclCreateTensor(outputDim.data(), outputDim.size(), ACL_FLOAT,

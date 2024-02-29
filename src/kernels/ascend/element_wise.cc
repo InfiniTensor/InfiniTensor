@@ -9,67 +9,6 @@
 
 namespace infini {
 
-/*
-class PowAclnn : public ASCENDKernelWithoutConfig {
-    void compute(const Operator &_op,
-                 const RuntimeObj *_context) const override {
-        auto op = as<ElementWiseObj>(_op);
-        auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
-
-        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
-        void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
-        void *const cData = (op->getOutput()->getRawDataPtr<void *>());
-
-        auto a = op->getInputs(0)->getDims();
-        auto aS = op->getInputs(0)->getStride();
-        auto b = op->getInputs(1)->getDims();
-        auto bS = op->getInputs(1)->getStride();
-        auto c = op->getInputs(0)->getDims();
-        auto cS = op->getInputs(0)->getStride();
-
-        std::vector<int64_t> aDim = MycastTo64(a);
-        std::vector<int64_t> aStride = MycastTo64(aS);
-        std::vector<int64_t> bDim = MycastTo64(b);
-        std::vector<int64_t> bStride = MycastTo64(bS);
-        std::vector<int64_t> cDim = MycastTo64(c);
-        std::vector<int64_t> cStride = MycastTo64(cS);
-
-        auto inputA = aclCreateTensor(
-            aDim.data(), aDim.size(), ACL_FLOAT, aStride.data(), 0,
-            aclFormat::ACL_FORMAT_ND, aDim.data(), aDim.size(), aData);
-        auto inputB = aclCreateTensor(
-            bDim.data(), bDim.size(), ACL_FLOAT, bStride.data(), 0,
-            aclFormat::ACL_FORMAT_ND, bDim.data(), bDim.size(), bData);
-        auto output = aclCreateTensor(
-            cDim.data(), cDim.size(), ACL_FLOAT, cStride.data(), 0,
-            aclFormat::ACL_FORMAT_ND, cDim.data(), cDim.size(), cData);
-
-        uint64_t workspaceSize = 0;
-        aclOpExecutor *executor;
-
-        auto ret = aclnnPowTensorTensorGetWorkspaceSize(
-            inputA, inputB, output, &workspaceSize, &executor);
-        void *workspaceAddr = nullptr;
-        if (workspaceSize > 0) {
-            workspaceAddr = context->getWorkspace(workspaceSize);
-        }
-        assert(ret == ACL_SUCCESS);
-        ret = aclnnPowTensorTensor(workspaceAddr, workspaceSize, executor,
-                                   context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
-
-        ret = aclrtSynchronizeStream(context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
-
-        ret = aclDestroyTensor(inputA);
-        ret = aclDestroyTensor(inputB);
-        ret = aclDestroyTensor(output);
-
-        return;
-    }
-};
-*/
-
 #define DEFINE_ELEMENT_WISE_Aclnn(prefix)                                      \
     class prefix##Aclnn : public ASCENDKernelWithoutConfig {                   \
         void compute(const Operator &_op,                                      \
@@ -85,15 +24,15 @@ class PowAclnn : public ASCENDKernelWithoutConfig {
             auto aS = op->getInputs(0) -> getStride();                         \
             auto b = op->getInputs(1) -> getDims();                            \
             auto bS = op->getInputs(1) -> getStride();                         \
-            auto c = op->getInputs(0) -> getDims();                            \
-            auto cS = op->getInputs(0) -> getStride();                         \
+            auto c = op->getOutput() -> getDims();                             \
+            auto cS = op->getOutput() -> getStride();                          \
                                                                                \
-            std::vector<int64_t> aDim = MycastTo64(a);                         \
-            std::vector<int64_t> aStride = MycastTo64(aS);                     \
-            std::vector<int64_t> bDim = MycastTo64(b);                         \
-            std::vector<int64_t> bStride = MycastTo64(bS);                     \
-            std::vector<int64_t> cDim = MycastTo64(c);                         \
-            std::vector<int64_t> cStride = MycastTo64(cS);                     \
+            std::vector<int64_t> aDim = castTo64(a);                           \
+            std::vector<int64_t> aStride = castTo64(aS);                       \
+            std::vector<int64_t> bDim = castTo64(b);                           \
+            std::vector<int64_t> bStride = castTo64(bS);                       \
+            std::vector<int64_t> cDim = castTo64(c);                           \
+            std::vector<int64_t> cStride = castTo64(cS);                       \
                                                                                \
             auto inputA = aclCreateTensor(                                     \
                 aDim.data(), aDim.size(), ACL_FLOAT, aStride.data(), 0,        \
@@ -147,15 +86,15 @@ class AddAclnn : public ASCENDKernelWithoutConfig {
         auto aS = op->getInputs(0)->getStride();
         auto b = op->getInputs(1)->getDims();
         auto bS = op->getInputs(1)->getStride();
-        auto c = op->getInputs(0)->getDims();
-        auto cS = op->getInputs(0)->getStride();
+        auto c = op->getOutput()->getDims();
+        auto cS = op->getOutput()->getStride();
 
-        std::vector<int64_t> aDim = MycastTo64(a);
-        std::vector<int64_t> aStride = MycastTo64(aS);
-        std::vector<int64_t> bDim = MycastTo64(b);
-        std::vector<int64_t> bStride = MycastTo64(bS);
-        std::vector<int64_t> cDim = MycastTo64(c);
-        std::vector<int64_t> cStride = MycastTo64(cS);
+        std::vector<int64_t> aDim = castTo64(a);
+        std::vector<int64_t> aStride = castTo64(aS);
+        std::vector<int64_t> bDim = castTo64(b);
+        std::vector<int64_t> bStride = castTo64(bS);
+        std::vector<int64_t> cDim = castTo64(c);
+        std::vector<int64_t> cStride = castTo64(cS);
 
         auto inputA = aclCreateTensor(
             aDim.data(), aDim.size(), ACL_FLOAT, aStride.data(), 0,
@@ -187,11 +126,6 @@ class AddAclnn : public ASCENDKernelWithoutConfig {
         ret = aclrtSynchronizeStream(context->ASCENDHandle());
         assert(ret == ACL_SUCCESS);
 
-        // ret = aclDestroyTensor(inputA);
-        // ret = aclDestroyTensor(inputB);
-        // ret = aclDestroyScalar(alpha);
-        // ret = aclDestroyTensor(output);
-
         return;
     }
 };
@@ -213,15 +147,15 @@ class SubAclnn : public ASCENDKernelWithoutConfig {
         auto aS = op->getInputs(0)->getStride();
         auto b = op->getInputs(1)->getDims();
         auto bS = op->getInputs(1)->getStride();
-        auto c = op->getInputs(0)->getDims();
-        auto cS = op->getInputs(0)->getStride();
+        auto c = op->getOutput()->getDims();
+        auto cS = op->getOutput()->getStride();
 
-        std::vector<int64_t> aDim = MycastTo64(a);
-        std::vector<int64_t> aStride = MycastTo64(aS);
-        std::vector<int64_t> bDim = MycastTo64(b);
-        std::vector<int64_t> bStride = MycastTo64(bS);
-        std::vector<int64_t> cDim = MycastTo64(c);
-        std::vector<int64_t> cStride = MycastTo64(cS);
+        std::vector<int64_t> aDim = castTo64(a);
+        std::vector<int64_t> aStride = castTo64(aS);
+        std::vector<int64_t> bDim = castTo64(b);
+        std::vector<int64_t> bStride = castTo64(bS);
+        std::vector<int64_t> cDim = castTo64(c);
+        std::vector<int64_t> cStride = castTo64(cS);
 
         auto inputA = aclCreateTensor(
             aDim.data(), aDim.size(), ACL_FLOAT, aStride.data(), 0,

@@ -26,12 +26,12 @@ class BatchNormAclnn : public ASCENDKernelWithoutConfig {
         auto outD = op->getOutput()->getDims();
         auto outS = op->getOutput()->getStride();
 
-        std::vector<int64_t> inputDim = MycastTo64(inD);
-        std::vector<int64_t> inputStride = MycastTo64(inS);
-        std::vector<int64_t> paraDim = MycastTo64(paraD);
-        std::vector<int64_t> paraStride = MycastTo64(paraS);
-        std::vector<int64_t> outputDim = MycastTo64(outD);
-        std::vector<int64_t> outputStride = MycastTo64(outS);
+        std::vector<int64_t> inputDim = castTo64(inD);
+        std::vector<int64_t> inputStride = castTo64(inS);
+        std::vector<int64_t> paraDim = castTo64(paraD);
+        std::vector<int64_t> paraStride = castTo64(paraS);
+        std::vector<int64_t> outputDim = castTo64(outD);
+        std::vector<int64_t> outputStride = castTo64(outS);
 
         auto inputTensor =
             aclCreateTensor(inputDim.data(), inputDim.size(), ACL_FLOAT,
