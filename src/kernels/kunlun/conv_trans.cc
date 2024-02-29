@@ -37,11 +37,10 @@ class ConvTransXdnn : public KUNLUNKernelWithoutConfig {
         if (dimOutput.size() != 4)
             IT_TODO_HALT();
 
-        auto ret =
-            baidu::xpu::api::conv2d_transpose<float, float, float, float>(
-                context->KUNLUNHandle(), (float *)aData, (float *)bData,
-                (float *)cData, n, c, h, w, f, ksize, stride, pads, dilation, g,
-                nullptr, nullptr, nullptr, isNCHW);
+        auto ret = xdnn::conv2d_transpose<float, float, float, float>(
+            context->KUNLUNHandle(), (float *)aData, (float *)bData,
+            (float *)cData, n, c, h, w, f, ksize, stride, pads, dilation, g,
+            nullptr, nullptr, nullptr, isNCHW);
         assert(ret == 0);
         return;
     }

@@ -19,6 +19,7 @@ void KUNLUNRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
         auto perfData = perfEngine.getPerfData(perfKey);
         if (!perfData && !tune) {
             kernel->compute(op, this);
+            workspace->resetWorkspace();
             continue;
         }
 
@@ -52,8 +53,20 @@ void KUNLUNRuntimeObj::run(const Graph &graph, bool tune,
     sync();
 }
 
-void KUNLUNRuntimeObj::sync() const { ; }
+void KUNLUNRuntimeObj::sync() const { xpu_wait(); }
 
 string KUNLUNRuntimeObj::toString() const { return "KUNLUN Runtime"; }
+
+void KUNLUNRuntimeObj::initComm(const string &name, int worldSize, int rank) {
+    IT_ASSERT(worldSize > 0);
+    IT_ASSERT(rank >= 0);
+    IT_ASSERT(rank < worldSize);
+    IT_ASSERT(!comm) << "communicator is already initialized.";
+#ifdef INFINI_USE_XCCL
+    comm = std::make_unique<XcclCommunicatorObj>(name, worldSize, rank);
+#else
+    IT_TODO_HALT_MSG("Not compiled with XCCL");
+#endif
+}
 
 } // namespace infini

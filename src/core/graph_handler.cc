@@ -695,6 +695,8 @@ static CastType inferCastType(Tensor input, int to) {
         return CastType::Float162Float;
     } else if (iType == DataType::BFloat16 && oType == DataType::Float32) {
         return CastType::BFloat162Float;
+    } else if (iType == DataType::Float32 && oType == DataType::Float32) {
+        return CastType::Float2Float;
     } else {
         IT_TODO_HALT_MSG("Unsupported CastType : input_type is " +
                          iType.toString() + " output_type is " +
