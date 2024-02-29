@@ -17,6 +17,9 @@ class MatmulObj : public OperatorObj {
     // Auxiliary attributes which are not a part of operator attributes.
     int b, m, n, k;
 
+    // Specifies the data precision for the matrix multiply.
+    std::string computeType = "default";
+
   public:
     /**
      * @brief Matmul operator with batch broadcast and tensor transpose
@@ -38,10 +41,11 @@ class MatmulObj : public OperatorObj {
      * @param transB If matrix B should be transposed when computing.
      * @param bias The bias tensor.
      * @param act The activation function.
+     * @param computeType Specifies the data precision for the matrix multiply.
      */
     MatmulObj(GraphObj *graph, Tensor A, Tensor B, Tensor C,
               bool transA = false, bool transB = false, Tensor bias = nullptr,
-              ActType act = ActType::None);
+              ActType act = ActType::None, std::string computeType = "default");
     OP_CLONE(MatmulObj);
 
     std::string toString() const override;
@@ -60,6 +64,7 @@ class MatmulObj : public OperatorObj {
     int getN() const { return n; }
     int getK() const { return k; }
     auto getBMNK() const { return tuple{b, m, n, k}; }
+    std::string getComputeType() const { return computeType; }
 
   private:
     vector<int> getWorkloadVector() const override;
