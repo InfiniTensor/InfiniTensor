@@ -429,7 +429,9 @@ void init_graph_builder(py::module &m) {
 #endif
 #ifdef USE_KUNLUN
     py::class_<KUNLUNRuntimeObj, std::shared_ptr<KUNLUNRuntimeObj>, RuntimeObj>(
-        m, "KUNLUNRuntime");
+        m, "KUNLUNRuntime")
+        .def(py::init<int>(), py::arg("device") = 0)
+        .def("init_comm", &KUNLUNRuntimeObj::initComm);
 #endif
     py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "Tensor",
                                                       py::buffer_protocol())

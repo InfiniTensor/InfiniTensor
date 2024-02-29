@@ -9,6 +9,7 @@ BACKTRACE ?= ON
 TEST ?= ON
 DIST ?= OFF
 NNET ?= OFF
+DIST ?= OFF
 FORMAT_ORIGIN ?=
 # Docker build options
 DOCKER_NAME ?= infinitensor

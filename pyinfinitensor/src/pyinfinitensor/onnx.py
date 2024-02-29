@@ -1,4 +1,4 @@
-﻿import backend
+import backend
 from onnx import (
     ModelProto,
     TensorProto,
@@ -214,8 +214,8 @@ class OnnxStub:
                 )
             elif node.op_type == "MatMul":
                 tensors[node.output[0]] = self.handler.matmul(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
+                    tensors[node.input[0]], # input
+                    tensors[node.input[1]], # weight
                     tensors.get(node.output[0]),
                     False,
                     False,

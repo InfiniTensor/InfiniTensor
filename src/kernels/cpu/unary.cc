@@ -145,6 +145,9 @@ class NativeUnary : public CpuKernelWithoutConfig {
         case OpType::Atanh:
             _doCompute = aTanhCompute<T>;
             break;
+        case OpType::Acosh:
+            _doCompute = aCoshCompute<T>;
+            break;
         default:
             IT_TODO_HALT();
         }
