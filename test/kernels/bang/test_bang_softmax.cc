@@ -81,10 +81,10 @@ void test_compareSoftmaxFp32(
     inputGpu->setData(generator);
     vector<float> inputData = inputGpu->copyout<float>();
 
-    double bangst, bangela;
-    bangst = get_walltime();
+    double cnnlst, cnnlela;
+    cnnlst = get_walltime();
     bangRuntime->run(bangGraphCnnl);
-    bangela = 1000 * (get_walltime() - bangst);
+    cnnlela = 1000 * (get_walltime() - cnnlst);
     auto outputGpu = gpuOp->getOutput();
     auto outputGpu2Cpu = outputGpu->clone(cpuRuntime);
     // bangSoftmax--------------------------------
@@ -99,10 +99,10 @@ void test_compareSoftmaxFp32(
     // bangInputGpu->setData(generator);
     bangInputGpu->copyin(inputData);
 
-    double cnnlst, cnnlela;
-    cnnlst = get_walltime();
+    double bangst, bangela;
+    bangst = get_walltime();
     bangRuntime->run(bangGraphBang);
-    cnnlela = 1000 * (get_walltime() - cnnlst);
+    bangela = 1000 * (get_walltime() - bangst);
     auto bangOutputGpu = bangGpuOp->getOutput();
     auto bangOutputGpu2Cpu = bangOutputGpu->clone(cpuRuntime);
     // Check
