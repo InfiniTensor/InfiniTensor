@@ -1,21 +1,24 @@
 #include <bang.h>
 #include <bang_device_functions.h>
 #define EPS 1e-7
-const int NRAM_MAX_SIZE = 1024 * 256;//Apply for maximum memory in advance from NRAM
+const int NRAM_MAX_SIZE = 1024 * 512;//the maximum NRAM memory is 1024 * 768
 const int nramNum = NRAM_MAX_SIZE/sizeof(float);
-const int SRC_MAX_SIZE = 1024 * 32;//The subsequent tree summation must ensure that SRC-MAX-SIZE is a power of 2
+__nram__  float nram_buffer[nramNum];
+const int SRC_MAX_SIZE = 1024 * 128;//The subsequent tree summation must ensure that SRC-MAX-SIZE is a power of 2
+//4 * SRC_MAX_SIZE must <= NRAM_MAX_SIZE
 const int maxNum = SRC_MAX_SIZE/sizeof(float); 
 const int warpSize = 32;
 
 __mlu_device__ void softmaxKernelAxis_m(float* destination, float* source, int frontsize, int dimsize, int stride, int strideS) {
   // 0<axis<dim -1 
-  __nram__  float nram_buffer[nramNum];
+  
   if(stride >= maxNum){
+    //-----------------------------------------allocate memory
     float *src = nram_buffer;
     float *tmpSum = src + maxNum;
-    float *tmpNewMax = tmpSum + maxNum;
-    float *tmpOldMax = tmpNewMax + maxNum;
-
+    float *tmpNewMax = src + 2 * maxNum;
+    float *tmpOldMax = src + 3 * maxNum;
+    //-----------------------------------------
     int remain = stride % maxNum;
     int repeat = (stride - remain) / maxNum;
 
@@ -46,7 +49,7 @@ __mlu_device__ void softmaxKernelAxis_m(float* destination, float* source, int f
           __bang_add(tmpSum, tmpSum, src, maxNum);//sum += exp(x - M)
           __memcpy(tmpOldMax, tmpNewMax, maxNum * sizeof(float), NRAM2NRAM);//oldM = newM
         }
-        __bang_active_recip_greater_1(tmpSum, tmpSum, maxNum);//compute 1/sum
+        __bang_active_reciphp(tmpSum, tmpSum, maxNum);//计算1/sum
         //Start exponential transformation and write back to GDRAM
         __bang_mul(src, src, tmpSum, maxNum);//The data stored in the src at the end of the loop above can be utilized
         __memcpy(destination + (dimsize - 1) * stride + frontIdx + j * maxNum, src, maxNum * sizeof(float), NRAM2GDRAM);
@@ -76,7 +79,7 @@ __mlu_device__ void softmaxKernelAxis_m(float* destination, float* source, int f
           __memcpy(tmpOldMax, tmpNewMax, maxNum * sizeof(float), NRAM2NRAM);//oldM = newM
         }
         //-------------------
-        __bang_active_recip_greater_1(tmpSum, tmpSum, maxNum);//compute 1/sum
+        __bang_active_reciphp(tmpSum, tmpSum, maxNum);//计算1/sum
         //Start exponential transformation and write back to GDRAM
         __bang_mul(src, src, tmpSum, maxNum);//The data stored in the src at the end of the loop above can be utilized
         __memcpy(destination + (dimsize - 1) * stride + frontIdx + repeat * maxNum, src, remain * sizeof(float), NRAM2GDRAM);
@@ -93,13 +96,13 @@ __mlu_device__ void softmaxKernelAxis_m(float* destination, float* source, int f
   }
   else if(stride < maxNum && dimsize * stride >= maxNum){
    
-  
+    //-----------------------------------------allocate memory
     float* src = nram_buffer;
     float* tmp = src + maxNum;
     float* tmpOldMax = tmp + strideS;
     float* tmpNewMax = tmpOldMax + strideS;
     float* tmpSum = tmpNewMax + strideS;
-
+    //-----------------------------------------
     int multiple = maxNum / stride;
     int size = multiple * stride;//The maximum amount of data that can be stored in an SRC
     int remain = dimsize % multiple;//If it cannot be divisible, this part of the data needs special processing
@@ -159,7 +162,7 @@ __mlu_device__ void softmaxKernelAxis_m(float* destination, float* source, int f
       
       //At this point, tmpNewMax stores the maximum value of the data corresponding to a fixed frontIdx and bedsize, while tmpSum stores the corresponding value sum
       //__bang_printf("tmpOldMax[0]:%.2f,tmpSum[0]:%.2f\n", tmpNewMax[2],tmpSum[2]);
-      __bang_active_recip_greater_1(tmpSum, tmpSum, strideS);
+      __bang_active_reciphp(tmpSum, tmpSum, strideS);
       //__bang_printf("tmpOldMax[0]:%.2f,tmpSum[0]:%.2f\n", tmpNewMax[2],tmpSum[2]);
       if(remain){
         for(int m = 0; m < remain; m++){
@@ -185,12 +188,13 @@ __mlu_device__ void softmaxKernelAxis_m(float* destination, float* source, int f
     }
   }
   else if(dimsize * stride < maxNum){
-  
+    //-----------------------------------------allocate memory
     float* src = nram_buffer;
     float* tmp = src + maxNum;
     float* tmpOldMax = tmp + strideS;
     float* tmpNewMax = tmpOldMax + strideS;
     float* tmpSum = tmpNewMax + strideS;
+    //-----------------------------------------
     int behindsize = dimsize * stride;
     int multiple = maxNum / behindsize;//Represents the amount that a maxNum can share in frontsize
     
@@ -227,7 +231,7 @@ __mlu_device__ void softmaxKernelAxis_m(float* destination, float* source, int f
           __bang_add(tmpSum, tmpSum, tmp, strideS);//sum += exp(x - M)
           __memcpy(tmpOldMax, tmpNewMax, stride * sizeof(float), NRAM2NRAM);//oldM = newM
         }
-        __bang_active_recip_greater_1(tmpSum, tmpSum, strideS);
+        __bang_active_reciphp(tmpSum, tmpSum, strideS);
         __bang_mul(tmp, tmp, tmpSum, strideS);//The data stored in tmp at the end of the loop above can be utilized
         //__memcpy(destination + tid + m * behindsize + (dimsize - 1) * stride, tmp, stride * sizeof(float), NRAM2GDRAM);
         __memcpy(src + m * behindsize + (dimsize - 1) * stride, tmp, stride * sizeof(float), NRAM2NRAM);
@@ -264,7 +268,7 @@ __mlu_device__ void softmaxKernelAxis_m(float* destination, float* source, int f
           __memcpy(tmpOldMax, tmpNewMax, stride * sizeof(float), NRAM2NRAM);//oldM = newM
         }
         //__bang_printf("max:%.2f,%.2f, sum:%.2f,sum:%.2f\n", tmpNewMax[0], tmpNewMax[1], tmpSum[0], tmpSum[0]);
-        __bang_active_recip_greater_1(tmpSum, tmpSum, strideS);
+        __bang_active_reciphp(tmpSum, tmpSum, strideS);
         __bang_mul(tmp, tmp, tmpSum, strideS);//The data stored in tmp at the end of the loop above can be utilized
         //__memcpy(destination + tid + m * behindsize + (dimsize - 1) * stride, tmp, stride * sizeof(float), NRAM2GDRAM);
         __memcpy(src + m * behindsize + (dimsize - 1) * stride, tmp, stride * sizeof(float), NRAM2NRAM);
@@ -300,17 +304,18 @@ __mlu_device__ void softmaxKernelAxis_e(float* destination, float* source, int o
   source = source + indStart * dimsize;
   destination = destination + indStart * dimsize;
   
-  __nram__  float nram_buffer[nramNum];
-  
+  //-----------------------------------------allocate memory
   float* src = nram_buffer;
   float* tmp = src + maxNum;
   float* destSum = tmp + dimS;
   int remainDim = dimsize % dimS;//Dimsize may not be a power of 2
   int repeatDim = (dimsize - remainDim) / dimS;
+  
   __nram__ float destSumFinal[warpSize];//Reduce destSum to destFinal [0]
   __nram__ float srcMax[2];
   __nram__ float destOldMax;
   __nram__ float destNewMax;
+  //-----------------------------------------
   //printf("taskId:%d, taskRepeat:%d, step:%d, repeatDim:%d, indstart:%d, %d\n", taskId, taskRepeat, step, repeatDim, indStart, indStart * dimsize);
   int tid;
   for(int s = 0; s < taskRepeat; s++){
@@ -447,11 +452,12 @@ __mlu_device__ void softmaxKernelAxis_e(float* destination, float* source, int o
   } 
 }
 __mlu_device__ void softmaxKernelAxis_s(float* destination, float* source, int othersize, int dimsize, int stride) {// axis = 0
-  __nram__ float src[maxNum];//Transfer maxNum data to NRAM every time
-  __nram__ float tmpSum[maxNum];
-  __nram__ float tmpNewMax[maxNum];
-  __nram__ float tmpOldMax[maxNum];
-
+  //-----------------------------------------allocate memory
+  float* src = nram_buffer;
+  float* tmpSum = src + maxNum;
+  float* tmpNewMax = src + 2 * maxNum;
+  float* tmpOldMax = src + 3 * maxNum;
+  //-----------------------------------------
   int remain = othersize % taskDim;
   int stepEasy = (othersize - remain)/taskDim;
   int stepHard = stepEasy + 1;
@@ -477,7 +483,7 @@ __mlu_device__ void softmaxKernelAxis_s(float* destination, float* source, int o
       __bang_add(tmpSum, tmpSum, src, maxNum);//sum += exp(x - M)
       __memcpy(tmpOldMax, tmpNewMax, maxNum * sizeof(float), NRAM2NRAM);//oldM = newM
     } 
-    __bang_active_recip_greater_1(tmpSum, tmpSum, maxNum);//compute 1/sum
+    __bang_active_reciphp(tmpSum, tmpSum, maxNum);//compute 1/sum
     //Start exponential transformation and write back to GDRAM
     __bang_mul(src, src, tmpSum, maxNum);//The data stored in the src at the end of the loop above can be utilized
     __memcpy(destination + (dimsize - 1) * stride + indStart + j * maxNum, src, maxNum * sizeof(float), NRAM2GDRAM);
@@ -509,7 +515,7 @@ __mlu_device__ void softmaxKernelAxis_s(float* destination, float* source, int o
       __memcpy(tmpOldMax, tmpNewMax, maxNum * sizeof(float), NRAM2NRAM);//oldM = newM
     } 
     
-    __bang_active_recip_greater_1(tmpSum, tmpSum, maxNum);//compute 1/sum
+    __bang_active_reciphp(tmpSum, tmpSum, maxNum);//compute 1/sum
     //Start exponential transformation and write back to GDRAM
     __bang_mul(src, src, tmpSum, maxNum);//The data stored in the src at the end of the loop above can be utilized
     __memcpy(destination + (dimsize - 1) * stride + indStart + repeat * maxNum, src, remainNram * sizeof(float), NRAM2GDRAM);
@@ -555,5 +561,4 @@ __mlu_global__ void softmaxUnion1(float *mlu_destination, float *mlu_src, int nD
     softmaxKernelAxis_m(mlu_destination, mlu_src, frontsize, dimsize, stride, strideS);
   }
 }
-
 
