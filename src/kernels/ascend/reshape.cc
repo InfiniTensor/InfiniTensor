@@ -52,4 +52,8 @@ REGISTER_KERNEL(Device::ASCEND, OpType::Unsqueeze, CopyAclnn,
                 "unsqueeze_ASCEND_float");
 REGISTER_KERNEL(Device::ASCEND, OpType::Squeeze, CopyAclnn,
                 "squeeze_ASCEND_float");
+REGISTER_KERNEL(Device::ASCEND, OpType::Flatten, CopyAclnn,
+                "Flatten_ASCEND_float");
+REGISTER_KERNEL(Device::ASCEND, OpType::Identity, CopyAclnn,
+                "Identity_ASCEND_float");
 }; // namespace infini

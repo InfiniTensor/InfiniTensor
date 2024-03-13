@@ -40,6 +40,35 @@ void testReshape(const std::function<void(void *, size_t, DataType)> &generator,
     EXPECT_TRUE(inputCpu->equalData(outputNpu2Cpu, 1e-3));
 }
 
+void testFlatten(const std::function<void(void *, size_t, DataType)> &generator,
+                 const Shape &shape, int axis) {
+    // Runtime
+    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
+    auto npuRuntime = make_ref<ASCENDRuntimeObj>();
+
+    // Build input data on CPU
+    Tensor inputCpu = make_ref<TensorObj>(shape, DataType::Float32, cpuRuntime);
+    inputCpu->dataMalloc();
+    inputCpu->setData(generator);
+
+    // NPU
+    Graph npuGraph = make_ref<GraphObj>(npuRuntime);
+    auto inputNpu = npuGraph->cloneTensor(inputCpu);
+    auto npuOp = npuGraph->addOp<FlattenObj>(inputNpu, nullptr, axis);
+    npuGraph->dataMalloc();
+    inputNpu->setData(generator);
+    npuRuntime->run(npuGraph);
+    auto outputNpu = npuOp->getOutput();
+    auto outputNpu2Cpu = outputNpu->clone(cpuRuntime);
+
+    // Check
+    inputCpu->print();
+    inputCpu->printData();
+    outputNpu2Cpu->print();
+    outputNpu2Cpu->printData();
+    EXPECT_TRUE(inputCpu->equalData(outputNpu2Cpu, 1e-3));
+}
+
 TEST(ascend_Unary, run) {
     aclInit(nullptr);
     testReshape<ReshapeObj>(IncrementalGenerator(), Shape{1, 2, 2, 3},
@@ -48,6 +77,7 @@ TEST(ascend_Unary, run) {
                             Shape{0});
     testReshape<UnsqueezeObj>(IncrementalGenerator(), Shape{1, 2, 2, 3},
                               Shape{4});
+    testFlatten(IncrementalGenerator(), Shape{1, 2, 2, 3}, 2);
     aclFinalize();
 }
 
