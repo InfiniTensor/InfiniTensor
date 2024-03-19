@@ -25,15 +25,16 @@ class AttentionKVCacheCompute {
         AttentionKVCacheMetadata metadata;
         initAttentionKVCacheMetadata(metadata, input_v_cache);
 
-        attention_kvcache_kernel(input_k_cache->getRawDataPtr<float *>(),
-                                 input_v_cache->getRawDataPtr<float *>(),
-                                 input_q->getRawDataPtr<float *>(),
-                                 input_k->getRawDataPtr<float *>(),
-                                 input_v->getRawDataPtr<float *>(),
-                                 position_id->getRawDataPtr<int *>(),
-                                 output_matmul->getRawDataPtr<float *>(),
-                                 metadata, (float *)p_workspace,
-                                 (float *)(p_workspace + (1ll << 30)));
+        attention_kvcache_kernel(
+            input_k_cache->getRawDataPtr<float *>(),
+            input_v_cache->getRawDataPtr<float *>(),
+            input_q->getRawDataPtr<float *>(),
+            input_k->getRawDataPtr<float *>(),
+            input_v->getRawDataPtr<float *>(),
+            position_id->getRawDataPtr<int *>(),
+            output_matmul->getRawDataPtr<float *>(), metadata,
+            (float *)p_workspace,
+            (float *)(((char *)p_workspace) + (1ll << 30)));
     }
 };
 

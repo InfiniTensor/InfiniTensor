@@ -112,7 +112,7 @@ inline const char *curandGetErrorString(curandStatus_t error) {
 
 using CudaPtr = void *;
 
-class CUDAStream {
+class DECLSPEC CUDAStream {
   public:
     CUDAStream(const CUDAStream &) = delete;
     CUDAStream(CUDAStream &&) = delete;

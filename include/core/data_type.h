@@ -1,21 +1,8 @@
 #pragma once
 #include "core/common.h"
 
-#ifdef _MSC_VER
-#ifdef DLL_EXPORT
-#define DECLSPEC __declspec(dllexport)
-#else
-#define DECLSPEC __declspec(dllimport)
-#endif
-#endif
-
 namespace infini {
-
-#ifdef _MSC_VER
 class DECLSPEC DataType {
-#else
-class DataType {
-#endif
 
   public:
     // <https://onnx.ai/onnx/intro/concepts.html#element-type>

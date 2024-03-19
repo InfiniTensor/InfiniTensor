@@ -8,17 +8,12 @@
 
 ## 环境准备
 
-1. 确认 Visual Stuio 2019 版本为 16.10 及以上的稳定版本，安装时选择“使用 C++ 的桌面开发”。
+1. 确认安装 Visual Stuio 2022，安装时选择“使用 C++ 的桌面开发”。
 
    - [Visual Studio 下载](https://visualstudio.microsoft.com/zh-hans/downloads/)
 
-2. 确认 CMake 版本为 3.17 及以上的稳定版本， 如若您的机器 CMake 版本不满足此条件，请自行编译安装，下述方式二选一：
 
-   - [CMake 官方文档](https://cmake.org/install/)
-
-   - [网友安装分享](https://zhuanlan.zhihu.com/p/656121868)
-
-3. 第三方加速卡软件资源安装，目前本项目已经适配了如下的第三方加速卡：
+2. 第三方加速卡软件资源安装，目前本项目已经适配了如下的第三方加速卡：
 
    - 如您的第三方加速卡为英伟达 GPU，请参考英伟达官方文档进行：
 
@@ -36,19 +31,19 @@
      我们强烈建议您规范安装，统一到一个目录下，以免不必要的麻烦。
 
 
-4. 确认您安装了 Python（64位），并将 python 的安装目录添加到系统环境变量 `PATH` 中。
+3. 确认您安装了 Python（64位），并将 python 的安装目录添加到系统环境变量 `PATH` 中。
 
    - [Python 官方文档](https://www.python.org/downloads/)
 
 
-5. 更新pip并切换到清华源。
+4. 更新pip并切换到清华源。
 
    ```bash
    python -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --upgrade pip
    pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
    ```
 
-6. 安装一些不必要的项目（可选）
+5. 安装一些不必要的项目（可选）
 
    - 如您需要运行本项目下的 example 代码，您需要安装一些辅助项目。请注意这些项目不是必要的，若您不需要运行样例代码，这些项目无需安装。
 
@@ -65,12 +60,12 @@
 ## 编译本项目
 
 
-1. 运行 VS 工具集环境，在“开始”菜单中，打开 `Visual Studio 2019` -> `x64 Native Tools Command Prompt for VS 2019`。
+1. 运行 VS 工具集环境，在“开始”菜单中，打开 `Visual Studio 2022` -> `x64 Native Tools Command Prompt for VS 2022`。
 
-   如未找到上述快捷方式，可自行打开命令提示符（CMD），运行工具集脚本。例如，Visual Stuio 安装在 `C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional`，可执行以下命令：
+   如未找到上述快捷方式，可自行打开命令提示符（CMD），运行工具集脚本。例如，Visual Stuio 安装在 `C:\Program Files (x86)\Microsoft Visual Studio\2022\Professional`，可执行以下命令：
 
    ```bash
-   C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Auxiliary\Build\vcvars64.bat
+   C:\Program Files (x86)\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvars64.bat
    ```
 
    工具集相关内容可参考文档[通过命令行使用 Microsoft C++ 工具集](https://learn.microsoft.com/zh-cn/cpp/build/building-on-the-command-line?view=msvc-170)。

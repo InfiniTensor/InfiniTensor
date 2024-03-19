@@ -53,6 +53,16 @@ using HashType = uint64_t; // compatible with std::hash
 #define IT_ASSERT_TODO(condition) _IT_ASSERT_2(condition, "Unimplemented")
 #define IT_TODO_SKIP() puts("Unimplemented " __FILE__ ":" __LINE__)
 
+#ifdef _MSC_VER
+#ifdef DLL_EXPORT
+#define DECLSPEC __declspec(dllexport)
+#else
+#define DECLSPEC __declspec(dllimport)
+#endif
+#else
+#define DECLSPEC
+#endif
+
 // Other utilities
 
 // std::to_underlying is avaiable since C++23
