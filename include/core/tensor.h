@@ -2,10 +2,10 @@
 #include "core/tensor_base.h"
 #include "core/tensor_type.h"
 #include "utils/data_convert.h"
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <fstream>
-#include <algorithm>
 
 #if USE_CUDA
 #include "cuda/cuda_runtime.h"
