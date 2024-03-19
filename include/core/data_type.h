@@ -1,9 +1,15 @@
 #pragma once
 #include "core/common.h"
 
+#ifdef DLL_EXPORT
+#define DECLSPEC __declspec(dllexport)
+#else
+#define DECLSPEC __declspec(dllimport)
+#endif
+
 namespace infini {
 
-class DataType {
+class DECLSPEC DataType {
   public:
     // <https://onnx.ai/onnx/intro/concepts.html#element-type>
     static const DataType Undefine;

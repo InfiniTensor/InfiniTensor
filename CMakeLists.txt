@@ -123,6 +123,8 @@ if(BUILD_TEST)
 endif()
 
 if(WIN32)
+  set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+  set(BUILD_SHARED_LIBS ON)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:preprocessor /permissive- /bigobj")
 
   ## ignore warnning
@@ -207,11 +209,9 @@ if(USE_INTELCPU)
 endif()
 
 # Libraries
-if(WIN32)
-  add_library(InfiniTensor STATIC ${SRC})
-else()
-  add_library(InfiniTensor SHARED ${SRC})
-endif()
+add_library(InfiniTensor SHARED ${SRC})
+include(GenerateExportHeader)
+generate_export_header(InfiniTensor)
 
 if(USE_PROTOBUF)
   target_link_libraries(InfiniTensor tensor_proto)
