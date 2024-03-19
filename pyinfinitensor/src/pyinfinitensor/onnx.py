@@ -529,16 +529,12 @@ class OnnxStub:
                 tensors[node.output[0]] = self.handler.clip(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
-                    (
-                        next(_parse_data(data[node.input[1]]).__iter__(), None)
-                        if len(node.input) > 1
-                        else None
-                    ),
-                    (
-                        next(_parse_data(data[node.input[2]]).__iter__(), None)
-                        if len(node.input) > 2
-                        else None
-                    ),
+                    next(_parse_data(data[node.input[1]]).__iter__(), None)
+                    if len(node.input) > 1
+                    else None,
+                    next(_parse_data(data[node.input[2]]).__iter__(), None)
+                    if len(node.input) > 2
+                    else None,
                 )
             elif node.op_type == "Transpose":
                 perm = next(
@@ -632,10 +628,18 @@ class OnnxStub:
                     coordinate_transformation_mode,
                 )
             elif node.op_type == "Squeeze":
-                axes = _parse_data(data[node.input[1]]) if len(node.input) > 1 else None
+                axes = (
+                    _parse_data(data[node.input[1]])
+                    if len(node.input) > 1
+                    else None
+                )
                 if axes is None:
                     axes = next(
-                        (attr.ints for attr in node.attribute if attr.name == "axes"),
+                        (
+                            attr.ints
+                            for attr in node.attribute
+                            if attr.name == "axes"
+                        ),
                         [],
                     )
                 tensors[node.output[0]] = self.handler.squeeze(
@@ -644,10 +648,18 @@ class OnnxStub:
                     axes,
                 )
             elif node.op_type == "Unsqueeze":
-                axes = _parse_data(data[node.input[1]]) if len(node.input) > 1 else None
+                axes = (
+                    _parse_data(data[node.input[1]])
+                    if len(node.input) > 1
+                    else None
+                )
                 if axes is None:
                     axes = next(
-                        (attr.ints for attr in node.attribute if attr.name == "axes")
+                        (
+                            attr.ints
+                            for attr in node.attribute
+                            if attr.name == "axes"
+                        )
                     )
                 tensors[node.output[0]] = self.handler.unsqueeze(
                     tensors[node.input[0]],
@@ -671,18 +683,24 @@ class OnnxStub:
                     tensors.get(node.output[0]),
                 )
             elif node.op_type == "RoPE":
-                tensors[node.output[0]] = self.handler.RoPE(
+                tensors[node.output[0]]= self.handler.RoPE(
                     tensors[node.input[0]],
                     tensors[node.input[1]],
                     tensors.get(node.output[0]),
                 )
             elif node.op_type == "Split":
                 split = (
-                    _parse_data(data[node.input[1]]) if (len(node.input) > 1) else None
+                    _parse_data(data[node.input[1]])
+                    if (len(node.input) > 1)
+                    else None
                 )
                 if split is None:
                     split = next(
-                        (attr.ints for attr in node.attribute if attr.name == "split"),
+                        (
+                            attr.ints
+                            for attr in node.attribute
+                            if attr.name == "split"
+                        ),
                         None,
                     )
                 for name, tensor in zip(
@@ -691,7 +709,11 @@ class OnnxStub:
                         tensors[node.input[0]],
                         None,
                         next(
-                            (attr.i for attr in node.attribute if attr.name == "axis"),
+                            (
+                                attr.i
+                                for attr in node.attribute
+                                if attr.name == "axis"
+                            ),
                             0,
                         ),
                         split if split is not None else len(node.output),
@@ -744,16 +766,12 @@ class OnnxStub:
                     tensors.get(node.output[0]),
                     clamp(_parse_data(data[node.input[1]])),
                     clamp(_parse_data(data[node.input[2]])),
-                    (
-                        clamp(_parse_data(data[node.input[3]]))
-                        if len(node.input) > 3
-                        else None
-                    ),
-                    (
-                        clamp(_parse_data(data[node.input[4]]))
-                        if len(node.input) > 4
-                        else None
-                    ),
+                    clamp(_parse_data(data[node.input[3]]))
+                    if len(node.input) > 3
+                    else None,
+                    clamp(_parse_data(data[node.input[4]]))
+                    if len(node.input) > 4
+                    else None,
                 )
             elif node.op_type == "Pad":
                 tensors[node.output[0]] = self.handler.pad(
@@ -769,16 +787,12 @@ class OnnxStub:
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
                         tensors.get(node.output[1]) if len(node.output) > 1 else None,
-                        (
-                            _parse_data(data[node.input[1]])[0]
-                            if len(node.input) > 1
-                            else 0.5
-                        ),
-                        (
-                            _parse_data(data[node.input[2]])[0]
-                            if len(node.input) > 2
-                            else False
-                        ),
+                        _parse_data(data[node.input[1]])[0]
+                        if len(node.input) > 1
+                        else 0.5,
+                        _parse_data(data[node.input[2]])[0]
+                        if len(node.input) > 2
+                        else False,
                     ),
                 ):
                     tensors[name] = tensor
@@ -946,7 +960,8 @@ class OnnxStub:
                     node, {"alpha": 0.0001, "beta": 0.75, "bias": 1.0, "size": 1}
                 )
                 (alpha, beta, bias, size) = (
-                    attributes[name] for name in ["alpha", "beta", "bias", "size"]
+                    attributes[name]
+                    for name in ["alpha", "beta", "bias", "size"]
                 )
                 tensors[node.output[0]] = self.handler.lrn(
                     tensors[node.input[0]],
