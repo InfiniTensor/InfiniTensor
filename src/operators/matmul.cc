@@ -25,7 +25,7 @@ optional<vector<Shape>> MatmulObj::inferShape(const TensorVec &inputs) {
     auto A = inputs[0], B = inputs[1];
     auto shapeA = A->getDims();
     auto shapeB = B->getDims();
-    int rankA = A->getRank();
+    int rankA = A->getRank(); // Rank is the Shape of TensorDims
     int rankB = B->getRank();
     Shape shapeA1(shapeA.begin(), shapeA.begin() + (rankA - 2));
     Shape shapeB1(shapeB.begin(), shapeB.begin() + (rankB - 2));

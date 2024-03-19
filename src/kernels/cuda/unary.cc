@@ -2,6 +2,7 @@
 #include "cuda/cuda_kernel_wihtout_config.h"
 #include "cuda/cuda_runtime.h"
 #include "cuda/cuda_unary.h"
+#include "cuda/cuda_utility.h"
 
 namespace infini {
 
@@ -9,6 +10,46 @@ class UnaryCuda : public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         unary_kernel(_op);
+    }
+};
+
+class CastCuda : public CudaKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<CastObj>(_op);
+
+        size_t num = op->getOutput()->size();
+        void *const inputData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const outputData = (op->getOutput()->getRawDataPtr<void *>());
+
+        if (op->getType() == CastType::Float162Float) {
+            IT_ASSERT(op->getDType() == DataType::Float16 &&
+                      op->getOutDType() == DataType::Float32);
+            cast_kernel<half, float>((half *)inputData, (float *)outputData,
+                                     num);
+        } else if (op->getType() == CastType::Float2Float16) {
+            IT_ASSERT(op->getDType() == DataType::Float32 &&
+                      op->getOutDType() == DataType::Float16);
+            cast_kernel<float, half>((float *)inputData, (half *)outputData,
+                                     num);
+        } else if (op->getType() == CastType::Float2Int32) {
+            IT_ASSERT(op->getDType() == DataType::Float32 &&
+                      op->getOutDType() == DataType::Int32);
+            cast_kernel<float, int32_t>((float *)inputData,
+                                        (int32_t *)outputData, num);
+        } else if (op->getType() == CastType::Float2Int8) {
+            IT_ASSERT(op->getDType() == DataType::Float32 &&
+                      op->getOutDType() == DataType::Int8);
+            cast_kernel<float, int8_t>((float *)inputData, (int8_t *)outputData,
+                                       num);
+        } else if (op->getType() == CastType::Int82Float) {
+            IT_ASSERT(op->getDType() == DataType::Int8 &&
+                      op->getOutDType() == DataType::Float32);
+            cast_kernel<int8_t, float>((int8_t *)inputData, (float *)outputData,
+                                       num);
+        } else {
+            IT_ASSERT(false);
+        }
     }
 };
 
@@ -33,17 +74,17 @@ class ActivationCudnn : public CudaKernelWithoutConfig {
         while (stride.size() < 4)
             stride.push_back(1);
 
+        auto cudnnDataType = cudnnDataTypeConvert(op->getDType());
+
         // get inputs
         checkCudnnError(cudnnCreateTensorDescriptor(&inputDesc));
-        checkCudnnError(cudnnSetTensorNdDescriptor(inputDesc, CUDNN_DATA_FLOAT,
-                                                   dim.size(), dim.data(),
-                                                   stride.data()));
+        checkCudnnError(cudnnSetTensorNdDescriptor(
+            inputDesc, cudnnDataType, dim.size(), dim.data(), stride.data()));
 
         // get outputs
         checkCudnnError(cudnnCreateTensorDescriptor(&outputDesc));
-        checkCudnnError(cudnnSetTensorNdDescriptor(outputDesc, CUDNN_DATA_FLOAT,
-                                                   dim.size(), dim.data(),
-                                                   stride.data()));
+        checkCudnnError(cudnnSetTensorNdDescriptor(
+            outputDesc, cudnnDataType, dim.size(), dim.data(), stride.data()));
 
         // get op descriptor
         cudnnActivationDescriptor_t activationDesc;
@@ -86,16 +127,18 @@ class SoftmaxCudnn : public CudaKernelWithoutConfig {
         memcpy(dim_array + (4 - dim.size()), dim.data(),
                dim.size() * sizeof(int));
 
+        auto cudnnDataType = cudnnDataTypeConvert(op->getDType());
+
         // get inputs
         checkCudnnError(cudnnCreateTensorDescriptor(&inputDesc));
         checkCudnnError(cudnnSetTensor4dDescriptor(
-            inputDesc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, dim_array[0],
+            inputDesc, CUDNN_TENSOR_NCHW, cudnnDataType, dim_array[0],
             dim_array[1], dim_array[2], dim_array[3]));
 
         // get outputs
         checkCudnnError(cudnnCreateTensorDescriptor(&outputDesc));
         checkCudnnError(cudnnSetTensor4dDescriptor(
-            outputDesc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, dim_array[0],
+            outputDesc, CUDNN_TENSOR_NCHW, cudnnDataType, dim_array[0],
             dim_array[1], dim_array[2], dim_array[3]));
 
         auto [alpha, beta] = getAlphBeta();
@@ -130,35 +173,28 @@ class TanhCudnn : public ActivationCudnn {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Relu, DataType::Float32, ReluCudnn,
-                "Relu_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::Sigmoid, DataType::Float32, SigmoidCudnn,
-                "Sigmoid_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::HardSigmoid, DataType::Float32, UnaryCuda,
-                "Hard_Sigmoid_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::HardSwish, DataType::Float32, UnaryCuda,
-                "Hard_Swish_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::Tanh, DataType::Float32, TanhCudnn,
-                "Tanh_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::Abs, DataType::Float32, UnaryCuda,
-                "Abs_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::Sqrt, DataType::Float32, UnaryCuda,
-                "Sqrt_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::Gelu, DataType::Float32, UnaryCuda,
-                "Gelu_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::Neg, DataType::Float32, UnaryCuda,
-                "Neg_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::Erf, DataType::Float32, UnaryCuda,
-                "Erf_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Relu, ReluCudnn, "Relu_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Sigmoid, SigmoidCudnn, "Sigmoid_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::HardSigmoid, UnaryCuda,
+                "Hard_Sigmoid_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::HardSwish, UnaryCuda, "Hard_Swish_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Tanh, TanhCudnn, "Tanh_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Abs, UnaryCuda, "Abs_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Sqrt, UnaryCuda, "Sqrt_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Gelu, UnaryCuda, "Gelu_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Silu, UnaryCuda, "Silu_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Neg, UnaryCuda, "Neg_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Erf, UnaryCuda, "Erf_CUDA");
 
-// REGISTER_KERNEL(Device::CUDA, OpType::Softmax, DataType::Float32, UnaryCuda,
-//                 "Softmax_CUDA_Float32");
-// REGISTER_KERNEL(Device::CUDA, OpType::Relu, DataType::Float32, UnaryCuda,
-//                 "Relu_CUDA_Float32");
-// REGISTER_KERNEL(Device::CUDA, OpType::Sigmoid, DataType::Float32, UnaryCuda,
-//                 "Sigmoid_CUDA_Float32");
-// REGISTER_KERNEL(Device::CUDA, OpType::Tanh, DataType::Float32, UnaryCuda,
-//                 "Tanh_CUDA_Float32");
-// REGISTER_KERNEL(Device::CUDA, OpType::Abs, DataType::Float32, UnaryCuda,
-//                 "Abs_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Cast, CastCuda, "Cast_CUDA");
+
+// REGISTER_KERNEL(Device::CUDA, OpType::Softmax, UnaryCuda, "Softmax_CUDA");
+// REGISTER_KERNEL(Device::CUDA, OpType::Relu, UnaryCuda,
+//                 "Relu_CUDA");
+// REGISTER_KERNEL(Device::CUDA, OpType::Sigmoid, UnaryCuda,
+//                 "Sigmoid_CUDA");
+// REGISTER_KERNEL(Device::CUDA, OpType::Tanh, UnaryCuda,
+//                 "Tanh_CUDA");
+// REGISTER_KERNEL(Device::CUDA, OpType::Abs, UnaryCuda,
+//                 "Abs_CUDA");
 }; // namespace infini

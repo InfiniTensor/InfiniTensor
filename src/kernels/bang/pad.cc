@@ -36,14 +36,14 @@ class PadCnnl : public BangKernelWithoutConfig {
         float paddingValue = 0.0;
         // input
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, dimIn.size(),
-                                               dimIn.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            aDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            dimIn.size(), dimIn.data()));
         // output
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, dimOut.size(),
-                                               dimOut.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            cDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            dimOut.size(), dimOut.data()));
 
         cnnlStatus_t stat = cnnlPad(context->cnnlHandle(), aDesc, aData,
                                     paddings, &paddingValue, cDesc, cData);
@@ -57,7 +57,6 @@ class PadCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Pad, DataType::Float32, PadCnnl,
-                "Pad_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Pad, PadCnnl, "Pad_cnnl_BANG");
 
 }; // namespace infini

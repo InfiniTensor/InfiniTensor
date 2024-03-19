@@ -25,8 +25,8 @@ class BroadcastNCCL : public CudaKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Broadcast, DataType::Float32,
-                BroadcastNCCL, "Broadcast_NCCL_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Broadcast, BroadcastNCCL,
+                "Broadcast_NCCL_CUDA");
 } // namespace infini
 
 #endif

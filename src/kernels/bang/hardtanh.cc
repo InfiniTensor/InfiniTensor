@@ -19,7 +19,8 @@ class HardtanhCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, dim.size(), dim.data()));
+            aDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
+            dim.size(), dim.data()));
 
         cnnlStatus_t stat = cnnlHardtanh(context->cnnlHandle(), aDesc, aData,
                                          max, min, aDesc, cData);
@@ -30,7 +31,7 @@ class HardtanhCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Hardtanh, DataType::Float32, HardtanhCnnl,
-                "Hardtanh_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Hardtanh, HardtanhCnnl,
+                "Hardtanh_cnnl_BANG");
 
 }; // namespace infini

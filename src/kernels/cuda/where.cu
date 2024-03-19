@@ -17,13 +17,13 @@ __device__ int inferIndex(infini::SmallArray inputShape,
     }
     return inputIdx;
 }
-__global__ void _whereKernel(const float *inputX, const float *inputY,
-                             const uint8_t *condition, float *output, int nDims,
-                             int outputsize, infini::SmallArray inputXShape,
-                             infini::SmallArray inputYShape,
-                             infini::SmallArray conditionShape,
-                             infini::SmallArray outputShape, int xSize,
-                             int ySize, int cSize) {
+template <typename T>
+__global__ void
+_whereKernel(const T *inputX, const T *inputY, const uint8_t *condition,
+             T *output, int nDims, int outputsize,
+             infini::SmallArray inputXShape, infini::SmallArray inputYShape,
+             infini::SmallArray conditionShape, infini::SmallArray outputShape,
+             int xSize, int ySize, int cSize) {
 
     int outputIdx = blockIdx.x * blockDim.x + threadIdx.x;
     if (outputIdx < outputsize) {
@@ -61,7 +61,33 @@ void whereKernel(const float *inputX, const float *inputY,
         blocksize = 32;
     }
     int gridsize = (outputsize + blocksize - 1) / blocksize;
-    _whereKernel<<<gridsize, blocksize>>>(
+    _whereKernel<float>
+        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+        inputX, inputY, condition, output, nDims, outputsize, inputXShape,
+        inputYShape, conditionShape, outputShape, xSize, ySize, cSize);
+}
+void whereKernel(const half *inputX, const half *inputY,
+                 const uint8_t *condition, half *output, int nDims,
+                 int outputsize, SmallArray inputXShape, SmallArray inputYShape,
+                 SmallArray conditionShape, SmallArray outputShape, int xSize,
+                 int ySize, int cSize) {
+    int blocksize;
+    if (outputsize > 511) {
+        blocksize = 1024;
+    } else if (outputsize > 255) {
+        blocksize = 512;
+    } else if (outputsize > 127) {
+        blocksize = 256;
+    } else if (outputsize > 63) {
+        blocksize = 128;
+    } else if (outputsize > 31) {
+        blocksize = 64;
+    } else {
+        blocksize = 32;
+    }
+    int gridsize = (outputsize + blocksize - 1) / blocksize;
+    _whereKernel<half>
+        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
         inputX, inputY, condition, output, nDims, outputsize, inputXShape,
         inputYShape, conditionShape, outputShape, xSize, ySize, cSize);
 }

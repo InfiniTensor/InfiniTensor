@@ -19,8 +19,9 @@ class PoolingCnnl : public BangKernelWithoutConfig {
         int inArray[4] = {n, c, h, w};
         cnnlTensorDescriptor_t inDesc;
         checkCnnlError(cnnlCreateTensorDescriptor(&inDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(inDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, inArray));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            inDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()), 4,
+            inArray));
         bool mode = op->getCeilMode();
 
         // get maxpool descriptor
@@ -36,8 +37,9 @@ class PoolingCnnl : public BangKernelWithoutConfig {
         int outArray[4] = {outVec[0], outVec[1], outVec[2], outVec[3]};
         cnnlTensorDescriptor_t outDesc;
         checkCnnlError(cnnlCreateTensorDescriptor(&outDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(outDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, outArray));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            outDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()), 4,
+            outArray));
         size_t wsSize;
         cnnlGetPoolingWorkspaceSize(context->cnnlHandle(), getPoolingMode(),
                                     outVec[3], outVec[2], &wsSize);
@@ -68,8 +70,8 @@ class avgPoolCnnl : public PoolingCnnl {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::MaxPool, DataType::Float32, maxPoolCnnl,
-                "MaxPool_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::AveragePool, DataType::Float32,
-                avgPoolCnnl, "AvgPool_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::MaxPool, maxPoolCnnl,
+                "MaxPool_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::AveragePool, avgPoolCnnl,
+                "AvgPool_cnnl_BANG");
 }; // namespace infini

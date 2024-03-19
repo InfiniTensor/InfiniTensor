@@ -34,21 +34,21 @@ class WhereCnnl : public BangKernelWithoutConfig {
         }
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, aDim.size(),
-                                               aDim.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            aDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            aDim.size(), aDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, bDim.size(),
-                                               bDim.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            bDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            bDim.size(), bDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_ARRAY,
                                                CNNL_DTYPE_BOOL, cDim.size(),
                                                cDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&dDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(dDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, dDim.size(),
-                                               dDim.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            dDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            dDim.size(), dDim.data()));
         size_t wsSize;
         cnnlGetSelectV2WorkspaceSize(context->cnnlHandle(), cDesc, aDesc, bDesc,
                                      &wsSize);
@@ -67,7 +67,6 @@ class WhereCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Where, DataType::Float32, WhereCnnl,
-                "Where_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Where, WhereCnnl, "Where_cnnl_BANG");
 
 }; // namespace infini

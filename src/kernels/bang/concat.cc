@@ -14,17 +14,18 @@ class ConcatCnnl : public BangKernelWithoutConfig {
         auto cDim = op->getOutput()->getDims();
         cnnlTensorDescriptor_t desc;
         checkCnnlError(cnnlCreateTensorDescriptor(&desc));
-        checkCnnlError(cnnlSetTensorDescriptor(desc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, cDim.size(),
-                                               cDim.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            desc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
+            cDim.size(), cDim.data()));
 
         cnnlTensorDescriptor_t descArray[num];
         for (int i = 0; i < num; ++i) {
             checkCnnlError(cnnlCreateTensorDescriptor(&descArray[i]));
-            checkCnnlError(cnnlSetTensorDescriptor(
-                descArray[i], CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT,
-                op->getInputs(i)->getDims().size(),
-                op->getInputs(i)->getDims().data()));
+            checkCnnlError(
+                cnnlSetTensorDescriptor(descArray[i], CNNL_LAYOUT_NCHW,
+                                        cnnlDataTypeConvert(op->getDType()),
+                                        op->getInputs(i)->getDims().size(),
+                                        op->getInputs(i)->getDims().data()));
         }
 
         void *argv[num];
@@ -50,6 +51,5 @@ class ConcatCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Concat, DataType::Float32, ConcatCnnl,
-                "Concat_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Concat, ConcatCnnl, "Concat_cnnl_BANG");
 }; // namespace infini

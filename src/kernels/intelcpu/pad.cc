@@ -7,6 +7,7 @@ class MklPad : public MklKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<PadObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const MklRuntimeObj *>(_context);
 
         std::vector<dnnl_dim_t> dims;
@@ -53,6 +54,5 @@ class MklPad : public MklKernelWithoutConfig {
                      {{DNNL_ARG_FROM, srcMemory}, {DNNL_ARG_TO, mem}});
     }
 };
-REGISTER_KERNEL(Device::INTELCPU, OpType::Pad, DataType::Float32, MklPad,
-                "Pad_Mkl_Float32");
+REGISTER_KERNEL(Device::INTELCPU, OpType::Pad, MklPad, "Pad_Mkl");
 } // namespace infini

@@ -23,14 +23,14 @@ class DetCnnl : public BangKernelWithoutConfig {
         auto dimout = op->getOutput()->getDims();
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, dimin.size(),
-                                               dimin.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            aDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            dimin.size(), dimin.data()));
 
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, dimout.size(),
-                                               dimout.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            cDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            dimout.size(), dimout.data()));
 
         cnnlStatus_t stat =
             cnnlDet(context->cnnlHandle(), nlMode, aDesc, aData, cDesc, cData);
@@ -42,6 +42,5 @@ class DetCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Det, DataType::Float32, DetCnnl,
-                "Det_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Det, DetCnnl, "Det_cnnl_BANG");
 }; // namespace infini

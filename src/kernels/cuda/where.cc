@@ -2,7 +2,7 @@
 #include "cuda/cuda_kernel_wihtout_config.h"
 #include "cuda/cuda_runtime.h"
 #include "cuda/cuda_where.h"
-#include "utils/broadcast_shape.h"
+#include "utils/operator_utils.h"
 
 namespace infini {
 
@@ -36,14 +36,22 @@ class WhereCuda : public CudaKernelWithoutConfig {
         broadcastShape(opInputYShape, inputYShape, nDims, ySize);
         broadcastShape(opConditionShape, conditionShape, nDims, cSize);
 
-        whereKernel((float *)inputXData, (float *)inputYData,
-                    (uint8_t *)conditionData, (float *)outputData, nDims,
-                    outputsize, inputXShape, inputYShape, conditionShape,
-                    outputShape, xSize, ySize, cSize);
+        if (op->getDType() == DataType::Float32) {
+            whereKernel((float *)inputXData, (float *)inputYData,
+                        (uint8_t *)conditionData, (float *)outputData, nDims,
+                        outputsize, inputXShape, inputYShape, conditionShape,
+                        outputShape, xSize, ySize, cSize);
+        } else if (op->getDType() == DataType::Float16) {
+            whereKernel((half *)inputXData, (half *)inputYData,
+                        (uint8_t *)conditionData, (half *)outputData, nDims,
+                        outputsize, inputXShape, inputYShape, conditionShape,
+                        outputShape, xSize, ySize, cSize);
+        } else {
+            IT_ASSERT(false);
+        }
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Where, DataType::Float32, WhereCuda,
-                "Where_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Where, WhereCuda, "Where_CUDA");
 
 }; // namespace infini

@@ -18,12 +18,15 @@
 #include "operators/reduce.h"
 #include "operators/reshape.h"
 #include "operators/resize.h"
+#include "operators/rope.h"
 #include "operators/send.h"
 #include "operators/slice.h"
 #include "operators/softmax.h"
 #include "operators/split.h"
+#include "operators/squeeze.h"
 #include "operators/transpose.h"
 #include "operators/unary.h"
+#include "operators/unsqueeze.h"
 #include "operators/where.h"
 #include <numeric>
 #include <variant>
@@ -179,6 +182,7 @@ DEFINE_ELEMENT_WISE_METHOD(max, Maximum)
         }                                                                      \
     }
 
+DEFINE_UNARY_METHOD(silu, Silu)
 DEFINE_UNARY_METHOD(relu, Relu)
 DEFINE_UNARY_METHOD(gelu, Gelu)
 DEFINE_UNARY_METHOD(sigmoid, Sigmoid)
@@ -332,13 +336,23 @@ Tensor GraphHandlerObj::attentionKVCache(Tensor input_k_cache,
             std::move(input_k_cache), std::move(input_v_cache),
             std::move(input_q), std::move(input_k), std::move(input_v),
             std::move(position_id), output_matmul);
-        return {output_matmul};
+        return output_matmul;
     } else {
         return g
             ->addOp<AttentionKVCacheObj>(
                 std::move(input_k_cache), std::move(input_v_cache),
                 std::move(input_q), std::move(input_k), std::move(input_v),
                 std::move(position_id), output_matmul)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::RoPE(Tensor pos, Tensor input, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<RoPEObj>(std::move(pos), std::move(input), output);
+        return output;
+    } else {
+        return g->addOp<RoPEObj>(std::move(pos), std::move(input), output)
             ->getOutput();
     }
 }
@@ -608,6 +622,28 @@ Tensor GraphHandlerObj::lrn(Tensor input, Tensor output, float alpha,
     }
 }
 
+Tensor GraphHandlerObj::squeeze(Tensor input, Tensor output, Shape axes) {
+    if (output) {
+        g->addOpWithOutputs<SqueezeObj>(std::move(input), output,
+                                        std::move(axes));
+        return output;
+    } else {
+        return g->addOp<SqueezeObj>(std::move(input), output, std::move(axes))
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::unsqueeze(Tensor input, Tensor output, Shape axes) {
+    if (output) {
+        g->addOpWithOutputs<UnsqueezeObj>(std::move(input), output,
+                                          std::move(axes));
+        return output;
+    } else {
+        return g->addOp<UnsqueezeObj>(std::move(input), output, std::move(axes))
+            ->getOutput();
+    }
+}
+
 static CastType inferCastType(Tensor input, int to) {
     auto iType = input->getDType();
     auto oType = DataType(to);
@@ -659,6 +695,8 @@ static CastType inferCastType(Tensor input, int to) {
         return CastType::Float162Float;
     } else if (iType == DataType::BFloat16 && oType == DataType::Float32) {
         return CastType::BFloat162Float;
+    } else if (iType == DataType::Float32 && oType == DataType::Float32) {
+        return CastType::Float2Float;
     } else {
         IT_TODO_HALT_MSG("Unsupported CastType : input_type is " +
                          iType.toString() + " output_type is " +

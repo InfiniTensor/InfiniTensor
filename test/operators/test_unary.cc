@@ -13,8 +13,9 @@ TEST(Unary, ShapeInference) {
     {
         Graph g = make_ref<GraphObj>(runtime);
         Tensor i0 = g->addTensor({2}, DataType::Float32);
-        auto op = g->addOp<GeluObj>(i0, nullptr);
+        auto op = g->addOp<CastObj>(i0, nullptr, CastType::Float2Float16);
         EXPECT_EQ(op->getOutput()->getDims(), (Shape{2}));
+        EXPECT_EQ(op->getOutDType(), (DataType::Float16));
     }
 }
 

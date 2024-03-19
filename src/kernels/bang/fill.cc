@@ -16,9 +16,9 @@ class FillCnnl : public BangKernelWithoutConfig {
         auto cDim = op->getOutput()->getDims();
 
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, cDim.size(),
-                                               cDim.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            cDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
+            cDim.size(), cDim.data()));
 
         cnnlStatus_t stat =
             cnnlFill(context->cnnlHandle(), value, cDesc, cData);
@@ -29,7 +29,6 @@ class FillCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Fill, DataType::Float32, FillCnnl,
-                "Fill_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Fill, FillCnnl, "Fill_cnnl_BANG");
 
 }; // namespace infini

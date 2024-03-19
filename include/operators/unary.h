@@ -159,6 +159,7 @@ enum class CastType {
     Uint322Int64,
     Float162Float,
     BFloat162Float,
+    Float2Float,
 };
 
 class CastObj : public OperatorObj {
@@ -258,6 +259,7 @@ class LogObj : public OperatorObj {
     };
 
 DEFINE_UNARY_OBJ(Relu, OpType::Relu)
+DEFINE_UNARY_OBJ(Silu, OpType::Silu)
 DEFINE_UNARY_OBJ(Gelu, OpType::Gelu)
 DEFINE_UNARY_OBJ(Sigmoid, OpType::Sigmoid)
 DEFINE_UNARY_OBJ(Tanh, OpType::Tanh)

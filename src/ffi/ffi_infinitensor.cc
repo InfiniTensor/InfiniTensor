@@ -12,8 +12,10 @@
 #include "operators/reduce.h"
 #include "operators/reshape.h"
 #include "operators/split.h"
+#include "operators/squeeze.h"
 #include "operators/transpose.h"
 #include "operators/unary.h"
+#include "operators/unsqueeze.h"
 #include <algorithm>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
@@ -93,6 +95,8 @@ void export_values(py::module &m) {
         .VALUE(OpType, ReduceMean)
         .VALUE(OpType, ReduceSum)
         .VALUE(OpType, Reshape)
+        .VALUE(OpType, Squeeze)
+        .VALUE(OpType, Unsqueeze)
         .VALUE(OpType, Flatten)
         .VALUE(OpType, Identity)
         .VALUE(OpType, BatchNormalization)
@@ -256,6 +260,24 @@ static vector<int64_t> reshape_shape_of(Operator op) {
     return ans;
 }
 
+static vector<int64_t> squeeze_axes_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Squeeze);
+    auto axes = dynamic_cast<const SqueezeObj *>(op.get())->getAxes();
+    vector<int64_t> ans(axes.size());
+    std::transform(axes.begin(), axes.end(), ans.begin(),
+                   [](auto x) { return static_cast<int64_t>(x); });
+    return ans;
+}
+
+static vector<int64_t> unsqueeze_axes_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Unsqueeze);
+    auto axes = dynamic_cast<const UnsqueezeObj *>(op.get())->getAxes();
+    vector<int64_t> ans(axes.size());
+    std::transform(axes.begin(), axes.end(), ans.begin(),
+                   [](auto x) { return static_cast<int64_t>(x); });
+    return ans;
+}
+
 static vector<int64_t> expand_shape_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Expand);
     auto shape = dynamic_cast<const ExpandObj *>(op.get())->getShape();
@@ -343,6 +365,8 @@ void export_functions(py::module &m) {
         .FUNCTION(flatten_axis_of)
         .FUNCTION(cast_to_of)
         .FUNCTION(depth_to_space_attrs_of)
+        .FUNCTION(squeeze_axes_of)
+        .FUNCTION(unsqueeze_axes_of)
         .FUNCTION(lrn_attrs_of);
 #undef FUNCTION
 }
@@ -405,7 +429,9 @@ void init_graph_builder(py::module &m) {
 #endif
 #ifdef USE_KUNLUN
     py::class_<KUNLUNRuntimeObj, std::shared_ptr<KUNLUNRuntimeObj>, RuntimeObj>(
-        m, "KUNLUNRuntime");
+        m, "KUNLUNRuntime")
+        .def(py::init<int>(), py::arg("device") = 0)
+        .def("init_comm", &KUNLUNRuntimeObj::initComm);
 #endif
     py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "Tensor",
                                                       py::buffer_protocol())
@@ -491,6 +517,7 @@ void init_graph_builder(py::module &m) {
         .def("min", &Handler::min, policy::move)
         .def("max", &Handler::max, policy::move)
         .def("relu", &Handler::relu, policy::move)
+        .def("silu", &Handler::silu, policy::move)
         .def("gelu", &Handler::gelu, policy::move)
         .def("sigmoid", &Handler::sigmoid, policy::move)
         .def("tanh", &Handler::tanh, policy::move)
@@ -509,8 +536,11 @@ void init_graph_builder(py::module &m) {
         .def("depthToSpace", &Handler::depthToSpace, policy::move)
         .def("reshape", &Handler::reshape, policy::move)
         .def("resize", &Handler::resize, policy::move)
+        .def("squeeze", &Handler::squeeze, policy::move)
+        .def("unsqueeze", &Handler::unsqueeze, policy::move)
         .def("concat", &Handler::concat, policy::move)
         .def("attentionKVCache", &Handler::attentionKVCache, policy::move)
+        .def("RoPE", &Handler::RoPE, policy::move)
         .def("split", &Handler::split, policy::move)
         .def("gather", &Handler::gather, policy::move)
         .def("gatherElements", &Handler::gatherElements, policy::move)
@@ -543,6 +573,10 @@ void init_graph_builder(py::module &m) {
         .def("get_perf_time", &Handler::get_perf_time, policy::automatic)
         .def("tune", &Handler::tune, policy::automatic)
         .def("run", &Handler::run, policy::automatic)
+#ifdef USE_CUDA
+        .def("run_with_cudagraph", &Handler::run_with_cudagraph,
+             policy::automatic)
+#endif
         .def("shape_infer", &Handler::shape_infer, policy::automatic)
         .def("change_shape", &Handler::change_shape, policy::automatic)
         .def("getDims", &Handler::getDims, policy::automatic)

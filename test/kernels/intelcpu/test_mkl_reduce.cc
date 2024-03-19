@@ -2,7 +2,7 @@
 #include "core/kernel.h"
 #include "core/runtime.h"
 #include "intelcpu/mkl_runtime.h"
-#include "operators/reduce_mean.h"
+#include "operators/reduce.h"
 
 #include "test.h"
 

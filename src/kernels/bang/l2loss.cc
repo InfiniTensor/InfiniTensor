@@ -17,7 +17,8 @@ class L2LossCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, dim.size(), dim.data()));
+            aDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
+            dim.size(), dim.data()));
 
         cnnlStatus_t stat =
             cnnlL2Loss(context->cnnlHandle(), aDesc, aData, cData);
@@ -28,7 +29,6 @@ class L2LossCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::L2Loss, DataType::Float32, L2LossCnnl,
-                "L2Loss_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::L2Loss, L2LossCnnl, "L2Loss_cnnl_BANG");
 
 }; // namespace infini

@@ -6,6 +6,7 @@ class ResizeCuda : public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ResizeObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto in = op->getInputs(0);
         auto out = op->getOutputs()[0];
 
@@ -48,7 +49,6 @@ class ResizeCuda : public CudaKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Resize, DataType::Float32, ResizeCuda,
-                "Resize_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Resize, ResizeCuda, "Resize_CUDA");
 
 } // namespace infini

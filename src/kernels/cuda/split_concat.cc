@@ -7,7 +7,8 @@
 namespace infini {
 
 class CudaCompute {
-    void initComposedTensorMetadata(ComposedTensorMetadata &metadata,
+    template <typename T>
+    void initComposedTensorMetadata(ComposedTensorMetadata<T> &metadata,
                                     Tensor tensor) const {
         int nDims = tensor->getRank();
         auto strides = tensor->getStride();
@@ -16,10 +17,10 @@ class CudaCompute {
             metadata.dimSize[i] = tensor->getDims().at(i);
             metadata.stride[i] = strides.at(i);
         }
-        metadata.data = tensor->getRawDataPtr<float *>();
+        metadata.data = tensor->getRawDataPtr<T *>();
     }
-
-    void initElementTensorMetadata(ElementTensorMetadata &metadata,
+    template <typename T>
+    void initElementTensorMetadata(ElementTensorMetadata<T> &metadata,
                                    TensorVec tensors, int idx, int dim,
                                    int &dimBgIdx, int &batchCounter) const {
         int nTensors = tensors.size();
@@ -27,7 +28,7 @@ class CudaCompute {
              ++batchCounter) {
             auto tensor = tensors.at(idx + batchCounter);
             auto dimSize = tensor->getDims()[dim];
-            metadata.data[batchCounter] = tensor->getRawDataPtr<float *>();
+            metadata.data[batchCounter] = tensor->getRawDataPtr<T *>();
             metadata.dimBgNo[batchCounter] = dimBgIdx;
             metadata.dimSize[batchCounter] = dimSize;
             metadata.nElements[batchCounter] = tensor->size();
@@ -36,17 +37,17 @@ class CudaCompute {
     }
 
   public:
+    template <typename T>
     void do_compute(Tensor composedTensor, TensorVec elementsTensor, int dim,
                     int nDims, bool isSplit) const {
         IT_ASSERT(nDims <= DIM_MAX_SIZE);
-
-        ComposedTensorMetadata composedMetadata;
-        initComposedTensorMetadata(composedMetadata, composedTensor);
+        ComposedTensorMetadata<T> composedMetadata;
+        initComposedTensorMetadata<T>(composedMetadata, composedTensor);
 
         int dimBgNo = 0;
         int nElemets = elementsTensor.size();
         for (int i = 0; i < nElemets; i += BATCH_SIZE) {
-            ElementTensorMetadata elemMetadata;
+            ElementTensorMetadata<T> elemMetadata;
             int batchCounter = 0;
             initElementTensorMetadata(elemMetadata, elementsTensor, i, dim,
                                       dimBgNo, batchCounter);
@@ -69,28 +70,44 @@ class ConcatCuda : private CudaCompute, public CudaKernelWithoutConfig {
                         _op->getOutputs()[0]->getRawDataPtr<void *>();
                     cudaMemcpyAsync(outData, inData,
                                     _op->getInputs(1 - i)->getBytes(),
-                                    cudaMemcpyDeviceToDevice);
+                                    cudaMemcpyDeviceToDevice,
+                                    CUDAStream::getCurrentStream());
                     return;
                 }
             }
         }
-        do_compute(_op->getOutput(), _op->getInputs(),
-                   as<ConcatObj>(_op)->getDim(), _op->getOutput()->getRank(),
-                   false);
+        if (_op->getDType() == DataType::Float32) {
+            do_compute<float>(_op->getOutput(), _op->getInputs(),
+                              as<ConcatObj>(_op)->getDim(),
+                              _op->getOutput()->getRank(), false);
+        } else if (_op->getDType() == DataType::Float16) {
+            do_compute<half>(_op->getOutput(), _op->getInputs(),
+                             as<ConcatObj>(_op)->getDim(),
+                             _op->getOutput()->getRank(), false);
+        } else {
+            IT_ASSERT(false);
+        }
     }
 };
 
 class SplitCuda : private CudaCompute, public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
-        do_compute(_op->getInputs(0), _op->getOutputs(),
-                   as<SplitObj>(_op)->getDim(), _op->getInputs(0)->getRank(),
-                   true);
+        if (_op->getDType() == DataType::Float32) {
+            do_compute<float>(_op->getInputs(0), _op->getOutputs(),
+                              as<SplitObj>(_op)->getDim(),
+                              _op->getInputs(0)->getRank(), true);
+        } else if (_op->getDType() == DataType::Float16) {
+            do_compute<half>(_op->getInputs(0), _op->getOutputs(),
+                             as<SplitObj>(_op)->getDim(),
+                             _op->getInputs(0)->getRank(), true);
+        } else {
+            IT_ASSERT(false);
+        }
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Concat, DataType::Float32, ConcatCuda,
-                "Concat_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::Split, DataType::Float32, SplitCuda,
-                "Split_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Concat, ConcatCuda, "Concat_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Split, SplitCuda, "Split_CUDA");
+
 } // namespace infini

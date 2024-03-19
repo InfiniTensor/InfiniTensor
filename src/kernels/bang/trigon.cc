@@ -19,17 +19,18 @@ class TrigonCnnl : public BangKernelWithoutConfig {
         auto cDim = op->getOutput()->getDims();
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, aDim.size(),
-                                               aDim.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            aDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
+            aDim.size(), aDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, cDim.size(),
-                                               cDim.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            cDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
+            cDim.size(), cDim.data()));
 
         cnnlTrigonDescriptor_t opDesc;
         checkCnnlError(cnnlCreateTrigonDescriptor(&opDesc));
-        checkCnnlError(cnnlSetTrigonDescriptor(opDesc, getOpType()));
+        checkCnnlError(
+            cnnlSetTrigonDescriptor_v2(opDesc, getOpType(), getPrefer()));
 
         cnnlStatus_t stat = cnnlTrigonForward(context->cnnlHandle(), opDesc,
                                               aDesc, aData, cDesc, cData);
@@ -150,29 +151,17 @@ class ATanHCnnl : public TrigonCnnl {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Sin, DataType::Float32, SinCnnl,
-                "Sin_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Cos, DataType::Float32, CosCnnl,
-                "Cos_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Tan, DataType::Float32, TanCnnl,
-                "Tan_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Asin, DataType::Float32, ASinCnnl,
-                "ASin_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Acos, DataType::Float32, ACosCnnl,
-                "ACos_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Atan, DataType::Float32, ATanCnnl,
-                "ATan_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Sinh, DataType::Float32, SinHCnnl,
-                "SinH_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Cosh, DataType::Float32, CosHCnnl,
-                "CosH_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Tanh, DataType::Float32, TanHCnnl,
-                "TanH_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Asinh, DataType::Float32, ASinHCnnl,
-                "ASinH_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Acosh, DataType::Float32, ACosHCnnl,
-                "ACosH_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::Atanh, DataType::Float32, ATanHCnnl,
-                "ATanH_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Sin, SinCnnl, "Sin_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Cos, CosCnnl, "Cos_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Tan, TanCnnl, "Tan_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Asin, ASinCnnl, "ASin_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Acos, ACosCnnl, "ACos_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Atan, ATanCnnl, "ATan_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Sinh, SinHCnnl, "SinH_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Cosh, CosHCnnl, "CosH_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Tanh, TanHCnnl, "TanH_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Asinh, ASinHCnnl, "ASinH_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Acosh, ACosHCnnl, "ACosH_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Atanh, ATanHCnnl, "ATanH_cnnl_BANG");
 
 }; // namespace infini

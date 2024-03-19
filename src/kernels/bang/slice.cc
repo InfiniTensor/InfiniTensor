@@ -42,11 +42,13 @@ class SliceCnnl : public BangKernelWithoutConfig {
         // input
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            aDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT, aDim_size, aDim_array));
+            aDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            aDim_size, aDim_array));
         // output
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            cDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT, cDim_size, cDim_array));
+            cDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            cDim_size, cDim_array));
 
         cnnlStatus_t stat =
             cnnlStridedSlice(context->cnnlHandle(), aDesc, aData, starts_array,
@@ -59,6 +61,6 @@ class SliceCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Slice, DataType::Float32, SliceCnnl,
+REGISTER_KERNEL(Device::BANG, OpType::Slice, SliceCnnl,
                 "Slice_cnnl_BANG_Float32");
 }; // namespace infini

@@ -7,6 +7,7 @@ class ConvXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ConvObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         const auto [ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
@@ -23,15 +24,20 @@ class ConvXdnn : public KUNLUNKernelWithoutConfig {
         std::vector<int> stride = {sh, sw};
         std::vector<int> dilation = {dh, dw};
 
-        auto ret = baidu::xpu::api::conv2d<float, float, float, float>(
+        // TODO: Convolution operators still have some accuracy problems
+        checkKUNLUNError((xdnn::conv2d<float, float, float, float>(
             context->KUNLUNHandle(), (float *)aData, (float *)bData,
             (float *)cData, n, c, h, w, f, ksize, stride, pads, dilation, g,
-            nullptr, nullptr, nullptr, true);
-        assert(ret == 0);
+            nullptr, nullptr, nullptr, true)));
+
+        // checkKUNLUNError((xdnn::conv2d_fusion<float, float, float, float>(
+        //     context->KUNLUNHandle(), (float *const)aData, (float
+        //     *const)bData, (float *)cData, n, c, h, w, f, ksize, stride, pads,
+        //     dilation, g, nullptr, nullptr, nullptr, true, nullptr, nullptr,
+        //     xdnn::Activation_t::LINEAR)));
         return;
     }
 };
 
-REGISTER_KERNEL(Device::KUNLUN, OpType::Conv, DataType::Float32, ConvXdnn,
-                "Conv_xdnn_KUNLUN_Float32");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Conv, ConvXdnn, "Conv_xdnn_KUNLUN");
 }; // namespace infini

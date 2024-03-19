@@ -17,73 +17,77 @@ class CastXdnn : public KUNLUNKernelWithoutConfig {
         int ret = 0;
         switch (type) {
         case CastType::Float2Float16:
-            ret = baidu::xpu::api::cast<float, float16>(
+            ret = xdnn::cast<float, float16>(
                 context->KUNLUNHandle(), (float *)aData, (float16 *)cData, len);
             break;
         case CastType::Float2Int64:
-            ret = baidu::xpu::api::cast<float, int64_t>(
+            ret = xdnn::cast<float, int64_t>(
                 context->KUNLUNHandle(), (float *)aData, (int64_t *)cData, len);
             break;
         case CastType::Float2Int32:
-            ret = baidu::xpu::api::cast<float, int>(
-                context->KUNLUNHandle(), (float *)aData, (int *)cData, len);
+            ret = xdnn::cast<float, int>(context->KUNLUNHandle(),
+                                         (float *)aData, (int *)cData, len);
             break;
         case CastType::Float2Int16:
-            ret = baidu::xpu::api::cast<float, int16_t>(
+            ret = xdnn::cast<float, int16_t>(
                 context->KUNLUNHandle(), (float *)aData, (int16_t *)cData, len);
             break;
         case CastType::Float2Int8:
-            ret = baidu::xpu::api::cast<float, int8_t>(
+            ret = xdnn::cast<float, int8_t>(
                 context->KUNLUNHandle(), (float *)aData, (int8_t *)cData, len);
             break;
         case CastType::Int322Float:
-            ret = baidu::xpu::api::cast<int, float>(
-                context->KUNLUNHandle(), (int *)aData, (float *)cData, len);
+            ret = xdnn::cast<int, float>(context->KUNLUNHandle(), (int *)aData,
+                                         (float *)cData, len);
             break;
         case CastType::Int322Int8:
-            ret = baidu::xpu::api::cast<int, int8_t>(
-                context->KUNLUNHandle(), (int *)aData, (int8_t *)cData, len);
+            ret = xdnn::cast<int, int8_t>(context->KUNLUNHandle(), (int *)aData,
+                                          (int8_t *)cData, len);
             break;
         case CastType::Int322Int16:
-            ret = baidu::xpu::api::cast<int, int16_t>(
-                context->KUNLUNHandle(), (int *)aData, (int16_t *)cData, len);
+            ret = xdnn::cast<int, int16_t>(context->KUNLUNHandle(),
+                                           (int *)aData, (int16_t *)cData, len);
             break;
         case CastType::Int162Float:
-            ret = baidu::xpu::api::cast<int16_t, float>(
+            ret = xdnn::cast<int16_t, float>(
                 context->KUNLUNHandle(), (int16_t *)aData, (float *)cData, len);
             break;
         case CastType::Int162Int32:
-            ret = baidu::xpu::api::cast<int16_t, int>(
-                context->KUNLUNHandle(), (int16_t *)aData, (int *)cData, len);
+            ret = xdnn::cast<int16_t, int>(context->KUNLUNHandle(),
+                                           (int16_t *)aData, (int *)cData, len);
             break;
         case CastType::Int82Float:
-            ret = baidu::xpu::api::cast<int8_t, float>(
+            ret = xdnn::cast<int8_t, float>(
                 context->KUNLUNHandle(), (int8_t *)aData, (float *)cData, len);
             break;
         case CastType::Int82Int16:
-            ret = baidu::xpu::api::cast<int8_t, int16_t>(
-                context->KUNLUNHandle(), (int8_t *)aData, (int16_t *)cData,
-                len);
+            ret = xdnn::cast<int8_t, int16_t>(context->KUNLUNHandle(),
+                                              (int8_t *)aData, (int16_t *)cData,
+                                              len);
             break;
         case CastType::Int82Int32:
-            ret = baidu::xpu::api::cast<int8_t, int>(
-                context->KUNLUNHandle(), (int8_t *)aData, (int *)cData, len);
+            ret = xdnn::cast<int8_t, int>(context->KUNLUNHandle(),
+                                          (int8_t *)aData, (int *)cData, len);
             break;
         case CastType::Int322Int64:
-            ret = baidu::xpu::api::cast<int, int64_t>(
-                context->KUNLUNHandle(), (int *)aData, (int64_t *)cData, len);
+            ret = xdnn::cast<int, int64_t>(context->KUNLUNHandle(),
+                                           (int *)aData, (int64_t *)cData, len);
             break;
         case CastType::Int642Int32:
-            ret = baidu::xpu::api::cast<int64_t, int>(
-                context->KUNLUNHandle(), (int64_t *)aData, (int *)cData, len);
+            ret = xdnn::cast<int64_t, int>(context->KUNLUNHandle(),
+                                           (int64_t *)aData, (int *)cData, len);
             break;
         case CastType::Int642Float:
-            ret = baidu::xpu::api::cast<int64_t, float>(
+            ret = xdnn::cast<int64_t, float>(
                 context->KUNLUNHandle(), (int64_t *)aData, (float *)cData, len);
             break;
         case CastType::Float162Float:
-            ret = baidu::xpu::api::cast<float16, float>(
+            ret = xdnn::cast<float16, float>(
                 context->KUNLUNHandle(), (float16 *)aData, (float *)cData, len);
+            break;
+        case CastType::Float2Float:
+            ret = xdnn::copy<float>(context->KUNLUNHandle(), (float *)aData,
+                                    (float *)cData, len);
             break;
         default:
             IT_TODO_HALT();
@@ -93,6 +97,5 @@ class CastXdnn : public KUNLUNKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::KUNLUN, OpType::Cast, DataType::Float32, CastXdnn,
-                "Cast_xdnn_KUNLUN_Float32");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Cast, CastXdnn, "Cast_xdnn_KUNLUN");
 }; // namespace infini

@@ -66,6 +66,36 @@ void TensorObj::setShape(Shape shape_) {
     _size = size;
 }
 
+void TensorObj::dumpData(std::ofstream &ofs) const {
+    IT_ASSERT(data != nullptr);
+    if (!runtime->isCpu())
+        IT_TODO_HALT();
+
+#define TRY_DUMP(N)                                                            \
+    if (dtype == DataType(N))                                                  \
+        ofs << dataToString<DT<N>::t>() << std::endl;
+
+    TRY_DUMP(0)           // fmt: new line
+    else TRY_DUMP(1)      //
+        else TRY_DUMP(2)  //
+        else TRY_DUMP(3)  //
+        else TRY_DUMP(4)  //
+        else TRY_DUMP(5)  //
+        else TRY_DUMP(6)  //
+        else TRY_DUMP(7)  //
+        else TRY_DUMP(8)  //
+        else TRY_DUMP(9)  //
+        else TRY_DUMP(10) //
+        else TRY_DUMP(11) //
+        else TRY_DUMP(12) //
+        else TRY_DUMP(13) //
+        else TRY_DUMP(16) //
+        else IT_TODO_HALT();
+    ofs.flush();
+
+#undef TRY_DUMP
+}
+
 void TensorObj::printData() const {
     IT_ASSERT(data != nullptr);
     if (!runtime->isCpu())

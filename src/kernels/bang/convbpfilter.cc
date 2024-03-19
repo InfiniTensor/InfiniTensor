@@ -20,8 +20,9 @@ class ConvBackwardFilterCnnl : public BangKernelWithoutConfig {
 
         cnnlConvolutionDescriptor_t convDesc;
         checkCnnlError(cnnlCreateConvolutionDescriptor(&convDesc));
-        checkCnnlError(cnnlSetConvolutionDescriptor(
-            convDesc, 4, pad, stride, dilation, g, CNNL_DTYPE_FLOAT));
+        checkCnnlError(
+            cnnlSetConvolutionDescriptor(convDesc, 4, pad, stride, dilation, g,
+                                         cnnlDataTypeConvert(op->getDType())));
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
@@ -62,15 +63,16 @@ class ConvBackwardFilterCnnl : public BangKernelWithoutConfig {
         // get inputs
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, inputs0Array));
+            aDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()), 4,
+            inputs0Array));
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDescTrans));
-        checkCnnlError(cnnlSetTensorDescriptor(aDescTrans, CNNL_LAYOUT_NHWC,
-                                               CNNL_DTYPE_FLOAT, 4,
-                                               inputs0ArrayTrans));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            aDescTrans, CNNL_LAYOUT_NHWC, cnnlDataTypeConvert(op->getDType()),
+            4, inputs0ArrayTrans));
 
         size_t wsTrans1Size = dimInputs0[0] * dimInputs0[1] * dimInputs0[2] *
-                              dimInputs0[3] * sizeof(float);
+                              dimInputs0[3] * op->getDType().getSize();
         BangPtr wsTrans1Data = context->getWorkspace(wsTrans1Size);
 
         cnnlStatus_t stat =
@@ -81,15 +83,16 @@ class ConvBackwardFilterCnnl : public BangKernelWithoutConfig {
 
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            bDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, inputs1Array));
+            bDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()), 4,
+            inputs1Array));
 
         checkCnnlError(cnnlCreateTensorDescriptor(&bDescTrans));
-        checkCnnlError(cnnlSetTensorDescriptor(bDescTrans, CNNL_LAYOUT_NHWC,
-                                               CNNL_DTYPE_FLOAT, 4,
-                                               inputs1ArrayTrans));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            bDescTrans, CNNL_LAYOUT_NHWC, cnnlDataTypeConvert(op->getDType()),
+            4, inputs1ArrayTrans));
 
         size_t wsTrans2Size = dimInputs1[0] * dimInputs1[1] * dimInputs1[2] *
-                              dimInputs1[3] * sizeof(float);
+                              dimInputs1[3] * op->getDType().getSize();
         BangPtr wsTrans2Data = context->getWorkspace(wsTrans2Size);
 
         stat = cnnlTranspose(context->cnnlHandle(), transDesc, bDesc, bData,
@@ -100,15 +103,16 @@ class ConvBackwardFilterCnnl : public BangKernelWithoutConfig {
         // get outputs
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, outputArray));
+            cDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()), 4,
+            outputArray));
 
         checkCnnlError(cnnlCreateTensorDescriptor(&cDescTrans));
-        checkCnnlError(cnnlSetTensorDescriptor(cDescTrans, CNNL_LAYOUT_NHWC,
-                                               CNNL_DTYPE_FLOAT, 4,
-                                               outputArrayTrans));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            cDescTrans, CNNL_LAYOUT_NHWC, cnnlDataTypeConvert(op->getDType()),
+            4, outputArrayTrans));
 
         size_t wsTrans3Size = dimOutput[0] * dimOutput[1] * dimOutput[2] *
-                              dimOutput[3] * sizeof(float);
+                              dimOutput[3] * op->getDType().getSize();
         BangPtr wsTrans3Data = context->getWorkspace(wsTrans3Size);
 
         cnnlConvolutionBwdFilterAlgo_t algo;
@@ -154,6 +158,6 @@ class ConvBackwardFilterCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::ConvBackwardFilter, DataType::Float32,
-                ConvBackwardFilterCnnl, "ConvBackwardFilter_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::ConvBackwardFilter,
+                ConvBackwardFilterCnnl, "ConvBackwardFilter_cnnl_BANG");
 }; // namespace infini

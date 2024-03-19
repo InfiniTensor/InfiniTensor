@@ -17,13 +17,13 @@ class TransposeCnnl : public BangKernelWithoutConfig {
         auto dimout = op->getOutput()->getDims();
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, dimin.size(),
-                                               dimin.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            aDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            dimin.size(), dimin.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, dimout.size(),
-                                               dimout.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            cDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            dimout.size(), dimout.data()));
 
         auto permute = op->getPermute();
         cnnlTransposeDescriptor_t opDesc;
@@ -71,13 +71,13 @@ class DepthToSpaceCnnl : public BangKernelWithoutConfig {
         auto dimout = op->getOutput()->getDims();
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_ARRAY,
-                                               CNNL_DTYPE_FLOAT, reshape.size(),
-                                               reshape.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            aDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            reshape.size(), reshape.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
-        checkCnnlError(
-            cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT,
-                                    transpose.size(), transpose.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            cDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            transpose.size(), transpose.data()));
 
         cnnlTransposeDescriptor_t opDesc;
         checkCnnlError(cnnlCreateTransposeDescriptor(&opDesc));
@@ -101,9 +101,9 @@ class DepthToSpaceCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::Transpose, DataType::Float32,
-                TransposeCnnl, "Transpose_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::Transpose, TransposeCnnl,
+                "Transpose_cnnl_BANG");
 
-REGISTER_KERNEL(Device::BANG, OpType::DepthToSpace, DataType::Float32,
-                DepthToSpaceCnnl, "DepthToSpace_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::DepthToSpace, DepthToSpaceCnnl,
+                "DepthToSpace_cnnl_BANG");
 }; // namespace infini

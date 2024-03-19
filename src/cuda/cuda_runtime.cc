@@ -19,14 +19,12 @@ void CHECK_CUDA_KERNEL_ERROR(infini::Operator op) {
 }
 
 namespace infini {
-
 void CudaRuntimeObj::runWithoutSync(const Graph &graph) const {
     const auto &kernelRegistry = KernelRegistry::getInstance();
     auto &perfEngine = PerfEngine::getInstance();
     for (auto &op : graph->getOperators()) {
         // HACK: set correct data type
-        auto kernelAttrs =
-            KernelAttrs{device, op->getOpType().underlying(), op->getDType()};
+        auto kernelAttrs = KernelAttrs{device, op->getOpType().underlying()};
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
         auto perfData = perfEngine.getPerfData(perfKey);
@@ -40,6 +38,27 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph) const {
     }
 }
 
+void CudaRuntimeObj::runWithCudaGraph(const Graph &graph) {
+    if (!isCudaGraphCreated) {
+        CUDAStream::createStream();
+        checkCudnnError(cudnnSetStream(cudnn, CUDAStream::getCurrentStream()));
+        checkCublasError(
+            cublasSetStream(cublas, CUDAStream::getCurrentStream()));
+        checkCudaError(cudaStreamBeginCapture(CUDAStream::getCurrentStream(),
+                                              cudaStreamCaptureModeGlobal));
+        runWithoutSync(graph);
+        checkCudaError(
+            cudaStreamEndCapture(CUDAStream::getCurrentStream(), &cudaGraph));
+        checkCudaError(
+            cudaGraphInstantiate(&cudaGraphInstance, cudaGraph, NULL, NULL, 0));
+        isCudaGraphCreated = true;
+    } else {
+        checkCudaError(
+            cudaGraphLaunch(cudaGraphInstance, CUDAStream::getCurrentStream()));
+    }
+    checkCudaError(cudaStreamSynchronize(CUDAStream::getCurrentStream()));
+}
+
 void CudaRuntimeObj::tune(const Graph &graph, bool profiling = false) const {
     const auto &kernelRegistry = KernelRegistry::getInstance();
     auto &perfEngine = PerfEngine::getInstance();
@@ -48,8 +67,7 @@ void CudaRuntimeObj::tune(const Graph &graph, bool profiling = false) const {
     std::map<OpType, int> opCnt;
     for (auto &op : graph->getOperators()) {
         // HACK: set correct data type
-        auto kernelAttrs = KernelAttrs{device, op->getOpType().underlying(),
-                                       DataType::Float32};
+        auto kernelAttrs = KernelAttrs{device, op->getOpType().underlying()};
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
         auto perfData = perfEngine.getPerfData(perfKey);
@@ -104,4 +122,5 @@ void CudaRuntimeObj::initComm(const string &name, int worldSize, int rank) {
 #endif
 }
 
+cudaStream_t CUDAStream::_stream = 0;
 } // namespace infini

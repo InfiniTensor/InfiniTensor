@@ -3,9 +3,9 @@
 
 namespace infini {
 
-template <typename T> class NaiveMatmul : public CpuKernelWithoutConfig {
-    void compute(const Operator &_op,
-                 const RuntimeObj *context) const override {
+class NaiveMatmul : public CpuKernelWithoutConfig {
+    template <typename T>
+    void doCompute(const Operator &_op, const RuntimeObj *context) const {
         auto op = as<MatmulObj>(_op);
         IT_ASSERT(op->getInputs().size() == 2, "Bias is not supported yet.");
         T *A = op->getInputs(0)->getRawDataPtr<T *>();
@@ -23,11 +23,25 @@ template <typename T> class NaiveMatmul : public CpuKernelWithoutConfig {
             }
         }
     }
+
+    void compute(const Operator &_op,
+                 const RuntimeObj *context) const override {
+#define CASE(N)                                                                \
+    case N:                                                                    \
+        doCompute<DT<N>::t>(_op, context)
+
+        int dataTypeIdx = _op->getDType().getIndex();
+        switch (dataTypeIdx) {
+            CASE(1); // DataType::Float32
+            break;
+            CASE(12); // DataType::UInt32
+            break;
+        default:
+            IT_TODO_HALT();
+        }
+    }
 };
 
-REGISTER_KERNEL(Device::CPU, OpType::MatMul, DataType::UInt32,
-                NaiveMatmul<uint32_t>, "MatmulNaive_CPU_uint32");
-REGISTER_KERNEL(Device::CPU, OpType::MatMul, DataType::Float32,
-                NaiveMatmul<float>, "MatmulNaive_CPU_float32");
+REGISTER_KERNEL(Device::CPU, OpType::MatMul, NaiveMatmul, "MatmulNaive_CPU");
 
 } // namespace infini

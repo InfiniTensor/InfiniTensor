@@ -10,6 +10,7 @@ class MklGather : public MklKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<GatherObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto in = op->getInputs(0);
         auto index = op->getInputs(1);
         auto out = op->getOutput();
@@ -81,6 +82,5 @@ class MklGather : public MklKernelWithoutConfig {
         sycl::free(indexDevice, q);
     }
 };
-REGISTER_KERNEL(Device::INTELCPU, OpType::Gather, DataType::Float32, MklGather,
-                "Gather_Mkl_Float32");
+REGISTER_KERNEL(Device::INTELCPU, OpType::Gather, MklGather, "Gather_Mkl");
 }; // namespace infini

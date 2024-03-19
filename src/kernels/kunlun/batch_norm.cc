@@ -7,6 +7,7 @@ class BatchNormXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<BatchNormObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const input = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -25,7 +26,7 @@ class BatchNormXdnn : public KUNLUNKernelWithoutConfig {
         int h = dims[2];
         int c = dims[1];
         int n = dims[0];
-        auto ret = baidu::xpu::api::batch_norm_infer<float>(
+        auto ret = xdnn::batch_norm_infer<float>(
             context->KUNLUNHandle(), (float *)input, (float *)output, n, c, h,
             w, op->getEps(), (float *)scale, (float *)bias, (float *)mean,
             (float *)var, true);
@@ -35,7 +36,7 @@ class BatchNormXdnn : public KUNLUNKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::KUNLUN, OpType::BatchNormalization, DataType::Float32,
-                BatchNormXdnn, "BatchNorm_xdnn_KUNLUN_Float32");
+REGISTER_KERNEL(Device::KUNLUN, OpType::BatchNormalization, BatchNormXdnn,
+                "BatchNorm_xdnn_KUNLUN");
 
 }; // namespace infini

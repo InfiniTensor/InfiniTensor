@@ -6,6 +6,10 @@
 #include <iostream>
 #include <variant>
 
+#ifdef USE_CUDA
+#include "cuda/cuda_runtime.h"
+#endif
+
 namespace infini {
 
 class GraphHandlerObj {
@@ -48,6 +52,7 @@ class GraphHandlerObj {
     Tensor max(Tensor a, Tensor b, Tensor c);
 
     Tensor relu(Tensor x, Tensor y);
+    Tensor silu(Tensor x, Tensor y);
     Tensor gelu(Tensor x, Tensor y);
     Tensor sigmoid(Tensor x, Tensor y);
     Tensor hardSigmoid(Tensor x, Tensor y);
@@ -72,10 +77,13 @@ class GraphHandlerObj {
                   vector<float> scales_, vector<float> roi_, string mode,
                   string ratioPolicy, string nearestMode,
                   string coordTransMode);
+    Tensor squeeze(Tensor input, Tensor output, Shape axes);
+    Tensor unsqueeze(Tensor input, Tensor output, Shape axes);
     Tensor concat(TensorVec inputs, Tensor output, int dim);
     Tensor attentionKVCache(Tensor input_k_cache, Tensor input_v_cache,
                             Tensor input_q, Tensor input_k, Tensor input_v,
                             Tensor position_id, Tensor output_matmul);
+    Tensor RoPE(Tensor pos, Tensor input, Tensor output);
     TensorVec split(Tensor input, std::optional<TensorVec> outputs, int axis,
                     std::variant<int, vector<int>> numOrRatio);
     Tensor gather(Tensor data, Tensor indices, Tensor output, int axis);
@@ -134,6 +142,12 @@ class GraphHandlerObj {
     inline void run() { g->getRuntime()->run(g); }
 
     inline double get_perf_time() { return g->getRuntime()->getPerfTime(g); }
+
+#ifdef USE_CUDA
+    inline void run_with_cudagraph() {
+        (as<CudaRuntimeObj>(g->getRuntime()))->runWithCudaGraph(g);
+    }
+#endif
 };
 
 } // namespace infini

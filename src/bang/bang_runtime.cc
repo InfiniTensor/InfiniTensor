@@ -16,8 +16,7 @@ void BangRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
     std::map<OpType, int> opCnt;
     for (auto &op : graph->getOperators()) {
         // HACK: set correct data type
-        auto kernelAttrs =
-            KernelAttrs{device, op->getOpType().underlying(), op->getDType()};
+        auto kernelAttrs = KernelAttrs{device, op->getOpType().underlying()};
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
         auto perfData = perfEngine.getPerfData(perfKey);

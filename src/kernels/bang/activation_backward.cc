@@ -24,21 +24,21 @@ class ActivationBackwardCnnl : public BangKernelWithoutConfig {
         auto diffxDim = op->getOutput()->getDims();
 
         checkCnnlError(cnnlCreateTensorDescriptor(&yDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(yDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, yDim.size(),
-                                               yDim.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            yDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
+            yDim.size(), yDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&diffYDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            diffYDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, diffyDim.size(),
-            diffyDim.data()));
+            diffYDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
+            diffyDim.size(), diffyDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&xDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(xDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, xDim.size(),
-                                               xDim.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            xDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
+            xDim.size(), xDim.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&diffXDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            diffXDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, diffxDim.size(),
-            diffxDim.data()));
+            diffXDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
+            diffxDim.size(), diffxDim.data()));
         // get op descriptor
         cnnlActivationDescriptor_t opDesc;
         checkCnnlError(cnnlCreateActivationDescriptor(&opDesc));
@@ -81,11 +81,11 @@ class TanhBackwardCnnl : public ActivationBackwardCnnl {
     float getCoef() const override { return 0.0; }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::ReluBackward, DataType::Float32,
-                ReluBackwardCnnl, "ReluBackward_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::SigmoidBackward, DataType::Float32,
-                SigmoidBackwardCnnl, "SigmoidBackward_cnnl_BANG_Float32");
-REGISTER_KERNEL(Device::BANG, OpType::TanhBackward, DataType::Float32,
-                TanhBackwardCnnl, "TanhBackward_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::ReluBackward, ReluBackwardCnnl,
+                "ReluBackward_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::SigmoidBackward, SigmoidBackwardCnnl,
+                "SigmoidBackward_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::TanhBackward, TanhBackwardCnnl,
+                "TanhBackward_cnnl_BANG");
 
 }; // namespace infini

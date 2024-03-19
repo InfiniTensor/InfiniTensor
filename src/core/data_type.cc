@@ -1,4 +1,6 @@
+#ifdef _MSC_VER
 #define DLL_EXPORT
+#endif
 
 #include "core/data_type.h"
 

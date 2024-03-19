@@ -229,9 +229,8 @@ class MemboundTVMExtractSource : public Kernel {
     }
 };
 
-// REGISTER_KERNEL(Device::CUDA, OpType::MemBound, DataType::Float32,
-// MemboundTVMExtractSource,
-//                 "Memobund_TVM_Ansor_extract_source");
+REGISTER_KERNEL(Device::CUDA, OpType::MemBound, MemboundTVMExtractSource,
+                "Memobund_TVM_Ansor_extract_source");
 }; // namespace infini
 
 #endif

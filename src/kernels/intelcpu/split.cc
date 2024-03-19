@@ -7,6 +7,7 @@ class MklSplit : public MklKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<SplitObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const MklRuntimeObj *>(_context);
 
         std::vector<dnnl_dim_t> dims;
@@ -49,6 +50,5 @@ class MklSplit : public MklKernelWithoutConfig {
         }
     }
 };
-REGISTER_KERNEL(Device::INTELCPU, OpType::Split, DataType::Float32, MklSplit,
-                "Split_Mkl_Float32");
+REGISTER_KERNEL(Device::INTELCPU, OpType::Split, MklSplit, "Split_Mkl");
 }; // namespace infini

@@ -8,6 +8,7 @@ class poolingCudnn : public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<PoolingObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         void *const inData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const outData = (op->getOutput()->getRawDataPtr<void *>());
@@ -76,8 +77,9 @@ class avgPoolCudnn : public poolingCudnn {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::MaxPool, DataType::Float32, maxPoolCudnn,
-                "MaxPool_cuDNN_CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::AveragePool, DataType::Float32,
-                avgPoolCudnn, "AvgPool_cuDNN_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::MaxPool, maxPoolCudnn,
+                "MaxPool_cuDNN_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::AveragePool, avgPoolCudnn,
+                "AvgPool_cuDNN_CUDA");
+
 }; // namespace infini

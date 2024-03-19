@@ -3,6 +3,8 @@
 #include "xpu/runtime_ex.h"
 #include "xpu/xdnn.h"
 
+namespace xdnn = baidu::xpu::api;
+
 #define checkKUNLUNError(call)                                                 \
     {                                                                          \
         auto err = call;                                                       \

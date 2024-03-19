@@ -37,25 +37,26 @@ class MatmulCnnl : public BangKernelWithoutConfig {
         int32_t transB = op->getTransB();
 
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(
-            cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT,
-                                    dimInputs0.size(), dimInputs0.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            aDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            dimInputs0.size(), dimInputs0.data()));
 
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
-        checkCnnlError(
-            cnnlSetTensorDescriptor(bDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT,
-                                    dimInputs1.size(), dimInputs1.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            bDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            dimInputs1.size(), dimInputs1.data()));
 
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
-        checkCnnlError(
-            cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT,
-                                    dimOutput.size(), dimOutput.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            cDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            dimOutput.size(), dimOutput.data()));
 
         if (input_num > 2) {
             checkCnnlError(cnnlCreateTensorDescriptor(&biasDesc));
-            checkCnnlError(cnnlSetTensorDescriptor(
-                biasDesc, CNNL_LAYOUT_ARRAY, CNNL_DTYPE_FLOAT, dimBias.size(),
-                dimBias.data()));
+            checkCnnlError(
+                cnnlSetTensorDescriptor(biasDesc, CNNL_LAYOUT_ARRAY,
+                                        cnnlDataTypeConvert(op->getDType()),
+                                        dimBias.size(), dimBias.data()));
         }
 
         cnnlMatMulDescriptor_t bmm_desc;
@@ -107,6 +108,5 @@ class MatmulCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::MatMul, DataType::Float32, MatmulCnnl,
-                "Matmul_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::MatMul, MatmulCnnl, "Matmul_cnnl_BANG");
 }; // namespace infini

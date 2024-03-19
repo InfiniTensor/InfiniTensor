@@ -39,10 +39,8 @@ class SliceCuda : private PadSliceCudaCompute, public CudaKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Slice, DataType::Float32, SliceCuda,
-                "Slice__CUDA_Float32");
-REGISTER_KERNEL(Device::CUDA, OpType::Slice, DataType::Int64, SliceCuda,
-                "Slice__CUDA_Int64");
-REGISTER_KERNEL(Device::CUDA, OpType::Pad, DataType::Float32, PadCuda,
-                "Pad__CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Slice, SliceCuda, "Slice__CUDA");
+
+REGISTER_KERNEL(Device::CUDA, OpType::Pad, PadCuda, "Pad__CUDA");
+
 } // namespace infini

@@ -20,8 +20,9 @@ class ConvTransCnnl : public BangKernelWithoutConfig {
 
         cnnlConvolutionDescriptor_t convDesc;
         checkCnnlError(cnnlCreateConvolutionDescriptor(&convDesc));
-        checkCnnlError(cnnlSetConvolutionDescriptor(
-            convDesc, 4, pad, stride, dilation, g, CNNL_DTYPE_FLOAT));
+        checkCnnlError(
+            cnnlSetConvolutionDescriptor(convDesc, 4, pad, stride, dilation, g,
+                                         cnnlDataTypeConvert(op->getDType())));
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
@@ -42,14 +43,17 @@ class ConvTransCnnl : public BangKernelWithoutConfig {
         // get inputs
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            aDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, dimInputs0.data()));
+            aDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()), 4,
+            dimInputs0.data()));
         checkCnnlError(cnnlCreateTensorDescriptor(&bDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            bDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, dimInputs1.data()));
+            bDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()), 4,
+            dimInputs1.data()));
         // get outputs
         checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
-            cDesc, CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT, 4, dimOutput.data()));
+            cDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()), 4,
+            dimOutput.data()));
 
         cnnlConvolutionBwdDataAlgo_t algo;
         cnnlGetConvolutionBackwardDataAlgorithm(
@@ -76,6 +80,6 @@ class ConvTransCnnl : public BangKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::BANG, OpType::ConvTranspose, DataType::Float32,
-                ConvTransCnnl, "ConvTrans_cnnl_BANG_Float32");
+REGISTER_KERNEL(Device::BANG, OpType::ConvTranspose, ConvTransCnnl,
+                "ConvTrans_cnnl_BANG");
 }; // namespace infini
