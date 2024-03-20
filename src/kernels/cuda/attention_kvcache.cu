@@ -5,11 +5,12 @@
 #define SEQ_UNIT 8
 
 // ASSUME SEQ_LEN OF Q IS 1
-__global__ void _attention_kvcache_kernel_128_1(float* input_k_cache,
-                                              float* input_v_cache, 
-                                              float* input_q, 
-                                              float* input_k, 
-                                              float* input_v, 
+template <class T>
+__global__ void _attention_kvcache_kernel_128_1(T* input_k_cache,
+                                              T* input_v_cache, 
+                                              T* input_q, 
+                                              T* input_k, 
+                                              T* input_v, 
                                               int* position_id,
                                               AttentionKVCacheMetadata compMeta,
                                               half* output_O_temp,
@@ -35,11 +36,19 @@ __global__ void _attention_kvcache_kernel_128_1(float* input_k_cache,
     float ptr_O[4] = {0};
     float ptr_sum[1] = {0};
     float temp[4];
+    bool is_fp16 = sizeof(T) == 2 ? true : false;
 
     // readin Q
-    (float4 &)temp[0] = (float4 &)input_q[lane_id_x4 + (parallel_idx * 128)];
-    for(int i = 0; i < 4; i += 2){
-        *((half2*)(&ptr_Q[i])) = __float22half2_rn(*((float2*)(&temp[i])));
+    if(!is_fp16){
+        (float4 &)temp[0] = (float4 &)input_q[lane_id_x4 + (parallel_idx * 128)];
+        for(int i = 0; i < 4; i += 2){
+            *((half2*)(&ptr_Q[i])) = __float22half2_rn(*((float2*)(&temp[i])));
+        }
+    }
+    else{
+        for(int i = 0; i < 4; i += 2){
+            (half2 &)ptr_Q[i] = (half2 &)input_q[lane_id_x4 + i + (parallel_idx * 128)];
+        }
     }
     int common_idx = lane_id_x4 + (parallel_idx * compMeta.stride[1]);
     int idx_kv = lane_id_x4 + parallel_idx * compMeta.stride[2];
@@ -52,9 +61,16 @@ __global__ void _attention_kvcache_kernel_128_1(float* input_k_cache,
             *((int2*)(&ptr_K[0])) = *((int2*)(&((half*)input_k_cache)[idx_kvcache]));       
         }
         else{
-            (float4 &)temp[0] = (float4 &) input_k[idx_kv];
-            for(int i = 0; i < 4; i += 2)
-                *((half2*)(&ptr_K[i])) = __float22half2_rn(*((float2*)(&temp[i])));
+            if(!is_fp16){
+                (float4 &)temp[0] = (float4 &) input_k[idx_kv];
+                for(int i = 0; i < 4; i += 2)
+                    *((half2*)(&ptr_K[i])) = __float22half2_rn(*((float2*)(&temp[i])));
+            }
+            else{
+                for(int i = 0; i < 4; i += 2){
+                    (half2 &)ptr_K[i] = (half2 &)input_k[lane_id_x4 + i + (parallel_idx * 128)];
+                }
+            }
             *((int2*)(&((half*)input_k_cache)[idx_kvcache])) = *((int2*)(&ptr_K[0]));
         }
         // * V
@@ -62,9 +78,16 @@ __global__ void _attention_kvcache_kernel_128_1(float* input_k_cache,
             *((int2*)(&ptr_V[0])) = *((int2*)(&((half*)input_v_cache)[idx_kvcache]));  
         }
         else{
-            (float4 &)temp[0] = (float4 &) input_v[idx_kv];
-            for(int i = 0; i < 4; i += 2)
-                *((half2*)(&ptr_V[i])) = __float22half2_rn(*((float2*)(&temp[i])));
+            if(!is_fp16){
+                (float4 &)temp[0] = (float4 &) input_v[idx_kv];
+                for(int i = 0; i < 4; i += 2)
+                    *((half2*)(&ptr_V[i])) = __float22half2_rn(*((float2*)(&temp[i])));
+            }
+            else{
+                for(int i = 0; i < 4; i += 2){
+                    (half2 &)ptr_V[i] = (half2 &)input_v[lane_id_x4 + i + (parallel_idx * 128)];
+                }
+            }
             *((int2*)(&((half*)input_v_cache)[idx_kvcache])) = *((int2*)(&ptr_V[0]));
         }
         
@@ -103,8 +126,9 @@ __global__ void _attention_kvcache_kernel_128_1(float* input_k_cache,
 
 }
 
+template <class T>
 __global__ void _attention_kvcache_kernel_128_2(int* position_id,
-                                              float* output_matmul,
+                                              T* output_matmul,
                                               AttentionKVCacheMetadata compMeta,
                                               half* output_O_temp,
                                               float* output_sum_temp) {
@@ -117,6 +141,7 @@ __global__ void _attention_kvcache_kernel_128_2(int* position_id,
     float ptr_sum = 0;
     float ptr_sum_temp;
     int size = (position_id[0] + SEQ_UNIT) / SEQ_UNIT;
+    bool is_fp16 = sizeof(T) == 2 ? true : false;
 
     if(size > 1){
         #pragma unroll
@@ -136,38 +161,64 @@ __global__ void _attention_kvcache_kernel_128_2(int* position_id,
         for(int k = 0; k < 4; k ++)
             ptr_O_sum[k] = ptr_O_sum[k] / ptr_sum; 
         
-        for(int j = 0; j < 4; j += 2)
-            (float2 &)output_matmul[lane_id_x2 + j*32 + (parallel_idx * compMeta.dimSize[3])] = (float2 &)ptr_O_sum[j];
+        if(!is_fp16){
+            for(int j = 0; j < 4; j += 2)
+                (float2 &)output_matmul[lane_id_x2 + j*32 + (parallel_idx * compMeta.dimSize[3])] = (float2 &)ptr_O_sum[j];
+        }
+        else{
+            for(int j = 0; j < 4; j += 2)
+                (half2 &)output_matmul[lane_id_x2 + j*32 + (parallel_idx * compMeta.dimSize[3])] = __float22half2_rn((float2 &)ptr_O_sum[j]);
+        }
     }
     else{
-        for(int i = 0; i < 4; i += 2)
-            (float2 &)output_matmul[(lane_id_x2 + i*32) + (parallel_idx * compMeta.dimSize[3])] 
-                = __half22float2((half2 &)output_O_temp[(lane_id_x2 + i*32) + parallel_idx * compMeta.dimSize[3]]);
+        if(!is_fp16){
+            for(int i = 0; i < 4; i += 2)
+                (float2 &)output_matmul[(lane_id_x2 + i*32) + (parallel_idx * compMeta.dimSize[3])] 
+                    = __half22float2((half2 &)output_O_temp[(lane_id_x2 + i*32) + parallel_idx * compMeta.dimSize[3]]);
+        }
+        else{
+            for(int i = 0; i < 4; i += 2)
+                (half2 &)output_matmul[(lane_id_x2 + i*32) + (parallel_idx * compMeta.dimSize[3])] 
+                    = (half2 &)output_O_temp[(lane_id_x2 + i*32) + parallel_idx * compMeta.dimSize[3]];
+        }
     }
 }
 
 
 namespace infini {
-void attention_kvcache_kernel(float *input_k_cache, float *input_v_cache, 
-                          float *input_q, float *input_k,
-                          float *input_v, int *position_id, float *output_matmul, 
+void attention_kvcache_kernel(int dType, void *input_k_cache, void *input_v_cache, 
+                          void *input_q, void *input_k,
+                          void *input_v, int *position_id, void *output_matmul, 
                           const AttentionKVCacheMetadata &compMeta,
                           float *output_O_temp, float *output_sum_temp) {
-    IT_ASSERT(compMeta.dimSize[3] == 128);
+    IT_ASSERT(compMeta.dimSize[3] == 128 && (dType == 1 || dType == 10));
 
     int gridsize_y = (compMeta.dimSize[2] - 1 + SEQ_UNIT) / SEQ_UNIT;
     dim3 gridDim(compMeta.dimSize[0]*compMeta.dimSize[1]/(BLOCKSIZE/WARP_SIZE), gridsize_y);
     dim3 blockDim(BLOCKSIZE, 1);
 
-    _attention_kvcache_kernel_128_1
-        <<<gridDim, blockDim, 0, CUDAStream::getCurrentStream()>>>
-        (input_k_cache, input_v_cache, input_q, input_k, input_v, position_id,
-        compMeta, (half*)output_O_temp, output_sum_temp);
+    if(dType == 1){
+        _attention_kvcache_kernel_128_1<float>
+            <<<gridDim, blockDim, 0, CUDAStream::getCurrentStream()>>>
+            ((float*)input_k_cache, (float*)input_v_cache, (float*)input_q, (float*)input_k, (float*)input_v, 
+            position_id, compMeta, (half*)output_O_temp, output_sum_temp);
 
-    _attention_kvcache_kernel_128_2
-        <<<compMeta.dimSize[0]*compMeta.dimSize[1], WARP_SIZE,
-        0, CUDAStream::getCurrentStream()>>>
-        (position_id, output_matmul, compMeta, (half*)output_O_temp, output_sum_temp);
+        _attention_kvcache_kernel_128_2<float>
+            <<<compMeta.dimSize[0]*compMeta.dimSize[1], WARP_SIZE,
+            0, CUDAStream::getCurrentStream()>>>
+            (position_id, (float*)output_matmul, compMeta, (half*)output_O_temp, output_sum_temp);
+    }
+    else{
+        _attention_kvcache_kernel_128_1<half>
+            <<<gridDim, blockDim, 0, CUDAStream::getCurrentStream()>>>
+            ((half*)input_k_cache, (half*)input_v_cache, (half*)input_q, (half*)input_k, (half*)input_v, 
+            position_id, compMeta, (half*)output_O_temp, output_sum_temp);
+
+        _attention_kvcache_kernel_128_2<half>
+            <<<compMeta.dimSize[0]*compMeta.dimSize[1], WARP_SIZE,
+            0, CUDAStream::getCurrentStream()>>>
+            (position_id, (half*)output_matmul, compMeta, (half*)output_O_temp, output_sum_temp);
+    }
 }
 
 } // namespace infini

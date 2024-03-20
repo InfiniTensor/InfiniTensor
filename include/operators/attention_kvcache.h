@@ -30,6 +30,10 @@ class AttentionKVCacheObj : public OperatorObj {
     OP_CLONE(AttentionKVCacheObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
+    vector<DataType> inferDataType(const TensorVec &inputs) const override {
+        return {inputs[2]->getDType()};
+    };
+    DataType getDType() const { return getInputs(2)->getDType(); }
 
     std::string toString() const override;
     int numInputs() const override { return 6; }

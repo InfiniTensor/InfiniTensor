@@ -8,9 +8,10 @@ struct AttentionKVCacheMetadata {
 };
 
 namespace infini {
-void attention_kvcache_kernel(float *input_k_cache, float *input_v_cache,
-                              float *input_q, float *input_k, float *input_v,
-                              int *position_id, float *output_matmul,
+void attention_kvcache_kernel(int dType, void *input_k_cache,
+                              void *input_v_cache, void *input_q, void *input_k,
+                              void *input_v, int *position_id,
+                              void *output_matmul,
                               const AttentionKVCacheMetadata &compMeta,
                               float *output_O_temp, float *output_sum_temp);
 
