@@ -8,7 +8,7 @@
 
 ## 环境准备
 
-1. 确认安装 Visual Stuio 2022，安装时选择“使用 C++ 的桌面开发”。
+1. 确认安装 Visual Stuio 2019，安装时选择“使用 C++ 的桌面开发”。
 
    - [Visual Studio 下载](https://visualstudio.microsoft.com/zh-hans/downloads/)
 
@@ -60,12 +60,12 @@
 ## 编译本项目
 
 
-1. 运行 VS 工具集环境，在“开始”菜单中，打开 `Visual Studio 2022` -> `x64 Native Tools Command Prompt for VS 2022`。
+1. 运行 VS 工具集环境，在“开始”菜单中，打开 `Visual Studio 2019` -> `x64 Native Tools Command Prompt for VS 2019`。
 
-   如未找到上述快捷方式，可自行打开命令提示符（CMD），运行工具集脚本。例如，Visual Stuio 安装在 `C:\Program Files (x86)\Microsoft Visual Studio\2022\Professional`，可执行以下命令：
+   如未找到上述快捷方式，可自行打开命令提示符（CMD），运行工具集脚本。例如，Visual Stuio 安装在 `C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional`，可执行以下命令：
 
    ```bash
-   C:\Program Files (x86)\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvars64.bat
+   C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Auxiliary\Build\vcvars64.bat
    ```
 
    工具集相关内容可参考文档[通过命令行使用 Microsoft C++ 工具集](https://learn.microsoft.com/zh-cn/cpp/build/building-on-the-command-line?view=msvc-170)。
