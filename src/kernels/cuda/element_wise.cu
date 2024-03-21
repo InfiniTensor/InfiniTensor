@@ -177,7 +177,105 @@ __global__ void _less_kernel(void *x, void *y, void *z, int a0, int a1, int a2,
         IT_TODO_HALT();                                                        \
     }
 
+template <class T>
+__global__ void _div_const_kernel(void *x, void *y, void *z, const size_t n) {
+    __shared__ T share_y;
+    if (threadIdx.x == 0) {
+        share_y = *((T *)y);
+    }
+    __syncthreads();
+
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid < n) {
+        ((T *)z)[tid] = ((T *)x)[tid] / share_y;
+    }
+}
+
+template <class T>
+__global__ void _pow_const_kernel(void *x, void *y, void *z, const size_t n) {
+    __shared__ T share_y;
+    if (threadIdx.x == 0) {
+        share_y = *((T *)y);
+    }
+    __syncthreads();
+
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid < n) {
+        ((T *)z)[tid] = pow(((T *)x)[tid], share_y);
+    }
+}
+template <>
+__global__ void _pow_const_kernel<half>(void *x, void *y, void *z,
+                                        const size_t n) {
+    __shared__ float share_y;
+    if (threadIdx.x == 0) {
+        share_y = *((half *)y);
+    }
+    __syncthreads();
+
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid < n) {
+        ((half *)z)[tid] = pow(((float)((half *)x)[tid]), share_y);
+    }
+}
+
+#define CASE_CONST(OP, T)                                                      \
+    _##OP##_const_kernel<DT_CUDA<T>::t>                                        \
+        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(a, b, c,  \
+                                                                     n);
+
+#define SWITCH_DTYPE_CONST(OP, DTYPE)                                          \
+    switch (DTYPE) {                                                           \
+    case 1:                                                                    \
+        CASE_CONST(OP, 1)                                                      \
+        break;                                                                 \
+    case 2:                                                                    \
+        CASE_CONST(OP, 2)                                                      \
+        break;                                                                 \
+    case 3:                                                                    \
+        CASE_CONST(OP, 3)                                                      \
+        break;                                                                 \
+    case 4:                                                                    \
+        CASE_CONST(OP, 4)                                                      \
+        break;                                                                 \
+    case 5:                                                                    \
+        CASE_CONST(OP, 5)                                                      \
+        break;                                                                 \
+    case 6:                                                                    \
+        CASE_CONST(OP, 6)                                                      \
+        break;                                                                 \
+    case 7:                                                                    \
+        CASE_CONST(OP, 7)                                                      \
+        break;                                                                 \
+    case 10:                                                                   \
+        CASE_CONST(OP, 10)                                                     \
+        break;                                                                 \
+    case 11:                                                                   \
+        CASE_CONST(OP, 11)                                                     \
+        break;                                                                 \
+    case 12:                                                                   \
+        CASE_CONST(OP, 12)                                                     \
+        break;                                                                 \
+    case 13:                                                                   \
+        CASE_CONST(OP, 13)                                                     \
+        break;                                                                 \
+    default:                                                                   \
+        IT_TODO_HALT();                                                        \
+    }
+
 namespace infini {
+void div_const_kernel(int dType, void *a, void *b, void *c, size_t n) {
+    size_t blocksize = block_work_size();
+    size_t gridsize = (n + block_work_size() - 1) / block_work_size();
+    SWITCH_DTYPE_CONST(div, dType);
+}
+
+void pow_const_kernel(int dType, void *a, void *b, void *c, size_t n) {
+    size_t blocksize = block_work_size();
+    size_t gridsize = (n + block_work_size() - 1) / block_work_size();
+    SWITCH_DTYPE_CONST(pow, dType);
+}
+
 void div_kernel(int dType, void *a, void *b, void *c, int a0, int a1, int a2,
                 int a3, int b0, int b1, int b2, int b3, int c0, int c1, int c2,
                 int c3) {

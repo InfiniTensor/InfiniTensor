@@ -115,6 +115,20 @@ class ElementWiseCuda : public CudaKernelWithoutConfig {
         auto a_dim = op->getInputs(0)->getDims();
         auto b_dim = op->getInputs(1)->getDims();
         auto c_dim = op->getOutput()->getDims();
+        const int dType = _op->getDType().getIndex();
+
+        // 若b为常数，则使用特殊kernel
+        if (b_dim.size() == 0) {
+            if (op->getOpType() == OpType::Div) {
+                div_const_kernel(dType, aData, bData, cData,
+                                 op->getOutput()->size());
+                return;
+            } else if (op->getOpType() == OpType::Pow) {
+                pow_const_kernel(dType, aData, bData, cData,
+                                 op->getOutput()->size());
+                return;
+            }
+        }
 
         if (a_dim.size() > 4 || b_dim.size() > 4 || c_dim.size() > 4)
             IT_TODO_HALT();
@@ -127,7 +141,6 @@ class ElementWiseCuda : public CudaKernelWithoutConfig {
         std::copy(b_dim.begin(), b_dim.end(), b + (4 - b_dim.size()));
         std::copy(c_dim.begin(), c_dim.end(), c + (4 - c_dim.size()));
 
-        const int dType = _op->getDType().getIndex();
         if (op->getOpType() == OpType::Div) {
             div_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
                        b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
