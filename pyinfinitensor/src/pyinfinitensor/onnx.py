@@ -23,12 +23,13 @@ from onnx.checker import (
     ValidationError,
 )
 from onnx.shape_inference import infer_shapes
-from onnx.numpy_helper import to_array
+from onnx.numpy_helper import to_array, from_array
 from typing import Dict, List, Any, Tuple, Sequence, Union, Optional
 from functools import reduce
 from onnxsim import simplify
 import copy
 import warnings
+import numpy as np
 
 
 class OnnxStub:
@@ -933,6 +934,25 @@ class OnnxStub:
                     tensors.get(node.output[0]),
                 )
             elif node.op_type == "Where":
+                ## If Y is single -inf, treat Where as Add 
+                ## TODO: deal with cases where Y is single inf or 0
+                if node.input[0] in data and node.input[2] in data:
+                    where_condition = to_array(data[node.input[0]])
+                    where_alt =  to_array(data[node.input[2]])
+                    if where_alt.size == 1:
+                        if np.isneginf(where_alt) or np.all(where_alt < -3e38):
+                            node.input[0] = node.input[0] + "_alt"
+                            if node.input[0] not in data:
+                                where_value = np.where(where_condition, 0, -np.inf).astype(where_alt.dtype)
+                                data[node.input[0]] = from_array(where_value, node.input[0])
+                                tensors[node.input[0]] = self.handler.tensor(list(where_value.shape), data[node.input[0]].data_type)
+                                tensors[node.input[0]].set_weight()
+                            tensors[node.output[0]] = self.handler.add(
+                                tensors[node.input[1]],
+                                tensors[node.input[0]],
+                                tensors.get(node.output[0]),
+                            )
+                            continue
                 tensors[node.output[0]] = self.handler.where(
                     tensors[node.input[1]],
                     tensors[node.input[2]],
