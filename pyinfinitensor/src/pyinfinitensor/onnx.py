@@ -106,12 +106,6 @@ class OnnxStub:
                 )
                 tensors[input.name].set_input()
 
-        for output in model.graph.output:
-            dims = _take_shape_dim(output.type.tensor_type.shape)
-            tensors[output.name] = self.handler.tensor(
-                dims, output.type.tensor_type.elem_type
-            )
-            tensors[output.name].set_output()
 
         for node_idx in sorted_nodes:
             node = model.graph.node[node_idx]
@@ -986,6 +980,8 @@ class OnnxStub:
             else:
                 raise Exception('Unsupported operator "{}"'.format(node.op_type))
 
+        for output in model.graph.output:
+            tensors[output.name].set_output()
         ################################
         # Allocate memory space for data
         ################################

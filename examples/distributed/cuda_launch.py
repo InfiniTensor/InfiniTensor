@@ -89,7 +89,7 @@ def start_worker(
         save_as_external_data=True,
         location=extern_path,
     )
-    infer_shapes_path(f"./{dist_name}_rank{rank}.onnx")
+    #infer_shapes_path(f"./{dist_name}_rank{rank}.onnx")
     runtime = backend.CudaRuntime(local_rank)
     # print("init comm")
     runtime.init_comm(
