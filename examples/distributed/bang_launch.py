@@ -4,29 +4,29 @@ import time
 import multiprocessing as mp
 from pyinfinitensor.onnx import OnnxStub, backend
 import onnx
+from onnx.external_data_helper import convert_model_to_external_data
 from onnx.shape_inference import infer_shapes_path
 import numpy as np
 from parallel_opt import parallel_model
+
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="launch distributed infinitensor")
     parser.add_argument("--num_nodes", type=int, default=1, help="number of nodes")
     parser.add_argument(
-        "--nproc_per_node", type=int, default=2, help="number of processes per node"
+        "--nproc_per_node", type=int, default=1, help="number of processes per node"
     )
     parser.add_argument(
         "--name", type=str, default="test", help="name of this instance."
     )
     parser.add_argument(
-        "--model", type=str, default="/data/onnx_models/llama2/llama_bs1_seq1024.onnx", 
-        help="path to the ONNX model file."
+        "--model", type=str, required=True, help="path to the ONNX model file."
     )
     parser.add_argument("--batch_size", type=int, default=1, help="batch size.")
     parser.add_argument("--length", type=int, default=1, help="sequence length.")
     parser.add_argument(
         "--gen_std",
-        default=False,
         action="store_true",
         help="whether to generate the standard results.",
     )
@@ -43,16 +43,18 @@ def parse_args():
     )
 
 
-def run_model(model, runtime, world_size=1, rank=0, n=10):
+def run_model(model, runtime, inputs, n=10):
     stub = OnnxStub(model, runtime)
-    load_inputs(stub, world_size, rank)
+    for tensor, input in zip(stub.inputs.values(), inputs, strict=False):
+        tensor.copyin_numpy(input)
     # stub.tune()
     stub.run()
     # get outputs
-    time.sleep(0.01)
     outputs = next(stub.outputs.values().__iter__()).copyout_numpy()
 
     # bench
+    for tensor, input in zip(stub.inputs.values(), inputs, strict=False):
+        tensor.copyin_numpy(input)
     begin = time.time()
     for _ in range(n):
         stub.run()
@@ -62,13 +64,13 @@ def run_model(model, runtime, world_size=1, rank=0, n=10):
     return outputs
 
 
-def run_and_compare(name, model, runtime, world_size=1, rank = 0):
-    results = np.load(f"./data/output.npy")
-    outputs = run_model(model, runtime, world_size, rank)
-    print("answer argmax:", np.argmax(results))
-    print("output argmax:", np.argmax(outputs))
-    #np.testing.assert_allclose(outputs, results, rtol=1e-3, atol=1e-3)
-    getDiff(results, outputs)
+def run_and_compare(name, model, runtime):
+    input_ids = np.load(f"{name}_inputs.npy")
+    position_ids = np.arange(input_ids.shape[-1])
+    results = np.load(f"{name}_results.npy")
+    outputs = run_model(model, runtime, (input_ids, position_ids))
+    print("outputs abs mean:", abs(outputs).mean())
+    print("max abs diff:", abs(outputs - results).max())
 
 
 def start_worker(
@@ -85,7 +87,7 @@ def start_worker(
         save_as_external_data=True,
         location=extern_path,
     )
-    infer_shapes_path(f"./{dist_name}_rank{rank}.onnx")
+    #infer_shapes_path(f"./{dist_name}_rank{rank}.onnx")
     runtime = backend.BangRuntime(local_rank)
     # print("init comm")
     runtime.init_comm(
@@ -93,7 +95,7 @@ def start_worker(
         world_size,
         rank,
     )
-    run_and_compare(name, model, runtime, world_size, rank)
+    run_and_compare(name, model, runtime)
 
 
 def start_single(name, model):
@@ -101,57 +103,15 @@ def start_single(name, model):
     run_and_compare(name, model, runtime)
 
 
-def generate_input_output(model):
-    os.makedirs(os.path.dirname("./data/"), exist_ok=True)
+def gen_standard(name, model, voc_size, bs, len):
+    # generate standard results
+    input_ids = np.random.randint(0, voc_size, (bs, len))
+    position_ids = np.arange(len)
+    np.save(f"{name}_inputs", input_ids)
     runtime = backend.BangRuntime(0)
-    stub = OnnxStub(model, runtime)
-    position_id = 0
-    for i, (name, tensor) in enumerate(stub.inputs.items()):
-        input = tensor.copyout_numpy()
-        if np.issubdtype(input.dtype, np.integer):
-            if input.size == 1:
-                # input = np.array([position_id])
-                input = np.random.randint(0,2,size=input.shape, dtype=input.dtype)
-            else:
-                input = np.random.randint(0,2,size=input.shape, dtype=input.dtype)
-        elif input.dtype == np.bool_:
-            input = np.random.randint(0,2,size=input.shape) > 0
-        else:
-            if i == 0:
-                input = np.ones(input.shape).astype(input.dtype)
-                position_id = input.shape[-1] - 1
-            else:
-                input = np.random.rand(*input.shape).astype(input.dtype)
-        tensor.copyin_numpy(input)
-        np.save(f"./data/input_{i}", input)
-    stub.run()
-    time.sleep(0.01)
-    output = next(stub.outputs.values().__iter__()).copyout_numpy()
-    if np.isnan(output).any():
-        print("Nan in output")
-    np.save(f"./data/output", output)
-
-
-def load_inputs(stub, world_size=1, rank=0):
-    for i, (name, tensor) in enumerate(stub.inputs.items()):
-        input = np.load(f"./data/input_{i}.npy")
-        if all(x == y for x,y in zip(input.shape,tensor.shape())):
-            tensor.copyin_numpy(input)
-        else:
-            tensor.copyin_numpy(np.hsplit(input, world_size)[rank])
-
-def getDiff(base, test):
-    absolute_diff = np.abs(np.subtract(base, test))
-    max_absolute_diff = np.max(absolute_diff)
-
-    baseCopy = base.astype(np.float64).ravel()
-    testCopy = test.astype(np.float64).ravel()
-    upValue = np.sum(np.abs(baseCopy - testCopy))
-    downValue = np.sum(np.abs(baseCopy)) + np.float64(1e-9)
-    max_relative_diff = upValue / downValue
-    print(f"Max absolute difference: {max_absolute_diff}\n"
-          f"Max relative difference: {max_relative_diff}")
-    return max_absolute_diff, max_relative_diff
+    outputs = run_model(model, runtime, (input_ids, position_ids), 1)
+    print("outputs abs mean:", abs(outputs).mean())
+    np.save(f"{name}_results", outputs)
 
 
 def main():
@@ -161,22 +121,24 @@ def main():
 
     # generate standart output
     if gen_std:
-        print("Generate inputs and outputs.")
-        p = mp.Process(target=generate_input_output, args=[model])
+        print(f"generate standard data for {name}.")
+        # a small vocabulary size to fit all LLM.
+        voc_size = 1000
+        gen_standard(name, model, voc_size, bs, length)
+        return
+
+    if nproc_per_node == 1:
+        # run single process.
+        # use standalone process to isolate bang.
+        print("run model by single MLU.")
+        p = mp.Process(target=start_single, args=(name, model))
         p.start()
         p.join()
         return
 
-    # run single process.
-    # use standalone process to isolate cuda.
-    print("run model by single MLU.")
-    p = mp.Process(target=start_single, args=(name, model))
-    p.start()
-    p.join()
-
     # run distributed parallel.
     world_size = nnodes * nproc_per_node
-    print(f"run model by {world_size} MLUs in parallel.")
+    print(f"run model by {world_size} MLU in parallel.")
     workers = [
         mp.Process(
             target=start_worker,
