@@ -22,7 +22,7 @@ class RoPECuda : public CudaKernelWithoutConfig {
         IT_ASSERT(nDims == 3 && pos->getDims().size() == 2);
         IT_ASSERT(inputShape[1] == pos->getDims()[1]);
         int dim_model = inputShape[2];
-        int dim_head = dim_model / 32;
+        int dim_head = 128;
         int hidden_stride = dim_model * inputShape[1];
         int pos_stride = inputShape[1];
 

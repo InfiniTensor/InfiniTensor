@@ -315,6 +315,8 @@ void unary_kernel(const Operator &_op) {
     } else if (op->getOpType() == OpType::Silu) {
         if (_op->getDType() == DataType::Float32) {
             silu_kernel<float>((float *)inputData, (float *)outputData, num);
+        } else if (_op->getDType() == DataType::Float16){
+            silu_kernel<half>((half *)inputData, (half *)outputData, num);
         } else {
             IT_TODO_HALT();
         }
