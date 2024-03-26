@@ -160,22 +160,12 @@ void expandRowKernel(int dType, void *input, void *output, int n_rows,
     // output: n_rows x (a x b x 32 x sizeT)
     // grid: n_rows x a
     // block: b x 32
-    int c = row_len / 32;
-    int a, b;
-    if (c <= 32) {
-        b = c;
-        a = 1;
-    } else {
-        for (auto i = 32; i > 0; i--) {
-            if (c % i == 0) {
-                b = i;
-                a = c / i;
-                break;
-            }
-        }
+    auto c = row_len / 32, b = c;
+    if (b > 32) {
+        for (b = 32; c % b != 0; --b);
     }
+    auto a = c / b;
     dim3 grid(a, n_rows), block(32, b);
-
     SWITCH_DTYPE_ROW(dType)
 }
 
