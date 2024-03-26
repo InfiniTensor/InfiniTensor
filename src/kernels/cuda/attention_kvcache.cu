@@ -107,13 +107,12 @@ __global__ void _attention_kvcache_kernel_128_1(T* input_k_cache,
             ptr_K[i] = ptr_Q[i] * ptr_K[i];
             #pragma unroll
             for (int offset = WARP_SIZE/2; offset > 0; offset /= 2) {
-                ptr_K[i] += __shfl_down_sync(0xffffffff, ptr_K[i], offset);
+                ptr_K[i] += __shfl_xor_sync(0xffffffff, ptr_K[i], offset);
             }
             ptr_P[idx_SEQ_UNIT] += __half2float(ptr_K[i]);
         }
 
         // div sqrt(d)
-        ptr_P[idx_SEQ_UNIT] = __shfl_sync(0xffffffff, ptr_P[idx_SEQ_UNIT], 0); 
         ptr_P[idx_SEQ_UNIT] /= sqrt(128.0);
 
         // softmax
