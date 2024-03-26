@@ -39,6 +39,16 @@ __global__ void _expandKernel(void *input, void *output, int nDims,
     }
 }
 
+template <class Tmem>
+static __global__ void _expandRowKernel(void *__restrict__ dst,
+                                        void const *__restrict__ src) {
+    auto // dn = gridDim.y, // useless
+        da = gridDim.x,
+        db = blockDim.y, dx = blockDim.x, n = blockIdx.y, a = blockIdx.x,
+        b = threadIdx.y, x = threadIdx.x;
+    auto i = ((n * da + a) * db + b) * dx + x, j = (a * db + b) * dx + x;
+    reinterpret_cast<Tmem *>(dst)[i] = reinterpret_cast<Tmem const *>(src)[j];
+}
 namespace infini {
 
 #define CASE(T)                                                                \
@@ -94,6 +104,79 @@ void expandKernel(int dType, void *input, void *output, int nDims,
     int blocksize = block_work_size();
     int gridsize = (outputsize + block_work_size() - 1) / block_work_size();
     SWITCH_DTYPE(dType)
+}
+
+#define CASE_ROW(T)                                                            \
+    _expandRowKernel<float>                                                    \
+        <<<grid, block, 0, CUDAStream::getCurrentStream()>>>(output, input);
+
+#define SWITCH_DTYPE_ROW(DTYPE)                                                \
+    switch (DTYPE) {                                                           \
+    case 1:                                                                    \
+        CASE_ROW(1)                                                            \
+        break;                                                                 \
+    case 2:                                                                    \
+        CASE_ROW(2)                                                            \
+        break;                                                                 \
+    case 3:                                                                    \
+        CASE_ROW(3)                                                            \
+        break;                                                                 \
+    case 4:                                                                    \
+        CASE_ROW(4)                                                            \
+        break;                                                                 \
+    case 5:                                                                    \
+        CASE_ROW(5)                                                            \
+        break;                                                                 \
+    case 6:                                                                    \
+        CASE_ROW(6)                                                            \
+        break;                                                                 \
+    case 7:                                                                    \
+        CASE_ROW(7)                                                            \
+        break;                                                                 \
+    case 10:                                                                   \
+        CASE_ROW(10)                                                           \
+        break;                                                                 \
+    case 11:                                                                   \
+        CASE_ROW(11)                                                           \
+        break;                                                                 \
+    case 12:                                                                   \
+        CASE_ROW(12)                                                           \
+        break;                                                                 \
+    case 13:                                                                   \
+        CASE_ROW(13)                                                           \
+        break;                                                                 \
+    case 16:                                                                   \
+        CASE_ROW(16)                                                           \
+        break;                                                                 \
+    default:                                                                   \
+        IT_TODO_HALT();                                                        \
+    }
+
+void expandRowKernel(int dType, void *input, void *output, int n_rows,
+                     int row_len) {
+    // 假定行长度row_len为32的倍数
+    // 对于row_len做分解：row_len = a x b x 32, 32为warp大小，b<=32
+    // input: 1 x (a x b x 32 x sizeT)
+    // output: n_rows x (a x b x 32 x sizeT)
+    // grid: n_rows x a
+    // block: b x 32
+    int c = row_len / 32;
+    int a, b;
+    if (c <= 32) {
+        b = c;
+        a = 1;
+    } else {
+        for (auto i = 32; i > 0; i--) {
+            if (c % i == 0) {
+                b = i;
+                a = c / i;
+                break;
+            }
+        }
+    }
+    dim3 grid(a, n_rows), block(32, b);
+
+    SWITCH_DTYPE_ROW(dType)
 }
 
 } // namespace infini
