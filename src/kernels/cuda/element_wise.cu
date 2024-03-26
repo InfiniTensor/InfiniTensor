@@ -132,8 +132,8 @@ __global__ void _less_kernel(void *x, void *y, void *z, int a0, int a1, int a2,
 
 #define CASE(OP, T)                                                            \
     _##OP##_kernel<DT_CUDA<T>::t>                                              \
-        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>           \
-        (a, b, c, a0, a1, a2, a3, b0, b1, b2, b3, c0, c1, c2, c3);
+        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(          \
+            a, b, c, a0, a1, a2, a3, b0, b1, b2, b3, c0, c1, c2, c3);
 
 #define SWITCH_DTYPE(OP, DTYPE)                                                \
     switch (DTYPE) {                                                           \
@@ -178,44 +178,31 @@ __global__ void _less_kernel(void *x, void *y, void *z, int a0, int a1, int a2,
     }
 
 template <class T>
-__global__ void _div_const_kernel(void *x, void *y, void *z, const size_t n) {
-    __shared__ T share_y;
-    if (threadIdx.x == 0) {
-        share_y = *((T *)y);
-    }
-    __syncthreads();
-
+__global__ void _div_const_kernel(void const *__restrict__ x,
+                                  void const *__restrict__ y,
+                                  void *__restrict__ z, const size_t n) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     if (tid < n) {
-        ((T *)z)[tid] = ((T *)x)[tid] / share_y;
+        ((T *)z)[tid] = ((T *)x)[tid] / *((T *)y);
     }
 }
 
 template <class T>
-__global__ void _pow_const_kernel(void *x, void *y, void *z, const size_t n) {
-    __shared__ T share_y;
-    if (threadIdx.x == 0) {
-        share_y = *((T *)y);
-    }
-    __syncthreads();
-
+__global__ void _pow_const_kernel(void const *__restrict__ x,
+                                  void const *__restrict__ y,
+                                  void *__restrict__ z, const size_t n) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     if (tid < n) {
-        ((T *)z)[tid] = pow(((T *)x)[tid], share_y);
+        ((T *)z)[tid] = pow(((T *)x)[tid], *((T *)y));
     }
 }
 template <>
-__global__ void _pow_const_kernel<half>(void *x, void *y, void *z,
-                                        const size_t n) {
-    __shared__ float share_y;
-    if (threadIdx.x == 0) {
-        share_y = *((half *)y);
-    }
-    __syncthreads();
-
+__global__ void _pow_const_kernel<half>(void const *__restrict__ x,
+                                        void const *__restrict__ y,
+                                        void *__restrict__ z, const size_t n) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     if (tid < n) {
-        ((half *)z)[tid] = pow(((float)((half *)x)[tid]), share_y);
+        ((half *)z)[tid] = pow(((float)((half *)x)[tid]), *((half *)y));
     }
 }
 
@@ -302,12 +289,12 @@ void pow_kernel(int dType, void *a, void *b, void *c, int a0, int a1, int a2,
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     if (dType == 1) {
         _pow_kernel<float>
-            <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
-            (a, b, c, a0, a1, a2, a3, b0, b1, b2, b3, c0, c1, c2, c3);
+            <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+                a, b, c, a0, a1, a2, a3, b0, b1, b2, b3, c0, c1, c2, c3);
     } else if (dType == 3) {
         _pow_kernel<int8_t>
-            <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
-            (a, b, c, a0, a1, a2, a3, b0, b1, b2, b3, c0, c1, c2, c3);
+            <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+                a, b, c, a0, a1, a2, a3, b0, b1, b2, b3, c0, c1, c2, c3);
     } else if (dType == 10) {
         int a_size = a0 * a1 * a2 * a3;
         int b_size = b0 * b1 * b2 * b3;
@@ -322,9 +309,9 @@ void pow_kernel(int dType, void *a, void *b, void *c, int a0, int a1, int a2,
             b_float[i] = __half2float(((half *)b)[i]);
         }
         _pow_kernel<float>
-            <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
-            (a_float.data(), b_float.data(), c_float.data(), a0, a1, a2, a3, b0,
-            b1, b2, b3, c0, c1, c2, c3);
+            <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+                a_float.data(), b_float.data(), c_float.data(), a0, a1, a2, a3,
+                b0, b1, b2, b3, c0, c1, c2, c3);
         for (int i = 0; i < c_size; ++i) {
             ((half *)c)[i] = __float2half(c_float[i]);
         }
