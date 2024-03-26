@@ -5,10 +5,11 @@
 namespace infini {
 
 MatmulObj::MatmulObj(GraphObj *graph, Tensor A, Tensor B, Tensor C, bool transA,
-                     bool transB, [[maybe_unused]] Tensor bias, ActType act)
+                     bool transB, [[maybe_unused]] Tensor bias, ActType act,
+                     std::string computeType)
     : OperatorObj(OpType::MatMul,
                   bias ? TensorVec{A, B, bias} : TensorVec{A, B}, {C}),
-      transA(transA), transB(transB), act(act), b(1) {
+      transA(transA), transB(transB), act(act), b(1), computeType(computeType) {
     IT_ASSERT(checkValid(graph));
 }
 
@@ -17,7 +18,8 @@ string MatmulObj::toString() const {
     os << "Matmul([" << (transA ? "A^T" : "A") << "," << (transB ? "B^T" : "B")
        << ",act=" << enum_to_underlying(act) << "],A=" << inputs[0]->getGuid()
        << ",B=" << inputs[1]->getGuid() << ",C=" << outputs[0]->getGuid()
-       << ",bmnk=[" << b << "," << m << "," << n << "," << k << "])";
+       << ",bmnk=[" << b << "," << m << "," << n << "," << k << "])"
+       << ",computeType=" << computeType;
     return os.str();
 }
 
