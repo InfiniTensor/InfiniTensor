@@ -37,7 +37,13 @@ class OnnxStub:
     It can be generated from an Onnx model object.
     """
 
-    def __init__(self, model: ModelProto, runtime, use_naive_allocator: bool = False):
+    def __init__(
+        self,
+        model: ModelProto,
+        runtime,
+        use_naive_allocator: bool = False,
+        matmul_compute_type: str = "default",
+    ):
         # We use some user-defined operators for distributed inference
         # try:
         #     # onnx simplifier performs inplace simplify
@@ -215,6 +221,7 @@ class OnnxStub:
                     False,
                     None,
                     backend.ActType.Linear,
+                    matmul_compute_type,
                 )
             elif node.op_type == "Gemm":
                 attributes = _parse_attribute(
@@ -234,6 +241,7 @@ class OnnxStub:
                     transB == 1,
                     tensors[node.input[2]] if len(node.input) > 2 else None,
                     backend.ActType.Linear,
+                    matmul_compute_type,
                 )
             elif node.op_type == "BatchNormalization":
                 (input, mean, var, scale, bias) = (
@@ -624,7 +632,7 @@ class OnnxStub:
                     keep_aspect_ratio_policy,
                     nearest_mode,
                     coordinate_transformation_mode,
-                )                
+                )
             elif node.op_type == "Squeeze":
                 axes = (
                     _parse_data(data[node.input[1]])
@@ -968,7 +976,7 @@ class OnnxStub:
                     beta,
                     bias,
                     size,
-                )                
+                )
             else:
                 raise Exception('Unsupported operator "{}"'.format(node.op_type))
 
@@ -1253,7 +1261,7 @@ class OnnxStub:
                         axes,
                     )
                 )
-                ctx.push_node(make_node(ty.name, inputs, outputs, name))                
+                ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Concat:
                 axis = backend.concat_axis_of(op)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, axis=axis))

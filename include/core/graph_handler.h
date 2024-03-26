@@ -30,7 +30,8 @@ class GraphHandlerObj {
                             int pw, int sh, int sw, int dh, int dw, int oph,
                             int opw);
     Tensor matmul(Tensor a, Tensor b, Tensor y, bool transA, bool transB,
-                  Tensor bias, ActType act);
+                  Tensor bias, ActType act,
+                  std::string matmul_compute_type = "default");
     Tensor batchNormalization(Tensor input, Tensor output, Tensor mean,
                               Tensor var, Tensor scale, Tensor bias,
                               float momentum, float eps, bool training);
