@@ -45,15 +45,15 @@ class OnnxStub:
         matmul_compute_type: str = "default",
     ):
         # We use some user-defined operators for distributed inference
-        # try:
-        #     # onnx simplifier performs inplace simplify
-        #     model_simp, check = simplify(copy.deepcopy(model))
-        #     if check:
-        #         model = model_simp
-        # except ValidationError:
-        #     pass
-        # except RuntimeError:
-        #     pass
+        try:
+            # onnx simplifier performs inplace simplify
+            model_simp, check = simplify(copy.deepcopy(model))
+            if check:
+                model = model_simp
+        except ValidationError:
+            pass
+        except RuntimeError:
+            pass
 
         self.inputs: Dict[str, backend.Tensor] = {}
         self.outputs: Dict[str, backend.Tensor] = {}
