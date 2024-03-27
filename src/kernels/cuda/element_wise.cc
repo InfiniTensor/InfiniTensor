@@ -138,7 +138,7 @@ class ElementWiseCuda : public CudaKernelWithoutConfig {
         std::copy(b_dim.begin(), b_dim.end(), b + (4 - b_dim.size()));
         std::copy(c_dim.begin(), c_dim.end(), c + (4 - c_dim.size()));
 
-                if (op->getOpType() == OpType::Div) {
+        if (op->getOpType() == OpType::Div) {
             div_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
                        b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
         } else if (op->getOpType() == OpType::Add) {

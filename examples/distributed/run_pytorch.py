@@ -12,10 +12,18 @@ from onnxsim import simplify
 
 torch.backends.cuda.matmul.allow_tf32 = False
 torch.backends.cudnn.allow_tf32 = False
+
+
 def parse_args():
-    parser = argparse.ArgumentParser(description="Run pytorch gpt2/bert/opt and optionally export onnx.")
+    parser = argparse.ArgumentParser(
+        description="Run pytorch gpt2/bert/opt and optionally export onnx."
+    )
     parser.add_argument(
-        "--model", type=str, choices=["gpt2", "bert", "opt"], required=True, help="model type"
+        "--model",
+        type=str,
+        choices=["gpt2", "bert", "opt"],
+        required=True,
+        help="model type",
     )
     parser.add_argument("--batch_size", type=int, default=1, help="batch size.")
     parser.add_argument("--length", type=int, default=1, help="sequence length.")
@@ -30,18 +38,15 @@ def parse_args():
     args = parser.parse_args()
     args = parser.parse_args()
     print("arg setting: ", args)
-    return (
-        args.model,
-        args.batch_size,
-        args.length,
-        args.export_onnx
-    )
+    return (args.model, args.batch_size, args.length, args.export_onnx)
 
 
 def get_model(modelname):
     match modelname:
         case "bert":
-            model = BertModel.from_pretrained("bert-base-uncased", add_pooling_layer=False, hidden_act="gelu_new") # erf is not impl by infini
+            model = BertModel.from_pretrained(
+                "bert-base-uncased", add_pooling_layer=False, hidden_act="gelu_new"
+            )  # erf is not impl by infini
             voc_size = BertConfig().vocab_size
         case "gpt2":
             model = GPT2Model.from_pretrained("gpt2")
@@ -54,6 +59,7 @@ def get_model(modelname):
 
     model = model.eval()
     return model, voc_size
+
 
 def run_pytorch(torch_model, voc_size, batchsize, len):
     data = np.random.randint(0, voc_size, (batchsize, len), dtype=np.int32)
@@ -71,7 +77,7 @@ def run_pytorch(torch_model, voc_size, batchsize, len):
         for _ in range(n_iter):
             torch.cuda.synchronize()
             outputs = torch_model(inputs)
-            # 
+            #
             torch.cuda.synchronize()
     torch.cuda.synchronize()
     end = time.time()
@@ -88,13 +94,15 @@ def run_pytorch(torch_model, voc_size, batchsize, len):
 def export_onnx(model, data, path, extern=False):
     torch.onnx.export(model, data, path, verbose=False, do_constant_folding=True)
     onnx_model = onnx.load(path)
-    onnx_model, check = simplify(onnx_model, skipped_optimizers=['eliminate_duplicate_initializer'])
-    #onnx_model, check = simplify(onnx_model, skipped_optimizers=['fuse_qkv', 'eliminate_duplicate_initializer'])
+    onnx_model, check = simplify(
+        onnx_model, skipped_optimizers=["eliminate_duplicate_initializer"]
+    )
+    # onnx_model, check = simplify(onnx_model, skipped_optimizers=['fuse_qkv', 'eliminate_duplicate_initializer'])
     assert check
     add_value_info_for_constants(onnx_model)
     onnx_model = onnx.shape_inference.infer_shapes(onnx_model)
     if extern:
-        extern_path = path.replace('.onnx', '.pb')
+        extern_path = path.replace(".onnx", ".pb")
         if os.path.exists(extern_path):
             os.remove(extern_path)
         convert_model_to_external_data(
@@ -106,7 +114,8 @@ def export_onnx(model, data, path, extern=False):
         )
     onnx.save(onnx_model, path)
 
-def add_value_info_for_constants(model : onnx.ModelProto):
+
+def add_value_info_for_constants(model: onnx.ModelProto):
     """
     Currently onnx.shape_inference doesn't use the shape of initializers, so add
     that info explicitly as ValueInfoProtos.
@@ -118,7 +127,7 @@ def add_value_info_for_constants(model : onnx.ModelProto):
     if model.ir_version < 4:
         return
 
-    def add_const_value_infos_to_graph(graph : onnx.GraphProto):
+    def add_const_value_infos_to_graph(graph: onnx.GraphProto):
         inputs = {i.name for i in graph.input}
         existing_info = {vi.name: vi for vi in graph.value_info}
         for init in graph.initializer:
@@ -159,7 +168,6 @@ def add_value_info_for_constants(model : onnx.ModelProto):
                     for g in attr.graphs:
                         add_const_value_infos_to_graph(g)
 
-
     return add_const_value_infos_to_graph(model.graph)
 
 
@@ -174,6 +182,6 @@ def main():
 
     run_pytorch(model, voc_size, batchsize, seqlen)
 
+
 if __name__ == "__main__":
     main()
-
