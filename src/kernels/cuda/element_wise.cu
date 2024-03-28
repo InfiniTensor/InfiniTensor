@@ -17,29 +17,28 @@ __global__ void _div_kernel(void *x, void *y, void *z, int a0, int a1, int a2,
     int n = c0 * stride0;
     int end = (repeat * index + repeat < n ? repeat * index + repeat : n);
     for (int i = repeat * index; i < end; i++) {
-        int xIdx = i;
-        int yIdx = i;
+        int xIdx = (a0 * a1 * a2 * a3 == n ? i : 0);
+        int yIdx = (b0 * b1 * b2 * b3 == n ? i : 0);
 
-        int c0_index = i / stride0;
-        int c1_index = (i % stride0) / stride1;
-        int c2_index = (i % stride1) / c3;
-        int c3_index = i % c3;
+        bool aIdx = (a0 * a1 * a2 * a3 < n && a0 * a1 * a2 * a3 > 1);
+        bool bIdx = (b0 * b1 * b2 * b3 < n && b0 * b1 * b2 * b3 > 1);
+        if (aIdx || bIdx) {
+            int c0_index = i / stride0;
+            int c1_index = (i % stride0) / stride1;
+            int c2_index = (i % stride1) / c3;
+            int c3_index = i % c3;
+            if (aIdx) {
 
-        if (a0 * a1 * a2 * a3 < n) {
-            int a0_index = c0_index % a0;
-            int a1_index = c1_index % a1;
-            int a2_index = c2_index % a2;
-            int a3_index = c3_index % a3;
-            xIdx = a0_index * a1 * a2 * a3 + a1_index * a2 * a3 +
-                   a2_index * a3 + a3_index;
-        }
-        if (b0 * b1 * b2 * b3 < n) {
-            int b0_index = c0_index % b0;
-            int b1_index = c1_index % b1;
-            int b2_index = c2_index % b2;
-            int b3_index = c3_index % b3;
-            yIdx = b0_index * b1 * b2 * b3 + b1_index * b2 * b3 +
-                   b2_index * b3 + b3_index;
+                xIdx = (c0_index % a0) * a1 * a2 * a3 +
+                       (c1_index % a1) * a2 * a3 + (c2_index % a2) * a3 +
+                       c3_index % a3;
+            }
+            if (bIdx) {
+
+                yIdx = (c0_index % b0) * b1 * b2 * b3 +
+                       (c1_index % b1) * b2 * b3 + (c2_index % b2) * b3 +
+                       c3_index % b3;
+            }
         }
         ((T *)z)[i] = ((T *)x)[xIdx] / ((T *)y)[yIdx];
     }
@@ -56,29 +55,28 @@ __global__ void _add_kernel(void *x, void *y, void *z, int a0, int a1, int a2,
     int n = c0 * stride0;
     int end = (repeat * index + repeat < n ? repeat * index + repeat : n);
     for (int i = repeat * index; i < end; i++) {
-        int xIdx = i;
-        int yIdx = i;
+        int xIdx = (a0 * a1 * a2 * a3 == n ? i : 0);
+        int yIdx = (b0 * b1 * b2 * b3 == n ? i : 0);
 
-        int c0_index = i / stride0;
-        int c1_index = (i % stride0) / stride1;
-        int c2_index = (i % stride1) / c3;
-        int c3_index = i % c3;
+        bool aIdx = (a0 * a1 * a2 * a3 < n && a0 * a1 * a2 * a3 > 1);
+        bool bIdx = (b0 * b1 * b2 * b3 < n && b0 * b1 * b2 * b3 > 1);
+        if (aIdx || bIdx) {
+            int c0_index = i / stride0;
+            int c1_index = (i % stride0) / stride1;
+            int c2_index = (i % stride1) / c3;
+            int c3_index = i % c3;
+            if (aIdx) {
 
-        if (a0 * a1 * a2 * a3 < n) {
-            int a0_index = c0_index % a0;
-            int a1_index = c1_index % a1;
-            int a2_index = c2_index % a2;
-            int a3_index = c3_index % a3;
-            xIdx = a0_index * a1 * a2 * a3 + a1_index * a2 * a3 +
-                   a2_index * a3 + a3_index;
-        }
-        if (b0 * b1 * b2 * b3 < n) {
-            int b0_index = c0_index % b0;
-            int b1_index = c1_index % b1;
-            int b2_index = c2_index % b2;
-            int b3_index = c3_index % b3;
-            yIdx = b0_index * b1 * b2 * b3 + b1_index * b2 * b3 +
-                   b2_index * b3 + b3_index;
+                xIdx = (c0_index % a0) * a1 * a2 * a3 +
+                       (c1_index % a1) * a2 * a3 + (c2_index % a2) * a3 +
+                       c3_index % a3;
+            }
+            if (bIdx) {
+
+                yIdx = (c0_index % b0) * b1 * b2 * b3 +
+                       (c1_index % b1) * b2 * b3 + (c2_index % b2) * b3 +
+                       c3_index % b3;
+            }
         }
         ((T *)z)[i] = ((T *)x)[xIdx] + ((T *)y)[yIdx];
     }
@@ -95,29 +93,28 @@ __global__ void _pow_kernel(void *x, void *y, void *z, int a0, int a1, int a2,
     int n = c0 * stride0;
     int end = (repeat * index + repeat < n ? repeat * index + repeat : n);
     for (int i = repeat * index; i < end; i++) {
-        int xIdx = i;
-        int yIdx = i;
+        int xIdx = (a0 * a1 * a2 * a3 == n ? i : 0);
+        int yIdx = (b0 * b1 * b2 * b3 == n ? i : 0);
 
-        int c0_index = i / stride0;
-        int c1_index = (i % stride0) / stride1;
-        int c2_index = (i % stride1) / c3;
-        int c3_index = i % c3;
+        bool aIdx = (a0 * a1 * a2 * a3 < n && a0 * a1 * a2 * a3 > 1);
+        bool bIdx = (b0 * b1 * b2 * b3 < n && b0 * b1 * b2 * b3 > 1);
+        if (aIdx || bIdx) {
+            int c0_index = i / stride0;
+            int c1_index = (i % stride0) / stride1;
+            int c2_index = (i % stride1) / c3;
+            int c3_index = i % c3;
+            if (aIdx) {
 
-        if (a0 * a1 * a2 * a3 < n) {
-            int a0_index = c0_index % a0;
-            int a1_index = c1_index % a1;
-            int a2_index = c2_index % a2;
-            int a3_index = c3_index % a3;
-            xIdx = a0_index * a1 * a2 * a3 + a1_index * a2 * a3 +
-                   a2_index * a3 + a3_index;
-        }
-        if (b0 * b1 * b2 * b3 < n) {
-            int b0_index = c0_index % b0;
-            int b1_index = c1_index % b1;
-            int b2_index = c2_index % b2;
-            int b3_index = c3_index % b3;
-            yIdx = b0_index * b1 * b2 * b3 + b1_index * b2 * b3 +
-                   b2_index * b3 + b3_index;
+                xIdx = (c0_index % a0) * a1 * a2 * a3 +
+                       (c1_index % a1) * a2 * a3 + (c2_index % a2) * a3 +
+                       c3_index % a3;
+            }
+            if (bIdx) {
+
+                yIdx = (c0_index % b0) * b1 * b2 * b3 +
+                       (c1_index % b1) * b2 * b3 + (c2_index % b2) * b3 +
+                       c3_index % b3;
+            }
         }
         ((T *)z)[i] = pow(((T *)x)[xIdx], ((T *)y)[yIdx]);
     }
@@ -134,29 +131,28 @@ __global__ void _less_kernel(void *x, void *y, void *z, int a0, int a1, int a2,
     int n = c0 * stride0;
     int end = (repeat * index + repeat < n ? repeat * index + repeat : n);
     for (int i = repeat * index; i < end; i++) {
-        int xIdx = i;
-        int yIdx = i;
+        int xIdx = (a0 * a1 * a2 * a3 == n ? i : 0);
+        int yIdx = (b0 * b1 * b2 * b3 == n ? i : 0);
 
-        int c0_index = i / stride0;
-        int c1_index = (i % stride0) / stride1;
-        int c2_index = (i % stride1) / c3;
-        int c3_index = i % c3;
+        bool aIdx = (a0 * a1 * a2 * a3 < n && a0 * a1 * a2 * a3 > 1);
+        bool bIdx = (b0 * b1 * b2 * b3 < n && b0 * b1 * b2 * b3 > 1);
+        if (aIdx || bIdx) {
+            int c0_index = i / stride0;
+            int c1_index = (i % stride0) / stride1;
+            int c2_index = (i % stride1) / c3;
+            int c3_index = i % c3;
+            if (aIdx) {
 
-        if (a0 * a1 * a2 * a3 < n) {
-            int a0_index = c0_index % a0;
-            int a1_index = c1_index % a1;
-            int a2_index = c2_index % a2;
-            int a3_index = c3_index % a3;
-            xIdx = a0_index * a1 * a2 * a3 + a1_index * a2 * a3 +
-                   a2_index * a3 + a3_index;
-        }
-        if (b0 * b1 * b2 * b3 < n) {
-            int b0_index = c0_index % b0;
-            int b1_index = c1_index % b1;
-            int b2_index = c2_index % b2;
-            int b3_index = c3_index % b3;
-            yIdx = b0_index * b1 * b2 * b3 + b1_index * b2 * b3 +
-                   b2_index * b3 + b3_index;
+                xIdx = (c0_index % a0) * a1 * a2 * a3 +
+                       (c1_index % a1) * a2 * a3 + (c2_index % a2) * a3 +
+                       c3_index % a3;
+            }
+            if (bIdx) {
+
+                yIdx = (c0_index % b0) * b1 * b2 * b3 +
+                       (c1_index % b1) * b2 * b3 + (c2_index % b2) * b3 +
+                       c3_index % b3;
+            }
         }
         ((bool *)z)[i] = ((T *)x)[xIdx] < ((T *)y)[yIdx] ? true : false;
     }

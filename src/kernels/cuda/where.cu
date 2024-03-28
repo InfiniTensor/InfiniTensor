@@ -14,38 +14,42 @@ _whereKernel(void *inputX, void *inputY, const uint8_t *condition, void *output,
     int index = threadIdx.x + blockIdx.x * blockDim.x;
     int end = (repeat * index + repeat < n ? repeat * index + repeat : n);
     for (int i = repeat * index; i < end; i++) {
+        int inputXIdx = (a0 * a1 * a2 * a3 == n ? i : 0);
+        int inputYIdx = (b0 * b1 * b2 * b3 == n ? i : 0);
+        int conditionIdx = (c0 * c1 * c2 * c3 == n ? i : 0);
 
-        int d0_index = i / stride0;
-        int d1_index = (i % stride0) / stride1;
-        int d2_index = (i % stride1) / d3;
-        int d3_index = i % d3;
-
-        int inputXIdx = i;
-        int inputYIdx = i;
-        int conditionIdx = i;
-        if (a0 * a1 * a2 * a3 < n) {
-            int a0_index = d0_index % a0;
-            int a1_index = d1_index % a1;
-            int a2_index = d2_index % a2;
-            int a3_index = d3_index % a3;
-            inputXIdx = a0_index * a1 * a2 * a3 + a1_index * a2 * a3 +
-                        a2_index * a3 + a3_index;
-        }
-        if (b0 * b1 * b2 * b3 < n) {
-            int b0_index = d0_index % b0;
-            int b1_index = d1_index % b1;
-            int b2_index = d2_index % b2;
-            int b3_index = d3_index % b3;
-            inputYIdx = b0_index * b1 * b2 * b3 + b1_index * b2 * b3 +
-                        b2_index * b3 + b3_index;
-        }
-        if (c0 * c1 * c2 * c3 < n) {
-            int c0_index = d0_index % c0;
-            int c1_index = d1_index % c1;
-            int c2_index = d2_index % c2;
-            int c3_index = d3_index % c3;
-            conditionIdx = c0_index * c1 * c2 * c3 + c1_index * c2 * c3 +
-                           c2_index * c3 + c3_index;
+        bool aIdx = (a0 * a1 * a2 * a3 < n && a0 * a1 * a2 * a3 > 1);
+        bool bIdx = (b0 * b1 * b2 * b3 < n && b0 * b1 * b2 * b3 > 1);
+        bool cIdx = (c0 * c1 * c2 * c3 < n && c0 * c1 * c2 * c3 > 1);
+        if (aIdx || bIdx || cIdx) {
+            int d0_index = i / stride0;
+            int d1_index = (i % stride0) / stride1;
+            int d2_index = (i % stride1) / d3;
+            int d3_index = i % d3;
+            if (aIdx) {
+                int a0_index = d0_index % a0;
+                int a1_index = d1_index % a1;
+                int a2_index = d2_index % a2;
+                int a3_index = d3_index % a3;
+                inputXIdx = a0_index * a1 * a2 * a3 + a1_index * a2 * a3 +
+                            a2_index * a3 + a3_index;
+            }
+            if (bIdx) {
+                int b0_index = d0_index % b0;
+                int b1_index = d1_index % b1;
+                int b2_index = d2_index % b2;
+                int b3_index = d3_index % b3;
+                inputYIdx = b0_index * b1 * b2 * b3 + b1_index * b2 * b3 +
+                            b2_index * b3 + b3_index;
+            }
+            if (cIdx) {
+                int c0_index = d0_index % c0;
+                int c1_index = d1_index % c1;
+                int c2_index = d2_index % c2;
+                int c3_index = d3_index % c3;
+                conditionIdx = c0_index * c1 * c2 * c3 + c1_index * c2 * c3 +
+                               c2_index * c3 + c3_index;
+            }
         }
 
         ((T *)output)[i] = condition[conditionIdx] ? ((T *)inputX)[inputXIdx]

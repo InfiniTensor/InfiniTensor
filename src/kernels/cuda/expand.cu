@@ -1,50 +1,41 @@
 #include "core/common.h"
 #include "cuda/cuda_common.h"
 #include "cuda/cuda_utility.h"
-#include "utils/small_array.h"
 
 constexpr unsigned int num_threads() { return 32 * 4; }
 constexpr int thread_work_size() { return 4; }
 constexpr int block_work_size() { return thread_work_size() * num_threads(); }
-
+const int repeat = 3;
 template <class T>
-__global__ void _expandKernel(void *input, void *output, int nDims,
-                              int outputsize, infini::SmallArray inputShape,
-                              infini::SmallArray outputShape) {
+__global__ void _expandKernel(void *input, void *output, int a0, int a1, int a2,
+                              int a3, int b0, int b1, int b2, int b3) {
 
-    int outputIdx =
-        blockIdx.x * blockDim.x + threadIdx.x; // i(JKS) + j(KS) + k(S) + s
-    if (outputIdx < outputsize) {
-        int inputIdx = 0;  // record input index
-        int temp = 1;      // stored S, KS, JKS, in order
-        int tmp = 1;       // stored s,k,j,i in order
-        int v = outputIdx; // v = i(JKS) + j(KS) + k(S) + s
-        for (int i = nDims - 1; i >= 0; --i) {
-            if (i == 0) {
-                tmp = v; // i = outputIdx/(JKS)
-            } else {
-                tmp = v % outputShape.data[i]; // store s,k,j in order
-            }
-            if (inputShape.data[i] ==
-                1) { // if input shape = 1, the index only equal 0
-                inputIdx += 0;
-            } else {
-                inputIdx +=
-                    tmp * temp; // otherwise +i(JKS) or j(KS) or k(S) or s
-            }
-            temp *= inputShape.data[i];
-            v = v / outputShape.data[i];
+    int index = threadIdx.x + blockIdx.x * blockDim.x;
+
+    int stride1 = b2 * b3;
+    int stride0 = b1 * stride1;
+    int n = b0 * stride0;
+    int end = (repeat * index + repeat < n ? repeat * index + repeat : n);
+    for (int i = repeat * index; i < end; i++) {
+        int xIdx = (a0 * a1 * a2 * a3 == n ? i : 0);
+        bool aIdx = (a0 * a1 * a2 * a3 < n && a0 * a1 * a2 * a3 > 1);
+        if (aIdx) {
+            int b0_index = i / stride0;
+            int b1_index = (i % stride0) / stride1;
+            int b2_index = (i % stride1) / b3;
+            int b3_index = i % b3;
+            xIdx = (b0_index % a0) * a1 * a2 * a3 + (b1_index % a1) * a2 * a3 +
+                   (b2_index % a2) * a3 + b3_index % a3;
         }
-        ((T *)output)[outputIdx] = ((T *)input)[inputIdx];
+        ((T *)output)[i] = ((T *)input)[xIdx];
     }
 }
-
 namespace infini {
 
 #define CASE(T)                                                                \
-    _expandKernel<DT_CUDA<T>::t><<<gridsize, blocksize,                        \
-        0, CUDAStream::getCurrentStream()>>>(                                  \
-        input, output, nDims, outputsize, inputShape, outputShape);
+    _expandKernel<DT_CUDA<T>::t>                                               \
+        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(          \
+            input, output, a0, a1, a2, a3, b0, b1, b2, b3);
 
 #define SWITCH_DTYPE(DTYPE)                                                    \
     switch (DTYPE) {                                                           \
@@ -88,11 +79,12 @@ namespace infini {
         IT_TODO_HALT();                                                        \
     }
 
-void expandKernel(int dType, void *input, void *output, int nDims,
-                  int outputsize, SmallArray inputShape,
-                  SmallArray outputShape) {
+void expandKernel(int dType, void *input, void *output, int a0, int a1, int a2,
+                  int a3, int b0, int b1, int b2, int b3) {
     int blocksize = block_work_size();
-    int gridsize = (outputsize + block_work_size() - 1) / block_work_size();
+    int outputsize = b0 * b1 * b2 * b3;
+    int gridsize = (outputsize + repeat * block_work_size() - 1) /
+                   (repeat * block_work_size());
     SWITCH_DTYPE(dType)
 }
 
