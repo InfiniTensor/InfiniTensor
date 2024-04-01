@@ -102,9 +102,19 @@ class matmulCublas : public Kernel {
                     inputShape.data[i] = inC->getDims()[i - offset];
             }
             const int dType = dataType.getIndex();
-            expandKernel(dType, inC->getRawDataPtr<void *>(),
-                         out->getRawDataPtr<void *>(), nDims, outputsize,
-                         inputShape, outputShape);
+
+            // Bias in linear layer is row vector of (1,n), n is the number of
+            // features. If row vector and n % 32 == 0, use optimized kernel.
+            if (inC->getRank() == 1 && inC->getDims()[0] % 32 == 0) {
+                expandRowKernel(dType, inC->getRawDataPtr<void *>(),
+                                out->getRawDataPtr<void *>(),
+                                out->size() / inC->getDims()[0],
+                                inC->getDims()[0]);
+            } else {
+                expandKernel(dType, inC->getRawDataPtr<void *>(),
+                             out->getRawDataPtr<void *>(), nDims, outputsize,
+                             inputShape, outputShape);
+            }
         }
         // TODO:use compute type
         cublasStatus_t stat;
