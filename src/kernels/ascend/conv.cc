@@ -13,9 +13,9 @@ class ConvAclnn : public ASCENDKernelWithoutConfig {
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
 
         const auto [ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
-        // const auto [n, c, h, w, f, r, s] = op->getNCHWFRS();
-        // const int cpg = op->getChannelPerGroup();
-        // const int g = c / cpg;
+        const auto [n, c, h, w, f, r, s] = op->getNCHWFRS();
+        const int cpg = op->getChannelPerGroup();
+        const int g = c / cpg;
 
         std::vector<int64_t> pads = {ph, pw};
         // std::vector<int64_t> ksize = {r, s};
@@ -67,8 +67,8 @@ class ConvAclnn : public ASCENDKernelWithoutConfig {
 
         auto ret = aclnnConvolutionGetWorkspaceSize(
             inputTensor, weightTensor, nullptr, convstride, convpads,
-            convdilation, false, convOutputpadding, 1, outputTensor, 1,
-            &workspaceSize, &executor);
+            convdilation, false, convOutputpadding, int64_t(g), outputTensor,
+            int8_t(1), &workspaceSize, &executor);
         void *workspaceAddr = nullptr;
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);

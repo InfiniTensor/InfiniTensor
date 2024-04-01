@@ -20,6 +20,7 @@ endif()
 include(CMakeDependentOption)
 project(InfiniTensor C CXX)
 
+
 cmake_dependent_option(BUILD_TEST_CORE "Build tests for core components" ON BUILD_TEST OFF)
 cmake_dependent_option(BUILD_TEST_PET "Build tests for PET" OFF BUILD_TEST OFF)
 

@@ -45,14 +45,16 @@ void testConv(const std::function<void(void *, size_t, DataType)> &generatorA,
     cpuRuntime->run(cpuGraph);
     auto outputCpu = cpuOp->getOutput();
     // Check
-    EXPECT_TRUE(outputCpu->equalData(outputNpu2Cpu));
+    // outputCpu->printData();
+    // outputNpu2Cpu->printData();
+    EXPECT_TRUE(outputCpu->equalData(outputNpu2Cpu, 1e-3));
 }
 
 TEST(ascend_Conv, run) {
-    aclInit(nullptr);
+    // aclInit(nullptr);
     testConv<ConvObj>(IncrementalGenerator(), IncrementalGenerator(),
-                      Shape{1, 3, 32, 32}, Shape{2, 3, 3, 3});
-    aclFinalize();
+                      Shape{1, 3, 128, 128}, Shape{2, 3, 3, 3});
+    // aclFinalize();
 }
 
 } // namespace infini

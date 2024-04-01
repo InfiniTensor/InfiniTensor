@@ -20,21 +20,16 @@ class ASCENDRuntimeObj : public RuntimeObj {
   private:
     aclrtContext context;
     aclrtStream stream;
+    std::unique_ptr<CommunicatorObj> comm;
     ASCENDPtr workspace = nullptr;
     size_t workspaceSize;
 
   public:
     ASCENDRuntimeObj(int deviceId = 0) : RuntimeObj(Device::ASCEND, deviceId) {
-        // #ifndef _ACL_INIT
-        // #define _ACL_INIT
-        //         aclInit(nullptr);
-        //         //  auto ret_init =
-        //         //   CHECK_RET(ret == ACL_SUCCESS,
-        //         //             LOG_PRINT("aclInit failed. ERROR: %d\n",
-        //         ret));
-        // #endif
-        aclInit(nullptr);
-        auto ret = aclrtSetDevice(deviceId);
+        auto ret = aclInit(nullptr);
+        CHECK_RET(ret == ACL_SUCCESS,
+                  LOG_PRINT("aclInit failed. ERROR: %d\n", ret));
+        ret = aclrtSetDevice(deviceId);
         CHECK_RET(ret == ACL_SUCCESS,
                   LOG_PRINT("aclrtSetDevice failed. ERROR: %d\n", ret));
         ret = aclrtCreateContext(&context, deviceId);
@@ -49,7 +44,7 @@ class ASCENDRuntimeObj : public RuntimeObj {
 
         // 10GB for Longformer
         // size_t longformerNum = 3lu * (1 << 30);
-        workspaceSize = 3ll << 30; // 3 GB
+        workspaceSize = 3ll << 33; // 3 GB
         // std::cout<<workspaceSize/1024/1024/1024<< std::endl;
         // std::cout<<std::bitset<64>(workspaceSize)<< std::endl;
         workspace = alloc(workspaceSize);
@@ -99,9 +94,9 @@ class ASCENDRuntimeObj : public RuntimeObj {
                     ACL_MEMCPY_DEVICE_TO_DEVICE);
     }
 
-    void initComm(const string &, int, int) override { IT_TODO_HALT(); }
+    void initComm(const string &name, int worldSize, int rank) final;
 
-    CommunicatorObj &getCommunicator() const override { IT_TODO_HALT(); }
+    CommunicatorObj &getCommunicator() const override { return *comm; }
 
   private:
     void runWithoutSync(const Graph &graph, bool tune, bool profiling) const;
