@@ -117,7 +117,7 @@ class ElementWiseCuda : public CudaKernelWithoutConfig {
         auto c_dim = op->getOutput()->getDims();
         const int dType = _op->getDType().getIndex();
 
-        // 若b为常数，则使用特殊kernel
+        // Use optimized kernel if b is constant
         if (b_dim.size() == 0) {
             if (op->getOpType() == OpType::Div) {
                 div_const_kernel(dType, aData, bData, cData,

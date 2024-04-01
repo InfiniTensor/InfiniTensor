@@ -103,8 +103,8 @@ class matmulCublas : public Kernel {
             }
             const int dType = dataType.getIndex();
 
-            // 线性层矩阵乘一般bias使用行向量（1，n），n为输出feature数
-            // 当n同时为32倍数时，对expand做特化处理
+            // Bias in linear layer is row vector of (1,n), n is the number of
+            // features. If row vector and n % 32 == 0, use optimized kernel.
             if (inC->getRank() == 1 && inC->getDims()[0] % 32 == 0) {
                 expandRowKernel(dType, inC->getRawDataPtr<void *>(),
                                 out->getRawDataPtr<void *>(),

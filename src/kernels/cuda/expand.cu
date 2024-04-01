@@ -39,15 +39,13 @@ __global__ void _expandKernel(void *input, void *output, int nDims,
     }
 }
 
-template <class Tmem>
+template <class T>
 static __global__ void _expandRowKernel(void *__restrict__ dst,
                                         void const *__restrict__ src) {
-    auto // dn = gridDim.y, // useless
-        da = gridDim.x,
-        db = blockDim.y, dx = blockDim.x, n = blockIdx.y, a = blockIdx.x,
-        b = threadIdx.y, x = threadIdx.x;
+    auto da = gridDim.x, db = blockDim.y, dx = blockDim.x, n = blockIdx.y,
+         a = blockIdx.x, b = threadIdx.y, x = threadIdx.x;
     auto i = ((n * da + a) * db + b) * dx + x, j = (a * db + b) * dx + x;
-    reinterpret_cast<Tmem *>(dst)[i] = reinterpret_cast<Tmem const *>(src)[j];
+    reinterpret_cast<T *>(dst)[i] = reinterpret_cast<T const *>(src)[j];
 }
 namespace infini {
 
@@ -152,10 +150,10 @@ void expandKernel(int dType, void *input, void *output, int nDims,
         IT_TODO_HALT();                                                        \
     }
 
+// Optimization for expanding a row vector. The row length must be a multiple of 32
 void expandRowKernel(int dType, void *input, void *output, int n_rows,
                      int row_len) {
-    // 假定行长度row_len为32的倍数
-    // 对于row_len做分解：row_len = a x b x 32, 32为warp大小，b<=32
+    // Factorize row_len: row_len = a x b x 32 (32 is the warp size), b<=32
     // input: 1 x (a x b x 32 x sizeT)
     // output: n_rows x (a x b x 32 x sizeT)
     // grid: n_rows x a
