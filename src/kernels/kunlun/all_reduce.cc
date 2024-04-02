@@ -20,14 +20,15 @@ class AllReduceXCCL : public KUNLUNKernelWithoutConfig {
         BKCLContext_t comm =
             dynamic_cast<XcclCommunicatorObj &>(context->getCommunicator())
                 .getXcclComm();
-        double t = timeit(
-            [&]() {
-                checkXcclError(bkcl_all_reduce(comm, input, output, count,
-                                               BKCLDataType::BKCL_FLOAT,
-                                               getRedOp(), 0));
-            },
-            [&]() { context->sync(); });
-        std::cout << "Time consuming for " << op->getInputs(0)->size() << " size is " << t << std::endl;
+        // double t = timeit(
+        // [&]() {
+        checkXcclError(bkcl_all_reduce(comm, input, output, count,
+                                       BKCLDataType::BKCL_FLOAT, getRedOp(),
+                                       0));
+        // },
+        // [&]() { context->sync(); });
+        // std::cout << "Time consuming for " << op->getInputs(0)->size() << "
+        // size is " << t << std::endl;
     }
     virtual BKCLOp getRedOp() const = 0;
 };
