@@ -447,7 +447,10 @@ void init_graph_builder(py::module &m) {
 
 #ifdef USE_ASCEND
     py::class_<ASCENDRuntimeObj, std::shared_ptr<ASCENDRuntimeObj>, RuntimeObj>(
-        m, "ASCENDRuntime");
+        m, "ASCENDRuntime")
+        .def(py::init<int>(), py::arg("device") = 0)
+        .def("init_comm", &ASCENDRuntimeObj::initComm);
+    ;
 #endif
     py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "Tensor",
                                                       py::buffer_protocol())
