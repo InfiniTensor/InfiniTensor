@@ -43,35 +43,52 @@ def parse_args():
     )
 
 
-def run_model(model, runtime, inputs, n=10):
+def run_model(model, runtime, world_size=1, rank=0, n=10):
     stub = OnnxStub(model, runtime)
-    for tensor, input in zip(stub.inputs.values(), inputs, strict=False):
-        tensor.copyin_numpy(input)
+    load_inputs(stub, world_size, rank)
     # stub.tune()
     stub.run()
     # get outputs
     outputs = next(stub.outputs.values().__iter__()).copyout_numpy()
 
     # bench
-    for tensor, input in zip(stub.inputs.values(), inputs, strict=False):
-        tensor.copyin_numpy(input)
-    begin = time.time()
     for _ in range(n):
         stub.run()
+    begin = time.time()
+    for _ in range(n * 2):
+        stub.run()
     end = time.time()
-    avg_time = (end - begin) / n
+    avg_time = (end - begin) / (n * 2)
     print(f"average time: {avg_time}")
     return outputs
 
+def load_inputs(stub, world_size=1, rank=0):
+    for i, (name, tensor) in enumerate(stub.inputs.items()):
+        input = np.load(f"./data/input_{i}.npy")
+        if all(x == y for x,y in zip(input.shape,tensor.shape())):
+            tensor.copyin_numpy(input)
+        else:
+            tensor.copyin_numpy(np.hsplit(input, world_size)[rank])
 
-def run_and_compare(name, model, runtime):
-    input_ids = np.load(f"{name}_inputs.npy")
-    position_ids = np.arange(input_ids.shape[-1])
-    results = np.load(f"{name}_results.npy")
-    outputs = run_model(model, runtime, (input_ids, position_ids))
+
+def run_and_compare(name, model, runtime, world_size=1, rank=0):
+    results = np.load(f"./data/output.npy")
+    outputs = run_model(model, runtime, world_size, rank)
     print("outputs abs mean:", abs(outputs).mean())
     print("max abs diff:", abs(outputs - results).max())
 
+# def getDiff(base, test):
+#     absolute_diff = np.abs(np.subtract(base, test))
+#     max_absolute_diff = np.max(absolute_diff)
+
+#     baseCopy = base.astype(np.float64).ravel()
+#     testCopy = test.astype(np.float64).ravel()
+#     upValue = np.sum(np.abs(baseCopy - testCopy))
+#     downValue = np.sum(np.abs(baseCopy)) + np.float64(1e-9)
+#     max_relative_diff = upValue / downValue
+#     print(f"Max absolute difference: {max_absolute_diff}\n"
+#           f"Max relative difference: {max_relative_diff}")
+#     return max_absolute_diff, max_relative_diff
 
 def start_worker(
     name: str, world_size: int, rank: int, local_rank: int, model: onnx.ModelProto
@@ -95,23 +112,42 @@ def start_worker(
         world_size,
         rank,
     )
-    run_and_compare(name, model, runtime)
+    run_and_compare(name, model, runtime, world_size, rank)
 
 
 def start_single(name, model):
     runtime = backend.BangRuntime(0)
     run_and_compare(name, model, runtime)
 
-
-def gen_standard(name, model, voc_size, bs, len):
-    # generate standard results
-    input_ids = np.random.randint(0, voc_size, (bs, len))
-    position_ids = np.arange(len)
-    np.save(f"{name}_inputs", input_ids)
+def generate_input_output(model):
+    os.makedirs(os.path.dirname("./data/"), exist_ok=True)
     runtime = backend.BangRuntime(0)
-    outputs = run_model(model, runtime, (input_ids, position_ids), 1)
-    print("outputs abs mean:", abs(outputs).mean())
-    np.save(f"{name}_results", outputs)
+    stub = OnnxStub(model, runtime)
+    position_id = 0
+    for i, (name, tensor) in enumerate(stub.inputs.items()):
+        input = tensor.copyout_numpy()
+        if np.issubdtype(input.dtype, np.integer):
+            if input.size == 1:
+                # input = np.array([position_id])
+                input = np.random.randint(0,2,size=input.shape, dtype=input.dtype)
+            else:
+                input = np.random.randint(0,2,size=input.shape, dtype=input.dtype)
+        elif input.dtype == np.bool_:
+            input = np.random.randint(0,2,size=input.shape) > 0
+        else:
+            if i == 0:
+                input = np.ones(input.shape).astype(input.dtype)
+                position_id = input.shape[-1] - 1
+            else:
+                input = np.random.rand(*input.shape).astype(input.dtype)
+        tensor.copyin_numpy(input)
+        np.save(f"./data/input_{i}", input)
+    stub.run()
+    time.sleep(0.01)
+    output = next(stub.outputs.values().__iter__()).copyout_numpy()
+    if np.isnan(output).any():
+        print("Nan in output")
+    np.save(f"./data/output", output)
 
 
 def main():
@@ -123,8 +159,7 @@ def main():
     if gen_std:
         print(f"generate standard data for {name}.")
         # a small vocabulary size to fit all LLM.
-        voc_size = 1000
-        gen_standard(name, model, voc_size, bs, length)
+        generate_input_output(model)
         return
 
     if nproc_per_node == 1:

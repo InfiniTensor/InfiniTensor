@@ -61,7 +61,8 @@ def get_model(modelname):
 
 def run_pytorch(torch_model, voc_size, batchsize, len, dtype="fp32"):
     data = np.random.randint(0, voc_size, (batchsize, len), dtype=np.int32)
-    np.save("test_inputs", data)
+    os.makedirs(os.path.dirname("./data/"), exist_ok=True)
+    np.save("./data/input_0", data)
     inputs = torch.from_numpy(data).to("mlu")
     torch_model = torch_model.to("mlu")
     if dtype == "fp16":
@@ -89,8 +90,8 @@ def run_pytorch(torch_model, voc_size, batchsize, len, dtype="fp32"):
     print("outputs abs mean:", abs(np.array(outputs)).mean())
     print(f"average time: {avg_time}")
     # torch.mlu.memory.empty_cache()
-    np.save("test_results", np.array(outputs))
-    print("Save input & output as test_inputs.npy and test_results.npy")
+    np.save("./data/output", np.array(outputs))
+    print("Save input & output into ./data.")
 
 
 def export_onnx(model, data, path, extern=False, dtype="fp32"):
