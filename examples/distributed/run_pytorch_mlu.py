@@ -28,14 +28,17 @@ def parse_args():
         const="./",
         help="whether and where to export onnx file",
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "--dtype", type=str, choices=["fp32", "fp16", "tf32"], required=True, help="model data type"
+    )
     args = parser.parse_args()
     print("arg setting: ", args)
     return (
         args.model,
         args.batch_size,
         args.length,
-        args.export_onnx
+        args.export_onnx,
+        args.dtype
     )
 
 
@@ -56,11 +59,16 @@ def get_model(modelname):
     model = model.eval()
     return model, voc_size
 
-def run_pytorch(torch_model, voc_size, batchsize, len):
+def run_pytorch(torch_model, voc_size, batchsize, len, dtype="fp32"):
     data = np.random.randint(0, voc_size, (batchsize, len), dtype=np.int32)
     np.save("test_inputs", data)
     inputs = torch.from_numpy(data).to("mlu")
     torch_model = torch_model.to("mlu")
+    if dtype == "fp16":
+        torch_model = torch_model.half()
+    elif dtype == "tf32":
+        torch.backends.mlu.matmul.allow_tf32 = True
+        torch.backends.cnnl.allow_tf32 = True
 
     n_iter = 20
     with torch.no_grad():
@@ -85,7 +93,11 @@ def run_pytorch(torch_model, voc_size, batchsize, len):
     print("Save input & output as test_inputs.npy and test_results.npy")
 
 
-def export_onnx(model, data, path, extern=False):
+def export_onnx(model, data, path, extern=False, dtype="fp32"):
+    if dtype == "fp16":
+        data = data.to("mlu")
+        model = model.to("mlu")
+        model = model.half()
     torch.onnx.export(model, data, path, verbose=False, do_constant_folding=True)
     onnx_model = onnx.load(path)
     onnx_model, check = simplify(onnx_model, skipped_optimizers=['eliminate_duplicate_initializer'])
@@ -165,16 +177,15 @@ def add_value_info_for_constants(model : onnx.ModelProto):
 
 
 def main():
-    modelname, batchsize, seqlen, export_path = parse_args()
+    modelname, batchsize, seqlen, export_path, dtype = parse_args()
     model, voc_size = get_model(modelname)
-    model = model.half()
     if export_path is not None:
-        filename = "{}_{}_{}.onnx".format(modelname, batchsize, seqlen)
+        filename = "{}_{}_{}_{}.onnx".format(modelname, batchsize, seqlen, dtype)
         path = os.path.join(export_path, filename)
         param = torch.zeros((batchsize, seqlen), dtype=torch.int)
-        export_onnx(model, param, path, True)
+        export_onnx(model, param, path, True, dtype)
 
-    run_pytorch(model, voc_size, batchsize, seqlen)
+    run_pytorch(model, voc_size, batchsize, seqlen, dtype)
 
 if __name__ == "__main__":
     main()
