@@ -57,7 +57,7 @@ def get_model(modelname):
     return model, voc_size
 
 def run_pytorch(torch_model, voc_size, batchsize, len):
-    data = np.random.randint(0, voc_size, (batchsize, len), dtype=np.int32)
+    data = np.random.randint(0, voc_size, (batchsize, len), dtype=np.int64)
     np.save("test_inputs", data)
     inputs = torch.from_numpy(data).to("cuda")
     torch_model = torch_model.to("cuda")
@@ -177,7 +177,7 @@ def main():
     if export_path is not None:
         filename = "{}_{}_{}.onnx".format(modelname, batchsize, seqlen)
         path = os.path.join(export_path, filename)
-        param = torch.zeros((batchsize, seqlen), dtype=torch.int)
+        param = torch.zeros((batchsize, seqlen), dtype=torch.int64)
         export_onnx(model, param, path, True)
 
     if data_type == "fp16":

@@ -243,6 +243,7 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
         tt = output.type.tensor_type
         if tt.HasField("shape"):
             tt.ClearField("shape")
-    model = helper.make_model(graph)
+    #model = helper.make_model(graph)
     #model = onnx.shape_inference.infer_shapes(model)
-    return model
+    #return model
+    return graph

@@ -80,16 +80,18 @@ def start_worker(
     name: str, world_size: int, rank: int, local_rank: int, model: onnx.ModelProto, data_type: str
 ):
     dist_name = name + "_dist"
-    model = parallel_model(model, world_size, rank)
-    extern_path = f"./{dist_name}_rank{rank}.pb"
-    if os.path.exists(extern_path):
-        os.remove(extern_path)
-    onnx.save_model(
-        model,
-        f"./{dist_name}_rank{rank}.onnx",
-        save_as_external_data=True,
-        location=extern_path,
-    )
+    #model = parallel_model(model, world_size, rank)
+    graph = parallel_model(model, world_size, rank)
+
+    # extern_path = f"./{dist_name}_rank{rank}.pb"
+    # if os.path.exists(extern_path):
+    #     os.remove(extern_path)
+    # onnx.save_model(
+    #     model,
+    #     f"./{dist_name}_rank{rank}.onnx",
+    #     save_as_external_data=True,
+    #     location=extern_path,
+    # )
     #infer_shapes_path(f"./{dist_name}_rank{rank}.onnx")
     runtime = backend.CudaRuntime(local_rank)
     # print("init comm")
@@ -98,7 +100,8 @@ def start_worker(
         world_size,
         rank,
     )
-    run_and_compare(name, model, runtime, data_type)
+    #run_and_compare(name, model, runtime, data_type)
+    run_and_compare(name, graph, runtime, data_type)
 
 
 def start_single(name, model, data_type):
