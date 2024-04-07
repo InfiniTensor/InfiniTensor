@@ -4,9 +4,11 @@ import torch_mlu
 from transformers import BertModel, BertConfig
 from transformers import GPT2Model, GPT2Config
 from transformers import OPTModel, OPTConfig
+from transformers import LlamaModel, LlamaConfig
 import time
 import numpy as np
 import onnx
+import sys
 import os
 from onnx.external_data_helper import convert_model_to_external_data
 from onnxsim import simplify
@@ -16,7 +18,7 @@ torch.backends.cnnl.allow_tf32 = False
 def parse_args():
     parser = argparse.ArgumentParser(description="Run pytorch gpt2/bert/opt and optionally export onnx.")
     parser.add_argument(
-        "--model", type=str, choices=["gpt2", "bert", "opt"], required=True, help="model type"
+        "--model", type=str, choices=["gpt2", "bert", "opt", "llama"], required=True, help="model type"
     )
     parser.add_argument("--batch_size", type=int, default=1, help="batch size.")
     parser.add_argument("--length", type=int, default=1, help="sequence length.")
@@ -51,8 +53,11 @@ def get_model(modelname):
             model = GPT2Model.from_pretrained("GPT2")
             voc_size = GPT2Config().vocab_size
         case "opt":
-            model = model = OPTModel.from_pretrained("./opt-125m")
+            model = OPTModel.from_pretrained("./opt-125m")
             voc_size = OPTConfig().vocab_size
+        case "llama":
+            model = LlamaModel.from_pretrained("meta-llama/Llama-2-7b-hf")
+            voc_size = LlamaConfig().vocab_size
         case _:
             raise KeyError(modelname)
 
@@ -94,31 +99,74 @@ def run_pytorch(torch_model, voc_size, batchsize, len, dtype="fp32"):
     print("Save input & output into ./data.")
 
 
-def export_onnx(model, data, path, extern=False, dtype="fp32"):
+def export_onnx(modelname, model, data, path, extern=False, dtype="fp32"):
+    data = data.to("mlu")
+    model = model.to("mlu")
     if dtype == "fp16":
-        data = data.to("mlu")
-        model = model.to("mlu")
         model = model.half()
     torch.onnx.export(model, data, path, verbose=False, do_constant_folding=True)
-    onnx_model = onnx.load(path)
-    onnx_model, check = simplify(onnx_model, skipped_optimizers=['eliminate_duplicate_initializer'])
-    #onnx_model, check = simplify(onnx_model, skipped_optimizers=['fuse_qkv', 'eliminate_duplicate_initializer'])
-    assert check
-    add_value_info_for_constants(onnx_model)
-    onnx_model = onnx.shape_inference.infer_shapes(onnx_model)
-    if extern:
-        extern_path = path.replace('.onnx', '.pb')
-        if os.path.exists(extern_path):
-            os.remove(extern_path)
-        extern_path = extern_path.split("/")[-1]
-        convert_model_to_external_data(
-            onnx_model,
-            all_tensors_to_one_file=True,
-            location=extern_path,
-            size_threshold=1024,
-            convert_attribute=False,
-        )
-    onnx.save(onnx_model, path)
+    if modelname != "llama":
+        # use onnxsim to simplify
+        onnx_model = onnx.load(path)
+        onnx_model, check = simplify(onnx_model, skipped_optimizers=['eliminate_duplicate_initializer'])
+        # onnx_model, check = simplify(onnx_model, skipped_optimizers=['fuse_qkv', 'eliminate_duplicate_initializer'])
+        assert check
+        add_value_info_for_constants(onnx_model)
+        onnx_model = onnx.shape_inference.infer_shapes(onnx_model)
+        if extern:
+            extern_path = path.replace('.onnx', '.pb')
+            if os.path.exists(extern_path):
+                os.remove(extern_path)
+            extern_path = extern_path.split("/")[-1]
+            convert_model_to_external_data(
+                onnx_model,
+                all_tensors_to_one_file=True,
+                location=extern_path,
+                size_threshold=1024,
+                convert_attribute=False,
+            )
+        onnx.save(onnx_model, path)
+    else:
+        # use third party tool to simplify llama
+        # reference: https://github.com/luchangli03/onnxsim_large_model/
+        sys.path.append("onnxsim_large_model")
+        from onnx_utils import set_onnx_input_shape
+        from compress_model import SIZE_1MB, compress_onnx_model, uncompress_onnx_model
+
+        in_model_path = path
+        out_model_path = path
+        if not out_model_path:
+            out_model_path = in_model_path[:-5] + ".sim.onnx"
+        if os.path.isdir(out_model_path):
+            out_model_path = os.path.join(out_model_path, os.path.basename(in_model_path))
+
+        onnx_model = onnx.load(in_model_path)
+        print(f"load model from {in_model_path} success")
+
+        size_th_bytes = 1024 * 1024
+
+        onnx_model, removed_inits = compress_onnx_model(onnx_model, size_th_bytes=size_th_bytes)
+        print(f"compress model success")
+
+        onnx_model = set_onnx_input_shape(onnx_model, "")
+
+        tensor_size_threshold = f"1024KB"
+        skipped_optimizers = []
+        skipped_optimizers.append("eliminate_duplicate_initializer")
+        onnx_model, check = simplify(onnx_model, skipped_optimizers=skipped_optimizers,
+                                    tensor_size_threshold=tensor_size_threshold)
+        if not check:
+            raise ValueError(f"simplify compressed model {in_model_path} failed")
+
+        print(f"simplify model success")
+
+        onnx_model = uncompress_onnx_model(onnx_model, removed_inits)
+        print(f"uncompress model success")
+
+        add_value_info_for_constants(onnx_model)
+
+        onnx.save(onnx_model, out_model_path, save_as_external_data=True)
+
 
 def add_value_info_for_constants(model : onnx.ModelProto):
     """
@@ -184,7 +232,7 @@ def main():
         filename = "{}_{}_{}_{}.onnx".format(modelname, batchsize, seqlen, dtype)
         path = os.path.join(export_path, filename)
         param = torch.zeros((batchsize, seqlen), dtype=torch.int)
-        export_onnx(model, param, path, True, dtype)
+        export_onnx(modelname, model, param, path, True, dtype)
 
     run_pytorch(model, voc_size, batchsize, seqlen, dtype)
 
