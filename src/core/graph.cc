@@ -265,6 +265,11 @@ void GraphObj::dataMalloc(bool useNaiveAllocator, size_t memPoolSize) {
                                      tensorToOffset[tensor.get()]));
         }
     }
+
+    if (runtime->isKUNLUN()) {
+      allocator.heapAlloc(runtime->workspaceSize);
+      runtime->init_workspace(allocator.getHeapPtr());
+    }
 }
 
 Tensor GraphObj::cloneKV(Tensor &tensor) {

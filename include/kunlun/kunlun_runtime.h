@@ -22,9 +22,9 @@ class KUNLUNRuntimeObj : public RuntimeObj {
         // 10GB for Longformer
         // size_t longformerNum = 3lu * (1 << 30);
         size_t workspaceSize = 3llu << 30; // 3 GB
-        KUNLUNPtr wkspacePtr = alloc(workspaceSize);
-        workspace =
-            make_ref<WorkspaceObj<KUNLUNPtr>>(wkspacePtr, workspaceSize);
+                                           // KUNLUNPtr wkspacePtr = alloc(workspaceSize);
+                                           // workspace =
+                                           //     make_ref<WorkspaceObj<KUNLUNPtr>>(wkspacePtr, workspaceSize);
     }
     virtual ~KUNLUNRuntimeObj() {
         KUNLUNPtr wkspacePtr = workspace->getWorkspace();
@@ -32,6 +32,10 @@ class KUNLUNRuntimeObj : public RuntimeObj {
         xdnn::destroy_context(ctx);
     }
     string toString() const override;
+
+    void init_workspace(KUNLUNPtr workspacePtr) {
+      workspace = make_ref<WorkspaceObj<KUNLUNPtr>>(wkspacePtr, workspaceSize);
+    }
 
     void run(const Graph &graph, bool tune = false,
              bool profiling = false) const;
