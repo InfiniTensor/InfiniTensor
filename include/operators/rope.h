@@ -20,7 +20,7 @@ class RoPEObj : public OperatorObj {
     int numInputs() const override { return 2; }
     int numOutputs() const override { return 1; }
     DataType getDType() const { return getInputs(1)->getDType(); }
-    
+
     vector<DataType> inferDataType(const TensorVec &inputs) const override {
         return {inputs[1]->getDType()};
     };

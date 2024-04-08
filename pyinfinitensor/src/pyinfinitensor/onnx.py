@@ -208,8 +208,9 @@ class OnnxStub:
                     op[1],
                 )
             elif node.op_type == "MatMul":
-                if to_array(data[node.input[1]]).dtype == np.float32 \
-                   and type(runtime) == backend.CudaRuntime \
+                if node.input[1] in data.keys() \
+                   and to_array(data[node.input[1]]).dtype == np.float32 \
+                   and 'cuda_runtime' in dir(backend) \
                    and tensors[node.input[0]].shape()[0] == 1 \
                    and tensors[node.input[0]].shape()[1] == 1 \
                    and len(tensors[node.input[1]].shape()) == 2 \

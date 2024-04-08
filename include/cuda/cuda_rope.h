@@ -5,8 +5,7 @@
 
 namespace infini {
 
-void rope_kernel(int dType, int *pos, void *input, void *output, int size,
-                 int dim_model, int dim_head, int hidden_stride,
-                 int pos_stride);
+void rope_kernel(int dType, int64_t *pos, void *input, void *output,
+                 int dim_model, int dim_head, int batchsize, int pos_stride);
 
 }; // namespace infini

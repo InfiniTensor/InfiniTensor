@@ -4,13 +4,15 @@
 #include "utils/small_array.h"
 
 template <class T>
-__global__ void _rope_kernel(int* pos, void *in, void *out, int size, int dim_model,
-                             int dim_head, int hidden_stride, int pos_stride) {
+__global__ void _rope_kernel(int64_t* pos, void *in, void *out, int dim_model,
+                             int dim_head, int batchsize, int pos_stride) {
     int batch_id = blockIdx.x;
     int target_pos = pos[batch_id * pos_stride + blockIdx.y];
+
     int ith = blockIdx.z * blockDim.x + threadIdx.x;
     int col = ith % dim_head;
-    int offset = batch_id * hidden_stride + blockIdx.y * dim_model;
+    int batch_stride = pos_stride * dim_model;
+    int offset = batch_id * batch_stride + blockIdx.y * dim_model;
 
     if (ith >= dim_model)
         return;
@@ -34,7 +36,7 @@ __global__ void _rope_kernel(int* pos, void *in, void *out, int size, int dim_mo
 #define CASE(T)                                                                \
     _rope_kernel<DT_CUDA<T>::t>                                                \
         <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>           \
-        (pos, input, output, size, dim_model, dim_head, hidden_stride, pos_stride);
+        (pos, input, output, dim_model, dim_head, batchsize, pos_stride);
 
 #define SWITCH_DTYPE(DTYPE)                                                    \
     switch (DTYPE) {                                                           \
@@ -79,10 +81,10 @@ __global__ void _rope_kernel(int* pos, void *in, void *out, int size, int dim_mo
     }
 
 namespace infini {
-void rope_kernel(int dType, int * pos, void *input, void *output, int size,
-                 int dim_model, int dim_head, int hidden_stride, int pos_stride) {
+void rope_kernel(int dType, int64_t * pos, void *input, void *output,
+                 int dim_model, int dim_head, int batchsize, int pos_stride) {
     dim3 blocksize = dim3(32,1,1);
-    dim3 gridsize = dim3(1, 1, dim_model/32);
+    dim3 gridsize = dim3(batchsize, pos_stride, dim_model/32);
     SWITCH_DTYPE(dType)
 }
 

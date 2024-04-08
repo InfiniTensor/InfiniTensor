@@ -7,15 +7,19 @@ namespace infini {
 
 class AttentionKVCacheCompute {
     void initAttentionKVCacheMetadata(AttentionKVCacheMetadata &metadata,
-                                      Tensor tensor) const {
-        int nDims = tensor->getRank();
-        auto strides = tensor->getStride();
+                                      Tensor input_v_cache,
+                                      Tensor position_id) const {
+        int nDims = input_v_cache->getRank();
+        auto strides = input_v_cache->getStride();
         IT_ASSERT(nDims == 4);
-        IT_ASSERT(strides.size() == (size_t)nDims);
-        for (int i = 0; i < nDims; ++i) {
-            metadata.dimSize[i] = tensor->getDims().at(i);
-            metadata.stride[i] = strides.at(i);
+        int dim_position_id = position_id->getRank();
+        metadata.num_seqs = 1;
+        for (int i = 0; i < dim_position_id; i++) {
+            metadata.num_seqs *= position_id->getDims().at(i);
         }
+        metadata.head_dim = input_v_cache->getDims().at(3);
+        metadata.num_heads = input_v_cache->getDims().at(1);
+        metadata.max_kv_seqlen = input_v_cache->getDims().at(2);
     }
 
   public:
@@ -24,17 +28,16 @@ class AttentionKVCacheCompute {
                     Tensor position_id, Tensor output_matmul,
                     CudaPtr p_workspace) const {
         AttentionKVCacheMetadata metadata;
-        initAttentionKVCacheMetadata(metadata, input_v_cache);
+        initAttentionKVCacheMetadata(metadata, input_v_cache, position_id);
 
-        attention_kvcache_kernel(dType, input_k_cache->getRawDataPtr<void *>(),
-                                 input_v_cache->getRawDataPtr<void *>(),
-                                 input_q->getRawDataPtr<void *>(),
-                                 input_k->getRawDataPtr<void *>(),
-                                 input_v->getRawDataPtr<void *>(),
-                                 position_id->getRawDataPtr<int *>(),
-                                 output_matmul->getRawDataPtr<void *>(),
-                                 metadata, (float *)p_workspace,
-                                 (float *)(p_workspace + (1ll << 30)));
+        attention_kvcache_kernel(
+            dType, input_k_cache->getRawDataPtr<void *>(),
+            input_v_cache->getRawDataPtr<void *>(),
+            input_q->getRawDataPtr<void *>(), input_k->getRawDataPtr<void *>(),
+            input_v->getRawDataPtr<void *>(),
+            position_id->getRawDataPtr<int64_t *>(),
+            output_matmul->getRawDataPtr<void *>(), metadata,
+            (float *)p_workspace, (float *)(p_workspace + (1ll << 30)));
     }
 };
 
@@ -44,15 +47,15 @@ class AttentionKVCacheCuda : private AttentionKVCacheCompute,
                  const RuntimeObj *_context) const override {
         auto op = as<AttentionKVCacheObj>(_op);
         int dType = op->getDType().getIndex();
-        IT_ASSERT(dType == 1 || dType == 10);
+        int position_idx_dtype = op->getInputs()[5]->getDTypeIndex();
+        IT_ASSERT(dType == 1 || dType == 10 || position_idx_dtype == 7);
 
         size_t workspaceSize = 2ll << 30;
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         CudaPtr idxWsData = context->getWorkspace(workspaceSize);
         do_compute(dType, op->getInputs()[0], op->getInputs()[1],
-                   op->getInputs()[2], op->getInputs()[3],
-                   op->getInputs()[4], op->getInputs()[5],
-                   op->getOutputs()[0], idxWsData);
+                   op->getInputs()[2], op->getInputs()[3], op->getInputs()[4],
+                   op->getInputs()[5], op->getOutputs()[0], idxWsData);
     }
 };
 

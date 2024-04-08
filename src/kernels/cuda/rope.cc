@@ -18,17 +18,19 @@ class RoPECuda : public CudaKernelWithoutConfig {
         const auto &inputShape = input->getDims();
         int nDims = input->getDims().size();
 
-        int size = input->size();
         IT_ASSERT(nDims == 3 && pos->getDims().size() == 2);
-        IT_ASSERT(inputShape[1] == pos->getDims()[1]);
+        IT_ASSERT(inputShape[0] == pos->getDims()[0] &&
+                  inputShape[1] == pos->getDims()[1]);
+        int position_idx_dtype = op->getInputs()[0]->getDTypeIndex();
+        IT_ASSERT(position_idx_dtype == 7);
         int dim_model = inputShape[2];
-        int dim_head = 128;
-        int hidden_stride = dim_model * inputShape[1];
+        int dim_head = 128; // TODO: get dim_head from the framework
         int pos_stride = inputShape[1];
+        int batchsize = inputShape[0];
 
         const int dType = op->getDType().getIndex();
-        rope_kernel(dType, pos->getRawDataPtr<int *>(), inputData, outputData,
-                    size, dim_model, dim_head, hidden_stride, pos_stride);
+        rope_kernel(dType, pos->getRawDataPtr<int64_t *>(), inputData,
+                    outputData, dim_model, dim_head, batchsize, pos_stride);
     }
 };
 
