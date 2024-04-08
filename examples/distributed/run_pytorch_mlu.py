@@ -13,8 +13,6 @@ import os
 from onnx.external_data_helper import convert_model_to_external_data
 from onnxsim import simplify
 
-torch.backends.mlu.matmul.allow_tf32 = False
-torch.backends.cnnl.allow_tf32 = False
 def parse_args():
     parser = argparse.ArgumentParser(description="Run pytorch gpt2/bert/opt and optionally export onnx.")
     parser.add_argument(
@@ -31,7 +29,7 @@ def parse_args():
         help="whether and where to export onnx file",
     )
     parser.add_argument(
-        "--dtype", type=str, choices=["fp32", "fp16", "tf32"], required=True, help="model data type"
+        "--type", type=str, choices=["fp32", "fp16", "tf32"], required=True, help="model data type"
     )
     args = parser.parse_args()
     print("arg setting: ", args)
@@ -40,7 +38,7 @@ def parse_args():
         args.batch_size,
         args.length,
         args.export_onnx,
-        args.dtype
+        args.type
     )
 
 
@@ -72,9 +70,6 @@ def run_pytorch(torch_model, voc_size, batchsize, len, dtype="fp32"):
     torch_model = torch_model.to("mlu")
     if dtype == "fp16":
         torch_model = torch_model.half()
-    elif dtype == "tf32":
-        torch.backends.mlu.matmul.allow_tf32 = True
-        torch.backends.cnnl.allow_tf32 = True
 
     n_iter = 20
     with torch.no_grad():
@@ -226,13 +221,20 @@ def add_value_info_for_constants(model : onnx.ModelProto):
 
 
 def main():
+    torch.backends.mlu.matmul.allow_tf32 = False
+    torch.backends.cnnl.allow_tf32 = False
     modelname, batchsize, seqlen, export_path, dtype = parse_args()
+    if dtype == "tf32":
+        torch.backends.mlu.matmul.allow_tf32 = True
     model, voc_size = get_model(modelname)
     if export_path is not None:
         filename = "{}_{}_{}_{}.onnx".format(modelname, batchsize, seqlen, dtype)
         path = os.path.join(export_path, filename)
-        param = torch.zeros((batchsize, seqlen), dtype=torch.int)
-        export_onnx(modelname, model, param, path, True, dtype)
+        if not os.path.exists(path):
+            param = torch.zeros((batchsize, seqlen), dtype=torch.int)
+            export_onnx(modelname, model, param, path, True, dtype)
+        else:
+            print("Onnx path exists, skipping export.")
 
     run_pytorch(model, voc_size, batchsize, seqlen, dtype)
 
