@@ -226,6 +226,9 @@ def main():
     modelname, batchsize, seqlen, export_path, dtype = parse_args()
     if dtype == "tf32":
         torch.backends.mlu.matmul.allow_tf32 = True
+    else:
+        os.environ["CAMBRICON_TF32_OVERRIDE"] = "0"
+
     model, voc_size = get_model(modelname)
     if export_path is not None:
         filename = "{}_{}_{}_{}.onnx".format(modelname, batchsize, seqlen, dtype)
