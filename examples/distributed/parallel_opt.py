@@ -80,7 +80,6 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
 
     def shard_reshape(node: NodeProto):
         # print("reshape", node.name, node.input[0], place[node.input[0]])
-        # import pdb; pdb.set_trace()
         if not is_sharded(node.input[0]):
             return
         in_plc = place[node.input[0]]
@@ -111,7 +110,6 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
                 s_dim = 0
             elif in_plc.dim == 2:
                 s_dim = 1
-        # import pdb; pdb.set_trace()
         assert s_dim != -1
         assert out_dims[s_dim] % tp_world_size == 0, out_dims
         out_dims[s_dim] //= tp_world_size
@@ -247,7 +245,3 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
     model = helper.make_model(graph)
     #model = onnx.shape_inference.infer_shapes(model)
     return model
-
-if __name__ == "__main__":
-    model = onnx.load("./models/gpt2/gpt2_1_100.onnx")
-    models = parallel_model(model, 2, 0)
