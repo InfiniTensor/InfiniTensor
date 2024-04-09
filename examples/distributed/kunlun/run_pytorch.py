@@ -8,6 +8,7 @@ import time
 import numpy as np
 import onnx
 import os
+import sys
 from onnx.external_data_helper import convert_model_to_external_data
 from onnxsim import simplify
 
@@ -40,6 +41,10 @@ def parse_args():
         default="./",
         help="path to save pytorch model output data"
     )
+    parser.add_argument(
+        "--export_only",
+        action="store_true"
+    )
     args = parser.parse_args()
     print("arg setting: ", args)
     return (
@@ -48,7 +53,8 @@ def parse_args():
         args.length,
         args.export_onnx,
         args.input_dir,
-        args.result_dir
+        args.result_dir,
+        args.export_only
     )
 
 
@@ -77,7 +83,7 @@ def run_pytorch(torch_model, voc_size, batchsize, len, model_name):
     inputs = torch.from_numpy(data).to("cuda")
     torch_model = torch_model.to("cuda")
 
-    n_iter = 20
+    n_iter = 10
     with torch.no_grad():
         for _ in range(10):
             outputs = torch_model(inputs)
@@ -87,11 +93,11 @@ def run_pytorch(torch_model, voc_size, batchsize, len, model_name):
         for _ in range(n_iter):
             torch.cuda.synchronize()
             outputs = torch_model(inputs)
-            # 
+            #
             torch.cuda.synchronize()
     torch.cuda.synchronize()
     end = time.time()
-   
+
     avg_time = (end - begin) / n_iter
     outputs = outputs.last_hidden_state.to("cpu")
     print("outputs abs mean:", abs(np.array(outputs)).mean())
@@ -103,33 +109,61 @@ def run_pytorch(torch_model, voc_size, batchsize, len, model_name):
 
 
 def export_onnx(model_name, model, data, path, extern=False):
-    torch.onnx.export(model, data, path, verbose=False, do_constant_folding=True)
-    onnx_model = onnx.load(path)
-    # onnx_model, check = simplify(onnx_model,
-    #                              skip_shape_inference=True,
-    #                              skipped_optimizers=['eliminate_duplicate_initializer'])
-    if model_name == "gpt2":
-        onnx_model, check = simplify(onnx_model, 
-                                     skip_shape_inference=True,
-                                     skipped_optimizers=['fuse_qkv', 'eliminate_duplicate_initializer'])
-    else :
+    # torch.onnx.export(model, data, path, verbose=False, do_constant_folding=True)
+
+    if model_name != "llama":
+        onnx_model = onnx.load(path)
         onnx_model, check = simplify(onnx_model,
-                                     skipped_optimizers=['fuse_qkv', 'eliminate_duplicate_initializer'])
-    assert check
-    add_value_info_for_constants(onnx_model)
-    onnx_model = onnx.shape_inference.infer_shapes(onnx_model)
-    if extern:
-        extern_path = path.replace('.onnx', '.pb')
-        if os.path.exists(extern_path):
-            os.remove(extern_path)
-        convert_model_to_external_data(
-            onnx_model,
-            all_tensors_to_one_file=True,
-            location=extern_path.split("/")[-1],
-            size_threshold=1024,
-            convert_attribute=False,
-        )
-    onnx.save(onnx_model, path)
+                                 skipped_optimizers=['fuse_qkv', 'eliminate_duplicate_initializer'])
+                                 # skipped_optimizers=['fuse_qkv'])
+        assert check
+        add_value_info_for_constants(onnx_model)
+        onnx_model = onnx.shape_inference.infer_shapes(onnx_model)
+        if extern:
+            extern_path = path.replace('.onnx', '.pb')
+            if os.path.exists(extern_path):
+                os.remove(extern_path)
+            convert_model_to_external_data(
+                onnx_model,
+                all_tensors_to_one_file=True,
+                location=extern_path.split("/")[-1],
+                size_threshold=1024,
+                convert_attribute=False,
+            )
+        onnx.save(onnx_model, path)
+    else:
+        sys.path.append("onnxsim_large_model")
+        from onnx_utils import set_onnx_input_shape
+        from compress_model import SIZE_1MB, compress_onnx_model, uncompress_onnx_model
+
+        in_model_path = path
+        out_model_path = in_model_path[:-5] + ".sim.onnx"
+
+        onnx_model = onnx.load(in_model_path)
+        print(f"load model from {in_model_path} success")
+
+        size_th_bytes = 1024 * 1024
+        onnx_model, removed_inits = compress_onnx_model(onnx_model, size_th_bytes=size_th_bytes)
+        print("compress model success")
+
+        onnx_model = set_onnx_input_shape(onnx_model, "")
+        tensor_size_threshold = f"1024KB"
+        skipped_optimizers = []
+        skipped_optimizers.append("eliminate_duplicate_initializer")
+        onnx_model, check = simplify(onnx_model, skipped_optimizers=skipped_optimizers,
+                                    tensor_size_threshold=tensor_size_threshold)
+        if not check:
+            raise ValueError(f"simplify compressed model {in_model_path} failed")
+
+        print(f"simplify model success")
+
+        onnx_model = uncompress_onnx_model(onnx_model, removed_inits)
+        print(f"uncompress model success")
+
+        add_value_info_for_constants(onnx_model)
+
+        onnx.save(onnx_model, out_model_path, save_as_external_data=True)
+
 
 def add_value_info_for_constants(model : onnx.ModelProto):
     """
@@ -192,15 +226,18 @@ def main():
     global input_dir, result_dir
 
     modelname, batchsize, seqlen, \
-        export_path, input_dir, result_dir = parse_args()
-    
+        export_path, input_dir, result_dir, export_only = parse_args()
+
     model, voc_size = get_model(modelname) # pytorch model
 
     if export_path is not None:
+        os.makedirs(export_path, exist_ok=True)
         filename = "{}_{}_{}.onnx".format(modelname, batchsize, seqlen)
         path = os.path.join(export_path, filename)
         param = torch.zeros((batchsize, seqlen), dtype=torch.int)
         export_onnx(modelname, model, param, path, True) # export pytorch model to onnx model
+        if export_only:
+            return
 
     run_pytorch(model, voc_size, batchsize, seqlen, modelname)
 

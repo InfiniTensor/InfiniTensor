@@ -21,7 +21,7 @@ def parse_args():
         "--nproc_per_node", type=int, default=2, help="number of processes per node"
     )
     parser.add_argument(
-        "--name", type=str, default="test", help="name of this instance."
+        "--name", type=str, choices=["gpt2", "bert", "llama"], help="name of model."
     )
     parser.add_argument(
         "--model", type=str, default="", help="path to the ONNX model file."
@@ -54,12 +54,12 @@ def parse_args():
         help="path to save internal onnx model for parallel run"
     )
     args = parser.parse_args()
-    
+
     # check path, mkdir if not exist
     check_exists(args.input_dir)
     check_exists(args.result_dir)
     check_exists(args.internal_model_dir)
-    
+
     print("arg setting: ", args)
     return (
         args.num_nodes,
@@ -97,7 +97,7 @@ def perf_it(n):
             # warmup
             for _ in range(n):
                 func(*args, **kwargs)
-            
+
             t_total = 0
             for _ in range(n):
                 t0 = time.time()
@@ -112,20 +112,22 @@ def perf_it(n):
 
 
 """
-Run InfiniTensor model with Standard input 
+Run InfiniTensor model with Standard input
 check=True: check with standard output gen by pytorch
 perf=True: run n times to get avg time
 """
 def run_model(task_name,
-              model, 
-              runtime, 
-              world_size=1, 
-              rank=0, 
+              model,
+              runtime,
+              world_size=1,
+              rank=0,
               n=10,
               check=True,
               perf=True):
-    
-    stub = OnnxStub(model, runtime)
+
+    stub = OnnxStub(model, runtime,
+                    use_naive_allocator=True \
+                    if task_name == "llama" else False)
 
     # load in Onnx model inputs
     def load_inputs(stub: OnnxStub):
@@ -161,9 +163,9 @@ def run_model(task_name,
         if np.isnan(output).any():
             print("Nan in output")
             exit()
-        np_assert(st_output, output)        
+        np_assert(st_output, output)
 
-    # perf 
+    # perf
     if perf:
         @perf_it(n)
         def perf_infinitensor(stub: OnnxStub):
@@ -176,17 +178,17 @@ def run_model(task_name,
 """
 Start a worker in Parallel
 """
-def start_worker(name: str, 
-           world_size: int, 
-           rank: int, 
-           local_rank: int, 
+def start_worker(name: str,
+           world_size: int,
+           rank: int,
+           local_rank: int,
            model: onnx.ModelProto):
 
     dist_name = name + "_dist"
     # partial a onnx model to world_size part
     model = parallel_model(model, world_size, rank)
     onnx.save(model, os.path.join(internal_model_dir, \
-                                    f"{dist_name}_rank{rank}.onnx"))
+                                    f"{dist_name}_rank{rank}.onnx"), save_as_external_data=True)
     runtime = backend.KUNLUNRuntime(local_rank)
     # print("init comm")
     runtime.init_comm(
@@ -198,10 +200,10 @@ def start_worker(name: str,
 
 
 """
-generate standard input/output with 
+generate standard input/output with
 sigle card run
 """
-def gen_stardard(task_name: str, model: onnx.ModelProto):
+def gen_standard(task_name: str, model: onnx.ModelProto):
     runtime = backend.KUNLUNRuntime(0)
     stub = OnnxStub(model, runtime)
     position_id = 0
@@ -236,25 +238,25 @@ def gen_stardard(task_name: str, model: onnx.ModelProto):
 def main():
 
     global input_dir, result_dir, internal_model_dir
-    
+
     nnodes, nproc_per_node, task_name, \
         model_path, gen_std, run_single, \
             input_dir, result_dir, internal_model_dir = parse_args()
-    
+
     # load input onnx model
     model = onnx.load(model_path)
 
     # generate standart output
     if gen_std:
         print("Generate inputs and outputs.")
-        gen_stardard(task_name, model)
+        gen_standard(task_name, model)
         return
 
     if run_single:
         print("Run model by one GPU card.")
         runtime = backend.KUNLUNRuntime(0)
         run_model(task_name, model, runtime)
-        return 
+        return
 
     # run distributed parallel.
     world_size = nnodes * nproc_per_node
