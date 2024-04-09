@@ -116,6 +116,8 @@ class ElementWiseCuda : public CudaKernelWithoutConfig {
         auto b_dim = op->getInputs(1)->getDims();
         auto c_dim = op->getOutput()->getDims();
         const int dType = _op->getDType().getIndex();
+
+        // Use optimized kernel if b is constant
         if (b_dim.size() == 0) {
             if (op->getOpType() == OpType::Div) {
                 div_const_kernel(dType, aData, bData, cData,
@@ -127,6 +129,7 @@ class ElementWiseCuda : public CudaKernelWithoutConfig {
                 return;
             }
         }
+
         if (a_dim.size() > 4 || b_dim.size() > 4 || c_dim.size() > 4)
             IT_TODO_HALT();
 

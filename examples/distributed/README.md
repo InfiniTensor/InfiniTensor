@@ -15,9 +15,3 @@ python run_pytorch.py --model gpt2  --batch_size 1  --length 1 --export_onnx ./
 ```bash
 python cuda_launch.py --model "/XXX/XXX.onnx" --nproc_per_node 4 
 ```
-
-#### 3. 运行InfiniTensor分布式脚本，测试算子性能
-
-```bash
-nsys profile python single_cuda_launch.py --model "/XXX/XXX.onnx" 
-```

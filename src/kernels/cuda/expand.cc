@@ -12,19 +12,22 @@ class ExpandCuda : public CudaKernelWithoutConfig {
 
         void *const inputData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const outputData = (op->getOutput()->getRawDataPtr<void *>());
-        auto a_dim = op->getInputs(0)->getDims();
-        auto b_dim = op->getOutput()->getDims(); // output shape
+        const auto &in_Shape = op->getInputs(0)->getDims(); // input shape
+        const auto &out_Shape = op->getShape();             // output shape
 
+        SmallArray inputShape, outputShape;
+        int nDims = op->getInputs(0)->getDims().size();
+
+        IT_ASSERT(nDims <= SMALL_ARRAY_SIZE);
+        int outputsize = 1; // the length of the output vector after flatten
+        for (int i = 0; i < nDims; ++i) {
+            outputShape.data[i] = out_Shape[i];
+            inputShape.data[i] = in_Shape[i];
+            outputsize *= out_Shape[i];
+        }
         const int dType = op->getDType().getIndex();
-        if (a_dim.size() > 4 || b_dim.size() > 4)
-            IT_TODO_HALT();
-
-        int a[4] = {1, 1, 1, 1};
-        int b[4] = {1, 1, 1, 1};
-        std::copy(a_dim.begin(), a_dim.end(), a + (4 - a_dim.size()));
-        std::copy(b_dim.begin(), b_dim.end(), b + (4 - b_dim.size()));
-        expandKernel(dType, inputData, outputData, a[0], a[1], a[2], a[3], b[0],
-                     b[1], b[2], b[3]);
+        expandKernel(dType, inputData, outputData, nDims, outputsize,
+                     inputShape, outputShape);
     }
 };
 

@@ -5,42 +5,34 @@
 constexpr unsigned int num_threads() { return 32 * 4; }
 constexpr int thread_work_size() { return 4; }
 constexpr int block_work_size() { return thread_work_size() * num_threads(); }
-const int repeat = 3;
+
 template <class T>
 __global__ void _div_kernel(void *x, void *y, void *z, int a0, int a1, int a2,
                             int a3, int b0, int b1, int b2, int b3, int c0,
                             int c1, int c2, int c3) {
     int index = threadIdx.x + blockIdx.x * blockDim.x;
+    int stride = blockDim.x * gridDim.x;
+    int n = c0 * c1 * c2 * c3;
 
-    int stride1 = c2 * c3;
-    int stride0 = c1 * stride1;
-    int n = c0 * stride0;
-    int end = (repeat * index + repeat < n ? repeat * index + repeat : n);
-    for (int i = repeat * index; i < end; i++) {
-        int xIdx = (a0 * a1 * a2 * a3 == n ? i : 0);
-        int yIdx = (b0 * b1 * b2 * b3 == n ? i : 0);
+    for (int i = index; i < n; i += stride) {
+        int c0_index = i / (c1 * c2 * c3);
+        int c1_index = (i % (c1 * c2 * c3)) / (c2 * c3);
+        int c2_index = ((i % (c1 * c2 * c3)) % (c2 * c3)) / c3;
+        int c3_index = ((i % (c1 * c2 * c3)) % (c2 * c3)) % c3;
 
-        bool aIdx = (a0 * a1 * a2 * a3 < n && a0 * a1 * a2 * a3 > 1);
-        bool bIdx = (b0 * b1 * b2 * b3 < n && b0 * b1 * b2 * b3 > 1);
-        if (aIdx || bIdx) {
-            int c0_index = i / stride0;
-            int c1_index = (i % stride0) / stride1;
-            int c2_index = (i % stride1) / c3;
-            int c3_index = i % c3;
-            if (aIdx) {
+        int a0_index = c0_index % a0;
+        int a1_index = c1_index % a1;
+        int a2_index = c2_index % a2;
+        int a3_index = c3_index % a3;
 
-                xIdx = (c0_index % a0) * a1 * a2 * a3 +
-                       (c1_index % a1) * a2 * a3 + (c2_index % a2) * a3 +
-                       c3_index % a3;
-            }
-            if (bIdx) {
-
-                yIdx = (c0_index % b0) * b1 * b2 * b3 +
-                       (c1_index % b1) * b2 * b3 + (c2_index % b2) * b3 +
-                       c3_index % b3;
-            }
-        }
-        ((T *)z)[i] = ((T *)x)[xIdx] / ((T *)y)[yIdx];
+        int b0_index = c0_index % b0;
+        int b1_index = c1_index % b1;
+        int b2_index = c2_index % b2;
+        int b3_index = c3_index % b3;
+        ((T *)z)[i] = ((T *)x)[a0_index * a1 * a2 * a3 + a1_index * a2 * a3 +
+                               a2_index * a3 + a3_index] /
+                      ((T *)y)[b0_index * b1 * b2 * b3 + b1_index * b2 * b3 +
+                               b2_index * b3 + b3_index];
     }
 }
 
@@ -49,36 +41,28 @@ __global__ void _add_kernel(void *x, void *y, void *z, int a0, int a1, int a2,
                             int a3, int b0, int b1, int b2, int b3, int c0,
                             int c1, int c2, int c3) {
     int index = threadIdx.x + blockIdx.x * blockDim.x;
+    int stride = blockDim.x * gridDim.x;
+    int n = c0 * c1 * c2 * c3;
 
-    int stride1 = c2 * c3;
-    int stride0 = c1 * stride1;
-    int n = c0 * stride0;
-    int end = (repeat * index + repeat < n ? repeat * index + repeat : n);
-    for (int i = repeat * index; i < end; i++) {
-        int xIdx = (a0 * a1 * a2 * a3 == n ? i : 0);
-        int yIdx = (b0 * b1 * b2 * b3 == n ? i : 0);
+    for (int i = index; i < n; i += stride) {
+        int c0_index = i / (c1 * c2 * c3);
+        int c1_index = (i % (c1 * c2 * c3)) / (c2 * c3);
+        int c2_index = ((i % (c1 * c2 * c3)) % (c2 * c3)) / c3;
+        int c3_index = ((i % (c1 * c2 * c3)) % (c2 * c3)) % c3;
 
-        bool aIdx = (a0 * a1 * a2 * a3 < n && a0 * a1 * a2 * a3 > 1);
-        bool bIdx = (b0 * b1 * b2 * b3 < n && b0 * b1 * b2 * b3 > 1);
-        if (aIdx || bIdx) {
-            int c0_index = i / stride0;
-            int c1_index = (i % stride0) / stride1;
-            int c2_index = (i % stride1) / c3;
-            int c3_index = i % c3;
-            if (aIdx) {
+        int a0_index = c0_index % a0;
+        int a1_index = c1_index % a1;
+        int a2_index = c2_index % a2;
+        int a3_index = c3_index % a3;
 
-                xIdx = (c0_index % a0) * a1 * a2 * a3 +
-                       (c1_index % a1) * a2 * a3 + (c2_index % a2) * a3 +
-                       c3_index % a3;
-            }
-            if (bIdx) {
-
-                yIdx = (c0_index % b0) * b1 * b2 * b3 +
-                       (c1_index % b1) * b2 * b3 + (c2_index % b2) * b3 +
-                       c3_index % b3;
-            }
-        }
-        ((T *)z)[i] = ((T *)x)[xIdx] + ((T *)y)[yIdx];
+        int b0_index = c0_index % b0;
+        int b1_index = c1_index % b1;
+        int b2_index = c2_index % b2;
+        int b3_index = c3_index % b3;
+        ((T *)z)[i] = ((T *)x)[a0_index * a1 * a2 * a3 + a1_index * a2 * a3 +
+                               a2_index * a3 + a3_index] +
+                      ((T *)y)[b0_index * b1 * b2 * b3 + b1_index * b2 * b3 +
+                               b2_index * b3 + b3_index];
     }
 }
 
@@ -87,36 +71,29 @@ __global__ void _pow_kernel(void *x, void *y, void *z, int a0, int a1, int a2,
                             int a3, int b0, int b1, int b2, int b3, int c0,
                             int c1, int c2, int c3) {
     int index = threadIdx.x + blockIdx.x * blockDim.x;
+    int stride = blockDim.x * gridDim.x;
+    int n = c0 * c1 * c2 * c3;
 
-    int stride1 = c2 * c3;
-    int stride0 = c1 * stride1;
-    int n = c0 * stride0;
-    int end = (repeat * index + repeat < n ? repeat * index + repeat : n);
-    for (int i = repeat * index; i < end; i++) {
-        int xIdx = (a0 * a1 * a2 * a3 == n ? i : 0);
-        int yIdx = (b0 * b1 * b2 * b3 == n ? i : 0);
+    for (int i = index; i < n; i += stride) {
+        int c0_index = i / (c1 * c2 * c3);
+        int c1_index = (i % (c1 * c2 * c3)) / (c2 * c3);
+        int c2_index = ((i % (c1 * c2 * c3)) % (c2 * c3)) / c3;
+        int c3_index = ((i % (c1 * c2 * c3)) % (c2 * c3)) % c3;
 
-        bool aIdx = (a0 * a1 * a2 * a3 < n && a0 * a1 * a2 * a3 > 1);
-        bool bIdx = (b0 * b1 * b2 * b3 < n && b0 * b1 * b2 * b3 > 1);
-        if (aIdx || bIdx) {
-            int c0_index = i / stride0;
-            int c1_index = (i % stride0) / stride1;
-            int c2_index = (i % stride1) / c3;
-            int c3_index = i % c3;
-            if (aIdx) {
+        int a0_index = c0_index % a0;
+        int a1_index = c1_index % a1;
+        int a2_index = c2_index % a2;
+        int a3_index = c3_index % a3;
 
-                xIdx = (c0_index % a0) * a1 * a2 * a3 +
-                       (c1_index % a1) * a2 * a3 + (c2_index % a2) * a3 +
-                       c3_index % a3;
-            }
-            if (bIdx) {
-
-                yIdx = (c0_index % b0) * b1 * b2 * b3 +
-                       (c1_index % b1) * b2 * b3 + (c2_index % b2) * b3 +
-                       c3_index % b3;
-            }
-        }
-        ((T *)z)[i] = pow(((T *)x)[xIdx], ((T *)y)[yIdx]);
+        int b0_index = c0_index % b0;
+        int b1_index = c1_index % b1;
+        int b2_index = c2_index % b2;
+        int b3_index = c3_index % b3;
+        ((T *)z)[i] =
+            pow(((T *)x)[a0_index * a1 * a2 * a3 + a1_index * a2 * a3 +
+                         a2_index * a3 + a3_index],
+                ((T *)y)[b0_index * b1 * b2 * b3 + b1_index * b2 * b3 +
+                         b2_index * b3 + b3_index]);
     }
 }
 
@@ -125,36 +102,31 @@ __global__ void _less_kernel(void *x, void *y, void *z, int a0, int a1, int a2,
                              int a3, int b0, int b1, int b2, int b3, int c0,
                              int c1, int c2, int c3) {
     int index = threadIdx.x + blockIdx.x * blockDim.x;
+    int stride = blockDim.x * gridDim.x;
+    int n = c0 * c1 * c2 * c3;
 
-    int stride1 = c2 * c3;
-    int stride0 = c1 * stride1;
-    int n = c0 * stride0;
-    int end = (repeat * index + repeat < n ? repeat * index + repeat : n);
-    for (int i = repeat * index; i < end; i++) {
-        int xIdx = (a0 * a1 * a2 * a3 == n ? i : 0);
-        int yIdx = (b0 * b1 * b2 * b3 == n ? i : 0);
+    for (int i = index; i < n; i += stride) {
+        int c0_index = i / (c1 * c2 * c3);
+        int c1_index = (i % (c1 * c2 * c3)) / (c2 * c3);
+        int c2_index = ((i % (c1 * c2 * c3)) % (c2 * c3)) / c3;
+        int c3_index = ((i % (c1 * c2 * c3)) % (c2 * c3)) % c3;
 
-        bool aIdx = (a0 * a1 * a2 * a3 < n && a0 * a1 * a2 * a3 > 1);
-        bool bIdx = (b0 * b1 * b2 * b3 < n && b0 * b1 * b2 * b3 > 1);
-        if (aIdx || bIdx) {
-            int c0_index = i / stride0;
-            int c1_index = (i % stride0) / stride1;
-            int c2_index = (i % stride1) / c3;
-            int c3_index = i % c3;
-            if (aIdx) {
+        int a0_index = c0_index % a0;
+        int a1_index = c1_index % a1;
+        int a2_index = c2_index % a2;
+        int a3_index = c3_index % a3;
 
-                xIdx = (c0_index % a0) * a1 * a2 * a3 +
-                       (c1_index % a1) * a2 * a3 + (c2_index % a2) * a3 +
-                       c3_index % a3;
-            }
-            if (bIdx) {
-
-                yIdx = (c0_index % b0) * b1 * b2 * b3 +
-                       (c1_index % b1) * b2 * b3 + (c2_index % b2) * b3 +
-                       c3_index % b3;
-            }
-        }
-        ((bool *)z)[i] = ((T *)x)[xIdx] < ((T *)y)[yIdx] ? true : false;
+        int b0_index = c0_index % b0;
+        int b1_index = c1_index % b1;
+        int b2_index = c2_index % b2;
+        int b3_index = c3_index % b3;
+        ((bool *)z)[i] =
+            ((T *)x)[a0_index * a1 * a2 * a3 + a1_index * a2 * a3 +
+                     a2_index * a3 + a3_index] <
+                    ((T *)y)[b0_index * b1 * b2 * b3 + b1_index * b2 * b3 +
+                             b2_index * b3 + b3_index]
+                ? true
+                : false;
     }
 }
 
@@ -204,6 +176,7 @@ __global__ void _less_kernel(void *x, void *y, void *z, int a0, int a1, int a2,
     default:                                                                   \
         IT_TODO_HALT();                                                        \
     }
+
 template <class T>
 __global__ void _div_const_kernel(void const *__restrict__ x,
                                   void const *__restrict__ y,
@@ -213,6 +186,7 @@ __global__ void _div_const_kernel(void const *__restrict__ x,
         ((T *)z)[tid] = ((T *)x)[tid] / *((T *)y);
     }
 }
+
 template <class T>
 __global__ void _pow_const_kernel(void const *__restrict__ x,
                                   void const *__restrict__ y,
@@ -231,6 +205,7 @@ __global__ void _pow_const_kernel<half>(void const *__restrict__ x,
         ((half *)z)[tid] = pow(((float)((half *)x)[tid]), *((half *)y));
     }
 }
+
 #define CASE_CONST(OP, T)                                                      \
     _##OP##_const_kernel<DT_CUDA<T>::t>                                        \
         <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(a, b, c,  \
@@ -274,6 +249,7 @@ __global__ void _pow_const_kernel<half>(void const *__restrict__ x,
     default:                                                                   \
         IT_TODO_HALT();                                                        \
     }
+
 namespace infini {
 void div_const_kernel(int dType, void *a, void *b, void *c, size_t n) {
     size_t blocksize = block_work_size();
@@ -286,14 +262,14 @@ void pow_const_kernel(int dType, void *a, void *b, void *c, size_t n) {
     size_t gridsize = (n + block_work_size() - 1) / block_work_size();
     SWITCH_DTYPE_CONST(pow, dType);
 }
+
 void div_kernel(int dType, void *a, void *b, void *c, int a0, int a1, int a2,
                 int a3, int b0, int b1, int b2, int b3, int c0, int c1, int c2,
                 int c3) {
 
     int blocksize = block_work_size();
     int num = c0 * c1 * c2 * c3;
-    int gridsize =
-        (num + repeat * block_work_size() - 1) / (repeat * block_work_size());
+    int gridsize = (num + block_work_size() - 1) / block_work_size();
     SWITCH_DTYPE(div, dType)
 }
 void add_kernel(int dType, void *a, void *b, void *c, int a0, int a1, int a2,
@@ -302,8 +278,7 @@ void add_kernel(int dType, void *a, void *b, void *c, int a0, int a1, int a2,
 
     int blocksize = block_work_size();
     int num = c0 * c1 * c2 * c3;
-    int gridsize =
-        (num + repeat * block_work_size() - 1) / (repeat * block_work_size());
+    int gridsize = (num + block_work_size() - 1) / block_work_size();
     SWITCH_DTYPE(add, dType)
 }
 void pow_kernel(int dType, void *a, void *b, void *c, int a0, int a1, int a2,
@@ -311,8 +286,7 @@ void pow_kernel(int dType, void *a, void *b, void *c, int a0, int a1, int a2,
                 int c3) {
     int blocksize = block_work_size();
     int num = c0 * c1 * c2 * c3;
-    int gridsize =
-        (num + repeat * block_work_size() - 1) / (repeat * block_work_size());
+    int gridsize = (num + block_work_size() - 1) / block_work_size();
     if (dType == 1) {
         _pow_kernel<float>
             <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
@@ -350,8 +324,7 @@ void less_kernel(int dType, void *a, void *b, void *c, int a0, int a1, int a2,
                  int c3) {
     int blocksize = block_work_size();
     int num = c0 * c1 * c2 * c3;
-    int gridsize =
-        (num + repeat * block_work_size() - 1) / (repeat * block_work_size());
+    int gridsize = (num + block_work_size() - 1) / block_work_size();
     SWITCH_DTYPE(less, dType)
 }
 

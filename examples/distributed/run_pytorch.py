@@ -10,9 +10,6 @@ import os
 from onnx.external_data_helper import convert_model_to_external_data
 from onnxsim import simplify
 
-torch.backends.cuda.matmul.allow_tf32 = False
-torch.backends.cudnn.allow_tf32 = False
-
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -35,10 +32,22 @@ def parse_args():
         const="./",
         help="whether and where to export onnx file",
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "--type",
+        type=str,
+        choices=["fp32", "fp16", "tf32"],
+        default="fp32",
+        help="data type",
+    )
     args = parser.parse_args()
     print("arg setting: ", args)
-    return (args.model, args.batch_size, args.length, args.export_onnx)
+    return (
+        args.model,
+        args.batch_size,
+        args.length,
+        args.export_onnx,
+        args.type,
+    )
 
 
 def get_model(modelname):
@@ -87,7 +96,7 @@ def run_pytorch(torch_model, voc_size, batchsize, len):
     print("outputs abs mean:", abs(np.array(outputs)).mean())
     print(f"average time: {avg_time}")
     torch.cuda.memory.empty_cache()
-    np.save("test_results", np.array(outputs))
+    np.save("test_results", np.array(outputs, dtype=np.float32))
     print("Save input & output as test_inputs.npy and test_results.npy")
 
 
@@ -172,7 +181,14 @@ def add_value_info_for_constants(model: onnx.ModelProto):
 
 
 def main():
-    modelname, batchsize, seqlen, export_path = parse_args()
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.backends.cudnn.allow_tf32 = False
+    modelname, batchsize, seqlen, export_path, data_type = parse_args()
+    if data_type == "tf32":
+        torch.backends.cuda.matmul.allow_tf32 = True
+    else:
+        os.environ["NVIDIA_TF32_OVERRIDE"] = "0"
+
     model, voc_size = get_model(modelname)
     if export_path is not None:
         filename = "{}_{}_{}.onnx".format(modelname, batchsize, seqlen)
@@ -180,6 +196,8 @@ def main():
         param = torch.zeros((batchsize, seqlen), dtype=torch.int)
         export_onnx(model, param, path, True)
 
+    if data_type == "fp16":
+        model = model.half()
     run_pytorch(model, voc_size, batchsize, seqlen)
 
 
