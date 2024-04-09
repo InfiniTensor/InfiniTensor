@@ -30,11 +30,7 @@ def parse_args():
         help="whether to generate the standard results.",
     )
     parser.add_argument(
-        "--type",
-        type=str,
-        choices=["fp32", "fp16", "tf32"],
-        default="fp32",
-        help="data type",
+        "--type", type=str, choices=["fp32", "fp16", "tf32"], default="fp32", help="data type"
     )
     args = parser.parse_args()
     print("arg setting: ", args)
@@ -50,7 +46,7 @@ def parse_args():
     )
 
 
-def run_model(model, runtime, inputs, n=10, data_type="default"):
+def run_model(model, runtime, inputs, n=10, data_type = "default"):
     stub = OnnxStub(model, runtime, matmul_compute_type=data_type)
     for tensor, input in zip(stub.inputs.values(), inputs, strict=False):
         tensor.copyin_numpy(input)
@@ -81,12 +77,7 @@ def run_and_compare(name, model, runtime, data_type):
 
 
 def start_worker(
-    name: str,
-    world_size: int,
-    rank: int,
-    local_rank: int,
-    model: onnx.ModelProto,
-    data_type: str,
+    name: str, world_size: int, rank: int, local_rank: int, model: onnx.ModelProto, data_type: str
 ):
     dist_name = name + "_dist"
     model = parallel_model(model, world_size, rank)
@@ -99,7 +90,7 @@ def start_worker(
         save_as_external_data=True,
         location=extern_path,
     )
-    # infer_shapes_path(f"./{dist_name}_rank{rank}.onnx")
+    #infer_shapes_path(f"./{dist_name}_rank{rank}.onnx")
     runtime = backend.CudaRuntime(local_rank)
     # print("init comm")
     runtime.init_comm(
@@ -127,16 +118,7 @@ def gen_standard(name, model, voc_size, bs, len):
 
 
 def main():
-    (
-        nnodes,
-        nproc_per_node,
-        name,
-        model_path,
-        bs,
-        length,
-        gen_std,
-        data_type,
-    ) = parse_args()
+    nnodes, nproc_per_node, name, model_path, bs, length, gen_std, data_type = parse_args()
     data_type = "default" if data_type == "fp32" else data_type
     if data_type != "tf32":
         os.environ["NVIDIA_TF32_OVERRIDE"] = "0"
