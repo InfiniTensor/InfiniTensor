@@ -30,6 +30,9 @@
 #ifdef USE_KUNLUN
 #include "kunlun/kunlun_runtime.h"
 #endif
+#ifdef USE_ASCEND
+#include "ascend/ascend_runtime.h"
+#endif
 #ifdef USE_INTELCPU
 #include "intelcpu/mkl_runtime.h"
 #include "intelcpu/operator_timer.h"
@@ -172,6 +175,12 @@ static Ref<BangRuntimeObj> bang_runtime() { return make_ref<BangRuntimeObj>(); }
 #ifdef USE_KUNLUN
 static Ref<KUNLUNRuntimeObj> kunlun_runtime() {
     return make_ref<KUNLUNRuntimeObj>();
+}
+#endif
+
+#ifdef USE_ASCEND
+static Ref<ASCENDRuntimeObj> ascend_runtime() {
+    return make_ref<ASCENDRuntimeObj>();
 }
 #endif
 
@@ -347,6 +356,10 @@ void export_functions(py::module &m) {
 #ifdef USE_KUNLUN
         .FUNCTION(kunlun_runtime)
 #endif
+
+#ifdef USE_ASCEND
+        .FUNCTION(ascend_runtime)
+#endif
         .FUNCTION(conv_attrs_of)
         .FUNCTION(conv_trans_attrs_of)
         .FUNCTION(matmul_attrs_of)
@@ -432,6 +445,14 @@ void init_graph_builder(py::module &m) {
         m, "KUNLUNRuntime")
         .def(py::init<int>(), py::arg("device") = 0)
         .def("init_comm", &KUNLUNRuntimeObj::initComm);
+#endif
+
+#ifdef USE_ASCEND
+    py::class_<ASCENDRuntimeObj, std::shared_ptr<ASCENDRuntimeObj>, RuntimeObj>(
+        m, "ASCENDRuntime")
+        .def(py::init<int>(), py::arg("device") = 0)
+        .def("init_comm", &ASCENDRuntimeObj::initComm);
+    ;
 #endif
     py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "Tensor",
                                                       py::buffer_protocol())

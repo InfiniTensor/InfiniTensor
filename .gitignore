@@ -44,3 +44,5 @@ build_debug/
 *.onnx
 *.pb
 *.npy
+
+*.swp
