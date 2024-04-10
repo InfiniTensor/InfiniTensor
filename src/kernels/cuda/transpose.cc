@@ -16,31 +16,54 @@ class TransposeCuda : public CudaKernelWithoutConfig {
         void *const outputData = output->getRawDataPtr<void *>();
         const auto &inputShape = input->getDims();
         const auto &outputShape = output->getDims();
-
-        const auto &perm = op->getPermute();
+        const int dType = op->getDType().getIndex();
         int size = input->size();
         int nDims = input->getDims().size();
-
-        // Compute strides
-        SmallArray strides, buffer;
-        IT_ASSERT(nDims <= SMALL_ARRAY_SIZE);
-        int curStride = 1;
-        for (int i = nDims - 1; i >= 0; --i) {
-            buffer.data[i] = curStride;
-            curStride *= inputShape[i];
+        //----------------
+        bool condition = true;
+        int gnum = 0;
+        for (int i = 0; i < nDims; i++) {
+            if (inputShape[i] > 1) {
+                while (gnum < nDims) {
+                    if (outputShape[gnum] > 1) {
+                        gnum += 1;
+                        break;
+                    } else {
+                        gnum += 1;
+                    }
+                }
+                if (inputShape[i] != outputShape[gnum - 1]) {
+                    condition = false;
+                    break;
+                }
+            }
         }
-        for (int i = 0; i < nDims; ++i) {
-            strides.data[i] = buffer.data[perm[i]];
-        }
+        //----------------
+        if (condition) {
+            transposeSpecial_kernel(dType, inputData, outputData, size);
+        } else {
+            const auto &perm = op->getPermute();
 
-        SmallArray outputDims;
-        for (int i = 0; i < nDims; ++i) {
-            outputDims.data[i] = outputShape[i];
-        }
+            // Compute strides
+            SmallArray strides, buffer;
+            IT_ASSERT(nDims <= SMALL_ARRAY_SIZE);
+            int curStride = 1;
+            for (int i = nDims - 1; i >= 0; --i) {
+                buffer.data[i] = curStride;
+                curStride *= inputShape[i];
+            }
+            for (int i = 0; i < nDims; ++i) {
+                strides.data[i] = buffer.data[perm[i]];
+            }
 
-        const int dType = op->getDType().getIndex();
-        transpose_kernel(dType, inputData, outputData, nDims, size, strides,
-                         outputDims);
+            SmallArray outputDims;
+            for (int i = 0; i < nDims; ++i) {
+                outputDims.data[i] = outputShape[i];
+            }
+
+            transpose_kernel(dType, inputData, outputData, nDims, size, strides,
+                             outputDims);
+        }
     }
 };
 
