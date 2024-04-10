@@ -87,20 +87,7 @@ class matmulCublas : public Kernel {
             beta_naive = 1.f;
             auto inC = op->getInputs(2);
             auto out = op->getOutput();
-            SmallArray inputShape, outputShape;
-            int nDims = out->getRank();
-            IT_ASSERT(nDims <= SMALL_ARRAY_SIZE);
-            // FIXME(constroy): use size_t for outputsize.
-            int outputsize = 1; // the length of the output vector after flatten
-            int offset = nDims - inC->getRank();
-            for (int i = 0; i < offset; ++i)
-                inputShape.data[i] = 1;
-            for (int i = 0; i < nDims; ++i) {
-                outputShape.data[i] = out->getDims()[i];
-                outputsize *= outputShape.data[i];
-                if (i >= offset)
-                    inputShape.data[i] = inC->getDims()[i - offset];
-            }
+
             const int dType = dataType.getIndex();
 
             // Bias in linear layer is row vector of (1,n), n is the number of
@@ -111,9 +98,19 @@ class matmulCublas : public Kernel {
                                 out->size() / inC->getDims()[0],
                                 inC->getDims()[0]);
             } else {
+                auto a_dim = out->getDims();
+                auto b_dim = inC->getDims(); // output shape
+
+                if (a_dim.size() > 4 || b_dim.size() > 4)
+                    IT_TODO_HALT();
+
+                int a[4] = {1, 1, 1, 1};
+                int b[4] = {1, 1, 1, 1};
+                std::copy(a_dim.begin(), a_dim.end(), a + (4 - a_dim.size()));
+                std::copy(b_dim.begin(), b_dim.end(), b + (4 - b_dim.size()));
                 expandKernel(dType, inC->getRawDataPtr<void *>(),
-                             out->getRawDataPtr<void *>(), nDims, outputsize,
-                             inputShape, outputShape);
+                             out->getRawDataPtr<void *>(), a[0], a[1], a[2],
+                             a[3], b[0], b[1], b[2], b[3]);
             }
         }
         // TODO:use compute type

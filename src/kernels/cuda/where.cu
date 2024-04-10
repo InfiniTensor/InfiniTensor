@@ -1,6 +1,6 @@
 #include "cuda/cuda_common.h"
 #include "cuda/cuda_utility.h"
-const int repeat = 3;
+const int repeat = 1;
 
 template <typename T>
 __global__ void
