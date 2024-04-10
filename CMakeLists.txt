@@ -303,6 +303,7 @@ if(USE_KUNLUN)
   else()
     set(TARGET_CPU_ARCH $ENV{TARGET_CPU_ARCH} CACHE STRING "Target CPU ARCH")
   endif()
+
   message(STATUS "TARGET_CPU_ARCH: ${TARGET_CPU_ARCH}")
 
   if (BUILD_DIST)
