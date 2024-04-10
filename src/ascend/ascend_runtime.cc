@@ -1,6 +1,9 @@
 #include "ascend/ascend_runtime.h"
 #include "core/kernel.h"
 #include "core/perf_engine.h"
+#ifdef INFINI_USE_HCCL
+#include "ascend/hccl_communicator.h"
+#endif
 
 namespace infini {
 

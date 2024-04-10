@@ -57,13 +57,22 @@ class GatherAclnn : public ASCENDKernelWithoutConfig {
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);
         }
-        assert(ret == ACL_SUCCESS);
+        CHECK_RET(ret == ACL_SUCCESS,
+                  LOG_PRINT("aclnnGatherV2GetWorkspaceSize failed. ERROR: %d\n",
+                            ret));
+
         ret = aclnnGatherV2(workspaceAddr, workspaceSize, executor,
                             context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
+        CHECK_RET(ret == ACL_SUCCESS,
+                  LOG_PRINT("aclnnGatherV2 failed. ERROR: %d\n", ret));
+        auto tmp_err_msg = aclGetRecentErrMsg();
+        if (tmp_err_msg != NULL) {
+            printf(" ERROR Message : %s \n ", tmp_err_msg);
+        }
 
         ret = aclrtSynchronizeStream(context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
+        CHECK_RET(ret == ACL_SUCCESS,
+                  LOG_PRINT("aclrtSynchronizeStream failed. ERROR: %d\n", ret));
 
         return;
     }

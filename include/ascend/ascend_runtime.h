@@ -26,10 +26,10 @@ class ASCENDRuntimeObj : public RuntimeObj {
 
   public:
     ASCENDRuntimeObj(int deviceId = 0) : RuntimeObj(Device::ASCEND, deviceId) {
-        auto ret = aclInit(nullptr);
-        CHECK_RET(ret == ACL_SUCCESS,
-                  LOG_PRINT("aclInit failed. ERROR: %d\n", ret));
-        ret = aclrtSetDevice(deviceId);
+        // auto ret = aclInit(nullptr);
+        // CHECK_RET(ret == ACL_SUCCESS,
+        //           LOG_PRINT("aclInit failed. ERROR: %d\n", ret));
+        auto ret = aclrtSetDevice(deviceId);
         CHECK_RET(ret == ACL_SUCCESS,
                   LOG_PRINT("aclrtSetDevice failed. ERROR: %d\n", ret));
         ret = aclrtCreateContext(&context, deviceId);
@@ -54,7 +54,7 @@ class ASCENDRuntimeObj : public RuntimeObj {
         aclrtDestroyStream(stream);
         aclrtDestroyContext(context);
         aclrtResetDevice(deviceId);
-        aclFinalize();
+        // aclFinalize();
     }
     string toString() const override;
 

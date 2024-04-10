@@ -8,7 +8,7 @@
 
 namespace infini {
 
-TEST(ascend_Unary, run) {
+TEST(ascend_Gather, run) {
     aclInit(nullptr);
     {
         // Runtime
