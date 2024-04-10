@@ -53,11 +53,13 @@ endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF) # -std=gnu++11 when on, -std=c++11 when off
+add_compile_options(-Wno-error=unused-variable)
 
 find_package(
   Python
   COMPONENTS Interpreter Development
   REQUIRED)
+
 # OpenMP
 find_package(OpenMP)
 if(OpenMP_C_FOUND)
@@ -282,9 +284,9 @@ if(USE_KUNLUN)
   endif()
   message(STATUS "KUNLUN_HOME: ${KUNLUN_HOME}")
 
-  include_directories("${KUNLUN_HOME}/XTDK/include/")
-  find_library(KUNLUN_RT libxpurt.so "${KUNLUN_HOME}/lib64")
-  find_library(KUNLUN_DNN libxpuapi.so "${KUNLUN_HOME}/XTDK/shlib")
+  include_directories("${KUNLUN_HOME}/include/")
+  find_library(KUNLUN_RT libxpurt.so "${KUNLUN_HOME}/lib64/")
+  find_library(KUNLUN_DNN libxpuapi.so "${KUNLUN_HOME}/lib64/")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lstdc++ -Wall -Werror")
 
   if ((NOT DEFINED TARGET_CPU_ARCH) AND (NOT DEFINED ENV{TARGET_CPU_ARCH}))
@@ -297,6 +299,13 @@ if(USE_KUNLUN)
   endif()
   message(STATUS "TARGET_CPU_ARCH: ${TARGET_CPU_ARCH}")
 
+  if (BUILD_DIST)
+    message(STATUS "Add BUILD_DIST, use XCCL with KUNLUN XPU")
+    list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+    find_package(XCCL REQUIRED)
+    add_compile_definitions(INFINI_USE_XCCL=1)
+    target_link_libraries(InfiniTensor ${XCCL_LIBRARIES})
+  endif()
   target_link_libraries(InfiniTensor ${KUNLUN_RT} ${KUNLUN_DNN} stdc++)
 endif()
 
@@ -335,6 +344,7 @@ if(BUILD_TEST)
     endif()
     if (USE_KUNLUN)
       build_test(test/kernels/kunlun/*.cc)
+      build_test(test/kunlun/*.cc)
     endif()
     if (USE_INTELCPU)
       build_test(test/kernels/intelcpu/*.cc)

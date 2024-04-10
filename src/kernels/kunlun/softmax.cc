@@ -15,9 +15,9 @@ class SoftmaxXdnn : public KUNLUNKernelWithoutConfig {
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
 
-        auto ret = baidu::xpu::api::softmax<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)cData, dim, axis);
-        assert(ret == 0);
+        checkKUNLUNError(xdnn::softmax<float>(context->KUNLUNHandle(),
+                                              (float *)aData, (float *)cData,
+                                              dim, axis));
         return;
     }
 };

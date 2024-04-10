@@ -33,6 +33,36 @@ constexpr cublasGemmAlgo_t ALGOS[N_ALGO] = {
     CUBLAS_GEMM_ALGO18, CUBLAS_GEMM_ALGO19, CUBLAS_GEMM_ALGO20,
     CUBLAS_GEMM_ALGO21, CUBLAS_GEMM_ALGO22, CUBLAS_GEMM_ALGO23,
 };
+
+cublasComputeType_t cuDataType2ComputeType(cudaDataType_t cuDataType) {
+    if (cuDataType == CUDA_R_16F) {
+        return CUBLAS_COMPUTE_16F;
+    } else if (cuDataType == CUDA_R_16BF) {
+        return CUBLAS_COMPUTE_32F_FAST_16BF;
+    } else if (cuDataType == CUDA_R_32F) {
+        return CUBLAS_COMPUTE_32F;
+    } else if (cuDataType == CUDA_R_64F) {
+        return CUBLAS_COMPUTE_64F;
+    } else {
+        IT_TODO_HALT();
+    }
+}
+
+cublasComputeType_t getCuComputeType(std::string computeTypeStr,
+                                     cudaDataType_t cuDataType) {
+    if (computeTypeStr == "tf32") {
+        return CUBLAS_COMPUTE_32F_FAST_TF32;
+    } else if (computeTypeStr == "bf16") {
+        return CUBLAS_COMPUTE_32F_FAST_16BF;
+    } else if (computeTypeStr == "fp16") {
+        return CUBLAS_COMPUTE_32F_FAST_16F;
+    } else if (computeTypeStr == "default") {
+        return cuDataType2ComputeType(cuDataType);
+    } else {
+        IT_TODO_HALT();
+    }
+}
+
 class matmulCublas : public Kernel {
     bool do_compute(const Operator &_op, const PerfRecord &_record,
                     const RuntimeObj *_context) const {
@@ -72,12 +102,25 @@ class matmulCublas : public Kernel {
                     inputShape.data[i] = inC->getDims()[i - offset];
             }
             const int dType = dataType.getIndex();
-            expandKernel(dType, inC->getRawDataPtr<void *>(),
-                         out->getRawDataPtr<void *>(), nDims, outputsize,
-                         inputShape, outputShape);
+
+            // Bias in linear layer is row vector of (1,n), n is the number of
+            // features. If row vector and n % 32 == 0, use optimized kernel.
+            if (inC->getRank() == 1 && inC->getDims()[0] % 32 == 0) {
+                expandRowKernel(dType, inC->getRawDataPtr<void *>(),
+                                out->getRawDataPtr<void *>(),
+                                out->size() / inC->getDims()[0],
+                                inC->getDims()[0]);
+            } else {
+                expandKernel(dType, inC->getRawDataPtr<void *>(),
+                             out->getRawDataPtr<void *>(), nDims, outputsize,
+                             inputShape, outputShape);
+            }
         }
         // TODO:use compute type
         cublasStatus_t stat;
+        std::string computeTypeStr = op->getComputeType();
+        auto cuComputeType = getCuComputeType(computeTypeStr, cuDataType);
+
         if (b > 1) {
             // Support batch broadcast with zero stride
             int dimA = op->getInputs(0)->getRank();
@@ -99,14 +142,14 @@ class matmulCublas : public Kernel {
                     context->cublasHandle(), opB, opA, n, m, k, &alpha_half,
                     inBData, cuDataType, ldb, strideB, inAData, cuDataType, lda,
                     strideA, &beta_half, outData, cuDataType, ldc, m * n, b,
-                    cuDataType, (cublasGemmAlgo_t)record->algo);
+                    cuComputeType, (cublasGemmAlgo_t)record->algo);
 
             } else {
                 stat = cublasGemmStridedBatchedEx(
                     context->cublasHandle(), opB, opA, n, m, k, &alpha_naive,
                     inBData, cuDataType, ldb, strideB, inAData, cuDataType, lda,
                     strideA, &beta_naive, outData, cuDataType, ldc, m * n, b,
-                    cuDataType, (cublasGemmAlgo_t)record->algo);
+                    cuComputeType, (cublasGemmAlgo_t)record->algo);
             }
         } else {
             if (dataType == DataType::Float16) {
@@ -115,13 +158,13 @@ class matmulCublas : public Kernel {
                 stat = cublasGemmEx(context->cublasHandle(), opB, opA, n, m, k,
                                     &alpha_half, inBData, cuDataType, ldb,
                                     inAData, cuDataType, lda, &beta_half,
-                                    outData, cuDataType, ldc, cuDataType,
+                                    outData, cuDataType, ldc, cuComputeType,
                                     (cublasGemmAlgo_t)record->algo);
             } else {
                 stat = cublasGemmEx(context->cublasHandle(), opB, opA, n, m, k,
                                     &alpha_naive, inBData, cuDataType, ldb,
                                     inAData, cuDataType, lda, &beta_naive,
-                                    outData, cuDataType, ldc, cuDataType,
+                                    outData, cuDataType, ldc, cuComputeType,
                                     (cublasGemmAlgo_t)record->algo);
             }
         }

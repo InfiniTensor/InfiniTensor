@@ -3,9 +3,10 @@
 ## 目录
 
 - [使用方法](#使用方法)
-- [python-前端应用指南](#python-前端应用指南)
-  - [导入-onnx-模型](#导入-onnx-模型)
-  - [导出-onnx-模型](#导出-onnx-模型)
+- [python 前端应用指南](#python-前端应用指南)
+  - [导入 onnx 模型](#导入-onnx-模型)
+  - [优化](#优化)
+  - [导出 onnx 模型](#导出-onnx-模型)
   - [执行推理](#执行推理)
   - [样例代码](#样例代码)
 - [技术支持](#技术支持)
@@ -13,7 +14,7 @@
 
 ## 使用方法
 
-项目管理功能已写到 [Makefile](Makefile)，支持下列功能：
+项目管理功能已写到 [Makefile](../Makefile)，支持下列功能：
 
 - 编译项目：`make`/`make build`
 - 清理生成文件：`make clean`
@@ -38,10 +39,10 @@
 
 支持的模型：
 
-- [x] [ResNet18-v2](https://github.com/onnx/models/blob/main/vision/classification/resnet/model/resnet18-v2-7.onnx)
-- [x] [DenseNet-121-12](https://github.com/onnx/models/blob/main/vision/classification/densenet-121/model/densenet-12.onnx)
-- [x] [Inception-2](https://github.com/onnx/models/blob/main/vision/classification/inception_and_googlenet/inception_v2/model/inception-v2-9.onnx)
-- [x] [EfficientNet-Lite4](https://github.com/onnx/models/blob/main/vision/classification/efficientnet-lite4/model/efficientnet-lite4-11.onnx)
+- [x] [ResNet18-v2](https://github.com/onnx/models/blob/main/validated/vision/classification/resnet/model/resnet18-v2-7.onnx)
+- [x] [DenseNet-121-12](https://github.com/onnx/models/blob/main/validated/vision/classification/densenet-121/model/densenet-12.onnx)
+- [x] [Inception-2](https://github.com/onnx/models/blob/main/validated/vision/classification/inception_and_googlenet/inception_v2/model/inception-v2-9.onnx)
+- [x] [EfficientNet-Lite4](https://github.com/onnx/models/blob/main/validated/vision/classification/efficientnet-lite4/model/efficientnet-lite4-11.onnx)
 
 ```python
 import onnx
@@ -96,7 +97,7 @@ for name, tensor in stub.inputs.items():
     print(name, tensor.shape(), tensor)
 ```
 
-对于 [resnet18-v2-7.onnx](https://github.com/onnx/models/blob/main/vision/classification/resnet/model/resnet18-v2-7.onnx)，会打印出：
+对于 [resnet18-v2-7.onnx](https://github.com/onnx/models/blob/main/validated/vision/classification/resnet/model/resnet18-v2-7.onnx)，会打印出：
 
 ```plaintext
 data [1, 3, 224, 224] <backend.Tensor object at 0x7efeb828e3b0>
@@ -137,7 +138,7 @@ for name, tensor in stub.outputs.items():
 
 ### 样例代码
 
-您可以参照[./example/Resnet/resnet.py](./example/ResNet/resnet.py)的样例代码进行了解，并尝试运行。在这个文件中，我们使用了 Pytorch 构建了 resnet 网络。您可以查阅该脚本使用方式：
+您可以参照[resnet.py](https://github.com/wanghailu0717/NNmodel/blob/main/ResNet/resnet.py)的样例代码进行了解，并尝试运行。在这个文件中，我们使用了 Pytorch 构建了 resnet 网络。您可以查阅该脚本使用方式：
 
 ```python
 python resnet.py -h
