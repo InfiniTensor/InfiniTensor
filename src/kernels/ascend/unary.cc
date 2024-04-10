@@ -91,22 +91,22 @@ class ReluAclnn : public ASCENDKernelWithoutConfig {
             void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());   \
             void *const cData = (op->getOutput()->getRawDataPtr<void *>());    \
                                                                                \
-            auto a = op->getInputs(0) -> getDims();                            \
+            auto a = op->getInputs(0)->getDims();                              \
             std::vector<int64_t> aDim(a.size(), 1);                            \
             for (size_t i = 0; i < a.size(); ++i) {                            \
                 aDim[i] = int64_t(a[i]);                                       \
             }                                                                  \
-            auto aS = op->getInputs(0) -> getStride();                         \
+            auto aS = op->getInputs(0)->getStride();                           \
             std::vector<int64_t> aStride(aS.size(), 1);                        \
             for (size_t i = 0; i < aS.size(); ++i) {                           \
                 aStride[i] = int64_t(aS[i]);                                   \
             }                                                                  \
-            auto c = op->getInputs(0) -> getDims();                            \
+            auto c = op->getInputs(0)->getDims();                              \
             std::vector<int64_t> cDim(c.size(), 1);                            \
             for (size_t i = 0; i < c.size(); ++i) {                            \
                 cDim[i] = int64_t(c[i]);                                       \
             }                                                                  \
-            auto cS = op->getInputs(0) -> getStride();                         \
+            auto cS = op->getInputs(0)->getStride();                           \
             std::vector<int64_t> cStride(cS.size(), 1);                        \
             for (size_t i = 0; i < cS.size(); ++i) {                           \
                 cStride[i] = int64_t(cS[i]);                                   \
