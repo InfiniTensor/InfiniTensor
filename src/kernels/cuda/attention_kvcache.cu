@@ -8,8 +8,8 @@
 // ASSUME SEQ_LEN OF Q IS 1
 template <class T>
 __global__ void _attention_kvcache_kernel_128_1(T* input_k_cache,
-                                              T* input_v_cache, 
-                                              T* input_q, 
+                                              T* input_v_cache,   
+                                              T* input_q,         
                                               T* input_k, 
                                               T* input_v, 
                                               int64_t* position_id,
