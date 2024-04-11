@@ -1,12 +1,12 @@
 #pragma once
 #include "core/common.h"
+#include "infinitensor_export.h"
 #include <cublas_v2.h>
 #include <cuda.h>
 #include <cuda_profiler_api.h>
 #include <cudnn.h>
 #include <curand.h>
 #include <memory>
-#include "infinitensor_export.h"
 
 #define checkCudaError(call)                                                   \
     if (auto err = call; err != cudaSuccess)                                   \
