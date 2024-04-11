@@ -129,7 +129,7 @@ endif()
 if(WIN32)
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
   set(BUILD_SHARED_LIBS ON)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:preprocessor /permissive- /bigobj")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:preprocessor /permissive- /bigobj /wd4430")
 
   ## ignore warnning
   # set(CMAKE_C_FLAGS
@@ -141,23 +141,6 @@ if(WIN32)
   
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DUNDEBUG") # Enable assertion
   set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -DUNDEBUG") # Enable assertion
-  
-  foreach(
-    flag_var
-    CMAKE_CXX_FLAGS
-    CMAKE_CXX_FLAGS_DEBUG
-    CMAKE_CXX_FLAGS_RELEASE
-    CMAKE_CXX_FLAGS_MINSIZEREL
-    CMAKE_CXX_FLAGS_RELWITHDEBINFO
-    CMAKE_C_FLAGS
-    CMAKE_C_FLAGS_DEBUG
-    CMAKE_C_FLAGS_RELEASE
-    CMAKE_C_FLAGS_MINSIZEREL
-    CMAKE_C_FLAGS_RELWITHDEBINFO)
-    if(${flag_var} MATCHES "/MD")
-      string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
-    endif()
-  endforeach()
   
   ## ignore warnning
   # foreach(
@@ -214,8 +197,11 @@ endif()
 
 # Libraries
 add_library(InfiniTensor SHARED ${SRC})
-include(GenerateExportHeader)
-generate_export_header(InfiniTensor)
+if(WIN32)
+  include(GenerateExportHeader)
+  generate_export_header(InfiniTensor)
+  include_directories(${CMAKE_CURRENT_BINARY_DIR})
+endif()
 
 if(USE_PROTOBUF)
   target_link_libraries(InfiniTensor tensor_proto)

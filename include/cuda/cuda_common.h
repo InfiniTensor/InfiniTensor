@@ -6,6 +6,7 @@
 #include <cudnn.h>
 #include <curand.h>
 #include <memory>
+#include "infinitensor_export.h"
 
 #define checkCudaError(call)                                                   \
     if (auto err = call; err != cudaSuccess)                                   \
@@ -112,7 +113,7 @@ inline const char *curandGetErrorString(curandStatus_t error) {
 
 using CudaPtr = void *;
 
-class DECLSPEC CUDAStream {
+class CUDAStream {
   public:
     CUDAStream(const CUDAStream &) = delete;
     CUDAStream(CUDAStream &&) = delete;
@@ -125,7 +126,7 @@ class DECLSPEC CUDAStream {
 
   private:
     CUDAStream(){};
-    static cudaStream_t _stream;
+    static INFINITENSOR_EXPORT cudaStream_t _stream;
 };
 
 } // namespace infini

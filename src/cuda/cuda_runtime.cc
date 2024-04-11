@@ -1,5 +1,3 @@
-#define DLL_EXPORT
-
 #include "cuda/cuda_runtime.h"
 #include "core/kernel.h"
 #include "core/perf_engine.h"
