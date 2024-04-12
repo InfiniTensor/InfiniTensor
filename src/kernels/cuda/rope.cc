@@ -22,7 +22,6 @@ class RoPECuda : public CudaKernelWithoutConfig {
         IT_ASSERT(inputShape[0] == pos->getDims()[0] &&
                   inputShape[1] == pos->getDims()[1]);
         int position_idx_dtype = op->getInputs()[0]->getDTypeIndex();
-        IT_ASSERT(position_idx_dtype == 7);
         int dim_model = inputShape[2];
         int dim_head = 128; // TODO: get dim_head from the framework
         int pos_stride = inputShape[1];

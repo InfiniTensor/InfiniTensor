@@ -5,7 +5,6 @@
 #define BLOCKSIZE_2 WARP_SIZE*4
 #define MAX_PARTITION 1024
 
-// ASSUME SEQ_LEN OF Q IS 1
 template <class T>
 __global__ void _attention_kvcache_kernel_128_1(T* input_k_cache,
                                               T* input_v_cache,   
