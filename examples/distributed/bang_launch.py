@@ -171,9 +171,10 @@ def main():
         # run single process.
         # use standalone process to isolate bang.
         print("run model by single MLU.")
-        p = mp.Process(target=start_single, args=(name, model, data_type))
-        p.start()
-        p.join()
+        # p = mp.Process(target=start_single, args=(name, model, data_type))
+        # p.start()
+        # p.join()
+        start_single(name, model, data_type)
         return
 
     # run distributed parallel.
