@@ -1,3 +1,6 @@
+import sys
+sys.path.append('../')
+
 import argparse
 import os
 import time
@@ -8,8 +11,6 @@ from onnx.external_data_helper import convert_model_to_external_data
 from onnx.shape_inference import infer_shapes_path
 import numpy as np
 from parallel_opt import parallel_model
-
-
 
 def parse_args():
     parser = argparse.ArgumentParser(description="launch distributed infinitensor")
@@ -80,19 +81,6 @@ def run_and_compare(name, model, runtime, world_size=1, rank=0, data_type="defau
     outputs = run_model(model, runtime, world_size, rank, data_type=data_type)
     print("outputs abs mean:", abs(outputs).mean())
     print("max abs diff:", abs(outputs - results).max())
-
-# def getDiff(base, test):
-#     absolute_diff = np.abs(np.subtract(base, test))
-#     max_absolute_diff = np.max(absolute_diff)
-
-#     baseCopy = base.astype(np.float64).ravel()
-#     testCopy = test.astype(np.float64).ravel()
-#     upValue = np.sum(np.abs(baseCopy - testCopy))
-#     downValue = np.sum(np.abs(baseCopy)) + np.float64(1e-9)
-#     max_relative_diff = upValue / downValue
-#     print(f"Max absolute difference: {max_absolute_diff}\n"
-#           f"Max relative difference: {max_relative_diff}")
-#     return max_absolute_diff, max_relative_diff
 
 def start_worker(
     name: str, world_size: int, rank: int, local_rank: int, model: onnx.ModelProto, data_type: str
