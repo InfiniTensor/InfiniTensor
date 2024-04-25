@@ -21,12 +21,12 @@ namespace infini {
             void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());   \
             void *const cData = (op->getOutput()->getRawDataPtr<void *>());    \
                                                                                \
-            auto a = op->getInputs(0) -> getDims();                            \
-            auto aS = op->getInputs(0) -> getStride();                         \
-            auto b = op->getInputs(1) -> getDims();                            \
-            auto bS = op->getInputs(1) -> getStride();                         \
-            auto c = op->getOutput() -> getDims();                             \
-            auto cS = op->getOutput() -> getStride();                          \
+            auto a = op->getInputs(0)->getDims();                              \
+            auto aS = op->getInputs(0)->getStride();                           \
+            auto b = op->getInputs(1)->getDims();                              \
+            auto bS = op->getInputs(1)->getStride();                           \
+            auto c = op->getOutput()->getDims();                               \
+            auto cS = op->getOutput()->getStride();                            \
                                                                                \
             std::vector<int64_t> aDim = castTo64(a);                           \
             std::vector<int64_t> aStride = castTo64(aS);                       \

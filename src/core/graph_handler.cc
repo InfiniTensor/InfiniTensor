@@ -18,6 +18,8 @@
 #include "operators/reduce.h"
 #include "operators/reshape.h"
 #include "operators/resize.h"
+#include "operators/rms_norm.h"
+#include "operators/rope.h"
 #include "operators/send.h"
 #include "operators/slice.h"
 #include "operators/softmax.h"
@@ -72,15 +74,17 @@ Tensor GraphHandlerObj::convTransposed2d(Tensor input, Tensor weight,
 }
 
 Tensor GraphHandlerObj::matmul(Tensor a, Tensor b, Tensor y, bool transA,
-                               bool transB, Tensor bias, ActType act) {
+                               bool transB, Tensor bias, ActType act,
+                               std::string matmul_compute_type) {
     if (y) {
         g->addOpWithOutputs<MatmulObj>(std::move(a), std::move(b), y, transA,
-                                       transB, std::move(bias), act);
+                                       transB, std::move(bias), act,
+                                       matmul_compute_type);
         return y;
     } else {
         return g
             ->addOp<MatmulObj>(std::move(a), std::move(b), y, transA, transB,
-                               std::move(bias), act)
+                               std::move(bias), act, matmul_compute_type)
             ->getOutput();
     }
 }
@@ -117,6 +121,17 @@ Tensor GraphHandlerObj::layerNormalization(Tensor input, Tensor scale,
         return g
             ->addOp<LayerNormObj>(std::move(input), std::move(scale), output,
                                   std::move(bias), eps, axis, stash_type)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::rmsNorm(Tensor input, Tensor weight, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<RMSNormObj>(std::move(input), std::move(weight),
+                                        output);
+        return output;
+    } else {
+        return g->addOp<RMSNormObj>(std::move(input), std::move(weight), output)
             ->getOutput();
     }
 }
@@ -181,6 +196,7 @@ DEFINE_ELEMENT_WISE_METHOD(max, Maximum)
         }                                                                      \
     }
 
+DEFINE_UNARY_METHOD(silu, Silu)
 DEFINE_UNARY_METHOD(relu, Relu)
 DEFINE_UNARY_METHOD(gelu, Gelu)
 DEFINE_UNARY_METHOD(sigmoid, Sigmoid)
@@ -341,6 +357,16 @@ Tensor GraphHandlerObj::attentionKVCache(Tensor input_k_cache,
                 std::move(input_k_cache), std::move(input_v_cache),
                 std::move(input_q), std::move(input_k), std::move(input_v),
                 std::move(position_id), output_matmul)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::RoPE(Tensor pos, Tensor input, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<RoPEObj>(std::move(pos), std::move(input), output);
+        return output;
+    } else {
+        return g->addOp<RoPEObj>(std::move(pos), std::move(input), output)
             ->getOutput();
     }
 }
@@ -683,6 +709,8 @@ static CastType inferCastType(Tensor input, int to) {
         return CastType::Float162Float;
     } else if (iType == DataType::BFloat16 && oType == DataType::Float32) {
         return CastType::BFloat162Float;
+    } else if (iType == DataType::Float32 && oType == DataType::Float32) {
+        return CastType::Float2Float;
     } else {
         IT_TODO_HALT_MSG("Unsupported CastType : input_type is " +
                          iType.toString() + " output_type is " +

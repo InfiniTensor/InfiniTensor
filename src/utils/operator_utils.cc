@@ -116,4 +116,28 @@ std::string get_kernel_attrs_str(const KernelAttrs &kernelAttrs) {
     std::string opStr = OpType(std::get<1>(kernelAttrs)).toString();
     return deviceStr + ", " + opStr;
 }
+
+int shapeProd(std::vector<int>::iterator start,
+              std::vector<int>::iterator end) {
+    return std::accumulate(start, end, 1, std::multiplies<int>());
+}
+
+void broadcastShape(const Shape &originShape, SmallArray &modifyShape,
+                    int nDims, int size) {
+    for (int i = nDims - size - 1; i >= 0; --i) {
+        modifyShape.data[i] = 1;
+    }
+    for (int i = nDims - 1; i >= nDims - size; --i) {
+        modifyShape.data[i] = originShape[i - nDims + size];
+    }
+}
+
+void broadcastShape(const Shape &tempShape, Shape &modifyShape) {
+    // Align Rank, Add 1 in the start of smallShape
+    IT_ASSERT(tempShape.size() >= modifyShape.size());
+    modifyShape.insert(modifyShape.begin(),
+                       tempShape.size() - modifyShape.size(), 1);
+    return;
+}
+
 } // namespace infini

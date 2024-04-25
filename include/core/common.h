@@ -61,16 +61,30 @@ template <typename T> auto enum_to_underlying(T e) {
 }
 
 template <typename T> std::string vecToString(const std::vector<T> &vec) {
-    std::string ret;
-    ret.append("[");
-    for (auto d : vec) {
-        ret.append(std::to_string(d));
-        ret.append(",");
+    std::stringstream ss;
+    ss << "[";
+    for (size_t i = 0; i < vec.size(); ++i) {
+        ss << vec.at(i);
+        if (i < vec.size() - 1) {
+            ss << ",";
+        }
     }
-    if (!vec.empty())
-        ret.pop_back();
-    ret.append("]");
-    return ret;
+    ss << "]";
+    return ss.str();
+}
+
+template <typename T> std::string vecToString(const T *st, size_t length) {
+    std::stringstream ss;
+    ss << "[";
+    size_t i = 0;
+    for (i = 0; i < length; i++) {
+        ss << *(st + i);
+        if (i < length - 1) {
+            ss << ",";
+        }
+    }
+    ss << "]";
+    return ss.str();
 }
 
 double timeit(

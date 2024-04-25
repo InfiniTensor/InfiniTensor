@@ -5,8 +5,8 @@
 #include "utils/operator_utils.h"
 #include <functional>
 #include <nlohmann/json.hpp>
-using json = nlohmann::json;
 namespace infini {
+using json = nlohmann::json;
 
 class RuntimeObj; // Forward declaration for Kernel::compute
 

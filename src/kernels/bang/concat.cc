@@ -7,7 +7,6 @@ class ConcatCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ConcatObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
         int num = op->numInputs();
         int axis = op->getDim();
@@ -15,17 +14,18 @@ class ConcatCnnl : public BangKernelWithoutConfig {
         auto cDim = op->getOutput()->getDims();
         cnnlTensorDescriptor_t desc;
         checkCnnlError(cnnlCreateTensorDescriptor(&desc));
-        checkCnnlError(cnnlSetTensorDescriptor(desc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, cDim.size(),
-                                               cDim.data()));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            desc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
+            cDim.size(), cDim.data()));
 
         cnnlTensorDescriptor_t descArray[num];
         for (int i = 0; i < num; ++i) {
             checkCnnlError(cnnlCreateTensorDescriptor(&descArray[i]));
-            checkCnnlError(cnnlSetTensorDescriptor(
-                descArray[i], CNNL_LAYOUT_NCHW, CNNL_DTYPE_FLOAT,
-                op->getInputs(i)->getDims().size(),
-                op->getInputs(i)->getDims().data()));
+            checkCnnlError(
+                cnnlSetTensorDescriptor(descArray[i], CNNL_LAYOUT_NCHW,
+                                        cnnlDataTypeConvert(op->getDType()),
+                                        op->getInputs(i)->getDims().size(),
+                                        op->getInputs(i)->getDims().data()));
         }
 
         void *argv[num];

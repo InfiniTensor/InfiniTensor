@@ -8,7 +8,6 @@ class PoolingCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<PoolingObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
         void *const inData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const outData = (op->getOutput()->getRawDataPtr<void *>());
@@ -20,8 +19,9 @@ class PoolingCnnl : public BangKernelWithoutConfig {
         int inArray[4] = {n, c, h, w};
         cnnlTensorDescriptor_t inDesc;
         checkCnnlError(cnnlCreateTensorDescriptor(&inDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(inDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, inArray));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            inDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()), 4,
+            inArray));
         bool mode = op->getCeilMode();
 
         // get maxpool descriptor
@@ -37,8 +37,9 @@ class PoolingCnnl : public BangKernelWithoutConfig {
         int outArray[4] = {outVec[0], outVec[1], outVec[2], outVec[3]};
         cnnlTensorDescriptor_t outDesc;
         checkCnnlError(cnnlCreateTensorDescriptor(&outDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(outDesc, CNNL_LAYOUT_NCHW,
-                                               CNNL_DTYPE_FLOAT, 4, outArray));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            outDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()), 4,
+            outArray));
         size_t wsSize;
         cnnlGetPoolingWorkspaceSize(context->cnnlHandle(), getPoolingMode(),
                                     outVec[3], outVec[2], &wsSize);

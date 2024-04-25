@@ -1,4 +1,4 @@
-﻿import backend
+import backend
 from onnx import (
     ModelProto,
     TensorProto,
@@ -23,12 +23,13 @@ from onnx.checker import (
     ValidationError,
 )
 from onnx.shape_inference import infer_shapes
-from onnx.numpy_helper import to_array
+from onnx.numpy_helper import to_array, from_array
 from typing import Dict, List, Any, Tuple, Sequence, Union, Optional
 from functools import reduce
 from onnxsim import simplify
 import copy
 import warnings
+import numpy as np
 
 
 class OnnxStub:
@@ -37,7 +38,13 @@ class OnnxStub:
     It can be generated from an Onnx model object.
     """
 
-    def __init__(self, model: ModelProto, runtime, use_naive_allocator: bool = False):
+    def __init__(
+        self,
+        model: ModelProto,
+        runtime,
+        use_naive_allocator: bool = False,
+        matmul_compute_type: str = "default",
+    ):
         # We use some user-defined operators for distributed inference
         try:
             # onnx simplifier performs inplace simplify
@@ -105,12 +112,6 @@ class OnnxStub:
                 )
                 tensors[input.name].set_input()
 
-        for output in model.graph.output:
-            dims = _take_shape_dim(output.type.tensor_type.shape)
-            tensors[output.name] = self.handler.tensor(
-                dims, output.type.tensor_type.elem_type
-            )
-            tensors[output.name].set_output()
 
         for node_idx in sorted_nodes:
             node = model.graph.node[node_idx]
@@ -252,13 +253,14 @@ class OnnxStub:
                     )
             elif node.op_type == "MatMul":
                 tensors[node.output[0]] = self.handler.matmul(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
+                    tensors[node.input[0]], # input
+                    tensors[node.input[1]], # weight
                     tensors.get(node.output[0]),
                     False,
                     False,
                     None,
                     backend.ActType.Linear,
+                    matmul_compute_type,
                 )
             elif node.op_type == "Gemm":
                 attributes = _parse_attribute(
@@ -278,6 +280,7 @@ class OnnxStub:
                     transB == 1,
                     tensors[node.input[2]] if len(node.input) > 2 else None,
                     backend.ActType.Linear,
+                    matmul_compute_type,
                 )
             elif node.op_type == "BatchNormalization":
                 (input, mean, var, scale, bias) = (
@@ -320,6 +323,12 @@ class OnnxStub:
                     eps,
                     axis,
                     stash_type,
+                )
+            elif node.op_type == "RMSNorm":
+                tensors[node.output[0]] = self.handler.RMSNorm(
+                    tensors[node.input[0]],
+                    tensors[node.input[1]],
+                    tensors.get(node.output[0]),
                 )
             elif node.op_type == "MaxPool":
                 attributes = _parse_attribute(
@@ -479,6 +488,11 @@ class OnnxStub:
                 )
             elif node.op_type == "Relu":
                 tensors[node.output[0]] = self.handler.relu(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                )
+            elif node.op_type == "Silu":
+                tensors[node.output[0]] = self.handler.silu(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
                 )
@@ -657,7 +671,7 @@ class OnnxStub:
                     keep_aspect_ratio_policy,
                     nearest_mode,
                     coordinate_transformation_mode,
-                )                
+                )
             elif node.op_type == "Squeeze":
                 axes = (
                     _parse_data(data[node.input[1]])
@@ -711,6 +725,12 @@ class OnnxStub:
                     tensors[node.input[3]],
                     tensors[node.input[4]],
                     tensors[node.input[5]],
+                    tensors.get(node.output[0]),
+                )
+            elif node.op_type == "RoPE":
+                tensors[node.output[0]]= self.handler.RoPE(
+                    tensors[node.input[0]],
+                    tensors[node.input[1]],
                     tensors.get(node.output[0]),
                 )
             elif node.op_type == "Split":
@@ -966,6 +986,25 @@ class OnnxStub:
                     tensors.get(node.output[0]),
                 )
             elif node.op_type == "Where":
+                ## If Y is single -inf, treat Where as Add 
+                ## TODO: deal with cases where Y is single inf or 0
+                if node.input[0] in data and node.input[2] in data:
+                    where_condition = to_array(data[node.input[0]])
+                    where_alt =  to_array(data[node.input[2]])
+                    if where_alt.size == 1:
+                        if np.isneginf(where_alt) or np.all(where_alt < -3e38):
+                            node.input[0] = node.input[0] + "_alt"
+                            if node.input[0] not in data:
+                                where_value = np.where(where_condition, 0, -np.inf).astype(where_alt.dtype)
+                                data[node.input[0]] = from_array(where_value, node.input[0])
+                                tensors[node.input[0]] = self.handler.tensor(list(where_value.shape), data[node.input[0]].data_type)
+                                tensors[node.input[0]].set_weight()
+                            tensors[node.output[0]] = self.handler.add(
+                                tensors[node.input[1]],
+                                tensors[node.input[0]],
+                                tensors.get(node.output[0]),
+                            )
+                            continue
                 tensors[node.output[0]] = self.handler.where(
                     tensors[node.input[1]],
                     tensors[node.input[2]],
@@ -995,10 +1034,12 @@ class OnnxStub:
                     beta,
                     bias,
                     size,
-                )                
+                )
             else:
                 raise Exception('Unsupported operator "{}"'.format(node.op_type))
 
+        for output in model.graph.output:
+            tensors[output.name].set_output()
         ################################
         # Allocate memory space for data
         ################################
@@ -1280,7 +1321,7 @@ class OnnxStub:
                         axes,
                     )
                 )
-                ctx.push_node(make_node(ty.name, inputs, outputs, name))                
+                ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Concat:
                 axis = backend.concat_axis_of(op)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, axis=axis))
@@ -1408,6 +1449,9 @@ class OnnxStub:
 
     def run(self) -> None:
         self.handler.run()
+
+    def run_with_cudagraph(self) -> None:
+        self.handler.run_with_cudagraph()
 
     def get_perf_time(self) -> float:
         self.handler.get_perf_time()

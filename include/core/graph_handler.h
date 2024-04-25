@@ -5,6 +5,10 @@
 #include <cstdint>
 #include <iostream>
 
+#ifdef USE_CUDA
+#include "cuda/cuda_runtime.h"
+#endif
+
 namespace infini {
 
 class GraphHandlerObj {
@@ -26,12 +30,14 @@ class GraphHandlerObj {
                             int pw, int sh, int sw, int dh, int dw, int oph,
                             int opw);
     Tensor matmul(Tensor a, Tensor b, Tensor y, bool transA, bool transB,
-                  Tensor bias, ActType act);
+                  Tensor bias, ActType act,
+                  std::string matmul_compute_type = "default");
     Tensor batchNormalization(Tensor input, Tensor output, Tensor mean,
                               Tensor var, Tensor scale, Tensor bias,
                               float momentum, float eps, bool training);
     Tensor layerNormalization(Tensor input, Tensor scale, Tensor output,
                               Tensor bias, float eps, int axis, int stash_type);
+    Tensor rmsNorm(Tensor input, Tensor weight, Tensor output);
 
     Tensor maxPool(Tensor input, Tensor output, int kh, int kw, int dh, int dw,
                    int ph, int pw, int sh, int sw, int ceilMode);
@@ -47,6 +53,7 @@ class GraphHandlerObj {
     Tensor max(Tensor a, Tensor b, Tensor c);
 
     Tensor relu(Tensor x, Tensor y);
+    Tensor silu(Tensor x, Tensor y);
     Tensor gelu(Tensor x, Tensor y);
     Tensor sigmoid(Tensor x, Tensor y);
     Tensor hardSigmoid(Tensor x, Tensor y);
@@ -77,6 +84,7 @@ class GraphHandlerObj {
     Tensor attentionKVCache(Tensor input_k_cache, Tensor input_v_cache,
                             Tensor input_q, Tensor input_k, Tensor input_v,
                             Tensor position_id, Tensor output_matmul);
+    Tensor RoPE(Tensor pos, Tensor input, Tensor output);
     TensorVec split(Tensor input, std::optional<TensorVec> outputs, int axis,
                     std::variant<int, vector<int>> numOrRatio);
     Tensor gather(Tensor data, Tensor indices, Tensor output, int axis);
@@ -135,6 +143,12 @@ class GraphHandlerObj {
     inline void run() { g->getRuntime()->run(g); }
 
     inline double get_perf_time() { return g->getRuntime()->getPerfTime(g); }
+
+#ifdef USE_CUDA
+    inline void run_with_cudagraph() {
+        (as<CudaRuntimeObj>(g->getRuntime()))->runWithCudaGraph(g);
+    }
+#endif
 };
 
 } // namespace infini

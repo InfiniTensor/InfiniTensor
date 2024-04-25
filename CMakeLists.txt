@@ -20,7 +20,6 @@ endif()
 include(CMakeDependentOption)
 project(InfiniTensor C CXX)
 
-
 cmake_dependent_option(BUILD_TEST_CORE "Build tests for core components" ON BUILD_TEST OFF)
 cmake_dependent_option(BUILD_TEST_PET "Build tests for PET" OFF BUILD_TEST OFF)
 
@@ -55,11 +54,13 @@ endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF) # -std=gnu++11 when on, -std=c++11 when off
+add_compile_options(-Wno-error=unused-variable)
 
 find_package(
   Python
   COMPONENTS Interpreter Development
   REQUIRED)
+
 # OpenMP
 find_package(OpenMP)
 if(OpenMP_C_FOUND)
@@ -252,7 +253,6 @@ if(USE_BANG)
   find_library(CAMBRICON_CNNL libcnnl.so "${NEUWARE_HOME}/lib64")
   find_library(CAMBRICON_CNRT libcnrt.so "${NEUWARE_HOME}/lib64")
   find_library(CAMBRICON_CNDRV libcndrv.so "${NEUWARE_HOME}/lib64")
-  find_library(CAMBRICON_CNCL libcncl.so "${NEUWARE_HOME}/lib64")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lstdc++ -Wall -Werror")
 
   if ((NOT DEFINED TARGET_CPU_ARCH) AND (NOT DEFINED ENV{TARGET_CPU_ARCH}))
@@ -269,12 +269,13 @@ if(USE_BANG)
   # BangC Kernels
   ################################################################################
 
-  target_link_libraries(InfiniTensor ${CAMBRICON_CNCL} ${CAMBRICON_CNNL} ${CAMBRICON_CNRT} ${CAMBRICON_CNDRV} stdc++)
   if (BUILD_DIST)
+    find_library(CAMBRICON_CNCL libcncl.so "${NEUWARE_HOME}/lib64")
+    target_link_libraries(InfiniTensor ${CAMBRICON_CNCL} ${CAMBRICON_CNNL} ${CAMBRICON_CNRT} ${CAMBRICON_CNDRV} stdc++)
     message(STATUS "Add BUILD_DIST, use CNCL with BANG")
-    
     add_compile_definitions(INFINI_USE_CNCL=1)
-    
+  else()
+    target_link_libraries(InfiniTensor ${CAMBRICON_CNNL} ${CAMBRICON_CNRT} ${CAMBRICON_CNDRV} stdc++)
   endif()
 endif()
 
@@ -289,10 +290,11 @@ if(USE_KUNLUN)
   endif()
   message(STATUS "KUNLUN_HOME: ${KUNLUN_HOME}")
 
-  include_directories("${KUNLUN_HOME}/XTDK/include/")
-  find_library(KUNLUN_RT libxpurt.so "${KUNLUN_HOME}/lib64")
-  find_library(KUNLUN_DNN libxpuapi.so "${KUNLUN_HOME}/XTDK/shlib")
+  include_directories("${KUNLUN_HOME}/include/")
+  find_library(KUNLUN_RT libxpurt.so "${KUNLUN_HOME}/lib64/")
+  find_library(KUNLUN_DNN libxpuapi.so "${KUNLUN_HOME}/lib64/")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lstdc++ -Wall -Werror")
+
   if ((NOT DEFINED TARGET_CPU_ARCH) AND (NOT DEFINED ENV{TARGET_CPU_ARCH}))
     execute_process(COMMAND uname -m OUTPUT_VARIABLE _uname_m OUTPUT_STRIP_TRAILING_WHITESPACE)
     set(TARGET_CPU_ARCH "${_uname_m}" CACHE STRING "Target CPU ARCH")
@@ -301,7 +303,16 @@ if(USE_KUNLUN)
   else()
     set(TARGET_CPU_ARCH $ENV{TARGET_CPU_ARCH} CACHE STRING "Target CPU ARCH")
   endif()
+
   message(STATUS "TARGET_CPU_ARCH: ${TARGET_CPU_ARCH}")
+
+  if (BUILD_DIST)
+    message(STATUS "Add BUILD_DIST, use XCCL with KUNLUN XPU")
+    list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+    find_package(XCCL REQUIRED)
+    add_compile_definitions(INFINI_USE_XCCL=1)
+    target_link_libraries(InfiniTensor ${XCCL_LIBRARIES})
+  endif()
   target_link_libraries(InfiniTensor ${KUNLUN_RT} ${KUNLUN_DNN} stdc++)
 endif()
 
@@ -376,6 +387,7 @@ if(BUILD_TEST)
     endif()
     if (USE_KUNLUN)
       build_test(test/kernels/kunlun/*.cc)
+      build_test(test/kunlun/*.cc)
     endif()
     if (USE_ASCEND)
       build_test(test/kernels/ascend/*.cc)

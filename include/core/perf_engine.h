@@ -2,8 +2,8 @@
 #include "core/graph.h"
 #include "core/kernel.h"
 #include <nlohmann/json_fwd.hpp>
-using json = nlohmann::json;
 namespace infini {
+using json = nlohmann::json;
 
 class PerfEngine {
   public:

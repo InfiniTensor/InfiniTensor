@@ -442,7 +442,9 @@ void init_graph_builder(py::module &m) {
 #endif
 #ifdef USE_KUNLUN
     py::class_<KUNLUNRuntimeObj, std::shared_ptr<KUNLUNRuntimeObj>, RuntimeObj>(
-        m, "KUNLUNRuntime");
+        m, "KUNLUNRuntime")
+        .def(py::init<int>(), py::arg("device") = 0)
+        .def("init_comm", &KUNLUNRuntimeObj::initComm);
 #endif
 
 #ifdef USE_ASCEND
@@ -525,6 +527,7 @@ void init_graph_builder(py::module &m) {
         .def("matmul", &Handler::matmul, policy::move)
         .def("batchNormalization", &Handler::batchNormalization, policy::move)
         .def("layerNormalization", &Handler::layerNormalization, policy::move)
+        .def("RMSNorm", &Handler::rmsNorm, policy::move)
         .def("maxPool", &Handler::maxPool, policy::move)
         .def("avgPool", &Handler::avgPool, policy::move)
         .def("add", &Handler::add, policy::move)
@@ -536,6 +539,7 @@ void init_graph_builder(py::module &m) {
         .def("min", &Handler::min, policy::move)
         .def("max", &Handler::max, policy::move)
         .def("relu", &Handler::relu, policy::move)
+        .def("silu", &Handler::silu, policy::move)
         .def("gelu", &Handler::gelu, policy::move)
         .def("sigmoid", &Handler::sigmoid, policy::move)
         .def("tanh", &Handler::tanh, policy::move)
@@ -558,6 +562,7 @@ void init_graph_builder(py::module &m) {
         .def("unsqueeze", &Handler::unsqueeze, policy::move)
         .def("concat", &Handler::concat, policy::move)
         .def("attentionKVCache", &Handler::attentionKVCache, policy::move)
+        .def("RoPE", &Handler::RoPE, policy::move)
         .def("split", &Handler::split, policy::move)
         .def("gather", &Handler::gather, policy::move)
         .def("gatherElements", &Handler::gatherElements, policy::move)
@@ -590,6 +595,10 @@ void init_graph_builder(py::module &m) {
         .def("get_perf_time", &Handler::get_perf_time, policy::automatic)
         .def("tune", &Handler::tune, policy::automatic)
         .def("run", &Handler::run, policy::automatic)
+#ifdef USE_CUDA
+        .def("run_with_cudagraph", &Handler::run_with_cudagraph,
+             policy::automatic)
+#endif
         .def("shape_infer", &Handler::shape_infer, policy::automatic)
         .def("change_shape", &Handler::change_shape, policy::automatic)
         .def("getDims", &Handler::getDims, policy::automatic)
