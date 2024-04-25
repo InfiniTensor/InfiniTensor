@@ -50,13 +50,21 @@ class MatmulAclnn : public ASCENDKernelWithoutConfig {
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);
         }
-        assert(ret == ACL_SUCCESS);
+        // auto tmp_err_msg = aclGetRecentErrMsg();
+        // if (tmp_err_msg != NULL) {
+        //     printf(" ERROR Message : %s \n ", tmp_err_msg);
+        // }
+        CHECK_RET(
+            ret == ACL_SUCCESS,
+            LOG_PRINT("aclnnMatmulGetWorkspaceSize failed. ERROR: %d\n", ret));
         ret = aclnnMatmul(workspaceAddr, workspaceSize, executor,
                           context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
+        CHECK_RET(ret == ACL_SUCCESS,
+                  LOG_PRINT("aclnnMatmul failed. ERROR: %d\n", ret));
 
         ret = aclrtSynchronizeStream(context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
+        CHECK_RET(ret == ACL_SUCCESS,
+                  LOG_PRINT("aclrtSynchronizeStream failed. ERROR: %d\n", ret));
 
         // aclDestroyTensor(selfTensor);
         // aclDestroyTensor(matTensor);

@@ -26,6 +26,11 @@ class GatherAclnn : public ASCENDKernelWithoutConfig {
         auto c = op->getOutput()->getDims();
         auto cS = op->getOutput()->getStride();
 
+        if (b.size() == 0) {
+            c.insert(c.begin() + axis, 1);
+            cS.insert(cS.begin() + axis, axis > 0 ? cS[axis - 1] : cS[0]);
+        }
+
         std::vector<int64_t> aDim = castTo64(a);
         std::vector<int64_t> aStride = castTo64(aS);
         std::vector<int64_t> bDim = castTo64(b);
@@ -39,9 +44,9 @@ class GatherAclnn : public ASCENDKernelWithoutConfig {
 
         auto inputB = aclCreateTensor(
             bDim.data(), bDim.size(),
-            op->getInputs(1)->getDType() == DataType::Int32 ? ACL_INT32
-                                                            : ACL_INT64,
-            bStride.data(), 0, aclFormat::ACL_FORMAT_ND, bDim.data(),
+            // op->getInputs(1)->getDType() == DataType::Int32 ? ACL_INT32
+            //                                               : ACL_INT64,
+            ACL_INT64, bStride.data(), 0, aclFormat::ACL_FORMAT_ND, bDim.data(),
             bDim.size(), bData);
 
         auto output = aclCreateTensor(
@@ -65,10 +70,10 @@ class GatherAclnn : public ASCENDKernelWithoutConfig {
                             context->ASCENDHandle());
         CHECK_RET(ret == ACL_SUCCESS,
                   LOG_PRINT("aclnnGatherV2 failed. ERROR: %d\n", ret));
-        auto tmp_err_msg = aclGetRecentErrMsg();
-        if (tmp_err_msg != NULL) {
-            printf(" ERROR Message : %s \n ", tmp_err_msg);
-        }
+        // auto tmp_err_msg = aclGetRecentErrMsg();
+        // if (tmp_err_msg != NULL) {
+        //     printf(" ERROR Message : %s \n ", tmp_err_msg);
+        // }
 
         ret = aclrtSynchronizeStream(context->ASCENDHandle());
         CHECK_RET(ret == ACL_SUCCESS,

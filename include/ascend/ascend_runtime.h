@@ -22,7 +22,7 @@ class ASCENDRuntimeObj : public RuntimeObj {
     aclrtStream stream;
     std::unique_ptr<CommunicatorObj> comm;
     ASCENDPtr workspace = nullptr;
-    size_t workspaceSize;
+    uint64_t workspaceSize;
 
   public:
     ASCENDRuntimeObj(int deviceId = 0) : RuntimeObj(Device::ASCEND, deviceId) {
@@ -71,7 +71,7 @@ class ASCENDRuntimeObj : public RuntimeObj {
     }
     void dealloc(void *ptr) override { aclrtFree(ptr); }
     aclrtStream ASCENDHandle() const { return stream; }
-    ASCENDPtr getWorkspace(size_t size) const {
+    ASCENDPtr getWorkspace(uint64_t size) const {
         IT_ASSERT(size <= workspaceSize);
         return workspace;
     }

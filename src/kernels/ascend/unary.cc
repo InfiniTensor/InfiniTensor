@@ -1,4 +1,5 @@
 #include "operators/unary.h"
+#include "aclnnop/aclnn_erf.h"
 #include "aclnnop/level2/aclnn_abs.h"
 #include "aclnnop/level2/aclnn_acos.h"
 #include "aclnnop/level2/aclnn_atan.h"
@@ -158,6 +159,8 @@ DEFINE_UNARY_Aclnn(Reciprocal);
 DEFINE_UNARY_Aclnn(Sqrt);
 DEFINE_UNARY_Aclnn(Round);
 
+DEFINE_UNARY_Aclnn(Erf);
+
 REGISTER_KERNEL(Device::ASCEND, OpType::Relu, ReluAclnn, "relu_ASCEND_float");
 REGISTER_KERNEL(Device::ASCEND, OpType::Abs, AbsAclnn, "abs_ASCEND_float");
 REGISTER_KERNEL(Device::ASCEND, OpType::Sigmoid, SigmoidAclnn,
@@ -180,4 +183,5 @@ REGISTER_KERNEL(Device::ASCEND, OpType::Reciprocal, ReciprocalAclnn,
 REGISTER_KERNEL(Device::ASCEND, OpType::Sqrt, SqrtAclnn, "sqrt_ASCEND_float");
 REGISTER_KERNEL(Device::ASCEND, OpType::Round, RoundAclnn,
                 "round_ASCEND_float");
+REGISTER_KERNEL(Device::ASCEND, OpType::Erf, ErfAclnn, "erf_ASCEND_float");
 }; // namespace infini

@@ -104,6 +104,8 @@ std::string device_to_str(Device device) {
         return "INTELCPU";
     case Device::KUNLUN:
         return "KUNLUN";
+    case Device::ASCEND:
+        return "ASCEND";
     default:
         IT_TODO_HALT();
     }

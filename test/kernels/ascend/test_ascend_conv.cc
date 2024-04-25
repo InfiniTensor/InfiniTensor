@@ -51,10 +51,10 @@ void testConv(const std::function<void(void *, size_t, DataType)> &generatorA,
 }
 
 TEST(ascend_Conv, run) {
-    // aclInit(nullptr);
+    aclInit(nullptr);
     testConv<ConvObj>(IncrementalGenerator(), IncrementalGenerator(),
                       Shape{1, 3, 128, 128}, Shape{2, 3, 3, 3});
-    // aclFinalize();
+    aclFinalize();
 }
 
 } // namespace infini

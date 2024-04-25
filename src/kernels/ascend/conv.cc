@@ -73,6 +73,10 @@ class ConvAclnn : public ASCENDKernelWithoutConfig {
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);
         }
+        // auto tmp_err_msg = aclGetRecentErrMsg();
+        // if (tmp_err_msg != NULL) {
+        //     printf(" ERROR Message : %s \n ", tmp_err_msg);
+        // }
         assert(ret == ACL_SUCCESS);
         ret = aclnnConvolution(workspaceAddr, workspaceSize, executor,
                                context->ASCENDHandle());

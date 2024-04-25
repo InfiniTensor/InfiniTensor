@@ -1,4 +1,5 @@
 #include "operators/element_wise.h"
+#include "aclnnop/aclnn_maximum.h"
 #include "aclnnop/level2/aclnn_add.h"
 #include "aclnnop/level2/aclnn_div.h"
 #include "aclnnop/level2/aclnn_mul.h"
@@ -199,6 +200,7 @@ class SubAclnn : public ASCENDKernelWithoutConfig {
 DEFINE_ELEMENT_WISE_Aclnn(PowTensorTensor);
 DEFINE_ELEMENT_WISE_Aclnn(Div);
 DEFINE_ELEMENT_WISE_Aclnn(Mul);
+DEFINE_ELEMENT_WISE_Aclnn(Maximum);
 
 REGISTER_KERNEL(Device::ASCEND, OpType::Pow, PowTensorTensorAclnn,
                 "pow_ASCEND_float");
@@ -207,6 +209,7 @@ REGISTER_KERNEL(Device::ASCEND, OpType::Mul, MulAclnn, "mul_ASCEND_float");
 
 REGISTER_KERNEL(Device::ASCEND, OpType::Add, AddAclnn, "add_ASCEND_float");
 REGISTER_KERNEL(Device::ASCEND, OpType::Sub, SubAclnn, "sub_ASCEND_float");
+REGISTER_KERNEL(Device::ASCEND, OpType::Max, MaximumAclnn, "max_ASCEND_float");
 //  REGISTER_KERNEL(Device::ASCEND, OpType::Abs, AbsAclnn, "abs_ASCEND_float");
 
 }; // namespace infini
