@@ -53,6 +53,7 @@ class GraphHandlerObj {
     Tensor max(Tensor a, Tensor b, Tensor c);
 
     Tensor relu(Tensor x, Tensor y);
+    Tensor leakyRelu(Tensor x, Tensor y, float alpha);
     Tensor silu(Tensor x, Tensor y);
     Tensor gelu(Tensor x, Tensor y);
     Tensor sigmoid(Tensor x, Tensor y);

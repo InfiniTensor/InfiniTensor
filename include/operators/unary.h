@@ -235,7 +235,6 @@ class LeakyReluObj : public OperatorObj {
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
-
     float getAlpha() const { return alphaValue; }
     int numInputs() const override { return 1; }
     int numOutputs() const override { return 1; }

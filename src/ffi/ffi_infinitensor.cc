@@ -564,6 +564,7 @@ void init_graph_builder(py::module &m) {
         .def("expand", &Handler::expand, policy::move)
         .def("erf", &Handler::erf, policy::move)
         .def("where", &Handler::where, policy::move)
+        .def("leakyRelu", &Handler::leakyRelu, policy::move)
         .def("lrn", &Handler::lrn, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)
         .def("optimize", &Handler::optimize, policy::automatic)
