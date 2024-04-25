@@ -4,6 +4,7 @@ import torch_mlu
 from transformers import BertModel, BertConfig
 from transformers import GPT2Model, GPT2Config
 from transformers import OPTModel, OPTConfig
+from transformers import AlbertModel, AlbertConfig
 from transformers import LlamaModel, LlamaConfig
 import time
 import numpy as np
@@ -16,7 +17,7 @@ from onnxsim import simplify
 def parse_args():
     parser = argparse.ArgumentParser(description="Run pytorch gpt2/bert/opt and optionally export onnx.")
     parser.add_argument(
-        "--model", type=str, choices=["gpt2", "bert", "opt", "llama"], required=True, help="model type"
+        "--model", type=str, choices=["gpt2", "bert", "opt", "llama", "albert"], required=True, help="model type"
     )
     parser.add_argument("--batch_size", type=int, default=1, help="batch size.")
     parser.add_argument("--length", type=int, default=1, help="sequence length.")
@@ -44,6 +45,9 @@ def parse_args():
 
 def get_model(modelname):
     match modelname:
+        case "albert":
+            model = AlbertModel.from_pretrained("albert/albert-base-v2")
+            voc_size = AlbertConfig().vocab_size
         case "bert":
             model = BertModel.from_pretrained("bert-base-uncased", add_pooling_layer=False, hidden_act="gelu_new") # erf is not impl by infini
             voc_size = BertConfig().vocab_size
@@ -51,7 +55,7 @@ def get_model(modelname):
             model = GPT2Model.from_pretrained("GPT2")
             voc_size = GPT2Config().vocab_size
         case "opt":
-            model = OPTModel.from_pretrained("./opt-125m")
+            model = OPTModel.from_pretrained("facebook/opt-125m")
             voc_size = OPTConfig().vocab_size
         case "llama":
             model = LlamaModel.from_pretrained("meta-llama/Llama-2-7b-hf")
