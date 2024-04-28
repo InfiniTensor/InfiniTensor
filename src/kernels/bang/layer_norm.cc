@@ -19,14 +19,16 @@ class LayerNormCnnl : public BangKernelWithoutConfig {
         void *const outputData = (op->getOutput()->getRawDataPtr<void *>());
 
         auto inDims = op->getInputs(0)->getDims();
+        auto fiterDims = op->getInputs(1)->getDims();
         auto outDims = op->getOutput()->getDims();
-        auto fiterDims = op->getOutput(1)->getDims();
 
         float eps = op->getEps();
         const int axis = op->getAxis();
 
-        cnnlTensorDescriptor_t inDesc, fiterDesc, outDesc;
+        Shape outMeanDims(outDims);
+        outMeanDims.erase(outMeanDims.begin() + axis);
 
+        cnnlTensorDescriptor_t inDesc, fiterDesc, outDesc, outMeanDesc;
         checkCnnlError(cnnlCreateTensorDescriptor(&inDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
             inDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
@@ -39,15 +41,23 @@ class LayerNormCnnl : public BangKernelWithoutConfig {
         checkCnnlError(cnnlSetTensorDescriptor(
             outDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
             outDims.size(), outDims.data()));
+        checkCnnlError(cnnlCreateTensorDescriptor(&outMeanDesc));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            outMeanDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+            outMeanDims.size(), outMeanDims.data()));
         size_t wsSize;
         cnnlGetLayerNormOpWorkspaceSize(context->cnnlHandle(), axis, inDesc,
                                         &wsSize);
         BangPtr wsData = context->getWorkspace(wsSize);
+        size_t meanSize =
+            cnnlGetTensorElementNum(outMeanDesc) * op->getDType().getSize();
+        BangPtr meanData = context->getWorkspace(meanSize);
+        BangPtr rstdData = context->getWorkspace(meanSize);
 
         cnnlStatus_t stat = cnnlLayerNormForward(
             context->cnnlHandle(), inDesc, inputData, axis, fiterDesc,
             scaleData, biasData, eps, wsData, wsSize, outDesc, outputData,
-            inDesc, NULL, NULL);
+            outMeanDesc, meanData, rstdData);
 
         if (stat != CNNL_STATUS_SUCCESS)
             return;
