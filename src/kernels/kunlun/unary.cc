@@ -21,6 +21,26 @@ class ReluXdnn : public KUNLUNKernelWithoutConfig {
     }
 };
 
+class LeakyReluXdnn : public KUNLUNKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<LeakyReluObj>(_op);
+        IT_ASSERT(op->getDType() == DataType::Float32);
+        auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
+
+        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+        auto len = op->getInputs(0)->size();
+        auto alpha = op->getAlpha();
+
+        auto ret = xdnn::leaky_relu<float>(context->KUNLUNHandle(),
+                                           (float *const)aData, (float *)cData,
+                                           len, alpha);
+        assert(ret == 0);
+        return;
+    }
+};
+
 class SigmoidXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
@@ -552,6 +572,7 @@ class ATanhXdnn : public KUNLUNKernelWithoutConfig {
 };
 
 REGISTER_KERNEL(Device::KUNLUN, OpType::Relu, ReluXdnn, "Relu_xdnn_KUNLUN");
+REGISTER_KERNEL(Device::KUNLUN, OpType::LeakyRelu, LeakyReluXdnn, "LeakyRelu_xdnn_KUNLUN");
 REGISTER_KERNEL(Device::KUNLUN, OpType::Sigmoid, SigmoidXdnn,
                 "Sigmoid_xdnn_KUNLUN");
 REGISTER_KERNEL(Device::KUNLUN, OpType::Tanh, TanhXdnn, "Tanh_xdnn_KUNLUN");
