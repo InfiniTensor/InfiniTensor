@@ -124,16 +124,12 @@ Tensor GraphHandlerObj::layerNormalization(Tensor input, Tensor scale,
             ->getOutput();
     }
 }
-Tensor GraphHandlerObj::leakyrelu(Tensor input,
-                                           Tensor output, float alpha) {
+Tensor GraphHandlerObj::leakyrelu(Tensor input, Tensor output, float alpha) {
     if (output) {
-        g->addOpWithOutputs<LeakyReluObj>(std::move(input),
-                                          output, alpha);
+        g->addOpWithOutputs<LeakyReluObj>(std::move(input), output, alpha);
         return output;
     } else {
-        return g
-            ->addOp<LeakyReluObj>(std::move(input), output,
-                                  alpha)
+        return g->addOp<LeakyReluObj>(std::move(input), output, alpha)
             ->getOutput();
     }
 }
@@ -775,5 +771,3 @@ void GraphHandlerObj::change_shape(const vector<int> &shape, int tensorId) {
 }
 
 } // namespace infini
-
-

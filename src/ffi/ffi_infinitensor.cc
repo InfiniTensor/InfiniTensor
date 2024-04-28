@@ -616,5 +616,3 @@ PYBIND11_MODULE(backend, m) {
     infini::export_functions(m);
     infini::init_graph_builder(m);
 }
-
-

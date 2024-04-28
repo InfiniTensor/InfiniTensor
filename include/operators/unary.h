@@ -228,9 +228,11 @@ class PReluObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 };
 class LeakyReluObj : public OperatorObj {
-  float alpha;
+    float alpha;
+
   public:
-    LeakyReluObj(GraphObj *graph, Tensor input, Tensor output, float alpha = 0.01);
+    LeakyReluObj(GraphObj *graph, Tensor input, Tensor output,
+                 float alpha = 0.01);
     OP_CLONE(LeakyReluObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
@@ -305,4 +307,3 @@ DEFINE_UNARY_OBJ(Reciprocal, OpType::Reciprocal)
 DEFINE_UNARY_OBJ(Sqrt, OpType::Sqrt)
 DEFINE_UNARY_OBJ(Round, OpType::Round)
 }; // namespace infini
-

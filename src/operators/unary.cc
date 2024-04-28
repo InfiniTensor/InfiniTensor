@@ -283,9 +283,10 @@ vector<int> PReluObj::getWorkloadVector() const {
 
 vector<int> PReluObj::getOpAttrVector() const { return {type.underlying()}; }
 
-LeakyReluObj::LeakyReluObj(GraphObj *graph, Tensor input, Tensor output, float _alpha)
+LeakyReluObj::LeakyReluObj(GraphObj *graph, Tensor input, Tensor output,
+                           float _alpha)
     : OperatorObj(OpType::LeakyRelu, {input}, {output}), alpha(_alpha) {
-    
+
     IT_ASSERT(checkValid(graph));
 }
 
@@ -312,7 +313,9 @@ vector<int> LeakyReluObj::getWorkloadVector() const {
     return ret;
 }
 
-vector<int> LeakyReluObj::getOpAttrVector() const { return {type.underlying()}; }
+vector<int> LeakyReluObj::getOpAttrVector() const {
+    return {type.underlying()};
+}
 LogObj::LogObj(GraphObj *graph, Tensor input, Tensor output, LogType type)
     : OperatorObj(OpType::Log, {input}, {output}), logType(type) {
     IT_ASSERT(checkValid(graph));

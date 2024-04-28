@@ -153,5 +153,3 @@ class GraphHandlerObj {
 };
 
 } // namespace infini
-
-

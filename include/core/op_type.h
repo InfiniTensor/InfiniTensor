@@ -268,5 +268,3 @@ enum class ActType {
 } // namespace infini
 
 #endif // OP_TYPE_H
-
-
