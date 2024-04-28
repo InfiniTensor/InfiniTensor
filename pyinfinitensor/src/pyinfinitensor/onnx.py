@@ -491,12 +491,13 @@ class OnnxStub:
                     tensors.get(node.output[0]),
                 )
             elif node.op_type == "LeakyRelu":
-                attributes = _parse_attribute(node, {"alpha": 0.01})
-                (alpha) = (attributes[name] for name in ["alpha"])
                 tensors[node.output[0]] = self.handler.leakyrelu(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
-                    alpha,
+                    next(
+                        (attr.f for attr in node.attribute if attr.name == "alpha"),
+                        0.01,
+                    ),
                 )
             elif node.op_type == "Silu":
                 tensors[node.output[0]] = self.handler.silu(
