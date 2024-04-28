@@ -283,6 +283,36 @@ vector<int> PReluObj::getWorkloadVector() const {
 
 vector<int> PReluObj::getOpAttrVector() const { return {type.underlying()}; }
 
+LeakyReluObj::LeakyReluObj(GraphObj *graph, Tensor input, Tensor output, float _alpha)
+    : OperatorObj(OpType::LeakyRelu, {input}, {output}), alpha(_alpha) {
+    
+    IT_ASSERT(checkValid(graph));
+}
+
+std::string LeakyReluObj::toString() const {
+    std::ostringstream os;
+    os << type.toString() << "[" << getGuid() << "]";
+    os << "(";
+    os << vecToString(inputs[0]->getDims()) << ",";
+    os << "input=" << inputs[0]->getGuid() << ",";
+    os << "output=" << outputs[0]->getGuid() << ",";
+    os << "alpha=" << alpha << ")";
+    return os.str();
+}
+
+optional<vector<Shape>> LeakyReluObj::inferShape(const TensorVec &inputs) {
+    const auto A = inputs[0];
+    return {{A->getDims()}};
+}
+
+vector<int> LeakyReluObj::getWorkloadVector() const {
+    vector<int> ret{type.underlying()};
+    const Shape shape = outputs[0]->getDims();
+    ret.insert(ret.end(), shape.begin(), shape.end());
+    return ret;
+}
+
+vector<int> LeakyReluObj::getOpAttrVector() const { return {type.underlying()}; }
 LogObj::LogObj(GraphObj *graph, Tensor input, Tensor output, LogType type)
     : OperatorObj(OpType::Log, {input}, {output}), logType(type) {
     IT_ASSERT(checkValid(graph));

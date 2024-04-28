@@ -1,4 +1,4 @@
-﻿#include "core/graph_handler.h"
+#include "core/graph_handler.h"
 #include "operators/all_gather.h"
 #include "operators/all_reduce.h"
 #include "operators/attention_kvcache.h"
@@ -124,7 +124,19 @@ Tensor GraphHandlerObj::layerNormalization(Tensor input, Tensor scale,
             ->getOutput();
     }
 }
-
+Tensor GraphHandlerObj::leakyrelu(Tensor input,
+                                           Tensor output, float alpha) {
+    if (output) {
+        g->addOpWithOutputs<LeakyReluObj>(std::move(input),
+                                          output, alpha);
+        return output;
+    } else {
+        return g
+            ->addOp<LeakyReluObj>(std::move(input), output,
+                                  alpha)
+            ->getOutput();
+    }
+}
 Tensor GraphHandlerObj::rmsNorm(Tensor input, Tensor weight, Tensor output) {
     if (output) {
         g->addOpWithOutputs<RMSNormObj>(std::move(input), std::move(weight),
@@ -763,3 +775,5 @@ void GraphHandlerObj::change_shape(const vector<int> &shape, int tensorId) {
 }
 
 } // namespace infini
+
+

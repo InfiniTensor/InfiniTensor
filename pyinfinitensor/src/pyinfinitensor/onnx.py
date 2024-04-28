@@ -491,6 +491,18 @@ class OnnxStub:
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
                 )
+            elif node.op_type == "LeakyRelu":
+                attributes = _parse_attribute(
+                    node, {"alpha": 0.01}
+                )
+                (alpha) = (
+                    attributes[name] for name in ["alpha"]
+                )
+                tensors[node.output[0]] = self.handler.leakyrelu(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                    alpha,
+                )
             elif node.op_type == "Silu":
                 tensors[node.output[0]] = self.handler.silu(
                     tensors[node.input[0]],
@@ -1501,3 +1513,5 @@ def _parse_data_fp16(tensor: TensorProto):
 
 def _take_shape_dim(shape: TensorShapeProto) -> List[int]:
     return [(d.dim_value if d.dim_value > 0 else 1) for d in shape.dim]
+
+

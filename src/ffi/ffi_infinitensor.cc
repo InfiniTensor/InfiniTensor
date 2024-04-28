@@ -68,6 +68,7 @@ void export_values(py::module &m) {
     py::enum_<ActType>(m, "ActType")
         .value("Linear", ActType::None) // `None` is Python keyword
         .VALUE(ActType, Relu)
+        .VALUE(ActType, LeakyRelu)
         .VALUE(ActType, Sigmoid)
         .VALUE(ActType, Tanh)
         .export_values();
@@ -105,6 +106,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, BatchNormalization)
         .VALUE(OpType, Softmax)
         .VALUE(OpType, Relu)
+        .VALUE(OpType, LeakyRelu)
         .VALUE(OpType, Gelu)
         .VALUE(OpType, PRelu)
         .VALUE(OpType, Sigmoid)
@@ -539,6 +541,7 @@ void init_graph_builder(py::module &m) {
         .def("min", &Handler::min, policy::move)
         .def("max", &Handler::max, policy::move)
         .def("relu", &Handler::relu, policy::move)
+        .def("leakyrelu", &Handler::leakyrelu, policy::move)
         .def("silu", &Handler::silu, policy::move)
         .def("gelu", &Handler::gelu, policy::move)
         .def("sigmoid", &Handler::sigmoid, policy::move)
@@ -613,3 +616,5 @@ PYBIND11_MODULE(backend, m) {
     infini::export_functions(m);
     infini::init_graph_builder(m);
 }
+
+

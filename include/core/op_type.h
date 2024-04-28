@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef OP_TYPE_H
 #define OP_TYPE_H
 
@@ -260,6 +260,7 @@ struct OpType {
 enum class ActType {
     None,
     Relu,
+    LeakyRelu,
     Sigmoid,
     Tanh,
 };
@@ -267,3 +268,5 @@ enum class ActType {
 } // namespace infini
 
 #endif // OP_TYPE_H
+
+

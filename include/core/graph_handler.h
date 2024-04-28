@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "core/graph.h"
 #include "core/runtime.h"
@@ -55,6 +55,7 @@ class GraphHandlerObj {
     Tensor relu(Tensor x, Tensor y);
     Tensor silu(Tensor x, Tensor y);
     Tensor gelu(Tensor x, Tensor y);
+    Tensor leakyrelu(Tensor x, Tensor y, float alpha);
     Tensor sigmoid(Tensor x, Tensor y);
     Tensor hardSigmoid(Tensor x, Tensor y);
     Tensor hardSwish(Tensor x, Tensor y);
@@ -152,3 +153,5 @@ class GraphHandlerObj {
 };
 
 } // namespace infini
+
+

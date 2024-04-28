@@ -39,8 +39,38 @@ void testUnary(const std::function<void(void *, size_t, DataType)> &generator,
     EXPECT_TRUE(outputCpu->equalData(outputNpu2Cpu, 1e-3));
 }
 
+void testLeakyRelu(const Shape &shape, const vector<float> &inputData,
+                      const vector<float> &ExpectData, float alpha) {
+    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();                    
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Graph gCpu = make_ref<GraphObj>(runtime);
+
+    auto input = gCpu->addTensor(shape, DataType::Float32);
+
+    gCpu->dataMalloc();
+
+    input->copyin(inputData);
+    auto npuRuntime = make_ref<ASCENDRuntimeObj>();
+    Graph npuGraph = make_ref<GraphObj>(npuRuntime);
+    // NPU
+    
+    auto inputNpu = npuGraph->cloneTensor(input);
+    auto npuOp = npuGraph->addOp<LeakyReluObj>(inputNpu, nullptr, alpha);
+    npuGraph->dataMalloc();
+    inputNpu->copyin(inputData);
+    npuRuntime->run(npuGraph);
+    auto outputNpu = npuOp->getOutput();
+    auto outputNpu2Cpu = outputNpu->clone(cpuRuntime);
+    
+    
+    // Check
+    EXPECT_TRUE(outputNpu2Cpu->equalData(ExpectData));
+}
+
 TEST(ascend_Unary, run) {
     aclInit(nullptr);
+    testLeakyRelu(Shape{1, 2, 2, 3}, vector<float>{-6, -5, -4, -3, -2, -1,  1,  2,  3,  4,  5,  6}, vector<float>{-0.0600, -0.0500, -0.0400, -0.0300, -0.0200, -0.0100,  1.0000,  2.0000,
+         3.0000,  4.0000,  5.0000,  6.0000}, 0.01);
     testUnary<ReluObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     testUnary<AbsObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     testUnary<SigmoidObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
