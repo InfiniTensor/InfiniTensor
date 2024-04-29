@@ -52,7 +52,8 @@ class AvgPooling : public ASCENDKernelWithoutConfig {
 
         auto ret = aclnnAvgPool2dGetWorkspaceSize(
             selfTensor, kernelSize, strides, paddings, false, true,
-            divisorOverride, 0, outputTensor, &workspaceSize, &executor);
+            divisorOverride, int8_t(1), outputTensor, &workspaceSize,
+            &executor);
         assert(ret == ACL_SUCCESS);
 
         void *workspaceAddr = nullptr;

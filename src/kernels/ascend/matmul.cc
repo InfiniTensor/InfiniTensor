@@ -78,7 +78,7 @@ class MatmulAclnn : public ASCENDKernelWithoutConfig {
 
             auto ret = aclnnGemmGetWorkspaceSize(
                 selfTensor, matTensor, biasTensor, alpha, beta, int64_t(transA),
-                int64_t(transB), outputTensor, 0, &workspaceSize, &executor);
+                int64_t(transB), outputTensor, 1, &workspaceSize, &executor);
             void *workspaceAddr = nullptr;
             if (workspaceSize > 0) {
                 workspaceAddr = context->getWorkspace(workspaceSize);
@@ -87,10 +87,9 @@ class MatmulAclnn : public ASCENDKernelWithoutConfig {
             // if (tmp_err_msg != NULL) {
             //     printf(" ERROR Message : %s \n ", tmp_err_msg);
             // }
-            CHECK_RET(
-                ret == ACL_SUCCESS,
-                LOG_PRINT("aclnnMatmulGetWorkspaceSize failed. ERROR: %d\n",
-                          ret));
+            CHECK_RET(ret == ACL_SUCCESS,
+                      LOG_PRINT("aclnnGemmGetWorkspaceSize failed. ERROR: %d\n",
+                                ret));
             ret = aclnnGemm(workspaceAddr, workspaceSize, executor,
                             context->ASCENDHandle());
             CHECK_RET(ret == ACL_SUCCESS,
