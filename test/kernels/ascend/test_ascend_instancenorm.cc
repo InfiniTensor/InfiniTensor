@@ -8,17 +8,16 @@
 
 namespace infini {
 
-void test_instancenormFp32(
-    const Shape &inputShape, const vector<float> &inputData,
-    const Shape &scaleShape, const vector<float> &scaleData, float eps,
-    const vector<float> &ExpectData,
-    const Shape &biasShape,
-    const vector<float> &biasData) {
+void test_instancenormFp32(const Shape &inputShape,
+                           const vector<float> &inputData,
+                           const Shape &scaleShape,
+                           const vector<float> &scaleData, float eps,
+                           const vector<float> &ExpectData,
+                           const Shape &biasShape,
+                           const vector<float> &biasData) {
 
     Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(runtime);
-
-    
 
     auto bias = gCpu->addTensor(biasShape, DataType::Float32);
     auto input = gCpu->addTensor(inputShape, DataType::Float32);
@@ -44,9 +43,8 @@ void test_instancenormFp32(
     scaleNpu->copyin(scaleData);
     ascendRuntime->run(gAscend);
 
-    auto oCpu =
-        gCpu->cloneTensor(op->getOutput()); // move Data from npu to cpu
-    oCpu->printData();                      //->printData
+    auto oCpu = gCpu->cloneTensor(op->getOutput()); // move Data from npu to cpu
+    oCpu->printData();                              //->printData
     EXPECT_TRUE(oCpu->equalData(ExpectData));
 }
 
@@ -67,7 +65,6 @@ TEST(CUDA_InstancenormFp32, run) {
             -0.3674207, 0.0000000, 0.6123678, -0.3674207, 0.0000000, 0.6123678,
             -0.3674207, 0.0000000, 0.6123678, -0.3674207, 0.0000000, 0.6123678},
         Shape{3}, vector<float>{0, 0, 0});
-    
 
     aclFinalize();
 } // python output

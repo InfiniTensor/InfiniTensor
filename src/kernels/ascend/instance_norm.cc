@@ -27,13 +27,13 @@ class InstanceNormAclnn : public ASCENDKernelWithoutConfig {
 
         std::vector<int64_t> inputDim = castTo64(inputD);
         std::vector<int64_t> inputStride = castTo64(inputS);
-        std::vector<int64_t> weightDim = castTo64(weightD); 
+        std::vector<int64_t> weightDim = castTo64(weightD);
         std::vector<int64_t> weightStride = castTo64(weightS);
         std::vector<int64_t> outputDim = castTo64(outD);
         std::vector<int64_t> outputStride = castTo64(outS);
 
         auto axis = 3;
-        
+
         auto rank = static_cast<int>(inputDim.size());
         std::vector<int64_t> normalizedShape(rank - axis, 0);
         for (auto i = rank; i > axis; --i) {
@@ -86,7 +86,7 @@ class InstanceNormAclnn : public ASCENDKernelWithoutConfig {
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);
         }
-         auto tmp_err_msg = aclGetRecentErrMsg();
+        auto tmp_err_msg = aclGetRecentErrMsg();
         if (tmp_err_msg != NULL) {
             printf(" ERROR Message : %s \n ", tmp_err_msg);
         }
@@ -103,7 +103,7 @@ class InstanceNormAclnn : public ASCENDKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::ASCEND, OpType::InstanceNormalization, InstanceNormAclnn,
-                "InstanceNorm_ASCEND");
+REGISTER_KERNEL(Device::ASCEND, OpType::InstanceNormalization,
+                InstanceNormAclnn, "InstanceNorm_ASCEND");
 
 }; // namespace infini

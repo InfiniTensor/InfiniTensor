@@ -2,14 +2,12 @@
 #include "utils/operator_utils.h"
 
 namespace infini {
-InstanceNormObj::InstanceNormObj(GraphObj *graph, Tensor input, Tensor output,  Tensor scale,
-                           Tensor bias,
-                           float eps)
-    : OperatorObj(OpType::InstanceNormalization,
-                  TensorVec{input, scale, bias},
+InstanceNormObj::InstanceNormObj(GraphObj *graph, Tensor input, Tensor output,
+                                 Tensor scale, Tensor bias, float eps)
+    : OperatorObj(OpType::InstanceNormalization, TensorVec{input, scale, bias},
                   {output}),
       eps(eps) {
-    
+
     IT_ASSERT(checkValid(graph));
 }
 

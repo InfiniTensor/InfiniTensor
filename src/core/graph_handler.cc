@@ -9,8 +9,8 @@
 #include "operators/element_wise.h"
 #include "operators/expand.h"
 #include "operators/gather.h"
-#include "operators/layer_norm.h"
 #include "operators/instance_norm.h"
+#include "operators/layer_norm.h"
 #include "operators/lrn.h"
 #include "operators/matmul.h"
 #include "operators/pad.h"
@@ -125,17 +125,17 @@ Tensor GraphHandlerObj::layerNormalization(Tensor input, Tensor scale,
             ->getOutput();
     }
 }
-Tensor GraphHandlerObj::instanceNormalization(Tensor input,
-                                           Tensor output, Tensor scale, Tensor bias,
-                                           float eps) {
+Tensor GraphHandlerObj::instanceNormalization(Tensor input, Tensor output,
+                                              Tensor scale, Tensor bias,
+                                              float eps) {
     if (output) {
-        g->addOpWithOutputs<InstanceNormObj>(std::move(input), output, std::move(scale),
-                                          std::move(bias), eps);
+        g->addOpWithOutputs<InstanceNormObj>(
+            std::move(input), output, std::move(scale), std::move(bias), eps);
         return output;
     } else {
         return g
-            ->addOp<InstanceNormObj>(std::move(input), output, std::move(scale), 
-                                  std::move(bias), eps)
+            ->addOp<InstanceNormObj>(std::move(input), output, std::move(scale),
+                                     std::move(bias), eps)
             ->getOutput();
     }
 }

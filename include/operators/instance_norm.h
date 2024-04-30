@@ -7,12 +7,11 @@ class InstanceNormObj : public OperatorObj {
 
   public:
     InstanceNormObj(GraphObj *graph, Tensor input, Tensor output, Tensor scale,
-                 Tensor bias , float eps = 1e-5);
+                    Tensor bias, float eps = 1e-5);
     OP_CLONE(InstanceNormObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
     std::string toString() const override;
 
-    
     int numInputs() const override { return inputs.size(); }
     int numOutputs() const override { return outputs.size(); }
     float getEps() const { return eps; }
