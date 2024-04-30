@@ -37,6 +37,8 @@ class GraphHandlerObj {
                               float momentum, float eps, bool training);
     Tensor layerNormalization(Tensor input, Tensor scale, Tensor output,
                               Tensor bias, float eps, int axis, int stash_type);
+    Tensor instanceNormalization(Tensor input, Tensor output, Tensor scale,
+                              Tensor bias, float eps);                          
     Tensor rmsNorm(Tensor input, Tensor weight, Tensor output);
 
     Tensor maxPool(Tensor input, Tensor output, int kh, int kw, int dh, int dw,

@@ -323,6 +323,22 @@ class OnnxStub:
                     axis,
                     stash_type,
                 )
+            elif node.op_type == "InstanceNormalization":
+                (input, scale, bias) = (tensors[node.input[i]] for i in [0, 1, 2])
+                
+                output = tensors.get(node.output[0])
+                
+                tensors[node.output[0]] = self.handler.instanceNormalization(
+                    input,
+                    output,
+                    scale,
+                    bias,
+                    next(
+                        (attr.f for attr in node.attribute if attr.name == "epsilon"),
+                        1e-5,
+                    ),
+                    
+                )
             elif node.op_type == "RMSNorm":
                 tensors[node.output[0]] = self.handler.RMSNorm(
                     tensors[node.input[0]],

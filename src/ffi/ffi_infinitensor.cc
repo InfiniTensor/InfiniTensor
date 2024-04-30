@@ -529,6 +529,7 @@ void init_graph_builder(py::module &m) {
         .def("matmul", &Handler::matmul, policy::move)
         .def("batchNormalization", &Handler::batchNormalization, policy::move)
         .def("layerNormalization", &Handler::layerNormalization, policy::move)
+        .def("instanceNormalization", &Handler::instanceNormalization, policy::move)
         .def("RMSNorm", &Handler::rmsNorm, policy::move)
         .def("maxPool", &Handler::maxPool, policy::move)
         .def("avgPool", &Handler::avgPool, policy::move)
