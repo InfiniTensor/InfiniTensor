@@ -85,6 +85,8 @@ class ResizeCnnl : public BangKernelWithoutConfig {
         cnnlCropAndResizeMode_t mode;
         auto coefMode = op->getMode();
         if (coefMode == ResizeObj::ECoeffMode::nearest) {
+            // CNNL uses round by default and
+            // does not support other nearest modes
             mode = CNNL_CROP_AND_RESIZE_NEAREST;
         } else if (coefMode == ResizeObj::ECoeffMode::linear) {
             mode = CNNL_CROP_AND_RESIZE_BILINEAR;

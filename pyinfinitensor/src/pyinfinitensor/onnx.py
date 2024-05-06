@@ -85,6 +85,7 @@ class OnnxStub:
         while len(sorted_nodes) < len(model.graph.node):
             updated = False
             for i, node in enumerate(model.graph.node):
+                # TODO：目前只考虑了resize算子输入为空的情况
                 if all(t in known_edge or t == "" for t in node.input):
                     node.name = str(len(sorted_nodes)) + "_" + node.name
                     sorted_nodes.append(i)
