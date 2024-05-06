@@ -40,7 +40,10 @@ class TransposeCuda : public CudaKernelWithoutConfig {
         }
         //----------------
         if (condition) {
-            transposeSpecial_kernel(dType, inputData, outputData, size);
+            cudaMemcpyAsync(outputData, inputData, op->getInputs(0)->getBytes(),
+                            cudaMemcpyDeviceToDevice,
+                            CUDAStream::getCurrentStream());
+
         } else {
             const auto &perm = op->getPermute();
 
