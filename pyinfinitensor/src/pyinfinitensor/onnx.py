@@ -1027,7 +1027,7 @@ class OnnxStub:
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
                 )
-            elif node.op_type == "Constant":
+            elif node.op_type in ["Constant", "ConstantOfShape"]:
                 output_name = node.output[0]
                 attributes = _parse_attribute(node)
                 tensor = attributes["value"]

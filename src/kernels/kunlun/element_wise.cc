@@ -97,10 +97,13 @@ class DivXdnn : public KUNLUNKernelWithoutConfig {
         auto aDim = op->getInputs(0)->getDims();
         auto bSize = op->getInputs(1)->size();
         auto bDim = op->getInputs(1)->getDims();
-        auto dtype = op->getDType();
 
+        // op input a, b is scalar while aDim and b Dim is empty
         if (bDim.size() == 0) {
             bDim.push_back(1);
+        }
+        if (aDim.size() == 0) {
+            aDim.push_back(1);
         }
 
         if (aSize == bSize) {
@@ -109,23 +112,9 @@ class DivXdnn : public KUNLUNKernelWithoutConfig {
                                               (float *)aData, (float *)bData,
                                               (float *)cData, aSize));
         } else {
-            // Do broadcast div
-            Shape aligned = infer_broadcast(aDim, bDim);
-            if (aligned == aDim) {
-                // BData need to be broadcasted
-                checkKUNLUNError(xdnn::broadcast_div<float>(
-                    context->KUNLUNHandle(), (float *)aData, (float *)bData,
-                    (float *)cData, aDim, bDim));
-            } else {
-                // Use workspace to broadcast aData
-                KUNLUNPtr wks = context->getWorkspace(bSize * dtype.getSize());
-                checkKUNLUNError(xdnn::broadcast<float>(
-                    context->KUNLUNHandle(), (float *)aData, (float *)wks, aDim,
-                    bDim));
-                checkKUNLUNError(xdnn::div<float>(context->KUNLUNHandle(),
-                                                  (float *)wks, (float *)bData,
-                                                  (float *)cData, bSize));
-            }
+            checkKUNLUNError(xdnn::broadcast_div<float>(
+                context->KUNLUNHandle(), (float *)aData, (float *)bData,
+                (float *)cData, aDim, bDim));
         }
         return;
     }

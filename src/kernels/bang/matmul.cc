@@ -66,6 +66,13 @@ class MatmulCnnl : public BangKernelWithoutConfig {
         cnnlSetMatMulDescAttr(bmm_desc, CNNL_MATMUL_DESC_TRANSB, &transB,
                               sizeof(int32_t));
 
+        std::string computeTypeStr = op->getComputeType();
+        if (computeTypeStr == "tf32") {
+            int32_t tf32 = 1;
+            cnnlSetMatMulDescAttr(bmm_desc, CNNL_MATMUL_ALLOW_TF32, &tf32,
+                                  sizeof(int32_t));
+        }
+
         cnnlMatMulAlgo_t bmm_algo;
         cnnlMatMulAlgoCreate(&bmm_algo);
 

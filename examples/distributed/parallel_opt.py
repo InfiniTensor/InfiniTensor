@@ -110,7 +110,6 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
                 s_dim = 0
             elif in_plc.dim == 2:
                 s_dim = 1
-
         assert s_dim != -1
         assert out_dims[s_dim] % tp_world_size == 0, out_dims
         out_dims[s_dim] //= tp_world_size
