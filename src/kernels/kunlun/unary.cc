@@ -572,7 +572,8 @@ class ATanhXdnn : public KUNLUNKernelWithoutConfig {
 };
 
 REGISTER_KERNEL(Device::KUNLUN, OpType::Relu, ReluXdnn, "Relu_xdnn_KUNLUN");
-REGISTER_KERNEL(Device::KUNLUN, OpType::LeakyRelu, LeakyReluXdnn, "LeakyRelu_xdnn_KUNLUN");
+REGISTER_KERNEL(Device::KUNLUN, OpType::LeakyRelu, LeakyReluXdnn,
+                "LeakyRelu_xdnn_KUNLUN");
 REGISTER_KERNEL(Device::KUNLUN, OpType::Sigmoid, SigmoidXdnn,
                 "Sigmoid_xdnn_KUNLUN");
 REGISTER_KERNEL(Device::KUNLUN, OpType::Tanh, TanhXdnn, "Tanh_xdnn_KUNLUN");

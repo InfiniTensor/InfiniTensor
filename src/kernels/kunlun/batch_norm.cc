@@ -20,7 +20,7 @@ class BatchNormXdnn : public KUNLUNKernelWithoutConfig {
         auto dims = op->getInputs(0)->getDims();
 
         int n, c, h, w;
-        if (dims.size() != 4){
+        if (dims.size() != 4) {
             h = 1;
             w = 1;
         }
