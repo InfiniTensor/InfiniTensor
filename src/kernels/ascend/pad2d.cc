@@ -1,7 +1,7 @@
-#include "operators/pad.h"
 #include "aclnnop/level2/aclnn_reflection_pad2d.h"
 #include "ascend/ascend_kernel_without_config.h"
 #include "ascend/ascend_runtime.h"
+#include "operators/pad.h"
 
 namespace infini {
 
@@ -12,19 +12,18 @@ class PadAclnn : public ASCENDKernelWithoutConfig {
         auto op = as<PadObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
 
-
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
 
         auto inputD = op->getInputs(0)->getDims();
         auto inputS = op->getInputs(0)->getStride();
-        
+
         auto outD = op->getOutput()->getDims();
         auto outS = op->getOutput()->getStride();
 
         std::vector<int64_t> inputDim = castTo64(inputD);
         std::vector<int64_t> inputStride = castTo64(inputS);
-        
+
         std::vector<int64_t> outputDim = castTo64(outD);
         std::vector<int64_t> outputStride = castTo64(outS);
 
@@ -32,7 +31,7 @@ class PadAclnn : public ASCENDKernelWithoutConfig {
             aclCreateTensor(inputDim.data(), inputDim.size(), ACL_FLOAT,
                             inputStride.data(), 0, aclFormat::ACL_FORMAT_NCHW,
                             inputDim.data(), inputDim.size(), aData);
-        
+
         auto outputTensor =
             aclCreateTensor(outputDim.data(), outputDim.size(), ACL_FLOAT,
                             outputStride.data(), 0, aclFormat::ACL_FORMAT_NCHW,
@@ -40,41 +39,38 @@ class PadAclnn : public ASCENDKernelWithoutConfig {
 
         uint64_t workspaceSize = 0;
         aclOpExecutor *executor;
-        
-        std::vector<int> intPads = op->getPads();  
-        
-        std::size_t length = intPads.size();  
-        std::vector<int64_t> pads(4);  
-        if(length == 8){
+
+        std::vector<int> intPads = op->getPads();
+
+        std::size_t length = intPads.size();
+        std::vector<int64_t> pads(4);
+        if (length == 8) {
             std::size_t halfLen = intPads.size() / 2;
             bool condition = true;
-            //std::cout << "Length of intPads: " << length << std::endl;  
-        
-            
-            for (std::size_t i = 0; i < halfLen; ++i) {  
+            // std::cout << "Length of intPads: " << length << std::endl;
+
+            for (std::size_t i = 0; i < halfLen; ++i) {
                 condition = (intPads[i] == intPads[i + 4]);
-                
-                //std::cout << "intPads[" << i << "]: " << intPads[i] << std::endl;  
-            }  
+
+                // std::cout << "intPads[" << i << "]: " << intPads[i] <<
+                // std::endl;
+            }
             assert(condition);
-            
+
             pads[0] = intPads[2];
             pads[1] = intPads[3];
             pads[2] = intPads[6];
             pads[3] = intPads[7];
-        }
-        else if (length == 4){
-            for (std::size_t i = 0; i < 4; ++i) {  
-                
+        } else if (length == 4) {
+            for (std::size_t i = 0; i < 4; ++i) {
+
                 pads[i] = intPads[i];
-                  
-            }  
+            }
         }
-        
+
         aclIntArray *padding = aclCreateIntArray(pads.data(), 4);
         auto ret = aclnnReflectionPad2dGetWorkspaceSize(
-            inputTensor, padding , outputTensor,
-             &workspaceSize, &executor);
+            inputTensor, padding, outputTensor, &workspaceSize, &executor);
         void *workspaceAddr = nullptr;
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);
@@ -85,7 +81,7 @@ class PadAclnn : public ASCENDKernelWithoutConfig {
         }
         assert(ret == ACL_SUCCESS);
         ret = aclnnReflectionPad2d(workspaceAddr, workspaceSize, executor,
-                               context->ASCENDHandle());
+                                   context->ASCENDHandle());
         assert(ret == ACL_SUCCESS);
 
         ret = aclrtSynchronizeStream(context->ASCENDHandle());
