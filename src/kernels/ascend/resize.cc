@@ -22,6 +22,9 @@ class ResizeAclnn : public ASCENDKernelWithoutConfig {
         case ResizeObj::ECoeffMode::nearest:
             mode = "nearest";
             break;
+        case ResizeObj::ECoeffMode::linear:
+            mode = "bilinear";
+            break;
         default:
             IT_TODO_HALT();
         }

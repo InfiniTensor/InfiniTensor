@@ -52,9 +52,12 @@ class AvgPooling : public ASCENDKernelWithoutConfig {
 
         auto ret = aclnnAvgPool2dGetWorkspaceSize(
             selfTensor, kernelSize, strides, paddings, false, true,
-            divisorOverride, int8_t(1), outputTensor, &workspaceSize,
+            divisorOverride, int8_t(0), outputTensor, &workspaceSize,
             &executor);
-        assert(ret == ACL_SUCCESS);
+        CHECK_RET(
+            ret == ACL_SUCCESS,
+            LOG_PRINT("aclnnAvgPool2dGetWorkspaceSize failed. ERROR: %d\n",
+                      ret));
 
         void *workspaceAddr = nullptr;
         if (workspaceSize > 0) {
@@ -63,10 +66,12 @@ class AvgPooling : public ASCENDKernelWithoutConfig {
 
         ret = aclnnAvgPool2d(workspaceAddr, workspaceSize, executor,
                              context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
+        CHECK_RET(ret == ACL_SUCCESS,
+                  LOG_PRINT("aclnnAvgPool2d failed. ERROR: %d\n", ret));
 
         ret = aclrtSynchronizeStream(context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
+        CHECK_RET(ret == ACL_SUCCESS,
+                  LOG_PRINT("aclrtSynchronizeStream failed. ERROR: %d\n", ret));
 
         // aclDestroyTensor(selfTensor);
         // aclDestroyTensor(outputTensor);

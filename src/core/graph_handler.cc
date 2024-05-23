@@ -284,13 +284,13 @@ Tensor GraphHandlerObj::reshape(Tensor data, Tensor reshaped, Shape shape) {
 Tensor GraphHandlerObj::resize(Tensor input, Tensor output,
                                const std::optional<vector<int>> &axes,
                                Tensor sizes, Tensor scales, Tensor roi,
-                               vector<uint32_t> sizes_, vector<float> scales_,
+                               vector<int64_t> sizes_, vector<float> scales_,
                                vector<float> roi_, string mode,
                                string ratioPolicy, string nearestMode,
                                string coordTransMode) {
     if (sizes_.size() > 0) {
         sizes->dataMalloc();
-        sizes->copyin<uint32_t>(sizes_);
+        sizes->copyin<int64_t>(sizes_);
     }
     if (scales_.size() > 0) {
         scales->dataMalloc();

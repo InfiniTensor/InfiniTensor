@@ -26,7 +26,7 @@ void testPooling(const std::function<void(void *, size_t, DataType)> &generator,
     auto inputNpu = npuGraph->cloneTensor(inputCpu);
     auto npuOp =
         npuGraph->addOp<T>(inputNpu, nullptr, 3, 3, 1, 1, 1, 1, 2, 2, 0);
-    // npuGraph->addOp<T>(inputNpu, nullptr, 2, 2, 1, 1, 0, 0, 1, 1, 0);
+    //   npuGraph->addOp<T>(inputNpu, nullptr, 2, 2, 1, 1, 0, 0, 1, 1, 0);
     npuGraph->dataMalloc();
     inputNpu->setData(generator);
     npuRuntime->run(npuGraph);
@@ -39,10 +39,10 @@ void testPooling(const std::function<void(void *, size_t, DataType)> &generator,
 }
 
 TEST(cnnl_Pooling, run) {
-    // aclInit(nullptr);
-    // testPooling<MaxPoolObj>(IncrementalGenerator(), Shape{1, 2, 5, 5});
-    testPooling<AvgPoolObj>(IncrementalGenerator(), Shape{1, 2, 5, 5});
-    //  aclFinalize();
+    aclInit(nullptr);
+    testPooling<MaxPoolObj>(IncrementalGenerator(), Shape{1, 3, 5, 5});
+    //testPooling<AvgPoolObj>(IncrementalGenerator(), Shape{1, 2, 5, 5});
+    aclFinalize();
 }
 
 } // namespace infini

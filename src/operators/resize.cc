@@ -101,8 +101,9 @@ void ResizeObj::InitBySizes(Tensor input, Tensor sizes,
     // copy sizes data to host.
     IT_ASSERT(sizes->getDataBlob() != nullptr);
     Runtime runtime = NativeCpuRuntimeObj::getInstance();
-    std::shared_ptr<int> dataObj((int *)runtime->alloc(sizes->getBytes()),
-                                 [&](int *p) { runtime->dealloc(p); });
+    std::shared_ptr<int64_t> dataObj(
+        (int64_t *)runtime->alloc(sizes->getBytes()),
+        [&](int64_t *p) { runtime->dealloc(p); });
     auto data = dataObj.get();
     sizes->getRuntime()->copyBlobToCPU(
         (void *)data, sizes->getRawDataPtr<void *>(), sizes->getBytes());
@@ -193,7 +194,7 @@ vector<DataType> ResizeObj::inferDataType(const TensorVec &inputs) const {
     }
     if (isResizeBySizes()) {
         auto sizes = inputs[1];
-        IT_ASSERT(sizes && sizes->getDType() == DataType::UInt32);
+        IT_ASSERT(sizes && sizes->getDType() == DataType::Int64);
     } else {
         auto scales = inputs[1];
         IT_ASSERT(scales && scales->getDType() == DataType::Float32);
@@ -220,8 +221,7 @@ optional<vector<Shape>> ResizeObj::inferShape(const TensorVec &inputs) {
 
 std::string ResizeObj::toString() const {
     std::ostringstream os;
-    os << "Resize"
-       << "[" << getGuid() << "]";
+    os << "Resize" << "[" << getGuid() << "]";
     os << "(";
     os << vecToString(inputs[0]->getDims()) << ",";
     if (inputs.size() == 3) {

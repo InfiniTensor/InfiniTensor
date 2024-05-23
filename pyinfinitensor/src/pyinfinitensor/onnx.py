@@ -632,7 +632,7 @@ class OnnxStub:
                         "cubic_coeff_a": -0.75,
                         "exclude_outside": 0,
                         "extrapolation_value": 0.0,
-                        "keep_aspect_ratio_policy": "none",
+                        "keep_aspect_ratio_policy": "stretch",
                         "mode": "nearest",
                         "nearest_mode": "none",
                     },
