@@ -199,6 +199,24 @@ class CastCnnl : public BangKernelWithoutConfig {
                                                    dim.data()));
             NlCastType = CNNL_CAST_UINT32_TO_INT64;
             break;
+        case CastType::Float162Float:
+            checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
+                                                   CNNL_DTYPE_HALF, dim.size(),
+                                                   dim.data()));
+            checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
+                                                   CNNL_DTYPE_FLOAT, dim.size(),
+                                                   dim.data()));
+            NlCastType = CNNL_CAST_HALF_TO_FLOAT;
+            break;
+        case CastType::Float2Float16:
+            checkCnnlError(cnnlSetTensorDescriptor(aDesc, CNNL_LAYOUT_NCHW,
+                                                   CNNL_DTYPE_FLOAT, dim.size(),
+                                                   dim.data()));
+            checkCnnlError(cnnlSetTensorDescriptor(cDesc, CNNL_LAYOUT_NCHW,
+                                                   CNNL_DTYPE_HALF, dim.size(),
+                                                   dim.data()));
+            NlCastType = CNNL_CAST_FLOAT_TO_HALF;
+            break;
         default:
             IT_TODO_HALT();
         }

@@ -21,7 +21,7 @@ class KUNLUNRuntimeObj : public RuntimeObj {
         ctx = xdnn::create_context();
         // 10GB for Longformer
         // size_t longformerNum = 3lu * (1 << 30);
-        size_t workspaceSize = 3llu << 30; // 3 GB
+        size_t workspaceSize = 2llu << 30; // 2 GB
         KUNLUNPtr wkspacePtr = alloc(workspaceSize);
         workspace =
             make_ref<WorkspaceObj<KUNLUNPtr>>(wkspacePtr, workspaceSize);
@@ -42,7 +42,7 @@ class KUNLUNRuntimeObj : public RuntimeObj {
     KUNLUNPtr alloc(size_t size) override {
         void *ptr;
         checkKUNLUNError(
-            xpu_malloc_ex((void **)&ptr, size, XPUMemoryKind::XPU_MEM_MAIN));
+            xpu_malloc((void **)&ptr, size, XPUMemoryKind::XPU_MEM_HBM));
         return ptr;
     }
     void dealloc(void *ptr) override { xpu_free(ptr); }

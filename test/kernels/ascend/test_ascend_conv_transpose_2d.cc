@@ -46,11 +46,13 @@ void testConvTransposedAclnn(
 }
 
 TEST(ascend_ConvTransposed, run) {
+    aclInit(nullptr);
     testConvTransposedAclnn(
         IncrementalGenerator(),
         std::vector<float>{0.,  0.,  1.,  2.,  3.,  0.,  6.,  12., 18.,
                            16., 8.,  30., 36., 42., 32., 16., 54., 60.,
                            66., 48., 24., 62., 67., 72., 45.});
+    aclFinalize();
 }
 
 } // namespace infini

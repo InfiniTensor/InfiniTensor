@@ -35,10 +35,10 @@ class BatchNormAclnn : public ASCENDKernelWithoutConfig {
 
         auto inputTensor = aclCreateTensor(
             inputDim.data(), inputDim.size(), ACL_FLOAT, inputStride.data(), 0,
-            aclFormat::ACL_FORMAT_ND, inputDim.data(), inputDim.size(), inData);
+            aclFormat::ACL_FORMAT_NCHW, inputDim.data(), inputDim.size(), inData);
         auto outputTensor =
             aclCreateTensor(outputDim.data(), outputDim.size(), ACL_FLOAT,
-                            outputStride.data(), 0, aclFormat::ACL_FORMAT_ND,
+                            outputStride.data(), 0, aclFormat::ACL_FORMAT_NCHW,
                             outputDim.data(), outputDim.size(), outData);
         auto meanTensor = aclCreateTensor(
             paraDim.data(), paraDim.size(), ACL_FLOAT, paraStride.data(), 0,

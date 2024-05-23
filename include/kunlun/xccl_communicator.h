@@ -34,8 +34,8 @@ class XcclCommunicatorObj final : public CommunicatorObj {
             auto begin = std::chrono::steady_clock::now();
             while (!std::filesystem::exists(filePath)) {
                 auto now = std::chrono::steady_clock::now();
-                _IT_ASSERT_2(now < begin + std::chrono::seconds(10),
-                             "time limit (10s) exceeded.");
+                _IT_ASSERT_2(now < begin + std::chrono::seconds(100),
+                             "time limit (100s) exceeded.");
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }
             std::ifstream ifs(filePath, std::ios::binary);
