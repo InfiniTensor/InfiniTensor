@@ -58,9 +58,6 @@ class ConcatAclnn : public ASCENDKernelWithoutConfig {
                        context->ASCENDHandle());
         assert(ret == ACL_SUCCESS);
 
-        ret = aclrtSynchronizeStream(context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
-
         // aclDestroyTensorList(tensorList);
         // aclDestroyTensor(outputTensor);
 

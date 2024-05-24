@@ -82,9 +82,6 @@ class ConvTransAclnn : public ASCENDKernelWithoutConfig {
                                context->ASCENDHandle());
         assert(ret == ACL_SUCCESS);
 
-        ret = aclrtSynchronizeStream(context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
-
         // aclDestroyTensor(inputTensor);
         // aclDestroyTensor(weightTensor);
         // aclDestroyTensor(outputTensor);

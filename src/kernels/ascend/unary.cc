@@ -76,9 +76,6 @@ class ReluAclnn : public ASCENDKernelWithoutConfig {
         // aclDestroyTensor(input);
         // aclDestroyTensor(output);
 
-        ret = aclrtSynchronizeStream(context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
-
         return;
     }
 };
@@ -140,9 +137,6 @@ class LeakyReluAclnn : public ASCENDKernelWithoutConfig {
         // aclDestroyTensor(input);
         // aclDestroyTensor(output);
 
-        ret = aclrtSynchronizeStream(context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
-
         return;
     }
 };
@@ -197,8 +191,6 @@ class LeakyReluAclnn : public ASCENDKernelWithoutConfig {
             assert(ret == ACL_SUCCESS);                                        \
             ret = aclnn##prefix(workspaceAddr, workspaceSize, executor,        \
                                 context->ASCENDHandle());                      \
-            assert(ret == ACL_SUCCESS);                                        \
-            ret = aclrtSynchronizeStream(context->ASCENDHandle());             \
             assert(ret == ACL_SUCCESS);                                        \
                                                                                \
             return;                                                            \

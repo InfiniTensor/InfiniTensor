@@ -86,18 +86,14 @@ class InstanceNormAclnn : public ASCENDKernelWithoutConfig {
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);
         }
-        auto tmp_err_msg = aclGetRecentErrMsg();
-        if (tmp_err_msg != NULL) {
-            printf(" ERROR Message : %s \n ", tmp_err_msg);
-        }
+        // auto tmp_err_msg = aclGetRecentErrMsg();
+        // if (tmp_err_msg != NULL) {
+        //     printf(" ERROR Message : %s \n ", tmp_err_msg);
+        // }
         ret = aclnnLayerNorm(workspaceAddr, workspaceSize, executor,
                              context->ASCENDHandle());
         CHECK_RET(ret == ACL_SUCCESS,
                   LOG_PRINT("aclnnLayerNorm failed. ERROR: %d\n", ret));
-
-        ret = aclrtSynchronizeStream(context->ASCENDHandle());
-        CHECK_RET(ret == ACL_SUCCESS,
-                  LOG_PRINT("aclrtSynchronizeStream failed. ERROR: %d\n", ret));
 
         return;
     }

@@ -56,9 +56,6 @@ class MeanAclnn : public ASCENDKernelWithoutConfig {
                           context->ASCENDHandle());
         assert(ret == ACL_SUCCESS);
 
-        ret = aclrtSynchronizeStream(context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
-
         return;
     }
 };
@@ -111,9 +108,6 @@ class ReduceSumAclnn : public ASCENDKernelWithoutConfig {
         assert(ret == ACL_SUCCESS);
         ret = aclnnReduceSum(workspaceAddr, workspaceSize, executor,
                              context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
-
-        ret = aclrtSynchronizeStream(context->ASCENDHandle());
         assert(ret == ACL_SUCCESS);
 
         return;

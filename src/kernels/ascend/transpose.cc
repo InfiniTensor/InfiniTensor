@@ -49,9 +49,6 @@ class PermuteAclnn : public ASCENDKernelWithoutConfig {
                            context->ASCENDHandle());
         assert(ret == ACL_SUCCESS);
 
-        ret = aclrtSynchronizeStream(context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
-
         return;
     }
 };
@@ -106,9 +103,6 @@ class DepthToSpaceAclnn : public ASCENDKernelWithoutConfig {
         assert(ret == ACL_SUCCESS);
         ret = aclnnPermute(workspaceAddr, workspaceSize, executor,
                            context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
-
-        ret = aclrtSynchronizeStream(context->ASCENDHandle());
         assert(ret == ACL_SUCCESS);
 
         return;

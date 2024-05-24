@@ -91,10 +91,6 @@ class LayerNormAclnn : public ASCENDKernelWithoutConfig {
         CHECK_RET(ret == ACL_SUCCESS,
                   LOG_PRINT("aclnnLayerNorm failed. ERROR: %d\n", ret));
 
-        ret = aclrtSynchronizeStream(context->ASCENDHandle());
-        CHECK_RET(ret == ACL_SUCCESS,
-                  LOG_PRINT("aclrtSynchronizeStream failed. ERROR: %d\n", ret));
-
         return;
     }
 };

@@ -69,10 +69,6 @@ class AvgPooling : public ASCENDKernelWithoutConfig {
         CHECK_RET(ret == ACL_SUCCESS,
                   LOG_PRINT("aclnnAvgPool2d failed. ERROR: %d\n", ret));
 
-        ret = aclrtSynchronizeStream(context->ASCENDHandle());
-        CHECK_RET(ret == ACL_SUCCESS,
-                  LOG_PRINT("aclrtSynchronizeStream failed. ERROR: %d\n", ret));
-
         // aclDestroyTensor(selfTensor);
         // aclDestroyTensor(outputTensor);
 
@@ -136,9 +132,6 @@ class MaxPooling : public ASCENDKernelWithoutConfig {
 
         ret = aclnnMaxPool(workspaceAddr, workspaceSize, executor,
                            context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
-
-        ret = aclrtSynchronizeStream(context->ASCENDHandle());
         assert(ret == ACL_SUCCESS);
 
         return;

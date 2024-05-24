@@ -55,7 +55,7 @@ void ASCENDRuntimeObj::run(const Graph &graph, bool tune,
     sync();
 }
 
-void ASCENDRuntimeObj::sync() const { ; }
+void ASCENDRuntimeObj::sync() const { aclrtSynchronizeStream(stream); }
 
 string ASCENDRuntimeObj::toString() const { return "ASCEND Runtime"; }
 

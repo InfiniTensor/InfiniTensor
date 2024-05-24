@@ -59,9 +59,6 @@ namespace infini {
                                 context->ASCENDHandle());                      \
             assert(ret == ACL_SUCCESS);                                        \
                                                                                \
-            ret = aclrtSynchronizeStream(context->ASCENDHandle());             \
-            assert(ret == ACL_SUCCESS);                                        \
-                                                                               \
             ret = aclDestroyTensor(inputA);                                    \
             ret = aclDestroyTensor(inputB);                                    \
             ret = aclDestroyTensor(output);                                    \
@@ -124,9 +121,6 @@ class AddAclnn : public ASCENDKernelWithoutConfig {
                        context->ASCENDHandle());
         assert(ret == ACL_SUCCESS);
 
-        ret = aclrtSynchronizeStream(context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
-
         return;
     }
 };
@@ -183,9 +177,6 @@ class SubAclnn : public ASCENDKernelWithoutConfig {
         assert(ret == ACL_SUCCESS);
         ret = aclnnSub(workspaceAddr, workspaceSize, executor,
                        context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
-
-        ret = aclrtSynchronizeStream(context->ASCENDHandle());
         assert(ret == ACL_SUCCESS);
 
         ret = aclDestroyTensor(inputA);

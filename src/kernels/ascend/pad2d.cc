@@ -75,16 +75,13 @@ class PadAclnn : public ASCENDKernelWithoutConfig {
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);
         }
-        auto tmp_err_msg = aclGetRecentErrMsg();
-        if (tmp_err_msg != NULL) {
-            printf(" ERROR Message : %s \n ", tmp_err_msg);
-        }
+        // auto tmp_err_msg = aclGetRecentErrMsg();
+        // if (tmp_err_msg != NULL) {
+        //     printf(" ERROR Message : %s \n ", tmp_err_msg);
+        // }
         assert(ret == ACL_SUCCESS);
         ret = aclnnReflectionPad2d(workspaceAddr, workspaceSize, executor,
                                    context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
-
-        ret = aclrtSynchronizeStream(context->ASCENDHandle());
         assert(ret == ACL_SUCCESS);
 
         // aclDestroyTensor(inputTensor);

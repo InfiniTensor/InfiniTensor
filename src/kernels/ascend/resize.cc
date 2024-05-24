@@ -76,10 +76,6 @@ class ResizeAclnn : public ASCENDKernelWithoutConfig {
         //     printf(" ERROR Message : %s \n ", tmp_err_msg);
         // }
 
-        ret = aclrtSynchronizeStream(context->ASCENDHandle());
-        CHECK_RET(ret == ACL_SUCCESS,
-                  LOG_PRINT("aclrtSynchronizeStream failed. ERROR: %d\n", ret));
-
         return;
     }
 };

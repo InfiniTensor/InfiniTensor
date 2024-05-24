@@ -112,9 +112,6 @@ class MatmulAclnn : public ASCENDKernelWithoutConfig {
             CHECK_RET(ret == ACL_SUCCESS,
                       LOG_PRINT("aclnnMatmul failed. ERROR: %d\n", ret));
         }
-        auto ret = aclrtSynchronizeStream(context->ASCENDHandle());
-        CHECK_RET(ret == ACL_SUCCESS,
-                  LOG_PRINT("aclrtSynchronizeStream failed. ERROR: %d\n", ret));
 
         // aclDestroyTensor(selfTensor);
         // aclDestroyTensor(matTensor);

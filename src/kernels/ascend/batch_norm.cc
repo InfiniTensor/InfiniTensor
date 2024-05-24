@@ -33,9 +33,10 @@ class BatchNormAclnn : public ASCENDKernelWithoutConfig {
         std::vector<int64_t> outputDim = castTo64(outD);
         std::vector<int64_t> outputStride = castTo64(outS);
 
-        auto inputTensor = aclCreateTensor(
-            inputDim.data(), inputDim.size(), ACL_FLOAT, inputStride.data(), 0,
-            aclFormat::ACL_FORMAT_NCHW, inputDim.data(), inputDim.size(), inData);
+        auto inputTensor =
+            aclCreateTensor(inputDim.data(), inputDim.size(), ACL_FLOAT,
+                            inputStride.data(), 0, aclFormat::ACL_FORMAT_NCHW,
+                            inputDim.data(), inputDim.size(), inData);
         auto outputTensor =
             aclCreateTensor(outputDim.data(), outputDim.size(), ACL_FLOAT,
                             outputStride.data(), 0, aclFormat::ACL_FORMAT_NCHW,
@@ -72,16 +73,13 @@ class BatchNormAclnn : public ASCENDKernelWithoutConfig {
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);
         }
-        auto tmp_err_msg = aclGetRecentErrMsg();
-        if (tmp_err_msg != NULL) {
-            printf(" ERROR Message : %s \n ", tmp_err_msg);
-        }
+        // auto tmp_err_msg = aclGetRecentErrMsg();
+        // if (tmp_err_msg != NULL) {
+        //     printf(" ERROR Message : %s \n ", tmp_err_msg);
+        // }
         assert(ret == ACL_SUCCESS);
         ret = aclnnBatchNorm(workspaceAddr, workspaceSize, executor,
                              context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
-
-        ret = aclrtSynchronizeStream(context->ASCENDHandle());
         assert(ret == ACL_SUCCESS);
 
         // aclDestroyTensor(inputTensor);
