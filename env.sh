@@ -37,7 +37,7 @@ export LD_LIBRARY_PATH="${NEUWARE_HOME}/lib64:${LD_LIBRARY_PATH}"
 # └── XTDK
 export KUNLUN_HOME=/usr/local/xpu
 
-# 配置华为ASCEND NPU 的 HOME 路径，请注意 /usr/local/ascend 是昆仑芯软件栈提供的软件包路径。
+# 配置华为ASCEND NPU 的 HOME 路径，请注意 /usr/local/ascend 是华为ASCEND 软件栈提供的软件包路径。
 # 如若用户有其他的路径安装方式，请自行配置正确的路径。
 # 这里是 ascend 目录下一个可能的结构图，请参考。
 # .
