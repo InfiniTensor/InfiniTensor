@@ -208,6 +208,16 @@ Tensor GraphHandlerObj::pRelu(Tensor x, Tensor slope, Tensor y) {
     }
 }
 
+Tensor GraphHandlerObj::leakyRelu(Tensor x, Tensor y, std::optional<float> alpha) {
+    if (y) {
+        g->addOpWithOutputs<LeakyReluObj>(std::move(x), y, alpha);
+        return y;
+    } else {
+        return g->addOp<LeakyReluObj>(std::move(x), y, alpha)
+            ->getOutput();
+    }
+}
+
 Tensor GraphHandlerObj::clip(Tensor x, Tensor y, std::optional<float> min,
                              std::optional<float> max) {
     if (y) {

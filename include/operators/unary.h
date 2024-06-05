@@ -227,6 +227,24 @@ class PReluObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 };
 
+class LeakyReluObj : public OperatorObj {
+  public:
+    LeakyReluObj(GraphObj *graph, Tensor input, Tensor output, std::optional<float> alpha);
+    OP_CLONE(LeakyReluObj);
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
+
+    std::string toString() const override;
+    
+    std::optional<float> getAlpha() const { return alphaValue; }
+    int numInputs() const override { return 1; }
+    int numOutputs() const override { return 1; }
+
+  private:
+    std::optional<float> alphaValue;
+    vector<int> getWorkloadVector() const override;
+    vector<int> getOpAttrVector() const override;
+};
+
 class LogObj : public OperatorObj {
   public:
     enum LogType {

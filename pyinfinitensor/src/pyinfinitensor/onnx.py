@@ -517,6 +517,14 @@ class OnnxStub:
                     tensors[node.input[1]],
                     tensors.get(node.output[0]),
                 )
+            elif node.op_type == "LeakyRelu":
+                tensors[node.output[0]] = self.handler.leakyRelu(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                    next(_parse_data(data[node.input[1]]).__iter__(), None)
+                    if len(node.input) > 1
+                    else None,
+                )
             elif node.op_type == "Clip":
                 tensors[node.output[0]] = self.handler.clip(
                     tensors[node.input[0]],
