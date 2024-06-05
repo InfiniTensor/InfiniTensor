@@ -13,8 +13,8 @@ void _leaky_relu_kernel(float *input, float *output, float alphaValue, int size)
     int index = threadIdx.x + blockIdx.x * blockDim.x;
     int stride = blockDim.x * gridDim.x;
     for (int i = index; i < size; i += stride) {
-        float effective_alpha = isnan(alphaValue) ? 0.01f : alphaValue; // If alpha is NaN£¬then we take 0.01f
-        output[i] = (input[i] > 0) ? input[i] : effective_alpha * input[i];
+        
+        output[i] = (input[i] > 0) ? input[i] : alphaValue * input[i];
     }
     // if (index < size) {
     //     float effective_alpha = isnan(alphaValue) ? 0.01f : alphaValue; // If alpha is NaN£¬then we take 0.01f

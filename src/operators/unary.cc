@@ -281,7 +281,7 @@ vector<int> PReluObj::getWorkloadVector() const {
 
 vector<int> PReluObj::getOpAttrVector() const { return {type.underlying()}; }
 
-LeakyReluObj::LeakyReluObj(GraphObj *graph, Tensor input, Tensor output, std::optional<float> alpha)
+LeakyReluObj::LeakyReluObj(GraphObj *graph, Tensor input, Tensor output, float alpha)
     : OperatorObj(OpType::LeakyRelu, {input}, {output}), alphaValue(alpha) {
     IT_ASSERT(checkValid(graph));
 }

@@ -229,18 +229,18 @@ class PReluObj : public OperatorObj {
 
 class LeakyReluObj : public OperatorObj {
   public:
-    LeakyReluObj(GraphObj *graph, Tensor input, Tensor output, std::optional<float> alpha);
+    LeakyReluObj(GraphObj *graph, Tensor input, Tensor output, float alpha = 1e-2);
     OP_CLONE(LeakyReluObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
     
-    std::optional<float> getAlpha() const { return alphaValue; }
+    float getAlpha() const { return alphaValue; }
     int numInputs() const override { return 1; }
     int numOutputs() const override { return 1; }
 
   private:
-    std::optional<float> alphaValue;
+    float alphaValue;
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;
 };

@@ -17,9 +17,9 @@ class LeakyReluCuda : public CudaKernelWithoutConfig {
         auto dim = op->getInputs(0)->getDims();
         int size = dim[0] * dim[1] * dim[2] * dim[3];
         leaky_relu_kernel((float *)inputData, (float *)outputData, 
-                    alphaValue ? *alphaValue : NAN, size);
+                    alphaValue, size);
     }
-    
+
 };
 
 REGISTER_KERNEL(Device::CUDA, OpType::LeakyRelu, LeakyReluCuda, "LeakyRelu_CUDA");
