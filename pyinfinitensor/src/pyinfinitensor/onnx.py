@@ -1,4 +1,4 @@
-import backend
+﻿import backend
 from onnx import (
     ModelProto,
     TensorProto,
@@ -526,6 +526,17 @@ class OnnxStub:
                     tensors[node.input[1]],
                     tensors.get(node.output[0]),
                 )
+            elif node.op_type == "LeakyRelu":
+        
+                tensors[node.output[0]] = self.handler.leakyRelu(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                    next(
+                        (attr.f for attr in node.attribute if attr.name == "alpha"),
+                        0.01,
+                    ),
+                )
+                
             elif node.op_type == "Clip":
                 tensors[node.output[0]] = self.handler.clip(
                     tensors[node.input[0]],
