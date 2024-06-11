@@ -228,8 +228,6 @@ class PReluObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 };
 class LeakyReluObj : public OperatorObj {
-    float alpha;
-
   public:
     LeakyReluObj(GraphObj *graph, Tensor input, Tensor output,
                  float alpha = 0.01);
@@ -244,6 +242,7 @@ class LeakyReluObj : public OperatorObj {
   private:
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;
+    float alpha;
 };
 class LogObj : public OperatorObj {
   public:

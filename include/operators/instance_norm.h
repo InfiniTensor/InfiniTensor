@@ -3,8 +3,6 @@
 
 namespace infini {
 class InstanceNormObj : public OperatorObj {
-    float eps;
-
   public:
     InstanceNormObj(GraphObj *graph, Tensor input, Tensor output, Tensor scale,
                     Tensor bias, float eps = 1e-5);
@@ -21,5 +19,6 @@ class InstanceNormObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 
     vector<DataType> inferDataType(const TensorVec &inputs) const override;
+    float eps;
 };
 } // namespace infini
