@@ -16,9 +16,14 @@ class LayerNormXdnn : public KUNLUNKernelWithoutConfig {
         float eps = op->getEps();
         // int axis = op->getAxis();
 
-        const auto &opInputShape = op->getInputs(0)->getDims();
-        const auto &opOutputShape = op->getOutput()->getDims();
-        IT_ASSERT(opInputShape.size() == 2);
+        auto opInputShape = op->getInputs(0)->getDims();
+        auto opOutputShape = op->getOutput()->getDims();
+        IT_ASSERT(opInputShape.size() == 2 || opInputShape.size() == 3);
+        IT_ASSERT(opInputShape.size() == 3 && opInputShape[0] == 1);
+        if (opInputShape.size() == 3) {
+            opInputShape[0] = opInputShape[1];
+            opInputShape[1] = opInputShape[2];
+        }
 
         int ret;
         if (op->numInputs() == 3) {
