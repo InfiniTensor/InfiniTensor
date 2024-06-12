@@ -226,8 +226,7 @@ Tensor GraphHandlerObj::leakyRelu(Tensor x, Tensor y, float alpha) {
         g->addOpWithOutputs<LeakyReluObj>(std::move(x), y, alpha);
         return y;
     } else {
-        return g->addOp<LeakyReluObj>(std::move(x), y, alpha)
-            ->getOutput();
+        return g->addOp<LeakyReluObj>(std::move(x), y, alpha)->getOutput();
     }
 }
 
