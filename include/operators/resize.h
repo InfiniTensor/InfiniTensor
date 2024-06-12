@@ -139,9 +139,7 @@ class ResizeObj : public OperatorObj {
         } else
             return 0;
     }
-    bool isResizeBySizes() const {
-        return ratioPolicy != EKeepAspectRatioPolicy::none;
-    }
+    bool isResizeBySizes() const { return scales.empty(); }
 
   private:
     vector<int> getWorkloadVector() const override;
