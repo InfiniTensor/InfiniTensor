@@ -30,7 +30,6 @@
 #include "operators/unsqueeze.h"
 #include "operators/where.h"
 #include <numeric>
-#include <variant>
 
 namespace infini {
 
