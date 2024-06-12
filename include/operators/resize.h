@@ -139,7 +139,9 @@ class ResizeObj : public OperatorObj {
         } else
             return 0;
     }
-    bool isResizeBySizes() const { return scales.empty(); }
+    bool isResizeBySizes() const {
+        return inputs[1]->getDType() == DataType::Int64;
+    }
 
   private:
     vector<int> getWorkloadVector() const override;

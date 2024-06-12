@@ -33,8 +33,8 @@ void ResizeObj::init(const Tensor &input, const Tensor &sizes,
     // inputs of operator must not be nullptr, due to the check in
     // OperatorObj::OperatorObj
     if (nullptr != sizes) {
-        IT_ASSERT(isResizeBySizes());
         inputs.push_back(sizes);
+        IT_ASSERT(isResizeBySizes());
         InitBySizes(input, sizes, axes);
     } else if (nullptr != scales) {
         inputs.push_back(scales);
@@ -221,7 +221,8 @@ optional<vector<Shape>> ResizeObj::inferShape(const TensorVec &inputs) {
 
 std::string ResizeObj::toString() const {
     std::ostringstream os;
-    os << "Resize" << "[" << getGuid() << "]";
+    os << "Resize"
+       << "[" << getGuid() << "]";
     os << "(";
     os << vecToString(inputs[0]->getDims()) << ",";
     if (inputs.size() == 3) {
