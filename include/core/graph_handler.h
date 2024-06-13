@@ -1,8 +1,8 @@
 ﻿#pragma once
 
 #include "core/graph.h"
-#include "core/runtime.h"
 #include "core/operator.h"
+#include "core/runtime.h"
 #include "operators/elu.h"
 #include <cstdint>
 #include <iostream>

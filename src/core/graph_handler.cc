@@ -7,6 +7,7 @@
 #include "operators/concat.h"
 #include "operators/conv.h"
 #include "operators/element_wise.h"
+#include "operators/elu.h"
 #include "operators/expand.h"
 #include "operators/gather.h"
 #include "operators/layer_norm.h"
@@ -29,7 +30,6 @@
 #include "operators/unary.h"
 #include "operators/unsqueeze.h"
 #include "operators/where.h"
-#include "operators/elu.h"
 #include <numeric>
 
 namespace infini {

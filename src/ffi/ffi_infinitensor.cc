@@ -3,6 +3,7 @@
 #include "operators/batch_norm.h"
 #include "operators/concat.h"
 #include "operators/conv.h"
+#include "operators/elu.h"
 #include "operators/expand.h"
 #include "operators/gather.h"
 #include "operators/lrn.h"
@@ -16,7 +17,6 @@
 #include "operators/transpose.h"
 #include "operators/unary.h"
 #include "operators/unsqueeze.h"
-#include "operators/elu.h"
 #include <algorithm>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
@@ -210,7 +210,6 @@ static float elu_alpha_of(Operator op) {
     return elu->getAlpha();
 }
 
-
 static std::tuple<float, float, bool> batch_norm_attrs_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::BatchNormalization);
     auto batchnorm = dynamic_cast<const BatchNormObj *>(op.get());
@@ -314,7 +313,6 @@ static int flatten_axis_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Flatten);
     return dynamic_cast<const FlattenObj *>(op.get())->getAxis();
 }
-
 
 static int cast_to_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Cast);
@@ -509,9 +507,11 @@ void init_graph_builder(py::module &m) {
         .def("outputs",
              py::overload_cast<>(&OperatorObj::getOutputs, py::const_),
              policy::reference);
-    py::class_<GraphHandlerObj, std::shared_ptr<GraphHandlerObj>>(m, "GraphHandler")
+    py::class_<GraphHandlerObj, std::shared_ptr<GraphHandlerObj>>(
+        m, "GraphHandler")
         .def(py::init<Runtime>())
-        .def("elu", &GraphHandlerObj::elu, py::arg("input"), py::arg("alpha"), "Apply ELU activation function")
+        .def("elu", &GraphHandlerObj::elu, py::arg("input"), py::arg("alpha"),
+             "Apply ELU activation function")
         .def("tensor", &Handler::tensor, policy::move)
         .def("conv", &Handler::conv, policy::move)
         .def("convTransposed2d", &Handler::convTransposed2d, policy::move)

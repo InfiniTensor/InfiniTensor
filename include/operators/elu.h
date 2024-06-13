@@ -3,9 +3,9 @@
 
 namespace infini {
 class EluObj : public OperatorObj {
-    
-public:
-    EluObj(GraphObj* graph, Tensor input, Tensor output, float alpha);
+
+  public:
+    EluObj(GraphObj *graph, Tensor input, Tensor output, float alpha);
     OP_CLONE(EluObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
@@ -15,7 +15,7 @@ public:
     float getAlpha() const { return alpha; }
     float alpha;
 
-private:
+  private:
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;
 };

@@ -8,7 +8,8 @@ EluObj::EluObj(GraphObj *graph, Tensor input, Tensor output, float alpha)
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>> EluObj::inferShape(const TensorVec &inputs) { // È¥µôconst
+optional<vector<Shape>>
+EluObj::inferShape(const TensorVec &inputs) { // È¥µôconst
     return {{inputs[0]->getDims()}};
 }
 
@@ -28,6 +29,8 @@ vector<int> EluObj::getWorkloadVector() const {
     return ret;
 }
 
-vector<int> EluObj::getOpAttrVector() const { return {type.underlying(), static_cast<int>(alpha)}; }
+vector<int> EluObj::getOpAttrVector() const {
+    return {type.underlying(), static_cast<int>(alpha)};
+}
 
 } // namespace infini
