@@ -230,7 +230,7 @@ endif()
 
 if(USE_BANG)
   add_compile_definitions(USE_BANG=1)
-  include_directories(src/kernels/mlu/include)
+  
   ################################################################################
   # Neuware Evironment
   ################################################################################

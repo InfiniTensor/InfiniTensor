@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.3)
 project(bangops)
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
+
 set(LIBRARY_OUTPUT_PATH "${CMAKE_BINARY_DIR}/lib")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -fPIC -std=c++11 -pthread -pipe")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS} -O3")
