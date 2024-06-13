@@ -221,7 +221,8 @@ optional<vector<Shape>> ResizeObj::inferShape(const TensorVec &inputs) {
 
 std::string ResizeObj::toString() const {
     std::ostringstream os;
-    os << "Resize" << "[" << getGuid() << "]";
+    os << "Resize"
+       << "[" << getGuid() << "]";
     os << "(";
     os << vecToString(inputs[0]->getDims()) << ",";
     if (inputs.size() == 3) {
