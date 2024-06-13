@@ -1,7 +1,7 @@
-#include "cuda/cuda_kernel_wihtout_config.h"
-#include "cuda/cuda_runtime.h"
 #include "operators/elu.h"
 #include "cuda/cuda_elu.h" // 确保包含声明
+#include "cuda/cuda_kernel_wihtout_config.h"
+#include "cuda/cuda_runtime.h"
 
 namespace infini {
 
