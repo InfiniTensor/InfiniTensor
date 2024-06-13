@@ -32,12 +32,13 @@ class ASCENDRuntimeObj : public RuntimeObj {
         auto ret = aclrtSetDevice(deviceId);
         CHECK_RET(ret == ACL_SUCCESS,
                   LOG_PRINT("aclrtSetDevice failed. ERROR: %d\n", ret));
-        ret = aclrtCreateContext(&context, deviceId);
-        CHECK_RET(ret == ACL_SUCCESS,
-                  LOG_PRINT("aclrtCreateContext failed. ERROR: %d\n", ret));
-        ret = aclrtSetCurrentContext(context);
-        CHECK_RET(ret == ACL_SUCCESS,
-                  LOG_PRINT("aclrtSetCurrentContext failed. ERROR: %d\n", ret));
+        // ret = aclrtCreateContext(&context, deviceId);
+        // CHECK_RET(ret == ACL_SUCCESS,
+        //           LOG_PRINT("aclrtCreateContext failed. ERROR: %d\n", ret));
+        // ret = aclrtSetCurrentContext(context);
+        // CHECK_RET(ret == ACL_SUCCESS,
+        //           LOG_PRINT("aclrtSetCurrentContext failed. ERROR: %d\n",
+        //           ret));
         ret = aclrtCreateStream(&stream);
         CHECK_RET(ret == ACL_SUCCESS,
                   LOG_PRINT("aclrtCreateStream failed. ERROR: %d\n", ret));
@@ -52,7 +53,7 @@ class ASCENDRuntimeObj : public RuntimeObj {
     virtual ~ASCENDRuntimeObj() {
         dealloc(workspace);
         aclrtDestroyStream(stream);
-        aclrtDestroyContext(context);
+        // aclrtDestroyContext(context);
         aclrtResetDevice(deviceId);
         // aclFinalize();
     }

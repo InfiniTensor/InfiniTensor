@@ -66,16 +66,9 @@ class HcclCommunicatorObj final : public CommunicatorObj {
     // Get the actual ncclComm_t
     HcclComm getHcclComm() { return comm; }
 
-    // void finalize() { HCCLCHECK(HcclCommFinalize(comm)); }
-
     ~HcclCommunicatorObj() final {
-        // finalize();
-        // auto ret = HcclCommDestroy(comm);
-        // auto tmp_err_msg = HcclGetErrorString(ret);
-        // if (tmp_err_msg != NULL) {
-        //    printf(" ERROR Message : %s \n ", tmp_err_msg);
-        //}
-        // assert(ret == HCCL_SUCCESS);
+        auto ret = HcclCommDestroy(comm);
+        assert(ret == HCCL_SUCCESS);
     }
 
     virtual string toString() const final {
