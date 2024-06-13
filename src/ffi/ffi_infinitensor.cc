@@ -16,6 +16,7 @@
 #include "operators/transpose.h"
 #include "operators/unary.h"
 #include "operators/unsqueeze.h"
+#include "operators/elu.h"
 #include <algorithm>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
@@ -119,6 +120,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, Where)
         .VALUE(OpType, DepthToSpace)
         .VALUE(OpType, LRN)
+        .VALUE(OpType, Elu)
         .export_values();
 
 #undef VALUE
@@ -201,6 +203,13 @@ static std::tuple<bool, bool> matmul_attrs_of(Operator op) {
     auto matmul = dynamic_cast<const MatmulObj *>(op.get());
     return std::make_tuple(matmul->getTransA(), matmul->getTransB());
 }
+
+static float elu_alpha_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Elu);
+    auto elu = dynamic_cast<const EluObj *>(op.get());
+    return elu->getAlpha();
+}
+
 
 static std::tuple<float, float, bool> batch_norm_attrs_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::BatchNormalization);
@@ -306,6 +315,7 @@ static int flatten_axis_of(Operator op) {
     return dynamic_cast<const FlattenObj *>(op.get())->getAxis();
 }
 
+
 static int cast_to_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Cast);
     auto castOutputDtype =
@@ -367,7 +377,8 @@ void export_functions(py::module &m) {
         .FUNCTION(depth_to_space_attrs_of)
         .FUNCTION(squeeze_axes_of)
         .FUNCTION(unsqueeze_axes_of)
-        .FUNCTION(lrn_attrs_of);
+        .FUNCTION(lrn_attrs_of)
+        .FUNCTION(elu_alpha_of);
 #undef FUNCTION
 }
 
@@ -498,8 +509,9 @@ void init_graph_builder(py::module &m) {
         .def("outputs",
              py::overload_cast<>(&OperatorObj::getOutputs, py::const_),
              policy::reference);
-    py::class_<Handler>(m, "GraphHandler")
+    py::class_<GraphHandlerObj, std::shared_ptr<GraphHandlerObj>>(m, "GraphHandler")
         .def(py::init<Runtime>())
+        .def("elu", &GraphHandlerObj::elu, py::arg("input"), py::arg("alpha"), "Apply ELU activation function")
         .def("tensor", &Handler::tensor, policy::move)
         .def("conv", &Handler::conv, policy::move)
         .def("convTransposed2d", &Handler::convTransposed2d, policy::move)

@@ -2,6 +2,8 @@
 
 #include "core/graph.h"
 #include "core/runtime.h"
+#include "core/operator.h"
+#include "operators/elu.h"
 #include <cstdint>
 #include <iostream>
 
@@ -52,6 +54,7 @@ class GraphHandlerObj {
     Tensor min(Tensor a, Tensor b, Tensor c);
     Tensor max(Tensor a, Tensor b, Tensor c);
 
+    Tensor elu(Tensor input, float alpha);
     Tensor relu(Tensor x, Tensor y);
     Tensor silu(Tensor x, Tensor y);
     Tensor gelu(Tensor x, Tensor y);

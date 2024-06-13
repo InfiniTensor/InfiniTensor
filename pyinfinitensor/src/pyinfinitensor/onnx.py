@@ -180,6 +180,13 @@ class OnnxStub:
                         d[0],
                         d[1],
                     )
+            elif node.op_type == "Elu":
+                attributes = _parse_attribute(node, {"alpha": 1.0})
+                alpha = attributes["alpha"]
+                tensors[node.output[0]] = self.handler.elu(
+                    tensors[node.input[0]], alpha
+                )
+
             elif node.op_type == "ConvTranspose":
                 attributes = _parse_attribute(
                     node,
@@ -936,6 +943,11 @@ class OnnxStub:
                     tensors.get(node.output[0]),
                     shape,
                 )
+            #elif node.op_type == "Elu":
+              #  attributes = _parse_attribute(node, {"alpha": 1.0})
+             #   alpha = attributes["alpha"]
+             #   tensors[node.output[0]] = self.handler.elu(tensors[node.input[0]], alpha)
+            
             elif node.op_type == "Erf":
                 tensors[node.output[0]] = self.handler.erf(
                     tensors[node.input[0]],
@@ -1151,6 +1163,14 @@ class OnnxStub:
                         group=op.inputs()[0].shape()[1] // op.inputs()[1].shape()[1],
                     )
                 )
+            elif ty == backend.OpTypeId.Elu:
+                alpha = backend.elu_alpha_of(op)
+                ctx.push_node(
+                    make_node(
+                        "Elu", inputs, outputs, name, alpha=alpha
+                    )
+                )
+
             elif ty == backend.OpTypeId.ConvTranspose:
                 ph, pw, sh, sw, dh, dw, oph, opw = backend.conv_trans_attrs_of(op)
                 ctx.push_node(

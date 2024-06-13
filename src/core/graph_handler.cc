@@ -29,12 +29,19 @@
 #include "operators/unary.h"
 #include "operators/unsqueeze.h"
 #include "operators/where.h"
+#include "operators/elu.h"
 #include <numeric>
 
 namespace infini {
 
 static DataType dtype_repr_convert(int);
 static CastType inferCastType(Tensor input, int to);
+
+Tensor GraphHandlerObj::elu(Tensor input, float alpha) {
+    auto output = g->addTensor(input->getDims(), input->getDType());
+    g->addOpWithOutputs<EluObj>(input, output, alpha);
+    return output;
+}
 
 Tensor GraphHandlerObj::tensor(Shape dims, int dtype) {
     return g->addTensor(std::move(dims), dtype_repr_convert(dtype));
