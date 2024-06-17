@@ -21,17 +21,17 @@ def make_and_import_model(graph: onnx.GraphProto):
 
 
 class TestStringMethods(unittest.TestCase):
-#def test_run(self):
-#model_file = next(
-#(name for name in os.listdir() if name.endswith(".onnx")), None
-#)
-#if model_file != None:
-#print(
-#"model: {file}({size:.2f} MiB)".format(
-#file = model_file, size = os.path.getsize(model_file) / 1024 / 1024
-#)
-#)
-#run_onnx(onnx.load(model_file), runtime)
+    # def test_run(self):
+    #    model_file = next(
+    #        (name for name in os.listdir() if name.endswith(".onnx")), None
+    #    )
+    #    if model_file != None:
+    #        print(
+    #            "model: {file}({size:.2f} MiB)".format(
+    #                file=model_file, size=os.path.getsize(model_file) / 1024 / 1024
+    #            )
+    #        )
+    #        run_onnx(onnx.load(model_file), runtime)
 
     def test_load(self):
         for model_file in os.listdir():
@@ -212,10 +212,10 @@ class TestStringMethods(unittest.TestCase):
 
     def test_gelu(self):
         pass
-#x = make_tensor_value_info("x", TensorProto.FLOAT, [ 1, 3, 5, 7 ])
-#y = make_tensor_value_info("y", TensorProto.FLOAT, [ 1, 3, 5, 7 ])
-#gelu = make_node("Gelu", ["x"], ["y"], name = "gelu")
-#make_and_import_model(make_graph([gelu], "gelu", [x], [y]))
+        # x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        # y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        # gelu = make_node("Gelu", ["x"], ["y"], name="gelu")
+        # make_and_import_model(make_graph([gelu], "gelu", [x], [y]))
 
     def test_erf(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
@@ -498,7 +498,7 @@ class TestStringMethods(unittest.TestCase):
         model = make_model(graph)
         from_onnx(model, backend.cpu_runtime())
 
-#see <https: // onnx.ai/onnx/intro/python.html#a-simple-example-a-linear-regression>
+    # see <https://onnx.ai/onnx/intro/python.html#a-simple-example-a-linear-regression>
     def test_linear(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 2, 3])
         a = make_tensor_value_info("a", TensorProto.FLOAT, [1, 3, 4])
