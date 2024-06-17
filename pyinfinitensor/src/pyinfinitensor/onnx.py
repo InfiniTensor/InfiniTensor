@@ -1,88 +1,27 @@
-import backend
-from onnx import (
-    ModelProto,
-    TensorProto,
-    NodeProto,
-    AttributeProto,
-    TensorShapeProto,
-    ValueInfoProto,
-)
-from onnx.helper import (
-    make_node,
-    make_tensor_value_info,
-    make_tensor,
-    make_graph,
-    make_model,
-)
-from onnx.checker import (
-    check_graph,
-    check_model,
-    check_node,
-    check_value_info,
-    check_tensor,
-    ValidationError,
-)
-from onnx.shape_inference import infer_shapes
-from onnx.numpy_helper import to_array, from_array
-from typing import Dict, List, Any, Tuple, Sequence, Union, Optional
-from functools import reduce
-from onnxsim import simplify
-import copy
-import warnings
-import numpy as np
+import backend from onnx import(ModelProto, TensorProto, NodeProto, AttributeProto, TensorShapeProto, ValueInfoProto, ) from onnx.helper import(make_node, make_tensor_value_info, make_tensor, make_graph, make_model, ) from onnx.checker import(check_graph, check_model, check_node, check_value_info, check_tensor, ValidationError, ) from onnx.shape_inference import infer_shapes from onnx.numpy_helper import to_array, from_array from typing import Dict, List, Any, Tuple, Sequence, Union, Optional from functools import reduce from onnxsim import simplify import copy import warnings import numpy as np
 
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         class OnnxStub: ""
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         "
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         The Onnx model imported into infinitensor.It can be generated from an Onnx model object.""
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 "
 
-class OnnxStub:
-    """
-    The Onnx model imported into infinitensor.
-    It can be generated from an Onnx model object.
-    """
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         def __init__(self, model:ModelProto, runtime, use_naive_allocator: bool = False, matmul_compute_type:str = "default", ) :
+#We use some user - defined operators for distributed inference
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      try :
+#onnx simplifier performs inplace simplify
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      model_simp, check = simplify(copy.deepcopy(model)) if check:model = model_simp except ValidationError:pass except RuntimeError:pass
 
-    def __init__(
-        self,
-        model: ModelProto,
-        runtime,
-        use_naive_allocator: bool = False,
-        matmul_compute_type: str = "default",
-    ):
-        # We use some user-defined operators for distributed inference
-        try:
-            # onnx simplifier performs inplace simplify
-            model_simp, check = simplify(copy.deepcopy(model))
-            if check:
-                model = model_simp
-        except ValidationError:
-            pass
-        except RuntimeError:
-            pass
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   self.inputs:Dict[str, backend.Tensor] = {} self.outputs:Dict[str, backend.Tensor] = {} self.tensors:Dict[str, backend.Tensor] = {} self.tensor_node_map:Dict[str, str] = {} self.initializer:Dict[int, TensorProto] = {} self.use_naive_allocator: bool = use_naive_allocator
+#try:
+#model = infer_shapes(model)
+#except:
+#warnings.warn("infer_shapes failed.")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          self.handler = backend.GraphHandler(runtime)
 
-        self.inputs: Dict[str, backend.Tensor] = {}
-        self.outputs: Dict[str, backend.Tensor] = {}
-        self.tensors: Dict[str, backend.Tensor] = {}
-        self.tensor_node_map: Dict[str, str] = {}
-        self.initializer: Dict[int, TensorProto] = {}
-        self.use_naive_allocator: bool = use_naive_allocator
-        # try:
-        #     model = infer_shapes(model)
-        # except:
-        #     warnings.warn("infer_shapes failed.")
-        self.handler = backend.GraphHandler(runtime)
-
-        # 处理重名和匿名算子
-        names = {}
-        for node in model.graph.node:
-            if node.name == "":
-                node.name = "missing_name(" + node.op_type + ")"
-            if node.name in names:
-                names[node.name] += 1
-                node.name += "_" + str(names[node.name])
-            else:
-                names[node.name] = 0
-        # 拓扑排序
-        sorted_nodes = []
-        known_edge = set(t.name for t in model.graph.input)
-        known_edge.update(t.name for t in model.graph.initializer)
-        while len(sorted_nodes) < len(model.graph.node):
+#处理重名和匿名算子
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              names = {} for node in model.graph.node: if node.name == "" :node.name = "missing_name(" + node.op_type + ")" if node.name in names:names[node.name] += 1 node.name += "_" + str(names[node.name]) else :names[node.name] = 0
+#拓扑排序
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             sorted_nodes =[] known_edge = set(t.name for t in model.graph.input) known_edge.update(t.name for t in model.graph.initializer) while len(sorted_nodes)< len(model.graph.node):
             updated = False
             for i, node in enumerate(model.graph.node):
                 if all(t in known_edge for t in node.input):
@@ -136,141 +75,11 @@ class OnnxStub:
                 else:
                     adapt = node.input[0]
 
-                if len(node.input) > 2:
-                    bias = "{}-bias".format(node.output[0])
-                    reshape = "{}-reshape".format(node.output[0])
-                    tensors[bias] = self.handler.conv(
-                        tensors[adapt],
-                        tensors[node.input[1]],
-                        None,
-                        p[0],
-                        p[1],
-                        s[0],
-                        s[1],
-                        d[0],
-                        d[1],
-                    )
-                    tensors[reshape] = self.handler.reshape(
-                        tensors[node.input[2]],
-                        None,
-                        [
-                            1,
-                            reduce(
-                                lambda acc, x: acc * x,
-                                tensors[node.input[2]].shape(),
-                            ),
-                            1,
-                            1,
-                        ],
-                    )
-                    tensors[node.output[0]] = self.handler.add(
-                        tensors[bias],
-                        tensors[reshape],
-                        tensors.get(node.output[0]),
-                    )
-                else:
-                    tensors[node.output[0]] = self.handler.conv(
-                        tensors[adapt],
-                        tensors[node.input[1]],
-                        tensors.get(node.output[0]),
-                        p[0],
-                        p[1],
-                        s[0],
-                        s[1],
-                        d[0],
-                        d[1],
-                    )
-            elif node.op_type == "Elu":
-                attributes = _parse_attribute(node, {"alpha": 1.0})
-                alpha = attributes["alpha"]
-                tensors[node.output[0]] = self.handler.elu(
-                    tensors[node.input[0]], alpha
-                )
+                if len(node.input) > 2 :bias = "{}-bias".format(node.output[0]) reshape = "{}-reshape".format(node.output[0]) tensors[bias] = self.handler.conv(tensors[adapt], tensors[node.input[1]], None, p[0], p[1], s[0], s[1], d[0], d[1], ) tensors[reshape] = self.handler.reshape(tensors[node.input[2]], None, [1, reduce(lambda acc, x:acc * x, tensors[node.input[2]].shape(), ), 1, 1, ], ) tensors[node.output[0]] = self.handler.add(tensors[bias], tensors[reshape], tensors.get(node.output[0]), ) else :tensors[node.output[0]] = self.handler.conv(tensors[adapt], tensors[node.input[1]], tensors.get(node.output[0]), p[0], p[1], s[0], s[1], d[0], d[1], ) elif node.op_type == "Elu" :attributes = _parse_attribute(node, {"alpha" : 1.0 }) alpha = attributes["alpha"] tensors[node.output[0]] = self.handler.elu(tensors[node.input[0]], tensors.get(node.output[0]), alpha)
 
-            elif node.op_type == "ConvTranspose":
-                attributes = _parse_attribute(
-                    node,
-                    {
-                        "dilations": [1, 1],
-                        "pads": [0, 0],
-                        "strides": [1, 1],
-                        "output_padding": [0, 0],
-                    },
-                )
-                (d, p, s, op) = (
-                    attributes[name]
-                    for name in ["dilations", "pads", "strides", "output_padding"]
-                )
-                tensors[node.output[0]] = self.handler.convTransposed2d(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                    p[0],
-                    p[1],
-                    s[0],
-                    s[1],
-                    d[0],
-                    d[1],
-                    op[0],
-                    op[1],
-                )
-            elif node.op_type == "MatMul":
-                tensors[node.output[0]] = self.handler.matmul(
-                    tensors[node.input[0]], # input
-                    tensors[node.input[1]], # weight
-                    tensors.get(node.output[0]),
-                    False,
-                    False,
-                    None,
-                    backend.ActType.Linear,
-                    matmul_compute_type,
-                )
-            elif node.op_type == "Gemm":
-                attributes = _parse_attribute(
-                    node, {"alpha": 1.0, "beta": 1.0, "transA": 0, "transB": 0}
-                )
-                (alpha, beta, transA, transB) = (
-                    attributes[name] for name in ["alpha", "beta", "transA", "transB"]
-                )
-                # FIXME unsupport attributes: `alpha` `beta`
-                assert alpha == 1.0
-                assert beta == 1.0
-                tensors[node.output[0]] = self.handler.matmul(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                    transA == 1,
-                    transB == 1,
-                    tensors[node.input[2]] if len(node.input) > 2 else None,
-                    backend.ActType.Linear,
-                    matmul_compute_type,
-                )
-            elif node.op_type == "BatchNormalization":
-                (input, mean, var, scale, bias) = (
-                    tensors[node.input[i]] for i in [0, 3, 4, 1, 2]
-                )
-                output = tensors.get(node.output[0])
-                attributes = _parse_attribute(
-                    node, {"momentum": 0.9, "epsilon": 1e-05, "training_mode": 0}
-                )
-                (momentum, eps, training) = (
-                    attributes[name]
-                    for name in ["momentum", "epsilon", "training_mode"]
-                )
-                tensors[node.output[0]] = self.handler.batchNormalization(
-                    input,
-                    output,
-                    mean,
-                    var,
-                    scale,
-                    bias,
-                    momentum,
-                    eps,
-                    training != 0,
-                )
-            elif node.op_type == "LayerNormalization":
-                (input, scale) = (tensors[node.input[i]] for i in [0, 1])
-                bias = None if len(node.input) < 3 else tensors[node.input[2]]
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     elif node.op_type == "ConvTranspose" :attributes = _parse_attribute(node, {"dilations" : [1, 1], "pads" : [0, 0], "strides" : [1, 1], "output_padding" : [0, 0], }, )(d, p, s, op) =(attributes[name] for name in["dilations", "pads", "strides", "output_padding"]) tensors[node.output[0]] = self.handler.convTransposed2d(tensors[node.input[0]], tensors[node.input[1]], tensors.get(node.output[0]), p[0], p[1], s[0], s[1], d[0], d[1], op[0], op[1], ) elif node.op_type == "MatMul" :tensors[node.output[0]] = self.handler.matmul(tensors[node.input[0]], #input tensors[node.input[1]], #weight tensors.get(node.output[0]), False, False, None, backend.ActType.Linear, matmul_compute_type, ) elif node.op_type == "Gemm" :attributes = _parse_attribute(node, {"alpha" : 1.0, "beta" : 1.0, "transA" : 0, "transB" : 0 })(alpha, beta, transA, transB) =(attributes[name] for name in["alpha", "beta", "transA", "transB"])
+#FIXME unsupport attributes : `alpha` `beta`
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               assert alpha == 1.0 assert beta == 1.0 tensors[node.output[0]] = self.handler.matmul(tensors[node.input[0]], tensors[node.input[1]], tensors.get(node.output[0]), transA == 1, transB == 1, tensors[node.input[2]] if len (node.input)> 2 else None, backend.ActType.Linear, matmul_compute_type, ) elif node.op_type == "BatchNormalization" : (input, mean, var, scale, bias) =(tensors[node.input[i]] for i in[0, 3, 4, 1, 2]) output = tensors.get(node.output[0]) attributes = _parse_attribute(node, {"momentum" : 0.9, "epsilon" : 1e-05, "training_mode" : 0 })(momentum, eps, training) =(attributes[name] for name in["momentum", "epsilon", "training_mode"]) tensors[node.output[0]] = self.handler.batchNormalization(input, output, mean, var, scale, bias, momentum, eps, training != 0, ) elif node.op_type == "LayerNormalization" : (input, scale) =(tensors[node.input[i]] for i in[0, 1]) bias = None if len (node.input)< 3 else tensors[node.input[2]]
                 output = tensors.get(node.output[0])
                 attributes = _parse_attribute(
                     node, {"axis": -1, "epsilon": 1e-05, "stash_type": 1}
@@ -538,429 +347,25 @@ class OnnxStub:
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
                     next(_parse_data(data[node.input[1]]).__iter__(), None)
-                    if len(node.input) > 1
-                    else None,
-                    next(_parse_data(data[node.input[2]]).__iter__(), None)
-                    if len(node.input) > 2
-                    else None,
-                )
-            elif node.op_type == "Transpose":
-                perm = next(
-                    (attr.ints for attr in node.attribute if attr.name == "perm"),
-                    None,
-                )
-                tensors[node.output[0]] = self.handler.transpose(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    perm,
-                )
-            elif node.op_type == "DepthToSpace":
-                blocksize = next(
-                    (attr.i for attr in node.attribute if attr.name == "blocksize"),
-                    None,
-                )
-                mode = next(
-                    (attr.s for attr in node.attribute if attr.name == "mode"),
-                    None,
-                )
-                tensors[node.output[0]] = self.handler.depthToSpace(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    blocksize,
-                    mode,
-                )
-            elif node.op_type == "Reshape":
-                shape = _parse_data(data[node.input[1]])
-                tensors[node.output[0]] = self.handler.reshape(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    shape,
-                )
-            elif node.op_type == "Resize":
-                output = tensors.get(node.output[0])
-                attributes = _parse_attribute(
-                    node,
-                    {
-                        "antialias": 0,
-                        "axes": None,
-                        "coordinate_transformation_mode": "half_pixel",
-                        "cubic_coeff_a": -0.75,
-                        "exclude_outside": 0,
-                        "extrapolation_value": 0.0,
-                        "keep_aspect_ratio_policy": "none",
-                        "mode": "nearest",
-                        "nearest_mode": "none",
-                    },
-                )
-                (
-                    axes,
-                    keep_aspect_ratio_policy,
-                    coordinate_transformation_mode,
-                    mode,
-                    nearest_mode,
-                ) = (
-                    attributes[name]
-                    for name in [
-                        "axes",
-                        "keep_aspect_ratio_policy",
-                        "coordinate_transformation_mode",
-                        "mode",
-                        "nearest_mode",
-                    ]
-                )
-                if len(node.input) > 1:
-                    roiVal = _parse_data(data[node.input[1]])
-                else:
-                    roiVal = []
-                if len(node.input) > 2:
-                    scalesVal = _parse_data(data[node.input[2]])
-                else:
-                    scalesVal = []
-                if len(node.input) > 3:
-                    sizesVal = _parse_data(data[node.input[3]])
-                else:
-                    sizesVal = []
-                tensors[node.output[0]] = self.handler.resize(
-                    tensors[node.input[0]],
-                    output,
-                    axes,
-                    tensors[node.input[3]] if len(node.input) > 3 else None,
-                    tensors[node.input[2]] if len(node.input) > 2 else None,
-                    tensors[node.input[1]] if len(node.input) > 1 else None,
-                    sizesVal,
-                    scalesVal,
-                    roiVal,
-                    mode,
-                    keep_aspect_ratio_policy,
-                    nearest_mode,
-                    coordinate_transformation_mode,
-                )
-            elif node.op_type == "Squeeze":
-                axes = (
-                    _parse_data(data[node.input[1]])
-                    if len(node.input) > 1
-                    else None
-                )
-                if axes is None:
-                    axes = next(
-                        (
-                            attr.ints
-                            for attr in node.attribute
-                            if attr.name == "axes"
-                        ),
-                        [],
-                    )
-                tensors[node.output[0]] = self.handler.squeeze(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    axes,
-                )
-            elif node.op_type == "Unsqueeze":
-                axes = (
-                    _parse_data(data[node.input[1]])
-                    if len(node.input) > 1
-                    else None
-                )
-                if axes is None:
-                    axes = next(
-                        (
-                            attr.ints
-                            for attr in node.attribute
-                            if attr.name == "axes"
-                        )
-                    )
-                tensors[node.output[0]] = self.handler.unsqueeze(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    axes,
-                )
-            elif node.op_type == "Concat":
-                tensors[node.output[0]] = self.handler.concat(
-                    [tensors[name] for name in node.input],
-                    tensors.get(node.output[0]),
-                    next((attr.i for attr in node.attribute if attr.name == "axis")),
-                )
-            elif node.op_type == "AttentionKVCache":
-                tensors[node.output[0]] = self.handler.attentionKVCache(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors[node.input[2]],
-                    tensors[node.input[3]],
-                    tensors[node.input[4]],
-                    tensors[node.input[5]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "RoPE":
-                tensors[node.output[0]]= self.handler.RoPE(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Split":
-                split = (
-                    _parse_data(data[node.input[1]])
-                    if (len(node.input) > 1)
-                    else None
-                )
-                if split is None:
-                    split = next(
-                        (
-                            attr.ints
-                            for attr in node.attribute
-                            if attr.name == "split"
-                        ),
-                        None,
-                    )
-                for name, tensor in zip(
-                    node.output,
-                    self.handler.split(
-                        tensors[node.input[0]],
-                        None,
-                        next(
-                            (
-                                attr.i
-                                for attr in node.attribute
-                                if attr.name == "axis"
-                            ),
-                            0,
-                        ),
-                        split if split is not None else len(node.output),
-                    ),
-                ):
-                    tensors[name] = tensor
-            elif node.op_type == "Gather":
-                tensors[node.output[0]] = self.handler.gather(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                    next(
-                        (attr.i for attr in node.attribute if attr.name == "axis"),
-                        0,
-                    ),
-                )
-            elif node.op_type == "GatherElements":
-                tensors[node.output[0]] = self.handler.gatherElements(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                    next(
-                        (attr.i for attr in node.attribute if attr.name == "axis"),
-                        0,
-                    ),
-                )
-            elif node.op_type == "ReduceMean":
-                tensors[node.output[0]] = self.handler.reduceMean(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    # NOTE(constroy): `axes` is an attribute until opset version 13.
-                    next(
-                        (attr.ints for attr in node.attribute if attr.name == "axes"),
-                        None,
-                    ),
-                    next(
-                        (attr.i for attr in node.attribute if attr.name == "keepdims"),
-                        1,
-                    )
-                    != 0,
-                )
-            elif node.op_type == "Slice":
+                    if len(node.input) > 1 else None, next(_parse_data(data[node.input[2]]).__iter__(), None) if len (node.input)> 2 else None, ) elif node.op_type == "Transpose" :perm = next((attr.ints for attr in node.attribute if attr.name == "perm"), None, ) tensors[node.output[0]] = self.handler.transpose(tensors[node.input[0]], tensors.get(node.output[0]), perm, ) elif node.op_type == "DepthToSpace" :blocksize = next((attr.i for attr in node.attribute if attr.name == "blocksize"), None, ) mode = next((attr.s for attr in node.attribute if attr.name == "mode"), None, ) tensors[node.output[0]] = self.handler.depthToSpace(tensors[node.input[0]], tensors.get(node.output[0]), blocksize, mode, ) elif node.op_type == "Reshape" :shape = _parse_data(data[node.input[1]]) tensors[node.output[0]] = self.handler.reshape(tensors[node.input[0]], tensors.get(node.output[0]), shape, ) elif node.op_type == "Resize" :output = tensors.get(node.output[0]) attributes = _parse_attribute(node, {"antialias" : 0, "axes" :None, "coordinate_transformation_mode" : "half_pixel", "cubic_coeff_a" : - 0.75, "exclude_outside" : 0, "extrapolation_value" : 0.0, "keep_aspect_ratio_policy" : "none", "mode" : "nearest", "nearest_mode" : "none", }, )(axes, keep_aspect_ratio_policy, coordinate_transformation_mode, mode, nearest_mode, ) =(attributes[name] for name in["axes", "keep_aspect_ratio_policy", "coordinate_transformation_mode", "mode", "nearest_mode", ]) if len (node.input)> 1 :roiVal = _parse_data(data[node.input[1]]) else :roiVal =[] if len (node.input)> 2 :scalesVal = _parse_data(data[node.input[2]]) else :scalesVal =[] if len (node.input)> 3 :sizesVal = _parse_data(data[node.input[3]]) else :sizesVal =[] tensors[node.output[0]] = self.handler.resize(tensors[node.input[0]], output, axes, tensors[node.input[3]] if len (node.input)> 3 else None, tensors[node.input[2]] if len (node.input)> 2 else None, tensors[node.input[1]] if len (node.input)> 1 else None, sizesVal, scalesVal, roiVal, mode, keep_aspect_ratio_policy, nearest_mode, coordinate_transformation_mode, ) elif node.op_type == "Squeeze" :axes =(_parse_data(data[node.input[1]]) if len (node.input)> 1 else None) if axes is None:axes = next((attr.ints for attr in node.attribute if attr.name == "axes"), [], ) tensors[node.output[0]] = self.handler.squeeze(tensors[node.input[0]], tensors.get(node.output[0]), axes, ) elif node.op_type == "Unsqueeze" :axes =(_parse_data(data[node.input[1]]) if len (node.input)> 1 else None) if axes is None:axes = next((attr.ints for attr in node.attribute if attr.name == "axes")) tensors[node.output[0]] = self.handler.unsqueeze(tensors[node.input[0]], tensors.get(node.output[0]), axes, ) elif node.op_type == "Concat" :tensors[node.output[0]] = self.handler.concat([tensors[name] for name in node.input], tensors.get(node.output[0]), next((attr.i for attr in node.attribute if attr.name == "axis")), ) elif node.op_type == "AttentionKVCache" :tensors[node.output[0]] = self.handler.attentionKVCache(tensors[node.input[0]], tensors[node.input[1]], tensors[node.input[2]], tensors[node.input[3]], tensors[node.input[4]], tensors[node.input[5]], tensors.get(node.output[0]), ) elif node.op_type == "RoPE" :tensors[node.output[0]] = self.handler.RoPE(tensors[node.input[0]], tensors[node.input[1]], tensors.get(node.output[0]), ) elif node.op_type == "Split" :split =(_parse_data(data[node.input[1]]) if (len(node.input)> 1) else None) if split is None:split = next((attr.ints for attr in node.attribute if attr.name == "split"), None, ) for name, tensor in zip(node.output, self.handler.split(tensors[node.input[0]], None, next((attr.i for attr in node.attribute if attr.name == "axis"), 0, ), split if split is not None else len(node.output), ), ) :tensors[name] = tensor elif node.op_type == "Gather" :tensors[node.output[0]] = self.handler.gather(tensors[node.input[0]], tensors[node.input[1]], tensors.get(node.output[0]), next((attr.i for attr in node.attribute if attr.name == "axis"), 0, ), ) elif node.op_type == "GatherElements" :tensors[node.output[0]] = self.handler.gatherElements(tensors[node.input[0]], tensors[node.input[1]], tensors.get(node.output[0]), next((attr.i for attr in node.attribute if attr.name == "axis"), 0, ), ) elif node.op_type == "ReduceMean" :tensors[node.output[0]] = self.handler.reduceMean(tensors[node.input[0]], tensors.get(node.output[0]),
+#NOTE(constroy) : `axes` is an attribute until opset version 13.
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               next((attr.ints for attr in node.attribute if attr.name == "axes"), None, ), next((attr.i for attr in node.attribute if attr.name == "keepdims"), 1, ) != 0, ) elif node.op_type == "Slice" :
 
-                def clamp(nums):
-                    MAX_INT = 0x7FFFFFFF
-                    return [min(x, MAX_INT) for x in nums]
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 def clamp(nums) :MAX_INT = 0x7FFFFFFF return [min(x, MAX_INT) for x in nums]
 
-                tensors[node.output[0]] = self.handler.slice(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    clamp(_parse_data(data[node.input[1]])),
-                    clamp(_parse_data(data[node.input[2]])),
-                    clamp(_parse_data(data[node.input[3]]))
-                    if len(node.input) > 3
-                    else None,
-                    clamp(_parse_data(data[node.input[4]]))
-                    if len(node.input) > 4
-                    else None,
-                )
-            elif node.op_type == "Pad":
-                tensors[node.output[0]] = self.handler.pad(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    _parse_data(data[node.input[1]]),
-                    _parse_data(data[node.input[3]]) if len(node.input) > 3 else None,
-                )
-            elif node.op_type == "Dropout":
-                for name, tensor in zip(
-                    node.output,
-                    self.handler.dropout(
-                        tensors[node.input[0]],
-                        tensors.get(node.output[0]),
-                        tensors.get(node.output[1]) if len(node.output) > 1 else None,
-                        _parse_data(data[node.input[1]])[0]
-                        if len(node.input) > 1
-                        else 0.5,
-                        _parse_data(data[node.input[2]])[0]
-                        if len(node.input) > 2
-                        else False,
-                    ),
-                ):
-                    tensors[name] = tensor
-            elif node.op_type == "Cast":
-                tensors[node.output[0]] = self.handler.cast(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    next((attr.i for attr in node.attribute if attr.name == "to")),
-                )
-            elif node.op_type == "ReduceSum":
-                if any(attr.name == "communicator" for attr in node.attribute):
-                    # ReduceSum with communicator is treated as allReduceSum.
-                    tensors[node.output[0]] = self.handler.allReduceSum(
-                        tensors[node.input[0]],
-                        tensors.get(node.output[0]),
-                    )
-                else:
-                    # NOTE: `axes` is an attribute until opset version 13.
-                    if len(node.input) > 1:
-                        axis = _parse_data(data[node.input[1]])
-                    else:
-                        axis = next(
-                            (
-                                attr.ints
-                                for attr in node.attribute
-                                if attr.name == "axes"
-                            ),
-                            None,
-                        )
-                    keepdims = (
-                        next(
-                            (
-                                attr.i
-                                for attr in node.attribute
-                                if attr.name == "keepdims"
-                            ),
-                            1,
-                        )
-                        != 0
-                    )
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               tensors[node.output[0]] = self.handler.slice(tensors[node.input[0]], tensors.get(node.output[0]), clamp(_parse_data(data[node.input[1]])), clamp(_parse_data(data[node.input[2]])), clamp(_parse_data(data[node.input[3]])) if len (node.input)> 3 else None, clamp(_parse_data(data[node.input[4]])) if len (node.input)> 4 else None, ) elif node.op_type == "Pad" :tensors[node.output[0]] = self.handler.pad(tensors[node.input[0]], tensors.get(node.output[0]), _parse_data(data[node.input[1]]), _parse_data(data[node.input[3]]) if len (node.input)> 3 else None, ) elif node.op_type == "Dropout" : for name, tensor in zip(node.output, self.handler.dropout(tensors[node.input[0]], tensors.get(node.output[0]), tensors.get(node.output[1]) if len (node.output)> 1 else None, _parse_data(data[node.input[1]])[0] if len (node.input)> 1 else 0.5, _parse_data(data[node.input[2]])[0] if len (node.input)> 2 else False, ), ) :tensors[name] = tensor elif node.op_type == "Cast" :tensors[node.output[0]] = self.handler.cast(tensors[node.input[0]], tensors.get(node.output[0]), next((attr.i for attr in node.attribute if attr.name == "to")), ) elif node.op_type == "ReduceSum" : if any (attr.name == "communicator" for attr in node.attribute) :
+#ReduceSum with communicator is treated as allReduceSum.
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               tensors[node.output[0]] = self.handler.allReduceSum(tensors[node.input[0]], tensors.get(node.output[0]), ) else :
+#NOTE : `axes` is an attribute until opset version 13.
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       if len (node.input)> 1 :axis = _parse_data(data[node.input[1]]) else :axis = next((attr.ints for attr in node.attribute if attr.name == "axes"), None, ) keepdims =(next((attr.i for attr in node.attribute if attr.name == "keepdims"), 1, ) != 0)
 
-                    tensors[node.output[0]] = self.handler.reduceSum(
-                        tensors[node.input[0]],
-                        tensors.get(node.output[0]),
-                        axis,
-                        keepdims,
-                    )
-            elif node.op_type == "AllReduceSum":
-                tensors[node.output[0]] = self.handler.allReduceSum(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "AllReduceProd":
-                tensors[node.output[0]] = self.handler.allReduceProd(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "AllReduceMin":
-                tensors[node.output[0]] = self.handler.allReduceMin(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "AllReduceMax":
-                tensors[node.output[0]] = self.handler.allReduceMax(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "AllReduceAvg":
-                tensors[node.output[0]] = self.handler.allReduceAvg(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "AllGather":
-                for name, tensor in zip(
-                    node.output,
-                    self.handler.allGather(
-                        tensors[node.input[0]],
-                        None,
-                        len(node.output),
-                    ),
-                ):
-                    tensors[name] = tensor
-            elif node.op_type == "Broadcast":
-                tensors[node.output[0]] = self.handler.broadcast(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    next(
-                        (attr.i for attr in node.attribute if attr.name == "root"),
-                        0,
-                    ),
-                )
-            elif node.op_type == "Send":
-                source = next(
-                    (attr.i for attr in node.attribute if attr.name == "source"),
-                    0,
-                )
-                destination = next(
-                    (attr.i for attr in node.attribute if attr.name == "destination"),
-                    0,
-                )
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               tensors[node.output[0]] = self.handler.reduceSum(tensors[node.input[0]], tensors.get(node.output[0]), axis, keepdims, ) elif node.op_type == "AllReduceSum" :tensors[node.output[0]] = self.handler.allReduceSum(tensors[node.input[0]], tensors.get(node.output[0]), ) elif node.op_type == "AllReduceProd" :tensors[node.output[0]] = self.handler.allReduceProd(tensors[node.input[0]], tensors.get(node.output[0]), ) elif node.op_type == "AllReduceMin" :tensors[node.output[0]] = self.handler.allReduceMin(tensors[node.input[0]], tensors.get(node.output[0]), ) elif node.op_type == "AllReduceMax" :tensors[node.output[0]] = self.handler.allReduceMax(tensors[node.input[0]], tensors.get(node.output[0]), ) elif node.op_type == "AllReduceAvg" :tensors[node.output[0]] = self.handler.allReduceAvg(tensors[node.input[0]], tensors.get(node.output[0]), ) elif node.op_type == "AllGather" : for name, tensor in zip(node.output, self.handler.allGather(tensors[node.input[0]], None, len(node.output), ), ) :tensors[name] = tensor elif node.op_type == "Broadcast" :tensors[node.output[0]] = self.handler.broadcast(tensors[node.input[0]], tensors.get(node.output[0]), next((attr.i for attr in node.attribute if attr.name == "root"), 0, ), ) elif node.op_type == "Send" :source = next((attr.i for attr in node.attribute if attr.name == "source"), 0, ) destination = next((attr.i for attr in node.attribute if attr.name == "destination"), 0, )
 
-                self.handler.send(
-                    tensors[node.input[0]],
-                    source,
-                    destination,
-                    None,
-                )
-            elif node.op_type == "Recv":
-                source = next(
-                    (attr.i for attr in node.attribute if attr.name == "source"),
-                    0,
-                )
-                destination = next(
-                    (attr.i for attr in node.attribute if attr.name == "destination"),
-                    0,
-                )
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 self.handler.send(tensors[node.input[0]], source, destination, None, ) elif node.op_type == "Recv" :source = next((attr.i for attr in node.attribute if attr.name == "source"), 0, ) destination = next((attr.i for attr in node.attribute if attr.name == "destination"), 0, )
 
-                for attr in node.attribute:
-                    if attr.name == "shape":
-                        shapeBasic = attr.ints
-                shape = []
-                for item in shapeBasic:
-                    shape.append(item)
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   for attr in node.attribute: if attr.name == "shape" :shapeBasic = attr.ints shape =[] for item in shapeBasic:shape.append(item)
 
-                for attr in node.attribute:
-                    if attr.name == "dataType":
-                        outputType = attr.i
-                tensors[node.output[0]] = self.handler.recv(
-                    tensors.get(node.output[0]),
-                    source,
-                    destination,
-                    shape,
-                    outputType,
-                    None,
-                )
-            elif node.op_type == "Expand":
-                shape = _parse_data(data[node.input[1]])
-                tensors[node.output[0]] = self.handler.expand(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    shape,
-                )
-            #elif node.op_type == "Elu":
-              #  attributes = _parse_attribute(node, {"alpha": 1.0})
-             #   alpha = attributes["alpha"]
-             #   tensors[node.output[0]] = self.handler.elu(tensors[node.input[0]], alpha)
-            
-            elif node.op_type == "Erf":
-                tensors[node.output[0]] = self.handler.erf(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Where":
-                ## If Y is single -inf, treat Where as Add 
-                ## TODO: deal with cases where Y is single inf or 0
-                if node.input[0] in data and node.input[2] in data:
-                    where_condition = to_array(data[node.input[0]])
-                    where_alt =  to_array(data[node.input[2]])
-                    if where_alt.size == 1:
-                        if np.isneginf(where_alt) or np.all(where_alt < -3e38):
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 for attr in node.attribute: if attr.name == "dataType" :outputType = attr.i tensors[node.output[0]] = self.handler.recv(tensors.get(node.output[0]), source, destination, shape, outputType, None, ) elif node.op_type == "Expand" :shape = _parse_data(data[node.input[1]]) tensors[node.output[0]] = self.handler.expand(tensors[node.input[0]], tensors.get(node.output[0]), shape, ) elif node.op_type == "Erf" :tensors[node.output[0]] = self.handler.erf(tensors[node.input[0]], tensors.get(node.output[0]), ) elif node.op_type == "Where" :##If Y is single - inf, treat Where as Add##TODO:deal with cases where Y is single inf or 0 if node.input[0] in data and node.input[2] in data:where_condition = to_array(data[node.input[0]]) where_alt = to_array(data[node.input[2]]) if where_alt.size == 1 : if np.isneginf(where_alt) or np.all(where_alt< -3e38):
                             node.input[0] = node.input[0] + "_alt"
                             if node.input[0] not in data:
                                 where_value = np.where(where_condition, 0, -np.inf).astype(where_alt.dtype)
@@ -1009,12 +414,12 @@ class OnnxStub:
         for output in model.graph.output:
             tensors[output.name].set_output()
         ################################
-        # Allocate memory space for data
+#Allocate memory space for data
         ################################
         self.handler.data_malloc(self.use_naive_allocator)
 
         #################################
-        # Copy in data to tensor objects
+#Copy in data to tensor objects
         #################################
         for name, obj in tensors.items():
             tensor = data.get(name)
@@ -1023,23 +428,23 @@ class OnnxStub:
                     self.inputs[name] = obj
             else:
                 self.initializer[obj.fuid()] = tensor
-                # TODO: delete these lines after copyin_numpy is stable
-                # if tensor.data_type == TensorProto.INT32:
-                #     obj.copyin_int32(_parse_data(tensor))
-                # elif tensor.data_type == TensorProto.INT64:
-                #     obj.copyin_int64(_parse_data(tensor))
-                # elif tensor.data_type == TensorProto.FLOAT:
-                #     obj.copyin_float(_parse_data(tensor))
-                # elif tensor.data_type == TensorProto.BOOL:
-                #     obj.copyin_int8(_parse_data(tensor))
-                # elif tensor.data_type == TensorProto.FLOAT16:
-                #     obj.copyin_float16(_parse_data_fp16(tensor))
-                # elif tensor.data_type == TensorProto.INT8:
-                #     obj.copyin_uint8(_parse_data(tensor))
-                # elif tensor.data_type == TensorProto.BFLOAT16:
-                #     obj.copyin_float16(_parse_data_fp16(tensor))
-                # else:
-                #     assert False, "Unsupported Tensor Type: {}".format(tensor.data_type)
+#TODO : delete these lines after copyin_numpy is stable
+#if tensor.data_type == TensorProto.INT32:
+#obj.copyin_int32(_parse_data(tensor))
+#elif tensor.data_type == TensorProto.INT64:
+#obj.copyin_int64(_parse_data(tensor))
+#elif tensor.data_type == TensorProto.FLOAT:
+#obj.copyin_float(_parse_data(tensor))
+#elif tensor.data_type == TensorProto.BOOL:
+#obj.copyin_int8(_parse_data(tensor))
+#elif tensor.data_type == TensorProto.FLOAT16:
+#obj.copyin_float16(_parse_data_fp16(tensor))
+#elif tensor.data_type == TensorProto.INT8:
+#obj.copyin_uint8(_parse_data(tensor))
+#elif tensor.data_type == TensorProto.BFLOAT16:
+#obj.copyin_float16(_parse_data_fp16(tensor))
+#else:
+#assert False, "Unsupported Tensor Type: {}".format(tensor.data_type)
                 obj.copyin_numpy(to_array(tensor))
 
         for name, obj in tensors.items():
@@ -1050,19 +455,19 @@ class OnnxStub:
 
     def to_onnx(self, name: str) -> ModelProto:
         class Context:
-            # saves object names, including tensors and operators
+#saves object names, including tensors and operators
             names: Dict[Union[backend.Tensor, backend.Operator], str] = dict()
-            # counts the occurrence times of each operator for naming
+#counts the occurrence times of each operator for naming
             count_op: Dict[backend.OpTypeId, int] = dict()
-            # counts input and output tensors for naming
+#counts input and output tensors for naming
             count_in, count_out = 0, 0
-            # saves nodes (operators)
+#saves nodes(operators)
             nodes: List[NodeProto] = []
-            # saves global input tensors
+#saves global input tensors
             inputs: List[ValueInfoProto] = []
-            # saves global output tensors
+#saves global output tensors
             outputs: List[ValueInfoProto] = []
-            # saves global input tensors
+#saves global input tensors
             initializers: List[TensorProto] = []
 
             def name_op(self, op: backend.Operator) -> Tuple[backend.OpTypeId, str]:
@@ -1086,7 +491,7 @@ class OnnxStub:
                 self, tensor: backend.Tensor, init: Optional[TensorProto]
             ) -> str:
                 name = self.names.get(tensor)
-                # means that this input is a global input
+#means that this input is a global input
                 if name is None:
                     self.count_in += 1
                     name = "input{}".format(self.count_in)
@@ -1131,7 +536,7 @@ class OnnxStub:
 
                 return model
 
-        # 拓扑排序
+#拓扑排序
         if not self.handler.topo_sort():
             raise Exception("Sorting fails")
 

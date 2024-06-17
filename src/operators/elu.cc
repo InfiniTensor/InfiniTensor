@@ -8,8 +8,7 @@ EluObj::EluObj(GraphObj *graph, Tensor input, Tensor output, float alpha)
     IT_ASSERT(checkValid(graph));
 }
 
-optional<vector<Shape>>
-EluObj::inferShape(const TensorVec &inputs) { // È¥µôconst
+optional<vector<Shape>> EluObj::inferShape(const TensorVec &inputs) {
     return {{inputs[0]->getDims()}};
 }
 

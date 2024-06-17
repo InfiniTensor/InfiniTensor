@@ -2,11 +2,8 @@
 
 #include "core/graph.h"
 #include "core/operator.h"
-#include "core/runtime.h"
-#include "operators/elu.h"
 #include <cstdint>
 #include <iostream>
-
 #ifdef USE_CUDA
 #include "cuda/cuda_runtime.h"
 #endif
@@ -54,7 +51,6 @@ class GraphHandlerObj {
     Tensor min(Tensor a, Tensor b, Tensor c);
     Tensor max(Tensor a, Tensor b, Tensor c);
 
-    Tensor elu(Tensor input, float alpha);
     Tensor relu(Tensor x, Tensor y);
     Tensor silu(Tensor x, Tensor y);
     Tensor gelu(Tensor x, Tensor y);
@@ -71,6 +67,7 @@ class GraphHandlerObj {
     Tensor identity(Tensor x, Tensor y);
     Tensor flatten(Tensor s, Tensor y, int axis);
     Tensor pRelu(Tensor x, Tensor slope, Tensor y);
+    Tensor elu(Tensor input, Tensor output, float alpha);
     Tensor clip(Tensor x, Tensor y, std::optional<float> min,
                 std::optional<float> max);
     Tensor transpose(Tensor data, Tensor transposed, Shape perm);

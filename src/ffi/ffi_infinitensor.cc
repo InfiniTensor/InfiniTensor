@@ -507,11 +507,10 @@ void init_graph_builder(py::module &m) {
         .def("outputs",
              py::overload_cast<>(&OperatorObj::getOutputs, py::const_),
              policy::reference);
-    py::class_<GraphHandlerObj, std::shared_ptr<GraphHandlerObj>>(
-        m, "GraphHandler")
+    py::class_<Handler>(m, "GraphHandler")
         .def(py::init<Runtime>())
-        .def("elu", &GraphHandlerObj::elu, py::arg("input"), py::arg("alpha"),
-             "Apply ELU activation function")
+        .def("elu", &GraphHandlerObj::elu, py::arg("input"), py::arg("output"),
+             py::arg("alpha"))
         .def("tensor", &Handler::tensor, policy::move)
         .def("conv", &Handler::conv, policy::move)
         .def("convTransposed2d", &Handler::convTransposed2d, policy::move)
