@@ -1,4 +1,4 @@
-﻿﻿import os, onnx, unittest
+﻿import os, onnx, unittest
 from onnx import TensorProto
 from onnx.helper import (
     make_model,
@@ -498,8 +498,7 @@ class TestStringMethods(unittest.TestCase):
         model = make_model(graph)
         from_onnx(model, backend.cpu_runtime())
 
-#see <                                                                         \
-    https: // onnx.ai/onnx/intro/python.html#a-simple-example-a-linear-regression>
+#see <https: // onnx.ai/onnx/intro/python.html#a-simple-example-a-linear-regression>
     def test_linear(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 2, 3])
         a = make_tensor_value_info("a", TensorProto.FLOAT, [1, 3, 4])
