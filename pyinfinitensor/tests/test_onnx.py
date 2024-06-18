@@ -1,4 +1,4 @@
-﻿﻿import os, onnx, unittest
+﻿import os, onnx, unittest
 from onnx import TensorProto
 from onnx.helper import (
     make_model,
