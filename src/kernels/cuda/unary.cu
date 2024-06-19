@@ -145,11 +145,9 @@ __global__ void _cast_kernel(INPUT *input, OUTPUT *output, size_t n) {
 
 template <typename T>
 __global__ void _leaky_relu_kernel(T *input, T *output, size_t n,  float alphaValue) {
-
     size_t index = threadIdx.x + blockIdx.x * blockDim.x;
     size_t stride = blockDim.x * gridDim.x;
     for (size_t i = index; i < n; i += stride) {
-        
         output[i] = (input[i] > 0) ? input[i] : alphaValue * input[i];
     }
 
@@ -364,12 +362,10 @@ void cast_kernel(INPUT *input, OUTPUT *output, size_t num) {
 
 template <typename T>
 void leaky_relu_kernel(T *input, T *output, size_t num, float alphaValue) {
-
     int blocksize = block_work_size();
     int gridsize = (num + blocksize - 1) / blocksize;
     _leaky_relu_kernel<<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
     (input, output, num, alphaValue);
-
 }
 
 template void cast_kernel<float, half>(float *input, half *output, size_t num);

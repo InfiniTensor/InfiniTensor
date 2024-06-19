@@ -156,7 +156,6 @@ class SoftmaxCudnn : public CudaKernelWithoutConfig {
 };
 
 class LeakyReluCuda : public CudaKernelWithoutConfig {
-
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<LeakyReluObj>(_op);
