@@ -18,11 +18,13 @@ class CopyAclnn : public ASCENDKernelWithoutConfig {
         std::vector<int64_t> aDim = castTo64(aD);
         std::vector<int64_t> aStride = castTo64(aS);
 
+        auto aclDataType = aclnnDataTypeConvert(op->getDType());
+
         auto srcTensor = aclCreateTensor(
-            aDim.data(), aDim.size(), ACL_FLOAT, aStride.data(), 0,
+            aDim.data(), aDim.size(), aclDataType, aStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, aDim.data(), aDim.size(), aData);
         auto outputTensor = aclCreateTensor(
-            aDim.data(), aDim.size(), ACL_FLOAT, aStride.data(), 0,
+            aDim.data(), aDim.size(), aclDataType, aStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, aDim.data(), aDim.size(), cData);
 
         uint64_t workspaceSize = 0;

@@ -27,12 +27,14 @@ class PermuteAclnn : public ASCENDKernelWithoutConfig {
         auto _permute = op->getPermute();
         std::vector<int64_t> permute = castTo64(_permute);
 
+        auto aclDataType = aclnnDataTypeConvert(op->getDType());
+        
         auto inputA = aclCreateTensor(
-            aDim.data(), aDim.size(), ACL_FLOAT, aStride.data(), 0,
+            aDim.data(), aDim.size(), aclDataType, aStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, aDim.data(), aDim.size(), aData);
         aclIntArray *dims = aclCreateIntArray(permute.data(), permute.size());
         auto output = aclCreateTensor(
-            cDim.data(), cDim.size(), ACL_FLOAT, cStride.data(), 0,
+            cDim.data(), cDim.size(), aclDataType, cStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, cDim.data(), cDim.size(), cData);
 
         uint64_t workspaceSize = 0;
@@ -83,12 +85,14 @@ class DepthToSpaceAclnn : public ASCENDKernelWithoutConfig {
             permute = {0, 1, 4, 2, 5, 3};
         }
 
+        auto aclDataType = aclnnDataTypeConvert(op->getDType());
+
         auto inputA = aclCreateTensor(
-            aDim.data(), aDim.size(), ACL_FLOAT, aStride.data(), 0,
+            aDim.data(), aDim.size(), aclDataType, aStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, aDim.data(), aDim.size(), aData);
         aclIntArray *dims = aclCreateIntArray(permute.data(), permute.size());
         auto output = aclCreateTensor(
-            cDim.data(), cDim.size(), ACL_FLOAT, cStride.data(), 0,
+            cDim.data(), cDim.size(), aclDataType, cStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, cDim.data(), cDim.size(), cData);
 
         uint64_t workspaceSize = 0;

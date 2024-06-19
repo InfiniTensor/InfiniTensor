@@ -27,13 +27,14 @@ class PadAclnn : public ASCENDKernelWithoutConfig {
         std::vector<int64_t> outputDim = castTo64(outD);
         std::vector<int64_t> outputStride = castTo64(outS);
 
+        auto aclDataType = aclnnDataTypeConvert(op->getDType());
         auto inputTensor =
-            aclCreateTensor(inputDim.data(), inputDim.size(), ACL_FLOAT,
+            aclCreateTensor(inputDim.data(), inputDim.size(), aclDataType,
                             inputStride.data(), 0, aclFormat::ACL_FORMAT_NCHW,
                             inputDim.data(), inputDim.size(), aData);
 
         auto outputTensor =
-            aclCreateTensor(outputDim.data(), outputDim.size(), ACL_FLOAT,
+            aclCreateTensor(outputDim.data(), outputDim.size(), aclDataType,
                             outputStride.data(), 0, aclFormat::ACL_FORMAT_NCHW,
                             outputDim.data(), outputDim.size(), cData);
 
