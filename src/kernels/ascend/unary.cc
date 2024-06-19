@@ -53,11 +53,13 @@ class ReluAclnn : public ASCENDKernelWithoutConfig {
             cStride[i] = int64_t(cS[i]);
         }
 
+        auto aclDataType = aclnnDataTypeConvert(op->getDType());
+
         auto input = aclCreateTensor(
-            aDim.data(), aDim.size(), ACL_FLOAT, aStride.data(), 0,
+            aDim.data(), aDim.size(), aclDataType, aStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, aDim.data(), aDim.size(), aData);
         auto output = aclCreateTensor(
-            cDim.data(), cDim.size(), ACL_FLOAT, cStride.data(), 0,
+            cDim.data(), cDim.size(), aclDataType, cStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, cDim.data(), cDim.size(), cData);
 
         uint64_t workspaceSize = 0;
@@ -113,11 +115,13 @@ class LeakyReluAclnn : public ASCENDKernelWithoutConfig {
             cStride[i] = int64_t(cS[i]);
         }
 
+        auto aclDataType = aclnnDataTypeConvert(op->getDType());
+
         auto input = aclCreateTensor(
-            aDim.data(), aDim.size(), ACL_FLOAT, aStride.data(), 0,
+            aDim.data(), aDim.size(), aclDataType, aStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, aDim.data(), aDim.size(), aData);
         auto output = aclCreateTensor(
-            cDim.data(), cDim.size(), ACL_FLOAT, cStride.data(), 0,
+            cDim.data(), cDim.size(), aclDataType, cStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, cDim.data(), cDim.size(), cData);
 
         uint64_t workspaceSize = 0;
@@ -180,11 +184,13 @@ class LeakyReluAclnn : public ASCENDKernelWithoutConfig {
                 cStride[i] = int64_t(cS[i]);                                   \
             }                                                                  \
                                                                                \
+            auto aclDataType = aclnnDataTypeConvert(op->getDType());           \
+                                                                               \
             auto input = aclCreateTensor(                                      \
-                aDim.data(), aDim.size(), ACL_FLOAT, aStride.data(), 0,        \
+                aDim.data(), aDim.size(), aclDataType, aStride.data(), 0,      \
                 aclFormat::ACL_FORMAT_ND, aDim.data(), aDim.size(), aData);    \
             auto output = aclCreateTensor(                                     \
-                cDim.data(), cDim.size(), ACL_FLOAT, cStride.data(), 0,        \
+                cDim.data(), cDim.size(), aclDataType, cStride.data(), 0,      \
                 aclFormat::ACL_FORMAT_ND, cDim.data(), cDim.size(), cData);    \
                                                                                \
             uint64_t workspaceSize = 0;                                        \

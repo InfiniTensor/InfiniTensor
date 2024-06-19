@@ -40,11 +40,13 @@ class AvgPooling : public ASCENDKernelWithoutConfig {
         aclIntArray *strides = aclCreateIntArray(stride.data(), stride.size());
         aclIntArray *paddings = aclCreateIntArray(pad.data(), pad.size());
 
+        auto aclDataType = aclnnDataTypeConvert(op->getDType());
+        
         auto selfTensor = aclCreateTensor(
-            selfDim.data(), selfDim.size(), ACL_FLOAT, selfStride.data(), 0,
+            selfDim.data(), selfDim.size(), aclDataType, selfStride.data(), 0,
             aclFormat::ACL_FORMAT_NCHW, selfDim.data(), selfDim.size(), aData);
         auto outputTensor =
-            aclCreateTensor(outputDim.data(), outputDim.size(), ACL_FLOAT,
+            aclCreateTensor(outputDim.data(), outputDim.size(), aclDataType,
                             outputStride.data(), 0, aclFormat::ACL_FORMAT_NCHW,
                             outputDim.data(), outputDim.size(), cData);
 
@@ -111,11 +113,13 @@ class MaxPooling : public ASCENDKernelWithoutConfig {
         aclIntArray *dilations =
             aclCreateIntArray(dilation.data(), dilation.size());
 
+        auto aclDataType = aclnnDataTypeConvert(op->getDType());
+
         auto selfTensor = aclCreateTensor(
-            selfDim.data(), selfDim.size(), ACL_FLOAT, selfStride.data(), 0,
+            selfDim.data(), selfDim.size(), aclDataType, selfStride.data(), 0,
             aclFormat::ACL_FORMAT_NCHW, selfDim.data(), selfDim.size(), aData);
         auto outputTensor =
-            aclCreateTensor(outputDim.data(), outputDim.size(), ACL_FLOAT,
+            aclCreateTensor(outputDim.data(), outputDim.size(), aclDataType,
                             outputStride.data(), 0, aclFormat::ACL_FORMAT_NCHW,
                             outputDim.data(), outputDim.size(), cData);
 

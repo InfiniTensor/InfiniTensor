@@ -36,14 +36,16 @@ namespace infini {
             std::vector<int64_t> cDim = castTo64(c);                           \
             std::vector<int64_t> cStride = castTo64(cS);                       \
                                                                                \
+            auto aclDataType = aclnnDataTypeConvert(op->getDType());           \
+                                                                               \
             auto inputA = aclCreateTensor(                                     \
-                aDim.data(), aDim.size(), ACL_FLOAT, aStride.data(), 0,        \
+                aDim.data(), aDim.size(), aclDataType, aStride.data(), 0,      \
                 aclFormat::ACL_FORMAT_ND, aDim.data(), aDim.size(), aData);    \
             auto inputB = aclCreateTensor(                                     \
-                bDim.data(), bDim.size(), ACL_FLOAT, bStride.data(), 0,        \
+                bDim.data(), bDim.size(), aclDataType, bStride.data(), 0,      \
                 aclFormat::ACL_FORMAT_ND, bDim.data(), bDim.size(), bData);    \
             auto output = aclCreateTensor(                                     \
-                cDim.data(), cDim.size(), ACL_FLOAT, cStride.data(), 0,        \
+                cDim.data(), cDim.size(), aclDataType, cStride.data(), 0,      \
                 aclFormat::ACL_FORMAT_ND, cDim.data(), cDim.size(), cData);    \
                                                                                \
             uint64_t workspaceSize = 0;                                        \
@@ -97,17 +99,20 @@ class AddAclnn : public ASCENDKernelWithoutConfig {
         std::vector<int64_t> cDim = castTo64(c);
         std::vector<int64_t> cStride = castTo64(cS);
 
+        auto aclDataType = aclnnDataTypeConvert(op->getDType());
+        
         auto inputA = aclCreateTensor(
-            aDim.data(), aDim.size(), ACL_FLOAT, aStride.data(), 0,
+            aDim.data(), aDim.size(), aclDataType, aStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, aDim.data(), aDim.size(), aData);
         auto inputB = aclCreateTensor(
-            bDim.data(), bDim.size(), ACL_FLOAT, bStride.data(), 0,
+            bDim.data(), bDim.size(), aclDataType, bStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, bDim.data(), bDim.size(), bData);
         auto output = aclCreateTensor(
-            cDim.data(), cDim.size(), ACL_FLOAT, cStride.data(), 0,
+            cDim.data(), cDim.size(), aclDataType, cStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, cDim.data(), cDim.size(), cData);
 
         auto [aAlpha, bAlpha, beta] = getAlphBeta();
+        // ACL_FLOAT can be converted to ACL_FLOAT16 automatically
         auto alpha = aclCreateScalar(&bAlpha, ACL_FLOAT);
 
         uint64_t workspaceSize = 0;
@@ -163,17 +168,20 @@ class SubAclnn : public ASCENDKernelWithoutConfig {
         std::vector<int64_t> cDim = castTo64(c);
         std::vector<int64_t> cStride = castTo64(cS);
 
+        auto aclDataType = aclnnDataTypeConvert(op->getDType());
+
         auto inputA = aclCreateTensor(
-            aDim.data(), aDim.size(), ACL_FLOAT, aStride.data(), 0,
+            aDim.data(), aDim.size(), aclDataType, aStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, aDim.data(), aDim.size(), aData);
         auto inputB = aclCreateTensor(
-            bDim.data(), bDim.size(), ACL_FLOAT, bStride.data(), 0,
+            bDim.data(), bDim.size(), aclDataType, bStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, bDim.data(), bDim.size(), bData);
         auto output = aclCreateTensor(
-            cDim.data(), cDim.size(), ACL_FLOAT, cStride.data(), 0,
+            cDim.data(), cDim.size(), aclDataType, cStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, cDim.data(), cDim.size(), cData);
 
         auto [aAlpha, bAlpha, beta] = getAlphBeta();
+        // ACL_FLOAT can be converted to ACL_FLOAT16 automatically
         auto alpha = aclCreateScalar(&bAlpha, ACL_FLOAT);
 
         uint64_t workspaceSize = 0;

@@ -41,12 +41,15 @@ class ResizeAclnn : public ASCENDKernelWithoutConfig {
         std::vector<int64_t> aStride = castTo64(aS);
         std::vector<int64_t> cDim = castTo64(c);
         std::vector<int64_t> cStride = castTo64(cS);
+
+        auto aclDataType = aclnnDataTypeConvert(op->getDType());
+
         auto self = aclCreateTensor(
-            aDim.data(), aDim.size(), ACL_FLOAT, aStride.data(), 0,
+            aDim.data(), aDim.size(), aclDataType, aStride.data(), 0,
             aclFormat::ACL_FORMAT_NCHW, aDim.data(), aDim.size(), aData);
 
         auto output = aclCreateTensor(
-            cDim.data(), cDim.size(), ACL_FLOAT, cStride.data(), 0,
+            cDim.data(), cDim.size(), aclDataType, cStride.data(), 0,
             aclFormat::ACL_FORMAT_NCHW, cDim.data(), cDim.size(), cData);
 
         aclFloatArray *scales = nullptr;

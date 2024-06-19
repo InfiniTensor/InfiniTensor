@@ -24,8 +24,10 @@ class SplitAclnn : public ASCENDKernelWithoutConfig {
         int dimSize = a.at(op->getDim());
         uint64_t splitSections = dimSize / num;
 
+        auto aclDataType = aclnnDataTypeConvert(op->getDType());
+
         auto inputA = aclCreateTensor(
-            aDim.data(), aDim.size(), ACL_FLOAT, aStride.data(), 0,
+            aDim.data(), aDim.size(), aclDataType, aStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, aDim.data(), aDim.size(), aData);
 
         std::vector<aclTensor *> outputsData{};
@@ -39,7 +41,7 @@ class SplitAclnn : public ASCENDKernelWithoutConfig {
             void *const cData = (op->getOutput(i)->getRawDataPtr<void *>());
 
             aclTensor *tmpTensor = aclCreateTensor(
-                cDim.data(), cDim.size(), ACL_FLOAT, cStride.data(), 0,
+                cDim.data(), cDim.size(), aclDataType, cStride.data(), 0,
                 aclFormat::ACL_FORMAT_ND, cDim.data(), cDim.size(), cData);
 
             outputsData.push_back(tmpTensor);
