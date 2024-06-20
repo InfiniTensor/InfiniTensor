@@ -78,6 +78,19 @@ class MemboundInterpreter : public Kernel {
         return make_ref<PerfRecordObj>(
             timeit([&]() { compute(op, context); }, []() {}, 0, 1));
     }
+
+    void computeFuncAdd(const Key perfKey, const Operator &op, const PerfRecord &record,
+                 const RuntimeObj *context) const override {
+    }
+
+    // Get compute function according to key
+    ComputeFuncPtr getComputeFunc(const Key &key) const override {
+        return nullptr;
+    }
+
+    void setComputeFunc(const Key &key, ComputeFuncPtr ptr) const override {
+
+    }
 };
 
 REGISTER_KERNEL(Device::CPU, OpType::MemBound, MemboundInterpreter,

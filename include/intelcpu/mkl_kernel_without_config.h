@@ -22,6 +22,18 @@ class MklKernelWithoutConfig : public Kernel {
                                               [&]() { context->sync(); }));
     }
 
+    void computeFuncAdd(const Key perfKey, const Operator &op, const PerfRecord &record,
+                 const RuntimeObj *context) const override {
+    }
+
+    // Get compute function according to key
+    ComputeFuncPtr getComputeFunc(const Key &key) const override {
+        return nullptr;
+    }
+
+    void setComputeFunc(const Key &key, ComputeFuncPtr ptr) const override {
+
+    }
   protected:
     dnnl::memory::format_tag getUserFormatTag(int nDim) const {
         if (nDim == 2)

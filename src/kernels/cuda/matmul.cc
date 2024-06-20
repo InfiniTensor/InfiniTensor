@@ -206,6 +206,18 @@ class matmulCublas : public Kernel {
                   "No valid algorithm found for " + op->toString());
         return ret;
     }
+    void computeFuncAdd(const Key perfKey, const Operator &op, const PerfRecord &record,
+                 const RuntimeObj *context) const override {
+    }
+
+    // Get compute function according to key
+    ComputeFuncPtr getComputeFunc(const Key &key) const override {
+        return nullptr;
+    }
+
+    void setComputeFunc(const Key &key, ComputeFuncPtr ptr) const override {
+
+    }
 };
 
 REGISTER_KERNEL(Device::CUDA, OpType::MatMul, matmulCublas,

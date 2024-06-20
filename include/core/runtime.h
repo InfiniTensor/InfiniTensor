@@ -34,12 +34,10 @@ using VType = uint32_t;
 
 enum class Device { CPU = 1, CUDA, BANG, INTELCPU, KUNLUN };
 /***************** Forward declaration end *****************/
-
 class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
   protected:
     Device device;
     int deviceId;
-
   public:
     explicit RuntimeObj(Device device, int deviceId = 0)
         : device(device), deviceId(deviceId) {}
@@ -56,7 +54,7 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
      * @param profiling Whether to print breakdown of time
      */
     virtual void run(const Graph &graph, bool tune = false,
-                     bool profiling = false) const = 0;
+                     bool profiling = false, bool compute_select = false) const = 0;
     virtual void *alloc(size_t size) = 0;
     virtual void dealloc(void *ptr) = 0;
     /**
@@ -102,7 +100,7 @@ class CpuRuntimeObj : public RuntimeObj {
     CpuRuntimeObj(Device dev) : RuntimeObj(dev) {}
 
     void run(const Graph &graph, bool tune = false,
-             bool profiling = false) const override;
+             bool profiling = false, bool compute_select = false) const override;
 
     void copyBlobFromCPU(void *dst, const void *src,
                          size_t bytes) const override;

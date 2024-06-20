@@ -26,9 +26,18 @@ struct PerfRecordObj {
     }
 };
 using PerfRecord = Ref<PerfRecordObj>;
+using ComputeFuncPtr = std::function<void(const Operator&, const PerfRecord&, const RuntimeObj*)>;
 class Kernel {
   public:
-    Kernel() {}
+    // TODO: Key should be OpPerfKey + Context(maybe implicat) to support
+    // multiple candiate kernels.
+    using Key = std::pair<KernelAttrs, OpPerfKey>;
+
+  private:
+    std::map<Key, ComputeFuncPtr> computeMap;
+    std::vector<ComputeFuncPtr> funcVec;
+
+  public:
     virtual ~Kernel() {}
     /**
      * @param op The operator to be executed.
@@ -46,6 +55,13 @@ class Kernel {
     // Premise: op is idempotent since it is called multiple times.
     virtual PerfRecord tune(const Operator &op,
                             const RuntimeObj *context) const = 0;
+
+    virtual void computeFuncAdd(const Key perfKey, const Operator &op, const PerfRecord &record,
+                 const RuntimeObj *context) const = 0;
+
+    virtual ComputeFuncPtr getComputeFunc(const Key &key) const = 0;
+
+    virtual void setComputeFunc(const Key &key, ComputeFuncPtr ptr) const = 0;
 };
 
 class PerfRecordRegistry {
@@ -124,6 +140,19 @@ class CpuKernelWithoutConfig : public Kernel {
     virtual PerfRecord tune(const Operator &op,
                             const RuntimeObj *context) const override {
         return make_ref<PerfRecordObj>(timeit([&]() { compute(op, context); }));
+    }
+
+    void computeFuncAdd(const Key perfKey, const Operator &op, const PerfRecord &record,
+                 const RuntimeObj *context) const override {
+    }
+
+    // Get compute function according to key
+    ComputeFuncPtr getComputeFunc(const Key &key) const override {
+        return nullptr;
+    }
+
+    void setComputeFunc(const Key &key, ComputeFuncPtr ptr) const override {
+
     }
 };
 

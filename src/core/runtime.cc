@@ -6,7 +6,7 @@
 #include <chrono>
 #include <cstring>
 namespace infini {
-void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
+void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling, bool compute_select) const {
     if (!tune && profiling)
         IT_TODO_HALT();
     const auto &kernelRegistry = KernelRegistry::getInstance();
@@ -39,11 +39,20 @@ void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
         } else
             record = perfData;
 
+        ComputeFuncPtr funcPtr;
+        if (compute_select) {
+            if (kernel->getComputeFunc(perfKey) == nullptr) {
+                kernel->computeFuncAdd(perfKey, op, record, this);
+            } else {
+                ComputeFuncPtr funcPtr = kernel->getComputeFunc(perfKey);
+            }
+        }
+
         if (!profiling) {
-            kernel->compute(op, record, this);
+            funcPtr(op, record, this);
             continue;
         } else {
-            double t = timeit([&]() { kernel->compute(op, record, this); },
+            double t = timeit([&]() { funcPtr(op, record, this); },
                               []() {}, 1, 1);
             op->print();
             printf(" op_time %lf\n", t);
