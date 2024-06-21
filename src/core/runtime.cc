@@ -39,20 +39,22 @@ void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling, bool comp
         } else
             record = perfData;
 
-        ComputeFuncPtr funcPtr;
+        ComputeFuncPtr funcPtr = nullptr;
         if (compute_select) {
             if (kernel->getComputeFunc(perfKey) == nullptr) {
                 kernel->computeFuncAdd(perfKey, op, record, this);
-            } else {
-                ComputeFuncPtr funcPtr = kernel->getComputeFunc(perfKey);
             }
+
+            funcPtr = kernel->getComputeFunc(perfKey);
         }
 
         if (!profiling) {
-            funcPtr(op, record, this);
+            funcPtr != nullptr ? funcPtr(op, record, this) : kernel->compute(op, record, this);
             continue;
         } else {
-            double t = timeit([&]() { funcPtr(op, record, this); },
+            double t = timeit([&]() { 
+                              funcPtr != nullptr ? funcPtr(op, record, this) : kernel->compute(op, record, this);
+                              },
                               []() {}, 1, 1);
             op->print();
             printf(" op_time %lf\n", t);
