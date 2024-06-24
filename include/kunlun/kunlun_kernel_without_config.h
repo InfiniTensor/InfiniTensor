@@ -19,8 +19,9 @@ class KUNLUNKernelWithoutConfig : public Kernel {
         return make_ref<PerfRecordObj>(timeit([&]() { compute(op, _context); },
                                               [&]() { context->sync(); }));
     }
-    void computeFuncAdd(const Key perfKey, const Operator &op, const PerfRecord &record,
-                 const RuntimeObj *context) const override {
+    void computeFuncAdd(const Key perfKey, const Operator &op,
+                            const PerfRecord &record,
+                            const RuntimeObj *context) const override {
     }
 
     // Get compute function according to key
@@ -29,7 +30,6 @@ class KUNLUNKernelWithoutConfig : public Kernel {
     }
 
     void setComputeFunc(const Key &key, ComputeFuncPtr ptr) const override {
-
     }
 };
 

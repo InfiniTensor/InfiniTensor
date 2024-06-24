@@ -1,13 +1,16 @@
 # Do not change these options in this file. Use cmake.config, cmake -DOPTION=VALUE, or ccmake to specify them.
 option(USE_CUDA "Support CUDA GPU" OFF)
-option(USE_BANG "Support BANG MLU" OFF)
+option(USE_BANG "Support BANG MLU" ON)
 option(USE_KUNLUN "Support KUNLUN XPU" OFF)
 option(USE_INTELCPU "Support INTELCPU" OFF)
 option(USE_BACKTRACE "Print backtrace on exception and segmentation fault" ON)
 option(USE_PROTOBUF "Serialize and deserialize tensors" OFF)
 option(BUILD_NNET "Build nnet" OFF)
 option(BUILD_DIST "Build project for distributed running" OFF)
-option(BUILD_TEST "Build tests" OFF)
+option(BUILD_TEST "Build tests" ON)
+
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-pointer-arith")
 
 if(USE_CUDA)
     message("CMake 3.18 or higher is required for setting CUDAToolkit")
@@ -229,7 +232,7 @@ endif()
 
 if(USE_BANG)
   add_compile_definitions(USE_BANG=1)
-  include_directories(src/kernels/mlu/include)
+  
   ################################################################################
   # Neuware Evironment
   ################################################################################
@@ -262,7 +265,8 @@ if(USE_BANG)
   ################################################################################
   # BangC Kernels
   ################################################################################
-
+  add_subdirectory(src/kernels/mlu)
+  target_link_libraries(InfiniTensor bangops)
   if (BUILD_DIST)
     find_library(CAMBRICON_CNCL libcncl.so "${NEUWARE_HOME}/lib64")
     target_link_libraries(InfiniTensor ${CAMBRICON_CNCL} ${CAMBRICON_CNNL} ${CAMBRICON_CNRT} ${CAMBRICON_CNDRV} stdc++)

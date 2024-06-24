@@ -54,7 +54,8 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
      * @param profiling Whether to print breakdown of time
      */
     virtual void run(const Graph &graph, bool tune = false,
-                     bool profiling = false, bool compute_select = false) const = 0;
+                     bool profiling = false,
+                     bool compute_select = false) const = 0;
     virtual void *alloc(size_t size) = 0;
     virtual void dealloc(void *ptr) = 0;
     /**
@@ -100,7 +101,8 @@ class CpuRuntimeObj : public RuntimeObj {
     CpuRuntimeObj(Device dev) : RuntimeObj(dev) {}
 
     void run(const Graph &graph, bool tune = false,
-             bool profiling = false, bool compute_select = false) const override;
+             bool profiling = false,
+             bool compute_select = false) const override;
 
     void copyBlobFromCPU(void *dst, const void *src,
                          size_t bytes) const override;

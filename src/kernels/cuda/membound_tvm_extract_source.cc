@@ -237,7 +237,6 @@ class MemboundTVMExtractSource : public Kernel {
     }
 
     void setComputeFunc(const Key &key, ComputeFuncPtr ptr) const override {
-
     }
 };
 

@@ -255,7 +255,6 @@ class MklConvTranspose : public Kernel {
     }
 
     void setComputeFunc(const Key &key, ComputeFuncPtr ptr) const override {
-
     }
 };
 REGISTER_KERNEL(Device::INTELCPU, OpType::ConvTranspose, MklConvTranspose,
