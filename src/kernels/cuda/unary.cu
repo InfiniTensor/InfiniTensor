@@ -111,7 +111,6 @@ __global__ void _silu_kernel(T *input, T *output, size_t n) {
     for (int i = index; i < n; i += stride) {
         float x = input[i];
         output[i] = x / (1.0 + expf(-x));
-        ;
     }
 }
 
