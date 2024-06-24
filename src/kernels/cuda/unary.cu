@@ -150,7 +150,6 @@ __global__ void _leaky_relu_kernel(T *input, T *output, size_t n,  float alphaVa
     for (size_t i = index; i < n; i += stride) {
         output[i] = (input[i] > 0) ? input[i] : alphaValue * input[i];
     }
-
 }
 
 namespace infini {
