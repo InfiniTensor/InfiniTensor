@@ -250,16 +250,6 @@ template <typename T> void neg_kernel(T *input, T *output, size_t num) {
         input, output, num);
 }
 
-template <typename T>
-void leaky_relu_kernel(T *input, T *output, size_t num, float alpha) {
-
-    int blocksize = block_work_size();
-    int gridsize = (num + block_work_size() - 1) / block_work_size();
-    _leaky_relu_kernel<T>
-        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
-            input, output, num, alpha);
-}
-
 void unary_kernel(const Operator &_op) {
     auto op = as<UnaryObj>(_op);
     void *const inputData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -379,9 +369,6 @@ template void cast_kernel<float, int8_t>(float *input, int8_t *output,
                                          size_t num);
 template void cast_kernel<int8_t, float>(int8_t *input, float *output,
                                          size_t num);
-template void leaky_relu_kernel<float>(float *input, float *output, size_t num,
-                                       float alpha);
-
 template void leaky_relu_kernel<float>(float *input, float *output, size_t num,
                                        float alpha);
 }; // namespace infini
