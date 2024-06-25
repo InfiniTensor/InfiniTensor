@@ -39,6 +39,7 @@ const char *OpType::toString() const {
         CASE(ConcatFromSequence);
         CASE(ConstantOfShape);
         CASE(Conv);
+        CASE(Conv3d);
         CASE(ConvInteger);
         CASE(ConvTranspose);
         CASE(Cos);
@@ -278,8 +279,8 @@ bool OpType::isGlobalPool() const {
 
 bool OpType::isMatMulOrConv() const {
     static const std::unordered_set<decltype(type)> set{
-        Conv,        ConvInteger, ConvTranspose, DeformConv,
-        QLinearConv, MatMul,      MatMulInteger, QLinearMatMul,
+        Conv,        Conv3d, ConvInteger,   ConvTranspose, DeformConv,
+        QLinearConv, MatMul, MatMulInteger, QLinearMatMul,
     };
 
     return set.find(type) != set.end();
