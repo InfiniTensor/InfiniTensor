@@ -597,7 +597,7 @@ class TestDynamicTensor(unittest.TestCase):
     def test_dynamic_tensor(self):
         filename = r"resnet18-v2-7.onnx"
         current_path = os.getcwd()
-        model_file = ""
+        model_file = "./resnet18-v2-7.onnx"
         for root, dirs, files in os.walk(current_path):
             if filename in files:
                 model_file = os.path.join(root, filename)
