@@ -124,7 +124,7 @@ class CUDAStream {
     static void destroyStream() { checkCudaError(cudaStreamDestroy(_stream)); }
 
   private:
-    CUDAStream() {};
+    CUDAStream(){};
     static cudaStream_t _stream;
 };
 

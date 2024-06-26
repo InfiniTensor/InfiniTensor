@@ -14,7 +14,7 @@ class GraphObj : public Object {
 
   public:
     explicit GraphObj(Runtime runtime)
-        : runtime(runtime), allocator(runtime), sorted(false) {};
+        : runtime(runtime), allocator(runtime), sorted(false){};
     GraphObj(Runtime runtime, OpVec ops_in);
     string toString() const override;
     Runtime getRuntime() const { return runtime; }

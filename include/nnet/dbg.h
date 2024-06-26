@@ -689,9 +689,7 @@ template <typename T, typename... U> struct last {
     using type = typename last<U...>::type;
 };
 
-template <typename T> struct last<T> {
-    using type = T;
-};
+template <typename T> struct last<T> { using type = T; };
 
 template <typename... T> using last_t = typename last<T...>::type;
 
@@ -716,8 +714,8 @@ class DebugOutput {
 
     template <typename... T>
     auto print(std::initializer_list<expr_t> exprs,
-               std::initializer_list<std::string> types,
-               T &&...values) -> last_t<T...> {
+               std::initializer_list<std::string> types, T &&...values)
+        -> last_t<T...> {
         if (exprs.size() != sizeof...(values)) {
             std::cerr << m_location << ansi(ANSI_WARN)
                       << "The number of arguments mismatch, please check "
