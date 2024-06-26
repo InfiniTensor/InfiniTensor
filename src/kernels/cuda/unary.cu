@@ -94,6 +94,15 @@ __global__ void _sqrt_kernel(half *input, half *output, size_t n) {
     }
 }
 
+__global__ void _elu_kernel(const float *input, float *output, int size, float alpha) {
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (index < size) {
+        float x = input[index];
+        output[index] = (x >= 0) ? x : alpha * (expf(x) - 1);
+    }
+}
+
 template <typename T>
 __global__ void _gelu_kernel(T *input, T *output, size_t n) {
     int index = threadIdx.x + blockIdx.x * blockDim.x;
@@ -365,6 +374,12 @@ void leaky_relu_kernel(T *input, T *output, size_t num, float alphaValue) {
     int gridsize = (num + blocksize - 1) / blocksize;
     _leaky_relu_kernel<<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
     (input, output, num, alphaValue);
+}
+
+void elu_kernel(const float *input, float *output, int size, float alpha) {
+    int blocksize = 32 * 16;
+    int gridsize = (size + blocksize - 1) / blocksize;
+    _elu_kernel<<<gridsize, blocksize>>>(input, output, size, alpha);
 }
 
 template void cast_kernel<float, half>(float *input, half *output, size_t num);

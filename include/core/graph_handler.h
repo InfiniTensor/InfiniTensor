@@ -2,6 +2,7 @@
 
 #include "core/graph.h"
 #include "core/runtime.h"
+#include "core/operator.h"
 #include <cstdint>
 #include <iostream>
 
@@ -68,6 +69,7 @@ class GraphHandlerObj {
     Tensor identity(Tensor x, Tensor y);
     Tensor flatten(Tensor s, Tensor y, int axis);
     Tensor pRelu(Tensor x, Tensor slope, Tensor y);
+    Tensor elu(Tensor x, Tensor y, float alpha);
     Tensor leakyRelu(Tensor x, Tensor y, float alpha);
     Tensor clip(Tensor x, Tensor y, std::optional<float> min,
                 std::optional<float> max);

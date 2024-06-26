@@ -13,6 +13,19 @@ class UnaryCuda : public CudaKernelWithoutConfig {
     }
 };
 
+class EluCuda : public CudaKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<EluObj>(_op);
+
+        void *const inputData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const outputData = (op->getOutput()->getRawDataPtr<void *>());
+
+        int size = op->getInputs(0)->size();
+        elu_kernel((float *)inputData, (float *)outputData, size, op->getAlpha());
+    }
+};
+
 class CastCuda : public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
@@ -189,6 +202,7 @@ class TanhCudnn : public ActivationCudnn {
 
 REGISTER_KERNEL(Device::CUDA, OpType::Relu, ReluCudnn, "Relu_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Sigmoid, SigmoidCudnn, "Sigmoid_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Elu, EluCuda, "Elu_CUDA_Float32");
 REGISTER_KERNEL(Device::CUDA, OpType::HardSigmoid, UnaryCuda,
                 "Hard_Sigmoid_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::HardSwish, UnaryCuda, "Hard_Swish_CUDA");

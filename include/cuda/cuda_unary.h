@@ -22,5 +22,6 @@ template <typename INPUT, typename OUTPUT>
 void cast_kernel(INPUT *input, OUTPUT *output, size_t num);
 
 void unary_kernel(const Operator &_op);
+void elu_kernel(const float *input, float *output, int size, float alpha);
 
 }; // namespace infini
