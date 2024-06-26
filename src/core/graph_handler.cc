@@ -47,7 +47,6 @@ Tensor GraphHandlerObj::elu(Tensor input, Tensor output, float alpha) {
     }
 }
 
-
 Tensor GraphHandlerObj::tensor(Shape dims, int dtype) {
     return g->addTensor(std::move(dims), dtype_repr_convert(dtype));
 }

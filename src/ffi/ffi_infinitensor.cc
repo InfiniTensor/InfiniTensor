@@ -210,7 +210,6 @@ static float elu_alpha_of(Operator op) {
     return elu->getAlpha();
 }
 
-
 static std::tuple<float, float, bool> batch_norm_attrs_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::BatchNormalization);
     auto batchnorm = dynamic_cast<const BatchNormObj *>(op.get());
