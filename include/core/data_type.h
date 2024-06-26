@@ -84,20 +84,50 @@ template <> inline int DataType::get<uint64_t>() { return 8; }
 template <> inline int DataType::get<double>() { return 9; }
 
 template <int index> struct DT {};
-template <> struct DT<0> { using t = bool; };
-template <> struct DT<1> { using t = float; };
-template <> struct DT<2> { using t = uint8_t; };
-template <> struct DT<3> { using t = int8_t; };
-template <> struct DT<4> { using t = uint16_t; };
-template <> struct DT<5> { using t = int16_t; };
-template <> struct DT<6> { using t = int32_t; };
-template <> struct DT<7> { using t = int64_t; };
-template <> struct DT<8> { using t = char; };
-template <> struct DT<9> { using t = int8_t; };
-template <> struct DT<10> { using t = uint16_t; };
-template <> struct DT<11> { using t = double; };
-template <> struct DT<12> { using t = uint32_t; };
-template <> struct DT<13> { using t = uint64_t; };
-template <> struct DT<16> { using t = uint16_t; };
+template <> struct DT<0> {
+    using t = bool;
+};
+template <> struct DT<1> {
+    using t = float;
+};
+template <> struct DT<2> {
+    using t = uint8_t;
+};
+template <> struct DT<3> {
+    using t = int8_t;
+};
+template <> struct DT<4> {
+    using t = uint16_t;
+};
+template <> struct DT<5> {
+    using t = int16_t;
+};
+template <> struct DT<6> {
+    using t = int32_t;
+};
+template <> struct DT<7> {
+    using t = int64_t;
+};
+template <> struct DT<8> {
+    using t = char;
+};
+template <> struct DT<9> {
+    using t = int8_t;
+};
+template <> struct DT<10> {
+    using t = uint16_t;
+};
+template <> struct DT<11> {
+    using t = double;
+};
+template <> struct DT<12> {
+    using t = uint32_t;
+};
+template <> struct DT<13> {
+    using t = uint64_t;
+};
+template <> struct DT<16> {
+    using t = uint16_t;
+};
 
 } // namespace infini

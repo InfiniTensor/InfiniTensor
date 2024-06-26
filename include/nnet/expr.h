@@ -127,7 +127,7 @@ class VarNode : public ExprNode {
     std::string name;
 
   public:
-    VarNode(std::string _name) : name(_name){};
+    VarNode(std::string _name) : name(_name) {};
     virtual ~VarNode() {}
     DEFINE_GETTYPE(VarNode, true);
 
@@ -188,9 +188,9 @@ class OperatorNode : public ExprNode {
     VecExpr subExprs;
 
   public:
-    OperatorNode(OpType _opType) : opType(_opType){};
+    OperatorNode(OpType _opType) : opType(_opType) {};
     OperatorNode(OpType _opType, VecExpr _subExprs)
-        : opType(_opType), subExprs(_subExprs){};
+        : opType(_opType), subExprs(_subExprs) {};
 
     int getSubExprsNum() { return subExprs.size(); };
     const VecExpr &getSubExprs() { return subExprs; }
@@ -217,12 +217,12 @@ class RangeOpNode : public OperatorNode {
     vector<int> paddings;
 
   public:
-    RangeOpNode(Expr _summand) : OperatorNode(OpType::Range, {_summand}){};
+    RangeOpNode(Expr _summand) : OperatorNode(OpType::Range, {_summand}) {};
     RangeOpNode(const vector<VarRangePair> &_loopIters,
                 const vector<VarRangePair> &_sumIters, Expr _summand,
                 const vector<int> &paddings)
         : OperatorNode(OpType::Range, {_summand}), vars{_loopIters, _sumIters},
-          paddings(paddings){};
+          paddings(paddings) {};
     DEFINE_GETTYPE(RangeOpNode, false);
 
     virtual HashType hash() const override {
@@ -290,7 +290,7 @@ class BinaryOpNode : public OperatorNode {
 
   public:
     BinaryOpNode(OpType _opType, Expr _lhs, Expr _rhs)
-        : OperatorNode(_opType, {_lhs, _rhs}){};
+        : OperatorNode(_opType, {_lhs, _rhs}) {};
     virtual ~BinaryOpNode() {}
     DEFINE_GETTYPE(BinaryOpNode, true);
 
@@ -314,8 +314,8 @@ class ConstantNode : public ExprNode {
     int val;
 
   public:
-    ConstantNode(int _val) : val(_val){};
-    ConstantNode(const ConstantNode &rhs) : ExprNode(rhs), val(rhs.val){};
+    ConstantNode(int _val) : val(_val) {};
+    ConstantNode(const ConstantNode &rhs) : ExprNode(rhs), val(rhs.val) {};
     virtual ~ConstantNode() {}
     DEFINE_GETTYPE(ConstantNode, true);
 

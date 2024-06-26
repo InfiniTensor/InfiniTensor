@@ -14,8 +14,8 @@ class Mutator {
   public:
     Mutator(int candidatesLimit,
             Runtime runtime = NativeCpuRuntimeObj::getInstance())
-        : candidatesLimit(candidatesLimit), runtime(runtime){};
-    virtual ~Mutator(){};
+        : candidatesLimit(candidatesLimit), runtime(runtime) {};
+    virtual ~Mutator() {};
 
     virtual vector<Graph> run(const Graph &in_graph) = 0;
     /**

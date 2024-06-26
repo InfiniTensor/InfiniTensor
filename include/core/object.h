@@ -49,7 +49,7 @@ class Object {
     Guid guid;
 
   public:
-    virtual ~Object(){};
+    virtual ~Object() {};
     virtual string toString() const = 0;
     void print() { std::cout << toString() << std::endl; }
     UidBaseType getGuid() const { return guid; }

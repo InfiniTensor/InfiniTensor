@@ -11,9 +11,9 @@ using json = nlohmann::json;
 class RuntimeObj; // Forward declaration for Kernel::compute
 
 struct PerfRecordObj {
-    PerfRecordObj(){};
-    PerfRecordObj(double time) : time(time){};
-    virtual ~PerfRecordObj(){};
+    PerfRecordObj() {};
+    PerfRecordObj(double time) : time(time) {};
+    virtual ~PerfRecordObj() {};
     double time = 0; // in milliseconds
     virtual void to_json(json &j) {
         j["type"] = 0;
