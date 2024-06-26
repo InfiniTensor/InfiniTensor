@@ -245,17 +245,16 @@ class MklConvTranspose : public Kernel {
         return make_ref<ConvTransposeMklPerfRecordObj>(ret);
     }
 
-    void computeFuncAdd(const Key perfKey, const Operator &op, const PerfRecord &record,
-                 const RuntimeObj *context) override {
-    }
+    void computeFuncAdd(const Key perfKey, const Operator &op,
+                        const PerfRecord &record,
+                        const RuntimeObj *context) override {}
 
     // Get compute function according to key
     ComputeFuncPtr getComputeFunc(const Key &key) const override {
         return nullptr;
     }
 
-    void setComputeFunc(const Key &key, ComputeFuncPtr ptr) override {
-    }
+    void setComputeFunc(const Key &key, ComputeFuncPtr ptr) override {}
 };
 REGISTER_KERNEL(Device::INTELCPU, OpType::ConvTranspose, MklConvTranspose,
                 "MklConvTrans_CPU");

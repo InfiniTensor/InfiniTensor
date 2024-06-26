@@ -253,19 +253,18 @@ class convCudnn : public Kernel {
     }
 
     convCudnn() {
-        funcVec.emplace_back([this]{
-            this->compute(Operator{}, PerfRecord{}, nullptr);
-        });
+        funcVec.emplace_back(
+            [this] { this->compute(Operator{}, PerfRecord{}, nullptr); });
     }
 
-    void computeFuncAdd(const Key perfKey, const Operator &op, const PerfRecord &record,
-                 const RuntimeObj *context) override {
+    void computeFuncAdd(const Key perfKey, const Operator &op,
+                        const PerfRecord &record,
+                        const RuntimeObj *context) override {
         double t = std::numeric_limits<double>::max();
         ComputeFuncPtr funcPtr;
-        for (auto& itPtr : funcVec) {
-            double tem = timeit(
-                    [&]() {funcPtr(op, record, context);},
-                    [&]() {}, 1, 1);
+        for (auto &itPtr : funcVec) {
+            double tem =
+                timeit([&]() { funcPtr(op, record, context); }, [&]() {}, 1, 1);
             if (tem < t) {
                 t = tem;
                 funcPtr = itPtr;
@@ -286,7 +285,8 @@ class convCudnn : public Kernel {
     }
 
     void setComputeFunc(const Key &key, ComputeFuncPtr ptr) override {
-        IT_ASSERT(computeMap.find(key) == computeMap.end(), "compute func ptr already exist");
+        IT_ASSERT(computeMap.find(key) == computeMap.end(),
+                  "compute func ptr already exist");
         computeMap.emplace(key, ptr);
     }
 };

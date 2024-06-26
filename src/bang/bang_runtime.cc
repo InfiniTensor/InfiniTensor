@@ -51,7 +51,8 @@ void BangRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
     }
 }
 
-void BangRuntimeObj::run(const Graph &graph, bool tune, bool profiling, bool compute_select) const {
+void BangRuntimeObj::run(const Graph &graph, bool tune, bool profiling,
+                         bool compute_select) const {
     if (profiling)
         IT_TODO_HALT();
     runWithoutSync(graph, tune, profiling, compute_select);

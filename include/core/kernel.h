@@ -26,8 +26,8 @@ struct PerfRecordObj {
     }
 };
 using PerfRecord = Ref<PerfRecordObj>;
-using ComputeFuncPtr = std::function<void(const Operator&,
-                                const PerfRecord&, const RuntimeObj*)>;
+using ComputeFuncPtr = std::function<void(const Operator &, const PerfRecord &,
+                                          const RuntimeObj *)>;
 class Kernel {
   public:
     // TODO: Key should be OpPerfKey + Context(maybe implicat) to support
@@ -58,8 +58,8 @@ class Kernel {
                             const RuntimeObj *context) const = 0;
 
     virtual void computeFuncAdd(const Key perfKey, const Operator &op,
-                 const PerfRecord &record,
-                 const RuntimeObj *context) = 0;
+                                const PerfRecord &record,
+                                const RuntimeObj *context) = 0;
 
     virtual ComputeFuncPtr getComputeFunc(const Key &key) const = 0;
 
@@ -145,17 +145,15 @@ class CpuKernelWithoutConfig : public Kernel {
     }
 
     void computeFuncAdd(const Key perfKey, const Operator &op,
-                 const PerfRecord &record,
-                 const RuntimeObj *context) override {
-    }
+                        const PerfRecord &record,
+                        const RuntimeObj *context) override {}
 
     // Get compute function according to key
     ComputeFuncPtr getComputeFunc(const Key &key) const override {
         return nullptr;
     }
 
-    void setComputeFunc(const Key &key, ComputeFuncPtr ptr) override {
-    }
+    void setComputeFunc(const Key &key, ComputeFuncPtr ptr) override {}
 };
 
 } // namespace infini

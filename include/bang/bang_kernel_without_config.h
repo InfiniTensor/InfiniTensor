@@ -22,8 +22,8 @@ class BangKernelWithoutConfig : public Kernel {
     }
 
     virtual void computeFuncAdd(const Key perfKey, const Operator &op,
-                 const PerfRecord &record,
-                 const RuntimeObj *context) {}
+                                const PerfRecord &record,
+                                const RuntimeObj *context) {}
 
     // Get compute function according to key
     virtual ComputeFuncPtr getComputeFunc(const Key &key) const {

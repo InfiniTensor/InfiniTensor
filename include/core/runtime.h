@@ -38,6 +38,7 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
   protected:
     Device device;
     int deviceId;
+
   public:
     explicit RuntimeObj(Device device, int deviceId = 0)
         : device(device), deviceId(deviceId) {}
@@ -100,8 +101,7 @@ class CpuRuntimeObj : public RuntimeObj {
   public:
     CpuRuntimeObj(Device dev) : RuntimeObj(dev) {}
 
-    void run(const Graph &graph, bool tune = false,
-             bool profiling = false,
+    void run(const Graph &graph, bool tune = false, bool profiling = false,
              bool compute_select = false) const override;
 
     void copyBlobFromCPU(void *dst, const void *src,

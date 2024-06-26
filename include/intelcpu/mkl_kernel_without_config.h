@@ -23,9 +23,8 @@ class MklKernelWithoutConfig : public Kernel {
     }
 
     void computeFuncAdd(const Key perfKey, const Operator &op,
-                 const PerfRecord &record,
-                 const RuntimeObj *context) override {
-    }
+                        const PerfRecord &record,
+                        const RuntimeObj *context) override {}
 
     // Get compute function according to key
     ComputeFuncPtr getComputeFunc(const Key &key) const override {
@@ -33,6 +32,7 @@ class MklKernelWithoutConfig : public Kernel {
     }
 
     void setComputeFunc(const Key &key, ComputeFuncPtr ptr) override {}
+
   protected:
     dnnl::memory::format_tag getUserFormatTag(int nDim) const {
         if (nDim == 2)
