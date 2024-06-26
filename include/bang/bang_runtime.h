@@ -38,7 +38,8 @@ class BangRuntimeObj : public RuntimeObj {
     string toString() const override;
 
     void run(const Graph &graph, bool tune = false,
-             bool profiling = false) const;
+             bool profiling = false,
+             bool compute_select = false) const;
     // double runEvaluation(const Graph &graph, int nWarmups,
     //                      int nEvaluations) const;
     void sync() const;
@@ -81,7 +82,7 @@ class BangRuntimeObj : public RuntimeObj {
     cnrtQueue_t getBangQueue() const { return queue; }
 
   private:
-    void runWithoutSync(const Graph &graph, bool tune, bool profiling) const;
+    void runWithoutSync(const Graph &graph, bool tune, bool profiling, bool compute_select) const;
 };
 
 } // namespace infini

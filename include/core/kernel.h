@@ -34,7 +34,7 @@ class Kernel {
     // multiple candiate kernels.
     using Key = std::pair<KernelAttrs, OpPerfKey>;
 
-  private:
+  protected:
     std::map<Key, ComputeFuncPtr> computeMap;
     std::vector<ComputeFuncPtr> funcVec;
 
@@ -59,11 +59,11 @@ class Kernel {
 
     virtual void computeFuncAdd(const Key perfKey, const Operator &op,
                  const PerfRecord &record,
-                 const RuntimeObj *context) const = 0;
+                 const RuntimeObj *context) = 0;
 
     virtual ComputeFuncPtr getComputeFunc(const Key &key) const = 0;
 
-    virtual void setComputeFunc(const Key &key, ComputeFuncPtr ptr) const = 0;
+    virtual void setComputeFunc(const Key &key, ComputeFuncPtr ptr) = 0;
 };
 
 class PerfRecordRegistry {
@@ -146,7 +146,7 @@ class CpuKernelWithoutConfig : public Kernel {
 
     void computeFuncAdd(const Key perfKey, const Operator &op,
                  const PerfRecord &record,
-                 const RuntimeObj *context) const override {
+                 const RuntimeObj *context) override {
     }
 
     // Get compute function according to key
@@ -154,7 +154,7 @@ class CpuKernelWithoutConfig : public Kernel {
         return nullptr;
     }
 
-    void setComputeFunc(const Key &key, ComputeFuncPtr ptr) const override {
+    void setComputeFunc(const Key &key, ComputeFuncPtr ptr) override {
     }
 };
 

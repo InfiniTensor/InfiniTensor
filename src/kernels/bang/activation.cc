@@ -2,6 +2,7 @@
 #include "bang/bang_runtime.h"
 #include "operators/softmax.h"
 #include "operators/unary.h"
+#include "bang/bang_softmax.h"
 #include <iostream>
 
 namespace infini {
@@ -211,7 +212,7 @@ class SoftmaxCnnl : public BangKernelWithoutConfig {
     }
 
     void compute2(const Operator &_op,
-                 const RuntimeObj *_context) const override {
+                 const RuntimeObj *_context) const {
         auto op = as<BangSoftmaxObj>(_op);
         void *const mlu_src = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const mlu_destination = (op->getOutput()->getRawDataPtr<void *>());
@@ -244,6 +245,55 @@ class SoftmaxCnnl : public BangKernelWithoutConfig {
                         dimsize, stride);
         else
             IT_TODO_HALT();
+    }
+
+    void computeFuncAdd(const Key perfKey, const Operator &op,
+                 const PerfRecord &record,
+                 const RuntimeObj *context) override {
+        double t = std::numeric_limits<double>::max();
+        ComputeFuncPtr funcPtr;
+        for (auto& itPtr : funcVec) {
+            double tem = timeit(
+                    [&]() {funcPtr(op, record, context);},
+                    [&]() {}, 1, 1);
+            if (tem < t) {
+                t = tem;
+                funcPtr = itPtr;
+            }
+        }
+        if (funcPtr != nullptr) {
+            setComputeFunc(perfKey, funcPtr);
+        }
+    }
+
+    void compute2(const Operator &op, const PerfRecord &record,
+                         const RuntimeObj *context) const {
+        compute2(op, context);
+    }
+    // Get compute function according to key
+    ComputeFuncPtr getComputeFunc(const Key &key) const override {
+        auto it = computeMap.find(key);
+        if (it != computeMap.end())
+            return computeMap.at(key);
+        else
+            return nullptr;
+    }
+
+    void setComputeFunc(const Key &key, ComputeFuncPtr ptr) override {
+        IT_ASSERT(computeMap.find(key) == computeMap.end(), "compute func ptr already exist");
+        computeMap.emplace(key, ptr);
+    }
+
+public:
+    SoftmaxCnnl() {
+        funcVec.emplace_back([this](const Operator &op,
+                        const PerfRecord &record, const RuntimeObj *context) {
+            this->BangKernelWithoutConfig::compute(op, record, context);
+        });
+        funcVec.emplace_back([this](const Operator &op,
+                        const PerfRecord &record, const RuntimeObj *context) {
+            this->compute2(op, record, context);
+        });
     }
 };
 

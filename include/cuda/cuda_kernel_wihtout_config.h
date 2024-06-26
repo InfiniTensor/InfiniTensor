@@ -21,14 +21,14 @@ class CudaKernelWithoutConfig : public Kernel {
     }
     void computeFuncAdd(const Key perfKey, const Operator &op,
                  const PerfRecord &record,
-                 const RuntimeObj *context) const override {}
+                 const RuntimeObj *context) override {}
 
     // Get compute function according to key
     ComputeFuncPtr getComputeFunc(const Key &key) const override {
         return nullptr;
     }
 
-    void setComputeFunc(const Key &key, ComputeFuncPtr ptr) const override {}
+    void setComputeFunc(const Key &key, ComputeFuncPtr ptr) override {}
 };
 
 } // namespace infini

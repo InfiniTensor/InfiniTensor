@@ -8,7 +8,8 @@
 namespace infini {
 
 void BangRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
-                                    bool profiling = false) const {
+                                    bool profiling = false,
+                                    bool compute_select = false) const {
     const auto &kernelRegistry = KernelRegistry::getInstance();
     auto &perfEngine = PerfEngine::getInstance();
     double totalTime = 0;
@@ -50,10 +51,10 @@ void BangRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
     }
 }
 
-void BangRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
+void BangRuntimeObj::run(const Graph &graph, bool tune, bool profiling, bool compute_select) const {
     if (profiling)
         IT_TODO_HALT();
-    runWithoutSync(graph, tune, profiling);
+    runWithoutSync(graph, tune, profiling, compute_select);
     sync();
 }
 

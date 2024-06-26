@@ -259,7 +259,7 @@ class convCudnn : public Kernel {
     }
 
     void computeFuncAdd(const Key perfKey, const Operator &op, const PerfRecord &record,
-                 const RuntimeObj *context) const override {
+                 const RuntimeObj *context) override {
         double t = std::numeric_limits<double>::max();
         ComputeFuncPtr funcPtr;
         for (auto& itPtr : funcVec) {
@@ -285,7 +285,7 @@ class convCudnn : public Kernel {
             return nullptr;
     }
 
-    void setComputeFunc(const Key &key, ComputeFuncPtr ptr) const override {
+    void setComputeFunc(const Key &key, ComputeFuncPtr ptr) override {
         IT_ASSERT(computeMap.find(key) == computeMap.end(), "compute func ptr already exist");
         computeMap.emplace(key, ptr);
     }
