@@ -7,8 +7,15 @@ namespace infini {
 OperatorObj::OperatorObj(OpType opType, TensorVec inputs, TensorVec outputs)
     : type(opType), inputs(inputs), outputs(outputs) {
     if (opType != OpType::Recv) {
+	// std::cout << "Length of the vector: " << inputs.size() << std::endl;
         for (const auto &t : inputs)
             IT_ASSERT(t);
+            //if (!t) {
+            //    
+            //    IT_ASSERT(t);
+            //} else {
+            //    std::cerr << "Input tensor: " << t->toString() << std::endl;
+            //}
     }
 }
 

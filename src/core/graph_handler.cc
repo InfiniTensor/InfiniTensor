@@ -56,6 +56,20 @@ Tensor GraphHandlerObj::conv(Tensor input, Tensor weight, Tensor output, int ph,
     }
 }
 
+Tensor GraphHandlerObj::conv3d(Tensor input, Tensor weight, Tensor output, int pd,
+                               int ph, int pw, int sd, int sh, int sw, int dd, int dh, int dw) {
+    if (output) {
+        g->addOpWithOutputs<Conv3dObj>(std::move(input), std::move(weight),
+                                       output, pd, ph, pw, sd, sh, sw, dd, dh, dw);
+        return output;
+    } else {
+        return g
+            ->addOp<Conv3dObj>(std::move(input), std::move(weight), output, pd,
+                               ph, pw, sd, sh, sw, dd, dh, dw)
+            ->getOutput();
+    }
+}
+
 Tensor GraphHandlerObj::convTransposed2d(Tensor input, Tensor weight,
                                          Tensor output, int ph, int pw, int sh,
                                          int sw, int dh, int dw, int oph,

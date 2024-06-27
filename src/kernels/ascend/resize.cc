@@ -8,7 +8,7 @@ class ResizeAclnn : public ASCENDKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ResizeObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
+        // IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
 
         int nDims = op->getInputs(0)->getRank();

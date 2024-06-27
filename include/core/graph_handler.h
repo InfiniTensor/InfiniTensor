@@ -26,6 +26,10 @@ class GraphHandlerObj {
 
     Tensor conv(Tensor input, Tensor weight, Tensor output, int ph, int pw,
                 int sh, int sw, int dh, int dw);
+    
+    Tensor conv3d(Tensor input, Tensor weight, Tensor output, int pd, int ph, int pw,
+                  int sd, int sh, int sw, int dd, int dh, int dw);
+                  
     Tensor convTransposed2d(Tensor input, Tensor weight, Tensor output, int ph,
                             int pw, int sh, int sw, int dh, int dw, int oph,
                             int opw);

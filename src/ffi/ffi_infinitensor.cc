@@ -78,6 +78,7 @@ void export_values(py::module &m) {
         .def("id", getId, policy::automatic);
     py::enum_<decltype(OpType::type)>(m, "OpTypeId")
         .VALUE(OpType, Conv)
+        .VALUE(OpType, Conv3d)
         .VALUE(OpType, MatMul)
         .VALUE(OpType, ConvTranspose)
         .VALUE(OpType, Pad)
@@ -195,6 +196,14 @@ static std::tuple<int, int, int, int, int, int> conv_attrs_of(Operator op) {
     auto conv = dynamic_cast<const ConvObj *>(op.get());
     return std::make_tuple(conv->getPh(), conv->getPw(), conv->getDh(),
                            conv->getDw(), conv->getSh(), conv->getSw());
+}
+
+static std::tuple<int, int, int, int, int, int, int, int, int> conv3d_attrs_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Conv3d);
+    auto conv3d = dynamic_cast<const Conv3dObj *>(op.get());
+    return std::make_tuple(conv3d->getPd(), conv3d->getPh(), conv3d->getPw(),
+                           conv3d->getDd(), conv3d->getDh(), conv3d->getDw(),
+                           conv3d->getSd(), conv3d->getSh(), conv3d->getSw());
 }
 
 static std::tuple<int, int, int, int, int, int, int, int>
@@ -363,6 +372,7 @@ void export_functions(py::module &m) {
         .FUNCTION(ascend_runtime)
 #endif
         .FUNCTION(conv_attrs_of)
+        .FUNCTION(conv3d_attrs_of)
         .FUNCTION(conv_trans_attrs_of)
         .FUNCTION(matmul_attrs_of)
         .FUNCTION(batch_norm_attrs_of)
@@ -525,6 +535,7 @@ void init_graph_builder(py::module &m) {
         .def(py::init<Runtime>())
         .def("tensor", &Handler::tensor, policy::move)
         .def("conv", &Handler::conv, policy::move)
+        .def("conv3d", &Handler::conv3d, policy::move)
         .def("convTransposed2d", &Handler::convTransposed2d, policy::move)
         .def("matmul", &Handler::matmul, policy::move)
         .def("batchNormalization", &Handler::batchNormalization, policy::move)

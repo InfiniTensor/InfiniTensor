@@ -126,59 +126,119 @@ class OnnxStub:
                 (d, p, s) = (
                     attributes[name] for name in ["dilations", "pads", "strides"]
                 )
-                if p[0] != p[2] or p[1] != p[3]:
-                    adapt = "{}-adapt".format(node.output[0])
-                    tensors[adapt] = self.handler.pad(
-                        tensors[node.input[0]], None, p, [-2, -1]
-                    )
-                    p = [0, 0, 0, 0]
-                else:
-                    adapt = node.input[0]
+                if len(d) == 2 and len(p) == 4 and len(s) == 2:
+                    # Conv 2D
+                    if p[0] != p[2] or p[1] != p[3]:
+                        adapt = "{}-adapt".format(node.output[0])
+                        tensors[adapt] = self.handler.pad(
+                            tensors[node.input[0]], None, p, [-2, -1]
+                        )
+                        p = [0, 0, 0, 0]
+                    else:
+                        adapt = node.input[0]
 
-                if len(node.input) > 2:
-                    bias = "{}-bias".format(node.output[0])
-                    reshape = "{}-reshape".format(node.output[0])
-                    tensors[bias] = self.handler.conv(
-                        tensors[adapt],
-                        tensors[node.input[1]],
-                        None,
-                        p[0],
-                        p[1],
-                        s[0],
-                        s[1],
-                        d[0],
-                        d[1],
-                    )
-                    tensors[reshape] = self.handler.reshape(
-                        tensors[node.input[2]],
-                        None,
-                        [
-                            1,
-                            reduce(
-                                lambda acc, x: acc * x,
-                                tensors[node.input[2]].shape(),
-                            ),
-                            1,
-                            1,
-                        ],
-                    )
-                    tensors[node.output[0]] = self.handler.add(
-                        tensors[bias],
-                        tensors[reshape],
-                        tensors.get(node.output[0]),
-                    )
+                    if len(node.input) > 2:
+                        bias = "{}-bias".format(node.output[0])
+                        reshape = "{}-reshape".format(node.output[0])
+                        tensors[bias] = self.handler.conv(
+                            tensors[adapt],
+                            tensors[node.input[1]],
+                            None,
+                            p[0],
+                            p[1],
+                            s[0],
+                            s[1],
+                            d[0],
+                            d[1],
+                        )
+                        tensors[reshape] = self.handler.reshape(
+                            tensors[node.input[2]],
+                            None,
+                            [
+                                1,
+                                reduce(
+                                    lambda acc, x: acc * x,
+                                    tensors[node.input[2]].shape(),
+                                ),
+                                1,
+                                1,
+                            ],
+                        )
+                        tensors[node.output[0]] = self.handler.add(
+                            tensors[bias],
+                            tensors[reshape],
+                            tensors.get(node.output[0]),
+                        )
+                    else:
+                        tensors[node.output[0]] = self.handler.conv(
+                            tensors[adapt],
+                            tensors[node.input[1]],
+                            tensors.get(node.output[0]),
+                            p[0],
+                            p[1],
+                            s[0],
+                            s[1],
+                            d[0],
+                            d[1],
+                        )
+                elif len(d) == 3 and len(p) == 6 and len(s) == 3:
+                    # 3D卷积
+                    if p[0] != p[3] or p[1] != p[4] or p[2] != p[5]:
+                        adapt = "{}-adapt".format(node.output[0])
+                        tensors[adapt] = self.handler.pad(tensors[node.input[0]], None, p, [-3, -2, -1])
+                        p = [0, 0, 0, 0, 0, 0]
+                    else:
+                        adapt = node.input[0]
+
+                    if len(node.input) > 2:
+                        bias = "{}-bias".format(node.output[0])
+                        reshape = "{}-reshape".format(node.output[0])
+                        tensors[bias] = self.handler.conv3d(
+                            tensors[adapt],
+                            tensors[node.input[1]],
+                            None,
+                            p[0],
+                            p[1],
+                            p[2],
+                            s[0],
+                            s[1],
+                            s[2],
+                            d[0],
+                            d[1],
+                            d[2],
+                        )
+                        tensors[reshape] = self.handler.reshape(
+                            tensors[node.input[2]],
+                            None,
+                            [
+                                1,
+                                reduce(lambda acc, x: acc * x, tensors[node.input[2]].shape()),
+                                1,
+                                1,
+                                1,
+                            ],
+                        )
+                        tensors[node.output[0]] = self.handler.add(
+                            tensors[bias], tensors[reshape], tensors.get(node.output[0])
+                        )
+                    else:
+                        assert(tensors.get(node.output[0]) != None)
+                        tensors[node.output[0]] = self.handler.conv3d(
+                            tensors[adapt],
+                            tensors[node.input[1]],
+                            tensors.get(node.output[0]),
+                            p[0],
+                            p[1],
+                            p[2],
+                            s[0],
+                            s[1],
+                            s[2],
+                            d[0],
+                            d[1],
+                            d[2],
+                        )
                 else:
-                    tensors[node.output[0]] = self.handler.conv(
-                        tensors[adapt],
-                        tensors[node.input[1]],
-                        tensors.get(node.output[0]),
-                        p[0],
-                        p[1],
-                        s[0],
-                        s[1],
-                        d[0],
-                        d[1],
-                    )
+                    raise ValueError("Unsupported convolution dimensions")                
             elif node.op_type == "ConvTranspose":
                 attributes = _parse_attribute(
                     node,

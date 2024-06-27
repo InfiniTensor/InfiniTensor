@@ -44,6 +44,46 @@ vector<int> ConvBaseObj::getOpAttrVector() const {
     return {type.underlying(), c, f, r, s, ph, pw, sh, sw, dh, dw};
 }
 
+Conv3dBaseObj::Conv3dBaseObj(OpType opType, TensorVec inputs, Tensor &output,
+                             int pd, int ph, int pw, int sd, int sh, int sw, int dd, int dh, int dw,
+                             const Tensor &inputInConvFWD, const Tensor &weightInConvFWD, ActType act)
+    : OperatorObj(opType, inputs, {output}), pd(pd), ph(ph), pw(pw), sd(sd), sh(sh), sw(sw),
+      dd(dd), dh(dh), dw(dw), padding(PaddingMode::Other), act(act) {}
+
+Conv3dBaseObj::Conv3dBaseObj(OpType opType, TensorVec inputs, Tensor &output,
+                             PaddingMode mode, int sd, int sh, int sw, int dd, int dh, int dw,
+                             const Tensor &inputInConvFWD, const Tensor &weightInConvFWD, ActType act)
+    : OperatorObj(opType, inputs, {output}), pd(-1), ph(-1), pw(-1), sd(sd), sh(sh), sw(sw),
+      dd(dd), dh(dh), dw(dw), padding(mode), act(act) {
+    IT_ASSERT(mode != PaddingMode::Other);
+}
+
+std::string Conv3dBaseObj::toString() const {
+    std::ostringstream os;
+    os << type.toString() << "[" << getGuid() << "]";
+    os << "(";
+    if (inputs.size() == 2) {
+        os << vecToString(inputs[0]->getDims()) << ",";
+        os << vecToString(inputs[1]->getDims()) << ",";
+    }
+    os << "p=[" << pd << "," << ph << "," << pw << "],";
+    os << "s=[" << sd << "," << sh << "," << sw << "],";
+    os << "d=[" << dd << "," << dh << "," << dw << "],";
+    os << "input=" << inputs[0]->getGuid() << ",";
+    os << "weight=" << inputs[1]->getGuid() << ",";
+    os << "output=" << outputs[0]->getGuid() << ")";
+    return os.str();
+}
+
+std::vector<int> Conv3dBaseObj::getWorkloadVector() const {
+    return {type.underlying(), n, c, d, h, w, f, t, r, s, pd, ph, pw, sd, sh, sw, dd, dh, dw};
+}
+
+std::vector<int> Conv3dBaseObj::getOpAttrVector() const {
+    return {type.underlying(), c, f, t, r, s, pd, ph, pw, sd, sh, sw, dd, dh, dw};
+}
+
+
 void ConvObj::setAuxilaryAttributes(PaddingMode mode) {
     const Tensor &input = inputs[0];
     const Tensor &weight = inputs[1];
@@ -112,6 +152,87 @@ optional<vector<Shape>> ConvObj::inferShape(const TensorVec &inputs) {
     }
     return {{{on, oc, oh, ow}}};
 }
+
+Conv3dObj::Conv3dObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output, int pd,
+                     int ph, int pw, int sd, int sh, int sw, int dd, int dh, int dw,
+                     Tensor bias, ActType act)
+    : Conv3dBaseObj(OpType::Conv3d, {input, weight}, output, pd, ph, pw, sd, sh, sw, dd, dh, dw, input, weight, act) {
+    if (bias)
+        IT_TODO_HALT();
+    setAuxiliaryAttributes(PaddingMode::Other);
+    IT_ASSERT(checkValid(graph));
+}
+
+Conv3dObj::Conv3dObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
+                     PaddingMode mode, int sd, int sh, int sw, int dd, int dh, int dw,
+                     Tensor bias, ActType act)
+    : Conv3dBaseObj(OpType::Conv3d, {input, weight}, output, mode, sd, sh, sw, dd, dh, dw, input, weight, act) {
+    if (bias)
+        IT_TODO_HALT();
+    setAuxiliaryAttributes(mode);
+    IT_ASSERT(checkValid(graph));
+}
+
+optional<vector<Shape>> Conv3dObj::inferShape(const TensorVec &inputs) {
+    const auto &input = inputs[0], &weight = inputs[1];
+    n = input->getDims()[0];
+    c = input->getDims()[1];
+    d = input->getDims()[2];
+    h = input->getDims()[3];
+    w = input->getDims()[4];
+    f = weight->getDims()[0];
+    t = weight->getDims()[2];
+    r = weight->getDims()[3];
+    s = weight->getDims()[4];
+    int on = n, oc = f;
+    int od = 0, oh = 0, ow = 0;
+    // For NCDHW+FCTRS layout, C of input is divisible by C of weight
+    IT_ASSERT(input->getDims()[1] % weight->getDims()[1] == 0);
+    // Set padding size
+    if (padding == PaddingMode::Other) {
+        od = (d - (t - sd) * dd + pd * 2) / sd;
+        oh = (h - (r - sh) * dh + ph * 2) / sh;
+        ow = (w - (s - sw) * dw + pw * 2) / sw;
+    } else if (padding == PaddingMode::Same) {
+        od = d / sd;
+        oh = h / sh;
+        ow = w / sw;
+        // pd = (d - od * sd + (t - sd) * dd) / 2;
+        // ph = (h - oh * sh + (r - sh) * dh) / 2;
+        // pw = (w - ow * sw + (s - sw) * dw) / 2;
+    } else if (padding == PaddingMode::Valid) {
+        int pd = ph = pw = 0;
+        od = (d - (t - sd) * dd + pd * 2) / sd;
+        oh = (h - (r - sh) * dh + ph * 2) / sh;
+        ow = (w - (s - sw) * dw + pw * 2) / sw;
+    }
+    return {{{on, oc, od, oh, ow}}};
+}
+
+void Conv3dObj::setAuxiliaryAttributes(PaddingMode mode) {
+    const Tensor &input = inputs[0];
+    const Tensor &weight = inputs[1];
+    n = input->getDims()[0];
+    c = input->getDims()[1];
+    d = input->getDims()[2];
+    h = input->getDims()[3];
+    w = input->getDims()[4];
+    f = weight->getDims()[0];
+    t = weight->getDims()[2];
+    r = weight->getDims()[3];
+    s = weight->getDims()[4];
+    if (mode == PaddingMode::Same) {
+        int od = d / sd;
+        int oh = h / sh;
+        int ow = w / sw;
+        pd = (d - od * sd + (t - sd) * dd) / 2;
+        ph = (h - oh * sh + (r - sh) * dh) / 2;
+        pw = (w - ow * sw + (s - sw) * dw) / 2;
+    } else if (mode == PaddingMode::Valid) {
+        pd = ph = pw = 0;
+    }
+}
+
 
 ConvTransposed2dObj::ConvTransposed2dObj(GraphObj *graph, Tensor input,
                                          Tensor weight, Tensor output, int ph,

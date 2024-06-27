@@ -127,6 +127,10 @@ class MaxPooling : public ASCENDKernelWithoutConfig {
         auto ret = aclnnMaxPoolGetWorkspaceSize(
             selfTensor, kernelSize, strides, 0, paddings, dilations, ceilMode,
             outputTensor, &workspaceSize, &executor);
+        auto tmp_err_msg = aclGetRecentErrMsg();
+        if (tmp_err_msg != NULL) {
+            printf(" ERROR Message : %s \n ", tmp_err_msg);
+        }
         assert(ret == ACL_SUCCESS);
 
         void *workspaceAddr = nullptr;
