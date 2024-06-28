@@ -156,14 +156,16 @@ class TensorObj : public TensorBaseObj {
         IT_ASSERT(DataType::get<T>() == dtype.cpuTypeInt());
         return equalDataImpl(getRawDataPtr<T *>(), dataVector.data(), size());
     }
-    template <typename T> bool equalData(const vector<T> &dataVector, double eps) {
+    template <typename T>
+    bool equalData(const vector<T> &dataVector, double eps) {
         IT_ASSERT(size() == dataVector.size());
         if (dtype == DataType::Float16) {
             return equalDataImpl_fp16(getRawDataPtr<uint16_t *>(),
                                       (float *)dataVector.data(), size(), eps);
         }
         IT_ASSERT(DataType::get<T>() == dtype.cpuTypeInt());
-        return equalDataImpl(getRawDataPtr<T *>(), dataVector.data(), size(), eps);
+        return equalDataImpl(getRawDataPtr<T *>(), dataVector.data(), size(),
+                             eps);
     }
 
     size_t getOffsetByBroadcastOffset(size_t bcOffset, Shape bcShape) const;
@@ -227,8 +229,8 @@ class TensorObj : public TensorBaseObj {
         return true;
     }
 
-    bool equalDataImpl_fp16(const uint16_t *a, const float *b,
-                            size_t size, double relativeError = 1e-6) const {
+    bool equalDataImpl_fp16(const uint16_t *a, const float *b, size_t size,
+                            double relativeError = 1e-6) const {
         for (size_t i = 0; i < size; ++i) {
             auto a_fp32 = fp16_to_float(a[i]);
             auto b_fp32 = b[i];

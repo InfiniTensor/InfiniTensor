@@ -8,7 +8,8 @@ class SoftmaxBang : public BangKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<BangSoftmaxObj>(_op);
         void *const mlu_src = (op->getInputs(0)->getRawDataPtr<void *>());
-        void *const mlu_destination = (op->getOutput()->getRawDataPtr<void *>());
+        void *const mlu_destination =
+            (op->getOutput()->getRawDataPtr<void *>());
 
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
         auto shape = op->getInputs(0)->getDims();
@@ -33,8 +34,10 @@ class SoftmaxBang : public BangKernelWithoutConfig {
             }
         }
         if (op->getOpType() == OpType::BangSoftmax)
-            softmaxKernel(context->cnnlHandle(), (float *)mlu_destination, (float *)mlu_src, othersize, dimsize, frontsize, stride, axis, nDim);
-            
+            softmaxKernel(context->cnnlHandle(), (float *)mlu_destination,
+                          (float *)mlu_src, othersize, dimsize, frontsize,
+                          stride, axis, nDim);
+
         else
             IT_TODO_HALT();
     }
@@ -42,4 +45,3 @@ class SoftmaxBang : public BangKernelWithoutConfig {
 
 REGISTER_KERNEL(Device::BANG, OpType::BangSoftmax, SoftmaxBang, "Softmax_BANG");
 }; // namespace infini
-
