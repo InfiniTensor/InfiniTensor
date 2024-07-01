@@ -48,7 +48,6 @@ class ClipObj : public OperatorObj {
 };
 
 class EluObj : public OperatorObj {
-
   public:
     EluObj(GraphObj *graph, Tensor input, Tensor output, float alpha);
     OP_CLONE(EluObj);
