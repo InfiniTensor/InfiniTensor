@@ -120,6 +120,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, Where)
         .VALUE(OpType, DepthToSpace)
         .VALUE(OpType, LRN)
+        .VALUE(OpType, Elu)
         .export_values();
 
 #undef VALUE
@@ -201,6 +202,12 @@ static std::tuple<bool, bool> matmul_attrs_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::MatMul);
     auto matmul = dynamic_cast<const MatmulObj *>(op.get());
     return std::make_tuple(matmul->getTransA(), matmul->getTransB());
+}
+
+static float elu_alpha_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Elu);
+    auto elu = dynamic_cast<const EluObj *>(op.get());
+    return elu->getAlpha();
 }
 
 static std::tuple<float, float, bool> batch_norm_attrs_of(Operator op) {
@@ -368,7 +375,8 @@ void export_functions(py::module &m) {
         .FUNCTION(depth_to_space_attrs_of)
         .FUNCTION(squeeze_axes_of)
         .FUNCTION(unsqueeze_axes_of)
-        .FUNCTION(lrn_attrs_of);
+        .FUNCTION(lrn_attrs_of)
+        .FUNCTION(elu_alpha_of);
 #undef FUNCTION
 }
 
@@ -501,6 +509,7 @@ void init_graph_builder(py::module &m) {
              policy::reference);
     py::class_<Handler>(m, "GraphHandler")
         .def(py::init<Runtime>())
+        .def("elu", &Handler::elu, policy::move)
         .def("tensor", &Handler::tensor, policy::move)
         .def("conv", &Handler::conv, policy::move)
         .def("convTransposed2d", &Handler::convTransposed2d, policy::move)
