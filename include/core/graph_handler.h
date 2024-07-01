@@ -53,6 +53,7 @@ class GraphHandlerObj {
     Tensor max(Tensor a, Tensor b, Tensor c);
 
     Tensor relu(Tensor x, Tensor y);
+    Tensor leakyRelu(Tensor x, Tensor y, float alpha);
     Tensor silu(Tensor x, Tensor y);
     Tensor gelu(Tensor x, Tensor y);
     Tensor sigmoid(Tensor x, Tensor y);
@@ -69,7 +70,6 @@ class GraphHandlerObj {
     Tensor identity(Tensor x, Tensor y);
     Tensor flatten(Tensor s, Tensor y, int axis);
     Tensor pRelu(Tensor x, Tensor slope, Tensor y);
-    Tensor leakyRelu(Tensor x, Tensor y, float alpha);
     Tensor clip(Tensor x, Tensor y, std::optional<float> min,
                 std::optional<float> max);
     Tensor transpose(Tensor data, Tensor transposed, Shape perm);
