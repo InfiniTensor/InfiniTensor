@@ -249,7 +249,15 @@ Tensor GraphHandlerObj::softmax(Tensor input, Tensor output, int axis) {
             ->getOutput();
     }
 }
-
+Tensor GraphHandlerObj::bangSoftmax(Tensor input, Tensor output, int axis) {
+    if (output) {
+        g->addOpWithOutputs<BangSoftmaxObj>(std::move(input), output, axis);
+        return output;
+    } else {
+        return g->addOp<BangSoftmaxObj>(std::move(input), output, axis)
+            ->getOutput();
+    }
+}
 Tensor GraphHandlerObj::flatten(Tensor input, Tensor output, int axis) {
     if (output) {
         g->addOpWithOutputs<FlattenObj>(std::move(input), output, axis);
