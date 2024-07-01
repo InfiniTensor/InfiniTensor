@@ -1,7 +1,7 @@
-#include "operators/rms_norm.h"
 #include "bang/bang_kernel_without_config.h"
-#include "bang/bang_runtime.h"
 #include "bang/bang_rmsnorm.h"
+#include "bang/bang_runtime.h"
+#include "operators/rms_norm.h"
 namespace infini {
 class RMSNormBang : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
@@ -15,16 +15,18 @@ class RMSNormBang : public BangKernelWithoutConfig {
         void *const mlu_destination = output->getRawDataPtr<void *>();
         const auto &inputShape = input->getDims();
         int nDims = input->getDims().size();
-        
+
         int dimsize = inputShape[nDims - 1];
         int othersize = input->size() / dimsize;
-        
+
         IT_ASSERT(dimsize == (int)weight->size());
 
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
         float eps = 1e-5;
         if (op->getOpType() == OpType::RMSNorm)
-            rmsNormKernel(context->cnnlHandle(), (float *)mlu_destination, (float *)mlu_src, (float *)mlu_weight, othersize, dimsize, eps);
+            rmsNormKernel(context->cnnlHandle(), (float *)mlu_destination,
+                          (float *)mlu_src, (float *)mlu_weight, othersize,
+                          dimsize, eps);
 
         else
             IT_TODO_HALT();
