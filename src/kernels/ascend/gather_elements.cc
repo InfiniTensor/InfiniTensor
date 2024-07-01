@@ -41,8 +41,8 @@ class GatherElementsAclnn : public ASCENDKernelWithoutConfig {
 
         auto inputIndices = aclCreateTensor(
             indicesDim64.data(), indicesDim64.size(),
-            op->getInputs(1)->getDType() == DataType::Int32 ? ACL_INT32 : ACL_INT64,
-            indicesStride64.data(), 0, aclFormat::ACL_FORMAT_ND, indicesDim64.data(),
+            // op->getInputs(1)->getDType() == DataType::Int32 ? ACL_INT32 : ACL_INT64,
+            ACL_INT64, indicesStride64.data(), 0, aclFormat::ACL_FORMAT_ND, indicesDim64.data(),
             indicesDim64.size(), indices);
 
         auto outputTensor = aclCreateTensor(
@@ -67,9 +67,9 @@ class GatherElementsAclnn : public ASCENDKernelWithoutConfig {
         CHECK_RET(ret == ACL_SUCCESS,
                   LOG_PRINT("aclnnGather failed. ERROR: %d\n", ret));
 
-        ret = aclrtSynchronizeStream(context->ASCENDHandle());
-        CHECK_RET(ret == ACL_SUCCESS,
-                  LOG_PRINT("aclrtSynchronizeStream failed. ERROR: %d\n", ret));
+        // ret = aclrtSynchronizeStream(context->ASCENDHandle());
+        // CHECK_RET(ret == ACL_SUCCESS,
+        //           LOG_PRINT("aclrtSynchronizeStream failed. ERROR: %d\n", ret));
         return;
     }
 };

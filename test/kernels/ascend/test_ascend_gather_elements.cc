@@ -8,6 +8,61 @@
 
 namespace infini {
 
+void testGatherElementsFp16(
+    const std::function<void(void *, size_t, DataType)> &generator,
+    const Shape &shape0) {
+
+    aclInit(nullptr);
+    {
+        std::cout << "Start testElementWise" << std::endl;
+        Runtime runtime = NativeCpuRuntimeObj::getInstance();
+        Graph gCpu = make_ref<GraphObj>(runtime);
+
+        Tensor testCpu = make_ref<TensorObj>(shape0, DataType::Float32, runtime);
+        testCpu->dataMalloc();
+        testCpu->setData(generator);
+        testCpu->printData();
+        auto inputShape = Shape{2, 2, 3};
+        // auto ExpectData = generator();
+        // ExpectData->printData();
+        // auto ExpectData = vector<float>{2., 1., 0., 4., 3., 5., 8., 7., 6., 10., 9., 11.};
+        auto ExpectData = vector<float>{2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2.};
+        auto inputCpu = gCpu->addTensor(inputShape, DataType::Float16);
+        auto indexCpu = gCpu->addTensor(inputShape, DataType::Int64);
+        gCpu->dataMalloc();
+
+        inputCpu->setData(generator);
+        indexCpu->copyin(vector<int64_t>{2, 1, 0, 1, 0, 2, 2, 1, 0, 1, 0, 2});
+        inputCpu->printData();
+        indexCpu->printData();
+        std::cout << "CPU Inputs set" << std::endl;
+        auto npuRuntime = make_ref<ASCENDRuntimeObj>();
+        Graph npuGraph = make_ref<GraphObj>(npuRuntime);
+
+        auto inputNpu = npuGraph->cloneTensor(inputCpu);
+        auto indexNpu = npuGraph->cloneTensor(indexCpu);
+
+        std::cout << "NPU Inputs cloned" << std::endl;
+
+        auto op = npuGraph->addOp<GatherElementsObj>(inputNpu, indexNpu, nullptr, 2);
+        npuGraph->dataMalloc();
+
+        inputNpu->setData(generator);
+        indexNpu->copyin(vector<int64_t>{2, 1, 0, 1, 0, 2, 2, 1, 0, 1, 0, 2});;
+
+        std::cout << "NPU Inputs set" << std::endl;
+        
+        npuRuntime->run(npuGraph);
+
+        std::cout << "NPU run completed" << std::endl;
+
+        auto oCpu = gCpu->cloneTensor(op->getOutput()); // move Data from gpu to cpu
+        oCpu->printData();                              //->printData
+        EXPECT_TRUE(oCpu->equalData(ExpectData));
+        std::cout << "Test2 passed" << std::endl;
+    }
+}
+
 TEST(ascend_GatherElements, run) {
     aclInit(nullptr);
 
@@ -63,8 +118,10 @@ TEST(ascend_GatherElements, run) {
 
         // Check
         EXPECT_TRUE(outputNpu2Cpu->equalData(vector<float>{3, 2, 1, 5, 4, 6, 9, 8, 7, 11, 10, 12}));
+        std::cout << "Test1 passed" << std::endl;
     }
 
+    testGatherElementsFp16(IncrementalGenerator(), Shape{2,2,3});
     aclFinalize();
 }
 
