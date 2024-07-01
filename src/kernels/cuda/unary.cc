@@ -21,7 +21,7 @@ class EluCuda : public CudaKernelWithoutConfig {
         void *const inputData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const outputData = (op->getOutput()->getRawDataPtr<void *>());
 
-        int size = op->getInputs(0)->size();
+        size_t size = op->getInputs(0)->size();
         elu_kernel((float *)inputData, (float *)outputData, size,
                    op->getAlpha());
     }
