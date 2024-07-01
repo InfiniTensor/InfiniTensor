@@ -203,7 +203,7 @@ class TanhCudnn : public ActivationCudnn {
 
 REGISTER_KERNEL(Device::CUDA, OpType::Relu, ReluCudnn, "Relu_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Sigmoid, SigmoidCudnn, "Sigmoid_CUDA");
-REGISTER_KERNEL(Device::CUDA, OpType::Elu, EluCuda, "Elu_CUDA_Float32");
+REGISTER_KERNEL(Device::CUDA, OpType::Elu, EluCuda, "Elu_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::HardSigmoid, UnaryCuda,
                 "Hard_Sigmoid_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::HardSwish, UnaryCuda, "Hard_Swish_CUDA");
