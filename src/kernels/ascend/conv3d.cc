@@ -1,7 +1,7 @@
-#include "operators/conv.h"
 #include "aclnnop/level2/aclnn_convolution.h"
 #include "ascend/ascend_kernel_without_config.h"
 #include "ascend/ascend_runtime.h"
+#include "operators/conv.h"
 
 namespace infini {
 
@@ -12,7 +12,8 @@ class Conv3dAclnn : public ASCENDKernelWithoutConfig {
         auto op = as<Conv3dObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
 
-        const auto [pd, ph, pw, sd, sh, sw, dd, dh, dw] = op->getPadStrideDilation();
+        const auto [pd, ph, pw, sd, sh, sw, dd, dh, dw] =
+            op->getPadStrideDilation();
         const auto [n, c, d, h, w, f, t, r, s] = op->getNCDHWFTS();
         const int cpg = op->getChannelPerGroup();
         const int g = c / cpg;
@@ -29,7 +30,6 @@ class Conv3dAclnn : public ASCENDKernelWithoutConfig {
             aclCreateIntArray(dilation.data(), dilation.size());
         aclIntArray *convOutputpadding =
             aclCreateIntArray(outputPadding.data(), outputPadding.size());
-
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
@@ -79,7 +79,7 @@ class Conv3dAclnn : public ASCENDKernelWithoutConfig {
         if (tmp_err_msg != NULL) {
             printf(" ERROR Message : %s \n ", tmp_err_msg);
         }
-        printf("ret is %d\n", ret);
+        // printf("ret is %d\n", ret);
         assert(ret == ACL_SUCCESS);
         ret = aclnnConvolution(workspaceAddr, workspaceSize, executor,
                                context->ASCENDHandle());
@@ -93,5 +93,6 @@ class Conv3dAclnn : public ASCENDKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::ASCEND, OpType::Conv3d, Conv3dAclnn, "conv3d_ASCEND_float");
+REGISTER_KERNEL(Device::ASCEND, OpType::Conv3d, Conv3dAclnn,
+                "conv3d_ASCEND_float");
 }; // namespace infini

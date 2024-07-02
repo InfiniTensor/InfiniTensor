@@ -132,8 +132,8 @@ class ConvBaseObj : public OperatorObj {
 
 class Conv3dBaseObj : public OperatorObj {
   public:
-    // When PaddingMode is Other, Conv3dBaseObj will use padding size (pd, ph, pw)
-    // Otherwise, padding size (pd, ph, pw) will be computed by padding mode
+    // When PaddingMode is Other, Conv3dBaseObj will use padding size (pd, ph,
+    // pw) Otherwise, padding size (pd, ph, pw) will be computed by padding mode
     enum class PaddingMode {
         Other,
         Same,
@@ -147,10 +147,10 @@ class Conv3dBaseObj : public OperatorObj {
     PaddingMode padding;
     // Auxiliary attributes. Descriptions stand on a forward perspective,
     // i.e., convTransposed3d is not regarded as the backward of conv3d.
-    int n;     // batch size
-    int c;     // input/output channel for conv3d/convTransposed3d
+    int n;       // batch size
+    int c;       // input/output channel for conv3d/convTransposed3d
     int d, h, w; // input shape (same for conv3d and convTransposed3d)
-    int f;     // output/input channel for conv3d/convTransposed3d
+    int f;       // output/input channel for conv3d/convTransposed3d
     int t, r, s; // weight shape (depth, height, width)
 
     ActType act;
@@ -177,10 +177,11 @@ class Conv3dBaseObj : public OperatorObj {
      * @param inputInConvFWD To be removed.
      * @param weightInConvFWD To be removed.
      */
-    Conv3dBaseObj(OpType opType, TensorVec inputs, Tensor &output, int pd, int ph, int pw,
-                  int sd, int sh, int sw, int dd, int dh, int dw,
-                  const Tensor &inputInConvFWD, const Tensor &weightInConvFWD, ActType act = ActType::None);
-    
+    Conv3dBaseObj(OpType opType, TensorVec inputs, Tensor &output, int pd,
+                  int ph, int pw, int sd, int sh, int sw, int dd, int dh,
+                  int dw, const Tensor &inputInConvFWD,
+                  const Tensor &weightInConvFWD, ActType act = ActType::None);
+
     /**
      * @brief Construct a new Conv3dBase object by setting padding mode.
      *
@@ -199,9 +200,10 @@ class Conv3dBaseObj : public OperatorObj {
      * @param inputInConvFWD To be removed.
      * @param weightInConvFWD To be removed.
      */
-    Conv3dBaseObj(OpType opType, TensorVec inputs, Tensor &output, PaddingMode mode,
-                  int sd, int sh, int sw, int dd, int dh, int dw,
-                  const Tensor &inputInConvFWD, const Tensor &weightInConvFWD, ActType act = ActType::None);
+    Conv3dBaseObj(OpType opType, TensorVec inputs, Tensor &output,
+                  PaddingMode mode, int sd, int sh, int sw, int dd, int dh,
+                  int dw, const Tensor &inputInConvFWD,
+                  const Tensor &weightInConvFWD, ActType act = ActType::None);
 
     std::string toString() const override;
     int numInputs() const override { return 2; }
@@ -221,7 +223,9 @@ class Conv3dBaseObj : public OperatorObj {
     int getSh() const { return sh; }
     int getSw() const { return sw; }
     auto getNCDHWFTS() const { return tuple(n, c, d, h, w, f, t, r, s); }
-    auto getPadStrideDilation() const { return tuple(pd, ph, pw, sd, sh, sw, dd, dh, dw); }
+    auto getPadStrideDilation() const {
+        return tuple(pd, ph, pw, sd, sh, sw, dd, dh, dw);
+    }
     int getChannelPerGroup() const {
         return inputs[1]->getDims()[1];
         // TODO
@@ -246,16 +250,15 @@ class Conv3dBaseObj : public OperatorObj {
 
 // Implementation of constructors and member functions...
 
-
 class ConvObj : public ConvBaseObj {
   public:
     ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output, int ph,
-            int pw, int sh = 1, int sw = 1, int dh = 1, int dw = 1,
-            Tensor bias = nullptr, ActType act = ActType::None);
+            int pw, Tensor bias = nullptr, int sh = 1, int sw = 1, int dh = 1,
+            int dw = 1, ActType act = ActType::None);
     // Constructors for setting padding mode
     ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
-            PaddingMode mode = PaddingMode::Same, int sh = 1, int sw = 1,
-            int dh = 1, int dw = 1, Tensor bias = nullptr,
+            Tensor bias = nullptr, PaddingMode mode = PaddingMode::Same,
+            int sh = 1, int sw = 1, int dh = 1, int dw = 1,
             ActType act = ActType::None);
     OP_CLONE(ConvObj);
 
@@ -268,14 +271,15 @@ class ConvObj : public ConvBaseObj {
 
 class Conv3dObj : public Conv3dBaseObj {
   public:
-    Conv3dObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output, int pd,
-              int ph, int pw, int sd = 1, int sh = 1, int sw = 1, int dd = 1,
-              int dh = 1, int dw = 1, Tensor bias = nullptr, ActType act = ActType::None);
+    Conv3dObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
+              int pd, int ph, int pw, int sd = 1, int sh = 1, int sw = 1,
+              int dd = 1, int dh = 1, int dw = 1, Tensor bias = nullptr,
+              ActType act = ActType::None);
     // Constructors for setting padding mode
     Conv3dObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
               PaddingMode mode = PaddingMode::Same, int sd = 1, int sh = 1,
-              int sw = 1, int dd = 1, int dh = 1, int dw = 1, Tensor bias = nullptr,
-              ActType act = ActType::None);
+              int sw = 1, int dd = 1, int dh = 1, int dw = 1,
+              Tensor bias = nullptr, ActType act = ActType::None);
     OP_CLONE(Conv3dObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
@@ -284,7 +288,6 @@ class Conv3dObj : public Conv3dBaseObj {
   private:
     void setAuxiliaryAttributes(PaddingMode mode) override;
 };
-
 
 class ConvBackwardFilterObj : public ConvBaseObj {
   private:

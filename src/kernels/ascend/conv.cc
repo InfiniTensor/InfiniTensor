@@ -31,8 +31,14 @@ class ConvAclnn : public ASCENDKernelWithoutConfig {
         aclIntArray *convOutputpadding =
             aclCreateIntArray(outputPadding.data(), outputPadding.size());
 
+        bool haveBias = false;
+        if (op->getInputs().size() > 2) {
+            haveBias = true;
+        }
+
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
+
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
 
         auto inputD = op->getInputs(0)->getDims();
@@ -66,11 +72,27 @@ class ConvAclnn : public ASCENDKernelWithoutConfig {
 
         uint64_t workspaceSize = 0;
         aclOpExecutor *executor;
-
-        auto ret = aclnnConvolutionGetWorkspaceSize(
-            inputTensor, weightTensor, nullptr, convstride, convpads,
-            convdilation, false, convOutputpadding, int64_t(g), outputTensor,
-            int8_t(1), &workspaceSize, &executor);
+        auto ret = ACL_SUCCESS;
+        if (haveBias) {
+            void *const biasData = op->getInputs(2)->getRawDataPtr<void *>();
+            auto biasD = op->getInputs(2)->getDims();
+            auto biasS = op->getInputs(2)->getStride();
+            std::vector<int64_t> biasDim = castTo64(biasD);
+            std::vector<int64_t> biasStride = castTo64(biasS);
+            auto biasTensor =
+                aclCreateTensor(biasDim.data(), biasDim.size(), aclDataType,
+                                biasStride.data(), 0, aclFormat::ACL_FORMAT_ND,
+                                biasDim.data(), biasDim.size(), biasData);
+            ret = aclnnConvolutionGetWorkspaceSize(
+                inputTensor, weightTensor, biasTensor, convstride, convpads,
+                convdilation, false, convOutputpadding, int64_t(g),
+                outputTensor, int8_t(1), &workspaceSize, &executor);
+        } else {
+            ret = aclnnConvolutionGetWorkspaceSize(
+                inputTensor, weightTensor, nullptr, convstride, convpads,
+                convdilation, false, convOutputpadding, int64_t(g),
+                outputTensor, int8_t(1), &workspaceSize, &executor);
+        }
         void *workspaceAddr = nullptr;
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);

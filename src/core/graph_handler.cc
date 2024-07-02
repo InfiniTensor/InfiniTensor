@@ -42,25 +42,29 @@ Tensor GraphHandlerObj::tensor(Shape dims, int dtype) {
     return g->addTensor(std::move(dims), dtype_repr_convert(dtype));
 }
 
-Tensor GraphHandlerObj::conv(Tensor input, Tensor weight, Tensor output, int ph,
-                             int pw, int sh, int sw, int dh, int dw) {
+Tensor GraphHandlerObj::conv(Tensor input, Tensor weight, Tensor bias,
+                             Tensor output, int ph, int pw, int sh, int sw,
+                             int dh, int dw) {
     if (output) {
         g->addOpWithOutputs<ConvObj>(std::move(input), std::move(weight),
-                                     output, ph, pw, sh, sw, dh, dw);
+                                     output, ph, pw, std::move(bias), sh, sw,
+                                     dh, dw);
         return output;
     } else {
         return g
             ->addOp<ConvObj>(std::move(input), std::move(weight), output, ph,
-                             pw, sh, sw, dh, dw)
+                             pw, std::move(bias), sh, sw, dh, dw)
             ->getOutput();
     }
 }
 
-Tensor GraphHandlerObj::conv3d(Tensor input, Tensor weight, Tensor output, int pd,
-                               int ph, int pw, int sd, int sh, int sw, int dd, int dh, int dw) {
+Tensor GraphHandlerObj::conv3d(Tensor input, Tensor weight, Tensor output,
+                               int pd, int ph, int pw, int sd, int sh, int sw,
+                               int dd, int dh, int dw) {
     if (output) {
         g->addOpWithOutputs<Conv3dObj>(std::move(input), std::move(weight),
-                                       output, pd, ph, pw, sd, sh, sw, dd, dh, dw);
+                                       output, pd, ph, pw, sd, sh, sw, dd, dh,
+                                       dw);
         return output;
     } else {
         return g

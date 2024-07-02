@@ -45,16 +45,20 @@ vector<int> ConvBaseObj::getOpAttrVector() const {
 }
 
 Conv3dBaseObj::Conv3dBaseObj(OpType opType, TensorVec inputs, Tensor &output,
-                             int pd, int ph, int pw, int sd, int sh, int sw, int dd, int dh, int dw,
-                             const Tensor &inputInConvFWD, const Tensor &weightInConvFWD, ActType act)
-    : OperatorObj(opType, inputs, {output}), pd(pd), ph(ph), pw(pw), sd(sd), sh(sh), sw(sw),
-      dd(dd), dh(dh), dw(dw), padding(PaddingMode::Other), act(act) {}
+                             int pd, int ph, int pw, int sd, int sh, int sw,
+                             int dd, int dh, int dw,
+                             const Tensor &inputInConvFWD,
+                             const Tensor &weightInConvFWD, ActType act)
+    : OperatorObj(opType, inputs, {output}), pd(pd), ph(ph), pw(pw), sd(sd),
+      sh(sh), sw(sw), dd(dd), dh(dh), dw(dw), padding(PaddingMode::Other),
+      act(act) {}
 
 Conv3dBaseObj::Conv3dBaseObj(OpType opType, TensorVec inputs, Tensor &output,
-                             PaddingMode mode, int sd, int sh, int sw, int dd, int dh, int dw,
-                             const Tensor &inputInConvFWD, const Tensor &weightInConvFWD, ActType act)
-    : OperatorObj(opType, inputs, {output}), pd(-1), ph(-1), pw(-1), sd(sd), sh(sh), sw(sw),
-      dd(dd), dh(dh), dw(dw), padding(mode), act(act) {
+                             PaddingMode mode, int sd, int sh, int sw, int dd,
+                             int dh, int dw, const Tensor &inputInConvFWD,
+                             const Tensor &weightInConvFWD, ActType act)
+    : OperatorObj(opType, inputs, {output}), pd(-1), ph(-1), pw(-1), sd(sd),
+      sh(sh), sw(sw), dd(dd), dh(dh), dw(dw), padding(mode), act(act) {
     IT_ASSERT(mode != PaddingMode::Other);
 }
 
@@ -76,13 +80,31 @@ std::string Conv3dBaseObj::toString() const {
 }
 
 std::vector<int> Conv3dBaseObj::getWorkloadVector() const {
-    return {type.underlying(), n, c, d, h, w, f, t, r, s, pd, ph, pw, sd, sh, sw, dd, dh, dw};
+    return {type.underlying(),
+            n,
+            c,
+            d,
+            h,
+            w,
+            f,
+            t,
+            r,
+            s,
+            pd,
+            ph,
+            pw,
+            sd,
+            sh,
+            sw,
+            dd,
+            dh,
+            dw};
 }
 
 std::vector<int> Conv3dBaseObj::getOpAttrVector() const {
-    return {type.underlying(), c, f, t, r, s, pd, ph, pw, sd, sh, sw, dd, dh, dw};
+    return {
+        type.underlying(), c, f, t, r, s, pd, ph, pw, sd, sh, sw, dd, dh, dw};
 }
-
 
 void ConvObj::setAuxilaryAttributes(PaddingMode mode) {
     const Tensor &input = inputs[0];
@@ -101,23 +123,23 @@ void ConvObj::setAuxilaryAttributes(PaddingMode mode) {
 }
 
 ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
-                 int ph, int pw, int sh, int sw, int dh, int dw, Tensor bias,
+                 int ph, int pw, Tensor bias, int sh, int sw, int dh, int dw,
                  ActType act)
-    : ConvBaseObj(OpType::Conv, {input, weight}, output, ph, pw, sh, sw, dh, dw,
-                  input, weight, act) {
-    if (bias)
-        IT_TODO_HALT();
+    : ConvBaseObj(OpType::Conv,
+                  bias ? TensorVec{input, weight, bias}
+                       : TensorVec{input, weight},
+                  output, ph, pw, sh, sw, dh, dw, input, weight, act) {
     setAuxilaryAttributes(PaddingMode::Other);
     IT_ASSERT(checkValid(graph));
 }
 
 ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
-                 PaddingMode mode, int sh, int sw, int dh, int dw, Tensor bias,
+                 Tensor bias, PaddingMode mode, int sh, int sw, int dh, int dw,
                  ActType act)
-    : ConvBaseObj(OpType::Conv, {input, weight}, output, mode, sh, sw, dh, dw,
-                  input, weight, act) {
-    if (bias)
-        IT_TODO_HALT();
+    : ConvBaseObj(OpType::Conv,
+                  bias ? TensorVec{input, weight, bias}
+                       : TensorVec{input, weight},
+                  output, mode, sh, sw, dh, dw, input, weight, act) {
     setAuxilaryAttributes(mode);
     IT_ASSERT(checkValid(graph));
 }
@@ -153,20 +175,22 @@ optional<vector<Shape>> ConvObj::inferShape(const TensorVec &inputs) {
     return {{{on, oc, oh, ow}}};
 }
 
-Conv3dObj::Conv3dObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output, int pd,
-                     int ph, int pw, int sd, int sh, int sw, int dd, int dh, int dw,
-                     Tensor bias, ActType act)
-    : Conv3dBaseObj(OpType::Conv3d, {input, weight}, output, pd, ph, pw, sd, sh, sw, dd, dh, dw, input, weight, act) {
+Conv3dObj::Conv3dObj(GraphObj *graph, Tensor input, Tensor weight,
+                     Tensor output, int pd, int ph, int pw, int sd, int sh,
+                     int sw, int dd, int dh, int dw, Tensor bias, ActType act)
+    : Conv3dBaseObj(OpType::Conv3d, {input, weight}, output, pd, ph, pw, sd, sh,
+                    sw, dd, dh, dw, input, weight, act) {
     if (bias)
         IT_TODO_HALT();
     setAuxiliaryAttributes(PaddingMode::Other);
     IT_ASSERT(checkValid(graph));
 }
 
-Conv3dObj::Conv3dObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
-                     PaddingMode mode, int sd, int sh, int sw, int dd, int dh, int dw,
-                     Tensor bias, ActType act)
-    : Conv3dBaseObj(OpType::Conv3d, {input, weight}, output, mode, sd, sh, sw, dd, dh, dw, input, weight, act) {
+Conv3dObj::Conv3dObj(GraphObj *graph, Tensor input, Tensor weight,
+                     Tensor output, PaddingMode mode, int sd, int sh, int sw,
+                     int dd, int dh, int dw, Tensor bias, ActType act)
+    : Conv3dBaseObj(OpType::Conv3d, {input, weight}, output, mode, sd, sh, sw,
+                    dd, dh, dw, input, weight, act) {
     if (bias)
         IT_TODO_HALT();
     setAuxiliaryAttributes(mode);
@@ -232,7 +256,6 @@ void Conv3dObj::setAuxiliaryAttributes(PaddingMode mode) {
         pd = ph = pw = 0;
     }
 }
-
 
 ConvTransposed2dObj::ConvTransposed2dObj(GraphObj *graph, Tensor input,
                                          Tensor weight, Tensor output, int ph,
