@@ -124,6 +124,7 @@ Tensor GraphHandlerObj::layerNormalization(Tensor input, Tensor scale,
             ->getOutput();
     }
 }
+
 Tensor GraphHandlerObj::instanceNormalization(Tensor input, Tensor output,
                                               Tensor scale, Tensor bias,
                                               float eps) {
@@ -138,15 +139,7 @@ Tensor GraphHandlerObj::instanceNormalization(Tensor input, Tensor output,
             ->getOutput();
     }
 }
-Tensor GraphHandlerObj::leakyrelu(Tensor input, Tensor output, float alpha) {
-    if (output) {
-        g->addOpWithOutputs<LeakyReluObj>(std::move(input), output, alpha);
-        return output;
-    } else {
-        return g->addOp<LeakyReluObj>(std::move(input), output, alpha)
-            ->getOutput();
-    }
-}
+
 Tensor GraphHandlerObj::rmsNorm(Tensor input, Tensor weight, Tensor output) {
     if (output) {
         g->addOpWithOutputs<RMSNormObj>(std::move(input), std::move(weight),
