@@ -113,6 +113,113 @@ optional<vector<Shape>> ConvObj::inferShape(const TensorVec &inputs) {
     return {{{on, oc, oh, ow}}};
 }
 
+void Conv3dObj::setAuxilaryAttributes(PaddingMode mode) {
+    const Tensor &input = inputs[0];
+    const Tensor &weight = inputs[1];
+    n = input->getDims()[0];
+    c = input->getDims()[1];
+    d = input->getDims()[2];
+    h = input->getDims()[3];
+    w = input->getDims()[4];
+    f = weight->getDims()[0];
+    q = weight->getDims()[2];
+    r = weight->getDims()[3];
+    s = weight->getDims()[4];
+    if (mode == PaddingMode::Same) {
+        int od = d / sd;
+        int oh = h / sh;
+        int ow = w / sw;
+        pd = (d - od * sd + (q - sd) * dd) / 2;
+        ph = (h - oh * sh + (r - sh) * dh) / 2;
+        pw = (w - ow * sw + (s - sw) * dw) / 2;
+    } else if (mode == PaddingMode::Valid) {
+        pd = 0;
+        ph = 0;
+        pw = 0;
+    }
+}
+
+Conv3dObj::Conv3dObj(GraphObj *graph, Tensor input, Tensor weight,
+                     Tensor output, int pd, int ph, int pw, int sd, int sh,
+                     int sw, int dd, int dh, int dw, Tensor bias, ActType act)
+    : ConvBaseObj(OpType::Conv3d, {input, weight}, output, ph, pw, sh, sw, dh,
+                  dw, input, weight, act),
+      pd(pd), sd(sd), dd(dd) {
+    if (bias)
+        IT_TODO_HALT();
+    setAuxilaryAttributes(PaddingMode::Other);
+    IT_ASSERT(checkValid(graph));
+}
+
+Conv3dObj::Conv3dObj(GraphObj *graph, Tensor input, Tensor weight,
+                     Tensor output, PaddingMode mode, int sd, int sh, int sw,
+                     int dd, int dh, int dw, Tensor bias, ActType act)
+    : ConvBaseObj(OpType::Conv3d, {input, weight}, output, mode, sh, sw, dh, dw,
+                  input, weight, act),
+      sd(sd), dd(dd) {
+    if (bias)
+        IT_TODO_HALT();
+    setAuxilaryAttributes(mode);
+    IT_ASSERT(checkValid(graph));
+}
+
+string Conv3dObj::toString() const {
+    std::ostringstream os;
+    os << type.toString() << "[" << getGuid() << "]";
+    os << "(";
+    if (inputs.size() == 2) {
+        os << vecToString(inputs[0]->getDims()) << ",";
+        os << vecToString(inputs[1]->getDims()) << ",";
+    }
+    os << "p=[" << pd << "," << ph << "," << pw << "],";
+    os << "s=[" << sd << "," << sh << "," << sw << "],";
+    os << "d=[" << dd << "," << dh << "," << dw << "],";
+    // os << "act=" << enum_to_underlying(act) << ",";
+    os << "input=" << inputs[0]->getGuid() << ",";
+    os << "weight=" << inputs[1]->getGuid() << ",";
+    os << "output=" << outputs[0]->getGuid() << ")";
+    return os.str();
+}
+
+optional<vector<Shape>> Conv3dObj::inferShape(const TensorVec &inputs) {
+    const auto &input = inputs[0];
+    const auto &weight = inputs[1];
+    n = input->getDims()[0];
+    c = input->getDims()[1];
+    d = input->getDims()[2];
+    h = input->getDims()[3];
+    w = input->getDims()[4];
+    f = weight->getDims()[0];
+    q = weight->getDims()[2];
+    r = weight->getDims()[3];
+    s = weight->getDims()[4];
+    int on = n;
+    int oc = f;
+    int od = 0;
+    int oh = 0;
+    int ow = 0;
+    // For NCDHW+FCQRS layout, C of input is divisable by C of weight.
+    IT_ASSERT(input->getDims()[1] % weight->getDims()[1] == 0);
+    // Set padding size.
+    if (padding == PaddingMode::Other) {
+        od = (d - (q - sd) * dd + pd * 2) / sd;
+        oh = (h - (r - sh) * dh + ph * 2) / sh;
+        ow = (w - (s - sw) * dw + pw * 2) / sw;
+    } else if (padding == PaddingMode::Same) {
+        od = d / sd;
+        oh = h / sh;
+        ow = w / sw;
+    } else if (padding == PaddingMode::Valid) {
+        int pd = 0;
+        int ph = 0;
+        int pw = 0;
+        od = (d - (q - sd) * dd + pd * 2) / sd;
+        oh = (h - (r - sh) * dh + ph * 2) / sh;
+        ow = (w - (s - sw) * dw + pw * 2) / sw;
+    }
+    return {{{on, oc, od, oh, ow}}};
+}
+
 ConvTransposed2dObj::ConvTransposed2dObj(GraphObj *graph, Tensor input,
                                          Tensor weight, Tensor output, int ph,
                                          int pw, int sh, int sw, int dh, int dw,

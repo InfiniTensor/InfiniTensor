@@ -16,10 +16,14 @@ class BatchNormCnnl : public BangKernelWithoutConfig {
         void *const bias = (op->getInputs(4)->getRawDataPtr<void *>());
         void *const output = (op->getOutput()->getRawDataPtr<void *>());
 
-        auto dims = op->getInputs(0)->getDims();
-        auto outDims = op->getOutput()->getDims();
-        if (dims.size() != 4)
-            IT_TODO_HALT();
+        auto padDims = [](Shape shape) {
+            for (size_t i = shape.size(); i < 4; ++i) {
+                shape.push_back(1);
+            }
+            return shape;
+        };
+        auto dims = padDims(op->getInputs(0)->getDims());
+        auto outDims = padDims(op->getOutput()->getDims());
 
         int dimsTrans[4] = {dims[0], dims[2], dims[3], dims[1]};
         int dimsOutTrans[4] = {outDims[0], outDims[2], outDims[3], outDims[1]};

@@ -129,6 +129,7 @@ class PReluCnnl : public BangKernelWithoutConfig {
 class SoftmaxCnnl : public BangKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
+        printf("compute entry\n");
         auto op = as<SoftmaxObj>(_op);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
@@ -212,11 +213,13 @@ class SoftmaxCnnl : public BangKernelWithoutConfig {
     }
 
     void compute2(const Operator &_op, const RuntimeObj *_context) const {
-        auto op = as<BangSoftmaxObj>(_op);
+        printf("compute2 entry\n");
+        auto op = as<SoftmaxObj>(_op);
         void *const mlu_src = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const mlu_destination =
             (op->getOutput()->getRawDataPtr<void *>());
 
+        printf("compute2 flag1\n");
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
         auto shape = op->getInputs(0)->getDims();
         int nDim = shape.size();
@@ -227,7 +230,9 @@ class SoftmaxCnnl : public BangKernelWithoutConfig {
         int othersize = 1;
         int frontsize = 1;
 
+        printf("compute2 flag2\n");
         for (int s = nDim - 1; s >= 0; s--) {
+            printf("compute2 flag3 %d\n", s);
             num *= shape[s];
             if (s > axis) {
                 stride *= shape[s];
@@ -239,10 +244,11 @@ class SoftmaxCnnl : public BangKernelWithoutConfig {
                 othersize *= shape[s];
             }
         }
-        if (op->getOpType() == OpType::BangSoftmax)
+        if (op->getOpType() == OpType::Softmax)
             softmaxKernel(context->cnnlHandle(), (float *)mlu_destination,
-                          (float *)mlu_src, nDim, axis, othersize, frontsize,
-                          dimsize, stride);
+                          (float *)mlu_src, othersize, dimsize, frontsize,
+                          stride, axis, nDim);
+
         else
             IT_TODO_HALT();
     }
@@ -252,9 +258,11 @@ class SoftmaxCnnl : public BangKernelWithoutConfig {
                         const RuntimeObj *context) override {
         double t = std::numeric_limits<double>::max();
         ComputeFuncPtr funcPtr;
+        printf("computeFuncAdd time %f\n", t);
         for (auto &itPtr : funcVec) {
             double tem =
-                timeit([&]() { funcPtr(op, record, context); }, [&]() {}, 1, 1);
+                timeit([&]() { itPtr(op, record, context); }, [&]() {}, 1, 1);
+            printf("itPtr time %f\n", tem);
             if (tem < t) {
                 t = tem;
                 funcPtr = itPtr;
@@ -286,6 +294,7 @@ class SoftmaxCnnl : public BangKernelWithoutConfig {
 
   public:
     SoftmaxCnnl() {
+        printf("create softmaxCnnl\n");
         funcVec.emplace_back([this](const Operator &op,
                                     const PerfRecord &record,
                                     const RuntimeObj *context) {
@@ -329,8 +338,50 @@ class HardSigmoidCnnl : public UnaryCnnl {
     float getScale() const override { return 0.5f; }
 };
 
+class LeakyReluCnnl : public BangKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<LeakyReluObj>(_op);
+        auto context = dynamic_cast<const BangRuntimeObj *>(_context);
+
+        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+
+        cnnlTensorDescriptor_t aDesc, cDesc;
+        auto aDim = op->getInputs(0)->getDims();
+        auto cDim = op->getOutput()->getDims();
+        auto coef = op->getAlpha();
+
+        checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            aDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
+            aDim.size(), aDim.data()));
+        checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            cDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
+            cDim.size(), cDim.data()));
+        cnnlActivationDescriptor_t opDesc;
+        checkCnnlError(cnnlCreateActivationDescriptor(&opDesc));
+        checkCnnlError(cnnlSetActivationDescriptor_v5(
+            opDesc, CNNL_ACTIVATION_LEAKYRELU, CNNL_ACTIVATION_HIGH_PRECISION,
+            CNNL_NOT_PROPAGATE_NAN, coef, 0.0, 0.0, 0.0, true));
+
+        float alpha = 1.f, beta = 0.f;
+        cnnlStatus_t stat =
+            cnnlActivationForward(context->cnnlHandle(), opDesc, &alpha, aDesc,
+                                  aData, &beta, cDesc, cData);
+        if (stat != CNNL_STATUS_SUCCESS)
+            return;
+        checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
+        checkCnnlError(cnnlDestroyTensorDescriptor(cDesc));
+        checkCnnlError(cnnlDestroyActivationDescriptor(opDesc));
+    }
+};
+
 REGISTER_KERNEL(Device::BANG, OpType::Relu, ReluCnnl, "Relu_cnnl_BANG");
 REGISTER_KERNEL(Device::BANG, OpType::PRelu, PReluCnnl, "PRelu_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::LeakyRelu, LeakyReluCnnl,
+                "LeakyRelu_cnnl_BANG");
 REGISTER_KERNEL(Device::BANG, OpType::Sigmoid, SigmoidCnnl,
                 "Sigmoid_cnnl_BANG");
 REGISTER_KERNEL(Device::BANG, OpType::Round, RoundCnnl, "Round_cnnl_BANG");

@@ -208,6 +208,24 @@ class TestStringMethods(unittest.TestCase):
         relu = make_node("Relu", ["x"], ["y"], name="relu")
         make_and_import_model(make_graph([relu], "relu", [x], [y]))
 
+    def test_leaky_relu(self):
+        # Define input and output tensor information
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 4, 4])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 4, 4])
+
+        # Define the LeakyRelu node
+        leaky_relu = make_node(
+            "LeakyRelu",
+            ["x"],
+            ["y"],
+            "leaky_relu",
+            alpha=0.01  # LeakyReLU alpha value
+        )
+
+        # Create the graph and model
+        graph = make_graph([leaky_relu], "leaky_relu", [x], [y])
+        make_and_import_model(graph)
+
     """Gelu operator is not supported by onnx 14.1 currently."""
 
     def test_gelu(self):

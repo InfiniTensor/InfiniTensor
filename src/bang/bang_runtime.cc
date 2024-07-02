@@ -15,6 +15,7 @@ void BangRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
     double totalTime = 0;
     std::map<OpType, double> opTime;
     std::map<OpType, int> opCnt;
+    printf("BangRuntimeObj run entry !!! %d\n", compute_select);
     for (auto &op : graph->getOperators()) {
         // HACK: set correct data type
         auto kernelAttrs = KernelAttrs{device, op->getOpType().underlying()};
@@ -37,6 +38,18 @@ void BangRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
 
         double t = record->time;
         totalTime += t;
+
+        ComputeFuncPtr funcPtr = nullptr;
+        printf("BangRuntimeObj runtime add %d\n", compute_select);
+        if (compute_select) {
+            printf("BangRuntimeObj 1 add %d\n", compute_select);
+            if (kernel->getComputeFunc(perfKey) == nullptr) {
+                printf("BangRuntimeObj 1-1 \n");
+                kernel->computeFuncAdd(perfKey, op, record, this);
+            }
+            printf("BangRuntimeObj 2 add %d\n", compute_select);
+            funcPtr = kernel->getComputeFunc(perfKey);
+        }
 
         if (profiling) {
             double t = timeit([&]() { kernel->compute(op, record, this); },

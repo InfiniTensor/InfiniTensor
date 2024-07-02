@@ -12,6 +12,8 @@ option(BUILD_TEST "Build tests" ON)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-pointer-arith")
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-pointer-arith")
+
 if(USE_CUDA)
     message("CMake 3.18 or higher is required for setting CUDAToolkit")
     cmake_minimum_required(VERSION 3.18) # FindCUDAToolkit

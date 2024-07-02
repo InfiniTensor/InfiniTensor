@@ -149,6 +149,40 @@ class ConvObj : public ConvBaseObj {
     void setAuxilaryAttributes(PaddingMode mode) override;
 };
 
+class Conv3dObj : public ConvBaseObj {
+  protected:
+    int pd;
+    int sd;
+    int dd;
+    // Auxiliary attributes.
+    int d; // Input depth.
+    int q; // Weight depth.
+
+  public:
+    Conv3dObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
+              int pd, int ph, int pw, int sd = 1, int sh = 1, int sw = 1,
+              int dd = 1, int dh = 1, int dw = 1, Tensor bias = nullptr,
+              ActType act = ActType::None);
+    // Constructors for setting padding mode.
+    Conv3dObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
+              PaddingMode mode = PaddingMode::Same, int sd = 1, int sh = 1,
+              int sw = 1, int dd = 1, int dh = 1, int dw = 1,
+              Tensor bias = nullptr, ActType act = ActType::None);
+    OP_CLONE(Conv3dObj);
+
+    std::string toString() const override;
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
+    int getNumGroups() const override { return c / getChannelPerGroup(); }
+
+    auto getNCDHWFQRS() const { return tuple(n, c, d, h, w, f, q, r, s); }
+    auto getPadStrideDilation() const {
+        return tuple(pd, ph, pw, sd, sh, sw, dd, dh, dw);
+    }
+
+  private:
+    void setAuxilaryAttributes(PaddingMode mode) override;
+};
+
 class ConvBackwardFilterObj : public ConvBaseObj {
   private:
     ActType act;

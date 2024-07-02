@@ -19,13 +19,17 @@ class BatchNormXdnn : public KUNLUNKernelWithoutConfig {
 
         auto dims = op->getInputs(0)->getDims();
 
-        if (dims.size() != 4)
-            IT_TODO_HALT();
+        int n, c, h, w;
+        if (dims.size() != 4) {
+            h = 1;
+            w = 1;
+        }
 
-        int w = dims[3];
-        int h = dims[2];
-        int c = dims[1];
-        int n = dims[0];
+        w = dims[3];
+        h = dims[2];
+        c = dims[1];
+        n = dims[0];
+
         auto ret = xdnn::batch_norm_infer<float>(
             context->KUNLUNHandle(), (float *)input, (float *)output, n, c, h,
             w, op->getEps(), (float *)scale, (float *)bias, (float *)mean,
