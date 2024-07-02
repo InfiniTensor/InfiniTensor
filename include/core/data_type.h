@@ -2,8 +2,8 @@
 #include "core/common.h"
 
 namespace infini {
+class DECLSPEC DataType {
 
-class DataType {
   public:
     // <https://onnx.ai/onnx/intro/concepts.html#element-type>
     static const DataType Undefine;

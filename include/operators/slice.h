@@ -1,5 +1,6 @@
 #pragma once
 #include "core/operator.h"
+#include <algorithm>
 
 namespace infini {
 /**
