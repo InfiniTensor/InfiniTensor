@@ -31,7 +31,6 @@
 #include "operators/unsqueeze.h"
 #include "operators/where.h"
 #include <numeric>
-#include <variant>
 
 namespace infini {
 
@@ -242,6 +241,15 @@ Tensor GraphHandlerObj::pRelu(Tensor x, Tensor slope, Tensor y) {
     } else {
         return g->addOp<PReluObj>(std::move(x), std::move(slope), y)
             ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::leakyRelu(Tensor x, Tensor y, float alpha) {
+    if (y) {
+        g->addOpWithOutputs<LeakyReluObj>(std::move(x), y, alpha);
+        return y;
+    } else {
+        return g->addOp<LeakyReluObj>(std::move(x), y, alpha)->getOutput();
     }
 }
 

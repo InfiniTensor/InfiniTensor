@@ -83,4 +83,3 @@ jobs:
         pip install onnxruntime
         pip install numpy==1.22.2
         make test-onnx
-      
