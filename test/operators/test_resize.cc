@@ -10,9 +10,9 @@ TEST(Resize, ShapeInference) {
     {
         Graph g = make_ref<GraphObj>(cpuRuntime);
         Tensor i = g->addTensor({1, 1, 2, 4}, DataType::UInt32);
-        Tensor sizes = g->addTensor({4}, DataType::UInt32);
+        Tensor sizes = g->addTensor({4}, DataType::Int64);
         sizes->dataMalloc();
-        sizes->copyin(vector<uint32_t>{1, 1, 1, 3});
+        sizes->copyin(vector<int64_t>{1, 1, 1, 3});
         auto op = g->addOp<ResizeObj>(
             i, nullptr, std::nullopt, sizes, nullptr, nullptr,
             ResizeObj::EKeepAspectRatioPolicy::stretch);
@@ -22,9 +22,9 @@ TEST(Resize, ShapeInference) {
     {
         Graph g = make_ref<GraphObj>(cpuRuntime);
         Tensor i = g->addTensor({1, 1, 2, 4}, DataType::UInt32);
-        Tensor sizes = g->addTensor({2}, DataType::UInt32);
+        Tensor sizes = g->addTensor({2}, DataType::Int64);
         sizes->dataMalloc();
-        sizes->copyin(vector<uint32_t>{1, 3});
+        sizes->copyin(vector<int64_t>{1, 3});
         auto op = g->addOp<ResizeObj>(
             i, nullptr, vector<int>{2, 3}, sizes, nullptr, nullptr,
             ResizeObj::EKeepAspectRatioPolicy::stretch);
@@ -34,9 +34,9 @@ TEST(Resize, ShapeInference) {
     {
         Graph g = make_ref<GraphObj>(cpuRuntime);
         Tensor i = g->addTensor({1, 3, 2, 4}, DataType::UInt32);
-        Tensor sizes = g->addTensor({2}, DataType::UInt32);
+        Tensor sizes = g->addTensor({2}, DataType::Int64);
         sizes->dataMalloc();
-        sizes->copyin(vector<uint32_t>{7, 8});
+        sizes->copyin(vector<int64_t>{7, 8});
         auto op = g->addOp<ResizeObj>(
             i, nullptr, vector<int>{2, 3}, sizes, nullptr, nullptr,
             ResizeObj::EKeepAspectRatioPolicy::notLarger);
@@ -46,9 +46,9 @@ TEST(Resize, ShapeInference) {
     {
         Graph g = make_ref<GraphObj>(cpuRuntime);
         Tensor i = g->addTensor({1, 3, 2, 4}, DataType::UInt32);
-        Tensor sizes = g->addTensor({3}, DataType::UInt32);
+        Tensor sizes = g->addTensor({3}, DataType::Int64);
         sizes->dataMalloc();
-        sizes->copyin(vector<uint32_t>{2, 6, 8});
+        sizes->copyin(vector<int64_t>{2, 6, 8});
         auto op = g->addOp<ResizeObj>(
             i, nullptr, vector<int>{1, 2, 3}, sizes, nullptr, nullptr,
             ResizeObj::EKeepAspectRatioPolicy::notSmaller);

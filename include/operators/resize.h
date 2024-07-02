@@ -140,7 +140,7 @@ class ResizeObj : public OperatorObj {
             return 0;
     }
     bool isResizeBySizes() const {
-        return ratioPolicy != EKeepAspectRatioPolicy::none;
+        return inputs[1]->getDType() == DataType::Int64;
     }
 
   private:
