@@ -182,7 +182,6 @@ struct OpType {
         Size,
         Slice,
         Softmax,
-        BangSoftmax,
         SoftmaxCrossEntropyLoss,
         Softplus,
         Softsign,
