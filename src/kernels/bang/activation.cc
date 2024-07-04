@@ -139,7 +139,7 @@ class SoftmaxCnnl : public BangKernelWithoutConfig {
         auto aDim = op->getInputs(0)->getDims();
         int axis = op->getAxis();
         int nDim = aDim.size();
-        if(axis == 0 || axis == nDim - 1){
+        if (axis == 0 || axis == nDim - 1) {
             int stride = 1;
             int dimsize = aDim[axis];
             int num = 1;
@@ -158,13 +158,11 @@ class SoftmaxCnnl : public BangKernelWithoutConfig {
                     othersize *= aDim[s];
                 }
             }
-            softmaxKernel(context->cnnlHandle(), (float *)cData,
-                          (float *)aData, othersize, dimsize, frontsize,
-                          stride, axis, nDim);
-        }
-        else{
+            softmaxKernel(context->cnnlHandle(), (float *)cData, (float *)aData,
+                          othersize, dimsize, frontsize, stride, axis, nDim);
+        } else {
             cnnlSoftmaxMode_t mode;
-        
+
             std::vector<int> inDim = {1, 1, 1};
             std::vector<int> outDim = inDim;
 
@@ -226,16 +224,15 @@ class SoftmaxCnnl : public BangKernelWithoutConfig {
                 outDim.size(), outDim.data()));
             float alpha = 1.0;
             float beta = 0.0;
-            cnnlStatus_t stat =
-                cnnlSoftmaxForward_v2(context->cnnlHandle(), CNNL_SOFTMAX_ACCURATE,
-                                    mode, CNNL_COMPUTATION_ULTRAHIGH_PRECISION,
-                                    &alpha, aDesc, aData, &beta, cDesc, cData);
+            cnnlStatus_t stat = cnnlSoftmaxForward_v2(
+                context->cnnlHandle(), CNNL_SOFTMAX_ACCURATE, mode,
+                CNNL_COMPUTATION_ULTRAHIGH_PRECISION, &alpha, aDesc, aData,
+                &beta, cDesc, cData);
             if (stat != CNNL_STATUS_SUCCESS)
                 return;
             checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
             checkCnnlError(cnnlDestroyTensorDescriptor(cDesc));
         }
-        
     }
 };
 

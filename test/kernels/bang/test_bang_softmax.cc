@@ -30,7 +30,7 @@ void cnnlSoftmaxFp32(const Shape &inputShape, const vector<float> &inputData,
     EXPECT_TRUE(outputGpu2Cpu->equalData(expectData));
 }
 TEST(cnnlSoftmaxFp32, run) {
-    
+
     cnnlSoftmaxFp32(Shape{2, 2, 2, 2},
                     vector<float>{
                         0.,
@@ -79,7 +79,6 @@ TEST(cnnlSoftmaxFp32, run) {
                                   0.1192029, 0.1192029, 0.8807971, 0.8807971,
                                   0.1192029, 0.1192029, 0.8807971, 0.8807971,
                                   0.1192029, 0.1192029, 0.8807971, 0.8807971});
-    
 }
 void bangSoftmaxFp32(const Shape &inputShape, const vector<float> &inputData,
                      int axis, const vector<float> &expectData) {
@@ -118,7 +117,7 @@ TEST(bangSoftmaxFp32, run) {
                          9.99993801e-01, 9.99993801e-01, 9.99993801e-01,
                          9.99993801e-01, 9.99993801e-01, 9.99993801e-01,
                          9.99993801e-01, 9.99993801e-01, 9.99993801e-01});
-    
+
     bangSoftmaxFp32(Shape{2, 2, 2, 2},
                     vector<float>{
                         0.,
