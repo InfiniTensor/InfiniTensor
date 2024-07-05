@@ -33,10 +33,11 @@ void ResizeObj::init(const Tensor &input, const Tensor &sizes,
     // inputs of operator must not be nullptr, due to the check in
     // OperatorObj::OperatorObj
     if (nullptr != sizes) {
+        setGivenSizes(true);
         inputs.push_back(sizes);
-        IT_ASSERT(isResizeBySizes());
         InitBySizes(input, sizes, axes);
     } else if (nullptr != scales) {
+        setGivenSizes(false);
         inputs.push_back(scales);
         InitByScales(input, scales, axes);
     }

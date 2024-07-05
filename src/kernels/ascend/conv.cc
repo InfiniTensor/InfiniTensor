@@ -11,6 +11,7 @@ class ConvAclnn : public ASCENDKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<ConvObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
+        IT_ASSERT(op->getDType() == DataType::Float32);
 
         const auto [ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
         const auto [n, c, h, w, f, r, s] = op->getNCHWFRS();
@@ -18,7 +19,6 @@ class ConvAclnn : public ASCENDKernelWithoutConfig {
         const int g = c / cpg;
 
         std::vector<int64_t> pads = {ph, pw};
-        // std::vector<int64_t> ksize = {r, s};
         std::vector<int64_t> stride = {sh, sw};
         std::vector<int64_t> dilation = {dh, dw};
         std::vector<int64_t> outputPadding = {sh - 1, sw - 1};
@@ -69,26 +69,24 @@ class ConvAclnn : public ASCENDKernelWithoutConfig {
             inputTensor, weightTensor, nullptr, convstride, convpads,
             convdilation, false, convOutputpadding, int64_t(g), outputTensor,
             int8_t(1), &workspaceSize, &executor);
+        checkASCENDError(ret);
+
         void *workspaceAddr = nullptr;
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);
         }
-        // auto tmp_err_msg = aclGetRecentErrMsg();
-        // if (tmp_err_msg != NULL) {
-        //     printf(" ERROR Message : %s \n ", tmp_err_msg);
-        // }
-        assert(ret == ACL_SUCCESS);
+
         ret = aclnnConvolution(workspaceAddr, workspaceSize, executor,
                                context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
+        checkASCENDError(ret);
 
-        // aclDestroyTensor(inputTensor);
-        // aclDestroyTensor(weightTensor);
-        // aclDestroyTensor(outputTensor);
+        aclDestroyTensor(inputTensor);
+        aclDestroyTensor(weightTensor);
+        aclDestroyTensor(outputTensor);
 
         return;
     }
 };
 
 REGISTER_KERNEL(Device::ASCEND, OpType::Conv, ConvAclnn, "conv_ASCEND_float");
-}; // namespace infini
+} // namespace infini

@@ -1,4 +1,5 @@
 #pragma once
+#include "ascend/ascend_common.h"
 #include "core/communicator.h"
 #include "hccl/hccl.h"
 #include "hccl/hccl_types.h"
@@ -12,15 +13,6 @@
 #include <thread>
 #include <vector>
 
-#define ACLCHECK(ret)                                                          \
-    do {                                                                       \
-        assert(ret == ACL_SUCCESS);                                            \
-    } while (0)
-#define HCCLCHECK(ret)                                                         \
-    do {                                                                       \
-        assert(ret == HCCL_SUCCESS);                                           \
-    } while (0)
-
 namespace infini {
 
 class HcclCommunicatorObj final : public CommunicatorObj {
@@ -33,12 +25,12 @@ class HcclCommunicatorObj final : public CommunicatorObj {
         const std::string filePath("./" + name + "_hccl_id.bin");
         int devId = rank;
         int devCount = worldSize;
-        // 在 rootRank 获取 rootInfo
+        // get rootInfo in rootRank
         HcclRootInfo rootInfo;
         int32_t rootRank = 0;
 
         if (devId == rootRank) {
-            HCCLCHECK(HcclGetRootInfo(&rootInfo));
+            checkHCCLError(HcclGetRootInfo(&rootInfo));
             std::ofstream ofs(filePath, std::ios::binary);
             ofs.write((char *)&rootInfo, sizeof(HcclRootInfo));
         } else {
@@ -55,8 +47,7 @@ class HcclCommunicatorObj final : public CommunicatorObj {
 
         auto ret = HcclCommInitRootInfo(uint32_t(devCount), &rootInfo,
                                         uint32_t(devId), &comm);
-
-        assert(ret == HCCL_SUCCESS);
+        checkHCCLError(ret);
 
         if (rank == 0) {
             std::filesystem::remove(filePath);
@@ -68,7 +59,7 @@ class HcclCommunicatorObj final : public CommunicatorObj {
 
     ~HcclCommunicatorObj() final {
         auto ret = HcclCommDestroy(comm);
-        assert(ret == HCCL_SUCCESS);
+        checkHCCLError(ret);
     }
 
     virtual string toString() const final {

@@ -51,30 +51,27 @@ class ResizeAclnn : public ASCENDKernelWithoutConfig {
 
         aclFloatArray *scales = nullptr;
         scales = aclCreateFloatArray(scalesData.data(), scalesData.size());
-        CHECK_RET(scales != nullptr,
-                  LOG_PRINT("aclCreateFloatArray failed.\n"));
+        assert(scales != nullptr);
 
         uint64_t workspaceSize = 0;
         aclOpExecutor *executor;
 
         auto ret = aclnnResizeGetWorkspaceSize(self, scales, mode, output,
                                                &workspaceSize, &executor);
+        checkASCENDError(ret);
+
         void *workspaceAddr = nullptr;
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);
         }
-        CHECK_RET(
-            ret == ACL_SUCCESS,
-            LOG_PRINT("aclnnResizeGetWorkspaceSize failed. ERROR: %d\n", ret));
 
         ret = aclnnResize(workspaceAddr, workspaceSize, executor,
                           context->ASCENDHandle());
-        CHECK_RET(ret == ACL_SUCCESS,
-                  LOG_PRINT("aclnnResize failed. ERROR: %d\n", ret));
-        // auto tmp_err_msg = aclGetRecentErrMsg();
-        // if (tmp_err_msg != NULL) {
-        //     printf(" ERROR Message : %s \n ", tmp_err_msg);
-        // }
+        checkASCENDError(ret);
+
+        aclDestroyTensor(self);
+        aclDestroyFloatArray(scales);
+        aclDestroyTensor(output);
 
         return;
     }

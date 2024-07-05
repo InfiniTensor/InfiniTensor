@@ -43,11 +43,8 @@ class GatherAclnn : public ASCENDKernelWithoutConfig {
             aclFormat::ACL_FORMAT_ND, aDim.data(), aDim.size(), aData);
 
         auto inputB = aclCreateTensor(
-            bDim.data(), bDim.size(),
-            // op->getInputs(1)->getDType() == DataType::Int32 ? ACL_INT32
-            //                                               : ACL_INT64,
-            ACL_INT64, bStride.data(), 0, aclFormat::ACL_FORMAT_ND, bDim.data(),
-            bDim.size(), bData);
+            bDim.data(), bDim.size(), ACL_INT64, bStride.data(), 0,
+            aclFormat::ACL_FORMAT_ND, bDim.data(), bDim.size(), bData);
 
         auto output = aclCreateTensor(
             cDim.data(), cDim.size(), ACL_FLOAT, cStride.data(), 0,
@@ -62,18 +59,15 @@ class GatherAclnn : public ASCENDKernelWithoutConfig {
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);
         }
-        CHECK_RET(ret == ACL_SUCCESS,
-                  LOG_PRINT("aclnnGatherV2GetWorkspaceSize failed. ERROR: %d\n",
-                            ret));
+        checkASCENDError(ret);
 
         ret = aclnnGatherV2(workspaceAddr, workspaceSize, executor,
                             context->ASCENDHandle());
-        CHECK_RET(ret == ACL_SUCCESS,
-                  LOG_PRINT("aclnnGatherV2 failed. ERROR: %d\n", ret));
-        // auto tmp_err_msg = aclGetRecentErrMsg();
-        // if (tmp_err_msg != NULL) {
-        //     printf(" ERROR Message : %s \n ", tmp_err_msg);
-        // }
+        checkASCENDError(ret);
+
+        aclDestroyTensor(inputA);
+        aclDestroyTensor(inputB);
+        aclDestroyTensor(output);
 
         return;
     }
@@ -81,4 +75,4 @@ class GatherAclnn : public ASCENDKernelWithoutConfig {
 
 REGISTER_KERNEL(Device::ASCEND, OpType::Gather, GatherAclnn,
                 "gather_ASCEND_float");
-}; // namespace infini
+} // namespace infini

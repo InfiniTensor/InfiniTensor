@@ -9,6 +9,7 @@ class SoftmaxAclnn : public ASCENDKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<SoftmaxObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
+        IT_ASSERT(op->getDType() == DataType::Float32);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
@@ -37,17 +38,19 @@ class SoftmaxAclnn : public ASCENDKernelWithoutConfig {
 
         auto ret = aclnnSoftmaxGetWorkspaceSize(input, axis, output,
                                                 &workspaceSize, &executor);
+        checkASCENDError(ret);
+
         void *workspaceAddr = nullptr;
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);
         }
-        assert(ret == ACL_SUCCESS);
+
         ret = aclnnSoftmax(workspaceAddr, workspaceSize, executor,
                            context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
+        checkASCENDError(ret);
 
-        // aclDestroyTensor(input);
-        // aclDestroyTensor(output);
+        aclDestroyTensor(input);
+        aclDestroyTensor(output);
         return;
     }
 };
@@ -55,4 +58,4 @@ class SoftmaxAclnn : public ASCENDKernelWithoutConfig {
 REGISTER_KERNEL(Device::ASCEND, OpType::Softmax, SoftmaxAclnn,
                 "softmax_ASCEND_float");
 
-}; // namespace infini
+} // namespace infini

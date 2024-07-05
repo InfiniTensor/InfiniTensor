@@ -46,15 +46,20 @@ class MeanAclnn : public ASCENDKernelWithoutConfig {
 
         auto ret = aclnnMeanV2GetWorkspaceSize(
             inputA, dim, KeepDim, true, output, &workspaceSize, &executor);
-        assert(ret == ACL_SUCCESS);
+        checkASCENDError(ret);
+
         void *workspaceAddr = nullptr;
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);
         }
-        assert(ret == ACL_SUCCESS);
+
         ret = aclnnMeanV2(workspaceAddr, workspaceSize, executor,
                           context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
+        checkASCENDError(ret);
+
+        aclDestroyTensor(inputA);
+        aclDestroyIntArray(dim);
+        aclDestroyTensor(output);
 
         return;
     }
@@ -100,15 +105,20 @@ class ReduceSumAclnn : public ASCENDKernelWithoutConfig {
 
         auto ret = aclnnReduceSumGetWorkspaceSize(
             inputA, dim, KeepDim, ACL_FLOAT, output, &workspaceSize, &executor);
-        assert(ret == ACL_SUCCESS);
+        checkASCENDError(ret);
+
         void *workspaceAddr = nullptr;
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);
         }
-        assert(ret == ACL_SUCCESS);
+
         ret = aclnnReduceSum(workspaceAddr, workspaceSize, executor,
                              context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
+        checkASCENDError(ret);
+
+        aclDestroyTensor(inputA);
+        aclDestroyIntArray(dim);
+        aclDestroyTensor(output);
 
         return;
     }
@@ -118,4 +128,4 @@ REGISTER_KERNEL(Device::ASCEND, OpType::ReduceMean, MeanAclnn,
                 "reduceMean_ASCEND_float");
 REGISTER_KERNEL(Device::ASCEND, OpType::ReduceSum, ReduceSumAclnn,
                 "reduceSum_ASCEND_float");
-}; // namespace infini
+} // namespace infini

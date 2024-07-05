@@ -11,6 +11,7 @@ class ConvTransAclnn : public ASCENDKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<ConvTransposed2dObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
+        IT_ASSERT(op->getDType() == DataType::Float32);
 
         const auto [ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
         const auto [oph, opw] = op->getOutputPadding();
@@ -19,7 +20,6 @@ class ConvTransAclnn : public ASCENDKernelWithoutConfig {
         const int g = c / cpg;
 
         std::vector<int64_t> pads = {ph, pw};
-        // std::vector<int64_t> ksize = {r, s};
         std::vector<int64_t> stride = {sh, sw};
         std::vector<int64_t> dilation = {dh, dw};
         std::vector<int64_t> outputPadding = {oph, opw};
@@ -34,15 +34,12 @@ class ConvTransAclnn : public ASCENDKernelWithoutConfig {
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
-        // void *const biasData = (op->getBias()->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
 
         auto inputD = op->getInputs(0)->getDims();
         auto inputS = op->getInputs(0)->getStride();
         auto weightD = op->getInputs(1)->getDims();
         auto weightS = op->getInputs(1)->getStride();
-        // auto biasD = op->getBias()->getDims();
-        // auto biasS = op->getBias()->getStride();
         auto outD = op->getOutput()->getDims();
         auto outS = op->getOutput()->getStride();
 
@@ -73,18 +70,20 @@ class ConvTransAclnn : public ASCENDKernelWithoutConfig {
             inputTensor, weightTensor, nullptr, convstride, convpads,
             convdilation, true, convOutputpadding, int64_t(g), outputTensor,
             int8_t(1), &workspaceSize, &executor);
+        checkASCENDError(ret);
+
         void *workspaceAddr = nullptr;
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);
         }
-        assert(ret == ACL_SUCCESS);
+
         ret = aclnnConvolution(workspaceAddr, workspaceSize, executor,
                                context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
+        checkASCENDError(ret);
 
-        // aclDestroyTensor(inputTensor);
-        // aclDestroyTensor(weightTensor);
-        // aclDestroyTensor(outputTensor);
+        aclDestroyTensor(inputTensor);
+        aclDestroyTensor(weightTensor);
+        aclDestroyTensor(outputTensor);
 
         return;
     }
@@ -92,4 +91,4 @@ class ConvTransAclnn : public ASCENDKernelWithoutConfig {
 
 REGISTER_KERNEL(Device::ASCEND, OpType::ConvTranspose, ConvTransAclnn,
                 "ConvTrans_ASCEND_float");
-}; // namespace infini
+} // namespace infini

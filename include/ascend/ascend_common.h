@@ -13,6 +13,23 @@
         }                                                                      \
     }
 
+#define checkHCCLError(call)                                                   \
+    {                                                                          \
+        auto err = call;                                                       \
+        if (HCCL_SUCCESS != err) {                                             \
+            fprintf(stderr, "HCCL error in %s:%i : .\n", __FILE__, __LINE__);  \
+            exit(EXIT_FAILURE);                                                \
+        }                                                                      \
+    }
+
+#define GetRecentErrMsg()                                                      \
+    {                                                                          \
+        auto tmp_err_msg = aclGetRecentErrMsg();                               \
+        if (tmp_err_msg != NULL) {                                             \
+            printf(" ERROR Message : %s \n ", tmp_err_msg);                    \
+        }                                                                      \
+    }
+
 namespace infini {
 
 using ASCENDPtr = void *;

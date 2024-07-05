@@ -11,6 +11,7 @@ class LayerNormAclnn : public ASCENDKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<LayerNormObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
+        IT_ASSERT(op->getDType() == DataType::Float32);
 
         void *const inputData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const weightData = (op->getInputs(1)->getRawDataPtr<void *>());
@@ -76,11 +77,8 @@ class LayerNormAclnn : public ASCENDKernelWithoutConfig {
         auto ret = aclnnLayerNormGetWorkspaceSize(
             inputTensor, normArray, weightTensor, biasTensor, eps, outputTensor,
             NULL, NULL, &workspaceSize, &executor);
+        checkASCENDError(ret);
 
-        CHECK_RET(
-            ret == ACL_SUCCESS,
-            LOG_PRINT("aclnnLayerNormGetWorkspaceSize failed. ERROR: %d\n",
-                      ret));
         void *workspaceAddr = nullptr;
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);
@@ -88,8 +86,12 @@ class LayerNormAclnn : public ASCENDKernelWithoutConfig {
 
         ret = aclnnLayerNorm(workspaceAddr, workspaceSize, executor,
                              context->ASCENDHandle());
-        CHECK_RET(ret == ACL_SUCCESS,
-                  LOG_PRINT("aclnnLayerNorm failed. ERROR: %d\n", ret));
+        checkASCENDError(ret);
+
+        aclDestroyTensor(inputTensor);
+        aclDestroyTensor(weightTensor);
+        aclDestroyIntArray(normArray);
+        aclDestroyTensor(outputTensor);
 
         return;
     }
@@ -98,4 +100,4 @@ class LayerNormAclnn : public ASCENDKernelWithoutConfig {
 REGISTER_KERNEL(Device::ASCEND, OpType::LayerNormalization, LayerNormAclnn,
                 "LayerNorm_ASCEND");
 
-}; // namespace infini
+} // namespace infini

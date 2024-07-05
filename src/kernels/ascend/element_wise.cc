@@ -16,6 +16,7 @@ namespace infini {
                      const RuntimeObj *_context) const override {              \
             auto op = as<ElementWiseObj>(_op);                                 \
             auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);   \
+            IT_ASSERT(op->getDType() == DataType::Float32);                    \
                                                                                \
             void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());   \
             void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());   \
@@ -50,18 +51,19 @@ namespace infini {
                                                                                \
             auto ret = aclnn##prefix##GetWorkspaceSize(                        \
                 inputA, inputB, output, &workspaceSize, &executor);            \
+            checkASCENDError(ret);                                             \
             void *workspaceAddr = nullptr;                                     \
             if (workspaceSize > 0) {                                           \
                 workspaceAddr = context->getWorkspace(workspaceSize);          \
             }                                                                  \
-            assert(ret == ACL_SUCCESS);                                        \
+                                                                               \
             ret = aclnn##prefix(workspaceAddr, workspaceSize, executor,        \
                                 context->ASCENDHandle());                      \
-            assert(ret == ACL_SUCCESS);                                        \
+            checkASCENDError(ret);                                             \
                                                                                \
-            ret = aclDestroyTensor(inputA);                                    \
-            ret = aclDestroyTensor(inputB);                                    \
-            ret = aclDestroyTensor(output);                                    \
+            aclDestroyTensor(inputA);                                          \
+            aclDestroyTensor(inputB);                                          \
+            aclDestroyTensor(output);                                          \
                                                                                \
             return;                                                            \
         }                                                                      \
@@ -75,6 +77,7 @@ class AddAclnn : public ASCENDKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
+        IT_ASSERT(op->getDType() == DataType::Float32);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
@@ -112,14 +115,21 @@ class AddAclnn : public ASCENDKernelWithoutConfig {
 
         auto ret = aclnnAddGetWorkspaceSize(inputA, inputB, alpha, output,
                                             &workspaceSize, &executor);
+        checkASCENDError(ret);
+
         void *workspaceAddr = nullptr;
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);
         }
-        assert(ret == ACL_SUCCESS);
+
         ret = aclnnAdd(workspaceAddr, workspaceSize, executor,
                        context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
+        checkASCENDError(ret);
+
+        aclDestroyTensor(inputA);
+        aclDestroyTensor(inputB);
+        aclDestroyScalar(alpha);
+        aclDestroyTensor(output);
 
         return;
     }
@@ -133,6 +143,7 @@ class SubAclnn : public ASCENDKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
+        IT_ASSERT(op->getDType() == DataType::Float32);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
@@ -170,19 +181,21 @@ class SubAclnn : public ASCENDKernelWithoutConfig {
 
         auto ret = aclnnSubGetWorkspaceSize(inputA, inputB, alpha, output,
                                             &workspaceSize, &executor);
+        checkASCENDError(ret);
+
         void *workspaceAddr = nullptr;
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);
         }
-        assert(ret == ACL_SUCCESS);
+
         ret = aclnnSub(workspaceAddr, workspaceSize, executor,
                        context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
+        checkASCENDError(ret);
 
-        ret = aclDestroyTensor(inputA);
-        ret = aclDestroyTensor(inputB);
-        ret = aclDestroyScalar(alpha);
-        ret = aclDestroyTensor(output);
+        aclDestroyTensor(inputA);
+        aclDestroyTensor(inputB);
+        aclDestroyScalar(alpha);
+        aclDestroyTensor(output);
 
         return;
     }
@@ -203,4 +216,4 @@ REGISTER_KERNEL(Device::ASCEND, OpType::Sub, SubAclnn, "sub_ASCEND_float");
 REGISTER_KERNEL(Device::ASCEND, OpType::Max, MaximumAclnn, "max_ASCEND_float");
 //  REGISTER_KERNEL(Device::ASCEND, OpType::Abs, AbsAclnn, "abs_ASCEND_float");
 
-}; // namespace infini
+} // namespace infini

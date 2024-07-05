@@ -14,7 +14,7 @@
 | -------- | ------------  | -----------   | ---------- |
 | X86-64   | Nvidia GPU    |  Ubuntu-22.04 |  Yes       |
 | X86-64   | Cambricon MLU |  Ubuntu-22.04 |  Yes       |
-| arm64    | Ascend NPU    |OpenEuler 22.03|  Yes       |
+| arm64    | Ascend NPU    |OpenEuler-22.03|  Yes       |
 
 推荐使用 X86-64 机器以及 Ubuntu-22.04，本文以此环境为例。
 
@@ -153,6 +153,13 @@
    ```bash
    export KUNLUN_HOME=/path/to/your/kunlun_home
    make install-python KUNLUN=ON
+   ```
+
+   编译 CPU 部分，同时编译昇腾 NPU 部分：
+
+   ```bash
+   export ASCEND_HOME=/path/to/your/ascend_home
+   make install-python ASCEND=ON
    ```
 
 3. 使用方法

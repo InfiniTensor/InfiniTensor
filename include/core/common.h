@@ -92,4 +92,6 @@ double timeit(
     const std::function<void(void)> &sync = []() {}, int warmupRounds = 10,
     int timingRounds = 10);
 
+std::vector<int64_t> castTo64(std::vector<int> const &v32);
+
 } // namespace infini

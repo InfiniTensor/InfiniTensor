@@ -2,18 +2,6 @@
 #include "ascend/ascend_common.h"
 #include "core/runtime.h"
 
-#define CHECK_RET(cond, return_expr)                                           \
-    do {                                                                       \
-        if (!(cond)) {                                                         \
-            return_expr;                                                       \
-        }                                                                      \
-    } while (0)
-
-#define LOG_PRINT(message, ...)                                                \
-    do {                                                                       \
-        printf(message, ##__VA_ARGS__);                                        \
-    } while (0)
-
 namespace infini {
 
 class ASCENDRuntimeObj : public RuntimeObj {
@@ -30,30 +18,19 @@ class ASCENDRuntimeObj : public RuntimeObj {
         // CHECK_RET(ret == ACL_SUCCESS,
         //           LOG_PRINT("aclInit failed. ERROR: %d\n", ret));
         auto ret = aclrtSetDevice(deviceId);
-        CHECK_RET(ret == ACL_SUCCESS,
-                  LOG_PRINT("aclrtSetDevice failed. ERROR: %d\n", ret));
-        // ret = aclrtCreateContext(&context, deviceId);
-        // CHECK_RET(ret == ACL_SUCCESS,
-        //           LOG_PRINT("aclrtCreateContext failed. ERROR: %d\n", ret));
-        // ret = aclrtSetCurrentContext(context);
-        // CHECK_RET(ret == ACL_SUCCESS,
-        //           LOG_PRINT("aclrtSetCurrentContext failed. ERROR: %d\n",
-        //           ret));
+        checkASCENDError(ret);
         ret = aclrtCreateStream(&stream);
-        CHECK_RET(ret == ACL_SUCCESS,
-                  LOG_PRINT("aclrtCreateStream failed. ERROR: %d\n", ret));
+        checkASCENDError(ret);
 
         // 10GB for Longformer
         // size_t longformerNum = 3lu * (1 << 30);
-        workspaceSize = 3ll << 33; // 3 GB
-        // std::cout<<workspaceSize/1024/1024/1024<< std::endl;
-        // std::cout<<std::bitset<64>(workspaceSize)<< std::endl;
+        workspaceSize = 3ll * (1 << 30); // 3 GB
+
         workspace = alloc(workspaceSize);
     }
     virtual ~ASCENDRuntimeObj() {
         dealloc(workspace);
         aclrtDestroyStream(stream);
-        // aclrtDestroyContext(context);
         aclrtResetDevice(deviceId);
         // aclFinalize();
     }
@@ -61,8 +38,7 @@ class ASCENDRuntimeObj : public RuntimeObj {
 
     void run(const Graph &graph, bool tune = false,
              bool profiling = false) const;
-    // double runEvaluation(const Graph &graph, int nWarmups,
-    //                      int nEvaluations) const;
+
     void sync() const;
     ASCENDPtr alloc(size_t size) override {
         void *ptr;
@@ -70,7 +46,7 @@ class ASCENDRuntimeObj : public RuntimeObj {
             aclrtMalloc((void **)&ptr, size, ACL_MEM_MALLOC_HUGE_FIRST));
         return ptr;
     }
-    void dealloc(void *ptr) override { aclrtFree(ptr); }
+    void dealloc(void *ptr) override { checkASCENDError(aclrtFree(ptr)); }
     aclrtStream ASCENDHandle() const { return stream; }
     ASCENDPtr getWorkspace(uint64_t size) const {
         IT_ASSERT(size <= workspaceSize);

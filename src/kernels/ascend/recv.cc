@@ -13,6 +13,7 @@ class RecvHCCL : public ASCENDKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<RecvObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
+        IT_ASSERT(op->getDType() == DataType::Float32);
 
         void *output = op->getOutput(0)->getRawDataPtr<void *>();
         IT_ASSERT(op->getDType() == DataType::Float32);
@@ -26,22 +27,20 @@ class RecvHCCL : public ASCENDKernelWithoutConfig {
         HcclComm comm =
             dynamic_cast<HcclCommunicatorObj &>(context->getCommunicator())
                 .getHcclComm();
-        // TODO: Using default stream 0 for now.
+
         uint32_t rank;
 
-        HCCLCHECK(HcclGetRankId(comm, &rank));
+        checkHCCLError(HcclGetRankId(comm, &rank));
 
         int source = op->getSourceRank();
         int destination = op->getDestinationRank();
 
-        // printf("###rank:%u,source:%d,outputCount:%d,destination:%d\n", rank,
-        //        source, outputCount, destination);
         if (int(rank) == destination) {
-            HCCLCHECK(HcclRecv(output, uint64_t(outputCount),
-                               HCCL_DATA_TYPE_FP32, uint32_t(source), comm,
-                               context->ASCENDHandle()));
+            checkHCCLError(HcclRecv(output, uint64_t(outputCount),
+                                    HCCL_DATA_TYPE_FP32, uint32_t(source), comm,
+                                    context->ASCENDHandle()));
         }
-        ACLCHECK(aclrtSynchronizeStream(context->ASCENDHandle()));
+        checkASCENDError(aclrtSynchronizeStream(context->ASCENDHandle()));
     }
 };
 

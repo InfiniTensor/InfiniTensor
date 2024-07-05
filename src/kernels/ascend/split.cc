@@ -10,6 +10,7 @@ class SplitAclnn : public ASCENDKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<SplitObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
+        IT_ASSERT(op->getDType() == DataType::Float32);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
 
@@ -51,14 +52,19 @@ class SplitAclnn : public ASCENDKernelWithoutConfig {
 
         auto ret = aclnnSplitTensorGetWorkspaceSize(
             inputA, splitSections, dim, tensorList, &workspaceSize, &executor);
+        checkASCENDError(ret);
+
         void *workspaceAddr = nullptr;
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);
         }
-        assert(ret == ACL_SUCCESS);
+
         ret = aclnnSplitTensor(workspaceAddr, workspaceSize, executor,
                                context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
+        checkASCENDError(ret);
+
+        aclDestroyTensor(inputA);
+        aclDestroyTensorList(tensorList);
 
         return;
     }
@@ -66,4 +72,4 @@ class SplitAclnn : public ASCENDKernelWithoutConfig {
 
 REGISTER_KERNEL(Device::ASCEND, OpType::Split, SplitAclnn,
                 "split_ASCEND_float");
-}; // namespace infini
+} // namespace infini

@@ -11,6 +11,8 @@ class ConcatAclnn : public ASCENDKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<ConcatObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
+        IT_ASSERT(op->getDType() == DataType::Float32);
+
         int dim = op->getDim();
         int num = op->numInputs();
 
@@ -49,17 +51,19 @@ class ConcatAclnn : public ASCENDKernelWithoutConfig {
 
         auto ret = aclnnCatGetWorkspaceSize(
             tensorList, int64_t(dim), outputTensor, &workspaceSize, &executor);
+        checkASCENDError(ret);
+
         void *workspaceAddr = nullptr;
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);
         }
-        assert(ret == ACL_SUCCESS);
+
         ret = aclnnCat(workspaceAddr, workspaceSize, executor,
                        context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
+        checkASCENDError(ret);
 
-        // aclDestroyTensorList(tensorList);
-        // aclDestroyTensor(outputTensor);
+        aclDestroyTensorList(tensorList);
+        aclDestroyTensor(outputTensor);
 
         return;
     }
@@ -67,4 +71,4 @@ class ConcatAclnn : public ASCENDKernelWithoutConfig {
 
 REGISTER_KERNEL(Device::ASCEND, OpType::Concat, ConcatAclnn,
                 "concat_ASCEND_float");
-}; // namespace infini
+} // namespace infini

@@ -22,22 +22,20 @@ class SendHCCL : public ASCENDKernelWithoutConfig {
         HcclComm comm =
             dynamic_cast<HcclCommunicatorObj &>(context->getCommunicator())
                 .getHcclComm();
-        // TODO: Using default stream 0 for now.
+
         uint32_t rank;
 
-        HCCLCHECK(HcclGetRankId(comm, &rank));
+        checkHCCLError(HcclGetRankId(comm, &rank));
 
         int source = op->getSourceRank();
         int destination = op->getDestinationRank();
 
-        // printf("***rank:%u,source:%d,inputCount:%d,destination:%d\n", rank,
-        //        source, inputCount, destination);
         if (int(rank) == source) {
-            HCCLCHECK(HcclSend(input, uint64_t(inputCount), HCCL_DATA_TYPE_FP32,
-                               uint32_t(destination), comm,
-                               context->ASCENDHandle()));
+            checkHCCLError(HcclSend(input, uint64_t(inputCount),
+                                    HCCL_DATA_TYPE_FP32, uint32_t(destination),
+                                    comm, context->ASCENDHandle()));
         }
-        ACLCHECK(aclrtSynchronizeStream(context->ASCENDHandle()));
+        checkASCENDError(aclrtSynchronizeStream(context->ASCENDHandle()));
     }
 };
 

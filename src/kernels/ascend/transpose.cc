@@ -40,21 +40,26 @@ class PermuteAclnn : public ASCENDKernelWithoutConfig {
 
         auto ret = aclnnPermuteGetWorkspaceSize(inputA, dims, output,
                                                 &workspaceSize, &executor);
+        checkASCENDError(ret);
+
         void *workspaceAddr = nullptr;
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);
         }
-        assert(ret == ACL_SUCCESS);
+
         ret = aclnnPermute(workspaceAddr, workspaceSize, executor,
                            context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
+        checkASCENDError(ret);
+
+        aclDestroyTensor(inputA);
+        aclDestroyIntArray(dims);
+        aclDestroyTensor(output);
 
         return;
     }
 };
 
 class DepthToSpaceAclnn : public ASCENDKernelWithoutConfig {
-
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<DepthToSpaceObj>(_op);
@@ -64,6 +69,15 @@ class DepthToSpaceAclnn : public ASCENDKernelWithoutConfig {
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
 
+        auto getStride = [](std::vector<int> Dim) {
+            Shape stride(Dim.size());
+            ShapeElem p = 1;
+            for (auto i = Dim.size(); i > 0; --i) {
+                stride[i - 1] = p;
+                p = p * Dim[i - 1];
+            }
+            return stride;
+        };
         auto reshapeDim = op->getReshapeDim();
         auto reshapeStride = getStride(reshapeDim);
         auto transposeDim = op->getTransposeDim();
@@ -96,14 +110,20 @@ class DepthToSpaceAclnn : public ASCENDKernelWithoutConfig {
 
         auto ret = aclnnPermuteGetWorkspaceSize(inputA, dims, output,
                                                 &workspaceSize, &executor);
+        checkASCENDError(ret);
+
         void *workspaceAddr = nullptr;
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);
         }
-        assert(ret == ACL_SUCCESS);
+
         ret = aclnnPermute(workspaceAddr, workspaceSize, executor,
                            context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
+        checkASCENDError(ret);
+
+        aclDestroyTensor(inputA);
+        aclDestroyIntArray(dims);
+        aclDestroyTensor(output);
 
         return;
     }
@@ -113,4 +133,4 @@ REGISTER_KERNEL(Device::ASCEND, OpType::Transpose, PermuteAclnn,
                 "transpose_ASCEND_float");
 REGISTER_KERNEL(Device::ASCEND, OpType::DepthToSpace, DepthToSpaceAclnn,
                 "DepthToSpace_ASCEND_float");
-}; // namespace infini
+} // namespace infini

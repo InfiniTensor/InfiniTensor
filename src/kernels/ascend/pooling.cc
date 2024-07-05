@@ -12,6 +12,7 @@ class AvgPooling : public ASCENDKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<PoolingObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
+        IT_ASSERT(op->getDType() == DataType::Float32);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
@@ -54,10 +55,7 @@ class AvgPooling : public ASCENDKernelWithoutConfig {
             selfTensor, kernelSize, strides, paddings, false, true,
             divisorOverride, int8_t(0), outputTensor, &workspaceSize,
             &executor);
-        CHECK_RET(
-            ret == ACL_SUCCESS,
-            LOG_PRINT("aclnnAvgPool2dGetWorkspaceSize failed. ERROR: %d\n",
-                      ret));
+        checkASCENDError(ret);
 
         void *workspaceAddr = nullptr;
         if (workspaceSize > 0) {
@@ -66,11 +64,13 @@ class AvgPooling : public ASCENDKernelWithoutConfig {
 
         ret = aclnnAvgPool2d(workspaceAddr, workspaceSize, executor,
                              context->ASCENDHandle());
-        CHECK_RET(ret == ACL_SUCCESS,
-                  LOG_PRINT("aclnnAvgPool2d failed. ERROR: %d\n", ret));
+        checkASCENDError(ret);
 
-        // aclDestroyTensor(selfTensor);
-        // aclDestroyTensor(outputTensor);
+        aclDestroyTensor(selfTensor);
+        aclDestroyIntArray(kernelSize);
+        aclDestroyIntArray(strides);
+        aclDestroyIntArray(paddings);
+        aclDestroyTensor(outputTensor);
 
         return;
     }
@@ -81,6 +81,7 @@ class MaxPooling : public ASCENDKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<PoolingObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
+        IT_ASSERT(op->getDType() == DataType::Float32);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
@@ -123,7 +124,7 @@ class MaxPooling : public ASCENDKernelWithoutConfig {
         auto ret = aclnnMaxPoolGetWorkspaceSize(
             selfTensor, kernelSize, strides, 0, paddings, dilations, ceilMode,
             outputTensor, &workspaceSize, &executor);
-        assert(ret == ACL_SUCCESS);
+        checkASCENDError(ret);
 
         void *workspaceAddr = nullptr;
         if (workspaceSize > 0) {
@@ -132,7 +133,14 @@ class MaxPooling : public ASCENDKernelWithoutConfig {
 
         ret = aclnnMaxPool(workspaceAddr, workspaceSize, executor,
                            context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
+        checkASCENDError(ret);
+
+        aclDestroyTensor(selfTensor);
+        aclDestroyIntArray(kernelSize);
+        aclDestroyIntArray(strides);
+        aclDestroyIntArray(paddings);
+        aclDestroyIntArray(dilations);
+        aclDestroyTensor(outputTensor);
 
         return;
     }
@@ -143,4 +151,4 @@ REGISTER_KERNEL(Device::ASCEND, OpType::MaxPool, MaxPooling,
 
 REGISTER_KERNEL(Device::ASCEND, OpType::AveragePool, AvgPooling,
                 "avgpooling_ASCEND_float");
-}; // namespace infini
+} // namespace infini

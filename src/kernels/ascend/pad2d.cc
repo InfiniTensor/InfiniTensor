@@ -1,4 +1,4 @@
-#include "aclnnop/level2/aclnn_reflection_pad2d.h"
+#include "aclnnop/aclnn_constant_pad_nd.h"
 #include "ascend/ascend_kernel_without_config.h"
 #include "ascend/ascend_runtime.h"
 #include "operators/pad.h"
@@ -11,6 +11,7 @@ class PadAclnn : public ASCENDKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<PadObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
+        IT_ASSERT(op->getDType() == DataType::Float32);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
@@ -27,66 +28,52 @@ class PadAclnn : public ASCENDKernelWithoutConfig {
         std::vector<int64_t> outputDim = castTo64(outD);
         std::vector<int64_t> outputStride = castTo64(outS);
 
-        auto inputTensor =
-            aclCreateTensor(inputDim.data(), inputDim.size(), ACL_FLOAT,
-                            inputStride.data(), 0, aclFormat::ACL_FORMAT_NCHW,
-                            inputDim.data(), inputDim.size(), aData);
+        auto inputTensor = aclCreateTensor(
+            inputDim.data(), inputDim.size(), ACL_FLOAT, inputStride.data(), 0,
+            aclFormat::ACL_FORMAT_ND, inputDim.data(), inputDim.size(), aData);
 
         auto outputTensor =
             aclCreateTensor(outputDim.data(), outputDim.size(), ACL_FLOAT,
-                            outputStride.data(), 0, aclFormat::ACL_FORMAT_NCHW,
+                            outputStride.data(), 0, aclFormat::ACL_FORMAT_ND,
                             outputDim.data(), outputDim.size(), cData);
-
-        uint64_t workspaceSize = 0;
-        aclOpExecutor *executor;
 
         std::vector<int> intPads = op->getPads();
 
         std::size_t length = intPads.size();
-        std::vector<int64_t> pads(4);
-        if (length == 8) {
-            std::size_t halfLen = intPads.size() / 2;
-            bool condition = true;
-            // std::cout << "Length of intPads: " << length << std::endl;
-
-            for (std::size_t i = 0; i < halfLen; ++i) {
-                condition = (intPads[i] == intPads[i + 4]);
-
-                // std::cout << "intPads[" << i << "]: " << intPads[i] <<
-                // std::endl;
-            }
-            assert(condition);
-
-            pads[0] = intPads[2];
-            pads[1] = intPads[3];
-            pads[2] = intPads[6];
-            pads[3] = intPads[7];
-        } else if (length == 4) {
-            for (std::size_t i = 0; i < 4; ++i) {
-
-                pads[i] = intPads[i];
-            }
+        std::vector<int64_t> pads(length);
+        std::size_t halfLen = length / 2;
+        for (std::size_t i = 0; i < halfLen; ++i) {
+            pads[2 * i] = intPads[halfLen - i - 1];
+            pads[2 * i + 1] = intPads[2 * halfLen - i - 1];
         }
 
-        aclIntArray *padding = aclCreateIntArray(pads.data(), 4);
-        auto ret = aclnnReflectionPad2dGetWorkspaceSize(
-            inputTensor, padding, outputTensor, &workspaceSize, &executor);
+        std::cout << "pads = " << vecToString(pads) << std::endl;
+
+        aclIntArray *padding = aclCreateIntArray(pads.data(), length);
+        float valueValue = 0.0f;
+        auto value = aclCreateScalar(&valueValue, ACL_FLOAT);
+
+        uint64_t workspaceSize = 0;
+        aclOpExecutor *executor;
+
+        auto ret = aclnnConstantPadNdGetWorkspaceSize(
+            inputTensor, padding, value, outputTensor, &workspaceSize,
+            &executor);
+        checkASCENDError(ret);
+
         void *workspaceAddr = nullptr;
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);
         }
-        // auto tmp_err_msg = aclGetRecentErrMsg();
-        // if (tmp_err_msg != NULL) {
-        //     printf(" ERROR Message : %s \n ", tmp_err_msg);
-        // }
-        assert(ret == ACL_SUCCESS);
-        ret = aclnnReflectionPad2d(workspaceAddr, workspaceSize, executor,
-                                   context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
 
-        // aclDestroyTensor(inputTensor);
-        // aclDestroyTensor(weightTensor);
-        // aclDestroyTensor(outputTensor);
+        ret = aclnnConstantPadNd(workspaceAddr, workspaceSize, executor,
+                                 context->ASCENDHandle());
+        checkASCENDError(ret);
+
+        aclDestroyTensor(inputTensor);
+        aclDestroyIntArray(padding);
+        aclDestroyScalar(value);
+        aclDestroyTensor(outputTensor);
 
         return;
     }

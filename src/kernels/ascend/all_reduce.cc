@@ -16,17 +16,16 @@ class AllReduceHCCL : public ASCENDKernelWithoutConfig {
         void *sendBuff = op->getInputs(0)->getRawDataPtr<void *>();
         void *recvBuff = op->getOutput()->getRawDataPtr<void *>();
 
-        // HcclDataType
-
         size_t count = op->getInputs(0)->size();
 
         HcclComm comm =
             dynamic_cast<HcclCommunicatorObj &>(context->getCommunicator())
                 .getHcclComm();
-        // TODO: Using default stream 0 for now.
-        HCCLCHECK(HcclAllReduce(sendBuff, recvBuff, count, HCCL_DATA_TYPE_FP32,
-                                getRedOp(), comm, context->ASCENDHandle()));
-        ACLCHECK(aclrtSynchronizeStream(context->ASCENDHandle()));
+
+        checkHCCLError(HcclAllReduce(sendBuff, recvBuff, count,
+                                     HCCL_DATA_TYPE_FP32, getRedOp(), comm,
+                                     context->ASCENDHandle()));
+        checkASCENDError(aclrtSynchronizeStream(context->ASCENDHandle()));
     }
 
     virtual HcclReduceOp getRedOp() const = 0;

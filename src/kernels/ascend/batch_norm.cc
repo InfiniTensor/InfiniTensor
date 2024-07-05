@@ -11,6 +11,7 @@ class BatchNormAclnn : public ASCENDKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<BatchNormObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
+        IT_ASSERT(op->getDType() == DataType::Float32);
 
         void *const inData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const outData = (op->getOutput()->getRawDataPtr<void *>());
@@ -69,27 +70,25 @@ class BatchNormAclnn : public ASCENDKernelWithoutConfig {
             inputTensor, scaleTensor, biasTensor, meanTensor, varTensor, false,
             op->getMomentum(), op->getEps(), outputTensor, savemeanTensor,
             saveinvstdTensor, &workspaceSize, &executor);
+        checkASCENDError(ret);
+
         void *workspaceAddr = nullptr;
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);
         }
-        // auto tmp_err_msg = aclGetRecentErrMsg();
-        // if (tmp_err_msg != NULL) {
-        //     printf(" ERROR Message : %s \n ", tmp_err_msg);
-        // }
-        assert(ret == ACL_SUCCESS);
+
         ret = aclnnBatchNorm(workspaceAddr, workspaceSize, executor,
                              context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
+        checkASCENDError(ret);
 
-        // aclDestroyTensor(inputTensor);
-        // aclDestroyTensor(outputTensor);
-        // aclDestroyTensor(meanTensor);
-        // aclDestroyTensor(varTensor);
-        // aclDestroyTensor(scaleTensor);
-        // aclDestroyTensor(biasTensor);
-        // aclDestroyTensor(savemeanTensor);
-        // aclDestroyTensor(saveinvstdTensor);
+        aclDestroyTensor(inputTensor);
+        aclDestroyTensor(outputTensor);
+        aclDestroyTensor(meanTensor);
+        aclDestroyTensor(varTensor);
+        aclDestroyTensor(scaleTensor);
+        aclDestroyTensor(biasTensor);
+        aclDestroyTensor(savemeanTensor);
+        aclDestroyTensor(saveinvstdTensor);
 
         return;
     }
@@ -97,4 +96,4 @@ class BatchNormAclnn : public ASCENDKernelWithoutConfig {
 
 REGISTER_KERNEL(Device::ASCEND, OpType::BatchNormalization, BatchNormAclnn,
                 "batchnorm_ASCEND_float");
-}; // namespace infini
+} // namespace infini

@@ -85,6 +85,7 @@ class ResizeObj : public OperatorObj {
     vector<int> axes;
     vector<float> scales;
     vector<float> roi;
+    bool isGivenSizes = false;
 
     ECoordinateTransMode coMode; // compute src coordinate from dst coordinate
     ECoeffMode mode; // coeff mode,for computing dst value from coordinate src
@@ -139,9 +140,8 @@ class ResizeObj : public OperatorObj {
         } else
             return 0;
     }
-    bool isResizeBySizes() const {
-        return inputs[1]->getDType() == DataType::Int64;
-    }
+    void setGivenSizes(bool val) { isGivenSizes = val; }
+    bool isResizeBySizes() const { return isGivenSizes; }
 
   private:
     vector<int> getWorkloadVector() const override;

@@ -27,6 +27,7 @@ class ReluAclnn : public ASCENDKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<UnaryObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
+        IT_ASSERT(op->getDType() == DataType::Float32);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
@@ -64,17 +65,19 @@ class ReluAclnn : public ASCENDKernelWithoutConfig {
 
         auto ret =
             aclnnReluGetWorkspaceSize(input, output, &workspaceSize, &executor);
+        checkASCENDError(ret);
+
         void *workspaceAddr = nullptr;
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);
         }
-        assert(ret == ACL_SUCCESS);
+
         ret = aclnnRelu(workspaceAddr, workspaceSize, executor,
                         context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
+        checkASCENDError(ret);
 
-        // aclDestroyTensor(input);
-        // aclDestroyTensor(output);
+        aclDestroyTensor(input);
+        aclDestroyTensor(output);
 
         return;
     }
@@ -84,6 +87,7 @@ class LeakyReluAclnn : public ASCENDKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<LeakyReluObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
+        IT_ASSERT(op->getDType() == DataType::Float32);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
@@ -125,17 +129,20 @@ class LeakyReluAclnn : public ASCENDKernelWithoutConfig {
 
         auto ret = aclnnLeakyReluGetWorkspaceSize(input, negativeSlope, output,
                                                   &workspaceSize, &executor);
+        checkASCENDError(ret);
+
         void *workspaceAddr = nullptr;
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);
         }
-        assert(ret == ACL_SUCCESS);
+
         ret = aclnnLeakyRelu(workspaceAddr, workspaceSize, executor,
                              context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
+        checkASCENDError(ret);
 
-        // aclDestroyTensor(input);
-        // aclDestroyTensor(output);
+        aclDestroyTensor(input);
+        aclDestroyScalar(negativeSlope);
+        aclDestroyTensor(output);
 
         return;
     }
@@ -147,6 +154,7 @@ class LeakyReluAclnn : public ASCENDKernelWithoutConfig {
                      const RuntimeObj *_context) const override {              \
             auto op = as<UnaryObj>(_op);                                       \
             auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);   \
+            IT_ASSERT(op->getDType() == DataType::Float32);                    \
                                                                                \
             void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());   \
             void *const cData = (op->getOutput()->getRawDataPtr<void *>());    \
@@ -184,14 +192,18 @@ class LeakyReluAclnn : public ASCENDKernelWithoutConfig {
                                                                                \
             auto ret = aclnn##prefix##GetWorkspaceSize(                        \
                 input, output, &workspaceSize, &executor);                     \
+            checkASCENDError(ret);                                             \
             void *workspaceAddr = nullptr;                                     \
             if (workspaceSize > 0) {                                           \
                 workspaceAddr = context->getWorkspace(workspaceSize);          \
             }                                                                  \
-            assert(ret == ACL_SUCCESS);                                        \
+                                                                               \
             ret = aclnn##prefix(workspaceAddr, workspaceSize, executor,        \
                                 context->ASCENDHandle());                      \
-            assert(ret == ACL_SUCCESS);                                        \
+            checkASCENDError(ret);                                             \
+                                                                               \
+            aclDestroyTensor(input);                                           \
+            aclDestroyTensor(output);                                          \
                                                                                \
             return;                                                            \
         }                                                                      \
@@ -243,4 +255,4 @@ REGISTER_KERNEL(Device::ASCEND, OpType::Sqrt, SqrtAclnn, "sqrt_ASCEND_float");
 REGISTER_KERNEL(Device::ASCEND, OpType::Round, RoundAclnn,
                 "round_ASCEND_float");
 REGISTER_KERNEL(Device::ASCEND, OpType::Erf, ErfAclnn, "erf_ASCEND_float");
-}; // namespace infini
+} // namespace infini

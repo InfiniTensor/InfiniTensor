@@ -8,6 +8,7 @@ class CopyAclnn : public ASCENDKernelWithoutConfig {
     void compute(const Operator &op,
                  const RuntimeObj *_context) const override {
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
+        IT_ASSERT(op->getDType() == DataType::Float32);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
@@ -30,14 +31,19 @@ class CopyAclnn : public ASCENDKernelWithoutConfig {
 
         auto ret = aclnnInplaceCopyGetWorkspaceSize(outputTensor, srcTensor,
                                                     &workspaceSize, &executor);
+        checkASCENDError(ret);
+
         void *workspaceAddr = nullptr;
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);
         }
-        assert(ret == ACL_SUCCESS);
+
         ret = aclnnInplaceCopy(workspaceAddr, workspaceSize, executor,
                                context->ASCENDHandle());
-        assert(ret == ACL_SUCCESS);
+        checkASCENDError(ret);
+
+        aclDestroyTensor(srcTensor);
+        aclDestroyTensor(outputTensor);
 
         return;
     }
@@ -53,4 +59,4 @@ REGISTER_KERNEL(Device::ASCEND, OpType::Flatten, CopyAclnn,
                 "Flatten_ASCEND_float");
 REGISTER_KERNEL(Device::ASCEND, OpType::Identity, CopyAclnn,
                 "Identity_ASCEND_float");
-}; // namespace infini
+} // namespace infini

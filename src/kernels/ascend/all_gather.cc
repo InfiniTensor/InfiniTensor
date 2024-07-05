@@ -20,7 +20,7 @@ class AllGatherHCCL : public ASCENDKernelWithoutConfig {
         void *input = op->getInputs(0)->getRawDataPtr<void *>();
         ASCENDPtr output_temp =
             context->getWorkspace(op->getInputs(0)->getBytes() * world_size);
-        // void *output = op->getOutput()->getRawDataPtr<void *>();
+
         IT_ASSERT(op->getDType() == DataType::Float32);
         size_t bytes = op->getInputs(0)->getBytes();
         size_t count = bytes / op->getDType().getSize();
@@ -28,11 +28,11 @@ class AllGatherHCCL : public ASCENDKernelWithoutConfig {
         HcclComm comm =
             dynamic_cast<HcclCommunicatorObj &>(context->getCommunicator())
                 .getHcclComm();
-        // TODO: Using default stream 0 for now.
-        HCCLCHECK(HcclAllGather(input, output_temp, uint64_t(count),
-                                HCCL_DATA_TYPE_FP32, comm,
-                                context->ASCENDHandle()));
-        ACLCHECK(aclrtSynchronizeStream(context->ASCENDHandle()));
+
+        checkHCCLError(HcclAllGather(input, output_temp, uint64_t(count),
+                                     HCCL_DATA_TYPE_FP32, comm,
+                                     context->ASCENDHandle()));
+        checkASCENDError(aclrtSynchronizeStream(context->ASCENDHandle()));
 
         for (int i = 0; i < world_size; ++i) {
             Tensor output = op->getOutput(i);
