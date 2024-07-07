@@ -36,6 +36,17 @@ namespace infini {
 static DataType dtype_repr_convert(int);
 static CastType inferCastType(Tensor input, int to);
 
+Tensor GraphHandlerObj::elu(Tensor input, Tensor output, float alpha) {
+    if (output) {
+        g->addOpWithOutputs<EluObj>(std::move(input), output, alpha);
+        return output;
+    } else {
+        auto new_output = g->addTensor(input->getDims(), input->getDType());
+        g->addOpWithOutputs<EluObj>(std::move(input), new_output, alpha);
+        return new_output;
+    }
+}
+
 Tensor GraphHandlerObj::tensor(Shape dims, int dtype) {
     return g->addTensor(std::move(dims), dtype_repr_convert(dtype));
 }
