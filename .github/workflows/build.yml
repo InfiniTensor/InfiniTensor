@@ -36,6 +36,11 @@ jobs:
     - name: Install libdw
       run: sudo apt-get update && sudo apt-get install libdw-dev
 
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install numpy==1.22.2 onnxruntime
+
     # - name: Cache protobuf
     #   id: cache-protobuf
     #   uses: actions/cache@v3
@@ -79,7 +84,4 @@ jobs:
 
     - name: Test onnx frontend
       run: |
-        python -m pip install --upgrade pip
-        pip install onnxruntime
-        pip install numpy==1.22.2
         make test-onnx
