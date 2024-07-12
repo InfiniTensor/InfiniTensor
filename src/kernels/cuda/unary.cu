@@ -94,7 +94,8 @@ __global__ void _sqrt_kernel(half *input, half *output, size_t n) {
     }
 }
 
-__global__ void _elu_kernel(const float *input, float *output, int size, float alpha) {
+__global__ void _elu_kernel(const float *input, float *output, size_t size,
+                            float alpha) {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (index < size) {
@@ -369,7 +370,7 @@ void leaky_relu_kernel(T *input, T *output, size_t num, float alphaValue) {
                                                            alphaValue);
 }
 
-void elu_kernel(const float *input, float *output, int size, float alpha) {
+void elu_kernel(const float *input, float *output, size_t size, float alpha) {
     int blocksize = 32 * 16;
     int gridsize = (size + blocksize - 1) / blocksize;
     _elu_kernel<<<gridsize, blocksize>>>(input, output, size, alpha);
