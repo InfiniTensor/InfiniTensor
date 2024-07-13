@@ -1,5 +1,6 @@
 #include "bang/bang_kernel_without_config.h"
 #include "bang/bang_runtime.h"
+#include "bang/bang_softmax.h"
 #include "operators/softmax.h"
 #include "operators/unary.h"
 #include <iostream>
@@ -136,78 +137,102 @@ class SoftmaxCnnl : public BangKernelWithoutConfig {
 
         cnnlTensorDescriptor_t aDesc, cDesc;
         auto aDim = op->getInputs(0)->getDims();
+        int axis = op->getAxis();
+        int nDim = aDim.size();
+        if (axis == 0 || axis == nDim - 1) {
+            int stride = 1;
+            int dimsize = aDim[axis];
+            int num = 1;
+            int othersize = 1;
+            int frontsize = 1;
 
-        cnnlSoftmaxMode_t mode;
-        size_t axis = op->getAxis();
-        std::vector<int> inDim = {1, 1, 1};
-        std::vector<int> outDim = inDim;
-
-        if (aDim.size() >= 3) {
-            if (axis == 0) {
-                mode = CNNL_SOFTMAX_MODE_HIGH_DIMENSION;
-                inDim[0] = aDim[0];
-                inDim[1] = aDim[1];
-                for (size_t i = 2; i < aDim.size(); ++i) {
-                    inDim[2] *= aDim[i];
+            for (int s = nDim - 1; s >= 0; s--) {
+                num *= aDim[s];
+                if (s > axis) {
+                    stride *= aDim[s];
                 }
-                outDim = inDim;
-            } else if (axis == aDim.size() - 1) {
-                mode = CNNL_SOFTMAX_MODE_LOW_DIMENSION;
-                inDim[0] = aDim[0];
-                for (size_t i = 1; i < axis; ++i) {
-                    inDim[1] *= aDim[i];
+                if (s < axis) {
+                    frontsize *= aDim[s];
                 }
-                inDim[2] = aDim[axis];
-                outDim = inDim;
-            } else {
-                mode = CNNL_SOFTMAX_MODE_MEDIUM_DIMENSION;
-                for (size_t i = 0; i < axis; ++i) {
-                    inDim[0] *= aDim[i];
+                if (s != axis) {
+                    othersize *= aDim[s];
                 }
-                inDim[1] = aDim[axis];
-                for (size_t i = axis + 1; i < aDim.size(); ++i) {
-                    inDim[2] *= aDim[i];
-                }
-                outDim = inDim;
             }
-        } else if (aDim.size() == 2) {
-            if (axis == 0) {
+            softmaxKernel(context->cnnlHandle(), (float *)cData, (float *)aData,
+                          othersize, dimsize, frontsize, stride, axis, nDim);
+        } else {
+            cnnlSoftmaxMode_t mode;
+
+            std::vector<int> inDim = {1, 1, 1};
+            std::vector<int> outDim = inDim;
+
+            if (nDim >= 3) {
+                if (axis == 0) {
+                    mode = CNNL_SOFTMAX_MODE_HIGH_DIMENSION;
+                    inDim[0] = aDim[0];
+                    inDim[1] = aDim[1];
+                    for (int i = 2; i < nDim; ++i) {
+                        inDim[2] *= aDim[i];
+                    }
+                    outDim = inDim;
+                } else if (axis == nDim - 1) {
+                    mode = CNNL_SOFTMAX_MODE_LOW_DIMENSION;
+                    inDim[0] = aDim[0];
+                    for (int i = 1; i < axis; ++i) {
+                        inDim[1] *= aDim[i];
+                    }
+                    inDim[2] = aDim[axis];
+                    outDim = inDim;
+                } else {
+                    mode = CNNL_SOFTMAX_MODE_MEDIUM_DIMENSION;
+                    for (int i = 0; i < axis; ++i) {
+                        inDim[0] *= aDim[i];
+                    }
+                    inDim[1] = aDim[axis];
+                    for (int i = axis + 1; i < nDim; ++i) {
+                        inDim[2] *= aDim[i];
+                    }
+                    outDim = inDim;
+                }
+            } else if (nDim == 2) {
+                if (axis == 0) {
+                    mode = CNNL_SOFTMAX_MODE_HIGH_DIMENSION;
+                    inDim = aDim;
+                    inDim.push_back(1);
+                    outDim = inDim;
+                } else {
+                    mode = CNNL_SOFTMAX_MODE_LOW_DIMENSION;
+                    inDim = aDim;
+                    inDim.insert(inDim.begin(), 1);
+                    outDim = inDim;
+                }
+            } else {
                 mode = CNNL_SOFTMAX_MODE_HIGH_DIMENSION;
                 inDim = aDim;
                 inDim.push_back(1);
-                outDim = inDim;
-            } else {
-                mode = CNNL_SOFTMAX_MODE_LOW_DIMENSION;
-                inDim = aDim;
-                inDim.insert(inDim.begin(), 1);
+                inDim.push_back(1);
                 outDim = inDim;
             }
-        } else {
-            mode = CNNL_SOFTMAX_MODE_HIGH_DIMENSION;
-            inDim = aDim;
-            inDim.push_back(1);
-            inDim.push_back(1);
-            outDim = inDim;
-        }
 
-        checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(
-            aDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
-            inDim.size(), inDim.data()));
-        checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
-        checkCnnlError(cnnlSetTensorDescriptor(
-            cDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
-            outDim.size(), outDim.data()));
-        float alpha = 1.0;
-        float beta = 0.0;
-        cnnlStatus_t stat =
-            cnnlSoftmaxForward_v2(context->cnnlHandle(), CNNL_SOFTMAX_ACCURATE,
-                                  mode, CNNL_COMPUTATION_ULTRAHIGH_PRECISION,
-                                  &alpha, aDesc, aData, &beta, cDesc, cData);
-        if (stat != CNNL_STATUS_SUCCESS)
-            return;
-        checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
-        checkCnnlError(cnnlDestroyTensorDescriptor(cDesc));
+            checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                aDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+                inDim.size(), inDim.data()));
+            checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
+            checkCnnlError(cnnlSetTensorDescriptor(
+                cDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
+                outDim.size(), outDim.data()));
+            float alpha = 1.0;
+            float beta = 0.0;
+            cnnlStatus_t stat = cnnlSoftmaxForward_v2(
+                context->cnnlHandle(), CNNL_SOFTMAX_ACCURATE, mode,
+                CNNL_COMPUTATION_ULTRAHIGH_PRECISION, &alpha, aDesc, aData,
+                &beta, cDesc, cData);
+            if (stat != CNNL_STATUS_SUCCESS)
+                return;
+            checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
+            checkCnnlError(cnnlDestroyTensorDescriptor(cDesc));
+        }
     }
 };
 
