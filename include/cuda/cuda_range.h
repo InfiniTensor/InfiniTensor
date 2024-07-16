@@ -4,5 +4,5 @@
 
 namespace infini {
 
-void range_kernel(const float start, const float limit, const float delta,  float* output, int size);
+void range_kernel(const float start, const float limit, const float delta, float *output, int size);
 }; // namespace infini

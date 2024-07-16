@@ -3,12 +3,12 @@
 
 namespace infini {
 class RangeObj : public OperatorObj {
-  
-    float start, limit,delta;
+
+    float start, limit, delta;
 
   public:
-    RangeObj(GraphObj *graph, float start, float limit, float delta,
-                Tensor output);
+    RangeObj(GraphObj *graph, float start, float limit, float delta, 
+              Tensor output);
 
     OP_CLONE(RangeObj);
     std::string toString() const override;
@@ -24,6 +24,5 @@ class RangeObj : public OperatorObj {
   private:
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;
-
 };
 } // namespace infini
