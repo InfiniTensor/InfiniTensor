@@ -17,9 +17,6 @@ TEST(rangeFloat, run) {
 
         auto op = g->addOp<RangeObj>(start, limit, delta, nullptr);
         EXPECT_EQ(op->getOutput()->getDims(), (Shape{5}));
-
     }
-
 }
-
 } // namespace infini
