@@ -14,6 +14,7 @@
 #include "operators/matmul.h"
 #include "operators/pad.h"
 #include "operators/pooling.h"
+#include "operators/range.h"
 #include "operators/recv.h"
 #include "operators/reduce.h"
 #include "operators/reshape.h"
@@ -29,7 +30,6 @@
 #include "operators/unary.h"
 #include "operators/unsqueeze.h"
 #include "operators/where.h"
-#include "operators/range.h"
 #include <numeric>
 
 namespace infini {
@@ -678,15 +678,13 @@ Tensor GraphHandlerObj::unsqueeze(Tensor input, Tensor output, Shape axes) {
     }
 }
 
-Tensor GraphHandlerObj::range(float start, float limit, 
-                              float delta, Tensor output) {
+Tensor GraphHandlerObj::range(float start, float limit, float delta,
+                              Tensor output) {
     if (output) {
         g->addOpWithOutputs<RangeObj>(start, limit, delta, output);
         return output;
     } else {
-        return g
-            ->addOp<RangeObj>(start, limit, delta, output)
-            ->getOutput();
+        return g->addOp<RangeObj>(start, limit, delta, output)->getOutput();
     }
 }
 

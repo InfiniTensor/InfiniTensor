@@ -3,16 +3,17 @@
 
 namespace infini {
 
-
-RangeObj::RangeObj(GraphObj *graph, float start, float limit, float delta, Tensor output)
-    : OperatorObj(OpType::Range,TensorVec{}, {output}), start(start), limit(limit), delta(delta) {
+RangeObj::RangeObj(GraphObj *graph, float start, float limit, float delta,
+                   Tensor output)
+    : OperatorObj(OpType::Range, TensorVec{}, {output}), start(start),
+      limit(limit), delta(delta) {
     IT_ASSERT(checkValid(graph));
 }
 
 optional<vector<Shape>> RangeObj::inferShape(const TensorVec &inputs) {
 
-    return {{{(int)std::max(std::ceil((getLimit() - getStart()) / getDelta()), 0.0f)}}};   
-
+    return {{{(int)std::max(std::ceil((getLimit() - getStart()) / getDelta()),
+                            0.0f)}}};
 }
 
 vector<DataType> RangeObj::inferDataType(const TensorVec &inputs) const {
@@ -32,13 +33,8 @@ std::string RangeObj::toString() const {
     return os.str();
 }
 
-vector<int> RangeObj::getWorkloadVector() const {
-    return {type.underlying()};
+vector<int> RangeObj::getWorkloadVector() const { return {type.underlying()}; }
 
-}
-
-vector<int> RangeObj::getOpAttrVector() const {
-    return {type.underlying()};
-}
+vector<int> RangeObj::getOpAttrVector() const { return {type.underlying()}; }
 
 } // namespace infini
