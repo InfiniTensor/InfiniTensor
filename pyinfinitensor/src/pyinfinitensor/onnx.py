@@ -964,6 +964,16 @@ class OnnxStub:
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
                 )
+            elif node.op_type == "Range":
+                (start, limit, delta) = (tensors[node.input[i]] for i in [0, 2])
+                output = tensors.get(node.output[0])
+
+                tensors[node.output[0]] = self.handler.range(
+                    start,
+                    limit,
+                    delta,
+                    output,
+                )
             elif node.op_type == "Where":
                 ## If Y is single -inf, treat Where as Add
                 ## TODO: deal with cases where Y is single inf or 0

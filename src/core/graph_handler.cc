@@ -29,6 +29,7 @@
 #include "operators/unary.h"
 #include "operators/unsqueeze.h"
 #include "operators/where.h"
+#include "operators/range.h"
 #include <numeric>
 
 namespace infini {
@@ -673,6 +674,18 @@ Tensor GraphHandlerObj::unsqueeze(Tensor input, Tensor output, Shape axes) {
         return output;
     } else {
         return g->addOp<UnsqueezeObj>(std::move(input), output, std::move(axes))
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::range(float start, float limit, 
+                              float delta, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<RangeObj>(start, limit, delta, output);
+        return output;
+    } else {
+        return g
+            ->addOp<RangeObj>(start, limit, delta, output)
             ->getOutput();
     }
 }

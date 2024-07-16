@@ -120,7 +120,7 @@ class GraphHandlerObj {
                         std::string mode);
     Tensor lrn(Tensor input, Tensor output, float alpha, float beta, float bias,
                int size);
-
+    Tensor range(float start, float limit, float delta, Tensor output);
     //------ modifiers
 
     inline bool topo_sort() { return g->topo_sort(); }

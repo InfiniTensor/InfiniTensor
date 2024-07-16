@@ -121,6 +121,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, DepthToSpace)
         .VALUE(OpType, LRN)
         .VALUE(OpType, Elu)
+        .VALUE(OpType, Range)
         .export_values();
 
 #undef VALUE
@@ -585,6 +586,8 @@ void init_graph_builder(py::module &m) {
         .def("get_perf_time", &Handler::get_perf_time, policy::automatic)
         .def("tune", &Handler::tune, policy::automatic)
         .def("run", &Handler::run, policy::automatic)
+        .def("range", &Handler::range, policy::move)
+
 #ifdef USE_CUDA
         .def("run_with_cudagraph", &Handler::run_with_cudagraph,
              policy::automatic)
