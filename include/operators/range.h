@@ -7,8 +7,8 @@ class RangeObj : public OperatorObj {
     float start, limit, delta;
 
   public:
-    RangeObj(GraphObj *graph, float start, float limit, float delta, 
-              Tensor output);
+    RangeObj(GraphObj *graph, float start, float limit, float delta,
+             Tensor output);
 
     OP_CLONE(RangeObj);
     std::string toString() const override;
