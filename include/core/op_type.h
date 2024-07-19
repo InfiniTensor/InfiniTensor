@@ -23,6 +23,7 @@ struct OpType {
         ArgMax,             //
         Asin,               // Unary
         Asinh,              // Unary
+        AscendPluginSub,    // Fusion
         Atan,               // Unary
         Atanh,              // Unary
         AttentionKVCache,   // Fusion

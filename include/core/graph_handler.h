@@ -124,6 +124,8 @@ class GraphHandlerObj {
                         std::string mode);
     Tensor lrn(Tensor input, Tensor output, float alpha, float beta, float bias,
                int size);
+    Tensor ascendPluginSub(Tensor input, Tensor output, int kernel_size,
+                           int stride);
 
     //------ modifiers
 

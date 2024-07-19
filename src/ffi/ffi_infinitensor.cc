@@ -198,7 +198,8 @@ static std::tuple<int, int, int, int, int, int> conv_attrs_of(Operator op) {
                            conv->getDw(), conv->getSh(), conv->getSw());
 }
 
-static std::tuple<int, int, int, int, int, int, int, int, int> conv3d_attrs_of(Operator op) {
+static std::tuple<int, int, int, int, int, int, int, int, int>
+conv3d_attrs_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Conv3d);
     auto conv3d = dynamic_cast<const Conv3dObj *>(op.get());
     return std::make_tuple(conv3d->getPd(), conv3d->getPh(), conv3d->getPw(),
@@ -600,6 +601,7 @@ void init_graph_builder(py::module &m) {
         .def("erf", &Handler::erf, policy::move)
         .def("where", &Handler::where, policy::move)
         .def("lrn", &Handler::lrn, policy::move)
+        .def("ascendPluginSub", &Handler::ascendPluginSub, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)
         .def("optimize", &Handler::optimize, policy::automatic)
         .def("operators", &Handler::operators, policy::move)

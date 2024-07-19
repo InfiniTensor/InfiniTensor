@@ -1,0 +1,189 @@
+// 文件名为QuickStartDemoVecAdd.cce
+#include "acl/acl.h"
+#include <stdio.h>
+#include <stdlib.h>
+
+#ifdef ASCENDC_CPU_DEBUG
+#define __aicore__
+#else
+#define __aicore__ [aicore]
+#endif
+
+constexpr int32_t TOTAL_LENGTH = 8 * 2048;                            // total length of data
+constexpr int32_t USE_CORE_NUM = 8;                                   // num of core used
+constexpr int32_t BLOCK_LENGTH = TOTAL_LENGTH / USE_CORE_NUM;         // length computed of each core
+constexpr int32_t TILE_NUM = 8;                                       // split data into 8 tiles for each core
+constexpr int32_t BUFFER_NUM = 4;                                     // tensor num for each queue
+constexpr int32_t TILE_LENGTH = BLOCK_LENGTH / TILE_NUM / BUFFER_NUM; // seperate to 2 parts, due to double buffer
+
+// ---------- Device side code ------------------------------
+#include "kernel_operator.h"
+__global__ __aicore__ void VecAdd(__gm__ float *x, __gm__ float *y, __gm__ float *z) {
+    using namespace AscendC;
+
+    TPipe pipe;
+    TQue<QuePosition::VECIN, BUFFER_NUM> inQueueX, inQueueY;
+    TQue<QuePosition::VECOUT, BUFFER_NUM> outQueueZ;
+    GlobalTensor<float> xGm;
+    GlobalTensor<float> yGm;
+    GlobalTensor<float> zGm;
+
+    xGm.SetGlobalBuffer((__gm__ float*)x + BLOCK_LENGTH * GetBlockIdx(), BLOCK_LENGTH);
+    yGm.SetGlobalBuffer((__gm__ float*)y + BLOCK_LENGTH * GetBlockIdx(), BLOCK_LENGTH);
+    zGm.SetGlobalBuffer((__gm__ float*)z + BLOCK_LENGTH * GetBlockIdx(), BLOCK_LENGTH);
+    pipe.InitBuffer(inQueueX, BUFFER_NUM, TILE_LENGTH * sizeof(float));
+    pipe.InitBuffer(inQueueY, BUFFER_NUM, TILE_LENGTH * sizeof(float));
+    pipe.InitBuffer(outQueueZ, BUFFER_NUM, TILE_LENGTH * sizeof(float));
+
+    LocalTensor<float> xLocal = inQueueX.AllocTensor<float>();
+    LocalTensor<float> yLocal = inQueueY.AllocTensor<float>();
+    LocalTensor<float> zLocal = outQueueZ.AllocTensor<float>();
+    uint32_t loopCount = TILE_NUM * BUFFER_NUM;
+    for (uint32_t i = 0; i < loopCount; i++) {
+      DataCopy(xLocal, xGm[i * TILE_LENGTH], TILE_LENGTH);
+      DataCopy(yLocal, yGm[i * TILE_LENGTH], TILE_LENGTH);
+      inQueueX.EnQue(xLocal);
+      inQueueY.EnQue(yLocal);
+
+      xLocal = inQueueX.DeQue<float>();
+      yLocal = inQueueY.DeQue<float>();
+      Add(zLocal, xLocal, yLocal, TILE_LENGTH);
+      outQueueZ.EnQue<float>(zLocal);
+
+      zLocal = outQueueZ.DeQue<float>();
+      DataCopy(zGm[i * TILE_LENGTH], zLocal, TILE_LENGTH);
+    }
+    inQueueX.FreeTensor(xLocal);
+    inQueueY.FreeTensor(yLocal);
+    outQueueZ.FreeTensor(zLocal);
+}
+
+__global__ __aicore__ void PluginSub(__gm__ float* x, __gm__ float* y, __gm__ float* output, size_t inputByteSize, size_t outputByteSize, int C) {
+    using namespace AscendC;
+
+    int32_t TILE_NUM = 62;
+    int32_t TILE_LENGTH_X = 5 * 1028;
+    int32_t TILE_LENGTH_Y = 1024;
+    //int32_t BUFFER_NUM = C / 8;
+    int32_t TOTAL_LENGTH_X = inputByteSize / sizeof(float); //1xCx66x1028
+    int32_t TOTAL_LENGTH_Y = outputByteSize / sizeof(float) / 16; //1xCx62x1024
+    int32_t BLOCK_LENGTH_X = TOTAL_LENGTH_X / 8;
+    int32_t BLOCK_LENGTH_Y = TOTAL_LENGTH_Y / 8;
+
+    TPipe pipe;
+    TQue<QuePosition::VECIN, BUFFER_NUM> inQueueX, inQueueY;
+    TQue<QuePosition::VECOUT, BUFFER_NUM> outQueue;
+    GlobalTensor<float> xGm, yGm, outGm;
+
+
+    xGm.SetGlobalBuffer((__gm__ float*)x + BLOCK_LENGTH_X * GetBlockIdx(), BLOCK_LENGTH_X);
+    yGm.SetGlobalBuffer((__gm__ float*)y + BLOCK_LENGTH_Y * GetBlockIdx(), BLOCK_LENGTH_Y);
+    outGm.SetGlobalBuffer((__gm__ float*)output + BLOCK_LENGTH_Y * 16 * GetBlockIdx(), BLOCK_LENGTH_Y * 16);
+
+    pipe.InitBuffer(inQueueX, BUFFER_NUM, TILE_LENGTH_X * sizeof(float));
+    pipe.InitBuffer(inQueueY, BUFFER_NUM, TILE_LENGTH_Y * sizeof(float));
+    pipe.InitBuffer(outQueue, BUFFER_NUM, TILE_LENGTH_Y * 16 * sizeof(float));
+
+
+    uint32_t loopCount = TILE_NUM * BUFFER_NUM;
+    for (uint32_t i = 0; i < loopCount; ++i) {
+        // copy in
+        LocalTensor<float> xLocal = inQueueX.AllocTensor<float>();
+        LocalTensor<float> yLocal = inQueueY.AllocTensor<float>();
+        int bufferIdx = i / TILE_NUM;
+        DataCopy(xLocal, xGm[bufferIdx * 66 * 1028 + (i - bufferIdx * TILE_NUM) * 1028], TILE_LENGTH_X);
+        DataCopy(yLocal, yGm[bufferIdx * 62 * 1024 + (i - bufferIdx * TILE_NUM) * 1024], TILE_LENGTH_Y);
+        inQueueX.EnQue(xLocal);
+        inQueueY.EnQue(yLocal);
+
+        // compute        
+        xLocal = inQueueX.DeQue<float>(); // 5 * 1028
+        yLocal = inQueueY.DeQue<float>(); // 1 * 1024
+        LocalTensor<float> outLocal = outQueue.AllocTensor<float>(); // 1 * 1024 * 16
+        for (uint32_t j = 0; j < TILE_LENGTH_Y; ++j){
+            for (uint32_t w = 0; w < 5; ++w){
+                int id_top = j + w;
+                int id_bottom = j + w + 4 * 1028;
+                outLocal[j * 16 + w] = xLocal[id_top] - yLocal[j];
+                outLocal[j * 16 + 8 + w] = xLocal[id_bottom] - yLocal[j];
+            }
+            for (uint32_t h = 1; h <= 3; ++h){
+                int id_left = h * 1028 + j;
+                int id_right = h * 1028 + j + 4;
+                outLocal[j * 16 + 12 + h] = xLocal[id_left] - yLocal[j];
+                outLocal[j * 16 + 4 + h] = xLocal[id_right] - yLocal[j];
+            }
+        }
+        outQueue.EnQue<float>(outLocal);
+        inQueueX.FreeTensor(xLocal);
+        inQueueY.FreeTensor(yLocal);
+
+        // copy out
+        outLocal = outQueue.DeQue<float>();
+        DataCopy(outGm[bufferIdx * 62 * 1024 * 16 + (i - bufferIdx * TILE_NUM) * 1024 * 16], outLocal, TILE_LENGTH_Y * 16);
+        outQueue.FreeTensor(outLocal);
+    }
+}
+
+int fun1() {
+    size_t inputByteSize = TOTAL_LENGTH * sizeof(float);
+    size_t outputByteSize = TOTAL_LENGTH * sizeof(float);
+    uint32_t blockDim = 8;
+
+    // AscendCL初始化
+    aclInit(nullptr);
+    // 运行管理资源申请
+    aclrtContext context;
+    int32_t deviceId = 0;
+    aclrtSetDevice(deviceId);
+    aclrtCreateContext(&context, deviceId);
+    aclrtStream stream = nullptr;
+    aclrtCreateStream(&stream);
+
+    // 分配Host内存
+    float *xHost, *yHost, *zHost;
+    float *xDevice, *yDevice, *zDevice;
+    aclrtMallocHost((void **)(&xHost), inputByteSize);
+    aclrtMallocHost((void **)(&yHost), inputByteSize);
+    aclrtMallocHost((void **)(&zHost), outputByteSize);
+    // 分配Device内存
+    aclrtMalloc((void **)&xDevice, inputByteSize, ACL_MEM_MALLOC_HUGE_FIRST);
+    aclrtMalloc((void **)&yDevice, inputByteSize, ACL_MEM_MALLOC_HUGE_FIRST);
+    aclrtMalloc((void **)&zDevice, outputByteSize, ACL_MEM_MALLOC_HUGE_FIRST);
+    // Host内存初始化
+    for (int i = 0; i < TOTAL_LENGTH; ++i) {
+        xHost[i] = 1.0f;
+        yHost[i] = 2.0f;
+    }
+    aclrtMemcpy(xDevice, inputByteSize, xHost, inputByteSize,
+                ACL_MEMCPY_HOST_TO_DEVICE);
+    aclrtMemcpy(yDevice, inputByteSize, yHost, inputByteSize,
+                ACL_MEMCPY_HOST_TO_DEVICE);
+
+    // 用内核调用符<<<>>>调用核函数完成指定的运算
+    VecAdd<<<USE_CORE_NUM, nullptr, stream>>>(xDevice, yDevice, zDevice);
+    PluginSub<<<USE_CORE_NUM, nullptr, stream>>>(xDevice, yDevice, zDevice, 0, 0, 0);
+
+    aclrtSynchronizeStream(stream);
+    // 将Device上的运算结果拷贝回Host
+    aclrtMemcpy(zHost, outputByteSize, zDevice, outputByteSize,
+                ACL_MEMCPY_DEVICE_TO_HOST);
+#undef printf
+    for (int i = 0; i < TOTAL_LENGTH; i++) {
+        printf("i%d\t Expect: %f\t\t\t\tResult: %f\n", i, 3.0f, zHost[i]);
+    }
+    // 释放申请的资源
+    aclrtFree(xDevice);
+    aclrtFree(yDevice);
+    aclrtFree(zDevice);
+    aclrtFreeHost(xHost);
+    aclrtFreeHost(yHost);
+    aclrtFreeHost(zHost);
+    // AscendCL去初始化
+    aclrtDestroyStream(stream);
+    aclrtDestroyContext(context);
+    aclrtResetDevice(deviceId);
+    aclFinalize();
+
+    return 0;
+}

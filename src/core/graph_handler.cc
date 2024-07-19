@@ -1,6 +1,7 @@
 #include "core/graph_handler.h"
 #include "operators/all_gather.h"
 #include "operators/all_reduce.h"
+#include "operators/ascend_plugin_sub.h"
 #include "operators/attention_kvcache.h"
 #include "operators/batch_norm.h"
 #include "operators/broadcast.h"
@@ -695,6 +696,20 @@ Tensor GraphHandlerObj::unsqueeze(Tensor input, Tensor output, Shape axes) {
         return output;
     } else {
         return g->addOp<UnsqueezeObj>(std::move(input), output, std::move(axes))
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::ascendPluginSub(Tensor input, Tensor output,
+                                        int kernel_size, int stride) {
+    if (output) {
+        g->addOpWithOutputs<AscendPluginSubObj>(std::move(input), output,
+                                                kernel_size, stride);
+        return output;
+    } else {
+        return g
+            ->addOp<AscendPluginSubObj>(std::move(input), output, kernel_size,
+                                        stride)
             ->getOutput();
     }
 }

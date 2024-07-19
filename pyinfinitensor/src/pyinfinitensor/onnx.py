@@ -781,6 +781,13 @@ class OnnxStub:
                     tensors[node.input[1]],
                     tensors.get(node.output[0]),
                 )
+            elif node.op_type == "AscendPluginSub":
+                tensors[node.output[0]] = self.handler.ascendPluginSub(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                    5,
+                    1,
+                )
             elif node.op_type == "Split":
                 split = (
                     _parse_data(data[node.input[1]]) if (len(node.input) > 1) else None
