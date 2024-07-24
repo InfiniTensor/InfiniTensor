@@ -20,7 +20,7 @@ AscendPluginSubObj::inferShape(const TensorVec &inputs) {
     int H_ = (H - kernel_size) / stride + 1;
     int W_ = (W - kernel_size) / stride + 1;
     int sub_dim = 4 * (kernel_size - 1);
-    vector<Shape> ret = {{N, C, H_, W_, sub_dim}};
+    vector<Shape> ret = {{N, C, H_, sub_dim, W_}};
     return ret;
 }
 

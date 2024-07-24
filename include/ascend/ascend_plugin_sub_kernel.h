@@ -15,4 +15,5 @@ struct PluginMetaData {
     int stride;
 };
 
-int plugin_sub_kernel(float *in, float *out, PluginMetaData metaData);
+void plugin_sub_kernel(float *in, float *out, PluginMetaData metaData,
+                       void *stream);

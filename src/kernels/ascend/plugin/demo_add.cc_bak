@@ -1,8 +1,0 @@
-#include "main.h"
-
-int main(int argc, char *argv[]) {
-    std::vector<float> input1(1024, 1.0f);
-    std::vector<float> output(1024, 0.0f);
-    fun1();
-    return 0;
-}

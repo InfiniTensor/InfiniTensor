@@ -42,21 +42,22 @@ endif
 
 ifeq ($(ASCEND), ON)
 build_ascend_plugin:
-	echo "Building ascend plugin..."
 	$(MAKE) -C src/kernels/ascend/plugin build
-ascend_clean:
-	echo "Cleaning ascend plugin..."
-	$(MAKE) -C src/kernels/ascend/plugin clean
 
+ascend_clean:
+	$(MAKE) -C src/kernels/ascend/plugin clean
 .PHONY: build_ascend_plugin ascend_clean
 
 build: build_ascend_plugin
 	mkdir -p build/$(TYPE)
-	cd build/$(TYPE) && cmake $(CMAKE_OPT) ../.. && make -j
+	cp src/kernels/ascend/plugin/build/lib/libkernels.so build/$(TYPE)
+	cd build/$(TYPE) && cmake $(CMAKE_OPT) ../.. && make -j8
 
 clean: ascend_clean
 	rm -rf build
-else 
+
+else
+
 build: 
 	mkdir -p build/$(TYPE)
 	cd build/$(TYPE) && cmake $(CMAKE_OPT) ../.. && make -j8
