@@ -1,107 +1,131 @@
 #include "cuda/cuda_common.h"
-const int Rq = 4;
+const int Rq = 8;
 const int Rv = 8; // 必须是4的倍数
 const int Br = 16;
 const int Bc = 16;
-const int Bk = 4; // 必须是4的倍数
+const int Bk = 8; // 必须是4的倍数
+const int Bd = 8;
+const int numQ = Rq * Br;
+const int numK = Bk * Bc;
+const int numV = Rv * Bc;
 
-template <int Br, int Bc, int Rq>
 __device__ void matmulRQK(const float *__restrict inputQ,
                           const float *__restrict inputK, float *shareQK,
                           float *shareVK, int N, int d, int width, int indQ,
                           int indK, float *val) {
+    int tid = threadIdx.y * blockDim.x + threadIdx.x;
     float a[4];
-    for (int ph = 0; ph < width; ph++) {
-        for (int index_k = 0; index_k < Bk; index_k++) {
-            (float4 &)a[0] = (float4 &)
-                inputK[(indK + index_k) * d + (threadIdx.y + ph * Bc) * Bk];
-            for (int idk = 0; idk < Bk; idk++) {
-                if (threadIdx.y < Bc) {
-                    shareVK[(threadIdx.y * Bk + idk) * Bc * Bk +
-                            threadIdx.x * Bk + index_k] = a[idk];
-                    if (indK + index_k >= N ||
-                        (threadIdx.y + ph * Bc) * Bk + idk >= d) {
-
-                        shareVK[(threadIdx.y * Bk + idk) * Bc * Bk +
-                                threadIdx.x * Bk + index_k] = 0.0f;
-                    }
-                }
-            }
-        }
-
-        for (int index_q = 0; index_q < Rq; index_q++) {
-            (float4 &)shareQK[(threadIdx.y * Rq + index_q) * Bc * Bk +
-                              threadIdx.x * Bk] = (float4 &)
-                inputQ[(indQ + index_q) * d + (threadIdx.x + ph * Bc) * Bk];
-            for (int idk = 0; idk < Bk; idk++) {
-                if (indQ + index_q >= N ||
-                    (threadIdx.x + ph * Bc) * Bk + idk >= d) {
-                    shareQK[(threadIdx.y * Rq + index_q) * Bc * Bk +
-                            threadIdx.x * Bk + idk] = 0.0f;
-                }
-            }
-        }
-        __syncthreads();
-
-        for (int index = 0; index < Bc * Bk; index++) {
+    float com_a[8];
+    float com_b[8];
+    int smem_a_m = tid / 2;
+    int smem_a_k = tid % 2;
+    int smem_b_n = tid / 128;
+    int smem_b_k = tid % 128;
+    int ph = 0;
+    (float4 &)a[0] =
+        (float4 &)inputQ[(indQ + smem_a_m) * d + ph * Bd + 4 * smem_a_k];
+    for (int id = 0; id < 4; id++) {
+        shareQK[(4 * smem_a_k + id) * numQ + smem_a_m] = a[id];
+    }
+    (float4 &)a[0] =
+        (float4 &)inputK[(indK + smem_b_k) * d + Bd * ph + 4 * smem_b_n];
+    for (int id = 0; id < 4; id++) {
+        shareVK[(4 * smem_b_n + id) * numK + smem_b_k] = a[id];
+    }
+    __syncthreads();
+    for (int ph = 1; ph < width; ph++) {
+        for (int index = 0; index < Bd; index++) {
+            (float4 &)com_a[0] =
+                (float4 &)shareQK[index * numQ + threadIdx.y * Rq +
+                                  (ph - 1) % 2 * numQ * Bd];
+            (float4 &)com_a[4] =
+                (float4 &)shareQK[index * numQ + threadIdx.y * Rq + 4 +
+                                  (ph - 1) % 2 * numQ * Bd];
+            (float4 &)com_b[0] =
+                (float4 &)shareVK[index * numK + threadIdx.x * Bk +
+                                  (ph - 1) % 2 * numK * Bd];
+            (float4 &)com_b[4] =
+                (float4 &)shareVK[index * numK + threadIdx.x * Bk + 4 +
+                                  (ph - 1) % 2 * numK * Bd];
             for (int index_q = 0; index_q < Rq; index_q++) {
                 for (int index_k = 0; index_k < Bk; index_k++) {
-                    val[index_q * Bk + index_k] = std::fma(
-                        shareQK[(threadIdx.y * Rq + index_q) * Bc * Bk + index],
-                        shareVK[index * Bc * Bk + threadIdx.x * Bk + index_k],
-                        val[index_q * Bk + index_k]);
+
+                    val[index_q * Rq + index_k] +=
+                        com_a[index_q] * com_b[index_k];
                 }
             }
         }
+        (float4 &)a[0] =
+            (float4 &)inputQ[(indQ + smem_a_m) * d + ph * Bd + 4 * smem_a_k];
+        for (int id = 0; id < 4; id++) {
+            shareQK[(4 * smem_a_k + id) * numQ + smem_a_m +
+                    (ph % 2) * numQ * Bd] = a[id];
+        }
+        (float4 &)a[0] =
+            (float4 &)inputK[(indK + smem_b_k) * d + Bd * ph + 4 * smem_b_n];
+        for (int id = 0; id < 4; id++) {
+            shareVK[(4 * smem_b_n + id) * numK + smem_b_k +
+                    (ph % 2) * numK * Bd] = a[id];
+        }
+
         __syncthreads();
     }
+    ph = width;
+    for (int index = 0; index < Bd; index++) {
+        (float4 &)com_a[0] = (float4 &)
+            shareQK[index * numQ + threadIdx.y * Rq + (ph - 1) % 2 * numQ * Bd];
+        (float4 &)com_a[4] = (float4 &)shareQK[index * numQ + threadIdx.y * Rq +
+                                               4 + (ph - 1) % 2 * numQ * Bd];
+        (float4 &)com_b[0] = (float4 &)
+            shareVK[index * numK + threadIdx.x * Bk + (ph - 1) % 2 * numK * Bd];
+        (float4 &)com_b[4] = (float4 &)shareVK[index * numK + threadIdx.x * Bk +
+                                               4 + (ph - 1) % 2 * numK * Bd];
+        for (int index_q = 0; index_q < Rq; index_q++) {
+            for (int index_k = 0; index_k < Bk; index_k++) {
+
+                val[index_q * Rq + index_k] += com_a[index_q] * com_b[index_k];
+            }
+        }
+    }
 }
-template <int Br, int Bc, int Rq, int Rv>
+
 __device__ void matmulSV(float *shareQK, const float *__restrict inputV,
                          float *shareVK, int N, int d, int j, int indQ,
                          int indK, int indV, float *val, float *newMax,
                          float *sumSV) {
-    if (threadIdx.y < Bc) {
-        for (int index_k = 0; index_k < Bk; index_k++) {
-            for (int id = 0; id < (int)(Rv / 4); id++) {
-                (float4 &)shareVK[(threadIdx.y * Bk + index_k) * Bc * Rv +
-                                  threadIdx.x * Rv + id * 4] = (float4 &)
-                    inputV[((threadIdx.y + j * Bc) * Bk + index_k) * d + indV +
-                           id * 4];
-            }
-            for (int index_v = 0; index_v < Rv; index_v++) {
-                if ((threadIdx.y + j * Bc) * Bk + index_k >= N ||
-                    indV + index_v >= d) {
-                    shareVK[(threadIdx.y * Bk + index_k) * Bc * Rv +
-                            threadIdx.x * Rv + index_v] = 0.0f;
-                }
+    for (int index_k = 0; index_k < Bk; index_k++) {
+        for (int id = 0; id < Rv; id += 4) {
+            (float4 &)shareVK[threadIdx.y * numV + threadIdx.x * Rv + id] =
+                (float4 &)inputV[(indK + threadIdx.y * Bk + index_k) * d +
+                                 indV + threadIdx.x * Rv + id];
+        }
+        for (int index_v = 0; index_v < Rv; index_v++) {
+            if (indK + threadIdx.y * Bk + index_k >= N ||
+                indV + threadIdx.x * Rv + index_v >= d) {
+                shareVK[threadIdx.y * numV + threadIdx.x * Rv + index_v] = 0.0f;
             }
         }
-    }
-    for (int index_q = 0; index_q < Rq; index_q++) {
-        for (int index_k = 0; index_k < Bk; index_k++) {
-            if (indQ + index_q < N && indK + index_k < N) {
-                shareQK[(threadIdx.y * Rq + index_q) * Bc * Bk +
-                        threadIdx.x * Bk + index_k] =
+        for (int index_q = 0; index_q < Rq; index_q++) {
+            if (indQ + threadIdx.y * Rq + index_q < N &&
+                indK + Bk * threadIdx.x + index_k < N) {
+                shareQK[(threadIdx.y * Rq + index_q) * Bc + threadIdx.x] =
                     __expf(val[index_q * Bk + index_k] - newMax[index_q]);
             } else {
 
-                shareQK[(threadIdx.y * Rq + index_q) * Bc * Bk +
-                        threadIdx.x * Bk + index_k] = 0.0f;
+                shareQK[(threadIdx.y * Rq + index_q) * Bc + threadIdx.x] = 0.0f;
             }
         }
-    }
-    __syncthreads();
-
-    for (int phc = 0; phc < Bc * Bk; phc++) {
-        for (int index_q = 0; index_q < Rq; index_q++) {
-
-            for (int index_v = 0; index_v < Rv; index_v++) {
-                sumSV[index_q * Rv + index_v] +=
-                    shareQK[(threadIdx.y * Rq + index_q) * Bc * Bk + phc] *
-                    shareVK[phc * Bc * Rv + threadIdx.x * Rv + index_v];
+        __syncthreads();
+        for (int phc = 0; phc < Bc; phc++) {
+            for (int index_q = 0; index_q < Rq; index_q++) {
+                for (int index_v = 0; index_v < Rv; index_v++) {
+                    sumSV[index_q * Rv + index_v] +=
+                        shareQK[(threadIdx.y * Rq + index_q) * Bc + phc] *
+                        shareVK[phc * numV + threadIdx.x * Rv + index_v];
+                }
             }
         }
+        __syncthreads();
     }
 }
 template <typename T> struct SumOp {
@@ -131,9 +155,10 @@ __global__ void _attentionKernel(const float *__restrict inputQ,
                                  const float *__restrict inputV, int N, int d,
                                  float *__restrict output) {
 
-    __shared__ float shareQK[Rq * Br * Bc * Bk];
-    __shared__ float shareVK[Bk * Bc * Bc * Rv];
-
+    __shared__ float shareQK[numQ * Bc];
+    __shared__ float shareVK[Bc * numV];
+    __shared__ float block_max[numQ];
+    __shared__ float block_sum[numQ];
     float sumSV[Rq * Rv] = {0.0f};
     float newMax[Rq];
     float oldMax[Rq];
@@ -141,32 +166,34 @@ __global__ void _attentionKernel(const float *__restrict inputQ,
 
     float val[Rq * Bk];
 
-    int indV = Rv * (threadIdx.x + blockIdx.x * blockDim.x);
-    int indQ = Rq * (threadIdx.y + blockIdx.y * blockDim.y);
+    int indV = Rv * blockIdx.x * blockDim.x;
+    int indQ = Rq * blockIdx.y * blockDim.y;
 
     for (int index_q = 0; index_q < Rq; index_q++) {
         newMax[index_q] = -__FLT_MAX__;
         oldMax[index_q] = -__FLT_MAX__;
     }
 
-    int Tc = (N + Bc * Bk - 1) / (Bc * Bk);
+    int Tc = (N + numK - 1) / (numK);
 
-    int width = (d + Bc * Bk - 1) / (Bc * Bk);
+    int width = (d + Bd - 1) / Bd;
     for (int j = 0; j < Tc; j++) {
 
-        int indK = Bk * (threadIdx.x + j * Bc);
+        int indK = j * numK;
         for (int index_q = 0; index_q < Rq; index_q++) {
             for (int index_k = 0; index_k < Bk; index_k++) {
 
                 val[index_q * Bk + index_k] = 0.0f;
             }
         }
-        matmulRQK<Br, Bc, Rq>(inputQ, inputK, shareQK, shareVK, N, d, width,
-                              indQ, indK, val);
+        matmulRQK(inputQ, inputK, shareQK, shareVK, N, d, width, indQ, indK,
+                  val);
+
         for (int index_q = 0; index_q < Rq; index_q++) {
             float tmpReduceMax = -__FLT_MAX__;
             for (int index_k = 0; index_k < Bk; index_k++) {
-                if (indQ + index_q < N && indK + index_k < N) {
+                if (indQ + threadIdx.y * Rq + index_q < N &&
+                    indK + Bk * threadIdx.x + index_k < N) {
 
                     tmpReduceMax =
                         max(tmpReduceMax, val[index_q * Bk + index_k]);
@@ -175,36 +202,38 @@ __global__ void _attentionKernel(const float *__restrict inputQ,
             __syncthreads();
             tmpReduceMax = WarpAllReduce<MaxOp, float, Bc>(tmpReduceMax);
             if (threadIdx.x == 0) {
-                shareQK[threadIdx.y * Rq + index_q] = tmpReduceMax;
+                block_max[threadIdx.y * Rq + index_q] = tmpReduceMax;
             }
             __syncthreads();
             float tmpReduceSum = 0.0f;
             for (int index_k = 0; index_k < Bk; index_k++) {
-                if (indQ + index_q < N && indK + index_k < N) {
-                    tmpReduceSum += __expf(val[index_q * Bk + index_k] -
-                                           shareQK[threadIdx.y * Rq + index_q]);
+                if (indQ + threadIdx.y * Rq + index_q < N &&
+                    indK + Bk * threadIdx.x + index_k < N) {
+                    tmpReduceSum +=
+                        __expf(val[index_q * Bk + index_k] -
+                               block_max[threadIdx.y * Rq + index_q]);
                 }
             }
             __syncthreads();
             tmpReduceSum = WarpAllReduce<SumOp, float, Bc>(tmpReduceSum);
             if (threadIdx.x == 0) {
-                shareQK[threadIdx.y * Rq + index_q + Rq * Br] = tmpReduceSum;
+                block_sum[threadIdx.y * Rq + index_q] = tmpReduceSum;
             }
             __syncthreads();
-            if (newMax[index_q] > shareQK[threadIdx.y * Rq + index_q]) {
+            if (newMax[index_q] > block_max[threadIdx.y * Rq + index_q]) {
                 newSum[index_q] =
-                    std::fma(shareQK[threadIdx.y * Rq + index_q + Rq * Br],
-                             __expf(shareQK[threadIdx.y * Rq + index_q] -
+                    std::fma(block_sum[threadIdx.y * Rq + index_q],
+                             __expf(block_max[threadIdx.y * Rq + index_q] -
                                     newMax[index_q]),
                              newSum[index_q]);
             } else {
                 newSum[index_q] =
                     std::fma(newSum[index_q],
                              __expf(newMax[index_q] -
-                                    shareQK[threadIdx.y * Rq + index_q]),
-                             shareQK[threadIdx.y * Rq + index_q + Rq * Br]);
+                                    block_max[threadIdx.y * Rq + index_q]),
+                             block_sum[threadIdx.y * Rq + index_q]);
 
-                newMax[index_q] = shareQK[threadIdx.y * Rq + index_q];
+                newMax[index_q] = block_max[threadIdx.y * Rq + index_q];
             }
             // PV
             for (int index_v = 0; index_v < Rv; index_v++) {
@@ -213,14 +242,14 @@ __global__ void _attentionKernel(const float *__restrict inputQ,
             }
         }
 
-        matmulSV<Br, Bc, Rq, Rv>(shareQK, inputV, shareVK, N, d, j, indQ, indK,
-                                 indV, val, newMax, sumSV);
+        matmulSV(shareQK, inputV, shareVK, N, d, j, indQ, indK, indV, val,
+                 newMax, sumSV);
 
         for (int index_q = 0; index_q < Rq; index_q++) {
             oldMax[index_q] = newMax[index_q];
         }
 
-        //__syncthreads();
+        __syncthreads();
     }
     for (int index_q = 0; index_q < Rq; index_q++) {
         float inv = __fdividef(1.0F, newSum[index_q]);
@@ -230,10 +259,12 @@ __global__ void _attentionKernel(const float *__restrict inputQ,
     }
     for (int index_q = 0; index_q < Rq; index_q++) {
 
-        for (int id = 0; id < (int)(Rv / 4); id++) {
-            if (indQ + index_q < N) {
-                (float4 &)output[(indQ + index_q) * d + indV + id * 4] =
-                    (float4 &)sumSV[index_q * Rv + id * 4];
+        for (int id = 0; id < Rv; id += 4) {
+            if (indQ + threadIdx.y * Rq + index_q < N &&
+                indV + threadIdx.x * Rv + id < d) {
+                (float4 &)output[(indQ + threadIdx.y * Rq + index_q) * d +
+                                 indV + threadIdx.x * Rv + id] =
+                    (float4 &)sumSV[index_q * Rv + id];
             }
         }
     }
