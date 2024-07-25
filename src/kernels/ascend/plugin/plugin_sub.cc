@@ -3,6 +3,9 @@
 #include "ascend/ascend_runtime.h"
 #include "operators/ascend_plugin_sub.h"
 
+extern "C" void plugin_sub_kernel(void *in, void *out, PluginMetaData metaData,
+                                  void *stream, int dtype);
+
 namespace infini {
 
 class PluginSubKernelAscend : public ASCENDKernelWithoutConfig {
@@ -10,28 +13,27 @@ class PluginSubKernelAscend : public ASCENDKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<AscendPluginSubObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
+        auto input = op->getInputs(0)->getRawDataPtr<void *>();
+        auto output = op->getOutput(0)->getRawDataPtr<void *>();
         auto input_shape = op->getInputs(0)->getDims();
         auto output_shape = op->getOutput(0)->getDims();
         auto input_size = op->getInputs(0)->size();
         auto output_size = op->getOutput(0)->size();
 
         PluginMetaData plugin_meta_data = {
-            input_shape,
-            output_shape,
-            input_size,
-            output_size,
-            // DataType::Float16,
-            5,
-            1,
+            input_shape, output_shape, input_size, output_size, 5, 1,
         };
         aclrtStream stream = context->getStream();
-        plugin_sub_kernel(op->getInputs(0)->getRawDataPtr<float *>(),
-                          op->getOutput(0)->getRawDataPtr<float *>(),
-                          plugin_meta_data, (void *)stream);
-        // PluginSub<<<8, nullptr, context->getStream()>>>(
-        //     op->getInputs(0)->getRawDataPtr<float *>(),
-        //     op->getOutput(0)->getRawDataPtr<float *>(), inputSize,
-        //     outputSize, C);
+
+        if (op->getDType() == DataType::Float32) {
+            plugin_sub_kernel(input, output, plugin_meta_data, (void *)stream,
+                              0);
+        } else if (op->getDType() == DataType::Float16) {
+            plugin_sub_kernel(input, output, plugin_meta_data, (void *)stream,
+                              1);
+        } else {
+            IT_ASSERT(false, "Unsupported data type");
+        }
         aclrtSynchronizeStream(stream);
         return;
     }

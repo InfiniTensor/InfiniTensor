@@ -7,26 +7,27 @@ constexpr int32_t TILE_LENGTH = 1024;
 
 #include "kernel_operator.h"
 using namespace AscendC;
-extern "C" __global__ __aicore__ void pluginsub(GM_ADDR x, GM_ADDR output,
-                                                size_t inputSize,
-                                                size_t outputSize, int C) {
+template <typename T>
+__aicore__ void pluginsub(GM_ADDR x, GM_ADDR output, size_t inputSize,
+                          size_t outputSize, int C) {
     int32_t BLOCK_LENGTH_IN = inputSize / BLOCK_NUM;   // 1x(C/8)x66x1028
     int32_t BLOCK_LENGTH_OUT = outputSize / BLOCK_NUM; // 1x(C/8)x62x1024x16
 
     TPipe pipe;
     TQue<QuePosition::VECIN, BUFFER_NUM> inQueueX, inQueueY;
     TQue<QuePosition::VECOUT, BUFFER_NUM> outQueue;
-    GlobalTensor<float> xGm, outGm;
+    GlobalTensor<T> xGm, outGm;
 
-    xGm.SetGlobalBuffer((__gm__ float *)x + BLOCK_LENGTH_IN * GetBlockIdx(),
+    xGm.SetGlobalBuffer(reinterpret_cast<__gm__ T *>(x) +
+                            BLOCK_LENGTH_IN * GetBlockIdx(),
                         BLOCK_LENGTH_IN);
-    outGm.SetGlobalBuffer((__gm__ float *)output +
+    outGm.SetGlobalBuffer(reinterpret_cast<__gm__ T *>(output) +
                               BLOCK_LENGTH_OUT * GetBlockIdx(),
                           BLOCK_LENGTH_OUT);
 
-    pipe.InitBuffer(inQueueX, BUFFER_NUM, TILE_LENGTH * sizeof(float));
-    pipe.InitBuffer(inQueueY, BUFFER_NUM, TILE_LENGTH * sizeof(float));
-    pipe.InitBuffer(outQueue, BUFFER_NUM, TILE_LENGTH * sizeof(float));
+    pipe.InitBuffer(inQueueX, BUFFER_NUM, TILE_LENGTH * sizeof(T));
+    pipe.InitBuffer(inQueueY, BUFFER_NUM, TILE_LENGTH * sizeof(T));
+    pipe.InitBuffer(outQueue, BUFFER_NUM, TILE_LENGTH * sizeof(T));
 
     uint32_t tilePipe =
         C / BLOCK_NUM / BUFFER_NUM; // C=32时，tilePipe=1, C=64时，tilePipe=2
@@ -34,8 +35,8 @@ extern "C" __global__ __aicore__ void pluginsub(GM_ADDR x, GM_ADDR output,
     for (uint32_t i = 0; i < loopCount; ++i) {
         for (uint32_t j = 0; j < 16; ++j) {
             // copy in
-            LocalTensor<float> xLocal = inQueueX.AllocTensor<float>();
-            LocalTensor<float> yLocal = inQueueY.AllocTensor<float>();
+            LocalTensor<T> xLocal = inQueueX.AllocTensor<T>();
+            LocalTensor<T> yLocal = inQueueY.AllocTensor<T>();
             int32_t bufferIdx = i / (TILE_NUM * tilePipe);
             int32_t tilePipeIdx = i % (TILE_NUM * tilePipe) / TILE_NUM;
             int32_t tileIdx = i % TILE_NUM;
@@ -59,17 +60,17 @@ extern "C" __global__ __aicore__ void pluginsub(GM_ADDR x, GM_ADDR output,
             inQueueY.EnQue(yLocal);
 
             // compute
-            xLocal = inQueueX.DeQue<float>();
-            yLocal = inQueueY.DeQue<float>();
-            LocalTensor<float> zLocal = outQueue.AllocTensor<float>();
+            xLocal = inQueueX.DeQue<T>();
+            yLocal = inQueueY.DeQue<T>();
+            LocalTensor<T> zLocal = outQueue.AllocTensor<T>();
             Sub(zLocal, yLocal, xLocal, TILE_LENGTH);
 
-            outQueue.EnQue<float>(zLocal);
+            outQueue.EnQue<T>(zLocal);
             inQueueX.FreeTensor(xLocal);
             inQueueY.FreeTensor(yLocal);
 
             // copy out
-            zLocal = outQueue.DeQue<float>();
+            zLocal = outQueue.DeQue<T>();
             int32_t tileOffsetOut = (bufferIdx * tilePipe * TILE_NUM +
                                      tilePipeIdx * TILE_NUM + tileIdx) *
                                     16 * 1024;
@@ -79,15 +80,36 @@ extern "C" __global__ __aicore__ void pluginsub(GM_ADDR x, GM_ADDR output,
     }
 }
 
-void plugin_sub_kernel(float *input, float *output,
-                       PluginMetaData plugin_meta_data, void *stream) {
+extern "C" __global__ __aicore__ void
+kernel_operator_float(GM_ADDR input, GM_ADDR output, size_t inputSize,
+                      size_t outputSize, int C) {
+    pluginsub<float>(input, output, inputSize, outputSize, C);
+}
+
+extern "C" __global__ __aicore__ void
+kernel_operator_half(GM_ADDR input, GM_ADDR output, size_t inputSize,
+                     size_t outputSize, int C) {
+    pluginsub<half>(input, output, inputSize, outputSize, C);
+}
+
+extern "C" void plugin_sub_kernel(void *input, void *output,
+                                  PluginMetaData plugin_meta_data, void *stream,
+                                  int dtype) {
     size_t inputSize = plugin_meta_data.input_size;
     size_t outputSize = plugin_meta_data.output_size;
 
     int C = plugin_meta_data.input_shape[1]; // 32 or 64
-
-    // 调用Kernel
-    pluginsub<<<BLOCK_NUM, nullptr, stream>>>(input, output, inputSize,
-                                              outputSize, C);
+    switch (dtype) {
+    case 0:
+        kernel_operator_float<<<BLOCK_NUM, nullptr, stream>>>(
+            input, output, inputSize, outputSize, C);
+        break;
+    case 1:
+        kernel_operator_half<<<BLOCK_NUM, nullptr, stream>>>(
+            input, output, inputSize, outputSize, C);
+        break;
+    default:
+        break;
+    }
     return;
 }
