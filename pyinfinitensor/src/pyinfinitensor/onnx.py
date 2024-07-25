@@ -137,7 +137,6 @@ class OnnxStub:
                     else:
                         adapt = node.input[0]
 
-                    
                     tensors[node.output[0]] = self.handler.conv(
                         tensors[adapt],
                         tensors[node.input[1]],
@@ -154,7 +153,9 @@ class OnnxStub:
                     # 3D卷积
                     if p[0] != p[3] or p[1] != p[4] or p[2] != p[5]:
                         adapt = "{}-adapt".format(node.output[0])
-                        tensors[adapt] = self.handler.pad(tensors[node.input[0]], None, p, [-3, -2, -1])
+                        tensors[adapt] = self.handler.pad(
+                            tensors[node.input[0]], None, p, [-3, -2, -1]
+                        )
                         p = [0, 0, 0, 0, 0, 0]
                     else:
                         adapt = node.input[0]
@@ -181,7 +182,10 @@ class OnnxStub:
                             None,
                             [
                                 1,
-                                reduce(lambda acc, x: acc * x, tensors[node.input[2]].shape()),
+                                reduce(
+                                    lambda acc, x: acc * x,
+                                    tensors[node.input[2]].shape(),
+                                ),
                                 1,
                                 1,
                                 1,
@@ -191,7 +195,7 @@ class OnnxStub:
                             tensors[bias], tensors[reshape], tensors.get(node.output[0])
                         )
                     else:
-                        assert(tensors.get(node.output[0]) != None)
+                        assert tensors.get(node.output[0]) != None
                         tensors[node.output[0]] = self.handler.conv3d(
                             tensors[adapt],
                             tensors[node.input[1]],
@@ -207,7 +211,7 @@ class OnnxStub:
                             d[2],
                         )
                 else:
-                    raise ValueError("Unsupported convolution dimensions")                
+                    raise ValueError("Unsupported convolution dimensions")
             elif node.op_type == "ConvTranspose":
                 attributes = _parse_attribute(
                     node,
@@ -626,12 +630,16 @@ class OnnxStub:
                 tensors[node.output[0]] = self.handler.clip(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
-                    next(_parse_data(data[node.input[1]]).__iter__(), None)
-                    if len(node.input) > 1
-                    else None,
-                    next(_parse_data(data[node.input[2]]).__iter__(), None)
-                    if len(node.input) > 2
-                    else None,
+                    (
+                        next(_parse_data(data[node.input[1]]).__iter__(), None)
+                        if len(node.input) > 1
+                        else None
+                    ),
+                    (
+                        next(_parse_data(data[node.input[2]]).__iter__(), None)
+                        if len(node.input) > 2
+                        else None
+                    ),
                 )
             elif node.op_type == "Transpose":
                 perm = next(
@@ -782,11 +790,17 @@ class OnnxStub:
                     tensors.get(node.output[0]),
                 )
             elif node.op_type == "AscendPluginSub":
-                tensors[node.output[0]] = self.handler.ascendPluginSub(
+                transpose = "{}-transpose".format(node.output[0])
+                tensors[transpose] = self.handler.ascendPluginSub(
                     tensors[node.input[0]],
-                    tensors.get(node.output[0]),
+                    None,
                     5,
                     1,
+                )
+                tensors[node.output[0]] = self.handler.transpose(
+                    tensors[transpose],
+                    tensors.get(node.output[0]),
+                    [0, 1, 2, 4, 3],
                 )
             elif node.op_type == "Split":
                 split = (
@@ -856,12 +870,16 @@ class OnnxStub:
                     tensors.get(node.output[0]),
                     clamp(_parse_data(data[node.input[1]])),
                     clamp(_parse_data(data[node.input[2]])),
-                    clamp(_parse_data(data[node.input[3]]))
-                    if len(node.input) > 3
-                    else None,
-                    clamp(_parse_data(data[node.input[4]]))
-                    if len(node.input) > 4
-                    else None,
+                    (
+                        clamp(_parse_data(data[node.input[3]]))
+                        if len(node.input) > 3
+                        else None
+                    ),
+                    (
+                        clamp(_parse_data(data[node.input[4]]))
+                        if len(node.input) > 4
+                        else None
+                    ),
                 )
             elif node.op_type == "Pad":
                 tensors[node.output[0]] = self.handler.pad(
@@ -877,12 +895,16 @@ class OnnxStub:
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
                         tensors.get(node.output[1]) if len(node.output) > 1 else None,
-                        _parse_data(data[node.input[1]])[0]
-                        if len(node.input) > 1
-                        else 0.5,
-                        _parse_data(data[node.input[2]])[0]
-                        if len(node.input) > 2
-                        else False,
+                        (
+                            _parse_data(data[node.input[1]])[0]
+                            if len(node.input) > 1
+                            else 0.5
+                        ),
+                        (
+                            _parse_data(data[node.input[2]])[0]
+                            if len(node.input) > 2
+                            else False
+                        ),
                     ),
                 ):
                     tensors[name] = tensor
