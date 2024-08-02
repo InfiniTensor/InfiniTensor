@@ -9,6 +9,8 @@ option(BUILD_NNET "Build nnet" OFF)
 option(BUILD_DIST "Build project for distributed running" OFF)
 option(BUILD_TEST "Build tests" OFF)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-pointer-arith")
+
 if(USE_CUDA)
     message("CMake 3.18 or higher is required for setting CUDAToolkit")
     cmake_minimum_required(VERSION 3.18) # FindCUDAToolkit
@@ -262,7 +264,8 @@ if(USE_BANG)
   ################################################################################
   # BangC Kernels
   ################################################################################
-
+  add_subdirectory(src/kernels/mlu)
+  target_link_libraries(InfiniTensor bangops)
   if (BUILD_DIST)
     find_library(CAMBRICON_CNCL libcncl.so "${NEUWARE_HOME}/lib64")
     target_link_libraries(InfiniTensor ${CAMBRICON_CNCL} ${CAMBRICON_CNNL} ${CAMBRICON_CNRT} ${CAMBRICON_CNDRV} stdc++)
