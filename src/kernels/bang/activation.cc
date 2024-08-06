@@ -209,6 +209,16 @@ class SoftmaxCnnl : public BangKernelWithoutConfig {
         checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
         checkCnnlError(cnnlDestroyTensorDescriptor(cDesc));
     }
+
+    void computeFuncAdd(const Key perfKey, const Operator &op,
+                        const PerfRecord &record,
+                        const RuntimeObj *context) override {}
+
+    ComputeFuncPtr getComputeFunc(const Key &key) const override {
+        return nullptr;
+    }
+
+    void setComputeFunc(const Key &key, ComputeFuncPtr ptr) override {}
 };
 
 class ReluCnnl : public UnaryCnnl {

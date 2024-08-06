@@ -26,7 +26,20 @@ struct PerfRecordObj {
     }
 };
 using PerfRecord = Ref<PerfRecordObj>;
+using ComputeFuncPtr = std::function<void(const Operator &, const PerfRecord &,
+                                          const RuntimeObj *)>;
+
 class Kernel {
+  public:
+    // multiple candiate kernels.
+    using Key = std::pair<KernelAttrs, OpPerfKey>;
+
+  protected:
+    // Map storing the pairs of perfKey and corresponding optimal function ptr
+    std::map<Key, ComputeFuncPtr> computeMap;
+    // Vector storing all computing function pointers
+    std::vector<ComputeFuncPtr> funcVec;
+
   public:
     Kernel() {}
     virtual ~Kernel() {}
@@ -46,6 +59,17 @@ class Kernel {
     // Premise: op is idempotent since it is called multiple times.
     virtual PerfRecord tune(const Operator &op,
                             const RuntimeObj *context) const = 0;
+
+    // Find the optimal computing function by comparing its running time
+    virtual void computeFuncAdd(const Key perfKey, const Operator &op,
+                                const PerfRecord &record,
+                                const RuntimeObj *context) = 0;
+
+    // Get the optimal computing function according to the key
+    virtual ComputeFuncPtr getComputeFunc(const Key &key) const = 0;
+
+    // Add perfKey and function as <key, value> to the computeMap
+    virtual void setComputeFunc(const Key &key, ComputeFuncPtr ptr) = 0;
 };
 
 class PerfRecordRegistry {
@@ -125,6 +149,16 @@ class CpuKernelWithoutConfig : public Kernel {
                             const RuntimeObj *context) const override {
         return make_ref<PerfRecordObj>(timeit([&]() { compute(op, context); }));
     }
+
+    void computeFuncAdd(const Key perfKey, const Operator &op,
+                        const PerfRecord &record,
+                        const RuntimeObj *context) override {}
+
+    ComputeFuncPtr getComputeFunc(const Key &key) const override {
+        return nullptr;
+    }
+
+    void setComputeFunc(const Key &key, ComputeFuncPtr ptr) override {}
 };
 
 } // namespace infini

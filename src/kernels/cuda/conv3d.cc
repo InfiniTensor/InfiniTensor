@@ -261,6 +261,16 @@ class Conv3dCudnn : public Kernel {
         bool success = cuDNNUnfused(op, record, context);
         IT_ASSERT(success);
     }
+
+    void computeFuncAdd(const Key perfKey, const Operator &op,
+                        const PerfRecord &record,
+                        const RuntimeObj *context) override {}
+
+    ComputeFuncPtr getComputeFunc(const Key &key) const override {
+        return nullptr;
+    }
+
+    void setComputeFunc(const Key &key, ComputeFuncPtr ptr) override {}
 };
 
 REGISTER_KERNEL(Device::CUDA, OpType::Conv3d, Conv3dCudnn, "Conv3d_cuDNN_CUDA");
