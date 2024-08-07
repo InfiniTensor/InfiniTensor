@@ -29,8 +29,8 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph) const {
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
         auto perfData = perfEngine.getPerfData(perfKey);
         // IT_ASSERT(perfData, "No perf data for OP " + op->toString());
-        ComputeFuncPtr funcPtr = kernel->getComputeFunc(perfKey);
         if (perfData) {
+            ComputeFuncPtr funcPtr = kernel->getComputeFunc(perfKey);
             (funcPtr != nullptr) ? funcPtr(op, perfData, this)
                                  : kernel->compute(op, perfData, this);
         } else {
@@ -80,16 +80,15 @@ void CudaRuntimeObj::tune(const Graph &graph, bool profiling = false) const {
         } else
             record = perfData;
 
-        if (kernel->getComputeFunc(perfKey) == nullptr) {
-            kernel->computeFuncAdd(perfKey, op, record, this);
-        }
-        ComputeFuncPtr funcPtr = kernel->getComputeFunc(perfKey);
-
         double t = record->time;
         totalTime += t;
         json j;
 
         if (profiling) {
+            if (kernel->getComputeFunc(perfKey) == nullptr) {
+                kernel->computeFuncAdd(perfKey, op, record, this);
+            }
+            ComputeFuncPtr funcPtr = kernel->getComputeFunc(perfKey);
             double t = timeit(
                 [&]() {
                     (funcPtr != nullptr) ? funcPtr(op, record, this)

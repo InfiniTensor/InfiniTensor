@@ -265,9 +265,7 @@ class convCudnn : public Kernel {
                 funcPtr = itPtr;
             }
         }
-        if (funcPtr != nullptr) {
-            setComputeFunc(perfKey, funcPtr);
-        }
+        setComputeFunc(perfKey, funcPtr);
     }
 
     ComputeFuncPtr getComputeFunc(const Key &key) const override {
@@ -290,8 +288,7 @@ class convCudnn : public Kernel {
                                  const RuntimeObj *context) {
             this->compute(op, record, context);
         };
-        ComputeFuncPtr itr1 = computePtr;
-        funcVec.emplace_back(itr1);
+        funcVec.emplace_back(computePtr);
     }
 };
 
