@@ -30,6 +30,9 @@
 #ifdef USE_KUNLUN
 #include "kunlun/kunlun_runtime.h"
 #endif
+#ifdef USE_ASCEND
+#include "ascend/ascend_runtime.h"
+#endif
 #ifdef USE_INTELCPU
 #include "intelcpu/mkl_runtime.h"
 #include "intelcpu/operator_timer.h"
@@ -65,6 +68,7 @@ void export_values(py::module &m) {
     py::enum_<ActType>(m, "ActType")
         .value("Linear", ActType::None) // `None` is Python keyword
         .VALUE(ActType, Relu)
+        .VALUE(ActType, LeakyRelu)
         .VALUE(ActType, Sigmoid)
         .VALUE(ActType, Tanh)
         .export_values();
@@ -102,9 +106,9 @@ void export_values(py::module &m) {
         .VALUE(OpType, BatchNormalization)
         .VALUE(OpType, Softmax)
         .VALUE(OpType, Relu)
+        .VALUE(OpType, LeakyRelu)
         .VALUE(OpType, Gelu)
         .VALUE(OpType, PRelu)
-        .VALUE(OpType, LeakyRelu)
         .VALUE(OpType, Sigmoid)
         .VALUE(OpType, Tanh)
         .VALUE(OpType, HardSigmoid)
@@ -174,6 +178,12 @@ static Ref<BangRuntimeObj> bang_runtime() { return make_ref<BangRuntimeObj>(); }
 #ifdef USE_KUNLUN
 static Ref<KUNLUNRuntimeObj> kunlun_runtime() {
     return make_ref<KUNLUNRuntimeObj>();
+}
+#endif
+
+#ifdef USE_ASCEND
+static Ref<ASCENDRuntimeObj> ascend_runtime() {
+    return make_ref<ASCENDRuntimeObj>();
 }
 #endif
 
@@ -355,6 +365,10 @@ void export_functions(py::module &m) {
 #ifdef USE_KUNLUN
         .FUNCTION(kunlun_runtime)
 #endif
+
+#ifdef USE_ASCEND
+        .FUNCTION(ascend_runtime)
+#endif
         .FUNCTION(conv_attrs_of)
         .FUNCTION(conv_trans_attrs_of)
         .FUNCTION(matmul_attrs_of)
@@ -442,6 +456,14 @@ void init_graph_builder(py::module &m) {
         .def(py::init<int>(), py::arg("device") = 0)
         .def("init_comm", &KUNLUNRuntimeObj::initComm);
 #endif
+
+#ifdef USE_ASCEND
+    py::class_<ASCENDRuntimeObj, std::shared_ptr<ASCENDRuntimeObj>, RuntimeObj>(
+        m, "ASCENDRuntime")
+        .def(py::init<int>(), py::arg("device") = 0)
+        .def("init_comm", &ASCENDRuntimeObj::initComm);
+    ;
+#endif
     py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "Tensor",
                                                       py::buffer_protocol())
         .def("fuid", &TensorObj::getFuid, policy::automatic)
@@ -516,6 +538,8 @@ void init_graph_builder(py::module &m) {
         .def("matmul", &Handler::matmul, policy::move)
         .def("batchNormalization", &Handler::batchNormalization, policy::move)
         .def("layerNormalization", &Handler::layerNormalization, policy::move)
+        .def("instanceNormalization", &Handler::instanceNormalization,
+             policy::move)
         .def("RMSNorm", &Handler::rmsNorm, policy::move)
         .def("maxPool", &Handler::maxPool, policy::move)
         .def("avgPool", &Handler::avgPool, policy::move)
@@ -528,6 +552,7 @@ void init_graph_builder(py::module &m) {
         .def("min", &Handler::min, policy::move)
         .def("max", &Handler::max, policy::move)
         .def("relu", &Handler::relu, policy::move)
+        .def("leakyRelu", &Handler::leakyRelu, policy::move)
         .def("silu", &Handler::silu, policy::move)
         .def("gelu", &Handler::gelu, policy::move)
         .def("sigmoid", &Handler::sigmoid, policy::move)
@@ -542,7 +567,6 @@ void init_graph_builder(py::module &m) {
         .def("identity", &Handler::identity, policy::move)
         .def("flatten", &Handler::flatten, policy::move)
         .def("pRelu", &Handler::pRelu, policy::move)
-        .def("leakyRelu", &Handler::leakyRelu, policy::move)
         .def("clip", &Handler::clip, policy::move)
         .def("transpose", &Handler::transpose, policy::move)
         .def("depthToSpace", &Handler::depthToSpace, policy::move)

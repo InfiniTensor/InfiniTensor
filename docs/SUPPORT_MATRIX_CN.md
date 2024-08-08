@@ -15,6 +15,7 @@
 | -------- | ------------  | -----------   | ---------- |
 | X86-64   | Nvidia GPU    |  Ubuntu-22.04 |  Yes       |
 | X86-64   | Cambricon MLU |  Ubuntu-22.04 |  Yes       |
+| arm64    | Ascend NPU    |OpenEuler-22.03|  Yes       |
 
 ## 神经网络支持
 

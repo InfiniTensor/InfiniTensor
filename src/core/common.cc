@@ -21,4 +21,17 @@ double timeit(const std::function<void()> &func,
            timingRounds;
 }
 
+// transform vector<int> to vector<int64_t>
+std::vector<int64_t> castTo64(std::vector<int> const &v32) {
+    if (v32.size() == 0) {
+        std::vector<int64_t> v64(1, 1);
+        return v64;
+    }
+    std::vector<int64_t> v64(v32.size(), 1);
+    for (size_t i = 0; i < v32.size(); ++i) {
+        v64[i] = int64_t(v32[i]);
+    }
+    return v64;
+}
+
 } // namespace infini
