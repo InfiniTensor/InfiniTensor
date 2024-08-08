@@ -61,9 +61,9 @@ class Kernel {
                             const RuntimeObj *context) const = 0;
 
     // Find the optimal computing function by comparing its running time
-    virtual void computeFuncAdd(const Key perfKey, const Operator &op,
-                                const PerfRecord &record,
-                                const RuntimeObj *context) = 0;
+    virtual void computeFuncTune(const Key perfKey, const Operator &op,
+                                 const PerfRecord &record,
+                                 const RuntimeObj *context) = 0;
 
     // Get the optimal computing function according to the key
     virtual ComputeFuncPtr getComputeFunc(const Key &key) const = 0;
@@ -150,12 +150,15 @@ class CpuKernelWithoutConfig : public Kernel {
         return make_ref<PerfRecordObj>(timeit([&]() { compute(op, context); }));
     }
 
-    void computeFuncAdd(const Key perfKey, const Operator &op,
-                        const PerfRecord &record,
-                        const RuntimeObj *context) override {}
+    void computeFuncTune(const Key perfKey, const Operator &op,
+                         const PerfRecord &record,
+                         const RuntimeObj *context) override {}
 
     ComputeFuncPtr getComputeFunc(const Key &key) const override {
-        return nullptr;
+        return [this](const Operator &op, const PerfRecord &record,
+                      const RuntimeObj *context) {
+            this->compute(op, record, context);
+        };
     }
 
     void setComputeFunc(const Key &key, ComputeFuncPtr ptr) override {}

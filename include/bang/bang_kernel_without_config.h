@@ -21,12 +21,15 @@ class BangKernelWithoutConfig : public Kernel {
                                               [&]() { context->sync(); }));
     }
 
-    virtual void computeFuncAdd(const Key perfKey, const Operator &op,
-                                const PerfRecord &record,
-                                const RuntimeObj *context) {}
+    virtual void computeFuncTune(const Key perfKey, const Operator &op,
+                                 const PerfRecord &record,
+                                 const RuntimeObj *context) {}
 
     virtual ComputeFuncPtr getComputeFunc(const Key &key) const {
-        return nullptr;
+        return [this](const Operator &op, const PerfRecord &record,
+                      const RuntimeObj *context) {
+            this->compute(op, record, context);
+        };
     }
 
     virtual void setComputeFunc(const Key &key, ComputeFuncPtr ptr) {}

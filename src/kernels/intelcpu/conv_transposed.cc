@@ -245,12 +245,15 @@ class MklConvTranspose : public Kernel {
         return make_ref<ConvTransposeMklPerfRecordObj>(ret);
     }
 
-    void computeFuncAdd(const Key perfKey, const Operator &op,
-                        const PerfRecord &record,
-                        const RuntimeObj *context) override {}
+    void computeFuncTune(const Key perfKey, const Operator &op,
+                         const PerfRecord &record,
+                         const RuntimeObj *context) override {}
 
-    ComputeFuncPtr getComputeFunc(const Key &key) const override {
-        return nullptr;
+    ComputeFuncPtr getComputeFunc(const Key &key) const {
+        return [this](const Operator &op, const PerfRecord &record,
+                      const RuntimeObj *context) {
+            this->compute(op, record, context);
+        };
     }
 
     void setComputeFunc(const Key &key, ComputeFuncPtr ptr) override {}

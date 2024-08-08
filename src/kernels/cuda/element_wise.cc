@@ -81,9 +81,13 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
         checkCudnnError(cudnnDestroyOpTensorDescriptor(opDesc));
     }
 
-    void computeFuncAdd(const Key perfKey, const Operator &op,
-                        const PerfRecord &record,
-                        const RuntimeObj *context) override {
+    void computeFuncTune(const Key perfKey, const Operator &op,
+                         const PerfRecord &record,
+                         const RuntimeObj *context) override {
+        if (funcVec.empty()) {
+            printf("funcVec hasn't inited\n");
+            return;
+        }
         double t = std::numeric_limits<double>::max();
         ComputeFuncPtr funcPtr;
         int i = 0;
@@ -105,12 +109,16 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
         if (it != computeMap.end())
             return computeMap.at(key);
         else
-            return nullptr;
+            return [this](const Operator &op, const PerfRecord &record,
+                          const RuntimeObj *context) {
+                this->compute(op, record, context);
+            };
     }
 
     void setComputeFunc(const Key &key, ComputeFuncPtr ptr) override {
-        IT_ASSERT(computeMap.find(key) == computeMap.end(),
-                  "compute func ptr already exist");
+        if (computeMap.find(key) != computeMap.end()) {
+            return;
+        }
         computeMap.emplace(key, ptr);
     }
 
