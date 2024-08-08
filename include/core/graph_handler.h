@@ -52,6 +52,8 @@ class GraphHandlerObj {
     Tensor pow(Tensor a, Tensor b, Tensor c);
     Tensor min(Tensor a, Tensor b, Tensor c);
     Tensor max(Tensor a, Tensor b, Tensor c);
+    Tensor greater(Tensor a, Tensor b, Tensor c);
+    Tensor greaterEqual(Tensor a, Tensor b, Tensor c);
 
     Tensor relu(Tensor x, Tensor y);
     Tensor leakyRelu(Tensor x, Tensor y, float alpha);
