@@ -31,12 +31,22 @@
 #include "operators/unsqueeze.h"
 #include "operators/where.h"
 #include <numeric>
-#include <variant>
 
 namespace infini {
 
 static DataType dtype_repr_convert(int);
 static CastType inferCastType(Tensor input, int to);
+
+Tensor GraphHandlerObj::elu(Tensor input, Tensor output, float alpha) {
+    if (output) {
+        g->addOpWithOutputs<EluObj>(std::move(input), output, alpha);
+        return output;
+    } else {
+        auto new_output = g->addTensor(input->getDims(), input->getDType());
+        g->addOpWithOutputs<EluObj>(std::move(input), new_output, alpha);
+        return new_output;
+    }
+}
 
 Tensor GraphHandlerObj::tensor(Shape dims, int dtype) {
     return g->addTensor(std::move(dims), dtype_repr_convert(dtype));
@@ -125,6 +135,7 @@ Tensor GraphHandlerObj::layerNormalization(Tensor input, Tensor scale,
             ->getOutput();
     }
 }
+
 Tensor GraphHandlerObj::instanceNormalization(Tensor input, Tensor output,
                                               Tensor scale, Tensor bias,
                                               float eps) {
@@ -139,15 +150,7 @@ Tensor GraphHandlerObj::instanceNormalization(Tensor input, Tensor output,
             ->getOutput();
     }
 }
-Tensor GraphHandlerObj::leakyrelu(Tensor input, Tensor output, float alpha) {
-    if (output) {
-        g->addOpWithOutputs<LeakyReluObj>(std::move(input), output, alpha);
-        return output;
-    } else {
-        return g->addOp<LeakyReluObj>(std::move(input), output, alpha)
-            ->getOutput();
-    }
-}
+
 Tensor GraphHandlerObj::rmsNorm(Tensor input, Tensor weight, Tensor output) {
     if (output) {
         g->addOpWithOutputs<RMSNormObj>(std::move(input), std::move(weight),
@@ -242,6 +245,15 @@ Tensor GraphHandlerObj::pRelu(Tensor x, Tensor slope, Tensor y) {
     } else {
         return g->addOp<PReluObj>(std::move(x), std::move(slope), y)
             ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::leakyRelu(Tensor x, Tensor y, float alpha) {
+    if (y) {
+        g->addOpWithOutputs<LeakyReluObj>(std::move(x), y, alpha);
+        return y;
+    } else {
+        return g->addOp<LeakyReluObj>(std::move(x), y, alpha)->getOutput();
     }
 }
 

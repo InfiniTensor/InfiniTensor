@@ -94,6 +94,16 @@ __global__ void _sqrt_kernel(half *input, half *output, size_t n) {
     }
 }
 
+__global__ void _elu_kernel(const float *input, float *output, size_t size,
+                            float alpha) {
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (index < size) {
+        float x = input[index];
+        output[index] = (x >= 0) ? x : alpha * (expf(x) - 1);
+    }
+}
+
 template <typename T>
 __global__ void _gelu_kernel(T *input, T *output, size_t n) {
     int index = threadIdx.x + blockIdx.x * blockDim.x;
@@ -110,7 +120,7 @@ __global__ void _silu_kernel(T *input, T *output, size_t n) {
     int stride = blockDim.x * gridDim.x;
     for (int i = index; i < n; i += stride) {
         float x = input[i];
-        output[i] = x / (1.0 + expf(-x));;
+        output[i] = x / (1.0 + expf(-x));
     }
 }
 
@@ -143,33 +153,41 @@ __global__ void _cast_kernel(INPUT *input, OUTPUT *output, size_t n) {
     }
 }
 
+template <typename T>
+__global__ void _leaky_relu_kernel(T *input, T *output, size_t n,
+                                   float alphaValue) {
+    size_t index = threadIdx.x + blockIdx.x * blockDim.x;
+    size_t stride = blockDim.x * gridDim.x;
+    for (size_t i = index; i < n; i += stride) {
+        output[i] = (input[i] > 0) ? input[i] : alphaValue * input[i];
+    }
+}
+
 namespace infini {
 template <typename T> void softmax_kernel(T *input, T *output, size_t num) {
 
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     _softmax_kernel1<T>
-        <<<1, 1, 0, CUDAStream::getCurrentStream()>>>
-        (input, output, num);
+        <<<1, 1, 0, CUDAStream::getCurrentStream()>>>(input, output, num);
     _softmax_kernel2<T>
-        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
-        (input, output, num);
+        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+            input, output, num);
 }
 template <typename T> void relu_kernel(T *input, T *output, size_t num) {
 
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
-    _relu_kernel<T>
-        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
-        (input, output, num);
+    _relu_kernel<T><<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+        input, output, num);
 }
 template <typename T> void sigmoid_kernel(T *input, T *output, size_t num) {
 
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     _sigmoid_kernel<T>
-        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
-        (input, output, num);
+        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+            input, output, num);
 }
 template <typename T>
 void hard_sigmoid_kernel(T *input, T *output, size_t num) {
@@ -177,75 +195,68 @@ void hard_sigmoid_kernel(T *input, T *output, size_t num) {
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     _hard_sigmoid_kernel<T>
-        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
-        (input, output, num);
+        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+            input, output, num);
 }
 template <typename T> void hard_swish_kernel(T *input, T *output, size_t num) {
 
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     _hard_swish_kernel<T>
-        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
-        (input, output, num);
+        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+            input, output, num);
 }
 template <typename T> void tanh_kernel(T *input, T *output, size_t num) {
 
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
-    _tanh_kernel<T>
-        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
-        (input, output, num);
+    _tanh_kernel<T><<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+        input, output, num);
 }
 template <typename T> void abs_kernel(T *input, T *output, size_t num) {
 
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
-    _abs_kernel<T>
-        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
-        (input, output, num);
+    _abs_kernel<T><<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+        input, output, num);
 }
 template <typename T> void sqrt_kernel(T *input, T *output, size_t num) {
 
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
-    _sqrt_kernel
-        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
-        ((T *)input, (T *)output, num);
+    _sqrt_kernel<<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+        (T *)input, (T *)output, num);
 }
 
 template <typename T> void gelu_kernel(T *input, T *output, size_t num) {
 
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
-    _gelu_kernel<T>
-        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
-        (input, output, num);
+    _gelu_kernel<T><<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+        input, output, num);
 }
 
 template <typename T> void silu_kernel(T *input, T *output, size_t num) {
 
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
-    _silu_kernel<T>
-        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
-        (input, output, num);
+    _silu_kernel<T><<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+        input, output, num);
 }
 
 template <typename T> void erf_kernel(T *input, T *output, size_t num) {
 
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
-    _erf_kernel<T>
-        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
-        (input, output, num);
+    _erf_kernel<T><<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+        input, output, num);
 }
 template <typename T> void neg_kernel(T *input, T *output, size_t num) {
 
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
-    _neg_kernel<T>
-        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
-        (input, output, num);
+    _neg_kernel<T><<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+        input, output, num);
 }
 
 void unary_kernel(const Operator &_op) {
@@ -315,7 +326,7 @@ void unary_kernel(const Operator &_op) {
     } else if (op->getOpType() == OpType::Silu) {
         if (_op->getDType() == DataType::Float32) {
             silu_kernel<float>((float *)inputData, (float *)outputData, num);
-        } else if (_op->getDType() == DataType::Float16){
+        } else if (_op->getDType() == DataType::Float16) {
             silu_kernel<half>((half *)inputData, (half *)outputData, num);
         } else {
             IT_TODO_HALT();
@@ -346,8 +357,23 @@ void cast_kernel(INPUT *input, OUTPUT *output, size_t num) {
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     _cast_kernel<INPUT, OUTPUT>
-        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
-        (input, output, num);
+        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+            input, output, num);
+}
+
+template <typename T>
+void leaky_relu_kernel(T *input, T *output, size_t num, float alphaValue) {
+    int blocksize = block_work_size();
+    int gridsize = (num + blocksize - 1) / blocksize;
+    _leaky_relu_kernel<<<gridsize, blocksize, 0,
+                         CUDAStream::getCurrentStream()>>>(input, output, num,
+                                                           alphaValue);
+}
+
+void elu_kernel(const float *input, float *output, size_t size, float alpha) {
+    int blocksize = 32 * 16;
+    int gridsize = (size + blocksize - 1) / blocksize;
+    _elu_kernel<<<gridsize, blocksize>>>(input, output, size, alpha);
 }
 
 template void cast_kernel<float, half>(float *input, half *output, size_t num);
@@ -358,5 +384,6 @@ template void cast_kernel<float, int8_t>(float *input, int8_t *output,
                                          size_t num);
 template void cast_kernel<int8_t, float>(int8_t *input, float *output,
                                          size_t num);
-
+template void leaky_relu_kernel<float>(float *input, float *output, size_t num,
+                                       float alpha);
 }; // namespace infini

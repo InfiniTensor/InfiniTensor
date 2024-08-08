@@ -1,4 +1,4 @@
-import backend
+﻿import backend
 from onnx import (
     ModelProto,
     TensorProto,
@@ -85,6 +85,7 @@ class OnnxStub:
         while len(sorted_nodes) < len(model.graph.node):
             updated = False
             for i, node in enumerate(model.graph.node):
+                # TODO：only consider the case where the input of resize exist emptyInput
                 if all(t in known_edge or t == "" for t in node.input):
                     node.name = str(len(sorted_nodes)) + "_" + node.name
                     sorted_nodes.append(i)
@@ -179,6 +180,12 @@ class OnnxStub:
                         d[0],
                         d[1],
                     )
+            elif node.op_type == "Elu":
+                attributes = _parse_attribute(node, {"alpha": 1.0})
+                alpha = attributes["alpha"]
+                tensors[node.output[0]] = self.handler.elu(
+                    tensors[node.input[0]], tensors.get(node.output[0]), alpha
+                )
             elif node.op_type == "ConvTranspose":
                 attributes = _parse_attribute(
                     node,
@@ -506,7 +513,7 @@ class OnnxStub:
                     tensors.get(node.output[0]),
                 )
             elif node.op_type == "LeakyRelu":
-                tensors[node.output[0]] = self.handler.leakyrelu(
+                tensors[node.output[0]] = self.handler.leakyRelu(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
                     next(
@@ -597,12 +604,16 @@ class OnnxStub:
                 tensors[node.output[0]] = self.handler.clip(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
-                    next(_parse_data(data[node.input[1]]).__iter__(), None)
-                    if len(node.input) > 1
-                    else None,
-                    next(_parse_data(data[node.input[2]]).__iter__(), None)
-                    if len(node.input) > 2
-                    else None,
+                    (
+                        next(_parse_data(data[node.input[1]]).__iter__(), None)
+                        if len(node.input) > 1
+                        else None
+                    ),
+                    (
+                        next(_parse_data(data[node.input[2]]).__iter__(), None)
+                        if len(node.input) > 2
+                        else None
+                    ),
                 )
             elif node.op_type == "Transpose":
                 perm = next(
@@ -820,12 +831,16 @@ class OnnxStub:
                     tensors.get(node.output[0]),
                     clamp(_parse_data(data[node.input[1]])),
                     clamp(_parse_data(data[node.input[2]])),
-                    clamp(_parse_data(data[node.input[3]]))
-                    if len(node.input) > 3
-                    else None,
-                    clamp(_parse_data(data[node.input[4]]))
-                    if len(node.input) > 4
-                    else None,
+                    (
+                        clamp(_parse_data(data[node.input[3]]))
+                        if len(node.input) > 3
+                        else None
+                    ),
+                    (
+                        clamp(_parse_data(data[node.input[4]]))
+                        if len(node.input) > 4
+                        else None
+                    ),
                 )
             elif node.op_type == "Pad":
                 tensors[node.output[0]] = self.handler.pad(
@@ -841,12 +856,16 @@ class OnnxStub:
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
                         tensors.get(node.output[1]) if len(node.output) > 1 else None,
-                        _parse_data(data[node.input[1]])[0]
-                        if len(node.input) > 1
-                        else 0.5,
-                        _parse_data(data[node.input[2]])[0]
-                        if len(node.input) > 2
-                        else False,
+                        (
+                            _parse_data(data[node.input[1]])[0]
+                            if len(node.input) > 1
+                            else 0.5
+                        ),
+                        (
+                            _parse_data(data[node.input[2]])[0]
+                            if len(node.input) > 2
+                            else False
+                        ),
                     ),
                 ):
                     tensors[name] = tensor
@@ -1208,6 +1227,13 @@ class OnnxStub:
                         strides=[sh, sw],
                         dilations=[dh, dw],
                         group=op.inputs()[0].shape()[1] // op.inputs()[1].shape()[1],
+                    )
+                )
+            elif ty == backend.OpTypeId.Elu:
+                alpha = backend.elu_alpha_of(op)
+                ctx.push_node(
+                    make_node(
+                        "Elu", inputs, outputs, name, alpha=alpha
                     )
                 )
             elif ty == backend.OpTypeId.ConvTranspose:

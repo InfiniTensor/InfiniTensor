@@ -47,6 +47,23 @@ class ClipObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 };
 
+class EluObj : public OperatorObj {
+  public:
+    EluObj(GraphObj *graph, Tensor input, Tensor output, float alpha);
+    OP_CLONE(EluObj);
+
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
+    std::string toString() const override;
+    int numInputs() const override { return inputs.size(); }
+    int numOutputs() const override { return 1; }
+    float getAlpha() const { return alpha; }
+    float alpha;
+
+  private:
+    vector<int> getWorkloadVector() const override;
+    vector<int> getOpAttrVector() const override;
+};
+
 class HardtanhObj : public OperatorObj {
   public:
     HardtanhObj(GraphObj *graph, Tensor input, Tensor output, float min,
@@ -227,23 +244,24 @@ class PReluObj : public OperatorObj {
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;
 };
+
 class LeakyReluObj : public OperatorObj {
   public:
-    LeakyReluObj(GraphObj *graph, Tensor input, Tensor output,
-                 float alpha = 0.01);
+    LeakyReluObj(GraphObj *graph, Tensor input, Tensor output, float alpha);
     OP_CLONE(LeakyReluObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
-    float getAlpha() const { return alpha; }
+    float getAlpha() const { return alphaValue; }
     int numInputs() const override { return 1; }
     int numOutputs() const override { return 1; }
 
   private:
+    float alphaValue;
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;
-    float alpha;
 };
+
 class LogObj : public OperatorObj {
   public:
     enum LogType {
