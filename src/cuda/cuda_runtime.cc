@@ -30,6 +30,7 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph) const {
         auto perfData = perfEngine.getPerfData(perfKey);
         // IT_ASSERT(perfData, "No perf data for OP " + op->toString());
         if (perfData) {
+            ComputeFuncPtr funcPtr = kernel->getComputeFunc(perfKey);
             funcPtr(op, perfData, this);
         } else {
             kernel->compute(op, this);

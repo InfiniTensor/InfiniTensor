@@ -81,6 +81,11 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
         checkCudnnError(cudnnDestroyOpTensorDescriptor(opDesc));
     }
 
+    void compute(const Operator &op, const PerfRecord &record,
+                 const RuntimeObj *context) const override {
+        compute(op, context);
+    }
+
   public:
     ElementWiseCudnn() {
         ComputeFuncPtr computePtr = [this](const Operator &op,
