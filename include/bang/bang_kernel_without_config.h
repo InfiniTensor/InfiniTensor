@@ -10,6 +10,7 @@ class BangKernelWithoutConfig : public Kernel {
                          const RuntimeObj *context) const {
         compute(op, context);
     }
+
     virtual void compute(const Operator &op,
                          const RuntimeObj *context) const = 0;
     // Premise: op is idempotent since it is called multiple times.

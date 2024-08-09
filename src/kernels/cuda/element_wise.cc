@@ -80,6 +80,21 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
         checkCudnnError(cudnnDestroyTensorDescriptor(cDesc));
         checkCudnnError(cudnnDestroyOpTensorDescriptor(opDesc));
     }
+
+    void compute(const Operator &op, const PerfRecord &record,
+                 const RuntimeObj *context) const override {
+        compute(op, context);
+    }
+
+  public:
+    ElementWiseCudnn() {
+        ComputeFuncPtr computePtr = [this](const Operator &op,
+                                           const PerfRecord &record,
+                                           const RuntimeObj *context) {
+            this->compute(op, record, context);
+        };
+        funcVec.emplace_back(computePtr);
+    }
 };
 
 class AddCudnn : public ElementWiseCudnn {
