@@ -81,52 +81,6 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
         checkCudnnError(cudnnDestroyOpTensorDescriptor(opDesc));
     }
 
-    void computeFuncTune(const Key perfKey, const Operator &op,
-                         const PerfRecord &record,
-                         const RuntimeObj *context) override {
-        if (funcVec.empty()) {
-            printf("funcVec hasn't inited\n");
-            return;
-        }
-        double t = std::numeric_limits<double>::max();
-        ComputeFuncPtr funcPtr;
-        int i = 0;
-        for (auto &itPtr : funcVec) {
-            double tem =
-                timeit([&]() { itPtr(op, record, context); }, [&]() {});
-            if (tem < t) {
-                t = tem;
-                funcPtr = itPtr;
-            }
-        }
-        if (funcPtr != nullptr) {
-            setComputeFunc(perfKey, funcPtr);
-        }
-    }
-
-    ComputeFuncPtr getComputeFunc(const Key &key) const override {
-        auto it = computeMap.find(key);
-        if (it != computeMap.end())
-            return computeMap.at(key);
-        else
-            return [this](const Operator &op, const PerfRecord &record,
-                          const RuntimeObj *context) {
-                this->compute(op, record, context);
-            };
-    }
-
-    void setComputeFunc(const Key &key, ComputeFuncPtr ptr) override {
-        if (computeMap.find(key) != computeMap.end()) {
-            return;
-        }
-        computeMap.emplace(key, ptr);
-    }
-
-    void compute(const Operator &op, const PerfRecord &record,
-                 const RuntimeObj *context) const {
-        compute(op, context);
-    }
-
   public:
     ElementWiseCudnn() {
         ComputeFuncPtr computePtr = [this](const Operator &op,

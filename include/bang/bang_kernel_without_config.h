@@ -20,19 +20,6 @@ class BangKernelWithoutConfig : public Kernel {
         return make_ref<PerfRecordObj>(timeit([&]() { compute(op, _context); },
                                               [&]() { context->sync(); }));
     }
-
-    virtual void computeFuncTune(const Key perfKey, const Operator &op,
-                                 const PerfRecord &record,
-                                 const RuntimeObj *context) {}
-
-    virtual ComputeFuncPtr getComputeFunc(const Key &key) const {
-        return [this](const Operator &op, const PerfRecord &record,
-                      const RuntimeObj *context) {
-            this->compute(op, record, context);
-        };
-    }
-
-    virtual void setComputeFunc(const Key &key, ComputeFuncPtr ptr) {}
 };
 
 } // namespace infini

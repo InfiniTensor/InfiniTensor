@@ -299,19 +299,6 @@ class convBackwardDataCudnn : public Kernel {
         bool success = cuDNNUnfused(op, *record, context);
         IT_ASSERT(success);
     }
-
-    void computeFuncTune(const Key perfKey, const Operator &op,
-                         const PerfRecord &record,
-                         const RuntimeObj *context) override {}
-
-    ComputeFuncPtr getComputeFunc(const Key &key) const {
-        return [this](const Operator &op, const PerfRecord &record,
-                      const RuntimeObj *context) {
-            this->compute(op, record, context);
-        };
-    }
-
-    void setComputeFunc(const Key &key, ComputeFuncPtr ptr) override {}
 };
 
 REGISTER_KERNEL(Device::CUDA, OpType::ConvTranspose, convBackwardDataCudnn,

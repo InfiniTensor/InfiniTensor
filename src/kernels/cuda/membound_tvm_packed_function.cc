@@ -214,18 +214,6 @@ class MemboundTVMPackedFunction : public Kernel {
 
         return {values, type_codes};
     }
-    void computeFuncTune(const Key perfKey, const Operator &op,
-                         const PerfRecord &record,
-                         const RuntimeObj *context) override {}
-
-    ComputeFuncPtr getComputeFunc(const Key &key) const {
-        return [this](const Operator &op, const PerfRecord &record,
-                      const RuntimeObj *context) {
-            this->compute(op, record, context);
-        };
-    }
-
-    void setComputeFunc(const Key &key, ComputeFuncPtr ptr) override {}
 };
 
 REGISTER_KERNEL(Device::CUDA, OpType::MemBound, MemboundTVMPackedFunction,

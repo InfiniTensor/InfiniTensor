@@ -252,45 +252,6 @@ class convCudnn : public Kernel {
         IT_ASSERT(success);
     }
 
-    void computeFuncTune(const Key perfKey, const Operator &op,
-                         const PerfRecord &record,
-                         const RuntimeObj *context) override {
-        if (funcVec.empty()) {
-            printf("funcVec hasn't inited\n");
-            return;
-        }
-        double t = std::numeric_limits<double>::max();
-        ComputeFuncPtr funcPtr;
-        for (auto &itPtr : funcVec) {
-            double tem =
-                timeit([&]() { itPtr(op, record, context); }, [&]() {});
-            if (tem < t) {
-                t = tem;
-                funcPtr = itPtr;
-            }
-        }
-        setComputeFunc(perfKey, funcPtr);
-    }
-
-    ComputeFuncPtr getComputeFunc(const Key &key) const override {
-        auto it = computeMap.find(key);
-        if (it != computeMap.end())
-            return computeMap.at(key);
-        else {
-            return [this](const Operator &op, const PerfRecord &record,
-                          const RuntimeObj *context) {
-                this->compute(op, record, context);
-            };
-        }
-    }
-
-    void setComputeFunc(const Key &key, ComputeFuncPtr ptr) override {
-        if (computeMap.find(key) != computeMap.end()) {
-            return;
-        }
-        computeMap.emplace(key, ptr);
-    }
-
   public:
     convCudnn() {
         auto computePtr = [this](const Operator &op, const PerfRecord &record,
