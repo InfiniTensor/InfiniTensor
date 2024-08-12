@@ -227,15 +227,6 @@ class MemboundTVMExtractSource : public Kernel {
         }
         return std::make_pair(funcCode, invokeParams);
     }
-    void computeFuncAdd(const Key perfKey, const Operator &op,
-                        const PerfRecord &record,
-                        const RuntimeObj *context) override {}
-
-    ComputeFuncPtr getComputeFunc(const Key &key) const override {
-        return nullptr;
-    }
-
-    void setComputeFunc(const Key &key, ComputeFuncPtr ptr) override {}
 };
 
 REGISTER_KERNEL(Device::CUDA, OpType::MemBound, MemboundTVMExtractSource,

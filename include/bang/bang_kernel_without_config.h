@@ -10,7 +10,6 @@ class BangKernelWithoutConfig : public Kernel {
                          const RuntimeObj *context) const {
         compute(op, context);
     }
-
     virtual void compute(const Operator &op,
                          const RuntimeObj *context) const = 0;
     // Premise: op is idempotent since it is called multiple times.
@@ -20,16 +19,6 @@ class BangKernelWithoutConfig : public Kernel {
         return make_ref<PerfRecordObj>(timeit([&]() { compute(op, _context); },
                                               [&]() { context->sync(); }));
     }
-
-    virtual void computeFuncAdd(const Key perfKey, const Operator &op,
-                                const PerfRecord &record,
-                                const RuntimeObj *context) {}
-
-    virtual ComputeFuncPtr getComputeFunc(const Key &key) const {
-        return nullptr;
-    }
-
-    virtual void setComputeFunc(const Key &key, ComputeFuncPtr ptr) {}
 };
 
 } // namespace infini

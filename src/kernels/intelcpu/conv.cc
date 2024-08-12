@@ -233,15 +233,6 @@ class MklConv : public Kernel {
                                                                  "found");
         return make_ref<ConvMklPerfRecordObj>(ret);
     }
-    void computeFuncAdd(const Key perfKey, const Operator &op,
-                        const PerfRecord &record,
-                        const RuntimeObj *context) override {}
-
-    ComputeFuncPtr getComputeFunc(const Key &key) const override {
-        return nullptr;
-    }
-
-    void setComputeFunc(const Key &key, ComputeFuncPtr ptr) override {}
 };
 REGISTER_KERNEL(Device::INTELCPU, OpType::Conv, MklConv, "MklConv_CPU");
 } // namespace infini

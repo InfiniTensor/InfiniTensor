@@ -61,15 +61,45 @@ class Kernel {
                             const RuntimeObj *context) const = 0;
 
     // Find the optimal computing function by comparing its running time
-    virtual void computeFuncAdd(const Key perfKey, const Operator &op,
-                                const PerfRecord &record,
-                                const RuntimeObj *context) = 0;
+    virtual void computeFuncTune(const Key perfKey, const Operator &op,
+                                 const PerfRecord &record,
+                                 const RuntimeObj *context) {
+        if (funcVec.empty()) {
+            return;
+        }
+        double t = std::numeric_limits<double>::max();
+        ComputeFuncPtr funcPtr;
+        for (auto &itPtr : funcVec) {
+            double tem =
+                timeit([&]() { itPtr(op, record, context); }, [&]() {});
+            if (tem < t) {
+                t = tem;
+                funcPtr = itPtr;
+            }
+        }
+        setComputeFunc(perfKey, funcPtr);
+    }
 
     // Get the optimal computing function according to the key
-    virtual ComputeFuncPtr getComputeFunc(const Key &key) const = 0;
+    virtual ComputeFuncPtr getComputeFunc(const Key &key) const {
+        auto it = computeMap.find(key);
+        if (it != computeMap.end())
+            return computeMap.at(key);
+        else {
+            return [this](const Operator &op, const PerfRecord &record,
+                          const RuntimeObj *context) {
+                this->compute(op, record, context);
+            };
+        }
+    }
 
     // Add perfKey and function as <key, value> to the computeMap
-    virtual void setComputeFunc(const Key &key, ComputeFuncPtr ptr) = 0;
+    virtual void setComputeFunc(const Key &key, ComputeFuncPtr ptr) {
+        if (computeMap.find(key) != computeMap.end()) {
+            return;
+        }
+        computeMap.emplace(key, ptr);
+    }
 };
 
 class PerfRecordRegistry {
@@ -149,16 +179,6 @@ class CpuKernelWithoutConfig : public Kernel {
                             const RuntimeObj *context) const override {
         return make_ref<PerfRecordObj>(timeit([&]() { compute(op, context); }));
     }
-
-    void computeFuncAdd(const Key perfKey, const Operator &op,
-                        const PerfRecord &record,
-                        const RuntimeObj *context) override {}
-
-    ComputeFuncPtr getComputeFunc(const Key &key) const override {
-        return nullptr;
-    }
-
-    void setComputeFunc(const Key &key, ComputeFuncPtr ptr) override {}
 };
 
 } // namespace infini

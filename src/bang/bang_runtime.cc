@@ -19,7 +19,6 @@ void BangRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
         auto kernelAttrs = KernelAttrs{device, op->getOpType().underlying()};
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
-
         auto perfData = perfEngine.getPerfData(perfKey);
         if (!perfData && !tune) {
             kernel->compute(op, this);
@@ -35,21 +34,15 @@ void BangRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
         } else
             record = perfData;
 
-        if (kernel->getComputeFunc(perfKey) == nullptr) {
-            kernel->computeFuncAdd(perfKey, op, record, this);
-        }
+        kernel->computeFuncTune(perfKey, op, record, this);
         ComputeFuncPtr funcPtr = kernel->getComputeFunc(perfKey);
 
         double t = record->time;
         totalTime += t;
 
         if (profiling) {
-            double t = timeit(
-                [&]() {
-                    (funcPtr != nullptr) ? funcPtr(op, record, this)
-                                         : kernel->compute(op, record, this);
-                },
-                [&]() { sync(); }, 1, 1);
+            double t = timeit([&]() { funcPtr(op, record, this); },
+                              [&]() { sync(); }, 1, 1);
             this->resetWorkspace();
             op->print();
             printf(" op_time on bang %lf\n", t);

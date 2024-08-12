@@ -19,15 +19,6 @@ class CudaKernelWithoutConfig : public Kernel {
         return make_ref<PerfRecordObj>(timeit([&]() { compute(op, _context); },
                                               [&]() { context->sync(); }));
     }
-    void computeFuncAdd(const Key perfKey, const Operator &op,
-                        const PerfRecord &record,
-                        const RuntimeObj *context) override {}
-
-    ComputeFuncPtr getComputeFunc(const Key &key) const override {
-        return nullptr;
-    }
-
-    void setComputeFunc(const Key &key, ComputeFuncPtr ptr) override {}
 };
 
 } // namespace infini

@@ -31,5 +31,4 @@ vector<int> SoftmaxObj::getWorkloadVector() const {
 vector<int> SoftmaxObj::getOpAttrVector() const {
     return {type.underlying(), axis};
 }
-
 } // namespace infini

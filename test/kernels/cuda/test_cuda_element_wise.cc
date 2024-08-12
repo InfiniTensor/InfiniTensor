@@ -67,4 +67,5 @@ TEST(cuDNN_ElementWise, run) {
     testElementWiseCudnn<PowObj>(IncrementalGenerator(), Shape{1, 2, 2, 1},
                                  ExpectOutput{1, 1, 4, 27});
 }
+
 } // namespace infini
