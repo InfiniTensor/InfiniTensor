@@ -26,7 +26,20 @@ struct PerfRecordObj {
     }
 };
 using PerfRecord = Ref<PerfRecordObj>;
+using ComputeFuncPtr = std::function<void(const Operator &, const PerfRecord &,
+                                          const RuntimeObj *)>;
+
 class Kernel {
+  public:
+    // multiple candiate kernels.
+    using Key = std::pair<KernelAttrs, OpPerfKey>;
+
+  protected:
+    // Map storing the pairs of perfKey and corresponding optimal function ptr
+    std::map<Key, ComputeFuncPtr> computeMap;
+    // Vector storing all computing function pointers
+    std::vector<ComputeFuncPtr> funcVec;
+
   public:
     Kernel() {}
     virtual ~Kernel() {}
@@ -46,6 +59,47 @@ class Kernel {
     // Premise: op is idempotent since it is called multiple times.
     virtual PerfRecord tune(const Operator &op,
                             const RuntimeObj *context) const = 0;
+
+    // Find the optimal computing function by comparing its running time
+    virtual void computeFuncTune(const Key perfKey, const Operator &op,
+                                 const PerfRecord &record,
+                                 const RuntimeObj *context) {
+        if (funcVec.empty()) {
+            return;
+        }
+        double t = std::numeric_limits<double>::max();
+        ComputeFuncPtr funcPtr;
+        for (auto &itPtr : funcVec) {
+            double tem =
+                timeit([&]() { itPtr(op, record, context); }, [&]() {});
+            if (tem < t) {
+                t = tem;
+                funcPtr = itPtr;
+            }
+        }
+        setComputeFunc(perfKey, funcPtr);
+    }
+
+    // Get the optimal computing function according to the key
+    virtual ComputeFuncPtr getComputeFunc(const Key &key) const {
+        auto it = computeMap.find(key);
+        if (it != computeMap.end())
+            return computeMap.at(key);
+        else {
+            return [this](const Operator &op, const PerfRecord &record,
+                          const RuntimeObj *context) {
+                this->compute(op, record, context);
+            };
+        }
+    }
+
+    // Add perfKey and function as <key, value> to the computeMap
+    virtual void setComputeFunc(const Key &key, ComputeFuncPtr ptr) {
+        if (computeMap.find(key) != computeMap.end()) {
+            return;
+        }
+        computeMap.emplace(key, ptr);
+    }
 };
 
 class PerfRecordRegistry {

@@ -34,11 +34,14 @@ void BangRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
         } else
             record = perfData;
 
+        kernel->computeFuncTune(perfKey, op, record, this);
+        ComputeFuncPtr funcPtr = kernel->getComputeFunc(perfKey);
+
         double t = record->time;
         totalTime += t;
 
         if (profiling) {
-            double t = timeit([&]() { kernel->compute(op, record, this); },
+            double t = timeit([&]() { funcPtr(op, record, this); },
                               [&]() { sync(); }, 1, 1);
             this->resetWorkspace();
             op->print();
