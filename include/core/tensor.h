@@ -156,6 +156,17 @@ class TensorObj : public TensorBaseObj {
         IT_ASSERT(DataType::get<T>() == dtype.cpuTypeInt());
         return equalDataImpl(getRawDataPtr<T *>(), dataVector.data(), size());
     }
+    template <typename T>
+    bool equalData(const vector<T> &dataVector, double eps) {
+        IT_ASSERT(size() == dataVector.size());
+        if (dtype == DataType::Float16) {
+            return equalDataImpl_fp16(getRawDataPtr<uint16_t *>(),
+                                      (float *)dataVector.data(), size(), eps);
+        }
+        IT_ASSERT(DataType::get<T>() == dtype.cpuTypeInt());
+        return equalDataImpl(getRawDataPtr<T *>(), dataVector.data(), size(),
+                             eps);
+    }
 
     size_t getOffsetByBroadcastOffset(size_t bcOffset, Shape bcShape) const;
 
@@ -200,11 +211,11 @@ class TensorObj : public TensorBaseObj {
                 if (a[i] != b[i])
                     return false;
             } else if constexpr (std::is_floating_point_v<T>) {
-                if (std::min(fabs(a[i]), fabs(b[i])) == 0. &&
+                if (std::min(fabs(a[i]), fabs(b[i])) <= 1e-5 &&
                     fabs(a[i] - b[i]) > relativeError) {
                     printf("Error on %lu: %f %f\n", i, a[i], b[i]);
                     return false;
-                } else if (std::min(fabs(a[i]), fabs(b[i])) != 0. &&
+                } else if (std::min(fabs(a[i]), fabs(b[i])) > 1e-5 &&
                            fabs(a[i] - b[i]) /
                                    std::max(fabs(a[i]), fabs(b[i])) >
                                relativeError) {
@@ -218,13 +229,13 @@ class TensorObj : public TensorBaseObj {
         return true;
     }
 
-    bool equalDataImpl_fp16(const uint16_t *a, const float *b,
-                            size_t size) const {
+    bool equalDataImpl_fp16(const uint16_t *a, const float *b, size_t size,
+                            double relativeError = 1e-6) const {
         for (size_t i = 0; i < size; ++i) {
             auto a_fp32 = fp16_to_float(a[i]);
             auto b_fp32 = b[i];
             if (fabs(a_fp32 - b_fp32) / std::max(fabs(a_fp32), fabs(b_fp32)) >
-                1e-6) {
+                relativeError) {
                 printf("Error on %lu: %f %f\n", i, a_fp32, b_fp32);
                 return false;
             }

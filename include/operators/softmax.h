@@ -24,4 +24,5 @@ class SoftmaxObj : public OperatorObj {
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;
 };
+
 } // namespace infini
