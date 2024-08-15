@@ -55,17 +55,17 @@ class poolingCudnn : public CudaKernelWithoutConfig {
         // Create and set pooling descriptor for average pooling
         cudnnPoolingDescriptor_t poolingDesc;
         checkCudnnError(cudnnCreatePoolingDescriptor(&poolingDesc));
-        checkCudnnError(cudnnSetPooling2dDescriptor(
-            poolingDesc,
-            CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING, // Pooling mode
-            CUDNN_NOT_PROPAGATE_NAN,
-            kh, // pooling window height
-            kw, // pooling window width
-            ph, // vertical padding
-            pw, // horizontal padding
-            sh, // vertical Stride
-            sw  // horizontal stride
-            ));
+        checkCudnnError(
+            cudnnSetPooling2dDescriptor(poolingDesc,
+                                        getPoolingMode(), // Pooling mode
+                                        CUDNN_NOT_PROPAGATE_NAN,
+                                        kh, // pooling window height
+                                        kw, // pooling window width
+                                        ph, // vertical padding
+                                        pw, // horizontal padding
+                                        sh, // vertical Stride
+                                        sw  // horizontal stride
+                                        ));
 
         // Perform the pooling operation
         float alpha = 1.0f, beta = 0.0f;
