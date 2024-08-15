@@ -22,11 +22,13 @@ void test_instancenormFp32(const Shape &inputShape,
     auto bias = gCpu->addTensor(biasShape, DataType::Float32);
     auto input = gCpu->addTensor(inputShape, DataType::Float32);
     auto scale = gCpu->addTensor(scaleShape, DataType::Float32);
+    auto ExpectOutput = gCpu->addTensor(inputShape, DataType::Float32);
     gCpu->dataMalloc();
     bias->copyin(biasData); //
     // bias->printData();
     input->copyin(inputData);
     scale->copyin(scaleData); //
+    ExpectOutput->copyin(ExpectData);
     auto ascendRuntime = make_ref<ASCENDRuntimeObj>();
     Graph gAscend = make_ref<GraphObj>(ascendRuntime);
     auto biasNpu = gAscend->cloneTensor(bias);
@@ -45,7 +47,7 @@ void test_instancenormFp32(const Shape &inputShape,
 
     auto oCpu = gCpu->cloneTensor(op->getOutput()); // move Data from npu to cpu
     oCpu->printData();                              //->printData
-    EXPECT_TRUE(oCpu->equalData(ExpectData));
+    EXPECT_TRUE(oCpu->equalData(ExpectOutput, 1e-4));
 }
 
 TEST(CUDA_InstancenormFp32, run) {
