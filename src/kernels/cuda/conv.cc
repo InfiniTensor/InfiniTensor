@@ -251,6 +251,15 @@ class convCudnn : public Kernel {
         bool success = cuDNNUnfused(op, record, context);
         IT_ASSERT(success);
     }
+
+  public:
+    convCudnn() {
+        auto computePtr = [this](const Operator &op, const PerfRecord &record,
+                                 const RuntimeObj *context) {
+            this->compute(op, record, context);
+        };
+        funcVec.emplace_back(computePtr);
+    }
 };
 
 REGISTER_KERNEL(Device::CUDA, OpType::Conv, convCudnn, "Conv_cuDNN_CUDA");
