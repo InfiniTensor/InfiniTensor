@@ -13,7 +13,7 @@ class poolingCudnn : public CudaKernelWithoutConfig {
         void *const inData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const outData = (op->getOutput()->getRawDataPtr<void *>());
 
-        auto [n, c, h, w, kh, kw] = op->getNCHWRS();
+        const auto [n, c, h, w, kh, kw] = op->getNCHWRS();
         const auto [ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
         auto inDims = op->getInputs(0)->getDims();
         auto outDims = op->getOutput()->getDims();
