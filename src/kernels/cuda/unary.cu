@@ -379,10 +379,10 @@ void leaky_relu_kernel(T *input, T *output, size_t num, float alphaValue) {
                                                            alphaValue);
 }
 
-void elu_kernel(const float *input, float *output, size_t size, float alpha) {
+void elu_kernel(const float *input, float *output, size_t num, float alpha) {
     int blocksize = block_work_size();
     int gridsize = (num + blocksize - 1) / blocksize;
-    _elu_kernel<<<gridsize, blocksize>>>(input, output, size, alpha);
+    _elu_kernel<<<gridsize, blocksize>>>(input, output, num, alpha);
 }
 
 template <typename T> void log_kernel(T *input, T *output, size_t num) {

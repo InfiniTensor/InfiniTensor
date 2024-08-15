@@ -200,7 +200,7 @@ __global__ void _greater_or_equal_kernel(void *x, void *y, float *z, int a0,
                 : false;
     }
 }
-// naming?
+
 #define CASE(OP, T)                                                            \
     _##OP##_kernel<DT_CUDA<T>::t>                                              \
         <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(          \
