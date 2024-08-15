@@ -18,12 +18,6 @@ class poolingCudnn : public CudaKernelWithoutConfig {
         auto inDims = op->getInputs(0)->getDims();
         auto outDims = op->getOutput()->getDims();
 
-        // Average Pool 1D: adapt its configuration to 2D
-        if (inDims.size() == 3) {
-            std::swap(h, w), std::swap(outDims[2], outDims[3]);
-            h = outDims[2] = 1;
-        }
-
         // Create and set tensor descriptor for input
         cudnnTensorDescriptor_t inDesc;
         checkCudnnError(cudnnCreateTensorDescriptor(&inDesc));
@@ -31,18 +25,20 @@ class poolingCudnn : public CudaKernelWithoutConfig {
             inDesc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, n, c, h, w));
 
         // Get outputs
-        int outn = outDims[0], outc = outDims[1], outh = outDims[2],
-            outw = outDims[3];
+        int outn = outDims.at(0), outc = outDims.at(1),
+            outh = outDims.size() == 3 ? 1 : outDims.at(2),
+            outw = outDims.size() == 3 ? outDims.at(2) : outDims.at(3);
         // // NOTICE: cudnn pooling does not support ceil mode, so the shape
-        // // inference of cudnn pooling is not consistant with our framework.
-        // Ceil
+        // // inference of cudnn pooling is not consistant with our
+        // framework. Ceil
         // // mode is also supported in Pytorch and ONNX. See
         // //
         // https://pytorch.org/docs/stable/generated/torch.nn.MaxPool2d.html#torch.nn.MaxPool2d
         // // and
         // https://github.com/onnx/onnx/blob/main/docs/Operators.md#MaxPool
         // // for reference.
-        // // TODO: Make sure the result after considering ceil mode is correct.
+        // // TODO: Make sure the result after considering ceil mode is
+        // correct.
         // // int outn, outc, outh, outw;
         // // checkCudnnError(cudnnGetPooling2dForwardOutputDim(poolingDesc,
         // // inDesc, &outn, &outc, &outh, &outw));
