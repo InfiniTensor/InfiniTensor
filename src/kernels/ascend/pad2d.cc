@@ -80,4 +80,4 @@ class PadAclnn : public ASCENDKernelWithoutConfig {
 };
 
 REGISTER_KERNEL(Device::ASCEND, OpType::Pad, PadAclnn, "pad_ASCEND_float");
-}; // namespace infini
+} // namespace infini

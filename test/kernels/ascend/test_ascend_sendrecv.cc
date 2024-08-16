@@ -52,41 +52,24 @@ TEST(ASCEND_SendRecv1, run) {
     // Only 1 device gets data. Every rank should have the same data after
     // sendrecv.
     aclInit(nullptr);
-    vector<float> data = {2., 3., 5., 6.};
+    {
+        vector<float> data = {2., 3., 5., 6.};
 
-    int WORLD_SIZE = 4;
-    int source = 0;
-    int destination = 2;
-    std::vector<std::thread> threads;
-    for (int gpu = 0; gpu < WORLD_SIZE; ++gpu) {
-        threads.emplace_back(sendrecv, "test_sendrecv", gpu, data, Shape{2, 2},
-                             WORLD_SIZE, source, destination);
-    }
+        int WORLD_SIZE = 4;
+        int source = 0;
+        int destination = 2;
+        std::vector<std::thread> threads;
+        for (int gpu = 0; gpu < WORLD_SIZE; ++gpu) {
+            threads.emplace_back(sendrecv, "test_sendrecv", gpu, data,
+                                 Shape{2, 2}, WORLD_SIZE, source, destination);
+        }
 
-    for (auto &thread : threads) {
-        thread.join();
+        for (auto &thread : threads) {
+            thread.join();
+        }
     }
     aclFinalize();
 }
 
-// TEST(ASCEND_SendRecv2, run) {
-//     // Only 1 device gets data. Every rank should have the same data after
-//     // sendrecv.
-//     vector<float> data = {2., 3., 5., 6.};//
-
-//    int WORLD_SIZE = 3;
-//    int source = 0;
-//    int destination = 2;
-//    std::vector<std::thread> threads;
-//    for (int gpu = 0; gpu < WORLD_SIZE; ++gpu) {
-//        threads.emplace_back(sendrecv, "test_sendrecv", gpu, data, Shape{2,
-//        2},
-//                             WORLD_SIZE, source, destination);
-//    }//
-
-//    for (auto &thread : threads) {
-//        thread.join();
-//    }
-//}
 } // namespace infini
 #endif

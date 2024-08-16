@@ -51,16 +51,18 @@ void testElementWise(
 
 TEST(ascend_ElementWise, run) {
     aclInit(nullptr);
-    // testElementWise<PowObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    // testElementWise<AddObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
-    // testElementWise<SubObj>(IncrementalGenerator(), Shape{1, 1, 48, 48},
-    // Shape{1, 1, 1, 1});
+    testElementWise<PowObj>(IncrementalGenerator(), Shape{1, 2, 2, 3},
+                            Shape{1, 2, 2, 3});
+    testElementWise<AddObj>(IncrementalGenerator(), Shape{1, 2, 2, 3},
+                            Shape{1, 2, 2, 3});
+    testElementWise<SubObj>(IncrementalGenerator(), Shape{1, 1, 48, 48},
+                            Shape{1, 1, 1, 1});
     testElementWise<MaximumObj>(IncrementalGenerator(), Shape{1, 2, 2, 3},
                                 Shape{1, 2, 2, 3});
-    // testElementWise<DivObj>(IncrementalGenerator(),
-    // Shape{1}, Shape{1, 2, 2, 3});
-    // testElementWise<MulObj>(IncrementalGenerator(),
-    // Shape{1, 2, 2, 3});
+    testElementWise<DivObj>(IncrementalGenerator(), Shape{1},
+                            Shape{1, 2, 2, 3});
+    testElementWise<MulObj>(IncrementalGenerator(), Shape{1, 2, 2, 3},
+                            Shape{1, 2, 2, 3});
     aclFinalize();
 }
 
