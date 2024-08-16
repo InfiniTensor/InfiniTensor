@@ -42,12 +42,55 @@ class Conv3dAclnn : public ASCENDKernelWithoutConfig {
         auto outD = op->getOutput()->getDims();
         auto outS = op->getOutput()->getStride();
 
+        for (const auto& value : outD) {
+            std::cout << "******outD:";
+            std::cout << value << ' ';
+        }
+        std::cout << '\n';
+
+
         std::vector<int64_t> inputDim = castTo64(inputD);
         std::vector<int64_t> inputStride = castTo64(inputS);
         std::vector<int64_t> weightDim = castTo64(weightD);
         std::vector<int64_t> weightStride = castTo64(weightS);
         std::vector<int64_t> outputDim = castTo64(outD);
         std::vector<int64_t> outputStride = castTo64(outS);
+
+        for (const auto& value : inputDim) {
+            std::cout << "****inputDim:";
+            std::cout << value << ' ';
+        }
+        std::cout << '\n';
+
+        for (const auto& value : inputStride) {
+            std::cout << "****inputStride:";
+            std::cout << value << ' ';
+        }
+        std::cout << '\n';
+
+        for (const auto& value : weightDim) {
+            std::cout << "****weightDim:";
+            std::cout << value << ' ';
+        }
+        std::cout << '\n';
+
+        for (const auto& value : weightStride) {
+            std::cout << "****weightStride:";
+            std::cout << value << ' ';
+        }
+        std::cout << '\n';
+
+        for (const auto& value : outputDim) {
+            std::cout << "****outputDim:";
+            std::cout << value << ' ';
+        }
+        std::cout << '\n';
+
+        for (const auto& value : outputStride) {
+            std::cout << "****outputStride:";
+            std::cout << value << ' ';
+        }
+        std::cout << '\n';
 
         auto aclDataType = aclnnDataTypeConvert(op->getDType());
 
@@ -69,20 +112,28 @@ class Conv3dAclnn : public ASCENDKernelWithoutConfig {
 
         auto ret = aclnnConvolutionGetWorkspaceSize(
             inputTensor, weightTensor, nullptr, convstride, convpads,
-            convdilation, false, convOutputpadding, int64_t(g), outputTensor,
+            //convdilation, false, convOutputpadding, int64_t(g), outputTensor,
+            convdilation, false, convOutputpadding, int64_t(1), outputTensor,
             int8_t(1), &workspaceSize, &executor);
         void *workspaceAddr = nullptr;
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);
         }
-        auto tmp_err_msg = aclGetRecentErrMsg();
-        if (tmp_err_msg != NULL) {
-            printf(" ERROR Message : %s \n ", tmp_err_msg);
-        }
+        //auto tmp_err_msg = aclGetRecentErrMsg();
+        //if (tmp_err_msg != NULL) {
+        //    printf(" ERROR Message : %s \n ", tmp_err_msg);
+        //}
         printf("ret is %d\n", ret);
+        //if (ret != ACL_SUCCESS) {
+        //    printf("aclGetRecentErrMsg: %s\n", aclGetRecentErrMsg());
+        //}
         assert(ret == ACL_SUCCESS);
         ret = aclnnConvolution(workspaceAddr, workspaceSize, executor,
                                context->ASCENDHandle());
+        printf("ret is %d\n", ret);
+        if (ret != ACL_SUCCESS) {
+            printf("aclGetRecentErrMsg: %s\n", aclGetRecentErrMsg());
+        }
         assert(ret == ACL_SUCCESS);
 
         // aclDestroyTensor(inputTensor);

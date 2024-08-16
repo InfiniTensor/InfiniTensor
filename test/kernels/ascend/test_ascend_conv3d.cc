@@ -55,6 +55,8 @@ TEST(ascend_Conv, run) {
     aclInit(nullptr);
     testConv3d<Conv3dObj>(IncrementalGenerator(), IncrementalGenerator(),
                       Shape{1, 1, 5, 124, 2048}, Shape{32, 1, 3, 3, 3});
+    //testConv3d<Conv3dObj>(IncrementalGenerator(), IncrementalGenerator(),
+    //                  Shape{1, 1, 8, 8, 8}, Shape{16, 1, 3, 3, 3});
 
     aclFinalize();
 }
