@@ -40,7 +40,11 @@ void BangRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
         double t = record->time;
         totalTime += t;
 
-        if (profiling) {
+        if (!profiling) {
+            funcPtr(op, record, this);
+            this->resetWorkspace();
+            continue;
+        } else {
             double t = timeit([&]() { funcPtr(op, record, this); },
                               [&]() { sync(); }, 1, 1);
             this->resetWorkspace();
