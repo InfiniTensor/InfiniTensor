@@ -10,8 +10,8 @@ class NMutator : public Mutator {
 
   private:
     // Suffix -N: NNet objects.
-    // Suffix -T: tpm objects.
-    // Map: NNet tensors -> tpm tensor.
+    // Suffix -T: infini objects.
+    // Map: NNet tensors -> infini tensor.
     std::map<std::string, Tensor> inputsNameNToTensorT;
     Mode mode;
     const double bandwidth = double(200) * 1024 * 1024 * 1024;
