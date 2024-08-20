@@ -7,15 +7,15 @@ PoolingObj::PoolingObj(GraphObj *graph, OpType optype, Tensor input,
                        int pw, int sh, int sw, int ceilMode)
     : OperatorObj(optype, {input}, {output}), kh(kh), kw(kw), dh(dh), dw(dw),
       ph(ph), pw(pw), sh(sh), sw(sw), ceilMode(ceilMode),
-      n(input->getDims()[0]), c(input->getDims()[1]), h(input->getDims()[2]),
-      w(input->getDims()[3]) {
+      n(input->getDims().at(0)), c(input->getDims().at(1)),
+      h(input->getRank() == 3 ? 1 : input->getDims().at(2)),
+      w(input->getRank() == 3 ? input->getDims().at(2)
+                              : input->getDims().at(3)) {
     IT_ASSERT(checkValid(graph));
 }
 
 optional<vector<Shape>> PoolingObj::inferShape(const TensorVec &inputs) {
     const auto &input = inputs[0];
-    auto h = input->getDims()[input->getRank() - 2],
-         w = input->getDims()[input->getRank() - 1];
     int oh, ow;
     if (ceilMode) {
         oh = ceil(((float)(h + 2 * ph - dh * (kh - 1) - 1)) / sh + 1);
@@ -24,8 +24,11 @@ optional<vector<Shape>> PoolingObj::inferShape(const TensorVec &inputs) {
         oh = floor(((float)(h + 2 * ph - dh * (kh - 1) - 1)) / sh + 1);
         ow = floor(((float)(w + 2 * pw - dw * (kw - 1) - 1)) / sw + 1);
     }
+
     auto ret = input->getDims();
-    ret[input->getRank() - 2] = oh;
+    if (input->getRank() == 4) {
+        ret[input->getRank() - 2] = oh;
+    }
     ret[input->getRank() - 1] = ow;
     return {{ret}};
 }
