@@ -418,7 +418,23 @@ class OnnxStub:
                     attributes[name]
                     for name in ["kernel_shape", "pads", "strides", "ceil_mode"]
                 )
-                if p[0] != p[2] or p[1] != p[3]:
+
+                # Avg Pool 1D
+                if len(p) == 2:
+                    tensors[node.output[0]] = self.handler.avgPool(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        1,
+                        k[0],
+                        1,
+                        1,
+                        0,
+                        p[0],
+                        1,
+                        s[0],
+                        ceil_mode,
+                    )
+                elif p[0] != p[2] or p[1] != p[3]:
                     adapt = "{}-adapt".format(node.output[0])
                     tensors[adapt] = self.handler.pad(
                         tensors.get(node.input[0]), None, p, [-2, -1]
@@ -1231,11 +1247,7 @@ class OnnxStub:
                 )
             elif ty == backend.OpTypeId.Elu:
                 alpha = backend.elu_alpha_of(op)
-                ctx.push_node(
-                    make_node(
-                        "Elu", inputs, outputs, name, alpha=alpha
-                    )
-                )
+                ctx.push_node(make_node("Elu", inputs, outputs, name, alpha=alpha))
             elif ty == backend.OpTypeId.ConvTranspose:
                 ph, pw, sh, sw, dh, dw, oph, opw = backend.conv_trans_attrs_of(op)
                 ctx.push_node(
