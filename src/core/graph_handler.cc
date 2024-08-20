@@ -1,4 +1,4 @@
-﻿#include "core/graph_handler.h"
+#include "core/graph_handler.h"
 #include "operators/all_gather.h"
 #include "operators/all_reduce.h"
 #include "operators/attention_kvcache.h"
@@ -9,6 +9,7 @@
 #include "operators/element_wise.h"
 #include "operators/expand.h"
 #include "operators/gather.h"
+#include "operators/instance_norm.h"
 #include "operators/layer_norm.h"
 #include "operators/lrn.h"
 #include "operators/matmul.h"
@@ -131,6 +132,21 @@ Tensor GraphHandlerObj::layerNormalization(Tensor input, Tensor scale,
         return g
             ->addOp<LayerNormObj>(std::move(input), std::move(scale), output,
                                   std::move(bias), eps, axis, stash_type)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::instanceNormalization(Tensor input, Tensor output,
+                                              Tensor scale, Tensor bias,
+                                              float eps) {
+    if (output) {
+        g->addOpWithOutputs<InstanceNormObj>(
+            std::move(input), output, std::move(scale), std::move(bias), eps);
+        return output;
+    } else {
+        return g
+            ->addOp<InstanceNormObj>(std::move(input), output, std::move(scale),
+                                     std::move(bias), eps)
             ->getOutput();
     }
 }
@@ -295,13 +311,13 @@ Tensor GraphHandlerObj::reshape(Tensor data, Tensor reshaped, Shape shape) {
 Tensor GraphHandlerObj::resize(Tensor input, Tensor output,
                                const std::optional<vector<int>> &axes,
                                Tensor sizes, Tensor scales, Tensor roi,
-                               vector<uint32_t> sizes_, vector<float> scales_,
+                               vector<int64_t> sizes_, vector<float> scales_,
                                vector<float> roi_, string mode,
                                string ratioPolicy, string nearestMode,
                                string coordTransMode) {
     if (sizes_.size() > 0) {
         sizes->dataMalloc();
-        sizes->copyin<uint32_t>(sizes_);
+        sizes->copyin<int64_t>(sizes_);
     }
     if (scales_.size() > 0) {
         scales->dataMalloc();

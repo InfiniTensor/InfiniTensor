@@ -191,7 +191,7 @@ class OnnxStub:
                     node,
                     {
                         "dilations": [1, 1],
-                        "pads": [0, 0],
+                        "pads": [0, 0, 0, 0],
                         "strides": [1, 1],
                         "output_padding": [0, 0],
                     },
@@ -200,19 +200,63 @@ class OnnxStub:
                     attributes[name]
                     for name in ["dilations", "pads", "strides", "output_padding"]
                 )
-                tensors[node.output[0]] = self.handler.convTransposed2d(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                    p[0],
-                    p[1],
-                    s[0],
-                    s[1],
-                    d[0],
-                    d[1],
-                    op[0],
-                    op[1],
-                )
+                if p[0] != p[2] or p[1] != p[3]:
+                    adapt = "{}-adapt".format(node.output[0])
+                    tensors[adapt] = self.handler.pad(
+                        tensors[node.input[0]], None, p, [-2, -1]
+                    )
+                    p = [0, 0, 0, 0]
+                else:
+                    adapt = node.input[0]
+
+                if len(node.input) > 2:
+                    bias = "{}-bias".format(node.output[0])
+                    reshape = "{}-reshape".format(node.output[0])
+                    tensors[bias] = self.handler.convTransposed2d(
+                        tensors[adapt],
+                        tensors[node.input[1]],
+                        None,
+                        p[0],
+                        p[1],
+                        s[0],
+                        s[1],
+                        d[0],
+                        d[1],
+                        op[0],
+                        op[1],
+                    )
+                    tensors[reshape] = self.handler.reshape(
+                        tensors[node.input[2]],
+                        None,
+                        [
+                            1,
+                            reduce(
+                                lambda acc, x: acc * x,
+                                tensors[node.input[2]].shape(),
+                            ),
+                            1,
+                            1,
+                        ],
+                    )
+                    tensors[node.output[0]] = self.handler.add(
+                        tensors[bias],
+                        tensors[reshape],
+                        tensors.get(node.output[0]),
+                    )
+                else:
+                    tensors[node.output[0]] = self.handler.convTransposed2d(
+                        tensors[adapt],
+                        tensors[node.input[1]],
+                        tensors.get(node.output[0]),
+                        p[0],
+                        p[1],
+                        s[0],
+                        s[1],
+                        d[0],
+                        d[1],
+                        op[0],
+                        op[1],
+                    )
             elif node.op_type == "MatMul":
                 tensors[node.output[0]] = self.handler.matmul(
                     tensors[node.input[0]],  # input
@@ -285,6 +329,21 @@ class OnnxStub:
                     eps,
                     axis,
                     stash_type,
+                )
+            elif node.op_type == "InstanceNormalization":
+                (input, scale, bias) = (tensors[node.input[i]] for i in [0, 1, 2])
+
+                output = tensors.get(node.output[0])
+
+                tensors[node.output[0]] = self.handler.instanceNormalization(
+                    input,
+                    output,
+                    scale,
+                    bias,
+                    next(
+                        (attr.f for attr in node.attribute if attr.name == "epsilon"),
+                        1e-5,
+                    ),
                 )
             elif node.op_type == "RMSNorm":
                 tensors[node.output[0]] = self.handler.RMSNorm(
@@ -557,16 +616,6 @@ class OnnxStub:
                     tensors[node.input[1]],
                     tensors.get(node.output[0]),
                 )
-            elif node.op_type == "LeakyRelu":
-                tensors[node.output[0]] = self.handler.leakyRelu(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    next(
-                        (attr.f for attr in node.attribute if attr.name == "alpha"),
-                        0.01,
-                    ),
-                )
-
             elif node.op_type == "Clip":
                 tensors[node.output[0]] = self.handler.clip(
                     tensors[node.input[0]],
@@ -625,7 +674,7 @@ class OnnxStub:
                         "cubic_coeff_a": -0.75,
                         "exclude_outside": 0,
                         "extrapolation_value": 0.0,
-                        "keep_aspect_ratio_policy": "none",
+                        "keep_aspect_ratio_policy": "stretch",
                         "mode": "nearest",
                         "nearest_mode": "none",
                     },
