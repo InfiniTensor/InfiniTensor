@@ -40,7 +40,7 @@ There are several configurable CMake options, see the [CMakeLists.txt](/CMakeLis
   - ✔ NVIDIA GPU
   - ✔ Cambricon MLU
   - ✔ Kunlunxin XPU
-  - ⬜ Ascend NPU
+  - ✔ Ascend NPU
 
 ## Contributor Guide
 
