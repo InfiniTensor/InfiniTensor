@@ -1,8 +1,8 @@
 #include "code_gen/graph.h"
 #include "code_gen/common.h"
-#include "ffi/ffi_embed.h"
 #include "code_gen/operator.h"
 #include "code_gen/tensor.h"
+#include "ffi/ffi_embed.h"
 #include <string>
 #include <unordered_map>
 #include <unordered_set>

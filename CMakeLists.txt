@@ -8,6 +8,7 @@ option(USE_PROTOBUF "Serialize and deserialize tensors" OFF)
 option(BUILD_NNET "Build nnet" OFF)
 option(BUILD_DIST "Build project for distributed running" OFF)
 option(BUILD_TEST "Build tests" OFF)
+option(SUP_CODE_GEN "Support code generate" ON)
 
 if(USE_CUDA)
     message("CMake 3.18 or higher is required for setting CUDAToolkit")
@@ -123,17 +124,18 @@ if(BUILD_TEST)
   include_directories(3rd-party/googletest/googletest/include)
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall  -Wno-error=deprecated-declarations -Wno-error=pointer-arith")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Werror -Wno-error=deprecated-declarations -Wno-error=pointer-arith")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -UNDEBUG") # Enable assertion
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -UNDEBUG") # Enable assertion
 
 
 # Source files
-file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/kernels/cpu/*.cc src/operators/*.cc src/utils/*.cc
-     src/code_gen/*.cc src/code_gen/custom_ops.cu)
-#file(GLOB_RECURSE SRC src/code_gen/*.cc src/code_gen/custom_ops.cu)
-# file(GLOB_RECURSE CUS_OPS_SRC src/code_gen/custom_ops.cu)
-# list (APPEND SRC ${CUS_OPS_SRC})
+file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/kernels/cpu/*.cc src/operators/*.cc src/utils/*.cc)
+
+if(SUP_CODE_GEN)
+file(GLOB_RECURSE CUS_OPS_SRC src/code_gen/*.cc src/code_gen/custom_ops.cu)
+list (APPEND SRC ${CUS_OPS_SRC})
+endif()
 
 if(BUILD_NNET)
   add_compile_definitions(BUILD_NNET=1)
@@ -171,8 +173,13 @@ endif()
 
 target_link_libraries(InfiniTensor pybind11::embed)
 target_link_libraries(InfiniTensor fmt::fmt)
+
+if(SUP_CODE_GEN)
+set_target_properties(InfiniTensor PROPERTIES CUDA_ARCHITECTURES "70;80")
+enable_language(CUDA)
 find_package(CUDAToolkit)
 target_link_libraries(InfiniTensor cudnn CUDA::curand CUDA::cublas CUDA::nvrtc CUDA::cudart CUDA::cuda_driver)
+endif()
 
 # TVM backend
 if(BUILD_NNET AND BUILD_TEST AND TVM_LIB_DIR)

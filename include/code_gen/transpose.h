@@ -56,7 +56,8 @@ class TransFuse : public TransBasic {
     int index, pad, dels;
 
   public:
-    TransFuse(int index, int pad = 0, int dels = 0) : index(index), pad(pad), dels(dels) {}
+    TransFuse(int index, int pad = 0, int dels = 0)
+        : index(index), pad(pad), dels(dels) {}
     DecisionTree *putTranspose(DecisionTree *, std::vector<int> &);
     void dfsFuse(DecisionTree *tree, std::string newvar1, std::string newvar2);
     void print();

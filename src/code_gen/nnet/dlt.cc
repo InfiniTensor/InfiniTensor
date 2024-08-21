@@ -56,7 +56,7 @@ optional<Expr> DLT::apply(const RangeOp &rangeOp, const Subscript &subscript,
                 index1.emplace_back(index0[op->dims[i]]);
             }
         }
-        for (const auto index : index1) {
+        for (const auto &index : index1) {
             // Maybe there are bugs...
             // assert(index != nullptr);
             if (index == nullptr) {

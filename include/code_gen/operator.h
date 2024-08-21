@@ -1,9 +1,9 @@
 #ifndef OPERATOR_H
 #define OPERATOR_H
 
-#include "common.h"
 #include "code_gen/nnet/Visitor/Interpreter.h"
 #include "code_gen/nnet/expr.h"
+#include "common.h"
 #include "perf.h"
 #include "tensor.h"
 #include "transpose.h"
@@ -2109,7 +2109,7 @@ class ResizeOp : public Operator {
         return inputDim == sizesDim;
     }
     void initHash() override;
-  
+
   public:
     ResizeOp(Tensor *input, Tensor *sizes, Tensor *output)
         : Operator(Resize, {input}, {output}), sizes(sizes) {
@@ -2134,21 +2134,22 @@ class ResizeOp : public Operator {
     Dim computeShape() override;
 
     double perf(PerfEngine *pe, int rounds, int warmupRounds) override {
-      return 0.0;
+        return 0.0;
     }
 
     std::string toString() const override {
-      std::ostringstream os;
-      os << "Resize(X=" << inputs[0]->getHash()
-         << ", Y=" << outputs[0]->getHash() << ")";
-      return os.str();
+        std::ostringstream os;
+        os << "Resize(X=" << inputs[0]->getHash()
+           << ", Y=" << outputs[0]->getHash() << ")";
+        return os.str();
     }
 
     int numInputs() override { return 1; }
     int numOutputs() override { return 1; }
 
-    void getOptypeAttr(std::string &optype, std::map<std::string, std::string> &attr,
-                    std::map<std::string, std::vector<int>> &extra) const override;
+    void getOptypeAttr(
+        std::string &optype, std::map<std::string, std::string> &attr,
+        std::map<std::string, std::vector<int>> &extra) const override;
 
   private:
     Tensor *sizes;

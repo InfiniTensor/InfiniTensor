@@ -129,7 +129,8 @@ Expr Rule8GuidedDLT::guidedDLTDLMismatch(
     }
     auto inner = make_ref<RangeOpNode>(*cur);
     inner->setLoopIterator(newVarRanges);
-    auto subscriptedInner = ReplaceKit::buildSubscirptForLoopVarReplace(inner, {});
+    auto subscriptedInner =
+        ReplaceKit::buildSubscirptForLoopVarReplace(inner, {});
     auto outer = ReplaceKit::buildDLTOuterRangeOp(cur, subscriptedInner);
     return outer;
 }
@@ -279,7 +280,8 @@ Expr Rule8GuidedDLT::guidedDLTMoreVar2(const RangeOp &cur,
     Expr newSummand = ReplaceNodeMutator().replace(cur->getSummand(),
                                                    originalSub.get(), newSub);
     auto inner = ReplaceKit::replaceRangeOpIterator(cur, replace, newSummand);
-    auto subscriptedInner = ReplaceKit::buildSubscirptForLoopVarReplace(inner, replace);
+    auto subscriptedInner =
+        ReplaceKit::buildSubscirptForLoopVarReplace(inner, replace);
     auto outer = ReplaceKit::buildDLTOuterRangeOp(cur, subscriptedInner);
     return outer;
 }
@@ -307,8 +309,8 @@ Expr Rule8GuidedDLT::buildGuidedDLTSource(const Subscript &originalSub,
                                           Replace replace,
                                           vector<Var> tensorDimAxes,
                                           vector<int> newShape) {
-    Expr newSub =
-        ReplaceKit::replaceMultipleExprs(originalSub, replace.oldIters, replace.psis, true);
+    Expr newSub = ReplaceKit::replaceMultipleExprs(
+        originalSub, replace.oldIters, replace.psis, true);
     vector<VarRangePair> loopVarRangePairs;
     for (size_t i = 0; i < tensorDimAxes.size(); ++i)
         loopVarRangePairs.emplace_back(tensorDimAxes[i], pair(0, newShape[i]));

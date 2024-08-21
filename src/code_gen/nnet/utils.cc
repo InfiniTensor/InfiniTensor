@@ -9,4 +9,4 @@ std::string pointer_to_hex(void *i) {
     stream << std::hex << i;
     return stream.str();
 }
-}
+} // namespace nnet

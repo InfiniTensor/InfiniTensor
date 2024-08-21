@@ -97,7 +97,7 @@ VecExpr PatternMatcher::applyWrapper(const VecExpr &exprs) {
     if (!hasNonZeroRange)
         return exprs;
     VecExpr ret, indexes;
-    for (const auto [var, range] : originalCur->getLoopVarRanges()) {
+    for (const auto &[var, range] : originalCur->getLoopVarRanges()) {
         if (range.first == 0) {
             indexes.emplace_back(var);
         } else {

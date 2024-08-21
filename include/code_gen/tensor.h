@@ -404,7 +404,6 @@ class Tensor {
     void printShape();
 };
 
-
 void printTensor(tpm::Tensor *tensor);
 
 } // end of namespace tpm

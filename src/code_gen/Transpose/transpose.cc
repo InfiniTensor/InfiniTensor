@@ -25,14 +25,16 @@ tpm::DecisionTree *tpm::TransSplit::putTranspose(tpm::DecisionTree *tree,
     assert(extr == 0 || copys == 0);
     char _newvar[100];
     if (copys == 0) {
-        sprintf(_newvar, "(%c*%d+%c)", 'a' + index, in_dim + extr, 'a' + index + 1);
+        sprintf(_newvar, "(%c*%d+%c)", 'a' + index, in_dim + extr,
+                'a' + index + 1);
         std::string newvar = _newvar;
         dfsSplit(tree, newvar);
         dimsize.insert(dimsize.begin() + index + 1, in_dim);
         dimsize[index] = (dimsize[index] - 1) / (in_dim + extr) + 1;
     } else {
         assert(dimsize[index] == in_dim * 2);
-        sprintf(_newvar, "(%c*%d+%c-%c*%d)", 'a' + index, in_dim, 'a' + index + 1, 'a' + index, copys);
+        sprintf(_newvar, "(%c*%d+%c-%c*%d)", 'a' + index, in_dim,
+                'a' + index + 1, 'a' + index, copys);
         std::string newvar = _newvar;
         dfsSplit(tree, newvar);
         dimsize.insert(dimsize.begin() + index + 1, in_dim + copys);
@@ -78,7 +80,8 @@ tpm::DecisionTree *tpm::TransFuse::putTranspose(tpm::DecisionTree *tree,
 
         sprintf(_newvar, "(%c//%d)", 'a' + index, in_dim - dels);
         std::string newvar1 = _newvar;
-        sprintf(_newvar, "(%c%%%d+(%c//%d)*%d)", 'a' + index, in_dim - dels, 'a' + index, in_dim - dels, dels);
+        sprintf(_newvar, "(%c%%%d+(%c//%d)*%d)", 'a' + index, in_dim - dels,
+                'a' + index, in_dim - dels, dels);
         std::string newvar2 = _newvar;
         dfsFuse(tree, newvar1, newvar2);
 
@@ -215,12 +218,12 @@ std::string tpm::TransposeEngine::getLambda(std::vector<TransBasic *> oper,
     lambda.pop_back();
     lambda += ": ";
     lambda += getLambdaExp(tree);
-    
+
     return lambda;
 }
 
 void TransSplit::getOptypeDim(std::string &optype, std::vector<int> &dim,
-                            std::vector<int> &extra) {
+                              std::vector<int> &extra) {
     // TODO: add operator with padding if required
     optype = "Reshape";
     std::vector<int> ndim;
@@ -239,7 +242,7 @@ void TransSplit::getOptypeDim(std::string &optype, std::vector<int> &dim,
 }
 
 void TransFuse::getOptypeDim(std::string &optype, std::vector<int> &dim,
-                            std::vector<int> &extra) {
+                             std::vector<int> &extra) {
     optype = "Reshape";
     std::vector<int> ndim;
     for (size_t i = 0, iEnd = dim.size(); i < iEnd; ++i) {

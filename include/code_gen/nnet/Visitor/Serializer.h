@@ -1,6 +1,6 @@
 #pragma once
-#include "nlohmann/json_fwd.hpp"
 #include "code_gen/nnet/visitor.h"
+#include "nlohmann/json_fwd.hpp"
 #include <memory>
 
 namespace nnet {

@@ -1,6 +1,6 @@
 #include "code_gen/nnet/Visitor/Serializer.h"
-#include "nlohmann/json.hpp"
 #include "code_gen/nnet/expr.h"
+#include "nlohmann/json.hpp"
 #include <fstream>
 
 namespace nnet {

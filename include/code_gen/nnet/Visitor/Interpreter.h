@@ -42,7 +42,7 @@ class Interpreter : public Functor<int()> {
     vector<rtype> interpret(const Expr &expr, const vector<Position> &poses);
     /**
      * @brief Calculate the output at equally spaced positions
-     * 
+     *
      * @param expr The expression to be calculated.
      * @param nPoses The number of calculated output positions.
      * @return vector<int> Value of output.

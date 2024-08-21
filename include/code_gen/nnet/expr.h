@@ -218,8 +218,8 @@ class RangeOpNode : public OperatorNode {
     RangeOpNode(const vector<VarRangePair> &_loopIters,
                 const vector<VarRangePair> &_sumIters, Expr _summand,
                 const vector<int> &paddings)
-        : OperatorNode(OpType::Range, {_summand}),
-          vars({_loopIters, _sumIters}), paddings(paddings){};
+        : OperatorNode(OpType::Range, {_summand}), vars{_loopIters, _sumIters},
+          paddings(paddings){};
     DEFINE_GETTYPE(RangeOpNode);
 
     virtual HashType hash() const override {

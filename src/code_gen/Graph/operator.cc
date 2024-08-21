@@ -3619,8 +3619,8 @@ Tensor *MemBoundOp::compute() {
     // But their sizes should be the same.
     assert((ssize_t)range->getOutputSize() == (ssize_t)output->size());
     const ssize_t iEnd = range->getOutputSize();
-//#pragma omp parallel for default(none)\
-    shared(range, output, rangeShape, outputShape, rangeInputs)
+    /*#pragma omp parallel for default(none)\
+        shared(range, output, rangeShape, outputShape, rangeInputs)  */
     for (ssize_t i = 0; i < iEnd; i++) {
         std::vector<int> rangePos(range->getNumOutputDims(), 0);
         std::vector<int> outputPos(outputShape.size(), 0);
