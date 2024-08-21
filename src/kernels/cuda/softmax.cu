@@ -1,5 +1,10 @@
 #include "cuda/cuda_common.h"
 #include <cub/cub.cuh>
+
+#if defined(_MSC_VER)
+#define __FLT_MAX__ FLT_MAX
+#endif
+
 struct __align__(8) DataMaxSum { // update the global max and sum, store the
                                  // output at max_tmp and sum_tmp
     float max_tmp;               // store max
