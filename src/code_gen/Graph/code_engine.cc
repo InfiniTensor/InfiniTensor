@@ -3,6 +3,7 @@
 #include "code_gen/perf_engine.h"
 #include "code_gen/transpose.h"
 #include "ffi/ffi_embed.h"
+#include "fmt/core.h"
 #include <fstream>
 #include <sys/stat.h>
 #include <unordered_set>
@@ -795,38 +796,42 @@ void CodeEngine::genCompute(const Operator &op) {
 }
 
 void CodeEngine::genConvDesc(const ConvOp &op) {
-    emit("cudnnConvolutionDescriptor_t " + getDescName(op) + ";");
-    emit("checkCudnnError(cudnnCreateConvolutionDescriptor(&" +
-         getDescName(op) + "));");
-    std::string line = "";
-    line += "checkCudnnError(cudnnSetConvolution2dDescriptor(";
-    line += getDescName(op) + ", ";
-    line += std::to_string(op.getPh()) + ", ";
-    line += std::to_string(op.getPw()) + ", ";
-    line += std::to_string(op.getSh()) + ", ";
-    line += std::to_string(op.getSw()) + ", ";
-    line += std::to_string(op.getDh()) + ", ";
-    line += std::to_string(op.getDw()) + ", ";
-    line += "CUDNN_CONVOLUTION, CUDNN_DATA_FLOAT));";
+    fmt::print("cudnnConvolutionDescriptor_t {}\n;", getDescName(op));
+    fmt::print("checkCudnnError(cudnnCreateConvolutionDescriptor(&{}));\n", getDescName(op));
+
+    auto line = fmt::format(
+        "checkCudnnError(cudnnSetConvolution2dDescriptor({}, {}, {}, {}, {}, {}, {}, CUDNN_CONVOLUTION, CUDNN_DATA_FLOAT));\n",
+        getDescName(op),
+        op.getPh(),
+        op.getPw(),
+        op.getSh(),
+        op.getSw(),
+        op.getDh(),
+        op.getDw()
+    );
     emit(line);
+
     int arg_g = getDim(*op.getInputs()[0])[1] / getDim(*op.getInputs()[1])[1];
     if (arg_g > 1) {
-        emit("checkCudnnError(cudnnSetConvolutionGroupCount(" +
-             getDescName(op) + ", " + std::to_string(arg_g) + "));");
+        fmt::print(
+            "checkCudnnError(cudnnSetConvolutionGroupCount({}, {}));\n",
+            getDescName(op),
+            arg_g
+        );
     }
 
     if (op.getAct() != Operator::None) {
-        emit("cudnnActivationDescriptor_t " + getDescName(op) + "_act ;");
-        emit("checkCudnnError(cudnnCreateActivationDescriptor(&" +
-             getDescName(op) + "_act));");
-        std::string line = "";
-        line += "checkCudnnError(cudnnSetActivationDescriptor(";
-        line += getDescName(op) + "_act, ";
-        line += actToStr(op.getAct()) + ", ";
-        line += "CUDNN_NOT_PROPAGATE_NAN, 0));";
-        // NOT_PROPAGATE_NAN is requierd by
-        // cudnnConvolotionBiasActivationForward
-        emit(line);
+        fmt::print("cudnnActivationDescriptor_t {}_act ;\n", getDescName(op));
+        fmt::print(
+            "checkCudnnError(cudnnCreateActivationDescriptor(&{}));\n",
+            getDescName(op) + "_act"
+        );
+        auto act_line = fmt::format(
+            "checkCudnnError(cudnnSetActivationDescriptor({}, {}, CUDNN_NOT_PROPAGATE_NAN, 0));\n",
+            getDescName(op) + "_act",
+            actToStr(op.getAct())
+        );
+        emit(act_line);
     }
 }
 
