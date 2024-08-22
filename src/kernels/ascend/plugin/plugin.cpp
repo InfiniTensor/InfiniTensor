@@ -2,16 +2,18 @@
 
 constexpr int32_t BLOCK_NUM = 8;
 constexpr int32_t BUFFER_NUM = 4;
-constexpr int32_t TILE_NUM = 62;
-constexpr int32_t TILE_LENGTH = 1024;
+constexpr int32_t TILE_NUM = 32;
+constexpr int32_t TILE_LENGTH = 74;
+constexpr int32_t PAD_HEIGHT = 36;
+constexpr int32_t PAD_WIDTH = 78;
 
 #include "kernel_operator.h"
 using namespace AscendC;
 template <typename T>
 __aicore__ void pluginsub(GM_ADDR x, GM_ADDR output, size_t inputSize,
                           size_t outputSize, int C) {
-    int32_t BLOCK_LENGTH_IN = inputSize / BLOCK_NUM;   // 1x(C/8)x66x1028
-    int32_t BLOCK_LENGTH_OUT = outputSize / BLOCK_NUM; // 1x(C/8)x62x1024x16
+    int32_t BLOCK_LENGTH_IN = inputSize / BLOCK_NUM;   // 1x(C/8)x36x78
+    int32_t BLOCK_LENGTH_OUT = outputSize / BLOCK_NUM; // 1x(C/8)x32x74x16
 
     TPipe pipe;
     TQue<QuePosition::VECIN, BUFFER_NUM> inQueueX, inQueueY;
@@ -40,22 +42,24 @@ __aicore__ void pluginsub(GM_ADDR x, GM_ADDR output, size_t inputSize,
             int32_t bufferIdx = i / (TILE_NUM * tilePipe);
             int32_t tilePipeIdx = i % (TILE_NUM * tilePipe) / TILE_NUM;
             int32_t tileIdx = i % TILE_NUM;
-            int32_t tileOffset =
-                (bufferIdx * tilePipe * 66 + tilePipeIdx * 66 + tileIdx) * 1028;
+            int32_t tileOffset = (bufferIdx * tilePipe * PAD_HEIGHT +
+                                  tilePipeIdx * PAD_HEIGHT + tileIdx) *
+                                 PAD_WIDTH;
             if (j < 5) {
                 DataCopy(xLocal, xGm[tileOffset + j], TILE_LENGTH);
             } else if (j < 8) {
-                DataCopy(xLocal, xGm[tileOffset + (j - 4) * 1028 + 4],
+                DataCopy(xLocal, xGm[tileOffset + (j - 4) * PAD_WIDTH + 4],
                          TILE_LENGTH);
             } else if (j < 13) {
-                DataCopy(xLocal, xGm[tileOffset + 1028 * 4 + (j - 8)],
+                DataCopy(xLocal, xGm[tileOffset + PAD_WIDTH * 4 + (j - 8)],
                          TILE_LENGTH);
             } else if (j < 16) {
-                DataCopy(xLocal, xGm[tileOffset + 1028 * (j - 12)],
+                DataCopy(xLocal, xGm[tileOffset + PAD_WIDTH * (j - 12)],
                          TILE_LENGTH);
             }
 
-            DataCopy(yLocal, xGm[tileOffset + 2058], TILE_LENGTH);
+            DataCopy(yLocal, xGm[tileOffset + (PAD_WIDTH * 2 + 2)],
+                     TILE_LENGTH);
             inQueueX.EnQue(xLocal);
             inQueueY.EnQue(yLocal);
 
@@ -73,8 +77,9 @@ __aicore__ void pluginsub(GM_ADDR x, GM_ADDR output, size_t inputSize,
             zLocal = outQueue.DeQue<T>();
             int32_t tileOffsetOut = (bufferIdx * tilePipe * TILE_NUM +
                                      tilePipeIdx * TILE_NUM + tileIdx) *
-                                    16 * 1024;
-            DataCopy(outGm[tileOffsetOut + j * 1024], zLocal, TILE_LENGTH);
+                                    16 * TILE_LENGTH;
+            DataCopy(outGm[tileOffsetOut + j * TILE_LENGTH], zLocal,
+                     TILE_LENGTH);
             outQueue.FreeTensor(zLocal);
         }
     }
