@@ -118,6 +118,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, Dropout)
         .VALUE(OpType, Cast)
         .VALUE(OpType, Sqrt)
+        .VALUE(OpType, Log)
         .VALUE(OpType, Neg)
         .VALUE(OpType, Expand)
         .VALUE(OpType, Erf)
@@ -125,6 +126,9 @@ void export_values(py::module &m) {
         .VALUE(OpType, DepthToSpace)
         .VALUE(OpType, LRN)
         .VALUE(OpType, Elu)
+        .VALUE(OpType, Greater)
+        .VALUE(OpType, GreaterOrEqual)
+
         .export_values();
 
 #undef VALUE
@@ -562,6 +566,7 @@ void init_graph_builder(py::module &m) {
         .def("softmax", &Handler::softmax, policy::move)
         .def("abs", &Handler::abs, policy::move)
         .def("sqrt", &Handler::sqrt, policy::move)
+        .def("log", &Handler::log, policy::move)
         .def("neg", &Handler::neg, policy::move)
         .def("shape", &Handler::shape, policy::move)
         .def("identity", &Handler::identity, policy::move)
@@ -609,6 +614,9 @@ void init_graph_builder(py::module &m) {
         .def("get_perf_time", &Handler::get_perf_time, policy::automatic)
         .def("tune", &Handler::tune, policy::automatic)
         .def("run", &Handler::run, policy::automatic)
+        .def("greater", &Handler::greater, policy::move)
+        .def("greaterEqual", &Handler::greaterEqual, policy::move)
+
 #ifdef USE_CUDA
         .def("run_with_cudagraph", &Handler::run_with_cudagraph,
              policy::automatic)

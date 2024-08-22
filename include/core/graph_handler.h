@@ -54,6 +54,8 @@ class GraphHandlerObj {
     Tensor pow(Tensor a, Tensor b, Tensor c);
     Tensor min(Tensor a, Tensor b, Tensor c);
     Tensor max(Tensor a, Tensor b, Tensor c);
+    Tensor greater(Tensor a, Tensor b, Tensor c);
+    Tensor greaterEqual(Tensor a, Tensor b, Tensor c);
 
     Tensor relu(Tensor x, Tensor y);
     Tensor leakyRelu(Tensor x, Tensor y, float alpha);
@@ -67,6 +69,7 @@ class GraphHandlerObj {
     Tensor softmax(Tensor x, Tensor y, int axis);
     Tensor abs(Tensor x, Tensor y);
     Tensor sqrt(Tensor x, Tensor y);
+    Tensor log(Tensor x, Tensor y);
     Tensor neg(Tensor x, Tensor y);
     Tensor shape(Tensor x, Tensor y);
     Tensor identity(Tensor x, Tensor y);
