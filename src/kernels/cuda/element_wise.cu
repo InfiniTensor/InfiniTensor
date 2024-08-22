@@ -186,18 +186,12 @@ __global__ void _greater_or_equal_kernel(void *x, void *y, float *z, int a0,
         int b1_index = c1_index % b1;
         int b2_index = c2_index % b2;
         int b3_index = c3_index % b3;
-        z[i] =
-            (((T *)x)[a0_index * a1 * a2 * a3 + a1_index * a2 * a3 +
-                      a2_index * a3 + a3_index] >
-             ((T *)y)[b0_index * b1 * b2 * b3 + b1_index * b2 * b3 +
-                      b2_index * b3 + b3_index]) ||
-                    (fabs(static_cast<float>(
-                         ((T *)x)[a0_index * a1 * a2 * a3 + a1_index * a2 * a3 +
-                                  a2_index * a3 + a3_index] -
-                         ((T *)y)[b0_index * b1 * b2 * b3 + b1_index * b2 * b3 +
-                                  b2_index * b3 + b3_index])) < 1e-5f)
-                ? true
-                : false;
+        z[i] = ((T *)x)[a0_index * a1 * a2 * a3 + a1_index * a2 * a3 +
+                        a2_index * a3 + a3_index] >=
+                       ((T *)y)[b0_index * b1 * b2 * b3 + b1_index * b2 * b3 +
+                                b2_index * b3 + b3_index]
+                   ? true
+                   : false;
     }
 }
 
