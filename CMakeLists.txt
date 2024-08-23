@@ -132,11 +132,6 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -UNDEBUG")
 # Source files
 file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/kernels/cpu/*.cc src/operators/*.cc src/utils/*.cc)
 
-if(SUP_CODE_GEN)
-file(GLOB_RECURSE CUS_OPS_SRC src/code_gen/*.cc src/code_gen/custom_ops.cu)
-list (APPEND SRC ${CUS_OPS_SRC})
-endif()
-
 if(BUILD_NNET)
   add_compile_definitions(BUILD_NNET=1)
   file(GLOB_RECURSE SRC_NNET src/nnet/*.cc)
@@ -179,6 +174,12 @@ set_target_properties(InfiniTensor PROPERTIES CUDA_ARCHITECTURES "70;80")
 enable_language(CUDA)
 find_package(CUDAToolkit)
 target_link_libraries(InfiniTensor cudnn CUDA::curand CUDA::cublas CUDA::nvrtc CUDA::cudart CUDA::cuda_driver)
+endif()
+
+if(SUP_CODE_GEN)
+file(GLOB_RECURSE CUS_OPS_SRC src/code_gen/*.cc src/code_gen/custom_ops.cu)
+list (APPEND SRC ${CUS_OPS_SRC})
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 endif()
 
 # TVM backend

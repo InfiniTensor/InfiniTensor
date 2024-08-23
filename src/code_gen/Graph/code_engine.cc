@@ -796,41 +796,34 @@ void CodeEngine::genCompute(const Operator &op) {
 }
 
 void CodeEngine::genConvDesc(const ConvOp &op) {
-    fmt::print("cudnnConvolutionDescriptor_t {}\n;", getDescName(op));
-    fmt::print("checkCudnnError(cudnnCreateConvolutionDescriptor(&{}));\n", getDescName(op));
+    emit(fmt::format("cudnnConvolutionDescriptor_t {};", getDescName(op)));
+    emit(fmt::format("checkCudnnError(cudnnCreateConvolutionDescriptor(&{}));",
+                     getDescName(op)));
 
     auto line = fmt::format(
-        "checkCudnnError(cudnnSetConvolution2dDescriptor({}, {}, {}, {}, {}, {}, {}, CUDNN_CONVOLUTION, CUDNN_DATA_FLOAT));\n",
-        getDescName(op),
-        op.getPh(),
-        op.getPw(),
-        op.getSh(),
-        op.getSw(),
-        op.getDh(),
-        op.getDw()
-    );
+        "checkCudnnError(cudnnSetConvolution2dDescriptor({}, {}, {}, {}, {}, "
+        "{}, {}, CUDNN_CONVOLUTION, CUDNN_DATA_FLOAT));\n",
+        getDescName(op), op.getPh(), op.getPw(), op.getSh(), op.getSw(),
+        op.getDh(), op.getDw());
     emit(line);
 
     int arg_g = getDim(*op.getInputs()[0])[1] / getDim(*op.getInputs()[1])[1];
     if (arg_g > 1) {
-        fmt::print(
-            "checkCudnnError(cudnnSetConvolutionGroupCount({}, {}));\n",
-            getDescName(op),
-            arg_g
-        );
+        emit(fmt::format(
+            "checkCudnnError(cudnnSetConvolutionGroupCount({}, {}));",
+            getDescName(op), arg_g));
     }
 
     if (op.getAct() != Operator::None) {
-        fmt::print("cudnnActivationDescriptor_t {}_act ;\n", getDescName(op));
-        fmt::print(
-            "checkCudnnError(cudnnCreateActivationDescriptor(&{}));\n",
-            getDescName(op) + "_act"
-        );
-        auto act_line = fmt::format(
-            "checkCudnnError(cudnnSetActivationDescriptor({}, {}, CUDNN_NOT_PROPAGATE_NAN, 0));\n",
-            getDescName(op) + "_act",
-            actToStr(op.getAct())
-        );
+        emit(fmt::format("cudnnActivationDescriptor_t {}_act ;",
+                         getDescName(op)));
+        emit(fmt::format(
+            "checkCudnnError(cudnnCreateActivationDescriptor(&{}_act));",
+            getDescName(op)));
+        auto act_line =
+            fmt::format("checkCudnnError(cudnnSetActivationDescriptor({}_act, "
+                        "{}, CUDNN_NOT_PROPAGATE_NAN, 0));",
+                        getDescName(op), actToStr(op.getAct()));
         emit(act_line);
     }
 }
