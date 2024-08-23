@@ -491,6 +491,12 @@ class OnnxStub:
                     1,
                     0,
                 )
+            elif node.op_type == "Sum":
+                tensors[node.output[0]] = self.handler.add(
+                    tensors[node.input[0]],
+                    tensors[node.input[1]],
+                    tensors.get(node.output[0]),
+                )
             elif node.op_type == "Add":
                 tensors[node.output[0]] = self.handler.add(
                     tensors[node.input[0]],
