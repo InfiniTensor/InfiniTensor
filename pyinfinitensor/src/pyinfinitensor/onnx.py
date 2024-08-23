@@ -32,6 +32,9 @@ import warnings
 import numpy as np
 from model_infer import Model_Inference
 import subprocess
+import os
+import shutil
+import logging
 
 class OnnxStub:
     """
@@ -70,11 +73,10 @@ class OnnxStub:
         #     warnings.warn("infer_shapes failed.")
         self.handler = backend.GraphHandler(runtime)
 
+        self.optimized = False
         self.model_name = model_name
         if self.model_name != "default_model_name":
-            device = 1
-            self.model_infer = Model_Inference(device, model_name + ".om")
-            self.model_infer.init_resource()
+            pass
         else:
             # 处理重名和匿名算子
             names = {}
@@ -567,342 +569,6 @@ class OnnxStub:
                         tensors[node.input[0]],
                         tensors[node.input[1]],
                         tensors.get(node.output[0]),
-<<<<<<< HEAD
-                        k[0],
-                        k[1],
-                        1,
-                        1,
-                        p[0],
-                        p[1],
-                        s[0],
-                        s[1],
-                        ceil_mode,
-                    )
-            elif node.op_type == "GlobalAveragePool":
-                [_, _, h, w] = tensors[node.input[0]].shape()
-                tensors[node.output[0]] = self.handler.avgPool(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    h,
-                    w,
-                    1,
-                    1,
-                    0,
-                    0,
-                    1,
-                    1,
-                    0,
-                )
-            elif node.op_type == "Add":
-                tensors[node.output[0]] = self.handler.add(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Sum":
-                tensors[node.output[0]] = self.handler.add(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Sub":
-                tensors[node.output[0]] = self.handler.sub(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Mul":
-                tensors[node.output[0]] = self.handler.mul(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Div":
-                tensors[node.output[0]] = self.handler.div(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Pow":
-                tensors[node.output[0]] = self.handler.pow(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Min":
-                tensors[node.output[0]] = self.handler.min(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Max":
-                tensors[node.output[0]] = self.handler.max(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Relu":
-                tensors[node.output[0]] = self.handler.relu(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "LeakyRelu":
-                tensors[node.output[0]] = self.handler.leakyrelu(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    next(
-                        (attr.f for attr in node.attribute if attr.name == "alpha"),
-                        0.01,
-                    ),
-                )
-            elif node.op_type == "Silu":
-                tensors[node.output[0]] = self.handler.silu(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Gelu":
-                tensors[node.output[0]] = self.handler.gelu(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Sigmoid":
-                tensors[node.output[0]] = self.handler.sigmoid(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "HardSigmoid":
-                tensors[node.output[0]] = self.handler.hardSigmoid(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "HardSwish":
-                tensors[node.output[0]] = self.handler.hardSwish(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Tanh":
-                tensors[node.output[0]] = self.handler.tanh(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Softmax":
-                tensors[node.output[0]] = self.handler.softmax(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    next(
-                        (attr.i for attr in node.attribute if attr.name == "axis"),
-                        -1,
-                    ),
-                )
-            elif node.op_type == "Abs":
-                tensors[node.output[0]] = self.handler.abs(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Sqrt":
-                tensors[node.output[0]] = self.handler.sqrt(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Neg":
-                tensors[node.output[0]] = self.handler.neg(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Shape":
-                tensors[node.output[0]] = self.handler.shape(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Identity":
-                tensors[node.output[0]] = self.handler.identity(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Flatten":
-                tensors[node.output[0]] = self.handler.flatten(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    next(
-                        (attr.i for attr in node.attribute if attr.name == "axis"),
-                        1,
-                    ),
-                )
-            elif node.op_type == "PRelu":
-                tensors[node.output[0]] = self.handler.pRelu(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Clip":
-                tensors[node.output[0]] = self.handler.clip(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    next(_parse_data(data[node.input[1]]).__iter__(), None)
-                    if len(node.input) > 1
-                    else None,
-                    next(_parse_data(data[node.input[2]]).__iter__(), None)
-                    if len(node.input) > 2
-                    else None,
-                )
-            elif node.op_type == "Transpose":
-                perm = next(
-                    (attr.ints for attr in node.attribute if attr.name == "perm"),
-                    None,
-                )
-                tensors[node.output[0]] = self.handler.transpose(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    perm,
-                )
-            elif node.op_type == "DepthToSpace":
-                blocksize = next(
-                    (attr.i for attr in node.attribute if attr.name == "blocksize"),
-                    None,
-                )
-                mode = next(
-                    (attr.s for attr in node.attribute if attr.name == "mode"),
-                    None,
-                )
-                tensors[node.output[0]] = self.handler.depthToSpace(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    blocksize,
-                    mode,
-                )
-            elif node.op_type == "Reshape":
-                shape = _parse_data(data[node.input[1]])
-                tensors[node.output[0]] = self.handler.reshape(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    shape,
-                )
-            elif node.op_type == "Resize":
-                output = tensors.get(node.output[0])
-                attributes = _parse_attribute(
-                    node,
-                    {
-                        "antialias": 0,
-                        "axes": None,
-                        "coordinate_transformation_mode": "half_pixel",
-                        "cubic_coeff_a": -0.75,
-                        "exclude_outside": 0,
-                        "extrapolation_value": 0.0,
-                        "keep_aspect_ratio_policy": "stretch",
-                        "mode": "nearest",
-                        "nearest_mode": "none",
-                    },
-                )
-                (
-                    axes,
-                    keep_aspect_ratio_policy,
-                    coordinate_transformation_mode,
-                    mode,
-                    nearest_mode,
-                ) = (
-                    attributes[name]
-                    for name in [
-                        "axes",
-                        "keep_aspect_ratio_policy",
-                        "coordinate_transformation_mode",
-                        "mode",
-                        "nearest_mode",
-                    ]
-                )
-                if len(node.input) > 1 and node.input[1] in data:
-                    roiVal = _parse_data(data[node.input[1]])
-                else:
-                    roiVal = []
-                if len(node.input) > 2 and node.input[2] in data:
-                    scalesVal = _parse_data(data[node.input[2]])
-                else:
-                    scalesVal = []
-                if len(node.input) > 3 and node.input[3] in data:
-                    sizesVal = _parse_data(data[node.input[3]])
-                else:
-                    sizesVal = []
-                tensors[node.output[0]] = self.handler.resize(
-                    tensors[node.input[0]],
-                    output,
-                    axes,
-                    (
-                        tensors[node.input[3]]
-                        if len(node.input) > 3 and node.input[3] != ""
-                        else None
-                    ),
-                    (
-                        tensors[node.input[2]]
-                        if len(node.input) > 2 and node.input[2] != ""
-                        else None
-                    ),
-                    (
-                        tensors[node.input[1]]
-                        if len(node.input) > 1 and node.input[1] != ""
-                        else None
-                    ),
-                    sizesVal,
-                    scalesVal,
-                    roiVal,
-                    mode,
-                    keep_aspect_ratio_policy,
-                    nearest_mode,
-                    coordinate_transformation_mode,
-                )
-            elif node.op_type == "Squeeze":
-                axes = _parse_data(data[node.input[1]]) if len(node.input) > 1 else None
-                if axes is None:
-                    axes = next(
-                        (attr.ints for attr in node.attribute if attr.name == "axes"),
-                        [],
-                    )
-                tensors[node.output[0]] = self.handler.squeeze(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    axes,
-                )
-            elif node.op_type == "Unsqueeze":
-                axes = _parse_data(data[node.input[1]]) if len(node.input) > 1 else None
-                if axes is None:
-                    axes = next(
-                        (attr.ints for attr in node.attribute if attr.name == "axes")
-                    )
-                tensors[node.output[0]] = self.handler.unsqueeze(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    axes,
-                )
-            elif node.op_type == "Concat":
-                tensors[node.output[0]] = self.handler.concat(
-                    [tensors[name] for name in node.input],
-                    tensors.get(node.output[0]),
-                    next((attr.i for attr in node.attribute if attr.name == "axis")),
-                )
-            elif node.op_type == "AttentionKVCache":
-                tensors[node.output[0]] = self.handler.attentionKVCache(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors[node.input[2]],
-                    tensors[node.input[3]],
-                    tensors[node.input[4]],
-                    tensors[node.input[5]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "RoPE":
-                tensors[node.output[0]] = self.handler.RoPE(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Split":
-                split = (
-                    _parse_data(data[node.input[1]]) if (len(node.input) > 1) else None
-                )
-                if split is None:
-                    split = next(
-                        (attr.ints for attr in node.attribute if attr.name == "split"),
-                        None,
-=======
->>>>>>> Add conv3d op && Modify pad op && Change ffi
                     )
                 elif node.op_type == "Relu":
                     tensors[node.output[0]] = self.handler.relu(
@@ -1838,7 +1504,13 @@ class OnnxStub:
         return ctx.build(name)
 
     def init(self) -> None:
-        self.handler.data_malloc(self.use_naive_allocator)
+        if self.model_name == "default_model_name":
+            self.handler.data_malloc(self.use_naive_allocator)
+        else:
+            self.model_name = self.model_name + "_optimized" if self.optimized else self.model_name
+            device = 1
+            self.model_infer = Model_Inference(device, "./results/log/" + self.model_name + ".om")
+            self.model_infer.init_resource()
 
     def process_input(self, input_data):
         if self.model_name == "default_model_name":
@@ -1847,6 +1519,7 @@ class OnnxStub:
             self.model_infer.process_input(input_data)
         
     def optimize(self, model_name, input_shape, input_node) -> None:
+        self.optimized = True
         input_shape_str = ','.join(map(str, input_shape))
         command = [
             'amct_onnx', 'calibration',
@@ -1858,16 +1531,22 @@ class OnnxStub:
             '--batch_num', '16'
         ]
         
+        print("Start to optimize, this process can be a little long, please be patient!")
+        logging.info("Start to optimize, this process can be a little long, please be patient!")
         subprocess.run(command)
         
-        log_file = './command_output.log'
+        shutil.move("./results/" + model_name + "_deploy_model.onnx", "./results/" + model_name + "_optimized.onnx")
+        # shutil.copy("./results/" + model_name + "_optimized.onnx", "./model/" + model_name + "_optimized.onnx")
+        os.remove("./results/" + model_name + "_fake_quant_model.onnx")
+        os.remove("./results/" + model_name + "_quant.json")
+        log_file = './results/log/output.log'
         
         with open(log_file, 'w') as f:
             atc_command = [
                 "atc",
-                "--model", "./results/" + model_name + "_deploy_model.onnx",
+                "--model", "./results/" + model_name + "_optimized.onnx",
                 "--framework", "5", 
-                "--output", "./model/log/" + model_name,
+                "--output", "./results/log/" + model_name + "_optimized",
                 '--input_shape', '{}:{}'.format(input_node, input_shape_str),
                 '--input_fp16_nodes', '{}'.format(input_node),
                 "--soc_version", "Ascend310P3"
