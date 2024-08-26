@@ -96,6 +96,7 @@ include_directories(3rd-party/pybind11/include)
 add_subdirectory(3rd-party/nlohmann_json_cmake_fetchcontent)
 include_directories(3rd-party/nlohmann_json_cmake_fetchcontent/single_include)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 add_subdirectory(3rd-party/fmt)
 include_directories(3rd-party/fmt/include)
 
@@ -160,6 +161,12 @@ if(USE_INTELCPU)
   list (APPEND SRC ${SRC_INTELCPU})
 endif()
 
+if(SUP_CODE_GEN)
+file(GLOB_RECURSE CUS_OPS_SRC src/code_gen/*.cc src/code_gen/custom_ops.cu)
+list(APPEND SRC ${CUS_OPS_SRC})
+
+endif()
+
 # Libraries
 add_library(InfiniTensor SHARED ${SRC})
 if(USE_PROTOBUF)
@@ -174,10 +181,6 @@ set_target_properties(InfiniTensor PROPERTIES CUDA_ARCHITECTURES "70;80")
 enable_language(CUDA)
 find_package(CUDAToolkit)
 target_link_libraries(InfiniTensor cudnn CUDA::curand CUDA::cublas CUDA::nvrtc CUDA::cudart CUDA::cuda_driver)
-
-file(GLOB_RECURSE CUS_OPS_SRC src/code_gen/*.cc src/code_gen/custom_ops.cu)
-list (APPEND SRC ${CUS_OPS_SRC})
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 endif()
 
 # TVM backend
