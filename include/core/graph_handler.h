@@ -123,6 +123,13 @@ class GraphHandlerObj {
     Tensor lrn(Tensor input, Tensor output, float alpha, float beta, float bias,
                int size);
 
+    Tensor ascendQuant(Tensor input, Tensor output, const vector<float> &scale,
+                       const vector<float> &offset, bool sqrtMode,
+                       std::string roundMode = "round");
+    Tensor ascendDequant(Tensor input, Tensor output,
+                         const vector<float> &scale,
+                         const vector<float> &offset, bool sqrtMode);
+
     //------ modifiers
 
     inline bool topo_sort() { return g->topo_sort(); }

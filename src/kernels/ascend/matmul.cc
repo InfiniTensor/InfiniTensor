@@ -105,9 +105,9 @@ class MatmulAclnn : public ASCENDKernelWithoutConfig {
             checkASCENDError(ret);
         }
 
-        // aclDestroyTensor(selfTensor);
-        // aclDestroyTensor(matTensor);
-        // aclDestroyTensor(outputTensor);
+        aclDestroyTensor(selfTensor);
+        aclDestroyTensor(matTensor);
+        aclDestroyTensor(outputTensor);
 
         return;
     }

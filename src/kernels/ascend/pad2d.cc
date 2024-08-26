@@ -47,8 +47,6 @@ class PadAclnn : public ASCENDKernelWithoutConfig {
             pads[2 * i + 1] = intPads[2 * halfLen - i - 1];
         }
 
-        std::cout << "pads = " << vecToString(pads) << std::endl;
-
         aclIntArray *padding = aclCreateIntArray(pads.data(), length);
         float valueValue = 0.0f;
         auto value = aclCreateScalar(&valueValue, ACL_FLOAT);

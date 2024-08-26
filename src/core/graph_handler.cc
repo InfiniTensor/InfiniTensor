@@ -1,6 +1,8 @@
 #include "core/graph_handler.h"
 #include "operators/all_gather.h"
 #include "operators/all_reduce.h"
+#include "operators/ascend_dequant.h"
+#include "operators/ascend_quant.h"
 #include "operators/attention_kvcache.h"
 #include "operators/batch_norm.h"
 #include "operators/broadcast.h"
@@ -504,6 +506,39 @@ Tensor GraphHandlerObj::pad(Tensor input, Tensor output,
         return output;
     } else {
         return g->addOp<PadObj>(std::move(input), output, pads, axes)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::ascendQuant(Tensor input, Tensor output,
+                                    const vector<float> &scale,
+                                    const vector<float> &offset,
+                                    bool sqrtMode = false,
+                                    std::string roundMode) {
+    if (output) {
+        g->addOpWithOutputs<AscendQuantObj>(std::move(input), output, scale,
+                                            offset, sqrtMode, roundMode);
+        return output;
+    } else {
+        return g
+            ->addOp<AscendQuantObj>(std::move(input), output, scale, offset,
+                                    sqrtMode, roundMode)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::ascendDequant(Tensor input, Tensor output,
+                                      const vector<float> &scale,
+                                      const vector<float> &offset,
+                                      bool sqrtMode = false) {
+    if (output) {
+        g->addOpWithOutputs<AscendDequantObj>(std::move(input), output, scale,
+                                              offset, sqrtMode);
+        return output;
+    } else {
+        return g
+            ->addOp<AscendDequantObj>(std::move(input), output, scale, offset,
+                                      sqrtMode)
             ->getOutput();
     }
 }

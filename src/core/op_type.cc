@@ -14,6 +14,8 @@ const char *OpType::toString() const {
         CASE(Add);
         CASE(And);
         CASE(ArgMax);
+        CASE(AscendQuant);
+        CASE(AscendDequant);
         CASE(Asin);
         CASE(Asinh);
         CASE(Atan);

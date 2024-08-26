@@ -21,6 +21,8 @@ struct OpType {
         Add,                // Binary
         And,                // Binary
         ArgMax,             //
+        AscendQuant,        //
+        AscendDequant,      //
         Asin,               // Unary
         Asinh,              // Unary
         Atan,               // Unary
