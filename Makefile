@@ -10,7 +10,7 @@ TEST ?= ON
 DIST ?= OFF
 NNET ?= OFF
 DIST ?= OFF
-CODE_GENERATE ?= ON
+CODE_GENERATE ?= OFF
 FORMAT_ORIGIN ?=
 # Docker build options
 DOCKER_NAME ?= infinitensor
