@@ -578,18 +578,19 @@ void CodeEngine::genTensorAlloc(const Tensor &t, bool isConvBias) {
     switch (t.getDType()) {
     case Tensor::Float32:
         emit(fmt::format("float *{} = 0;", var_name));
-        emit(fmt::format("checkCudaError(cudaMalloc((void **) &{}, {}));", var_name,
-             std::to_string(size)));
-        emit(fmt::format("checkCurandError(curandGenerateUniform(gen, {}, {}));", var_name,
-             std::to_string(getTensorNElem(t))));
+        emit(fmt::format("checkCudaError(cudaMalloc((void **) &{}, {}));",
+                         var_name, std::to_string(size)));
+        emit(
+            fmt::format("checkCurandError(curandGenerateUniform(gen, {}, {}));",
+                        var_name, std::to_string(getTensorNElem(t))));
         break;
     case Tensor::Int32:
         emit(fmt::format("int32_t *{} = 0;", var_name));
-        emit(fmt::format("checkCudaError(cudaMalloc((void **) &{}, {}));", var_name,
-             std::to_string(size)));
+        emit(fmt::format("checkCudaError(cudaMalloc((void **) &{}, {}));",
+                         var_name, std::to_string(size)));
         // Integers are used as indices, so no random
         emit(fmt::format("checkCudaError(cudaMemset({}, 0, {}));", var_name,
-             std::to_string(size)));
+                         std::to_string(size)));
         break;
     default:
         assert(false);
@@ -603,10 +604,11 @@ void CodeEngine::genTensorAlloc(const Tensor &t, bool isConvBias) {
 
     emit(fmt::format("cudnnTensorDescriptor_t {};", getTensorDescName(t)));
     emit(fmt::format("checkCudnnError(cudnnCreateTensorDescriptor(&{}));",
-         getTensorDescName(t)));
+                     getTensorDescName(t)));
     if (t.getType() == Tensor::Weight) {
         emit(fmt::format("cudnnFilterDescriptor_t {};", getFilterDescName(t)));
-        emit(fmt::format("checkCudnnError(cudnnCreateFilterDescriptor(&{}));", getFilterDescName(t)));
+        emit(fmt::format("checkCudnnError(cudnnCreateFilterDescriptor(&{}));",
+                         getFilterDescName(t)));
     }
 
     std::string dtype;
@@ -621,30 +623,27 @@ void CodeEngine::genTensorAlloc(const Tensor &t, bool isConvBias) {
         assert(false);
     }
 
-    line = fmt::format(
-        "checkCudnnError(cudnnSetTensor4dDescriptor({}, {}, CUDNN_TENSOR_NCHW, {}, {}, {}, {}));",
-        getTensorDescName(t),
-        dtype,
-        paddedDim[0],
-        paddedDim[1],
-        paddedDim[2],
-        paddedDim[3]
-    );
+    line = fmt::format("checkCudnnError(cudnnSetTensor4dDescriptor({}, {}, "
+                       "CUDNN_TENSOR_NCHW, {}, {}, {}, {}));",
+                       getTensorDescName(t), dtype, paddedDim[0], paddedDim[1],
+                       paddedDim[2], paddedDim[3]);
     emit(line);
 
     if (t.getType() == Tensor::Weight) {
-        line = fmt::format(
-            "checkCudnnError(cudnnSetFilter4dDescriptor({}, {}, CUDNN_TENSOR_NCHW, {}, {}, {}, {}));",
-            getFilterDescName(t), dtype, paddedDim[0], paddedDim[1], paddedDim[2], paddedDim[3]
-        );
+        line = fmt::format("checkCudnnError(cudnnSetFilter4dDescriptor({}, {}, "
+                           "CUDNN_TENSOR_NCHW, {}, {}, {}, {}));",
+                           getFilterDescName(t), dtype, paddedDim[0],
+                           paddedDim[1], paddedDim[2], paddedDim[3]);
         emit(line);
     }
 }
 
 void CodeEngine::genTensorFree(const Tensor &t) {
-    emit(fmt::format("checkCudnnError(cudnnDestroyTensorDescriptor({}));", getTensorDescName(t)));
+    emit(fmt::format("checkCudnnError(cudnnDestroyTensorDescriptor({}));",
+                     getTensorDescName(t)));
     if (t.getType() == Tensor::Weight) {
-        emit(fmt::format("checkCudnnError(cudnnDestroyFilterDescriptor({}));", getFilterDescName(t)));
+        emit(fmt::format("checkCudnnError(cudnnDestroyFilterDescriptor({}));",
+                         getFilterDescName(t)));
     }
     emit(fmt::format("cudaFree({});", getVarName(t)));
 }
@@ -817,7 +816,8 @@ void CodeEngine::genConvDesc(const ConvOp &op) {
             "checkCudnnError(cudnnCreateActivationDescriptor(&{}_act));",
             getDescName(op)));
         auto act_line =
-            fmt::format("checkCudnnError(cudnnSetActivationDescriptor({}_act, {}, CUDNN_NOT_PROPAGATE_NAN, 0));",
+            fmt::format("checkCudnnError(cudnnSetActivationDescriptor({}_act, "
+                        "{}, CUDNN_NOT_PROPAGATE_NAN, 0));",
                         getDescName(op), actToStr(op.getAct()));
         emit(act_line);
     }
@@ -825,28 +825,31 @@ void CodeEngine::genConvDesc(const ConvOp &op) {
 
 void CodeEngine::genConvTransDesc(const ConvTransOp &op) {
     emit(fmt::format("cudnnConvolutionDescriptor_t {};", getDescName(op)));
-    emit(fmt::format("checkCudnnError(cudnnCreateConvolutionDescriptor(&{}));", getDescName(op)));
+    emit(fmt::format("checkCudnnError(cudnnCreateConvolutionDescriptor(&{}));",
+                     getDescName(op)));
     std::string line = fmt::format(
-    "checkCudnnError(cudnnSetConvolution2dDescriptor({}, {}, {}, {}, {}, {}, {}, CUDNN_CONVOLUTION, CUDNN_DATA_FLOAT));",
-        getDescName(op),
-        op.getPh(),
-        op.getPw(),
-        op.getSh(),
-        op.getSw(),
-        op.getDh(),
-        op.getDw()
-    );
+        "checkCudnnError(cudnnSetConvolution2dDescriptor({}, {}, {}, {}, {}, "
+        "{}, {}, CUDNN_CONVOLUTION, CUDNN_DATA_FLOAT));",
+        getDescName(op), op.getPh(), op.getPw(), op.getSh(), op.getSw(),
+        op.getDh(), op.getDw());
     emit(line);
     int arg_g = getDim(*op.getInputs()[0])[1] / getDim(*op.getInputs()[1])[1];
     if (arg_g > 1) {
-        emit(fmt::format("checkCudnnError(cudnnSetConvolutionGroupCount({}, {}));", getDescName(op), arg_g));
+        emit(fmt::format(
+            "checkCudnnError(cudnnSetConvolutionGroupCount({}, {}));",
+            getDescName(op), arg_g));
     }
 
     if (op.getAct() != Operator::None) {
-        emit(fmt::format("cudnnActivationDescriptor_t {}_act;", getDescName(op)));
-        emit(fmt::format("checkCudnnError(cudnnCreateActivationDescriptor(&{}_act));", getDescName(op)));
-        std::string line = fmt::format("checkCudnnError(cudnnSetActivationDescriptor({}_act, {}, CUDNN_NOT_PROPAGATE_NAN, 0));",
-            getDescName(op), actToStr(op.getAct()));
+        emit(fmt::format("cudnnActivationDescriptor_t {}_act;",
+                         getDescName(op)));
+        emit(fmt::format(
+            "checkCudnnError(cudnnCreateActivationDescriptor(&{}_act));",
+            getDescName(op)));
+        std::string line =
+            fmt::format("checkCudnnError(cudnnSetActivationDescriptor({}_act, "
+                        "{}, CUDNN_NOT_PROPAGATE_NAN, 0));",
+                        getDescName(op), actToStr(op.getAct()));
         // NOT_PROPAGATE_NAN is requierd by
         // cudnnConvolotionBiasActivationForward
         emit(line);
@@ -865,18 +868,15 @@ void CodeEngine::genConvCompute(const ConvOp &op) {
         (int)perfEngine->getConvAlgo(op.getArgs(perfEngine->withPenalty()));
     if (op.getAct() == Operator::None && op.getBias() == nullptr) {
         std::string line = fmt::format(
-            "checkCudnnError(cudnnConvolutionForward(cudnn, &{}, {}, {}, {}, {}, {}, {}, (cudnnConvolutionFwdAlgo_t){}, wsData, wsSize, &{}, {}, {}));",
-            alpha,
-            getTensorDescName(*op.getInputs()[0]),
+            "checkCudnnError(cudnnConvolutionForward(cudnn, &{}, {}, {}, {}, "
+            "{}, {}, {}, (cudnnConvolutionFwdAlgo_t){}, wsData, wsSize, &{}, "
+            "{}, {}));",
+            alpha, getTensorDescName(*op.getInputs()[0]),
             getVarName(*op.getInputs()[0]),
             getFilterDescName(*op.getInputs()[1]),
-            getVarName(*op.getInputs()[1]),
-            getDescName(op),
-            std::to_string(algo),
-            beta,
-            getTensorDescName(*op.getOutputs()[0]),
-            getVarName(*op.getOutputs()[0])
-        );
+            getVarName(*op.getInputs()[1]), getDescName(op),
+            std::to_string(algo), beta, getTensorDescName(*op.getOutputs()[0]),
+            getVarName(*op.getOutputs()[0]));
         emit(line);
 
     } else if (op.getAct() == Operator::None && op.getBias() != nullptr) {
@@ -884,74 +884,57 @@ void CodeEngine::genConvCompute(const ConvOp &op) {
         // enabled with CUDNN_ACTIVATION_IDENTITY.
         // So, fallback to 2 seperated calls
         std::string line = fmt::format(
-            "checkCudnnError(cudnnConvolutionForward(cudnn, &{}, {}, {}, {}, {}, {}, {}, (cudnnConvolutionFwdAlgo_t){}, wsData, wsSize, &{}, {}, {}));",
-            alpha,
-            getTensorDescName(*op.getInputs()[0]),
+            "checkCudnnError(cudnnConvolutionForward(cudnn, &{}, {}, {}, {}, "
+            "{}, {}, {}, (cudnnConvolutionFwdAlgo_t){}, wsData, wsSize, &{}, "
+            "{}, {}));",
+            alpha, getTensorDescName(*op.getInputs()[0]),
             getVarName(*op.getInputs()[0]),
             getFilterDescName(*op.getInputs()[1]),
-            getVarName(*op.getInputs()[1]),
-            getDescName(op),
-            std::to_string(algo),
-            beta,
-            getTensorDescName(*op.getOutputs()[0]),
+            getVarName(*op.getInputs()[1]), getDescName(op),
+            std::to_string(algo), beta, getTensorDescName(*op.getOutputs()[0]),
             getVarName(*op.getOutputs()[0]));
         emit(line);
         line = fmt::format(
             "checkCudnnError(cudnnAddTensor(cudnn, &{}, {}, {}, &{}, {}, {}));",
-            alpha,
-            getTensorDescName(*op.getBias()),
-            getVarName(*op.getBias()),
-            beta,
-            getTensorDescName(*op.getOutputs()[0]),
-            getVarName(*op.getOutputs()[0])
-        );
+            alpha, getTensorDescName(*op.getBias()), getVarName(*op.getBias()),
+            beta, getTensorDescName(*op.getOutputs()[0]),
+            getVarName(*op.getOutputs()[0]));
         emit(line);
     } else if (op.getAct() != Operator::None && op.getBias() == nullptr) {
         std::string line = fmt::format(
-            "checkCudnnError(cudnnConvolutionForward(cudnn, &{}, {}, {}, {}, {}, {}, (cudnnConvolutionFwdAlgo_t){}, wsData, wsSize, &{}, {}, {}));",
-            alpha,
-            getTensorDescName(*op.getInputs()[0]),
+            "checkCudnnError(cudnnConvolutionForward(cudnn, &{}, {}, {}, {}, "
+            "{}, {}, (cudnnConvolutionFwdAlgo_t){}, wsData, wsSize, &{}, {}, "
+            "{}));",
+            alpha, getTensorDescName(*op.getInputs()[0]),
             getVarName(*op.getInputs()[0]),
             getFilterDescName(*op.getInputs()[1]),
-            getVarName(*op.getInputs()[1]),
-            getDescName(op),
-            std::to_string(algo),
-            beta,
-            getTensorDescName(*op.getOutputs()[0]),
-            getVarName(*op.getOutputs()[0])
-        );
+            getVarName(*op.getInputs()[1]), getDescName(op),
+            std::to_string(algo), beta, getTensorDescName(*op.getOutputs()[0]),
+            getVarName(*op.getOutputs()[0]));
         emit(line);
         emit(fmt::format("{} = 1.0f;", beta));
-        line = fmt::format(
-            "checkCudnnError(cudnnActivationForward(cudnn, {}_act, &{}, {}, &{}, {}, {}));",
-            getDescName(op),
-            alpha,
-            getTensorDescName(*op.getOutputs()[0]),
-            getVarName(*op.getOutputs()[0]),
-            beta,
-            getTensorDescName(*op.getOutputs()[0]),
-            getVarName(*op.getOutputs()[0])
-        );
+        line = fmt::format("checkCudnnError(cudnnActivationForward(cudnn, "
+                           "{}_act, &{}, {}, &{}, {}, {}));",
+                           getDescName(op), alpha,
+                           getTensorDescName(*op.getOutputs()[0]),
+                           getVarName(*op.getOutputs()[0]), beta,
+                           getTensorDescName(*op.getOutputs()[0]),
+                           getVarName(*op.getOutputs()[0]));
         emit(line);
     } else if (op.getAct() != Operator::None && op.getBias() != nullptr) {
         std::string line = fmt::format(
-            "checkCudnnError(cudnnConvolutionBiasActivationForward(cudnn, &{}, {}, {}, {}, {}, {}, (cudnnConvolutionFwdAlgo_t){}, wsData, wsSize, &{}, {}, {}, {}, {}, {}, {}_act, {}, {}));",
-            alpha,
-            getTensorDescName(*op.getInputs()[0]),
+            "checkCudnnError(cudnnConvolutionBiasActivationForward(cudnn, &{}, "
+            "{}, {}, {}, {}, {}, (cudnnConvolutionFwdAlgo_t){}, wsData, "
+            "wsSize, &{}, {}, {}, {}, {}, {}, {}_act, {}, {}));",
+            alpha, getTensorDescName(*op.getInputs()[0]),
             getVarName(*op.getInputs()[0]),
             getFilterDescName(*op.getInputs()[1]),
-            getVarName(*op.getInputs()[1]),
-            getDescName(op),
-            std::to_string(algo),
-            beta,
+            getVarName(*op.getInputs()[1]), getDescName(op),
+            std::to_string(algo), beta, getTensorDescName(*op.getOutputs()[0]),
+            getVarName(*op.getOutputs()[0]), getTensorDescName(*op.getBias()),
+            getVarName(*op.getBias()), getDescName(op),
             getTensorDescName(*op.getOutputs()[0]),
-            getVarName(*op.getOutputs()[0]),
-            getTensorDescName(*op.getBias()),
-            getVarName(*op.getBias()),
-            getDescName(op),
-            getTensorDescName(*op.getOutputs()[0]),
-            getVarName(*op.getOutputs()[0])
-        );
+            getVarName(*op.getOutputs()[0]));
         emit(line);
     } else {
         assert(false);
@@ -970,96 +953,75 @@ void CodeEngine::genConvTransCompute(const ConvTransOp &op) {
         op.getArgs(perfEngine->withPenalty()));
     if (op.getAct() == Operator::None && op.getBias() == nullptr) {
         std::string line = fmt::format(
-            "checkCudnnError(cudnnConvolutionBackwardData(cudnn, &{}, {}, {}, {}, {}, {}, (cudnnConvolutionBwdDataAlgo_t){}, wsData, wsSize, &{}, {}, {}));",
-            alpha,
-            getFilterDescName(*op.getInputs()[1]),
+            "checkCudnnError(cudnnConvolutionBackwardData(cudnn, &{}, {}, {}, "
+            "{}, {}, {}, (cudnnConvolutionBwdDataAlgo_t){}, wsData, wsSize, "
+            "&{}, {}, {}));",
+            alpha, getFilterDescName(*op.getInputs()[1]),
             getVarName(*op.getInputs()[1]),
             getTensorDescName(*op.getInputs()[0]),
-            getVarName(*op.getInputs()[0]),
-            getDescName(op),
-            std::to_string(algo),
-            beta,
-            getTensorDescName(*op.getOutputs()[0]),
-            getVarName(*op.getOutputs()[0])
-        );
+            getVarName(*op.getInputs()[0]), getDescName(op),
+            std::to_string(algo), beta, getTensorDescName(*op.getOutputs()[0]),
+            getVarName(*op.getOutputs()[0]));
         emit(line);
     } else if (op.getAct() == Operator::None && op.getBias() != nullptr) {
         // Only the CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM algo is
         // enabled with CUDNN_ACTIVATION_IDENTITY.
         // So, fallback to 2 seperated calls
         std::string line = fmt::format(
-            "checkCudnnError(cudnnConvolutionBackwardData(cudnn, &{}, {}, {}, {}, {}, {}, (cudnnConvolutionBwdDataAlgo_t){}, wsData, wsSize, &{}, {}, {}));",
-            alpha,
-            getTensorDescName(*op.getInputs()[0]),
+            "checkCudnnError(cudnnConvolutionBackwardData(cudnn, &{}, {}, {}, "
+            "{}, {}, {}, (cudnnConvolutionBwdDataAlgo_t){}, wsData, wsSize, "
+            "&{}, {}, {}));",
+            alpha, getTensorDescName(*op.getInputs()[0]),
             getVarName(*op.getInputs()[0]),
             getFilterDescName(*op.getInputs()[1]),
-            getVarName(*op.getInputs()[1]),
-            getDescName(op),
-            std::to_string(algo),
-            beta,
-            getTensorDescName(*op.getOutputs()[0]),
-            getVarName(*op.getOutputs()[0])
-        );
+            getVarName(*op.getInputs()[1]), getDescName(op),
+            std::to_string(algo), beta, getTensorDescName(*op.getOutputs()[0]),
+            getVarName(*op.getOutputs()[0]));
         emit(line);
         emit(fmt::format("{} = 1.0f;", beta));
         line = fmt::format(
             "checkCudnnError(cudnnAddTensor(cudnn, &{}, {}, {}, &{}, {}, {}));",
-            alpha,
-            getTensorDescName(*op.getBias()),
-            getVarName(*op.getBias()),
-            beta,
-            getTensorDescName(*op.getOutputs()[0]),
-            getVarName(*op.getOutputs()[0])
-        );
+            alpha, getTensorDescName(*op.getBias()), getVarName(*op.getBias()),
+            beta, getTensorDescName(*op.getOutputs()[0]),
+            getVarName(*op.getOutputs()[0]));
         emit(line);
 
     } else if (op.getAct() != Operator::None && op.getBias() == nullptr) {
         std::string line = fmt::format(
-            "checkCudnnError(cudnnConvolutionBackwardData(cudnn, &{}, {}, {}, {}, {}, {}, (cudnnConvolutionBwdDataAlgo_t){}, wsData, wsSize, &{}, {}, {}));",
-            alpha,
-            getTensorDescName(*op.getInputs()[0]),
+            "checkCudnnError(cudnnConvolutionBackwardData(cudnn, &{}, {}, {}, "
+            "{}, {}, {}, (cudnnConvolutionBwdDataAlgo_t){}, wsData, wsSize, "
+            "&{}, {}, {}));",
+            alpha, getTensorDescName(*op.getInputs()[0]),
             getVarName(*op.getInputs()[0]),
             getFilterDescName(*op.getInputs()[1]),
-            getVarName(*op.getInputs()[1]),
-            getDescName(op),
-            std::to_string(algo),
-            beta,
-            getTensorDescName(*op.getOutputs()[0]),
-            getVarName(*op.getOutputs()[0])
-        );
+            getVarName(*op.getInputs()[1]), getDescName(op),
+            std::to_string(algo), beta, getTensorDescName(*op.getOutputs()[0]),
+            getVarName(*op.getOutputs()[0]));
         emit(line);
         emit(fmt::format("{} = 1.0f;", beta));
-        line = fmt::format(
-            "checkCudnnError(cudnnActivationBackward(cudnn, {}_act, &{}, {}, {}, &{}, {}, {}));",
-            getDescName(op),
-            alpha,
-            getTensorDescName(*op.getOutputs()[0]),
-            getVarName(*op.getOutputs()[0]),
-            beta,
-            getTensorDescName(*op.getOutputs()[0]),
-            getVarName(*op.getOutputs()[0])
-        );
+        line = fmt::format("checkCudnnError(cudnnActivationBackward(cudnn, "
+                           "{}_act, &{}, {}, {}, &{}, {}, {}));",
+                           getDescName(op), alpha,
+                           getTensorDescName(*op.getOutputs()[0]),
+                           getVarName(*op.getOutputs()[0]), beta,
+                           getTensorDescName(*op.getOutputs()[0]),
+                           getVarName(*op.getOutputs()[0]));
         emit(line);
     } else if (op.getAct() != Operator::None && op.getBias() != nullptr) {
         assert(((void)("No corresponding cuDNN kernels?"), false));
         std::string line = fmt::format(
-            "checkCudnnError(cudnnConvolutionBiasActivationForward(cudnn, &{}, {}, {}, {}, {}, {}, (cudnnConvolutionFwdAlgo_t){}, wsData, wsSize, &{}, {}, {}, {}, {}, {}_act, {}, {}));",
-            alpha,
-            getTensorDescName(*op.getInputs()[0]),
+            "checkCudnnError(cudnnConvolutionBiasActivationForward(cudnn, &{}, "
+            "{}, {}, {}, {}, {}, (cudnnConvolutionFwdAlgo_t){}, wsData, "
+            "wsSize, &{}, {}, {}, {}, {}, {}_act, {}, {}));",
+            alpha, getTensorDescName(*op.getInputs()[0]),
             getVarName(*op.getInputs()[0]),
             getFilterDescName(*op.getInputs()[1]),
-            getVarName(*op.getInputs()[1]),
-            getDescName(op),
-            std::to_string(algo),
-            beta,
+            getVarName(*op.getInputs()[1]), getDescName(op),
+            std::to_string(algo), beta, getTensorDescName(*op.getOutputs()[0]),
+            getVarName(*op.getOutputs()[0]), getTensorDescName(*op.getBias()),
+            getVarName(*op.getBias()), getDescName(op),
             getTensorDescName(*op.getOutputs()[0]),
-            getVarName(*op.getOutputs()[0]),
-            getTensorDescName(*op.getBias()),
-            getVarName(*op.getBias()),
-            getDescName(op),
-            getTensorDescName(*op.getOutputs()[0]),
-            getVarName(*op.getOutputs()[0])
-        );
+            getVarName(*op.getOutputs()[0]));
         emit(line);
     } else {
         assert(false);
@@ -1068,11 +1030,15 @@ void CodeEngine::genConvTransCompute(const ConvTransOp &op) {
 
 void CodeEngine::genMatmulDesc(const MatmulOp &op) {
     if (op.getAct() != Operator::None) {
-        emit(fmt::format("cudnnActivationDescriptor_t {}_act;", getDescName(op)));
-        emit(fmt::format("checkCudnnError(cudnnCreateActivationDescriptor(&{}_act));", getDescName(op)));
-        std::string line = fmt::format(
-            "checkCudnnError(cudnnSetActivationDescriptor({}_act, {}, CUDNN_NOT_PROPAGATE_NAN, 0));",
-            getDescName(op), actToStr(op.getAct()));
+        emit(fmt::format("cudnnActivationDescriptor_t {}_act;",
+                         getDescName(op)));
+        emit(fmt::format(
+            "checkCudnnError(cudnnCreateActivationDescriptor(&{}_act));",
+            getDescName(op)));
+        std::string line =
+            fmt::format("checkCudnnError(cudnnSetActivationDescriptor({}_act, "
+                        "{}, CUDNN_NOT_PROPAGATE_NAN, 0));",
+                        getDescName(op), actToStr(op.getAct()));
         emit(line);
     }
 }
@@ -1090,34 +1056,34 @@ void CodeEngine::genMatmulCompute(const MatmulOp &op) {
     std::string alpha = fmt::format("alpha_{}", std::to_string(op.getGuid()));
     std::string beta = fmt::format("beta_{}", std::to_string(op.getGuid()));
     emit(fmt::format("float {} = 1.0f, {} = 0.0f;", alpha, beta));
-    
+
     std::string opB_str = op.getTransB() ? "CUBLAS_OP_T" : "CUBLAS_OP_N"; // opB
     std::string opA_str = op.getTransA() ? "CUBLAS_OP_T" : "CUBLAS_OP_N"; // opA
-    std::string b_str = getVarName(*op.getInputs()[1]); // B
-    std::string a_str = getVarName(*op.getInputs()[0]); // A
-    std::string c_str = getVarName(*op.getOutputs()[0]); // C
+    std::string b_str = getVarName(*op.getInputs()[1]);                   // B
+    std::string a_str = getVarName(*op.getInputs()[0]);                   // A
+    std::string c_str = getVarName(*op.getOutputs()[0]);                  // C
 
     std::string line = fmt::format(
-    "cublasGemmStridedBatchedEx({}, {}, {}, {}, {}, {}, &{}, {}, {}, {}, {}, {}, {}, {}, {}, &{}, {}, {}, {}, {}, {}, {}, (cublasGemmAlgo_t){});",
-        "cublas", opB_str, opA_str, std::to_string(n), std::to_string(m), std::to_string(k), alpha, b_str,
-        "CUDA_R_32F", std::to_string(ldb), std::to_string(k * n), a_str,
-        "CUDA_R_32F", std::to_string(lda), std::to_string(m * k), beta, c_str,
-        "CUDA_R_32F", std::to_string(ldc), std::to_string(m * n), std::to_string(b),
-        "CUDA_R_32F", std::to_string((int)perfEngine->getMatmulAlgo(op.getArgs())));
+        "cublasGemmStridedBatchedEx({}, {}, {}, {}, {}, {}, &{}, {}, {}, {}, "
+        "{}, {}, {}, {}, {}, &{}, {}, {}, {}, {}, {}, {}, "
+        "(cublasGemmAlgo_t){});",
+        "cublas", opB_str, opA_str, std::to_string(n), std::to_string(m),
+        std::to_string(k), alpha, b_str, "CUDA_R_32F", std::to_string(ldb),
+        std::to_string(k * n), a_str, "CUDA_R_32F", std::to_string(lda),
+        std::to_string(m * k), beta, c_str, "CUDA_R_32F", std::to_string(ldc),
+        std::to_string(m * n), std::to_string(b), "CUDA_R_32F",
+        std::to_string((int)perfEngine->getMatmulAlgo(op.getArgs())));
     emit(line);
 
     if (op.getAct() != Operator::None) {
         emit(fmt::format("{} = 1.0f;", beta));
-        line = fmt::format(
-            "checkCudnnError(cudnnActivationForward(cudnn, {}_act, &{}, {}, {}, &{}, {}, {}));",
-            getDescName(op),
-            alpha,
-            getTensorDescName(*op.getOutputs()[0]),
-            getVarName(*op.getOutputs()[0]),
-            beta,
-            getTensorDescName(*op.getOutputs()[0]),
-            getVarName(*op.getOutputs()[0])
-        );
+        line = fmt::format("checkCudnnError(cudnnActivationForward(cudnn, "
+                           "{}_act, &{}, {}, {}, &{}, {}, {}));",
+                           getDescName(op), alpha,
+                           getTensorDescName(*op.getOutputs()[0]),
+                           getVarName(*op.getOutputs()[0]), beta,
+                           getTensorDescName(*op.getOutputs()[0]),
+                           getVarName(*op.getOutputs()[0]));
         emit(line);
     }
 
@@ -1125,11 +1091,8 @@ void CodeEngine::genMatmulCompute(const MatmulOp &op) {
         emit(fmt::format("{} = 1.0f;", beta));
         line = fmt::format(
             "checkCudnnError(cudnnAddTensor(cudnn, &{}, {}, {}, &{}, {}, {}));",
-            alpha,
-            getTensorDescName(*op.getBias()),
-            getVarName(*op.getBias()),
-            beta,
-            getTensorDescName(*op.getOutputs()[0]),
+            alpha, getTensorDescName(*op.getBias()), getVarName(*op.getBias()),
+            beta, getTensorDescName(*op.getOutputs()[0]),
             getVarName(*op.getOutputs()[0]));
         emit(line);
     }
