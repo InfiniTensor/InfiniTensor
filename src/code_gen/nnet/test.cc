@@ -1,8 +1,8 @@
-#include "code_gen/nnet/Visitor/FullPrinterVisitor.h"
-#include "code_gen/nnet/Visitor/GetTensorsVisitor.h"
-#include "code_gen/nnet/Visitor/HashVisitor.h"
-#include "code_gen/nnet/Visitor/Interpreter.h"
-#include "code_gen/nnet/Visitor/Serializer.h"
+#include "nnet/Visitor/FullPrinterVisitor.h"
+#include "nnet/Visitor/GetTensorsVisitor.h"
+#include "nnet/Visitor/HashVisitor.h"
+#include "nnet/Visitor/Interpreter.h"
+#include "nnet/Visitor/Serializer.h"
 namespace nnet {
 
 int matchExprResult(Derivator &derivator, string fn) {

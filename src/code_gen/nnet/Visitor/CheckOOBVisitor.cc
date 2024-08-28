@@ -1,5 +1,5 @@
-#include "code_gen/nnet/Visitor/CheckOOBVisitor.h"
-#include "code_gen/nnet/Visitor/SimplifyExprVisitor.h"
+#include "nnet/Visitor/CheckOOBVisitor.h"
+#include "nnet/Visitor/SimplifyExprVisitor.h"
 
 namespace nnet {
 

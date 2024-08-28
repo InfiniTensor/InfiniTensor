@@ -1,4 +1,4 @@
-#include "code_gen/nnet/Visitor/GetTensorsVisitor.h"
+#include "nnet/Visitor/GetTensorsVisitor.h"
 
 namespace nnet {
 

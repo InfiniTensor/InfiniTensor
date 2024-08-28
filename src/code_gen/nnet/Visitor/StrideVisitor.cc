@@ -1,4 +1,4 @@
-#include "code_gen/nnet/Visitor/StrideVisitor.h"
+#include "nnet/Visitor/StrideVisitor.h"
 
 namespace nnet {
 

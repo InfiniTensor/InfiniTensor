@@ -1,4 +1,4 @@
-#include "code_gen/nnet/Visitor/CountRoutineVisitor.h"
+#include "nnet/Visitor/CountRoutineVisitor.h"
 
 namespace nnet {
 

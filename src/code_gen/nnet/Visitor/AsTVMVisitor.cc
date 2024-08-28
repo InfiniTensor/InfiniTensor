@@ -1,4 +1,4 @@
-#include "code_gen/nnet/Visitor/AsTVMVisitor.h"
+#include "nnet/Visitor/AsTVMVisitor.h"
 
 namespace nnet {
 

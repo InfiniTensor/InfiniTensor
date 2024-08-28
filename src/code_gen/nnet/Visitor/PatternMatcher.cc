@@ -1,7 +1,7 @@
-#include "code_gen/nnet/Visitor/PatternMatcher.h"
-#include "code_gen/nnet/ReplaceKit.h"
-#include "code_gen/nnet/Visitor/MatmulTransposeMutator.h"
-#include "code_gen/nnet/Visitor/ReplaceVariable.h"
+#include "nnet/Visitor/PatternMatcher.h"
+#include "nnet/ReplaceKit.h"
+#include "nnet/Visitor/MatmulTransposeMutator.h"
+#include "nnet/Visitor/ReplaceVariable.h"
 
 namespace nnet {
 

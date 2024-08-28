@@ -1,4 +1,4 @@
-#include "code_gen/nnet/Visitor/ReplaceNodeMutator.h"
+#include "nnet/Visitor/ReplaceNodeMutator.h"
 
 namespace nnet {
 

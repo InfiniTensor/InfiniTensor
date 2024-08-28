@@ -162,7 +162,8 @@ if(USE_INTELCPU)
 endif()
 
 if(SUP_CODE_GEN)
-file(GLOB_RECURSE CUS_OPS_SRC src/code_gen/*.cc src/code_gen/custom_ops.cu)
+file(GLOB_RECURSE CUS_OPS_SRC src/code_gen/Graph/*.cc src/code_gen/Mutant/*.cc src/code_gen/Transpose/*.cc
+    src/code_gen/custom_ops.cu src/nnet/*.cc)
 list(APPEND SRC ${CUS_OPS_SRC})
 
 endif()

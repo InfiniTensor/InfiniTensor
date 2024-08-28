@@ -1,4 +1,4 @@
-#include "code_gen/nnet/Visitor/MatchTableVisitor.h"
+#include "nnet/Visitor/MatchTableVisitor.h"
 
 namespace nnet {
 

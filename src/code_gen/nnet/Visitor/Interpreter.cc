@@ -1,6 +1,6 @@
-#include "code_gen/nnet/Visitor/Interpreter.h"
-#include "code_gen/nnet/Visitor/GetTensorsVisitor.h"
-#include "code_gen/nnet/expr.h"
+#include "nnet/Visitor/Interpreter.h"
+#include "nnet/Visitor/GetTensorsVisitor.h"
+#include "nnet/expr.h"
 
 namespace nnet {
 

@@ -1,4 +1,4 @@
-#include "code_gen/nnet/dmutator.h"
+#include "nnet/dmutator.h"
 
 using namespace tpm;
 

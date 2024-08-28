@@ -1,7 +1,7 @@
-#include "code_gen/nnet/nmutator.h"
-#include "code_gen/nnet/Visitor/FullPrinterVisitor.h"
-#include "code_gen/nnet/Visitor/GetTensorsVisitor.h"
-#include "code_gen/nnet/derivator.h"
+#include "nnet/nmutator.h"
+#include "nnet/Visitor/FullPrinterVisitor.h"
+#include "nnet/Visitor/GetTensorsVisitor.h"
+#include "nnet/derivator.h"
 
 namespace tpm {
 

@@ -1,6 +1,6 @@
-#include "code_gen/nnet/Pass/Rule4StageMerging.h"
-#include "code_gen/nnet/Visitor/ReplaceNodeMutator.h"
-#include "code_gen/nnet/Visitor/ReplaceVariable.h"
+#include "nnet/Pass/Rule4StageMerging.h"
+#include "nnet/Visitor/ReplaceNodeMutator.h"
+#include "nnet/Visitor/ReplaceVariable.h"
 
 namespace nnet {
 

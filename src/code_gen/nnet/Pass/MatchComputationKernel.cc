@@ -1,5 +1,5 @@
-#include "code_gen/nnet/Pass/MatchComputationKernel.h"
-#include "code_gen/nnet/Visitor/PatternMatcher.h"
+#include "nnet/Pass/MatchComputationKernel.h"
+#include "nnet/Visitor/PatternMatcher.h"
 
 namespace nnet {
 

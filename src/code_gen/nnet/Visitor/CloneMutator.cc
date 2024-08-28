@@ -1,4 +1,4 @@
-#include "code_gen/nnet/Visitor/CloneMutator.h"
+#include "nnet/Visitor/CloneMutator.h"
 
 namespace nnet {
 

@@ -1,6 +1,6 @@
-#include "code_gen/nnet/dlt.h"
-#include "code_gen/nnet/Visitor/SimplifyExprVisitor.h"
-#include "code_gen/nnet/visitor.h"
+#include "nnet/dlt.h"
+#include "nnet/Visitor/SimplifyExprVisitor.h"
+#include "nnet/visitor.h"
 #include <algorithm>
 
 namespace nnet {

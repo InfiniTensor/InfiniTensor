@@ -1,4 +1,4 @@
-#include "code_gen/nnet/visitor.h"
+#include "nnet/visitor.h"
 namespace nnet {
 
 Expr Mutator::visit_([[maybe_unused]] const Constant &c) { return nullptr; }

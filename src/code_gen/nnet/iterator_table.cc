@@ -1,7 +1,7 @@
-#include "code_gen/nnet/iterator_table.h"
-#include "code_gen/nnet/Visitor/MatchTableVisitor.h"
-#include "code_gen/nnet/Visitor/SimplifyExprVisitor.h"
-#include "code_gen/nnet/permutation.h"
+#include "nnet/iterator_table.h"
+#include "nnet/Visitor/MatchTableVisitor.h"
+#include "nnet/Visitor/SimplifyExprVisitor.h"
+#include "nnet/permutation.h"
 #include <iostream>
 
 namespace nnet {

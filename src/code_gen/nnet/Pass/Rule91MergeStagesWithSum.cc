@@ -1,5 +1,5 @@
-#include "code_gen/nnet/Pass/Rule91MergeStagesWithSum.h"
-#include "code_gen/nnet/Pass/Rule4StageMerging.h"
+#include "nnet/Pass/Rule91MergeStagesWithSum.h"
+#include "nnet/Pass/Rule4StageMerging.h"
 
 namespace nnet {
 

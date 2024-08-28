@@ -1,6 +1,6 @@
-#include "code_gen/nnet/ReplaceKit.h"
-#include "code_gen/nnet/Visitor/ReplaceVariable.h"
-#include "code_gen/nnet/Visitor/SimplifyFormulaMutator.h"
+#include "nnet/ReplaceKit.h"
+#include "nnet/Visitor/ReplaceVariable.h"
+#include "nnet/Visitor/SimplifyFormulaMutator.h"
 
 namespace nnet {
 

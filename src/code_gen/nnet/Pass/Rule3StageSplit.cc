@@ -1,5 +1,5 @@
-#include "code_gen/nnet/Pass/Rule3StageSplit.h"
-#include "code_gen/nnet/permutation.h"
+#include "nnet/Pass/Rule3StageSplit.h"
+#include "nnet/permutation.h"
 
 namespace nnet {
 

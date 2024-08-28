@@ -1,7 +1,7 @@
-#include "code_gen/nnet/Visitor/MergeMemboundMutator.h"
-#include "code_gen/nnet/Visitor/CheckOOBVisitor.h"
-#include "code_gen/nnet/Visitor/ReplaceNodeMutator.h"
-#include "code_gen/nnet/Visitor/ReplaceVariable.h"
+#include "nnet/Visitor/MergeMemboundMutator.h"
+#include "nnet/Visitor/CheckOOBVisitor.h"
+#include "nnet/Visitor/ReplaceNodeMutator.h"
+#include "nnet/Visitor/ReplaceVariable.h"
 
 namespace nnet {
 

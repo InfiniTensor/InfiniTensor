@@ -1,4 +1,4 @@
-#include "code_gen/nnet/Visitor/FullPrinterVisitor.h"
+#include "nnet/Visitor/FullPrinterVisitor.h"
 
 namespace nnet {
 

@@ -1,5 +1,5 @@
-#include "code_gen/nnet/Pass/Rule5RangeRelaxation.h"
-#include "code_gen/nnet/Visitor/RangeRelaxFunctor.h"
+#include "nnet/Pass/Rule5RangeRelaxation.h"
+#include "nnet/Visitor/RangeRelaxFunctor.h"
 
 namespace nnet {
 
