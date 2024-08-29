@@ -1,5 +1,5 @@
 #include "code_gen/code_engine.h"
-#include "nnet/Visitor/AsTVMVisitor.h"
+#include "code_gen/nnet/Visitor/AsTVMVisitor.h"
 #include "code_gen/perf_engine.h"
 #include "code_gen/transpose.h"
 #include "ffi/ffi_embed.h"

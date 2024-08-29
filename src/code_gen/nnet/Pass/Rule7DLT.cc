@@ -1,6 +1,6 @@
-#include "nnet/Pass/Rule7DLT.h"
-#include "nnet/Visitor/ReplaceNodeMutator.h"
-#include "nnet/dlt.h"
+#include "code_gen/nnet/Pass/Rule7DLT.h"
+#include "code_gen/nnet/Visitor/ReplaceNodeMutator.h"
+#include "code_gen/nnet/dlt.h"
 
 namespace nnet {
 

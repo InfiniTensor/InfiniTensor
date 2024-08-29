@@ -1,5 +1,5 @@
-#include "nnet/expr.h"
-#include "nnet/Visitor/GetTensorsVisitor.h"
+#include "code_gen/nnet/expr.h"
+#include "code_gen/nnet/Visitor/GetTensorsVisitor.h"
 
 namespace nnet {
 

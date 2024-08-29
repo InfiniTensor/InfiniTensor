@@ -1,5 +1,5 @@
-#include "nnet/Pass/Rule8GuidedDLT.h"
-#include "nnet/Visitor/ReplaceNodeMutator.h"
+#include "code_gen/nnet/Pass/Rule8GuidedDLT.h"
+#include "code_gen/nnet/Visitor/ReplaceNodeMutator.h"
 
 namespace nnet {
 

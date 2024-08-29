@@ -1,5 +1,5 @@
-#include "nnet/Visitor/Serializer.h"
-#include "nnet/expr.h"
+#include "code_gen/nnet/Visitor/Serializer.h"
+#include "code_gen/nnet/expr.h"
 #include "nlohmann/json.hpp"
 #include <fstream>
 

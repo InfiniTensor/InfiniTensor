@@ -1,5 +1,5 @@
-#include "nnet/Visitor/RangeRelaxFunctor.h"
-#include "nnet/Visitor/SimplifyExprVisitor.h"
+#include "code_gen/nnet/Visitor/RangeRelaxFunctor.h"
+#include "code_gen/nnet/Visitor/SimplifyExprVisitor.h"
 
 namespace nnet {
 

@@ -1,4 +1,4 @@
-#include "nnet/Visitor/MatmulTransposeMutator.h"
+#include "code_gen/nnet/Visitor/MatmulTransposeMutator.h"
 
 namespace nnet {
 

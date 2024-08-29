@@ -1,8 +1,8 @@
 #ifndef OPERATOR_H
 #define OPERATOR_H
 
-#include "nnet/Visitor/Interpreter.h"
-#include "nnet/expr.h"
+#include "code_gen/nnet/Visitor/Interpreter.h"
+#include "code_gen/nnet/expr.h"
 #include "common.h"
 #include "perf.h"
 #include "tensor.h"

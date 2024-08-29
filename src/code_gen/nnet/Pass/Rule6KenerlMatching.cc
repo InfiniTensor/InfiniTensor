@@ -1,6 +1,6 @@
-#include "nnet/Pass/Rule6KenerlMatching.h"
-#include "nnet/Visitor/InputVisitor.h"
-#include "nnet/Visitor/PatternMatcher.h"
+#include "code_gen/nnet/Pass/Rule6KenerlMatching.h"
+#include "code_gen/nnet/Visitor/InputVisitor.h"
+#include "code_gen/nnet/Visitor/PatternMatcher.h"
 
 namespace nnet {
 

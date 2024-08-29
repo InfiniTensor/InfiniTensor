@@ -1,4 +1,4 @@
-#include "nnet/Visitor/InputVisitor.h"
+#include "code_gen/nnet/Visitor/InputVisitor.h"
 
 namespace nnet {
 

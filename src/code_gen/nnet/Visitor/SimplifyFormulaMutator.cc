@@ -1,5 +1,5 @@
-#include "nnet/Visitor/SimplifyFormulaMutator.h"
-#include "nnet/Visitor/SimplifyExprVisitor.h"
+#include "code_gen/nnet/Visitor/SimplifyFormulaMutator.h"
+#include "code_gen/nnet/Visitor/SimplifyExprVisitor.h"
 
 namespace nnet {
 

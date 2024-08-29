@@ -1,5 +1,5 @@
-#include "nnet/Pass/Rule2VariableMerging.h"
-#include "nnet/Visitor/CheckOOBVisitor.h"
+#include "code_gen/nnet/Pass/Rule2VariableMerging.h"
+#include "code_gen/nnet/Visitor/CheckOOBVisitor.h"
 
 namespace nnet {
 

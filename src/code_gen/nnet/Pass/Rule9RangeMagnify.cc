@@ -1,5 +1,5 @@
-#include "nnet/Pass/Rule9RangeMagnify.h"
-#include "nnet/Visitor/RangeMagnifyVisitor.h"
+#include "code_gen/nnet/Pass/Rule9RangeMagnify.h"
+#include "code_gen/nnet/Visitor/RangeMagnifyVisitor.h"
 
 namespace nnet {
 

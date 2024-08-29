@@ -1,10 +1,10 @@
 #include "code_gen/search_engine.h"
 #include "code_gen/cmutator.h"
-#include "nnet/Visitor/FullPrinterVisitor.h"
-#include "nnet/Visitor/MergeMemboundMutator.h"
-#include "nnet/dmutator.h"
-#include "nnet/expr.h"
-#include "nnet/nmutator.h"
+#include "code_gen/nnet/Visitor/FullPrinterVisitor.h"
+#include "code_gen/nnet/Visitor/MergeMemboundMutator.h"
+#include "code_gen/nnet/dmutator.h"
+#include "code_gen/nnet/expr.h"
+#include "code_gen/nnet/nmutator.h"
 #include "code_gen/perf_engine.h"
 #include <algorithm>
 #include <iostream>

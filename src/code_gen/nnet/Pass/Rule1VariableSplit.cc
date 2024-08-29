@@ -1,5 +1,5 @@
-#include "nnet/Pass/Rule1VariableSplit.h"
-#include "nnet/Visitor/ReplaceVariable.h"
+#include "code_gen/nnet/Pass/Rule1VariableSplit.h"
+#include "code_gen/nnet/Visitor/ReplaceVariable.h"
 
 namespace nnet {
 

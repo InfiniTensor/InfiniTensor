@@ -1,6 +1,6 @@
-#include "nnet/Visitor/HashVisitor.h"
-#include "nnet/Visitor/FullPrinterVisitor.h"
-#include "nnet/Visitor/SimplifyExprVisitor.h"
+#include "code_gen/nnet/Visitor/HashVisitor.h"
+#include "code_gen/nnet/Visitor/FullPrinterVisitor.h"
+#include "code_gen/nnet/Visitor/SimplifyExprVisitor.h"
 namespace nnet {
 
 constexpr int varPrefix = 11027;

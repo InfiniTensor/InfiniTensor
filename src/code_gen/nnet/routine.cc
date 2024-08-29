@@ -1,5 +1,5 @@
-#include "nnet/routine.h"
-#include "nnet/Visitor/CloneMutator.h"
+#include "code_gen/nnet/routine.h"
+#include "code_gen/nnet/Visitor/CloneMutator.h"
 #include <algorithm>
 namespace nnet {
 

@@ -1,4 +1,4 @@
-#include "nnet/Visitor/ReplaceVariable.h"
+#include "code_gen/nnet/Visitor/ReplaceVariable.h"
 
 namespace nnet {
 

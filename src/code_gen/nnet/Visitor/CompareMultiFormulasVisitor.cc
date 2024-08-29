@@ -1,4 +1,4 @@
-#include "nnet/Visitor/CompareMultiFormulasVisitor.h"
+#include "code_gen/nnet/Visitor/CompareMultiFormulasVisitor.h"
 
 namespace nnet {
 

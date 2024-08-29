@@ -1,4 +1,4 @@
-#include "nnet/common.h"
+#include "code_gen/nnet/common.h"
 namespace nnet {
 
 std::string pointer_to_hex(void *i) {

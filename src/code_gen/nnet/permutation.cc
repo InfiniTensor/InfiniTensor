@@ -1,4 +1,4 @@
-#include "nnet/permutation.h"
+#include "code_gen/nnet/permutation.h"
 #include <algorithm>
 
 namespace nnet {

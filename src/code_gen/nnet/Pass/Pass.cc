@@ -1,5 +1,5 @@
-#include "nnet/Pass/Pass.h"
-#include "nnet/Visitor/CloneMutator.h"
+#include "code_gen/nnet/Pass/Pass.h"
+#include "code_gen/nnet/Visitor/CloneMutator.h"
 
 namespace nnet {
 
