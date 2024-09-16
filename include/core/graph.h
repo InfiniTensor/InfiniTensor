@@ -2,6 +2,19 @@
 #include "core/lazy_allocator.h"
 #include "core/operator.h"
 #include "core/tensor.h"
+#ifdef USE_REFACOTRGRAPH
+#include "computation/graph.h"
+#include "computation/operators/conv.h"
+#include "computation/operators/layernorm.h"
+#include "computation/operators/mat_mul.h"
+#include "computation/operators/reduce.h"
+#include "computation/operators/reshape.h"
+#include "computation/operators/simple_binary.h"
+#include "computation/operators/simple_unary.h"
+#include "computation/operators/transpose.h"
+#include "kernel/attributes/pool_attributes.h"
+#include <numeric>
+#endif
 
 namespace infini {
 
@@ -15,6 +28,7 @@ class GraphObj : public Object {
   public:
     explicit GraphObj(Runtime runtime)
         : runtime(runtime), allocator(runtime), sorted(false){};
+
     GraphObj(Runtime runtime, OpVec ops_in);
     string toString() const override;
     Runtime getRuntime() const { return runtime; }
@@ -72,6 +86,12 @@ class GraphObj : public Object {
     Tensor cloneKV(Tensor &tensor);
 
     void freeHeap();
+
+#ifdef USE_REFACOTRGRAPH
+    refactor::computation::Graph convertToRefactorGraph();
+    void
+    convertFromRefactorGraph(const refactor::computation::Graph &refactorGraph);
+#endif
 
     /**
      * @brief Add an operator and create its outputs. Output tensor arguments
