@@ -14,6 +14,7 @@
 | -------- | ------------  | -----------   | ---------- |
 | X86-64   | Nvidia GPU    |  Ubuntu-22.04 |  Yes       |
 | X86-64   | Cambricon MLU |  Ubuntu-22.04 |  Yes       |
+| arm64    | Ascend NPU    |OpenEuler-22.03|  Yes       |
 
 推荐使用 X86-64 机器以及 Ubuntu-22.04，本文以此环境为例。
 
@@ -68,6 +69,20 @@
 
      我们强烈建议您规范安装，统一到一个目录下，以免不必要的麻烦。另外请注意，由于 MLU 上层软件建设适配程度有限，如您在其覆盖的机器，操作系统之外运行，需要在安装驱动之后使用上层软件的 Docker。
 
+   - 如您的第三方加速卡为昇腾 NPU，请参考昇腾官方文档进行：
+     > [驱动及CANN安装](https://www.hiascend.com/document/detail/zh/canncommercial/80RC1/quickstart/quickstart/quickstart_18_0006.html)
+     > 安装完成后请进行相应的环境变量配置，将可执行文件目录与库目录添加到操作系统识别的路径中，例如
+     >
+     > ```bash
+     > # 将如下内容写入到你的 bashrc 文件并 source 该文件
+     > export ASCEND_HOME=/usr/local/Ascend/ascend-toolkit/latest
+     > source /usr/local/Ascend/ascend-toolkit/set_env.sh
+     > # 如您不方便将上述环境变量配置到 bashrc 文件中进行长期使用，你也可以在我们提供的 env.sh 文件中进行正确配置并激活，作为临时使用
+     > source env.sh
+     > ```
+
+     我们强烈建议您规范安装，统一到一个目录下，以免不必要的麻烦。
+     
 4. 确认您安装了 make，build-essential， python-is-python3， python-dev-is-python3， python3-pip， libdw-dev，如您的机器没有上述基础依赖，请自行按需安装。
 
    - 在使用 apt-get 工具情况下，您可以这样执行
@@ -138,6 +153,13 @@
    ```bash
    export KUNLUN_HOME=/path/to/your/kunlun_home
    make install-python KUNLUN=ON
+   ```
+
+   编译 CPU 部分，同时编译昇腾 NPU 部分：
+
+   ```bash
+   export ASCEND_HOME=/path/to/your/ascend_home
+   make install-python ASCEND=ON
    ```
 
 3. 使用方法

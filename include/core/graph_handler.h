@@ -38,6 +38,8 @@ class GraphHandlerObj {
                               float momentum, float eps, bool training);
     Tensor layerNormalization(Tensor input, Tensor scale, Tensor output,
                               Tensor bias, float eps, int axis, int stash_type);
+    Tensor instanceNormalization(Tensor input, Tensor output, Tensor scale,
+                                 Tensor bias, float eps);
     Tensor rmsNorm(Tensor input, Tensor weight, Tensor output);
 
     Tensor maxPool(Tensor input, Tensor output, int kh, int kw, int dh, int dw,
@@ -77,7 +79,7 @@ class GraphHandlerObj {
     Tensor reshape(Tensor data, Tensor reshaped, Shape shape);
     Tensor resize(Tensor input, Tensor output,
                   const std::optional<vector<int>> &axes, Tensor sizes,
-                  Tensor scales, Tensor roi, vector<uint32_t> sizes_,
+                  Tensor scales, Tensor roi, vector<int64_t> sizes_,
                   vector<float> scales_, vector<float> roi_, string mode,
                   string ratioPolicy, string nearestMode,
                   string coordTransMode);

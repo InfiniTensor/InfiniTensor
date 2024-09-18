@@ -33,10 +33,11 @@ void ResizeObj::init(const Tensor &input, const Tensor &sizes,
     // inputs of operator must not be nullptr, due to the check in
     // OperatorObj::OperatorObj
     if (nullptr != sizes) {
-        IT_ASSERT(isResizeBySizes());
+        setGivenSizes(true);
         inputs.push_back(sizes);
         InitBySizes(input, sizes, axes);
     } else if (nullptr != scales) {
+        setGivenSizes(false);
         inputs.push_back(scales);
         InitByScales(input, scales, axes);
     }
@@ -101,8 +102,9 @@ void ResizeObj::InitBySizes(Tensor input, Tensor sizes,
     // copy sizes data to host.
     IT_ASSERT(sizes->getDataBlob() != nullptr);
     Runtime runtime = NativeCpuRuntimeObj::getInstance();
-    std::shared_ptr<int> dataObj((int *)runtime->alloc(sizes->getBytes()),
-                                 [&](int *p) { runtime->dealloc(p); });
+    std::shared_ptr<int64_t> dataObj(
+        (int64_t *)runtime->alloc(sizes->getBytes()),
+        [&](int64_t *p) { runtime->dealloc(p); });
     auto data = dataObj.get();
     sizes->getRuntime()->copyBlobToCPU(
         (void *)data, sizes->getRawDataPtr<void *>(), sizes->getBytes());
@@ -193,7 +195,7 @@ vector<DataType> ResizeObj::inferDataType(const TensorVec &inputs) const {
     }
     if (isResizeBySizes()) {
         auto sizes = inputs[1];
-        IT_ASSERT(sizes && sizes->getDType() == DataType::UInt32);
+        IT_ASSERT(sizes && sizes->getDType() == DataType::Int64);
     } else {
         auto scales = inputs[1];
         IT_ASSERT(scales && scales->getDType() == DataType::Float32);
