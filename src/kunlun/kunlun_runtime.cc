@@ -33,9 +33,14 @@ void KUNLUNRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
         double t = record->time;
         totalTime += t;
 
-        if (profiling) {
+        if (!profiling) {
+            kernel->compute(op, record, this);
+            workspace->resetWorkspace();
+            continue;
+        } else {
             double t = timeit([&]() { kernel->compute(op, record, this); },
                               [&]() { sync(); }, 1, 1);
+            workspace->resetWorkspace();
             op->print();
             printf(" op_time on kunlun xpu %lf\n", t);
             totalTime += t;
