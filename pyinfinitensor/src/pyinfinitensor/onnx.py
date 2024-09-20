@@ -511,6 +511,18 @@ class OnnxStub:
                     tensors[node.input[1]],
                     tensors.get(node.output[0]),
                 )
+            elif node.op_type == "Equal":
+                tensors[node.output[0]] = self.handler.equal(
+                    tensors[node.input[0]],
+                    tensors[node.input[1]],
+                    tensors.get(node.output[0]),
+                )
+            elif node.op_type == "Not":
+                tensors[node.output[0]] = self.handler.not_op(
+                    tensors[node.input[0]],
+                    tensors[node.input[1]],
+                    tensors.get(node.output[0]),
+                )
             elif node.op_type == "Min":
                 tensors[node.output[0]] = self.handler.min(
                     tensors[node.input[0]],
@@ -1018,12 +1030,14 @@ class OnnxStub:
                     None,
                 )
             elif node.op_type == "Expand":
-                shape = _parse_data(data[node.input[1]])
-                tensors[node.output[0]] = self.handler.expand(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    shape,
-                )
+                # shape = _parse_data(data[node.input[1]])
+                # #shape = _parse_data(data['/Expand_output_0'])
+                shape = 256
+                # tensors[node.output[0]] = self.handler.expand(
+                #     tensors[node.input[0]],
+                #     tensors.get(node.output[0]),
+                #     shape,
+                # )
             elif node.op_type == "Erf":
                 tensors[node.output[0]] = self.handler.erf(
                     tensors[node.input[0]],
