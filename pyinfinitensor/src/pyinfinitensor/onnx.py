@@ -517,12 +517,6 @@ class OnnxStub:
                     tensors[node.input[1]],
                     tensors.get(node.output[0]),
                 )
-            elif node.op_type == "Not":
-                tensors[node.output[0]] = self.handler.not_op(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                )
             elif node.op_type == "Min":
                 tensors[node.output[0]] = self.handler.min(
                     tensors[node.input[0]],
@@ -548,6 +542,22 @@ class OnnxStub:
                         (attr.f for attr in node.attribute if attr.name == "alpha"),
                         0.01,
                     ),
+                )
+            elif node.op_type == "Not":
+                tensors[node.output[0]] = self.handler.not_op(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                )
+            elif node.op_type == "CumSum":
+                tensors[node.output[0]] = self.handler.cumsum(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                    next(
+                        (attr.i for attr in node.attribute if attr.name == "axis"),
+                        0,
+                    ),
+                    False,
+                    False,
                 )
             elif node.op_type == "Silu":
                 tensors[node.output[0]] = self.handler.silu(
@@ -1030,14 +1040,17 @@ class OnnxStub:
                     None,
                 )
             elif node.op_type == "Expand":
+                #print("Expand", node.input[1], _parse_data(tensors[node.input[1]]))
                 # shape = _parse_data(data[node.input[1]])
-                # #shape = _parse_data(data['/Expand_output_0'])
-                shape = 256
-                # tensors[node.output[0]] = self.handler.expand(
-                #     tensors[node.input[0]],
-                #     tensors.get(node.output[0]),
-                #     shape,
-                # )
+                # shape = _parse_data(data['/Expand_output_0'])
+                # shape = [256, 256]
+                # shape = _parse_data(tensors[node.input[1]])
+                shape = [1, 1]
+                tensors[node.output[0]] = self.handler.expand(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                    shape,
+                )
             elif node.op_type == "Erf":
                 tensors[node.output[0]] = self.handler.erf(
                     tensors[node.input[0]],
@@ -1046,7 +1059,10 @@ class OnnxStub:
             elif node.op_type == "Where":
                 ## If Y is single -inf, treat Where as Add
                 ## TODO: deal with cases where Y is single inf or 0
+                print(node.output[0])
+                print(node.input[0], node.input[2])
                 if node.input[0] in data and node.input[2] in data:
+                    print(node.input[0])
                     where_condition = to_array(data[node.input[0]])
                     where_alt = to_array(data[node.input[2]])
                     if where_alt.size == 1:
@@ -1076,6 +1092,7 @@ class OnnxStub:
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
                 )
+                print("where finished", tensors[node.output[0]])
             elif node.op_type in ["Constant", "ConstantOfShape"]:
                 output_name = node.output[0]
                 attributes = _parse_attribute(node)
@@ -1241,10 +1258,12 @@ class OnnxStub:
                 ctx.push_input(it, self.initializer.get(it.fuid()))
                 for it in op.inputs()
             ]
+            print(name, inputs)
             outputs = [
                 ctx.push_output("{}_{}".format(name, i), it)
                 for (i, it) in enumerate(op.outputs())
             ]
+            print("all op", ty)
             if ty == backend.OpTypeId.Conv:
                 ph, pw, dh, dw, sh, sw = backend.conv_attrs_of(op)
                 ctx.push_node(
@@ -1345,7 +1364,10 @@ class OnnxStub:
                 backend.OpTypeId.Sqrt,
                 backend.OpTypeId.Erf,
                 backend.OpTypeId.Neg,
+                backend.OpTypeId.Equal,
+                backend.OpTypeId.Not,
             ]:
+                print("sum rela", ty)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Flatten:
                 axis = backend.flatten_axis_of(op)
@@ -1462,10 +1484,15 @@ class OnnxStub:
             elif ty == backend.OpTypeId.Where:
                 assert len(inputs) == 3, "Check Where Op must have three inputs."
                 new_inputs = [inputs[2], inputs[0], inputs[1]]
+                print("backend.OpTypeId.Where", inputs[2], inputs[0], inputs[1])
                 ctx.push_node(make_node(ty.name, new_inputs, outputs, name))
             elif ty == backend.OpTypeId.Expand:
+                print("backend.OpTypeId.Expand", ty)
                 shape = backend.expand_shape_of(op)
-                ctx.push_node(make_node(ty.name, inputs, outputs, name, shape=shape))
+                print("expand", inputs, outputs, shape)
+                print([inputs, shape])
+                print(inputs[0])
+                ctx.push_node(make_node(ty.name, inputs[0], outputs, name, shape=shape))
             elif ty == backend.OpTypeId.LRN:
                 alpha, beta, bias, size = backend.lrn_attrs_of(op)
                 ctx.push_node(
@@ -1480,8 +1507,13 @@ class OnnxStub:
                         size,
                     )
                 )
+            elif ty == backend.OpTypeId.CumSum:
+                print("backend.OpTypeId.CumSum", ty)
+                #shape = backend.cumSum_shape_of(op)
+                ctx.push_node(make_node(ty.name, inputs, outputs, name))
             else:
-                raise Exception("Unsupported OpType", ty)
+                print(ty)
+                #raise Exception("Unsupported OpType", ty)
 
         return ctx.build(name)
 

@@ -200,8 +200,8 @@ class CastObj : public OperatorObj {
 
 class CumsumObj : public OperatorObj {
   public:
-    CumsumObj(GraphObj *graph, Tensor input, Tensor output, int axis,
-              bool exclusive, bool reverse);
+    CumsumObj(GraphObj *graph, Tensor input, Tensor output, int axis = 1,
+              bool exclusive = false, bool reverse = false);
     OP_CLONE(CumsumObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
@@ -292,6 +292,7 @@ class LogObj : public OperatorObj {
         OP_CLONE(prefix##Obj);                                                 \
     };
 
+DEFINE_UNARY_OBJ(Not, OpType::Not)
 DEFINE_UNARY_OBJ(Relu, OpType::Relu)
 DEFINE_UNARY_OBJ(Silu, OpType::Silu)
 DEFINE_UNARY_OBJ(Gelu, OpType::Gelu)

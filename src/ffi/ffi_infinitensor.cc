@@ -95,6 +95,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, Div)
         .VALUE(OpType, Pow)
         .VALUE(OpType, Equal)
+        .VALUE(OpType, CumSum)
         .VALUE(OpType, Gather)
         .VALUE(OpType, GatherElements)
         .VALUE(OpType, ReduceMean)
@@ -280,6 +281,15 @@ static vector<int64_t> reshape_shape_of(Operator op) {
     return ans;
 }
 
+static vector<int64_t> cumSum_shape_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::CumSum);
+    auto shape = dynamic_cast<const CumsumObj *>(op.get())->getShape();
+    vector<int64_t> ans(shape.size());
+    std::transform(shape.begin(), shape.end(), ans.begin(),
+                   [](auto x) { return static_cast<int64_t>(x); });
+    return ans;
+}
+
 static vector<int64_t> squeeze_axes_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Squeeze);
     auto axes = dynamic_cast<const SqueezeObj *>(op.get())->getAxes();
@@ -380,6 +390,7 @@ void export_functions(py::module &m) {
         .FUNCTION(reduce_attrs_of)
         .FUNCTION(tensor_dtype)
         .FUNCTION(reshape_shape_of)
+        .FUNCTION(cumSum_shape_of)
         .FUNCTION(expand_shape_of)
         .FUNCTION(pad_pads_of)
         .FUNCTION(transpose_permute_of)
@@ -552,6 +563,7 @@ void init_graph_builder(py::module &m) {
         .def("div", &Handler::div, policy::move)
         .def("pow", &Handler::pow, policy::move)
         .def("equal", &Handler::equal, policy::move)
+        .def("cumsum", &Handler::cumsum, policy::move)
         .def("min", &Handler::min, policy::move)
         .def("max", &Handler::max, policy::move)
         .def("relu", &Handler::relu, policy::move)

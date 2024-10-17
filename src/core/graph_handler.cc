@@ -211,7 +211,6 @@ DEFINE_ELEMENT_WISE_METHOD(pow, Pow)
 DEFINE_ELEMENT_WISE_METHOD(equal, Equal)
 DEFINE_ELEMENT_WISE_METHOD(min, Minimum)
 DEFINE_ELEMENT_WISE_METHOD(max, Maximum)
-DEFINE_ELEMENT_WISE_METHOD(not_op, Not)
 
 // see operators/unary.h
 #define DEFINE_UNARY_METHOD(name, obj)                                         \
@@ -224,6 +223,7 @@ DEFINE_ELEMENT_WISE_METHOD(not_op, Not)
         }                                                                      \
     }
 
+DEFINE_UNARY_METHOD(not_op, Not)
 DEFINE_UNARY_METHOD(silu, Silu)
 DEFINE_UNARY_METHOD(relu, Relu)
 DEFINE_UNARY_METHOD(gelu, Gelu)
@@ -275,6 +275,16 @@ Tensor GraphHandlerObj::softmax(Tensor input, Tensor output, int axis) {
         return output;
     } else {
         return g->addOp<SoftmaxObj>(std::move(input), output, axis)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::cumsum(Tensor input, Tensor output, int axis, bool exclusive, bool reverse) {
+    if (output) {
+        g->addOpWithOutputs<CumsumObj>(std::move(input), output, axis, exclusive, reverse);
+        return output;
+    } else {
+        return g->addOp<CumsumObj>(std::move(input), output, axis, exclusive, reverse)
             ->getOutput();
     }
 }
