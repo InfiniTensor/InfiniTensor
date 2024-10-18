@@ -1041,10 +1041,7 @@ class OnnxStub:
                 )
             elif node.op_type == "Expand":
                 #print("Expand", node.input[1], _parse_data(tensors[node.input[1]]))
-                # shape = _parse_data(data[node.input[1]])
-                # shape = _parse_data(data['/Expand_output_0'])
-                # shape = [256, 256]
-                # shape = _parse_data(tensors[node.input[1]])
+                #shape = _parse_data(data[node.input[1]])
                 shape = [1, 1]
                 tensors[node.output[0]] = self.handler.expand(
                     tensors[node.input[0]],

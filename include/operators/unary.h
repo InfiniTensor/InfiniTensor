@@ -199,6 +199,8 @@ class CastObj : public OperatorObj {
 };
 
 class CumsumObj : public OperatorObj {
+  Shape dims;
+
   public:
     CumsumObj(GraphObj *graph, Tensor input, Tensor output, int axis = 1,
               bool exclusive = false, bool reverse = false);
@@ -211,6 +213,7 @@ class CumsumObj : public OperatorObj {
     float getReverse() const { return reverseValue; }
     int numInputs() const override { return 1; }
     int numOutputs() const override { return 1; }
+    inline Shape getShape() const { return dims; }
 
   private:
     int axisValue;

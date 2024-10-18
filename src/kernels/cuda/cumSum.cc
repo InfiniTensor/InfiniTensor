@@ -1,14 +1,14 @@
 #include "operators/unary.h"
 #include "cuda/cuda_kernel_wihtout_config.h"
-#include "cuda/cuda_rmsnorm.h"
+#include "cuda/cuda_cumSum.h"
 #include "cuda/cuda_runtime.h"
 
 namespace infini {
 
-class RMSNormCuda : public CudaKernelWithoutConfig {
+class CumSumCuda : public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
-        auto op = as<RMSNormObj>(_op);
+        auto op = as<CumsumObj>(_op);
 
         auto input = op->getInputs(0);
         auto weight = op->getInputs(1);
@@ -24,11 +24,11 @@ class RMSNormCuda : public CudaKernelWithoutConfig {
         IT_ASSERT(hidden_size == (int)weight->size());
 
         const int dType = op->getDType().getIndex();
-        rmsnorm_kernel(dType, inputData, weightData, outputData, num_tokens,
+        cumSum_kernel(dType, inputData, weightData, outputData, num_tokens,
                        hidden_size);
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::RMSNorm, RMSNormCuda, "RMSNorm_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::CumSum, CumSumCuda, "CumSum_CUDA");
 
 } // namespace infini
