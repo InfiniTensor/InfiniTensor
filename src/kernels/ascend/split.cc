@@ -1,5 +1,5 @@
 #include "operators/split.h"
-#include "aclnnop/aclnn_split_tensor.h"
+#include "aclnnop/aclnn_split_with_size.h"
 #include "ascend/ascend_kernel_without_config.h"
 #include "ascend/ascend_runtime.h"
 
@@ -21,8 +21,10 @@ class SplitAclnn : public ASCENDKernelWithoutConfig {
 
         int64_t dim = op->getDim();
         int num = op->numOutputs();
-        int dimSize = a.at(op->getDim());
-        uint64_t splitSections = dimSize / num;
+        // int dimSize = a.at(op->getDim());
+        // uint64_t splitSections = dimSize / num;
+        vector<int> ratio = op->getRatio();
+        std::vector<int64_t> Ratio = castTo64(ratio);
 
         auto aclDataType = aclnnDataTypeConvert(op->getDType());
 
@@ -49,11 +51,16 @@ class SplitAclnn : public ASCENDKernelWithoutConfig {
         aclTensorList *tensorList =
             aclCreateTensorList(outputsData.data(), outputsData.size());
 
+        aclIntArray *splitSize = aclCreateIntArray(Ratio.data(), Ratio.size());
+
         uint64_t workspaceSize = 0;
         aclOpExecutor *executor;
 
-        auto ret = aclnnSplitTensorGetWorkspaceSize(
-            inputA, splitSections, dim, tensorList, &workspaceSize, &executor);
+        // auto ret = aclnnSplitTensorGetWorkspaceSize(
+        //     inputA, splitSections, dim, tensorList, &workspaceSize,
+        //     &executor);
+        auto ret = aclnnSplitWithSizeGetWorkspaceSize(
+            inputA, splitSize, dim, tensorList, &workspaceSize, &executor);
         checkASCENDError(ret);
 
         void *workspaceAddr = nullptr;
@@ -61,8 +68,10 @@ class SplitAclnn : public ASCENDKernelWithoutConfig {
             workspaceAddr = context->getWorkspace(workspaceSize);
         }
 
-        ret = aclnnSplitTensor(workspaceAddr, workspaceSize, executor,
-                               context->ASCENDHandle());
+        // ret = aclnnSplitTensor(workspaceAddr, workspaceSize, executor,
+        //                        context->ASCENDHandle());
+        ret = aclnnSplitWithSize(workspaceAddr, workspaceSize, executor,
+                                 context->ASCENDHandle());
         checkASCENDError(ret);
 
         aclDestroyTensor(inputA);
