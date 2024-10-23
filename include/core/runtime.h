@@ -3,6 +3,7 @@
 #include "core/communicator.h"
 #include "core/op_type.h"
 #include "core/ref.h"
+#include "utils/infiniop_utils.h"
 #include <memory>
 
 namespace infini {
@@ -33,26 +34,39 @@ using OpLists = list<Operator>;
 using VType = uint32_t;
 
 enum class Device { CPU = 1, CUDA, BANG, INTELCPU, KUNLUN, ASCEND };
+
+DeviceEnum toInfiniopDevice(Device device);
+
 /***************** Forward declaration end *****************/
 
 class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
   protected:
     Device device;
     int deviceId;
+    infiniopHandle_t handle = new HandleStruct;
 
   public:
     explicit RuntimeObj(Device device, int deviceId = 0)
-        : device(device), deviceId(deviceId) {}
+        : device(device), deviceId(deviceId) {
+        CHECK_ERROR(
+            infiniopCreateHandle(&handle, toInfiniopDevice(device), deviceId));
+    }
     RuntimeObj(RuntimeObj &other) = delete;
     RuntimeObj &operator=(RuntimeObj const &) = delete;
-    virtual ~RuntimeObj() {}
+    virtual ~RuntimeObj() {
+        try {
+            CHECK_ERROR(infiniopDestroyHandle(handle));
+        } catch (const std::exception &e) {
+            std::cerr << "Error in ~RuntimeObj: " << e.what() << std::endl;
+        }
+    }
 
     /**
      * @brief Execute a graph.
      *
      * @param graph
-     * @param tune If there is no performance record, whether to tune it. These
-     * can be independent method.
+     * @param tune If there is no performance record, whether to tune it.
+     * These can be independent method.
      * @param profiling Whether to print breakdown of time
      */
     virtual void run(const Graph &graph, bool tune = false,
@@ -60,8 +74,8 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
     virtual void *alloc(size_t size) = 0;
     virtual void dealloc(void *ptr) = 0;
     /**
-     * @brief Get the execution time of each operator in performance record. No
-     * execution happens.
+     * @brief Get the execution time of each operator in performance record.
+     * No execution happens.
      *
      * @param graph
      * @param profiling Whether to print breakdown of time
@@ -69,6 +83,7 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
      */
     double getPerfTime(const Graph &graph, bool profiling = false) const;
     Blob allocBlob(size_t size);
+    infiniopHandle_t opHandle() const { return handle; }
     bool isCpu() const {
         return device == Device::CPU || device == Device::INTELCPU;
     }

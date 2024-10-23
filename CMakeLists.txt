@@ -96,6 +96,10 @@ include_directories(3rd-party/pybind11/include)
 add_subdirectory(3rd-party/nlohmann_json_cmake_fetchcontent)
 include_directories(3rd-party/nlohmann_json_cmake_fetchcontent/single_include)
 
+# infini_operators
+set(INFINI_ROOT $ENV{INFINI_ROOT})
+include_directories(${INFINI_ROOT}/include)
+
 # TVM backend
 if(BUILD_NNET AND BUILD_TEST)
   # TVM and DMLC for invoking TVM packed functions
@@ -127,7 +131,7 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -UNDEBUG")
 
 
 # Source files
-file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/kernels/cpu/*.cc src/operators/*.cc src/utils/*.cc)
+file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/kernels/cpu/*.cc src/kernels/infiniop/*.cc src/operators/*.cc src/utils/*.cc)
 
 if(BUILD_NNET)
   add_compile_definitions(BUILD_NNET=1)
@@ -138,7 +142,7 @@ if(BUILD_NNET)
 endif()
 
 if(USE_CUDA)
-  file(GLOB_RECURSE SRC_CUDA src/cuda/*.cc src/cuda/*.cu src/kernels/cuda/*.cc src/kernels/cuda/*.cu)
+  file(GLOB_RECURSE SRC_CUDA src/cuda/*.cc src/cuda/*.cu)
   list (APPEND SRC ${SRC_CUDA})
 endif()
 
@@ -169,6 +173,8 @@ if(USE_PROTOBUF)
 endif()
 
 target_link_libraries(InfiniTensor pybind11::embed)
+
+target_link_libraries(InfiniTensor ${INFINI_ROOT}/liboperators.so)
 
 # TVM backend
 if(BUILD_NNET AND BUILD_TEST AND TVM_LIB_DIR)
