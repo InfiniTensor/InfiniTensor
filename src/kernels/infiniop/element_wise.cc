@@ -23,13 +23,13 @@ class ElementWiseOp : public Kernel {
             // create tensor descriptor
             infiniopTensorDescriptor_t a_tensor = new TensorDescriptor;
             CHECK_ERROR(infiniopCreateTensorDescriptor(
-                &a_tensor, 4, a_shape.data(), nullptr, dType));
+                &a_tensor, a_dim.size(), a_shape.data(), nullptr, dType));
             infiniopTensorDescriptor_t b_tensor = new TensorDescriptor;
             CHECK_ERROR(infiniopCreateTensorDescriptor(
-                &b_tensor, 4, b_shape.data(), nullptr, dType));
+                &b_tensor, b_dim.size(), b_shape.data(), nullptr, dType));
             infiniopTensorDescriptor_t c_tensor = new TensorDescriptor;
             CHECK_ERROR(infiniopCreateTensorDescriptor(
-                &c_tensor, 4, c_shape.data(), nullptr, dType));
+                &c_tensor, c_dim.size(), c_shape.data(), nullptr, dType));
             // create op descriptor
             infiniopAddDescriptor_t op_desc = new AddDescriptor;
             CHECK_ERROR(infiniopCreateAddDescriptor(
