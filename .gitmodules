@@ -10,9 +10,6 @@
 [submodule "3rd-party/backward-cpp"]
 	path = 3rd-party/backward-cpp
 	url = git@github.com:bombela/backward-cpp.git
-[submodule "example"]
-	path = examples/NNmodel
-	url = git@github.com:wanghailu0717/NNmodel.git
 [submodule "examples/distributed/onnxsim_large_model"]
 	path = examples/distributed/onnxsim_large_model
 	url = git@github.com:luchangli03/onnxsim_large_model.git
