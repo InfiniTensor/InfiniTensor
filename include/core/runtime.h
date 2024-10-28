@@ -105,6 +105,10 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
 
     virtual CommunicatorObj &getCommunicator() const = 0;
 
+    virtual size_t getWorkspaceSize() const = 0;
+
+    virtual void *getWorkspace(size_t size) const = 0;
+
   protected:
     void printProfilingData(double totTime,
                             const std::map<OpType, double> &opTime,
@@ -131,8 +135,15 @@ class CpuRuntimeObj : public RuntimeObj {
 };
 
 class NativeCpuRuntimeObj : public CpuRuntimeObj {
+  private:
+    size_t workspaceSize;
+    void *workspace;
+
   public:
-    NativeCpuRuntimeObj() : CpuRuntimeObj(Device::CPU) {}
+    NativeCpuRuntimeObj() : CpuRuntimeObj(Device::CPU) {
+        workspaceSize = 7ll << 30; // 7 GB
+        workspace = alloc(workspaceSize);
+    }
 
     static Ref<NativeCpuRuntimeObj> &getInstance() {
         static Ref<NativeCpuRuntimeObj> instance =
@@ -146,6 +157,13 @@ class NativeCpuRuntimeObj : public CpuRuntimeObj {
                       sizeof(uint64_t));
     };
     string toString() const override;
+
+    size_t getWorkspaceSize() const override { return workspaceSize; }
+
+    void *getWorkspace(size_t size) const override {
+        IT_ASSERT(size <= workspaceSize);
+        return workspace;
+    }
 };
 
 } // namespace infini
