@@ -62,8 +62,8 @@ class CudaRuntimeObj : public RuntimeObj {
     void dealloc(void *ptr) override { checkCudaError(cudaFree(ptr)); }
     cudnnHandle_t cudnnHandle() const { return cudnn; }
     cublasHandle_t cublasHandle() const { return cublas; }
-    size_t getWorkspaceSize() const { return workspaceSize; }
-    CudaPtr getWorkspace(size_t size) const {
+    size_t getWorkspaceSize() const override { return workspaceSize; }
+    CudaPtr getWorkspace(size_t size) const override {
         IT_ASSERT(size <= workspaceSize);
         return workspace;
     }
