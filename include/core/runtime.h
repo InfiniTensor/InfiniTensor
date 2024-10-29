@@ -97,6 +97,8 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
                                  size_t bytes) const = 0;
     virtual void copyBlobToCPU(void *dst, const void *src,
                                size_t bytes) const = 0;
+    virtual void copyBlobInsideRuntime(void *dst, const void *src,
+                                       size_t bytes) const = 0;
     virtual string toString() const = 0;
 
     int getDeviceId() const { return deviceId; }
@@ -113,8 +115,6 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
     void printProfilingData(double totTime,
                             const std::map<OpType, double> &opTime,
                             const std::map<OpType, int> &opCnt) const;
-    virtual void copyBlobInsideRuntime(void *dst, const void *src,
-                                       size_t bytes) const = 0;
 };
 
 class CpuRuntimeObj : public RuntimeObj {
