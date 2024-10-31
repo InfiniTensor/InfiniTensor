@@ -5,6 +5,7 @@
 #include "operators/conv.h"
 #include "operators/expand.h"
 #include "operators/gather.h"
+#include "operators/global_pool.h"
 #include "operators/lrn.h"
 #include "operators/matmul.h"
 #include "operators/pad.h"
@@ -543,6 +544,7 @@ void init_graph_builder(py::module &m) {
         .def("RMSNorm", &Handler::rmsNorm, policy::move)
         .def("maxPool", &Handler::maxPool, policy::move)
         .def("avgPool", &Handler::avgPool, policy::move)
+        .def("globalAvgPool", &Handler::globalAvgPool, policy::move)
         .def("add", &Handler::add, policy::move)
         .def("sub", &Handler::sub, policy::move)
         .def("mul", &Handler::mul, policy::move)

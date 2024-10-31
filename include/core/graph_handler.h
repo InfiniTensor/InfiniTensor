@@ -50,6 +50,7 @@ class GraphHandlerObj {
                    int ph, int pw, int sh, int sw, int ceilMode);
     Tensor avgPool(Tensor input, Tensor output, int kh, int kw, int dh, int dw,
                    int ph, int pw, int sh, int sw, int ceilMode);
+    Tensor globalAvgPool(Tensor input, Tensor output);
 
     Tensor add(Tensor a, Tensor b, Tensor c);
     Tensor sub(Tensor a, Tensor b, Tensor c);

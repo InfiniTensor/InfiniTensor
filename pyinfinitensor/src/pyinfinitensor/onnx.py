@@ -467,19 +467,9 @@ class OnnxStub:
                         ceil_mode,
                     )
             elif node.op_type == "GlobalAveragePool":
-                [_, _, h, w] = tensors[node.input[0]].shape()
-                tensors[node.output[0]] = self.handler.avgPool(
+                tensors[node.output[0]] = self.handler.globalAvgPool(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
-                    h,
-                    w,
-                    1,
-                    1,
-                    0,
-                    0,
-                    1,
-                    1,
-                    0,
                 )
             elif node.op_type == "Add":
                 tensors[node.output[0]] = self.handler.add(
