@@ -32,9 +32,9 @@ class UnaryOp : public Kernel {
             CHECK_ERROR(infiniopRelu(op_desc, yData, xData, nullptr));
 
             // 销毁
-            infiniopDestroyTensorDescriptor(x_tensor);
-            infiniopDestroyTensorDescriptor(y_tensor);
-            infiniopDestroyReluDescriptor(op_desc);
+            CHECK_ERROR(infiniopDestroyTensorDescriptor(x_tensor));
+            CHECK_ERROR(infiniopDestroyTensorDescriptor(y_tensor));
+            CHECK_ERROR(infiniopDestroyReluDescriptor(op_desc));
         } else {
             IT_TODO_HALT();
         }

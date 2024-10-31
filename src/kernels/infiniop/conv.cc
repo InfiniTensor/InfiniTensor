@@ -50,10 +50,10 @@ class ConvOp : public Kernel {
                                  xData, wData, nullptr));
 
         // 销毁
-        infiniopDestroyTensorDescriptor(y_tensor);
-        infiniopDestroyTensorDescriptor(x_tensor);
-        infiniopDestroyTensorDescriptor(w_tensor);
-        infiniopDestroyConvDescriptor(op_desc);
+        CHECK_ERROR(infiniopDestroyTensorDescriptor(y_tensor));
+        CHECK_ERROR(infiniopDestroyTensorDescriptor(x_tensor));
+        CHECK_ERROR(infiniopDestroyTensorDescriptor(w_tensor));
+        CHECK_ERROR(infiniopDestroyConvDescriptor(op_desc));
     }
 
     PerfRecord tune(const Operator &_op,

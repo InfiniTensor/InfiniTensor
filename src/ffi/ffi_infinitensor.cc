@@ -537,6 +537,7 @@ void init_graph_builder(py::module &m) {
         .def("conv", &Handler::conv, policy::move)
         .def("convTransposed2d", &Handler::convTransposed2d, policy::move)
         .def("matmul", &Handler::matmul, policy::move)
+        .def("gemm", &Handler::gemm, policy::move)
         .def("batchNormalization", &Handler::batchNormalization, policy::move)
         .def("layerNormalization", &Handler::layerNormalization, policy::move)
         .def("instanceNormalization", &Handler::instanceNormalization,
