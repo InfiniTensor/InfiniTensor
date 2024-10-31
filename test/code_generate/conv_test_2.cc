@@ -6,7 +6,9 @@
 #include <cstdlib>
 #include <iostream>
 #include <sys/time.h>
+#include "test.h"
 
+using namespace tpm;
 double getDurtime(struct timeval beg, struct timeval end) {
     double t =
         (1000000.0 * (end.tv_sec - beg.tv_sec) + end.tv_usec - beg.tv_usec) /
@@ -14,7 +16,7 @@ double getDurtime(struct timeval beg, struct timeval end) {
     return t;
 }
 
-int main() {
+TEST(CONV_TEST_2, Cuda_codeGenerate) {
     auto i0 = new tpm::Tensor({1, 512, 14, 14});
     auto i1 = new tpm::Tensor({1, 32, 12, 12});
     auto w0 = new tpm::Tensor({32, 512, 3, 3});
@@ -35,5 +37,5 @@ int main() {
     delete w0;
     delete op0;
 
-    return 0;
+    //return 0;
 }

@@ -382,23 +382,23 @@ if(BUILD_TEST)
     add_executable(conv1 test/code_generate/conv_test_1.cc)
     target_link_libraries(conv1 InfiniTensor)
 
-    add_executable(conv2 test/code_generate/conv_test_2.cc)
-    target_link_libraries(conv2 InfiniTensor)
+    build_test(test/code_generate/conv_test_2.cc)
+    #target_link_libraries(conv2 InfiniTensor)
 
-    add_executable(conv3 test/code_generate/conv_test_3.cc)
-    target_link_libraries(conv3 InfiniTensor)
+    build_test(test/code_generate/conv_test_3.cc)
+    #target_link_libraries(conv3 InfiniTensor)
 
     add_executable(conv4 test/code_generate/conv_test_4_perf.cc)
     target_link_libraries(conv4 InfiniTensor)
 
-    add_executable(conv5 test/code_generate/conv_test_5_trans_kernel.cc)
-    target_link_libraries(conv5 InfiniTensor)
+    build_test(test/code_generate/conv_test_5_trans_kernel.cc)
+    #target_link_libraries(conv5 InfiniTensor)
 
-    add_executable(convtrans1 test/code_generate/convtrans_test_1.cc)
-    target_link_libraries(convtrans1 InfiniTensor)
+    build_test(test/code_generate/convtrans_test_1.cc)
+    #target_link_libraries(convtrans1 InfiniTensor)
 
-    add_executable(convtrans2 test/code_generate/convtrans_test_2.cc)
-    target_link_libraries(convtrans2 InfiniTensor)
+    build_test(test/code_generate/convtrans_test_2.cc)
+    #target_link_libraries(convtrans2 InfiniTensor)
 
     add_executable(dilation test/code_generate/dilation_test.cpp)
     target_link_libraries(dilation InfiniTensor)

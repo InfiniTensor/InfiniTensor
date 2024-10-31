@@ -1,6 +1,7 @@
 #include "code_gen/operator.h"
 #include "code_gen/tensor.h"
 #include <iostream>
+#include "test.h"
 
 using namespace tpm;
 
@@ -145,12 +146,11 @@ void tconv_compute_test2() {
     assert(convTransOp.getOutput()->getData(dm) == ans[getOffset(dm, {1, 2, 2, 2})]);
 }
 
-int main() {
+TEST(CONVTRANS_TEST_2, Cuda_codeGenerate) {
     printf("---------- Test 1 ----------\n");
     tconv_compute_test1();
     printf("---------- Success ----------\n");
     printf("---------- Test 2 ----------\n");
     tconv_compute_test2();
     printf("---------- Success ----------\n");
-    return 0;
 }

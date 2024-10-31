@@ -5,11 +5,12 @@
 #include "code_gen/tensor.h"
 #include <cstdlib>
 #include <iostream>
+#include "test.h"
 
 const int n = 16, c = 16, h = 14, w = 14;
 const int f = 32, r = 3, s = 3;
 
-int main() {
+TEST(CONV_TEST_3, Cuda_codeGenerate) {
     auto i0 = new tpm::Tensor({n, c, h, w});
     i0->dataRand();
     auto i0d = i0->getDataPtr();
@@ -61,6 +62,4 @@ int main() {
     delete w0;
     delete o1;
     delete o2;
-
-    return 0;
 }

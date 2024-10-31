@@ -3,11 +3,12 @@
 #include "code_gen/operator.h"
 #include "code_gen/search_engine.h"
 #include "code_gen/tensor.h"
+#include "test.h"
 
 const int n = 1, c = 1, h = 7, w = 7;
 const int f = 1, wc = 1, r = 1, s = 3;
 using namespace tpm;
-int main() {
+TEST(CONV_TEST_5_TRANS_KERNEL, Cuda_codeGenerate) {
     // conv7x7->relu->conv3x3->relu->conv3x3->relu->conv3x3->relu->conv3x3->relu
     auto g1 = Graph{};
     auto i0 = g1.tensor({n, c, h, w});
@@ -88,6 +89,4 @@ int main() {
         total++;
     }
     std::cout << "equal/total = " << equal << "/" << total << std::endl;
-
-    return 0;
 }
