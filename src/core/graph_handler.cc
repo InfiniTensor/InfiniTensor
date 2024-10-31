@@ -9,6 +9,7 @@
 #include "operators/element_wise.h"
 #include "operators/expand.h"
 #include "operators/gather.h"
+#include "operators/global_pool.h"
 #include "operators/instance_norm.h"
 #include "operators/layer_norm.h"
 #include "operators/lrn.h"
@@ -187,6 +188,16 @@ Tensor GraphHandlerObj::avgPool(Tensor input, Tensor output, int kh, int kw,
         return g
             ->addOp<AvgPoolObj>(std::move(input), output, kh, kw, dh, dw, ph,
                                 pw, sh, sw, ceilMode)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::globalAvgPool(Tensor input, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<GlobalAvgPoolObj>(std::move(input), output);
+        return output;
+    } else {
+        return g->addOp<GlobalAvgPoolObj>(std::move(input), output)
             ->getOutput();
     }
 }
