@@ -275,18 +275,15 @@ class OnnxStub:
                 (alpha, beta, transA, transB) = (
                     attributes[name] for name in ["alpha", "beta", "transA", "transB"]
                 )
-                # FIXME unsupport attributes: `alpha` `beta`
-                assert alpha == 1.0
-                assert beta == 1.0
-                tensors[node.output[0]] = self.handler.matmul(
+                tensors[node.output[0]] = self.handler.gemm(
                     tensors[node.input[0]],
                     tensors[node.input[1]],
                     tensors.get(node.output[0]),
+                    tensors[node.input[2]] if len(node.input) > 2 else None,
+                    alpha,
+                    beta,
                     transA == 1,
                     transB == 1,
-                    tensors[node.input[2]] if len(node.input) > 2 else None,
-                    backend.ActType.Linear,
-                    matmul_compute_type,
                 )
             elif node.op_type == "BatchNormalization":
                 (input, mean, var, scale, bias) = (

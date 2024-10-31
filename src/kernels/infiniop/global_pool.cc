@@ -41,9 +41,9 @@ class GlobalPoolOp : public Kernel {
                 op_desc, workspace, workspace_size, yData, xData, nullptr));
 
             // 销毁
-            infiniopDestroyTensorDescriptor(x_tensor);
-            infiniopDestroyTensorDescriptor(y_tensor);
-            infiniopDestroyGlobalAvgPoolDescriptor(op_desc);
+            CHECK_ERROR(infiniopDestroyTensorDescriptor(x_tensor));
+            CHECK_ERROR(infiniopDestroyTensorDescriptor(y_tensor));
+            CHECK_ERROR(infiniopDestroyGlobalAvgPoolDescriptor(op_desc));
         } else {
             IT_TODO_HALT();
         }
@@ -63,4 +63,6 @@ class GlobalPoolOp : public Kernel {
 
 REGISTER_KERNEL(Device::CUDA, OpType::GlobalAveragePool, GlobalPoolOp,
                 "GlobalAvgPool_infiniop_CUDA");
+REGISTER_KERNEL(Device::CPU, OpType::GlobalAveragePool, GlobalPoolOp,
+                "GlobalAvgPool_infiniop_CPU");
 }; // namespace infini
