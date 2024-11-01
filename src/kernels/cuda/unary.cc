@@ -204,6 +204,21 @@ class TanhCudnn : public ActivationCudnn {
     }
 };
 
+class LogCuda : public CudaKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<LogObj>(_op);
+        void *const inputData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const outputData = (op->getOutput()->getRawDataPtr<void *>());
+        size_t size = op->getOutput()->size();
+        if (op->getDType() == DataType::Float32) {
+            log_kernel<float>((float *)inputData, (float *)outputData, size);
+        } else {
+            IT_TODO_HALT();
+        }
+    }
+};
+
 REGISTER_KERNEL(Device::CUDA, OpType::Relu, ReluCudnn, "Relu_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Sigmoid, SigmoidCudnn, "Sigmoid_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Elu, EluCuda, "Elu_CUDA");
@@ -220,6 +235,7 @@ REGISTER_KERNEL(Device::CUDA, OpType::Erf, UnaryCuda, "Erf_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::LeakyRelu, LeakyReluCuda,
                 "LeakyRelu_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Cast, CastCuda, "Cast_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Log, LogCuda, "Log_CUDA");
 
 // REGISTER_KERNEL(Device::CUDA, OpType::Softmax, UnaryCuda,
 // "Softmax_CUDA"); REGISTER_KERNEL(Device::CUDA, OpType::Relu,
