@@ -5,11 +5,12 @@
 #include "code_gen/tensor.h"
 #include <cstdlib>
 #include <iostream>
+#include "test.h"
 
 const int n = 1, c = 2, h = 4, w = 4;
 const int f0 = 4, f1 = 6, r = 3, s = 3;
 
-int main() {
+TEST(GROUP_CONV_TEST_2, Cuda_codeGenerate) {
     auto g = new tpm::Graph();
     auto i0 = g->tensor({n, c * 2, h, w});
     auto i1 = g->tensor({n, c * 3, h, w});
@@ -64,5 +65,4 @@ int main() {
     std::cout << "equal/total = " << equal << "/" << total << std::endl;
 
     delete g;
-    return 0;
 }

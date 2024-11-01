@@ -7,8 +7,9 @@
 #include "code_gen/tensor.h"
 #include <cstdlib>
 #include <iostream>
+#include "test.h"
 
-int main() {
+TEST(CACHE_TEST_2, Cuda_codeGenerate) {
     // conv7x7->relu->conv3x3->relu
     auto g = new tpm::Graph();
     auto i0 = g->tensor({16, 3, 224, 224});
@@ -30,6 +31,4 @@ int main() {
     graph = std::make_shared<tpm::SubGraph>(g->getOperators());
     tpm::SearchEngine searchEngine(std::make_shared<tpm::CMutator>());
     searchEngine.run(graph, bestGraph);
-
-    return 0;
 }

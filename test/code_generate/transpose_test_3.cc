@@ -5,11 +5,12 @@
 #include "code_gen/tensor.h"
 #include <cstdlib>
 #include <iostream>
+#include "test.h"
 
 const int n = 2, c = 1, h = 6, w = 6;
 const int f = 1, r = 3, s = 3;
 
-int main() {
+TEST(TRNASPOSE_TEST_3, Cuda_codeGenerate) {
     auto i0 = new tpm::Tensor({n, c, h, w});
     auto trans0 = new tpm::TransposeOp(i0, 0, {0, 1, {-1, 2}, 3}, 2);
     i0->dataMalloc();
@@ -32,6 +33,4 @@ int main() {
     delete i0;
     delete i1;
     delete i2;
-
-    return 0;
 }

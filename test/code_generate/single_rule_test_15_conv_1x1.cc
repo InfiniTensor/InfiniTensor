@@ -5,11 +5,11 @@
 #include "code_gen/tensor.h"
 #include <cstdlib>
 #include <iostream>
-
+#include "test.h"
 const int c = 256, h = 28, w = 28;
 const int f = 128, r = 1, s = 1;
 
-int main() {
+TEST(SINGLE_RULE_TEST_15_CONV_1x1, Cuda_codeGenerate) {
     // {
     //     int n = 1;
     //     auto g = new tpm::Graph();
@@ -105,5 +105,4 @@ int main() {
     // std::cout << "t5: " << std::endl;
     // t5->print();
 
-    return 0;
 }

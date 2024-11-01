@@ -5,10 +5,11 @@
 #include "code_gen/tensor.h"
 #include <cstdlib>
 #include <iostream>
+#include "test.h"
 
 const int m = 8, n = 8, k = 4;
 
-int main() {
+TEST(SINGLE_RULE_TEST_5_DILATED, Cuda_codeGenerate) {
     auto g1 = tpm::Graph{};
     auto i0 = g1.tensor({1, m, k});
     auto w0 = g1.tensor({1, k, n});
@@ -85,6 +86,4 @@ int main() {
     std::cout << (sg2.compute({0, 4, 1}).second) << std::endl;
     std::cout << (sg2.compute({0, 6, 3}).second) << std::endl;
     std::cout << (sg2.compute({0, 4, 2}).second) << std::endl;
-
-    return 0;
 }

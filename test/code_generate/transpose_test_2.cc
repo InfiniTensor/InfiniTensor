@@ -5,10 +5,11 @@
 #include "code_gen/tensor.h"
 #include <cstdlib>
 #include <iostream>
+#include "test.h"
 
 const int n = 6;
 
-int main() {
+TEST(TRNASPOSE_TEST_2, Cuda_codeGenerate) {
     auto i0 = new tpm::Tensor({1, 1, 6, 6});
     auto i1 = new tpm::Tensor({1, 1, 6, 6});
     auto i2 = new tpm::Tensor({1, 1, 6, 6});
@@ -52,6 +53,4 @@ int main() {
     delete i0;
     delete i1;
     delete i2;
-
-    return 0;
 }

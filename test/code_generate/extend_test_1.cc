@@ -1,9 +1,10 @@
 #include "code_gen/graph.h"
 #include "code_gen/operator.h"
+#include "test.h"
 
 using namespace tpm;
 
-int main() {
+TEST(EXTEND_TEST_1, Cuda_codeGenerate) {
     auto g = Graph{};
     auto t0 = g.tensor({2, 2, 3, 3});
     auto op0 = g.extend(t0, 1, 1);
@@ -19,5 +20,4 @@ int main() {
     t0->print();
     t1->print();
 
-    return 0;
 }

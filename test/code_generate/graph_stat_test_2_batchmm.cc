@@ -3,12 +3,13 @@
 #include "code_gen/operator.h"
 #include "code_gen/tensor.h"
 #include <iostream>
+#include "test.h"
 
 const int m = 8, n = 8, k = 4;
 
 using namespace tpm;
 
-int main() {
+TEST(CONCAT_TEST_1, Cuda_codeGenerate) {
     auto g = new tpm::Graph();
     auto i0 = g->tensor({1, m, k});
     auto w0 = g->tensor({1, k, n});
@@ -29,6 +30,4 @@ int main() {
 
     sg = SubGraph({op0, op2});
     std::cout << gen.statGraph(&sg) << std::endl;
-
-    return 0;
 }

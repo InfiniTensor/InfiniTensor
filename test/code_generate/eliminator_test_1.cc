@@ -1,6 +1,7 @@
 #include "code_gen/trans_eliminator.h"
+#include "test.h"
 
-int main() {
+TEST(ELIMINATOR_TEST_1, Cuda_codeGenerate) {
     auto g = new tpm::Graph();
     tpm::Dim dim = {4, 4, 14, 14};
     auto t1 = g->tensor(dim);
@@ -25,6 +26,4 @@ int main() {
         std::cout << "empty" << std::endl;
     else
         ret->print();
-
-    return 0;
 }

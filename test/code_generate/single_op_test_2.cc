@@ -3,8 +3,9 @@
 #include "code_gen/operator.h"
 #include "code_gen/search_engine.h"
 #include "code_gen/tensor.h"
+#include "test.h"
 
-int main() {
+TEST(SINGLE_OP_TEST_2, Cuda_codeGenerate) {
     // conv7x7->relu->conv3x3->relu->conv3x3->relu->conv3x3->relu->conv3x3->relu
     auto g = new tpm::Graph();
     auto i8 = g->tensor({64, 256, 14, 14});
@@ -24,6 +25,4 @@ int main() {
     auto perfEngine = searchEngine.exportPerfEngine();
     codeEngine.importPerfEngine(perfEngine);
     codeEngine.genCode(graph, "res_new.cu");
-
-    return 0;
 }

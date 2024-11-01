@@ -73,9 +73,11 @@ void tconv_compute_test1() {
         190,  740,  770,  592,  992,  2704, 2836, 1832, 1184, 3232, 3364,
         2168, 1114, 2660, 2762, 1624, 193,  755,  785,  604,  1016, 2770,
         2902, 1874, 1208, 3298, 3430, 2210, 1135, 2711, 2813, 1654};
-    assert(ans.size() == output->size());
-    for (size_t i = 0; i < ans.size(); ++i)
-        assert(ans[i] == output->getData(i));
+    EXPECT_TRUE(ans.size() == output->size());
+    for (size_t i = 0; i < ans.size(); ++i) {
+        std::cout<<"test"<<ans[i]<<" "<<output->getData(i)<<std::endl;
+        EXPECT_TRUE(ans[i] == output->getData(i));
+    }
 }
 
 void tconv_compute_test2() {
@@ -131,9 +133,9 @@ void tconv_compute_test2() {
     //          [[43., 49.],
     //           [55., 61.]]]]), torch.Size([1, 2, 2, 2])
     const std::vector<unsigned int> ans = {40, 46, 52, 58, 43, 49, 55, 61};
-    assert(ans.size() == output->size());
+    EXPECT_TRUE(ans.size() == output->size());
     for (size_t i = 0; i < ans.size(); ++i)
-        assert(ans[i] == output->getData(i));
+        EXPECT_TRUE(ans[i] == output->getData(i));
 }
 
 TEST(CONVTRANS_TEST_1, Cuda_codeGenerate) {

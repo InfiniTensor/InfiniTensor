@@ -1,10 +1,11 @@
 #include "code_gen/generator.h"
 #include "code_gen/graph.h"
 #include "code_gen/operator.h"
+#include "test.h"
 
 using namespace tpm;
 
-int main() {
+TEST(SPLIT_TEST_3, Cuda_codeGenerate) {
     auto g = Graph{};
     auto i0 = g.tensor({2, 4, 2, 2});
     auto i1 = g.tensor({2, 6, 2, 2});
@@ -30,6 +31,4 @@ int main() {
     std::cout << "candidates found: " << candidates.size() << std::endl;
     for (auto candidate : candidates)
         candidate->print();
-
-    return 0;
 }

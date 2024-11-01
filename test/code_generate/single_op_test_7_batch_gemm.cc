@@ -3,10 +3,12 @@
 #include "code_gen/operator.h"
 #include "code_gen/search_engine.h"
 #include "code_gen/tensor.h"
+#include "test.h"
 
 const int m = 16, n = 1024, k = 1024;
 using namespace tpm;
-int main(int argc, char **argv) {
+
+TEST(SINGLE_OP_TEST_7_BATCH_GEMM, Cuda_codeGenerate) {
     auto g = Graph{};
     auto i0 = g.tensor({m, k});
     auto w0 = g.tensor({k, n});
@@ -28,6 +30,4 @@ int main(int argc, char **argv) {
     auto perfEngine = searchEngine.exportPerfEngine();
     codeEngine.importPerfEngine(perfEngine);
     codeEngine.genCode(bestGraph, "res.cu");
-
-    return 0;
 }

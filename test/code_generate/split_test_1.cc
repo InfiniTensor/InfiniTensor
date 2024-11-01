@@ -1,9 +1,9 @@
 #include "code_gen/graph.h"
 #include "code_gen/operator.h"
-
+#include "test.h"
 using namespace tpm;
 
-int main() {
+TEST(ELIMINATOR_TEST_1, Cuda_codeGenerate) {
     auto g = Graph{};
     auto t0 = g.tensor({2, 6, 2, 2});
     auto op0 = dynamic_cast<SplitOp *>(g.split(t0, 1, {1, 2}));
@@ -21,6 +21,4 @@ int main() {
     t0->print();
     t1->print();
     t2->print();
-
-    return 0;
 }

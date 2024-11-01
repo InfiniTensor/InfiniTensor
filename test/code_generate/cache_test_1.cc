@@ -7,13 +7,14 @@
 #include "code_gen/tensor.h"
 #include <cstdlib>
 #include <iostream>
+#include "test.h"
 
 const int n1 = 16, c1 = 256, h1 = 28, w1 = 28;
 const int n2 = 16, c2 = 128, h2 = 14, w2 = 14;
 const int f1 = 256, r1 = 3, s1 = 3;
 const int f2 = 256, r2 = 3, s2 = 3;
 
-int main() {
+TEST(CACHE_TEST_1, Cuda_codeGenerate) {
     std::cout << "Conv: (" << n1 << ", " << c1 << ", " << h1 << ", " << w1
               << ") * (" << f1 << ", " << c1 << ", " << r1 << ", " << s1 << ")"
               << std::endl;
@@ -60,5 +61,4 @@ int main() {
     delete g;
     delete sg0;
     delete sg1;
-    return 0;
 }

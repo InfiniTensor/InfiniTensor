@@ -5,8 +5,9 @@
 #include "code_gen/tensor.h"
 #include <cstdlib>
 #include <iostream>
+#include "test.h"
 
-int main() {
+TEST(MUTANT_TEST_1, Cuda_codeGenerate) {
     auto g = new tpm::Graph();
     auto i0 = g->tensor({1, 1, 14, 14});
     auto i1 = g->tensor({1, 1, 14, 14});
@@ -47,5 +48,4 @@ int main() {
 
     delete g;
     delete sg;
-    return 0;
 }

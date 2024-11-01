@@ -3,9 +3,9 @@
 #include "code_gen/operator.h"
 #include "code_gen/search_engine.h"
 #include "code_gen/tensor.h"
+#include "test.h"
 
-int main() {
-    //                                 /->conv1x3->relu--\.
+TEST(CACHE_TEST_3, Cuda_codeGenerate) {    //                                 /->conv1x3->relu--\.
     // conv3x3->relu---->conv1x1->relu--->conv3x1->relu---->concat->conv3x3
     //                \->conv1x1->relu--->conv3x1->relu--/
     //                                 \->conv1x3->relu-/
@@ -71,6 +71,4 @@ int main() {
     graph->print();
     std::cout << "BestGraph:" << std::endl;
     bestGraph->print();
-
-    return 0;
 }

@@ -4,10 +4,11 @@
 #include "code_gen/search_engine.h"
 #include "code_gen/tensor.h"
 #include <iostream>
+#include "test.h"
 
 const int n = 2, c = 1, h = 8, w = 8;
 
-int main() {
+TEST(TRNASPOSE_TEST_5, Cuda_codeGenerate) {
     auto i0 = new tpm::Tensor({n, c, h, w});
     // tpm::Perm perm = {0, 1, {-1, 2}, 3};
     // int split = 2, factor = 2;
@@ -29,6 +30,4 @@ int main() {
     delete trans1;
     delete i0;
     delete o1;
-
-    return 0;
 }

@@ -3,10 +3,11 @@
 #include "code_gen/operator.h"
 #include "code_gen/search_engine.h"
 #include "code_gen/tensor.h"
+#include "test.h"
 
 const int n = 1, c = 48, h = 38, w = 38;
 const int f = 64, wc = 48, r = 5, s = 5;
-int main() {
+TEST(SINGLE_OP_TEST_1, Cuda_codeGenerate) {
     // conv7x7->relu->conv3x3->relu->conv3x3->relu->conv3x3->relu->conv3x3->relu
     auto g = new tpm::Graph();
     auto i8 = g->tensor({n, c, h, w});
@@ -26,5 +27,4 @@ int main() {
     codeEngine.importPerfEngine(perfEngine);
     codeEngine.genCode(bestGraph, "res.cu");
 
-    return 0;
 }

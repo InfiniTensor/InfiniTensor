@@ -5,10 +5,11 @@
 #include "code_gen/tensor.h"
 #include <cstdlib>
 #include <iostream>
+#include "test.h"
 
 const int m = 8, n = 8, k = 4;
 
-int main() {
+TEST(SINGLE_RULE_TEST_6_BGEMM, Cuda_codeGenerate) {
     auto g = new tpm::Graph();
     auto i0 = g->tensor({1, m, k});
     auto w0 = g->tensor({1, k, n});
@@ -45,5 +46,4 @@ int main() {
 
     delete g;
     delete sg;
-    return 0;
 }

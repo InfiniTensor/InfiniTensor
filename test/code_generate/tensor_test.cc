@@ -2,11 +2,12 @@
 #include <iostream>
 #include "code_gen/operator.h"
 #include "code_gen/tensor.h"
+#include "test.h"
 
 using namespace tpm;
 
 const int n = 2, c = 2, h = 4, w = 4;
-int main() {
+TEST(TENSOR_TEST, Cuda_codeGenerate) {
     auto t1 = new Tensor({n, c, h, w});
     // std::cout << t1->size() << std::endl;
     std::cout << "1,0,0,1: " << t1->getOffset({1, 0, 0, 1}) << std::endl;
@@ -18,6 +19,4 @@ int main() {
     t1->print();
 
     delete t1;
-
-    return 0;
 }

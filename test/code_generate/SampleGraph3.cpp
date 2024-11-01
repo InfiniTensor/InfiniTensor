@@ -2,8 +2,9 @@
 #include "code_gen/operator.h"
 #include "code_gen/search_engine.h"
 #include "code_gen/tensor.h"
+#include "test.h"
 
-int main() {
+TEST(SAMPLE_GRAPH_3, Cuda_codeGenerate) {
     // conv7x7->conv3x3->conv3x3
     auto g = new tpm::Graph();
     auto i0 = g->tensor({1, 3, 224, 224});
@@ -52,6 +53,4 @@ int main() {
 
     delete g;
     delete h;
-
-    return 0;
 }

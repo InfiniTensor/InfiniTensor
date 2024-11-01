@@ -2,8 +2,9 @@
 #include "code_gen/graph.h"
 #include <iostream>
 #include <vector>
+#include "test.h"
 
-int main() {
+TEST(EXTEND_TEST_1, Cuda_codeGenerate) {
     tpm::Graph g;
     auto t = g.tensor({16, 32, 32, 32});
     auto op = g.transpose(t, 1, {0, 1, 2, {-1, 3}}, 8);
@@ -14,6 +15,5 @@ int main() {
     std::cout << funcCode << std::endl
               << "============" << std::endl
               << invokeCode << std::endl;
-    return 0;
 }
 
