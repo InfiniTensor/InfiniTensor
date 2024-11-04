@@ -85,91 +85,141 @@ if(USE_PROTOBUF)
   set_source_files_properties (${PROTO_SRCS} PROPERTIES COMPILE_FLAGS -Wno-unused-variable)
   add_library(tensor_proto SHARED ${PROTO_SRCS} ${PROTO_HDRS})
   target_link_libraries(tensor_proto PUBLIC ${PROTOBUF_LIBRARIES})
-endif()
-
+  endif()
+  
 include_directories(include)
+  
 # Pybind11
 add_subdirectory(3rd-party/pybind11)
 include_directories(3rd-party/pybind11/include)
-
 # nlohmann_json
 add_subdirectory(3rd-party/nlohmann_json_cmake_fetchcontent)
 include_directories(3rd-party/nlohmann_json_cmake_fetchcontent/single_include)
 
+
 # TVM backend
 if(BUILD_NNET AND BUILD_TEST)
-  # TVM and DMLC for invoking TVM packed functions
-  include_directories(${TVM_INCLUDE_DIR})
-  include_directories(${DMLC_INCLUDE_DIR})
-  include_directories(${DLPACK_INCLUDE_DIR})
-  if (TVM_INCLUDE_DIR AND DMLC_INCLUDE_DIR AND DLPACK_INCLUDE_DIR AND DLPACK_INCLUDE_DIR)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDMLC_USE_LOGGING_LIBRARY=\\\<${TVM_INCLUDE_DIR}/tvm/runtime/logging.h\\\> ")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DINFINI_USE_TVM=1") # Enable TVM codegen kernels
-  else()
-    # message(FATAL_ERROR "TVM_INCLUDE_DIR, DMLC_INCLUDE_DIR, and DLPACK_INCLUDE_DIR must be set when BUILD_NNET AND BUILD_TEST is ON")
-  endif()
+# TVM and DMLC for invoking TVM packed functions
+include_directories(${TVM_INCLUDE_DIR})
+include_directories(${DMLC_INCLUDE_DIR})
+include_directories(${DLPACK_INCLUDE_DIR})
+if (TVM_INCLUDE_DIR AND DMLC_INCLUDE_DIR AND DLPACK_INCLUDE_DIR AND DLPACK_INCLUDE_DIR)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDMLC_USE_LOGGING_LIBRARY=\\\<${TVM_INCLUDE_DIR}/tvm/runtime/logging.h\\\> ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DINFINI_USE_TVM=1") # Enable TVM codegen kernels
+else()
+# message(FATAL_ERROR "TVM_INCLUDE_DIR, DMLC_INCLUDE_DIR, and DLPACK_INCLUDE_DIR must be set when BUILD_NNET AND BUILD_TEST is ON")
+endif()
 endif()
 
 if(BUILD_TEST)
-  set(BUILD_GMOCK
-      OFF
-      CACHE BOOL "Do not build gmock" FORCE)
-  set(INSTALL_GTEST
-      OFF
-      CACHE BOOL "Do not install gtest" FORCE)
-  add_subdirectory(3rd-party/googletest)
-  include_directories(3rd-party/googletest/googletest/include)
+set(BUILD_GMOCK
+OFF
+CACHE BOOL "Do not build gmock" FORCE)
+set(INSTALL_GTEST
+OFF
+CACHE BOOL "Do not install gtest" FORCE)
+add_subdirectory(3rd-party/googletest)
+include_directories(3rd-party/googletest/googletest/include)
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Werror -Wno-error=deprecated-declarations -Wno-error=pointer-arith")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Werror -Wno-error=deprecated-declarations -Wno-error=pointer-arith -Wno-error=comment")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -UNDEBUG") # Enable assertion
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -UNDEBUG") # Enable assertion
 
 
+# LLVM & MLIR
+set(LLVM_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/llvm-project")
+set(LLVM_BUILD_DIR "${LLVM_SOURCE_DIR}/build")
+# set(LLVM_INSTALL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/llvm-install")
+ExternalProject_Add(  
+    llvm-project  
+    SOURCE_DIR "${LLVM_SOURCE_DIR}"  
+    BINARY_DIR "${LLVM_BUILD_DIR}"  
+    CONFIGURE_COMMAND cmake  
+                      -G Ninja 
+                      ${LLVM_SOURCE_DIR}/llvm 
+                      -DLLVM_ENABLE_PROJECTS=mlir  
+                      -DLLVM_BUILD_EXAMPLES=ON  
+                      -DLLVM_TARGETS_TO_BUILD=host  
+                      -DCMAKE_BUILD_TYPE=Release  
+                      -DLLVM_ENABLE_ASSERTIONS=ON  
+                      -DLLVM_ENABLE_RTTI=ON  
+                      -DLLVM_CCACHE_BUILD=OFF  
+    BUILD_COMMAND ninja 
+    # INSTALL_COMMAND "${LLVM_INSTALL_DIR}"
+    INSTALL_COMMAND ""
+)  
+
+# set LLVM_DIR
+set(LLVM_DIR ${PROJECT_SOURCE_DIR}/3rd-party/llvm-project/build/lib/cmake/llvm)
+set(MLIR_DIR ${PROJECT_SOURCE_DIR}/3rd-party/llvm-project/build/lib/cmake/mlir)
+set(MLIR_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rd-party/llvm-project/mlir/include)
+
+# find LLVM and MLIR
+find_package(LLVM REQUIRED CONFIG)
+find_package(MLIR REQUIRED CONFIG)
+list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
+list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
+
+include(TableGen)
+include(AddLLVM)
+include(AddMLIR)
+
+include_directories(${LLVM_INCLUDE_DIRS} ${MLIR_INCLUDE_DIRS})
+get_property(MLIR_ALL_LIBS GLOBAL PROPERTY MLIR_ALL_LIBS)
+
+add_subdirectory(infini_mlir)
+
 # Source files
+# file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/kernels/cpu/*.cc src/operators/*.cc src/utils/*.cc src/infini_mlir/Dialect/*.cc)
 file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/kernels/cpu/*.cc src/operators/*.cc src/utils/*.cc)
 
+
 if(BUILD_NNET)
-  add_compile_definitions(BUILD_NNET=1)
-  file(GLOB_RECURSE SRC_NNET src/nnet/*.cc)
-  list (APPEND SRC ${SRC_NNET})
-  # For locating resource files
-  set_source_files_properties(src/nnet/test.cc PROPERTIES COMPILE_OPTIONS "-DINFINI_PROJECT_HOME=${CMAKE_CURRENT_SOURCE_DIR}")
+add_compile_definitions(BUILD_NNET=1)
+file(GLOB_RECURSE SRC_NNET src/nnet/*.cc)
+list (APPEND SRC ${SRC_NNET})
+# For locating resource files
+set_source_files_properties(src/nnet/test.cc PROPERTIES COMPILE_OPTIONS "-DINFINI_PROJECT_HOME=${CMAKE_CURRENT_SOURCE_DIR}")
 endif()
 
 if(USE_CUDA)
-  file(GLOB_RECURSE SRC_CUDA src/cuda/*.cc src/cuda/*.cu src/kernels/cuda/*.cc src/kernels/cuda/*.cu)
-  list (APPEND SRC ${SRC_CUDA})
+file(GLOB_RECURSE SRC_CUDA src/cuda/*.cc src/cuda/*.cu src/kernels/cuda/*.cc src/kernels/cuda/*.cu)
+list (APPEND SRC ${SRC_CUDA})
 endif()
 
 if(USE_BANG)
-  file(GLOB_RECURSE SRC_BANG src/bang/*.cc src/kernels/bang/*.cc )
-  list (APPEND SRC ${SRC_BANG})
+file(GLOB_RECURSE SRC_BANG src/bang/*.cc src/kernels/bang/*.cc )
+list (APPEND SRC ${SRC_BANG})
 endif()
 
 if(USE_KUNLUN)
-  file(GLOB_RECURSE SRC_KUNLUN src/kunlun/*.cc src/kernels/kunlun/*.cc )
-  list (APPEND SRC ${SRC_KUNLUN})
+file(GLOB_RECURSE SRC_KUNLUN src/kunlun/*.cc src/kernels/kunlun/*.cc )
+list (APPEND SRC ${SRC_KUNLUN})
 endif()
 
 if(USE_ASCEND)
-  file(GLOB_RECURSE SRC_ASCEND src/ascend/*.cc src/kernels/ascend/*.cc )
-  list (APPEND SRC ${SRC_ASCEND})
+file(GLOB_RECURSE SRC_ASCEND src/ascend/*.cc src/kernels/ascend/*.cc )
+list (APPEND SRC ${SRC_ASCEND})
 endif()
 
 if(USE_INTELCPU)
-  file(GLOB_RECURSE SRC_INTELCPU src/intelcpu/*.cc src/kernels/intelcpu/*.cc )
-  list (APPEND SRC ${SRC_INTELCPU})
+file(GLOB_RECURSE SRC_INTELCPU src/intelcpu/*.cc src/kernels/intelcpu/*.cc )
+list (APPEND SRC ${SRC_INTELCPU})
 endif()
 
 # Libraries
 add_library(InfiniTensor SHARED ${SRC})
 if(USE_PROTOBUF)
-  target_link_libraries(InfiniTensor tensor_proto)
+target_link_libraries(InfiniTensor tensor_proto)
 endif()
 
 target_link_libraries(InfiniTensor pybind11::embed)
 
+target_link_libraries(InfiniTensor
+  ${LLVM_AVAILABLE_LIBS}
+  ${MLIR_ALL_LIBS}
+)
 # TVM backend
 if(BUILD_NNET AND BUILD_TEST AND TVM_LIB_DIR)
   target_link_libraries(InfiniTensor ${TVM_LIB_DIR}/libtvm.so)

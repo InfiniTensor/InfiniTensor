@@ -12,6 +12,7 @@ DIST ?= OFF
 NNET ?= OFF
 DIST ?= OFF
 FORMAT_ORIGIN ?=
+# MLIR ?= ON
 # Docker build options
 DOCKER_NAME ?= infinitensor
 DOCKER_IMAGE_NAME ?= infinitensor
@@ -35,6 +36,7 @@ CMAKE_OPT += -DUSE_BACKTRACE=$(BACKTRACE)
 CMAKE_OPT += -DBUILD_TEST=$(TEST)
 CMAKE_OPT += -DBUILD_DIST=$(DIST)
 CMAKE_OPT += -DBUILD_NNET=$(NNET)
+# CMAKE_OPT += -DBUILD_MLIR=$(MLIR)
 
 ifeq ($(INTELCPU), ON)
 	CMAKE_OPT += -DUSE_INTELCPU=ON -DCMAKE_CXX_COMPILER=dpcpp
@@ -42,10 +44,12 @@ endif
 
 build:
 	mkdir -p build/$(TYPE)
-	cd build/$(TYPE) && cmake $(CMAKE_OPT) ../.. && make -j8
+	cd build/$(TYPE) && cmake $(CMAKE_OPT) ../.. && make -j64
 
 clean:
-	rm -rf build
+	rm -rf build 3rd-party/llvm-project/build
+# clean:
+# 	rm -rf build
 
 format:
 	@python3 scripts/format.py $(FORMAT_ORIGIN)
