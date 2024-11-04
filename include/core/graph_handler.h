@@ -24,12 +24,12 @@ class GraphHandlerObj {
 
     inline OpVec operators() { return g->getOperators(); }
 
-    Tensor conv(Tensor input, Tensor weight, Tensor output, int ph, int pw,
-                int sh, int sw, int dh, int dw);
-    
-    Tensor conv3d(Tensor input, Tensor weight, Tensor output, int pd, int ph, int pw,
-                  int sd, int sh, int sw, int dd, int dh, int dw);
-                  
+    Tensor conv(Tensor input, Tensor weight, Tensor bias, Tensor output, int ph,
+                int pw, int sh, int sw, int dh, int dw);
+
+    Tensor conv3d(Tensor input, Tensor weight, Tensor output, int pd, int ph,
+                  int pw, int sd, int sh, int sw, int dd, int dh, int dw);
+
     Tensor convTransposed2d(Tensor input, Tensor weight, Tensor output, int ph,
                             int pw, int sh, int sw, int dh, int dw, int oph,
                             int opw);
@@ -124,6 +124,8 @@ class GraphHandlerObj {
                         std::string mode);
     Tensor lrn(Tensor input, Tensor output, float alpha, float beta, float bias,
                int size);
+    Tensor ascendPluginSub(Tensor input, Tensor output, int kernel_size,
+                           int stride);
 
     //------ modifiers
 

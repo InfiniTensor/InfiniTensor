@@ -345,7 +345,16 @@ if(USE_ASCEND)
     set(TARGET_CPU_ARCH $ENV{TARGET_CPU_ARCH} CACHE STRING "Target CPU ARCH")
   endif()
   message(STATUS "TARGET_CPU_ARCH: ${TARGET_CPU_ARCH}")
+
+  # plugin kernel
+  add_subdirectory(src/kernels/ascend/plugin)
+  set(ASCEND_PLUGIN_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build/${CMAKE_BUILD_TYPE})
+  add_library(ascend_plugin SHARED IMPORTED)
+  set_target_properties(ascend_plugin PROPERTIES IMPORTED_LOCATION ${ASCEND_PLUGIN_PATH}/libkernels.so)
+  target_link_libraries(InfiniTensor ascend_plugin)
+
   target_link_libraries(InfiniTensor ${ASCEND_HAL} ${ASCEND_CL} ${ASCEND_BASE} ${ASCEND_DNN} ${ASCEND_HCCL} stdc++)
+
   if (BUILD_DIST)
     message(STATUS "Add BUILD_DIST, use HCCL with ASCEND")
     add_compile_definitions(INFINI_USE_HCCL=1)

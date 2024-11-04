@@ -1,7 +1,7 @@
-#include "operators/conv.h"
 #include "aclnnop/level2/aclnn_convolution.h"
 #include "ascend/ascend_kernel_without_config.h"
 #include "ascend/ascend_runtime.h"
+#include "operators/conv.h"
 
 namespace infini {
 
@@ -12,7 +12,8 @@ class Conv3dAclnn : public ASCENDKernelWithoutConfig {
         auto op = as<Conv3dObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
 
-        const auto [pd, ph, pw, sd, sh, sw, dd, dh, dw] = op->getPadStrideDilation();
+        const auto [pd, ph, pw, sd, sh, sw, dd, dh, dw] =
+            op->getPadStrideDilation();
         const auto [n, c, d, h, w, f, t, r, s] = op->getNCDHWFTS();
         const int cpg = op->getChannelPerGroup();
         const int g = c / cpg;
@@ -30,7 +31,6 @@ class Conv3dAclnn : public ASCENDKernelWithoutConfig {
         aclIntArray *convOutputpadding =
             aclCreateIntArray(outputPadding.data(), outputPadding.size());
 
-
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
@@ -42,12 +42,6 @@ class Conv3dAclnn : public ASCENDKernelWithoutConfig {
         auto outD = op->getOutput()->getDims();
         auto outS = op->getOutput()->getStride();
 
-        for (const auto& value : outD) {
-            std::cout << "******outD:";
-            std::cout << value << ' ';
-        }
-        std::cout << '\n';
-
 
         std::vector<int64_t> inputDim = castTo64(inputD);
         std::vector<int64_t> inputStride = castTo64(inputS);
@@ -56,41 +50,7 @@ class Conv3dAclnn : public ASCENDKernelWithoutConfig {
         std::vector<int64_t> outputDim = castTo64(outD);
         std::vector<int64_t> outputStride = castTo64(outS);
 
-        for (const auto& value : inputDim) {
-            std::cout << "****inputDim:";
-            std::cout << value << ' ';
-        }
-        std::cout << '\n';
 
-        for (const auto& value : inputStride) {
-            std::cout << "****inputStride:";
-            std::cout << value << ' ';
-        }
-        std::cout << '\n';
-
-        for (const auto& value : weightDim) {
-            std::cout << "****weightDim:";
-            std::cout << value << ' ';
-        }
-        std::cout << '\n';
-
-        for (const auto& value : weightStride) {
-            std::cout << "****weightStride:";
-            std::cout << value << ' ';
-        }
-        std::cout << '\n';
-
-        for (const auto& value : outputDim) {
-            std::cout << "****outputDim:";
-            std::cout << value << ' ';
-        }
-        std::cout << '\n';
-
-        for (const auto& value : outputStride) {
-            std::cout << "****outputStride:";
-            std::cout << value << ' ';
-        }
-        std::cout << '\n';
 
         auto aclDataType = aclnnDataTypeConvert(op->getDType());
 
@@ -119,18 +79,17 @@ class Conv3dAclnn : public ASCENDKernelWithoutConfig {
         if (workspaceSize > 0) {
             workspaceAddr = context->getWorkspace(workspaceSize);
         }
-        //auto tmp_err_msg = aclGetRecentErrMsg();
-        //if (tmp_err_msg != NULL) {
-        //    printf(" ERROR Message : %s \n ", tmp_err_msg);
-        //}
-        printf("ret is %d\n", ret);
-        //if (ret != ACL_SUCCESS) {
-        //    printf("aclGetRecentErrMsg: %s\n", aclGetRecentErrMsg());
-        //}
+
+        auto tmp_err_msg = aclGetRecentErrMsg();
+        if (tmp_err_msg != NULL) {
+            printf(" ERROR Message : %s \n ", tmp_err_msg);
+        }
+        // printf("ret is %d\n", ret);
+
         assert(ret == ACL_SUCCESS);
         ret = aclnnConvolution(workspaceAddr, workspaceSize, executor,
                                context->ASCENDHandle());
-        printf("ret is %d\n", ret);
+        // printf("ret is %d\n", ret);
         if (ret != ACL_SUCCESS) {
             printf("aclGetRecentErrMsg: %s\n", aclGetRecentErrMsg());
         }
@@ -144,5 +103,6 @@ class Conv3dAclnn : public ASCENDKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::ASCEND, OpType::Conv3d, Conv3dAclnn, "conv3d_ASCEND_float");
+REGISTER_KERNEL(Device::ASCEND, OpType::Conv3d, Conv3dAclnn,
+                "conv3d_ASCEND_float");
 }; // namespace infini

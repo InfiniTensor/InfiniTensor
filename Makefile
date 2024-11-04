@@ -40,12 +40,31 @@ ifeq ($(INTELCPU), ON)
 	CMAKE_OPT += -DUSE_INTELCPU=ON -DCMAKE_CXX_COMPILER=dpcpp
 endif
 
-build:
+ifeq ($(ASCEND), ON)
+build_ascend_plugin:
+	$(MAKE) -C src/kernels/ascend/plugin build
+
+ascend_clean:
+	$(MAKE) -C src/kernels/ascend/plugin clean
+.PHONY: build_ascend_plugin ascend_clean
+
+build: build_ascend_plugin
+	mkdir -p build/$(TYPE)
+	cp src/kernels/ascend/plugin/build/lib/libkernels.so build/$(TYPE)
+	cd build/$(TYPE) && cmake $(CMAKE_OPT) ../.. && make -j8
+
+clean: ascend_clean
+	rm -rf build
+
+else
+
+build: 
 	mkdir -p build/$(TYPE)
 	cd build/$(TYPE) && cmake $(CMAKE_OPT) ../.. && make -j8
 
 clean:
 	rm -rf build
+endif
 
 format:
 	@python3 scripts/format.py $(FORMAT_ORIGIN)

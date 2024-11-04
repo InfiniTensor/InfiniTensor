@@ -75,6 +75,7 @@ class ASCENDRuntimeObj : public RuntimeObj {
         IT_ASSERT(size <= workspaceSize);
         return workspace;
     }
+    aclrtStream getStream() const { return stream; }
 
     void copyBlobFromCPU(void *dst, const void *src,
                          size_t bytes) const override {
