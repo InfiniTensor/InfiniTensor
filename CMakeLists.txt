@@ -9,6 +9,7 @@ option(USE_PROTOBUF "Serialize and deserialize tensors" OFF)
 option(BUILD_NNET "Build nnet" OFF)
 option(BUILD_DIST "Build project for distributed running" OFF)
 option(BUILD_TEST "Build tests" OFF)
+option(BUILD_GRAPH_OPT "Build graph optimization" ON)
 
 if(USE_CUDA)
     message("CMake 3.18 or higher is required for setting CUDAToolkit")
@@ -52,7 +53,7 @@ else()
   endif()
 endif()
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF) # -std=gnu++11 when on, -std=c++11 when off
 add_compile_options(-Wno-error=unused-variable)
 
@@ -87,6 +88,23 @@ if(USE_PROTOBUF)
   target_link_libraries(tensor_proto PUBLIC ${PROTOBUF_LIBRARIES})
 endif()
 
+# RefactorGraph
+if(BUILD_GRAPH_OPT)
+  add_definitions(-D USE_REFACOTRGRAPH)
+  add_subdirectory(3rd-party/refactorgraph)
+  include_directories(3rd-party/refactorgraph/3rd-party/abseil-cpp)
+  include_directories(3rd-party/refactorgraph/src/00common/include)
+  include_directories(3rd-party/refactorgraph/src/01graph_topo/include)
+  include_directories(3rd-party/refactorgraph/src/02hardware/include)
+  include_directories(3rd-party/refactorgraph/src/03runtime/include)
+  include_directories(3rd-party/refactorgraph/src/04kernel/include)
+  include_directories(3rd-party/refactorgraph/src/05computation/include)
+  include_directories(3rd-party/refactorgraph/src/06frontend/include)
+  include_directories(3rd-party/refactorgraph/3rd-party/googletest/googletest/include)
+  include_directories(3rd-party/refactorgraph/3rd-party/backward-cpp)
+  add_definitions(-D FMTLOG_HEADER_ONLY)
+endif()
+
 include_directories(include)
 # Pybind11
 add_subdirectory(3rd-party/pybind11)
@@ -117,8 +135,10 @@ if(BUILD_TEST)
   set(INSTALL_GTEST
       OFF
       CACHE BOOL "Do not install gtest" FORCE)
-  add_subdirectory(3rd-party/googletest)
-  include_directories(3rd-party/googletest/googletest/include)
+  if (NOT BUILD_GRAPH_OPT)
+    add_subdirectory(3rd-party/googletest)
+    include_directories(3rd-party/googletest/googletest/include)
+  endif()
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Werror -Wno-error=deprecated-declarations -Wno-error=pointer-arith")
@@ -168,6 +188,10 @@ if(USE_PROTOBUF)
   target_link_libraries(InfiniTensor tensor_proto)
 endif()
 
+if(BUILD_GRAPH_OPT)
+  target_link_libraries(InfiniTensor onnx)
+endif()
+
 target_link_libraries(InfiniTensor pybind11::embed)
 
 # TVM backend
@@ -182,8 +206,10 @@ target_link_libraries(backend PRIVATE InfiniTensor)
 
 if(USE_BACKTRACE)
   add_definitions(-D BACKWARD_TRACE)
-  add_subdirectory(3rd-party/backward-cpp)
-  include_directories(3rd-party/backward-cpp)
+  if (NOT BUILD_GRAPH_OPT)
+    add_subdirectory(3rd-party/backward-cpp)
+    include_directories(3rd-party/backward-cpp)
+  endif()
   add_backward(InfiniTensor)
   target_link_libraries(InfiniTensor dw)
 endif()

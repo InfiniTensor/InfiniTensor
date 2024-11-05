@@ -13,3 +13,7 @@
 [submodule "examples/distributed/onnxsim_large_model"]
 	path = examples/distributed/onnxsim_large_model
 	url = git@github.com:luchangli03/onnxsim_large_model.git
+[submodule "3rd-party/refactorgraph"]
+	path = 3rd-party/refactorgraph
+	url = https://github.com/InfiniTensor/RefactorGraph.git
+	branch = dev-optimize
