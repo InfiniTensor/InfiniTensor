@@ -18,23 +18,20 @@ class GlobalPoolOp : public Kernel {
             auto x_shape = toInfiniopShape(x_dim);
             auto y_shape = toInfiniopShape(y_dim);
             // create tensor descriptor
-            infiniopTensorDescriptor_t x_tensor = new TensorDescriptor;
+            infiniopTensorDescriptor_t x_tensor;
             CHECK_ERROR(infiniopCreateTensorDescriptor(
                 &x_tensor, x_dim.size(), x_shape.data(), nullptr, dType));
-            infiniopTensorDescriptor_t y_tensor = new TensorDescriptor;
+            infiniopTensorDescriptor_t y_tensor;
             CHECK_ERROR(infiniopCreateTensorDescriptor(
                 &y_tensor, y_dim.size(), y_shape.data(), nullptr, dType));
             // create op descriptor
-            infiniopGlobalAvgPoolDescriptor_t op_desc =
-                new GlobalAvgPoolDescriptor;
+            infiniopGlobalAvgPoolDescriptor_t op_desc;
             CHECK_ERROR(infiniopCreateGlobalAvgPoolDescriptor(
                 context->opHandle(), &op_desc, y_tensor, x_tensor));
             uint64_t workspace_size = 0;
             CHECK_ERROR(infiniopGetGlobalAvgPoolWorkspaceSize(op_desc,
                                                               &workspace_size));
-            if (workspace_size > context->getWorkspaceSize()) {
-                IT_TODO_HALT();
-            }
+            IT_ASSERT(workspace_size <= context->getWorkspaceSize());
             void *workspace = context->getWorkspace(workspace_size);
             // execute op (TODO: 前面创建 op_desc 的步骤应当挪到计算函数外）
             CHECK_ERROR(infiniopGlobalAvgPool(
