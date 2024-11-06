@@ -18,14 +18,14 @@ class UnaryOp : public Kernel {
             auto x_shape = toInfiniopShape(x_dim);
             auto y_shape = toInfiniopShape(y_dim);
             // create tensor descriptor
-            infiniopTensorDescriptor_t x_tensor = new TensorDescriptor;
+            infiniopTensorDescriptor_t x_tensor;
             CHECK_ERROR(infiniopCreateTensorDescriptor(
                 &x_tensor, x_dim.size(), x_shape.data(), nullptr, dType));
-            infiniopTensorDescriptor_t y_tensor = new TensorDescriptor;
+            infiniopTensorDescriptor_t y_tensor;
             CHECK_ERROR(infiniopCreateTensorDescriptor(
                 &y_tensor, y_dim.size(), y_shape.data(), nullptr, dType));
             // create op descriptor
-            infiniopReluDescriptor_t op_desc = new ReluDescriptor;
+            infiniopReluDescriptor_t op_desc;
             CHECK_ERROR(infiniopCreateReluDescriptor(
                 _context->opHandle(), &op_desc, y_tensor, x_tensor));
             // execute op (TODO: 前面创建 op_desc 的步骤应当挪到计算函数外）
