@@ -82,6 +82,41 @@ ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
     IT_ASSERT(checkValid(graph));
 }
 
+void ConvObj::initInfiniOp(const Runtime context) {
+    auto x_dim = inputs[0]->getDims();
+    auto w_dim = inputs[1]->getDims();
+    auto y_dim = outputs[0]->getDims();
+    uint64_t pads[2] = {(uint64_t)ph, (uint64_t)pw};
+    int64_t strides[2] = {(int64_t)sh, (int64_t)sw};
+    uint64_t dilations[2] = {(uint64_t)dh, (uint64_t)dw};
+
+    auto x_shape = toInfiniopShape(x_dim);
+    auto w_shape = toInfiniopShape(w_dim);
+    auto y_shape = toInfiniopShape(y_dim);
+    // create tensor descriptor
+    infiniopTensorDescriptor_t x_tensor;
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &x_tensor, x_dim.size(), x_shape.data(), nullptr,
+        toInfiniopDataLayout(inputs[0]->getDType().getIndex())));
+    infiniopTensorDescriptor_t w_tensor;
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &w_tensor, w_dim.size(), w_shape.data(), nullptr,
+        toInfiniopDataLayout(inputs[1]->getDType().getIndex())));
+    infiniopTensorDescriptor_t y_tensor;
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &y_tensor, y_dim.size(), y_shape.data(), nullptr,
+        toInfiniopDataLayout(outputs[0]->getDType().getIndex())));
+    // create op descriptor
+    CHECK_ERROR(infiniopCreateConvDescriptor(
+        context->opHandle(), (infiniopConvDescriptor_t *)&opDesc, y_tensor,
+        x_tensor, w_tensor, pads, strides, dilations, 2));
+
+    // destroy tensor descriptor and op descriptor
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(y_tensor));
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(x_tensor));
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(w_tensor));
+}
+
 optional<vector<Shape>> ConvObj::inferShape(const TensorVec &inputs) {
     const auto &input = inputs[0], &weight = inputs[1];
     n = input->getDims()[0];

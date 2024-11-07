@@ -76,7 +76,14 @@ bool OperatorObj::checkValid(GraphObj *graph) {
                 return false;
         }
     }
+
+    initInfiniOp(graph->getRuntime());
     return true;
+}
+
+void OperatorObj::initInfiniOp(const Runtime context) {
+    // do nothing by default
+    opDesc = nullptr;
 }
 
 optional<vector<Shape>> OperatorObj::inferShape() { return inferShape(inputs); }

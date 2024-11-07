@@ -1,6 +1,5 @@
 #include "operators/conv.h"
 #include "core/kernel.h"
-#include "utils/infiniop_utils.h"
 
 namespace infini {
 
@@ -11,47 +10,15 @@ class ConvOp : public Kernel {
         void *const xData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const wData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const yData = (op->getOutput()->getRawDataPtr<void *>());
-        auto x_dim = op->getInputs(0)->getDims();
-        auto w_dim = op->getInputs(1)->getDims();
-        auto y_dim = op->getOutput()->getDims();
-        const auto [ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
-        uint64_t pads[2] = {(uint64_t)ph, (uint64_t)pw};
-        int64_t strides[2] = {(int64_t)sh, (int64_t)sw};
-        uint64_t dilations[2] = {(uint64_t)dh, (uint64_t)dw};
-
-        auto dType = toInfiniopDataLayout(_op->getDType().getIndex());
-
-        auto x_shape = toInfiniopShape(x_dim);
-        auto w_shape = toInfiniopShape(w_dim);
-        auto y_shape = toInfiniopShape(y_dim);
-        // create tensor descriptor
-        infiniopTensorDescriptor_t x_tensor;
-        CHECK_ERROR(infiniopCreateTensorDescriptor(
-            &x_tensor, x_dim.size(), x_shape.data(), nullptr, dType));
-        infiniopTensorDescriptor_t w_tensor;
-        CHECK_ERROR(infiniopCreateTensorDescriptor(
-            &w_tensor, w_dim.size(), w_shape.data(), nullptr, dType));
-        infiniopTensorDescriptor_t y_tensor;
-        CHECK_ERROR(infiniopCreateTensorDescriptor(
-            &y_tensor, y_dim.size(), y_shape.data(), nullptr, dType));
-        // create op descriptor
-        infiniopConvDescriptor_t op_desc;
-        CHECK_ERROR(infiniopCreateConvDescriptor(context->opHandle(), &op_desc,
-                                                 y_tensor, x_tensor, w_tensor,
-                                                 pads, strides, dilations, 2));
         uint64_t workspace_size = 0;
-        CHECK_ERROR(infiniopGetConvWorkspaceSize(op_desc, &workspace_size));
+        CHECK_ERROR(infiniopGetConvWorkspaceSize(
+            (infiniopConvDescriptor_t)op->getOpDesc(), &workspace_size));
         IT_ASSERT(workspace_size <= context->getWorkspaceSize());
         void *workspace = context->getWorkspace(workspace_size);
         // execute op (TODO: 前面创建 op_desc 的步骤应当挪到计算函数外）
-        CHECK_ERROR(infiniopConv(op_desc, workspace, workspace_size, yData,
-                                 xData, wData, nullptr));
-
-        // destroy tensor descriptor and op descriptor
-        CHECK_ERROR(infiniopDestroyTensorDescriptor(y_tensor));
-        CHECK_ERROR(infiniopDestroyTensorDescriptor(x_tensor));
-        CHECK_ERROR(infiniopDestroyTensorDescriptor(w_tensor));
-        CHECK_ERROR(infiniopDestroyConvDescriptor(op_desc));
+        CHECK_ERROR(infiniopConv((infiniopConvDescriptor_t)op->getOpDesc(),
+                                 workspace, workspace_size, yData, xData, wData,
+                                 nullptr));
     }
 
     PerfRecord tune(const Operator &_op,
