@@ -142,6 +142,18 @@ class ConvObj : public ConvBaseObj {
             ActType act = ActType::None);
     OP_CLONE(ConvObj);
 
+    ~ConvObj() override {
+        if (opDesc) {
+            try {
+                CHECK_ERROR(infiniopDestroyConvDescriptor(
+                    (infiniopConvDescriptor_t)opDesc));
+            } catch (const std::exception &e) {
+                std::cerr << "Error in ~ConvObj: " << e.what() << std::endl;
+            }
+        }
+    }
+
+    void initInfiniOp(const Runtime context) override;
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
     int getNumGroups() const override { return c / getChannelPerGroup(); }
 

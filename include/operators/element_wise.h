@@ -21,6 +21,24 @@ class ElementWiseObj : public OperatorObj {
      */
     ElementWiseObj(OpType type, GraphObj *graph, Tensor input0, Tensor input1,
                    Tensor output);
+    ~ElementWiseObj() override {
+        if (opDesc) {
+            try {
+                if (type == OpType::Add) {
+                    CHECK_ERROR(infiniopDestroyAddDescriptor(
+                        (infiniopAddDescriptor_t)opDesc));
+                } else {
+                    IT_ASSERT(false, "Unsupported element-wise operator type "
+                                     "for infini op destroy");
+                }
+            } catch (const std::exception &e) {
+                std::cerr << "Error in ~ElementWiseObj: " << e.what()
+                          << std::endl;
+            }
+        }
+    }
+
+    void initInfiniOp(const Runtime context) override;
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;

@@ -41,6 +41,26 @@ class PoolingObj : public OperatorObj {
                int ceilMode);
     OP_CLONE(PoolingObj);
 
+    ~PoolingObj() override {
+        if (opDesc) {
+            try {
+                if (type == OpType::MaxPool) {
+                    CHECK_ERROR(infiniopDestroyMaxPoolDescriptor(
+                        (infiniopMaxPoolDescriptor_t)opDesc));
+                } else if (type == OpType::AveragePool) {
+                    CHECK_ERROR(infiniopDestroyAvgPoolDescriptor(
+                        (infiniopAvgPoolDescriptor_t)opDesc));
+                } else {
+                    IT_ASSERT(false, "Unsupported pooling operator type "
+                                     "for infini op destroy");
+                }
+            } catch (const std::exception &e) {
+                std::cerr << "Error in ~PoolingObj: " << e.what() << std::endl;
+            }
+        }
+    }
+
+    void initInfiniOp(const Runtime context) override;
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
     std::string toString() const override;
     int numInputs() const override { return 1; }

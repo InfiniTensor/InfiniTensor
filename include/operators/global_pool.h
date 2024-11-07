@@ -23,6 +23,24 @@ class GlobalPoolObj : public OperatorObj {
     GlobalPoolObj(GraphObj *graph, OpType optype, Tensor input, Tensor output);
     OP_CLONE(GlobalPoolObj);
 
+    ~GlobalPoolObj() override {
+        if (opDesc) {
+            try {
+                if (type == OpType::GlobalAveragePool) {
+                    CHECK_ERROR(infiniopDestroyGlobalAvgPoolDescriptor(
+                        (infiniopGlobalAvgPoolDescriptor_t)opDesc));
+                } else {
+                    IT_ASSERT(false, "Unsupported global pool operator type "
+                                     "for infini op destroy");
+                }
+            } catch (const std::exception &e) {
+                std::cerr << "Error in ~GlobalPoolObj: " << e.what()
+                          << std::endl;
+            }
+        }
+    }
+
+    void initInfiniOp(const Runtime context) override;
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
     std::string toString() const override;
     int numInputs() const override { return 1; }

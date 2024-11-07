@@ -32,6 +32,18 @@ class GemmObj : public OperatorObj {
     OP_CLONE(GemmObj);
 
     std::string toString() const override;
+    ~GemmObj() override {
+        if (opDesc) {
+            try {
+                CHECK_ERROR(infiniopDestroyGEMMDescriptor(
+                    (infiniopGEMMDescriptor_t)opDesc));
+            } catch (const std::exception &e) {
+                std::cerr << "Error in ~GemmObj: " << e.what() << std::endl;
+            }
+        }
+    }
+
+    void initInfiniOp(const Runtime context) override;
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     int numInputs() const override { return inputs.size(); }
