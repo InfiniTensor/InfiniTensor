@@ -26,6 +26,10 @@ else()
   endif()
 endif()
 
+if(BUILD_TEST_EINNET)
+  include(${CMAKE_CURRENT_BINARY_DIR}/../cmake/config_lotus_TVM.cmake)
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF) # -std=gnu++11 when on, -std=c++11 when off
 
@@ -70,6 +74,8 @@ include_directories(3rd-party/nlohmann_json_cmake_fetchcontent/single_include)
 
 # TVM backend
 if(BUILD_TEST_EINNET)
+add_subdirectory(3rd-party/tvm)
+
   if (NOT TVM_INCLUDE_DIR OR NOT DMLC_INCLUDE_DIR OR NOT DLPACK_INCLUDE_DIR OR NOT DLPACK_INCLUDE_DIR)
     message(FATAL_ERROR "TVM_INCLUDE_DIR, DMLC_INCLUDE_DIR, and DLPACK_INCLUDE_DIR must be set when BUILD_TEST_EINNET is ON")
   endif()
@@ -77,6 +83,7 @@ if(BUILD_TEST_EINNET)
   include_directories(${TVM_INCLUDE_DIR})
   include_directories(${DMLC_INCLUDE_DIR})
   include_directories(${DLPACK_INCLUDE_DIR})
+  message("TVM_INCLUDE_DIR == ${TVM_INCLUDE_DIR}")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDMLC_USE_LOGGING_LIBRARY=\\\<${TVM_INCLUDE_DIR}/tvm/runtime/logging.h\\\> ")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DINFINI_USE_TVM=1") # Enable TVM codegen kernels
 endif()
