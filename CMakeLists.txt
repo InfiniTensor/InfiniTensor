@@ -98,7 +98,7 @@ include_directories(3rd-party/nlohmann_json_cmake_fetchcontent/single_include)
 
 # infini_operators
 set(INFINI_ROOT $ENV{INFINI_ROOT})
-include_directories(${INFINI_ROOT}/include)
+include_directories(${INFINI_ROOT}/lib/include)
 
 # TVM backend
 if(BUILD_NNET AND BUILD_TEST)
@@ -174,7 +174,7 @@ endif()
 
 target_link_libraries(InfiniTensor pybind11::embed)
 
-target_link_libraries(InfiniTensor ${INFINI_ROOT}/liboperators.so)
+target_link_libraries(InfiniTensor ${INFINI_ROOT}/lib/libinfiniop.so)
 
 # TVM backend
 if(BUILD_NNET AND BUILD_TEST AND TVM_LIB_DIR)
