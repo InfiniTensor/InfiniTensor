@@ -537,6 +537,15 @@ class OnnxStub:
                         0.01,
                     ),
                 )
+            elif node.op_type == "Celu":
+                tensors[node.output[0]] = self.handler.celu(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                    next(
+                        (attr.f for attr in node.attribute if attr.name == "alpha"),
+                        1.0,
+                    ),
+                )
             elif node.op_type == "Silu":
                 tensors[node.output[0]] = self.handler.silu(
                     tensors[node.input[0]],

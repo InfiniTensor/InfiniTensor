@@ -163,6 +163,19 @@ __global__ void _leaky_relu_kernel(T *input, T *output, size_t n,
     }
 }
 
+template <typename T>
+__global__ void _celu_kernel(T *input, T *output, size_t n, float alphaValue) {
+    size_t index = threadIdx.x + blockIdx.x * blockDim.x;
+    size_t stride = blockDim.x * gridDim.x;
+    for (size_t i = index; i < n; i += stride) {
+        if (input[i] > 0) {
+            output[i] = input[i];
+        } else {
+            output[i] = alphaValue * (exp(input[i] / alphaValue) - 1);
+        }
+    }
+}
+
 namespace infini {
 template <typename T> void softmax_kernel(T *input, T *output, size_t num) {
 
@@ -370,6 +383,14 @@ void leaky_relu_kernel(T *input, T *output, size_t num, float alphaValue) {
                                                            alphaValue);
 }
 
+template <typename T>
+void celu_kernel(T *input, T *output, size_t num, float alphaValue) {
+    int blocksize = block_work_size();
+    int gridsize = (num + blocksize - 1) / blocksize;
+    _celu_kernel<<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+        input, output, num, alphaValue);
+}
+
 void elu_kernel(const float *input, float *output, size_t size, float alpha) {
     int blocksize = 32 * 16;
     int gridsize = (size + blocksize - 1) / blocksize;
@@ -386,4 +407,6 @@ template void cast_kernel<int8_t, float>(int8_t *input, float *output,
                                          size_t num);
 template void leaky_relu_kernel<float>(float *input, float *output, size_t num,
                                        float alpha);
+template void celu_kernel<float>(float *input, float *output, size_t num,
+                                 float alpha);
 }; // namespace infini

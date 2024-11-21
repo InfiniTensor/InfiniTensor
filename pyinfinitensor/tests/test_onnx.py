@@ -208,6 +208,12 @@ class TestStringMethods(unittest.TestCase):
         relu = make_node("Relu", ["x"], ["y"], name="relu")
         make_and_import_model(make_graph([relu], "relu", [x], [y]))
 
+    def test_celu(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        celu = make_node("Celu", ["x"], ["y"], name="celu", alpha=1.0)
+        make_and_import_model(make_graph([celu], "celu", [x], [y]))
+
     def test_leaky_relu(self):
         # Define input and output tensor information
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 4, 4])

@@ -96,6 +96,34 @@ TEST(LeakyRelu, Cuda_WithAlpha) {
                                       -0.015, -0.01, 1.0, 2.0, 3.0}));
 }
 
+TEST(Celu, Cuda_WithAlpha) {
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Graph gCpu = make_ref<GraphObj>(runtime);
+
+    auto input = gCpu->addTensor({2, 2, 3, 1}, DataType::Float32);
+    gCpu->dataMalloc();
+    input->copyin(vector<float>{-1.0, -0.5, 0.0, 0.5, 1.0, 1.5, -2.0, -1.5,
+                                -1.0, 1.0, 2.0, 3.0});
+
+    auto cudaRuntime = make_ref<CudaRuntimeObj>();
+    Graph gCuda = make_ref<GraphObj>(cudaRuntime);
+
+    auto inputGpu = gCuda->cloneTensor(input);
+
+    float alpha = 1.0;
+    auto op = gCuda->addOp<CeluObj>(inputGpu, nullptr, alpha);
+    gCuda->dataMalloc();
+    inputGpu->copyin(vector<float>{-1.0, -0.5, 0.0, 0.5, 1.0, 1.5, -2.0, -1.5,
+                                   -1.0, 1.0, 2.0, 3.0});
+    cudaRuntime->run(gCuda);
+
+    auto oCpu = gCpu->cloneTensor(op->getOutput());
+    oCpu->printData();
+    EXPECT_TRUE(oCpu->equalData(vector<float>{-0.632121, -0.393469, 0.0, 0.5,
+                                              1.0, 1.5, -0.864665, -0.776870,
+                                              -0.632121, 1.0, 2.0, 3.0}));
+}
+
 TEST(Elu, Cuda) {
     Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(runtime);
