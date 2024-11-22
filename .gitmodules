@@ -13,6 +13,3 @@
 [submodule "example"]
 	path = example
 	url = git@github.com:wanghailu0717/NNmodel.git
-[submodule "3rd-party/tvm"]
-	path = 3rd-party/tvm
-	url = https://github.com/apache/tvm
