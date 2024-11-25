@@ -22,7 +22,7 @@ class PoolingOp : public Kernel {
             // execute op
             CHECK_ERROR(infiniopMaxPool(
                 (infiniopMaxPoolDescriptor_t)op->getOpDesc(), workspace,
-                workspace_size, yData, xData, nullptr));
+                workspace_size, yData, xData, CUDAStream::getCurrentStream()));
         } else if (op->getOpType() == OpType::AveragePool) {
             // get workspace
             uint64_t workspace_size = 0;
@@ -34,7 +34,7 @@ class PoolingOp : public Kernel {
             // execute op
             CHECK_ERROR(infiniopAvgPool(
                 (infiniopAvgPoolDescriptor_t)op->getOpDesc(), workspace,
-                workspace_size, yData, xData, nullptr));
+                workspace_size, yData, xData, CUDAStream::getCurrentStream()));
         } else {
             IT_TODO_HALT();
         }

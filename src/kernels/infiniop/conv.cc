@@ -15,10 +15,9 @@ class ConvOp : public Kernel {
             (infiniopConvDescriptor_t)op->getOpDesc(), &workspace_size));
         IT_ASSERT(workspace_size <= context->getWorkspaceSize());
         void *workspace = context->getWorkspace(workspace_size);
-        // execute op (TODO: 前面创建 op_desc 的步骤应当挪到计算函数外）
         CHECK_ERROR(infiniopConv((infiniopConvDescriptor_t)op->getOpDesc(),
                                  workspace, workspace_size, yData, xData, wData,
-                                 nullptr));
+                                 CUDAStream::getCurrentStream()));
     }
 
     PerfRecord tune(const Operator &_op,

@@ -80,8 +80,9 @@ class CudaRuntimeObj : public RuntimeObj {
 
     void copyBlobInsideRuntime(void *dst, const void *src,
                                size_t bytes) const override {
-        checkCudaError(
-            cudaMemcpyAsync(dst, src, bytes, cudaMemcpyDeviceToDevice));
+        checkCudaError(cudaMemcpyAsync(dst, src, bytes,
+                                       cudaMemcpyDeviceToDevice,
+                                       CUDAStream::getCurrentStream()));
     }
 
     void runWithoutSync(const Graph &graph) const;

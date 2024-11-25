@@ -14,7 +14,8 @@ class UnaryOp : public Kernel {
         if (op->getOpType() == OpType::Relu) {
             // execute op
             CHECK_ERROR(infiniopRelu((infiniopReluDescriptor_t)op->getOpDesc(),
-                                     yData, xData, nullptr));
+                                     yData, xData,
+                                     CUDAStream::getCurrentStream()));
         } else {
             IT_TODO_HALT();
         }
