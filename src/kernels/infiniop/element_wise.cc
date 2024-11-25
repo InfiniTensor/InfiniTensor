@@ -13,9 +13,9 @@ class ElementWiseOp : public Kernel {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
 
         if (op->getOpType() == OpType::Add) {
-            // execute op (TODO: 前面创建 op_desc 的步骤应当挪到计算函数外）
             CHECK_ERROR(infiniopAdd((infiniopAddDescriptor_t)op->getOpDesc(),
-                                    cData, aData, bData, nullptr));
+                                    cData, aData, bData,
+                                    CUDAStream::getCurrentStream()));
         } else {
             IT_TODO_HALT();
         }
