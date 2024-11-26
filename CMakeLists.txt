@@ -96,6 +96,9 @@ include_directories(3rd-party/pybind11/include)
 add_subdirectory(3rd-party/nlohmann_json_cmake_fetchcontent)
 include_directories(3rd-party/nlohmann_json_cmake_fetchcontent/single_include)
 
+add_subdirectory(3rd-party/core)
+#set(TRITON_DIR "./3rd-party/code")
+
 # TVM backend
 if(BUILD_NNET AND BUILD_TEST)
   # TVM and DMLC for invoking TVM packed functions
@@ -179,6 +182,19 @@ endif()
 file(GLOB_RECURSE FFIS src/ffi/ffi_infinitensor.cc)
 pybind11_add_module(backend MODULE ${FFIS})
 target_link_libraries(backend PRIVATE InfiniTensor)
+
+find_package(PythonLibs REQUIRED)
+#find_package(TritonCore REQUIRED)
+pybind11_add_module(my_executable src/ffi/ffi_infinitensor_triton.cc)
+
+#target_link_libraries(backend2 PRIVATE Triton::Triton)
+target_link_libraries(my_executable PRIVATE TritonCore::triton-core-serverapi
+                                            TritonCore::triton-core-backendapi
+                                            TritonCore::triton-core-repoagentapi
+                                            TritonCore::triton-core-cacheapi
+                                            TritonCore::triton-core-serverstub)
+add_executable(my_executable2 src/ffi/main_test.cc)
+#target_link_libraries(my_executable my_executable2)
 
 if(USE_BACKTRACE)
   add_definitions(-D BACKWARD_TRACE)
