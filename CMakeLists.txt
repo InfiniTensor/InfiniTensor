@@ -96,8 +96,7 @@ include_directories(3rd-party/pybind11/include)
 add_subdirectory(3rd-party/nlohmann_json_cmake_fetchcontent)
 include_directories(3rd-party/nlohmann_json_cmake_fetchcontent/single_include)
 
-add_subdirectory(3rd-party/core)
-#set(TRITON_DIR "./3rd-party/code")
+add_subdirectory(3rd-party/triton-server)
 
 # TVM backend
 if(BUILD_NNET AND BUILD_TEST)
@@ -183,18 +182,44 @@ file(GLOB_RECURSE FFIS src/ffi/ffi_infinitensor.cc)
 pybind11_add_module(backend MODULE ${FFIS})
 target_link_libraries(backend PRIVATE InfiniTensor)
 
-find_package(PythonLibs REQUIRED)
-#find_package(TritonCore REQUIRED)
-pybind11_add_module(my_executable src/ffi/ffi_infinitensor_triton.cc)
+set(ENV{PYTHONPATH} "/home/jymiracle2204/.local/lib/python3.10/site-packages")
+message("==============================", $ENV{PYTHONPATH})
+find_package(PythonLibs EXACT REQUIRED)
+message("==============================", ${PYTHON_LIBRARIES})
 
-#target_link_libraries(backend2 PRIVATE Triton::Triton)
-target_link_libraries(my_executable PRIVATE TritonCore::triton-core-serverapi
-                                            TritonCore::triton-core-backendapi
-                                            TritonCore::triton-core-repoagentapi
-                                            TritonCore::triton-core-cacheapi
-                                            TritonCore::triton-core-serverstub)
+# 设置 Python 头文件路径
+set(ENV{PYTHONPATH} "/home/jymiracle2204/.local/lib/python3.10/site-packages:$ENV{PYTHONPATH}")
+
+# 设置 Python 库文件路径
+set(PYTHON_LIBRARY_DIR "${PYTHON_LIBRARY_DIR}" CACHE FILEPATH "/home/jymiracle2204/.local/lib/python3.10/site-packages")
+
+set(${PYTHON_LIBRARIES} CACHE
+    FILEPATH "/home/jymiracle2204/.local/lib/python3.10/site-packages")
+
+message("========================",${PYTHON_INCLUDE_DIRS}, ${PYTHON_LIBRARY_DIRS})
+include_directories(${PYTHON_INCLUDE_DIRS}
+${PYTHON_LIBRARY_DIRS})
+
+if(NOT PythonLibs_FOUND)
+    message(FATAL_ERROR "Python libraries not found")
+endif()
+
+add_library(tritonOp SHARED src/ffi/ffi_infinitensor_triton.cc)
+
+target_link_libraries(tritonOp PRIVATE
+    TritonCore::triton-core-serverapi
+    TritonCore::triton-core-backendapi
+    TritonCore::triton-core-repoagentapi
+    TritonCore::triton-core-cacheapi
+    TritonCore::triton-core-serverstub
+    ${PYTHON_LIBRARIES})
+
+# 链接到应用算子的执行文件
 add_executable(my_executable2 src/ffi/main_test.cc)
-#target_link_libraries(my_executable my_executable2)
+target_link_libraries(my_executable2 PRIVATE
+    tritonOp
+    ${PYTHON_LIBRARIES}
+)
 
 if(USE_BACKTRACE)
   add_definitions(-D BACKWARD_TRACE)
