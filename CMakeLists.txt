@@ -182,23 +182,12 @@ file(GLOB_RECURSE FFIS src/ffi/ffi_infinitensor.cc)
 pybind11_add_module(backend MODULE ${FFIS})
 target_link_libraries(backend PRIVATE InfiniTensor)
 
-set(ENV{PYTHONPATH} "/home/jymiracle2204/.local/lib/python3.10/site-packages")
-message("==============================", $ENV{PYTHONPATH})
 find_package(PythonLibs EXACT REQUIRED)
 message("==============================", ${PYTHON_LIBRARIES})
 
-# 设置 Python 头文件路径
-set(ENV{PYTHONPATH} "/home/jymiracle2204/.local/lib/python3.10/site-packages:$ENV{PYTHONPATH}")
 
-# 设置 Python 库文件路径
-set(PYTHON_LIBRARY_DIR "${PYTHON_LIBRARY_DIR}" CACHE FILEPATH "/home/jymiracle2204/.local/lib/python3.10/site-packages")
-
-set(${PYTHON_LIBRARIES} CACHE
-    FILEPATH "/home/jymiracle2204/.local/lib/python3.10/site-packages")
-
-message("========================",${PYTHON_INCLUDE_DIRS}, ${PYTHON_LIBRARY_DIRS})
-include_directories(${PYTHON_INCLUDE_DIRS}
-${PYTHON_LIBRARY_DIRS})
+message("==============================", ${PYTHON_INCLUDE_DIRS})
+include_directories(${PYTHON_INCLUDE_DIRS})
 
 if(NOT PythonLibs_FOUND)
     message(FATAL_ERROR "Python libraries not found")

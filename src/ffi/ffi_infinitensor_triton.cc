@@ -15,10 +15,19 @@ void print_test_add() {
     if (getcwd(cwd, sizeof(cwd)) != nullptr) {
         // 构建 Python 模块的路径
         std::string op_module_path = std::string(cwd) + "/python/tritonOp";
-        std::cout << "python_module_path: " << op_module_path << std::endl;
+        std::cout << "op_module_path: " << op_module_path << std::endl;
 
-        std::string python_module_path = "/home/jymiracle2204/.local/lib/python3.10/site-packages"; // 直接使用绝对路径
-        std::cout << "python_module_path: " << python_module_path << std::endl;
+        const char* home_dir = std::getenv("HOME");
+        std::string python_module_path;
+        if (home_dir != nullptr) {
+            python_module_path = std::string(home_dir) + "/.local/lib/python3.10/site-packages";
+            std::cout << "python_module_path: " << python_module_path << std::endl;
+        } else {
+            std::cerr << "HOME environment variable is not set." << std::endl;
+        }
+
+        // std::string python_module_path = "/home/jymiracle2204/.local/lib/python3.10/site-packages"; // 直接使用绝对路径
+        // std::cout << "python_module_path: " << python_module_path << std::endl;
 
         // 导入 sys 模块并添加模块路径
         py::module_ sys = py::module_::import("sys");
