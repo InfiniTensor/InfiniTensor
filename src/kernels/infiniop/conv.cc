@@ -9,6 +9,7 @@ class ConvOp : public Kernel {
         auto op = as<ConvObj>(_op);
         void *const xData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const wData = (op->getInputs(1)->getRawDataPtr<void *>());
+        void *const bData = (op->getInputs(2)->getRawDataPtr<void *>());
         void *const yData = (op->getOutput()->getRawDataPtr<void *>());
         uint64_t workspace_size = 0;
         CHECK_ERROR(infiniopGetConvWorkspaceSize(

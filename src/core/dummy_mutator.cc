@@ -17,8 +17,8 @@ vector<Graph> DummyMutator::run(const Graph &inGraph) {
          w0 = g->cloneTensor(op0->getInputs()[1]),
          o0 = g->cloneTensor(op0->getOutput());
     auto [ph, pw, sh, sw, dh, dw] = op0->getPadStrideDilation();
-    auto t =
-        g->addOp<ConvObj>(a0, w0, nullptr, ph, pw, sh, sw, dh, dw)->getOutput();
+    auto t = g->addOp<ConvObj>(a0, w0, nullptr, ph, pw, nullptr, sh, sw, dh, dw)
+                 ->getOutput();
     g->addOpWithOutputs<ReluObj>(t, o0);
     return {inGraph, g};
 }

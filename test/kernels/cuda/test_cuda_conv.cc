@@ -29,8 +29,8 @@ void testConvCudnn(
     Tensor i0Cuda = gCuda->cloneTensor(i0Cpu);
     Tensor w0Cuda = gCuda->cloneTensor(w0Cpu);
     // Build CUDA graph
-    auto conv =
-        gCuda->addOp<ConvObj>(i0Cuda, w0Cuda, nullptr, 1, 1, 2, 1, 1, 2);
+    auto conv = gCuda->addOp<ConvObj>(i0Cuda, w0Cuda, nullptr, 1, 1, nullptr, 2,
+                                      1, 1, 2);
     // allocate CUDA memory
     gCuda->dataMalloc();
     i0Cuda->setData(generator);
@@ -70,8 +70,8 @@ TEST(cuDNN_Conv, tune) {
     Tensor i0Cuda = gCuda->cloneTensor(i0Cpu);
     Tensor w0Cuda = gCuda->cloneTensor(w0Cpu);
     // Build CUDA graph
-    auto conv =
-        gCuda->addOp<ConvObj>(i0Cuda, w0Cuda, nullptr, 1, 1, 1, 1, 1, 1);
+    auto conv = gCuda->addOp<ConvObj>(i0Cuda, w0Cuda, nullptr, 1, 1, nullptr, 1,
+                                      1, 1, 1);
     // allocate CUDA memory
     gCuda->dataMalloc();
     i0Cuda->setData(IncrementalGenerator());
