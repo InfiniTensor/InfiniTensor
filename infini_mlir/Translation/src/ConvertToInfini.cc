@@ -1,0 +1,59 @@
+#include "ConvertToInfini.h"
+#include "utils.h"
+
+namespace infini {
+
+namespace infinimlir {
+
+void handleAddOp(Graph &g, mlir::Operation *op,
+                 llvm::DenseMap<mlir::Value, Tensor> &tensorMap) {
+    auto addOp = llvm::cast<infinimlir::AddOp>(op);
+
+    // create op inputs Tensor
+    std::vector<Tensor> inputs;
+    for (unsigned i = 0; i < addOp.getNumOperands(); ++i) {
+        mlir::Value value = addOp.getOperand(i);
+        if (tensorMap.find(value) == tensorMap.end()) {
+            auto shape =
+                mlir::cast<mlir::RankedTensorType>(value.getType()).getShape();
+            Tensor new_tensor =
+                g->addTensor(int64t_to_int(shape),
+                             convertMlirTypeToDataType(value.getType()));
+            tensorMap[value] = new_tensor;
+            inputs.push_back(new_tensor);
+        } else {
+            inputs.push_back(tensorMap[value]);
+        }
+    }
+
+    // create op output Tensor
+    mlir::Value output = addOp.getResult();
+    auto shape =
+        mlir::cast<mlir::RankedTensorType>(output.getType()).getShape();
+    Tensor output_tensor = g->addTensor(
+        int64t_to_int(shape), convertMlirTypeToDataType(output.getType()));
+    tensorMap[output] = output_tensor;
+    // create op
+    g->addOpWithOutputs<AddObj>(inputs[0], inputs[1], output_tensor);
+}
+
+Graph convertMLIRToInfini(mlir::ModuleOp module, Runtime runtime) {
+    llvm::DenseMap<mlir::Value, Tensor> tensorMap;
+    Graph g = make_ref<GraphObj>(runtime);
+    for (auto func : module.getOps<mlir::func::FuncOp>()) {
+        for (auto &block : func.getBlocks()) {
+            for (auto &op : block.getOperations()) {
+                if (llvm::isa<infinimlir::AddOp>(op)) {
+                    handleAddOp(g, &op, tensorMap);
+                } else {
+                    throw std::runtime_error("Unsupported op");
+                }
+            }
+        }
+    }
+    return g;
+}
+
+} // namespace infinimlir
+
+} // namespace infini

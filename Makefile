@@ -46,10 +46,10 @@ build:
 	mkdir -p build/$(TYPE)
 	cd build/$(TYPE) && cmake $(CMAKE_OPT) ../.. && make -j64
 
-clean:
-	rm -rf build 3rd-party/llvm-project/build
 # clean:
-# 	rm -rf build
+# 	rm -rf build 3rd-party/llvm-project/build
+clean:
+	rm -rf build
 
 format:
 	@python3 scripts/format.py $(FORMAT_ORIGIN)

@@ -216,10 +216,14 @@ endif()
 
 target_link_libraries(InfiniTensor pybind11::embed)
 
+# target_link_libraries(InfiniTensor InfiniDialectDirectories)
 target_link_libraries(InfiniTensor
   ${LLVM_AVAILABLE_LIBS}
   ${MLIR_ALL_LIBS}
+  infini_mlir
 )
+
+# target_include_directories(InfiniTensor PUBLIC translation)
 # TVM backend
 if(BUILD_NNET AND BUILD_TEST AND TVM_LIB_DIR)
   target_link_libraries(InfiniTensor ${TVM_LIB_DIR}/libtvm.so)

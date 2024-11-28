@@ -104,6 +104,14 @@ class GraphObj : public Object {
         return ret;
     }
 
+    inline TensorVec getWeights() const {
+        TensorVec ret;
+        for (const auto &t : tensors)
+            if (t->isWeight())
+                ret.emplace_back(t);
+        return ret;
+    }
+
     /**
      * @brief Gets output tensors of this graph.
      */

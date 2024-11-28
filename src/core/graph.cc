@@ -1,5 +1,6 @@
 #include "core/graph.h"
 #include "operators/reshape.h"
+#include "transform.h"
 #include <algorithm>
 #include <numeric>
 #include <queue>
@@ -119,11 +120,12 @@ bool GraphObj::topo_sort() {
 }
 
 void GraphObj::optimize() {
-    for (auto &op : ops) {
-        switch (op->getOpType().underlying()) {
-        default:
-            break;
-        }
+    mlir::MLIRContext context;
+    infinimlir::Transformation transformation(context);
+    Graph newgraph = transformation.transform(this);
+    if (newgraph) {
+        this->tensors = newgraph->getTensors();
+        this->ops = newgraph->getOperators();
     }
 }
 

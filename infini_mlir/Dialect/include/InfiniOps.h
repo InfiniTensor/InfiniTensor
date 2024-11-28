@@ -13,6 +13,6 @@
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Support/TypeID.h"
 
-#include "Dialect/InfiniOpsDialect.h.inc"
+#include "InfiniOpsDialect.h.inc"
 #define GET_OP_CLASSES
-#include "Dialect/InfiniOps.h.inc"
+#include "InfiniOps.h.inc"

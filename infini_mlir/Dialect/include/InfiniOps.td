@@ -23,4 +23,5 @@ def Infini_AddOp : Op<InfiniDialect, "add", [Pure]> {
   let results = (outs AnyRankedTensor:$output);
 }
 
+
 #endif // INFINI_OPS_TD

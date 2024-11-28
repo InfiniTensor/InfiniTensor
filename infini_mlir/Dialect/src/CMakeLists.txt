@@ -1,0 +1,1 @@
+add_mlir_library(InfiniOps InfiniOps.cc SHARED DEPENDS MLIRInfiniOpsIncGen)
