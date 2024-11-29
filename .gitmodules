@@ -13,3 +13,6 @@
 [submodule "examples/distributed/onnxsim_large_model"]
 	path = examples/distributed/onnxsim_large_model
 	url = git@github.com:luchangli03/onnxsim_large_model.git
+[submodule "3rd-party/triton-server"]
+	path = 3rd-party/triton-server
+	url = git@github.com:triton-inference-server/core.git

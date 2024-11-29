@@ -3,6 +3,7 @@
 #include "cuda/cuda_runtime.h"
 #include "cuda/cuda_where.h"
 #include "utils/operator_utils.h"
+#include "ffi/ffi_infinitensor_triton.h"
 
 namespace infini {
 
@@ -37,7 +38,7 @@ class WhereCuda : public CudaKernelWithoutConfig {
         broadcastShape(opConditionShape, conditionShape, nDims, cSize);
 
         if (op->getDType() == DataType::Float32) {
-            whereKernel((float *)inputXData, (float *)inputYData,
+            whereKernel_py((float *)inputXData, (float *)inputYData,
                         (uint8_t *)conditionData, (float *)outputData, nDims,
                         outputsize, inputXShape, inputYShape, conditionShape,
                         outputShape, xSize, ySize, cSize);
