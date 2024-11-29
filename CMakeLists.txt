@@ -185,7 +185,6 @@ target_link_libraries(backend PRIVATE InfiniTensor)
 find_package(PythonLibs EXACT REQUIRED)
 message("==============================", ${PYTHON_LIBRARIES})
 
-
 message("==============================", ${PYTHON_INCLUDE_DIRS})
 include_directories(${PYTHON_INCLUDE_DIRS})
 
@@ -195,17 +194,20 @@ endif()
 
 add_library(tritonOp SHARED src/ffi/ffi_infinitensor_triton.cc)
 
-target_link_libraries(tritonOp PRIVATE
-    TritonCore::triton-core-serverapi
-    TritonCore::triton-core-backendapi
-    TritonCore::triton-core-repoagentapi
-    TritonCore::triton-core-cacheapi
-    TritonCore::triton-core-serverstub
-    ${PYTHON_LIBRARIES})
+# target_link_libraries(tritonOp PRIVATE
+#     TritonCore::triton-core-serverapi
+#     TritonCore::triton-core-backendapi
+#     TritonCore::triton-core-repoagentapi
+#     TritonCore::triton-core-cacheapi
+#     TritonCore::triton-core-serverstub
+#     ${PYTHON_LIBRARIES})
+
+#链接triton算子库
+target_link_libraries(InfiniTensor tritonOp)
 
 # 链接到应用算子的执行文件
-add_executable(my_executable2 src/ffi/main_test.cc)
-target_link_libraries(my_executable2 PRIVATE
+add_executable(execu_op src/ffi/main_test.cc)
+target_link_libraries(execu_op PRIVATE
     tritonOp
     ${PYTHON_LIBRARIES}
 )
