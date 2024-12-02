@@ -16,9 +16,11 @@ void handleAddOp(Graph &g, mlir::Operation *op,
         if (tensorMap.find(value) == tensorMap.end()) {
             auto shape =
                 mlir::cast<mlir::RankedTensorType>(value.getType()).getShape();
-            Tensor new_tensor =
-                g->addTensor(int64t_to_int(shape),
-                             convertMlirTypeToDataType(value.getType()));
+            Tensor new_tensor = g->addTensor(
+                int64t_to_int(shape),
+                convertMlirTypeToDataType(
+                    mlir::cast<mlir::RankedTensorType>(value.getType())
+                        .getElementType()));
             tensorMap[value] = new_tensor;
             inputs.push_back(new_tensor);
         } else {
@@ -30,8 +32,11 @@ void handleAddOp(Graph &g, mlir::Operation *op,
     mlir::Value output = addOp.getResult();
     auto shape =
         mlir::cast<mlir::RankedTensorType>(output.getType()).getShape();
-    Tensor output_tensor = g->addTensor(
-        int64t_to_int(shape), convertMlirTypeToDataType(output.getType()));
+    Tensor output_tensor =
+        g->addTensor(int64t_to_int(shape),
+                     convertMlirTypeToDataType(
+                         mlir::cast<mlir::RankedTensorType>(output.getType())
+                             .getElementType()));
     tensorMap[output] = output_tensor;
     // create op
     g->addOpWithOutputs<AddObj>(inputs[0], inputs[1], output_tensor);
@@ -43,8 +48,11 @@ Graph convertMLIRToInfini(mlir::ModuleOp module, Runtime runtime) {
     for (auto func : module.getOps<mlir::func::FuncOp>()) {
         for (auto &block : func.getBlocks()) {
             for (auto &op : block.getOperations()) {
+                // op.dump();
                 if (llvm::isa<infinimlir::AddOp>(op)) {
                     handleAddOp(g, &op, tensorMap);
+                } else if (llvm::isa<mlir::func::ReturnOp>(op)) {
+                    continue;
                 } else {
                     throw std::runtime_error("Unsupported op");
                 }
