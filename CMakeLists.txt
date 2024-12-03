@@ -162,6 +162,12 @@ if(USE_INTELCPU)
   list (APPEND SRC ${SRC_INTELCPU})
 endif()
 
+if (USE_MUSA)
+  file(GLOB_RECURSE SRC_MUSA src/musa/*.cc)
+  list (APPEND SRC ${SRC_MUSA})
+endif()
+
+
 # Libraries
 add_library(InfiniTensor SHARED ${SRC})
 if(USE_PROTOBUF)
@@ -351,6 +357,24 @@ if(USE_ASCEND)
     add_compile_definitions(INFINI_USE_HCCL=1)
   endif()
 endif()
+
+if (USE_MUSA)
+  add_compile_definitions(USE_MUSA=1)
+  if ((NOT DEFINED MUSA_HOME) AND (NOT DEFINED ENV{MUSA_HOME}))
+    message(FATAL_ERROR "MUSA_HOME is not defined from cmake or env")
+  elseif (DEFINED MUSA_HOME)
+    set(MUSA_HOME ${MUSA_HOME} CACHE STRING "MUSA_HOME directory for Musa development")
+  else()
+    set(MUSA_HOME $ENV{MUSA_HOME} CACHE STRING "MUSA_HOME directory for Musa development")
+  endif()
+  message(STATUS "MUSA_HOME: ${MUSA_HOME}")
+
+  include_directories("${MUSA_HOME}/include/")
+  find_library(MTHREADS_MUSA libmusa.so "${MUSA_HOME}/lib/")
+  find_library(MTHREADS_MUSART libmusart.so "${MUSA_HOME}/lib/")
+  target_link_libraries(InfiniTensor ${MTHREADS_MUSA} ${MTHREADS_MUSART} stdc++)
+endif()
+
 
 # # Python bindings
 # pybind11_add_module(infini MODULE ${FFI})

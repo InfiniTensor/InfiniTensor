@@ -10,6 +10,10 @@
 #include "cuda/cuda_runtime.h"
 #endif
 
+#ifdef USE_MUSA
+#include "musa/musa_runtime.h"
+#endif
+
 namespace infini {
 
 class GraphHandlerObj {
@@ -152,6 +156,12 @@ class GraphHandlerObj {
 #ifdef USE_CUDA
     inline void run_with_cudagraph() {
         (as<CudaRuntimeObj>(g->getRuntime()))->runWithCudaGraph(g);
+    }
+#endif
+
+#ifdef USE_MUSA
+    inline void run_with_musagraph() {
+        (as<MusaRuntimeObj>(g->getRuntime()))->runWithMusaGraph(g);
     }
 #endif
 };

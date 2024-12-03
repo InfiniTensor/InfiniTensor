@@ -64,5 +64,8 @@ export KUNLUN_HOME=/usr/local/xpu
 # └── tools
 
 export ASCEND_HOME=/usr/local/Ascend/ascend-toolkit/latest
-source /usr/local/Ascend/ascend-toolkit/set_env.sh
-source /usr/local/Ascend/toolbox/set_env.sh
+# 如为华为机器，请运行以下命令，配置环境变量。
+# source /usr/local/Ascend/ascend-toolkit/set_env.sh
+# source /usr/local/Ascend/toolbox/set_env.sh
+
+export MUSA_HOME=/usr/local/musa
