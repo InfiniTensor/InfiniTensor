@@ -42,6 +42,25 @@ void handleAddOp(Graph &g, mlir::Operation *op,
     g->addOpWithOutputs<AddObj>(inputs[0], inputs[1], output_tensor);
 }
 
+void handleConstantOp(Graph &g, mlir::Operation *op,
+                      llvm::DenseMap<mlir::Value, Tensor> &tensorMap) {
+    auto constantOp = llvm::cast<infinimlir::ConstantOp>(op);
+
+    // create op output Tensor
+    mlir::Value output = constantOp.getResult();
+    auto shape =
+        mlir::cast<mlir::RankedTensorType>(output.getType()).getShape();
+    Tensor output_tensor =
+        g->addTensor(int64t_to_int(shape),
+                     convertMlirTypeToDataType(
+                         mlir::cast<mlir::RankedTensorType>(output.getType())
+                             .getElementType()));
+    void *data_ptr = (void *)(uintptr_t)constantOp.getDataPtr();
+    output_tensor->setDataBlob(make_ref<BlobObj>(g->getRuntime(), data_ptr));
+    output_tensor->setWeight();
+    tensorMap[output] = output_tensor;
+}
+
 Graph convertMLIRToInfini(mlir::ModuleOp module, Runtime runtime) {
     llvm::DenseMap<mlir::Value, Tensor> tensorMap;
     Graph g = make_ref<GraphObj>(runtime);
@@ -51,6 +70,8 @@ Graph convertMLIRToInfini(mlir::ModuleOp module, Runtime runtime) {
                 // op.dump();
                 if (llvm::isa<infinimlir::AddOp>(op)) {
                     handleAddOp(g, &op, tensorMap);
+                } else if (llvm::isa<infinimlir::ConstantOp>(op)) {
+                    handleConstantOp(g, &op, tensorMap);
                 } else if (llvm::isa<mlir::func::ReturnOp>(op)) {
                     continue;
                 } else {
