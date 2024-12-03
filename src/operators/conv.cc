@@ -106,10 +106,26 @@ void ConvObj::initInfiniOp(const Runtime context) {
     CHECK_ERROR(infiniopCreateTensorDescriptor(
         &y_tensor, y_dim.size(), y_shape.data(), nullptr,
         toInfiniopDataLayout(outputs[0]->getDType().getIndex())));
-    // create op descriptor
-    CHECK_ERROR(infiniopCreateConvDescriptor(
-        context->opHandle(), (infiniopConvDescriptor_t *)&opDesc, y_tensor,
-        x_tensor, w_tensor, pads, strides, dilations, 2));
+    if (inputs.size() == 2) {
+        // create op descriptor
+        CHECK_ERROR(infiniopCreateConvDescriptor(
+            context->opHandle(), (infiniopConvDescriptor_t *)&opDesc, y_tensor,
+            x_tensor, w_tensor, pads, strides, dilations, 2));
+    } else if (inputs.size() == 3) {
+        auto b_dim = inputs[2]->getDims();
+        auto b_shape = toInfiniopShape(b_dim);
+        infiniopTensorDescriptor_t b_tensor;
+        CHECK_ERROR(infiniopCreateTensorDescriptor(
+            &b_tensor, b_dim.size(), b_shape.data(), nullptr,
+            toInfiniopDataLayout(inputs[2]->getDType().getIndex())));
+        CHECK_ERROR(infiniopCreateConvBiasActDescriptor(
+            context->opHandle(), (infiniopConvBiasActDescriptor_t *)&opDesc,
+            y_tensor, x_tensor, w_tensor, b_tensor, pads, strides, dilations, 2,
+            0));
+        CHECK_ERROR(infiniopDestroyTensorDescriptor(b_tensor));
+    } else {
+        IT_ASSERT(false);
+    }
 
     // destroy tensor descriptor and op descriptor
     CHECK_ERROR(infiniopDestroyTensorDescriptor(y_tensor));

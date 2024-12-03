@@ -95,8 +95,8 @@ class ConvBaseObj : public OperatorObj {
                 ActType act = ActType::None);
 
     std::string toString() const override;
-    int numInputs() const override { return 2; }
-    int numOutputs() const override { return 1; }
+    int numInputs() const override { return inputs.size(); }
+    int numOutputs() const override { return outputs.size(); }
 
     Tensor getBias() const { return inputs[2]; }
     PaddingMode getPaddingMode() const { return padding; }
@@ -145,8 +145,13 @@ class ConvObj : public ConvBaseObj {
     ~ConvObj() override {
         if (opDesc) {
             try {
-                CHECK_ERROR(infiniopDestroyConvDescriptor(
-                    (infiniopConvDescriptor_t)opDesc));
+                if (numInputs() == 2) {
+                    CHECK_ERROR(infiniopDestroyConvDescriptor(
+                        (infiniopConvDescriptor_t)opDesc));
+                } else if (numInputs() == 3) {
+                    CHECK_ERROR(infiniopDestroyConvBiasActDescriptor(
+                        (infiniopConvBiasActDescriptor_t)opDesc));
+                }
             } catch (const std::exception &e) {
                 std::cerr << "Error in ~ConvObj: " << e.what() << std::endl;
             }

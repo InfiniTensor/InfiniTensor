@@ -9,16 +9,30 @@ class ConvOp : public Kernel {
         auto op = as<ConvObj>(_op);
         void *const xData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const wData = (op->getInputs(1)->getRawDataPtr<void *>());
-        void *const bData = (op->getInputs(2)->getRawDataPtr<void *>());
         void *const yData = (op->getOutput()->getRawDataPtr<void *>());
         uint64_t workspace_size = 0;
-        CHECK_ERROR(infiniopGetConvWorkspaceSize(
-            (infiniopConvDescriptor_t)op->getOpDesc(), &workspace_size));
-        IT_ASSERT(workspace_size <= context->getWorkspaceSize());
-        void *workspace = context->getWorkspace(workspace_size);
-        CHECK_ERROR(infiniopConv((infiniopConvDescriptor_t)op->getOpDesc(),
-                                 workspace, workspace_size, yData, xData, wData,
-                                 CUDAStream::getCurrentStream()));
+        if (op->numInputs() == 2) {
+            CHECK_ERROR(infiniopGetConvWorkspaceSize(
+                (infiniopConvDescriptor_t)op->getOpDesc(), &workspace_size));
+            IT_ASSERT(workspace_size <= context->getWorkspaceSize());
+            void *workspace = context->getWorkspace(workspace_size);
+            CHECK_ERROR(infiniopConv((infiniopConvDescriptor_t)op->getOpDesc(),
+                                     workspace, workspace_size, yData, xData,
+                                     wData, CUDAStream::getCurrentStream()));
+        } else if (op->numInputs() == 3) {
+            void *const bData = (op->getInputs(2)->getRawDataPtr<void *>());
+            CHECK_ERROR(infiniopGetConvBiasActWorkspaceSize(
+                (infiniopConvBiasActDescriptor_t)op->getOpDesc(),
+                &workspace_size));
+            IT_ASSERT(workspace_size <= context->getWorkspaceSize());
+            void *workspace = context->getWorkspace(workspace_size);
+            CHECK_ERROR(infiniopConvBiasAct(
+                (infiniopConvBiasActDescriptor_t)op->getOpDesc(), workspace,
+                workspace_size, yData, xData, wData, bData,
+                CUDAStream::getCurrentStream()));
+        } else {
+            IT_ASSERT(false);
+        }
     }
 
     PerfRecord tune(const Operator &_op,
