@@ -13,4 +13,20 @@ namespace infini {
 
 using MusaPtr = void *;
 
+class MUSAStream {
+  public:
+    MUSAStream(const MUSAStream &) = delete;
+    MUSAStream(MUSAStream &&) = delete;
+    void operator=(const MUSAStream &) = delete;
+    void operator=(MUSAStream &&) = delete;
+    static musaStream_t getCurrentStream() { return _stream; }
+    static void Init() { MUSAStream::_stream = 0; }
+    static void createStream() { checkMusaError(musaStreamCreate(&_stream)); }
+    static void destroyStream() { checkMusaError(musaStreamDestroy(_stream)); }
+
+  private:
+    MUSAStream() {}
+    static musaStream_t _stream;
+};
+
 } // namespace infini

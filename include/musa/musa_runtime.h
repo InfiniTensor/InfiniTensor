@@ -8,6 +8,9 @@ class MusaRuntimeObj : public RuntimeObj {
   private:
     MusaPtr workspace;
     size_t workspaceSize;
+    bool isMusaGraphCreated;
+    musaGraph_t musaGraph;
+    musaGraphExec_t musaGraphInstance;
 
   public:
     explicit MusaRuntimeObj(int deviceId = 0)
@@ -15,9 +18,16 @@ class MusaRuntimeObj : public RuntimeObj {
         checkMusaError(musaSetDevice(deviceId));
         workspaceSize = 7ll << 30; // 7GB
         workspace = alloc(workspaceSize);
+        isMusaGraphCreated = false;
+        MUSAStream::Init();
     }
     virtual ~MusaRuntimeObj() {
         try {
+            if (isMusaGraphCreated) {
+                checkMusaError(musaGraphExecDestroy(musaGraphInstance));
+                checkMusaError(musaGraphDestroy(musaGraph));
+                MUSAStream::destroyStream();
+            }
             dealloc(workspace);
         } catch (const std::exception &e) {
             std::cerr << "Error in ~MusaRuntimeObj: " << e.what() << std::endl;
@@ -56,6 +66,8 @@ class MusaRuntimeObj : public RuntimeObj {
     }
 
     void runWithoutSync(const Graph &graph) const;
+
+    void runWithMusaGraph(const Graph &graph);
 };
 
 } // namespace infini
