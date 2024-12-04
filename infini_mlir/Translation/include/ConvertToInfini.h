@@ -15,6 +15,8 @@ namespace infinimlir {
 Graph convertMLIRToInfini(mlir::ModuleOp, Runtime runtime);
 void handleAddOp(Graph &g, mlir::Operation *op,
                  llvm::DenseMap<mlir::Value, Tensor> &tensorMap);
+void handleConstantOp(Graph &g, mlir::Operation *op,
+                      llvm::DenseMap<mlir::Value, Tensor> &tensorMap);
 } // namespace infinimlir
 
 } // namespace infini

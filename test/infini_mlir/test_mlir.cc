@@ -2,6 +2,7 @@
 #include "core/runtime.h"
 #include "operators/element_wise.h"
 #include "gtest/gtest.h"
+#include "test.h"
 
 namespace infini {
 namespace infinimlir {
@@ -13,9 +14,12 @@ TEST(Graph, coverttomlir) {
     Tensor i2 = g->addTensor({2, 3, 4, 5}, DataType::UInt32);
     Tensor o = g->addTensor({2, 3, 4, 5}, DataType::UInt32);
     i1->setInput();
-    i2->setInput();
+    i2->setWeight();
     o->setOutput();
     g->addOpWithOutputs<AddObj>(i1, i2, o);
+
+    g->dataMalloc();
+    i2->setData(OneGenerator());
 
     g->print();
     g->optimize();

@@ -46,7 +46,13 @@ Graph Transformation::transform(GraphObj *graph) {
         tensor_value_map[graph->getInputs()[i]->getFuid()] = arg;
     }
     for (auto const &tensor : graph->getWeights()) {
-        // TODO: create the weight tensor
+        auto tensor_type = mlir::RankedTensorType::get(
+            int_to_int64t(tensor->getDims()),
+            convertDataTypeToMlirType(&context, tensor->getDType()));
+        auto tensor_op = builder.create<ConstantOp>(
+            builder.getUnknownLoc(), tensor_type, tensor->size(),
+            (uint64_t)tensor->getDataBlob()->getPtr<void *>());
+        tensor_value_map[tensor->getFuid()] = tensor_op->getResult(0);
     }
 
     // transform the graph to mlir
