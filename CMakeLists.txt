@@ -54,7 +54,10 @@ endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF) # -std=gnu++11 when on, -std=c++11 when off
-add_compile_options(-Wno-error=unused-variable)
+
+if(NOT WIN32)
+  add_compile_options(-Wno-error=unused-variable)
+endif()
 
 find_package(
   Python
@@ -62,6 +65,9 @@ find_package(
   REQUIRED)
 
 # OpenMP
+if(WIN32)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /openmp:llvm")
+endif()
 find_package(OpenMP)
 if(OpenMP_C_FOUND)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
@@ -121,10 +127,43 @@ if(BUILD_TEST)
   include_directories(3rd-party/googletest/googletest/include)
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Werror -Wno-error=deprecated-declarations -Wno-error=pointer-arith")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -UNDEBUG") # Enable assertion
-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -UNDEBUG") # Enable assertion
+if(WIN32)
+  set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+  set(BUILD_SHARED_LIBS ON)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:preprocessor /permissive- /bigobj /wd4430")
 
+  ## ignore warnning
+  # set(CMAKE_C_FLAGS
+  #     "${CMAKE_C_FLAGS} /wd4244 /wd4267 /wd4819"
+  # )
+  # set(CMAKE_CXX_FLAGS
+  #     "${CMAKE_CXX_FLAGS} /wd4244 /wd4267 /wd4819"
+  # )
+  
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DUNDEBUG") # Enable assertion
+  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -DUNDEBUG") # Enable assertion
+  
+  ## ignore warnning
+  # foreach(
+  #   flag_var
+  #   CMAKE_CXX_FLAGS
+  #   CMAKE_CXX_FLAGS_DEBUG
+  #   CMAKE_CXX_FLAGS_RELEASE
+  #   CMAKE_CXX_FLAGS_MINSIZEREL
+  #   CMAKE_CXX_FLAGS_RELWITHDEBINFO
+  #   CMAKE_C_FLAGS
+  #   CMAKE_C_FLAGS_DEBUG
+  #   CMAKE_C_FLAGS_RELEASE
+  #   CMAKE_C_FLAGS_MINSIZEREL
+  #   CMAKE_C_FLAGS_RELWITHDEBINFO)
+  #   string(REGEX REPLACE "/W[1-4]" " /W0 " ${flag_var} "${${flag_var}}")
+  # endforeach()
+
+else()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Werror -Wno-error=deprecated-declarations -Wno-error=pointer-arith")
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -UNDEBUG") # Enable assertion
+  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -UNDEBUG") # Enable assertion
+endif()
 
 # Source files
 file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/kernels/cpu/*.cc src/operators/*.cc src/utils/*.cc)
@@ -164,6 +203,12 @@ endif()
 
 # Libraries
 add_library(InfiniTensor SHARED ${SRC})
+if(WIN32)
+  include(GenerateExportHeader)
+  generate_export_header(InfiniTensor)
+  include_directories(${CMAKE_CURRENT_BINARY_DIR})
+endif()
+
 if(USE_PROTOBUF)
   target_link_libraries(InfiniTensor tensor_proto)
 endif()
@@ -177,7 +222,11 @@ endif()
 
 # Python bindings
 file(GLOB_RECURSE FFIS src/ffi/ffi_infinitensor.cc)
-pybind11_add_module(backend MODULE ${FFIS})
+if(WIN32)
+  pybind11_add_module(backend MODULE ${SRC})
+else()
+  pybind11_add_module(backend MODULE ${FFIS})
+endif()
 target_link_libraries(backend PRIVATE InfiniTensor)
 
 if(USE_BACKTRACE)

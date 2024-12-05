@@ -14,6 +14,7 @@
 | Host CPU | Device        | OS            |  Support   |
 | -------- | ------------  | -----------   | ---------- |
 | X86-64   | Nvidia GPU    |  Ubuntu-22.04 |  Yes       |
+| X86-64   | Nvidia GPU    |  Windows-10   |  Yes       |
 | X86-64   | Cambricon MLU |  Ubuntu-22.04 |  Yes       |
 | arm64    | Ascend NPU    |OpenEuler-22.03|  Yes       |
 
