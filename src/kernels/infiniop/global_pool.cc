@@ -23,7 +23,7 @@ class GlobalPoolOp : public Kernel {
             // execute op
             CHECK_ERROR(infiniopGlobalAvgPool(
                 (infiniopGlobalAvgPoolDescriptor_t)op->getOpDesc(), workspace,
-                workspace_size, yData, xData, CUDAStream::getCurrentStream()));
+                workspace_size, yData, xData, context->getCurrentStream()));
         } else {
             IT_TODO_HALT();
         }
@@ -41,8 +41,10 @@ class GlobalPoolOp : public Kernel {
     }
 };
 
+REGISTER_KERNEL(Device::MUSA, OpType::GlobalAveragePool, GlobalPoolOp,
+                "GlobalAvgPool_infiniop_musa");
 REGISTER_KERNEL(Device::CUDA, OpType::GlobalAveragePool, GlobalPoolOp,
-                "GlobalAvgPool_infiniop_CUDA");
+                "GlobalAvgPool_infiniop_cuda");
 REGISTER_KERNEL(Device::CPU, OpType::GlobalAveragePool, GlobalPoolOp,
-                "GlobalAvgPool_infiniop_CPU");
+                "GlobalAvgPool_infiniop_cpu");
 }; // namespace infini

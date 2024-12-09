@@ -22,7 +22,7 @@ class PoolingOp : public Kernel {
             // execute op
             CHECK_ERROR(infiniopMaxPool(
                 (infiniopMaxPoolDescriptor_t)op->getOpDesc(), workspace,
-                workspace_size, yData, xData, CUDAStream::getCurrentStream()));
+                workspace_size, yData, xData, context->getCurrentStream()));
         } else if (op->getOpType() == OpType::AveragePool) {
             // get workspace
             uint64_t workspace_size = 0;
@@ -34,7 +34,7 @@ class PoolingOp : public Kernel {
             // execute op
             CHECK_ERROR(infiniopAvgPool(
                 (infiniopAvgPoolDescriptor_t)op->getOpDesc(), workspace,
-                workspace_size, yData, xData, CUDAStream::getCurrentStream()));
+                workspace_size, yData, xData, context->getCurrentStream()));
         } else {
             IT_TODO_HALT();
         }
@@ -53,11 +53,17 @@ class PoolingOp : public Kernel {
 };
 
 REGISTER_KERNEL(Device::CUDA, OpType::MaxPool, PoolingOp,
-                "Pooling_infiniop_cuda");
+                "MaxPooling_infiniop_cuda");
 REGISTER_KERNEL(Device::CPU, OpType::MaxPool, PoolingOp,
-                "Pooling_infiniop_cpu");
+                "MaxPooling_infiniop_cpu");
+REGISTER_KERNEL(Device::MUSA, OpType::MaxPool, PoolingOp,
+                "MaxPooling_infiniop_musa");
+
 REGISTER_KERNEL(Device::CUDA, OpType::AveragePool, PoolingOp,
-                "Pooling_infiniop_cuda");
+                "AvgPooling_infiniop_cuda");
 REGISTER_KERNEL(Device::CPU, OpType::AveragePool, PoolingOp,
-                "Pooling_infiniop_cpu");
+                "AvgPooling_infiniop_cpu");
+REGISTER_KERNEL(Device::MUSA, OpType::AveragePool, PoolingOp,
+                "AvgPooling_infiniop_musa");
+
 }; // namespace infini

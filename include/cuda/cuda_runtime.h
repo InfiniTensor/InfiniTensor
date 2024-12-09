@@ -50,6 +50,11 @@ class CudaRuntimeObj : public RuntimeObj {
 
     void run(const Graph &graph, bool tune = false,
              bool profiling = false) const;
+
+    void *getCurrentStream() const override {
+        return CUDAStream::getCurrentStream();
+    }
+
     // double runEvaluation(const Graph &graph, int nWarmups,
     //                      int nEvaluations) const;
     void sync() const;

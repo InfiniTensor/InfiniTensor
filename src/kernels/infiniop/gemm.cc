@@ -23,7 +23,7 @@ class GemmOp : public Kernel {
         void *workspace = context->getWorkspace(workspace_size);
         CHECK_ERROR(infiniopGEMM((infiniopGEMMDescriptor_t)op->getOpDesc(),
                                  workspace, workspace_size, yData, aData, bData,
-                                 cData, CUDAStream::getCurrentStream()));
+                                 cData, context->getCurrentStream()));
     }
 
     PerfRecord tune(const Operator &op,
@@ -38,6 +38,7 @@ class GemmOp : public Kernel {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Gemm, GemmOp, "Gemm_infiniop_CUDA");
-REGISTER_KERNEL(Device::CPU, OpType::Gemm, GemmOp, "Gemm_infiniop_CPU");
+REGISTER_KERNEL(Device::MUSA, OpType::Gemm, GemmOp, "Gemm_infiniop_musa");
+REGISTER_KERNEL(Device::CUDA, OpType::Gemm, GemmOp, "Gemm_infiniop_cuda");
+REGISTER_KERNEL(Device::CPU, OpType::Gemm, GemmOp, "Gemm_infiniop_cpu");
 }; // namespace infini

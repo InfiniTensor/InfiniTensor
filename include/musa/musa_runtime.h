@@ -36,6 +36,11 @@ class MusaRuntimeObj : public RuntimeObj {
     string toString() const override;
     void run(const Graph &graph, bool tune = false,
              bool profiling = false) const;
+
+    void *getCurrentStream() const override {
+        return MUSAStream::getCurrentStream();
+    }
+
     void sync() const;
     MusaPtr alloc(size_t size) override {
         void *ptr;
@@ -68,6 +73,10 @@ class MusaRuntimeObj : public RuntimeObj {
     void runWithoutSync(const Graph &graph) const;
 
     void runWithMusaGraph(const Graph &graph);
+
+    void initComm(const string &, int, int) override { IT_TODO_HALT(); }
+
+    CommunicatorObj &getCommunicator() const override { IT_TODO_HALT(); }
 };
 
 } // namespace infini

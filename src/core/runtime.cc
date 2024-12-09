@@ -14,6 +14,8 @@ DeviceEnum toInfiniopDevice(Device device) {
         return DevNvGpu;
     case Device::BANG:
         return DevCambriconMlu;
+    case Device::MUSA:
+        return DevMtGpu;
     default:
         IT_TODO_HALT();
     };

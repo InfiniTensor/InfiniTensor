@@ -27,18 +27,26 @@ class CopyOp : public Kernel {
 // reshape/flatten/identity/squeeze/unsqueeze all act as copying from input to
 // output.
 
-REGISTER_KERNEL(Device::CPU, OpType::Reshape, CopyOp, "Reshape_infiniop_CPU");
-REGISTER_KERNEL(Device::CPU, OpType::Flatten, CopyOp, "Flatten_infiniop_CPU");
-REGISTER_KERNEL(Device::CPU, OpType::Identity, CopyOp, "Identity_infiniop_CPU");
-REGISTER_KERNEL(Device::CPU, OpType::Squeeze, CopyOp, "Squeeze_infiniop_CPU");
+REGISTER_KERNEL(Device::CPU, OpType::Reshape, CopyOp, "Reshape_infiniop_cpu");
+REGISTER_KERNEL(Device::CPU, OpType::Flatten, CopyOp, "Flatten_infiniop_cpu");
+REGISTER_KERNEL(Device::CPU, OpType::Identity, CopyOp, "Identity_infiniop_cpu");
+REGISTER_KERNEL(Device::CPU, OpType::Squeeze, CopyOp, "Squeeze_infiniop_cpu");
 REGISTER_KERNEL(Device::CPU, OpType::Unsqueeze, CopyOp,
-                "Unsqueeze_infiniop_CPU");
+                "Unsqueeze_infiniop_cpu");
 
-REGISTER_KERNEL(Device::CUDA, OpType::Reshape, CopyOp, "Reshape_infiniop_CUDA");
-REGISTER_KERNEL(Device::CUDA, OpType::Flatten, CopyOp, "Flatten_infiniop_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Reshape, CopyOp, "Reshape_infiniop_cuda");
+REGISTER_KERNEL(Device::CUDA, OpType::Flatten, CopyOp, "Flatten_infiniop_cuda");
 REGISTER_KERNEL(Device::CUDA, OpType::Identity, CopyOp,
-                "Identity_infiniop_CUDA");
-REGISTER_KERNEL(Device::CUDA, OpType::Squeeze, CopyOp, "Squeeze_infiniop_CUDA");
+                "Identity_infiniop_cuda");
+REGISTER_KERNEL(Device::CUDA, OpType::Squeeze, CopyOp, "Squeeze_infiniop_cuda");
 REGISTER_KERNEL(Device::CUDA, OpType::Unsqueeze, CopyOp,
-                "Unsqueeze_infiniop_CUDA");
+                "Unsqueeze_infiniop_cuda");
+
+REGISTER_KERNEL(Device::MUSA, OpType::Reshape, CopyOp, "Reshape_infiniop_musa");
+REGISTER_KERNEL(Device::MUSA, OpType::Flatten, CopyOp, "Flatten_infiniop_musa");
+REGISTER_KERNEL(Device::MUSA, OpType::Identity, CopyOp,
+                "Identity_infiniop_musa");
+REGISTER_KERNEL(Device::MUSA, OpType::Squeeze, CopyOp, "Squeeze_infiniop_musa");
+REGISTER_KERNEL(Device::MUSA, OpType::Unsqueeze, CopyOp,
+                "Unsqueeze_infiniop_musa");
 }; // namespace infini

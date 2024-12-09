@@ -6,7 +6,7 @@ namespace infini {
 
 class UnaryOp : public Kernel {
     void compute(const Operator &_op,
-                 const RuntimeObj *_context) const override {
+                 const RuntimeObj *context) const override {
         auto op = as<UnaryObj>(_op);
         void *const xData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const yData = (op->getOutput()->getRawDataPtr<void *>());
@@ -15,7 +15,7 @@ class UnaryOp : public Kernel {
             // execute op
             CHECK_ERROR(infiniopRelu((infiniopReluDescriptor_t)op->getOpDesc(),
                                      yData, xData,
-                                     CUDAStream::getCurrentStream()));
+                                     context->getCurrentStream()));
         } else {
             IT_TODO_HALT();
         }
@@ -33,6 +33,7 @@ class UnaryOp : public Kernel {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Relu, UnaryOp, "Relu_infiniop_CUDA");
-REGISTER_KERNEL(Device::CPU, OpType::Relu, UnaryOp, "Relu_infiniop_CPU");
+REGISTER_KERNEL(Device::MUSA, OpType::Relu, UnaryOp, "Relu_infiniop_musa");
+REGISTER_KERNEL(Device::CUDA, OpType::Relu, UnaryOp, "Relu_infiniop_cuda");
+REGISTER_KERNEL(Device::CPU, OpType::Relu, UnaryOp, "Relu_infiniop_cpu");
 }; // namespace infini

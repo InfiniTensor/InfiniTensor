@@ -106,6 +106,8 @@ std::string device_to_str(Device device) {
         return "KUNLUN";
     case Device::ASCEND:
         return "ASCEND";
+    case Device::MUSA:
+        return "MUSA";
     default:
         IT_TODO_HALT();
     }

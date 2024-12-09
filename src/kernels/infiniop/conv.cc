@@ -17,7 +17,7 @@ class ConvOp : public Kernel {
         void *workspace = context->getWorkspace(workspace_size);
         CHECK_ERROR(infiniopConv((infiniopConvDescriptor_t)op->getOpDesc(),
                                  workspace, workspace_size, yData, xData, wData,
-                                 CUDAStream::getCurrentStream()));
+                                 context->getCurrentStream()));
     }
 
     PerfRecord tune(const Operator &_op,
@@ -32,6 +32,7 @@ class ConvOp : public Kernel {
     }
 };
 
+REGISTER_KERNEL(Device::MUSA, OpType::Conv, ConvOp, "Conv_infiniop_musa");
 REGISTER_KERNEL(Device::CUDA, OpType::Conv, ConvOp, "Conv_infiniop_cuda");
 REGISTER_KERNEL(Device::CPU, OpType::Conv, ConvOp, "Conv_infiniop_cpu");
 }; // namespace infini
