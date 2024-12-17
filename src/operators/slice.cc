@@ -43,18 +43,38 @@ SliceObj::SliceObj(GraphObj *graph, Tensor input, Tensor output,
 
     auto size = shape.size();
     this->axes.reserve(size);
-    for (size_t i = 0; i < size; ++i) {
+    for (size_t i = 0; i < shape.size(); ++i) {
         auto len = shape[i];
         if (auto _i = axes.find(i); _i != axes.end()) {
             auto __i = _i->second;
             auto start = starts[__i];
             auto end = ends[__i];
+            auto step = steps[__i];
+
+            // 修正 start 和 end 的范围
+            if (start < -len)
+                start = -len;
             if (start > len)
                 start = len;
+            if (end < -len)
+                end = -len;
             if (end > len)
                 end = len;
-            this->axes.push_back({start >= 0 ? start : start + len,
-                                  end >= 0 ? end : end + len, steps[__i]});
+
+            // 处理负索引，确保最终值在合法范围内
+            start = start >= 0 ? start : start + len;
+            end = end >= 0 ? end : end + len;
+
+            // 确保倒序时 start >= end，正序时 start <= end
+            if (step > 0) {
+                start = std::max(start, 0);
+                end = std::min(end, len);
+            } else {
+                start = std::min(start, len - 1);
+                end = std::max(end, -1);
+            }
+
+            this->axes.push_back({start, end, step});
         } else {
             this->axes.push_back({0, len, 1});
         }
@@ -66,8 +86,19 @@ optional<vector<Shape>> SliceObj::inferShape(const TensorVec &inputs) {
     Shape ans;
     ans.reserve(axes.size());
     for (const auto &range : axes) {
-        auto step = std::abs(range.step);
-        ans.push_back((range.end - range.start + step - 1) / step);
+        auto step = range.step;
+        auto start = range.start;
+        auto end = range.end;
+
+        // 根据步长计算输出形状
+        if (step > 0) {
+            ans.push_back((std::max(0, end - start) + step - 1) / step);
+        } else if (step < 0) {
+            step = -step;
+            ans.push_back((std::max(0, start - end) + step) / step);
+        } else {
+            IT_ASSERT(false); // 步长不能为零
+        }
     }
     return {{ans}};
 }
