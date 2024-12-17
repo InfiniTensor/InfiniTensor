@@ -52,6 +52,7 @@ class GraphHandlerObj {
     Tensor mul(Tensor a, Tensor b, Tensor c);
     Tensor div(Tensor a, Tensor b, Tensor c);
     Tensor pow(Tensor a, Tensor b, Tensor c);
+    Tensor equal(Tensor a, Tensor b, Tensor c);
     Tensor min(Tensor a, Tensor b, Tensor c);
     Tensor max(Tensor a, Tensor b, Tensor c);
 
