@@ -214,11 +214,25 @@ class ClipXdnn : public KUNLUNKernelWithoutConfig {
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
-        float min = op->getMin().value();
-        float max = op->getMax().value();
+        void *const min_ptr = (op->getInputs(1)->getRawDataPtr<void *>());
+        void *const max_ptr = (op->getInputs(2)->getRawDataPtr<void *>());
+        void *min_ptr_host =
+            calloc((op->getInputs(1)->getBytes() + sizeof(uint64_t) - 1) /
+                       sizeof(uint64_t),
+                   sizeof(uint64_t));
+        void *max_ptr_host =
+            calloc((op->getInputs(2)->getBytes() + sizeof(uint64_t) - 1) /
+                       sizeof(uint64_t),
+                   sizeof(uint64_t));
 
-        auto ret = xdnn::clip<float>(context->KUNLUNHandle(), (float *)aData,
-                                     (float *)cData, len, min, max);
+        context->copyBlobToCPU(min_ptr_host, min_ptr,
+                               op->getInputs(1)->getBytes());
+        context->copyBlobToCPU(max_ptr_host, max_ptr,
+                               op->getInputs(2)->getBytes());
+
+        auto ret = xdnn::clip<float>(
+            context->KUNLUNHandle(), (float *)aData, (float *)cData, len,
+            *(float *)min_ptr_host, *(float *)max_ptr_host);
         assert(ret == 0);
         return;
     }
