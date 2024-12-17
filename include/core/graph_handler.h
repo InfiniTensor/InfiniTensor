@@ -73,7 +73,7 @@ class GraphHandlerObj {
     Tensor flatten(Tensor s, Tensor y, int axis);
     Tensor pRelu(Tensor x, Tensor slope, Tensor y);
     Tensor elu(Tensor x, Tensor y, float alpha);
-    Tensor clip(Tensor x, Tensor y, Tensor min, Tensor max);
+    Tensor clip(TensorVec inputs, Tensor y);
     Tensor transpose(Tensor data, Tensor transposed, Shape perm);
     Tensor reshape(Tensor data, Tensor reshaped, Shape shape);
     Tensor resize(Tensor input, Tensor output,

@@ -59,8 +59,8 @@ void testClip(const std::function<void(void *, size_t, DataType)> &generator,
     auto inputGpu = xpuGraph->cloneTensor(inputCpu);
     auto inputMinGpu = xpuGraph->cloneTensor(inputMin);
     auto inputMaxGpu = xpuGraph->cloneTensor(inputMax);
-    auto gpuOp =
-        xpuGraph->addOp<ClipObj>(inputGpu, nullptr, inputMinGpu, inputMaxGpu);
+    auto gpuOp = xpuGraph->addOp<ClipObj>(
+        TensorVec{inputGpu, inputMinGpu, inputMaxGpu}, nullptr);
     xpuGraph->dataMalloc();
     inputMinGpu->copyin(vector<float>{min});
     inputMaxGpu->copyin(vector<float>{max});
@@ -70,8 +70,8 @@ void testClip(const std::function<void(void *, size_t, DataType)> &generator,
     auto outputGpu2Cpu = outputGpu->clone(cpuRuntime);
     // CPU
     Graph cpuGraph = make_ref<GraphObj>(cpuRuntime);
-    auto cpuOp =
-        cpuGraph->addOp<ClipObj>(inputCpu, nullptr, inputMin, inputMax);
+    auto cpuOp = cpuGraph->addOp<ClipObj>(
+        TensorVec{inputCpu, inputMin, inputMax}, nullptr);
     cpuGraph->addTensor(inputCpu);
     cpuGraph->addTensor(inputMin);
     cpuGraph->addTensor(inputMax);

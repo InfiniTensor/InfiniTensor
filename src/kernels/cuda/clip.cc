@@ -11,8 +11,12 @@ class ClipCuda : public CudaKernelWithoutConfig {
         auto op = as<ClipObj>(_op);
         void *const inputData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const outputData = (op->getOutput()->getRawDataPtr<void *>());
-        void *const min = (op->getInputs(1)->getRawDataPtr<void *>());
-        void *const max = (op->getInputs(2)->getRawDataPtr<void *>());
+        void *const min = op->numInputs() > 1
+                              ? (op->getInputs(1)->getRawDataPtr<void *>())
+                              : nullptr;
+        void *const max = op->numInputs() > 2
+                              ? (op->getInputs(2)->getRawDataPtr<void *>())
+                              : nullptr;
         auto dim = op->getInputs(0)->getDims();
         int num =
             std::accumulate(dim.begin(), dim.end(), 1, std::multiplies<int>());

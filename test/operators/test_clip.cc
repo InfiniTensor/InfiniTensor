@@ -24,7 +24,7 @@ void testClip(const std::function<void(void *, size_t, DataType)> &generator,
     Graph Graph = make_ref<GraphObj>(cpuRuntime);
     float min = 1.0;
     float max = 4.0;
-    auto Op = Graph->addOp<T>(inputCpu, nullptr, inputMin, inputMax);
+    auto Op = Graph->addOp<T>(TensorVec{inputCpu, inputMin, inputMax}, nullptr);
     Graph->addTensor(inputCpu);
     Graph->addTensor(inputMin);
     Graph->addTensor(inputMax);

@@ -30,8 +30,7 @@ class UnaryObj : public OperatorObj {
 
 class ClipObj : public OperatorObj {
   public:
-    ClipObj(GraphObj *graph, Tensor input, Tensor output, Tensor min,
-            Tensor max);
+    ClipObj(GraphObj *graph, TensorVec inputs, Tensor output);
     OP_CLONE(ClipObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 

@@ -11,8 +11,12 @@ class ClipCnnl : public BangKernelWithoutConfig {
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
-        void *const min = (op->getInputs(1)->getRawDataPtr<void *>());
-        void *const max = (op->getInputs(2)->getRawDataPtr<void *>());
+        void *const min = op->numInputs() > 1
+                              ? (op->getInputs(1)->getRawDataPtr<void *>())
+                              : nullptr;
+        void *const max = op->numInputs() > 2
+                              ? (op->getInputs(2)->getRawDataPtr<void *>())
+                              : nullptr;
 
         cnnlTensorDescriptor_t aDesc;
         auto aDim = op->getInputs(0)->getDims();
