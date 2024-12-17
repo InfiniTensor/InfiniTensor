@@ -17,7 +17,6 @@ namespace infini {
                      const RuntimeObj *_context) const override {              \
             auto op = as<ElementWiseObj>(_op);                                 \
             auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);   \
-            IT_ASSERT(op->getDType() == DataType::Float32);                    \
                                                                                \
             void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());   \
             void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());   \
@@ -80,7 +79,6 @@ class AddAclnn : public ASCENDKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
-        IT_ASSERT(op->getDType() == DataType::Float32);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
@@ -114,7 +112,7 @@ class AddAclnn : public ASCENDKernelWithoutConfig {
 
         auto [aAlpha, bAlpha, beta] = getAlphBeta();
         // ACL_FLOAT can be converted to ACL_FLOAT16 automatically
-        auto alpha = aclCreateScalar(&bAlpha, ACL_FLOAT);
+        auto alpha = aclCreateScalar(&bAlpha, aclDataType);
 
         uint64_t workspaceSize = 0;
         aclOpExecutor *executor;
@@ -149,7 +147,6 @@ class SubAclnn : public ASCENDKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
-        IT_ASSERT(op->getDType() == DataType::Float32);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
@@ -183,7 +180,7 @@ class SubAclnn : public ASCENDKernelWithoutConfig {
 
         auto [aAlpha, bAlpha, beta] = getAlphBeta();
         // ACL_FLOAT can be converted to ACL_FLOAT16 automatically
-        auto alpha = aclCreateScalar(&bAlpha, ACL_FLOAT);
+        auto alpha = aclCreateScalar(&bAlpha, aclDataType);
 
         uint64_t workspaceSize = 0;
         aclOpExecutor *executor;

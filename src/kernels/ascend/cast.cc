@@ -270,7 +270,19 @@ class CastAclnn : public ASCENDKernelWithoutConfig {
                 outputDim.data(), outputDim.size(), cData);
             NlCastType = aclDataType::ACL_FLOAT16;
             break;
+        case CastType::Float2Bool:
+            inputTensor = aclCreateTensor(
+                inputDim.data(), inputDim.size(), aclDataType::ACL_FLOAT,
+                inputStride.data(), 0, aclFormat::ACL_FORMAT_ND,
+                inputDim.data(), inputDim.size(), aData);
+            outputTensor = aclCreateTensor(
+                outputDim.data(), outputDim.size(), aclDataType::ACL_BOOL,
+                outputStride.data(), 0, aclFormat::ACL_FORMAT_ND,
+                outputDim.data(), outputDim.size(), cData);
+            NlCastType = aclDataType::ACL_BOOL;
+            break;
         default:
+            std::cout<<"Unsupported cast type!"<<(int)type<<std::endl;
             IT_TODO_HALT();
         }
         uint64_t workspaceSize = 0;
