@@ -8,6 +8,7 @@
 #include "aclnnop/level2/aclnn_exp.h"
 #include "aclnnop/level2/aclnn_floor.h"
 #include "aclnnop/level2/aclnn_gelu.h"
+#include "aclnnop/level2/aclnn_hardsigmoid.h"
 #include "aclnnop/level2/aclnn_hardswish.h"
 #include "aclnnop/level2/aclnn_leaky_relu.h"
 #include "aclnnop/level2/aclnn_neg.h"
@@ -218,6 +219,7 @@ class LeakyReluAclnn : public ASCENDKernelWithoutConfig {
 DEFINE_UNARY_Aclnn(Abs);
 DEFINE_UNARY_Aclnn(Sigmoid);
 DEFINE_UNARY_Aclnn(Hardswish);
+DEFINE_UNARY_Aclnn(Hardsigmoid);
 DEFINE_UNARY_Aclnn(Gelu);
 
 DEFINE_UNARY_Aclnn(Tanh);
@@ -244,6 +246,8 @@ REGISTER_KERNEL(Device::ASCEND, OpType::Sigmoid, SigmoidAclnn,
                 "sigmoid_ASCEND_float");
 REGISTER_KERNEL(Device::ASCEND, OpType::HardSwish, HardswishAclnn,
                 "hardswish_ASCEND_float");
+REGISTER_KERNEL(Device::ASCEND, OpType::HardSigmoid, HardsigmoidAclnn,
+                "hardsigmoid_ASCEND_float");
 REGISTER_KERNEL(Device::ASCEND, OpType::Tanh, TanhAclnn, "tanh_ASCEND_float");
 REGISTER_KERNEL(Device::ASCEND, OpType::Gelu, GeluAclnn, "gelu_ASCEND_float");
 REGISTER_KERNEL(Device::ASCEND, OpType::Sin, SinAclnn, "sin_ASCEND_float");

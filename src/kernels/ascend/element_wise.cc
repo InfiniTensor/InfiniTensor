@@ -2,6 +2,7 @@
 #include "aclnnop/aclnn_maximum.h"
 #include "aclnnop/level2/aclnn_add.h"
 #include "aclnnop/level2/aclnn_div.h"
+#include "aclnnop/level2/aclnn_eq_tensor.h"
 #include "aclnnop/level2/aclnn_mul.h"
 #include "aclnnop/level2/aclnn_pow_tensor_tensor.h"
 #include "aclnnop/level2/aclnn_sub.h"
@@ -100,7 +101,7 @@ class AddAclnn : public ASCENDKernelWithoutConfig {
         std::vector<int64_t> cStride = castTo64(cS);
 
         auto aclDataType = aclnnDataTypeConvert(op->getDType());
-        
+
         auto inputA = aclCreateTensor(
             aDim.data(), aDim.size(), aclDataType, aStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, aDim.data(), aDim.size(), aData);
@@ -214,6 +215,8 @@ DEFINE_ELEMENT_WISE_Aclnn(Div);
 DEFINE_ELEMENT_WISE_Aclnn(Mul);
 DEFINE_ELEMENT_WISE_Aclnn(Maximum);
 
+DEFINE_ELEMENT_WISE_Aclnn(EqTensor);
+
 REGISTER_KERNEL(Device::ASCEND, OpType::Pow, PowTensorTensorAclnn,
                 "pow_ASCEND_float");
 REGISTER_KERNEL(Device::ASCEND, OpType::Div, DivAclnn, "div_ASCEND_float");
@@ -223,5 +226,15 @@ REGISTER_KERNEL(Device::ASCEND, OpType::Add, AddAclnn, "add_ASCEND_float");
 REGISTER_KERNEL(Device::ASCEND, OpType::Sub, SubAclnn, "sub_ASCEND_float");
 REGISTER_KERNEL(Device::ASCEND, OpType::Max, MaximumAclnn, "max_ASCEND_float");
 //  REGISTER_KERNEL(Device::ASCEND, OpType::Abs, AbsAclnn, "abs_ASCEND_float");
+
+REGISTER_KERNEL(Device::ASCEND, OpType::Equal, EqTensorAclnn, "equal_ASCEND");
+// REGISTER_KERNEL(Device::BANG, OpType::Greater, GreaterThanCnnl,
+//                 "GreaterThan_cnnl_BANG");
+// REGISTER_KERNEL(Device::BANG, OpType::GreaterOrEqual, GreaterEqualCnnl,
+//                 "GreaterEqual_cnnl_BANG");
+// REGISTER_KERNEL(Device::BANG, OpType::Less, LessThanCnnl,
+// "LessThan_cnnl_BANG"); REGISTER_KERNEL(Device::BANG, OpType::LessOrEqual,
+// LessEqualCnnl,
+//                 "LessEqual_cnnl_BANG");
 
 } // namespace infini
