@@ -910,22 +910,46 @@ class OnnxStub:
                     MIN_INT = -0x80000000
                     return [max(min(x, MAX_INT), MIN_INT) for x in nums]
 
-                tensors[node.output[0]] = self.handler.slice(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    clamp(_parse_data(data[node.input[1]])),
-                    clamp(_parse_data(data[node.input[2]])),
-                    (
-                        clamp(_parse_data(data[node.input[3]]))
-                        if len(node.input) > 3
-                        else None
-                    ),
-                    (
-                        clamp(_parse_data(data[node.input[4]]))
-                        if len(node.input) > 4
-                        else None
-                    ),
-                )
+                if len(node.input) == 1:
+                    # onnx v1 slice with only one input, and the other info in attr
+                    tensors[node.output[0]] = self.handler.slice(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        next(
+                            attr.ints
+                            for attr in node.attribute
+                            if attr.name == "starts"
+                        ),
+                        next(
+                            attr.ints for attr in node.attribute if attr.name == "ends"
+                        ),
+                        next(
+                            (
+                                attr.ints
+                                for attr in node.attribute
+                                if attr.name == "axex"
+                            ),
+                            None,
+                        ),
+                        None,
+                    )
+                else:
+                    tensors[node.output[0]] = self.handler.slice(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        clamp(_parse_data(data[node.input[1]])),
+                        clamp(_parse_data(data[node.input[2]])),
+                        (
+                            clamp(_parse_data(data[node.input[3]]))
+                            if len(node.input) > 3
+                            else None
+                        ),
+                        (
+                            clamp(_parse_data(data[node.input[4]]))
+                            if len(node.input) > 4
+                            else None
+                        ),
+                    )
             elif node.op_type == "Pad":
                 tensors[node.output[0]] = self.handler.pad(
                     tensors[node.input[0]],
