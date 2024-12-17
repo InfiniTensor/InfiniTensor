@@ -620,16 +620,8 @@ class OnnxStub:
                 tensors[node.output[0]] = self.handler.clip(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
-                    (
-                        next(_parse_data(data[node.input[1]]).__iter__(), None)
-                        if len(node.input) > 1
-                        else None
-                    ),
-                    (
-                        next(_parse_data(data[node.input[2]]).__iter__(), None)
-                        if len(node.input) > 2
-                        else None
-                    ),
+                    tensors[node.input[1]] if len(node.input) > 1 else None,
+                    tensors[node.input[2]] if len(node.input) > 2 else None,
                 )
             elif node.op_type == "Transpose":
                 perm = next(
@@ -1620,23 +1612,6 @@ class OnnxStub:
                 )
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Clip:
-                min, max = backend.clip_attrs_of(op)
-                if min != None:
-                    inputs.append(
-                        ctx.push_data_input(name, "min", TensorProto.FLOAT, [], [min])
-                    )
-                else:
-                    inputs.append(
-                        ctx.push_data_input(name, "min", TensorProto.FLOAT, [], [])
-                    )
-                if max != None:
-                    inputs.append(
-                        ctx.push_data_input(name, "max", TensorProto.FLOAT, [], [max])
-                    )
-                else:
-                    inputs.append(
-                        ctx.push_data_input(name, "max", TensorProto.FLOAT, [], [])
-                    )
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Cast:
                 to = backend.cast_to_of(op)
