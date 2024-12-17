@@ -8,7 +8,6 @@ class CopyAclnn : public ASCENDKernelWithoutConfig {
     void compute(const Operator &op,
                  const RuntimeObj *_context) const override {
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
-        IT_ASSERT(op->getDType() == DataType::Float32);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
