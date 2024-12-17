@@ -95,6 +95,22 @@ __global__ void _sqrt_kernel(half *input, half *output, size_t n) {
     }
 }
 
+__global__ void _exp_kernel(half *input, half *output, size_t n) {
+    size_t index = threadIdx.x + blockIdx.x * blockDim.x;
+    size_t stride = blockDim.x * gridDim.x;
+    for (size_t i = index; i < n; i += stride) {
+        output[i] = __float2half(__expf(__half2float(input[i])));
+    }
+}
+
+__global__ void _exp_kernel(float *input, float *output, size_t n) {
+    size_t index = threadIdx.x + blockIdx.x * blockDim.x;
+    size_t stride = blockDim.x * gridDim.x;
+    for (size_t i = index; i < n; i += stride) {
+        output[i] = __expf(input[i]);
+    }
+}
+
 __global__ void _elu_kernel(const float *input, float *output, size_t size,
                             float alpha) {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -228,6 +244,13 @@ template <typename T> void sqrt_kernel(T *input, T *output, size_t num) {
     _sqrt_kernel<<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
         (T *)input, (T *)output, num);
 }
+template <typename T> void exp_kernel(T *input, T *output, size_t num) {
+
+    int blocksize = block_work_size();
+    int gridsize = (num + block_work_size() - 1) / block_work_size();
+    _sqrt_kernel<<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+        (T *)input, (T *)output, num);
+}
 
 template <typename T> void gelu_kernel(T *input, T *output, size_t num) {
 
@@ -315,6 +338,14 @@ void unary_kernel(const Operator &_op) {
             sqrt_kernel<float>((float *)inputData, (float *)outputData, num);
         } else if (_op->getDType() == DataType::Float16) {
             sqrt_kernel<half>((half *)inputData, (half *)outputData, num);
+        } else {
+            IT_TODO_HALT();
+        }
+    } else if (op->getOpType() == OpType::Exp) {
+        if (_op->getDType() == DataType::Float32) {
+            exp_kernel<float>((float *)inputData, (float *)outputData, num);
+        } else if (_op->getDType() == DataType::Float16) {
+            exp_kernel<half>((half *)inputData, (half *)outputData, num);
         } else {
             IT_TODO_HALT();
         }

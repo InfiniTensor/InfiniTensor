@@ -15,7 +15,8 @@ class ClipCuda : public CudaKernelWithoutConfig {
         auto min = op->getMin();
         auto max = op->getMax();
         auto dim = op->getInputs(0)->getDims();
-        int num = dim[0] * dim[1] * dim[2] * dim[3];
+        int num =
+            std::accumulate(dim.begin(), dim.end(), 1, std::multiplies<int>());
         clip_kernel((float *)inputData, (float *)outputData, num,
                     min ? *min : NAN, max ? *max : NAN);
     }
