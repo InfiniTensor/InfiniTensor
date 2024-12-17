@@ -1,6 +1,7 @@
 #include "operators/unary.h"
 #include "kunlun/kunlun_kernel_without_config.h"
 #include "kunlun/kunlun_runtime.h"
+#include <limits>
 
 namespace infini {
 class ReluXdnn : public KUNLUNKernelWithoutConfig {
@@ -214,25 +215,40 @@ class ClipXdnn : public KUNLUNKernelWithoutConfig {
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
-        void *const min_ptr = (op->getInputs(1)->getRawDataPtr<void *>());
-        void *const max_ptr = (op->getInputs(2)->getRawDataPtr<void *>());
+        void *const min_ptr = op->numInputs() > 1
+                                  ? (op->getInputs(1)->getRawDataPtr<void *>())
+                                  : nullptr;
+        void *const max_ptr = op->numInputs() > 2
+                                  ? (op->getInputs(2)->getRawDataPtr<void *>())
+                                  : nullptr;
         void *min_ptr_host =
-            calloc((op->getInputs(1)->getBytes() + sizeof(uint64_t) - 1) /
-                       sizeof(uint64_t),
-                   sizeof(uint64_t));
+            min_ptr
+                ? calloc((op->getInputs(1)->getBytes() + sizeof(uint64_t) - 1) /
+                             sizeof(uint64_t),
+                         sizeof(uint64_t))
+                : nullptr;
         void *max_ptr_host =
-            calloc((op->getInputs(2)->getBytes() + sizeof(uint64_t) - 1) /
-                       sizeof(uint64_t),
-                   sizeof(uint64_t));
+            max_ptr
+                ? calloc((op->getInputs(2)->getBytes() + sizeof(uint64_t) - 1) /
+                             sizeof(uint64_t),
+                         sizeof(uint64_t))
+                : nullptr;
 
-        context->copyBlobToCPU(min_ptr_host, min_ptr,
-                               op->getInputs(1)->getBytes());
-        context->copyBlobToCPU(max_ptr_host, max_ptr,
-                               op->getInputs(2)->getBytes());
+        if (min_ptr) {
+            context->copyBlobToCPU(min_ptr_host, min_ptr,
+                                   op->getInputs(1)->getBytes());
+        }
+        if (max_ptr) {
+            context->copyBlobToCPU(max_ptr_host, max_ptr,
+                                   op->getInputs(2)->getBytes());
+        }
 
         auto ret = xdnn::clip<float>(
             context->KUNLUNHandle(), (float *)aData, (float *)cData, len,
-            *(float *)min_ptr_host, *(float *)max_ptr_host);
+            min_ptr_host ? *(float *)min_ptr_host
+                         : std::numeric_limits<float>::min(),
+            max_ptr_host ? *(float *)max_ptr_host
+                         : std::numeric_limits<float>::max());
         assert(ret == 0);
         return;
     }

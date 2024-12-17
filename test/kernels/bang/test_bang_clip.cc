@@ -36,8 +36,8 @@ void testClip(const std::function<void(void *, size_t, DataType)> &generator,
     float max = 4.0;
     inputMin->copyin(vector<float>{min});
     inputMax->copyin(vector<float>{max});
-    auto gpuOp =
-        bangGraph->addOp<T>(inputGpu, nullptr, inputMinGpu, inputMaxGpu);
+    auto gpuOp = bangGraph->addOp<T>(
+        TensorVec{inputGpu, inputMinGpu, inputMaxGpu}, nullptr);
     bangGraph->dataMalloc();
     inputMinGpu->copyin(vector<float>{min});
     inputMaxGpu->copyin(vector<float>{max});

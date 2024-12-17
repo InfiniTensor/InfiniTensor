@@ -689,10 +689,8 @@ class OnnxStub:
                 )
             elif node.op_type == "Clip":
                 tensors[node.output[0]] = self.handler.clip(
-                    tensors[node.input[0]],
+                    [tensors[name] for name in node.input if name != ""],
                     tensors.get(node.output[0]),
-                    tensors[node.input[1]] if (len(node.input) > 1 and node.input[1] != "") else None,
-                    tensors[node.input[2]] if (len(node.input) > 2 and node.input[2] != "") else None,
                 )
             elif node.op_type == "Transpose":
                 perm = next(
