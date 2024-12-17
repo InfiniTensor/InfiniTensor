@@ -9,6 +9,7 @@ from onnx import (
 )
 from onnx.helper import (
     make_node,
+    make_tensor_type_proto,
     make_tensor_value_info,
     make_tensor,
     make_graph,
@@ -48,6 +49,18 @@ class OnnxStub:
         # We use some user-defined operators for distributed inference
         try:
             # onnx simplifier performs inplace simplify
+            for i in range(len(model.graph.input)):
+                input_shape = []
+                for dim in model.graph.input[i].type.tensor_type.shape.dim:
+                    input_shape.append(
+                        dim.dim_value if dim.HasField("dim_value") else 1
+                    )
+                # print("input shape :", input_shape)
+                new_input_shape = make_tensor_type_proto(
+                    elem_type=model.graph.input[i].type.tensor_type.elem_type,
+                    shape=input_shape,
+                )
+                model.graph.input[i].type.CopyFrom(new_input_shape)
             model_simp, check = simplify(copy.deepcopy(model))
             if check:
                 model = model_simp
