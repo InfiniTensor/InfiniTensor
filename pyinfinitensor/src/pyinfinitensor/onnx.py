@@ -706,19 +706,19 @@ class OnnxStub:
                 if len(node.input) > 3 and node.input[3] in data:
                     sizesVal = _parse_data(data[node.input[3]])
                 else:
-                    sizesVal = []
+                    sizesVal = []               
                 tensors[node.output[0]] = self.handler.resize(
                     tensors[node.input[0]],
                     output,
                     axes,
                     (
                         tensors[node.input[3]]
-                        if len(node.input) > 3 and node.input[3] != ""
+                        if len(node.input) > 3 and node.input[3] != "" and sizesVal != []
                         else None
                     ),
                     (
                         tensors[node.input[2]]
-                        if len(node.input) > 2 and node.input[2] != ""
+                        if len(node.input) > 2 and node.input[2] != "" and scalesVal != [] 
                         else None
                     ),
                     (
