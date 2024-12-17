@@ -2,6 +2,7 @@
 #include "core/constants.h"
 #include "cuda/cuda_common.h"
 #include "cuda/cuda_unary.h"
+#include <cstdint>
 #include <cub/cub.cuh>
 #include <math.h>
 
@@ -384,6 +385,9 @@ template void cast_kernel<float, int8_t>(float *input, int8_t *output,
                                          size_t num);
 template void cast_kernel<int8_t, float>(int8_t *input, float *output,
                                          size_t num);
+template void cast_kernel<float, bool>(float *input, bool *output, size_t num);
+template void cast_kernel<int64_t, float>(int64_t *input, float *output,
+                                          size_t num);
 template void leaky_relu_kernel<float>(float *input, float *output, size_t num,
                                        float alpha);
 }; // namespace infini
