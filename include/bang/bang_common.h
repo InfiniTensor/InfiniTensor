@@ -54,7 +54,7 @@ inline cnnlDataType_t cnnlDataTypeConvert(DataType dataType) {
         return CNNL_DTYPE_BFLOAT16;
     }
     if (dataType == DataType::Int64) {
-        return CNNL_DTYPE_INT32;    //Cambricon CNNL unsupports int64
+        return CNNL_DTYPE_INT32; // Cambricon CNNL unsupports int64
     }
     if (dataType == DataType::Bool) {
         return CNNL_DTYPE_BOOL;
