@@ -27,7 +27,7 @@ TEST(KUNLUN_Reshape, run) {
     g->dataMalloc();
     i->setData(IncrementalGenerator());
 
-    // Execute on KUNLUN 
+    // Execute on KUNLUN
     kunlunRuntime->run(g);
 
     // clone KUNLUN output to CPU
@@ -57,7 +57,7 @@ TEST(KUNLUN_Flatten, run) {
     g->dataMalloc();
     i->setData(IncrementalGenerator());
 
-    // Execute on KUNLUN 
+    // Execute on KUNLUN
     kunlunRuntime->run(g);
 
     // clone KUNLUN output to CPU

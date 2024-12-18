@@ -37,8 +37,8 @@ class CastXdnn : public KUNLUNKernelWithoutConfig {
                 context->KUNLUNHandle(), (float *)aData, (int8_t *)cData, len);
             break;
         case CastType::Float2Bool:
-            ret = xdnn::cast<float, bool>(
-                context->KUNLUNHandle(), (float *)aData, (bool *)cData, len);
+            ret = xdnn::cast<float, bool>(context->KUNLUNHandle(),
+                                          (float *)aData, (bool *)cData, len);
             break;
         case CastType::Int322Float:
             ret = xdnn::cast<int, float>(context->KUNLUNHandle(), (int *)aData,
