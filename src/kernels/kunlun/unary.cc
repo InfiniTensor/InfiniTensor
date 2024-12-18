@@ -293,15 +293,37 @@ class NegXdnn : public KUNLUNKernelWithoutConfig {
 class CopyXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &op,
                  const RuntimeObj *_context) const override {
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
 
-        auto ret = xdnn::copy<float>(context->KUNLUNHandle(), (float *)aData,
-                                     (float *)cData, len);
+        auto ret = 0;
+        if (op->getDType() == DataType::Float32) {
+            ret = xdnn::copy<float>(context->KUNLUNHandle(), (float *)aData,
+                                    (float *)cData, len);
+        } else if (op->getDType() == DataType::Float16) {
+            ret = xdnn::copy<float16>(context->KUNLUNHandle(), (float16 *)aData,
+                                      (float16 *)cData, len);
+        } else if (op->getDType() == DataType::Int8) {
+            ret = xdnn::copy<int8_t>(context->KUNLUNHandle(), (int8_t *)aData,
+                                     (int8_t *)cData, len);
+        } else if (op->getDType() == DataType::Int32) {
+            ret = xdnn::copy<int>(context->KUNLUNHandle(), (int *)aData,
+                                  (int *)cData, len);
+        } else if (op->getDType() == DataType::Int64) {
+            ret = xdnn::copy<int64_t>(context->KUNLUNHandle(), (int64_t *)aData,
+                                      (int64_t *)cData, len);
+        } else if (op->getDType() == DataType::Int16) {
+            ret = xdnn::copy<int16_t>(context->KUNLUNHandle(), (int16_t *)aData,
+                                      (int16_t *)cData, len);
+        } else {
+            IT_ASSERT(false,
+                      "unsupported data type " + op->getDType().toString());
+        }
+        //auto ret = xdnn::copy<float>(context->KUNLUNHandle(), (float *)aData,
+        //                             (float *)cData, len);
         assert(ret == 0);
         return;
     }
@@ -623,6 +645,7 @@ REGISTER_KERNEL(Device::KUNLUN, OpType::Reshape, CopyXdnn, "Reshape_xdnn");
 REGISTER_KERNEL(Device::KUNLUN, OpType::Flatten, CopyXdnn, "Flatten_xdnn");
 REGISTER_KERNEL(Device::KUNLUN, OpType::Identity, CopyXdnn, "Identity_xdnn");
 REGISTER_KERNEL(Device::KUNLUN, OpType::Squeeze, CopyXdnn, "Squeeze_xdnn");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Unsqueeze, CopyXdnn, "Unsqueeze_xdnn");
 REGISTER_KERNEL(Device::KUNLUN, OpType::Abs, AbsXdnn, "Abs_xdnn");
 REGISTER_KERNEL(Device::KUNLUN, OpType::Atan, ATanXdnn, "Atan_xdnn");
 REGISTER_KERNEL(Device::KUNLUN, OpType::Log, LogXdnn, "Log_xdnn");
