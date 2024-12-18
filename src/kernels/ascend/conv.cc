@@ -11,7 +11,6 @@ class ConvAclnn : public ASCENDKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<ConvObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
-        IT_ASSERT(op->getDType() == DataType::Float32);
 
         const auto [ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
         const auto [n, c, h, w, f, r, s] = op->getNCHWFRS();

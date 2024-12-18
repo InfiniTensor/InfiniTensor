@@ -9,16 +9,26 @@ class ClipCuda : public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ClipObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         void *const inputData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const outputData = (op->getOutput()->getRawDataPtr<void *>());
-        auto min = op->getMin();
-        auto max = op->getMax();
+        void *const min = op->numInputs() > 1
+                              ? (op->getInputs(1)->getRawDataPtr<void *>())
+                              : nullptr;
+        void *const max = op->numInputs() > 2
+                              ? (op->getInputs(2)->getRawDataPtr<void *>())
+                              : nullptr;
         auto dim = op->getInputs(0)->getDims();
         int num =
             std::accumulate(dim.begin(), dim.end(), 1, std::multiplies<int>());
-        clip_kernel((float *)inputData, (float *)outputData, num,
-                    min ? *min : NAN, max ? *max : NAN);
+        if (op->getDType() == DataType::Float32) {
+            clip_kernel<float>((float *)inputData, (float *)outputData, num,
+                               (float *)min, (float *)max);
+        } else if (op->getDType() == DataType::Float16) {
+            clip_kernel<half>((half *)inputData, (half *)outputData, num,
+                              (half *)min, (half *)max);
+        } else {
+            IT_TODO_HALT();
+        }
     }
 };
 

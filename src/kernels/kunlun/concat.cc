@@ -21,9 +21,6 @@ class ConcatXdnn : public KUNLUNKernelWithoutConfig {
         std::vector<std::vector<int>> dims;
         for (int i = 0; i < num; ++i) {
             auto dim = op->getInputs(i)->getDims();
-            if (dim.size() != 4) {
-                IT_TODO_HALT();
-            }
             dims.push_back(dim);
         }
         auto ret = xdnn::concat<float>(context->KUNLUNHandle(), inputsData,

@@ -23,6 +23,8 @@ optional<vector<Shape>> PoolingObj::inferShape(const TensorVec &inputs) {
     } else {
         oh = floor(((float)(h + 2 * ph - dh * (kh - 1) - 1)) / sh + 1);
         ow = floor(((float)(w + 2 * pw - dw * (kw - 1) - 1)) / sw + 1);
+        oh = std::max(oh, 1);
+        ow = std::max(ow, 1);
     }
 
     auto ret = input->getDims();

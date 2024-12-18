@@ -95,6 +95,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, Mul)
         .VALUE(OpType, Div)
         .VALUE(OpType, Pow)
+        .VALUE(OpType, Equal)
         .VALUE(OpType, Gather)
         .VALUE(OpType, GatherElements)
         .VALUE(OpType, ReduceMean)
@@ -241,13 +242,6 @@ pool_attrs_of(Operator op) {
                            pool->getSh(), pool->getSw(), pool->getCeilMode());
 }
 
-static std::tuple<std::optional<float>, std::optional<float>>
-clip_attrs_of(Operator op) {
-    IT_ASSERT(op->getOpType() == OpType::Clip);
-    auto clip = dynamic_cast<const ClipObj *>(op.get());
-    return std::make_tuple(clip->getMin(), clip->getMax());
-}
-
 static std::tuple<vector<int>, bool> reduce_attrs_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::ReduceMean ||
               op->getOpType() == OpType::ReduceSum);
@@ -384,7 +378,6 @@ void export_functions(py::module &m) {
         .FUNCTION(matmul_attrs_of)
         .FUNCTION(batch_norm_attrs_of)
         .FUNCTION(pool_attrs_of)
-        .FUNCTION(clip_attrs_of)
         .FUNCTION(reduce_attrs_of)
         .FUNCTION(tensor_dtype)
         .FUNCTION(reshape_shape_of)
@@ -560,6 +553,7 @@ void init_graph_builder(py::module &m) {
         .def("max", &Handler::max, policy::move)
         .def("div", &Handler::div, policy::move)
         .def("pow", &Handler::pow, policy::move)
+        .def("equal", &Handler::equal, policy::move)
         .def("min", &Handler::min, policy::move)
         .def("max", &Handler::max, policy::move)
         .def("relu", &Handler::relu, policy::move)
@@ -571,6 +565,7 @@ void init_graph_builder(py::module &m) {
         .def("hardSigmoid", &Handler::hardSigmoid, policy::move)
         .def("hardSwish", &Handler::hardSwish, policy::move)
         .def("softmax", &Handler::softmax, policy::move)
+        .def("topk", &Handler::topk, policy::move)
         .def("abs", &Handler::abs, policy::move)
         .def("sqrt", &Handler::sqrt, policy::move)
         .def("log", &Handler::log, policy::move)

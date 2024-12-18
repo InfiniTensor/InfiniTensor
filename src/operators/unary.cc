@@ -30,10 +30,8 @@ vector<int> UnaryObj::getWorkloadVector() const {
 
 vector<int> UnaryObj::getOpAttrVector() const { return {type.underlying()}; }
 
-ClipObj::ClipObj(GraphObj *graph, Tensor input, Tensor output,
-                 std::optional<float> min, std::optional<float> max)
-    : OperatorObj(OpType::Clip, {input}, {output}), minValue(min),
-      maxValue(max) {
+ClipObj::ClipObj(GraphObj *graph, TensorVec inputs, Tensor output)
+    : OperatorObj(OpType::Clip, inputs, {output}) {
     IT_ASSERT(checkValid(graph));
 }
 

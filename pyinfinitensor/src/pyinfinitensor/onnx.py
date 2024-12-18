@@ -549,6 +549,12 @@ class OnnxStub:
                     tensors[node.input[1]],
                     tensors.get(node.output[0]),
                 )
+            elif node.op_type == "Equal":
+                tensors[node.output[0]] = self.handler.equal(
+                    tensors[node.input[0]],
+                    tensors[node.input[1]],
+                    tensors.get(node.output[0]),
+                )
             elif node.op_type == "Min":
                 tensors[node.output[0]] = self.handler.min(
                     tensors[node.input[0]],
@@ -614,6 +620,30 @@ class OnnxStub:
                         -1,
                     ),
                 )
+            elif node.op_type == "TopK":
+                K = _parse_data(data[node.input[1]])
+                for name, tensor in zip(
+                    node.output,
+                    self.handler.topk(
+                        tensors[node.input[0]],
+                        None,
+                        K,
+                        next(
+                            (attr.i for attr in node.attribute if attr.name == "axis"),
+                            -1,
+                        ),
+                        next(
+                            (attr.i for attr in node.attribute if attr.name == "Largest"),
+                            1,
+                        ),
+                        next(
+                            (attr.i for attr in node.attribute if attr.name == "sorted"),
+                            1,
+                        ),
+                    ),
+                ):
+                    tensors[name] = tensor
+                
             elif node.op_type == "Abs":
                 tensors[node.output[0]] = self.handler.abs(
                     tensors[node.input[0]],
@@ -666,18 +696,8 @@ class OnnxStub:
                 )
             elif node.op_type == "Clip":
                 tensors[node.output[0]] = self.handler.clip(
-                    tensors[node.input[0]],
+                    [tensors[name] for name in node.input if name != ""],
                     tensors.get(node.output[0]),
-                    (
-                        next(_parse_data(data[node.input[1]]).__iter__(), None)
-                        if len(node.input) > 1 and node.input[1] != ''
-                        else None
-                    ),
-                    (
-                        next(_parse_data(data[node.input[2]]).__iter__(), None)
-                        if len(node.input) > 2 and node.input[2] != ''
-                        else None
-                    ),
                 )
             elif node.op_type == "Transpose":
                 perm = next(
@@ -888,24 +908,49 @@ class OnnxStub:
 
                 def clamp(nums):
                     MAX_INT = 0x7FFFFFFF
-                    return [min(x, MAX_INT) for x in nums]
+                    MIN_INT = -0x80000000
+                    return [max(min(x, MAX_INT), MIN_INT) for x in nums]
 
-                tensors[node.output[0]] = self.handler.slice(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    clamp(_parse_data(data[node.input[1]])),
-                    clamp(_parse_data(data[node.input[2]])),
-                    (
-                        clamp(_parse_data(data[node.input[3]]))
-                        if len(node.input) > 3
-                        else None
-                    ),
-                    (
-                        clamp(_parse_data(data[node.input[4]]))
-                        if len(node.input) > 4
-                        else None
-                    ),
-                )
+                if len(node.input) == 1:
+                    # onnx v1 slice with only one input, and the other info in attr
+                    tensors[node.output[0]] = self.handler.slice(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        next(
+                            attr.ints
+                            for attr in node.attribute
+                            if attr.name == "starts"
+                        ),
+                        next(
+                            attr.ints for attr in node.attribute if attr.name == "ends"
+                        ),
+                        next(
+                            (
+                                attr.ints
+                                for attr in node.attribute
+                                if attr.name == "axex"
+                            ),
+                            None,
+                        ),
+                        None,
+                    )
+                else:
+                    tensors[node.output[0]] = self.handler.slice(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        clamp(_parse_data(data[node.input[1]])),
+                        clamp(_parse_data(data[node.input[2]])),
+                        (
+                            clamp(_parse_data(data[node.input[3]]))
+                            if len(node.input) > 3
+                            else None
+                        ),
+                        (
+                            clamp(_parse_data(data[node.input[4]]))
+                            if len(node.input) > 4
+                            else None
+                        ),
+                    )
             elif node.op_type == "Pad":
                 tensors[node.output[0]] = self.handler.pad(
                     tensors[node.input[0]],
@@ -1143,6 +1188,201 @@ class OnnxStub:
                     tensors.get(node.output[0]),
                     mode,
                 )
+            elif node.op_type == "LSTM":
+                attributes = _parse_attribute(
+                    node,
+                    {
+                        "hidden_size": 1,  # 默认隐藏状态大小
+                        "direction": "forward",  # 默认单向
+                    },
+                )
+                hidden_size = attributes["hidden_size"]
+                direction = attributes["direction"]
+                bidirectional = direction == "bidirectional"
+
+                # 初始状态检查
+                h_0 = tensors[node.input[5]] if len(node.input) > 5 else None
+                c_0 = tensors[node.input[6]] if len(node.input) > 6 else None
+
+                # 输入权重分块（W, R, B）
+                W = tensors[
+                    node.input[1]
+                ]  # 输入权重，形状: [num_directions, 4 * hidden_size, input_size]
+                R = tensors[
+                    node.input[2]
+                ]  # 隐藏状态权重，形状: [num_directions, 4 * hidden_size, hidden_size]
+                B = (
+                    tensors[node.input[3]] if len(node.input) > 3 else None
+                )  # 偏置，形状: [num_directions, 8 * hidden_size]
+
+                # 获取输入序列
+                X = tensors[node.input[0]]
+
+                # 初始化输出变量
+                outputs = []
+
+                # 处理每个时间步
+                seq_length = X.shape()[0]  # 假设第 0 维是时间步
+                batch_size = X.shape()[1]
+                input_size = X.shape()[2]
+
+                num_directions = 2 if bidirectional else 1
+
+                # 初始化隐藏状态和细胞状态
+                h_t = (
+                    h_0
+                    if h_0 is not None
+                    else self.handler.zeros([num_directions, batch_size, hidden_size])
+                )
+                c_t = (
+                    c_0
+                    if c_0 is not None
+                    else self.handler.zeros([num_directions, batch_size, hidden_size])
+                )
+
+                for t in range(seq_length):
+                    # 当前时间步输入
+                    X_t = self.handler.slice(
+                        X, None, [t, 0, 0], [t + 1, batch_size, input_size], None, None
+                    )
+                    X_t = self.handler.reshape(
+                        X_t, None, [batch_size, input_size]
+                    )  # 去除时间维度
+
+                    # 初始化新的隐藏状态和细胞状态的列表
+                    new_h_t = []
+                    new_c_t = []
+
+                    # 对每个方向分别计算
+                    for d in range(num_directions):
+                        W_d = self.handler.slice(
+                            W,
+                            None,
+                            [d, 0, 0],
+                            [d + 1, 4 * hidden_size, input_size],
+                            None,
+                            None,
+                        )
+                        R_d = self.handler.slice(
+                            R,
+                            None,
+                            [d, 0, 0],
+                            [d + 1, 4 * hidden_size, hidden_size],
+                            None,
+                            None,
+                        )
+                        B_d = (
+                            self.handler.slice(
+                                B, None, [d, 0], [d + 1, 8 * hidden_size], None, None
+                            )
+                            if B is not None
+                            else None
+                        )
+
+                        # 转换权重维度
+                        W_d = self.handler.squeeze(
+                            W_d, None, [0]
+                        )  # 移除 num_directions 维度
+                        R_d = self.handler.squeeze(R_d, None, [0])
+                        if B_d is not None:
+                            B_d = self.handler.squeeze(B_d, None, [0])
+
+                        h_td = self.handler.squeeze(
+                            self.handler.slice(
+                                h_t,
+                                None,
+                                [d, 0, 0],
+                                [d + 1, batch_size, hidden_size],
+                                None,
+                                None,
+                            ),
+                            None,
+                            [0],
+                        )
+
+                        c_td = self.handler.squeeze(
+                            self.handler.slice(
+                                c_t,
+                                None,
+                                [d, 0, 0],
+                                [d + 1, batch_size, hidden_size],
+                                None,
+                                None,
+                            ),
+                            None,
+                            [0],
+                        )
+
+                        # 线性变换
+                        gates = self.handler.add(
+                            self.handler.matmul(
+                                X_t,
+                                self.handler.transpose(W_d, None, [1, 0]),
+                                None,
+                                False,
+                                False,
+                                None,
+                                backend.ActType.Linear,
+                                matmul_compute_type,
+                            ),
+                            self.handler.matmul(
+                                h_td,
+                                self.handler.transpose(R_d, None, [1, 0]),
+                                None,
+                                False,
+                                False,
+                                None,
+                                backend.ActType.Linear,
+                                matmul_compute_type,
+                            ),
+                            None,
+                        )
+
+                        if B_d is not None:
+                            # 按 ONNX 规范，将偏置切分为 [Wb | Rb]
+                            Wb, Rb = self.handler.split(B_d, None, -1, 2)
+                            gates = self.handler.add(
+                                gates, self.handler.add(Wb, Rb, None), None
+                            )
+
+                        # 分割门
+                        i, f, o, g = self.handler.split(gates, None, -1, 4)
+
+                        # 激活函数
+                        i = self.handler.sigmoid(i, None)  # 输入门
+                        f = self.handler.sigmoid(f, None)  # 遗忘门
+                        o = self.handler.sigmoid(o, None)  # 输出门
+                        g = self.handler.tanh(g, None)  # 候选值
+
+                        # 更新细胞状态
+                        c_td = self.handler.add(
+                            self.handler.mul(f, c_td, None),  # 遗忘门作用于当前细胞状态
+                            self.handler.mul(i, g, None),  # 输入门作用于候选值
+                            None,
+                        )
+
+                        # 更新隐藏状态
+                        h_td = self.handler.mul(o, self.handler.tanh(c_td, None), None)
+
+                        # 添加到新的状态列表中
+                        new_h_t.append(self.handler.unsqueeze(h_td, None, [0]))
+                        new_c_t.append(self.handler.unsqueeze(c_td, None, [0]))
+
+                    # 拼接所有方向的隐藏状态和细胞状态
+                    h_t = self.handler.concat(new_h_t, None, 0)
+                    c_t = self.handler.concat(new_c_t, None, 0)
+
+                    outputs.append(h_t)
+
+                # 输出拼接
+                outputs = [
+                    self.handler.unsqueeze(output, None, [0]) for output in outputs
+                ]
+                tensors[node.output[0]] = self.handler.concat(outputs, None, 0)
+                if len(node.output) > 1:
+                    tensors[node.output[1]] = h_t  # 最终隐藏状态
+                if len(node.output) > 2:
+                    tensors[node.output[2]] = c_t  # 最终细胞状态
             else:
                 raise Exception('Unsupported operator "{}"'.format(node.op_type))
 
@@ -1397,6 +1637,7 @@ class OnnxStub:
                 backend.OpTypeId.Exp,
                 backend.OpTypeId.Erf,
                 backend.OpTypeId.Neg,
+                backend.OpTypeId.Equal,
             ]:
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Flatten:
@@ -1490,23 +1731,6 @@ class OnnxStub:
                 )
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Clip:
-                min, max = backend.clip_attrs_of(op)
-                if min != None:
-                    inputs.append(
-                        ctx.push_data_input(name, "min", TensorProto.FLOAT, [], [min])
-                    )
-                else:
-                    inputs.append(
-                        ctx.push_data_input(name, "min", TensorProto.FLOAT, [], [])
-                    )
-                if max != None:
-                    inputs.append(
-                        ctx.push_data_input(name, "max", TensorProto.FLOAT, [], [max])
-                    )
-                else:
-                    inputs.append(
-                        ctx.push_data_input(name, "max", TensorProto.FLOAT, [], [])
-                    )
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Cast:
                 to = backend.cast_to_of(op)
