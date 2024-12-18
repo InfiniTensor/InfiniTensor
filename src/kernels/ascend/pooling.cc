@@ -41,7 +41,7 @@ class AvgPooling : public ASCENDKernelWithoutConfig {
         aclIntArray *paddings = aclCreateIntArray(pad.data(), pad.size());
 
         auto aclDataType = aclnnDataTypeConvert(op->getDType());
-        
+
         auto selfTensor = aclCreateTensor(
             selfDim.data(), selfDim.size(), aclDataType, selfStride.data(), 0,
             aclFormat::ACL_FORMAT_NCHW, selfDim.data(), selfDim.size(), aData);

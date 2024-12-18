@@ -31,49 +31,49 @@ class ResizeXdnn : public KUNLUNKernelWithoutConfig {
         auto coMode = op->getCoordinateTransMode();
         auto coModeXdnn = 1;
         switch (coMode) {
-            case 2:
-                coModeXdnn = 0;
-                break;
-            case 0:
-                coModeXdnn = 1;
-                break;
-            case 3:
-                coModeXdnn = 2;
-                break;
-            default:
-            	IT_TODO_HALT();
+        case 2:
+            coModeXdnn = 0;
+            break;
+        case 0:
+            coModeXdnn = 1;
+            break;
+        case 3:
+            coModeXdnn = 2;
+            break;
+        default:
+            IT_TODO_HALT();
         }
 
-        switch(mode) {
-            case ResizeObj::ECoeffMode::linear:{
-            	IT_TODO_HALT();
-            }
-            case ResizeObj::ECoeffMode::nearest: {
-                auto nearest_mode = op->getNearestMode();
-                auto nearestModeXdnn = 1;
-                switch (nearest_mode) {
-		    case 2:
-			nearestModeXdnn = 1;
-			break;
-		    case 1:
-			nearestModeXdnn = 0;
-			break;
-		    default:
-            		IT_TODO_HALT();
-                }
-                checkKUNLUNError(xdnn::nearest_resize2d(
-                    context->KUNLUNHandle(), (float *)inData, (float *)outData,
-                    n, c, xh, xw, yh, yw, coModeXdnn, nearestModeXdnn, true 
-                ));
-            	break;
-            }
+        switch (mode) {
+        case ResizeObj::ECoeffMode::linear: {
+            IT_TODO_HALT();
+        }
+        case ResizeObj::ECoeffMode::nearest: {
+            auto nearest_mode = op->getNearestMode();
+            auto nearestModeXdnn = 1;
+            switch (nearest_mode) {
+            case 2:
+                nearestModeXdnn = 1;
+                break;
+            case 1:
+                nearestModeXdnn = 0;
+                break;
             default:
                 IT_TODO_HALT();
+            }
+            checkKUNLUNError(xdnn::nearest_resize2d(
+                context->KUNLUNHandle(), (float *)inData, (float *)outData, n,
+                c, xh, xw, yh, yw, coModeXdnn, nearestModeXdnn, true));
+            break;
+        }
+        default:
+            IT_TODO_HALT();
         }
         return;
     }
 };
 
-REGISTER_KERNEL(Device::KUNLUN, OpType::Resize, ResizeXdnn, "Resize_xdnn_KUNLUN");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Resize, ResizeXdnn,
+                "Resize_xdnn_KUNLUN");
 
 }; // namespace infini

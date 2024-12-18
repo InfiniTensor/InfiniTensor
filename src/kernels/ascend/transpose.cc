@@ -28,7 +28,7 @@ class PermuteAclnn : public ASCENDKernelWithoutConfig {
         std::vector<int64_t> permute = castTo64(_permute);
 
         auto aclDataType = aclnnDataTypeConvert(op->getDType());
-        
+
         auto inputA = aclCreateTensor(
             aDim.data(), aDim.size(), aclDataType, aStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, aDim.data(), aDim.size(), aData);

@@ -282,7 +282,7 @@ class CastAclnn : public ASCENDKernelWithoutConfig {
             NlCastType = aclDataType::ACL_BOOL;
             break;
         default:
-            std::cout<<"Unsupported cast type!"<<(int)type<<std::endl;
+            std::cout << "Unsupported cast type!" << (int)type << std::endl;
             IT_TODO_HALT();
         }
         uint64_t workspaceSize = 0;
