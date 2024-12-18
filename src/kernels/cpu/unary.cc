@@ -33,6 +33,8 @@ class NativeUnary : public CpuKernelWithoutConfig {
 
     template <typename T> static T sqrtCompute(T val) { return std::sqrt(val); }
 
+    template <typename T> static T logCompute(T val) { return std::log(val); }
+
     template <typename T> static T expCompute(T val) { return std::exp(val); }
 
     template <typename T> static T cosCompute(T val) { return std::cos(val); }
@@ -110,6 +112,9 @@ class NativeUnary : public CpuKernelWithoutConfig {
             break;
         case OpType::Sqrt:
             _doCompute = sqrtCompute<T>;
+            break;
+        case OpType::Log:
+            _doCompute = logCompute<T>;
             break;
         case OpType::Exp:
             _doCompute = expCompute<T>;

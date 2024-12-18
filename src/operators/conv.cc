@@ -278,10 +278,10 @@ ConvTransposed2dObj::inferShape(const TensorVec &inputs) {
 void ConvTransposed2dObj::setAuxilaryAttributes(PaddingMode mode) {
     const Tensor &input = inputs[0];
     const Tensor &weight = inputs[1];
-    n = input->getDims()[0], f = input->getDims()[1],
+    n = input->getDims()[0], c = input->getDims()[1],
     h = input->getDims().at(2),
     w = input->getRank() == 3 ? 1 : input->getDims().at(3),
-    c = weight->getDims()[1], r = weight->getDims()[2],
+    f = weight->getDims()[0], r = weight->getDims()[2],
     s = weight->getRank() == 3 ? 1 : weight->getDims()[3];
     if (mode == PaddingMode::Same) {
         int oh = h / sh;

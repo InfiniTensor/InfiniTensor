@@ -263,6 +263,7 @@ class LeakyReluObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 };
 
+// not onnx standard
 class LogObj : public OperatorObj {
   public:
     enum LogType {

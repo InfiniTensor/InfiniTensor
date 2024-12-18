@@ -67,6 +67,7 @@ class GraphHandlerObj {
     Tensor softmax(Tensor x, Tensor y, int axis);
     Tensor abs(Tensor x, Tensor y);
     Tensor sqrt(Tensor x, Tensor y);
+    Tensor log(Tensor x, Tensor y);
     Tensor exp(Tensor x, Tensor y);
     Tensor neg(Tensor x, Tensor y);
     Tensor shape(Tensor x, Tensor y);
@@ -123,6 +124,7 @@ class GraphHandlerObj {
                         std::string mode);
     Tensor lrn(Tensor input, Tensor output, float alpha, float beta, float bias,
                int size);
+    Tensor det(Tensor input, Tensor output, std::string mode);
 
     //------ modifiers
 
