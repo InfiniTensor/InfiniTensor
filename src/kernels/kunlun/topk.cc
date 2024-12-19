@@ -1,6 +1,6 @@
+#include "operators/topk.h"
 #include "kunlun/kunlun_kernel_without_config.h"
 #include "kunlun/kunlun_runtime.h"
-#include "operators/topk.h"
 
 namespace infini {
 class TopKXdnn : public KUNLUNKernelWithoutConfig {
