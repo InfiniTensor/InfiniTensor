@@ -68,6 +68,8 @@ class GraphHandlerObj {
     Tensor softmax(Tensor x, Tensor y, int axis);
     TensorVec topk(Tensor input, std::optional<TensorVec> outputs, Shape K,
                    int axis, int Largest, int sorted);
+    Tensor scatterND(Tensor data, Tensor indices, Tensor updates,
+                     Tensor output);
     Tensor abs(Tensor x, Tensor y);
     Tensor sqrt(Tensor x, Tensor y);
     Tensor log(Tensor x, Tensor y);
