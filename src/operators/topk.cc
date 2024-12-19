@@ -11,6 +11,8 @@ TopKObj::TopKObj(GraphObj *graph, Tensor input,
     IT_ASSERT(checkValid(graph));
 }
 optional<vector<Shape>> TopKObj::inferShape(const TensorVec &inputs) {
+    // k's size must be 1
+    IT_ASSERT(K.size() == 1);
     auto inputDims = inputs[0]->getDims();
     vector<Shape> ret;
     Shape outShape = inputDims;

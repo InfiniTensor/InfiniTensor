@@ -17,6 +17,7 @@ class TopKCnnl : public BangKernelWithoutConfig {
         void *const Indices = output_1->getRawDataPtr<void *>();
 
         int axis = op->getAxis();
+        IT_ASSERT(axis == -1); // TODO: support other axis
         int Largest = op->getLargest();
         int Sorted = op->getSorted();
 

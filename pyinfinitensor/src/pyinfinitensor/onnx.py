@@ -644,13 +644,13 @@ class OnnxStub:
                 ):
                     tensors[name] = tensor
             elif node.op_type == "ScatterND":
-                
                 tensors[node.output[0]] = self.handler.scatterND(
+                    tensors[node.input[0]],
                     tensors[node.input[1]],
                     tensors[node.input[2]],
-                    tensors[node.input[0]],
                     tensors.get(node.output[0]),
                 )
+                print(node.input[0], tensors[node.input[0]].shape(), tensors.get(node.output[0]).shape())
             elif node.op_type == "LogSoftmax":
                 softmax_node = self.handler.softmax(
                     tensors[node.input[0]],
@@ -1403,6 +1403,64 @@ class OnnxStub:
                     tensors[node.output[1]] = h_t  # 最终隐藏状态
                 if len(node.output) > 2:
                     tensors[node.output[2]] = c_t  # 最终细胞状态
+            elif node.op_type == "RandomNormal":
+                output_name = node.output[0]
+                attributes = _parse_attribute(
+                    node, {"dtype": 1, "mean": 0.0, "scale": 1.0, "seed": None}
+                )
+                (dtype, mean, scale, seed, shape) = (
+                    attributes[name]
+                    for name in ["dtype", "mean", "scale", "seed", "shape"]
+                )
+                if seed is not None:
+                    # np.random.seed need int type seed
+                    np.random.seed(int(seed))
+                from onnx.mapping import TENSOR_TYPE_MAP
+
+                random_values = np.random.normal(mean, scale, shape).astype(
+                    TENSOR_TYPE_MAP[dtype].np_dtype
+                )
+                tensors[output_name] = self.handler.tensor(shape, dtype)
+                tensors[output_name].set_weight()
+
+                tensor_proto = make_tensor(
+                    name=output_name,
+                    data_type=dtype,
+                    dims=shape,
+                    vals=random_values.flatten().tolist(),
+                )
+                data[output_name] = tensor_proto
+            elif node.op_type == "RandomNormalLike":
+                output_name = node.output[0]
+                attributes = _parse_attribute(
+                    node, {"dtype": None, "mean": 0.0, "scale": 1.0, "seed": None}
+                )
+                (dtype, mean, scale, seed) = (
+                    attributes[name] for name in ["dtype", "mean", "scale", "seed"]
+                )
+                if seed is not None:
+                    # np.random.seed need int type seed
+                    np.random.seed(int(seed))
+                from onnx.mapping import TENSOR_TYPE_MAP
+
+                if dtype is None:
+                    dtype = tensors[node.input[0]].data_type
+                shape = tensors[node.input[0]].shape()
+
+                random_values = np.random.normal(mean, scale, shape).astype(
+                    TENSOR_TYPE_MAP[dtype].np_dtype
+                )
+                tensors[output_name] = self.handler.tensor(shape, dtype)
+                tensors[output_name].set_weight()
+
+                tensor_proto = make_tensor(
+                    name=output_name,
+                    data_type=dtype,
+                    dims=shape,
+                    vals=random_values.flatten().tolist(),
+                )
+                data[output_name] = tensor_proto
+
             else:
                 raise Exception('Unsupported operator "{}"'.format(node.op_type))
 
