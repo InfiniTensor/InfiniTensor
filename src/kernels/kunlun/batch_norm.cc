@@ -7,7 +7,6 @@ class BatchNormXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<BatchNormObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const input = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -30,12 +29,23 @@ class BatchNormXdnn : public KUNLUNKernelWithoutConfig {
         c = dims[1];
         n = dims[0];
 
-        auto ret = xdnn::batch_norm_infer<float>(
-            context->KUNLUNHandle(), (float *)input, (float *)output, n, c, h,
-            w, op->getEps(), (float *)scale, (float *)bias, (float *)mean,
-            (float *)var, true);
+        auto ret = 0;
+        if (op->getDType() == DataType::Float32) {
+            ret = xdnn::batch_norm_infer<float>(
+                context->KUNLUNHandle(), (float *)input, (float *)output, n, c,
+                h, w, op->getEps(), (float *)scale, (float *)bias,
+                (float *)mean, (float *)var, true);
+        } else if (op->getDType() == DataType::Float16) {
+            ret = xdnn::batch_norm_infer<float16>(
+                context->KUNLUNHandle(), (float16 *)input, (float16 *)output, n,
+                c, h, w, op->getEps(), (float *)scale, (float *)bias,
+                (float *)mean, (float *)var, true);
+        } else {
+            IT_ASSERT(false,
+                      "unsupported data type " + op->getDType().toString());
+        }
 
-        assert(ret == 0);
+        checkKUNLUNError(ret);
         return;
     }
 };
@@ -44,3 +54,4 @@ REGISTER_KERNEL(Device::KUNLUN, OpType::BatchNormalization, BatchNormXdnn,
                 "BatchNorm_xdnn_KUNLUN");
 
 }; // namespace infini
+

@@ -4,11 +4,32 @@
 #include "utils/operator_utils.h"
 
 namespace infini {
+#define SWITCH_DTYPE_CASE(OP)                                                  \
+    auto ret = 0;                                                              \
+    if (op->getDType() == DataType::Float32) {                                 \
+        ret = xdnn::OP<float>(context->KUNLUNHandle(), (float *)aData, \
+                                      (float *)bData, (float *)cData, aDim,    \
+                                      bDim);                                   \
+    } else if (op->getDType() == DataType::Float16) {                          \
+        ret = xdnn::OP<float16>(context->KUNLUNHandle(),               \
+                                        (float16 *)aData, (float16 *)bData,    \
+                                        (float16 *)cData, aDim, bDim);         \
+    } else if (op->getDType() == DataType::Int32) {                            \
+        ret = xdnn::OP<int>(context->KUNLUNHandle(), (int *)aData,     \
+                                    (int *)bData, (int *)cData, aDim, bDim);   \
+    } else if (op->getDType() == DataType::Int64) {                            \
+        ret = xdnn::OP<int64_t>(context->KUNLUNHandle(),               \
+                                        (int64_t *)aData, (int64_t *)bData,    \
+                                        (int64_t *)cData, aDim, bDim);         \
+    } else {                                                                   \
+        IT_ASSERT(false, "Unsupported data type: " + op->getDType().toString());\
+    }                                                                          \
+    checkKUNLUNError(ret);
+
 class AddXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -23,9 +44,7 @@ class AddXdnn : public KUNLUNKernelWithoutConfig {
         if (bDim.size() == 0) {
             bDim.push_back(1);
         }
-        checkKUNLUNError(xdnn::broadcast_add<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)bData,
-            (float *)cData, aDim, bDim));
+        SWITCH_DTYPE_CASE(broadcast_add);
         return;
     }
 };
@@ -34,7 +53,6 @@ class SubXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -49,9 +67,7 @@ class SubXdnn : public KUNLUNKernelWithoutConfig {
         if (bDim.size() == 0) {
             bDim.push_back(1);
         }
-        checkKUNLUNError(xdnn::broadcast_sub<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)bData,
-            (float *)cData, aDim, bDim));
+        SWITCH_DTYPE_CASE(broadcast_sub);
         return;
     }
 };
@@ -60,7 +76,6 @@ class MulXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -75,9 +90,7 @@ class MulXdnn : public KUNLUNKernelWithoutConfig {
         if (bDim.size() == 0) {
             bDim.push_back(1);
         }
-        checkKUNLUNError(xdnn::broadcast_mul<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)bData,
-            (float *)cData, aDim, bDim));
+        SWITCH_DTYPE_CASE(broadcast_mul);
         return;
     }
 };
@@ -86,7 +99,6 @@ class DivXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -112,9 +124,7 @@ class DivXdnn : public KUNLUNKernelWithoutConfig {
                                               (float *)aData, (float *)bData,
                                               (float *)cData, aSize));
         } else {
-            checkKUNLUNError(xdnn::broadcast_div<float>(
-                context->KUNLUNHandle(), (float *)aData, (float *)bData,
-                (float *)cData, aDim, bDim));
+            SWITCH_DTYPE_CASE(broadcast_div);
         }
         return;
     }
@@ -541,3 +551,4 @@ REGISTER_KERNEL(Device::KUNLUN, OpType::Or, OrXdnn, "Or_xdnn_KUNLUN");
 REGISTER_KERNEL(Device::KUNLUN, OpType::Xor, XorXdnn, "Xor_xdnn_KUNLUN");
 REGISTER_KERNEL(Device::KUNLUN, OpType::Not, NotXdnn, "Not_xdnn_KUNLUN");
 }; // namespace infini
+
