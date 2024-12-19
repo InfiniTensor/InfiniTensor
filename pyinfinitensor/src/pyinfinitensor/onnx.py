@@ -140,7 +140,9 @@ class OnnxStub:
                 (d, p, s) = (
                     attributes[name] for name in ["dilations", "pads", "strides"]
                 )
-                isConv1D = len(p) == 2 and p[0] == p[1] and len(d) == len(s) and len(d) == 1
+                isConv1D = (
+                    len(p) == 2 and p[0] == p[1] and len(d) == len(s) and len(d) == 1
+                )
                 if isConv1D:
                     p = [p[0], 0, p[1], 0]
                     s = [s[0], 1]
@@ -171,22 +173,26 @@ class OnnxStub:
                     tensors[reshape] = self.handler.reshape(
                         tensors[node.input[2]],
                         None,
-                        [
-                            1,
-                            reduce(
-                                lambda acc, x: acc * x,
-                                tensors[node.input[2]].shape(),
-                            ),
-                            1,
-                            1,
-                        ] if not isConv1D else [
-                            1,
-                            reduce(
-                                lambda acc, x: acc * x,
-                                tensors[node.input[2]].shape(),
-                            ),
-                            1,
-                        ],
+                        (
+                            [
+                                1,
+                                reduce(
+                                    lambda acc, x: acc * x,
+                                    tensors[node.input[2]].shape(),
+                                ),
+                                1,
+                                1,
+                            ]
+                            if not isConv1D
+                            else [
+                                1,
+                                reduce(
+                                    lambda acc, x: acc * x,
+                                    tensors[node.input[2]].shape(),
+                                ),
+                                1,
+                            ]
+                        ),
                     )
                     tensors[node.output[0]] = self.handler.add(
                         tensors[bias],
@@ -225,7 +231,13 @@ class OnnxStub:
                     attributes[name]
                     for name in ["dilations", "pads", "strides", "output_padding"]
                 )
-                isConvTranspose1D = len(p) == 2 and len(op) == 2 and p[0] == p[1] and len(d) == len(s) and len(d) == 1
+                isConvTranspose1D = (
+                    len(p) == 2
+                    and len(op) == 2
+                    and p[0] == p[1]
+                    and len(d) == len(s)
+                    and len(d) == 1
+                )
                 if isConvTranspose1D:
                     p = [p[0], 0, p[1], 0]
                     s = [s[0], 1]
@@ -259,22 +271,26 @@ class OnnxStub:
                     tensors[reshape] = self.handler.reshape(
                         tensors[node.input[2]],
                         None,
-                        [
-                            1,
-                            reduce(
-                                lambda acc, x: acc * x,
-                                tensors[node.input[2]].shape(),
-                            ),
-                            1,
-                            1,
-                        ] if not isConvTranspose1D else [
-                            1,
-                            reduce(
-                                lambda acc, x: acc * x,
-                                tensors[node.input[2]].shape(),
-                            ),
-                            1,
-                        ],
+                        (
+                            [
+                                1,
+                                reduce(
+                                    lambda acc, x: acc * x,
+                                    tensors[node.input[2]].shape(),
+                                ),
+                                1,
+                                1,
+                            ]
+                            if not isConvTranspose1D
+                            else [
+                                1,
+                                reduce(
+                                    lambda acc, x: acc * x,
+                                    tensors[node.input[2]].shape(),
+                                ),
+                                1,
+                            ]
+                        ),
                     )
                     tensors[node.output[0]] = self.handler.add(
                         tensors[bias],
@@ -633,11 +649,19 @@ class OnnxStub:
                             -1,
                         ),
                         next(
-                            (attr.i for attr in node.attribute if attr.name == "Largest"),
+                            (
+                                attr.i
+                                for attr in node.attribute
+                                if attr.name == "Largest"
+                            ),
                             1,
                         ),
                         next(
-                            (attr.i for attr in node.attribute if attr.name == "sorted"),
+                            (
+                                attr.i
+                                for attr in node.attribute
+                                if attr.name == "sorted"
+                            ),
                             1,
                         ),
                     ),
@@ -650,7 +674,11 @@ class OnnxStub:
                     tensors[node.input[2]],
                     tensors.get(node.output[0]),
                 )
-                print(node.input[0], tensors[node.input[0]].shape(), tensors.get(node.output[0]).shape())
+                print(
+                    node.input[0],
+                    tensors[node.input[0]].shape(),
+                    tensors.get(node.output[0]).shape(),
+                )
             elif node.op_type == "LogSoftmax":
                 softmax_node = self.handler.softmax(
                     tensors[node.input[0]],
@@ -794,19 +822,23 @@ class OnnxStub:
                 if len(node.input) > 3 and node.input[3] in data:
                     sizesVal = _parse_data(data[node.input[3]])
                 else:
-                    sizesVal = []               
+                    sizesVal = []
                 tensors[node.output[0]] = self.handler.resize(
                     tensors[node.input[0]],
                     output,
                     axes,
                     (
                         tensors[node.input[3]]
-                        if len(node.input) > 3 and node.input[3] != "" and sizesVal != []
+                        if len(node.input) > 3
+                        and node.input[3] != ""
+                        and sizesVal != []
                         else None
                     ),
                     (
                         tensors[node.input[2]]
-                        if len(node.input) > 2 and node.input[2] != "" and scalesVal != [] 
+                        if len(node.input) > 2
+                        and node.input[2] != ""
+                        and scalesVal != []
                         else None
                     ),
                     (
@@ -1207,6 +1239,18 @@ class OnnxStub:
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
                     mode,
+                )
+            elif node.op_type == "Greater":
+                tensors[node.output[0]] = self.handler.greater(
+                    tensors[node.input[0]],
+                    tensors[node.input[1]],
+                    tensors.get(node.output[0]),
+                )
+            elif node.op_type == "GreaterOrEqual":
+                tensors[node.output[0]] = self.handler.greaterEqual(
+                    tensors[node.input[0]],
+                    tensors[node.input[1]],
+                    tensors.get(node.output[0]),
                 )
             elif node.op_type == "LSTM":
                 attributes = _parse_attribute(
@@ -1647,11 +1691,7 @@ class OnnxStub:
                 )
             elif ty == backend.OpTypeId.Det:
                 mode = backend.det_attr_of(op)
-                ctx.push_node(
-                    make_node(
-                        "Det", inputs, outputs, mode
-                    )
-                )
+                ctx.push_node(make_node("Det", inputs, outputs, mode))
             elif ty == backend.OpTypeId.BatchNormalization:
                 inputs = [inputs[i] for i in [0, 3, 4, 1, 2]]
                 momentum, eps, training = backend.batch_norm_attrs_of(op)

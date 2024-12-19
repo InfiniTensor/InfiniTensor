@@ -130,6 +130,8 @@ void export_values(py::module &m) {
         .VALUE(OpType, LRN)
         .VALUE(OpType, Elu)
         .VALUE(OpType, Det)
+        .VALUE(OpType, Greater)
+        .VALUE(OpType, GreaterOrEqual)
         .export_values();
 
 #undef VALUE
@@ -608,6 +610,8 @@ void init_graph_builder(py::module &m) {
         .def("where", &Handler::where, policy::move)
         .def("lrn", &Handler::lrn, policy::move)
         .def("det", &Handler::det, policy::move)
+        .def("greater", &Handler::greater, policy::move)
+        .def("greaterEqual", &Handler::greaterEqual, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)
         .def("optimize", &Handler::optimize, policy::automatic)
         .def("operators", &Handler::operators, policy::move)
