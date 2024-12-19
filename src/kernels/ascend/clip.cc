@@ -12,8 +12,17 @@ class ClipAclnn : public ASCENDKernelWithoutConfig {
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
-        void *const min_v = (op->getInputs(1)->getRawDataPtr<void *>());
-        void *const max_v = (op->getInputs(2)->getRawDataPtr<void *>());
+        void *min_v = (op->getInputs(1)->getRawDataPtr<void *>());
+        void *max_v = (op->getInputs(2)->getRawDataPtr<void *>());
+
+        size_t typeSize = op->getDType().getSize();
+        void *min_h = (void *)malloc(typeSize);
+        void *max_h = (void *)malloc(typeSize);
+
+        aclrtMemcpy(min_h, typeSize, const_cast<void *>(min_v), typeSize,
+                    ACL_MEMCPY_DEVICE_TO_HOST);
+        aclrtMemcpy(max_h, typeSize, const_cast<void *>(max_v), typeSize,
+                    ACL_MEMCPY_DEVICE_TO_HOST);
 
         auto inputD = op->getInputs(0)->getDims();
         auto inputS = op->getInputs(0)->getStride();
@@ -26,7 +35,6 @@ class ClipAclnn : public ASCENDKernelWithoutConfig {
         std::vector<int64_t> outputStride = castTo64(outS);
 
         auto aclDataType = aclnnDataTypeConvert(op->getDType());
-
         auto inputTensor =
             aclCreateTensor(inputDim.data(), inputDim.size(), aclDataType,
                             inputStride.data(), 0, aclFormat::ACL_FORMAT_ND,
@@ -35,8 +43,8 @@ class ClipAclnn : public ASCENDKernelWithoutConfig {
             aclCreateTensor(outputDim.data(), outputDim.size(), aclDataType,
                             outputStride.data(), 0, aclFormat::ACL_FORMAT_ND,
                             outputDim.data(), outputDim.size(), cData);
-        auto max = aclCreateScalar(max_v, aclDataType);
-        auto min = aclCreateScalar(min_v, aclDataType);
+        aclScalar *max = aclCreateScalar(max_h, aclDataType);
+        aclScalar *min = aclCreateScalar(min_h, aclDataType);
 
         uint64_t workspaceSize = 0;
         aclOpExecutor *executor;
@@ -56,6 +64,10 @@ class ClipAclnn : public ASCENDKernelWithoutConfig {
 
         aclDestroyTensor(inputTensor);
         aclDestroyTensor(outputTensor);
+        aclDestroyScalar(min);
+        aclDestroyScalar(max);
+        free(min_h);
+        free(max_h);
     }
 };
 
