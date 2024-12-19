@@ -22,6 +22,10 @@ class DetCnnl : public BangKernelWithoutConfig {
         auto dimin = op->getInputs(0)->getDims();
         auto dimout = op->getOutput()->getDims();
 
+        if (op->getInputs(0)->getRank() == 3 && dimin.at(2) == 1) {
+            std::swap(dimin[0], dimin[2]);
+        }
+
         checkCnnlError(cnnlCreateTensorDescriptor(&aDesc));
         checkCnnlError(cnnlSetTensorDescriptor(
             aDesc, CNNL_LAYOUT_ARRAY, cnnlDataTypeConvert(op->getDType()),
