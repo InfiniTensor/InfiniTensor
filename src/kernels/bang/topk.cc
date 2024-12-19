@@ -13,9 +13,9 @@ class TopKCnnl : public BangKernelWithoutConfig {
         auto output_0 = op->getOutput(0);
         auto output_1 = op->getOutput(1);
         void *const source = input->getRawDataPtr<void *>();
+        void *const Values = output_0->getRawDataPtr<void *>();
+        void *const Indices = output_1->getRawDataPtr<void *>();
 
-        void *const Indices = output_0->getRawDataPtr<void *>();
-        void *const Values = output_1->getRawDataPtr<void *>();
         int axis = op->getAxis();
         int Largest = op->getLargest();
         int Sorted = op->getSorted();
@@ -30,11 +30,11 @@ class TopKCnnl : public BangKernelWithoutConfig {
         if (op->getOpType() == OpType::TopK) {
             if (op->getDType() == DataType::Float32) {
                 TopKUnion_f32(context->cnnlHandle(), (float *)source, topk_,
-                              (int64_t *)Indices, (float *)Values, othersize,
+                              (float *)Values, (int64_t *)Indices, othersize,
                               dimsize, Largest, Sorted);
             } else if (op->getDType() == DataType::Float16) {
                 TopKUnion_f16(context->cnnlHandle(), (uint16_t *)source, topk_,
-                              (int64_t *)Indices, (uint16_t *)Values, othersize,
+                              (uint16_t *)Values, (int64_t *)Indices, othersize,
                               dimsize, Largest, Sorted);
             }
         } else {

@@ -23,7 +23,7 @@ optional<vector<Shape>> TopKObj::inferShape(const TensorVec &inputs) {
     return {ret};
 }
 vector<DataType> TopKObj::inferDataType(const TensorVec &inputs) const {
-    return {DataType(7), inputs[0]->getDType()}; // 7表示int64
+    return {inputs[0]->getDType(), DataType(7)}; // 7表示int64
 }
 std::string TopKObj::toString() const {
     std::ostringstream os;

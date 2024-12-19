@@ -6,7 +6,7 @@ const int SRC_MAX_SIZE = 1024 * 32;
 __nram__  char nram_buffer[NRAM_MAX_SIZE];
 
 template<typename T>
-__mlu_global__ void TopK_e(T const *source, int64_t topk, int64_t *Indices, T *Values, int othersize, int dimsize){
+__mlu_global__ void TopK_e(T const *source, int64_t topk, T *Values, int64_t *Indices, int othersize, int dimsize){
     
     const int maxNum = SRC_MAX_SIZE/sizeof(T);
     if(othersize >= taskDim){   
@@ -178,7 +178,7 @@ __mlu_global__ void TopK_e(T const *source, int64_t topk, int64_t *Indices, T *V
     
 }
 template<typename T>
-void TopKUnion(cnnlHandle_t handle, T const *source, int64_t topk, int64_t *Indices, T *Values, int othersize, int dimsize, int Largest, int sorted) {
+void TopKUnion(cnnlHandle_t handle, T const *source, int64_t topk, T *Values, int64_t *Indices, int othersize, int dimsize, int Largest, int sorted) {
 
     cnrtDim3_t k_dim;
     cnrtFunctionType_t k_type;
@@ -191,18 +191,18 @@ void TopKUnion(cnnlHandle_t handle, T const *source, int64_t topk, int64_t *Indi
     // launch kernel
     if (Largest == 1 && sorted == 1){
         TopK_e<T><<<k_dim, k_type, queue>>>(
-        source, topk, Indices, Values, othersize, dimsize);
+        source, topk, Values, Indices, othersize, dimsize);
     }
     
 }
 namespace infini {
-void TopKUnion_f32(cnnlHandle_t handle, float const *source, int64_t topk, int64_t *Indices, float *Values, int othersize, int dimsize, int Largest, int sorted) {
+void TopKUnion_f32(cnnlHandle_t handle, float const *source, int64_t topk, float *Values, int64_t *Indices, int othersize, int dimsize, int Largest, int sorted) {
     TopKUnion<float>(
-        handle, source, topk, Indices, Values, othersize, dimsize, Largest, sorted); 
+        handle, source, topk, Values, Indices, othersize, dimsize, Largest, sorted); 
 }
-void TopKUnion_f16(cnnlHandle_t handle, uint16_t const *source, int64_t topk, int64_t *Indices, uint16_t *Values, int othersize, int dimsize, int Largest, int sorted) {
+void TopKUnion_f16(cnnlHandle_t handle, uint16_t const *source, int64_t topk, uint16_t *Values, int64_t *Indices, int othersize, int dimsize, int Largest, int sorted) {
     TopKUnion<uint16_t>(handle, 
-        source, topk, Indices, Values, othersize, dimsize, Largest, sorted); 
+        source, topk, Values, Indices, othersize, dimsize, Largest, sorted); 
 }
 }; // namespace infini
 
