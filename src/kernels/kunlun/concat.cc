@@ -79,4 +79,3 @@ class ConcatXdnn : public KUNLUNKernelWithoutConfig {
 REGISTER_KERNEL(Device::KUNLUN, OpType::Concat, ConcatXdnn,
                 "Concat_xdnn_KUNLUN");
 }; // namespace infini
-
