@@ -56,6 +56,7 @@ class GraphHandlerObj {
     Tensor min(Tensor a, Tensor b, Tensor c);
     Tensor max(Tensor a, Tensor b, Tensor c);
     Tensor less(Tensor a, Tensor b, Tensor c);
+    Tensor notFunction(Tensor a, Tensor b, Tensor c);
     Tensor greater(Tensor a, Tensor b, Tensor c);
     Tensor greaterEqual(Tensor a, Tensor b, Tensor c);
 
