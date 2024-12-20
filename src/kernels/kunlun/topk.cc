@@ -14,9 +14,7 @@ class TopKXdnn : public KUNLUNKernelWithoutConfig {
         void *const source = input->getRawDataPtr<void *>();
         void *const Indices = output_0->getRawDataPtr<void *>();
         void *const Values = output_1->getRawDataPtr<void *>();
-        int axis = op->getAxis();
         int Largest = op->getLargest();
-        int Sorted = op->getSorted();
 
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
         auto K = op->getTopk();
