@@ -31,7 +31,7 @@ double getPerfConvKunlun(int n, int c, int h, int w, int f, int r, int s,
     Tensor i0Kunlun = gKunlun->cloneTensor(i0Cpu);
     Tensor w0Kunlun = gKunlun->cloneTensor(w0Cpu);
     // Build Kunlun graph
-    auto conv = gKunlun->addOp<ConvObj>(i0Kunlun, w0Kunlun, nullptr, padh, padw,
+    auto conv = gKunlun->addOp<ConvObj>(i0Kunlun, w0Kunlun, nullptr, padh, padw, nullptr,
                                         strideh, stridew, dilationh, dilationw);
     // allocate Kunlun memory
     gKunlun->dataMalloc();

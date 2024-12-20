@@ -25,7 +25,7 @@ class GraphHandlerObj {
 
     inline OpVec operators() { return g->getOperators(); }
 
-    Tensor conv(Tensor input, Tensor weight, Tensor output, int ph, int pw,
+    Tensor conv(Tensor input, Tensor weight, Tensor bias, Tensor output, int ph, int pw,
                 int sh, int sw, int dh, int dw);
     Tensor convTransposed2d(Tensor input, Tensor weight, Tensor output, int ph,
                             int pw, int sh, int sw, int dh, int dw, int oph,

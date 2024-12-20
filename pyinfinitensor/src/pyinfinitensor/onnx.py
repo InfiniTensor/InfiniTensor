@@ -136,50 +136,18 @@ class OnnxStub:
                 else:
                     adapt = node.input[0]
 
-                if len(node.input) > 2:
-                    bias = "{}-bias".format(node.output[0])
-                    reshape = "{}-reshape".format(node.output[0])
-                    tensors[bias] = self.handler.conv(
-                        tensors[adapt],
-                        tensors[node.input[1]],
-                        None,
-                        p[0],
-                        p[1],
-                        s[0],
-                        s[1],
-                        d[0],
-                        d[1],
-                    )
-                    tensors[reshape] = self.handler.reshape(
-                        tensors[node.input[2]],
-                        None,
-                        [
-                            1,
-                            reduce(
-                                lambda acc, x: acc * x,
-                                tensors[node.input[2]].shape(),
-                            ),
-                            1,
-                            1,
-                        ],
-                    )
-                    tensors[node.output[0]] = self.handler.add(
-                        tensors[bias],
-                        tensors[reshape],
-                        tensors.get(node.output[0]),
-                    )
-                else:
-                    tensors[node.output[0]] = self.handler.conv(
-                        tensors[adapt],
-                        tensors[node.input[1]],
-                        tensors.get(node.output[0]),
-                        p[0],
-                        p[1],
-                        s[0],
-                        s[1],
-                        d[0],
-                        d[1],
-                    )
+                tensors[node.output[0]] = self.handler.conv(
+                    tensors[adapt],
+                    tensors[node.input[1]],
+		    tensors[node.input[2]] if len(node.input) > 2 else None,
+                    tensors.get(node.output[0]),
+                    p[0],
+                    p[1],
+                    s[0],
+                    s[1],
+                    d[0],
+                    d[1],
+                )
             elif node.op_type == "Elu":
                 attributes = _parse_attribute(node, {"alpha": 1.0})
                 alpha = attributes["alpha"]

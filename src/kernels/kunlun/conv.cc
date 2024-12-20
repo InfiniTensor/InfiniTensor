@@ -23,18 +23,27 @@ class ConvXdnn : public KUNLUNKernelWithoutConfig {
         std::vector<int> ksize = {r, s};
         std::vector<int> stride = {sh, sw};
         std::vector<int> dilation = {dh, dw};
+   
+        bool haveBias = false;
+        if (op->getInputs().size() > 2) {
+	    haveBias = true;
+	}
+	
+	if (haveBias) {
+	    void *const biasData = (op->getInputs(2)->getRawDataPtr<void *>());
+            checkKUNLUNError((xdnn::conv2d_fusion<float, float, float, float>(
+                context->KUNLUNHandle(), (float *)aData, (float *)bData, (float *)cData,
+                n, c, h, w, f, ksize, stride, pads,
+                dilation, g, nullptr, nullptr, nullptr, true, (float *)biasData, nullptr,
+                xdnn::Activation_t::LINEAR)));
+	} else {
+            // TODO: Convolution operators still have some accuracy problems
+            checkKUNLUNError((xdnn::conv2d<float, float, float, float>(
+                context->KUNLUNHandle(), (float *)aData, (float *)bData,
+                (float *)cData, n, c, h, w, f, ksize, stride, pads, dilation, g,
+                nullptr, nullptr, nullptr, true)));
+	}
 
-        // TODO: Convolution operators still have some accuracy problems
-        checkKUNLUNError((xdnn::conv2d<float, float, float, float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)bData,
-            (float *)cData, n, c, h, w, f, ksize, stride, pads, dilation, g,
-            nullptr, nullptr, nullptr, true)));
-
-        // checkKUNLUNError((xdnn::conv2d_fusion<float, float, float, float>(
-        //     context->KUNLUNHandle(), (float *const)aData, (float
-        //     *const)bData, (float *)cData, n, c, h, w, f, ksize, stride, pads,
-        //     dilation, g, nullptr, nullptr, nullptr, true, nullptr, nullptr,
-        //     xdnn::Activation_t::LINEAR)));
         return;
     }
 };

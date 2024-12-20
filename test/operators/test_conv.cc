@@ -22,7 +22,7 @@ TEST(Conv, ShapeInference) {
         Tensor i0 = g->addTensor({1, 3, 4, 4}, DataType::UInt32);
         Tensor w0 = g->addTensor({2, 3, 3, 3}, DataType::UInt32);
         auto conv =
-            g->addOp<ConvObj>(i0, w0, nullptr, ConvObj::PaddingMode::Same);
+            g->addOp<ConvObj>(i0, w0, nullptr, nullptr, ConvObj::PaddingMode::Same);
         EXPECT_EQ(conv->getOutput()->getDims(), (Shape{1, 2, 4, 4}));
     }
     {
@@ -30,14 +30,14 @@ TEST(Conv, ShapeInference) {
         Tensor i0 = g->addTensor({1, 3, 4, 4}, DataType::UInt32);
         Tensor w0 = g->addTensor({2, 3, 3, 3}, DataType::UInt32);
         auto conv =
-            g->addOp<ConvObj>(i0, w0, nullptr, ConvObj::PaddingMode::Valid);
+            g->addOp<ConvObj>(i0, w0, nullptr, nullptr, ConvObj::PaddingMode::Valid);
         EXPECT_EQ(conv->getOutput()->getDims(), (Shape{1, 2, 2, 2}));
     }
     { // dilation & stride
         Graph g = make_ref<GraphObj>(runtime);
         Tensor i0 = g->addTensor({1, 3, 4, 4}, DataType::UInt32);
         Tensor w0 = g->addTensor({2, 3, 3, 3}, DataType::UInt32);
-        auto conv = g->addOp<ConvObj>(i0, w0, nullptr, 1, 1, 2, 1, 1, 2);
+        auto conv = g->addOp<ConvObj>(i0, w0, nullptr, 1, 1, nullptr, 2, 1, 1, 2);
         EXPECT_EQ(conv->getOutput()->getDims(), (Shape{1, 2, 2, 2}));
     }
 }
@@ -47,7 +47,7 @@ TEST(Conv, NaiveCPU) {
     Graph g = make_ref<GraphObj>(runtime);
     Tensor i0 = g->addTensor({1, 3, 4, 4}, DataType::UInt32);
     Tensor w0 = g->addTensor({2, 3, 3, 3}, DataType::UInt32);
-    auto conv = g->addOp<ConvObj>(i0, w0, nullptr, 1, 1, 2, 1, 1, 2);
+    auto conv = g->addOp<ConvObj>(i0, w0, nullptr, 1, 1, nullptr, 2, 1, 1, 2);
 
     g->dataMalloc();
     i0->setData(IncrementalGenerator());

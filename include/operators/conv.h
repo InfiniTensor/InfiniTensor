@@ -133,12 +133,12 @@ class ConvBaseObj : public OperatorObj {
 class ConvObj : public ConvBaseObj {
   public:
     ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output, int ph,
-            int pw, int sh = 1, int sw = 1, int dh = 1, int dw = 1,
-            Tensor bias = nullptr, ActType act = ActType::None);
+            int pw, Tensor bias = nullptr, int sh = 1, int sw = 1, int dh = 1, int dw = 1,
+            ActType act = ActType::None);
     // Constructors for setting padding mode
-    ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
+    ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output, Tensor bias = nullptr,
             PaddingMode mode = PaddingMode::Same, int sh = 1, int sw = 1,
-            int dh = 1, int dw = 1, Tensor bias = nullptr,
+            int dh = 1, int dw = 1,
             ActType act = ActType::None);
     OP_CLONE(ConvObj);
 

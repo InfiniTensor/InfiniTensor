@@ -26,7 +26,7 @@ void testConv(const std::function<void(void *, size_t, DataType)> &generatorA,
     auto inputMlu1 = xpuGraph->cloneTensor(inputCpu1);
     auto inputMlu2 = xpuGraph->cloneTensor(inputCpu2);
     auto mluOp =
-        xpuGraph->addOp<T>(inputMlu1, inputMlu2, nullptr, 1, 1, 1, 1, 1, 1);
+        xpuGraph->addOp<T>(inputMlu1, inputMlu2, nullptr, 1, 1, nullptr, 1, 1, 1, 1);
     xpuGraph->dataMalloc();
     inputMlu1->setData(generatorA);
     inputMlu2->setData(generatorB);
@@ -38,7 +38,7 @@ void testConv(const std::function<void(void *, size_t, DataType)> &generatorA,
     cpuGraph->addTensor(inputCpu1);
     cpuGraph->addTensor(inputCpu2);
     auto cpuOp =
-        cpuGraph->addOp<T>(inputCpu1, inputCpu2, nullptr, 1, 1, 1, 1, 1, 1);
+        cpuGraph->addOp<T>(inputCpu1, inputCpu2, nullptr, 1, 1, nullptr, 1, 1, 1, 1);
     cpuGraph->dataMalloc();
     inputCpu1->setData(generatorA);
     inputCpu2->setData(generatorB);
