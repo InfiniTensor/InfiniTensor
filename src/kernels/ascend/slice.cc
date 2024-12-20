@@ -10,7 +10,6 @@ class SliceAclnn : public ASCENDKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<SliceObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
-        IT_ASSERT(op->getDType() == DataType::Float32);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
