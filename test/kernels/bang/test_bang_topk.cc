@@ -23,7 +23,6 @@ void bangTopKFp32(const Shape &inputShape, const vector<float> &inputData,
     // GPU
     Graph bangGraph = make_ref<GraphObj>(bangRuntime);
     auto inputGpu = bangGraph->cloneTensor(inputCpu);
-
     auto gpuOp = bangGraph->addOp<TopKObj>(inputGpu, std::nullopt, KShape, axis,
                                            Largest, sorted);
     bangGraph->dataMalloc();
@@ -62,7 +61,7 @@ TEST(bangTopKFp32, run) {
                                20., 21., 22., 23., 24., 25., 26., 27., 28., 29.,
                                30., 31., 32., 33., 34., 35., 36., 37., 38., 39.,
                                40., 41., 42., 43., 44., 45., 46., 47.},
-                 Shape{3}, 3, 1, 1,
+                 Shape{3}, -1, 1, 1,
                  vector<float>{3.,  2.,  1.,  7.,  6.,  5.,  11., 10., 9.,
                                15., 14., 13., 19., 18., 17., 23., 22., 21.,
                                27., 26., 25., 31., 30., 29., 35., 34., 33.,

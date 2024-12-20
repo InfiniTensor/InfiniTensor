@@ -3,11 +3,13 @@
 namespace infini {
 
 TopKObj::TopKObj(GraphObj *graph, Tensor input,
-                 std::optional<TensorVec> outputs, Shape K, int axis,
+                 std::optional<TensorVec> outputs, Shape K, int _axis,
                  int Largest, int sorted)
     : OperatorObj(OpType::TopK, {input},
                   ((!outputs) ? TensorVec(2, nullptr) : std::move(*outputs))),
-      K(std::move(K)), axis(axis), Largest(Largest), sorted(sorted) {
+      K(std::move(K)), Largest(Largest), sorted(sorted) {
+    int rank = inputs[0]->getRank();
+    axis = get_real_axis(_axis, rank);
     IT_ASSERT(checkValid(graph));
 }
 optional<vector<Shape>> TopKObj::inferShape(const TensorVec &inputs) {
@@ -16,7 +18,6 @@ optional<vector<Shape>> TopKObj::inferShape(const TensorVec &inputs) {
     auto inputDims = inputs[0]->getDims();
     vector<Shape> ret;
     Shape outShape = inputDims;
-
     for (int i = 0; i < 2; i++) {
         outShape[axis] = K[0];
         ret.push_back(outShape);
