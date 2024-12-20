@@ -136,7 +136,7 @@ class MatmulXdnn : public KUNLUNKernelWithoutConfig {
                         biasTensor
                             ? context->getWorkspace(numOutput * dtype.getSize())
                             : outData;
-                }    // endif batchA == 1
+                } // endif batchA == 1
             } else { // batchA == batchB, no need to broadcast
                 AData = aData;
                 BData = bData;
@@ -210,8 +210,7 @@ class MatmulXdnn : public KUNLUNKernelWithoutConfig {
                     context->KUNLUNHandle(), (float16 *)aData, (float16 *)bData,
                     (float16 *)outData, m, n, k, transA, transB, nullptr,
                     nullptr, nullptr, lda, ldb, ldc, alpha, 0.f,
-                    biasTensor ? biasTensor->getRawDataPtr<float *>()
-                               : nullptr,
+                    biasTensor ? biasTensor->getRawDataPtr<float *>() : nullptr,
                     kunlunAct, nullptr)));
             } else {
                 IT_ASSERT(false, "Unsupported data type: " +
@@ -225,4 +224,3 @@ class MatmulXdnn : public KUNLUNKernelWithoutConfig {
 REGISTER_KERNEL(Device::KUNLUN, OpType::MatMul, MatmulXdnn,
                 "Matmul_xdnn_KUNLUN");
 }; // namespace infini
-

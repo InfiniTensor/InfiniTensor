@@ -7,22 +7,22 @@ namespace infini {
 #define SWITCH_DTYPE_CASE(OP)                                                  \
     auto ret = 0;                                                              \
     if (op->getDType() == DataType::Float32) {                                 \
-        ret = xdnn::OP<float>(context->KUNLUNHandle(), (float *)aData, \
-                                      (float *)bData, (float *)cData, aDim,    \
-                                      bDim);                                   \
+        ret = xdnn::OP<float>(context->KUNLUNHandle(), (float *)aData,         \
+                              (float *)bData, (float *)cData, aDim, bDim);     \
     } else if (op->getDType() == DataType::Float16) {                          \
-        ret = xdnn::OP<float16>(context->KUNLUNHandle(),               \
-                                        (float16 *)aData, (float16 *)bData,    \
-                                        (float16 *)cData, aDim, bDim);         \
+        ret =                                                                  \
+            xdnn::OP<float16>(context->KUNLUNHandle(), (float16 *)aData,       \
+                              (float16 *)bData, (float16 *)cData, aDim, bDim); \
     } else if (op->getDType() == DataType::Int32) {                            \
-        ret = xdnn::OP<int>(context->KUNLUNHandle(), (int *)aData,     \
-                                    (int *)bData, (int *)cData, aDim, bDim);   \
+        ret = xdnn::OP<int>(context->KUNLUNHandle(), (int *)aData,             \
+                            (int *)bData, (int *)cData, aDim, bDim);           \
     } else if (op->getDType() == DataType::Int64) {                            \
-        ret = xdnn::OP<int64_t>(context->KUNLUNHandle(),               \
-                                        (int64_t *)aData, (int64_t *)bData,    \
-                                        (int64_t *)cData, aDim, bDim);         \
+        ret =                                                                  \
+            xdnn::OP<int64_t>(context->KUNLUNHandle(), (int64_t *)aData,       \
+                              (int64_t *)bData, (int64_t *)cData, aDim, bDim); \
     } else {                                                                   \
-        IT_ASSERT(false, "Unsupported data type: " + op->getDType().toString());\
+        IT_ASSERT(false,                                                       \
+                  "Unsupported data type: " + op->getDType().toString());      \
     }                                                                          \
     checkKUNLUNError(ret);
 
@@ -551,4 +551,3 @@ REGISTER_KERNEL(Device::KUNLUN, OpType::Or, OrXdnn, "Or_xdnn_KUNLUN");
 REGISTER_KERNEL(Device::KUNLUN, OpType::Xor, XorXdnn, "Xor_xdnn_KUNLUN");
 REGISTER_KERNEL(Device::KUNLUN, OpType::Not, NotXdnn, "Not_xdnn_KUNLUN");
 }; // namespace infini
-

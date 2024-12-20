@@ -89,4 +89,3 @@ class SliceXdnn : public KUNLUNKernelWithoutConfig {
 
 REGISTER_KERNEL(Device::KUNLUN, OpType::Slice, SliceXdnn, "Slice_xdnn_KUNLUN")
 }; // namespace infini
-

@@ -137,4 +137,3 @@ class WhereXdnn : public KUNLUNKernelWithoutConfig {
 
 REGISTER_KERNEL(Device::KUNLUN, OpType::Where, WhereXdnn, "Where_xdnn_KUNLUN");
 }; // namespace infini
-

@@ -15,7 +15,7 @@ class TransposeXdnn : public KUNLUNKernelWithoutConfig {
         auto dimin = op->getInputs(0)->getDims();
         auto permute = op->getPermute();
 
-	auto ret = 0;
+        auto ret = 0;
         if (op->getDType() == DataType::Float32) {
             ret =
                 xdnn::transpose<float>(context->KUNLUNHandle(), (float *)aData,
@@ -40,7 +40,7 @@ class TransposeXdnn : public KUNLUNKernelWithoutConfig {
                                            (int16_t *)aData, (int16_t *)cData,
                                            dimin, permute);
         } else {
-	    IT_ASSERT(false,
+            IT_ASSERT(false,
                       "unsupported data type " + op->getDType().toString());
         }
         assert(ret == 0);

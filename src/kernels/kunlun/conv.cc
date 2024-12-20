@@ -24,21 +24,20 @@ class ConvXdnn : public KUNLUNKernelWithoutConfig {
         std::vector<int> dilation = {dh, dw};
 
         // TODO: Convolution operators still have some accuracy problems
-	if (op->getDType() == DataType::Float32) {
+        if (op->getDType() == DataType::Float32) {
             checkKUNLUNError((xdnn::conv2d<float, float, float, float>(
-            	context->KUNLUNHandle(), (float *)aData, (float *)bData,
-	        (float *)cData, n, c, h, w, f, ksize, stride, pads, dilation, g,
-        	nullptr, nullptr, nullptr, true)));
-	} else if (op->getDType() == DataType::Float16) {
+                context->KUNLUNHandle(), (float *)aData, (float *)bData,
+                (float *)cData, n, c, h, w, f, ksize, stride, pads, dilation, g,
+                nullptr, nullptr, nullptr, true)));
+        } else if (op->getDType() == DataType::Float16) {
             checkKUNLUNError((xdnn::conv2d<float16, float16, float16, int16_t>(
                 context->KUNLUNHandle(), (float16 *)aData, (float16 *)bData,
-                (float16 *)cData, n, c, h, w, f, ksize, stride, pads, dilation, g,
-                nullptr, nullptr, nullptr, true)));
-	} else {
-	    IT_ASSERT(false,
+                (float16 *)cData, n, c, h, w, f, ksize, stride, pads, dilation,
+                g, nullptr, nullptr, nullptr, true)));
+        } else {
+            IT_ASSERT(false,
                       "unsupported data type " + op->getDType().toString());
-	}
-
+        }
 
         // checkKUNLUNError((xdnn::conv2d_fusion<float, float, float, float>(
         //     context->KUNLUNHandle(), (float *const)aData, (float

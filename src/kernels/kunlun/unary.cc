@@ -86,7 +86,7 @@ class TanhXdnn : public KUNLUNKernelWithoutConfig {
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
 
-	auto ret = 0;
+        auto ret = 0;
         if (op->getDType() == DataType::Float32) {
             ret = xdnn::tanh<float>(context->KUNLUNHandle(), (float *)aData,
                                     (float *)cData, len);

@@ -33,4 +33,3 @@ class SoftmaxXdnn : public KUNLUNKernelWithoutConfig {
 REGISTER_KERNEL(Device::KUNLUN, OpType::Softmax, SoftmaxXdnn,
                 "Softmax_xdnn_KUNLUN");
 }; // namespace infini
-
