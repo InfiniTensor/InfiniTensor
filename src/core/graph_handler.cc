@@ -22,6 +22,7 @@
 #include "operators/resize.h"
 #include "operators/rms_norm.h"
 #include "operators/rope.h"
+#include "operators/scatterElements.h"
 #include "operators/scatterND.h"
 #include "operators/send.h"
 #include "operators/slice.h"
@@ -320,6 +321,21 @@ Tensor GraphHandlerObj::scatterND(Tensor data, Tensor indices, Tensor updates,
         return g
             ->addOp<ScatterNDObj>(std::move(data), std::move(indices),
                                   std::move(updates), output)
+            ->getOutput();
+    }
+}
+Tensor GraphHandlerObj::scatterElements(Tensor data, Tensor indices,
+                                        Tensor updates, Tensor output,
+                                        int axis) {
+    if (output) {
+        g->addOpWithOutputs<ScatterElementsObj>(
+            std::move(data), std::move(indices), std::move(updates), output,
+            axis);
+        return output;
+    } else {
+        return g
+            ->addOp<ScatterElementsObj>(std::move(data), std::move(indices),
+                                        std::move(updates), output, axis)
             ->getOutput();
     }
 }

@@ -75,6 +75,8 @@ class GraphHandlerObj {
                    int axis, int Largest, int sorted);
     Tensor scatterND(Tensor data, Tensor indices, Tensor updates,
                      Tensor output);
+    Tensor scatterElements(Tensor data, Tensor indices, Tensor updates,
+                           Tensor output, int axis);
     Tensor abs(Tensor x, Tensor y);
     Tensor sqrt(Tensor x, Tensor y);
     Tensor log(Tensor x, Tensor y);

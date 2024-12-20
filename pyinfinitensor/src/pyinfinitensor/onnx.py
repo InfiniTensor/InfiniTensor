@@ -674,7 +674,17 @@ class OnnxStub:
                     tensors[node.input[2]],
                     tensors.get(node.output[0]),
                 )
-                
+            elif node.op_type == "ScatterElements":
+                tensors[node.output[0]] = self.handler.scatterElements(
+                    tensors[node.input[0]],
+                    tensors[node.input[1]],
+                    tensors[node.input[2]],
+                    tensors.get(node.output[0]),
+                    next(
+                        (attr.i for attr in node.attribute if attr.name == "axis"),
+                        0,
+                    ),
+                )
             elif node.op_type == "LogSoftmax":
                 softmax_node = self.handler.softmax(
                     tensors[node.input[0]],
