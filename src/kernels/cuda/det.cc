@@ -10,10 +10,6 @@ class DetCuda : public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<DetObj>(_op);
-
-        if (op->getMode() == DetObj::Mode::LogDet) {
-            IT_TODO_HALT();
-        }
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         void *const inputData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const outputData = (op->getOutput()->getRawDataPtr<void *>());
@@ -27,7 +23,8 @@ class DetCuda : public CudaKernelWithoutConfig {
             IT_TODO_HALT();
         }
 
-        det_kernel(context, inputData, outputData, n, batch_size);
+        det_kernel(context, inputData, outputData, n, batch_size,
+                   static_cast<int>(op->getMode()));
     }
 };
 
