@@ -13,8 +13,6 @@ class SplitXdnn : public KUNLUNKernelWithoutConfig {
         void *const inputData = (op->getInputs(0)->getRawDataPtr<void *>());
         auto inputDim = op->getInputs(0)->getDims();
 
-        
-
         std::vector<int> splitList;
         for (int i = 0; i < num; ++i) {
             auto dim = op->getOutput(i)->getDims();
@@ -86,4 +84,3 @@ class SplitXdnn : public KUNLUNKernelWithoutConfig {
 
 REGISTER_KERNEL(Device::KUNLUN, OpType::Split, SplitXdnn, "Split_xdnn_KUNLUN");
 }; // namespace infini
-

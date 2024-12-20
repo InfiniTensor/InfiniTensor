@@ -10,7 +10,7 @@ class MeanAclnn : public ASCENDKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ReduceBaseObj>(_op);
-	auto aclDataType = aclnnDataTypeConvert(op->getDType());
+        auto aclDataType = aclnnDataTypeConvert(op->getDType());
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -69,7 +69,7 @@ class ReduceSumAclnn : public ASCENDKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ReduceBaseObj>(_op);
-	auto aclDataType = aclnnDataTypeConvert(op->getDType());
+        auto aclDataType = aclnnDataTypeConvert(op->getDType());
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
