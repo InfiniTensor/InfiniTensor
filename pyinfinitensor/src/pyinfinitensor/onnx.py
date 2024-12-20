@@ -674,11 +674,7 @@ class OnnxStub:
                     tensors[node.input[2]],
                     tensors.get(node.output[0]),
                 )
-                print(
-                    node.input[0],
-                    tensors[node.input[0]].shape(),
-                    tensors.get(node.output[0]).shape(),
-                )
+                
             elif node.op_type == "LogSoftmax":
                 softmax_node = self.handler.softmax(
                     tensors[node.input[0]],
