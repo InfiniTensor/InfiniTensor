@@ -613,6 +613,7 @@ void init_graph_builder(py::module &m) {
         .def("det", &Handler::det, policy::move)
         .def("less", &Handler::less, policy::move)
         .def("notFunction", &Handler::notFunction, policy::move)
+        .def("andFunction", &Handler::andFunction, policy::move)
         .def("greater", &Handler::greater, policy::move)
         .def("greaterEqual", &Handler::greaterEqual, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)

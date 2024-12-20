@@ -720,6 +720,12 @@ class OnnxStub:
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
                 )
+            elif node.op_type == "And":
+                tensors[node.output[0]] = self.handler.andFunction(
+                    tensors[node.input[0]],
+                    tensors[node.input[1]],
+                    tensors.get(node.output[0]),
+                )
             elif node.op_type == "Shape":
                 tensors[node.output[0]] = self.handler.shape(
                     tensors[node.input[0]],
