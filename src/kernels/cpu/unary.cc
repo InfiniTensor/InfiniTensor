@@ -33,6 +33,10 @@ class NativeUnary : public CpuKernelWithoutConfig {
 
     template <typename T> static T sqrtCompute(T val) { return std::sqrt(val); }
 
+    template <typename T> static T expCompute(T val) { return std::exp(val); }
+
+    template <typename T> static T logCompute(T val) { return std::log(val); }
+
     template <typename T> static T cosCompute(T val) { return std::cos(val); }
 
     template <typename T> static T sinCompute(T val) { return std::sin(val); }
@@ -108,6 +112,12 @@ class NativeUnary : public CpuKernelWithoutConfig {
             break;
         case OpType::Sqrt:
             _doCompute = sqrtCompute<T>;
+            break;
+        case OpType::Exp:
+            _doCompute = expCompute<T>;
+            break;
+        case OpType::Log:
+            _doCompute = logCompute<T>;
             break;
         case OpType::Erf:
             _doCompute = erfCompute<T>;
@@ -308,6 +318,7 @@ REGISTER_KERNEL(Device::CPU, OpType::HardSwish, NativeUnary,
 REGISTER_KERNEL(Device::CPU, OpType::Tanh, NativeUnary, "tanhNaive_CPU");
 REGISTER_KERNEL(Device::CPU, OpType::Abs, NativeUnary, "absNaive_CPU");
 REGISTER_KERNEL(Device::CPU, OpType::Sqrt, NativeUnary, "sqrtNaive_CPU");
+REGISTER_KERNEL(Device::CPU, OpType::Exp, NativeUnary, "expNaive_CPU");
 REGISTER_KERNEL(Device::CPU, OpType::Erf, NativeUnary, "erfNaive_CPU");
 REGISTER_KERNEL(Device::CPU, OpType::Neg, NativeUnary, "negNaive_CPU");
 REGISTER_KERNEL(Device::CPU, OpType::Cos, NativeUnary, "Cos_CPU");

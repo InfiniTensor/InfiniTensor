@@ -10,6 +10,8 @@ template <typename T> void sigmoid_kernel(T *input, T *output, size_t num);
 template <typename T> void tanh_kernel(T *input, T *output, size_t num);
 template <typename T> void abs_kernel(T *input, T *output, size_t num);
 template <typename T> void sqrt_kernel(T *input, T *output, size_t num);
+template <typename T> void exp_kernel(T *input, T *output, size_t num);
+template <typename T> void log_kernel(T *input, T *output, size_t num);
 template <typename T> void neg_kernel(T *input, T *output, size_t num);
 template <typename T> void gelu_kernel(T *input, T *output, size_t num);
 template <typename T> void erf_kernel(T *input, T *output, size_t num);

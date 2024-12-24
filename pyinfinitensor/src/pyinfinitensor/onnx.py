@@ -586,6 +586,16 @@ class OnnxStub:
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
                 )
+            elif node.op_type == "Exp":
+                tensors[node.output[0]] = self.handler.exp(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                )
+            elif node.op_type == "Log":
+                tensors[node.output[0]] = self.handler.log(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                )
             elif node.op_type == "Neg":
                 tensors[node.output[0]] = self.handler.neg(
                     tensors[node.input[0]],
@@ -1329,6 +1339,8 @@ class OnnxStub:
                 backend.OpTypeId.Identity,
                 backend.OpTypeId.PRelu,
                 backend.OpTypeId.Sqrt,
+                backend.OpTypeId.Exp,
+                backend.OpTypeId.Log,
                 backend.OpTypeId.Erf,
                 backend.OpTypeId.Neg,
             ]:

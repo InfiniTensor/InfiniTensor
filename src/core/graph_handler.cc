@@ -231,6 +231,7 @@ DEFINE_UNARY_METHOD(hardSigmoid, HardSigmoid)
 DEFINE_UNARY_METHOD(hardSwish, HardSwish)
 DEFINE_UNARY_METHOD(abs, Abs)
 DEFINE_UNARY_METHOD(sqrt, Sqrt)
+DEFINE_UNARY_METHOD(exp, Exp)
 DEFINE_UNARY_METHOD(neg, Neg)
 DEFINE_UNARY_METHOD(shape, Shape)
 DEFINE_UNARY_METHOD(erf, Erf)
@@ -254,6 +255,17 @@ Tensor GraphHandlerObj::leakyRelu(Tensor x, Tensor y, float alpha) {
         return y;
     } else {
         return g->addOp<LeakyReluObj>(std::move(x), y, alpha)->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::log(Tensor input, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<LogObj>(std::move(input), output,
+                                    LogObj::LogType::LogE);
+        return output;
+    } else {
+        return g->addOp<LogObj>(std::move(input), output, LogObj::LogType::LogE)
+            ->getOutput();
     }
 }
 
