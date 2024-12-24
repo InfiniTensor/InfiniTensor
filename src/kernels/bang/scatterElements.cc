@@ -68,4 +68,3 @@ REGISTER_KERNEL(Device::BANG, OpType::ScatterElements, ScatterElementsCnnl,
                 "ScatterElements_cnnl_BANG");
 
 }; // namespace infini
-

@@ -49,4 +49,3 @@ vector<int> ScatterElementsObj::getOpAttrVector() const {
 }
 
 } // namespace infini
-

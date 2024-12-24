@@ -62,4 +62,3 @@ TEST(bangScatterElementsFp32, run) {
 }
 
 } // namespace infini
-
