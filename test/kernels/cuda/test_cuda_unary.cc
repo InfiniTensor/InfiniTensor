@@ -119,6 +119,28 @@ TEST(Elu, Cuda) {
         vector<float>{0., 1., 2., 3., 4., 5., 6., 7., 8., 9., 10., 11.}));
 }
 
+TEST(log, Cuda) {
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Graph gCpu = make_ref<GraphObj>(runtime);
+    auto input = gCpu->addTensor({2, 2, 3, 1}, DataType::Float32);
+    gCpu->dataMalloc();
+    input->copyin(vector<float>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0,
+                                10.0, 11.0, 12.0});
+    auto cudaRuntime = make_ref<CudaRuntimeObj>();
+    Graph gCuda = make_ref<GraphObj>(cudaRuntime);
+    auto inputGpu = gCuda->cloneTensor(input);
+    auto op = gCuda->addOp<LogObj>(inputGpu, nullptr, LogObj::LogType::LogE);
+    gCuda->dataMalloc();
+    inputGpu->copyin(vector<float>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0,
+                                   10.0, 11.0, 12.0});
+    cudaRuntime->run(gCuda);
+    auto oCpu = gCpu->cloneTensor(op->getOutput());
+    // oCpu->printData();
+    EXPECT_TRUE(oCpu->equalData(vector<float>{
+        logf(1.0), logf(2.0), logf(3.0), logf(4.0), logf(5.0), logf(6.0),
+        logf(7.0), logf(8.0), logf(9.0), logf(10.0), logf(11.0), logf(12.0)}));
+}
+
 TEST(cuDNN_Unary, run) {
     testUnary<ReluObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     testUnary<SiluObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});

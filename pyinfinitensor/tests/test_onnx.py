@@ -252,6 +252,12 @@ class TestStringMethods(unittest.TestCase):
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
         exp = make_node("Exp", ["x"], ["y"], name="exp")
         make_and_import_model(make_graph([exp], "exp", [x], [y]))
+
+    def test_log(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        log = make_node("Log", ["x"], ["y"], name="log")
+        make_and_import_model(make_graph([log], "log", [x], [y]))
         
     def test_sigmoid(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
