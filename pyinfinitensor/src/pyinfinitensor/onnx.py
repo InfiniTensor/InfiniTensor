@@ -1340,6 +1340,7 @@ class OnnxStub:
                 backend.OpTypeId.PRelu,
                 backend.OpTypeId.Sqrt,
                 backend.OpTypeId.Exp,
+                backend.OpTypeId.Log,
                 backend.OpTypeId.Erf,
                 backend.OpTypeId.Neg,
             ]:
