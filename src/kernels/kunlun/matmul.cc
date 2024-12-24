@@ -136,7 +136,7 @@ class MatmulXdnn : public KUNLUNKernelWithoutConfig {
                         biasTensor
                             ? context->getWorkspace(numOutput * dtype.getSize())
                             : outData;
-                } // endif batchA == 1
+                }
             } else { // batchA == batchB, no need to broadcast
                 AData = aData;
                 BData = bData;
