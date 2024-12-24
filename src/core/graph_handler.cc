@@ -21,6 +21,7 @@
 #include "operators/resize.h"
 #include "operators/rms_norm.h"
 #include "operators/rope.h"
+#include "operators/scatterND.h"
 #include "operators/send.h"
 #include "operators/slice.h"
 #include "operators/softmax.h"
@@ -276,7 +277,19 @@ Tensor GraphHandlerObj::softmax(Tensor input, Tensor output, int axis) {
             ->getOutput();
     }
 }
-
+Tensor GraphHandlerObj::scatterND(Tensor data, Tensor indices, Tensor updates,
+                                  Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<ScatterNDObj>(std::move(data), std::move(indices),
+                                          std::move(updates), output);
+        return output;
+    } else {
+        return g
+            ->addOp<ScatterNDObj>(std::move(data), std::move(indices),
+                                  std::move(updates), output)
+            ->getOutput();
+    }
+}
 Tensor GraphHandlerObj::flatten(Tensor input, Tensor output, int axis) {
     if (output) {
         g->addOpWithOutputs<FlattenObj>(std::move(input), output, axis);
