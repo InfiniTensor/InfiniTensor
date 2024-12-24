@@ -43,4 +43,3 @@ vector<int> ScatterNDObj::getOpAttrVector() const {
 }
 
 } // namespace infini
-

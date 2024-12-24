@@ -35,4 +35,3 @@ class ScatterNDObj : public OperatorObj {
 };
 
 } // namespace infini
-

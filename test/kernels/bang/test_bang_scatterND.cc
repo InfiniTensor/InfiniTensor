@@ -67,4 +67,3 @@ TEST(bangScatterNDFp32, run) {
 }
 
 } // namespace infini
-
