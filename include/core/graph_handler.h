@@ -68,6 +68,7 @@ class GraphHandlerObj {
     Tensor abs(Tensor x, Tensor y);
     Tensor sqrt(Tensor x, Tensor y);
     Tensor exp(Tensor x, Tensor y);
+    Tensor log(Tensor x, Tensor y);
     Tensor neg(Tensor x, Tensor y);
     Tensor shape(Tensor x, Tensor y);
     Tensor identity(Tensor x, Tensor y);

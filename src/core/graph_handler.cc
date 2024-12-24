@@ -258,6 +258,17 @@ Tensor GraphHandlerObj::leakyRelu(Tensor x, Tensor y, float alpha) {
     }
 }
 
+Tensor GraphHandlerObj::log(Tensor input, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<LogObj>(std::move(input), output,
+                                    LogObj::LogType::LogE);
+        return output;
+    } else {
+        return g->addOp<LogObj>(std::move(input), output, LogObj::LogType::LogE)
+            ->getOutput();
+    }
+}
+
 Tensor GraphHandlerObj::clip(Tensor x, Tensor y, std::optional<float> min,
                              std::optional<float> max) {
     if (y) {

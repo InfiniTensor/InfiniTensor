@@ -110,6 +110,22 @@ __global__ void _exp_kernel(float *input, float *output, size_t n) {
     }
 }
 
+template <typename T>
+__global__ void _log_kernel(T *input, T *output, size_t n) {
+    size_t index = threadIdx.x + blockIdx.x * blockDim.x;
+    size_t stride = blockDim.x * gridDim.x;
+    for (size_t i = index; i < n; i += stride) {
+        output[i] = logf(input[i]);
+    }
+}
+
+template <typename T> void log_kernel(T *input, T *output, size_t num) {
+    int blocksize = block_work_size();
+    int gridsize = (num + blocksize - 1) / blocksize;
+    _log_kernel<<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+        (T *)input, (T *)output, num);
+}
+
 __global__ void _elu_kernel(const float *input, float *output, size_t size,
                             float alpha) {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -417,4 +433,5 @@ template void cast_kernel<int8_t, float>(int8_t *input, float *output,
                                          size_t num);
 template void leaky_relu_kernel<float>(float *input, float *output, size_t num,
                                        float alpha);
+template void log_kernel<float>(float *input, float *output, size_t num);
 }; // namespace infini
