@@ -65,6 +65,8 @@ class GraphHandlerObj {
     Tensor tanh(Tensor x, Tensor y);
     Tensor erf(Tensor x, Tensor y);
     Tensor softmax(Tensor x, Tensor y, int axis);
+    Tensor scatterND(Tensor data, Tensor indices, Tensor updates,
+                     Tensor output);
     Tensor abs(Tensor x, Tensor y);
     Tensor sqrt(Tensor x, Tensor y);
     Tensor neg(Tensor x, Tensor y);

@@ -576,6 +576,13 @@ class OnnxStub:
                         -1,
                     ),
                 )
+            elif node.op_type == "ScatterND":
+                tensors[node.output[0]] = self.handler.scatterND(
+                    tensors[node.input[0]],
+                    tensors[node.input[1]],
+                    tensors[node.input[2]],
+                    tensors.get(node.output[0]),
+                )
             elif node.op_type == "Abs":
                 tensors[node.output[0]] = self.handler.abs(
                     tensors[node.input[0]],
