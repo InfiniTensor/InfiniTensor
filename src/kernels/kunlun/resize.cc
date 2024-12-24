@@ -7,7 +7,7 @@ class ResizeXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ResizeObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
+        auto dtype = op->getDType();
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         auto ndims = op->getInputs(0)->getRank();
@@ -37,6 +37,9 @@ class ResizeXdnn : public KUNLUNKernelWithoutConfig {
         case 0:
             coModeXdnn = 1;
             break;
+        case 1:
+            coModeXdnn = 1;
+            break;
         case 3:
             coModeXdnn = 2;
             break;
@@ -46,7 +49,17 @@ class ResizeXdnn : public KUNLUNKernelWithoutConfig {
 
         switch (mode) {
         case ResizeObj::ECoeffMode::linear: {
-            IT_TODO_HALT();
+            if (dtype == DataType::Float32) {
+                checkKUNLUNError(xdnn::linear_resize2d(
+                    context->KUNLUNHandle(), (float *)inData, (float *)outData,
+                    n, c, xh, xw, yh, yw, coModeXdnn, true, nullptr, nullptr));
+            } else if (dtype == DataType::Float16) {
+                checkKUNLUNError(xdnn::linear_resize2d(
+                    context->KUNLUNHandle(), (float16 *)inData,
+                    (float16 *)outData, n, c, xh, xw, yh, yw, coModeXdnn, true,
+                    nullptr, nullptr));
+            }
+            break;
         }
         case ResizeObj::ECoeffMode::nearest: {
             auto nearest_mode = op->getNearestMode();
@@ -61,9 +74,18 @@ class ResizeXdnn : public KUNLUNKernelWithoutConfig {
             default:
                 IT_TODO_HALT();
             }
-            checkKUNLUNError(xdnn::nearest_resize2d(
-                context->KUNLUNHandle(), (float *)inData, (float *)outData, n,
-                c, xh, xw, yh, yw, coModeXdnn, nearestModeXdnn, true));
+            if (dtype == DataType::Float32) {
+                checkKUNLUNError(xdnn::nearest_resize2d(
+                    context->KUNLUNHandle(), (float *)inData, (float *)outData,
+                    n, c, xh, xw, yh, yw, coModeXdnn, nearestModeXdnn, true));
+            } else if (dtype == DataType::Float16) {
+                checkKUNLUNError(xdnn::nearest_resize2d(
+                    context->KUNLUNHandle(), (float16 *)inData,
+                    (float16 *)outData, n, c, xh, xw, yh, yw, coModeXdnn,
+                    nearestModeXdnn, true));
+            } else {
+                IT_TODO_HALT();
+            }
             break;
         }
         default:
