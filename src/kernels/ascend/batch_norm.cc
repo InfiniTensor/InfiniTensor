@@ -11,7 +11,6 @@ class BatchNormAclnn : public ASCENDKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<BatchNormObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
-        IT_ASSERT(op->getDType() == DataType::Float32);
 
         void *const inData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const outData = (op->getOutput()->getRawDataPtr<void *>());
@@ -34,33 +33,35 @@ class BatchNormAclnn : public ASCENDKernelWithoutConfig {
         std::vector<int64_t> outputDim = castTo64(outD);
         std::vector<int64_t> outputStride = castTo64(outS);
 
+        auto aclDataType = aclnnDataTypeConvert(op->getDType());
+
         auto inputTensor =
-            aclCreateTensor(inputDim.data(), inputDim.size(), ACL_FLOAT,
+            aclCreateTensor(inputDim.data(), inputDim.size(), aclDataType,
                             inputStride.data(), 0, aclFormat::ACL_FORMAT_NCHW,
                             inputDim.data(), inputDim.size(), inData);
         auto outputTensor =
-            aclCreateTensor(outputDim.data(), outputDim.size(), ACL_FLOAT,
+            aclCreateTensor(outputDim.data(), outputDim.size(), aclDataType,
                             outputStride.data(), 0, aclFormat::ACL_FORMAT_NCHW,
                             outputDim.data(), outputDim.size(), outData);
         auto meanTensor = aclCreateTensor(
-            paraDim.data(), paraDim.size(), ACL_FLOAT, paraStride.data(), 0,
+            paraDim.data(), paraDim.size(), aclDataType, paraStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, paraDim.data(), paraDim.size(), meanData);
         auto varTensor = aclCreateTensor(
-            paraDim.data(), paraDim.size(), ACL_FLOAT, paraStride.data(), 0,
+            paraDim.data(), paraDim.size(), aclDataType, paraStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, paraDim.data(), paraDim.size(), varData);
         auto scaleTensor =
-            aclCreateTensor(paraDim.data(), paraDim.size(), ACL_FLOAT,
+            aclCreateTensor(paraDim.data(), paraDim.size(), aclDataType,
                             paraStride.data(), 0, aclFormat::ACL_FORMAT_ND,
                             paraDim.data(), paraDim.size(), scaleData);
         auto biasTensor = aclCreateTensor(
-            paraDim.data(), paraDim.size(), ACL_FLOAT, paraStride.data(), 0,
+            paraDim.data(), paraDim.size(), aclDataType, paraStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, paraDim.data(), paraDim.size(), biasData);
         auto savemeanTensor =
-            aclCreateTensor(paraDim.data(), paraDim.size(), ACL_FLOAT,
+            aclCreateTensor(paraDim.data(), paraDim.size(), aclDataType,
                             paraStride.data(), 0, aclFormat::ACL_FORMAT_ND,
                             paraDim.data(), paraDim.size(), scaleData);
         auto saveinvstdTensor = aclCreateTensor(
-            paraDim.data(), paraDim.size(), ACL_FLOAT, paraStride.data(), 0,
+            paraDim.data(), paraDim.size(), aclDataType, paraStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, paraDim.data(), paraDim.size(), biasData);
 
         uint64_t workspaceSize = 0;

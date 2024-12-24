@@ -33,6 +33,16 @@ class ConvTransCnnl : public BangKernelWithoutConfig {
         auto dimInputs1 = op->getInputs(1)->getDims();
         auto dimOutput = op->getOutput()->getDims();
 
+        if (op->getInputs(0)->getRank() == 3) {
+            dimInputs0.push_back(1);
+        }
+        if (op->getInputs(1)->getRank() == 3) {
+            dimInputs1.push_back(1);
+        }
+        if (op->getOutput()->getRank() == 3) {
+            dimOutput.push_back(1);
+        }
+
         if (dimInputs0.size() != 4)
             IT_TODO_HALT();
         if (dimInputs1.size() != 4)

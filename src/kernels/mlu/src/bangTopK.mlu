@@ -1,0 +1,210 @@
+#include "cnnl.h"
+#include <bang.h>
+
+const int NRAM_MAX_SIZE = 1024 * 256; 
+const int SRC_MAX_SIZE = 1024 * 32;
+__nram__  char nram_buffer[NRAM_MAX_SIZE];
+
+template<typename T>
+__mlu_global__ void TopK_e(T const *source, int64_t topk, T *Values, int64_t *Indices, int othersize, int dimsize){
+    
+    const int maxNum = SRC_MAX_SIZE/sizeof(T);
+    if(othersize >= taskDim){   
+        int remainT = othersize % taskDim;
+        int stepEasy = (othersize - remainT) / taskDim;
+        int stepHard = stepEasy + 1;
+        int step = (taskId < remainT ? stepHard : stepEasy);
+        int indStart = (taskId < remainT ? taskId * stepHard : remainT * stepHard + (taskId - remainT) * stepEasy);
+
+        char *nram_bufferInd = nram_buffer + (maxNum + 3 * topk) * sizeof(T);
+        int64_t *srcInd = (int64_t *)nram_bufferInd;//[maxNum],必须要求maxNum >= topk
+        int64_t *indGlobal = srcInd + maxNum;//[topk]
+        int64_t *topkInd = indGlobal + topk;//[2 * topk]
+        
+        T *src = (T *)nram_buffer;//[maxNum],必须要求maxNum >= max{step, topk}
+        T *srcGlobal = src + maxNum;//[topk]
+        T *srcTopk = srcGlobal + topk;//[2 * topk]
+        __bang_write_value(srcTopk, 2 * topk, -INFINITY);
+
+        int tid = 0;
+        if(dimsize < maxNum){
+            for(int r = indStart; r < indStart + step; r++){
+                tid = r * dimsize;
+                for(int i = 0; i < dimsize; i++){
+                    srcInd[i] = i;
+                }
+                __memcpy(src, source + tid, dimsize * sizeof(T), GDRAM2NRAM);
+                if(dimsize >= topk){
+                    for(int i = 0; i < topk; i++){  
+                        for(int j = i + 1; j < dimsize; j++){
+                            if(src[i] < src[j]){
+                                T tmp = src[i];
+                                src[i] = src[j];
+                                src[j] = tmp;
+
+                                int64_t indexTmp = srcInd[i];
+                                srcInd[i] = srcInd[j];
+                                srcInd[j] = indexTmp;
+                            }
+                        }
+                    }
+                }
+                else{
+                    for(int i = 0; i < dimsize; i++){  
+                        for(int j = i + 1; j < dimsize; j++){
+                            if(src[i] < src[j]){
+                                T tmp = src[i];
+                                src[i] = src[j];
+                                src[j] = tmp;
+
+                                int64_t indexTmp = srcInd[i];
+                                srcInd[i] = srcInd[j];
+                                srcInd[j] = indexTmp;
+                            }
+                        }
+                    }
+                }
+                __memcpy(Values + r * topk, src, topk * sizeof(T), NRAM2GDRAM);//此时前topk个就是values
+                __memcpy(Indices + r * topk, srcInd, topk * sizeof(int64_t), NRAM2GDRAM);//此时前topk个就是indices
+            }
+        }
+        else{
+            int remain = dimsize % maxNum;
+            int repeat = (dimsize - remain) / maxNum;
+            for(int r = indStart; r < indStart + step; r++){
+                tid = r * dimsize;
+                for(int m = 0; m < repeat; m++){
+                    for(int j = 0; j < maxNum; j++){
+                        srcInd[j] = m * maxNum + j;
+                    }
+                    __memcpy(src, source + tid + m * maxNum, maxNum * sizeof(T), GDRAM2NRAM);
+                    for(int i = 0; i < topk; i++){  
+                        for(int j = i + 1; j < maxNum; j++){
+                            if(src[i] < src[j]){
+                                T tmp = src[i];
+                                src[i] = src[j];
+                                src[j] = tmp;
+
+                                int64_t indexTmp = srcInd[i];
+                                srcInd[i] = srcInd[j];
+                                srcInd[j] = indexTmp;
+                            }
+                        }
+                        srcTopk[topk + i] = src[i];
+                        topkInd[topk + i] = srcInd[i];
+                    }
+                    if(m == 0){
+                        __memcpy(srcTopk, srcTopk + topk, topk * sizeof(T), NRAM2NRAM);
+                        __memcpy(topkInd, topkInd + topk, topk * sizeof(uint64_t), NRAM2NRAM);
+                    }
+                    else{
+                        for(int s = 0; s < topk; s++){
+                            for(int j = s + 1; j < 2 * topk; j++){
+                                if(srcTopk[s] < srcTopk[j]){
+                                    T tmpk = srcTopk[s];
+                                    srcTopk[s] = srcTopk[j];
+                                    srcTopk[j] = tmpk;
+
+                                    uint64_t indexTmpk = topkInd[s];
+                                    topkInd[s] = topkInd[j];
+                                    topkInd[j] = indexTmpk;
+                                }
+                            }
+                        }
+                    }
+                }
+                if(remain){
+                    for(int j = 0; j < remain; j++){
+                        srcInd[j] = repeat * maxNum + j;
+                    }
+                    __memcpy(src, source + tid + repeat * maxNum, remain * sizeof(T), GDRAM2NRAM);
+                    if(remain >= topk){
+                        for(int i = 0; i < topk; i++){  
+                            for(int j = i + 1; j < remain; j++){
+                                if(src[i] < src[j]){
+                                    T tmp = src[i];
+                                    src[i] = src[j];
+                                    src[j] = tmp;
+
+                                    int64_t indexTmp = srcInd[i];
+                                    srcInd[i] = srcInd[j];
+                                    srcInd[j] = indexTmp;
+                                }
+                            }
+                            srcTopk[topk + i] = src[i];
+                            topkInd[topk + i] = srcInd[i];
+                        }
+                        for(int i = 0; i < topk; i++){
+                            for(int j = i + 1; j < 2 * topk; j++){
+                                if(srcTopk[i] < srcTopk[j]){
+                                    T tmpk = srcTopk[i];
+                                    srcTopk[i] = srcTopk[j];
+                                    srcTopk[j] = tmpk;
+
+                                    int64_t indexTmpk = topkInd[i];
+                                    topkInd[i] = topkInd[j];
+                                    topkInd[j] = indexTmpk;
+                                }
+                            }
+                        }
+                    }
+                    else{
+                        for(int i = 0; i < remain; i++){
+                            srcTopk[topk + i] = src[i];
+                            topkInd[topk + i] = srcInd[i];
+                        }
+                        for(int i = 0; i < topk; i++){
+                            for(int j = i + 1; j < 2 * topk; j++){
+                                if(srcTopk[i] < srcTopk[j]){
+                                    T tmpk = srcTopk[i];
+                                    srcTopk[i] = srcTopk[j];
+                                    srcTopk[j] = tmpk;
+
+                                    int64_t indexTmpk = topkInd[i];
+                                    topkInd[i] = topkInd[j];
+                                    topkInd[j] = indexTmpk;
+                                }
+                            }
+                        }
+                    }
+                }
+                __memcpy(Values + r * topk, srcTopk, topk * sizeof(T), NRAM2GDRAM);//此时前topk个就是values
+                __memcpy(Indices + r * topk, topkInd, topk * sizeof(int64_t), NRAM2GDRAM);//此时前topk个就是indices
+            }
+            
+        }
+        
+    }
+    
+}
+template<typename T>
+void TopKUnion(cnnlHandle_t handle, T const *source, int64_t topk, T *Values, int64_t *Indices, int othersize, int dimsize, int Largest, int sorted) {
+
+    cnrtDim3_t k_dim;
+    cnrtFunctionType_t k_type;
+    cnrtQueue_t queue;
+    cnnlGetQueue(handle, &queue);
+    k_dim.x = 4;
+    k_dim.y = 1;
+    k_dim.z = 1;
+    k_type = CNRT_FUNC_TYPE_UNION1;
+    // launch kernel
+    if (Largest == 1 && sorted == 1){
+        TopK_e<T><<<k_dim, k_type, queue>>>(
+        source, topk, Values, Indices, othersize, dimsize);
+    }
+    cnrtQueueSync(queue);
+    
+}
+namespace infini {
+void TopKUnion_f32(cnnlHandle_t handle, float const *source, int64_t topk, float *Values, int64_t *Indices, int othersize, int dimsize, int Largest, int sorted) {
+    TopKUnion<float>(
+        handle, source, topk, Values, Indices, othersize, dimsize, Largest, sorted); 
+}
+void TopKUnion_f16(cnnlHandle_t handle, uint16_t const *source, int64_t topk, uint16_t *Values, int64_t *Indices, int othersize, int dimsize, int Largest, int sorted) {
+    TopKUnion<uint16_t>(handle, 
+        source, topk, Values, Indices, othersize, dimsize, Largest, sorted); 
+}
+}; // namespace infini
+
+

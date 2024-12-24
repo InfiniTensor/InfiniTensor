@@ -52,8 +52,14 @@ class GraphHandlerObj {
     Tensor mul(Tensor a, Tensor b, Tensor c);
     Tensor div(Tensor a, Tensor b, Tensor c);
     Tensor pow(Tensor a, Tensor b, Tensor c);
+    Tensor equal(Tensor a, Tensor b, Tensor c);
     Tensor min(Tensor a, Tensor b, Tensor c);
     Tensor max(Tensor a, Tensor b, Tensor c);
+    Tensor less(Tensor a, Tensor b, Tensor c);
+    Tensor notFunction(Tensor a, Tensor b, Tensor c);
+    Tensor andFunction(Tensor a, Tensor b, Tensor c);
+    Tensor greater(Tensor a, Tensor b, Tensor c);
+    Tensor greaterEqual(Tensor a, Tensor b, Tensor c);
 
     Tensor relu(Tensor x, Tensor y);
     Tensor leakyRelu(Tensor x, Tensor y, float alpha);
@@ -65,16 +71,23 @@ class GraphHandlerObj {
     Tensor tanh(Tensor x, Tensor y);
     Tensor erf(Tensor x, Tensor y);
     Tensor softmax(Tensor x, Tensor y, int axis);
+    TensorVec topk(Tensor input, std::optional<TensorVec> outputs, Shape K,
+                   int axis, int Largest, int sorted);
+    Tensor scatterND(Tensor data, Tensor indices, Tensor updates,
+                     Tensor output);
+    Tensor scatterElements(Tensor data, Tensor indices, Tensor updates,
+                           Tensor output, int axis);
     Tensor abs(Tensor x, Tensor y);
     Tensor sqrt(Tensor x, Tensor y);
+    Tensor log(Tensor x, Tensor y);
+    Tensor exp(Tensor x, Tensor y);
     Tensor neg(Tensor x, Tensor y);
     Tensor shape(Tensor x, Tensor y);
     Tensor identity(Tensor x, Tensor y);
     Tensor flatten(Tensor s, Tensor y, int axis);
     Tensor pRelu(Tensor x, Tensor slope, Tensor y);
     Tensor elu(Tensor x, Tensor y, float alpha);
-    Tensor clip(Tensor x, Tensor y, std::optional<float> min,
-                std::optional<float> max);
+    Tensor clip(TensorVec inputs, Tensor y);
     Tensor transpose(Tensor data, Tensor transposed, Shape perm);
     Tensor reshape(Tensor data, Tensor reshaped, Shape shape);
     Tensor resize(Tensor input, Tensor output,
@@ -122,6 +135,7 @@ class GraphHandlerObj {
                         std::string mode);
     Tensor lrn(Tensor input, Tensor output, float alpha, float beta, float bias,
                int size);
+    Tensor det(Tensor input, Tensor output, std::string mode);
 
     //------ modifiers
 

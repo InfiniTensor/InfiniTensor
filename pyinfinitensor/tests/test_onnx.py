@@ -247,6 +247,18 @@ class TestStringMethods(unittest.TestCase):
         sqrt = make_node("Sqrt", ["x"], ["y"], name="sqrt")
         make_and_import_model(make_graph([sqrt], "sqrt", [x], [y]))
 
+    def test_log(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        log = make_node("Log", ["x"], ["y"], name="log")
+        make_and_import_model(make_graph([log], "log", [x], [y]))
+        
+    def test_exp(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        exp = make_node("Exp", ["x"], ["y"], name="exp")
+        make_and_import_model(make_graph([exp], "exp", [x], [y]))
+
     def test_sigmoid(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
@@ -342,6 +354,12 @@ class TestStringMethods(unittest.TestCase):
         make_and_import_model(
             make_graph([unsqueeze], "unsqueeze", [input, axes], [output], [axes_data])
         )
+
+    def test_det(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [2, 3, 3])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [2])
+        det = make_node("Det", ["x"], ["y"], name="det")
+        make_and_import_model(make_graph([det], "det", [x], [y]))
 
     def test_concat(self):
         input1 = make_tensor_value_info("input1", TensorProto.FLOAT, [1, 3, 2, 4])

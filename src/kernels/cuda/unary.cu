@@ -2,6 +2,7 @@
 #include "core/constants.h"
 #include "cuda/cuda_common.h"
 #include "cuda/cuda_unary.h"
+#include <cstdint>
 #include <cub/cub.cuh>
 #include <math.h>
 
@@ -91,6 +92,31 @@ __global__ void _sqrt_kernel(half *input, half *output, size_t n) {
     size_t stride = blockDim.x * gridDim.x;
     for (size_t i = index; i < n; i += stride) {
         output[i] = hsqrt(input[i]);
+    }
+}
+
+template <typename T>
+__global__ void _log_kernel(T *input, T *output, size_t n) {
+    size_t index = threadIdx.x + blockIdx.x * blockDim.x;
+    size_t stride = blockDim.x * gridDim.x;
+    for (size_t i = index; i < n; i += stride) {
+        output[i] = logf(input[i]);
+    }
+}
+
+__global__ void _exp_kernel(half *input, half *output, size_t n) {
+    size_t index = threadIdx.x + blockIdx.x * blockDim.x;
+    size_t stride = blockDim.x * gridDim.x;
+    for (size_t i = index; i < n; i += stride) {
+        output[i] = __float2half(__expf(__half2float(input[i])));
+    }
+}
+
+__global__ void _exp_kernel(float *input, float *output, size_t n) {
+    size_t index = threadIdx.x + blockIdx.x * blockDim.x;
+    size_t stride = blockDim.x * gridDim.x;
+    for (size_t i = index; i < n; i += stride) {
+        output[i] = __expf(input[i]);
     }
 }
 
@@ -228,6 +254,22 @@ template <typename T> void sqrt_kernel(T *input, T *output, size_t num) {
         (T *)input, (T *)output, num);
 }
 
+template <typename T> void log_kernel(T *input, T *output, size_t num) {
+
+    int blocksize = block_work_size();
+    int gridsize = (num + blocksize - 1) / blocksize;
+    _log_kernel<<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+        (T *)input, (T *)output, num);
+}
+
+template <typename T> void exp_kernel(T *input, T *output, size_t num) {
+
+    int blocksize = block_work_size();
+    int gridsize = (num + block_work_size() - 1) / block_work_size();
+    _sqrt_kernel<<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+        (T *)input, (T *)output, num);
+}
+
 template <typename T> void gelu_kernel(T *input, T *output, size_t num) {
 
     int blocksize = block_work_size();
@@ -317,6 +359,14 @@ void unary_kernel(const Operator &_op) {
         } else {
             IT_TODO_HALT();
         }
+    } else if (op->getOpType() == OpType::Exp) {
+        if (_op->getDType() == DataType::Float32) {
+            exp_kernel<float>((float *)inputData, (float *)outputData, num);
+        } else if (_op->getDType() == DataType::Float16) {
+            exp_kernel<half>((half *)inputData, (half *)outputData, num);
+        } else {
+            IT_TODO_HALT();
+        }
     } else if (op->getOpType() == OpType::Gelu) {
         if (_op->getDType() == DataType::Float32) {
             gelu_kernel<float>((float *)inputData, (float *)outputData, num);
@@ -384,6 +434,14 @@ template void cast_kernel<float, int8_t>(float *input, int8_t *output,
                                          size_t num);
 template void cast_kernel<int8_t, float>(int8_t *input, float *output,
                                          size_t num);
+template void cast_kernel<float, bool>(float *input, bool *output, size_t num);
+template void cast_kernel<int64_t, float>(int64_t *input, float *output,
+                                          size_t num);
+template void cast_kernel<int32_t, int64_t>(int32_t *input, int64_t *output,
+                                         size_t num);    
+template void cast_kernel<int64_t, int32_t>(int64_t *input, int32_t *output,
+                                         size_t num);                                                                            
 template void leaky_relu_kernel<float>(float *input, float *output, size_t num,
                                        float alpha);
+template void log_kernel<float>(float *input, float *output, size_t num);
 }; // namespace infini

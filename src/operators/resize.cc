@@ -28,7 +28,7 @@ ResizeObj::ResizeObj(GraphObj *graph, Tensor input, Tensor output,
 void ResizeObj::init(const Tensor &input, const Tensor &sizes,
                      const Tensor &scales, const Tensor &roi,
                      const std::optional<vector<int>> &axes) {
-    IT_ASSERT(!(nullptr != sizes && nullptr != scales));
+    IT_ASSERT(nullptr == sizes || nullptr == scales);
 
     // inputs of operator must not be nullptr, due to the check in
     // OperatorObj::OperatorObj

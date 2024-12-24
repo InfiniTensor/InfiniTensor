@@ -61,6 +61,26 @@ class CastCuda : public CudaKernelWithoutConfig {
                       op->getOutDType() == DataType::Float32);
             cast_kernel<int8_t, float>((int8_t *)inputData, (float *)outputData,
                                        num);
+        } else if (op->getType() == CastType::Float2Bool) {
+            IT_ASSERT(op->getDType() == DataType::Float32 &&
+                      op->getOutDType() == DataType::Bool);
+            cast_kernel<float, bool>((float *)inputData, (bool *)outputData,
+                                     num);
+        } else if (op->getType() == CastType::Int642Float) {
+            IT_ASSERT(op->getDType() == DataType::Int64 &&
+                      op->getOutDType() == DataType::Float32);
+            cast_kernel<int64_t, float>((int64_t *)inputData,
+                                        (float *)outputData, num);
+        } else if (op->getType() == CastType::Int322Int64) {
+            IT_ASSERT(op->getDType() == DataType::Int32 &&
+                      op->getOutDType() == DataType::Int64);
+            cast_kernel<int32_t, int64_t>((int32_t *)inputData,
+                                          (int64_t *)outputData, num);
+        } else if (op->getType() == CastType::Int642Int32) {
+            IT_ASSERT(op->getDType() == DataType::Int64 &&
+                      op->getOutDType() == DataType::Int32);
+            cast_kernel<int64_t, int32_t>((int64_t *)inputData,
+                                          (int32_t *)outputData, num);
         } else {
             IT_ASSERT(false);
         }
@@ -169,6 +189,21 @@ class SoftmaxCudnn : public CudaKernelWithoutConfig {
     }
 };
 
+class LogCuda : public CudaKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<LogObj>(_op);
+        void *const inputData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const outputData = (op->getOutput()->getRawDataPtr<void *>());
+        size_t size = op->getOutput()->size();
+        if (op->getDType() == DataType::Float32) {
+            log_kernel<float>((float *)inputData, (float *)outputData, size);
+        } else {
+            IT_TODO_HALT();
+        }
+    }
+};
+
 class LeakyReluCuda : public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
@@ -213,6 +248,8 @@ REGISTER_KERNEL(Device::CUDA, OpType::HardSwish, UnaryCuda, "Hard_Swish_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Tanh, TanhCudnn, "Tanh_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Abs, UnaryCuda, "Abs_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Sqrt, UnaryCuda, "Sqrt_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Log, LogCuda, "Log_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Exp, UnaryCuda, "Exp_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Gelu, UnaryCuda, "Gelu_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Silu, UnaryCuda, "Silu_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Neg, UnaryCuda, "Neg_CUDA");

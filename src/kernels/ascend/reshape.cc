@@ -8,7 +8,6 @@ class CopyAclnn : public ASCENDKernelWithoutConfig {
     void compute(const Operator &op,
                  const RuntimeObj *_context) const override {
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
-        IT_ASSERT(op->getDType() == DataType::Float32);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
@@ -19,11 +18,13 @@ class CopyAclnn : public ASCENDKernelWithoutConfig {
         std::vector<int64_t> aDim = castTo64(aD);
         std::vector<int64_t> aStride = castTo64(aS);
 
+        auto aclDataType = aclnnDataTypeConvert(op->getDType());
+
         auto srcTensor = aclCreateTensor(
-            aDim.data(), aDim.size(), ACL_FLOAT, aStride.data(), 0,
+            aDim.data(), aDim.size(), aclDataType, aStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, aDim.data(), aDim.size(), aData);
         auto outputTensor = aclCreateTensor(
-            aDim.data(), aDim.size(), ACL_FLOAT, aStride.data(), 0,
+            aDim.data(), aDim.size(), aclDataType, aStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, aDim.data(), aDim.size(), cData);
 
         uint64_t workspaceSize = 0;

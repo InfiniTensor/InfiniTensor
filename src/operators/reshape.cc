@@ -67,7 +67,13 @@ vector<int> ReshapeObj::getOpAttrVector() const {
 FlattenObj::FlattenObj(GraphObj *graph, Tensor input, Tensor output, int _axis)
     : OperatorObj(OpType::Flatten, {input}, {output}) {
     int rank = input->getRank();
-    axis = get_real_axis(_axis, rank);
+    IT_ASSERT(rank >= 1);
+    IT_ASSERT(_axis >= -rank && _axis <= rank);
+    if (_axis < 0) {
+        axis = rank + _axis;
+    } else {
+        axis = _axis;
+    }
     IT_ASSERT(checkValid(graph));
 }
 

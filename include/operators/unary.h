@@ -30,19 +30,15 @@ class UnaryObj : public OperatorObj {
 
 class ClipObj : public OperatorObj {
   public:
-    ClipObj(GraphObj *graph, Tensor input, Tensor output,
-            std::optional<float> min, std::optional<float> max);
+    ClipObj(GraphObj *graph, TensorVec inputs, Tensor output);
     OP_CLONE(ClipObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
-    std::optional<float> getMin() const { return minValue; };
-    std::optional<float> getMax() const { return maxValue; };
-    int numInputs() const override { return 1; }
+    int numInputs() const override { return inputs.size(); }
     int numOutputs() const override { return 1; }
 
   private:
-    std::optional<float> minValue, maxValue;
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;
 };
@@ -158,6 +154,7 @@ enum class CastType {
     Float2Int16,
     Float2Int8,
     Float2BFloat16,
+    Float2Bool,
     Int322Float,
     Int322Int8,
     Int322Int16,
@@ -262,6 +259,7 @@ class LeakyReluObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 };
 
+// not onnx standard
 class LogObj : public OperatorObj {
   public:
     enum LogType {

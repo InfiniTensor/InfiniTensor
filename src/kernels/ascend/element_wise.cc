@@ -2,6 +2,7 @@
 #include "aclnnop/aclnn_maximum.h"
 #include "aclnnop/level2/aclnn_add.h"
 #include "aclnnop/level2/aclnn_div.h"
+#include "aclnnop/level2/aclnn_eq_tensor.h"
 #include "aclnnop/level2/aclnn_mul.h"
 #include "aclnnop/level2/aclnn_pow_tensor_tensor.h"
 #include "aclnnop/level2/aclnn_sub.h"
@@ -16,7 +17,6 @@ namespace infini {
                      const RuntimeObj *_context) const override {              \
             auto op = as<ElementWiseObj>(_op);                                 \
             auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);   \
-            IT_ASSERT(op->getDType() == DataType::Float32);                    \
                                                                                \
             void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());   \
             void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());   \
@@ -36,14 +36,16 @@ namespace infini {
             std::vector<int64_t> cDim = castTo64(c);                           \
             std::vector<int64_t> cStride = castTo64(cS);                       \
                                                                                \
+            auto aclDataType = aclnnDataTypeConvert(op->getDType());           \
+                                                                               \
             auto inputA = aclCreateTensor(                                     \
-                aDim.data(), aDim.size(), ACL_FLOAT, aStride.data(), 0,        \
+                aDim.data(), aDim.size(), aclDataType, aStride.data(), 0,      \
                 aclFormat::ACL_FORMAT_ND, aDim.data(), aDim.size(), aData);    \
             auto inputB = aclCreateTensor(                                     \
-                bDim.data(), bDim.size(), ACL_FLOAT, bStride.data(), 0,        \
+                bDim.data(), bDim.size(), aclDataType, bStride.data(), 0,      \
                 aclFormat::ACL_FORMAT_ND, bDim.data(), bDim.size(), bData);    \
             auto output = aclCreateTensor(                                     \
-                cDim.data(), cDim.size(), ACL_FLOAT, cStride.data(), 0,        \
+                cDim.data(), cDim.size(), aclDataType, cStride.data(), 0,      \
                 aclFormat::ACL_FORMAT_ND, cDim.data(), cDim.size(), cData);    \
                                                                                \
             uint64_t workspaceSize = 0;                                        \
@@ -77,7 +79,6 @@ class AddAclnn : public ASCENDKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
-        IT_ASSERT(op->getDType() == DataType::Float32);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
@@ -97,18 +98,21 @@ class AddAclnn : public ASCENDKernelWithoutConfig {
         std::vector<int64_t> cDim = castTo64(c);
         std::vector<int64_t> cStride = castTo64(cS);
 
+        auto aclDataType = aclnnDataTypeConvert(op->getDType());
+
         auto inputA = aclCreateTensor(
-            aDim.data(), aDim.size(), ACL_FLOAT, aStride.data(), 0,
+            aDim.data(), aDim.size(), aclDataType, aStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, aDim.data(), aDim.size(), aData);
         auto inputB = aclCreateTensor(
-            bDim.data(), bDim.size(), ACL_FLOAT, bStride.data(), 0,
+            bDim.data(), bDim.size(), aclDataType, bStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, bDim.data(), bDim.size(), bData);
         auto output = aclCreateTensor(
-            cDim.data(), cDim.size(), ACL_FLOAT, cStride.data(), 0,
+            cDim.data(), cDim.size(), aclDataType, cStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, cDim.data(), cDim.size(), cData);
 
         auto [aAlpha, bAlpha, beta] = getAlphBeta();
-        auto alpha = aclCreateScalar(&bAlpha, ACL_FLOAT);
+        // ACL_FLOAT can be converted to ACL_FLOAT16 automatically
+        auto alpha = aclCreateScalar(&bAlpha, aclDataType);
 
         uint64_t workspaceSize = 0;
         aclOpExecutor *executor;
@@ -143,7 +147,6 @@ class SubAclnn : public ASCENDKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<ElementWiseObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
-        IT_ASSERT(op->getDType() == DataType::Float32);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
@@ -163,18 +166,21 @@ class SubAclnn : public ASCENDKernelWithoutConfig {
         std::vector<int64_t> cDim = castTo64(c);
         std::vector<int64_t> cStride = castTo64(cS);
 
+        auto aclDataType = aclnnDataTypeConvert(op->getDType());
+
         auto inputA = aclCreateTensor(
-            aDim.data(), aDim.size(), ACL_FLOAT, aStride.data(), 0,
+            aDim.data(), aDim.size(), aclDataType, aStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, aDim.data(), aDim.size(), aData);
         auto inputB = aclCreateTensor(
-            bDim.data(), bDim.size(), ACL_FLOAT, bStride.data(), 0,
+            bDim.data(), bDim.size(), aclDataType, bStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, bDim.data(), bDim.size(), bData);
         auto output = aclCreateTensor(
-            cDim.data(), cDim.size(), ACL_FLOAT, cStride.data(), 0,
+            cDim.data(), cDim.size(), aclDataType, cStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, cDim.data(), cDim.size(), cData);
 
         auto [aAlpha, bAlpha, beta] = getAlphBeta();
-        auto alpha = aclCreateScalar(&bAlpha, ACL_FLOAT);
+        // ACL_FLOAT can be converted to ACL_FLOAT16 automatically
+        auto alpha = aclCreateScalar(&bAlpha, aclDataType);
 
         uint64_t workspaceSize = 0;
         aclOpExecutor *executor;
@@ -206,6 +212,8 @@ DEFINE_ELEMENT_WISE_Aclnn(Div);
 DEFINE_ELEMENT_WISE_Aclnn(Mul);
 DEFINE_ELEMENT_WISE_Aclnn(Maximum);
 
+DEFINE_ELEMENT_WISE_Aclnn(EqTensor);
+
 REGISTER_KERNEL(Device::ASCEND, OpType::Pow, PowTensorTensorAclnn,
                 "pow_ASCEND_float");
 REGISTER_KERNEL(Device::ASCEND, OpType::Div, DivAclnn, "div_ASCEND_float");
@@ -215,5 +223,15 @@ REGISTER_KERNEL(Device::ASCEND, OpType::Add, AddAclnn, "add_ASCEND_float");
 REGISTER_KERNEL(Device::ASCEND, OpType::Sub, SubAclnn, "sub_ASCEND_float");
 REGISTER_KERNEL(Device::ASCEND, OpType::Max, MaximumAclnn, "max_ASCEND_float");
 //  REGISTER_KERNEL(Device::ASCEND, OpType::Abs, AbsAclnn, "abs_ASCEND_float");
+
+REGISTER_KERNEL(Device::ASCEND, OpType::Equal, EqTensorAclnn, "equal_ASCEND");
+// REGISTER_KERNEL(Device::BANG, OpType::Greater, GreaterThanCnnl,
+//                 "GreaterThan_cnnl_BANG");
+// REGISTER_KERNEL(Device::BANG, OpType::GreaterOrEqual, GreaterEqualCnnl,
+//                 "GreaterEqual_cnnl_BANG");
+// REGISTER_KERNEL(Device::BANG, OpType::Less, LessThanCnnl,
+// "LessThan_cnnl_BANG"); REGISTER_KERNEL(Device::BANG, OpType::LessOrEqual,
+// LessEqualCnnl,
+//                 "LessEqual_cnnl_BANG");
 
 } // namespace infini

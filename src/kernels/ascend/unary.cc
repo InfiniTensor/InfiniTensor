@@ -8,6 +8,7 @@
 #include "aclnnop/level2/aclnn_exp.h"
 #include "aclnnop/level2/aclnn_floor.h"
 #include "aclnnop/level2/aclnn_gelu.h"
+#include "aclnnop/level2/aclnn_hardsigmoid.h"
 #include "aclnnop/level2/aclnn_hardswish.h"
 #include "aclnnop/level2/aclnn_leaky_relu.h"
 #include "aclnnop/level2/aclnn_neg.h"
@@ -53,11 +54,13 @@ class ReluAclnn : public ASCENDKernelWithoutConfig {
             cStride[i] = int64_t(cS[i]);
         }
 
+        auto aclDataType = aclnnDataTypeConvert(op->getDType());
+
         auto input = aclCreateTensor(
-            aDim.data(), aDim.size(), ACL_FLOAT, aStride.data(), 0,
+            aDim.data(), aDim.size(), aclDataType, aStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, aDim.data(), aDim.size(), aData);
         auto output = aclCreateTensor(
-            cDim.data(), cDim.size(), ACL_FLOAT, cStride.data(), 0,
+            cDim.data(), cDim.size(), aclDataType, cStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, cDim.data(), cDim.size(), cData);
 
         uint64_t workspaceSize = 0;
@@ -113,11 +116,13 @@ class LeakyReluAclnn : public ASCENDKernelWithoutConfig {
             cStride[i] = int64_t(cS[i]);
         }
 
+        auto aclDataType = aclnnDataTypeConvert(op->getDType());
+
         auto input = aclCreateTensor(
-            aDim.data(), aDim.size(), ACL_FLOAT, aStride.data(), 0,
+            aDim.data(), aDim.size(), aclDataType, aStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, aDim.data(), aDim.size(), aData);
         auto output = aclCreateTensor(
-            cDim.data(), cDim.size(), ACL_FLOAT, cStride.data(), 0,
+            cDim.data(), cDim.size(), aclDataType, cStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, cDim.data(), cDim.size(), cData);
 
         uint64_t workspaceSize = 0;
@@ -154,7 +159,6 @@ class LeakyReluAclnn : public ASCENDKernelWithoutConfig {
                      const RuntimeObj *_context) const override {              \
             auto op = as<UnaryObj>(_op);                                       \
             auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);   \
-            IT_ASSERT(op->getDType() == DataType::Float32);                    \
                                                                                \
             void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());   \
             void *const cData = (op->getOutput()->getRawDataPtr<void *>());    \
@@ -180,11 +184,13 @@ class LeakyReluAclnn : public ASCENDKernelWithoutConfig {
                 cStride[i] = int64_t(cS[i]);                                   \
             }                                                                  \
                                                                                \
+            auto aclDataType = aclnnDataTypeConvert(op->getDType());           \
+                                                                               \
             auto input = aclCreateTensor(                                      \
-                aDim.data(), aDim.size(), ACL_FLOAT, aStride.data(), 0,        \
+                aDim.data(), aDim.size(), aclDataType, aStride.data(), 0,      \
                 aclFormat::ACL_FORMAT_ND, aDim.data(), aDim.size(), aData);    \
             auto output = aclCreateTensor(                                     \
-                cDim.data(), cDim.size(), ACL_FLOAT, cStride.data(), 0,        \
+                cDim.data(), cDim.size(), aclDataType, cStride.data(), 0,      \
                 aclFormat::ACL_FORMAT_ND, cDim.data(), cDim.size(), cData);    \
                                                                                \
             uint64_t workspaceSize = 0;                                        \
@@ -212,6 +218,7 @@ class LeakyReluAclnn : public ASCENDKernelWithoutConfig {
 DEFINE_UNARY_Aclnn(Abs);
 DEFINE_UNARY_Aclnn(Sigmoid);
 DEFINE_UNARY_Aclnn(Hardswish);
+DEFINE_UNARY_Aclnn(Hardsigmoid);
 DEFINE_UNARY_Aclnn(Gelu);
 
 DEFINE_UNARY_Aclnn(Tanh);
@@ -238,6 +245,8 @@ REGISTER_KERNEL(Device::ASCEND, OpType::Sigmoid, SigmoidAclnn,
                 "sigmoid_ASCEND_float");
 REGISTER_KERNEL(Device::ASCEND, OpType::HardSwish, HardswishAclnn,
                 "hardswish_ASCEND_float");
+REGISTER_KERNEL(Device::ASCEND, OpType::HardSigmoid, HardsigmoidAclnn,
+                "hardsigmoid_ASCEND_float");
 REGISTER_KERNEL(Device::ASCEND, OpType::Tanh, TanhAclnn, "tanh_ASCEND_float");
 REGISTER_KERNEL(Device::ASCEND, OpType::Gelu, GeluAclnn, "gelu_ASCEND_float");
 REGISTER_KERNEL(Device::ASCEND, OpType::Sin, SinAclnn, "sin_ASCEND_float");
