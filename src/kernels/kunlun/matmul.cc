@@ -12,7 +12,6 @@ class MatmulXdnn : public KUNLUNKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         // This kernel do C = act(alpha * x * w + beta * bias)
         auto op = as<MatmulObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -61,9 +60,35 @@ class MatmulXdnn : public KUNLUNKernelWithoutConfig {
                     auto numInput =
                         shapeProd(aDimsTarget.begin(), aDimsTarget.end());
                     wkspace = context->getWorkspace(numInput * dtype.getSize());
-                    checkKUNLUNError(xdnn::broadcast<float>(
-                        context->KUNLUNHandle(), (float *)aData,
-                        (float *)wkspace, aDimsMatmul, aDimsTarget));
+                    if (dtype == DataType::Float32) {
+                        checkKUNLUNError(xdnn::broadcast<float>(
+                            context->KUNLUNHandle(), (float *)aData,
+                            (float *)wkspace, aDimsMatmul, aDimsTarget));
+                    } else if (dtype == DataType::Float16) {
+                        checkKUNLUNError(xdnn::broadcast<float16>(
+                            context->KUNLUNHandle(), (float16 *)aData,
+                            (float16 *)wkspace, aDimsMatmul, aDimsTarget));
+                    } else if (dtype == DataType::Int32) {
+                        checkKUNLUNError(xdnn::broadcast<int>(
+                            context->KUNLUNHandle(), (int *)aData,
+                            (int *)wkspace, aDimsMatmul, aDimsTarget));
+                    } else if (dtype == DataType::Int8) {
+                        checkKUNLUNError(xdnn::broadcast<int8_t>(
+                            context->KUNLUNHandle(), (int8_t *)aData,
+                            (int8_t *)wkspace, aDimsMatmul, aDimsTarget));
+                    } else if (dtype == DataType::Int64) {
+                        checkKUNLUNError(xdnn::broadcast<int64_t>(
+                            context->KUNLUNHandle(), (int64_t *)aData,
+                            (int64_t *)wkspace, aDimsMatmul, aDimsTarget));
+                    } else if (dtype == DataType::Int16) {
+                        checkKUNLUNError(xdnn::broadcast<int16_t>(
+                            context->KUNLUNHandle(), (int16_t *)aData,
+                            (int16_t *)wkspace, aDimsMatmul, aDimsTarget));
+                    } else {
+                        IT_ASSERT(false, "unsupported data type " +
+                                             op->getDType().toString());
+                    }
+
                     AData = wkspace;
                     BData = bData;
                     CData =
@@ -76,16 +101,42 @@ class MatmulXdnn : public KUNLUNKernelWithoutConfig {
                     auto numInput =
                         shapeProd(bDimsTarget.begin(), bDimsTarget.end());
                     wkspace = context->getWorkspace(numInput * dtype.getSize());
-                    checkKUNLUNError(xdnn::broadcast<float>(
-                        context->KUNLUNHandle(), (float *)bData,
-                        (float *)wkspace, bDimsMatmul, bDimsTarget));
+                    if (dtype == DataType::Float32) {
+                        checkKUNLUNError(xdnn::broadcast<float>(
+                            context->KUNLUNHandle(), (float *)bData,
+                            (float *)wkspace, bDimsMatmul, bDimsTarget));
+                    } else if (dtype == DataType::Float16) {
+                        checkKUNLUNError(xdnn::broadcast<float16>(
+                            context->KUNLUNHandle(), (float16 *)bData,
+                            (float16 *)wkspace, bDimsMatmul, bDimsTarget));
+                    } else if (dtype == DataType::Int32) {
+                        checkKUNLUNError(xdnn::broadcast<int>(
+                            context->KUNLUNHandle(), (int *)bData,
+                            (int *)wkspace, bDimsMatmul, bDimsTarget));
+                    } else if (dtype == DataType::Int8) {
+                        checkKUNLUNError(xdnn::broadcast<int8_t>(
+                            context->KUNLUNHandle(), (int8_t *)bData,
+                            (int8_t *)wkspace, bDimsMatmul, bDimsTarget));
+                    } else if (dtype == DataType::Int64) {
+                        checkKUNLUNError(xdnn::broadcast<int64_t>(
+                            context->KUNLUNHandle(), (int64_t *)bData,
+                            (int64_t *)wkspace, bDimsMatmul, bDimsTarget));
+                    } else if (dtype == DataType::Int16) {
+                        checkKUNLUNError(xdnn::broadcast<int16_t>(
+                            context->KUNLUNHandle(), (int16_t *)bData,
+                            (int16_t *)wkspace, bDimsMatmul, bDimsTarget));
+                    } else {
+                        IT_ASSERT(false, "unsupported data type " +
+                                             op->getDType().toString());
+                    }
+
                     AData = aData;
                     BData = wkspace;
                     CData =
                         biasTensor
                             ? context->getWorkspace(numOutput * dtype.getSize())
                             : outData;
-                }    // endif batchA == 1
+                } // endif batchA == 1
             } else { // batchA == batchB, no need to broadcast
                 AData = aData;
                 BData = bData;
@@ -93,30 +144,78 @@ class MatmulXdnn : public KUNLUNKernelWithoutConfig {
                             ? context->getWorkspace(numOutput * dtype.getSize())
                             : outData;
             }
-            checkKUNLUNError((xdnn::fc_batched<float, float, float, float>(
-                context->KUNLUNHandle(), b, transA, transB, m, n, k, alpha,
-                (float *)AData, m * k, (float *)BData, n * k, beta,
-                (float *)CData, m * n, nullptr, nullptr)));
+            if (op->getDType() == DataType::Float32) {
+                checkKUNLUNError((xdnn::fc_batched<float, float, float, float>(
+                    context->KUNLUNHandle(), b, transA, transB, m, n, k, alpha,
+                    (float *)AData, m * k, (float *)BData, n * k, beta,
+                    (float *)CData, m * n, nullptr, nullptr)));
+            } else if (op->getDType() == DataType::Float16) {
+                checkKUNLUNError(
+                    (xdnn::fc_batched<float16, float16, float16, int16_t>(
+                        context->KUNLUNHandle(), b, transA, transB, m, n, k,
+                        alpha, (float16 *)AData, m * k, (float16 *)BData, n * k,
+                        beta, (float16 *)CData, m * n, nullptr, nullptr)));
+            } else {
+                IT_ASSERT(false, "Unsupported data type: " +
+                                     op->getDType().toString());
+            }
+
             // Broadcast_add xw and bias if bias exists
             if (biasTensor) {
                 auto biasShape = biasTensor->getDims();
                 broadcastShape(cDims, biasShape);
-                checkKUNLUNError(baidu::xpu::api::broadcast_add<float>(
-                    context->KUNLUNHandle(), (float *)CData,
-                    biasTensor->getRawDataPtr<float *>(), (float *)outData,
-                    cDims, biasShape));
+                auto ret = 0;
+                if (op->getDType() == DataType::Float32) {
+                    ret = baidu::xpu::api::broadcast_add<float>(
+                        context->KUNLUNHandle(), (float *)CData,
+                        biasTensor->getRawDataPtr<float *>(), (float *)outData,
+                        cDims, biasShape);
+                } else if (op->getDType() == DataType::Float16) {
+                    ret = baidu::xpu::api::broadcast_add<float16>(
+                        context->KUNLUNHandle(), (float16 *)CData,
+                        biasTensor->getRawDataPtr<float16 *>(),
+                        (float16 *)outData, cDims, biasShape);
+                } else if (op->getDType() == DataType::Int32) {
+                    ret = baidu::xpu::api::broadcast_add<int>(
+                        context->KUNLUNHandle(), (int *)CData,
+                        biasTensor->getRawDataPtr<int *>(), (int *)outData,
+                        cDims, biasShape);
+                } else if (op->getDType() == DataType::Int64) {
+                    ret = baidu::xpu::api::broadcast_add<int64_t>(
+                        context->KUNLUNHandle(), (int64_t *)CData,
+                        biasTensor->getRawDataPtr<int64_t *>(),
+                        (int64_t *)outData, cDims, biasShape);
+                } else {
+                    IT_ASSERT(false, "Unsupported data type: " +
+                                         op->getDType().toString());
+                }
+                checkKUNLUNError(ret);
             }
         } else {
             // Matmul with no batch, call fc_fusion
             const int lda = transA ? m : k, ldb = transB ? k : n, ldc = n;
             auto kunlunAct = parseActType(std::move(op->getAct()));
-            checkKUNLUNError(
-                (baidu::xpu::api::fc_fusion<float, float, float, float>(
-                    context->KUNLUNHandle(), (float *)aData, (float *)bData,
-                    (float *)outData, m, n, k, transA, transB, nullptr, nullptr,
-                    nullptr, lda, ldb, ldc, alpha, 0.f,
+            if (op->getDType() == DataType::Float32) {
+                checkKUNLUNError(
+                    (baidu::xpu::api::fc_fusion<float, float, float, float>(
+                        context->KUNLUNHandle(), (float *)aData, (float *)bData,
+                        (float *)outData, m, n, k, transA, transB, nullptr,
+                        nullptr, nullptr, lda, ldb, ldc, alpha, 0.f,
+                        biasTensor ? biasTensor->getRawDataPtr<float *>()
+                                   : nullptr,
+                        kunlunAct, nullptr)));
+            } else if (op->getDType() == DataType::Float16) {
+                checkKUNLUNError((baidu::xpu::api::fc_fusion<float16, float16,
+                                                             float16, int16_t>(
+                    context->KUNLUNHandle(), (float16 *)aData, (float16 *)bData,
+                    (float16 *)outData, m, n, k, transA, transB, nullptr,
+                    nullptr, nullptr, lda, ldb, ldc, alpha, 0.f,
                     biasTensor ? biasTensor->getRawDataPtr<float *>() : nullptr,
                     kunlunAct, nullptr)));
+            } else {
+                IT_ASSERT(false, "Unsupported data type: " +
+                                     op->getDType().toString());
+            }
         }
         return;
     }

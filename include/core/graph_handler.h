@@ -65,6 +65,8 @@ class GraphHandlerObj {
     Tensor tanh(Tensor x, Tensor y);
     Tensor erf(Tensor x, Tensor y);
     Tensor softmax(Tensor x, Tensor y, int axis);
+    TensorVec topk(Tensor input, std::optional<TensorVec> outputs, Shape K,
+                   int axis, int Largest, int sorted);
     Tensor abs(Tensor x, Tensor y);
     Tensor sqrt(Tensor x, Tensor y);
     Tensor neg(Tensor x, Tensor y);
@@ -73,8 +75,7 @@ class GraphHandlerObj {
     Tensor flatten(Tensor s, Tensor y, int axis);
     Tensor pRelu(Tensor x, Tensor slope, Tensor y);
     Tensor elu(Tensor x, Tensor y, float alpha);
-    Tensor clip(Tensor x, Tensor y, std::optional<float> min,
-                std::optional<float> max);
+    Tensor clip(TensorVec inputs, Tensor y); 
     Tensor transpose(Tensor data, Tensor transposed, Shape perm);
     Tensor reshape(Tensor data, Tensor reshaped, Shape shape);
     Tensor resize(Tensor input, Tensor output,

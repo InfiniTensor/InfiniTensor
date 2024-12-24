@@ -26,6 +26,7 @@
 #include "operators/softmax.h"
 #include "operators/split.h"
 #include "operators/squeeze.h"
+#include "operators/topk.h"
 #include "operators/transpose.h"
 #include "operators/unary.h"
 #include "operators/unsqueeze.h"
@@ -257,13 +258,12 @@ Tensor GraphHandlerObj::leakyRelu(Tensor x, Tensor y, float alpha) {
     }
 }
 
-Tensor GraphHandlerObj::clip(Tensor x, Tensor y, std::optional<float> min,
-                             std::optional<float> max) {
+Tensor GraphHandlerObj::clip(TensorVec inputs, Tensor y) {
     if (y) {
-        g->addOpWithOutputs<ClipObj>(std::move(x), y, min, max);
+        g->addOpWithOutputs<ClipObj>(std::move(inputs), y);
         return y;
     } else {
-        return g->addOp<ClipObj>(std::move(x), y, min, max)->getOutput();
+        return g->addOp<ClipObj>(std::move(inputs), y)->getOutput();
     }
 }
 
@@ -274,6 +274,20 @@ Tensor GraphHandlerObj::softmax(Tensor input, Tensor output, int axis) {
     } else {
         return g->addOp<SoftmaxObj>(std::move(input), output, axis)
             ->getOutput();
+    }
+}
+
+TensorVec GraphHandlerObj::topk(Tensor input, std::optional<TensorVec> outputs,
+                                Shape K, int axis, int Largest, int sorted) {
+    if (outputs) {
+        g->addOpWithOutputs<TopKObj>(std::move(input), outputs, std::move(K),
+                                     axis, Largest, sorted);
+        return *outputs;
+    } else {
+        return g
+            ->addOp<TopKObj>(std::move(input), outputs, std::move(K), axis,
+                             Largest, sorted)
+            ->getOutputs();
     }
 }
 
