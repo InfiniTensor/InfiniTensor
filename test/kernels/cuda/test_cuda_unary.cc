@@ -128,6 +128,7 @@ TEST(cuDNN_Unary, run) {
     testUnary<HardSigmoidObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     testUnary<HardSwishObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     testUnary<SqrtObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
+    testUnary<ExpObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     testUnary<NegObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     testUnary<ErfObj>(IncrementalGenerator(), Shape{1, 2, 2, 3});
     testCast<CastObj>(IncrementalGenerator(), Shape{8, 1},
