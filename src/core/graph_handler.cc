@@ -696,13 +696,10 @@ Tensor GraphHandlerObj::unsqueeze(Tensor input, Tensor output, Shape axes) {
 
 Tensor GraphHandlerObj::det(Tensor input, Tensor output, std::string mode) {
     if (output) {
-        g->addOpWithOutputs<DetObj>(std::move(input), output,
-                                    DetObj::fromModeStr(mode));
+        g->addOpWithOutputs<DetObj>(std::move(input), output, mode);
         return output;
     } else {
-        return g
-            ->addOp<DetObj>(std::move(input), output, DetObj::fromModeStr(mode))
-            ->getOutput();
+        return g->addOp<DetObj>(std::move(input), output, mode)->getOutput();
     }
 }
 

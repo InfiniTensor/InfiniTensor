@@ -14,7 +14,8 @@ class DetObj : public OperatorObj {
             IT_TODO_HALT();
         }
     }
-    DetObj(GraphObj *graph, Tensor input, Tensor output, Mode mode);
+    DetObj(GraphObj *graph, Tensor input, Tensor output,
+           const std::string &mode);
     OP_CLONE(DetObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
@@ -23,6 +24,7 @@ class DetObj : public OperatorObj {
     int numOutputs() const override { return 1; }
     Mode getMode() const { return modeValue; }
     std::string getModeStr() const;
+    Mode strToMode(const std::string &modeStr) const;
 
   private:
     Mode modeValue;

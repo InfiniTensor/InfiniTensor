@@ -343,6 +343,12 @@ class TestStringMethods(unittest.TestCase):
             make_graph([unsqueeze], "unsqueeze", [input, axes], [output], [axes_data])
         )
 
+    def test_det(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [2, 3, 3])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [2])
+        det = make_node("Det", ["x"], ["y"], name="det")
+        make_and_import_model(make_graph([det], "det", [x], [y]))
+        
     def test_concat(self):
         input1 = make_tensor_value_info("input1", TensorProto.FLOAT, [1, 3, 2, 4])
         input2 = make_tensor_value_info("input2", TensorProto.FLOAT, [1, 3, 2, 5])

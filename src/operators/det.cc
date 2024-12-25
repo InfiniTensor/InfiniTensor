@@ -1,8 +1,9 @@
 #include "operators/det.h"
 
 namespace infini {
-DetObj::DetObj(GraphObj *graph, Tensor input, Tensor output, Mode mode)
-    : OperatorObj(OpType::Det, {input}, {output}), modeValue(mode) {
+DetObj::DetObj(GraphObj *graph, Tensor input, Tensor output,
+               const std::string &mode)
+    : OperatorObj(OpType::Det, {input}, {output}), modeValue(strToMode(mode)) {
     IT_ASSERT(checkValid(graph));
 }
 
@@ -53,6 +54,13 @@ std::string DetObj::getModeStr() const {
         return "logDet";
     }
     return "";
+}
+
+DetObj::Mode DetObj::strToMode(const std::string &modeStr) const {
+    if (modeStr == "normal") {
+        return NormalDet;
+    } else
+        return LogDet;
 }
 
 }; // namespace infini
