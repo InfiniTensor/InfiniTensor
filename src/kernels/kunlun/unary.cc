@@ -1,6 +1,7 @@
 #include "operators/unary.h"
 #include "kunlun/kunlun_kernel_without_config.h"
 #include "kunlun/kunlun_runtime.h"
+#include <limits>
 
 namespace infini {
 class ReluXdnn : public KUNLUNKernelWithoutConfig {
@@ -208,17 +209,66 @@ class ClipXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ClipObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
-        float min = op->getMin().value();
-        float max = op->getMax().value();
+        void *const min_ptr = op->numInputs() > 1
+                                  ? (op->getInputs(1)->getRawDataPtr<void *>())
+                                  : nullptr;
+        void *const max_ptr = op->numInputs() > 2
+                                  ? (op->getInputs(2)->getRawDataPtr<void *>())
+                                  : nullptr;
 
-        auto ret = xdnn::clip<float>(context->KUNLUNHandle(), (float *)aData,
-                                     (float *)cData, len, min, max);
+        auto ret = 0;
+        if (op->getDType() == DataType::Float32) {
+            ret = xdnn::clip<float>(
+                context->KUNLUNHandle(), (float *)aData, (float *)cData, len,
+                min_ptr ? *(float *)min_ptr : std::numeric_limits<float>::min(),
+                max_ptr ? *(float *)max_ptr
+                        : std::numeric_limits<float>::max());
+        } else if (op->getDType() == DataType::Float16) {
+            ret = xdnn::clip<float16>(
+                context->KUNLUNHandle(), (float16 *)aData, (float16 *)cData,
+                len,
+                min_ptr ? *(float16 *)min_ptr
+                        : std::numeric_limits<float16>::min(),
+                max_ptr ? *(float16 *)max_ptr
+                        : std::numeric_limits<float16>::max());
+        } else if (op->getDType() == DataType::Int32) {
+            ret = xdnn::clip<int>(
+                context->KUNLUNHandle(), (int *)aData, (int *)cData, len,
+                min_ptr ? *(int *)min_ptr : std::numeric_limits<int>::min(),
+                max_ptr ? *(int *)max_ptr : std::numeric_limits<int>::max());
+        } else if (op->getDType() == DataType::Int8) {
+            ret = xdnn::clip<int8_t>(
+                context->KUNLUNHandle(), (int8_t *)aData, (int8_t *)cData, len,
+                min_ptr ? *(int8_t *)min_ptr
+                        : std::numeric_limits<int8_t>::min(),
+                max_ptr ? *(int8_t *)max_ptr
+                        : std::numeric_limits<int8_t>::max());
+        } else if (op->getDType() == DataType::Int16) {
+            ret = xdnn::clip<int16_t>(
+                context->KUNLUNHandle(), (int16_t *)aData, (int16_t *)cData,
+                len,
+                min_ptr ? *(int16_t *)min_ptr
+                        : std::numeric_limits<int16_t>::min(),
+                max_ptr ? *(int16_t *)max_ptr
+                        : std::numeric_limits<int16_t>::max());
+        } else if (op->getDType() == DataType::Int64) {
+            ret = xdnn::clip<int64_t>(
+                context->KUNLUNHandle(), (int64_t *)aData, (int64_t *)cData,
+                len,
+                min_ptr ? *(int64_t *)min_ptr
+                        : std::numeric_limits<int64_t>::min(),
+                max_ptr ? *(int64_t *)max_ptr
+                        : std::numeric_limits<int64_t>::max());
+        } else {
+            IT_ASSERT(false, "Unsupported data type " +
+                                 op->getDType().toString() +
+                                 " for clip kunlun kernel.");
+        }
         assert(ret == 0);
         return;
     }

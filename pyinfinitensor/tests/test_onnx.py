@@ -592,6 +592,14 @@ class TestStringMethods(unittest.TestCase):
         model = make_model(graph)
         from_onnx(model, backend.cpu_runtime())
 
+    def test_clip(self):
+        input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 5, 7])
+        min = make_tensor_value_info("min", TensorProto.FLOAT, (1,))
+        max = make_tensor_value_info("max", TensorProto.FLOAT, (1,))
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 5, 7])
+        clip = make_node("Clip", ["input", "min", "max"], ["output"], name="clip")
+        make_and_import_model(make_graph([clip], "clip", [input, min, max], [output]))
+
 
 class TestDynamicTensor(unittest.TestCase):
     def test_dynamic_tensor(self):
