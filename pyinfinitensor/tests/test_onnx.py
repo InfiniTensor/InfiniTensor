@@ -202,6 +202,13 @@ class TestStringMethods(unittest.TestCase):
         pow = make_node("Pow", ["a", "b"], ["c"], name="pow")
         make_and_import_model(make_graph([pow], "pow", [a, b], [c]))
 
+    def test_equal(self):
+        a = make_tensor_value_info("a", TensorProto.FLOAT, [1, 3, 5, 7])
+        b = make_tensor_value_info("b", TensorProto.FLOAT, [1, 3, 5, 7])
+        c = make_tensor_value_info("c", TensorProto.FLOAT, [1, 3, 5, 7])
+        equal = make_node("Equal", ["a", "b"], ["c"], name="equal")
+        make_and_import_model(make_graph([equal], "equal", [a, b], [c]))
+
     def test_relu(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
