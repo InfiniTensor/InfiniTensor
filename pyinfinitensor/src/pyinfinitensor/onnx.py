@@ -617,6 +617,7 @@ class OnnxStub:
                     tensors.get(node.output[0]),
                 )
             elif node.op_type == "Clip":
+                # TODO: check if clip op with version later or equal than 11
                 tensors[node.output[0]] = self.handler.clip(
                     [tensors[name] for name in node.input if name != ""],
                     tensors.get(node.output[0]),
