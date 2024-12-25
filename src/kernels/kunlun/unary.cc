@@ -1,6 +1,7 @@
 #include "operators/unary.h"
 #include "kunlun/kunlun_kernel_without_config.h"
 #include "kunlun/kunlun_runtime.h"
+#include <limits>
 
 namespace infini {
 class ReluXdnn : public KUNLUNKernelWithoutConfig {
@@ -25,17 +26,25 @@ class LeakyReluXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<LeakyReluObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
         auto alpha = op->getAlpha();
-
-        auto ret = xdnn::leaky_relu<float>(context->KUNLUNHandle(),
-                                           (float *const)aData, (float *)cData,
-                                           len, alpha);
+        auto ret = 0;
+        if (op->getDType() == DataType::Float32) {
+            ret = xdnn::leaky_relu<float>(context->KUNLUNHandle(),
+                                          (float *const)aData, (float *)cData,
+                                          len, alpha);
+        } else if (op->getDType() == DataType::Float16) {
+            ret = xdnn::leaky_relu<float16>(context->KUNLUNHandle(),
+                                            (float16 *const)aData,
+                                            (float16 *)cData, len, alpha);
+        } else {
+            IT_ASSERT(false,
+                      "unsupported data type " + op->getDType().toString());
+        }
         assert(ret == 0);
         return;
     }
@@ -45,15 +54,23 @@ class SigmoidXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<UnaryObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
-
-        auto ret = xdnn::sigmoid<float>(context->KUNLUNHandle(), (float *)aData,
-                                        (float *)cData, len);
+        auto ret = 0;
+        if (op->getDType() == DataType::Float32) {
+            ret = xdnn::sigmoid<float>(context->KUNLUNHandle(), (float *)aData,
+                                       (float *)cData, len);
+        } else if (op->getDType() == DataType::Float16) {
+            ret =
+                xdnn::sigmoid<float16>(context->KUNLUNHandle(),
+                                       (float16 *)aData, (float16 *)cData, len);
+        } else {
+            IT_ASSERT(false,
+                      "unsupported data type " + op->getDType().toString());
+        }
         assert(ret == 0);
         return;
     }
@@ -63,15 +80,23 @@ class TanhXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<UnaryObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
         auto len = op->getInputs(0)->size();
 
-        auto ret = xdnn::tanh<float>(context->KUNLUNHandle(), (float *)aData,
-                                     (float *)cData, len);
+        auto ret = 0;
+        if (op->getDType() == DataType::Float32) {
+            ret = xdnn::tanh<float>(context->KUNLUNHandle(), (float *)aData,
+                                    (float *)cData, len);
+        } else if (op->getDType() == DataType::Float16) {
+            ret = xdnn::tanh<float16>(context->KUNLUNHandle(), (float16 *)aData,
+                                      (float16 *)cData, len);
+        } else {
+            IT_ASSERT(false,
+                      "unsupported data type " + op->getDType().toString());
+        }
         assert(ret == 0);
         return;
     }
@@ -208,7 +233,6 @@ class ClipXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ClipObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -255,23 +279,6 @@ class NegXdnn : public KUNLUNKernelWithoutConfig {
 
         auto ret = xdnn::neg<float>(context->KUNLUNHandle(), (float *)aData,
                                     (float *)cData, len);
-        assert(ret == 0);
-        return;
-    }
-};
-
-class CopyXdnn : public KUNLUNKernelWithoutConfig {
-    void compute(const Operator &op,
-                 const RuntimeObj *_context) const override {
-        IT_ASSERT(op->getDType() == DataType::Float32);
-        auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
-
-        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
-        void *const cData = (op->getOutput()->getRawDataPtr<void *>());
-        auto len = op->getInputs(0)->size();
-
-        auto ret = xdnn::copy<float>(context->KUNLUNHandle(), (float *)aData,
-                                     (float *)cData, len);
         assert(ret == 0);
         return;
     }
@@ -589,10 +596,6 @@ REGISTER_KERNEL(Device::KUNLUN, OpType::Neg, NegXdnn, "Neg_xdnn_KUNLUN");
 REGISTER_KERNEL(Device::KUNLUN, OpType::Reciprocal, ReciprocalXdnn,
                 "Reciprocal_xdnn_KUNLUN");
 
-REGISTER_KERNEL(Device::KUNLUN, OpType::Reshape, CopyXdnn, "Reshape_xdnn");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Flatten, CopyXdnn, "Flatten_xdnn");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Identity, CopyXdnn, "Identity_xdnn");
-REGISTER_KERNEL(Device::KUNLUN, OpType::Squeeze, CopyXdnn, "Squeeze_xdnn");
 REGISTER_KERNEL(Device::KUNLUN, OpType::Abs, AbsXdnn, "Abs_xdnn");
 REGISTER_KERNEL(Device::KUNLUN, OpType::Atan, ATanXdnn, "Atan_xdnn");
 REGISTER_KERNEL(Device::KUNLUN, OpType::Log, LogXdnn, "Log_xdnn");

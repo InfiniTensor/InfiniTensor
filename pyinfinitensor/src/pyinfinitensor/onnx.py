@@ -576,6 +576,37 @@ class OnnxStub:
                         -1,
                     ),
                 )
+            elif node.op_type == "TopK":
+                K = _parse_data(data[node.input[1]])
+                for name, tensor in zip(
+                    node.output,
+                    self.handler.topk(
+                        tensors[node.input[0]],
+                        None,
+                        K,
+                        next(
+                            (attr.i for attr in node.attribute if attr.name == "axis"),
+                            -1,
+                        ),
+                        next(
+                            (
+                                attr.i
+                                for attr in node.attribute
+                                if attr.name == "Largest"
+                            ),
+                            1,
+                        ),
+                        next(
+                            (
+                                attr.i
+                                for attr in node.attribute
+                                if attr.name == "sorted"
+                            ),
+                            1,
+                        ),
+                    ),
+                ):
+                    tensors[name] = tensor
             elif node.op_type == "Abs":
                 tensors[node.output[0]] = self.handler.abs(
                     tensors[node.input[0]],
@@ -1440,7 +1471,7 @@ class OnnxStub:
                 else:
                     inputs.append(
                         ctx.push_data_input(name, "max", TensorProto.FLOAT, [], [])
-                    )
+                    ) 
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Cast:
                 to = backend.cast_to_of(op)

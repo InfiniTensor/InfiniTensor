@@ -158,6 +158,7 @@ enum class CastType {
     Float2Int16,
     Float2Int8,
     Float2BFloat16,
+    Float2Bool,
     Int322Float,
     Int322Int8,
     Int322Int16,
@@ -262,6 +263,7 @@ class LeakyReluObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 };
 
+// not onnx standard
 class LogObj : public OperatorObj {
   public:
     enum LogType {
