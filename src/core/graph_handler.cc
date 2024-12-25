@@ -6,6 +6,7 @@
 #include "operators/broadcast.h"
 #include "operators/concat.h"
 #include "operators/conv.h"
+#include "operators/det.h"
 #include "operators/element_wise.h"
 #include "operators/expand.h"
 #include "operators/gather.h"
@@ -690,6 +691,15 @@ Tensor GraphHandlerObj::unsqueeze(Tensor input, Tensor output, Shape axes) {
     } else {
         return g->addOp<UnsqueezeObj>(std::move(input), output, std::move(axes))
             ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::det(Tensor input, Tensor output, std::string mode) {
+    if (output) {
+        g->addOpWithOutputs<DetObj>(std::move(input), output, mode);
+        return output;
+    } else {
+        return g->addOp<DetObj>(std::move(input), output, mode)->getOutput();
     }
 }
 
