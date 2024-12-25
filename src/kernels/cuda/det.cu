@@ -11,15 +11,31 @@ template <typename T> __device__ float _sum_diagonal(const T *input, int n) {
 }
 
 template <typename T>
-__global__ void _det_kernel(const T *input, T *output, int n, int batch_size) {
+__global__ void _det_kernel(const T *input, T *output, int n, int batch_size,
+                            int mode) {
     int index = threadIdx.x + blockIdx.x * blockDim.x;
-    output[index] =
-        index < batch_size ? _sum_diagonal(input + index * n * n, n) : 0;
+    if (index < batch_size) {
+        T det = _sum_diagonal(input + index * n * n, n);
+
+        if (mode == 1) { // mode = LogDet
+            if constexpr (std::is_same_v<T, half>) {
+                output[index] = __float2half(__logf(__half2float(det)));
+            } else if constexpr (std::is_same_v<T, float>) {
+                output[index] = __logf(det);
+            } else if constexpr (std::is_arithmetic_v<T>) {
+                output[index] = std::log(det);
+            } else {
+                printf("Unsupported data type for det kernel.\n");
+            }
+        } else {
+            output[index] = det;
+        }
+    }
 }
 
 namespace infini {
 void det_kernel(const CudaRuntimeObj *context, void *input, void *output,
-                const int n, const int batch_size) {
+                const int n, const int batch_size, int mode) {
     size_t workspaceSize =
         batch_size * (sizeof(float *) + sizeof(int) + n * n * sizeof(float));
     CudaPtr workspace = context->getWorkspace(workspaceSize);
@@ -45,7 +61,7 @@ void det_kernel(const CudaRuntimeObj *context, void *input, void *output,
                                          nullptr, info, batch_size));
 
     _det_kernel<<<1, batch_size, 0, CUDAStream::getCurrentStream()>>>(
-        inputF32, outputF32, n, batch_size);
+        inputF32, outputF32, n, batch_size, mode);
 
     cudaDeviceSynchronize();
 }
