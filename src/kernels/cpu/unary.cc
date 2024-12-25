@@ -217,12 +217,8 @@ class Clip : public CpuKernelWithoutConfig {
         auto op = as<ClipObj>(_op);
         T *inptr = op->getInputs(0)->getRawDataPtr<T *>();
         T *outptr = op->getOutput()->getRawDataPtr<T *>();
-        T *const minValue = op->numInputs() > 1
-                                ? (op->getInputs(1)->getRawDataPtr<T *>())
-                                : nullptr;
-        T *const maxValue = op->numInputs() > 2
-                                ? (op->getInputs(2)->getRawDataPtr<T *>())
-                                : nullptr;
+        auto minValue = op->getMin();
+        auto maxValue = op->getMax();
 
         auto n = op->getOutput()->size();
         for (size_t offset = 0; offset < n; offset++) {

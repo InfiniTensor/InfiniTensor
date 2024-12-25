@@ -1471,7 +1471,7 @@ class OnnxStub:
                 else:
                     inputs.append(
                         ctx.push_data_input(name, "max", TensorProto.FLOAT, [], [])
-                    )
+                    ) 
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Cast:
                 to = backend.cast_to_of(op)

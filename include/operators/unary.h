@@ -30,15 +30,19 @@ class UnaryObj : public OperatorObj {
 
 class ClipObj : public OperatorObj {
   public:
-    ClipObj(GraphObj *graph, TensorVec inputs, Tensor output);
+    ClipObj(GraphObj *graph, Tensor input, Tensor output,
+            std::optional<float> min, std::optional<float> max);
     OP_CLONE(ClipObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
-    int numInputs() const override { return inputs.size(); }
+    std::optional<float> getMin() const { return minValue; };
+    std::optional<float> getMax() const { return maxValue; };
+    int numInputs() const override { return 1; }
     int numOutputs() const override { return 1; }
 
   private:
+    std::optional<float> minValue, maxValue;
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;
 };

@@ -237,6 +237,13 @@ pool_attrs_of(Operator op) {
                            pool->getSh(), pool->getSw(), pool->getCeilMode());
 }
 
+static std::tuple<std::optional<float>, std::optional<float>>
+clip_attrs_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Clip);
+    auto clip = dynamic_cast<const ClipObj *>(op.get());
+    return std::make_tuple(clip->getMin(), clip->getMax());
+}
+
 static std::tuple<vector<int>, bool> reduce_attrs_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::ReduceMean ||
               op->getOpType() == OpType::ReduceSum);
@@ -367,6 +374,7 @@ void export_functions(py::module &m) {
         .FUNCTION(matmul_attrs_of)
         .FUNCTION(batch_norm_attrs_of)
         .FUNCTION(pool_attrs_of)
+        .FUNCTION(clip_attrs_of)
         .FUNCTION(reduce_attrs_of)
         .FUNCTION(tensor_dtype)
         .FUNCTION(reshape_shape_of)

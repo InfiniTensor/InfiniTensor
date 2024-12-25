@@ -258,12 +258,13 @@ Tensor GraphHandlerObj::leakyRelu(Tensor x, Tensor y, float alpha) {
     }
 }
 
-Tensor GraphHandlerObj::clip(TensorVec inputs, Tensor y) {
+Tensor GraphHandlerObj::clip(Tensor x, Tensor y, std::optional<float> min,
+                             std::optional<float> max) {
     if (y) {
-        g->addOpWithOutputs<ClipObj>(std::move(inputs), y);
+        g->addOpWithOutputs<ClipObj>(std::move(x), y, min, max);
         return y;
     } else {
-        return g->addOp<ClipObj>(std::move(inputs), y)->getOutput();
+        return g->addOp<ClipObj>(std::move(x), y, min, max)->getOutput();
     }
 }
 
