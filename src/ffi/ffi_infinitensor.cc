@@ -3,6 +3,7 @@
 #include "operators/batch_norm.h"
 #include "operators/concat.h"
 #include "operators/conv.h"
+#include "operators/det.h"
 #include "operators/expand.h"
 #include "operators/gather.h"
 #include "operators/lrn.h"
@@ -125,6 +126,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, DepthToSpace)
         .VALUE(OpType, LRN)
         .VALUE(OpType, Elu)
+        .VALUE(OpType, Det)
         .export_values();
 
 #undef VALUE
@@ -346,6 +348,12 @@ static std::tuple<float, float, float, int> lrn_attrs_of(Operator op) {
     return std::make_tuple(alpha, beta, bias, size);
 }
 
+static std::string det_attr_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Det);
+    auto det = dynamic_cast<const DetObj *>(op.get());
+    return det->getModeStr();
+}
+
 void export_functions(py::module &m) {
 #define FUNCTION(NAME) def(#NAME, &NAME)
     m.def("cpu_runtime", &NativeCpuRuntimeObj::getInstance)
@@ -390,7 +398,8 @@ void export_functions(py::module &m) {
         .FUNCTION(squeeze_axes_of)
         .FUNCTION(unsqueeze_axes_of)
         .FUNCTION(lrn_attrs_of)
-        .FUNCTION(elu_alpha_of);
+        .FUNCTION(elu_alpha_of)
+        .FUNCTION(det_attr_of);
 #undef FUNCTION
 }
 
@@ -598,6 +607,7 @@ void init_graph_builder(py::module &m) {
         .def("erf", &Handler::erf, policy::move)
         .def("where", &Handler::where, policy::move)
         .def("lrn", &Handler::lrn, policy::move)
+        .def("det", &Handler::det, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)
         .def("optimize", &Handler::optimize, policy::automatic)
         .def("operators", &Handler::operators, policy::move)
