@@ -287,6 +287,16 @@ Tensor GraphHandlerObj::clip(TensorVec inputs, Tensor y) {
     }
 }
 
+Tensor GraphHandlerObj::cumsum(Tensor input, Tensor output, int axis, bool exclusive, bool reverse) {
+    if (output) {
+        g->addOpWithOutputs<CumsumObj>(std::move(input), output, axis, exclusive, reverse);
+        return output;
+    } else {
+        return g->addOp<CumsumObj>(std::move(input), output, axis, exclusive, reverse)
+            ->getOutput();
+    }
+}
+
 Tensor GraphHandlerObj::softmax(Tensor input, Tensor output, int axis) {
     if (output) {
         g->addOpWithOutputs<SoftmaxObj>(std::move(input), output, axis);
@@ -803,6 +813,8 @@ static CastType inferCastType(Tensor input, int to) {
         return CastType::Float2Float;
     } else if (iType == DataType::Float32 && oType == DataType::Bool) {
         return CastType::Float2Bool;
+    } else if (iType == DataType::Bool && oType == DataType::Bool) {
+        return CastType::Bool2Bool;
     } else {
         IT_TODO_HALT_MSG("Unsupported CastType : input_type is " +
                          iType.toString() + " output_type is " +

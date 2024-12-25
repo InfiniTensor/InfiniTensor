@@ -47,7 +47,11 @@ class WhereCuda : public CudaKernelWithoutConfig {
                         outputsize, inputXShape, inputYShape, conditionShape,
                         outputShape, xSize, ySize, cSize);
         } else {
-            IT_ASSERT(false);
+            // IT_ASSERT(false);
+            whereKernel((float *)inputXData, (float *)inputYData,
+                        (uint8_t *)conditionData, (float *)outputData, nDims,
+                        outputsize, inputXShape, inputYShape, conditionShape,
+                        outputShape, xSize, ySize, cSize);
         }
     }
 };

@@ -440,7 +440,9 @@ template void cast_kernel<int64_t, float>(int64_t *input, float *output,
 template void cast_kernel<int32_t, int64_t>(int32_t *input, int64_t *output,
                                          size_t num);    
 template void cast_kernel<int64_t, int32_t>(int64_t *input, int32_t *output,
-                                         size_t num);                                                                            
+                                         size_t num);
+template void cast_kernel<bool, bool>(bool *input, bool *output,
+                                         size_t num);                                                                           
 template void leaky_relu_kernel<float>(float *input, float *output, size_t num,
                                        float alpha);
 template void log_kernel<float>(float *input, float *output, size_t num);

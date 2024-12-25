@@ -174,6 +174,7 @@ enum class CastType {
     Float162Float,
     BFloat162Float,
     Float2Float,
+    Bool2Bool,
 };
 
 class CastObj : public OperatorObj {
@@ -204,8 +205,8 @@ class CumsumObj : public OperatorObj {
 
     std::string toString() const override;
     int getAxis() const { return axisValue; }
-    float getExclusive() const { return exclusiveValue; }
-    float getReverse() const { return reverseValue; }
+    bool getExclusive() const { return exclusiveValue; }
+    bool getReverse() const { return reverseValue; }
     int numInputs() const override { return 1; }
     int numOutputs() const override { return 1; }
 

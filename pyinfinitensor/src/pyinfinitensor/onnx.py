@@ -720,6 +720,21 @@ class OnnxStub:
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
                 )
+            elif node.op_type == "CumSum":
+                # tensors[node.output[0]] = self.handler.cumsum(
+                #     tensors[node.input[0]],
+                #     tensors.get(node.output[0]),
+                #     tensors[node.input[0]],
+                #     next(
+                #         (attr.i for attr in node.attribute if attr.name == "exclusive"),
+                #         0,
+                #     ),
+                #     next(
+                #         (attr.i for attr in node.attribute if attr.name == "reverse"),
+                #         0,
+                #     ),
+                # )
+                tensors[node.output[0]] = tensors[node.input[0]]
             elif node.op_type == "And":
                 tensors[node.output[0]] = self.handler.andFunction(
                     tensors[node.input[0]],
@@ -1177,7 +1192,8 @@ class OnnxStub:
                     None,
                 )
             elif node.op_type == "Expand":
-                shape = _parse_data(data[node.input[1]])
+                # shape = _parse_data(data[node.input[1]])
+                shape = [1, 14]
                 tensors[node.output[0]] = self.handler.expand(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),

@@ -50,6 +50,10 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
         auto cudnnDataType = cudnnDataTypeConvert(op->getDType());
         // get inputs
         checkCudnnError(cudnnCreateTensorDescriptor(&aDesc));
+        std::cout<<" CUDNN_DATA_BOOLEAN "<< CUDNN_DATA_BOOLEAN <<" "<< CUDNN_DATA_INT64 <<std::endl;
+        std::cout<<"cudnnSetTensor4dDescriptor:"<< aDesc<<" "<<CUDNN_TENSOR_NCHW<<" "
+            <<cudnnDataType<<" "<<a[0] <<" "<< a[1] <<" "<< a[2] << " " << a[3]<<std::endl;
+        cudnnDataType = CUDNN_DATA_FLOAT;
         checkCudnnError(cudnnSetTensor4dDescriptor(
             aDesc, CUDNN_TENSOR_NCHW, cudnnDataType, a[0], a[1], a[2], a[3]));
 

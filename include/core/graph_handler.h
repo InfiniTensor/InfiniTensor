@@ -71,6 +71,7 @@ class GraphHandlerObj {
     Tensor tanh(Tensor x, Tensor y);
     Tensor erf(Tensor x, Tensor y);
     Tensor softmax(Tensor x, Tensor y, int axis);
+    Tensor cumsum(Tensor input, Tensor output, int axis, bool exclusive, bool reverse);
     TensorVec topk(Tensor input, std::optional<TensorVec> outputs, Shape K,
                    int axis, int Largest, int sorted);
     Tensor scatterND(Tensor data, Tensor indices, Tensor updates,
