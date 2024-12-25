@@ -209,7 +209,6 @@ class ClipXdnn : public KUNLUNKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ClipObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
         auto context = dynamic_cast<const KUNLUNRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -243,12 +242,57 @@ class ClipXdnn : public KUNLUNKernelWithoutConfig {
                                    op->getInputs(2)->getBytes());
         }
 
-        auto ret = xdnn::clip<float>(
-            context->KUNLUNHandle(), (float *)aData, (float *)cData, len,
-            min_ptr_host ? *(float *)min_ptr_host
-                         : std::numeric_limits<float>::min(),
-            max_ptr_host ? *(float *)max_ptr_host
-                         : std::numeric_limits<float>::max());
+        auto ret = 0;
+        if (op->getDType() == DataType::Float32) {
+            ret = xdnn::clip<float>(
+                context->KUNLUNHandle(), (float *)aData, (float *)cData, len,
+                min_ptr_host ? *(float *)min_ptr_host
+                             : std::numeric_limits<float>::min(),
+                max_ptr_host ? *(float *)max_ptr_host
+                             : std::numeric_limits<float>::max());
+        } else if (op->getDType() == DataType::Float16) {
+            ret = xdnn::clip<float16>(
+                context->KUNLUNHandle(), (float16 *)aData, (float16 *)cData,
+                len,
+                min_ptr_host ? *(float16 *)min_ptr_host
+                             : std::numeric_limits<float16>::min(),
+                max_ptr_host ? *(float16 *)max_ptr_host
+                             : std::numeric_limits<float16>::max());
+        } else if (op->getDType() == DataType::Int32) {
+            ret = xdnn::clip<int>(
+                context->KUNLUNHandle(), (int *)aData, (int *)cData, len,
+                min_ptr_host ? *(int *)min_ptr_host
+                             : std::numeric_limits<int>::min(),
+                max_ptr_host ? *(int *)max_ptr_host
+                             : std::numeric_limits<int>::max());
+        } else if (op->getDType() == DataType::Int8) {
+            ret = xdnn::clip<int8_t>(
+                context->KUNLUNHandle(), (int8_t *)aData, (int8_t *)cData, len,
+                min_ptr_host ? *(int8_t *)min_ptr_host
+                             : std::numeric_limits<int8_t>::min(),
+                max_ptr_host ? *(int8_t *)max_ptr_host
+                             : std::numeric_limits<int8_t>::max());
+        } else if (op->getDType() == DataType::Int16) {
+            ret = xdnn::clip<int16_t>(
+                context->KUNLUNHandle(), (int16_t *)aData, (int16_t *)cData,
+                len,
+                min_ptr_host ? *(int16_t *)min_ptr_host
+                             : std::numeric_limits<int16_t>::min(),
+                max_ptr_host ? *(int16_t *)max_ptr_host
+                             : std::numeric_limits<int16_t>::max());
+        } else if (op->getDType() == DataType::Int64) {
+            ret = xdnn::clip<int64_t>(
+                context->KUNLUNHandle(), (int64_t *)aData, (int64_t *)cData,
+                len,
+                min_ptr_host ? *(int64_t *)min_ptr_host
+                             : std::numeric_limits<int64_t>::min(),
+                max_ptr_host ? *(int64_t *)max_ptr_host
+                             : std::numeric_limits<int64_t>::max());
+        } else {
+            IT_ASSERT(false, "Unsupported data type " +
+                                 op->getDType().toString() +
+                                 " for clip kunlun kernel.");
+        }
         assert(ret == 0);
         return;
     }

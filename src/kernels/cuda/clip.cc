@@ -27,9 +27,9 @@ class ClipCuda : public CudaKernelWithoutConfig {
             clip_kernel<half>((half *)inputData, (half *)outputData, num,
                               (half *)min, (half *)max);
         } else {
-            IT_TODO_HALT_MSG("Unsupported data type of indices: " +
-                             op->getDType().toString() +
-                             "for clip cuda kernel.");
+            IT_ASSERT(false, "Unsupported data type " +
+                                 op->getDType().toString() +
+                                 " for clip cuda kernel.");
         }
     }
 };
