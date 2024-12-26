@@ -47,9 +47,11 @@ vector<int> ConvBaseObj::getOpAttrVector() const {
 void ConvObj::setAuxilaryAttributes(PaddingMode mode) {
     const Tensor &input = inputs[0];
     const Tensor &weight = inputs[1];
-    n = input->getDims()[0], c = input->getDims()[1], h = input->getDims()[2],
-    w = input->getDims()[3], f = weight->getDims()[0], r = weight->getDims()[2],
-    s = weight->getDims()[3];
+    n = input->getDims().at(0), c = input->getDims().at(1),
+    h = input->getDims().at(2),
+    w = input->getRank() == 3 ? 1 : input->getDims().at(3),
+    f = weight->getDims().at(0), r = weight->getDims().at(2),
+    s = weight->getRank() == 3 ? 1 : weight->getDims().at(3);
     if (mode == PaddingMode::Same) {
         int oh = h / sh;
         int ow = w / sw;
@@ -84,13 +86,13 @@ ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
 
 optional<vector<Shape>> ConvObj::inferShape(const TensorVec &inputs) {
     const auto &input = inputs[0], &weight = inputs[1];
-    n = input->getDims()[0];
-    c = input->getDims()[1];
-    h = input->getDims()[2];
-    w = input->getDims()[3];
-    f = weight->getDims()[0];
-    r = weight->getDims()[2];
-    s = weight->getDims()[3];
+    n = input->getDims().at(0);
+    c = input->getDims().at(1);
+    h = input->getDims().at(2);
+    w = input->getRank() == 3 ? 1 : input->getDims().at(3);
+    f = weight->getDims().at(0);
+    r = weight->getDims().at(2);
+    s = weight->getRank() == 3 ? 1 : weight->getDims().at(3);
     int on = n, oc = f;
     int oh = 0, ow = 0;
     // For NCHW+FCRS layout, C of input is divisable by C of weight
@@ -109,6 +111,9 @@ optional<vector<Shape>> ConvObj::inferShape(const TensorVec &inputs) {
         int pw = 0;
         oh = (h - (r - sh) * dh + ph * 2) / sh;
         ow = (w - (s - sw) * dw + pw * 2) / sw;
+    }
+    if (input->getRank() == 3) {
+        return {{{on, oc, oh}}};
     }
     return {{{on, oc, oh, ow}}};
 }
