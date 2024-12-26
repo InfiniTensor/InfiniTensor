@@ -258,26 +258,31 @@ ConvTransposed2dObj::inferShape(const TensorVec &inputs) {
     const Tensor &input = inputs[0], &weight = inputs[1];
     n = input->getDims()[0];
     f = input->getDims()[1];
-    h = input->getDims()[2];
-    w = input->getDims()[3];
+    h = input->getDims().at(2);
+    w = input->getRank() == 3 ? 1 : input->getDims().at(3);
     c = weight->getDims()[1];
     r = weight->getDims()[2];
-    s = weight->getDims()[3];
+    s = weight->getRank() == 3 ? 1 : weight->getDims()[3];
     IT_ASSERT(f == weight->getDims()[0]);
 
     int on = n, oc = c * group;
     int oh = 0, ow = 0;
     oh = (h - 1) * sh - 2 * ph + dh * (r - 1) + oph + 1;
     ow = (w - 1) * sw - 2 * pw + dw * (s - 1) + opw + 1;
+    if (input->getRank() == 3) {
+        return {{{on, oc, oh}}};
+    }
     return {{{on, oc, oh, ow}}};
 }
 
 void ConvTransposed2dObj::setAuxilaryAttributes(PaddingMode mode) {
     const Tensor &input = inputs[0];
     const Tensor &weight = inputs[1];
-    n = input->getDims()[0], f = input->getDims()[1], h = input->getDims()[2],
-    w = input->getDims()[3], c = weight->getDims()[1], r = weight->getDims()[2],
-    s = weight->getDims()[3];
+    n = input->getDims()[0], c = input->getDims()[1],
+    h = input->getDims().at(2),
+    w = input->getRank() == 3 ? 1 : input->getDims().at(3),
+    f = weight->getDims()[0], r = weight->getDims()[2],
+    s = weight->getRank() == 3 ? 1 : weight->getDims().at(3);
     if (mode == PaddingMode::Same) {
         int oh = h / sh;
         int ow = w / sw;
