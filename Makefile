@@ -35,3 +35,7 @@ test-cpp: build
 test-onnx:
 	@echo
 	python3 pyinfinitensor/tests/test_onnx.py
+
+test-tvm:
+	mkdir -p build/$(TYPE)
+	cd build/$(TYPE) && cmake $(CMAKE_OPT) -DBUILD_TEST_EINNET=ON ../.. && make -j8

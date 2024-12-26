@@ -27,7 +27,7 @@ else()
 endif()
 
 if(BUILD_TEST_EINNET)
-  include(${CMAKE_CURRENT_BINARY_DIR}/../cmake/config_lotus_TVM.cmake)
+  include(${CMAKE_CURRENT_BINARY_DIR}/../../cmake/config_lotus_TVM.cmake)
 endif()
 
 set(CMAKE_CXX_STANDARD 17)
@@ -74,8 +74,10 @@ include_directories(3rd-party/nlohmann_json_cmake_fetchcontent/single_include)
 
 # TVM backend
 if(BUILD_TEST_EINNET)
-add_subdirectory(3rd-party/tvm)
-
+#add_subdirectory(3rd-party/tvm)
+  message("-------------------------")
+  #find_package(MKL CONFIG REQUIRED)
+  message("${TVM_INCLUDE_DIR}")
   if (NOT TVM_INCLUDE_DIR OR NOT DMLC_INCLUDE_DIR OR NOT DLPACK_INCLUDE_DIR OR NOT DLPACK_INCLUDE_DIR)
     message(FATAL_ERROR "TVM_INCLUDE_DIR, DMLC_INCLUDE_DIR, and DLPACK_INCLUDE_DIR must be set when BUILD_TEST_EINNET is ON")
   endif()
