@@ -127,6 +127,11 @@ class OnnxStub:
                 (d, p, s) = (
                     attributes[name] for name in ["dilations", "pads", "strides"]
                 )
+                isConv1D = len(p) == 2 and p[0] == p[1] and len(d) == len(s) and len(d) == 1
+                if isConv1D:
+                    p = [p[0], 0, p[1], 0]
+                    s = [s[0], 1]
+                    d = [d[0], 1]
                 if p[0] != p[2] or p[1] != p[3]:
                     adapt = "{}-adapt".format(node.output[0])
                     tensors[adapt] = self.handler.pad(
@@ -160,6 +165,13 @@ class OnnxStub:
                                 tensors[node.input[2]].shape(),
                             ),
                             1,
+                            1,
+                        ] if not isConv1D else [
+                            1,
+                            reduce(
+                                lambda acc, x: acc * x,
+                                tensors[node.input[2]].shape(),
+                            ),
                             1,
                         ],
                     )
@@ -200,6 +212,13 @@ class OnnxStub:
                     attributes[name]
                     for name in ["dilations", "pads", "strides", "output_padding"]
                 )
+                isConvTranspose1D = len(p) == 2 and len(op) == 2 and p[0] == p[1] and len(d) == len(s) and len(d) == 1
+                if isConvTranspose1D:
+                    p = [p[0], 0, p[1], 0]
+                    s = [s[0], 1]
+                    d = [d[0], 1]
+                    op = [op[0], op[1]]
+
                 if p[0] != p[2] or p[1] != p[3]:
                     adapt = "{}-adapt".format(node.output[0])
                     tensors[adapt] = self.handler.pad(
@@ -235,6 +254,13 @@ class OnnxStub:
                                 tensors[node.input[2]].shape(),
                             ),
                             1,
+                            1,
+                        ] if not isConvTranspose1D else [
+                            1,
+                            reduce(
+                                lambda acc, x: acc * x,
+                                tensors[node.input[2]].shape(),
+                            ),
                             1,
                         ],
                     )
