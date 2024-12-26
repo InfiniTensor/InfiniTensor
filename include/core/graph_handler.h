@@ -71,6 +71,8 @@ class GraphHandlerObj {
     Tensor shape(Tensor x, Tensor y);
     Tensor identity(Tensor x, Tensor y);
     Tensor flatten(Tensor s, Tensor y, int axis);
+    TensorVec topk(Tensor input, std::optional<TensorVec> outputs, Shape K,
+                   int axis, int Largest, int sorted);
     Tensor pRelu(Tensor x, Tensor slope, Tensor y);
     Tensor elu(Tensor x, Tensor y, float alpha);
     Tensor clip(Tensor x, Tensor y, std::optional<float> min,
