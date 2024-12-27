@@ -511,6 +511,12 @@ class OnnxStub:
                     tensors[node.input[1]],
                     tensors.get(node.output[0]),
                 )
+            elif node.op_type == "Equal":
+                tensors[node.output[0]] = self.handler.equal(
+                    tensors[node.input[0]],
+                    tensors[node.input[1]],
+                    tensors.get(node.output[0]),
+                )
             elif node.op_type == "Min":
                 tensors[node.output[0]] = self.handler.min(
                     tensors[node.input[0]],
@@ -1331,6 +1337,7 @@ class OnnxStub:
                 backend.OpTypeId.Sqrt,
                 backend.OpTypeId.Erf,
                 backend.OpTypeId.Neg,
+                backend.OpTypeId.Equal,
             ]:
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Flatten:
