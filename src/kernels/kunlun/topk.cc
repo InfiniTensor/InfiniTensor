@@ -8,6 +8,7 @@ class TopKXdnn : public KUNLUNKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<TopKObj>(_op);
         auto input = op->getInputs(0);
+        IT_ASSERT(input->getRank() == 2, "Kunlun Topk do not support dim != 2");
 
         auto output_0 = op->getOutput(0);
         auto output_1 = op->getOutput(1);
@@ -24,22 +25,22 @@ class TopKXdnn : public KUNLUNKernelWithoutConfig {
         int n = input->getDims()[1];
 
         // Use workspace to save kernel output
-        // KUNLUNPtr workspace =
-        //     context->getWorkspace(output_1->size() * sizeof(int));
+        KUNLUNPtr workspace =
+            context->getWorkspace(output_1->size() * sizeof(int));
         if (op->getOpType() == OpType::TopK) {
             if (op->getDType() == DataType::Float32) {
                 checkKUNLUNError(xdnn::sorted_topk<float>(
                     context->KUNLUNHandle(), (float *)source, (float *)Values,
-                    (int *)Indices, m, n, k, Largest));
+                    (int *)workspace, m, n, k, Largest));
             } else if (op->getDType() == DataType::Float16) {
                 checkKUNLUNError(xdnn::sorted_topk<float16>(
                     context->KUNLUNHandle(), (float16 *)source,
-                    (float16 *)Values, (int *)Indices, m, n, k, Largest));
+                    (float16 *)Values, (int *)workspace, m, n, k, Largest));
             }
             // Cast to int64
-            // checkKUNLUNError((xdnn::cast<int, int64_t>(
-            //     context->KUNLUNHandle(), (int *)workspace, (int64_t *)Indices,
-            //     output_1->size())));
+            checkKUNLUNError((xdnn::cast<int, int64_t>(
+                context->KUNLUNHandle(), (int *)workspace, (int64_t *)Indices,
+                output_1->size())));
         } else {
             IT_TODO_HALT();
         }
