@@ -623,8 +623,8 @@ void CodeEngine::genTensorAlloc(const Tensor &t, bool isConvBias) {
         assert(false);
     }
 
-    line = fmt::format("checkCudnnError(cudnnSetTensor4dDescriptor({}, {}, "
-                       "CUDNN_TENSOR_NCHW, {}, {}, {}, {}));",
+    line = fmt::format("checkCudnnError(cudnnSetTensor4dDescriptor({}, "
+                       "{}, CUDNN_TENSOR_NCHW, {}, {}, {}, {}));",
                        getTensorDescName(t), dtype, paddedDim[0], paddedDim[1],
                        paddedDim[2], paddedDim[3]);
     emit(line);
@@ -914,7 +914,7 @@ void CodeEngine::genConvCompute(const ConvOp &op) {
         emit(line);
         emit(fmt::format("{} = 1.0f;", beta));
         line = fmt::format("checkCudnnError(cudnnActivationForward(cudnn, "
-                           "{}_act, &{}, {}, &{}, {}, {}));",
+                           "{}_act, &{}, {}, {}, &{}, {}, {}));",
                            getDescName(op), alpha,
                            getTensorDescName(*op.getOutputs()[0]),
                            getVarName(*op.getOutputs()[0]), beta,
@@ -1187,7 +1187,7 @@ void CodeEngine::genActivationCompute(const ActivationOp &op) {
     std::string beta = fmt::format("beta_{}", std::to_string(op.getGuid()));
     emit(fmt::format("float {} = 1.0f, {} = 0.0f;", alpha, beta));
     std::string line = fmt::format("checkCudnnError(cudnnActivationForward("
-                                   "cudnn, {}, &{}, {}, {}, &{}, {}, &{}));",
+                                   "cudnn, {}, &{}, {}, {}, &{}, {}, {}));",
                                    getDescName(op), alpha,
                                    getTensorDescName(*op.getInputs()[0]),
                                    getVarName(*op.getInputs()[0]), beta,
