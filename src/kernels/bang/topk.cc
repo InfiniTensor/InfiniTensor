@@ -79,4 +79,3 @@ class TopKCnnl : public BangKernelWithoutConfig {
 
 REGISTER_KERNEL(Device::BANG, OpType::TopK, TopKCnnl, "TopK_CNNL");
 }; // namespace infini
-

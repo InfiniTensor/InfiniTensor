@@ -72,4 +72,3 @@ TEST(bangTopKFp32, run) {
 }
 
 } // namespace infini
-

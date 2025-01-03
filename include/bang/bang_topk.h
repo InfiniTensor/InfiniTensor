@@ -8,4 +8,3 @@ void TopKUnion_f16(cnnlHandle_t handle, uint16_t const *source, int64_t topk,
                    uint16_t *Values, int64_t *Indices, int othersize,
                    int dimsize, int Largest, int sorted);
 }; // namespace infini
-
