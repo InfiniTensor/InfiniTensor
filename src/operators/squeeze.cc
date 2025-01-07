@@ -1,5 +1,6 @@
 #include "operators/squeeze.h"
 #include "utils/operator_utils.h"
+#include <algorithm>
 
 namespace infini {
 SqueezeObj::SqueezeObj(GraphObj *graph, Tensor input, Tensor output, Shape axes)
