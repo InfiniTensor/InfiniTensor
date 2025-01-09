@@ -145,13 +145,13 @@ class ConvObj : public ConvBaseObj {
     ~ConvObj() override {
         if (opDesc) {
             try {
-                if (numInputs() == 2) {
-                    CHECK_ERROR(infiniopDestroyConvDescriptor(
-                        (infiniopConvDescriptor_t)opDesc));
-                } else if (numInputs() == 3) {
-                    CHECK_ERROR(infiniopDestroyConvBiasActDescriptor(
-                        (infiniopConvBiasActDescriptor_t)opDesc));
-                }
+                // if (numInputs() == 2) {
+                //     CHECK_ERROR(infiniopDestroyConvDescriptor(
+                //         (infiniopConvDescriptor_t)opDesc));
+                // } else if (numInputs() == 3) {
+                //     CHECK_ERROR(infiniopDestroyConvBiasActDescriptor(
+                //         (infiniopConvBiasActDescriptor_t)opDesc));
+                // }
             } catch (const std::exception &e) {
                 std::cerr << "Error in ~ConvObj: " << e.what() << std::endl;
             }
