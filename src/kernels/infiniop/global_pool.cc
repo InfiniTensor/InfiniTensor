@@ -23,7 +23,7 @@ class GlobalPoolOp : public Kernel {
             // execute op
             CHECK_ERROR(infiniopGlobalAvgPool(
                 (infiniopGlobalAvgPoolDescriptor_t)op->getOpDesc(), workspace,
-                workspace_size, yData, xData, CUDAStream::getCurrentStream()));
+                workspace_size, yData, xData, context->getCurrentStream()));
         } else {
             IT_TODO_HALT();
         }

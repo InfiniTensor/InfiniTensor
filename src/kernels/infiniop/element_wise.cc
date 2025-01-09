@@ -6,7 +6,7 @@ namespace infini {
 
 class ElementWiseOp : public Kernel {
     void compute(const Operator &_op,
-                 const RuntimeObj *_context) const override {
+                 const RuntimeObj *context) const override {
         auto op = as<ElementWiseObj>(_op);
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
@@ -15,7 +15,7 @@ class ElementWiseOp : public Kernel {
         if (op->getOpType() == OpType::Add) {
             CHECK_ERROR(infiniopAdd((infiniopAddDescriptor_t)op->getOpDesc(),
                                     cData, aData, bData,
-                                    CUDAStream::getCurrentStream()));
+                                    context->getCurrentStream()));
         } else {
             IT_TODO_HALT();
         }

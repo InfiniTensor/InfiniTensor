@@ -23,7 +23,7 @@ class GemmOp : public Kernel {
         void *workspace = context->getWorkspace(workspace_size);
         CHECK_ERROR(infiniopGEMM((infiniopGEMMDescriptor_t)op->getOpDesc(),
                                  workspace, workspace_size, yData, aData, bData,
-                                 cData, CUDAStream::getCurrentStream()));
+                                 cData, context->getCurrentStream()));
     }
 
     PerfRecord tune(const Operator &op,
