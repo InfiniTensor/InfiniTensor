@@ -47,4 +47,4 @@ build_debug/
 
 *.swp
 
-operators/
+/operators/
