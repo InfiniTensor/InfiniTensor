@@ -192,6 +192,10 @@ static Ref<ASCENDRuntimeObj> ascend_runtime() {
 static Ref<RuntimeObj> intelcpu_runtime() { return make_ref<MklRuntimeObj>(); }
 #endif
 
+#ifdef USE_MUSA
+static Ref<MUSARuntimeObj> musa_runtime() { return make_ref<MUSARuntimeObj>(); }
+#endif
+
 static std::tuple<int, int, int, int, int, int> conv_attrs_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Conv);
     auto conv = dynamic_cast<const ConvObj *>(op.get());
@@ -393,6 +397,10 @@ void export_functions(py::module &m) {
         .FUNCTION(lrn_attrs_of)
         .FUNCTION(elu_alpha_of);
 #undef FUNCTION
+
+#ifdef USE_MUSA
+    .FUNCTION(musa_runtime)
+#endif
 }
 
 // A helper function that converts DataType to python format string
