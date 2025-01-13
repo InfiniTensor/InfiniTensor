@@ -70,6 +70,7 @@ bool OperatorObj::checkValid(GraphObj *graph) {
             IT_ASSERT(!outputs[i], "Find empty output while operator creation");
             outputs[i] = graph->addTensor(shapes[i], dataTypes[i]);
         }
+        initInfiniOp(graph->getRuntime());
     } else { // if outputs have been created, check their shapes
         for (size_t i = 0; i < shapes.size(); ++i) {
             if (shapes[i] != outputs[i]->getDims())
@@ -77,7 +78,6 @@ bool OperatorObj::checkValid(GraphObj *graph) {
         }
     }
 
-    initInfiniOp(graph->getRuntime());
     return true;
 }
 
