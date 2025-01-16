@@ -56,6 +56,14 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF) # -std=gnu++11 when on, -std=c++11 when off
 add_compile_options(-Wno-error=unused-variable)
 
+# REF: 
+# 1. https://gcc.gnu.org/bugzilla/show_bug.cgi?id=107852
+# 2. https://github.com/assimp/assimp/pull/5577
+if(((CMAKE_C_COMPILER_ID MATCHES "GNU") AND NOT MINGW AND NOT HAIKU) AND CMAKE_CXX_COMPILER_VERSION GREATER_EQUAL 13)
+  message(STATUS "GCC13 or later detected, disabling \"-Warray-bounds and -Wstringop-overflow\" for all source files as it appears to be a false positive")
+  add_compile_options(-Wno-array-bounds -Wno-stringop-overflow)
+endif()
+
 find_package(
   Python
   COMPONENTS Interpreter Development

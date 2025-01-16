@@ -2,6 +2,7 @@
 #ifndef OP_TYPE_H
 #define OP_TYPE_H
 
+#include <cstdint>
 #include <string>
 #include <unordered_set>
 
