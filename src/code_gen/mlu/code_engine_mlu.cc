@@ -13,13 +13,13 @@ namespace tpm {
 std::string CodeEngine::actToStr(Operator::ActType act) {
     switch (act) {
     case Operator::None:
-        return "CUDNN_ACTIVATION_IDENTITY";
+        return "CNNL_ACTIVATION_IDENTITY";
     case Operator::Relu:
-        return "CUDNN_ACTIVATION_RELU";
+        return "CNNL_ACTIVATION_RELU";
     case Operator::Sigmoid:
-        return "CUDNN_ACTIVATION_SIGMOID";
+        return "CNNL_ACTIVATION_SIGMOID";
     case Operator::Tanh:
-        return "CUDNN_ACTIVATION_TANH";
+        return "CNNL_ACTIVATION_TANH";
     default:
         assert(false);
     }
@@ -57,7 +57,7 @@ std::pair<std::string, std::string> CodeEngine::genTranspose(
         invoke_code += std::to_string(dimA[0]) + ", ";
         invoke_code += std::to_string(dimA[1]) + ", ";
         invoke_code += std::to_string(dimA[2]) + ");\n";
-        invoke_code += "    cudaCheckError();\n";
+        invoke_code += "    cnnlCheckError();\n";
         invoke_code += "}\n";
         return std::make_pair("", invoke_code);
     }
@@ -74,7 +74,7 @@ std::pair<std::string, std::string> CodeEngine::genTranspose(
         invoke_code += std::to_string(dimA[0]) + ", ";
         invoke_code += std::to_string(dimA[1] * dimA[2]) + ", ";
         invoke_code += std::to_string(dimA[3]) + ");\n";
-        invoke_code += "    cudaCheckError();\n";
+        invoke_code += "    cnnlCheckError();\n";
         invoke_code += "}\n";
         return std::make_pair("", invoke_code);
     }
@@ -96,14 +96,14 @@ std::string CodeEngine::genCode(std::shared_ptr<SubGraph> &graph) {
     line = "int main() {";
     emit(line);
     shiftTab(1);
-    emit("cudnnHandle_t cudnn;");
+    emit("cnnlHandle_t cnnl;");
     emit("cublasHandle_t cublas;");
-    emit("checkCudnnError(cudnnCreate(&cudnn));");
+    emit("checkBangError(cnnlCreate(&cnnl));");
     emit("checkCublasError(cublasCreate(&cublas));");
 
     emit("size_t wsSize = 7ll << 30;");
     emit("float *wsData;");
-    emit("checkCudaError(cudaMalloc((void **) &wsData, wsSize));");
+    emit("checkCnnlError(cnnlMalloc((void **) &wsData, wsSize));");
 
     emit("curandGenerator_t gen;");
     emit("checkCurandError(curandCreateGenerator(&gen, "
@@ -178,8 +178,8 @@ std::string CodeEngine::genCode(std::shared_ptr<SubGraph> &graph) {
 
     emit("cudaEvent_t st, ed;");
     emit("float duration;");
-    emit("checkCudaError(cudaEventCreate(&st));");
-    emit("checkCudaError(cudaEventCreate(&ed));");
+    emit("checkCnnlError(cudaEventCreate(&st));");
+    emit("checkCnnlError(cudaEventCreate(&ed));");
 
     emit("");
     emit("// Compute");
@@ -196,7 +196,7 @@ std::string CodeEngine::genCode(std::shared_ptr<SubGraph> &graph) {
     shiftTab(1);
     emit("if (i == warmup) {");
     shiftTab(1);
-    emit("checkCudaError(cudaEventRecord(st, 0));");
+    emit("checkCnnlError(cudaEventRecord(st, 0));");
     shiftTab(-1);
     emit("}");
 
@@ -212,10 +212,10 @@ std::string CodeEngine::genCode(std::shared_ptr<SubGraph> &graph) {
     assert(transposeMap.empty());
     std::cout<< "genCode str flag2" <<std::endl;
 
-    emit("checkCudaError(cudaEventRecord(ed, 0));");
-    emit("checkCudaError(cudaEventSynchronize(st));");
-    emit("checkCudaError(cudaEventSynchronize(ed));");
-    emit("checkCudaError(cudaEventElapsedTime(&duration, st, ed));");
+    emit("checkCnnlError(cudaEventRecord(ed, 0));");
+    emit("checkCnnlError(cudaEventSynchronize(st));");
+    emit("checkCnnlError(cudaEventSynchronize(ed));");
+    emit("checkCnnlError(cudaEventElapsedTime(&duration, st, ed));");
     emit("std::cout << \" Time(ms) : \" << duration / rounds << std::endl;");
 
     for (auto t : tensors) {
@@ -307,9 +307,8 @@ std::string CodeEngine::getDescName(const Operator &op) {
 }
 
 void CodeEngine::genHeader() {
-    head += "#include <cudnn.h>\n";
-    head += "#include <cublas_v2.h>\n";
-    head += "#include <curand.h>\n";
+    head += "#include <cnnl.h>\n";
+    head += "#include <cnrt.h>\n";
     head += "#include <ctime>\n";
     head += "#include <cstdio>\n";
     head += "#include <iostream>\n";
@@ -317,28 +316,28 @@ void CodeEngine::genHeader() {
     head += "#include <custom_ops.cuh>\n";
     head += "\n";
     head +=
-        "inline const char *cublasGetErrorString(cublasStatus_t error) { \\\n";
+        "inline const char *cnnlGetErrorString(cnnlStatus_t error) { \\\n";
     head += "    switch (error) { \\\n";
-    head += "    case CUBLAS_STATUS_SUCCESS: \\\n";
-    head += "        return \" CUBLAS_STATUS_SUCCESS \"; \\\n";
-    head += "    case CUBLAS_STATUS_NOT_INITIALIZED: \\\n";
-    head += "        return \" CUBLAS_STATUS_NOT_INITIALIZED \"; \\\n";
-    head += "    case CUBLAS_STATUS_ALLOC_FAILED: \\\n";
-    head += "        return \" CUBLAS_STATUS_ALLOC_FAILED \"; \\\n";
-    head += "    case CUBLAS_STATUS_INVALID_VALUE: \\\n";
-    head += "        return \" CUBLAS_STATUS_INVALID_VALUE \"; \\\n";
-    head += "    case CUBLAS_STATUS_ARCH_MISMATCH: \\\n";
-    head += "        return \" CUBLAS_STATUS_ARCH_MISMATCH \"; \\\n";
-    head += "    case CUBLAS_STATUS_MAPPING_ERROR: \\\n";
-    head += "        return \" CUBLAS_STATUS_MAPPING_ERROR \"; \\\n";
-    head += "    case CUBLAS_STATUS_EXECUTION_FAILED: \\\n";
-    head += "        return \" CUBLAS_STATUS_EXECUTION_FAILED \"; \\\n";
-    head += "    case CUBLAS_STATUS_INTERNAL_ERROR: \\\n";
-    head += "        return \" CUBLAS_STATUS_INTERNAL_ERROR \"; \\\n";
-    head += "    case CUBLAS_STATUS_NOT_SUPPORTED: \\\n";
-    head += "        return \" CUBLAS_STATUS_NOT_SUPPORTED \"; \\\n";
-    head += "    case CUBLAS_STATUS_LICENSE_ERROR: \\\n";
-    head += "        return \" CUBLAS_STATUS_LICENSE_ERROR \"; \\\n";
+    head += "    case CNNL_STATUS_SUCCESS: \\\n";
+    head += "        return \" CNNL_STATUS_SUCCESS \"; \\\n";
+    head += "    case CNNL_STATUS_NOT_INITIALIZED: \\\n";
+    head += "        return \" CNNL_STATUS_NOT_INITIALIZED \"; \\\n";
+    head += "    case CNNL_STATUS_ALLOC_FAILED: \\\n";
+    head += "        return \" CNNL_STATUS_ALLOC_FAILED \"; \\\n";
+    head += "    case CNNL_STATUS_INVALID_VALUE: \\\n";
+    head += "        return \" CNNL_STATUS_INVALID_VALUE \"; \\\n";
+    head += "    case CNNL_STATUS_ARCH_MISMATCH: \\\n";
+    head += "        return \" CNNL_STATUS_ARCH_MISMATCH \"; \\\n";
+    head += "    case CNNL_STATUS_MAPPING_ERROR: \\\n";
+    head += "        return \" CNNL_STATUS_MAPPING_ERROR \"; \\\n";
+    head += "    case CNNL_STATUS_EXECUTION_FAILED: \\\n";
+    head += "        return \" CNNL_STATUS_EXECUTION_FAILED \"; \\\n";
+    head += "    case CNNL_STATUS_INTERNAL_ERROR: \\\n";
+    head += "        return \" CNNL_STATUS_INTERNAL_ERROR \"; \\\n";
+    head += "    case CNNL_STATUS_NOT_SUPPORTED: \\\n";
+    head += "        return \" CNNL_STATUS_NOT_SUPPORTED \"; \\\n";
+    head += "    case CNNL_STATUS_LICENSE_ERROR: \\\n";
+    head += "        return \" CNNL_STATUS_LICENSE_ERROR \"; \\\n";
     head += "    } \\\n";
     head += "    return \" < unknown > \"; \\\n";
     head += "}\n";
@@ -377,47 +376,25 @@ void CodeEngine::genHeader() {
     head += "    return \" < unknown > \"; \\\n";
     head += "}\n";
     head += "\n";
-    head += "#define checkCudaError(call) \\\n";
+    head += "#define checkCnnlError(call) \\\n";
     head += "{ \\\n";
     head += "    auto err = call; \\\n";
-    head += "    if (cudaSuccess != err) { \\\n";
-    head += "        fprintf(stderr, \"Cuda error in file '%s' in line %i : "
+    head += "    if (CNNL_STATUS_SUCCESS != err) { \\\n";
+    head += "        fprintf(stderr, \"cnnl error in file '%s' in line %i : "
             "%s.\\n\", \\\n";
     head +=
-        "                __FILE__, __LINE__, cudaGetErrorString(err)); \\\n";
+        "                __FILE__, __LINE__, cnnlGetErrorString(err)); \\\n";
     head += "        exit(EXIT_FAILURE); \\\n";
     head += "    } \\\n";
     head += "}\n";
     head += "\n";
-    head += "#define checkCudnnError(call) \\\n";
+    head += "#define checkBangError(call) \\\n";
     head += "{ \\\n";
     head += "    auto err = call; \\\n";
-    head += "    if (CUDNN_STATUS_SUCCESS != err) { \\\n";
-    head += "        fprintf(stderr, \"Cuda error in file '%s' in line %i : "
+    head += "    if (CNRT_RET_SUCCESS != err) { \\\n";
+    head += "        fprintf(stderr, \"Bang error in file '%s' in line %i : "
             "%s.\\n\", \\\n";
-    head += "        __FILE__, __LINE__, cudnnGetErrorString(err)); \\\n";
-    head += "        exit(EXIT_FAILURE); \\\n";
-    head += "    } \\\n";
-    head += "}\n";
-    head += "#define checkCublasError(call) \\\n";
-    head += "{ \\\n";
-    head += "   auto err = call; \\\n";
-    head += "   if (CUBLAS_STATUS_SUCCESS != err) { \\\n";
-    head += "       fprintf(stderr, \"Cuda error in file '%s' in line %i : "
-            "%s.\\n\", \\\n";
-    head += "                    __FILE__, __LINE__, "
-            "cublasGetErrorString(err)); \\\n";
-    head += "       exit(EXIT_FAILURE); \\\n";
-    head += "   } \\\n";
-    head += "}\n";
-    head += "#define checkCurandError(call) \\\n";
-    head += "{ \\\n";
-    head += "    auto err = call; \\\n";
-    head += "    if (CURAND_STATUS_SUCCESS != err) { \\\n";
-    head += "        fprintf(stderr, \"Cuda error in file '%s' in line %i : "
-            "%s.\\n\", \\\n";
-    head +=
-        "                __FILE__, __LINE__, curandGetErrorString(err)); \\\n";
+    head += "        __FILE__, __LINE__, cnrtGetErrorStr(err)); \\\n";
     head += "        exit(EXIT_FAILURE); \\\n";
     head += "    } \\\n";
     head += "}\n";
@@ -485,13 +462,13 @@ void CodeEngine::genHeader() {
             "d_total_inverse;\n";
     head += "}\n";
     head += "/* online_softmax: cub is required */\n\n";
-    head += "#define cudaCheckError() __cudaCheckError(__FILE__, __LINE__)\n";
-    head += "void __cudaCheckError(const char *file, const int line) {\n";
-    head += "    cudaError err = cudaGetLastError();\n";
-    head += "    if (cudaSuccess != err) {\n";
+    head += "#define cnnlCheckError() __cnnlCheckError(__FILE__, __LINE__)\n";
+    head += "void __cnnlCheckError(const char *file, const int line) {\n";
+    head += "    cnnlError err = cnnlGetLastError();\n";
+    head += "    if (cnnlSuccess != err) {\n";
     head += "        std::cout << \"[ERROR] \" << file << \"::\" << line\n";
-    head += "                  << \": cudaCheckError() failed. \" << "
-            "cudaGetErrorString(err)\n";
+    head += "                  << \": cnnlCheckError() failed. \" << "
+            "cnnlGetErrorString(err)\n";
     head += "                  << std::endl;\n";
     head += "        exit(-1);\n";
     head += "    }\n";
@@ -578,7 +555,7 @@ void CodeEngine::genTensorAlloc(const Tensor &t, bool isConvBias) {
     switch (t.getDType()) {
     case Tensor::Float32:
         emit(fmt::format("float *{} = 0;", var_name));
-        emit(fmt::format("checkCudaError(cudaMalloc((void **) &{}, {}));",
+        emit(fmt::format("checkCnnlError(cnnlMalloc((void **) &{}, {}));",
                          var_name, std::to_string(size)));
         emit(
             fmt::format("checkCurandError(curandGenerateUniform(gen, {}, {}));",
@@ -586,10 +563,10 @@ void CodeEngine::genTensorAlloc(const Tensor &t, bool isConvBias) {
         break;
     case Tensor::Int32:
         emit(fmt::format("int32_t *{} = 0;", var_name));
-        emit(fmt::format("checkCudaError(cudaMalloc((void **) &{}, {}));",
+        emit(fmt::format("checkCnnlError(cnnlMalloc((void **) &{}, {}));",
                          var_name, std::to_string(size)));
         // Integers are used as indices, so no random
-        emit(fmt::format("checkCudaError(cudaMemset({}, 0, {}));", var_name,
+        emit(fmt::format("checkCnnlError(cnnlMemset({}, 0, {}));", var_name,
                          std::to_string(size)));
         break;
     default:
@@ -602,12 +579,12 @@ void CodeEngine::genTensorAlloc(const Tensor &t, bool isConvBias) {
     }
     assert(paddedDim.size() == 4);
 
-    emit(fmt::format("cudnnTensorDescriptor_t {};", getTensorDescName(t)));
-    emit(fmt::format("checkCudnnError(cudnnCreateTensorDescriptor(&{}));",
+    emit(fmt::format("cnnlTensorDescriptor_t {};", getTensorDescName(t)));
+    emit(fmt::format("checkBangError(cnnlCreateTensorDescriptor(&{}));",
                      getTensorDescName(t)));
     if (t.getType() == Tensor::Weight) {
-        emit(fmt::format("cudnnFilterDescriptor_t {};", getFilterDescName(t)));
-        emit(fmt::format("checkCudnnError(cudnnCreateFilterDescriptor(&{}));",
+        emit(fmt::format("cnnlFilterDescriptor_t {};", getFilterDescName(t)));
+        emit(fmt::format("checkBangError(cnnlCreateFilterDescriptor(&{}));",
                          getFilterDescName(t)));
     }
 
@@ -623,14 +600,14 @@ void CodeEngine::genTensorAlloc(const Tensor &t, bool isConvBias) {
         assert(false);
     }
 
-    line = fmt::format("checkCudnnError(cudnnSetTensor4dDescriptor({}, "
+    line = fmt::format("checkBangError(cnnlSetTensor4dDescriptor({}, "
                        "{}, CUDNN_TENSOR_NCHW, {}, {}, {}, {}));",
                        getTensorDescName(t), dtype, paddedDim[0], paddedDim[1],
                        paddedDim[2], paddedDim[3]);
     emit(line);
 
     if (t.getType() == Tensor::Weight) {
-        line = fmt::format("checkCudnnError(cudnnSetFilter4dDescriptor({}, {}, "
+        line = fmt::format("checkBangError(cnnlSetFilter4dDescriptor({}, {}, "
                            "CUDNN_TENSOR_NCHW, {}, {}, {}, {}));",
                            getFilterDescName(t), dtype, paddedDim[0],
                            paddedDim[1], paddedDim[2], paddedDim[3]);
@@ -639,10 +616,10 @@ void CodeEngine::genTensorAlloc(const Tensor &t, bool isConvBias) {
 }
 
 void CodeEngine::genTensorFree(const Tensor &t) {
-    emit(fmt::format("checkCudnnError(cudnnDestroyTensorDescriptor({}));",
+    emit(fmt::format("checkBangError(cnnlDestroyTensorDescriptor({}));",
                      getTensorDescName(t)));
     if (t.getType() == Tensor::Weight) {
-        emit(fmt::format("checkCudnnError(cudnnDestroyFilterDescriptor({}));",
+        emit(fmt::format("checkBangError(cnnlDestroyFilterDescriptor({}));",
                          getFilterDescName(t)));
     }
     emit(fmt::format("cudaFree({});", getVarName(t)));
@@ -791,12 +768,12 @@ void CodeEngine::genCompute(const Operator &op) {
 }
 
 void CodeEngine::genConvDesc(const ConvOp &op) {
-    emit(fmt::format("cudnnConvolutionDescriptor_t {};", getDescName(op)));
-    emit(fmt::format("checkCudnnError(cudnnCreateConvolutionDescriptor(&{}));",
+    emit(fmt::format("cnnlConvolutionDescriptor_t {};", getDescName(op)));
+    emit(fmt::format("checkBangError(cnnlCreateConvolutionDescriptor(&{}));",
                      getDescName(op)));
 
     auto line = fmt::format(
-        "checkCudnnError(cudnnSetConvolution2dDescriptor({}, {}, {}, {}, {}, "
+        "checkBangError(cnnlSetConvolution2dDescriptor({}, {}, {}, {}, {}, "
         "{}, {}, CUDNN_CONVOLUTION, CUDNN_DATA_FLOAT));",
         getDescName(op), op.getPh(), op.getPw(), op.getSh(), op.getSw(),
         op.getDh(), op.getDw());
@@ -805,18 +782,18 @@ void CodeEngine::genConvDesc(const ConvOp &op) {
     int arg_g = getDim(*op.getInputs()[0])[1] / getDim(*op.getInputs()[1])[1];
     if (arg_g > 1) {
         emit(fmt::format(
-            "checkCudnnError(cudnnSetConvolutionGroupCount({}, {}));",
+            "checkBangError(cnnlSetConvolutionGroupCount({}, {}));",
             getDescName(op), arg_g));
     }
 
     if (op.getAct() != Operator::None) {
-        emit(fmt::format("cudnnActivationDescriptor_t {}_act ;",
+        emit(fmt::format("cnnlActivationDescriptor_t {}_act ;",
                          getDescName(op)));
         emit(fmt::format(
-            "checkCudnnError(cudnnCreateActivationDescriptor(&{}_act));",
+            "checkBangError(cnnlCreateActivationDescriptor(&{}_act));",
             getDescName(op)));
         auto act_line =
-            fmt::format("checkCudnnError(cudnnSetActivationDescriptor({}_act, "
+            fmt::format("checkBangError(cnnlSetActivationDescriptor({}_act, "
                         "{}, CUDNN_NOT_PROPAGATE_NAN, 0));",
                         getDescName(op), actToStr(op.getAct()));
         emit(act_line);
@@ -824,11 +801,11 @@ void CodeEngine::genConvDesc(const ConvOp &op) {
 }
 
 void CodeEngine::genConvTransDesc(const ConvTransOp &op) {
-    emit(fmt::format("cudnnConvolutionDescriptor_t {};", getDescName(op)));
-    emit(fmt::format("checkCudnnError(cudnnCreateConvolutionDescriptor(&{}));",
+    emit(fmt::format("cnnlConvolutionDescriptor_t {};", getDescName(op)));
+    emit(fmt::format("checkBangError(cnnlCreateConvolutionDescriptor(&{}));",
                      getDescName(op)));
     std::string line = fmt::format(
-        "checkCudnnError(cudnnSetConvolution2dDescriptor({}, {}, {}, {}, {}, "
+        "checkBangError(cnnlSetConvolution2dDescriptor({}, {}, {}, {}, {}, "
         "{}, {}, CUDNN_CONVOLUTION, CUDNN_DATA_FLOAT));",
         getDescName(op), op.getPh(), op.getPw(), op.getSh(), op.getSw(),
         op.getDh(), op.getDw());
@@ -836,22 +813,22 @@ void CodeEngine::genConvTransDesc(const ConvTransOp &op) {
     int arg_g = getDim(*op.getInputs()[0])[1] / getDim(*op.getInputs()[1])[1];
     if (arg_g > 1) {
         emit(fmt::format(
-            "checkCudnnError(cudnnSetConvolutionGroupCount({}, {}));",
+            "checkBangError(cnnlSetConvolutionGroupCount({}, {}));",
             getDescName(op), arg_g));
     }
 
     if (op.getAct() != Operator::None) {
-        emit(fmt::format("cudnnActivationDescriptor_t {}_act;",
+        emit(fmt::format("cnnlActivationDescriptor_t {}_act;",
                          getDescName(op)));
         emit(fmt::format(
-            "checkCudnnError(cudnnCreateActivationDescriptor(&{}_act));",
+            "checkBangError(cnnlCreateActivationDescriptor(&{}_act));",
             getDescName(op)));
         std::string line =
-            fmt::format("checkCudnnError(cudnnSetActivationDescriptor({}_act, "
+            fmt::format("checkBangError(cnnlSetActivationDescriptor({}_act, "
                         "{}, CUDNN_NOT_PROPAGATE_NAN, 0));",
                         getDescName(op), actToStr(op.getAct()));
         // NOT_PROPAGATE_NAN is requierd by
-        // cudnnConvolotionBiasActivationForward
+        // cnnlConvolotionBiasActivationForward
         emit(line);
     }
 }
@@ -868,8 +845,8 @@ void CodeEngine::genConvCompute(const ConvOp &op) {
         (int)perfEngine->getConvAlgo(op.getArgs(perfEngine->withPenalty()));
     if (op.getAct() == Operator::None && op.getBias() == nullptr) {
         std::string line = fmt::format(
-            "checkCudnnError(cudnnConvolutionForward(cudnn, &{}, {}, {}, {}, "
-            "{}, {}, {}, (cudnnConvolutionFwdAlgo_t){}, wsData, wsSize, &{}, "
+            "checkBangError(cnnlConvolutionForward(cnnl, &{}, {}, {}, {}, "
+            "{}, {}, {}, (cnnlConvolutionFwdAlgo_t){}, wsData, wsSize, &{}, "
             "{}, {}));",
             alpha, getTensorDescName(*op.getInputs()[0]),
             getVarName(*op.getInputs()[0]),
@@ -884,8 +861,8 @@ void CodeEngine::genConvCompute(const ConvOp &op) {
         // enabled with CUDNN_ACTIVATION_IDENTITY.
         // So, fallback to 2 seperated calls
         std::string line = fmt::format(
-            "checkCudnnError(cudnnConvolutionForward(cudnn, &{}, {}, {}, {}, "
-            "{}, {}, {}, (cudnnConvolutionFwdAlgo_t){}, wsData, wsSize, &{}, "
+            "checkBangError(cnnlConvolutionForward(cnnl, &{}, {}, {}, {}, "
+            "{}, {}, {}, (cnnlConvolutionFwdAlgo_t){}, wsData, wsSize, &{}, "
             "{}, {}));",
             alpha, getTensorDescName(*op.getInputs()[0]),
             getVarName(*op.getInputs()[0]),
@@ -895,15 +872,15 @@ void CodeEngine::genConvCompute(const ConvOp &op) {
             getVarName(*op.getOutputs()[0]));
         emit(line);
         line = fmt::format(
-            "checkCudnnError(cudnnAddTensor(cudnn, &{}, {}, {}, &{}, {}, {}));",
+            "checkBangError(cnnlAddTensor(cnnl, &{}, {}, {}, &{}, {}, {}));",
             alpha, getTensorDescName(*op.getBias()), getVarName(*op.getBias()),
             beta, getTensorDescName(*op.getOutputs()[0]),
             getVarName(*op.getOutputs()[0]));
         emit(line);
     } else if (op.getAct() != Operator::None && op.getBias() == nullptr) {
         std::string line = fmt::format(
-            "checkCudnnError(cudnnConvolutionForward(cudnn, &{}, {}, {}, {}, "
-            "{}, {}, (cudnnConvolutionFwdAlgo_t){}, wsData, wsSize, &{}, {}, "
+            "checkBangError(cnnlConvolutionForward(cnnl, &{}, {}, {}, {}, "
+            "{}, {}, (cnnlConvolutionFwdAlgo_t){}, wsData, wsSize, &{}, {}, "
             "{}));",
             alpha, getTensorDescName(*op.getInputs()[0]),
             getVarName(*op.getInputs()[0]),
@@ -913,7 +890,7 @@ void CodeEngine::genConvCompute(const ConvOp &op) {
             getVarName(*op.getOutputs()[0]));
         emit(line);
         emit(fmt::format("{} = 1.0f;", beta));
-        line = fmt::format("checkCudnnError(cudnnActivationForward(cudnn, "
+        line = fmt::format("checkBangError(cnnlActivationForward(cnnl, "
                            "{}_act, &{}, {}, {}, &{}, {}, {}));",
                            getDescName(op), alpha,
                            getTensorDescName(*op.getOutputs()[0]),
@@ -923,8 +900,8 @@ void CodeEngine::genConvCompute(const ConvOp &op) {
         emit(line);
     } else if (op.getAct() != Operator::None && op.getBias() != nullptr) {
         std::string line = fmt::format(
-            "checkCudnnError(cudnnConvolutionBiasActivationForward(cudnn, &{}, "
-            "{}, {}, {}, {}, {}, (cudnnConvolutionFwdAlgo_t){}, wsData, "
+            "checkBangError(cnnlConvolutionBiasActivationForward(cnnl, &{}, "
+            "{}, {}, {}, {}, {}, (cnnlConvolutionFwdAlgo_t){}, wsData, "
             "wsSize, &{}, {}, {}, {}, {}, {}, {}_act, {}, {}));",
             alpha, getTensorDescName(*op.getInputs()[0]),
             getVarName(*op.getInputs()[0]),
@@ -953,8 +930,8 @@ void CodeEngine::genConvTransCompute(const ConvTransOp &op) {
         op.getArgs(perfEngine->withPenalty()));
     if (op.getAct() == Operator::None && op.getBias() == nullptr) {
         std::string line = fmt::format(
-            "checkCudnnError(cudnnConvolutionBackwardData(cudnn, &{}, {}, {}, "
-            "{}, {}, {}, (cudnnConvolutionBwdDataAlgo_t){}, wsData, wsSize, "
+            "checkBangError(cnnlConvolutionBackwardData(cnnl, &{}, {}, {}, "
+            "{}, {}, {}, (cnnlConvolutionBwdDataAlgo_t){}, wsData, wsSize, "
             "&{}, {}, {}));",
             alpha, getFilterDescName(*op.getInputs()[1]),
             getVarName(*op.getInputs()[1]),
@@ -968,8 +945,8 @@ void CodeEngine::genConvTransCompute(const ConvTransOp &op) {
         // enabled with CUDNN_ACTIVATION_IDENTITY.
         // So, fallback to 2 seperated calls
         std::string line = fmt::format(
-            "checkCudnnError(cudnnConvolutionBackwardData(cudnn, &{}, {}, {}, "
-            "{}, {}, {}, (cudnnConvolutionBwdDataAlgo_t){}, wsData, wsSize, "
+            "checkBangError(cnnlConvolutionBackwardData(cnnl, &{}, {}, {}, "
+            "{}, {}, {}, (cnnlConvolutionBwdDataAlgo_t){}, wsData, wsSize, "
             "&{}, {}, {}));",
             alpha, getTensorDescName(*op.getInputs()[0]),
             getVarName(*op.getInputs()[0]),
@@ -980,7 +957,7 @@ void CodeEngine::genConvTransCompute(const ConvTransOp &op) {
         emit(line);
         emit(fmt::format("{} = 1.0f;", beta));
         line = fmt::format(
-            "checkCudnnError(cudnnAddTensor(cudnn, &{}, {}, {}, &{}, {}, {}));",
+            "checkBangError(cnnlAddTensor(cnnl, &{}, {}, {}, &{}, {}, {}));",
             alpha, getTensorDescName(*op.getBias()), getVarName(*op.getBias()),
             beta, getTensorDescName(*op.getOutputs()[0]),
             getVarName(*op.getOutputs()[0]));
@@ -988,8 +965,8 @@ void CodeEngine::genConvTransCompute(const ConvTransOp &op) {
 
     } else if (op.getAct() != Operator::None && op.getBias() == nullptr) {
         std::string line = fmt::format(
-            "checkCudnnError(cudnnConvolutionBackwardData(cudnn, &{}, {}, {}, "
-            "{}, {}, {}, (cudnnConvolutionBwdDataAlgo_t){}, wsData, wsSize, "
+            "checkBangError(cnnlConvolutionBackwardData(cnnl, &{}, {}, {}, "
+            "{}, {}, {}, (cnnlConvolutionBwdDataAlgo_t){}, wsData, wsSize, "
             "&{}, {}, {}));",
             alpha, getTensorDescName(*op.getInputs()[0]),
             getVarName(*op.getInputs()[0]),
@@ -999,7 +976,7 @@ void CodeEngine::genConvTransCompute(const ConvTransOp &op) {
             getVarName(*op.getOutputs()[0]));
         emit(line);
         emit(fmt::format("{} = 1.0f;", beta));
-        line = fmt::format("checkCudnnError(cudnnActivationBackward(cudnn, "
+        line = fmt::format("checkBangError(cnnlActivationBackward(cnnl, "
                            "{}_act, &{}, {}, {}, &{}, {}, {}));",
                            getDescName(op), alpha,
                            getTensorDescName(*op.getOutputs()[0]),
@@ -1010,8 +987,8 @@ void CodeEngine::genConvTransCompute(const ConvTransOp &op) {
     } else if (op.getAct() != Operator::None && op.getBias() != nullptr) {
         assert(((void)("No corresponding cuDNN kernels?"), false));
         std::string line = fmt::format(
-            "checkCudnnError(cudnnConvolutionBiasActivationForward(cudnn, &{}, "
-            "{}, {}, {}, {}, {}, (cudnnConvolutionFwdAlgo_t){}, wsData, "
+            "checkBangError(cnnlConvolutionBiasActivationForward(cnnl, &{}, "
+            "{}, {}, {}, {}, {}, (cnnlConvolutionFwdAlgo_t){}, wsData, "
             "wsSize, &{}, {}, {}, {}, {}, {}_act, {}, {}));",
             alpha, getTensorDescName(*op.getInputs()[0]),
             getVarName(*op.getInputs()[0]),
@@ -1030,13 +1007,13 @@ void CodeEngine::genConvTransCompute(const ConvTransOp &op) {
 
 void CodeEngine::genMatmulDesc(const MatmulOp &op) {
     if (op.getAct() != Operator::None) {
-        emit(fmt::format("cudnnActivationDescriptor_t {}_act;",
+        emit(fmt::format("cnnlActivationDescriptor_t {}_act;",
                          getDescName(op)));
         emit(fmt::format(
-            "checkCudnnError(cudnnCreateActivationDescriptor(&{}_act));",
+            "checkBangError(cnnlCreateActivationDescriptor(&{}_act));",
             getDescName(op)));
         std::string line =
-            fmt::format("checkCudnnError(cudnnSetActivationDescriptor({}_act, "
+            fmt::format("checkBangError(cnnlSetActivationDescriptor({}_act, "
                         "{}, CUDNN_NOT_PROPAGATE_NAN, 0));",
                         getDescName(op), actToStr(op.getAct()));
         emit(line);
@@ -1057,8 +1034,8 @@ void CodeEngine::genMatmulCompute(const MatmulOp &op) {
     std::string beta = fmt::format("beta_{}", std::to_string(op.getGuid()));
     emit(fmt::format("float {} = 1.0f, {} = 0.0f;", alpha, beta));
 
-    std::string opB_str = op.getTransB() ? "CUBLAS_OP_T" : "CUBLAS_OP_N"; // opB
-    std::string opA_str = op.getTransA() ? "CUBLAS_OP_T" : "CUBLAS_OP_N"; // opA
+    std::string opB_str = op.getTransB() ? "CNNL_OP_T" : "CNNL_OP_N"; // opB
+    std::string opA_str = op.getTransA() ? "CNNL_OP_T" : "CNNL_OP_N"; // opA
     std::string b_str = getVarName(*op.getInputs()[1]);                   // B
     std::string a_str = getVarName(*op.getInputs()[0]);                   // A
     std::string c_str = getVarName(*op.getOutputs()[0]);                  // C
@@ -1077,7 +1054,7 @@ void CodeEngine::genMatmulCompute(const MatmulOp &op) {
 
     if (op.getAct() != Operator::None) {
         emit(fmt::format("{} = 1.0f;", beta));
-        line = fmt::format("checkCudnnError(cudnnActivationForward(cudnn, "
+        line = fmt::format("checkBangError(cnnlActivationForward(cnnl, "
                            "{}_act, &{}, {}, {}, &{}, {}, {}));",
                            getDescName(op), alpha,
                            getTensorDescName(*op.getOutputs()[0]),
@@ -1090,7 +1067,7 @@ void CodeEngine::genMatmulCompute(const MatmulOp &op) {
     if (op.getBias() != nullptr) {
         emit(fmt::format("{} = 1.0f;", beta));
         line = fmt::format(
-            "checkCudnnError(cudnnAddTensor(cudnn, &{}, {}, {}, &{}, {}, {}));",
+            "checkBangError(cnnlAddTensor(cnnl, &{}, {}, {}, &{}, {}, {}));",
             alpha, getTensorDescName(*op.getBias()), getVarName(*op.getBias()),
             beta, getTensorDescName(*op.getOutputs()[0]),
             getVarName(*op.getOutputs()[0]));
@@ -1099,9 +1076,9 @@ void CodeEngine::genMatmulCompute(const MatmulOp &op) {
 }
 
 void CodeEngine::genPadDesc(const PadOp &op) {
-    emit(fmt::format("cudnnTensorTransformDescriptor_t {};", getDescName(op)));
+    emit(fmt::format("cnnlTensorTransformDescriptor_t {};", getDescName(op)));
     emit(fmt::format(
-        "checkCudnnError(cudnnCreateTensorTransformDescriptor(&{}));",
+        "checkBangError(cnnlCreateTensorTransformDescriptor(&{}));",
         getDescName(op)));
 
     emit("{"); // so the arrays will be locals
@@ -1117,7 +1094,7 @@ void CodeEngine::genPadDesc(const PadOp &op) {
         std::to_string(op.getEnd()[1]), std::to_string(op.getEnd()[2]),
         std::to_string(op.getEnd()[3]));
     emit(line);
-    line = fmt::format("checkCudnnError(cudnnSetTensorTransformDescriptor({}, "
+    line = fmt::format("checkBangError(cnnlSetTensorTransformDescriptor({}, "
                        "4, CUDNN_TENSOR_NCHW, padBefore, padAfter, nullptr, "
                        "CUDNN_TRANSFORM_FOLD));",
                        getDescName(op));
@@ -1131,8 +1108,8 @@ void CodeEngine::genPadCompute(const PadOp &op) {
     std::string alpha = fmt::format("alpha_{}", std::to_string(op.getGuid()));
     std::string beta = fmt::format("beta_{}", std::to_string(op.getGuid()));
     emit(fmt::format("float {} = 1.0f, {} = 0.0f;", alpha, beta));
-    std::string line = fmt::format("checkCudnnError(cudnnTransformTensorEx("
-                                   "cudnn, {}, &{}, {}, {}, &{}, {}, {}));",
+    std::string line = fmt::format("checkBangError(cnnlTransformTensorEx("
+                                   "cnnl, {}, &{}, {}, {}, &{}, {}, {}));",
                                    getDescName(op), alpha,
                                    getTensorDescName(*op.getInputs()[0]),
                                    getVarName(*op.getInputs()[0]), beta,
@@ -1172,11 +1149,11 @@ void CodeEngine::genSliceCompute(const SliceOp &op) {
 }
 
 void CodeEngine::genActivationDesc(const ActivationOp &op) {
-    emit(fmt::format("cudnnActivationDescriptor_t {};", getDescName(op)));
-    emit(fmt::format("checkCudnnError(cudnnCreateActivationDescriptor(&{}));",
+    emit(fmt::format("cnnlActivationDescriptor_t {};", getDescName(op)));
+    emit(fmt::format("checkBangError(cnnlCreateActivationDescriptor(&{}));",
                      getDescName(op)));
     std::string line =
-        fmt::format("checkCudnnError(cudnnSetActivationDescriptor({}, {}, "
+        fmt::format("checkBangError(cnnlSetActivationDescriptor({}, {}, "
                     "CUDNN_NOT_PROPAGATE_NAN, 0));",
                     getDescName(op), actToStr(op.getActType()));
     emit(line);
@@ -1186,8 +1163,8 @@ void CodeEngine::genActivationCompute(const ActivationOp &op) {
     std::string alpha = fmt::format("alpha_{}", std::to_string(op.getGuid()));
     std::string beta = fmt::format("beta_{}", std::to_string(op.getGuid()));
     emit(fmt::format("float {} = 1.0f, {} = 0.0f;", alpha, beta));
-    std::string line = fmt::format("checkCudnnError(cudnnActivationForward("
-                                   "cudnn, {}, &{}, {}, {}, &{}, {}, {}));",
+    std::string line = fmt::format("checkBangError(cnnlActivationForward("
+                                   "cnnl, {}, &{}, {}, {}, &{}, {}, {}));",
                                    getDescName(op), alpha,
                                    getTensorDescName(*op.getInputs()[0]),
                                    getVarName(*op.getInputs()[0]), beta,
@@ -1197,11 +1174,11 @@ void CodeEngine::genActivationCompute(const ActivationOp &op) {
 }
 
 void CodeEngine::genMaxPoolDesc(const MaxPoolOp &op) {
-    emit(fmt::format("cudnnPoolingDescriptor_t {};", getDescName(op)));
-    emit(fmt::format("checkCudnnError(cudnnCreatePoolingDescriptor(&{}));",
+    emit(fmt::format("cnnlPoolingDescriptor_t {};", getDescName(op)));
+    emit(fmt::format("checkBangError(cnnlCreatePoolingDescriptor(&{}));",
                      getDescName(op)));
     std::string line = fmt::format(
-        "checkCudnnError(cudnnSetPooling2dDescriptor({}, CUDNN_POOLING_MAX, "
+        "checkBangError(cnnlSetPooling2dDescriptor({}, CUDNN_POOLING_MAX, "
         "CUDNN_NOT_PROPAGATE_NAN, {}, {}, {}, {}, {}, {}));",
         getDescName(op), op.getKh(), op.getKw(), op.getPh(), op.getPw(),
         op.getSh(), op.getSw());
@@ -1211,11 +1188,11 @@ void CodeEngine::genMaxPoolDesc(const MaxPoolOp &op) {
 }
 
 void CodeEngine::genAvgPoolDesc(const AvgPoolOp &op) {
-    emit(fmt::format("cudnnPoolingDescriptor_t {};", getDescName(op)));
-    emit(fmt::format("checkCudnnError(cudnnCreatePoolingDescriptor(&{}));",
+    emit(fmt::format("cnnlPoolingDescriptor_t {};", getDescName(op)));
+    emit(fmt::format("checkBangError(cnnlCreatePoolingDescriptor(&{}));",
                      getDescName(op)));
     std::string line =
-        fmt::format("checkCudnnError(cudnnSetPooling2dDescriptor("
+        fmt::format("checkBangError(cnnlSetPooling2dDescriptor("
                     "&{}, CUDNN_POOLING_AVERAGE_COUNT_EXCLUDE_PADDING, "
                     "CUDNN_NOT_PROPAGATE_NAN, "
                     "{}, {}, {}, {}, {}, {}));",
@@ -1229,7 +1206,7 @@ void CodeEngine::genPoolCompute(const Operator &op) {
     std::string beta = fmt::format("beta_{}", op.getGuid());
     emit(fmt::format("float {} = 1.0f, {} = 0.0f;", alpha, beta));
     std::string line = fmt::format(
-        "checkCudnnError(cudnnPoolingForward(cudnn, {}, "
+        "checkBangError(cnnlPoolingForward(cnnl, {}, "
         "&{}, {}, {}, &{}, {}, {}));",
         getDescName(op), alpha, getTensorDescName(*op.getInputs()[0]),
         getVarName(*op.getInputs()[0]), beta,
@@ -1268,11 +1245,11 @@ void CodeEngine::genAddCompute(const AddOp &op) {
 }
 
 void CodeEngine::genMulDesc(const MulOp &op) {
-    emit(fmt::format("cudnnOpTensorDescriptor_t {};", getDescName(op)));
-    emit(fmt::format("checkCudnnError(cudnnCreateOpTensorDescriptor(&{}));",
+    emit(fmt::format("cnnlOpTensorDescriptor_t {};", getDescName(op)));
+    emit(fmt::format("checkBangError(cnnlCreateOpTensorDescriptor(&{}));",
                      getDescName(op)));
     std::string line = fmt::format(
-        "checkCudnnError(cudnnSetOpTensorDescriptor({}, CUDNN_OP_TENSOR_MUL, "
+        "checkBangError(cnnlSetOpTensorDescriptor({}, CUDNN_OP_TENSOR_MUL, "
         "CUDNN_DATA_FLOAT, CUDNN_NOT_PROPAGATE_NAN));",
         getDescName(op));
     emit(line);
@@ -1285,7 +1262,7 @@ void CodeEngine::genMulCompute(const MulOp &op) {
     emit(fmt::format("float {} = 1.0f, {} = 1.0f, {} = 0.0f;", alpha1, alpha2,
                      beta));
     std::string line = fmt::format(
-        "checkCudnnError(cudnnOpTensor(cudnn, {}, &{}, {}, {}, &{}, {}, "
+        "checkBangError(cnnlOpTensor(cnnl, {}, &{}, {}, {}, &{}, {}, "
         "{}, &{}, {}, {}));",
         getDescName(op), alpha1, getTensorDescName(*op.getInputs()[0]),
         getVarName(*op.getInputs()[0]), alpha2,
@@ -1295,8 +1272,8 @@ void CodeEngine::genMulCompute(const MulOp &op) {
     emit(line);
     for (size_t i = 2, iEnd = op.getInputs().size(); i < iEnd; i++) {
         std::string line = fmt::format(
-            "checkCudnnError(cudnnOpTensor("
-            "cudnn, {}, &{}, {}, {}, &{}, {}, {}, &{}, {}, {}));",
+            "checkBangError(cnnlOpTensor("
+            "cnnl, {}, &{}, {}, {}, &{}, {}, {}, &{}, {}, {}));",
             getDescName(op), alpha1, getTensorDescName(*(op.getInputs()[i])),
             getVarName(*(op.getInputs()[i])), alpha2,
             getTensorDescName(*(op.getOutputs()[0])),
@@ -1565,7 +1542,7 @@ void CodeEngine::genReshapeDesc(const ReshapeOp &op) {
 }
 
 void CodeEngine::genReshapeCompute(const ReshapeOp &op) {
-    /*std::string line = "checkCudaError(cudaMemcpyAsync(";
+    /*std::string line = "checkCnnlError(cudaMemcpyAsync(";
     line += getVarName(*op.getOutputs()[0]) + ", ";
     line += getVarName(*op.getInputs()[0]) + ", ";
     line += std::to_string(getTensorSize(*op.getInputs()[0])) + ", ";
@@ -1579,10 +1556,10 @@ void CodeEngine::genSoftmaxDesc(const SoftmaxOp &op) {
     // Empty
     /*auto dim = getDim(*op.getInputs()[0]);
     assert(op.getAxis() == (int)dim.size() - 1);
-    emit("cudnnTensorDescriptor_t " + getDescName(op) + "_in_desc;");
-    emit("checkCudnnError(cudnnCreateTensorDescriptor(&" + getDescName(op) +
+    emit("cnnlTensorDescriptor_t " + getDescName(op) + "_in_desc;");
+    emit("checkBangError(cnnlCreateTensorDescriptor(&" + getDescName(op) +
          "_in_desc));");
-    std::string line = "checkCudnnError(cudnnSetTensor4dDescriptor(";
+    std::string line = "checkBangError(cnnlSetTensor4dDescriptor(";
     line += getDescName(op) + "_in_desc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, ";
     line +=
         std::to_string(getTensorNElem(*op.getInputs()[0]) / dim.back()) + ", ";
@@ -1621,7 +1598,7 @@ void CodeEngine::genSoftmaxCompute(const SoftmaxOp &op) {
     // std::string beta = "beta_" + std::to_string(op.getGuid());
     // emit("float " + alpha + " = 1.0f, " + beta + " = 0.0f;");
     // std::string line = "";
-    // line += "checkCudnnError(cudnnSoftmaxForward(cudnn, ";
+    // line += "checkBangError(cnnlSoftmaxForward(cnnl, ";
     // line += "CUDNN_SOFTMAX_FAST, CUDNN_SOFTMAX_MODE_INSTANCE, ";
     // line += "&" + alpha + ", ";
     // line += getDescName(op) + "_in_desc, ";
