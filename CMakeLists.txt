@@ -60,23 +60,8 @@ add_compile_options(-Wno-error=unused-variable)
 # 1. https://gcc.gnu.org/bugzilla/show_bug.cgi?id=107852
 # 2. https://github.com/assimp/assimp/pull/5577
 if(((CMAKE_C_COMPILER_ID MATCHES "GNU") AND NOT MINGW AND NOT HAIKU) AND CMAKE_CXX_COMPILER_VERSION GREATER_EQUAL 13)
-  message(STATUS "GCC13 detected disabling \"-Warray-bounds and -Wstringop-overflow\" for certain files as it appears to be a false positive")
-
-  # List of files for which the warnings should be disabled
-  set(FILES_TO_DISABLE_DETECTCTION
-      src/operators/batch_norm.cc
-      src/operators/resize.cc
-      src/operators/slice.cc
-      include/operators/slice.h
-  )
-
-  # Apply the compile flags to each file in the list
-  foreach(FILE ${FILES_TO_DISABLE_DETECTCTION})
-    message(STATUS "Disabling warnings for ${FILE}")
-    set_source_files_properties(${FILE} PROPERTIES
-        COMPILE_FLAGS "-Wno-array-bounds -Wno-stringop-overflow"
-    )
-  endforeach()
+  message(STATUS "GCC13 or later detected, disabling \"-Warray-bounds and -Wstringop-overflow\" for certain files as it appears to be a false positive")
+  add_compile_options(-Wno-array-bounds -Wno-stringop-overflow)
 endif()
 
 find_package(
