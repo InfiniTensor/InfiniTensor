@@ -26,5 +26,5 @@ TEST(SAMPLE_GRAPH_1, Cuda_codeGenerate) {
     tpm::CodeEngine codeEngine;
     auto perfEngine = searchEngine.exportPerfEngine();
     codeEngine.importPerfEngine(perfEngine);
-    codeEngine.genCode(bestGraph, "res.cu");
+    codeEngine.genCode(bestGraph, "res.mlu");
 }

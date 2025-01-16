@@ -41,6 +41,10 @@ class PerfEngine {
 
   public:
     PerfEngine() {
+        cnInit(0);
+        CNdev dev;
+        cnDeviceGet(&dev, 0);
+        checkBangError(cnrtSetDevice(dev));
         checkCnnlError(cnnlCreate(&cnnl));
         allocMem();
         // checkCudnnError(cudnnCreate(&cudnn));

@@ -1253,6 +1253,7 @@ void CodeEngine::genAddCompute(const AddOp &op) {
     emit(line);
 }
 
+#if 0
 void CodeEngine::genAddCompute(const AddOp &op) {
     Dim dimO = {(int)getTensorNElem(*op.getOutput())};
     std::vector<Dim> inDims;
@@ -1277,6 +1278,7 @@ void CodeEngine::genAddCompute(const AddOp &op) {
     head += "\n" + res.first + "\n";
     main += "\n" + res.second + "\n";
 }
+#endif
 
 void CodeEngine::genMulDesc(const MulOp &op) {
     emit(fmt::format("cudnnOpTensorDescriptor_t {};", getDescName(op)));

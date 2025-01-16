@@ -383,7 +383,7 @@ if(BUILD_TEST)
   endif()
 
   if(SUP_CODE_GEN AND USE_BANG)
-    build_test(test/code_generate/mlu/SampleGraph1.cpp)
+    build_test(test/code_generate/mlu/SampleGraph1_mlu.cpp)
 
     #build_test(test/code_generate/mlu/SampleGraph2.cpp)
   endif()

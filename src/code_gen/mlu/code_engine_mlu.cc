@@ -110,7 +110,6 @@ std::string CodeEngine::genCode(std::shared_ptr<SubGraph> &graph) {
          "CURAND_RNG_PSEUDO_DEFAULT));");
     emit("checkCurandError(curandSetPseudoRandomGeneratorSeed(gen, (unsigned "
          "long long)clock()));");
-
     auto tensors = graph->getTensors();
     for (auto t : tensors) {
         genTensorAlloc(*t);
@@ -154,7 +153,6 @@ std::string CodeEngine::genCode(std::shared_ptr<SubGraph> &graph) {
             }
         }
     }
-
     // reversed DFS post-order is topo-order
     std::unordered_set<const Operator *> flag;
     std::vector<Operator *> opsRev;
@@ -201,15 +199,18 @@ std::string CodeEngine::genCode(std::shared_ptr<SubGraph> &graph) {
     emit("checkCudaError(cudaEventRecord(st, 0));");
     shiftTab(-1);
     emit("}");
+
+    std::cout<< "genCode str flag" <<std::endl;
     for (auto it = opsRev.rbegin(); it != opsRev.rend(); it++) {
         if ((*it)->getInputs().size() > 1 ||
             (*it)->getInputs()[0]->getType() != Tensor::Weight) {
-            genCompute(**it);
+            //genCompute(**it);
         }
     }
     shiftTab(-1);
     emit("}");
     assert(transposeMap.empty());
+    std::cout<< "genCode str flag2" <<std::endl;
 
     emit("checkCudaError(cudaEventRecord(ed, 0));");
     emit("checkCudaError(cudaEventSynchronize(st));");
@@ -233,7 +234,7 @@ std::string CodeEngine::genCode(std::shared_ptr<SubGraph> &graph) {
                 genTensorFree(*t);
         }
     }
-
+    std::cout<< "genCode str finished" <<std::endl;
     // TODO: Destroy all the descriptors
 
     shiftTab(-1);
@@ -249,7 +250,6 @@ int CodeEngine::genCode(std::shared_ptr<SubGraph> &graph,
         std::cout << "File " << filename << " existed." << std::endl;
         // return 1;
     }
-
     std::string code = genCode(graph);
     std::ofstream fout(filename);
     fout << code;
