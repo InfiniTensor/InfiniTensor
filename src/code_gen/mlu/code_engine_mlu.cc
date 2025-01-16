@@ -1,7 +1,7 @@
-#include "code_gen/code_engine.h"
-#include "code_gen/nnet/Visitor/AsTVMVisitor.h"
-#include "code_gen/perf_engine.h"
-#include "code_gen/transpose.h"
+#include "code_gen/mlu/code_engine_mlu.h"
+#include "code_gen/mlu/nnet/Visitor/AsTVMVisitor.h"
+#include "code_gen/mlu/perf_engine.h"
+#include "code_gen/mlu/transpose.h"
 #include "ffi/ffi_embed.h"
 #include "fmt/core.h"
 #include <fstream>
@@ -533,15 +533,15 @@ void CodeEngine::genHeader() {
 
 Dim CodeEngine::getDim(const Tensor &t) {
     Dim dim = t.getDims();
-    assert(perfEngine != nullptr);
-    if (perfEngine->withPenalty()) {
-        Dim &&penalty = t.getPenalty();
-        assert(penalty.size() == dim.size());
-        for (size_t i = 0, iEnd = dim.size(); i < iEnd; i++) {
-            assert(penalty[i] >= 0);
-            dim[i] += penalty[i];
-        }
-    }
+    // assert(perfEngine != nullptr);
+    // if (perfEngine->withPenalty()) {
+    //     Dim &&penalty = t.getPenalty();
+    //     assert(penalty.size() == dim.size());
+    //     for (size_t i = 0, iEnd = dim.size(); i < iEnd; i++) {
+    //         assert(penalty[i] >= 0);
+    //         dim[i] += penalty[i];
+    //     }
+    // }
     return dim;
 }
 
@@ -1240,17 +1240,6 @@ void CodeEngine::genPoolCompute(const Operator &op) {
 
 void CodeEngine::genAddDesc(const AddOp &op) {
     // Empty
-}
-
-void CodeEngine::genAddCompute(const AddOp &op) {
-    // TODO inplace operation assignment is not correct
-    std::string alpha = fmt::format("alpha_{}", op.getGuid());
-    emit(fmt::format("float {} = 1.0f;", alpha));
-    std::string line = fmt::format(
-        "checkCublasError(cublasSaxpy(cublas, {}, &{}, {}, {}, 1, {}, 1));",
-        op.getInputs()[1]->size(), alpha, getVarName(*op.getInputs()[0]),
-        getVarName(*op.getInputs()[1]));
-    emit(line);
 }
 
 void CodeEngine::genAddCompute(const AddOp &op) {

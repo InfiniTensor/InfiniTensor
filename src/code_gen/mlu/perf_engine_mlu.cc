@@ -1,5 +1,6 @@
-#include "code_gen/perf_engine.h"
+#include "code_gen/mlu/perf_engine.h"
 #include <ctime>
+
 
 // Tuple output for dumping operator args
 namespace aux {
@@ -35,24 +36,36 @@ void PerfEngine::allocMem() {
     // 10GB for Longformer
     // size_t longformerNum = 3lu * (1 << 30);
     size_t wsSize = 7ll << 30; // 7 GB
-    checkCudaError(cudaMalloc(&inputPtr, elemNum * sizeof(float)));
-    checkCudaError(cudaMalloc(&weightPtr, elemNum * sizeof(float)));
-    checkCudaError(cudaMalloc(&biasPtr, elemNum * sizeof(float)));
-    checkCudaError(cudaMalloc(&outputPtr, elemNum * sizeof(float)));
-    checkCudaError(cudaMalloc(&workspace, wsSize));
+    // checkCudaError(cudaMalloc(&inputPtr, elemNum * sizeof(float)));
+    // checkCudaError(cudaMalloc(&weightPtr, elemNum * sizeof(float)));
+    // checkCudaError(cudaMalloc(&biasPtr, elemNum * sizeof(float)));
+    // checkCudaError(cudaMalloc(&outputPtr, elemNum * sizeof(float)));
+    // checkCudaError(cudaMalloc(&workspace, wsSize));
+    checkBangError(cnrtMalloc((void **)&inputPtr, elemNum * sizeof(float)));
+    checkBangError(cnrtMalloc((void **)&weightPtr, elemNum * sizeof(float)));
+    checkBangError(cnrtMalloc((void **)&biasPtr, elemNum * sizeof(float)));
+    checkBangError(cnrtMalloc((void **)&outputPtr, elemNum * sizeof(float)));
+    checkBangError(cnrtMalloc((void **)&workspace, wsSize));
 
     // reuse memory allocated for ConvOp
     matA = inputPtr;
     matB = weightPtr;
     matC = outputPtr;
 
-    curandGenerator_t gen;
-    checkCurandError(curandCreateGenerator(&gen, CURAND_RNG_PSEUDO_DEFAULT));
-    checkCurandError(
-        curandSetPseudoRandomGeneratorSeed(gen, (unsigned long long)clock()));
-    checkCurandError(curandGenerateUniform(gen, inputPtr, elemNum));
-    checkCurandError(curandGenerateUniform(gen, weightPtr, elemNum));
-    checkCurandError(curandGenerateUniform(gen, outputPtr, elemNum));
+    // curandGenerator_t gen;
+    // checkCurandError(curandCreateGenerator(&gen, CURAND_RNG_PSEUDO_DEFAULT));
+    // checkCurandError(
+    //     curandSetPseudoRandomGeneratorSeed(gen, (unsigned long long)clock()));
+    // checkCurandError(curandGenerateUniform(gen, inputPtr, elemNum));
+    // checkCurandError(curandGenerateUniform(gen, weightPtr, elemNum));
+    // checkCurandError(curandGenerateUniform(gen, outputPtr, elemNum));
+
+    cnnlRandGenerator_t gen;
+
+    checkCnnlError(cnnlRandCreateGenerator(&gen, CNNL_RAND_RNG_FAST));
+    checkCnnlError(cnnlRandGenerateDescreteUniform(cnnl, gen, CNNL_DTYPE_FLOAT, NULL, elemNum, 0.0f, 1.0f, inputPtr));
+    checkCnnlError(cnnlRandGenerateDescreteUniform(cnnl, gen, CNNL_DTYPE_FLOAT, NULL, elemNum, 0.0f, 1.0f, weightPtr));
+    checkCnnlError(cnnlRandGenerateDescreteUniform(cnnl, gen, CNNL_DTYPE_FLOAT, NULL, elemNum, 0.0f, 1.0f, outputPtr));
 }
 
 void PerfEngine::dumpPerfData() {

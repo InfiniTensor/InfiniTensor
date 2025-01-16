@@ -1,14 +1,8 @@
-#include "code_gen/mlu/cmutator.h"
+#include "code_gen/mlu/generator.h"
 #include "cstdlib"
-#include "dirent.h"
 using namespace tpm;
 
-std::map<uint64_t, std::vector<std::shared_ptr<SubGraph>>>
-    CMutator::l1_mutation_cache;
-std::map<uint64_t, std::vector<std::shared_ptr<SubGraph>>>
-    CMutator::l2_mutation_cache;
-
-CMutator::CMutator(bool prune_reciprocity)
+Generator::Generator(bool prune_reciprocity)
     : equal_threshold(0.7), num_valid_tensors(0), num_total_tensors(0),
       max_depth(3), searchingGraph(new SubGraph()),
       max_num_elements(1024 * 1024 * 1024), num_reserve_ops(0), group_size(0),
@@ -17,25 +11,20 @@ CMutator::CMutator(bool prune_reciprocity)
     enable_non_eq_opt = (getenv("PET_DISABLE_NO_NEQ_OPT") == nullptr);
     if (!enable_non_eq_opt)
         equal_threshold = 0.99;
-    printf("CMutator eq/non-eq opt status: %d/%d\n", enable_eq_opt,
+    printf("Generator eq/non-eq opt status: %d/%d\n", enable_eq_opt,
            enable_non_eq_opt);
     reserveTensors(10);
 }
 
-void CMutator::run(SubGraph *in_graph, std::vector<SubGraph *> &out_graphs,
-                   int mdepth,
-                   std::vector<std::shared_ptr<Operator>> candidate_ops,
-                   float threshold) {
+void Generator::run(SubGraph *in_graph, std::vector<SubGraph *> &out_graphs,
+                    int mdepth,
+                    std::vector<std::shared_ptr<Operator>> candidate_ops,
+                    float threshold) {
     // TODO: remove and make sure all the ops in the input graph are in the
     // searching list
     // out_graphs.emplace_back(new SubGraph(in_graph->getOperators()));
 
-    // check cache
-    if (checkCache(in_graph, out_graphs)) {
-        return;
-    }
-
-    // automatically add candidates ops if candidate_ops list is empty.
+    // Automatically add candidates ops if candidate_ops list is empty.
     // candidates_ops list will note be modified when generator is in finding
     // reciprocity mode
     group_size = 0;
@@ -50,9 +39,9 @@ void CMutator::run(SubGraph *in_graph, std::vector<SubGraph *> &out_graphs,
         case NormalConv: {
             auto hash =
                 computeHashForSingleComputeOp(in_graph->getOperators()[0]);
-            if (l1_mutation_cache.find(hash) != l1_mutation_cache.end()) {
+            if (mutationCache.find(hash) != mutationCache.end()) {
                 out_graphs.clear();
-                for (auto out : l1_mutation_cache[hash]) {
+                for (auto out : mutationCache[hash]) {
                     auto new_graph = new SubGraph(out->getOperators());
                     markTransType(in_graph, new_graph);
                     if (validDepth(new_graph))
@@ -91,7 +80,7 @@ void CMutator::run(SubGraph *in_graph, std::vector<SubGraph *> &out_graphs,
         max_depth = mdepth > 0 ? mdepth : 3;
     equal_threshold = threshold;
 
-    // refresh candidate op list
+    // Refresh candidate op list
     for (auto &opv : all_ops)
         for (auto op : opv)
             if (op != nullptr)
@@ -163,6 +152,7 @@ void CMutator::run(SubGraph *in_graph, std::vector<SubGraph *> &out_graphs,
     case Conv1X1: {
         addPreprocessForConv1x1(in_graph);
         dfs(oplist.size(), in_graph, searchingGraph, out_graphs, visited);
+        addToCache(in_graph, out_graphs);
         resetGraph(in_graph);
         dfs(oplist.size(), in_graph, searchingGraph, out_graphs, visited);
         break;
@@ -176,12 +166,14 @@ void CMutator::run(SubGraph *in_graph, std::vector<SubGraph *> &out_graphs,
         while (num_valid_tensors > in_graph->getInputs().size())
             popBackTensor();
         dfs(oplist.size(), in_graph, searchingGraph, out_graphs, visited);
+        addToCache(in_graph, out_graphs);
         break;
     }
 
     case TransKernelConv: {
         addPreprocessForTransKernel(in_graph);
         dfs(oplist.size(), in_graph, searchingGraph, out_graphs, visited);
+        addToCache(in_graph, out_graphs);
         break;
     }
 
@@ -237,22 +229,17 @@ void CMutator::run(SubGraph *in_graph, std::vector<SubGraph *> &out_graphs,
         break;
     }
     }
-
-    // update cache
-    if (out_graphs.size() != 0) {
-        updateCache(in_graph, out_graphs);
-    }
-
-    clearOps();
-    clearTensors(0);
-
+    while (!oplist.empty())
+        popBackOp();
+    while (num_valid_tensors > 0)
+        popBackTensor();
     num_reserve_ops = 0;
     group_size = -1;
 }
 
-void CMutator::dfs(int depth, SubGraph *in_graph, SubGraph *cur_graph,
-                   std::vector<SubGraph *> &out_graphs,
-                   std::unordered_set<uint64_t> &visited) {
+void Generator::dfs(int depth, SubGraph *in_graph, SubGraph *cur_graph,
+                    std::vector<SubGraph *> &out_graphs,
+                    std::unordered_set<uint64_t> &visited) {
     // Connect the graph
     if (!cur_graph->resetOps(oplist, num_valid_tensors)) {
         return;
@@ -559,14 +546,13 @@ void CMutator::dfs(int depth, SubGraph *in_graph, SubGraph *cur_graph,
     }
 }
 
-bool CMutator::is_a_mutant(const SubGraph *mutant_graph,
-                           const SubGraph *input_graph, bool full_computing) {
+bool Generator::is_a_mutant(const SubGraph *mutant_graph,
+                            const SubGraph *input_graph, bool full_computing) {
     size_t mouts = 0;
     for (auto output : mutant_graph->getOutputs()) {
         if (!output->isNotCounted())
             mouts++;
     }
-
     // already called mutant_graph->resetOps
     if (mouts != input_graph->getOutputs().size())
         return false;
@@ -653,10 +639,10 @@ bool CMutator::is_a_mutant(const SubGraph *mutant_graph,
     return true;
 }
 
-bool CMutator::approx_equal_splitting_points(const SubGraph *mutant_graph,
-                                             size_t midx,
-                                             const SubGraph *input_graph,
-                                             size_t iidx) {
+bool Generator::approx_equal_splitting_points(const SubGraph *mutant_graph,
+                                              size_t midx,
+                                              const SubGraph *input_graph,
+                                              size_t iidx) {
     if (mutant_graph->getOutputs()[midx]->getDims() !=
         input_graph->getOutputs()[iidx]->getDims())
         return false;
@@ -802,8 +788,8 @@ bool CMutator::approx_equal_splitting_points(const SubGraph *mutant_graph,
     return (float(equal) / total > equal_threshold);
 }
 
-bool CMutator::approx_equal(const SubGraph *mutant_graph, size_t midx,
-                            const SubGraph *input_graph, size_t iidx) {
+bool Generator::approx_equal(const SubGraph *mutant_graph, size_t midx,
+                             const SubGraph *input_graph, size_t iidx) {
     if (mutant_graph->getOutputs()[midx]->getDims() !=
         input_graph->getOutputs()[iidx]->getDims())
         return false;
@@ -825,7 +811,7 @@ bool CMutator::approx_equal(const SubGraph *mutant_graph, size_t midx,
     return false;
 }
 
-bool CMutator::approx_equal(Tensor *a, Tensor *b) {
+bool Generator::approx_equal(Tensor *a, Tensor *b) {
     // std::cout << "approx_equal" << std::endl;
     if (a->getDims() != b->getDims())
         return false;
@@ -851,27 +837,22 @@ bool CMutator::approx_equal(Tensor *a, Tensor *b) {
     return false;
 }
 
-bool CMutator::pushBackOp(Operator *op) {
+bool Generator::pushBackOp(Operator *op) {
     oplist.emplace_back(op);
     if (enable_box_verification)
         op->inferSplittingPoints();
+
     return true;
 }
 
-bool CMutator::popBackOp() {
+bool Generator::popBackOp() {
     auto op = oplist.back();
     op->clear();
     oplist.pop_back();
     return true;
 }
 
-bool CMutator::clearOps() {
-    while (!oplist.empty())
-        popBackOp();
-    return true;
-}
-
-Tensor *CMutator::newTensor() {
+Tensor *Generator::newTensor() {
     if (num_valid_tensors >= searchingGraph->getTensors().size())
         reserveTensors(num_valid_tensors + 4);
     auto tensor = searchingGraph->getTensors()[num_valid_tensors];
@@ -880,7 +861,15 @@ Tensor *CMutator::newTensor() {
     return tensor;
 }
 
-void CMutator::reserveTensors(size_t size) {
+bool Generator::popBackTensor(Operator *op) {
+    num_valid_tensors--;
+    searchingGraph->getTensors()[num_valid_tensors]->clear();
+    if (op != nullptr)
+        op->clear();
+    return true;
+}
+
+void Generator::reserveTensors(size_t size) {
     if (num_total_tensors >= size)
         return;
     Dim max_dim = {(int)max_num_elements};
@@ -889,21 +878,7 @@ void CMutator::reserveTensors(size_t size) {
     num_total_tensors = size;
 }
 
-bool CMutator::popBackTensor(Operator *op) {
-    num_valid_tensors--;
-    searchingGraph->getTensors()[num_valid_tensors]->clear();
-    if (op != nullptr)
-        op->clear();
-    return true;
-}
-
-bool CMutator::clearTensors(size_t threshold) {
-    while (threshold < num_valid_tensors)
-        popBackTensor();
-    return true;
-}
-
-bool CMutator::have_computeOp_ancestor(Tensor *tensor) {
+bool Generator::have_computeOp_ancestor(Tensor *tensor) {
     std::function<bool(Tensor *)> backtrace =
         [&backtrace](Tensor *current) -> bool {
         auto fatherOp = current->getOutputOf();
@@ -919,7 +894,7 @@ bool CMutator::have_computeOp_ancestor(Tensor *tensor) {
     return backtrace(tensor);
 }
 
-bool CMutator::have_same_op(Operator *new_op) {
+bool Generator::have_same_op(Operator *new_op) {
     for (auto exist_op : oplist) {
         if (new_op->getHash() != exist_op->getHash())
             continue;
@@ -935,7 +910,7 @@ bool CMutator::have_same_op(Operator *new_op) {
     return false;
 }
 
-CMutator::SGType CMutator::statGraph(SubGraph *sg) {
+Generator::SGType Generator::statGraph(SubGraph *sg) {
     auto ops = sg->getOperators();
     switch (ops.size()) {
     case 0: {
@@ -1041,10 +1016,10 @@ CMutator::SGType CMutator::statGraph(SubGraph *sg) {
     return Others;
 }
 
-void CMutator::addCandidateOpsForConv1x1(
+void Generator::addCandidateOpsForConv1x1(
     std::vector<std::shared_ptr<Operator>> &candidate_ops, SubGraph *sg) {}
 
-void CMutator::addCandidateOpsForNormalConv(
+void Generator::addCandidateOpsForNormalConv(
     std::vector<std::shared_ptr<Operator>> &candidate_ops, SubGraph *sg) {
     auto conv = dynamic_cast<ConvOp *>(sg->getOperators()[0]);
     // conv->print();
@@ -1088,7 +1063,7 @@ void CMutator::addCandidateOpsForNormalConv(
     max_depth = 3;
 }
 
-void CMutator::addCandidateOpsForNormalOddConv(
+void Generator::addCandidateOpsForNormalOddConv(
     std::vector<std::shared_ptr<Operator>> &candidate_ops, SubGraph *sg) {
     // addCandidateOpsForNormalConv(candidate_ops, sg);
     NEQOPT
@@ -1102,7 +1077,7 @@ void CMutator::addCandidateOpsForNormalOddConv(
     max_depth = 3;
 }
 
-void CMutator::addCandidateOpsForDilatedConv(
+void Generator::addCandidateOpsForDilatedConv(
     std::vector<std::shared_ptr<Operator>> &candidate_ops, SubGraph *sg) {
     auto conv = dynamic_cast<ConvOp *>(sg->getOperators()[0]);
     // TODO: do we need to identify d2hw and hw2d?
@@ -1124,7 +1099,7 @@ void CMutator::addCandidateOpsForDilatedConv(
     max_depth = 3;
 }
 
-void CMutator::addCandidateOpsForTransKernelConv(
+void Generator::addCandidateOpsForTransKernelConv(
     std::vector<std::shared_ptr<Operator>> &candidate_ops, SubGraph *sg) {
     // addCandidateOpsForNormalConv(candidate_ops, sg);
     auto conv = dynamic_cast<ConvOp *>(sg->getOperators()[0]);
@@ -1134,7 +1109,7 @@ void CMutator::addCandidateOpsForTransKernelConv(
     max_depth = 4;
 }
 
-void CMutator::addCandidateOpsForGroupConv(
+void Generator::addCandidateOpsForGroupConv(
     std::vector<std::shared_ptr<Operator>> &candidate_ops, SubGraph *sg) {
     std::vector<int> fvec;
     for (auto conv : sg->getOperators()) {
@@ -1158,7 +1133,7 @@ void CMutator::addCandidateOpsForGroupConv(
     max_depth = 4;
 }
 
-void CMutator::addCandidateOpsForTransposeGroupConv(
+void Generator::addCandidateOpsForTransposeGroupConv(
     std::vector<std::shared_ptr<Operator>> &candidate_ops, SubGraph *sg) {
     candidate_ops.emplace_back(new ConvOp(ConvOp::Same));
     candidate_ops.emplace_back(new ConcatOp(0));
@@ -1169,7 +1144,7 @@ void CMutator::addCandidateOpsForTransposeGroupConv(
     max_depth = 4;
 }
 
-void CMutator::addCandidateOpsForNormalMatmul(
+void Generator::addCandidateOpsForNormalMatmul(
     std::vector<std::shared_ptr<Operator>> &candidate_ops, SubGraph *sg) {
     candidate_ops.emplace_back(new MatmulOp(true, false));
     candidate_ops.emplace_back(new MatmulOp(true, true));
@@ -1178,10 +1153,10 @@ void CMutator::addCandidateOpsForNormalMatmul(
     candidate_ops.emplace_back(new tpm::TransposeOp(-1, {0, 2, 1}));
     max_depth = 4;
 }
-void CMutator::addCandidateOpsForBatchMatmul(
+void Generator::addCandidateOpsForBatchMatmul(
     std::vector<std::shared_ptr<Operator>> &candidate_ops, SubGraph *sg) {}
 
-void CMutator::addPreprocessForGroupConvGCD(SubGraph *sg) {
+void Generator::addPreprocessForGroupConvGCD(SubGraph *sg) {
     EQOPT
     // max_depth = 1;
     std::vector<int> fvec;
@@ -1258,7 +1233,7 @@ void CMutator::addPreprocessForGroupConvGCD(SubGraph *sg) {
     pushBackOp(split);
 }
 
-void CMutator::addPreprocessForGroupConvMAX(SubGraph *sg) {
+void Generator::addPreprocessForGroupConvMAX(SubGraph *sg) {
     NEQOPT
     // max_depth = 1;
     std::vector<int> fvec;
@@ -1349,7 +1324,7 @@ void CMutator::addPreprocessForGroupConvMAX(SubGraph *sg) {
     pushBackOp(split);
 }
 
-void CMutator::addPreprocessForGroupConvOneInput(SubGraph *sg) {
+void Generator::addPreprocessForGroupConvOneInput(SubGraph *sg) {
     EQOPT
     // max_depth = 1;
     std::vector<int> fvec;
@@ -1405,7 +1380,7 @@ void CMutator::addPreprocessForGroupConvOneInput(SubGraph *sg) {
     pushBackOp(split);
 }
 
-void CMutator::addPreprocessForPadSlice(SubGraph *sg) {
+void Generator::addPreprocessForPadSlice(SubGraph *sg) {
     NEQOPT
     // max_depth = 1;
     auto input = searchingGraph->getTensors()[0];
@@ -1434,7 +1409,7 @@ void CMutator::addPreprocessForPadSlice(SubGraph *sg) {
     pushBackOp(slice);
 }
 
-void CMutator::addPreprocessForConv1x1(SubGraph *sg) {
+void Generator::addPreprocessForConv1x1(SubGraph *sg) {
     EQOPT
     // max_depth = 1;
     auto t0 = newTensor(), t1 = newTensor(), t2 = newTensor();
@@ -1483,7 +1458,7 @@ void CMutator::addPreprocessForConv1x1(SubGraph *sg) {
     pushBackOp(reshape_output);
 }
 
-void CMutator::addPreprocessForTransKernel(SubGraph *sg) {
+void Generator::addPreprocessForTransKernel(SubGraph *sg) {
     EQOPT
     // max_depth = 1;
     auto input = searchingGraph->getTensors()[0];
@@ -1517,7 +1492,7 @@ void CMutator::addPreprocessForTransKernel(SubGraph *sg) {
     }
     pushBackOp(otrans);
 }
-void CMutator::addPreprocessForBatchMatmul(SubGraph *sg) {
+void Generator::addPreprocessForBatchMatmul(SubGraph *sg) {
     EQOPT
     // max_depth = 1;
     // auto lhs = searchingGraph->getTensors()[0];
@@ -1576,7 +1551,7 @@ void CMutator::addPreprocessForBatchMatmul(SubGraph *sg) {
     pushBackOp(split);
 }
 
-uint64_t CMutator::computeHashForSingleComputeOp(const Operator *op) {
+uint64_t Generator::computeHashForSingleComputeOp(const Operator *op) {
     // assert(op->getType() == Operator::Conv);
     if (op->getType() == Operator::Conv) {
         auto conv = dynamic_cast<const ConvOp *>(op);
@@ -1588,28 +1563,38 @@ uint64_t CMutator::computeHashForSingleComputeOp(const Operator *op) {
                 weightDim[0] * 10000139 + weightDim[1] * 10000141 +
                 weightDim[2] * 10000169 + weightDim[3] * 10000189;
         return hash;
-    } else if (op->getType() == Operator::ConvTrans) {
-        auto convt = dynamic_cast<const ConvTransOp *>(op);
-        auto hash = convt->getHash();
-        auto inputDim = convt->getInputs()[0]->getDims();
-        auto weightDim = convt->getOutputs()[0]->getDims();
+    } else if (op->getType() == Operator::Matmul) {
+        // HACK: Not transform mutation
+        static uint64_t matmulhash = 0;
+        return matmulhash++;
+    } else if (op->getType() == Operator::G2BMM) {
+        auto g2bmm = dynamic_cast<const G2BMMOp *>(op);
+        auto hash = g2bmm->getHash();
+        auto inputDim = g2bmm->getInputs()[0]->getDims();
+        auto weightDim = g2bmm->getOutputs()[0]->getDims();
         hash += inputDim[0] * 10000019 + inputDim[1] * 10000079 +
                 inputDim[2] * 10000103 + inputDim[3] * 10000121 +
                 weightDim[0] * 10000139 + weightDim[1] * 10000141 +
                 weightDim[2] * 10000169 + weightDim[3] * 10000189;
         return hash;
-    } else if (op->getType() == Operator::Matmul) {
-        static uint64_t matmulhash = 0;
-        return matmulhash++;
+    } else if (op->getType() == Operator::GBMML) {
+        auto gbmml = dynamic_cast<const GBMMLOp *>(op);
+        auto hash = gbmml->getHash();
+        auto inputDim = gbmml->getInputs()[0]->getDims();
+        auto weightDim = gbmml->getOutputs()[0]->getDims();
+        hash += inputDim[0] * 10000019 + inputDim[1] * 10000079 +
+                inputDim[2] * 10000103 + inputDim[3] * 10000121 +
+                weightDim[0] * 10000139 + weightDim[1] * 10000141 +
+                weightDim[2] * 10000169 + weightDim[3] * 10000189;
+        return hash;
     } else {
-        std::cout << "Unsupported operator when generating hash: "
-                  << op->getName() << std::endl;
+        // Not impl
         assert(false);
         return 0;
     }
 }
 
-void CMutator::addPreprocessForTransposeGroupConvRS(SubGraph *sg) {
+void Generator::addPreprocessForTransposeGroupConvRS(SubGraph *sg) {
     EQOPT
     // max_depth = 1;
     auto w0dim = sg->getOperators()[0]->getInputs()[1]->getDims();
@@ -1702,7 +1687,7 @@ void CMutator::addPreprocessForTransposeGroupConvRS(SubGraph *sg) {
     }
 }
 
-void CMutator::addPreprocessForTransposeGroupConvSR(SubGraph *sg) {
+void Generator::addPreprocessForTransposeGroupConvSR(SubGraph *sg) {
     EQOPT
     // max_depth = 1;
     auto w0dim = sg->getOperators()[0]->getInputs()[1]->getDims();
@@ -1795,8 +1780,8 @@ void CMutator::addPreprocessForTransposeGroupConvSR(SubGraph *sg) {
     }
 }
 
-void CMutator::splitGroupConv(SubGraph *sg,
-                              std::vector<SubGraph *> &out_graphs) {
+void Generator::splitGroupConv(SubGraph *sg,
+                               std::vector<SubGraph *> &out_graphs) {
     if (sg->getOperators().size() != 1)
         return;
     if (sg->getOperators()[0]->getType() != Operator::Conv)
@@ -1870,315 +1855,38 @@ void CMutator::splitGroupConv(SubGraph *sg,
     }
 }
 
-void CMutator::updateCache(SubGraph *sg, std::vector<SubGraph *> &out_graphs) {
-    std::cout << "========== Update Cache ==========" << std::endl;
-    // sg->print();
-    // add to L1 cache
-    auto l1CacheIdx = sg->getCacheIdx(1);
-    if (l1_mutation_cache.find(l1CacheIdx) == l1_mutation_cache.end()) {
-        auto l1Cache = std::vector<std::shared_ptr<SubGraph>>{};
-        std::cout << "Update L1 Cache Index: " << l1CacheIdx << std::endl;
-        for (auto out : out_graphs) {
-            l1Cache.emplace_back(new SubGraph(out->getOperators()));
-        }
-        l1_mutation_cache.emplace(l1CacheIdx, l1Cache);
-    } else {
-        std::cout << "Already in L1 Cache" << std::endl;
-    }
-
-    // add to L2 cache
-    auto l2CacheIdx = sg->getCacheIdx(2);
-    if (l2_mutation_cache.find(l2CacheIdx) == l2_mutation_cache.end()) {
-        auto l2Cache = std::vector<std::shared_ptr<SubGraph>>{};
-        std::cout << "Update L2 Cache Index: " << l2CacheIdx << std::endl;
-        for (auto out : out_graphs) {
-            l2Cache.emplace_back(new SubGraph(out->getOperators()));
-        }
-        l2_mutation_cache.emplace(l2CacheIdx, l2Cache);
-    } else {
-        std::cout << "Already in L2 Cache" << std::endl;
-    }
-
-    // storeCache(l1CacheIdx, l1Cache);
-    // storeCache(l2CacheIdx, l2Cache);
+uint64_t Generator::computeHashForSingleConv(Operator *op) {
+    assert(op->getType() == Operator::Conv);
+    auto conv = dynamic_cast<ConvOp *>(op);
+    auto hash = conv->getHash();
+    auto inputDim = conv->getInputs()[0]->getDims();
+    auto weightDim = conv->getOutputs()[0]->getDims();
+    hash += inputDim[0] * 10000019 + inputDim[1] * 10000079 +
+            inputDim[2] * 10000103 + inputDim[3] * 10000121 +
+            weightDim[0] * 10000139 + weightDim[1] * 10000141 +
+            weightDim[2] * 10000169 + weightDim[3] * 10000189;
+    return hash;
 }
 
-bool CMutator::checkCache(SubGraph *sg, std::vector<SubGraph *> &out_graphs) {
-    std::cout << "========== Check Cache ==========" << std::endl;
-    // sg->print();
-    auto l1CacheIdx = sg->getCacheIdx(1);
-    auto l2CacheIdx = sg->getCacheIdx(2);
-    // first check l1 cache, then check l2 cache
-    if (l1_mutation_cache.find(l1CacheIdx) != l1_mutation_cache.end()) {
-        std::cout << "Try L1 Cache" << std::endl;
-        out_graphs.clear();
-        for (auto mut : l1_mutation_cache[l1CacheIdx]) {
-            auto new_graph = new SubGraph(mut->getOperators());
-            markTransType(sg, new_graph);
-            out_graphs.emplace_back(new_graph);
-        }
-        std::cout << "Hit L1 Cache!" << std::endl;
-        return true;
-    } else if (l2_mutation_cache.find(l2CacheIdx) != l2_mutation_cache.end()) {
-        std::cout << "Try L2 Cache" << std::endl;
-        out_graphs.clear();
-        for (auto mut : l2_mutation_cache[l2CacheIdx]) {
-            bool isError = false;
-            if (sg->getInputs().size() != mut->getInputs().size()) {
-                std::cout << "Not Hit L2 Cache: Do not Match" << std::endl;
-                continue;
-            }
-            // construct out_graphs
-            // is exhaustion meaningful ?
-            auto &opList = mut->getOperators();
-            OpVec newOpList;
-            std::unordered_map<int, int> nodeMap;
-            std::vector<int> cnt(opList.size());
-            std::vector<int> q;
-            for (size_t i = 0; i < opList.size(); i++) {
-                auto &op = opList[i];
-                nodeMap.emplace(op->getGuid(), i);
-                cnt[i] = op->getPredecessors().size();
-                if (op->getPredecessors().size() == 0) {
-                    q.emplace_back(i);
-                    // update subgraph inputs
-                    TensorVec inputs;
-                    TensorVec outputs;
-                    for (size_t j = 0; j < op->getOutputs().size(); j++) {
-                        outputs.emplace_back(newTensor());
-                    }
-                    for (size_t j = 0; j < op->getInputs().size(); j++) {
-                        for (size_t k = 0; k < mut->getInputs().size(); k++) {
-                            if (op->getInputs()[j]->getGuid() ==
-                                mut->getInputs()[k]->getGuid()) {
-                                sg->getInputs()[k]->setType(
-                                    op->getInputs()[j]->getType());
-                                inputs.emplace_back(sg->getInputs()[k]);
-                                if (inputs.size() == op->getInputs().size()) {
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    if (!op->computeShape(inputs, outputs)) {
-                        std::cout << "Not Hit L2 Cache: Shape Error"
-                                  << std::endl;
-                        // std::cout << "[ERROR] Op:" << std::endl;
-                        // op->print();
-                        // std::cout << "[ERROR] Op Inputs:" << inputs.size() <<
-                        // std::endl; std::cout << "[ERROR] Op Outputs:" <<
-                        // outputs.size() << std::endl;
-                        isError = true;
-                        break;
-                    }
-                    newOpList.emplace_back(op);
-                }
-            }
-
-            if (isError) {
-                continue;
-            }
-
-            for (int st = 0, ed = q.size(); st < ed; st++) {
-                int id = q[st];
-                auto &op = opList[id];
-
-                for (auto suc : op->getSuccessors()) {
-                    int suc_id = nodeMap[suc->getGuid()];
-                    cnt[suc_id]--;
-                    if (cnt[suc_id] == 0) {
-                        q.emplace_back(suc_id);
-                        ed++;
-                    }
-                }
-
-                if (op->getPredecessors().size() == 0) {
-                    continue;
-                }
-
-                TensorVec inputs;
-                TensorVec outputs;
-                for (size_t i = 0; i < op->getOutputs().size(); i++) {
-                    outputs.emplace_back(newTensor());
-                }
-                for (size_t i = 0; i < op->getInputs().size(); i++) {
-                    if (op->getInputs()[i]->getOutputOf() == nullptr) {
-                        for (size_t j = 0; j < mut->getInputs().size(); j++) {
-                            if (op->getInputs()[i]->getGuid() ==
-                                mut->getInputs()[j]->getGuid()) {
-                                sg->getInputs()[j]->setType(
-                                    op->getInputs()[i]->getType());
-                                inputs.emplace_back(sg->getInputs()[j]);
-                                if (inputs.size() == op->getInputs().size()) {
-                                    break;
-                                }
-                            }
-                        }
-                    } else {
-                        for (size_t j = 0; j < opList.size(); j++) {
-                            if (op->getInputs()[i]->getOutputOf()->getGuid() ==
-                                opList[j]->getGuid()) {
-                                for (size_t k = 0; k < newOpList.size(); k++) {
-                                    if (newOpList[k]->getGuid() ==
-                                        opList[j]->getGuid()) {
-                                        // DEBUG: left or right
-                                        newOpList[k]->getOutputs()[0]->setType(
-                                            op->getInputs()[i]->getType());
-                                        inputs.emplace_back(
-                                            newOpList[k]->getOutputs()[0]);
-                                        if (inputs.size() ==
-                                            op->getInputs().size()) {
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                            if (inputs.size() == op->getInputs().size()) {
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                if (!op->computeShape(inputs, outputs)) {
-                    std::cout << "Not Hit L2 Cache: Shape Error" << std::endl;
-                    // std::cout << "[ERROR] Op:" << std::endl;
-                    // op->print();
-                    // std::cout << "[ERROR] Op Inputs:" << inputs.size() <<
-                    // std::endl; std::cout << "[ERROR] Op Outputs:" <<
-                    // outputs.size() << std::endl; std::cout << "[ERROR]
-                    // OpList:" << std::endl; for (auto op : opList) {
-                    //     op->print();
-                    // }
-                    // std::cout << "[ERROR] NewOpList:" << std::endl;
-                    // for (auto op : newOpList) {
-                    //     op->print();
-                    // }
-                    isError = true;
-                    break;
-                }
-                newOpList.emplace_back(op);
-            }
-
-            if (isError) {
-                continue;
-            }
-
-            // verify out_graphs
-            bool fullComputing = true;
-            for (auto op : newOpList) {
-                if (!op->isTransposeOp()) {
-                    fullComputing = false;
-                    break;
-                }
-            }
-
-            auto newGraph = new SubGraph(newOpList);
-            for (auto input : newGraph->getInputs()) {
-                input->dataRand();
-            }
-            computingPos.clear();
-            auto outputs = newGraph->getOutputs();
-            for (size_t i = 0, iEnd = outputs.size(); i < iEnd; ++i) {
-                computingPos.emplace_back(std::vector<std::pair<Dim, VType>>());
-                auto &back = computingPos.back();
-                auto dm = outputs[i]->getDims();
-                srand(time(NULL));
-                for (int j = 0; j < 8; ++j) {
-                    Dim randPos = {};
-                    for (auto d : dm)
-                        randPos.emplace_back(((rand() % 2) + 1) * d / 3);
-                    back.emplace_back(std::make_pair(randPos, 0));
-                }
-                for (auto &pos : back) {
-                    auto comp = newGraph->compute(pos.first, i);
-                    if (!comp.first) {
-                        std::cout << "Not Hit L2 Cache: Verification Error"
-                                  << std::endl;
-                        isError = false;
-                        break;
-                    }
-                    pos.second = comp.second;
-                }
-                if (isError) {
-                    break;
-                }
-            }
-
-            if (isError) {
-                continue;
-            }
-
-            if (is_a_mutant(newGraph, sg, fullComputing)) {
-                markTransType(sg, newGraph);
-                out_graphs.emplace_back(newGraph);
-                std::cout << "Hit L2 Cache!" << std::endl;
-            } else {
-                std::cout << "Not Hit L2 Cache: Not a Mutant" << std::endl;
-            }
-        }
-        return out_graphs.size() ? true : false;
-    } else {
-        std::cout << "Not Hit Cache!" << std::endl;
-        return false;
-    }
+void Generator::addToCache(SubGraph *sg, std::vector<SubGraph *> &out_graphs) {
+    assert(sg->getOperators().size() == 1);
+    auto hash = computeHashForSingleComputeOp(sg->getOperators()[0]);
+    if (mutationCache.find(hash) != mutationCache.end())
+        return;
+    auto cache = std::vector<std::shared_ptr<SubGraph>>{};
+    for (auto out : out_graphs)
+        cache.emplace_back(new SubGraph(out->getOperators()));
+    mutationCache.emplace(hash, std::vector<std::shared_ptr<SubGraph>>{});
 }
 
-bool CMutator::storeCache(uint64_t cacheIdx,
-                          std::vector<std::shared_ptr<SubGraph>> out_graphs) {
-    for (auto out : out_graphs) {
-        std::string name = "cache_" + std::to_string(cacheIdx) + "_" +
-                           std::to_string(out->getHash());
-        out->exportOnnx(name.c_str());
-    }
-    return true;
-}
-
-// -std=c++17
-// bool CMutator::loadCache(uint64_t cacheIdx, std::vector<SubGraph *>
-// &out_graphs) {
-//     out_graphs.clear();
-//     std::string path = "./";
-//     std::string name = "cache_" + std::to_string(cacheIdx);
-//     for (const auto & entry : std::filesystem::directory_iterator(path)) {
-//         if (entry.path().find(name) != string::npos) {
-//             auto graph = new tpm::SubGraph();
-//             graph->importOnnx(files[i].c_str());
-//             out_graphs.emplace_back(graph);
-//         }
-//     }
-//     return true;
-// }
-
-bool CMutator::loadCache(uint64_t cacheIdx,
-                         std::vector<std::shared_ptr<SubGraph>> out_graphs) {
-    out_graphs.clear();
-    DIR *dir;
-    struct dirent *ent;
-    std::string name = "cache_123_456";
-    if ((dir = opendir("./")) != NULL) {
-        while ((ent = readdir(dir)) != NULL) {
-            if (ent->d_name == name) {
-                auto graph = new tpm::SubGraph();
-                graph->importOnnx(("./" + name).c_str());
-                out_graphs.emplace_back(graph);
-            }
-        }
-        closedir(dir);
-        return true;
-    }
-    return false;
-}
-
-void CMutator::resetGraph(const SubGraph *in_graph) {
+void Generator::resetGraph(const SubGraph *in_graph) {
     while (!oplist.empty())
         popBackOp();
     while (num_valid_tensors > in_graph->getInputs().size())
         popBackTensor();
 }
 
-void CMutator::markTransType(SubGraph *inputGraph, SubGraph *outputGraph) {
+void Generator::markTransType(SubGraph *inputGraph, SubGraph *outputGraph) {
     auto &ops = outputGraph->getOperators();
     if (ops.size() != 3) {
         return;
@@ -2249,7 +1957,7 @@ void CMutator::markTransType(SubGraph *inputGraph, SubGraph *outputGraph) {
     }
 }
 
-bool CMutator::validDepth(SubGraph *sg) {
+bool Generator::validDepth(SubGraph *sg) {
     if (sg->getOperators().size() > (size_t)max_depth && max_depth < 5)
         return false;
     return true;

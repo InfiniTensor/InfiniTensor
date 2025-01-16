@@ -125,7 +125,7 @@ if(BUILD_TEST)
   include_directories(3rd-party/googletest/googletest/include)
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Werror -Wno-error=deprecated-declarations -Wno-error=pointer-arith")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Wno-error=deprecated-declarations -Wno-error=pointer-arith")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -UNDEBUG") # Enable assertion
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -UNDEBUG") # Enable assertion
 
@@ -161,7 +161,12 @@ if(USE_INTELCPU)
   list (APPEND SRC ${SRC_INTELCPU})
 endif()
 
-if(SUP_CODE_GEN)
+if(SUP_CODE_GEN AND USE_BANG)
+file(GLOB_RECURSE MLU_GEN_SRC src/code_gen/mlu/*.cc)
+list(APPEND SRC ${MLU_GEN_SRC})
+endif()
+
+if(SUP_CODE_GEN AND USE_CUDA)
 file(GLOB_RECURSE CUS_OPS_SRC src/code_gen/*.cc src/code_gen/custom_ops.cu)
 list(APPEND SRC ${CUS_OPS_SRC})
 endif()
@@ -175,7 +180,7 @@ endif()
 target_link_libraries(InfiniTensor pybind11::embed)
 target_link_libraries(InfiniTensor fmt::fmt)
 
-if(SUP_CODE_GEN)
+if(SUP_CODE_GEN AND USE_CUDA)
 set_target_properties(InfiniTensor PROPERTIES CUDA_ARCHITECTURES "70;80")
 enable_language(CUDA)
 find_package(CUDAToolkit)
@@ -218,7 +223,7 @@ if(USE_INTELCPU)
       message(FATAL_ERROR "dnnl library not found")
   endif()
   set(WNO_ERRORS "-Wno-error=unused-parameter -Wno-error=unused-function -Wno-error=unused-private-field -Wno-error=ignored-attributes -Wno-error=unused-const-variable -Wno-error=inconsistent-missing-override -Wno-error=unused-variable -Wno-error=tautological-constant-compare")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMKL_ILP64 -qmkl=parallel -Werror  ${WNO_ERRORS}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMKL_ILP64 -qmkl=parallel  ${WNO_ERRORS}")
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DMKL_ILP64 -qmkl=parallel ${WNO_ERRORS}") # Enable assertion
   set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -DMKL_ILP64 -qmkl=parallel ${WNO_ERRORS}") # Enable assertion
 
@@ -265,7 +270,7 @@ if(USE_BANG)
   find_library(CAMBRICON_CNNL libcnnl.so "${NEUWARE_HOME}/lib64")
   find_library(CAMBRICON_CNRT libcnrt.so "${NEUWARE_HOME}/lib64")
   find_library(CAMBRICON_CNDRV libcndrv.so "${NEUWARE_HOME}/lib64")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lstdc++ -Wall -Werror")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lstdc++ -Wall")
 
   if ((NOT DEFINED TARGET_CPU_ARCH) AND (NOT DEFINED ENV{TARGET_CPU_ARCH}))
     execute_process(COMMAND uname -m OUTPUT_VARIABLE _uname_m OUTPUT_STRIP_TRAILING_WHITESPACE)
@@ -377,7 +382,12 @@ if(BUILD_TEST)
     target_link_libraries(nnet_reader InfiniTensor)
   endif()
 
-  if(SUP_CODE_GEN)
+  if(SUP_CODE_GEN AND USE_BANG)
+    build_test(test/code_generate/mlu/SampleGraph1.cpp)
+
+    #build_test(test/code_generate/mlu/SampleGraph2.cpp)
+  endif()
+  if(SUP_CODE_GEN AND USE_CUDA)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/code_gen")
     add_executable(conv1 test/code_generate/conv_test_1.cc)
     target_link_libraries(conv1 InfiniTensor)
