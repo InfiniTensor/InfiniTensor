@@ -55,7 +55,7 @@ install-python: build
 	pip install -e pyinfinitensor/
 
 install-infini:
-	git clone -b dev git@github.com:PanZezhong1725/operators.git --recursive; \
+	git clone -b dev https://github.com/PanZezhong1725/operators.git --recursive; \
 	cd operators && \
 	if [ "$(CUDA)" = "ON" ]; then \
 		xmake f --nv-gpu=true --cuda=$(CUDA_HOME) -cv; \
