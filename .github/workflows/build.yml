@@ -64,6 +64,9 @@ jobs:
     #     sudo make install
     #     sudo ldconfig
 
+    - name: Install oprators
+      run: make install-infini
+
     - name: Build
       run: make
 
