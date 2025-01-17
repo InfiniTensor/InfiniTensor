@@ -105,10 +105,10 @@ std::string CodeEngine::genCode(std::shared_ptr<SubGraph> &graph) {
     emit("float *wsData;");
     emit("checkCnnlError(cnnlMalloc((void **) &wsData, wsSize));");
 
-    emit("curandGenerator_t gen;");
-    emit("checkCurandError(curandCreateGenerator(&gen, "
-         "CURAND_RNG_PSEUDO_DEFAULT));");
-    emit("checkCurandError(curandSetPseudoRandomGeneratorSeed(gen, (unsigned "
+    emit("cnrtGenerator_t gen;");
+    emit("checkcnrtError(cnrtCreateGenerator(&gen, "
+         "cnrt_RNG_PSEUDO_DEFAULT));");
+    emit("checkcnrtError(cnrtSetPseudoRandomGeneratorSeed(gen, (unsigned "
          "long long)clock()));");
     auto tensors = graph->getTensors();
     for (auto t : tensors) {
@@ -343,35 +343,35 @@ void CodeEngine::genHeader() {
     head += "}\n";
     head += "\n";
     head +=
-        "inline const char *curandGetErrorString(curandStatus_t error) { \\\n";
+        "inline const char *cnrtGetErrorString(cnrtStatus_t error) { \\\n";
     head += "    switch (error) { \\\n";
-    head += "    case CURAND_STATUS_SUCCESS: \\\n";
-    head += "        return \" CURAND_STATUS_SUCCESS \"; \\\n";
-    head += "    case CURAND_STATUS_VERSION_MISMATCH: \\\n";
-    head += "        return \" CURAND_STATUS_VERSION_MISMATCH \"; \\\n";
-    head += "    case CURAND_STATUS_NOT_INITIALIZED: \\\n";
-    head += "        return \" CURAND_STATUS_NOT_INITIALIZED \"; \\\n";
-    head += "    case CURAND_STATUS_ALLOCATION_FAILED: \\\n";
-    head += "        return \" CURAND_STATUS_ALLOCATION_FAILED \"; \\\n";
-    head += "    case CURAND_STATUS_TYPE_ERROR: \\\n";
-    head += "        return \" CURAND_STATUS_TYPE_ERROR \"; \\\n";
-    head += "    case CURAND_STATUS_OUT_OF_RANGE: \\\n";
-    head += "        return \" CURAND_STATUS_OUT_OF_RANGE \"; \\\n";
-    head += "    case CURAND_STATUS_LENGTH_NOT_MULTIPLE: \\\n";
-    head += "        return \" CURAND_STATUS_LENGTH_NOT_MULTIPLE \"; \\\n";
-    head += "    case CURAND_STATUS_DOUBLE_PRECISION_REQUIRED: \\\n";
+    head += "    case cnrt_STATUS_SUCCESS: \\\n";
+    head += "        return \" cnrt_STATUS_SUCCESS \"; \\\n";
+    head += "    case cnrt_STATUS_VERSION_MISMATCH: \\\n";
+    head += "        return \" cnrt_STATUS_VERSION_MISMATCH \"; \\\n";
+    head += "    case cnrt_STATUS_NOT_INITIALIZED: \\\n";
+    head += "        return \" cnrt_STATUS_NOT_INITIALIZED \"; \\\n";
+    head += "    case cnrt_STATUS_ALLOCATION_FAILED: \\\n";
+    head += "        return \" cnrt_STATUS_ALLOCATION_FAILED \"; \\\n";
+    head += "    case cnrt_STATUS_TYPE_ERROR: \\\n";
+    head += "        return \" cnrt_STATUS_TYPE_ERROR \"; \\\n";
+    head += "    case cnrt_STATUS_OUT_OF_RANGE: \\\n";
+    head += "        return \" cnrt_STATUS_OUT_OF_RANGE \"; \\\n";
+    head += "    case cnrt_STATUS_LENGTH_NOT_MULTIPLE: \\\n";
+    head += "        return \" cnrt_STATUS_LENGTH_NOT_MULTIPLE \"; \\\n";
+    head += "    case cnrt_STATUS_DOUBLE_PRECISION_REQUIRED: \\\n";
     head +=
-        "        return \" CURAND_STATUS_DOUBLE_PRECISION_REQUIRED \"; \\\n";
-    head += "    case CURAND_STATUS_LAUNCH_FAILURE: \\\n";
-    head += "        return \" CURAND_STATUS_LAUNCH_FAILURE \"; \\\n";
-    head += "    case CURAND_STATUS_PREEXISTING_FAILURE: \\\n";
-    head += "        return \" CURAND_STATUS_PREEXISTING_FAILURE \"; \\\n";
-    head += "    case CURAND_STATUS_INITIALIZATION_FAILED: \\\n";
-    head += "        return \" CURAND_STATUS_INITIALIZATION_FAILED \"; \\\n";
-    head += "    case CURAND_STATUS_ARCH_MISMATCH: \\\n";
-    head += "        return \" CURAND_STATUS_ARCH_MISMATCH \"; \\\n";
-    head += "    case CURAND_STATUS_INTERNAL_ERROR: \\\n";
-    head += "        return \" CURAND_STATUS_INTERNAL_ERROR \"; \\\n";
+        "        return \" cnrt_STATUS_DOUBLE_PRECISION_REQUIRED \"; \\\n";
+    head += "    case cnrt_STATUS_LAUNCH_FAILURE: \\\n";
+    head += "        return \" cnrt_STATUS_LAUNCH_FAILURE \"; \\\n";
+    head += "    case cnrt_STATUS_PREEXISTING_FAILURE: \\\n";
+    head += "        return \" cnrt_STATUS_PREEXISTING_FAILURE \"; \\\n";
+    head += "    case cnrt_STATUS_INITIALIZATION_FAILED: \\\n";
+    head += "        return \" cnrt_STATUS_INITIALIZATION_FAILED \"; \\\n";
+    head += "    case cnrt_STATUS_ARCH_MISMATCH: \\\n";
+    head += "        return \" cnrt_STATUS_ARCH_MISMATCH \"; \\\n";
+    head += "    case cnrt_STATUS_INTERNAL_ERROR: \\\n";
+    head += "        return \" cnrt_STATUS_INTERNAL_ERROR \"; \\\n";
     head += "    } \\\n";
     head += "    return \" < unknown > \"; \\\n";
     head += "}\n";
@@ -558,7 +558,7 @@ void CodeEngine::genTensorAlloc(const Tensor &t, bool isConvBias) {
         emit(fmt::format("checkCnnlError(cnnlMalloc((void **) &{}, {}));",
                          var_name, std::to_string(size)));
         emit(
-            fmt::format("checkCurandError(curandGenerateUniform(gen, {}, {}));",
+            fmt::format("checkcnrtError(cnrtGenerateUniform(gen, {}, {}));",
                         var_name, std::to_string(getTensorNElem(t))));
         break;
     case Tensor::Int32:
