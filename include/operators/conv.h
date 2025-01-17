@@ -95,8 +95,8 @@ class ConvBaseObj : public OperatorObj {
                 ActType act = ActType::None);
 
     std::string toString() const override;
-    int numInputs() const override { return 2; }
-    int numOutputs() const override { return 1; }
+    int numInputs() const override { return inputs.size(); }
+    int numOutputs() const override { return outputs.size(); }
 
     Tensor getBias() const { return inputs[2]; }
     PaddingMode getPaddingMode() const { return padding; }
@@ -133,15 +133,32 @@ class ConvBaseObj : public OperatorObj {
 class ConvObj : public ConvBaseObj {
   public:
     ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output, int ph,
-            int pw, int sh = 1, int sw = 1, int dh = 1, int dw = 1,
-            Tensor bias = nullptr, ActType act = ActType::None);
+            int pw, Tensor bias = nullptr, int sh = 1, int sw = 1, int dh = 1,
+            int dw = 1, ActType act = ActType::None);
     // Constructors for setting padding mode
     ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
-            PaddingMode mode = PaddingMode::Same, int sh = 1, int sw = 1,
-            int dh = 1, int dw = 1, Tensor bias = nullptr,
+            Tensor bias = nullptr, PaddingMode mode = PaddingMode::Same,
+            int sh = 1, int sw = 1, int dh = 1, int dw = 1,
             ActType act = ActType::None);
     OP_CLONE(ConvObj);
 
+    ~ConvObj() override {
+        if (opDesc) {
+            try {
+                // if (numInputs() == 2) {
+                //     CHECK_ERROR(infiniopDestroyConvDescriptor(
+                //         (infiniopConvDescriptor_t)opDesc));
+                // } else if (numInputs() == 3) {
+                //     CHECK_ERROR(infiniopDestroyConvBiasActDescriptor(
+                //         (infiniopConvBiasActDescriptor_t)opDesc));
+                // }
+            } catch (const std::exception &e) {
+                std::cerr << "Error in ~ConvObj: " << e.what() << std::endl;
+            }
+        }
+    }
+
+    void initInfiniOp(const Runtime context) override;
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
     int getNumGroups() const override { return c / getChannelPerGroup(); }
 

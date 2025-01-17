@@ -15,15 +15,15 @@ class NaiveIdentity : public CpuKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CPU, OpType::Reshape, NaiveIdentity,
-                "ReshapeNaive_CPU");
-REGISTER_KERNEL(Device::CPU, OpType::Identity, NaiveIdentity,
-                "IdentityNaive_CPU");
-REGISTER_KERNEL(Device::CPU, OpType::Unsqueeze, NaiveIdentity,
-                "UnsqueezeNaive_CPU");
-REGISTER_KERNEL(Device::CPU, OpType::Squeeze, NaiveIdentity,
-                "SqueezeNaive_CPU");
-REGISTER_KERNEL(Device::CPU, OpType::Flatten, NaiveIdentity,
-                "FlattenNaive_CPU");
+// REGISTER_KERNEL(Device::CPU, OpType::Reshape, NaiveIdentity,
+//                 "ReshapeNaive_CPU");
+// REGISTER_KERNEL(Device::CPU, OpType::Identity, NaiveIdentity,
+//                 "IdentityNaive_CPU");
+// REGISTER_KERNEL(Device::CPU, OpType::Unsqueeze, NaiveIdentity,
+//                 "UnsqueezeNaive_CPU");
+// REGISTER_KERNEL(Device::CPU, OpType::Squeeze, NaiveIdentity,
+//                 "SqueezeNaive_CPU");
+// REGISTER_KERNEL(Device::CPU, OpType::Flatten, NaiveIdentity,
+//                 "FlattenNaive_CPU");
 
 } // namespace infini

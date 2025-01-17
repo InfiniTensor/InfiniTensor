@@ -61,25 +61,76 @@ void ConvObj::setAuxilaryAttributes(PaddingMode mode) {
 }
 
 ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
-                 int ph, int pw, int sh, int sw, int dh, int dw, Tensor bias,
+                 int ph, int pw, Tensor bias, int sh, int sw, int dh, int dw,
                  ActType act)
-    : ConvBaseObj(OpType::Conv, {input, weight}, output, ph, pw, sh, sw, dh, dw,
-                  input, weight, act) {
-    if (bias)
-        IT_TODO_HALT();
+    : ConvBaseObj(OpType::Conv,
+                  bias ? TensorVec{input, weight, bias}
+                       : TensorVec{input, weight},
+                  output, ph, pw, sh, sw, dh, dw, input, weight, act) {
     setAuxilaryAttributes(PaddingMode::Other);
     IT_ASSERT(checkValid(graph));
 }
 
 ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
-                 PaddingMode mode, int sh, int sw, int dh, int dw, Tensor bias,
+                 Tensor bias, PaddingMode mode, int sh, int sw, int dh, int dw,
                  ActType act)
-    : ConvBaseObj(OpType::Conv, {input, weight}, output, mode, sh, sw, dh, dw,
-                  input, weight, act) {
-    if (bias)
-        IT_TODO_HALT();
+    : ConvBaseObj(OpType::Conv,
+                  bias ? TensorVec{input, weight, bias}
+                       : TensorVec{input, weight},
+                  output, mode, sh, sw, dh, dw, input, weight, act) {
     setAuxilaryAttributes(mode);
     IT_ASSERT(checkValid(graph));
+}
+
+void ConvObj::initInfiniOp(const Runtime context) {
+    // auto x_dim = inputs[0]->getDims();
+    // auto w_dim = inputs[1]->getDims();
+    // auto y_dim = outputs[0]->getDims();
+    // uint64_t pads[2] = {(uint64_t)ph, (uint64_t)pw};
+    // int64_t strides[2] = {(int64_t)sh, (int64_t)sw};
+    // uint64_t dilations[2] = {(uint64_t)dh, (uint64_t)dw};
+
+    // auto x_shape = toInfiniopShape(x_dim);
+    // auto w_shape = toInfiniopShape(w_dim);
+    // auto y_shape = toInfiniopShape(y_dim);
+    // // create tensor descriptor
+    // infiniopTensorDescriptor_t x_tensor;
+    // CHECK_ERROR(infiniopCreateTensorDescriptor(
+    //     &x_tensor, x_dim.size(), x_shape.data(), nullptr,
+    //     toInfiniopDataLayout(inputs[0]->getDType().getIndex())));
+    // infiniopTensorDescriptor_t w_tensor;
+    // CHECK_ERROR(infiniopCreateTensorDescriptor(
+    //     &w_tensor, w_dim.size(), w_shape.data(), nullptr,
+    //     toInfiniopDataLayout(inputs[1]->getDType().getIndex())));
+    // infiniopTensorDescriptor_t y_tensor;
+    // CHECK_ERROR(infiniopCreateTensorDescriptor(
+    //     &y_tensor, y_dim.size(), y_shape.data(), nullptr,
+    //     toInfiniopDataLayout(outputs[0]->getDType().getIndex())));
+    // if (inputs.size() == 2) {
+    //     // create op descriptor
+    //     CHECK_ERROR(infiniopCreateConvDescriptor(
+    //         context->opHandle(), (infiniopConvDescriptor_t *)&opDesc,
+    //         y_tensor, x_tensor, w_tensor, pads, strides, dilations, 2));
+    // } else if (inputs.size() == 3) {
+    //     auto b_dim = inputs[2]->getDims();
+    //     auto b_shape = toInfiniopShape(b_dim);
+    //     infiniopTensorDescriptor_t b_tensor;
+    //     CHECK_ERROR(infiniopCreateTensorDescriptor(
+    //         &b_tensor, b_dim.size(), b_shape.data(), nullptr,
+    //         toInfiniopDataLayout(inputs[2]->getDType().getIndex())));
+    //     CHECK_ERROR(infiniopCreateConvBiasActDescriptor(
+    //         context->opHandle(), (infiniopConvBiasActDescriptor_t *)&opDesc,
+    //         y_tensor, x_tensor, w_tensor, b_tensor, pads, strides, dilations,
+    //         2, 0));
+    //     CHECK_ERROR(infiniopDestroyTensorDescriptor(b_tensor));
+    // } else {
+    //     IT_ASSERT(false);
+    // }
+
+    // // destroy tensor descriptor and op descriptor
+    // CHECK_ERROR(infiniopDestroyTensorDescriptor(y_tensor));
+    // CHECK_ERROR(infiniopDestroyTensorDescriptor(x_tensor));
+    // CHECK_ERROR(infiniopDestroyTensorDescriptor(w_tensor));
 }
 
 optional<vector<Shape>> ConvObj::inferShape(const TensorVec &inputs) {

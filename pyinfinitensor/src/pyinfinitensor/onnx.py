@@ -136,42 +136,10 @@ class OnnxStub:
                 else:
                     adapt = node.input[0]
 
-                if len(node.input) > 2:
-                    bias = "{}-bias".format(node.output[0])
-                    reshape = "{}-reshape".format(node.output[0])
-                    tensors[bias] = self.handler.conv(
-                        tensors[adapt],
-                        tensors[node.input[1]],
-                        None,
-                        p[0],
-                        p[1],
-                        s[0],
-                        s[1],
-                        d[0],
-                        d[1],
-                    )
-                    tensors[reshape] = self.handler.reshape(
-                        tensors[node.input[2]],
-                        None,
-                        [
-                            1,
-                            reduce(
-                                lambda acc, x: acc * x,
-                                tensors[node.input[2]].shape(),
-                            ),
-                            1,
-                            1,
-                        ],
-                    )
-                    tensors[node.output[0]] = self.handler.add(
-                        tensors[bias],
-                        tensors[reshape],
-                        tensors.get(node.output[0]),
-                    )
-                else:
                     tensors[node.output[0]] = self.handler.conv(
                         tensors[adapt],
                         tensors[node.input[1]],
+                        tensors[node.input[2]] if len(node.input) > 2 else None,
                         tensors.get(node.output[0]),
                         p[0],
                         p[1],
@@ -275,18 +243,15 @@ class OnnxStub:
                 (alpha, beta, transA, transB) = (
                     attributes[name] for name in ["alpha", "beta", "transA", "transB"]
                 )
-                # FIXME unsupport attributes: `alpha` `beta`
-                assert alpha == 1.0
-                assert beta == 1.0
-                tensors[node.output[0]] = self.handler.matmul(
+                tensors[node.output[0]] = self.handler.gemm(
                     tensors[node.input[0]],
                     tensors[node.input[1]],
                     tensors.get(node.output[0]),
+                    tensors[node.input[2]] if len(node.input) > 2 else None,
+                    alpha,
+                    beta,
                     transA == 1,
                     transB == 1,
-                    tensors[node.input[2]] if len(node.input) > 2 else None,
-                    backend.ActType.Linear,
-                    matmul_compute_type,
                 )
             elif node.op_type == "BatchNormalization":
                 (input, mean, var, scale, bias) = (
@@ -467,19 +432,9 @@ class OnnxStub:
                         ceil_mode,
                     )
             elif node.op_type == "GlobalAveragePool":
-                [_, _, h, w] = tensors[node.input[0]].shape()
-                tensors[node.output[0]] = self.handler.avgPool(
+                tensors[node.output[0]] = self.handler.globalAvgPool(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
-                    h,
-                    w,
-                    1,
-                    1,
-                    0,
-                    0,
-                    1,
-                    1,
-                    0,
                 )
             elif node.op_type == "Add":
                 tensors[node.output[0]] = self.handler.add(

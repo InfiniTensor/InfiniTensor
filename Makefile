@@ -1,4 +1,4 @@
-﻿.PHONY : build clean format install-python test-cpp test-onnx
+﻿.PHONY : build clean format install-python test-cpp test-onnx install-infini
 
 TYPE ?= Release
 CUDA ?= OFF
@@ -53,6 +53,14 @@ format:
 install-python: build
 	cp build/$(TYPE)/backend*.so pyinfinitensor/src/pyinfinitensor
 	pip install -e pyinfinitensor/
+
+install-infini:
+	git clone -b dev https://github.com/PanZezhong1725/operators.git --recursive; \
+	cd operators && \
+	if [ "$(CUDA)" = "ON" ]; then \
+		xmake f --nv-gpu=true --cuda=$(CUDA_HOME) -cv; \
+	fi && \
+	xmake build && xmake install
 
 test-cpp:
 	@echo

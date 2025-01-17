@@ -25,14 +25,16 @@ class GraphHandlerObj {
 
     inline OpVec operators() { return g->getOperators(); }
 
-    Tensor conv(Tensor input, Tensor weight, Tensor output, int ph, int pw,
-                int sh, int sw, int dh, int dw);
+    Tensor conv(Tensor input, Tensor weight, Tensor bias, Tensor output, int ph,
+                int pw, int sh, int sw, int dh, int dw);
     Tensor convTransposed2d(Tensor input, Tensor weight, Tensor output, int ph,
                             int pw, int sh, int sw, int dh, int dw, int oph,
                             int opw);
     Tensor matmul(Tensor a, Tensor b, Tensor y, bool transA, bool transB,
                   Tensor bias, ActType act,
                   std::string matmul_compute_type = "default");
+    Tensor gemm(Tensor a, Tensor b, Tensor y, Tensor c, float alpha, float beta,
+                bool transA, bool transB);
     Tensor batchNormalization(Tensor input, Tensor output, Tensor mean,
                               Tensor var, Tensor scale, Tensor bias,
                               float momentum, float eps, bool training);
@@ -46,6 +48,7 @@ class GraphHandlerObj {
                    int ph, int pw, int sh, int sw, int ceilMode);
     Tensor avgPool(Tensor input, Tensor output, int kh, int kw, int dh, int dw,
                    int ph, int pw, int sh, int sw, int ceilMode);
+    Tensor globalAvgPool(Tensor input, Tensor output);
 
     Tensor add(Tensor a, Tensor b, Tensor c);
     Tensor sub(Tensor a, Tensor b, Tensor c);

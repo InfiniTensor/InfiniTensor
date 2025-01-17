@@ -50,6 +50,11 @@ class CudaRuntimeObj : public RuntimeObj {
 
     void run(const Graph &graph, bool tune = false,
              bool profiling = false) const;
+
+    void *getCurrentStream() const override {
+        return CUDAStream::getCurrentStream();
+    }
+
     // double runEvaluation(const Graph &graph, int nWarmups,
     //                      int nEvaluations) const;
     void sync() const;
@@ -62,8 +67,8 @@ class CudaRuntimeObj : public RuntimeObj {
     void dealloc(void *ptr) override { checkCudaError(cudaFree(ptr)); }
     cudnnHandle_t cudnnHandle() const { return cudnn; }
     cublasHandle_t cublasHandle() const { return cublas; }
-    size_t getWorkspaceSize() const { return workspaceSize; }
-    CudaPtr getWorkspace(size_t size) const {
+    size_t getWorkspaceSize() const override { return workspaceSize; }
+    CudaPtr getWorkspace(size_t size) const override {
         IT_ASSERT(size <= workspaceSize);
         return workspace;
     }
@@ -80,7 +85,9 @@ class CudaRuntimeObj : public RuntimeObj {
 
     void copyBlobInsideRuntime(void *dst, const void *src,
                                size_t bytes) const override {
-        checkCudaError(cudaMemcpy(dst, src, bytes, cudaMemcpyDeviceToDevice));
+        checkCudaError(cudaMemcpyAsync(dst, src, bytes,
+                                       cudaMemcpyDeviceToDevice,
+                                       CUDAStream::getCurrentStream()));
     }
 
     void runWithoutSync(const Graph &graph) const;

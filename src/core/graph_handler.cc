@@ -9,6 +9,8 @@
 #include "operators/element_wise.h"
 #include "operators/expand.h"
 #include "operators/gather.h"
+#include "operators/gemm.h"
+#include "operators/global_pool.h"
 #include "operators/instance_norm.h"
 #include "operators/layer_norm.h"
 #include "operators/lrn.h"
@@ -52,16 +54,18 @@ Tensor GraphHandlerObj::tensor(Shape dims, int dtype) {
     return g->addTensor(std::move(dims), dtype_repr_convert(dtype));
 }
 
-Tensor GraphHandlerObj::conv(Tensor input, Tensor weight, Tensor output, int ph,
-                             int pw, int sh, int sw, int dh, int dw) {
+Tensor GraphHandlerObj::conv(Tensor input, Tensor weight, Tensor bias,
+                             Tensor output, int ph, int pw, int sh, int sw,
+                             int dh, int dw) {
     if (output) {
         g->addOpWithOutputs<ConvObj>(std::move(input), std::move(weight),
-                                     output, ph, pw, sh, sw, dh, dw);
+                                     output, ph, pw, std::move(bias), sh, sw,
+                                     dh, dw);
         return output;
     } else {
         return g
             ->addOp<ConvObj>(std::move(input), std::move(weight), output, ph,
-                             pw, sh, sw, dh, dw)
+                             pw, std::move(bias), sh, sw, dh, dw)
             ->getOutput();
     }
 }
@@ -96,6 +100,21 @@ Tensor GraphHandlerObj::matmul(Tensor a, Tensor b, Tensor y, bool transA,
         return g
             ->addOp<MatmulObj>(std::move(a), std::move(b), y, transA, transB,
                                std::move(bias), act, matmul_compute_type)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::gemm(Tensor a, Tensor b, Tensor y, Tensor c,
+                             float alpha, float beta, bool transA,
+                             bool transB) {
+    if (y) {
+        g->addOpWithOutputs<GemmObj>(std::move(a), std::move(b), y,
+                                     std::move(c), alpha, beta, transA, transB);
+        return y;
+    } else {
+        return g
+            ->addOp<GemmObj>(std::move(a), std::move(b), y, std::move(c), alpha,
+                             beta, transA, transB)
             ->getOutput();
     }
 }
@@ -187,6 +206,16 @@ Tensor GraphHandlerObj::avgPool(Tensor input, Tensor output, int kh, int kw,
         return g
             ->addOp<AvgPoolObj>(std::move(input), output, kh, kw, dh, dw, ph,
                                 pw, sh, sw, ceilMode)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::globalAvgPool(Tensor input, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<GlobalAvgPoolObj>(std::move(input), output);
+        return output;
+    } else {
+        return g->addOp<GlobalAvgPoolObj>(std::move(input), output)
             ->getOutput();
     }
 }
