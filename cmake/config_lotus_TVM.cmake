@@ -1,6 +1,6 @@
 set(TVM_HOME "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/tvm")
 set(TVM_INCLUDE_DIR "${TVM_HOME}/include")
-set(TVM_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../")
+set(TVM_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/")
 set(DMLC_INCLUDE_DIR "${TVM_HOME}/3rdparty/dmlc-core/include")
 set(DLPACK_INCLUDE_DIR "${TVM_HOME}/3rdparty/dlpack/include")
 
