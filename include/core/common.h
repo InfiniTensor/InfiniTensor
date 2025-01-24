@@ -1,6 +1,7 @@
 #pragma once
 #include "utils/exception.h"
 #include <cassert>
+#include <cstdint>
 #include <functional>
 #include <iostream>
 #include <list>
