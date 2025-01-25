@@ -65,6 +65,20 @@ class TestStringMethods(unittest.TestCase):
         )
         make_and_import_model(make_graph([conv], "conv", [i, w], [o]))
 
+    def test_scatterElements(self):
+        data = make_tensor_value_info("data", TensorProto.FLOAT, [3, 3])
+        indices = make_tensor_value_info("indices", TensorProto.INT64, [2, 3])
+        updates = make_tensor_value_info("updates", TensorProto.FLOAT, [2, 3])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [3, 3])
+        scatterElements = make_node(
+            "ScatterElements",
+            ["data", "indices", "updates"],
+            ["output"],
+            "scatterElements",
+            axis = 0,
+        )
+        make_and_import_model(make_graph([scatterElements], "scatterElements", [data, indices, updates], [output]))
+
     def test_conv_fp16(self):
         i = make_tensor_value_info("i", TensorProto.FLOAT16, [1, 3, 4, 4])
         w = make_tensor_value_info("w", TensorProto.FLOAT16, [2, 3, 3, 3])
