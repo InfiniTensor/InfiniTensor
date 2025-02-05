@@ -13,13 +13,13 @@ TEST(Det, ShapeInference) {
     {
         Graph g = make_ref<GraphObj>(runtime);
         Tensor i = g->addTensor({2, 3, 3}, DataType::Float32);
-        auto op = g->addOp<DetObj>(i, nullptr, std::string("normal"));
+        auto op = g->addOp<DetObj>(i, nullptr);
         EXPECT_EQ(op->getOutput()->getDims(), (Shape{2}));
     }
     {
         Graph g = make_ref<GraphObj>(runtime);
         Tensor i = g->addTensor({3, 3}, DataType::Float32);
-        auto op = g->addOp<DetObj>(i, nullptr, std::string("logDet"));
+        auto op = g->addOp<DetObj>(i, nullptr);
         EXPECT_EQ(op->getOutput()->getDims(), (Shape{1}));
     }
 }

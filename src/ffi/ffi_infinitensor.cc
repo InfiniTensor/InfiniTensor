@@ -348,12 +348,6 @@ static std::tuple<float, float, float, int> lrn_attrs_of(Operator op) {
     return std::make_tuple(alpha, beta, bias, size);
 }
 
-static std::string det_attr_of(Operator op) {
-    IT_ASSERT(op->getOpType() == OpType::Det);
-    auto det = dynamic_cast<const DetObj *>(op.get());
-    return det->getModeStr();
-}
-
 void export_functions(py::module &m) {
 #define FUNCTION(NAME) def(#NAME, &NAME)
     m.def("cpu_runtime", &NativeCpuRuntimeObj::getInstance)
@@ -398,8 +392,7 @@ void export_functions(py::module &m) {
         .FUNCTION(squeeze_axes_of)
         .FUNCTION(unsqueeze_axes_of)
         .FUNCTION(lrn_attrs_of)
-        .FUNCTION(elu_alpha_of)
-        .FUNCTION(det_attr_of);
+        .FUNCTION(elu_alpha_of);
 #undef FUNCTION
 }
 

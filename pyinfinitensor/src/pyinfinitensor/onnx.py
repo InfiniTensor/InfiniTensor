@@ -1086,14 +1086,9 @@ class OnnxStub:
                     size,
                 )
             elif node.op_type == "Det":
-                mode = next(
-                    (attr.s for attr in node.attribute if attr.name == "mode"),
-                    "normal",
-                )
                 tensors[node.output[0]] = self.handler.det(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
-                    mode,
                 )
             else:
                 raise Exception('Unsupported operator "{}"'.format(node.op_type))
@@ -1280,10 +1275,9 @@ class OnnxStub:
                     )
                 )
             elif ty == backend.OpTypeId.Det:
-                mode = backend.det_attr_of(op)
                 ctx.push_node(
                     make_node(
-                        "Det", inputs, outputs, mode
+                        "Det", inputs, outputs
                     )
                 )
             elif ty == backend.OpTypeId.BatchNormalization:
