@@ -278,15 +278,16 @@ Tensor GraphHandlerObj::softmax(Tensor input, Tensor output, int axis) {
     }
 }
 Tensor GraphHandlerObj::scatterND(Tensor data, Tensor indices, Tensor updates,
-                                  Tensor output) {
+                                  Tensor output, std::string reduction) {
     if (output) {
         g->addOpWithOutputs<ScatterNDObj>(std::move(data), std::move(indices),
-                                          std::move(updates), output);
+                                          std::move(updates), output,
+                                          reduction);
         return output;
     } else {
         return g
             ->addOp<ScatterNDObj>(std::move(data), std::move(indices),
-                                  std::move(updates), output)
+                                  std::move(updates), output, reduction)
             ->getOutput();
     }
 }

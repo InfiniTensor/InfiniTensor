@@ -3,13 +3,21 @@
 namespace infini {
 
 ScatterNDObj::ScatterNDObj(GraphObj *graph, Tensor data, Tensor indices,
-                           Tensor updates, Tensor output)
+                           Tensor updates, Tensor output, std::string reduction)
     : OperatorObj(OpType::ScatterND, TensorVec{data, indices, updates},
-                  {output}) {
+                  {output}),
+      reduction(reduction) {
     IT_ASSERT(checkValid(graph));
 }
 optional<vector<Shape>> ScatterNDObj::inferShape(const TensorVec &inputs) {
     auto inputDims = inputs[0]->getDims();
+    auto indicesDims = inputs[1]->getDims();
+    int dataRank = inputs[0]->getRank();
+    int indicesRank = inputs[1]->getRank();
+    int updatesRank = inputs[2]->getRank();
+
+    IT_ASSERT(updatesRank ==
+              dataRank + indicesRank - indicesDims[indicesRank - 1] - 1);
     vector<Shape> ret;
     Shape outShape = inputDims;
 
@@ -28,6 +36,7 @@ std::string ScatterNDObj::toString() const {
     os << "data=" << inputs[0]->getGuid() << ",";
     os << "indices=" << inputs[1]->getGuid() << ",";
     os << "updates=" << inputs[2]->getGuid() << ",";
+    os << "reduction=" << reduction << ",";
     os << "output=" << outputs[0]->getGuid() << ")";
     return os.str();
 }

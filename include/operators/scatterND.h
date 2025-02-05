@@ -7,6 +7,7 @@ namespace infini {
  *
  */
 class ScatterNDObj : public OperatorObj {
+    std::string reduction;
 
   public:
     /**
@@ -19,7 +20,7 @@ class ScatterNDObj : public OperatorObj {
      * @param output The output tensor.
      */
     ScatterNDObj(GraphObj *graph, Tensor data, Tensor indices, Tensor updates,
-                 Tensor output);
+                 Tensor output, std::string reduction = "none");
     OP_CLONE(ScatterNDObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
@@ -27,6 +28,7 @@ class ScatterNDObj : public OperatorObj {
     std::string toString() const override;
     int numInputs() const override { return inputs.size(); }
     int numOutputs() const override { return 1; }
+    std::string getReduction() const { return reduction; }
 
   private:
     vector<int> getWorkloadVector() const override;
