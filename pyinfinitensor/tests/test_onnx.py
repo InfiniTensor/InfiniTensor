@@ -76,6 +76,7 @@ class TestStringMethods(unittest.TestCase):
             ["output"],
             "scatterElements",
             axis = 0,
+            reduction = "none",
         )
         make_and_import_model(make_graph([scatterElements], "scatterElements", [data, indices, updates], [output]))
 

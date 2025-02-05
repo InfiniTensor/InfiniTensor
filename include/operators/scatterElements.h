@@ -8,6 +8,7 @@ namespace infini {
  */
 class ScatterElementsObj : public OperatorObj {
     int axis;
+    std::string reduction;
 
   public:
     /**
@@ -20,7 +21,8 @@ class ScatterElementsObj : public OperatorObj {
      * @param output The output tensor.
      */
     ScatterElementsObj(GraphObj *graph, Tensor data, Tensor indices,
-                       Tensor updates, Tensor output, int axis = 0);
+                       Tensor updates, Tensor output, int axis = 0,
+                       std::string reduction = "none");
     OP_CLONE(ScatterElementsObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
@@ -29,6 +31,7 @@ class ScatterElementsObj : public OperatorObj {
     int numInputs() const override { return inputs.size(); }
     int numOutputs() const override { return 1; }
     int getAxis() const { return axis; }
+    std::string getReduction() const { return reduction; }
 
   private:
     vector<int> getWorkloadVector() const override;

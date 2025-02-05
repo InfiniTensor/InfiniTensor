@@ -586,6 +586,11 @@ class OnnxStub:
                         (attr.i for attr in node.attribute if attr.name == "axis"),
                         0,
                     ),
+                    next(
+                    (attr.s for attr in node.attribute if attr.name == "reduction"),
+                    "none",
+                    ),
+                    
                 )
             elif node.op_type == "Abs":
                 tensors[node.output[0]] = self.handler.abs(
