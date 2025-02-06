@@ -75,9 +75,12 @@ class TestStringMethods(unittest.TestCase):
             ["data", "indices", "updates"],
             ["output"],
             "scatterND",
-            reduction = "none",
+            reduction="none",
         )
-        make_and_import_model(make_graph([scatterND], "scatterND", [data, indices, updates], [output]))
+        make_and_import_model(
+            make_graph([scatterND], "scatterND", [data, indices, updates], [output])
+        )
+
     def test_scatterElements(self):
         data = make_tensor_value_info("data", TensorProto.FLOAT, [3, 3])
         indices = make_tensor_value_info("indices", TensorProto.INT64, [2, 3])
@@ -88,10 +91,14 @@ class TestStringMethods(unittest.TestCase):
             ["data", "indices", "updates"],
             ["output"],
             "scatterElements",
-            axis = 0,
-            reduction = "none",
+            axis=0,
+            reduction="none",
         )
-        make_and_import_model(make_graph([scatterElements], "scatterElements", [data, indices, updates], [output]))
+        make_and_import_model(
+            make_graph(
+                [scatterElements], "scatterElements", [data, indices, updates], [output]
+            )
+        )
 
     def test_conv_fp16(self):
         i = make_tensor_value_info("i", TensorProto.FLOAT16, [1, 3, 4, 4])
@@ -243,11 +250,7 @@ class TestStringMethods(unittest.TestCase):
 
         # Define the LeakyRelu node
         leaky_relu = make_node(
-            "LeakyRelu",
-            ["x"],
-            ["y"],
-            "leaky_relu",
-            alpha=0.01  # LeakyReLU alpha value
+            "LeakyRelu", ["x"], ["y"], "leaky_relu", alpha=0.01  # LeakyReLU alpha value
         )
 
         # Create the graph and model

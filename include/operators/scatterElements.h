@@ -40,4 +40,3 @@ class ScatterElementsObj : public OperatorObj {
 };
 
 } // namespace infini
-
