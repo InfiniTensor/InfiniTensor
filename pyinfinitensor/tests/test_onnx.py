@@ -289,7 +289,7 @@ class TestStringMethods(unittest.TestCase):
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
         log = make_node("Log", ["x"], ["y"], name="log")
         make_and_import_model(make_graph([log], "log", [x], [y]))
-        
+
     def test_sigmoid(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
@@ -391,7 +391,7 @@ class TestStringMethods(unittest.TestCase):
         y = make_tensor_value_info("y", TensorProto.FLOAT, [2])
         det = make_node("Det", ["x"], ["y"], name="det")
         make_and_import_model(make_graph([det], "det", [x], [y]))
-        
+
     def test_concat(self):
         input1 = make_tensor_value_info("input1", TensorProto.FLOAT, [1, 3, 2, 4])
         input2 = make_tensor_value_info("input2", TensorProto.FLOAT, [1, 3, 2, 5])
@@ -640,6 +640,44 @@ class TestStringMethods(unittest.TestCase):
         graph = make_graph([recv], "recv", [], [recvOutput])
         model = make_model(graph)
         from_onnx(model, backend.cpu_runtime())
+
+    def test_logSoftmax(self):
+        input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 2, 4])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 2, 4])
+        logsoftmax = make_node(
+            "LogSoftmax", ["input"], ["output"], name="LogSoftmax", axis=-1
+        )
+        make_and_import_model(make_graph([logsoftmax], "LogSoftmax", [input], [output]))
+
+    def test_randomNormal(self):
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 2, 3, 4])
+        randomNormal = make_node(
+            "RandomNormal",
+            [],
+            ["output"],
+            name="RandomNormal",
+            dtype=1,
+            mean=0.0,
+            scale=1.0,
+            shape=[1, 2, 3, 4],
+        )
+        make_and_import_model(make_graph([randomNormal], "RandomNormal", [], [output]))
+
+    def test_randomNormaLikel(self):
+        input = make_tensor_value_info("input", TensorProto.FLOAT, [1, 2, 3, 4])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 2, 3, 4])
+        randomNormalLike = make_node(
+            "RandomNormalLike",
+            ["input"],
+            ["output"],
+            name="RandomNormalLike",
+            dtype=1,
+            mean=0.0,
+            scale=1.0,
+        )
+        make_and_import_model(
+            make_graph([randomNormalLike], "RandomNormalLike", [input], [output])
+        )
 
 
 class TestDynamicTensor(unittest.TestCase):
