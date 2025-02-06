@@ -67,6 +67,8 @@ class GraphHandlerObj {
     Tensor softmax(Tensor x, Tensor y, int axis);
     Tensor scatterND(Tensor data, Tensor indices, Tensor updates, Tensor output,
                      std::string reduction);
+    Tensor scatterElements(Tensor data, Tensor indices, Tensor updates,
+                           Tensor output, int axis, std::string reduction);
     Tensor abs(Tensor x, Tensor y);
     Tensor sqrt(Tensor x, Tensor y);
     Tensor neg(Tensor x, Tensor y);

@@ -561,6 +561,7 @@ void init_graph_builder(py::module &m) {
         .def("hardSwish", &Handler::hardSwish, policy::move)
         .def("softmax", &Handler::softmax, policy::move)
         .def("scatterND", &Handler::scatterND, policy::move)
+        .def("scatterElements", &Handler::scatterElements, policy::move)
         .def("abs", &Handler::abs, policy::move)
         .def("sqrt", &Handler::sqrt, policy::move)
         .def("neg", &Handler::neg, policy::move)
