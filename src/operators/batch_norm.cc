@@ -30,10 +30,6 @@ optional<vector<Shape>> BatchNormObj::inferShape(const TensorVec &inputs) {
 vector<DataType> BatchNormObj::inferDataType(const TensorVec &inputs) const {
     IT_ASSERT(inputs.size() == 5);
     auto index = inputs[1];
-    IT_ASSERT(inputs[1]->getDType() == DataType::Float32);
-    IT_ASSERT(inputs[2]->getDType() == DataType::Float32);
-    IT_ASSERT(inputs[3]->getDType() == DataType::Float32);
-    IT_ASSERT(inputs[4]->getDType() == DataType::Float32);
     return {inputs[0]->getDType()};
 }
 
