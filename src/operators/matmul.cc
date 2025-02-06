@@ -29,6 +29,14 @@ optional<vector<Shape>> MatmulObj::inferShape(const TensorVec &inputs) {
     auto shapeB = B->getDims();
     int rankA = A->getRank(); // Rank is the Shape of TensorDims
     int rankB = B->getRank();
+    if (rankA < 2) {
+        rankA = 2;
+        shapeA.emplace_back(1);
+    }
+    if (rankB < 2) {
+        rankB = 2;
+        shapeB.emplace_back(1);
+    }
     Shape shapeA1(shapeA.begin(), shapeA.begin() + (rankA - 2));
     Shape shapeB1(shapeB.begin(), shapeB.begin() + (rankB - 2));
     Shape ret = infer_broadcast(shapeA1, shapeB1);
