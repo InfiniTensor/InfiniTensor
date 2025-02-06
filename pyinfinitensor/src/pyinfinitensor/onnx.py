@@ -1111,6 +1111,11 @@ class OnnxStub:
                     bias,
                     size,
                 )
+            elif node.op_type == "Det":
+                tensors[node.output[0]] = self.handler.det(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                )
             else:
                 raise Exception('Unsupported operator "{}"'.format(node.op_type))
 
@@ -1293,6 +1298,12 @@ class OnnxStub:
                 ctx.push_node(
                     make_node(
                         "Gemm", inputs, outputs, name, transA=transA, transB=transB
+                    )
+                )
+            elif ty == backend.OpTypeId.Det:
+                ctx.push_node(
+                    make_node(
+                        "Det", inputs, outputs
                     )
                 )
             elif ty == backend.OpTypeId.BatchNormalization:

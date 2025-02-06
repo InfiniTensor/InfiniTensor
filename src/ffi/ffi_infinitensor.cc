@@ -3,6 +3,7 @@
 #include "operators/batch_norm.h"
 #include "operators/concat.h"
 #include "operators/conv.h"
+#include "operators/det.h"
 #include "operators/expand.h"
 #include "operators/gather.h"
 #include "operators/lrn.h"
@@ -125,6 +126,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, DepthToSpace)
         .VALUE(OpType, LRN)
         .VALUE(OpType, Elu)
+        .VALUE(OpType, Det)
         .export_values();
 
 #undef VALUE
@@ -600,6 +602,7 @@ void init_graph_builder(py::module &m) {
         .def("erf", &Handler::erf, policy::move)
         .def("where", &Handler::where, policy::move)
         .def("lrn", &Handler::lrn, policy::move)
+        .def("det", &Handler::det, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)
         .def("optimize", &Handler::optimize, policy::automatic)
         .def("operators", &Handler::operators, policy::move)

@@ -126,6 +126,7 @@ class GraphHandlerObj {
                         std::string mode);
     Tensor lrn(Tensor input, Tensor output, float alpha, float beta, float bias,
                int size);
+    Tensor det(Tensor input, Tensor output);
 
     //------ modifiers
 
