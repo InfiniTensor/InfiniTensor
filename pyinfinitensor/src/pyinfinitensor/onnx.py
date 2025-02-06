@@ -908,24 +908,49 @@ class OnnxStub:
 
                 def clamp(nums):
                     MAX_INT = 0x7FFFFFFF
-                    return [min(x, MAX_INT) for x in nums]
+                    MIN_INT = -0x80000000
+                    return [max(min(x, MAX_INT), MIN_INT) for x in nums]
 
-                tensors[node.output[0]] = self.handler.slice(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    clamp(_parse_data(data[node.input[1]])),
-                    clamp(_parse_data(data[node.input[2]])),
-                    (
-                        clamp(_parse_data(data[node.input[3]]))
-                        if len(node.input) > 3
-                        else None
-                    ),
-                    (
-                        clamp(_parse_data(data[node.input[4]]))
-                        if len(node.input) > 4
-                        else None
-                    ),
-                )
+                if len(node.input) == 1:
+                    # onnx v1 slice with only one input, and the other info in attr
+                    tensors[node.output[0]] = self.handler.slice(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        next(
+                            attr.ints
+                            for attr in node.attribute
+                            if attr.name == "starts"
+                        ),
+                        next(
+                            attr.ints for attr in node.attribute if attr.name == "ends"
+                        ),
+                        next(
+                            (
+                                attr.ints
+                                for attr in node.attribute
+                                if attr.name == "axex"
+                            ),
+                            None,
+                        ),
+                        None,
+                    )
+                else:
+                    tensors[node.output[0]] = self.handler.slice(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        clamp(_parse_data(data[node.input[1]])),
+                        clamp(_parse_data(data[node.input[2]])),
+                        (
+                            clamp(_parse_data(data[node.input[3]]))
+                            if len(node.input) > 3
+                            else None
+                        ),
+                        (
+                            clamp(_parse_data(data[node.input[4]]))
+                            if len(node.input) > 4
+                            else None
+                        ),
+                    )
             elif node.op_type == "Pad":
                 tensors[node.output[0]] = self.handler.pad(
                     tensors[node.input[0]],
@@ -1157,7 +1182,77 @@ class OnnxStub:
                 tensors[node.output[0]] = self.handler.det(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
+                )                
+            elif node.op_type == "LogSoftmax":
+                softmax_node = self.handler.softmax(
+                    tensors[node.input[0]],
+                    None,
+                    next(
+                        (attr.i for attr in node.attribute if attr.name == "axis"),
+                        -1,
+                    ),
                 )
+                tensors[node.output[0]] = self.handler.log(
+                    softmax_node,
+                    tensors.get(node.output[0]),
+                )
+            elif node.op_type == "RandomNormal":
+                output_name = node.output[0]
+                attributes = _parse_attribute(
+                    node, {"dtype": 1, "mean": 0.0, "scale": 1.0, "seed": None}
+                )
+                (dtype, mean, scale, seed, shape) = (
+                    attributes[name]
+                    for name in ["dtype", "mean", "scale", "seed", "shape"]
+                )
+                if seed is not None:
+                    # np.random.seed need int type seed
+                    np.random.seed(int(seed))
+                from onnx.mapping import TENSOR_TYPE_MAP
+
+                random_values = np.random.normal(mean, scale, shape).astype(
+                    TENSOR_TYPE_MAP[dtype].np_dtype
+                )
+                tensors[output_name] = self.handler.tensor(shape, dtype)
+                tensors[output_name].set_weight()
+
+                tensor_proto = make_tensor(
+                    name=output_name,
+                    data_type=dtype,
+                    dims=shape,
+                    vals=random_values.flatten().tolist(),
+                )
+                data[output_name] = tensor_proto
+            elif node.op_type == "RandomNormalLike":
+                output_name = node.output[0]
+                attributes = _parse_attribute(
+                    node, {"dtype": None, "mean": 0.0, "scale": 1.0, "seed": None}
+                )
+                (dtype, mean, scale, seed) = (
+                    attributes[name] for name in ["dtype", "mean", "scale", "seed"]
+                )
+                if seed is not None:
+                    # np.random.seed need int type seed
+                    np.random.seed(int(seed))
+                from onnx.mapping import TENSOR_TYPE_MAP
+
+                if dtype is None:
+                    dtype = tensors[node.input[0]].data_type
+                shape = tensors[node.input[0]].shape()
+
+                random_values = np.random.normal(mean, scale, shape).astype(
+                    TENSOR_TYPE_MAP[dtype].np_dtype
+                )
+                tensors[output_name] = self.handler.tensor(shape, dtype)
+                tensors[output_name].set_weight()
+
+                tensor_proto = make_tensor(
+                    name=output_name,
+                    data_type=dtype,
+                    dims=shape,
+                    vals=random_values.flatten().tolist(),
+                )
+                data[output_name] = tensor_proto
             else:
                 raise Exception('Unsupported operator "{}"'.format(node.op_type))
 
