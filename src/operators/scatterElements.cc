@@ -8,7 +8,7 @@ ScatterElementsObj::ScatterElementsObj(GraphObj *graph, Tensor data,
                                        std::string reduction)
     : OperatorObj(OpType::ScatterElements, TensorVec{data, indices, updates},
                   {output}),
-      reduction(reduction) {
+      reduction(std::move(reduction)) {
     int rank = inputs[0]->getRank();
     axis = get_real_axis(_axis, rank);
     IT_ASSERT(checkValid(graph));

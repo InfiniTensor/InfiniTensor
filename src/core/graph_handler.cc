@@ -283,13 +283,13 @@ Tensor GraphHandlerObj::scatterElements(Tensor data, Tensor indices,
     if (output) {
         g->addOpWithOutputs<ScatterElementsObj>(
             std::move(data), std::move(indices), std::move(updates), output,
-            axis, reduction);
+            axis, std::move(reduction));
         return output;
     } else {
         return g
             ->addOp<ScatterElementsObj>(std::move(data), std::move(indices),
                                         std::move(updates), output, axis,
-                                        reduction)
+                                        std::move(reduction))
             ->getOutput();
     }
 }
