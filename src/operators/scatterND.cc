@@ -6,7 +6,7 @@ ScatterNDObj::ScatterNDObj(GraphObj *graph, Tensor data, Tensor indices,
                            Tensor updates, Tensor output, std::string reduction)
     : OperatorObj(OpType::ScatterND, TensorVec{data, indices, updates},
                   {output}),
-      reduction(reduction) {
+      reduction(std::move(reduction)) {
     IT_ASSERT(checkValid(graph));
 }
 optional<vector<Shape>> ScatterNDObj::inferShape(const TensorVec &inputs) {

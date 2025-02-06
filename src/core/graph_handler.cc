@@ -282,12 +282,13 @@ Tensor GraphHandlerObj::scatterND(Tensor data, Tensor indices, Tensor updates,
     if (output) {
         g->addOpWithOutputs<ScatterNDObj>(std::move(data), std::move(indices),
                                           std::move(updates), output,
-                                          reduction);
+                                          std::move(reduction));
         return output;
     } else {
         return g
             ->addOp<ScatterNDObj>(std::move(data), std::move(indices),
-                                  std::move(updates), output, reduction)
+                                  std::move(updates), output,
+                                  std::move(reduction))
             ->getOutput();
     }
 }
