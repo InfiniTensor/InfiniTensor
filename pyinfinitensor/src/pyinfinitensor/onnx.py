@@ -876,7 +876,8 @@ class OnnxStub:
 
                 def clamp(nums):
                     MAX_INT = 0x7FFFFFFF
-                    return [min(x, MAX_INT) for x in nums]
+                    MIN_INT = -0x80000000
+                    return [max(min(x, MAX_INT), MIN_INT) for x in nums]
 
                 tensors[node.output[0]] = self.handler.slice(
                     tensors[node.input[0]],
