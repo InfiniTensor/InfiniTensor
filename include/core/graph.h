@@ -2,6 +2,8 @@
 #include "core/lazy_allocator.h"
 #include "core/operator.h"
 #include "core/tensor.h"
+#include <algorithm>
+#include <cstdint>
 
 namespace infini {
 
