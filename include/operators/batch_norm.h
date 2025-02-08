@@ -36,6 +36,18 @@ class BatchNormObj : public OperatorObj {
     OP_CLONE(BatchNormObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
     std::string toString() const override;
+    ~BatchNormObj() override {
+        if (opDesc) {
+            try {
+                CHECK_ERROR(infiniopDestroyBatchNormDescriptor(
+                    (infiniopBatchNormDescriptor_t)opDesc));
+            } catch (const std::exception &e) {
+                std::cerr << "Error in ~BatchNormObj: " << e.what() << std::endl;
+            }
+        }
+    }
+
+    void initInfiniOp(const Runtime context) override;
 
     // output size will be 3 when training
     int numInputs() const override { return 5; }
