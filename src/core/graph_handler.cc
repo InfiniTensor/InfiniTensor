@@ -308,7 +308,6 @@ TensorVec GraphHandlerObj::topk(Tensor input, std::optional<TensorVec> outputs,
     }
 }
 
-
 Tensor GraphHandlerObj::scatterND(Tensor data, Tensor indices, Tensor updates,
                                   Tensor output, std::string reduction) {
     if (output) {
