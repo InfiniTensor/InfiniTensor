@@ -119,7 +119,7 @@ class CUDAStream {
     void operator=(const CUDAStream &) = delete;
     void operator=(CUDAStream &&) = delete;
     static cudaStream_t getCurrentStream() { return _stream; }
-    static void Init() { CUDAStream::_stream = 0; };
+    static void Init() { CUDAStream::_stream = 0; }
     static void createStream() { checkCudaError(cudaStreamCreate(&_stream)); }
     static void destroyStream() { checkCudaError(cudaStreamDestroy(_stream)); }
 
