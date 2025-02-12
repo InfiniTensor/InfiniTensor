@@ -609,6 +609,7 @@ void init_graph_builder(py::module &m) {
         .def("where", &Handler::where, policy::move)
         .def("lrn", &Handler::lrn, policy::move)
         .def("det", &Handler::det, policy::move)
+        .def("topk", &Handler::topk, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)
         .def("optimize", &Handler::optimize, policy::automatic)
         .def("operators", &Handler::operators, policy::move)

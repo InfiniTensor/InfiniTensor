@@ -651,10 +651,12 @@ class TestStringMethods(unittest.TestCase):
     def test_topk(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
         k = make_tensor_value_info("k", TensorProto.INT64, [1])
-        values = make_tensor_value_info("values", TensorProto.FLOAT, [1, 3, 5, 7])
-        indices = make_tensor_value_info("indices", TensorProto.INT64, [1, 3, 5, 7])
-        topk = make_node("TopK", ["x", "k"], ["values", "indices"], name="topk", axis=1, largest=1, sorted=1)
-        make_and_import_model(make_graph([topk], "topk", [x, k], [values, indices]))
+        values = make_tensor_value_info("values", TensorProto.FLOAT, [1, 3, 5, 3])
+        indices = make_tensor_value_info("indices", TensorProto.INT64, [1, 3, 5, 3])
+        k_value = make_tensor("k", TensorProto.INT64, [1], [3])
+        topk = make_node("TopK", ["x", "k"], ["values", "indices"], name="topk", axis=-1, largest=1, sorted=1)
+        graph = make_graph([topk], "topk", [x, k], [values, indices], initializer=[k_value])
+        make_and_import_model(graph)
 
 
 class TestDynamicTensor(unittest.TestCase):
