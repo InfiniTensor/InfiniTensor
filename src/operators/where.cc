@@ -39,4 +39,38 @@ vector<int> WhereObj::getWorkloadVector() const {
 
 vector<int> WhereObj::getOpAttrVector() const { return {type.underlying()}; }
 
+void WhereObj::initInfiniOp(const Runtime context) {
+    auto x_dim = inputs[0]->getDims();
+    auto y_dim = inputs[1]->getDims();
+    auto con_dim = inputs[2]->getDims();
+    auto out_dim = outputs[0]->getDims();
+
+    auto x_shape = toInfiniopShape(x_dim);
+    auto y_shape = toInfiniopShape(y_dim);
+    auto con_shape = toInfiniopShape(con_dim);
+    auto out_shape = toInfiniopShape(out_dim);
+
+    infiniopTensorDescriptor_t x_desc, y_desc, con_desc, out_desc;
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &x_desc, x_dim.size(), x_shape.data(), nullptr,
+        toInfiniopDataLayout(inputs[0]->getDType().getIndex())));
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &y_desc, y_dim.size(), y_shape.data(), nullptr,
+        toInfiniopDataLayout(inputs[1]->getDType().getIndex())));
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &con_desc, con_dim.size(), con_shape.data(), nullptr,
+        toInfiniopDataLayout(inputs[2]->getDType().getIndex())));
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &out_desc, out_dim.size(), out_shape.data(), nullptr,
+        toInfiniopDataLayout(outputs[0]->getDType().getIndex())));
+    CHECK_ERROR(infiniopCreateWhereDescriptor(
+        context->opHandle(), (infiniopWhereDescriptor_t *)&opDesc, out_desc,
+        x_desc, y_desc, con_desc));
+
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(x_desc));
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(y_desc));
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(con_desc));
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(out_desc));
+}
+
 } // namespace infini
