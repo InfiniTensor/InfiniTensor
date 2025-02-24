@@ -38,6 +38,7 @@ class GatherObj : public GatherBaseObj {
     GatherObj(GraphObj *graph, Tensor input, Tensor indices, Tensor output,
               int axis);
     OP_CLONE(GatherObj);
+    void initInfiniOp(const Runtime context) override;
     std::string toString() const override;
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
     vector<DataType> inferDataType(const TensorVec &inputs) const override;
