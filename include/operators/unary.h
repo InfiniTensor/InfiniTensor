@@ -51,6 +51,7 @@ class ClipObj : public OperatorObj {
             std::optional<float> min, std::optional<float> max);
     OP_CLONE(ClipObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
+    void initInfiniOp(const Runtime context) override;
 
     std::string toString() const override;
     std::optional<float> getMin() const { return minValue; };
