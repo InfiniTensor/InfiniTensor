@@ -20,10 +20,20 @@ class WhereObj : public OperatorObj {
      */
     WhereObj(GraphObj *graph, Tensor inputX, Tensor inputY, Tensor condition,
              Tensor output);
+    ~WhereObj(){
+      if (opDesc) {
+        try {
+          CHECK_ERROR(infiniopDestroyWhereDescriptor(
+              (infiniopWhereDescriptor_t)opDesc));
+        } catch (const std::exception &e) {
+          std::cerr << "Error in ~WhereObj: " << e.what() << std::endl;
+        }
+      }
+    }
     OP_CLONE(WhereObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
-
+    void initInfiniOp(const Runtime context) override;
     std::string toString() const override;
     int numInputs() const override { return inputs.size(); }
     int numOutputs() const override { return 1; }

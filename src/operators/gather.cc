@@ -14,12 +14,14 @@ optional<vector<Shape>> GatherObj::inferShape(const TensorVec &inputs) {
     auto dims0 = inputs[0]->getDims();
     auto dims1 = inputs[1]->getDims();
 
-    IT_ASSERT(CheckIndexValid());
+    // 1. 替换 axis 维度为索引形状
+    Shape output_dims;
+    output_dims.reserve(dims0.size() + dims1.size() - 1);
+    output_dims.insert(output_dims.end(), dims0.begin(), dims0.begin() + axis);
+    output_dims.insert(output_dims.end(), dims1.begin(), dims1.end());
+    output_dims.insert(output_dims.end(), dims0.begin() + axis + 1, dims0.end());
 
-    Shape dim = dims0;
-    dim.erase(dim.begin() + axis);
-    dim.insert(dim.begin() + axis, dims1.begin(), dims1.end());
-    return {{dim}};
+    return {{output_dims}};
 }
 
 vector<DataType> GatherObj::inferDataType(const TensorVec &inputs) const {
@@ -92,4 +94,33 @@ vector<int> GatherObj::getOpAttrVector() const {
     return {type.underlying(), axis};
 }
 
-} // namespace infini
+void GatherObj::initInfiniOp(const Runtime context) {
+    auto x_dim = inputs[0]->getDims();
+    auto y_dim = outputs[0]->getDims();
+    auto indices_dim = inputs[1]->getDims();
+
+    auto x_shape = toInfiniopShape(x_dim);
+    auto y_shape = toInfiniopShape(y_dim);
+    auto indices_shape = toInfiniopShape(indices_dim);
+
+    infiniopTensorDescriptor_t x_tensor;
+    infiniopTensorDescriptor_t y_tensor;
+    infiniopTensorDescriptor_t indices_tensor;
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &x_tensor, x_dim.size(),x_shape.data(), nullptr, 
+        toInfiniopDataLayout(inputs[0]->getDType().getIndex())));
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &y_tensor, y_dim.size(), y_shape.data(), nullptr,
+        toInfiniopDataLayout(outputs[0]->getDType().getIndex())));
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &indices_tensor, indices_dim.size(), indices_shape.data(), nullptr,
+        toInfiniopDataLayout(inputs[1]->getDType().getIndex())));
+    
+    CHECK_ERROR(infiniopCreateGatherDescriptor(
+        context->opHandle(), (infiniopGatherDescriptor_t *)&opDesc, y_tensor, x_tensor,
+        indices_tensor, axis));
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(y_tensor));
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(x_tensor));
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(indices_tensor));
+} 
+}// namespace infini

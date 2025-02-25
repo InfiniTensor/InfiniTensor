@@ -15,7 +15,6 @@ class GatherBaseObj : public OperatorObj {
     virtual ~GatherBaseObj() {}
     int numInputs() const override { return 2; }
     int numOutputs() const override { return 1; }
-
     int getAxis() const { return axis; }
 };
 
@@ -37,6 +36,19 @@ class GatherObj : public GatherBaseObj {
      */
     GatherObj(GraphObj *graph, Tensor input, Tensor indices, Tensor output,
               int axis);
+
+    void initInfiniOp(const Runtime context) override;
+    ~GatherObj() override {
+        if (opDesc) {
+            try {
+                CHECK_ERROR(infiniopDestroyGatherDescriptor(
+                    (infiniopGatherDescriptor_t)opDesc));
+            } catch (const std::exception &e) {
+                std::cerr << "Error in ~GatherObj: " << e.what() << std::endl;
+            }
+        }
+
+    }
     OP_CLONE(GatherObj);
     std::string toString() const override;
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;

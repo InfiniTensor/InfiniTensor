@@ -507,6 +507,8 @@ Tensor GraphHandlerObj::gatherElements(Tensor data, Tensor indices,
     }
 DEFINE_REDUCE_METHOD(reduceMean, ReduceMean)
 DEFINE_REDUCE_METHOD(reduceSum, ReduceSum)
+DEFINE_REDUCE_METHOD(reduceMax, ReduceMax)
+DEFINE_REDUCE_METHOD(reduceMin, ReduceMin)
 
 Tensor GraphHandlerObj::slice(Tensor input, Tensor output,
                               const vector<int> &starts,
