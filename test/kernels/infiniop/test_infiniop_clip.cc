@@ -35,7 +35,7 @@ TEST(Clip, Cpu) {
         {3, 3, 4},      
         DataType::Float32);
     testClipCpu(
-        [](void *data, size_t size, DataType dtype) { // 输入数据生成器
+        [](void *data, size_t size, DataType dtype) { 
             auto ptr = static_cast<uint16_t *>(data);
             for (size_t i = 0; i < size; ++i) {
                 ptr[i] = float_to_fp16(float(i));
@@ -47,7 +47,7 @@ TEST(Clip, Cpu) {
         {3, 3, 4},      
         DataType::Float16); 
     testClipCpu(
-        [](void *data, size_t size, DataType dtype) { // 输入数据生成器
+        [](void *data, size_t size, DataType dtype) { 
             auto ptr = static_cast<float *>(data);
             for (size_t i = 0; i < size; ++i) {
                 ptr[i] = i;
