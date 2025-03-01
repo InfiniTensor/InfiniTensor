@@ -42,13 +42,13 @@ TEST(Gather, Cpu) {
             } 
         },
          
-        [](void *data, size_t size, DataType dtype) {}, // 空函数
+        [](void *data, size_t size, DataType dtype) {}, 
          
         [](void *data, size_t size, DataType dtype) {
             auto ptr = static_cast<int64_t*>(data);
 
             for (size_t i = 0; i < size; ++i) {
-                ptr[i] = static_cast<int64_t>(i % 2); // 生成 0, 1
+                ptr[i] = static_cast<int64_t>(i % 2); 
                 }
             },
         0,               
@@ -65,13 +65,13 @@ TEST(Gather, Cpu) {
             } 
         },
         
-        [](void *data, size_t size, DataType dtype) {}, // 空函数
+        [](void *data, size_t size, DataType dtype) {}, 
          
         [](void *data, size_t size, DataType dtype) {
             auto ptr = static_cast<int64_t*>(data);
 
             for (size_t i = 0; i < size; ++i) {
-                ptr[i] = static_cast<int64_t>(i % 3); // 生成 0, 1
+                ptr[i] = static_cast<int64_t>(i % 3);
                 }
             },
         1,                
@@ -81,12 +81,12 @@ TEST(Gather, Cpu) {
     );
     testGatherCpu(
         IncrementalGenerator(),
-        [](void *data, size_t size, DataType dtype) {}, // 空函数
+        [](void *data, size_t size, DataType dtype) {}, 
         [](void *data, size_t size, DataType dtype) {
             auto ptr = static_cast<int64_t*>(data);
 
             for (size_t i = 0; i < size; ++i) {
-                ptr[i] = static_cast<int64_t>(i % 2); // 生成 0, 1
+                ptr[i] = static_cast<int64_t>(i % 2); 
                 }
             },
         0,               
