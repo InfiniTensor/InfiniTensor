@@ -323,6 +323,7 @@ REGISTER_KERNEL(Device::CPU, OpType::Atan, NativeUnary, "Atan_CPU");
 REGISTER_KERNEL(Device::CPU, OpType::Atanh, NativeUnary, "ATanh_CPU");
 
 REGISTER_KERNEL(Device::CPU, OpType::Softmax, NaiveSoftmax, "softmaxNaive_CPU");
-REGISTER_KERNEL(Device::CPU, OpType::Clip, Clip, "Clip_CPU");
+// use infiniop instead of naive
+// REGISTER_KERNEL(Device::CPU, OpType::Clip, Clip, "Clip_CPU");
 REGISTER_KERNEL(Device::CPU, OpType::Log, Log, "Log_CPU");
 }; // namespace infini

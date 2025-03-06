@@ -1,5 +1,8 @@
 #pragma once
+#include "core/op_type.h"
 #include "core/operator.h"
+#include "ops/reduce_min/reduce_min.h"
+#include "utils/infiniop_utils.h"
 
 namespace infini {
 /**
@@ -24,8 +27,31 @@ class ReduceBaseObj : public OperatorObj {
      */
     ReduceBaseObj(GraphObj *graph, OpType opType, Tensor input, Tensor output,
                   const optional<vector<int>> &axes, bool keepDims);
-    virtual ~ReduceBaseObj() {}
+    // virtual ~ReduceBaseObj() {}
+    virtual ~ReduceBaseObj() override {
+        if (opDesc) {
+            try {
+                if (type == OpType::ReduceMin) {
+                    CHECK_ERROR(infiniopDestroyReduceMinDescriptor(
+                        (infiniopReduceMinDescriptor_t)opDesc));
+                } else if (type == OpType::ReduceMax) {
+                    CHECK_ERROR(infiniopDestroyReduceMaxDescriptor(
+                        (infiniopReduceMaxDescriptor_t)opDesc));
+                } else if (type == OpType::ReduceMean) {
+                    CHECK_ERROR(infiniopDestroyReduceMeanDescriptor(
+                        (infiniopReduceMeanDescriptor_t)opDesc));
+                }
+            } catch (const std::exception &e) {
+                std::cerr << "Error in ~ReduceBaseObj: " << e.what() << std::endl;
+            }
+        }
+    }
+
     OP_CLONE(ReduceBaseObj);
+
+    // initInfiniOp
+    void initInfiniOp(const Runtime context) override;
+
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
@@ -52,4 +78,19 @@ class ReduceSumObj : public ReduceBaseObj {
     ReduceSumObj(GraphObj *graph, Tensor input, Tensor output,
                  const optional<vector<int>> &axes, bool keepDims = true);
 };
+
+// ReduceMinObj
+class ReduceMinObj : public ReduceBaseObj {
+  public:
+    ReduceMinObj(GraphObj *graph, Tensor input, Tensor output,
+                 const optional<vector<int>> &axes, bool keepDims = true);
+};
+
+// ReduceMaxObj
+class ReduceMaxObj : public ReduceBaseObj {
+  public:
+    ReduceMaxObj(GraphObj *graph, Tensor input, Tensor output,
+                 const optional<vector<int>> &axes, bool keepDims = true);
+};
+
 } // namespace infini
