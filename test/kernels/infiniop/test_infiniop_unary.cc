@@ -26,6 +26,35 @@ void testUnaryCpu(
     EXPECT_TRUE(1);
 }
 
+void testClipCpu(const std::function<void(void *, size_t, DataType)> &generator,
+                 const Shape &shape, const DataType &dataType, float min, float max) {
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Graph g = make_ref<GraphObj>(runtime);
+    auto input = g->addTensor(shape, dataType);
+    auto op = g->addOp<ClipObj>(input, nullptr, min, max);
+    g->dataMalloc();
+    input->setData(IncrementalGenerator());
+    runtime->run(g);
+
+    // auto res = op->getOutput();
+    // if (dataType == DataType::Float16) {
+    //     u_int16_t *data_input = input->getRawDataPtr<u_int16_t *>();
+    //     for (size_t i = 0; i < input->size(); ++i) {
+    //         std::cout << fp16_to_float(data_input[i]) << " ";
+    //     }
+    //     std::cout << std::endl;
+    //     u_int16_t *data = res->getRawDataPtr<u_int16_t *>();
+    //     for (size_t j = 0; j < res->size(); ++j) {
+    //         std::cout << fp16_to_float(data[j]) << " ";
+    //     }
+    // } else {
+    //     input->printData();
+    //     res->printData();
+    // }
+
+    EXPECT_TRUE(1);
+}
+
 #ifdef USE_CUDA
 template <class T>
 void testUnaryCuda(
@@ -65,6 +94,9 @@ TEST(ElementWise, Cpu) {
                           DataType::Float32);
     testUnaryCpu<ReluObj>(IncrementalGenerator(), Shape{1, 2, 2, 3},
                           DataType::Float16);
+    
+    testClipCpu(IncrementalGenerator(), Shape{1, 2, 3, 4}, DataType::Float16, 1.5, 1.8);
+    testClipCpu(IncrementalGenerator(), Shape{1, 2, 3, 4}, DataType::Float32, 8, 16);
 }
 
 #ifdef USE_CUDA
