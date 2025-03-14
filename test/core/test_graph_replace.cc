@@ -92,8 +92,8 @@ TEST(MatchGraph, single_input) {
     auto relu0 = g->addOp<ReluObj>(i0, nullptr);
 
     Tensor w0 = g->addTensor({96, 256, 3, 3}, DataType::UInt32);
-    auto conv0 =
-        g->addOp<ConvObj>(relu0->getOutput(0), w0, nullptr, 1, 1, 2, 2);
+    auto conv0 = g->addOp<ConvObj>(relu0->getOutput(0), w0, nullptr, 1, 1,
+                                   nullptr, 2, 2);
 
     auto o0 = v.addSubGraph(subG, {conv0->getOutput(0)});
     auto o1 = v.addSubGraph(subG, o0);
@@ -109,8 +109,8 @@ TEST(MatchGraph, single_input) {
     auto o13 = v.addSubGraph(subG1, o12);
     auto relu10 = g->addOp<ReluObj>(o13[0], nullptr);
     Tensor w1 = g->addTensor({96, 48, 3, 3}, DataType::UInt32);
-    auto conv1 =
-        g->addOp<ConvObj>(relu10->getOutput(), w1, nullptr, 1, 1, 2, 2);
+    auto conv1 = g->addOp<ConvObj>(relu10->getOutput(), w1, nullptr, 1, 1,
+                                   nullptr, 2, 2);
     auto add1 =
         g->addOp<AddObj>(relu4->getOutput(), conv1->getOutput(), nullptr);
 

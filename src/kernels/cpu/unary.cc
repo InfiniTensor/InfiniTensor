@@ -297,7 +297,7 @@ class Log : public CpuKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CPU, OpType::Relu, NativeUnary, "reluNaive_CPU");
+// REGISTER_KERNEL(Device::CPU, OpType::Relu, NativeUnary, "reluNaive_CPU");
 REGISTER_KERNEL(Device::CPU, OpType::Gelu, NativeUnary, "geluNaive_CPU");
 REGISTER_KERNEL(Device::CPU, OpType::Silu, NativeUnary, "siluNaive_CPU");
 REGISTER_KERNEL(Device::CPU, OpType::Sigmoid, NativeUnary, "sigmoidNaive_CPU");
@@ -323,6 +323,6 @@ REGISTER_KERNEL(Device::CPU, OpType::Atan, NativeUnary, "Atan_CPU");
 REGISTER_KERNEL(Device::CPU, OpType::Atanh, NativeUnary, "ATanh_CPU");
 
 REGISTER_KERNEL(Device::CPU, OpType::Softmax, NaiveSoftmax, "softmaxNaive_CPU");
-REGISTER_KERNEL(Device::CPU, OpType::Clip, Clip, "Clip_CPU");
+//REGISTER_KERNEL(Device::CPU, OpType::Clip, Clip, "Clip_CPU");
 REGISTER_KERNEL(Device::CPU, OpType::Log, Log, "Log_CPU");
 }; // namespace infini

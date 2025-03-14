@@ -21,8 +21,8 @@ TEST(PerfEngine, save_and_load) {
         Tensor i0Cuda = gCuda->addTensor({1, 3, 224, 224}, DataType::Float32);
         Tensor w0Cuda = gCuda->addTensor({2, 3, 3, 3}, DataType::Float32);
         // Build CUDA graph
-        auto conv =
-            gCuda->addOp<ConvObj>(i0Cuda, w0Cuda, nullptr, 1, 1, 1, 1, 1, 1);
+        auto conv = gCuda->addOp<ConvObj>(i0Cuda, w0Cuda, nullptr, 1, 1,
+                                          nullptr, 1, 1, 1, 1);
         gCuda->dataMalloc();
         cuda->run(gCuda, true);
     }

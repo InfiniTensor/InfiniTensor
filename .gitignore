@@ -46,3 +46,5 @@ build_debug/
 *.npy
 
 *.swp
+
+/operators/
