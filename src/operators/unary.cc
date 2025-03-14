@@ -6,6 +6,36 @@ UnaryObj::UnaryObj(OpType type, GraphObj *graph, Tensor input, Tensor output)
     IT_ASSERT(checkValid(graph));
 }
 
+void UnaryObj::initInfiniOp(const Runtime context) {
+    auto x_dim = inputs[0]->getDims();
+    auto y_dim = outputs[0]->getDims();
+
+    if (type == OpType::Relu) {
+        auto x_shape = toInfiniopShape(x_dim);
+        auto y_shape = toInfiniopShape(y_dim);
+        // create tensor descriptor
+        infiniopTensorDescriptor_t x_tensor;
+        CHECK_ERROR(infiniopCreateTensorDescriptor(
+            &x_tensor, x_dim.size(), x_shape.data(), nullptr,
+            toInfiniopDataLayout(inputs[0]->getDType().getIndex())));
+        infiniopTensorDescriptor_t y_tensor;
+        CHECK_ERROR(infiniopCreateTensorDescriptor(
+            &y_tensor, y_dim.size(), y_shape.data(), nullptr,
+            toInfiniopDataLayout(outputs[0]->getDType().getIndex())));
+
+        // create op descriptor
+        CHECK_ERROR(infiniopCreateReluDescriptor(
+            context->opHandle(), (infiniopReluDescriptor_t *)&opDesc, y_tensor,
+            x_tensor));
+
+        // destroy tensor descriptor
+        CHECK_ERROR(infiniopDestroyTensorDescriptor(x_tensor));
+        CHECK_ERROR(infiniopDestroyTensorDescriptor(y_tensor));
+    } else {
+        opDesc = nullptr;
+    }
+}
+
 optional<vector<Shape>> UnaryObj::inferShape(const TensorVec &inputs) {
     const auto A = inputs[0];
     return {{A->getDims()}};
@@ -36,7 +66,34 @@ ClipObj::ClipObj(GraphObj *graph, Tensor input, Tensor output,
       maxValue(max) {
     IT_ASSERT(checkValid(graph));
 }
+void ClipObj::initInfiniOp(const Runtime context) {
+    auto x_dim = inputs[0]->getDims();
+    auto y_dim = outputs[0]->getDims();
 
+    auto x_shape = toInfiniopShape(x_dim);
+    auto y_shape = toInfiniopShape(y_dim);
+
+    // create tensor descriptor
+    infiniopTensorDescriptor_t x_tensor;
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &x_tensor, x_dim.size(), x_shape.data(), nullptr,
+        toInfiniopDataLayout(inputs[0]->getDType().getIndex())));
+    infiniopTensorDescriptor_t y_tensor;
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &y_tensor, y_dim.size(), y_shape.data(), nullptr,
+        toInfiniopDataLayout(outputs[0]->getDType().getIndex())));
+    // create op descriptor
+    if (type == OpType::Clip) {
+        CHECK_ERROR(infiniopCreateClipDescriptor(
+            context->opHandle(), (infiniopClipDescriptor_t *)&opDesc,
+            y_tensor, x_tensor, getMin().value(), getMax().value()));
+    }else {
+        opDesc = nullptr;
+    }
+    // destroy tensor descriptor
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(y_tensor));
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(x_tensor));
+}
 optional<vector<Shape>> ClipObj::inferShape(const TensorVec &inputs) {
     const auto A = inputs[0];
     return {{A->getDims()}};

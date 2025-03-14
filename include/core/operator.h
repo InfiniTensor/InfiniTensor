@@ -2,6 +2,7 @@
 
 #include "core/op_type.h"
 #include "core/tensor.h"
+#include "utils/infiniop_utils.h"
 
 namespace infini {
 using KernelAttrs = std::tuple<Device, OpType::underlying_t>;
@@ -52,6 +53,7 @@ class OperatorObj : public Object {
     TensorVec outputs;
     vector<WRef<OperatorObj>> predecessors;
     vector<WRef<OperatorObj>> successors;
+    void *opDesc;
 
   public:
     OperatorObj(OpType opType, TensorVec inputs, TensorVec outputs);
@@ -65,6 +67,7 @@ class OperatorObj : public Object {
      * function.
      */
     bool checkValid(GraphObj *graph);
+    virtual void initInfiniOp(const Runtime context);
     OpPerfKey getOpPerfKey() const;
     /**
      * @brief Hash operator attributes. Input and output shapes are not
@@ -76,6 +79,7 @@ class OperatorObj : public Object {
   public: // getter and setter
     const TensorVec &getInputs() const { return inputs; }
     const TensorVec &getOutputs() const { return outputs; }
+    void *getOpDesc() const { return opDesc; }
     Tensor getInputs(size_t i) const { return inputs.at(i); }
     Tensor getOutput() const {
         IT_ASSERT(outputs.size() == 1, "Unimplemented");

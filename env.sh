@@ -1,6 +1,6 @@
 # 配置英伟达 CUDA 的 HOME 路径，请注意安装 CUDA Toolkit, CUDNN 并将路径配置到下述环境变量。
-export CUDA_HOME=/PATH/TO/YOUR/CUDA/HOME
-export CUDNN_HOME=/PATH/TO/YOUR/CUDNN/HOME
+export CUDA_HOME=/usr/local/cuda
+export CUDNN_HOME=/usr/local/cuda
 export PATH="${CUDA_HOME}/bin:${PATH}"
 export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${LD_LIBRARY_PATH}"
 
