@@ -24,7 +24,32 @@ class ReduceBaseObj : public OperatorObj {
      */
     ReduceBaseObj(GraphObj *graph, OpType opType, Tensor input, Tensor output,
                   const optional<vector<int>> &axes, bool keepDims);
-    virtual ~ReduceBaseObj() {}
+
+    ~ReduceBaseObj() override {
+        if (opDesc) {
+            if (getOpType() == OpType::ReduceMax) {
+                try {
+                    CHECK_ERROR(infiniopDestroyReduceMaxDescriptor((infiniopReduceMaxDescriptor_t)opDesc));
+                } catch (const std::exception &e) {
+                    std::cerr << "Error in ~ReduceMax: " << e.what() << std::endl;
+                }
+            } else if (getOpType() == OpType::ReduceMean) {
+                try {
+                    CHECK_ERROR(infiniopDestroyReduceMeanDescriptor((infiniopReduceMeanDescriptor_t)opDesc));
+                } catch (const std::exception &e) {
+                    std::cerr << "Error in ~ReduceMean: " << e.what() << std::endl;
+                }
+            } else if (getOpType() == OpType::ReduceMin) {
+                try {
+                    CHECK_ERROR(infiniopDestroyReduceMinDescriptor((infiniopReduceMinDescriptor_t)opDesc));
+                } catch (const std::exception &e) {
+                    std::cerr << "Error in ~ReduceMin: " << e.what() << std::endl;
+                }
+            }
+        }
+    }
+    void initInfiniOp(const Runtime context) override;
+    // virtual ~ReduceBaseObj() {}
     OP_CLONE(ReduceBaseObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
@@ -41,9 +66,21 @@ class ReduceBaseObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 };
 
+class ReduceMaxObj : public ReduceBaseObj {
+  public:
+    ReduceMaxObj(GraphObj *graph, Tensor input, Tensor output,
+                  const optional<vector<int>> &axes, bool keepDims = true);
+};
+
 class ReduceMeanObj : public ReduceBaseObj {
   public:
     ReduceMeanObj(GraphObj *graph, Tensor input, Tensor output,
+                  const optional<vector<int>> &axes, bool keepDims = true);
+};
+
+class ReduceMinObj : public ReduceBaseObj {
+  public:
+    ReduceMinObj(GraphObj *graph, Tensor input, Tensor output,
                   const optional<vector<int>> &axes, bool keepDims = true);
 };
 

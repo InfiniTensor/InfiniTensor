@@ -97,6 +97,10 @@ class GraphHandlerObj {
                     std::variant<int, vector<int>> numOrRatio);
     Tensor gather(Tensor data, Tensor indices, Tensor output, int axis);
     Tensor gatherElements(Tensor data, Tensor indices, Tensor output, int axis);
+    Tensor reduceMax(Tensor data, Tensor reduced,
+                      const optional<vector<int>> &axes, bool keepdims);
+    Tensor reduceMin(Tensor data, Tensor reduced,
+                      const optional<vector<int>> &axes, bool keepdims);
     Tensor reduceMean(Tensor data, Tensor reduced,
                       const optional<vector<int>> &axes, bool keepdims);
     Tensor reduceSum(Tensor data, Tensor reduced,
