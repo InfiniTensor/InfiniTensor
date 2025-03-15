@@ -9,6 +9,7 @@ namespace infini {
 // TODO: isolate these class
 class DataGenerator {
   private:
+    virtual void fill(int32_t *data, size_t size) { IT_TODO_HALT(); }
     virtual void fill(uint32_t *data, size_t size) { IT_TODO_HALT(); }
     virtual void fill(float *data, size_t size) { IT_TODO_HALT(); }
     virtual void fill_fp16(uint16_t *data, size_t size) { IT_TODO_HALT(); }
@@ -16,7 +17,9 @@ class DataGenerator {
   public:
     virtual ~DataGenerator() {}
     void operator()(void *data, size_t size, DataType dataType) {
-        if (dataType == DataType::UInt32)
+        if (dataType == DataType::Int32) {
+            fill(reinterpret_cast<int32_t *>(data), size);
+        } else if (dataType == DataType::UInt32)
             fill(reinterpret_cast<uint32_t *>(data), size);
         else if (dataType == DataType::Float32)
             fill(reinterpret_cast<float *>(data), size);
@@ -38,6 +41,9 @@ class IncrementalGenerator : public DataGenerator {
         }
     }
 
+    void fill(int32_t *data, size_t size) override {
+        fill<int32_t>(data, size);
+    }
     void fill(uint32_t *data, size_t size) override {
         fill<uint32_t>(data, size);
     }
@@ -45,7 +51,7 @@ class IncrementalGenerator : public DataGenerator {
     // FIXME: fix the accuracy standards when dtype is float16
     void fill_fp16(uint16_t *data, size_t size) {
         for (size_t i = 0; i < size; i++) {
-            float x = 2.0f;
+            float x = i;
             data[i] = float_to_fp16(x);
         }
     }
@@ -64,6 +70,11 @@ class RandomGenerator : public DataGenerator {
     virtual ~RandomGenerator() {}
 
   private:
+    void fill(int32_t *data, size_t size) override {
+        for (size_t i = 0; i < size; i++) {
+            data[i] = di(e);
+        }
+    }
     void fill(uint32_t *data, size_t size) override {
         for (size_t i = 0; i < size; i++) {
             data[i] = di(e);
@@ -86,7 +97,9 @@ template <int val> class ValGenerator : public DataGenerator {
             data[i] = val;
         }
     }
-
+    void fill(int32_t *data, size_t size) override {
+        fill<int32_t>(data, size);
+    }
     void fill(uint32_t *data, size_t size) override {
         fill<uint32_t>(data, size);
     }
