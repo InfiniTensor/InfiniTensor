@@ -57,6 +57,7 @@ class ClipOp: public Kernel {
 };
 
 REGISTER_KERNEL(Device::CPU, OpType::Clip, ClipOp, "Clip_infiniop_CPU");
+REGISTER_KERNEL(Device::CUDA, OpType::Clip, ClipOp, "Clip_infiniop_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Relu, UnaryOp, "Relu_infiniop_CUDA");
 REGISTER_KERNEL(Device::CPU, OpType::Relu, UnaryOp, "Relu_infiniop_CPU");
 }; // namespace infini

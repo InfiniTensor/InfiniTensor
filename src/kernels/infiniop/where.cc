@@ -25,4 +25,5 @@ namespace infini {
         }        
     };
     REGISTER_KERNEL(Device::CPU, OpType::Where, WhereOp, "Where_infiniop_CPU");
+    REGISTER_KERNEL(Device::CUDA, OpType::Where, WhereOp, "Where_infiniop_CUDA");
 }

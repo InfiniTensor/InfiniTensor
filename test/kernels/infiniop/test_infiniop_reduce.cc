@@ -1,14 +1,16 @@
 #include "core/graph.h"
 #include "core/runtime.h"
-
+#ifdef USE_CUDA
+#include "cuda/cuda_runtime.h"
+#endif
 #include "operators/reduce.h"
 
 #include "test.h"
 
 namespace infini {
-void testReduceMaxCpu(
+template<class T>
+void testReduceCpu(
     const std::function<void(void *, size_t, DataType)> &generator_input,
-    const std::function<void(void *, size_t, DataType)> &generator_output,
     const std::vector<int> &axes,
     const Shape &shape_input,
     bool keepdims, const DataType &dataType
@@ -17,60 +19,48 @@ void testReduceMaxCpu(
     Graph g = make_ref<GraphObj>(runtime);
     auto input = g->addTensor(shape_input, dataType);
 
-    auto op = g->addOp<ReduceMaxObj>(input, nullptr, axes, keepdims);
+    auto op = g->addOp<T>(input, nullptr, axes, keepdims);
     auto output = op->getOutput();
     g->dataMalloc();
     input->setData(generator_input);
-    output->setData(generator_output);
     runtime->run(g);
     op->getOutput()->print();
     op->getOutput()->printData();
     EXPECT_TRUE(1);
 }
-void testReduceMeanCpu(
-    const std::function<void(void *, size_t, DataType)> &generator_input,
-    const std::function<void(void *, size_t, DataType)> &generator_output,
-    const std::vector<int> &axes,
-    const Shape &shape_input,
-    bool keepdims, const DataType &dataType
-){
-    Runtime runtime = NativeCpuRuntimeObj::getInstance();
-    Graph g = make_ref<GraphObj>(runtime);
-    auto input = g->addTensor(shape_input, dataType);
+#ifdef USE_CUDA
+template <class T>
+void testReduceCuda(
+    const std::function<void(void *, size_t, DataType)> &generator,
+    const Shape &input_shape, const DataType &dataType, std::vector<int> axes,
+    bool keepdims) {
+    // cpu
+    auto cpuRuntime = NativeCpuRuntimeObj::getInstance();
+    Graph cpuG = make_ref<GraphObj>(cpuRuntime);
+    auto cpux = cpuG->addTensor(input_shape, dataType);
+    auto cpuOp = cpuG->addOp<T>(cpux, nullptr, axes, keepdims);
 
-    auto op = g->addOp<ReduceMeanObj>(input, nullptr, axes, keepdims);
-    auto output = op->getOutput();
-    g->dataMalloc();
-    input->setData(generator_input);
-    output->setData(generator_output);
-    runtime->run(g);
-    op->getOutput()->print();
-    op->getOutput()->printData();
-    EXPECT_TRUE(1);
-}
-void testReduceMinCpu(
-    const std::function<void(void *, size_t, DataType)> &generator_input,
-    const std::function<void(void *, size_t, DataType)> &generator_output,
-    const std::vector<int> &axes,
-    const Shape &shape_input,
-    bool keepdims, const DataType &dataType
-){
-    Runtime runtime = NativeCpuRuntimeObj::getInstance();
-    Graph g = make_ref<GraphObj>(runtime);
-    auto input = g->addTensor(shape_input, dataType);
+    cpuG->dataMalloc();
+    cpux->setData(generator);
 
-    auto op = g->addOp<ReduceMinObj>(input, nullptr, axes, keepdims);
-    auto output = op->getOutput();
-    g->dataMalloc();
-    input->setData(generator_input);
-    output->setData(generator_output);
-    runtime->run(g);
-    op->getOutput()->print();
-    op->getOutput()->printData();
-    EXPECT_TRUE(1);
+    cpuRuntime->run(cpuG);
+    auto cpuy = cpuOp->getOutput();
+    auto cudaRuntime = make_ref<CudaRuntimeObj>();
+
+    Graph cudaG = make_ref<GraphObj>(cudaRuntime);
+    auto cudax = cudaG->addTensor(input_shape, dataType);
+    auto cudaOp = cudaG->addOp<T>(cudax, nullptr, axes, keepdims);
+    cudaG->dataMalloc();
+    cudax->setData(generator);
+
+    cudaRuntime->run(cudaG);
+    auto cuday = cudaOp->getOutput()->clone(cpuRuntime);
+
+    EXPECT_TRUE(cuday->equalData(cpuy));
 }
+#endif
 TEST(ReduceMax, Cpu) {
-    testReduceMaxCpu(
+    testReduceCpu<ReduceMaxObj>(
         IncrementalGenerator(),
         IncrementalGenerator(),
         {0, 1},            
@@ -78,21 +68,21 @@ TEST(ReduceMax, Cpu) {
         false,         
         DataType::Float32);
     
-    testReduceMaxCpu(
+    testReduceCpu<ReduceMaxObj>(
         IncrementalGenerator(),
         IncrementalGenerator(),
         {0, 1, 2},            
         {3, 3, 4},       
         true,          
         DataType::Float32);    
-    testReduceMaxCpu(
+    testReduceCpu<ReduceMaxObj>(
         IncrementalGenerator(),
         IncrementalGenerator(),
         {0, 1, 2},            
         {1000, 3, 4},       
         true,         
         DataType::Float32);    
-    testReduceMaxCpu(
+    testReduceCpu<ReduceMaxObj>(
         IncrementalGenerator(),
         IncrementalGenerator(),
         {1, 2},            
@@ -101,7 +91,7 @@ TEST(ReduceMax, Cpu) {
         DataType::Float32);   
 }
 TEST(ReduceMin, Cpu) {
-    testReduceMinCpu(
+    testReduceCpu<ReduceMinObj>(
         IncrementalGenerator(),
         IncrementalGenerator(),
         {0, 1},            
@@ -109,21 +99,21 @@ TEST(ReduceMin, Cpu) {
         false,          
         DataType::Float32);
     
-    testReduceMinCpu(
+    testReduceCpu<ReduceMinObj>(
         IncrementalGenerator(),
         IncrementalGenerator(),
         {0, 1, 2},            
         {3, 3, 4},      
         true,          
         DataType::Float32);    
-    testReduceMinCpu(
+    testReduceCpu<ReduceMinObj>(
         IncrementalGenerator(),
         IncrementalGenerator(),
         {0, 1, 2},            
         {1000, 3, 4},       
         true,          
         DataType::Float32);    
-    testReduceMinCpu(
+    testReduceCpu<ReduceMinObj>(
         IncrementalGenerator(),
         IncrementalGenerator(),
         {1, 2},            
@@ -132,7 +122,7 @@ TEST(ReduceMin, Cpu) {
         DataType::Float32);   
 }
 TEST(ReduceMean, Cpu) {
-    testReduceMeanCpu(
+    testReduceCpu<ReduceMeanObj>(
         IncrementalGenerator(),
         IncrementalGenerator(),
         {0, 1},            
@@ -140,21 +130,21 @@ TEST(ReduceMean, Cpu) {
         false,          
         DataType::Float32);
     
-    testReduceMeanCpu(
+    testReduceCpu<ReduceMeanObj>(
         IncrementalGenerator(),
         IncrementalGenerator(),
         {0, 1, 2},           
         {3, 3, 4},       
         true,         
         DataType::Float32);    
-    testReduceMeanCpu(
+    testReduceCpu<ReduceMeanObj>(
         IncrementalGenerator(),
         IncrementalGenerator(),
         {0, 1, 2},            
         {1000, 3, 4},       
         true,          
         DataType::Float32);    
-    testReduceMeanCpu(
+    testReduceCpu<ReduceMeanObj>(
         IncrementalGenerator(),
         IncrementalGenerator(),
         {1, 2},            
@@ -162,5 +152,84 @@ TEST(ReduceMean, Cpu) {
         false,          
         DataType::Float32);   
 }
-    
+#ifdef USE_CUDA
+TEST(ReduceMax, Cuda) {
+    testReduceCuda<ReduceMaxObj>(
+        IncrementalGenerator(),
+        {2, 3, 4},       
+        DataType::Float32,
+        {0, 1},            
+        false);         
+    testReduceCuda<ReduceMaxObj>(
+        IncrementalGenerator(),
+        {3, 3, 4},       
+        DataType::Float32,
+        {0, 1, 2},            
+        true);          
+    testReduceCuda<ReduceMaxObj>(
+        IncrementalGenerator(),
+        {1000, 3, 4},       
+        DataType::Float32,
+        {0, 1, 2},            
+        true);         
+    testReduceCuda<ReduceMaxObj>(
+        IncrementalGenerator(),
+        {2, 3, 4},       
+        DataType::Float32,
+        {1, 2},            
+        false);         
+}   
+TEST(ReduceMin, Cuda) {
+    testReduceCuda<ReduceMinObj>(
+        IncrementalGenerator(),
+        {2, 3, 4},       
+        DataType::Float32,
+        {0, 1},            
+        false);         
+    testReduceCuda<ReduceMinObj>(
+        IncrementalGenerator(),
+        {3, 3, 4},       
+        DataType::Float32,
+        {0, 1, 2},            
+        true);          
+    testReduceCuda<ReduceMinObj>(
+        IncrementalGenerator(),
+        {1000, 3, 4},       
+        DataType::Float32,
+        {0, 1, 2},            
+        true);         
+    testReduceCuda<ReduceMinObj>(
+        IncrementalGenerator(),
+        {2, 3, 4},       
+        DataType::Float32,
+        {1, 2},            
+        false);         
+}
+TEST(ReduceMean, Cuda) {
+    testReduceCuda<ReduceMeanObj>(
+        IncrementalGenerator(),
+        {2, 3, 4},       
+        DataType::Float32,
+        {0, 1},            
+        false);         
+    testReduceCuda<ReduceMeanObj>(
+        IncrementalGenerator(),
+        {3, 3, 4},       
+        DataType::Float32,
+        {0, 1, 2},            
+        true);          
+    testReduceCuda<ReduceMeanObj>(
+        IncrementalGenerator(),
+        {1000, 3, 4},       
+        DataType::Float32,
+        {0, 1, 2},            
+        true);         
+    testReduceCuda<ReduceMeanObj>(
+        IncrementalGenerator(),
+        {2, 3, 4},       
+        DataType::Float32,
+        {1, 2},            
+        false);         
+}
+#endif 
 }

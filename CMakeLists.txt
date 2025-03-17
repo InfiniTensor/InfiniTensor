@@ -188,7 +188,6 @@ target_link_libraries(InfiniTensor pybind11::embed)
 # link infini_operators library
 if(DEFINED ENV{INFINI_ROOT})
   find_library(INFINIOP_LIBRARY NAMES infiniop PATHS $ENV{INFINI_ROOT}/lib)
-  message(STATUS "INFINIOP_LIBRARY: ${INFINIOP_LIBRARY}")
   target_link_libraries(InfiniTensor ${INFINIOP_LIBRARY})
 else()
   find_library(INFINIOP_LIBRARY NAMES infiniop PATHS ~/.infini/lib)

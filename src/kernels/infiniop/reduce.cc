@@ -35,4 +35,7 @@ class ReduceOp : public Kernel{
 REGISTER_KERNEL(Device::CPU, OpType::ReduceMax, ReduceOp, "ReduceMax_infiniop_CPU");
 REGISTER_KERNEL(Device::CPU, OpType::ReduceMean, ReduceOp, "ReduceMean_infiniop_CPU");
 REGISTER_KERNEL(Device::CPU, OpType::ReduceMin, ReduceOp, "ReduceMin_infiniop_CPU");
+REGISTER_KERNEL(Device::CUDA, OpType::ReduceMax, ReduceOp, "ReduceMax_infiniop_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::ReduceMean, ReduceOp, "ReduceMean_infiniop_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::ReduceMin, ReduceOp, "ReduceMin_infiniop_CUDA");
 };
