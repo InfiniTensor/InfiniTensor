@@ -32,5 +32,4 @@ class GatherOp : public Kernel {
 
 REGISTER_KERNEL(Device::CUDA, OpType::Gather, GatherOp, "Gather_infiniop_CUDA");
 REGISTER_KERNEL(Device::CPU, OpType::Gather, GatherOp, "Gather_infiniop_CPU");
-
-} // namespace infini
+}; // namespace infini
