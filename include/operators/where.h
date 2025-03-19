@@ -21,6 +21,7 @@ class WhereObj : public OperatorObj {
     WhereObj(GraphObj *graph, Tensor inputX, Tensor inputY, Tensor condition,
              Tensor output);
     OP_CLONE(WhereObj);
+    void initInfiniOp(const Runtime context) override;
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 

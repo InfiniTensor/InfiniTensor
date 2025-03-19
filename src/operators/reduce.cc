@@ -80,6 +80,39 @@ vector<int> ReduceBaseObj::getOpAttrVector() const {
     return ret;
 }
 
+void ReduceBaseObj::initInfiniOp(const Runtime context) {
+    auto x_dim = inputs[0]->getDims();
+    auto y_dim = outputs[0]->getDims();
+    auto x_shape = toInfiniopShape(x_dim);
+    auto y_shape = toInfiniopShape(y_dim);
+
+    infiniopTensorDescriptor_t x_desc, y_desc;
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &x_desc, x_dim.size(), x_shape.data(), nullptr,
+        toInfiniopDataLayout(inputs[0]->getDType().getIndex())));
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &y_desc, y_dim.size(), y_shape.data(), nullptr,
+        toInfiniopDataLayout(outputs[0]->getDType().getIndex())));
+
+    std::vector<int> axes_vector(axes.begin(), axes.end());
+
+    if (type == OpType::ReduceMin) {
+        CHECK_ERROR(infiniopCreateReduceMinDescriptor(
+            context->opHandle(), (infiniopReduceMinDescriptor_t *)&opDesc,
+            y_desc, x_desc, axes_vector.data(), axes.size()));
+    } else if (type == OpType::ReduceMax) {
+        CHECK_ERROR(infiniopCreateReduceMaxDescriptor(
+            context->opHandle(), (infiniopReduceMaxDescriptor_t *)&opDesc,
+            y_desc, x_desc, axes_vector.data(), axes.size()));
+    } else if (type == OpType::ReduceMean) {
+        CHECK_ERROR(infiniopCreateReduceMeanDescriptor(
+            context->opHandle(), (infiniopReduceMeanDescriptor_t *)&opDesc,
+            y_desc, x_desc, axes_vector.data(), axes.size()));
+    } else {
+        IT_TODO_HALT();
+    }
+}
+
 ReduceMeanObj::ReduceMeanObj(GraphObj *graph, Tensor input, Tensor output,
                              const optional<vector<int>> &_axes, bool keepDims)
     : ReduceBaseObj(graph, OpType::ReduceMean, input, output, _axes, keepDims) {
@@ -88,4 +121,12 @@ ReduceMeanObj::ReduceMeanObj(GraphObj *graph, Tensor input, Tensor output,
 ReduceSumObj::ReduceSumObj(GraphObj *graph, Tensor input, Tensor output,
                            const optional<vector<int>> &_axes, bool keepDims)
     : ReduceBaseObj(graph, OpType::ReduceSum, input, output, _axes, keepDims) {}
+
+ReduceMinObj::ReduceMinObj(GraphObj *graph, Tensor input, Tensor output,
+                           const optional<vector<int>> &_axes, bool keepDims)
+    : ReduceBaseObj(graph, OpType::ReduceMin, input, output, _axes, keepDims) {}
+
+ReduceMaxObj::ReduceMaxObj(GraphObj *graph, Tensor input, Tensor output,
+                           const optional<vector<int>> &_axes, bool keepDims)
+    : ReduceBaseObj(graph, OpType::ReduceMax, input, output, _axes, keepDims) {}
 } // namespace infini

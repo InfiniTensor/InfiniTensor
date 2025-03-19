@@ -27,6 +27,7 @@ class ReduceBaseObj : public OperatorObj {
     virtual ~ReduceBaseObj() {}
     OP_CLONE(ReduceBaseObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
+    void initInfiniOp(const Runtime context) override;
 
     std::string toString() const override;
     int numInputs() const override { return 1; }
@@ -50,6 +51,18 @@ class ReduceMeanObj : public ReduceBaseObj {
 class ReduceSumObj : public ReduceBaseObj {
   public:
     ReduceSumObj(GraphObj *graph, Tensor input, Tensor output,
+                 const optional<vector<int>> &axes, bool keepDims = true);
+};
+
+class ReduceMinObj : public ReduceBaseObj {
+  public:
+    ReduceMinObj(GraphObj *graph, Tensor input, Tensor output,
+                 const optional<vector<int>> &axes, bool keepDims = true);
+};
+
+class ReduceMaxObj : public ReduceBaseObj {
+  public:
+    ReduceMaxObj(GraphObj *graph, Tensor input, Tensor output,
                  const optional<vector<int>> &axes, bool keepDims = true);
 };
 } // namespace infini

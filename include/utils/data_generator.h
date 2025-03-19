@@ -11,6 +11,7 @@ class DataGenerator {
   private:
     virtual void fill(uint32_t *data, size_t size) { IT_TODO_HALT(); }
     virtual void fill(float *data, size_t size) { IT_TODO_HALT(); }
+    virtual void fill(uint8_t *data, size_t size) { IT_TODO_HALT(); }
     virtual void fill_fp16(uint16_t *data, size_t size) { IT_TODO_HALT(); }
 
   public:
@@ -22,6 +23,8 @@ class DataGenerator {
             fill(reinterpret_cast<float *>(data), size);
         else if (dataType == DataType::Float16)
             fill_fp16(reinterpret_cast<uint16_t *>(data), size);
+        else if (dataType == DataType::UInt8)
+            fill(reinterpret_cast<uint8_t *>(data), size);
         else
             IT_TODO_HALT();
     }
@@ -91,6 +94,9 @@ template <int val> class ValGenerator : public DataGenerator {
         fill<uint32_t>(data, size);
     }
     void fill(float *data, size_t size) override { fill<float>(data, size); }
+    void fill(uint8_t *data, size_t size) override {
+        fill<uint8_t>(data, size);
+    }
     void fill_fp16(uint16_t *data, size_t size) {
         for (size_t i = 0; i < size; i++) {
             float x = 1.0f * val;

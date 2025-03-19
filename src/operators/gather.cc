@@ -92,4 +92,31 @@ vector<int> GatherObj::getOpAttrVector() const {
     return {type.underlying(), axis};
 }
 
+void GatherObj::initInfiniOp(const Runtime context) {
+    auto input_dim = inputs[0]->getDims();
+    auto indices_dim = inputs[1]->getDims();
+    auto output_dim = outputs[0]->getDims();
+
+    auto input_shape = toInfiniopShape(input_dim);
+    auto indices_shape = toInfiniopShape(indices_dim);
+    auto output_shape = toInfiniopShape(output_dim);
+
+    infiniopTensorDescriptor_t input_tensor;
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &input_tensor, input_dim.size(), input_shape.data(), nullptr,
+        toInfiniopDataLayout(inputs[0]->getDType().getIndex())));
+    infiniopTensorDescriptor_t indices_tensor;
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &indices_tensor, indices_dim.size(), indices_shape.data(), nullptr,
+        toInfiniopDataLayout(inputs[1]->getDType().getIndex())));
+    infiniopTensorDescriptor_t output_tensor;
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &output_tensor, output_dim.size(), output_shape.data(), nullptr,
+        toInfiniopDataLayout(outputs[0]->getDType().getIndex())));
+
+    CHECK_ERROR(infiniopCreateGatherDescriptor(
+        context->opHandle(), (infiniopGatherDescriptor_t *)&opDesc, output_tensor,
+        input_tensor, indices_tensor, axis));
+}
+
 } // namespace infini
