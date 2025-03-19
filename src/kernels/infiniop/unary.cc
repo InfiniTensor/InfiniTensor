@@ -37,11 +37,9 @@ class ClipOp: public Kernel {
         auto op = as<ClipObj>(_op);
         void *const xData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const yData = (op->getOutput()->getRawDataPtr<void *>());
-        float min = op->getMin().value_or(-INFINITY);
-        float max = op->getMax().value_or(INFINITY);
 
         CHECK_ERROR(infiniopClip((infiniopClipDescriptor_t)op->getOpDesc(),
-                                 xData, &min, &max, yData,
+                                 xData, yData,
                                  context->getCurrentStream()));
     }
 

@@ -14,14 +14,12 @@ optional<vector<Shape>> GatherObj::inferShape(const TensorVec &inputs) {
     auto dims0 = inputs[0]->getDims();
     auto dims1 = inputs[1]->getDims();
 
-    // 1. 替换 axis 维度为索引形状
-    Shape output_dims;
-    output_dims.reserve(dims0.size() + dims1.size() - 1);
-    output_dims.insert(output_dims.end(), dims0.begin(), dims0.begin() + axis);
-    output_dims.insert(output_dims.end(), dims1.begin(), dims1.end());
-    output_dims.insert(output_dims.end(), dims0.begin() + axis + 1, dims0.end());
+    IT_ASSERT(CheckIndexValid());
 
-    return {{output_dims}};
+    Shape dim = dims0;
+    dim.erase(dim.begin() + axis);
+    dim.insert(dim.begin() + axis, dims1.begin(), dims1.end());
+    return {{dim}};
 }
 
 vector<DataType> GatherObj::inferDataType(const TensorVec &inputs) const {

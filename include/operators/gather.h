@@ -15,6 +15,7 @@ class GatherBaseObj : public OperatorObj {
     virtual ~GatherBaseObj() {}
     int numInputs() const override { return 2; }
     int numOutputs() const override { return 1; }
+    
     int getAxis() const { return axis; }
 };
 

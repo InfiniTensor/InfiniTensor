@@ -107,7 +107,9 @@ void ClipObj::initInfiniOp(const Runtime context) {
     // create op descriptor
     CHECK_ERROR(infiniopCreateClipDescriptor(
         context->opHandle(), (infiniopClipDescriptor_t *)&opDesc, x_tensor,
-        y_tensor));
+        y_tensor, minValue.has_value() ? *minValue : nullptr, maxValue.has_value()
+            ? *maxValue
+            : nullptr));
 
     // destroy tensor descriptor
     CHECK_ERROR(infiniopDestroyTensorDescriptor(x_tensor));
