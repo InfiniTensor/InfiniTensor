@@ -51,7 +51,7 @@ class IncrementalGenerator : public DataGenerator {
     // FIXME: fix the accuracy standards when dtype is float16
     void fill_fp16(uint16_t *data, size_t size) {
         for (size_t i = 0; i < size; i++) {
-            float x = i;
+            float x = 2.0f;
             data[i] = float_to_fp16(x);
         }
     }
