@@ -38,6 +38,18 @@ class GatherObj : public GatherBaseObj {
     GatherObj(GraphObj *graph, Tensor input, Tensor indices, Tensor output,
               int axis);
     OP_CLONE(GatherObj);
+    
+    ~GatherObj() override {
+        if (opDesc) {
+            try {
+                CHECK_ERROR(infiniopDestroyGatherDescriptor((infiniopGatherDescriptor_t)opDesc));
+            } catch (const std::exception &e) {
+                std::cerr << "Error in ~GatherObj: " << e.what() << std::endl;
+            }
+        }
+    }
+    void initInfiniOp(const Runtime context) override;
+
     std::string toString() const override;
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
     vector<DataType> inferDataType(const TensorVec &inputs) const override;

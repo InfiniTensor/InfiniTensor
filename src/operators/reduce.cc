@@ -22,6 +22,52 @@ bool ReduceBaseObj::isReduced(int idx) const {
     return axes.find(idx) != axes.end();
 }
 
+void ReduceBaseObj::initInfiniOp(const Runtime context) {
+    // get dim data
+    auto input_dim = inputs[0]->getDims();
+    auto output_dim = outputs[0]->getDims();
+
+    // convert dim data to infiniop format
+    auto input_shape = toInfiniopShape(input_dim);
+    auto output_shape = toInfiniopShape(output_dim);
+
+    // create tensor descriptor
+    infiniopTensorDescriptor_t input_desc, output_desc;
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &input_desc, input_dim.size(), input_shape.data(), nullptr,
+        toInfiniopDataLayout(inputs[0]->getDType().getIndex())));
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &output_desc, output_dim.size(), output_shape.data(), nullptr,
+        toInfiniopDataLayout(outputs[0]->getDType().getIndex())));
+    
+    // create op descriptor
+    vector<int64_t> axes_vec;
+    for (auto it : axes) {
+        axes_vec.emplace_back(it);
+    }
+
+    if (type == OpType::ReduceMax) {
+        CHECK_ERROR(infiniopCreateReduceMaxDescriptor(
+            context->opHandle(), (infiniopReduceMaxDescriptor_t *)&opDesc,
+            output_desc, input_desc, axes_vec.data(), axes_vec.size(),
+            keepDims, 0));
+    } else if (type == OpType::ReduceMean) {
+        CHECK_ERROR(infiniopCreateReduceMeanDescriptor(
+            context->opHandle(), (infiniopReduceMeanDescriptor_t *)&opDesc,
+            output_desc, input_desc, axes_vec.data(), axes_vec.size(),
+            keepDims, 0));
+    } else if (type == OpType::ReduceMin) {
+        CHECK_ERROR(infiniopCreateReduceMinDescriptor(
+            context->opHandle(), (infiniopReduceMinDescriptor_t *)&opDesc,
+            output_desc, input_desc, axes_vec.data(), axes_vec.size(),
+            keepDims, 0));
+    }
+
+    // destroy tensor descriptor
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(input_desc));
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(output_desc));
+}
+
 optional<vector<Shape>> ReduceBaseObj::inferShape(const TensorVec &inputs) {
     auto dims = inputs[0]->getDims();
     auto rank = inputs[0]->getRank();
@@ -80,9 +126,19 @@ vector<int> ReduceBaseObj::getOpAttrVector() const {
     return ret;
 }
 
+ReduceMaxObj::ReduceMaxObj(GraphObj *graph, Tensor input, Tensor output,
+    const optional<vector<int>> &_axes, bool keepDims)
+: ReduceBaseObj(graph, OpType::ReduceMax, input, output, _axes, keepDims) {
+}
+
 ReduceMeanObj::ReduceMeanObj(GraphObj *graph, Tensor input, Tensor output,
                              const optional<vector<int>> &_axes, bool keepDims)
     : ReduceBaseObj(graph, OpType::ReduceMean, input, output, _axes, keepDims) {
+}
+
+ReduceMinObj::ReduceMinObj(GraphObj *graph, Tensor input, Tensor output,
+    const optional<vector<int>> &_axes, bool keepDims)
+: ReduceBaseObj(graph, OpType::ReduceMin, input, output, _axes, keepDims) {
 }
 
 ReduceSumObj::ReduceSumObj(GraphObj *graph, Tensor input, Tensor output,

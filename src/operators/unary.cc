@@ -67,6 +67,61 @@ ClipObj::ClipObj(GraphObj *graph, Tensor input, Tensor output,
     IT_ASSERT(checkValid(graph));
 }
 
+void ClipObj::initInfiniOp(const Runtime context) {
+    // get dim data
+    auto input_dim = inputs[0]->getDims();
+    auto output_dim = outputs[0]->getDims();
+    auto min_dim = Shape{};
+    auto max_dim = Shape{};
+
+    // convert dim data to infiniop format
+    auto input_shape = toInfiniopShape(input_dim);
+    auto output_shape = toInfiniopShape(output_dim);
+    auto min_shape = toInfiniopShape(min_dim);
+    auto max_shape = toInfiniopShape(max_dim);
+
+    // create tensor descriptor
+    infiniopTensorDescriptor_t input_tensor;
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &input_tensor, input_dim.size(), input_shape.data(), nullptr,
+        toInfiniopDataLayout(inputs[0]->getDType().getIndex())));
+    
+    infiniopTensorDescriptor_t output_tensor;
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &output_tensor, output_dim.size(), output_shape.data(), nullptr,
+        toInfiniopDataLayout(outputs[0]->getDType().getIndex())));
+    
+    infiniopTensorDescriptor_t min_tensor = nullptr;
+    if (minValue) {
+        // minValue type is same as input data type
+        CHECK_ERROR(infiniopCreateTensorDescriptor(
+            &min_tensor, 0, min_shape.data(), nullptr,
+            toInfiniopDataLayout(inputs[0]->getDType().getIndex())));
+    }
+    infiniopTensorDescriptor_t max_tensor = nullptr;
+    if (maxValue) {
+        // maxValue type is same as input data type
+        CHECK_ERROR(infiniopCreateTensorDescriptor(
+            &max_tensor, 0, max_shape.data(), nullptr,
+            toInfiniopDataLayout(inputs[0]->getDType().getIndex())));
+    }
+
+    // create op descriptor
+    CHECK_ERROR(infiniopCreateClipDescriptor(
+        context->opHandle(), (infiniopClipDescriptor_t *)&opDesc, output_tensor,
+        input_tensor, min_tensor, max_tensor));
+
+    // destroy tensor descriptor
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(input_tensor));
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(output_tensor));
+    if (min_tensor) {
+        CHECK_ERROR(infiniopDestroyTensorDescriptor(min_tensor));
+    }
+    if (max_tensor) {
+        CHECK_ERROR(infiniopDestroyTensorDescriptor(max_tensor));
+    }
+}
+
 optional<vector<Shape>> ClipObj::inferShape(const TensorVec &inputs) {
     const auto A = inputs[0];
     return {{A->getDims()}};

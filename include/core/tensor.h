@@ -176,8 +176,13 @@ class TensorObj : public TensorBaseObj {
             for (size_t j = 0; j < numDims; ++j)
                 if (i % dimSzVec[j] == 0)
                     builder << "[";
+            
+            if (dtype == DataType::Float16) {
+                builder << fp16_to_float(ptr[i]);
+            } else {
+                builder << ptr[i];
+            }
 
-            builder << ptr[i];
             for (size_t j = 0; j < numDims; ++j)
                 if ((int)i % dimSzVec[j] == dimSzVec[j] - 1)
                     builder << "]";
