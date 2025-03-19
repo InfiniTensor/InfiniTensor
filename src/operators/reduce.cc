@@ -71,8 +71,7 @@ void ReduceBaseObj::initInfiniOp(const Runtime context) {
             context->opHandle(), (infiniopReduceMeanDescriptor_t *)&opDesc,
             y_tensor, x_tensor, axesPtr, axes.size(), keepDims));
     } else {
-        // right?
-        opDesc = nullptr;
+        IT_TODO_HALT();
     }
 
     // destroy tensor descriptor
