@@ -52,11 +52,26 @@ class ClipObj : public OperatorObj {
     OP_CLONE(ClipObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
+    // initInfiniOP
+    void initInfiniOp(const Runtime context) override;
+
     std::string toString() const override;
     std::optional<float> getMin() const { return minValue; };
     std::optional<float> getMax() const { return maxValue; };
     int numInputs() const override { return 1; }
     int numOutputs() const override { return 1; }
+
+    // Destructor
+    ~ClipObj() override {
+        if (opDesc) {
+            try {
+                CHECK_ERROR(infiniopDestroyClipDescriptor(
+                    (infiniopClipDescriptor_t)opDesc));
+            } catch (const std::exception &e) {
+                std::cerr << "Error in ~ClipObj: " << e.what() << std::endl;
+            }
+        }
+    }
 
   private:
     std::optional<float> minValue, maxValue;

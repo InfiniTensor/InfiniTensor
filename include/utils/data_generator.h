@@ -1,7 +1,9 @@
 #pragma once
 #include "core/common.h"
+#include "core/data_type.h"
 #include "core/tensor_base.h"
 #include "utils/data_convert.h"
+#include <cstdint>
 #include <random>
 
 namespace infini {
@@ -11,6 +13,10 @@ class DataGenerator {
   private:
     virtual void fill(uint32_t *data, size_t size) { IT_TODO_HALT(); }
     virtual void fill(float *data, size_t size) { IT_TODO_HALT(); }
+    // add int32 for indices in gather
+    virtual void fill(int32_t *data, size_t size) { IT_TODO_HALT(); }
+    // add uint8 for condition in where
+    virtual void fill(uint8_t *data, size_t size) { IT_TODO_HALT(); }
     virtual void fill_fp16(uint16_t *data, size_t size) { IT_TODO_HALT(); }
 
   public:
@@ -20,6 +26,10 @@ class DataGenerator {
             fill(reinterpret_cast<uint32_t *>(data), size);
         else if (dataType == DataType::Float32)
             fill(reinterpret_cast<float *>(data), size);
+        else if (dataType == DataType::Int32)
+            fill(reinterpret_cast<int32_t *>(data), size);
+        else if (dataType == DataType::UInt8)
+            fill(reinterpret_cast<uint8_t *>(data), size);
         else if (dataType == DataType::Float16)
             fill_fp16(reinterpret_cast<uint16_t *>(data), size);
         else
@@ -43,7 +53,7 @@ class IncrementalGenerator : public DataGenerator {
     }
     void fill(float *data, size_t size) override { fill<float>(data, size); }
     // FIXME: fix the accuracy standards when dtype is float16
-    void fill_fp16(uint16_t *data, size_t size) {
+    void fill_fp16(uint16_t *data, size_t size) override {
         for (size_t i = 0; i < size; i++) {
             float x = 2.0f;
             data[i] = float_to_fp16(x);
@@ -91,7 +101,9 @@ template <int val> class ValGenerator : public DataGenerator {
         fill<uint32_t>(data, size);
     }
     void fill(float *data, size_t size) override { fill<float>(data, size); }
-    void fill_fp16(uint16_t *data, size_t size) {
+    void fill(int32_t *data, size_t size) override { fill<int32_t>(data, size); }
+    void fill(uint8_t *data, size_t size) override { fill<uint8_t>(data, size); }
+    void fill_fp16(uint16_t *data, size_t size) override {
         for (size_t i = 0; i < size; i++) {
             float x = 1.0f * val;
             data[i] = float_to_fp16(x);

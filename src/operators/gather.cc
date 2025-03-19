@@ -1,4 +1,8 @@
 #include "operators/gather.h"
+#include "core/runtime.h"
+#include "ops/gather/gather.h"
+#include "tensor.h"
+#include "utils/infiniop_utils.h"
 #include "utils/operator_utils.h"
 
 namespace infini {
@@ -27,6 +31,41 @@ vector<DataType> GatherObj::inferDataType(const TensorVec &inputs) const {
     auto index_dtype = inputs[1]->getDType();
     IT_ASSERT(index_dtype == DataType::Int32 || index_dtype == DataType::Int64);
     return {inputs[0]->getDType()};
+}
+
+// initInfiniOp
+void GatherObj::initInfiniOp(const Runtime context) {
+    auto input_dim = inputs[0]->getDims();
+    auto indices_dim = inputs[1]->getDims();
+    auto output_dim = outputs[0]->getDims();
+
+    auto input_shape = toInfiniopShape(input_dim);
+    auto indices_shape = toInfiniopShape(indices_dim);
+    auto output_shape = toInfiniopShape(output_dim);
+
+    // create tensor descriptor
+    infiniopTensorDescriptor_t input_tensor;
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &input_tensor, input_dim.size(), input_shape.data(), nullptr,
+        toInfiniopDataLayout(inputs[0]->getDType().getIndex())));
+    infiniopTensorDescriptor_t indices_tensor;
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &indices_tensor, indices_dim.size(), indices_shape.data(), nullptr,
+        toInfiniopDataLayout(inputs[1]->getDType().getIndex())));
+    infiniopTensorDescriptor_t output_tensor;
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &output_tensor, output_dim.size(), output_shape.data(), nullptr,
+        toInfiniopDataLayout(outputs[0]->getDType().getIndex())));
+
+    // create op descriptor
+    CHECK_ERROR(infiniopCreateGatherDescriptor(
+        context->opHandle(), (infiniopGatherDescriptor_t *)&opDesc,
+        output_tensor, input_tensor, indices_tensor, axis));
+
+    // destroy tensor descriptor
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(input_tensor));
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(indices_tensor));
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(output_tensor));
 }
 
 // TODO:should check everytime index updated.
