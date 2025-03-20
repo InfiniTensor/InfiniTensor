@@ -36,6 +36,8 @@ class ReduceBaseObj : public OperatorObj {
     const set<int> &getAxes() const { return axes; }
     bool getKeepDims() const { return keepDims; }
 
+    void initInfiniOp(const Runtime context) override;
+
   private:
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;
@@ -44,12 +46,58 @@ class ReduceBaseObj : public OperatorObj {
 class ReduceMeanObj : public ReduceBaseObj {
   public:
     ReduceMeanObj(GraphObj *graph, Tensor input, Tensor output,
-                  const optional<vector<int>> &axes, bool keepDims = true);
+                  const optional<vector<int>> &axes, bool keepDims = true)
+        : ReduceBaseObj(graph, OpType::ReduceMean, input, output, axes, keepDims) {}
+    ~ReduceMeanObj() override {
+        if (opDesc) {
+            try {
+                CHECK_ERROR(infiniopDestroyReducemeanDescriptor(
+                    (infiniopReducemeanDescriptor_t)opDesc));
+            } catch (const std::exception &e) {
+                std::cerr << "Error in ~ReduceMeanObj: " << e.what() << std::endl;
+            }
+        }
+    }
 };
 
 class ReduceSumObj : public ReduceBaseObj {
   public:
     ReduceSumObj(GraphObj *graph, Tensor input, Tensor output,
-                 const optional<vector<int>> &axes, bool keepDims = true);
+                 const optional<vector<int>> &axes, bool keepDims = true)
+        : ReduceBaseObj(graph, OpType::ReduceSum, input, output, axes, keepDims) {}      
+};
+
+class ReduceMaxObj : public ReduceBaseObj {
+  public:
+    ReduceMaxObj(GraphObj *graph, Tensor input, Tensor output,
+                 const optional<vector<int>> &axes, bool keepDims = true)
+        : ReduceBaseObj(graph, OpType::ReduceMax, input, output, axes, keepDims) {}
+    ~ReduceMaxObj() override {
+        if (opDesc) {
+            try {
+                CHECK_ERROR(infiniopDestroyReducemaxDescriptor(
+                    (infiniopReducemaxDescriptor_t)opDesc));
+            } catch (const std::exception &e) {
+                std::cerr << "Error in ~ReduceMaxObj: " << e.what() << std::endl;
+            }
+        }
+    }
+};
+
+class ReduceMinObj : public ReduceBaseObj {
+  public:
+    ReduceMinObj(GraphObj *graph, Tensor input, Tensor output,
+                 const optional<vector<int>> &axes, bool keepDims = true)
+        : ReduceBaseObj(graph, OpType::ReduceMin, input, output, axes, keepDims) {}
+    ~ReduceMinObj() override {
+        if (opDesc) {
+            try {
+                CHECK_ERROR(infiniopDestroyReduceminDescriptor(
+                    (infiniopReduceminDescriptor_t)opDesc));
+            } catch (const std::exception &e) {
+                std::cerr << "Error in ~ReduceMinObj: " << e.what() << std::endl;
+            }
+        }
+    }
 };
 } // namespace infini

@@ -57,6 +57,17 @@ class ClipObj : public OperatorObj {
     std::optional<float> getMax() const { return maxValue; };
     int numInputs() const override { return 1; }
     int numOutputs() const override { return 1; }
+    void initInfiniOp(const Runtime context) override;
+    ~ClipObj() override {
+        if (opDesc) {
+            try {
+                CHECK_ERROR(infiniopDestroyClipDescriptor(
+                    (infiniopClipDescriptor_t)opDesc));
+            } catch (const std::exception &e) {
+                std::cerr << "Error in ~ClipObj: " << e.what() << std::endl;
+            }
+        }
+    }
 
   private:
     std::optional<float> minValue, maxValue;

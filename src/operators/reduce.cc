@@ -80,12 +80,43 @@ vector<int> ReduceBaseObj::getOpAttrVector() const {
     return ret;
 }
 
-ReduceMeanObj::ReduceMeanObj(GraphObj *graph, Tensor input, Tensor output,
-                             const optional<vector<int>> &_axes, bool keepDims)
-    : ReduceBaseObj(graph, OpType::ReduceMean, input, output, _axes, keepDims) {
-}
+void ReduceBaseObj::initInfiniOp(const Runtime context) {
+    auto x_dim = inputs[0]->getDims();
+    auto y_dim = outputs[0]->getDims();
 
-ReduceSumObj::ReduceSumObj(GraphObj *graph, Tensor input, Tensor output,
-                           const optional<vector<int>> &_axes, bool keepDims)
-    : ReduceBaseObj(graph, OpType::ReduceSum, input, output, _axes, keepDims) {}
+    auto x_shape = toInfiniopShape(x_dim);
+    auto y_shape = toInfiniopShape(y_dim);
+
+    infiniopTensorDescriptor_t x_tensor;
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &x_tensor, x_dim.size(), x_shape.data(), nullptr,
+        toInfiniopDataLayout(inputs[0]->getDType().getIndex())));
+    infiniopTensorDescriptor_t y_tensor;
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &y_tensor, y_dim.size(), y_shape.data(), nullptr,
+        toInfiniopDataLayout(outputs[0]->getDType().getIndex())));
+    
+    std::vector<int64_t> axes_vec(axes.begin(), axes.end());
+
+    if (type == OpType::ReduceMax){
+        CHECK_ERROR(infiniopCreateReducemaxDescriptor(
+            context->opHandle(), (infiniopReducemaxDescriptor_t *)&opDesc,
+            y_tensor, x_tensor, axes_vec.data(), axes.size(), keepDims, false));
+    }else if (type == OpType::ReduceMean){
+        CHECK_ERROR(infiniopCreateReducemeanDescriptor(
+            context->opHandle(), (infiniopReducemeanDescriptor_t *)&opDesc,
+            y_tensor, x_tensor, axes_vec.data(), axes.size(), keepDims, false));
+    }else if (type == OpType::ReduceMin){
+        CHECK_ERROR(infiniopCreateReduceminDescriptor(
+            context->opHandle(), (infiniopReduceminDescriptor_t *)&opDesc,
+            y_tensor, x_tensor, axes_vec.data(), axes.size(), keepDims, false));
+    }
+    else {
+        opDesc = nullptr;
+    }
+
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(y_tensor));
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(x_tensor));
+
+}
 } // namespace infini
