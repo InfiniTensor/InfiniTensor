@@ -22,6 +22,24 @@ class WhereObj : public OperatorObj {
              Tensor output);
     OP_CLONE(WhereObj);
 
+    ~WhereObj() override {
+        if (opDesc) {
+            try {
+                if (type == OpType::Where) {
+                    CHECK_ERROR(infiniopDestroyWhereDescriptor(
+                        (infiniopWhereDescriptor_t)opDesc));
+                } else {
+                    IT_ASSERT(false, "Unsupported unary operator type "
+                                     "for infini op destroy");
+                }
+            } catch (const std::exception &e) {
+                std::cerr << "Error in ~WhereObj: " << e.what() << std::endl;
+            }
+        }
+    }
+
+    void initInfiniOp(const Runtime context) override;
+
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;

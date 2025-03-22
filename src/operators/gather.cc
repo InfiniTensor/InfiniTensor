@@ -10,6 +10,40 @@ GatherObj::GatherObj(GraphObj *graph, Tensor input, Tensor indices,
     IT_ASSERT(checkValid(graph));
 }
 
+void GatherObj::initInfiniOp(const Runtime context) {
+    auto data_dim = inputs[0]->getDims();
+    auto indices_dim = inputs[1]->getDims();
+    auto output_dim = outputs[0]->getDims();
+    
+    auto data_shape = toInfiniopShape(data_dim);
+    auto indices_shape = toInfiniopShape(indices_dim);
+    auto output_shape = toInfiniopShape(output_dim);
+
+    // create tensor descriptor
+    infiniopTensorDescriptor_t data_tensor;
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &data_tensor, data_dim.size(), data_shape.data(), nullptr,
+        toInfiniopDataLayout(inputs[0]->getDType().getIndex())));
+    infiniopTensorDescriptor_t indices_tensor;
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &indices_tensor, indices_dim.size(), indices_shape.data(), nullptr,
+        toInfiniopDataLayout(inputs[1]->getDType().getIndex())));
+    infiniopTensorDescriptor_t output_tensor;
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &output_tensor, output_dim.size(), output_shape.data(), nullptr,
+        toInfiniopDataLayout(outputs[0]->getDType().getIndex())));
+
+    // create op descriptor
+    CHECK_ERROR(infiniopCreateGatherDescriptor(
+        context->opHandle(), (infiniopGatherDescriptor_t *)&opDesc,
+        output_tensor, data_tensor, indices_tensor, axis));
+
+    // destroy tensor descriptor
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(data_tensor));
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(indices_tensor));
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(output_tensor));
+}
+
 optional<vector<Shape>> GatherObj::inferShape(const TensorVec &inputs) {
     auto dims0 = inputs[0]->getDims();
     auto dims1 = inputs[1]->getDims();
