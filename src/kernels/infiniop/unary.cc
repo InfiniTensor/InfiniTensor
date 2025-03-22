@@ -33,6 +33,31 @@ class UnaryOp : public Kernel {
     }
 };
 
+class ClipOp : public Kernel {
+    void compute(const Operator &_op,
+                 const RuntimeObj *context) const override {
+        auto op = as<ClipObj>(_op);
+        void *const inputData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const outputData = (op->getOutput()->getRawDataPtr<void *>());
+
+        CHECK_ERROR(infiniopClip((infiniopClipDescriptor_t)op->getOpDesc(),
+                                 outputData, inputData, context->getCurrentStream()));
+    }
+
+    PerfRecord tune(const Operator &_op,
+                    const RuntimeObj *context) const override {
+        // TODO: tune should be in infiniop
+        return PerfRecord();
+    }
+
+    void compute(const Operator &op, const PerfRecord &record,
+                 const RuntimeObj *context) const override {
+        compute(op, context);
+    }
+};
+
 REGISTER_KERNEL(Device::CUDA, OpType::Relu, UnaryOp, "Relu_infiniop_CUDA");
 REGISTER_KERNEL(Device::CPU, OpType::Relu, UnaryOp, "Relu_infiniop_CPU");
+
+REGISTER_KERNEL(Device::CPU, OpType::Clip, ClipOp, "Clip_infiniop_cpu");
 }; // namespace infini

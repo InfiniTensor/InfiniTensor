@@ -50,6 +50,24 @@ class ClipObj : public OperatorObj {
     ClipObj(GraphObj *graph, Tensor input, Tensor output,
             std::optional<float> min, std::optional<float> max);
     OP_CLONE(ClipObj);
+    
+    ~ClipObj() override {
+        if (opDesc) {
+            try {
+                if (type == OpType::Clip) {
+                    CHECK_ERROR(infiniopDestroyClipDescriptor(
+                        (infiniopClipDescriptor_t)opDesc));
+                } else {
+                    IT_ASSERT(false, "Unsupported unary operator type "
+                                     "for infini op destroy");
+                }
+            } catch (const std::exception &e) {
+                std::cerr << "Error in ~ClipObj: " << e.what() << std::endl;
+            }
+        }
+    }
+
+    void initInfiniOp(const Runtime context) override;
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
