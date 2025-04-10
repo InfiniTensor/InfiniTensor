@@ -3,6 +3,7 @@
 #include "core/op_type.h"
 #include "core/tensor.h"
 #include "utils/infiniop_utils.h"
+#include "infini_operators.h"
 
 namespace infini {
 using KernelAttrs = std::tuple<Device, OpType::underlying_t>;

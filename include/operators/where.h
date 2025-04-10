@@ -21,6 +21,15 @@ class WhereObj : public OperatorObj {
     WhereObj(GraphObj *graph, Tensor inputX, Tensor inputY, Tensor condition,
              Tensor output);
     OP_CLONE(WhereObj);
+    // ~WhereObj() override{
+    //   if(opDesc){
+    //     try{
+    //       if (type==OpType::Where){
+    //         CHECK_ERROR
+    //       }
+    //     }
+    //   }
+    // }
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 

@@ -1,4 +1,5 @@
 #include "operators/unary.h"
+#include "infini_operators.h"
 #include "core/kernel.h"
 #include "utils/infiniop_utils.h"
 
@@ -32,6 +33,39 @@ class UnaryOp : public Kernel {
         compute(op, context);
     }
 };
+
+
+class ClipOp:public Kernel{
+    void compute(const Operator &_op,
+    const RuntimeObj *context) const override{
+    auto op=as<ClipObj>(_op);
+    
+    void *const xData=(op->getInputs(0)->getRawDataPtr<void *>());
+    void *const yData=(op->getOutput()->getRawDataPtr<void *>());
+  
+
+    if(op->getOpType()== OpType::Clip){
+        CHECK_ERROR(infiniopClip((infiniopClipDescriptor_t)op->getOpDesc(),
+    yData,xData,context->getCurrentStream()));
+    }else
+    {
+        IT_TODO_HALT();
+
+    }
+}
+
+    PerfRecord tune(const Operator &_op,
+    const RuntimeObj *_context) const override{
+        return PerfRecord();
+    }
+    void compute(const Operator &op,const PerfRecord &record,
+    const RuntimeObj *context) const override{
+        compute(op,context);
+    }
+
+};
+
+REGISTER_KERNEL(Device::CPU,OpType::Clip,ClipOp,"Clip_infiniop_CPU");
 
 REGISTER_KERNEL(Device::CUDA, OpType::Relu, UnaryOp, "Relu_infiniop_CUDA");
 REGISTER_KERNEL(Device::CPU, OpType::Relu, UnaryOp, "Relu_infiniop_CPU");
