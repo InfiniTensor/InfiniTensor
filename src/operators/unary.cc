@@ -93,7 +93,7 @@ vector<int> ClipObj::getOpAttrVector() const { return {type.underlying()}; }
 
 void ClipObj::initInfiniOp(const Runtime context){
     auto x_dim=inputs[0]->getDims();
-    auto y_dim=inputs[1]->getDims();
+    auto y_dim=outputs[0]->getDims();
     auto x_shape=toInfiniopShape(x_dim);
     auto y_shape=toInfiniopShape(y_dim);
     infiniopTensorDescriptor_t x_tensor;
