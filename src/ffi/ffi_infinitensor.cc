@@ -124,8 +124,10 @@ void export_values(py::module &m) {
         .VALUE(OpType, Erf)
         .VALUE(OpType, Where)
         .VALUE(OpType, DepthToSpace)
+        .VALUE(OpType, GlobalAveragePool)
         .VALUE(OpType, LRN)
         .VALUE(OpType, Elu)
+        .VALUE(OpType, GridSample)
         .export_values();
 
 #undef VALUE

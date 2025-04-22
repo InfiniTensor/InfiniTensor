@@ -79,10 +79,101 @@ vector<int> ReduceBaseObj::getOpAttrVector() const {
     ret.insert(ret.end(), axes.begin(), axes.end());
     return ret;
 }
+void ReduceBaseObj::initInfiniOp(const Runtime context) {
+    auto input_dim = inputs[0]->getDims();
+    auto output_dim = outputs[0]->getDims();
+
+    // 转换为 infiniop 需要的 shape 格式
+    auto input_shape = toInfiniopShape(input_dim);
+    auto output_shape = toInfiniopShape(output_dim);
+    auto opType=type;
+
+    // 创建 tensor descriptor
+    infiniopTensorDescriptor_t input_tensor;
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &input_tensor, input_dim.size(), input_shape.data(), nullptr,
+        toInfiniopDataLayout(inputs[0]->getDType().getIndex())));
+
+    infiniopTensorDescriptor_t output_tensor;
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &output_tensor, output_dim.size(), output_shape.data(), nullptr,
+        toInfiniopDataLayout(outputs[0]->getDType().getIndex())));
+
+    // 构造 axes 数组
+    std::vector<int64_t> axes_vec(axes.begin(), axes.end());
+    uint64_t n_axes = axes_vec.size();
+    // int op_value;
+    if(opType==OpType::ReduceMax){
+        // op_value=0;
+        CHECK_ERROR(infiniopCreateReduceMaxDescriptor(
+            context->opHandle(),
+            (infiniopReduceMaxDescriptor_t *)&opDesc,
+            output_tensor,
+            input_tensor,
+            axes_vec.data(),
+            n_axes,
+            keepDims ? 1 : 0,
+            0  // 可以根据实际需求改
+        ));
+    }else if(opType==OpType::ReduceMean){
+        // op_value=1;
+        CHECK_ERROR(infiniopCreateReduceMeanDescriptor(
+            context->opHandle(),
+            (infiniopReduceMeanDescriptor_t *)&opDesc,
+            output_tensor,
+            input_tensor,
+            axes_vec.data(),
+            n_axes,
+            keepDims ? 1 : 0,
+            0  // 可以根据实际需求改
+        ));
+
+    }else{
+        // op_value=2;
+        CHECK_ERROR(infiniopCreateReduceMinDescriptor(
+            context->opHandle(),
+            (infiniopReduceMinDescriptor_t *)&opDesc,
+            output_tensor,
+            input_tensor,
+            axes_vec.data(),
+            n_axes,
+            keepDims ? 1 : 0,
+            0  // 可以根据实际需求改
+        ));
+
+    }
+
+
+    // // 创建 reduce descriptor
+    // CHECK_ERROR(infiniopCreateReduceDescriptor(
+    //     context->opHandle(),
+    //     (infiniopReduceDescriptor_t *)&opDesc,
+    //     output_tensor,
+    //     input_tensor,
+    //     axes_vec.data(),
+    //     n_axes,
+    //     keepDims ? 1 : 0,
+    //     /*noop_with_empty_axes=*/0,  // 可以根据实际需求改
+    //     static_cast<int>(opType)      // 假设 opType 映射为 reduce_type
+    // ));
+
+    // 销毁 tensor descriptors
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(input_tensor));
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(output_tensor));
+}
+
 
 ReduceMeanObj::ReduceMeanObj(GraphObj *graph, Tensor input, Tensor output,
                              const optional<vector<int>> &_axes, bool keepDims)
     : ReduceBaseObj(graph, OpType::ReduceMean, input, output, _axes, keepDims) {
+}
+ReduceMaxObj::ReduceMaxObj(GraphObj *graph, Tensor input, Tensor output,
+    const optional<vector<int>> &_axes, bool keepDims)
+: ReduceBaseObj(graph, OpType::ReduceMean, input, output, _axes, keepDims) {
+}
+ReduceMinObj::ReduceMinObj(GraphObj *graph, Tensor input, Tensor output,
+    const optional<vector<int>> &_axes, bool keepDims)
+: ReduceBaseObj(graph, OpType::ReduceMean, input, output, _axes, keepDims) {
 }
 
 ReduceSumObj::ReduceSumObj(GraphObj *graph, Tensor input, Tensor output,

@@ -91,5 +91,43 @@ vector<int> GatherObj::getWorkloadVector() const {
 vector<int> GatherObj::getOpAttrVector() const {
     return {type.underlying(), axis};
 }
+void GatherObj::initInfiniOp(const Runtime context) {
+    auto input_dim = inputs[0]->getDims();
+    auto index_dim = inputs[1]->getDims();
+    auto output_dim = outputs[0]->getDims();
+
+
+    // convert dim data to infiniop format
+    auto input_shape = toInfiniopShape(input_dim);
+    auto index_shape = toInfiniopShape(index_dim);
+    auto out_shape = toInfiniopShape(output_dim);
+
+    // create tensor descriptors
+    infiniopTensorDescriptor_t input_tensor;
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &input_tensor, input_dim.size(), input_shape.data(), nullptr,
+        toInfiniopDataLayout(inputs[0]->getDType().getIndex())));
+
+    infiniopTensorDescriptor_t index_tensor;
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &index_tensor, index_dim.size(), index_shape.data(), nullptr,
+        toInfiniopDataLayout(inputs[1]->getDType().getIndex())));
+
+    infiniopTensorDescriptor_t out_tensor;
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &out_tensor, output_dim.size(), out_shape.data(), nullptr,
+        toInfiniopDataLayout(outputs[0]->getDType().getIndex())));
+
+    // create op descriptor
+    CHECK_ERROR(infiniopCreateGatherDescriptor(
+        context->opHandle(), (infiniopGatherDescriptor_t *)&opDesc,
+        input_tensor, index_tensor, out_tensor,axis));
+
+    // destroy tensor descriptors
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(input_tensor));
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(index_tensor));
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(out_tensor));
+}
+
 
 } // namespace infini

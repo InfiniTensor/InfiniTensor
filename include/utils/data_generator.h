@@ -12,7 +12,9 @@ class DataGenerator {
     virtual void fill(uint32_t *data, size_t size) { IT_TODO_HALT(); }
     virtual void fill(float *data, size_t size) { IT_TODO_HALT(); }
     virtual void fill_fp16(uint16_t *data, size_t size) { IT_TODO_HALT(); }
-
+    virtual void fill(int32_t *data, size_t size) { IT_TODO_HALT(); }
+    virtual void fill(int64_t *data, size_t size) { IT_TODO_HALT(); }
+    virtual void fill(uint8_t *data, size_t size) { IT_TODO_HALT(); }
   public:
     virtual ~DataGenerator() {}
     void operator()(void *data, size_t size, DataType dataType) {
@@ -22,6 +24,12 @@ class DataGenerator {
             fill(reinterpret_cast<float *>(data), size);
         else if (dataType == DataType::Float16)
             fill_fp16(reinterpret_cast<uint16_t *>(data), size);
+        else if(dataType==DataType::Int32)
+            fill(reinterpret_cast<int32_t *>(data),size);
+        else if(dataType==DataType::UInt8)
+            fill(reinterpret_cast<uint8_t *>(data),size);
+            else if(dataType==DataType::Int64)
+            fill(reinterpret_cast<int64_t *>(data),size);
         else
             IT_TODO_HALT();
     }
@@ -41,9 +49,18 @@ class IncrementalGenerator : public DataGenerator {
     void fill(uint32_t *data, size_t size) override {
         fill<uint32_t>(data, size);
     }
+    void fill(int32_t *data, size_t size) override {
+        fill<int32_t>(data, size);
+    }
     void fill(float *data, size_t size) override { fill<float>(data, size); }
     // FIXME: fix the accuracy standards when dtype is float16
     void fill_fp16(uint16_t *data, size_t size) {
+        for (size_t i = 0; i < size; i++) {
+            float x = 2.0f;
+            data[i] = float_to_fp16(x);
+        }
+    }
+    void fill_fp16(int32_t *data, size_t size) {
         for (size_t i = 0; i < size; i++) {
             float x = 2.0f;
             data[i] = float_to_fp16(x);
@@ -90,8 +107,35 @@ template <int val> class ValGenerator : public DataGenerator {
     void fill(uint32_t *data, size_t size) override {
         fill<uint32_t>(data, size);
     }
+    void fill(int64_t *data, size_t size) override {
+        fill<int64_t>(data, size);
+    }
+    void fill(int32_t *data, size_t size) override {
+        fill<int32_t>(data, size);
+    }
+    void fill(uint8_t *data, size_t size) override {
+        fill<uint8_t>(data, size);
+    }
     void fill(float *data, size_t size) override { fill<float>(data, size); }
     void fill_fp16(uint16_t *data, size_t size) {
+        for (size_t i = 0; i < size; i++) {
+            float x = 1.0f * val;
+            data[i] = float_to_fp16(x);
+        }
+    }
+    void fill_fp16(uint8_t *data, size_t size) {
+        for (size_t i = 0; i < size; i++) {
+            float x = 1.0f * val;
+            data[i] = float_to_fp16(x);
+        }
+    }
+    void fill_fp16(int32_t *data, size_t size) {
+        for (size_t i = 0; i < size; i++) {
+            float x = 1.0f * val;
+            data[i] = float_to_fp16(x);
+        }
+    }
+    void fill_fp16(int64_t *data, size_t size) {
         for (size_t i = 0; i < size; i++) {
             float x = 1.0f * val;
             data[i] = float_to_fp16(x);

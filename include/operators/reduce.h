@@ -24,7 +24,31 @@ class ReduceBaseObj : public OperatorObj {
      */
     ReduceBaseObj(GraphObj *graph, OpType opType, Tensor input, Tensor output,
                   const optional<vector<int>> &axes, bool keepDims);
-    virtual ~ReduceBaseObj() {}
+    ~ReduceBaseObj() override {
+      if (opDesc) {
+          try {
+              if ( type == OpType::ReduceMax ){
+                CHECK_ERROR(infiniopDestroyReduceMaxDescriptor(
+                  (infiniopReduceMaxDescriptor_t)opDesc));
+                
+              }else if(type == OpType::ReduceMean){
+                CHECK_ERROR(infiniopDestroyReduceMeanDescriptor(
+                  (infiniopReduceMeanDescriptor_t)opDesc));
+              }else if(type == OpType::ReduceMin)
+              {
+                  CHECK_ERROR(infiniopDestroyReduceMinDescriptor(
+                      (infiniopReduceMinDescriptor_t)opDesc));
+              } else {
+                  IT_ASSERT(false, "Unsupported reduce operator type "
+                                    "for infini op destroy");
+              }
+          } catch (const std::exception &e) {
+              std::cerr << "Error in ~ReduceBaseObj: " << e.what() << std::endl;
+          }
+      }
+  }
+  void initInfiniOp(const Runtime context) override;
+                
     OP_CLONE(ReduceBaseObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
@@ -46,6 +70,18 @@ class ReduceMeanObj : public ReduceBaseObj {
     ReduceMeanObj(GraphObj *graph, Tensor input, Tensor output,
                   const optional<vector<int>> &axes, bool keepDims = true);
 };
+class ReduceMaxObj : public ReduceBaseObj {
+  public:
+    ReduceMaxObj(GraphObj *graph, Tensor input, Tensor output,
+                 const optional<vector<int>> &axes, bool keepDims = true);
+};
+
+class ReduceMinObj : public ReduceBaseObj {
+  public:
+    ReduceMinObj(GraphObj *graph, Tensor input, Tensor output,
+                 const optional<vector<int>> &axes, bool keepDims = true);
+};
+
 
 class ReduceSumObj : public ReduceBaseObj {
   public:

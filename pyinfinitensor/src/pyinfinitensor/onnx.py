@@ -1013,8 +1013,9 @@ class OnnxStub:
                             continue
                 tensors[node.output[0]] = self.handler.where(
                     tensors[node.input[1]],
-                    tensors[node.input[2]],
                     tensors[node.input[0]],
+                    tensors[node.input[2]],
+                    
                     tensors.get(node.output[0]),
                 )
             elif node.op_type in ["Constant", "ConstantOfShape"]:
@@ -1267,6 +1268,21 @@ class OnnxStub:
                         ceil_mode=ceil_mode,
                     )
                 )
+            elif ty==backend.OpTypeId.GlobalAveragePool:
+                kh, kw, dh, dw, ph, pw, sh, sw, ceil_mode = backend.pool_attrs_of(op)
+                ctx.push_node(
+                    make_node(
+                        "AveragePool",
+                        inputs,
+                        outputs,
+                        name,
+                        kernel_shape=[kh, kw],
+                        pads=[ph, pw, ph, pw],
+                        strides=[sh, sw],
+                        ceil_mode=ceil_mode,
+                    )
+                )
+
             elif ty in [
                 backend.OpTypeId.Add,
                 backend.OpTypeId.Sub,
@@ -1400,6 +1416,13 @@ class OnnxStub:
             elif ty == backend.OpTypeId.Cast:
                 to = backend.cast_to_of(op)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, to=to))
+            elif ty == backend.OpTypeId.GridSample:
+                shape = backend.expand_shape_of(op)
+
+                ctx.push_node(make_node(ty.name, inputs, outputs, name, shape=shape))
+                
+                
+
             elif ty == backend.OpTypeId.Where:
                 assert len(inputs) == 3, "Check Where Op must have three inputs."
                 new_inputs = [inputs[2], inputs[0], inputs[1]]
@@ -1422,6 +1445,8 @@ class OnnxStub:
                     )
                 )
             else:
+                print("Unknown OpType id:", ty, "node name:", ty.name)
+
                 raise Exception("Unsupported OpType", ty)
 
         return ctx.build(name)
