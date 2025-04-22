@@ -108,7 +108,7 @@ Tensor GraphHandlerObj::gemm(Tensor a, Tensor b, Tensor y, Tensor c,
                              float alpha, float beta, bool transA,
                              bool transB) {
     if (y) {
-        g->addOpWithOutputs<GemmObj>(std::move(a), std::move(b), y,
+        g->addOpWithOutputs<GemmObj>(std::move(a), std::move(b),y, 
                                      std::move(c), alpha, beta, transA, transB);
         return y;
     } else {

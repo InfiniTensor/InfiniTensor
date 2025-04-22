@@ -128,8 +128,8 @@ class TestStringMethods(unittest.TestCase):
         )
 
     def test_max_pool(self):
-        x = make_tensor_value_info("x", TensorProto.UINT32, [1, 64, 162, 162])
-        y = make_tensor_value_info("y", TensorProto.UINT32, [1, 64, 80, 80])
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 64, 162, 162])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 64, 80, 80])
         pool = make_node(
             "MaxPool",
             ["x"],
@@ -143,8 +143,8 @@ class TestStringMethods(unittest.TestCase):
         make_and_import_model(make_graph([pool], "maxPool", [x], [y]))
 
     def test_avg_pool(self):
-        x = make_tensor_value_info("x", TensorProto.UINT32, [1, 64, 162, 162])
-        y = make_tensor_value_info("y", TensorProto.UINT32, [1, 64, 80, 80])
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 64, 162, 162])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 64, 80, 80])
         pool = make_node(
             "AveragePool",
             ["x"],
@@ -157,8 +157,8 @@ class TestStringMethods(unittest.TestCase):
         make_and_import_model(make_graph([pool], "avgPool", [x], [y]))
 
     def test_global_avg_pool(self):
-        x = make_tensor_value_info("x", TensorProto.UINT32, [30, 30, 30, 30])
-        y = make_tensor_value_info("y", TensorProto.UINT32, [30, 30, 1, 1])
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [30, 30, 30, 30])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [30, 30, 1, 1])
         pool = make_node(
             "GlobalAveragePool",
             ["x"],
@@ -531,11 +531,11 @@ class TestStringMethods(unittest.TestCase):
 
     def test_frontend(self):
         handler = backend.GraphHandler(backend.cpu_runtime())
-        a = handler.tensor([1, 2, 3], 12)
-        b = handler.tensor([1, 2, 3], 12)
-        c = handler.tensor([1, 2, 3], 12)
-        d = handler.tensor([1, 2, 3], 12)
-        e = handler.tensor([1, 2, 3], 12)
+        a = handler.tensor([1, 2, 3], 1)
+        b = handler.tensor([1, 2, 3], 1)
+        c = handler.tensor([1, 2, 3], 1)
+        d = handler.tensor([1, 2, 3], 1)
+        e = handler.tensor([1, 2, 3], 1)
 
         x = handler.add(
             handler.add(handler.add(handler.add(a, b, None), c, None), d, None), e, None
@@ -564,7 +564,7 @@ class TestStringMethods(unittest.TestCase):
     def test_where(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
-        con = make_tensor_value_info("con", TensorProto.BOOL, [1, 3, 5, 7])
+        con = make_tensor_value_info("con", TensorProto.UINT8, [1, 3, 5, 7])
         output = make_tensor_value_info("output", TensorProto.FLOAT, [1, 3, 5, 7])
         where = make_node("Where", ["x", "y", "con"], ["output"], name="where")
         make_and_import_model(make_graph([where], "where", [x, y, con], [output]))
