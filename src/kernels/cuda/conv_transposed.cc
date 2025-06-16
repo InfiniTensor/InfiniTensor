@@ -10,7 +10,7 @@ namespace infini {
 struct ConvTransposedCuDnnPerfRecordObj : public PerfRecordObj {
     int algo = 0; // cudnnConvolutionBwdDataAlgo_t
     int mode = 1;
-    size_t workspaceSize = 100000;
+    size_t workspaceSize = 100 * 1024 * 1024;
     bool fuseAct = false;
 };
 using ConvTransposedCuDnnPerfRecord = Ref<ConvTransposedCuDnnPerfRecordObj>;
@@ -154,8 +154,21 @@ class convBackwardDataCudnn : public Kernel {
 
         stat = cudnnConvolutionBackwardData(
             context->cudnnHandle(), &alpha, knDesc, knData, inDesc, inData,
-            convDesc, ALGOS[record.algo], wsData, wsSize, &beta, outDesc,
-            outData);
+            convDesc, CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT, wsData, wsSize,
+            &beta, outDesc, outData);
+        // 示例：打印 tensor descriptor 的形状
+        // int n, c, h, w, nStride, cStride, hStride, wStride;
+        // cudnnDataType_t dataType;
+        // cudnnGetTensor4dDescriptor(inDesc, &dataType, &n, &c, &h, &w,
+        // &nStride,
+        //                            &cStride, &hStride, &wStride);
+        // std::cerr << "Input shape: " << n << "x" << c << "x" << h << "x" << w
+        //           << std::endl;
+        // std::cerr << "Input stride: " << nStride << "x" << cStride << "x"
+        //           << hStride << "x" << wStride << std::endl;
+        // std::cerr << "cuDNN error: " << cudnnGetErrorString(stat)
+        //           << " (code: " << stat << ")" << std::endl;
+
         if (stat != CUDNN_STATUS_SUCCESS)
             return false;
         // TODO:

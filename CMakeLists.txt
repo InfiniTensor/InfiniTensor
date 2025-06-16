@@ -64,11 +64,12 @@ if(((CMAKE_C_COMPILER_ID MATCHES "GNU") AND NOT MINGW AND NOT HAIKU) AND CMAKE_C
   add_compile_options(-Wno-array-bounds -Wno-stringop-overflow)
 endif()
 
-find_package(
+find_package( #裸机虚拟环境用这个
   Python
   COMPONENTS Interpreter Development
   REQUIRED)
-
+# set(Python_EXECUTABLE "/usr/bin/python3.12") #docker用这个
+# find_package(Python REQUIRED COMPONENTS Interpreter Development)
 # OpenMP
 find_package(OpenMP)
 if(OpenMP_C_FOUND)
@@ -146,8 +147,19 @@ if(BUILD_NNET)
 endif()
 
 if(USE_CUDA)
-  file(GLOB_RECURSE SRC_CUDA src/cuda/*.cc src/cuda/*.cu src/kernels/cuda/*.cc src/kernels/cuda/*.cu)
-  list (APPEND SRC ${SRC_CUDA})
+  if(EXISTS "/usr/local/cuda")  # 英伟达 CUDA 平台
+    enable_language(CUDA)
+    file(GLOB_RECURSE SRC_CUDA
+      src/cuda/*.cc src/cuda/*.cu
+      src/kernels/cuda/*.cc src/kernels/cuda/*.cu)
+    list(APPEND SRC ${SRC_CUDA})
+  else()  # 登临 DLCC 平台
+    file(GLOB_RECURSE SRC_CUDA_CC src/cuda/*.cc src/kernels/cuda/*.cc)
+    file(GLOB_RECURSE SRC_CUDA_CU src/cuda/*.cu src/kernels/cuda/*.cu)
+    list(APPEND SRC ${SRC_CUDA_CC})
+    # 先不处理 .cu 文件，等下一段专门处理
+    set(SRC_CUDA_CU_FILES ${SRC_CUDA_CU} CACHE INTERNAL "DLCC .cu files")
+  endif()
 endif()
 
 if(USE_BANG)
@@ -221,23 +233,84 @@ if(USE_INTELCPU)
   find_package(IntelDPCPP REQUIRED)
 endif()
 
-if(USE_CUDA)
-  add_compile_definitions(USE_CUDA=1)
-  # Since enable_language only executes once, rerun cmake is required if CMAKE_CUDA_HOST_COMPILER is wrong
-  set(CMAKE_CUDA_HOST_COMPILER
-      ${CMAKE_CXX_COMPILER}
-      CACHE STRING "Set cuda host compiler path")
-  # CMP0104 requires CUDA_ARCHITECTURES
-  set_target_properties(InfiniTensor PROPERTIES CUDA_ARCHITECTURES "70;80")
-  enable_language(CUDA)
-  find_package(CUDAToolkit) # For nvrtc and cuda driver
-  target_link_libraries(InfiniTensor cudnn CUDA::curand CUDA::cublas CUDA::nvrtc CUDA::cudart CUDA::cuda_driver)
-  if (BUILD_DIST)
-    message(STATUS "Add BUILD_DIST, use NCCL with CUDA")
-    list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-    find_package(NCCL REQUIRED)
-    add_compile_definitions(INFINI_USE_NCCL=1)
-    target_link_libraries(InfiniTensor nccl)
+if(USE_CUDA)  
+  if(EXISTS "/usr/local/cuda")
+    add_compile_definitions(USE_CUDA=1)
+    # Since enable_language only executes once, rerun cmake is required if CMAKE_CUDA_HOST_COMPILER is wrong
+    set(CMAKE_CUDA_HOST_COMPILER
+        ${CMAKE_CXX_COMPILER}
+        CACHE STRING "Set cuda host compiler path")
+    # CMP0104 requires CUDA_ARCHITECTURES
+    set_target_properties(InfiniTensor PROPERTIES CUDA_ARCHITECTURES "70;80")
+    enable_language(CUDA)
+    find_package(CUDAToolkit) # For nvrtc and cuda driver
+    target_link_libraries(InfiniTensor cudnn CUDA::curand CUDA::cublas CUDA::nvrtc CUDA::cudart CUDA::cuda_driver)
+    if (BUILD_DIST)
+      message(STATUS "Add BUILD_DIST, use NCCL with CUDA")
+      list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+      find_package(NCCL REQUIRED)
+      add_compile_definitions(INFINI_USE_NCCL=1)
+      target_link_libraries(InfiniTensor nccl)
+    endif()
+  else()
+    message(STATUS "Detected DLCC environment, configuring CUDA build")
+
+    add_compile_definitions(USE_CUDA=1)
+
+    # 编译 .cu 文件为 .o 对象文件
+    set(DLCC_PATH /usr/local/denglin/sdk/bin/dlcc)
+    set(DLCC_CUDA_PATH /usr/local/denglin/sdk)
+    set(DLCC_ARCH dlgput64)
+
+    set(GENERATED_CU_OBJS "")
+    foreach(cu_file ${SRC_CUDA_CU_FILES})
+      get_filename_component(cu_name ${cu_file} NAME_WE)
+      get_filename_component(cu_dir ${cu_file} DIRECTORY)
+      string(REPLACE "${CMAKE_SOURCE_DIR}/" "" relative_dir ${cu_dir})
+      set(obj_path "${CMAKE_CURRENT_BINARY_DIR}/${relative_dir}/${cu_name}.cu.o")
+      get_filename_component(obj_dir ${obj_path} DIRECTORY)  # 取出目录路径
+
+      add_custom_command(
+        OUTPUT ${obj_path}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${obj_dir}   # 确保目录存在
+        COMMAND ${DLCC_PATH} -c ${cu_file} -o ${obj_path}
+                --cuda-path=${DLCC_CUDA_PATH}
+                --cuda-gpu-arch=${DLCC_ARCH}
+                -I${PROJECT_SOURCE_DIR}/include -O2 -std=c++17 -fPIC
+        DEPENDS ${cu_file}
+        COMMENT "Compiling ${cu_file} with dlcc"
+        VERBATIM
+      )
+
+      list(APPEND GENERATED_CU_OBJS ${obj_path})
+    endforeach()
+
+    add_custom_target(cuda_objs ALL DEPENDS ${GENERATED_CU_OBJS})
+    add_dependencies(InfiniTensor cuda_objs)
+
+    # 手动把 .o 文件加进目标
+    target_sources(InfiniTensor PRIVATE ${GENERATED_CU_OBJS})
+
+    # include / lib 设置
+    include_directories(/usr/local/denglin/sdk/include)
+    target_include_directories(InfiniTensor PRIVATE /usr/local/denglin/sdk/include)
+    link_directories(/usr/local/denglin/sdk/lib)
+
+    # 链接 DLCC CUDA 库
+    target_link_libraries(InfiniTensor
+      /usr/local/denglin/sdk/lib/libcurt.so
+      /usr/local/denglin/sdk/lib/libcublas.so
+      /usr/local/denglin/sdk/lib/libcudnn.so
+    )
+
+    # 分布式支持
+    if(BUILD_DIST)
+      message(STATUS "Add BUILD_DIST, use dlnccl with DLCC")
+      list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+      find_package(dlnccl REQUIRED)
+      add_compile_definitions(INFINI_USE_DLNCCL=1)
+      target_link_libraries(InfiniTensor dlnccl)
+    endif()
   endif()
 endif()
 

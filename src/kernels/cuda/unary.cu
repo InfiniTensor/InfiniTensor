@@ -103,14 +103,33 @@ __global__ void _elu_kernel(const float *input, float *output, size_t size,
         output[index] = (x >= 0) ? x : alpha * (expf(x) - 1);
     }
 }
+__device__ float fast_erf(float x) {
+    // 高效erf近似，精度比tanh近似更高
+    float a1 = 0.254829592f;
+    float a2 = -0.284496736f;
+    float a3 = 1.421413741f;
+    float a4 = -1.453152027f;
+    float a5 = 1.061405429f;
+    float p = 0.3275911f;
 
+    int sign = x < 0 ? -1 : 1;
+    x = fabsf(x);
+
+    float t = 1.0f / (1.0f + p * x);
+    float y = 1.0f - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t *
+                         expf(-x * x);
+
+    return sign * y;
+}
 template <typename T>
 __global__ void _gelu_kernel(T *input, T *output, size_t n) {
     int index = threadIdx.x + blockIdx.x * blockDim.x;
     int stride = blockDim.x * gridDim.x;
     for (int i = index; i < n; i += stride) {
         float x = input[i];
-        output[i] = 0.5 * x * (1 + erf(x / sqrt(2.0f)));
+        // output[i] = 0.5 * x * (1 + erf(x / sqrt(2.0f))); //
+        // 这个高精度，速度慢
+        output[i] = 0.5f * x * (1.0f + fast_erf(x * 0.7071067811865475f));
     }
 }
 
