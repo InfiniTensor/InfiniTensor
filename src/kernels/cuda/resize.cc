@@ -28,6 +28,15 @@ class ResizeCuda : public CudaKernelWithoutConfig {
 
         switch (op->getMode()) {
         case ResizeObj::ECoeffMode::nearest:
+            // std::cout << "nearest:" << "ndim = " << nDims << std::endl;
+            // for (int i = 0; i < nDims; i++) {
+            //     printf("%d ", metaData.inDims[i]);
+            // }
+            // printf("\n");
+            // for (int i = 0; i < nDims; i++) {
+            //     printf("%d ", metaData.oDims[i]);
+            // }
+            // printf("\n");
             resize_kernel_nearest(in->getRawDataPtr<float *>(),
                                   out->getRawDataPtr<float *>(), metaData,
                                   out->size(), op->getCoordinateTransMode(),

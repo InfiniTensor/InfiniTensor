@@ -663,6 +663,18 @@ class OnnxStub:
                     tensors.get(node.output[0]),
                     shape,
                 )
+                # import torch
+                # print(dir(tensors[node.input[0]])) 
+                # print(tensors[node.input[0]].shape())
+                # print(tensors[node.input[0]].src())
+
+                # torch_tensor = torch.utils.dlpack.from_dlpack(tensors[node.input[0]].to_dlpack())
+
+                # # 2. 使用 torch.reshape
+                # reshaped = torch_tensor.reshape(shape)
+
+                # # 3. 再转回 backend.Tensor
+                # tensors[node.output[0]] = backend.Tensor.from_dlpack(torch.utils.dlpack.to_dlpack(reshaped))
             elif node.op_type == "Resize":
                 output = tensors.get(node.output[0])
                 attributes = _parse_attribute(

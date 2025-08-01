@@ -117,29 +117,40 @@ _blockSoftmaxKernel(T *__restrict input, T *__restrict output, int size,
     dms_partial.max_tmp = -__FLT_MAX__;
     dms_partial.sum_tmp = 0.0f;
     DataMaxSum dms_input;
-    if (threadIdx.x < remain) {
-        for (int ind = 0; ind < step; ind++) {
-            dataPerThread[ind] =
-                input[tid + (threadIdx.x * step + ind) * stride];
-            dms_input.max_tmp = dataPerThread[ind];
-            dms_input.sum_tmp = 1.0f;
-            dms_partial =
-                reduce_dms_op(dms_partial,
-                              dms_input); // reduce the data to one block
+    for (int i = 0; i < numPerThread; i++) {
+        int ind = threadIdx.x * numPerThread + i;
+        if (ind > dimsize - 1) {
+            break;
         }
-    } else {
-        for (int ind = 0; ind < step - 1; ind++) {
-            dataPerThread[ind] =
-                input[tid + (remain * step +
-                             (threadIdx.x - remain) * (step - 1) + ind) *
-                                stride];
-            dms_input.max_tmp = dataPerThread[ind];
-            dms_input.sum_tmp = 1.0f;
-            dms_partial =
-                reduce_dms_op(dms_partial,
-                              dms_input); // reduce the data to one block
-        }
+        dataPerThread[ind] = input[tid + ind * stride];
+        dms_input.max_tmp = dataPerThread[ind];
+        dms_input.sum_tmp = 1.0f;
+        dms_partial = reduce_dms_op(dms_partial,
+                                    dms_input); // reduce the data to one block
     }
+    // if (threadIdx.x < remain) {
+    //     for (int ind = 0; ind < step; ind++) {
+    //         dataPerThread[ind] =
+    //             input[tid + (threadIdx.x * step + ind) * stride];
+    //         dms_input.max_tmp = dataPerThread[ind];
+    //         dms_input.sum_tmp = 1.0f;
+    //         dms_partial =
+    //             reduce_dms_op(dms_partial,
+    //                           dms_input); // reduce the data to one block
+    //     }
+    // } else {
+    //     for (int ind = 0; ind < step - 1; ind++) {
+    //         dataPerThread[ind] =
+    //             input[tid + (remain * step +
+    //                          (threadIdx.x - remain) * (step - 1) + ind) *
+    //                             stride];
+    //         dms_input.max_tmp = dataPerThread[ind];
+    //         dms_input.sum_tmp = 1.0f;
+    //         dms_partial =
+    //             reduce_dms_op(dms_partial,
+    //                           dms_input); // reduce the data to one block
+    //     }
+    // }
 
     typedef cub::BlockReduce<DataMaxSum, BLOCK_DIM> BlockReduce;
     __shared__ typename BlockReduce::TempStorage temp_storage;
@@ -152,21 +163,76 @@ _blockSoftmaxKernel(T *__restrict input, T *__restrict output, int size,
     }
     __syncthreads();
     //-----------------
-    if (threadIdx.x < remain) {
-        for (int ind = 0; ind < step; ind++) {
-            output[tid + (threadIdx.x * step + ind) * stride] =
-                __expf(dataPerThread[ind] - dms_total.max_tmp) *
-                __fdividef(1.0F, dms_total.sum_tmp);
+    int inv = __fdividef(1.0F, dms_total.sum_tmp);
+    for (int i = 0; i < numPerThread; i++) {
+        int ind = threadIdx.x * numPerThread + i;
+        if (ind > dimsize) {
+            break;
         }
-    } else {
-        for (int ind = 0; ind < step - 1; ind++) {
-            output[tid +
-                   (remain * step + (threadIdx.x - remain) * (step - 1) + ind) *
-                       stride] =
-                __expf(dataPerThread[ind] - dms_total.max_tmp) *
-                __fdividef(1.0F, dms_total.sum_tmp);
+        output[tid + ind * stride] =
+            __expf(dataPerThread[ind] - dms_total.max_tmp) * inv;
+    }
+    // if (threadIdx.x < remain) {
+    //     for (int ind = 0; ind < step; ind++) {
+    //         output[tid + (threadIdx.x * step + ind) * stride] =
+    //             __expf(dataPerThread[ind] - dms_total.max_tmp) *
+    //             __fdividef(1.0F, dms_total.sum_tmp);
+    //     }
+    // } else {
+    //     for (int ind = 0; ind < step - 1; ind++) {
+    //         output[tid +
+    //                (remain * step + (threadIdx.x - remain) * (step - 1) +
+    //                ind) *
+    //                    stride] =
+    //             __expf(dataPerThread[ind] - dms_total.max_tmp) *
+    //             __fdividef(1.0F, dms_total.sum_tmp);
+    //     }
+    // }
+}
+template <int BLOCK_DIM>
+__global__ void _blockSoftmaxKernel_stride1(
+    float *__restrict input, float *__restrict output, int size,
+    int dimsize) { // if set axis = 1, inputShape=[I,J,K,S]
+                   // tid = i(JKS) + j(KS) + k(S) + s
+
+    int tid = blockIdx.x * dimsize;
+
+    float dataPerThread[4];
+
+    DataMaxSum dms_partial;
+    dms_partial.max_tmp = -__FLT_MAX__;
+    dms_partial.sum_tmp = 0.0f;
+    DataMaxSum dms_input;
+
+    (float4 &)dataPerThread[0] = (float4 &)input[tid + threadIdx.x * 4];
+    for (int i = 0; i < 4; i++) {
+        if (threadIdx.x * 4 + i > dimsize - 1) {
+            dataPerThread[i] = -__FLT_MAX__;
+        }
+        dms_input.max_tmp = dataPerThread[i];
+        dms_input.sum_tmp = 1.0f;
+        dms_partial = reduce_dms_op(dms_partial,
+                                    dms_input); // reduce the data to one block
+    }
+    typedef cub::BlockReduce<DataMaxSum, BLOCK_DIM> BlockReduce;
+    __shared__ typename BlockReduce::TempStorage temp_storage;
+    __shared__ DataMaxSum dms_total;
+    DataMaxSum dms_block =
+        BlockReduce(temp_storage).Reduce(dms_partial, reduce_dms_op);
+    if (threadIdx.x ==
+        0) { // must set threadIdx.x = 0 write the output to memory
+        dms_total = dms_block;
+    }
+    __syncthreads();
+    //-----------------
+    int inv = __fdividef(1.0F, dms_total.sum_tmp);
+    for (int i = 0; i < 4; i++) {
+        dataPerThread[i] = __expf(dataPerThread[i] - dms_total.max_tmp) * inv;
+        if (threadIdx.x * 4 + i > dimsize - 1) {
+            dataPerThread[i] = -__FLT_MAX__;
         }
     }
+    (float4 &)output[tid + threadIdx.x * 4] = (float4 &)dataPerThread[0];
 }
 
 template <typename T> struct SumOp {
@@ -241,83 +307,122 @@ __global__ void _warpSoftmaxKernel(T *__restrict input, T *__restrict output,
 namespace infini {
 void softmax_kernel(int num_blocks, float *input, float *output, int size,
                     int dimsize, int stride) {
+    if (stride == 1 && dimsize <= 1024 * 4 && dimsize >= 4) {
+        if (dimsize > 1024) {
+            int BLOCK_DIM = 1024;
+            _blockSoftmaxKernel_stride1<1024>
+                <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>(
+                    input, output, size, dimsize);
+        } else if (dimsize > 256) {
+            int BLOCK_DIM = 256;
+            _blockSoftmaxKernel_stride1<256>
+                <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>(
+                    input, output, size, dimsize);
+        } else {
+            int BLOCK_DIM = 64;
+            _blockSoftmaxKernel_stride1<64>
+                <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>(
+                    input, output, size, dimsize);
+        }
 
-    if (dimsize > 1024 * 128) {
-
-        int BLOCK_DIM = 1024;
-        _blockSoftmaxKernel<float, 1024>
-            <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>
-            (input, output, size, dimsize, stride);
-    } else if (dimsize > 1024 * 64) {
-
-        int BLOCK_DIM = 1024;
-        _blockSoftmaxKernel<float, 1024, 128>
-            <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>
-            (input, output, size, dimsize, stride);
-    } else if (dimsize > 1024 * 32) {
-
-        int BLOCK_DIM = 1024;
-        _blockSoftmaxKernel<float, 1024, 64>
-            <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>
-            (input, output, size, dimsize, stride);
-    } else if (dimsize > 1024 * 16) {
-
-        int BLOCK_DIM = 1024;
-        _blockSoftmaxKernel<float, 1024, 32>
-            <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>
-            (input, output, size, dimsize, stride);
-    } else if (dimsize > 1024 * 4) {
-
-        int BLOCK_DIM = 1024;
-        _blockSoftmaxKernel<float, 1024, 16>
-            <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>
-            (input, output, size, dimsize, stride);
-    } else if (dimsize > 1024) {
-
-        int BLOCK_DIM = 1024;
-        _blockSoftmaxKernel<float, 1024, 4>
-            <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>
-            (input, output, size, dimsize, stride);
-    } else if (dimsize > 31) {
-        int BLOCK_DIM_x = 32;
-        int BLOCK_DIM_y = 32;
-        int num_block_x = (num_blocks + BLOCK_DIM_y - 1) / BLOCK_DIM_y;
-        dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
-        dim3 grid_dim(num_block_x, 1, 1);
-
-        _warpSoftmaxKernel<float, 32, 32, 32>
-            <<<grid_dim, block_dim, 0, CUDAStream::getCurrentStream()>>>
-            (input, output, size, dimsize, stride);
-    } else if (dimsize > 15) {
-        int BLOCK_DIM_x = 16;
-        int BLOCK_DIM_y = 64;
-        int num_block_x = (num_blocks + BLOCK_DIM_y - 1) / BLOCK_DIM_y;
-        dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
-        dim3 grid_dim(num_block_x, 1, 1);
-
-        _warpSoftmaxKernel<float, 16, 64, 2>
-            <<<grid_dim, block_dim, 0, CUDAStream::getCurrentStream()>>>
-            (input, output, size, dimsize, stride);
-    } else if (dimsize > 7) {
-        int BLOCK_DIM_x = 8;
-        int BLOCK_DIM_y = 128;
-        int num_block_x = (num_blocks + BLOCK_DIM_y - 1) / BLOCK_DIM_y;
-        dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
-        dim3 grid_dim(num_block_x, 1, 1);
-
-        _warpSoftmaxKernel<float, 8, 128, 2>
-            <<<grid_dim, block_dim, 0, CUDAStream::getCurrentStream()>>>
-            (input, output, size, dimsize, stride);
     } else {
-        int BLOCK_DIM_x = 4;
-        int BLOCK_DIM_y = 256;
-        int num_block_x = (num_blocks + BLOCK_DIM_y - 1) / BLOCK_DIM_y;
-        dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
-        dim3 grid_dim(num_block_x, 1, 1);
+        if (dimsize > 1024 * 128) {
 
-        _warpSoftmaxKernel<float, 4, 256, 2>
-            <<<grid_dim, block_dim, 0, CUDAStream::getCurrentStream()>>>
-            (input, output, size, dimsize, stride);
+            int BLOCK_DIM = 1024;
+            _blockSoftmaxKernel<float, 1024>
+                <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>(
+                    input, output, size, dimsize, stride);
+        } else if (dimsize > 1024 * 64) {
+
+            int BLOCK_DIM = 1024;
+            _blockSoftmaxKernel<float, 1024, 128>
+                <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>(
+                    input, output, size, dimsize, stride);
+        } else if (dimsize > 1024 * 32) {
+
+            int BLOCK_DIM = 1024;
+            _blockSoftmaxKernel<float, 1024, 64>
+                <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>(
+                    input, output, size, dimsize, stride);
+        } else if (dimsize > 1024 * 16) {
+
+            int BLOCK_DIM = 1024;
+            _blockSoftmaxKernel<float, 1024, 32>
+                <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>(
+                    input, output, size, dimsize, stride);
+        } else if (dimsize > 1024 * 4) {
+
+            int BLOCK_DIM = 1024;
+            _blockSoftmaxKernel<float, 1024, 16>
+                <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>(
+                    input, output, size, dimsize, stride);
+        } else if (dimsize > 1024) {
+
+            int BLOCK_DIM = 1024;
+            _blockSoftmaxKernel<float, 1024, 4>
+                <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>(
+                    input, output, size, dimsize, stride);
+        } else if (dimsize > 512) {
+            int BLOCK_DIM = 512;
+            _blockSoftmaxKernel<float, 512, 2>
+                <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>(
+                    input, output, size, dimsize, stride);
+        } else if (dimsize > 256) {
+            int BLOCK_DIM = 512;
+            _blockSoftmaxKernel<float, 512, 1>
+                <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>(
+                    input, output, size, dimsize, stride);
+        } else if (dimsize > 128) {
+            int BLOCK_DIM = 256;
+            _blockSoftmaxKernel<float, 256, 1>
+                <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>(
+                    input, output, size, dimsize, stride);
+        } else if (dimsize > 64) {
+            int BLOCK_DIM = 128;
+            _blockSoftmaxKernel<float, 128, 1>
+                <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>(
+                    input, output, size, dimsize, stride);
+        } else if (dimsize > 31) {
+            int BLOCK_DIM_x = 32;
+            int BLOCK_DIM_y = 32;
+            int num_block_x = (num_blocks + BLOCK_DIM_y - 1) / BLOCK_DIM_y;
+            dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
+            dim3 grid_dim(num_block_x, 1, 1);
+
+            _warpSoftmaxKernel<float, 32, 32, 2>
+                <<<grid_dim, block_dim, 0, CUDAStream::getCurrentStream()>>>(
+                    input, output, size, dimsize, stride);
+        } else if (dimsize > 15) {
+            int BLOCK_DIM_x = 16;
+            int BLOCK_DIM_y = 64;
+            int num_block_x = (num_blocks + BLOCK_DIM_y - 1) / BLOCK_DIM_y;
+            dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
+            dim3 grid_dim(num_block_x, 1, 1);
+
+            _warpSoftmaxKernel<float, 16, 64, 2>
+                <<<grid_dim, block_dim, 0, CUDAStream::getCurrentStream()>>>(
+                    input, output, size, dimsize, stride);
+        } else if (dimsize > 7) {
+            int BLOCK_DIM_x = 8;
+            int BLOCK_DIM_y = 128;
+            int num_block_x = (num_blocks + BLOCK_DIM_y - 1) / BLOCK_DIM_y;
+            dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
+            dim3 grid_dim(num_block_x, 1, 1);
+
+            _warpSoftmaxKernel<float, 8, 128, 2>
+                <<<grid_dim, block_dim, 0, CUDAStream::getCurrentStream()>>>(
+                    input, output, size, dimsize, stride);
+        } else {
+            int BLOCK_DIM_x = 4;
+            int BLOCK_DIM_y = 256;
+            int num_block_x = (num_blocks + BLOCK_DIM_y - 1) / BLOCK_DIM_y;
+            dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
+            dim3 grid_dim(num_block_x, 1, 1);
+
+            _warpSoftmaxKernel<float, 4, 256, 2>
+                <<<grid_dim, block_dim, 0, CUDAStream::getCurrentStream()>>>(
+                    input, output, size, dimsize, stride);
+        }
     }
 }
 //------------------
@@ -328,38 +433,38 @@ void softmax_kernel(int num_blocks, half *input, half *output, int size,
 
         int BLOCK_DIM = 1024;
         _blockSoftmaxKernel<half, 1024>
-            <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>
-            (input, output, size, dimsize, stride);
+            <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>(
+                input, output, size, dimsize, stride);
     } else if (dimsize > 1024 * 64) {
 
         int BLOCK_DIM = 1024;
         _blockSoftmaxKernel<half, 1024, 128>
-            <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>
-            (input, output, size, dimsize, stride);
+            <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>(
+                input, output, size, dimsize, stride);
     } else if (dimsize > 1024 * 32) {
 
         int BLOCK_DIM = 1024;
         _blockSoftmaxKernel<half, 1024, 64>
-            <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>
-            (input, output, size, dimsize, stride);
+            <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>(
+                input, output, size, dimsize, stride);
     } else if (dimsize > 1024 * 16) {
 
         int BLOCK_DIM = 1024;
         _blockSoftmaxKernel<half, 1024, 32>
-            <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>
-            (input, output, size, dimsize, stride);
+            <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>(
+                input, output, size, dimsize, stride);
     } else if (dimsize > 1024 * 4) {
 
         int BLOCK_DIM = 1024;
         _blockSoftmaxKernel<half, 1024, 16>
-            <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>
-            (input, output, size, dimsize, stride);
+            <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>(
+                input, output, size, dimsize, stride);
     } else if (dimsize > 1024) {
 
         int BLOCK_DIM = 1024;
         _blockSoftmaxKernel<half, 1024, 4>
-            <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>
-            (input, output, size, dimsize, stride);
+            <<<num_blocks, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>(
+                input, output, size, dimsize, stride);
     } else if (dimsize > 31) {
         int BLOCK_DIM_x = 32;
         int BLOCK_DIM_y = 32;
@@ -368,8 +473,8 @@ void softmax_kernel(int num_blocks, half *input, half *output, int size,
         dim3 grid_dim(num_block_x, 1, 1);
 
         _warpSoftmaxKernel<half, 32, 32, 32>
-            <<<grid_dim, block_dim, 0, CUDAStream::getCurrentStream()>>>
-            (input, output, size, dimsize, stride);
+            <<<grid_dim, block_dim, 0, CUDAStream::getCurrentStream()>>>(
+                input, output, size, dimsize, stride);
     } else if (dimsize > 15) {
         int BLOCK_DIM_x = 16;
         int BLOCK_DIM_y = 64;
@@ -378,8 +483,8 @@ void softmax_kernel(int num_blocks, half *input, half *output, int size,
         dim3 grid_dim(num_block_x, 1, 1);
 
         _warpSoftmaxKernel<half, 16, 64, 2>
-            <<<grid_dim, block_dim, 0, CUDAStream::getCurrentStream()>>>
-            (input, output, size, dimsize, stride);
+            <<<grid_dim, block_dim, 0, CUDAStream::getCurrentStream()>>>(
+                input, output, size, dimsize, stride);
     } else if (dimsize > 7) {
         int BLOCK_DIM_x = 8;
         int BLOCK_DIM_y = 128;
@@ -388,8 +493,8 @@ void softmax_kernel(int num_blocks, half *input, half *output, int size,
         dim3 grid_dim(num_block_x, 1, 1);
 
         _warpSoftmaxKernel<half, 8, 128, 2>
-            <<<grid_dim, block_dim, 0, CUDAStream::getCurrentStream()>>>
-            (input, output, size, dimsize, stride);
+            <<<grid_dim, block_dim, 0, CUDAStream::getCurrentStream()>>>(
+                input, output, size, dimsize, stride);
     } else {
         int BLOCK_DIM_x = 4;
         int BLOCK_DIM_y = 256;
@@ -398,8 +503,8 @@ void softmax_kernel(int num_blocks, half *input, half *output, int size,
         dim3 grid_dim(num_block_x, 1, 1);
 
         _warpSoftmaxKernel<half, 4, 256, 2>
-            <<<grid_dim, block_dim, 0, CUDAStream::getCurrentStream()>>>
-            (input, output, size, dimsize, stride);
+            <<<grid_dim, block_dim, 0, CUDAStream::getCurrentStream()>>>(
+                input, output, size, dimsize, stride);
     }
 }
 } // namespace infini

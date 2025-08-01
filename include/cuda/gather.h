@@ -58,4 +58,13 @@ void gather_kernel(T *in, T *out, GatherMetaData metaData, size_t num);
 
 void gather_elements_kernel(void *in, void *out, GatherMetaData metaData,
                             size_t num);
+void gather_nv_f32(void const *input, void const *indices, void *output,
+                   int frontsize, int dimsize, int behindsize, int indsize,
+                   DataType indexType);
+void gather_nv_f16(void const *input, void const *indices, void *output,
+                   int frontsize, int dimsize, int behindsize, int indsize,
+                   DataType indexType);
+void gather_nv_f8(void const *input, void const *indices, void *output,
+                  int frontsize, int dimsize, int behindsize, int indsize,
+                  DataType indexType);
 } // namespace infini

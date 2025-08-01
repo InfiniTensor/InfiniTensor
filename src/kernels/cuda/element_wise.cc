@@ -31,12 +31,60 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
         void *const cData = (cTensor->getRawDataPtr<void *>());
 
         cudnnTensorDescriptor_t aDesc, bDesc, cDesc;
-        auto a_dim = aTensor->getDims();
-        auto b_dim = bTensor->getDims();
-        auto c_dim = cTensor->getDims();
+        // auto a_dim = aTensor->getDims();
+        // auto b_dim = bTensor->getDims();
+        // auto c_dim = cTensor->getDims();
 
-        if (a_dim.size() > 4 || b_dim.size() > 4 || c_dim.size() > 4)
+        auto a_dim_base = aTensor->getDims();
+        auto b_dim_base = bTensor->getDims();
+        auto c_dim_base = cTensor->getDims();
+        std::vector<int> a_dim;
+        std::vector<int> b_dim;
+        std::vector<int> c_dim;
+        if (a_dim_base.size() > 4) {
+            for (int d : a_dim_base) {
+                if (d != 1) {
+                    a_dim.push_back(d);
+                }
+            }
+            if (a_dim.empty()) {
+                a_dim.push_back(a_dim_base.back());
+            }
+
+        } else {
+            a_dim = a_dim_base;
+        }
+        if (b_dim_base.size() > 4) {
+
+            for (int d : b_dim_base) {
+                if (d != 1) {
+                    b_dim.push_back(d);
+                }
+            }
+            if (b_dim.empty()) {
+                b_dim.push_back(b_dim_base.back());
+            }
+
+        } else {
+            b_dim = b_dim_base;
+        }
+        if (c_dim_base.size() > 4) {
+
+            for (int d : c_dim_base) {
+                if (d != 1) {
+                    c_dim.push_back(d);
+                }
+            }
+            if (c_dim.empty()) {
+                c_dim.push_back(c_dim_base.back());
+            }
+        } else {
+            c_dim = c_dim_base;
+        }
+        if (a_dim.size() > 4 || b_dim.size() > 4 || c_dim.size() > 4) {
+
             IT_TODO_HALT();
+        }
 
         int a[4] = {1, 1, 1, 1};
         int b[4] = {1, 1, 1, 1};
@@ -45,7 +93,77 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
         std::copy(a_dim.begin(), a_dim.end(), a + (4 - a_dim.size()));
         std::copy(b_dim.begin(), b_dim.end(), b + (4 - b_dim.size()));
         std::copy(c_dim.begin(), c_dim.end(), c + (4 - c_dim.size()));
+        // bool condition = true;
+        // for (size_t i = 0; i < 4; i++) {
+        //     if (a[i] != b[i]) {
+        //         condition = false;
+        //         break;
+        //     }
+        // }
+        // if (op->getOpType() != OpType::Div && op->getOpType() != OpType::Add
+        // &&
+        //     op->getOpType() != OpType::Pow && op->getOpType() !=
+        //     OpType::Less) { condition = false;
+        // }
+        // if (condition) {
+        //     int num = a[0] * a[1] * a[2] * a[3];
+        //     const int dType = _op->getDType().getIndex();
+        //     // std::cout << dType << std::endl;
+        //     if (op->getOpType() == OpType::Div) {
+        //         div_special_kernel(dType, aData, bData, cData, num);
+        //     } else if (op->getOpType() == OpType::Add) {
+        //         add_special_kernel(dType, aData, bData, cData, num);
+        //     } else if (op->getOpType() == OpType::Pow) {
+        //         pow_special_kernel(dType, aData, bData, cData, num);
+        //     } else if (op->getOpType() == OpType::Less) {
+        //         less_special_kernel(dType, aData, bData, cData, num);
+        //     } else {
+        //         IT_TODO_HALT();
+        //     }
+        // } else {
+        //     auto cudnnDataType = cudnnDataTypeConvert(op->getDType());
+        //     // get inputs
+        //     checkCudnnError(cudnnCreateTensorDescriptor(&aDesc));
+        //     checkCudnnError(cudnnSetTensor4dDescriptor(aDesc,
+        //     CUDNN_TENSOR_NCHW,
+        //                                                cudnnDataType, a[0],
+        //                                                a[1], a[2], a[3]));
 
+        //     checkCudnnError(cudnnCreateTensorDescriptor(&bDesc));
+        //     checkCudnnError(cudnnSetTensor4dDescriptor(bDesc,
+        //     CUDNN_TENSOR_NCHW,
+        //                                                cudnnDataType, b[0],
+        //                                                b[1], b[2], b[3]));
+
+        //     // get outputs
+        //     checkCudnnError(cudnnCreateTensorDescriptor(&cDesc));
+        //     checkCudnnError(cudnnSetTensor4dDescriptor(cDesc,
+        //     CUDNN_TENSOR_NCHW,
+        //                                                cudnnDataType, c[0],
+        //                                                c[1], c[2], c[3]));
+
+        //     // get op descriptor
+        //     cudnnOpTensorDescriptor_t opDesc;
+        //     checkCudnnError(cudnnCreateOpTensorDescriptor(&opDesc));
+        //     checkCudnnError(cudnnSetOpTensorDescriptor(
+        //         opDesc, getOpType(), CUDNN_DATA_FLOAT,
+        //         CUDNN_NOT_PROPAGATE_NAN));
+
+        //     auto [aAlpha, bAlpha, beta] = getAlphBeta();
+
+        //     checkCudnnError(cudnnOpTensor(context->cudnnHandle(), opDesc,
+        //                                   &aAlpha, aDesc, aData, &bAlpha,
+        //                                   bDesc, bData, &beta, cDesc,
+        //                                   cData));
+
+        //     // Destories in CUDA does not require sync. But cuDNN does not
+        //     state
+        //     // whether sync is required before destories.
+        //     checkCudnnError(cudnnDestroyTensorDescriptor(aDesc));
+        //     checkCudnnError(cudnnDestroyTensorDescriptor(bDesc));
+        //     checkCudnnError(cudnnDestroyTensorDescriptor(cDesc));
+        //     checkCudnnError(cudnnDestroyOpTensorDescriptor(opDesc));
+        // }
         auto cudnnDataType = cudnnDataTypeConvert(op->getDType());
         // get inputs
         checkCudnnError(cudnnCreateTensorDescriptor(&aDesc));

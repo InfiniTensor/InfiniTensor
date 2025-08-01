@@ -12,7 +12,7 @@ namespace infini {
 struct ConvCuDnnPerfRecordObj : public PerfRecordObj {
     int algo = 0; // cudnnConvolutionFwdAlgo_t
     int mode = 1;
-    size_t workspaceSize = 100000;
+    size_t workspaceSize = 1ll << 30;
     bool fuseAct = false;
     void to_json(json &j) override {
         j["type"] = 1;
@@ -150,12 +150,21 @@ class convCudnn : public Kernel {
         size_t wsSize = record->workspaceSize;
         CudaPtr wsData = context->getWorkspace(wsSize);
         float alpha = 1.f, beta = 0.f;
+        cudaDeviceSynchronize();
+        stat = cudnnConvolutionForward(
+            context->cudnnHandle(), &alpha, inDesc, inData, knDesc, knData,
+            convDesc, CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM, wsData,
+            wsSize, &beta, outDesc, outData);
+        cudaDeviceSynchronize();
+        cudaError_t err = cudaGetLastError();
+        if (err != cudaSuccess) {
+            std::cerr << "CUDA kernel launch failed: "
+                      << cudaGetErrorString(err) << std::endl;
+        }
 
-        stat = cudnnConvolutionForward(context->cudnnHandle(), &alpha, inDesc,
-                                       inData, knDesc, knData, convDesc,
-                                       ALGOS[record->algo], wsData, wsSize,
-                                       &beta, outDesc, outData);
         if (stat != CUDNN_STATUS_SUCCESS) {
+            std::cerr << "cudnnConvolutionForward failed: "
+                      << cudnnGetErrorString(stat) << std::endl;
             return false;
         }
         checkCudnnError(cudnnDestroyTensorDescriptor(outDesc));

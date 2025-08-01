@@ -64,11 +64,12 @@ if(((CMAKE_C_COMPILER_ID MATCHES "GNU") AND NOT MINGW AND NOT HAIKU) AND CMAKE_C
   add_compile_options(-Wno-array-bounds -Wno-stringop-overflow)
 endif()
 
-find_package(
+find_package( #裸机虚拟环境用这个
   Python
   COMPONENTS Interpreter Development
   REQUIRED)
-
+# set(Python_EXECUTABLE "/usr/bin/python3.12") #docker用这个
+# find_package(Python REQUIRED COMPONENTS Interpreter Development)
 # OpenMP
 find_package(OpenMP)
 if(OpenMP_C_FOUND)
@@ -257,8 +258,8 @@ if(USE_CUDA)
     add_compile_definitions(USE_CUDA=1)
 
     # 编译 .cu 文件为 .o 对象文件
-    set(DLCC_PATH /home/qy/Desktop/sdk/sdk/bin/dlcc)
-    set(DLCC_CUDA_PATH /home/qy/Desktop/sdk/sdk)
+    set(DLCC_PATH /usr/local/denglin/sdk/bin/dlcc)
+    set(DLCC_CUDA_PATH /usr/local/denglin/sdk)
     set(DLCC_ARCH dlgput64)
 
     set(GENERATED_CU_OBJS "")
@@ -291,15 +292,15 @@ if(USE_CUDA)
     target_sources(InfiniTensor PRIVATE ${GENERATED_CU_OBJS})
 
     # include / lib 设置
-    include_directories(/home/qy/Desktop/sdk/sdk/include)
-    target_include_directories(InfiniTensor PRIVATE /home/qy/Desktop/sdk/sdk/include)
-    link_directories(/home/qy/Desktop/sdk/sdk/lib)
+    include_directories(/usr/local/denglin/sdk/include)
+    target_include_directories(InfiniTensor PRIVATE /usr/local/denglin/sdk/include)
+    link_directories(/usr/local/denglin/sdk/lib)
 
     # 链接 DLCC CUDA 库
     target_link_libraries(InfiniTensor
-      /home/qy/Desktop/sdk/sdk/lib/libcurt.so
-      /home/qy/Desktop/sdk/sdk/lib/libcublas.so
-      /home/qy/Desktop/sdk/sdk/lib/libcudnn.so
+      /usr/local/denglin/sdk/lib/libcurt.so
+      /usr/local/denglin/sdk/lib/libcublas.so
+      /usr/local/denglin/sdk/lib/libcudnn.so
     )
 
     # 分布式支持

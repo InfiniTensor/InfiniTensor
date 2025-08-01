@@ -47,7 +47,29 @@ void CudaRuntimeObj::runWithCudaGraph(const Graph &graph) {
             cublasSetStream(cublas, CUDAStream::getCurrentStream()));
         checkCudaError(cudaStreamBeginCapture(CUDAStream::getCurrentStream(),
                                               cudaStreamCaptureModeGlobal));
-        runWithoutSync(graph);
+        const auto &kernelRegistry = KernelRegistry::getInstance();
+        auto &perfEngine = PerfEngine::getInstance();
+        for (auto &op : graph->getOperators()) {
+            // HACK: set correct data type
+            auto kernelAttrs =
+                KernelAttrs{device, op->getOpType().underlying()};
+            Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
+            auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
+            auto perfData = perfEngine.getPerfData(perfKey);
+            // IT_ASSERT(perfData, "No perf data for OP " + op->toString());
+            if (perfData) {
+                ComputeFuncPtr funcPtr = kernel->getComputeFunc(perfKey);
+                funcPtr(op, perfData, this);
+            } else {
+                std::string name = op->toString();
+                // std::cout << name << std::endl;
+                if (name.find("batchNormalization") != std::string::npos) {
+                    continue;
+                }
+                kernel->compute(op, this); // 或 perf-aware 逻辑
+            }
+            checkCudaError(cudaGetLastError()) << op->toString();
+        }
         checkCudaError(
             cudaStreamEndCapture(CUDAStream::getCurrentStream(), &cudaGraph));
         checkCudaError(
@@ -56,6 +78,18 @@ void CudaRuntimeObj::runWithCudaGraph(const Graph &graph) {
     } else {
         checkCudaError(
             cudaGraphLaunch(cudaGraphInstance, CUDAStream::getCurrentStream()));
+        const auto &kernelRegistry = KernelRegistry::getInstance();
+        for (auto &op : graph->getOperators()) {
+            std::string name = op->toString();
+            auto kernelAttrs =
+                KernelAttrs{device, op->getOpType().underlying()};
+            Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
+            if (name.find("batchNormalization") != std::string::npos) {
+                // std::cerr << "[FallbackRun] Run uncaptured op: " << name
+                //           << std::endl;
+                kernel->compute(op, this);
+            }
+        }
     }
     checkCudaError(cudaStreamSynchronize(CUDAStream::getCurrentStream()));
 }
