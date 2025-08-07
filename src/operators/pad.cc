@@ -4,13 +4,14 @@ namespace infini {
 PadObj::PadObj(GraphObj *graph, Tensor input, Tensor output,
                const vector<int> &_pads, const optional<vector<int>> &axes)
     : OperatorObj(OpType::Pad, {input}, {output}) {
-    if (!axes)
-        pads = _pads;
-    else {
+    if (!axes) {
+        vector<size_t> tmp(_pads.begin(), _pads.end());
+        pads = tmp;
+    } else {
         auto nAxis = (*axes).size();
         IT_ASSERT(_pads.size() == nAxis * 2);
         auto nDims = input->getRank();
-        pads = vector<int>(nDims * 2, 0);
+        pads = vector<size_t>(nDims * 2, 0);
 
         for (size_t i = 0; i < nAxis; ++i) {
             auto k = (*axes)[i];
@@ -46,14 +47,16 @@ std::string PadObj::toString() const {
 }
 
 vector<int> PadObj::getWorkloadVector() const {
-    vector<int> ret = inputs[0]->getDims();
+    vector<size_t> tmp = inputs[0]->getDims();
+    vector<int> ret(tmp.begin(), tmp.end());
     ret.insert(ret.end(), pads.begin(), pads.end());
     ret.emplace(ret.begin(), type.underlying());
     return ret;
 }
 
 vector<int> PadObj::getOpAttrVector() const {
-    vector<int> ret = pads;
+    vector<size_t> tmp = pads;
+    vector<int> ret(tmp.begin(), tmp.end());
     ret.emplace(ret.begin(), type.underlying());
     return ret;
 }

@@ -47,7 +47,9 @@ class CudaRuntimeObj : public RuntimeObj {
         }
     }
     string toString() const override;
-
+    void *getCurrentStream() const override {
+        return CUDAStream::getCurrentStream();
+    }
     void run(const Graph &graph, bool tune = false,
              bool profiling = false) const;
     // double runEvaluation(const Graph &graph, int nWarmups,
@@ -62,8 +64,8 @@ class CudaRuntimeObj : public RuntimeObj {
     void dealloc(void *ptr) override { checkCudaError(cudaFree(ptr)); }
     cudnnHandle_t cudnnHandle() const { return cudnn; }
     cublasHandle_t cublasHandle() const { return cublas; }
-    size_t getWorkspaceSize() const { return workspaceSize; }
-    CudaPtr getWorkspace(size_t size) const {
+    size_t getWorkspaceSize() const override { return workspaceSize; }
+    CudaPtr getWorkspace(size_t size) const override {
         IT_ASSERT(size <= workspaceSize);
         return workspace;
     }

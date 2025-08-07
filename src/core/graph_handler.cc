@@ -9,6 +9,7 @@
 #include "operators/element_wise.h"
 #include "operators/expand.h"
 #include "operators/gather.h"
+#include "operators/gemm.h"
 #include "operators/instance_norm.h"
 #include "operators/layer_norm.h"
 #include "operators/lrn.h"
@@ -96,6 +97,21 @@ Tensor GraphHandlerObj::matmul(Tensor a, Tensor b, Tensor y, bool transA,
         return g
             ->addOp<MatmulObj>(std::move(a), std::move(b), y, transA, transB,
                                std::move(bias), act, matmul_compute_type)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::gemm(Tensor a, Tensor b, Tensor c, Tensor y,
+                             float alpha, float beta, bool transA,
+                             bool transB) {
+    if (y) {
+        g->addOpWithOutputs<GemmObj>(std::move(a), std::move(b), y,
+                                     std::move(c), alpha, beta, transA, transB);
+        return y;
+    } else {
+        return g
+            ->addOp<GemmObj>(std::move(a), std::move(b), y, std::move(c), alpha,
+                             beta, transA, transB)
             ->getOutput();
     }
 }
@@ -790,7 +806,7 @@ static DataType dtype_repr_convert(int dtype) {
     }
 }
 
-void GraphHandlerObj::change_shape(const vector<int> &shape, int tensorId) {
+void GraphHandlerObj::change_shape(const Shape &shape, int tensorId) {
     auto tensor = g->getTensor(tensorId);
     IT_ASSERT(tensor != nullptr);
     IT_ASSERT(shape.size() != 0);

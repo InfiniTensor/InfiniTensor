@@ -314,7 +314,7 @@ static vector<int64_t> pad_pads_of(Operator op) {
     return ans;
 }
 
-static vector<int> transpose_permute_of(Operator op) {
+static Shape transpose_permute_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Transpose);
     return dynamic_cast<const TransposeObj *>(op.get())->getPermute();
 }
@@ -494,7 +494,7 @@ void init_graph_builder(py::module &m) {
                  IT_ASSERT(itemsize == self.getDType().getSize());
                  IT_ASSERT(size == self.size());
                  for (size_t i = 0; i < self.getRank(); i++) {
-                     IT_ASSERT(self.getDims()[i] == buf_info.shape[i]);
+                     IT_ASSERT((int)self.getDims()[i] == buf_info.shape[i]);
                  }
                  self.copyin(data_np, self.getBytes());
              })
@@ -596,6 +596,7 @@ void init_graph_builder(py::module &m) {
         .def("cast", &Handler::cast, policy::move)
         .def("expand", &Handler::expand, policy::move)
         .def("erf", &Handler::erf, policy::move)
+        .def("gemm", &Handler::gemm, policy::move)
         .def("where", &Handler::where, policy::move)
         .def("lrn", &Handler::lrn, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)

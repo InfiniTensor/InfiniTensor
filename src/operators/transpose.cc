@@ -2,7 +2,7 @@
 
 namespace infini {
 TransposeObj::TransposeObj(GraphObj *graph, Tensor input, Tensor output,
-                           vector<int> permute)
+                           Shape permute)
     : OperatorObj(OpType::Transpose, {input}, {output}) {
     auto rank = input->getRank();
     if (permute.empty()) {
@@ -23,7 +23,7 @@ optional<vector<Shape>> TransposeObj::inferShape(const TensorVec &inputs) {
     int rank = A->getRank();
 
     for (auto index : transposePermute) {
-        IT_ASSERT(index < rank);
+        IT_ASSERT((int)index < rank);
     }
     for (int i = 0; i < rank; ++i) {
         output_dim[i] = input_dim[transposePermute[i]];
@@ -71,8 +71,8 @@ optional<vector<Shape>> DepthToSpaceObj::inferShape(const TensorVec &inputs) {
     IT_ASSERT(inputDim.size() == 4);
     if (D2SMode == 0) {
         reshapeDim[0] = inputDim[0];
-        reshapeDim[1] = blockSize;
-        reshapeDim[2] = blockSize;
+        reshapeDim[1] = (size_t)blockSize;
+        reshapeDim[2] = (size_t)blockSize;
         reshapeDim[3] = inputDim[1] / (blockSize * blockSize);
         reshapeDim[4] = inputDim[2];
         reshapeDim[5] = inputDim[3];
@@ -89,8 +89,8 @@ optional<vector<Shape>> DepthToSpaceObj::inferShape(const TensorVec &inputs) {
     } else {
         reshapeDim[0] = inputDim[0];
         reshapeDim[1] = inputDim[1] / (blockSize * blockSize);
-        reshapeDim[2] = blockSize;
-        reshapeDim[3] = blockSize;
+        reshapeDim[2] = (size_t)blockSize;
+        reshapeDim[3] = (size_t)blockSize;
         reshapeDim[4] = inputDim[2];
         reshapeDim[5] = inputDim[3];
         transposeDim[0] = reshapeDim[0];

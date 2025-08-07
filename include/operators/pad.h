@@ -8,7 +8,7 @@ namespace infini {
  */
 class PadObj : public OperatorObj {
     // the number of start and end pad values for all dims.
-    vector<int> pads;
+    Shape pads;
 
   public:
     // pad for appointed axises,if axis is empty,then pad for all axises.

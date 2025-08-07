@@ -11,10 +11,10 @@ optional<vector<Shape>> DetObj::inferShape(const TensorVec &inputs) {
     auto input = A->getDims();
     int rank = A->getRank();
     if (rank == 2) {
-        std::vector<int> output = {1};
+        std::vector<size_t> output = {1};
         return {{output}};
     } else {
-        std::vector<int> output(input.begin(), input.end() - 2);
+        std::vector<size_t> output(input.begin(), input.end() - 2);
         return {{output}};
     }
 }

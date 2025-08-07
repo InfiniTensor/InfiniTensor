@@ -26,14 +26,16 @@ std::string ExpandObj::toString() const {
 }
 
 vector<int> ExpandObj::getWorkloadVector() const {
-    vector<int> ret = inputs[0]->getDims();
+    vector<size_t> tmp = inputs[0]->getDims();
+    vector<int> ret(tmp.begin(), tmp.end());
     ret.insert(ret.end(), dims.begin(), dims.end());
     ret.emplace(ret.begin(), type.underlying());
     return ret;
 }
 
 vector<int> ExpandObj::getOpAttrVector() const {
-    vector<int> ret = dims;
+    vector<size_t> tmp = dims;
+    vector<int> ret(tmp.begin(), tmp.end());
     ret.emplace(ret.begin(), type.underlying());
     return ret;
 }

@@ -1,0 +1,41 @@
+#include "operators/gemm.h"
+#include "core/kernel.h"
+
+namespace infini {
+
+class GemmOp : public Kernel {
+    void compute(const Operator &_op,
+                 const RuntimeObj *context) const override {
+        auto op = as<GemmObj>(_op);
+        op->createOpDesc();
+        void *yData = (op->getOutput()->getRawDataPtr<void *>());
+        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
+        size_t workspace_size = 0;
+        CHECK_INFINI_ERROR(infiniopGetGemmWorkspaceSize(
+            (infiniopGemmDescriptor_t)op->getInfiniOpDesc(), &workspace_size));
+        void *workspace = context->getWorkspace(workspace_size);
+        CHECK_INFINI_ERROR(infiniopGemm(
+            (infiniopGemmDescriptor_t)op->getInfiniOpDesc(), workspace,
+            workspace_size, yData, aData, bData, op->getAlpha(), op->getBeta(),
+            context->getCurrentStream()));
+    }
+
+    PerfRecord tune(const Operator &op,
+                    const RuntimeObj *context) const override {
+        // only for virtual function call
+        return PerfRecord();
+    }
+
+    void compute(const Operator &op, const PerfRecord &record,
+                 const RuntimeObj *context) const override {
+        compute(op, context);
+    }
+};
+
+REGISTER_KERNEL(Device::CUDA, OpType::Gemm, GemmOp, "Gemm_infiniop_CUDA");
+REGISTER_KERNEL(Device::CPU, OpType::Gemm, GemmOp, "Gemm_infiniop_CPU");
+REGISTER_KERNEL(Device::BANG, OpType::Gemm, GemmOp, "Gemm_infiniop_BANG");
+REGISTER_KERNEL(Device::ASCEND, OpType::Gemm, GemmOp, "Gemm_infiniop_ASCEND");
+REGISTER_KERNEL(Device::KUNLUN, OpType::Gemm, GemmOp, "Gemm_infiniop_KUNLUN");
+} // namespace infini

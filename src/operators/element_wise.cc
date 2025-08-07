@@ -28,7 +28,8 @@ std::string ElementWiseObj::toString() const {
 
 // use output dim or inputs dim?
 vector<int> ElementWiseObj::getWorkloadVector() const {
-    vector<int> ret = outputs[0]->getDims();
+    vector<size_t> dims = outputs[0]->getDims();
+    vector<int> ret(dims.begin(), dims.end());
     ret.emplace(ret.begin(), type.underlying());
     return ret;
 }
@@ -71,7 +72,8 @@ std::string MSELossObj::toString() const {
 
 // use output dim or inputs dim?
 vector<int> MSELossObj::getWorkloadVector() const {
-    vector<int> ret = outputs[0]->getDims();
+    vector<size_t> dims = outputs[0]->getDims();
+    vector<int> ret(dims.begin(), dims.end());
     ret.emplace(ret.begin(), type.underlying());
     return ret;
 }

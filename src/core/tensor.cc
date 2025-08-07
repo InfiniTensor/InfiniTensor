@@ -10,8 +10,14 @@ namespace infini {
 
 TensorObj::TensorObj(Shape shape_, DataType dtype, Runtime runtime)
     : TensorBaseObj(shape_.size(), dtype, runtime), shape(std::move(shape_)),
-      _size(std::accumulate(shape.begin(), shape.end(), 1, std::multiplies{})) {
-}
+      _size(std::accumulate(shape.begin(), shape.end(), 1, std::multiplies{})),
+      stride(computeContiguousStride(shape)) {}
+
+TensorObj::TensorObj(Shape shape_, Stride stride_, DataType dtype,
+                     Runtime runtime)
+    : TensorBaseObj(shape_.size(), dtype, runtime), shape(std::move(shape_)),
+      _size(std::accumulate(shape.begin(), shape.end(), 1, std::multiplies{})),
+      stride(std::move(stride_)) {}
 
 string TensorObj::toString() const {
     // Convert data pointer to string
@@ -22,8 +28,9 @@ string TensorObj::toString() const {
         ss << "nullptr data";
     string ret = "Tensor " + std::to_string(guid) + ", Fuid " +
                  std::to_string(fuid) + ", shape " + vecToString(shape) +
-                 ", dtype " + dtype.toString() + ", " + runtime->toString() +
-                 ", " + ss.str() + ", " + tensorTypeToString() + "\n";
+                 ", stride " + vecToString(stride) + ", dtype " +
+                 dtype.toString() + ", " + runtime->toString() + ", " +
+                 ss.str() + ", " + tensorTypeToString() + "\n";
     vector<UidBaseType> targetGuids;
     for (const auto &op : targets)
         targetGuids.emplace_back(op.lock()->getGuid());
@@ -41,7 +48,7 @@ size_t TensorObj::getOffset(const vector<int> &pos) const {
     if (pos.empty())
         return 0;
     for (size_t i = 0; i < nDim; ++i)
-        IT_ASSERT(pos[i] < 0 || pos[i] >= shape[i]);
+        IT_ASSERT(pos[i] < 0 || pos[i] >= (int)shape[i]);
     size_t idx = pos[0];
     size_t dm = 0;
     while (++dm < nDim)
@@ -49,15 +56,7 @@ size_t TensorObj::getOffset(const vector<int> &pos) const {
     return idx;
 }
 
-Shape TensorObj::getStride() const {
-    Shape stride(getRank());
-    ShapeElem p = 1;
-    for (auto i = getRank(); i > 0; --i) {
-        stride[i - 1] = p;
-        p = p * shape[i - 1];
-    }
-    return stride;
-}
+Stride TensorObj::getStride() const { return stride; }
 
 void TensorObj::setShape(Shape shape_) {
     shape = shape_;
@@ -222,5 +221,15 @@ size_t TensorObj::getOffsetByBroadcastOffset(size_t bcOffset,
             pos[i] = 0;
 
     return getOffsetByPos(pos, shape);
+}
+
+Stride TensorObj::computeContiguousStride(const Shape &shape) const {
+    Stride stride(getRank());
+    StrideElem p = 1;
+    for (auto i = getRank(); i > 0; --i) {
+        stride[i - 1] = p;
+        p = p * shape[i - 1];
+    }
+    return stride;
 }
 }; // namespace infini

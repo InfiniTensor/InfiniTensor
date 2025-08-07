@@ -2,6 +2,7 @@
 
 #include "core/op_type.h"
 #include "core/tensor.h"
+#include "utils/infinicore_utils.h"
 
 namespace infini {
 using KernelAttrs = std::tuple<Device, OpType::underlying_t>;
@@ -52,6 +53,7 @@ class OperatorObj : public Object {
     TensorVec outputs;
     vector<WRef<OperatorObj>> predecessors;
     vector<WRef<OperatorObj>> successors;
+    void *infiniOpDesc = nullptr;
 
   public:
     OperatorObj(OpType opType, TensorVec inputs, TensorVec outputs);
@@ -71,8 +73,8 @@ class OperatorObj : public Object {
      * considered.
      */
     HashType hash() const;
+    virtual void createOpDesc(){};
 
-  public:
   public: // getter and setter
     const TensorVec &getInputs() const { return inputs; }
     const TensorVec &getOutputs() const { return outputs; }
@@ -91,6 +93,7 @@ class OperatorObj : public Object {
     // HACK: set correct data type
     DataType getDType() const { return getInputs(0)->getDType(); }
     DataType getOutDType() const { return getOutput()->getDType(); }
+    void *getInfiniOpDesc() const { return infiniOpDesc; }
     virtual int numInputs() const = 0;
     virtual int numOutputs() const = 0;
 

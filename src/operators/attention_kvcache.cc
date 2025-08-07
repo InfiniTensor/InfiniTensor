@@ -41,7 +41,8 @@ std::string AttentionKVCacheObj::toString() const {
 }
 
 vector<int> AttentionKVCacheObj::getWorkloadVector() const {
-    vector<int> ret = getOutputs()[0]->getDims();
+    vector<size_t> dims = getOutputs()[0]->getDims();
+    vector<int> ret(dims.begin(), dims.end());
     ret.emplace(ret.begin(), (int)inputs.size());
     ret.emplace(ret.begin(), dim);
     ret.emplace(ret.begin(), type.underlying());

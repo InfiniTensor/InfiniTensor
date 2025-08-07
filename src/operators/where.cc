@@ -32,7 +32,8 @@ std::string WhereObj::toString() const {
 }
 
 vector<int> WhereObj::getWorkloadVector() const {
-    vector<int> ret = getOutput()->getDims();
+    vector<size_t> tmp = getOutput()->getDims();
+    vector<int> ret(tmp.begin(), tmp.end());
     ret.emplace(ret.begin(), type.underlying());
     return ret;
 }

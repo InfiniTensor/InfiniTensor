@@ -33,6 +33,8 @@ class GraphHandlerObj {
     Tensor matmul(Tensor a, Tensor b, Tensor y, bool transA, bool transB,
                   Tensor bias, ActType act,
                   std::string matmul_compute_type = "default");
+    Tensor gemm(Tensor a, Tensor b, Tensor c, Tensor y, float alpha, float beta,
+                bool transA, bool transB);
     Tensor batchNormalization(Tensor input, Tensor output, Tensor mean,
                               Tensor var, Tensor scale, Tensor bias,
                               float momentum, float eps, bool training);
@@ -106,7 +108,7 @@ class GraphHandlerObj {
     Tensor cast(Tensor input, Tensor output, int to);
     Tensor expand(Tensor input, Tensor output, Shape dims);
     Tensor where(Tensor inputX, Tensor inputY, Tensor condition, Tensor output);
-    std::vector<int> getDims(Tensor x) { return x->getDims(); }
+    std::vector<size_t> getDims(Tensor x) { return x->getDims(); }
 
     Tensor allReduceSum(Tensor input, Tensor output);
     Tensor allReduceProd(Tensor input, Tensor output);
@@ -131,7 +133,7 @@ class GraphHandlerObj {
 
     inline void shape_infer() { g->shape_infer(); }
 
-    void change_shape(const vector<int> &shape, int tensorId);
+    void change_shape(const Shape &shape, int tensorId);
     //------ runtime
 
     inline void data_malloc(bool useNaiveAllocator = false,

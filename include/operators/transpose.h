@@ -4,18 +4,17 @@
 namespace infini {
 class TransposeObj : public OperatorObj {
   public:
-    TransposeObj(GraphObj *graph, Tensor input, Tensor output,
-                 vector<int> permute);
+    TransposeObj(GraphObj *graph, Tensor input, Tensor output, Shape permute);
     OP_CLONE(TransposeObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
     int numInputs() const override { return 1; }
     int numOutputs() const override { return 1; }
-    std::vector<int> getPermute() const { return transposePermute; }
+    Shape getPermute() const { return transposePermute; }
 
   private:
-    vector<int> transposePermute;
+    Shape transposePermute;
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;
 };
@@ -41,9 +40,9 @@ class DepthToSpaceObj : public OperatorObj {
     int blockSize;
     int D2SMode;
     std::string D2SModeString;
-    mutable std::vector<int> reshapeDim = {1, 1, 1, 1, 1, 1};
-    mutable std::vector<int> transposeDim = {1, 1, 1, 1, 1, 1};
-    mutable std::vector<int> outDim = {1, 1, 1, 1};
+    mutable std::vector<size_t> reshapeDim = {1, 1, 1, 1, 1, 1};
+    mutable std::vector<size_t> transposeDim = {1, 1, 1, 1, 1, 1};
+    mutable std::vector<size_t> outDim = {1, 1, 1, 1};
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;
 };

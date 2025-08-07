@@ -47,13 +47,15 @@ std::string SqueezeObj::toString() const {
 }
 
 vector<int> SqueezeObj::getWorkloadVector() const {
-    vector<int> ret = inputs[0]->getDims();
+    vector<size_t> tmp = inputs[0]->getDims();
+    vector<int> ret(tmp.begin(), tmp.end());
     ret.insert(ret.end(), axes.begin(), axes.end());
     ret.emplace(ret.begin(), type.underlying());
     return ret;
 }
 vector<int> SqueezeObj::getOpAttrVector() const {
-    vector<int> ret = axes;
+    vector<size_t> tmp = axes;
+    vector<int> ret(tmp.begin(), tmp.end());
     ret.emplace(ret.begin(), type.underlying());
     return ret;
 }

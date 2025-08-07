@@ -44,7 +44,7 @@ SliceObj::SliceObj(GraphObj *graph, Tensor input, Tensor output,
     auto size = shape.size();
     this->axes.reserve(size);
     for (size_t i = 0; i < size; ++i) {
-        auto len = shape[i];
+        int len = (int)shape[i];
         if (auto _i = axes.find(i); _i != axes.end()) {
             auto __i = _i->second;
             auto start = starts[__i];

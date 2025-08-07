@@ -15,7 +15,9 @@
 namespace infini {
 
 // TODO: how to deal with this
-using ShapeElem = int;
+using ShapeElem = size_t;
+using StrideElem = ptrdiff_t;
+using Stride = vector<StrideElem>;
 using Shape = vector<ShapeElem>;
 class TensorObj : public TensorBaseObj {
   private:
@@ -24,9 +26,11 @@ class TensorObj : public TensorBaseObj {
     Fuid fuid;    // Cloned tensors share the same id. Tensors constructed from
                   // scratch have a new id.
     TensorType tensorType = TensorType::others;
+    Stride stride;
 
   public:
     TensorObj(Shape shape, DataType dtype, Runtime runtime);
+    TensorObj(Shape shape, Stride stride, DataType dtype, Runtime runtime);
     virtual ~TensorObj() {}
     string toString() const override;
 
@@ -36,7 +40,7 @@ class TensorObj : public TensorBaseObj {
     Shape getDims() const { return shape; }
     void setShape(Shape shape_);
     size_t getRank() const { return shape.size(); }
-    Shape getStride() const;
+    Stride getStride() const;
     size_t getOffset(const vector<int> &ds) const;
     void dataMalloc();
     UidBaseType getFuid() const { return fuid; }
@@ -234,6 +238,8 @@ class TensorObj : public TensorBaseObj {
 
     Shape getPosByOffset(size_t offset, Shape dim) const;
     size_t getOffsetByPos(Shape pos, Shape dim) const;
+
+    Stride computeContiguousStride(const Shape &shape) const;
 
     // void setDims(const Dim &dms) { dims = dms; }
 

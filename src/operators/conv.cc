@@ -91,8 +91,8 @@ optional<vector<Shape>> ConvObj::inferShape(const TensorVec &inputs) {
     f = weight->getDims()[0];
     r = weight->getDims()[2];
     s = weight->getDims()[3];
-    int on = n, oc = f;
-    int oh = 0, ow = 0;
+    size_t on = n, oc = f;
+    size_t oh = 0, ow = 0;
     // For NCHW+FCRS layout, C of input is divisable by C of weight
     IT_ASSERT(input->getDims()[1] % weight->getDims()[1] == 0);
     // Set padding size
@@ -105,8 +105,8 @@ optional<vector<Shape>> ConvObj::inferShape(const TensorVec &inputs) {
         // ph = (h - oh * sh + (r - sh) * dh) / 2;
         // pw = (w - ow * sw + (s - sw) * dw) / 2;
     } else if (padding == PaddingMode::Valid) {
-        int ph = 0;
-        int pw = 0;
+        size_t ph = 0;
+        size_t pw = 0;
         oh = (h - (r - sh) * dh + ph * 2) / sh;
         ow = (w - (s - sw) * dw + pw * 2) / sw;
     }
@@ -193,11 +193,11 @@ optional<vector<Shape>> Conv3dObj::inferShape(const TensorVec &inputs) {
     q = weight->getDims()[2];
     r = weight->getDims()[3];
     s = weight->getDims()[4];
-    int on = n;
-    int oc = f;
-    int od = 0;
-    int oh = 0;
-    int ow = 0;
+    size_t on = n;
+    size_t oc = f;
+    size_t od = 0;
+    size_t oh = 0;
+    size_t ow = 0;
     // For NCDHW+FCQRS layout, C of input is divisable by C of weight.
     IT_ASSERT(input->getDims()[1] % weight->getDims()[1] == 0);
     // Set padding size.
@@ -210,9 +210,9 @@ optional<vector<Shape>> Conv3dObj::inferShape(const TensorVec &inputs) {
         oh = h / sh;
         ow = w / sw;
     } else if (padding == PaddingMode::Valid) {
-        int pd = 0;
-        int ph = 0;
-        int pw = 0;
+        size_t pd = 0;
+        size_t ph = 0;
+        size_t pw = 0;
         od = (d - (q - sd) * dd + pd * 2) / sd;
         oh = (h - (r - sh) * dh + ph * 2) / sh;
         ow = (w - (s - sw) * dw + pw * 2) / sw;
@@ -258,10 +258,10 @@ ConvTransposed2dObj::inferShape(const TensorVec &inputs) {
     c = weight->getDims()[1];
     r = weight->getDims()[2];
     s = weight->getDims()[3];
-    IT_ASSERT(f == weight->getDims()[0]);
+    IT_ASSERT((size_t)f == weight->getDims()[0]);
 
-    int on = n, oc = c * group;
-    int oh = 0, ow = 0;
+    size_t on = n, oc = c * group;
+    size_t oh = 0, ow = 0;
     oh = (h - 1) * sh - 2 * ph + dh * (r - 1) + oph + 1;
     ow = (w - 1) * sw - 2 * pw + dw * (s - 1) + opw + 1;
     return {{{on, oc, oh, ow}}};
@@ -336,8 +336,8 @@ ConvBackwardFilterObj::inferShape(const TensorVec &inputs) {
     f = diffY->getDims()[0];
     r = diffY->getDims()[2];
     s = diffY->getDims()[3];
-    int on = n, oc = f;
-    int oh = 0, ow = 0;
+    size_t on = n, oc = f;
+    size_t oh = 0, ow = 0;
     // For NCHW+FCRS layout, C of input is divisable by C of weight
     IT_ASSERT(inputX->getDims()[1] % diffY->getDims()[1] == 0);
     // Set padding size
@@ -350,8 +350,8 @@ ConvBackwardFilterObj::inferShape(const TensorVec &inputs) {
         // ph = (h - oh * sh + (r - sh) * dh) / 2;
         // pw = (w - ow * sw + (s - sw) * dw) / 2;
     } else if (padding == PaddingMode::Valid) {
-        int ph = 0;
-        int pw = 0;
+        size_t ph = 0;
+        size_t pw = 0;
         oh = (h - (r - sh) * dh + ph * 2) / sh;
         ow = (w - (s - sw) * dw + pw * 2) / sw;
     }
@@ -398,10 +398,10 @@ ConvTransposed2dNHWCObj::inferShape(const TensorVec &inputs) {
     c = weight->getDims()[3];
     r = weight->getDims()[1];
     s = weight->getDims()[2];
-    IT_ASSERT(f == weight->getDims()[0]);
+    IT_ASSERT((size_t)f == weight->getDims()[0]);
 
-    int on = n, oc = c * group;
-    int oh = 0, ow = 0;
+    size_t on = n, oc = c * group;
+    size_t oh = 0, ow = 0;
     oh = (h - 1) * sh - 2 * ph + dh * (r - 1) + oph + 1;
     ow = (w - 1) * sw - 2 * pw + dw * (s - 1) + opw + 1;
     return {{{on, oh, ow, oc}}};

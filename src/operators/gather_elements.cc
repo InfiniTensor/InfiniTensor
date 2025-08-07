@@ -54,7 +54,8 @@ std::string GatherElementsObj::toString() const {
 }
 
 vector<int> GatherElementsObj::getWorkloadVector() const {
-    vector<int> ret = inputs[0]->getDims();
+    vector<size_t> tmp = inputs[0]->getDims();
+    vector<int> ret(tmp.begin(), tmp.end());
     ret.emplace(ret.begin(), type.underlying());
     for (auto it : inputs[1]->getDims())
         ret.emplace_back(it);

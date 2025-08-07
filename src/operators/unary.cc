@@ -244,7 +244,7 @@ ShapeObj::ShapeObj(GraphObj *graph, Tensor input, Tensor output)
 }
 
 optional<vector<Shape>> ShapeObj::inferShape(const TensorVec &inputs) {
-    return {{{static_cast<int>(inputs[0]->getRank())}}};
+    return {{{inputs[0]->getRank()}}};
 }
 
 std::string ShapeObj::toString() const {
@@ -363,7 +363,8 @@ std::string EluObj::toString() const {
 }
 
 vector<int> EluObj::getWorkloadVector() const {
-    vector<int> ret = getOutput()->getDims();
+    vector<size_t> tmp = getOutput()->getDims();
+    vector<int> ret(tmp.begin(), tmp.end());
     ret.emplace(ret.begin(), type.underlying());
     return ret;
 }

@@ -32,7 +32,8 @@ optional<vector<Shape>> GBMMObj::inferShape(const TensorVec &inputs) {
     IT_ASSERT(A->getDims()[0] == B->getDims()[0]);
     IT_ASSERT(A->getDims()[1] == B->getDims()[1]);
     IT_ASSERT(A->getDims()[2] % 2 != 0);
-    return {{{b, m, n}}};
+    return {{{static_cast<size_t>(b), static_cast<size_t>(m),
+              static_cast<size_t>(n)}}};
 }
 
 vector<int> GBMMObj::getWorkloadVector() const {

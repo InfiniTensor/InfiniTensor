@@ -3,6 +3,7 @@
 #include "core/communicator.h"
 #include "core/op_type.h"
 #include "core/ref.h"
+#include <infiniop/handle.h>
 #include <memory>
 
 namespace infini {
@@ -15,6 +16,7 @@ class GraphObj;
 class GraphHandlerObj;
 class RuntimeObj;
 class BlobObj;
+class HandleObj;
 template <typename T> class WorkspaceObj;
 
 using TensorBase = Ref<TensorBaseObj>;
@@ -24,6 +26,7 @@ using Graph = Ref<GraphObj>;
 using GraphHandler = Ref<GraphHandlerObj>;
 using Runtime = Ref<RuntimeObj>;
 using Blob = Ref<BlobObj>;
+using Handle = Ref<HandleObj>;
 template <typename T> using Workspace = Ref<WorkspaceObj<T>>;
 
 using TensorVec = vector<Tensor>;
@@ -32,17 +35,34 @@ using OpLists = list<Operator>;
 
 using VType = uint32_t;
 
-enum class Device { CPU = 1, CUDA, BANG, INTELCPU, KUNLUN, ASCEND };
+enum class Device {
+    CPU = 0,
+    CUDA,
+    BANG,
+    ASCEND,
+    METAX,
+    MOORE,
+    ILUVATAR,
+    KUNLUN,
+    SUGON,
+};
 /***************** Forward declaration end *****************/
 
-class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
-  protected:
+struct HandleObj {
     Device device;
     int deviceId;
+};
+class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
+  protected:
+    Handle handle;
 
   public:
-    explicit RuntimeObj(Device device, int deviceId = 0)
-        : device(device), deviceId(deviceId) {}
+    explicit RuntimeObj(Handle h) : handle(h) {}
+    RuntimeObj(Device device, int deviceId = 0)
+        : handle(make_ref<HandleObj>()) {
+        handle->device = device;
+        handle->deviceId = deviceId;
+    }
     RuntimeObj(RuntimeObj &other) = delete;
     RuntimeObj &operator=(RuntimeObj const &) = delete;
     virtual ~RuntimeObj() {}
@@ -69,13 +89,11 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
      */
     double getPerfTime(const Graph &graph, bool profiling = false) const;
     Blob allocBlob(size_t size);
-    bool isCpu() const {
-        return device == Device::CPU || device == Device::INTELCPU;
-    }
-    bool isCuda() const { return device == Device::CUDA; }
-    bool isBang() const { return device == Device::BANG; }
-    bool isKUNLUN() const { return device == Device::KUNLUN; }
-    bool isAscend() const { return device == Device::ASCEND; }
+    bool isCpu() const { return handle->device == Device::CPU; }
+    bool isCuda() const { return handle->device == Device::CUDA; }
+    bool isBang() const { return handle->device == Device::BANG; }
+    bool isKUNLUN() const { return handle->device == Device::KUNLUN; }
+    bool isAscend() const { return handle->device == Device::ASCEND; }
     void copyBlob(const TensorObj *dst, const TensorObj *src) const;
     // TODO: unify these copy APIs
     virtual void copyBlobFromCPU(void *dst, const void *src,
@@ -84,11 +102,22 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
                                size_t bytes) const = 0;
     virtual string toString() const = 0;
 
-    int getDeviceId() const { return deviceId; }
+    int getDeviceId() const { return handle->deviceId; }
 
     virtual void initComm(const string &name, int worldSize, int rank) = 0;
 
     virtual CommunicatorObj &getCommunicator() const = 0;
+    virtual size_t getWorkspaceSize() const = 0;
+    virtual void *getCurrentStream() const { return nullptr; }
+    virtual void *getWorkspace(size_t size) const = 0;
+
+    // InfiniopHandle getInfiniHandle() const {
+    //     // InfiniopHandle infinihandle;
+    //     // infinihandle.device = handle->device;
+    //     // infinihandle.deviceId = handle->deviceId;
+    //     // return infinihandle;
+    //     return {handle->device, handle->deviceId};
+    // }
 
   protected:
     void printProfilingData(double totTime,
@@ -100,7 +129,7 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
 
 class CpuRuntimeObj : public RuntimeObj {
   public:
-    CpuRuntimeObj(Device dev) : RuntimeObj(dev) {}
+    CpuRuntimeObj(Device dev) : RuntimeObj(dev, 0) {}
 
     void run(const Graph &graph, bool tune = false,
              bool profiling = false) const override;
@@ -116,8 +145,15 @@ class CpuRuntimeObj : public RuntimeObj {
 };
 
 class NativeCpuRuntimeObj : public CpuRuntimeObj {
+  private:
+    size_t workspaceSize;
+    void *workspace;
+
   public:
-    NativeCpuRuntimeObj() : CpuRuntimeObj(Device::CPU) {}
+    NativeCpuRuntimeObj() : CpuRuntimeObj(Device::CPU) {
+        workspaceSize = 7ll << 30; // 7 GB
+        workspace = alloc(workspaceSize);
+    }
 
     static Ref<NativeCpuRuntimeObj> &getInstance() {
         static Ref<NativeCpuRuntimeObj> instance =
@@ -131,6 +167,12 @@ class NativeCpuRuntimeObj : public CpuRuntimeObj {
                       sizeof(uint64_t));
     };
     string toString() const override;
+    size_t getWorkspaceSize() const override { return workspaceSize; }
+
+    void *getWorkspace(size_t size) const override {
+        IT_ASSERT(size <= workspaceSize);
+        return workspace;
+    }
 };
 
 } // namespace infini

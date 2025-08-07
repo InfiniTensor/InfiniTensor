@@ -43,7 +43,7 @@ bool GatherObj::CheckIndexValid() const {
         index->getRuntime()->copyBlobToCPU(
             (void *)data, index->getRawDataPtr<void *>(), index->getBytes());
         for (size_t i = 0; i < index->size(); ++i) {
-            if (data[i] < 0 || data[i] >= value) {
+            if (data[i] < 0 || data[i] >= (int)value) {
                 ret = false;
                 break;
             }
@@ -54,7 +54,7 @@ bool GatherObj::CheckIndexValid() const {
         index->getRuntime()->copyBlobToCPU(
             (void *)data, index->getRawDataPtr<void *>(), index->getBytes());
         for (size_t i = 0; i < index->size(); ++i) {
-            if (data[i] < 0 || data[i] >= value) {
+            if (data[i] < 0 || data[i] >= (int)value) {
                 ret = false;
                 break;
             }
@@ -80,7 +80,8 @@ std::string GatherObj::toString() const {
 }
 
 vector<int> GatherObj::getWorkloadVector() const {
-    vector<int> ret = inputs[0]->getDims();
+    vector<size_t> tmp = inputs[0]->getDims();
+    vector<int> ret(tmp.begin(), tmp.end());
     ret.emplace(ret.begin(), type.underlying());
     for (auto it : inputs[1]->getDims())
         ret.emplace_back(it);

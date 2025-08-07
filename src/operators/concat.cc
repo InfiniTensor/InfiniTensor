@@ -51,7 +51,8 @@ std::string ConcatObj::toString() const {
 }
 
 vector<int> ConcatObj::getWorkloadVector() const {
-    vector<int> ret = getOutput()->getDims();
+    vector<size_t> dims = getOutput()->getDims();
+    vector<int> ret(dims.begin(), dims.end());
     ret.emplace(ret.begin(), (int)inputs.size());
     ret.emplace(ret.begin(), dim);
     ret.emplace(ret.begin(), type.underlying());

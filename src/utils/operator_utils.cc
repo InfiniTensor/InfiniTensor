@@ -71,7 +71,7 @@ Shape locate_index(size_t inputN, const Shape &shape) {
     auto i = ans.rbegin();
     auto j = shape.rbegin(), ej = shape.rend();
     while (j != ej) {
-        auto div = std::div(inputN, *j++);
+        auto div = std::div((int)inputN, (int)(*j++));
         *i++ = div.rem;
         inputN = div.quot;
     }
@@ -100,8 +100,6 @@ std::string device_to_str(Device device) {
         return "CUDA";
     case Device::BANG:
         return "BANG";
-    case Device::INTELCPU:
-        return "INTELCPU";
     case Device::KUNLUN:
         return "KUNLUN";
     case Device::ASCEND:

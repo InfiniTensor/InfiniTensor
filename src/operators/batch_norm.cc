@@ -19,7 +19,7 @@ optional<vector<Shape>> BatchNormObj::inferShape(const TensorVec &inputs) {
     auto var = inputs[2];
     auto scale = inputs[3];
     auto bias = inputs[4];
-    auto c = std::vector<int>{input->getDims()[1]};
+    auto c = std::vector<size_t>{input->getDims()[1]};
     IT_ASSERT(mean->getRank() == 1 && mean->getDims() == c);
     IT_ASSERT(var->getRank() == 1 && var->getDims() == c);
     IT_ASSERT(scale->getRank() == 1 && scale->getDims() == c);
@@ -57,7 +57,8 @@ std::string BatchNormObj::toString() const {
 
 // need eps and momentum?
 vector<int> BatchNormObj::getWorkloadVector() const {
-    vector<int> ret = inputs[0]->getDims();
+    vector<size_t> dims = inputs[0]->getDims();
+    vector<int> ret(dims.begin(), dims.end());
     ret.emplace(ret.begin(), type.underlying());
     return ret;
 }

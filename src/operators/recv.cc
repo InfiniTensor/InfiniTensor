@@ -29,7 +29,8 @@ std::string RecvObj::toString() const {
 }
 
 vector<int> RecvObj::getWorkloadVector() const {
-    vector<int> ret = dims;
+    vector<size_t> tmp = dims;
+    vector<int> ret(tmp.begin(), tmp.end());
     ret.insert(ret.end(), dims.begin(), dims.end());
     ret.emplace(ret.begin(), type.underlying());
 
@@ -40,7 +41,8 @@ vector<int> RecvObj::getWorkloadVector() const {
 }
 
 vector<int> RecvObj::getOpAttrVector() const {
-    vector<int> ret = dims;
+    vector<size_t> tmp = dims;
+    vector<int> ret(tmp.begin(), tmp.end());
     ret.emplace(ret.begin(), type.underlying());
     ret.emplace_back(source);
     ret.emplace_back(destination);

@@ -67,7 +67,8 @@ std::string ReduceBaseObj::toString() const {
 }
 
 vector<int> ReduceBaseObj::getWorkloadVector() const {
-    vector<int> ret = inputs[0]->getDims();
+    vector<size_t> tmp = inputs[0]->getDims();
+    vector<int> ret(tmp.begin(), tmp.end());
     ret.emplace(ret.begin(), type.underlying());
     ret.emplace_back((int)keepDims);
     ret.insert(ret.end(), axes.begin(), axes.end());

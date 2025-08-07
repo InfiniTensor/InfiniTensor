@@ -11,10 +11,10 @@ ReshapeObj::ReshapeObj(GraphObj *graph, Tensor input, Tensor output, Shape dims)
 optional<vector<Shape>> ReshapeObj::inferShape(const TensorVec &inputs) {
     int count = 0;
     for (auto x : dims) {
-        if (x == -1) {
+        if ((int)x == -1) {
             count++;
         }
-        IT_ASSERT(x == -1 || x >= 0);
+        IT_ASSERT((int)x == -1 || x >= 0);
     }
     IT_ASSERT(count == 0 || count == 1);
     auto inputShape = inputs[0]->getDims();
@@ -22,10 +22,10 @@ optional<vector<Shape>> ReshapeObj::inferShape(const TensorVec &inputs) {
     int index = -1;
     outputShape = dims;
     for (int i = 0; i < (int)dims.size(); ++i) {
-        if (dims[i] == 0) {
+        if ((int)dims[i] == 0) {
             outputShape[i] = inputShape[i];
         }
-        if (dims[i] == -1) {
+        if ((int)dims[i] == -1) {
             index = i;
         }
     }
@@ -53,13 +53,15 @@ std::string ReshapeObj::toString() const {
 }
 
 vector<int> ReshapeObj::getWorkloadVector() const {
-    vector<int> ret = inputs[0]->getDims();
+    vector<size_t> tmp = inputs[0]->getDims();
+    vector<int> ret(tmp.begin(), tmp.end());
     ret.insert(ret.end(), outputShape.begin(), outputShape.end());
     ret.emplace(ret.begin(), type.underlying());
     return ret;
 }
 vector<int> ReshapeObj::getOpAttrVector() const {
-    vector<int> ret = outputShape;
+    vector<size_t> tmp = outputShape;
+    vector<int> ret(tmp.begin(), tmp.end());
     ret.emplace(ret.begin(), type.underlying());
     return ret;
 }
@@ -72,7 +74,7 @@ FlattenObj::FlattenObj(GraphObj *graph, Tensor input, Tensor output, int _axis)
 }
 
 optional<vector<Shape>> FlattenObj::inferShape(const TensorVec &inputs) {
-    int sizeB = 1, sizeE = 1;
+    size_t sizeB = 1, sizeE = 1;
     auto dims = getInputs(0)->getDims();
     int rank = getInputs(0)->getRank();
     for (int i = 0; i < rank; ++i) {
@@ -93,7 +95,8 @@ std::string FlattenObj::toString() const {
 }
 
 vector<int> FlattenObj::getWorkloadVector() const {
-    vector<int> ret = inputs[0]->getDims();
+    vector<size_t> tmp = inputs[0]->getDims();
+    vector<int> ret(tmp.begin(), tmp.end());
     ret.emplace(ret.begin(), axis);
     ret.emplace(ret.begin(), type.underlying());
     return ret;
@@ -123,7 +126,8 @@ std::string IdentityObj::toString() const {
 }
 
 vector<int> IdentityObj::getWorkloadVector() const {
-    vector<int> ret = inputs[0]->getDims();
+    vector<size_t> tmp = inputs[0]->getDims();
+    vector<int> ret(tmp.begin(), tmp.end());
     ret.emplace(ret.begin(), type.underlying());
     return ret;
 }

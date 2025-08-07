@@ -249,7 +249,8 @@ std::string ResizeObj::toString() const {
 }
 
 vector<int> ResizeObj::getWorkloadVector() const {
-    vector<int> ret = inputs[0]->getDims();
+    vector<size_t> tmp = inputs[0]->getDims();
+    vector<int> ret(tmp.begin(), tmp.end());
     for (size_t i = 0; i < outputs[0]->getRank(); ++i) {
         ret.emplace_back(outputs[0]->getDims()[i]);
     }

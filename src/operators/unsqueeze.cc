@@ -14,12 +14,12 @@ optional<vector<Shape>> UnsqueezeObj::inferShape(const TensorVec &inputs) {
     Shape outputShape(rank, -1);
     for (size_t i = 0; i < axes.size(); ++i) {
         axes[i] = get_real_axis(axes[i], rank);
-        IT_ASSERT(outputShape[axes[i]] == -1, "Axes have duplicate");
-        outputShape[axes[i]] = 1;
+        IT_ASSERT(outputShape[axes[i]] == (size_t)-1, "Axes have duplicate");
+        outputShape[axes[i]] = (size_t)1;
     }
     auto it = inputDim.begin();
     for (size_t i = 0; i < outputShape.size(); ++i) {
-        if (outputShape[i] == -1) {
+        if (outputShape[i] == (size_t)-1) {
             outputShape[i] = *it++;
         }
     }
@@ -38,13 +38,15 @@ std::string UnsqueezeObj::toString() const {
 }
 
 vector<int> UnsqueezeObj::getWorkloadVector() const {
-    vector<int> ret = inputs[0]->getDims();
+    vector<size_t> tmp = inputs[0]->getDims();
+    vector<int> ret(tmp.begin(), tmp.end());
     ret.insert(ret.end(), axes.begin(), axes.end());
     ret.emplace(ret.begin(), type.underlying());
     return ret;
 }
 vector<int> UnsqueezeObj::getOpAttrVector() const {
-    vector<int> ret = axes;
+    vector<size_t> tmp = axes;
+    vector<int> ret(tmp.begin(), tmp.end());
     ret.emplace(ret.begin(), type.underlying());
     return ret;
 }

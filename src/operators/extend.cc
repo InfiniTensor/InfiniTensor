@@ -29,7 +29,8 @@ std::string ExtendObj::toString() const {
 }
 
 vector<int> ExtendObj::getWorkloadVector() const {
-    vector<int> ret = inputs[0]->getDims();
+    vector<size_t> tmp = inputs[0]->getDims();
+    vector<int> ret(tmp.begin(), tmp.end());
     ret.emplace_back(dim);
     ret.emplace_back(num);
     ret.emplace(ret.begin(), type.underlying());

@@ -27,8 +27,8 @@ std::string SendObj::toString() const {
 }
 
 vector<int> SendObj::getWorkloadVector() const {
-    vector<int> ret = inputs[0]->getDims();
-
+    vector<size_t> tmp = inputs[0]->getDims();
+    vector<int> ret(tmp.begin(), tmp.end());
     ret.emplace(ret.begin(), type.underlying());
     ret.emplace_back(source);
     ret.emplace_back(destination);
@@ -37,7 +37,8 @@ vector<int> SendObj::getWorkloadVector() const {
 }
 
 vector<int> SendObj::getOpAttrVector() const {
-    vector<int> ret = inputs[0]->getDims();
+    vector<size_t> tmp = inputs[0]->getDims();
+    vector<int> ret(tmp.begin(), tmp.end());
     ret.emplace(ret.begin(), type.underlying());
     ret.emplace_back(source);
     ret.emplace_back(destination);

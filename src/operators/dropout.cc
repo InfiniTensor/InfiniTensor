@@ -27,7 +27,8 @@ std::string DropoutObj::toString() const {
 }
 
 vector<int> DropoutObj::getWorkloadVector() const {
-    vector<int> ret = inputs[0]->getDims();
+    vector<size_t> dims = inputs[0]->getDims();
+    vector<int> ret(dims.begin(), dims.end());
     ret.emplace_back(static_cast<int>(ratio));
     ret.emplace(ret.begin(), type.underlying());
     return ret;
