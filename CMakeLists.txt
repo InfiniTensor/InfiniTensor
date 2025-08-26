@@ -153,7 +153,7 @@ if(USE_CUDA)
       src/cuda/*.cc src/cuda/*.cu
       src/kernels/cuda/*.cc src/kernels/cuda/*.cu)
     list(APPEND SRC ${SRC_CUDA})
-  else()  # 登临 DLCC 平台
+  else()  
     file(GLOB_RECURSE SRC_CUDA_CC src/cuda/*.cc src/kernels/cuda/*.cc)
     file(GLOB_RECURSE SRC_CUDA_CU src/cuda/*.cu src/kernels/cuda/*.cu)
     list(APPEND SRC ${SRC_CUDA_CC})
