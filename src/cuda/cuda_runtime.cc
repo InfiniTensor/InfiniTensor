@@ -63,7 +63,11 @@ void CudaRuntimeObj::runWithCudaGraph(const Graph &graph) {
             } else {
                 std::string name = op->toString();
                 // std::cout << name << std::endl;
-                if (name.find("batchNormalization") != std::string::npos) {
+                if (name.find("batchNormalization") != std::string::npos ||
+                    name.find("layerNormalization") != std::string::npos ||
+
+                    name.find("Add") != std::string::npos ||
+                    name.find("Mul") != std::string::npos) {
                     continue;
                 }
                 kernel->compute(op, this); // 或 perf-aware 逻辑
@@ -84,7 +88,11 @@ void CudaRuntimeObj::runWithCudaGraph(const Graph &graph) {
             auto kernelAttrs =
                 KernelAttrs{device, op->getOpType().underlying()};
             Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
-            if (name.find("batchNormalization") != std::string::npos) {
+            if (name.find("batchNormalization") != std::string::npos ||
+                name.find("layerNormalization") != std::string::npos ||
+
+                name.find("Add") != std::string::npos ||
+                name.find("Mul") != std::string::npos) {
                 // std::cerr << "[FallbackRun] Run uncaptured op: " << name
                 //           << std::endl;
                 kernel->compute(op, this);

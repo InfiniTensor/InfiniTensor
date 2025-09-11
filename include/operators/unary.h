@@ -177,6 +177,7 @@ enum class CastType {
     Float162Float,
     BFloat162Float,
     Float2Float,
+    Float2Bool,
 };
 
 class CastObj : public OperatorObj {
@@ -201,14 +202,14 @@ class CastObj : public OperatorObj {
 class CumsumObj : public OperatorObj {
   public:
     CumsumObj(GraphObj *graph, Tensor input, Tensor output, int axis,
-              bool exclusive, bool reverse);
+              bool exclusive = false, bool reverse = false);
     OP_CLONE(CumsumObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
     int getAxis() const { return axisValue; }
-    float getExclusive() const { return exclusiveValue; }
-    float getReverse() const { return reverseValue; }
+    bool getExclusive() const { return exclusiveValue; }
+    bool getReverse() const { return reverseValue; }
     int numInputs() const override { return 1; }
     int numOutputs() const override { return 1; }
 
@@ -323,4 +324,5 @@ DEFINE_UNARY_OBJ(Neg, OpType::Neg)
 DEFINE_UNARY_OBJ(Reciprocal, OpType::Reciprocal)
 DEFINE_UNARY_OBJ(Sqrt, OpType::Sqrt)
 DEFINE_UNARY_OBJ(Round, OpType::Round)
+DEFINE_UNARY_OBJ(Not, OpType::Not)
 }; // namespace infini

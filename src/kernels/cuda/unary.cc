@@ -27,6 +27,45 @@ class EluCuda : public CudaKernelWithoutConfig {
     }
 };
 
+class CumsumCuda : public CudaKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<CumsumObj>(_op);
+
+        void *const inputData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const outputData = (op->getOutput()->getRawDataPtr<void *>());
+
+        bool exclusive = op->getExclusive();
+        bool reversive = op->getReverse();
+        int axis = op->getAxis();
+        auto shape = op->getInputs(0)->getDims();
+        int dimsize = shape[axis];
+        int outer = 1;
+        int inner = 1;
+        int ndim = op->getOutput()->getDims().size();
+        for (int i = 0; i < axis; ++i) {
+            outer *= shape[i];
+        }
+
+        for (int i = axis + 1; i < ndim; ++i) {
+            inner *= shape[i];
+        }
+
+        if (op->getDType() == DataType::Float32) {
+            cumsum_kernel<float>((float *)inputData, (float *)outputData, outer,
+                                 inner, dimsize, exclusive, reversive);
+        } else if (op->getDType() == DataType::Float16) {
+            cumsum_kernel<half>((half *)inputData, (half *)outputData, outer,
+                                inner, dimsize, exclusive, reversive);
+        } else if (op->getDType() == DataType::Int32) {
+            cumsum_kernel<int32_t>((int32_t *)inputData, (int32_t *)outputData,
+                                   outer, inner, dimsize, exclusive, reversive);
+        } else {
+            IT_TODO_HALT();
+        }
+    }
+};
+
 class CastCuda : public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
@@ -35,7 +74,9 @@ class CastCuda : public CudaKernelWithoutConfig {
         size_t num = op->getOutput()->size();
         void *const inputData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const outputData = (op->getOutput()->getRawDataPtr<void *>());
-
+        // std::cout << static_cast<int>(op->getType()) << ", "
+        //           << static_cast<int>(CastType::Int322Int64) << ", "
+        //           << static_cast<int>(CastType::Int642Float) << std::endl;
         if (op->getType() == CastType::Float162Float) {
             IT_ASSERT(op->getDType() == DataType::Float16 &&
                       op->getOutDType() == DataType::Float32);
@@ -61,6 +102,26 @@ class CastCuda : public CudaKernelWithoutConfig {
                       op->getOutDType() == DataType::Float32);
             cast_kernel<int8_t, float>((int8_t *)inputData, (float *)outputData,
                                        num);
+        } else if (op->getType() == CastType::Float2Bool) {
+            IT_ASSERT(op->getDType() == DataType::Float32 &&
+                      op->getOutDType() == DataType::Bool);
+            cast_kernel<float, bool>((float *)inputData, (bool *)outputData,
+                                     num);
+        } else if (op->getType() == CastType::Int642Int32) {
+            IT_ASSERT(op->getDType() == DataType::Int64 &&
+                      op->getOutDType() == DataType::Int32);
+            cast_kernel<int64_t, int32_t>((int64_t *)inputData,
+                                          (int32_t *)outputData, num);
+        } else if (op->getType() == CastType::Int322Int64) {
+            IT_ASSERT(op->getDType() == DataType::Int32 &&
+                      op->getOutDType() == DataType::Int64);
+            cast_kernel<int32_t, int64_t>((int32_t *)inputData,
+                                          (int64_t *)outputData, num);
+        } else if (op->getType() == CastType::Int642Float) {
+            IT_ASSERT(op->getDType() == DataType::Int64 &&
+                      op->getOutDType() == DataType::Float32);
+            cast_kernel<int64_t, float>((int64_t *)inputData,
+                                        (float *)outputData, num);
         } else {
             IT_ASSERT(false);
         }
@@ -207,6 +268,7 @@ class TanhCudnn : public ActivationCudnn {
 REGISTER_KERNEL(Device::CUDA, OpType::Relu, ReluCudnn, "Relu_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Sigmoid, SigmoidCudnn, "Sigmoid_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Elu, EluCuda, "Elu_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::CumSum, CumsumCuda, "CumSum_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::HardSigmoid, UnaryCuda,
                 "Hard_Sigmoid_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::HardSwish, UnaryCuda, "Hard_Swish_CUDA");
@@ -217,6 +279,7 @@ REGISTER_KERNEL(Device::CUDA, OpType::Gelu, UnaryCuda, "Gelu_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Silu, UnaryCuda, "Silu_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Neg, UnaryCuda, "Neg_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Erf, UnaryCuda, "Erf_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Not, UnaryCuda, "Not_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::LeakyRelu, LeakyReluCuda,
                 "LeakyRelu_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Cast, CastCuda, "Cast_CUDA");

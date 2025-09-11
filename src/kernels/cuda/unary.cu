@@ -103,6 +103,118 @@ __global__ void _elu_kernel(const float *input, float *output, size_t size,
         output[index] = (x >= 0) ? x : alpha * (expf(x) - 1);
     }
 }
+__global__ void _not_kernel(const bool *input, bool *output, size_t size) {
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (index < size) {
+        output[index] = !input[index];
+    }
+}
+static const int MAX_PARALLEL_AXIS =
+    1024; // 若 axis_dim <= 1024 使用并行 block scan，否则使用单线程顺序扫描
+// --------------------------------------------------
+// kernel: 每个 block 处理一个 "line"（即固定除 axis 之外的其它维度）
+// data layout mapping (row-major, C-order):
+//   linear index for (outer_idx, a_idx, inner_idx):
+//     idx = ((outer_idx * axis_dim) + a_idx) * inner + inner_idx
+// outer = product(shape[0:axis-1])
+// inner = product(shape[axis+1:])
+// total_lines = outer * inner
+// grid.x = total_lines
+// blockDim.x = (axis_dim <= MAX_PARALLEL_AXIS ? min(axis_dim, 1024) : 1)
+// dynamic shared memory used when axis_dim <= MAX_PARALLEL_AXIS
+// --------------------------------------------------
+template <typename T>
+__global__ void _cumsum_kernel(const T *__restrict__ d_in,
+                               T *__restrict__ d_out, int outer, int axis_dim,
+                               int inner, bool exclusive, bool reverse) {
+    int line = blockIdx.x; // 0 .. outer*inner-1
+    int outer_idx = line / inner;
+    int inner_idx = line % inner;
+
+    // fast path: parallel (shared mem) when axis_dim small enough
+    if (axis_dim <= MAX_PARALLEL_AXIS && blockDim.x > 0) {
+        extern __shared__ unsigned char smem_uc[]; // dynamic shared mem
+        T *s = reinterpret_cast<T *>(
+            smem_uc); // s[tid] holds element or partial result
+        int tid = threadIdx.x;
+
+        // load into shared memory (use mapping that respects reverse)
+        if (tid < axis_dim) {
+            int a = reverse ? (axis_dim - 1 - tid) : tid;
+            size_t idx =
+                (size_t)((outer_idx * (size_t)axis_dim + a) * (size_t)inner +
+                         inner_idx);
+            s[tid] = d_in[idx];
+        }
+        __syncthreads();
+
+        // Hillis-Steele inclusive scan in-place on s[0..axis_dim-1]
+        for (int offset = 1; offset < axis_dim; offset <<= 1) {
+            T val = 0;
+            if (tid >= offset && tid < axis_dim)
+                val = s[tid - offset];
+            __syncthreads();
+            if (tid < axis_dim)
+                s[tid] = s[tid] + val;
+            __syncthreads();
+        }
+
+        // write back (apply exclusive if required)
+        if (tid < axis_dim) {
+            T outval;
+            if (exclusive) {
+                if (tid == 0)
+                    outval = T(0);
+                else
+                    outval = s[tid - 1];
+            } else {
+                outval = s[tid];
+            }
+            int a = reverse ? (axis_dim - 1 - tid) : tid;
+            size_t out_idx =
+                (size_t)((outer_idx * (size_t)axis_dim + a) * (size_t)inner +
+                         inner_idx);
+            d_out[out_idx] = outval;
+        }
+    } else {
+        // fallback serial path: single thread per block does sequential scan
+        if (threadIdx.x == 0) {
+            // forward or reverse
+            if (!reverse) {
+                T acc = T(0);
+                for (int a = 0; a < axis_dim; ++a) {
+                    size_t idx = (size_t)((outer_idx * (size_t)axis_dim + a) *
+                                              (size_t)inner +
+                                          inner_idx);
+                    T v = d_in[idx];
+                    if (exclusive) {
+                        d_out[idx] = acc;
+                        acc = acc + v;
+                    } else {
+                        acc = acc + v;
+                        d_out[idx] = acc;
+                    }
+                }
+            } else {
+                T acc = T(0);
+                for (int a = axis_dim - 1; a >= 0; --a) {
+                    size_t idx = (size_t)((outer_idx * (size_t)axis_dim + a) *
+                                              (size_t)inner +
+                                          inner_idx);
+                    T v = d_in[idx];
+                    if (exclusive) {
+                        d_out[idx] = acc;
+                        acc = acc + v;
+                    } else {
+                        acc = acc + v;
+                        d_out[idx] = acc;
+                    }
+                }
+            }
+        }
+    }
+}
 __device__ float fast_erf(float x) {
     // 高效erf近似，精度比tanh近似更高
     float a1 = 0.254829592f;
@@ -254,6 +366,30 @@ template <typename T> void gelu_kernel(T *input, T *output, size_t num) {
     _gelu_kernel<T><<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
         input, output, num);
 }
+void not_kernel(bool *input, bool *output, size_t num) {
+
+    int blocksize = block_work_size();
+    int gridsize = (num + block_work_size() - 1) / block_work_size();
+    _not_kernel<<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+        input, output, num);
+}
+
+template <typename Tdata>
+void cumsum_kernel(const Tdata *input, Tdata *output, int outer, int inner,
+                   int dimsize, bool exclusive, bool reversive) {
+
+    int blocks = outer * inner;
+    int block_threads =
+        (dimsize <= MAX_PARALLEL_AXIS) ? std::min(dimsize, 1024) : 1;
+    size_t shared_bytes = (dimsize <= MAX_PARALLEL_AXIS)
+                              ? (size_t)block_threads * sizeof(Tdata)
+                              : 0;
+    dim3 grid(blocks);
+    dim3 block(block_threads);
+    _cumsum_kernel<Tdata>
+        <<<grid, block, shared_bytes, CUDAStream::getCurrentStream()>>>(
+            input, output, outer, dimsize, inner, exclusive, reversive);
+}
 
 template <typename T> void silu_kernel(T *input, T *output, size_t num) {
 
@@ -366,6 +502,8 @@ void unary_kernel(const Operator &_op) {
         } else {
             IT_TODO_HALT();
         }
+    } else if (op->getOpType() == OpType::Not) {
+        not_kernel((bool *)inputData, (bool *)outputData, num);
     } else
         IT_TODO_HALT();
 }
@@ -403,6 +541,34 @@ template void cast_kernel<float, int8_t>(float *input, int8_t *output,
                                          size_t num);
 template void cast_kernel<int8_t, float>(int8_t *input, float *output,
                                          size_t num);
+template void cast_kernel<float, bool>(float *input, bool *output, size_t num);
+template void cast_kernel<int64_t, int32_t>(int64_t *input, int32_t *output,
+                                            size_t num);
+template void cast_kernel<int32_t, int64_t>(int32_t *input, int64_t *output,
+                                            size_t num);
+template void cast_kernel<int32_t, float>(int32_t *input, float *output,
+                                          size_t num);
+template void cast_kernel<int64_t, float>(int64_t *input, float *output,
+                                          size_t num);
+template void cast_kernel<uint32_t, float>(uint32_t *input, float *output,
+                                           size_t num);
+template void cast_kernel<uint64_t, float>(uint64_t *input, float *output,
+                                           size_t num);
+template void cast_kernel<float, int64_t>(float *input, int64_t *output,
+                                          size_t num);
+template void cast_kernel<float, uint32_t>(float *input, uint32_t *output,
+                                           size_t num);
+template void cast_kernel<float, uint64_t>(float *input, uint64_t *output,
+                                           size_t num);
+template void cumsum_kernel<float>(const float *input, float *output, int outer,
+                                   int inner, int dimsize, bool exclusive,
+                                   bool reversive);
+template void cumsum_kernel<half>(const half *input, half *output, int outer,
+                                  int inner, int dimsize, bool exclusive,
+                                  bool reversive);
+template void cumsum_kernel<int32_t>(const int32_t *input, int32_t *output,
+                                     int outer, int inner, int dimsize,
+                                     bool exclusive, bool reversive);
 template void leaky_relu_kernel<float>(float *input, float *output, size_t num,
                                        float alpha);
 }; // namespace infini

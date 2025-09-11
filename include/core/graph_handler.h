@@ -54,9 +54,12 @@ class GraphHandlerObj {
     Tensor pow(Tensor a, Tensor b, Tensor c);
     Tensor min(Tensor a, Tensor b, Tensor c);
     Tensor max(Tensor a, Tensor b, Tensor c);
+    Tensor equal(Tensor a, Tensor b, Tensor c);
 
+    Tensor notFunction(Tensor x, Tensor y);
     Tensor relu(Tensor x, Tensor y);
     Tensor leakyRelu(Tensor x, Tensor y, float alpha);
+    Tensor cumsum(Tensor x, Tensor y, int axis, bool exclusive, bool reverse);
     Tensor silu(Tensor x, Tensor y);
     Tensor gelu(Tensor x, Tensor y);
     Tensor sigmoid(Tensor x, Tensor y);
@@ -98,6 +101,8 @@ class GraphHandlerObj {
                       const optional<vector<int>> &axes, bool keepdims);
     Tensor reduceSum(Tensor data, Tensor reduced,
                      const optional<vector<int>> &axes, bool keepdims);
+    Tensor reduceL2(Tensor data, Tensor reduced,
+                    const optional<vector<int>> &axes, bool keepdims);
     Tensor slice(Tensor input, Tensor output, const vector<int> &starts,
                  const vector<int> &ends, const optional<vector<int>> &axes,
                  const optional<vector<int>> &steps);
