@@ -560,6 +560,8 @@ template void cast_kernel<float, uint32_t>(float *input, uint32_t *output,
                                            size_t num);
 template void cast_kernel<float, uint64_t>(float *input, uint64_t *output,
                                            size_t num);
+template void cast_kernel<bool, int32_t>(bool *input, int32_t *output,
+                                         size_t num);
 template void cumsum_kernel<float>(const float *input, float *output, int outer,
                                    int inner, int dimsize, bool exclusive,
                                    bool reversive);
