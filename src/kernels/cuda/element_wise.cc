@@ -216,15 +216,15 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
         int b_size = bTensor->size();
         int c_size = cTensor->size();
         float *aF = nullptr, *bF = nullptr, *cF = nullptr;
+        cudaMalloc(&aF, a_size * sizeof(float));
+        cudaMalloc(&bF, b_size * sizeof(float));
+        cudaMalloc(&cF, c_size * sizeof(float));
         if (op->getDType() == DataType::Int32 ||
             op->getDType() == DataType::Int64 ||
             op->getDType() == DataType::UInt32 ||
             op->getDType() == DataType::UInt64) {
             cudnnDataType = CUDNN_DATA_FLOAT;
 
-            cudaMalloc(&aF, a_size * sizeof(float));
-            cudaMalloc(&bF, b_size * sizeof(float));
-            cudaMalloc(&cF, c_size * sizeof(float));
             if (op->getDType() == DataType::Int32) {
                 cast_kernel<int32_t, float>((int32_t *)aData, (float *)aF,
                                             a_size);
@@ -284,9 +284,6 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
             op->getDType() == DataType::UInt64) {
             cudnnDataType = CUDNN_DATA_FLOAT;
 
-            cudaMalloc(&aF, a_size * sizeof(float));
-            cudaMalloc(&bF, b_size * sizeof(float));
-            cudaMalloc(&cF, c_size * sizeof(float));
             if (op->getDType() == DataType::Int32) {
                 checkCudnnError(cudnnOpTensor(context->cudnnHandle(), opDesc,
                                               &aAlpha, aDesc, aF, &bAlpha,

@@ -42,10 +42,8 @@ class SliceCuda : private PadSliceCudaCompute, public CudaKernelWithoutConfig {
         auto output_shape = output->getDims();
         auto input_shape = input->getDims();
 
-        int dtype_size = 4;
-        if (input->getDType().getIndex() == 1) {
-            dtype_size = 4;
-        }
+        int dtype_size = input->getDType().getSize();
+
         int slice_axis = -1;
         for (int i = 0; i < ndim; ++i) {
             if (begNos[i] > 0 || output_shape[i] < input_shape[i]) {

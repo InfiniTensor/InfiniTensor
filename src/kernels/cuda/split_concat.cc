@@ -81,10 +81,8 @@ class ConcatCuda : private CudaCompute, public CudaKernelWithoutConfig {
         int ndim = output->getRank();
         int axis = as<ConcatObj>(_op)->getDim();
         auto output_shape = output->getDims();
-        int dtype_size = 2;
-        if (_op->getDType() == DataType::Float32) {
-            dtype_size = 4;
-        }
+        int dtype_size = _op->getDType().getSize();
+
         // std::cout << "concat" << std::endl;
         // for (int i = 0; i < ndim; i++) {
         //     printf("%d ", output_shape[i]);
