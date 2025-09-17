@@ -210,6 +210,7 @@ DEFINE_ELEMENT_WISE_METHOD(div, Div)
 DEFINE_ELEMENT_WISE_METHOD(pow, Pow)
 DEFINE_ELEMENT_WISE_METHOD(min, Minimum)
 DEFINE_ELEMENT_WISE_METHOD(max, Maximum)
+DEFINE_ELEMENT_WISE_METHOD(equal, Equal)
 
 // see operators/unary.h
 #define DEFINE_UNARY_METHOD(name, obj)                                         \
@@ -234,6 +235,7 @@ DEFINE_UNARY_METHOD(sqrt, Sqrt)
 DEFINE_UNARY_METHOD(neg, Neg)
 DEFINE_UNARY_METHOD(shape, Shape)
 DEFINE_UNARY_METHOD(erf, Erf)
+DEFINE_UNARY_METHOD(notFunction, Not)
 
 // see operators/reshape.h
 DEFINE_UNARY_METHOD(identity, Identity)
@@ -247,7 +249,17 @@ Tensor GraphHandlerObj::pRelu(Tensor x, Tensor slope, Tensor y) {
             ->getOutput();
     }
 }
-
+Tensor GraphHandlerObj::cumsum(Tensor x, Tensor y, int axis, bool exclusive,
+                               bool reverse) {
+    if (y) {
+        g->addOpWithOutputs<CumsumObj>(std::move(x), y, axis, exclusive,
+                                       reverse);
+        return y;
+    } else {
+        return g->addOp<CumsumObj>(std::move(x), y, axis, exclusive, reverse)
+            ->getOutput();
+    }
+}
 Tensor GraphHandlerObj::leakyRelu(Tensor x, Tensor y, float alpha) {
     if (y) {
         g->addOpWithOutputs<LeakyReluObj>(std::move(x), y, alpha);
@@ -478,6 +490,7 @@ Tensor GraphHandlerObj::gatherElements(Tensor data, Tensor indices,
     }
 DEFINE_REDUCE_METHOD(reduceMean, ReduceMean)
 DEFINE_REDUCE_METHOD(reduceSum, ReduceSum)
+DEFINE_REDUCE_METHOD(reduceL2, ReduceL2)
 
 Tensor GraphHandlerObj::slice(Tensor input, Tensor output,
                               const vector<int> &starts,
@@ -746,6 +759,10 @@ static CastType inferCastType(Tensor input, int to) {
         return CastType::BFloat162Float;
     } else if (iType == DataType::Float32 && oType == DataType::Float32) {
         return CastType::Float2Float;
+    } else if (iType == DataType::Float32 && oType == DataType::Bool) {
+        return CastType::Float2Bool;
+    } else if (iType == DataType::Bool && oType == DataType::Int32) {
+        return CastType::Bool2Int32;
     } else {
         IT_TODO_HALT_MSG("Unsupported CastType : input_type is " +
                          iType.toString() + " output_type is " +
