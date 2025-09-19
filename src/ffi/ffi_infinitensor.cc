@@ -508,7 +508,7 @@ void init_graph_builder(py::module &m) {
                  std::string format = getFormat(self.getDType());
 
                  py::array numpy_array(py::dtype(format), self.getDims(),
-                                       nullptr);
+                                       stride_byte, nullptr);
 
                  // Copy data to the numpy array
                  auto ptr = numpy_array.mutable_data();
