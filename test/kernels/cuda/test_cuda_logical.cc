@@ -27,8 +27,8 @@ void testLogicalBinaryBoolCuda(
     gCpu->dataMalloc();
     aCpu->setData(generatorA);
     bCpu->setData(generatorB);
-    aCpu->printData();
-    bCpu->printData();
+    // aCpu->printData();
+    // bCpu->printData();
 
     // cuda graph
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
@@ -43,7 +43,7 @@ void testLogicalBinaryBoolCuda(
     cudaRuntime->run(gCuda);
 
     auto cCpu = gCpu->cloneTensor(op->getOutput());
-    cCpu->printData();
+    // cCpu->printData();
     EXPECT_TRUE(cCpu->equalData(ansVec));
 }
 
@@ -56,7 +56,7 @@ void testLogicalUnaryBoolCuda(
     auto aCpu = gCpu->addTensor(shape, DataType::Bool);
     gCpu->dataMalloc();
     aCpu->setData(generatorA);
-    aCpu->printData();
+    // aCpu->printData();
 
     // cuda graph
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
@@ -69,7 +69,7 @@ void testLogicalUnaryBoolCuda(
     cudaRuntime->run(gCuda);
 
     auto cCpu = gCpu->cloneTensor(op->getOutput());
-    cCpu->printData();
+    // cCpu->printData();
     EXPECT_TRUE(cCpu->equalData(ansVec));
 }
 
@@ -85,8 +85,8 @@ void testLogicalBinaryIntCuda(
     gCpu->dataMalloc();
     aCpu->setData(generatorA);
     bCpu->setData(generatorB);
-    aCpu->printData();
-    bCpu->printData();
+    // aCpu->printData();
+    // bCpu->printData();
 
     // cuda graph
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
@@ -101,7 +101,7 @@ void testLogicalBinaryIntCuda(
     cudaRuntime->run(gCuda);
 
     auto cCpu = gCpu->cloneTensor(op->getOutput());
-    cCpu->printData();
+    // cCpu->printData();
     EXPECT_TRUE(cCpu->equalData(ansVec));
 }
 
@@ -114,7 +114,7 @@ void testLogicalUnaryIntCuda(
     auto aCpu = gCpu->addTensor(shape, DataType::UInt32);
     gCpu->dataMalloc();
     aCpu->setData(generatorA);
-    aCpu->printData();
+    // aCpu->printData();
 
     // cuda graph
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
@@ -127,7 +127,7 @@ void testLogicalUnaryIntCuda(
     cudaRuntime->run(gCuda);
 
     auto cCpu = gCpu->cloneTensor(op->getOutput());
-    cCpu->printData();
+    // cCpu->printData();
     EXPECT_TRUE(cCpu->equalData(ansVec));
 }
 

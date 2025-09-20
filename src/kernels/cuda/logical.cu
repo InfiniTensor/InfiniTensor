@@ -66,9 +66,6 @@ __global__ void _logical_binary_kernel(void *a, void *b, void *c, int a0,
         T va = Ap[aoff];
         T vb = Bp[boff];
 
-        printf("a: %d, b: %d, result: %d\n", va, vb,
-               Op::template apply<T>(va, vb));
-
         Cp[i] = Op::template apply<T>(va, vb);
     }
 }
@@ -108,8 +105,6 @@ __global__ void _logical_unary_kernel(void *a, void *b, int a0, int a1, int a2,
         int aoff = ((a0i * a1 + a1i) * a2 + a2i) * a3 + a3i;
 
         T va = Ap[aoff];
-
-        printf("a: %d, result: %d\n", va, Op::template apply<T>(va));
 
         Bp[i] = Op::template apply<T>(va);
     }
