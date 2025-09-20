@@ -244,9 +244,8 @@ bool OpType::isUnary() const {
 
 bool OpType::isBinary() const {
     static const std::unordered_set<decltype(type)> set{
-        Add,        And,       BitwiseAnd,
-        BitwiseNot, BitwiseOr, BitwiseXor,   Div,           Mod,
-        Mul,        Or,        Pow,          Sub,           Xor,
+        Add, And, BitwiseAnd, BitwiseNot, BitwiseOr, BitwiseXor, Div,
+        Mod, Mul, Or,         Pow,        Sub,       Xor,
     };
 
     return set.find(type) != set.end() || isCompair();
