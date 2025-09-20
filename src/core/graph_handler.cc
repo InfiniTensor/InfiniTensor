@@ -11,6 +11,7 @@
 #include "operators/gather.h"
 #include "operators/instance_norm.h"
 #include "operators/layer_norm.h"
+#include "operators/logical.h"
 #include "operators/lrn.h"
 #include "operators/matmul.h"
 #include "operators/pad.h"

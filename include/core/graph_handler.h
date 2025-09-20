@@ -54,6 +54,16 @@ class GraphHandlerObj {
     Tensor pow(Tensor a, Tensor b, Tensor c);
     Tensor min(Tensor a, Tensor b, Tensor c);
     Tensor max(Tensor a, Tensor b, Tensor c);
+    Tensor And(Tensor a, Tensor b, Tensor c);
+    Tensor Or(Tensor a, Tensor b, Tensor c);
+    Tensor Xor(Tensor a, Tensor b, Tensor c);
+    Tensor Not(Tensor a, Tensor b);
+    Tensor BitAnd(Tensor a, Tensor b, Tensor c);
+    Tensor BitOr(Tensor a, Tensor b, Tensor c);
+    Tensor BitXor(Tensor a, Tensor b, Tensor c);
+    Tensor BitNot(Tensor a, Tensor b);
+    Tensor BitLeftShift(Tensor a, Tensor b, Tensor c);
+    Tensor BitRightShift(Tensor a, Tensor b, Tensor c);
 
     Tensor relu(Tensor x, Tensor y);
     Tensor leakyRelu(Tensor x, Tensor y, float alpha);

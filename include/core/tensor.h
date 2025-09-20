@@ -15,6 +15,10 @@
 namespace infini {
 
 // TODO: how to deal with this
+// Tensor shape and basic tensor object.
+// `TensorObj` stores shape, dtype and runtime and provides utilities for
+// allocation, data access, printing and comparison. Bool values are stored
+// as `int8_t` and are printed as integers for readability.
 using ShapeElem = int;
 using Shape = vector<ShapeElem>;
 class TensorObj : public TensorBaseObj {
@@ -153,6 +157,10 @@ class TensorObj : public TensorBaseObj {
             return equalDataImpl_fp16(getRawDataPtr<uint16_t *>(),
                                       (float *)dataVector.data(), size());
         }
+        if (dtype == DataType::Bool) {
+            return equalDataImpl_bool(getRawDataPtr<bool *>(),
+                                      (uint8_t *)dataVector.data(), size());
+        }
         IT_ASSERT(DataType::get<T>() == dtype.cpuTypeInt());
         return equalDataImpl(getRawDataPtr<T *>(), dataVector.data(), size());
     }
@@ -177,7 +185,11 @@ class TensorObj : public TensorBaseObj {
                 if (i % dimSzVec[j] == 0)
                     builder << "[";
 
-            builder << ptr[i];
+            // print bool as int
+            if constexpr (std::is_same_v<T, int8_t>)
+                builder << static_cast<int>(ptr[i]);
+            else
+                builder << ptr[i];
             for (size_t j = 0; j < numDims; ++j)
                 if ((int)i % dimSzVec[j] == dimSzVec[j] - 1)
                     builder << "]";
@@ -226,6 +238,19 @@ class TensorObj : public TensorBaseObj {
             if (fabs(a_fp32 - b_fp32) / std::max(fabs(a_fp32), fabs(b_fp32)) >
                 1e-6) {
                 printf("Error on %lu: %f %f\n", i, a_fp32, b_fp32);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool equalDataImpl_bool(bool *rawDataPtr, uint8_t *dataVectorPtr,
+                            size_t size) {
+        for (size_t i = 0; i < size; ++i) {
+            bool rawBool = rawDataPtr[i] != 0;
+            bool vectorBool = dataVectorPtr[i] != 0;
+
+            if (rawBool != vectorBool) {
                 return false;
             }
         }

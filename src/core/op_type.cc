@@ -21,7 +21,8 @@ const char *OpType::toString() const {
         CASE(AveragePool);
         CASE(BatchNormalization);
         CASE(Bernoulli);
-        CASE(BitShift);
+        CASE(BitLeftShift);
+        CASE(BitRightShift);
         CASE(BitwiseAnd);
         CASE(BitwiseNot);
         CASE(BitwiseOr);
@@ -244,8 +245,9 @@ bool OpType::isUnary() const {
 
 bool OpType::isBinary() const {
     static const std::unordered_set<decltype(type)> set{
-        Add, And, BitShift, BitwiseAnd, BitwiseNot, BitwiseOr, BitwiseXor,
-        Div, Mod, Mul,      Or,         Pow,        Sub,       Xor,
+        Add,        And,       BitLeftShift, BitRightShift, BitwiseAnd,
+        BitwiseNot, BitwiseOr, BitwiseXor,   Div,           Mod,
+        Mul,        Or,        Pow,          Sub,           Xor,
     };
 
     return set.find(type) != set.end() || isCompair();
