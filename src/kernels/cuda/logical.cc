@@ -51,17 +51,7 @@ class BinaryLogicalCuda : public CudaKernelWithoutConfig {
         } else if (op->getOpType() == OpType::BitwiseXor) {
             BitXor_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3],
                           b[0], b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
-        } else if (op->getOpType() == OpType::BitLeftShift) {
-            BitLeftShift_kernel(dType, aData, bData, cData, a[0], a[1], a[2],
-                                a[3], b[0], b[1], b[2], b[3], c[0], c[1], c[2],
-                                c[3]);
-        } else if (op->getOpType() == OpType::BitRightShift) {
-            BitRightShift_kernel(dType, aData, bData, cData, a[0], a[1], a[2],
-                                 a[3], b[0], b[1], b[2], b[3], c[0], c[1], c[2],
-                                 c[3]);
-        }
-
-        else {
+        } else {
             std::cerr << op->getOpType().toString() << " dtypeIndex=" << dType
                       << std::endl;
             IT_TODO_HALT();
@@ -113,8 +103,4 @@ REGISTER_KERNEL(Device::CUDA, OpType::BitwiseXor, BinaryLogicalCuda,
 REGISTER_KERNEL(Device::CUDA, OpType::Not, UnaryLogicalCuda, "Not_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::BitwiseNot, UnaryLogicalCuda,
                 "BitNot_CUDA");
-REGISTER_KERNEL(Device::CUDA, OpType::BitLeftShift, BinaryLogicalCuda,
-                "BitLeftShift_CUDA");
-REGISTER_KERNEL(Device::CUDA, OpType::BitRightShift, BinaryLogicalCuda,
-                "BitRightShift_CUDA");
 }; // namespace infini

@@ -76,4 +76,5 @@ DEFINE_ELEMENT_WISE_OBJ(GreaterThan, OpType::Greater)
 DEFINE_ELEMENT_WISE_OBJ(GreaterEqual, OpType::GreaterOrEqual)
 DEFINE_ELEMENT_WISE_OBJ(LessThan, OpType::Less)
 DEFINE_ELEMENT_WISE_OBJ(LessEqual, OpType::LessOrEqual)
+DEFINE_ELEMENT_WISE_OBJ(BitLeftShift, OpType::BitShift)
 }; // namespace infini

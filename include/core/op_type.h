@@ -29,9 +29,8 @@ struct OpType {
         AttentionKVCache,   // Fusion
         AveragePool,        // Pool
         BatchNormalization, //
-        BitLeftShift,       // Binary
         Bernoulli,          //
-        BitRightShift,      // Binary
+        BitShift,           // Binary
         BitwiseAnd,         // Binary
         BitwiseNot,         // Binary
         BitwiseOr,          // Binary

@@ -158,12 +158,6 @@ TEST(cuda_logical_binary_int, run) {
     testLogicalBinaryIntCuda<BitXorObj>(
         IncrementalGenerator(), IncrementalGenerator(), Shape{1, 2, 2, 3},
         std::vector<uint32_t>(12, 0));
-    testLogicalBinaryIntCuda<BitLeftShiftObj>(
-        IncrementalGenerator(), OneGenerator(), Shape{1, 2, 2, 3},
-        std::vector<uint32_t>{0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22});
-    testLogicalBinaryIntCuda<BitRightShiftObj>(
-        IncrementalGenerator(), OneGenerator(), Shape{1, 2, 2, 3},
-        std::vector<uint32_t>{0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5});
 }
 
 TEST(cuda_logical_unary_int, run) {

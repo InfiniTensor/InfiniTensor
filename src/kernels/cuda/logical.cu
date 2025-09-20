@@ -313,20 +313,4 @@ void BitNot_kernel(int dtypeIndex, void *a, void *b, int a0, int a1, int a2,
     SWITCH_DTYPE_UNARY_INT(BitNotOp, dtypeIndex)
 }
 
-void BitLeftShift_kernel(int dtypeIndex, void *a, void *b, void *c, int a0,
-                         int a1, int a2, int a3, int b0, int b1, int b2, int b3,
-                         int c0, int c1, int c2, int c3) {
-    int blocksize, gridsize;
-    _compute_grid_block(c0 * c1 * c2 * c3, gridsize, blocksize);
-    SWITCH_DTYPE_BINARY_INT(BitLeftShiftOp, dtypeIndex)
-}
-
-void BitRightShift_kernel(int dtypeIndex, void *a, void *b, void *c, int a0,
-                          int a1, int a2, int a3, int b0, int b1, int b2,
-                          int b3, int c0, int c1, int c2, int c3) {
-    int blocksize, gridsize;
-    _compute_grid_block(c0 * c1 * c2 * c3, gridsize, blocksize);
-    SWITCH_DTYPE_BINARY_INT(BitRightShiftOp, dtypeIndex)
-}
-
 } // namespace infini

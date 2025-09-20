@@ -57,8 +57,6 @@ DEFINE_BINARY_LOGICAL(Xor, OpType::Xor)
 DEFINE_BINARY_LOGICAL(BitAnd, OpType::BitwiseAnd)
 DEFINE_BINARY_LOGICAL(BitOr, OpType::BitwiseOr)
 DEFINE_BINARY_LOGICAL(BitXor, OpType::BitwiseXor)
-DEFINE_BINARY_LOGICAL(BitLeftShift, OpType::BitLeftShift)
-DEFINE_BINARY_LOGICAL(BitRightShift, OpType::BitRightShift)
 
 // Unary Operators
 DEFINE_UNARY_LOGICAL(Not, OpType::Not)

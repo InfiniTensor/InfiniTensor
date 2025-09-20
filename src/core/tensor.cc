@@ -7,8 +7,6 @@
 #include <numeric>
 
 namespace infini {
-// Implementation of TensorObj methods: construction, printing, data
-// allocation/copying and helpers used by tests and runtime.
 
 TensorObj::TensorObj(Shape shape_, DataType dtype, Runtime runtime)
     : TensorBaseObj(shape_.size(), dtype, runtime), shape(std::move(shape_)),
