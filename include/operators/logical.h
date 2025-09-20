@@ -54,11 +54,7 @@ class UnaryLogicalObj : public OperatorObj {
 DEFINE_BINARY_LOGICAL(And, OpType::And)
 DEFINE_BINARY_LOGICAL(Or, OpType::Or)
 DEFINE_BINARY_LOGICAL(Xor, OpType::Xor)
-DEFINE_BINARY_LOGICAL(BitAnd, OpType::BitwiseAnd)
-DEFINE_BINARY_LOGICAL(BitOr, OpType::BitwiseOr)
-DEFINE_BINARY_LOGICAL(BitXor, OpType::BitwiseXor)
 
 // Unary Operators
 DEFINE_UNARY_LOGICAL(Not, OpType::Not)
-DEFINE_UNARY_LOGICAL(BitNot, OpType::BitwiseNot)
 }; // namespace infini

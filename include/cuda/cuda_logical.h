@@ -14,15 +14,4 @@ void Xor_kernel(int dtypeIndex, void *a, void *b, void *c, int a0, int a1,
                 int c2, int c3);
 void Not_kernel(int dtypeIndex, void *a, void *b, int a0, int a1, int a2,
                 int a3, int b0, int b1, int b2, int b3);
-void BitAnd_kernel(int dtypeIndex, void *a, void *b, void *c, int a0, int a1,
-                   int a2, int a3, int b0, int b1, int b2, int b3, int c0,
-                   int c1, int c2, int c3);
-void BitOr_kernel(int dtypeIndex, void *a, void *b, void *c, int a0, int a1,
-                  int a2, int a3, int b0, int b1, int b2, int b3, int c0,
-                  int c1, int c2, int c3);
-void BitXor_kernel(int dtypeIndex, void *a, void *b, void *c, int a0, int a1,
-                   int a2, int a3, int b0, int b1, int b2, int b3, int c0,
-                   int c1, int c2, int c3);
-void BitNot_kernel(int dtypeIndex, void *a, void *b, int a0, int a1, int a2,
-                   int a3, int b0, int b1, int b2, int b3);
 }; // namespace infini

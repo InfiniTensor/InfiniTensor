@@ -126,30 +126,6 @@ struct NotOp {
     template <typename T> static __device__ T apply(T a) { return !a; }
 };
 
-struct BitAndOp {
-    template <typename T> static __device__ T apply(T a, T b) { return a & b; }
-};
-
-struct BitOrOp {
-    template <typename T> static __device__ T apply(T a, T b) { return a | b; }
-};
-
-struct BitXorOp {
-    template <typename T> static __device__ T apply(T a, T b) { return a ^ b; }
-};
-
-struct BitNotOp {
-    template <typename T> static __device__ T apply(T a) { return ~a; }
-};
-
-struct BitLeftShiftOp {
-    template <typename T> static __device__ T apply(T a, T b) { return a << b; }
-};
-
-struct BitRightShiftOp {
-    template <typename T> static __device__ T apply(T a, T b) { return a >> b; }
-};
-
 // -----------------------------------------------------------------------------
 // 1=bool, 3=uchar, 4=char, 5=ushort, 6=short, 7=int, 9=bool, 12=uint, 13=ull
 // -----------------------------------------------------------------------------
@@ -166,7 +142,7 @@ struct BitRightShiftOp {
         <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(          \
             a, b, a0, a1, a2, a3, b0, b1, b2, b3);
 
-#define SWITCH_DTYPE_BINARY_BOOL(OP, DTYPE)                                    \
+#define SWITCH_DTYPE_BINARY(OP, DTYPE)                                         \
     switch (DTYPE) {                                                           \
     case 9:                                                                    \
         BINARY_CASE(OP, 9);                                                    \
@@ -175,7 +151,7 @@ struct BitRightShiftOp {
         IT_TODO_HALT();                                                        \
     }
 
-#define SWITCH_DTYPE_UNARY_BOOL(OP, DTYPE)                                     \
+#define SWITCH_DTYPE_UNARY(OP, DTYPE)                                          \
     switch (DTYPE) {                                                           \
     case 9:                                                                    \
         UNARY_CASE(OP, 9);                                                     \
@@ -255,7 +231,7 @@ void And_kernel(int dtypeIndex, void *a, void *b, void *c, int a0, int a1,
                 int c2, int c3) {
     int blocksize, gridsize;
     _compute_grid_block(c0 * c1 * c2 * c3, gridsize, blocksize);
-    SWITCH_DTYPE_BINARY_BOOL(AndOp, dtypeIndex)
+    SWITCH_DTYPE_BINARY(AndOp, dtypeIndex)
 }
 
 void Or_kernel(int dtypeIndex, void *a, void *b, void *c, int a0, int a1,
@@ -263,7 +239,7 @@ void Or_kernel(int dtypeIndex, void *a, void *b, void *c, int a0, int a1,
                int c2, int c3) {
     int blocksize, gridsize;
     _compute_grid_block(c0 * c1 * c2 * c3, gridsize, blocksize);
-    SWITCH_DTYPE_BINARY_BOOL(OrOp, dtypeIndex)
+    SWITCH_DTYPE_BINARY(OrOp, dtypeIndex)
 }
 
 void Xor_kernel(int dtypeIndex, void *a, void *b, void *c, int a0, int a1,
@@ -271,46 +247,13 @@ void Xor_kernel(int dtypeIndex, void *a, void *b, void *c, int a0, int a1,
                 int c2, int c3) {
     int blocksize, gridsize;
     _compute_grid_block(c0 * c1 * c2 * c3, gridsize, blocksize);
-    printf("Xor_kernel dtypeIndex=%d\n", dtypeIndex);
-    SWITCH_DTYPE_BINARY_BOOL(XorOp, dtypeIndex)
+    SWITCH_DTYPE_BINARY(XorOp, dtypeIndex)
 }
 
 void Not_kernel(int dtypeIndex, void *a, void *b, int a0, int a1, int a2,
                 int a3, int b0, int b1, int b2, int b3) {
     int blocksize, gridsize;
     _compute_grid_block(b0 * b1 * b2 * b3, gridsize, blocksize);
-    SWITCH_DTYPE_UNARY_BOOL(NotOp, dtypeIndex)
+    SWITCH_DTYPE_UNARY(NotOp, dtypeIndex)
 }
-
-void BitAnd_kernel(int dtypeIndex, void *a, void *b, void *c, int a0, int a1,
-                   int a2, int a3, int b0, int b1, int b2, int b3, int c0,
-                   int c1, int c2, int c3) {
-    int blocksize, gridsize;
-    _compute_grid_block(c0 * c1 * c2 * c3, gridsize, blocksize);
-    SWITCH_DTYPE_BINARY_INT(BitAndOp, dtypeIndex)
-}
-
-void BitOr_kernel(int dtypeIndex, void *a, void *b, void *c, int a0, int a1,
-                  int a2, int a3, int b0, int b1, int b2, int b3, int c0,
-                  int c1, int c2, int c3) {
-    int blocksize, gridsize;
-    _compute_grid_block(c0 * c1 * c2 * c3, gridsize, blocksize);
-    SWITCH_DTYPE_BINARY_INT(BitOrOp, dtypeIndex)
-}
-
-void BitXor_kernel(int dtypeIndex, void *a, void *b, void *c, int a0, int a1,
-                   int a2, int a3, int b0, int b1, int b2, int b3, int c0,
-                   int c1, int c2, int c3) {
-    int blocksize, gridsize;
-    _compute_grid_block(c0 * c1 * c2 * c3, gridsize, blocksize);
-    SWITCH_DTYPE_BINARY_INT(BitXorOp, dtypeIndex)
-}
-
-void BitNot_kernel(int dtypeIndex, void *a, void *b, int a0, int a1, int a2,
-                   int a3, int b0, int b1, int b2, int b3) {
-    int blocksize, gridsize;
-    _compute_grid_block(b0 * b1 * b2 * b3, gridsize, blocksize);
-    SWITCH_DTYPE_UNARY_INT(BitNotOp, dtypeIndex)
-}
-
 } // namespace infini
