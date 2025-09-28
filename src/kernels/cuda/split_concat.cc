@@ -166,10 +166,7 @@ class SplitCuda : private CudaCompute, public CudaKernelWithoutConfig {
         auto outputs = _op->getOutputs();
         int num_outputs = outputs.size();
         auto input_shape = input->getDims();
-        int dtype_size = 2;
-        if (_op->getDType() == DataType::Float32) {
-            dtype_size = 4;
-        }
+        int dtype_size = _op->getDType().getSize();
         int outer_count = 1;
         for (int i = 0; i < axis; ++i) {
             outer_count *= input_shape[i];
