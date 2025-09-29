@@ -139,77 +139,7 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
         std::copy(a_dim.begin(), a_dim.end(), a + (4 - a_dim.size()));
         std::copy(b_dim.begin(), b_dim.end(), b + (4 - b_dim.size()));
         std::copy(c_dim.begin(), c_dim.end(), c + (4 - c_dim.size()));
-        // bool condition = true;
-        // for (size_t i = 0; i < 4; i++) {
-        //     if (a[i] != b[i]) {
-        //         condition = false;
-        //         break;
-        //     }
-        // }
-        // if (op->getOpType() != OpType::Div && op->getOpType() != OpType::Add
-        // &&
-        //     op->getOpType() != OpType::Pow && op->getOpType() !=
-        //     OpType::Less) { condition = false;
-        // }
-        // if (condition) {
-        //     int num = a[0] * a[1] * a[2] * a[3];
-        //     const int dType = _op->getDType().getIndex();
-        //     // std::cout << dType << std::endl;
-        //     if (op->getOpType() == OpType::Div) {
-        //         div_special_kernel(dType, aData, bData, cData, num);
-        //     } else if (op->getOpType() == OpType::Add) {
-        //         add_special_kernel(dType, aData, bData, cData, num);
-        //     } else if (op->getOpType() == OpType::Pow) {
-        //         pow_special_kernel(dType, aData, bData, cData, num);
-        //     } else if (op->getOpType() == OpType::Less) {
-        //         less_special_kernel(dType, aData, bData, cData, num);
-        //     } else {
-        //         IT_TODO_HALT();
-        //     }
-        // } else {
-        //     auto cudnnDataType = cudnnDataTypeConvert(op->getDType());
-        //     // get inputs
-        //     checkCudnnError(cudnnCreateTensorDescriptor(&aDesc));
-        //     checkCudnnError(cudnnSetTensor4dDescriptor(aDesc,
-        //     CUDNN_TENSOR_NCHW,
-        //                                                cudnnDataType, a[0],
-        //                                                a[1], a[2], a[3]));
 
-        //     checkCudnnError(cudnnCreateTensorDescriptor(&bDesc));
-        //     checkCudnnError(cudnnSetTensor4dDescriptor(bDesc,
-        //     CUDNN_TENSOR_NCHW,
-        //                                                cudnnDataType, b[0],
-        //                                                b[1], b[2], b[3]));
-
-        //     // get outputs
-        //     checkCudnnError(cudnnCreateTensorDescriptor(&cDesc));
-        //     checkCudnnError(cudnnSetTensor4dDescriptor(cDesc,
-        //     CUDNN_TENSOR_NCHW,
-        //                                                cudnnDataType, c[0],
-        //                                                c[1], c[2], c[3]));
-
-        //     // get op descriptor
-        //     cudnnOpTensorDescriptor_t opDesc;
-        //     checkCudnnError(cudnnCreateOpTensorDescriptor(&opDesc));
-        //     checkCudnnError(cudnnSetOpTensorDescriptor(
-        //         opDesc, getOpType(), CUDNN_DATA_FLOAT,
-        //         CUDNN_NOT_PROPAGATE_NAN));
-
-        //     auto [aAlpha, bAlpha, beta] = getAlphBeta();
-
-        //     checkCudnnError(cudnnOpTensor(context->cudnnHandle(), opDesc,
-        //                                   &aAlpha, aDesc, aData, &bAlpha,
-        //                                   bDesc, bData, &beta, cDesc,
-        //                                   cData));
-
-        //     // Destories in CUDA does not require sync. But cuDNN does not
-        //     state
-        //     // whether sync is required before destories.
-        //     checkCudnnError(cudnnDestroyTensorDescriptor(aDesc));
-        //     checkCudnnError(cudnnDestroyTensorDescriptor(bDesc));
-        //     checkCudnnError(cudnnDestroyTensorDescriptor(cDesc));
-        //     checkCudnnError(cudnnDestroyOpTensorDescriptor(opDesc));
-        // }
         // auto cudnnDataType = cudnnDataTypeConvert(op->getDType());
         cudnnDataType_t cudnnDataType;
         int a_size = aTensor->size();
@@ -372,13 +302,13 @@ class ElementWiseCuda : public CudaKernelWithoutConfig {
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
-        auto a_dim = op->getInputs(0)->getDims();
-        auto b_dim = op->getInputs(1)->getDims();
-        auto c_dim = op->getOutput()->getDims();
+        auto a_dim_base = op->getInputs(0)->getDims();
+        auto b_dim_base = op->getInputs(1)->getDims();
+        auto c_dim_base = op->getOutput()->getDims();
         const int dType = _op->getDType().getIndex();
 
         // Use optimized kernel if b is constant
-        if (b_dim.size() == 0) {
+        if (b_dim_base.size() == 0) {
             if (op->getOpType() == OpType::Div) {
                 div_const_kernel(dType, aData, bData, cData,
                                  op->getOutput()->size());
@@ -390,8 +320,53 @@ class ElementWiseCuda : public CudaKernelWithoutConfig {
             }
         }
 
-        if (a_dim.size() > 4 || b_dim.size() > 4 || c_dim.size() > 4)
+        std::vector<int> a_dim;
+        std::vector<int> b_dim;
+        std::vector<int> c_dim;
+        if (a_dim_base.size() > 4) {
+            for (int d : a_dim_base) {
+                if (d != 1) {
+                    a_dim.push_back(d);
+                }
+            }
+            if (a_dim.empty()) {
+                a_dim.push_back(a_dim_base.back());
+            }
+
+        } else {
+            a_dim = a_dim_base;
+        }
+        if (b_dim_base.size() > 4) {
+
+            for (int d : b_dim_base) {
+                if (d != 1) {
+                    b_dim.push_back(d);
+                }
+            }
+            if (b_dim.empty()) {
+                b_dim.push_back(b_dim_base.back());
+            }
+
+        } else {
+            b_dim = b_dim_base;
+        }
+        if (c_dim_base.size() > 4) {
+
+            for (int d : c_dim_base) {
+                if (d != 1) {
+                    c_dim.push_back(d);
+                }
+            }
+            if (c_dim.empty()) {
+                c_dim.push_back(c_dim_base.back());
+            }
+        } else {
+            c_dim = c_dim_base;
+        }
+        if (a_dim.size() > 4 || b_dim.size() > 4 || c_dim.size() > 4) {
+
             IT_TODO_HALT();
+        }
 
         int a[4] = {1, 1, 1, 1};
         int b[4] = {1, 1, 1, 1};
@@ -410,12 +385,9 @@ class ElementWiseCuda : public CudaKernelWithoutConfig {
         } else if (op->getOpType() == OpType::Pow) {
             pow_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
                        b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
-        } else if (op->getOpType() == OpType::Less) {
-            less_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3],
-                        b[0], b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
-        } else if (op->getOpType() == OpType::Equal) {
-            equal_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3],
-                         b[0], b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
+        } else if (op->getOpType() == OpType::Mul) {
+            mul_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
+                       b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
         } else {
             IT_TODO_HALT();
         }
@@ -457,13 +429,15 @@ class ElementWiseLogicCuda : public CudaKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Add, AddCudnn, "Add_cuDNN_CUDA");
+// REGISTER_KERNEL(Device::CUDA, OpType::Add, AddCudnn, "Add_cuDNN_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Sub, SubCudnn, "Sub_cuDNN_CUDA");
-REGISTER_KERNEL(Device::CUDA, OpType::Mul, MulCudnn, "Mul_cuDNN_CUDA");
+// REGISTER_KERNEL(Device::CUDA, OpType::Mul, MulCudnn, "Mul_cuDNN_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Min, MinCudnn, "Min_cuDNN_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Max, MaxCudnn, "Max_cuDNN_CUDA");
 
+REGISTER_KERNEL(Device::CUDA, OpType::Add, ElementWiseCuda, "Add_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Div, ElementWiseCuda, "Div_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Mul, ElementWiseCuda, "Mul_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Pow, ElementWiseCuda, "Pow_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Less, ElementWiseLogicCuda, "Less_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Equal, ElementWiseLogicCuda,
