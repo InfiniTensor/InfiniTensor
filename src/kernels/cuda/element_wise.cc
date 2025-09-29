@@ -47,53 +47,7 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
         std::copy(b_dim.begin(), b_dim.end(), b + (4 - b_dim.size()));
         std::copy(c_dim.begin(), c_dim.end(), c + (4 - c_dim.size()));
 
-        cudnnDataType_t cudnnDataType;
-        int a_size = aTensor->size();
-        int b_size = bTensor->size();
-        int c_size = cTensor->size();
-        float *aF = nullptr, *bF = nullptr, *cF = nullptr;
-        cudaMalloc(&aF, a_size * sizeof(float));
-        cudaMalloc(&bF, b_size * sizeof(float));
-        cudaMalloc(&cF, c_size * sizeof(float));
-        if (op->getDType() == DataType::Int32 ||
-            op->getDType() == DataType::Int64 ||
-            op->getDType() == DataType::UInt32 ||
-            op->getDType() == DataType::UInt64) {
-            cudnnDataType = CUDNN_DATA_FLOAT;
-
-            if (op->getDType() == DataType::Int32) {
-                cast_kernel<int32_t, float>((int32_t *)aData, (float *)aF,
-                                            a_size);
-                cast_kernel<int32_t, float>((int32_t *)bData, (float *)bF,
-                                            b_size);
-                cast_kernel<int32_t, float>((int32_t *)cData, (float *)cF,
-                                            c_size);
-            } else if (op->getDType() == DataType::Int64) {
-                cast_kernel<int64_t, float>((int64_t *)aData, (float *)aF,
-                                            a_size);
-                cast_kernel<int64_t, float>((int64_t *)bData, (float *)bF,
-                                            b_size);
-                cast_kernel<int64_t, float>((int64_t *)cData, (float *)cF,
-                                            c_size);
-            } else if (op->getDType() == DataType::UInt32) {
-                cast_kernel<uint32_t, float>((uint32_t *)aData, (float *)aF,
-                                             a_size);
-                cast_kernel<uint32_t, float>((uint32_t *)bData, (float *)bF,
-                                             b_size);
-                cast_kernel<uint32_t, float>((uint32_t *)cData, (float *)cF,
-                                             c_size);
-            } else if (op->getDType() == DataType::UInt64) {
-                cast_kernel<uint64_t, float>((uint64_t *)aData, (float *)aF,
-                                             a_size);
-                cast_kernel<uint64_t, float>((uint64_t *)bData, (float *)bF,
-                                             b_size);
-                cast_kernel<uint64_t, float>((uint64_t *)cData, (float *)cF,
-                                             c_size);
-            }
-
-        } else {
-            cudnnDataType = cudnnDataTypeConvert(op->getDType());
-        }
+        auto cudnnDataType = cudnnDataTypeConvert(op->getDType());
         // get inputs
         checkCudnnError(cudnnCreateTensorDescriptor(&aDesc));
         checkCudnnError(cudnnSetTensor4dDescriptor(
@@ -116,46 +70,9 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
 
         auto [aAlpha, bAlpha, beta] = getAlphBeta();
 
-        if (op->getDType() == DataType::Int32 ||
-            op->getDType() == DataType::Int64 ||
-            op->getDType() == DataType::UInt32 ||
-            op->getDType() == DataType::UInt64) {
-            cudnnDataType = CUDNN_DATA_FLOAT;
-
-            if (op->getDType() == DataType::Int32) {
-                checkCudnnError(cudnnOpTensor(context->cudnnHandle(), opDesc,
-                                              &aAlpha, aDesc, aF, &bAlpha,
-                                              bDesc, bF, &beta, cDesc, cF));
-                cast_kernel<float, int32_t>((float *)cF, (int32_t *)cData,
-                                            c_size);
-            } else if (op->getDType() == DataType::Int64) {
-                checkCudnnError(cudnnOpTensor(context->cudnnHandle(), opDesc,
-                                              &aAlpha, aDesc, aF, &bAlpha,
-                                              bDesc, bF, &beta, cDesc, cF));
-                cast_kernel<float, int64_t>((float *)cF, (int64_t *)cData,
-                                            c_size);
-            } else if (op->getDType() == DataType::UInt32) {
-                checkCudnnError(cudnnOpTensor(context->cudnnHandle(), opDesc,
-                                              &aAlpha, aDesc, aF, &bAlpha,
-                                              bDesc, bF, &beta, cDesc, cF));
-                cast_kernel<float, uint32_t>((float *)cF, (uint32_t *)cData,
-                                             c_size);
-            } else if (op->getDType() == DataType::UInt64) {
-                checkCudnnError(cudnnOpTensor(context->cudnnHandle(), opDesc,
-                                              &aAlpha, aDesc, aF, &bAlpha,
-                                              bDesc, bF, &beta, cDesc, cF));
-                cast_kernel<float, uint64_t>((float *)cF, (uint64_t *)cData,
-                                             c_size);
-            }
-
-        } else {
-            checkCudnnError(cudnnOpTensor(context->cudnnHandle(), opDesc,
-                                          &aAlpha, aDesc, aData, &bAlpha, bDesc,
-                                          bData, &beta, cDesc, cData));
-        }
-        cudaFree(aF);
-        cudaFree(bF);
-        cudaFree(cF);
+        checkCudnnError(cudnnOpTensor(context->cudnnHandle(), opDesc, &aAlpha,
+                                      aDesc, aData, &bAlpha, bDesc, bData,
+                                      &beta, cDesc, cData));
 
         // Destories in CUDA does not require sync. But cuDNN does not state
         // whether sync is required before destories.
@@ -164,7 +81,6 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
         checkCudnnError(cudnnDestroyTensorDescriptor(cDesc));
         checkCudnnError(cudnnDestroyOpTensorDescriptor(opDesc));
     }
-
     void compute(const Operator &op, const PerfRecord &record,
                  const RuntimeObj *context) const override {
         compute(op, context);
@@ -243,11 +159,17 @@ class ElementWiseCuda : public CudaKernelWithoutConfig {
         if (op->getOpType() == OpType::Div) {
             div_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
                        b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
-        } else if (op->getOpType() == OpType::Add) {
+        } else if (op->getOpType() == OpType::Pow) {
             add_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
                        b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
         } else if (op->getOpType() == OpType::Pow) {
             pow_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
+                       b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
+        } else if (op->getOpType() == OpType::Add) {
+            add_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
+                       b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
+        } else if (op->getOpType() == OpType::Mul) {
+            mul_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
                        b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
         } else {
             IT_TODO_HALT();
@@ -288,13 +210,15 @@ class ElementWiseLogicCuda : public CudaKernelWithoutConfig {
         }
     }
 };
-REGISTER_KERNEL(Device::CUDA, OpType::Add, AddCudnn, "Add_cuDNN_CUDA");
+// REGISTER_KERNEL(Device::CUDA, OpType::Add, AddCudnn, "Add_cuDNN_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Sub, SubCudnn, "Sub_cuDNN_CUDA");
-REGISTER_KERNEL(Device::CUDA, OpType::Mul, MulCudnn, "Mul_cuDNN_CUDA");
+// REGISTER_KERNEL(Device::CUDA, OpType::Mul, MulCudnn, "Mul_cuDNN_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Min, MinCudnn, "Min_cuDNN_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Max, MaxCudnn, "Max_cuDNN_CUDA");
 
+REGISTER_KERNEL(Device::CUDA, OpType::Add, ElementWiseCuda, "Add_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Div, ElementWiseCuda, "Div_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Mul, ElementWiseCuda, "Mul_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Pow, ElementWiseCuda, "Pow_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Less, ElementWiseLogicCuda, "Less_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Equal, ElementWiseLogicCuda,
