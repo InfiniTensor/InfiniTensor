@@ -1,4 +1,4 @@
-#include "operators/element_wise.h"
+#include "operators/logic_op.h"
 #include "bang/bang_kernel_without_config.h"
 #include "bang/bang_runtime.h"
 
@@ -75,7 +75,7 @@ class LogicOpCnnl : public BangKernelWithoutConfig {
     virtual cnnlLogicOp_t getOpType() const = 0;
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
-        auto op = as<ElementWiseObj>(_op);
+        auto op = as<LogicOpObj>(_op);
         auto context = dynamic_cast<const BangRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -660,44 +660,8 @@ class BitNotCnnl : public BitComputeCnnl {
 //     CNNL_BLEFT_SHIFT_OP_V2; }
 // };
 
-REGISTER_KERNEL(Device::BANG, OpType::Add, AddCnnl, "Add_cnnl_BANG");
-REGISTER_KERNEL(Device::BANG, OpType::Sub, SubCnnl, "Sub_cnnl_BANG");
-REGISTER_KERNEL(Device::BANG, OpType::Mul, MulCnnl, "Mul_cnnl_BANG");
-
-REGISTER_KERNEL(Device::BANG, OpType::Div, DivCnnl, "Div_cnnl");
-REGISTER_KERNEL(Device::BANG, OpType::Max, MaximumCnnl, "Maximum_cnnl_BANG");
-REGISTER_KERNEL(Device::BANG, OpType::Min, MinimumCnnl, "Minimum_cnnl_BANG");
-REGISTER_KERNEL(Device::BANG, OpType::MSELoss, MSELossCnnl,
-                "MSELoss_cnnl_BANG");
-REGISTER_KERNEL(Device::BANG, OpType::Pow, PowerCnnl, "Power_cnnl_BANG");
-REGISTER_KERNEL(Device::BANG, OpType::FloorDiv, FloorDivCnnl,
-                "FloorDiv_cnnl_BANG");
-REGISTER_KERNEL(Device::BANG, OpType::FloorMod, FloorModCnnl,
-                "FloorMod_cnnl_BANG");
-REGISTER_KERNEL(Device::BANG, OpType::SquaredDifference, SquaredDifferenceCnnl,
-                "SquaredDifference_cnnl_BANG");
-REGISTER_KERNEL(Device::BANG, OpType::Equal, EqualCnnl, "Equal_cnnl_BANG");
-REGISTER_KERNEL(Device::BANG, OpType::Greater, GreaterThanCnnl,
-                "GreaterThan_cnnl_BANG");
-REGISTER_KERNEL(Device::BANG, OpType::GreaterOrEqual, GreaterEqualCnnl,
-                "GreaterEqual_cnnl_BANG");
-REGISTER_KERNEL(Device::BANG, OpType::Less, LessThanCnnl, "LessThan_cnnl_BANG");
-REGISTER_KERNEL(Device::BANG, OpType::LessOrEqual, LessEqualCnnl,
-                "LessEqual_cnnl_BANG");
-REGISTER_KERNEL(Device::BANG, OpType::BitwiseAnd, BitAndCnnl,
-                "BitAnd_cnnl_BANG");
-REGISTER_KERNEL(Device::BANG, OpType::BitwiseOr, BitOrCnnl, "BitOr_cnnl_BANG");
-REGISTER_KERNEL(Device::BANG, OpType::BitwiseXor, BitXorCnnl,
-                "BitXor_cnnl_BANG");
-REGISTER_KERNEL(Device::BANG, OpType::BitwiseNot, BitNotCnnl,
-                "BitNot_cnnl_BANG");
-// REGISTER_KERNEL(Device::BANG, OpType::BitLeftShift,
-// BitLeftShiftCnnl,
-//                 "BitLeftShift_cnnl_BANG");
-// REGISTER_KERNEL(Device::BANG, OpType::BitRightShift,
-// BitRightShiftCnnl,
-//                 "BitRightShift_cnnl_BANG");
-// REGISTER_KERNEL(Device::BANG, OpType::Pow,
-// ElementWiseBang,
-//                 "Pow_Bang");
+REGISTER_KERNEL(Device::BANG, OpType::And, AndCnnl, "And_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Or, OrCnnl, "Or_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Xor, XorCnnl, "Xor_cnnl_BANG");
+REGISTER_KERNEL(Device::BANG, OpType::Not, NotCnnl, "Not_cnnl_BANG");
 }; // namespace infini
