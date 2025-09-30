@@ -21,9 +21,12 @@ void equal_kernel(int dtypeIndex, void *a, void *b, void *c, int a0, int a1,
                   int c1, int c2, int c3);
 void div_special_kernel(int dType, void *a, void *b, void *c, int num);
 void add_special_kernel(int dType, void *a, void *b, void *c, int num);
+void mul_special_kernel(int dType, void *a, void *b, void *c, int num);
 void pow_special_kernel(int dType, void *a, void *b, void *c, int num);
 void less_special_kernel(int dType, void *a, void *b, void *c, int num);
+void equal_special_kernel(int dType, void *a, void *b, void *c, int num);
 void div_const_kernel(int dType, void *a, void *b, void *c, size_t n);
-
+void mul_const_kernel(int dType, void *a, void *b, void *c, size_t n);
+void add_const_kernel(int dType, void *a, void *b, void *c, size_t n);
 void pow_const_kernel(int dType, void *a, void *b, void *c, size_t n);
 }; // namespace infini

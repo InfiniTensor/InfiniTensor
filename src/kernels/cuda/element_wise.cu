@@ -247,32 +247,14 @@ __global__ void _add_special_kernel(void *x, void *y, void *z, int num) {
         ((T *)z)[i] = ((T *)x)[i] + ((T *)y)[i];
     }
 }
-__global__ void _add_special_f32_kernel(float *x, float *y, float *z, int num) {
+template <class T>
+__global__ void _mul_special_kernel(void *x, void *y, void *z, int num) {
     int index = threadIdx.x + blockIdx.x * blockDim.x;
-    int global_idx = index * 4;
+    int stride = blockDim.x * gridDim.x;
 
-    // 检查是否超出边界
-    if (global_idx >= num)
-        return;
-
-    // 计算实际需要处理的元素数(最多4个)
-    int remaining = min(4, num - global_idx);
-
-    float4 a = reinterpret_cast<float4 *>(x)[index];
-    float4 b = reinterpret_cast<float4 *>(y)[index];
-    float4 c;
-
-    // 手动展开循环
-    if (remaining > 0)
-        c.x = a.x + b.x;
-    if (remaining > 1)
-        c.y = a.y + b.y;
-    if (remaining > 2)
-        c.z = a.z + b.z;
-    if (remaining > 3)
-        c.w = a.w + b.w;
-
-    reinterpret_cast<float4 *>(z)[index] = c;
+    for (int i = index; i < num; i += stride) {
+        ((T *)z)[i] = ((T *)x)[i] * ((T *)y)[i];
+    }
 }
 template <class T>
 __global__ void _pow_special_kernel(void *x, void *y, void *z, int num) {
@@ -290,6 +272,15 @@ __global__ void _less_special_kernel(void *x, void *y, void *z, int num) {
 
     for (int i = index; i < num; i += stride) {
         ((bool *)z)[i] = ((T *)x)[i] < ((T *)y)[i] ? true : false;
+    }
+}
+template <class T>
+__global__ void _equal_special_kernel(void *x, void *y, void *z, int num) {
+    int index = threadIdx.x + blockIdx.x * blockDim.x;
+    int stride = blockDim.x * gridDim.x;
+
+    for (int i = index; i < num; i += stride) {
+        ((bool *)z)[i] = ((T *)x)[i] == ((T *)y)[i] ? true : false;
     }
 }
 #define CASE_SPECIAL(OP, T)                                                    \
@@ -397,6 +388,28 @@ __global__ void _div_const_kernel(void const *__restrict__ x,
 }
 
 template <class T>
+__global__ void _mul_const_kernel(void const *__restrict__ x,
+                                  void const *__restrict__ y,
+                                  void *__restrict__ z, const size_t n) {
+    T val = *((T *)y); // 主线程提前读一次
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid < n) {
+        ((T *)z)[tid] = ((T *)x)[tid] * val;
+    }
+}
+
+template <class T>
+__global__ void _add_const_kernel(void const *__restrict__ x,
+                                  void const *__restrict__ y,
+                                  void *__restrict__ z, const size_t n) {
+    T val = *((T *)y); // 主线程提前读一次
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid < n) {
+        ((T *)z)[tid] = ((T *)x)[tid] + val;
+    }
+}
+
+template <class T>
 __global__ void _pow_const_kernel(void const *__restrict__ x,
                                   void const *__restrict__ y,
                                   void *__restrict__ z, const size_t n) {
@@ -467,6 +480,18 @@ void div_const_kernel(int dType, void *a, void *b, void *c, size_t n) {
     size_t blocksize = block_work_size();
     size_t gridsize = (n + block_work_size() - 1) / block_work_size();
     SWITCH_DTYPE_CONST(div, dType);
+}
+
+void mul_const_kernel(int dType, void *a, void *b, void *c, size_t n) {
+    size_t blocksize = block_work_size();
+    size_t gridsize = (n + block_work_size() - 1) / block_work_size();
+    SWITCH_DTYPE_CONST(mul, dType);
+}
+
+void add_const_kernel(int dType, void *a, void *b, void *c, size_t n) {
+    size_t blocksize = block_work_size();
+    size_t gridsize = (n + block_work_size() - 1) / block_work_size();
+    SWITCH_DTYPE_CONST(add, dType);
 }
 
 void pow_const_kernel(int dType, void *a, void *b, void *c, size_t n) {
@@ -564,18 +589,14 @@ void div_special_kernel(int dType, void *a, void *b, void *c, int num) {
     SWITCH_DTYPE_SPECIAL(div, dType)
 }
 void add_special_kernel(int dType, void *a, void *b, void *c, int num) {
-    if (dType == 1) {
-        int blocksize = block_work_size();
-        int gridsize =
-            (num + 4 * block_work_size() - 1) / (4 * block_work_size());
-        _add_special_f32_kernel<<<gridsize, blocksize, 0,
-                                  CUDAStream::getCurrentStream()>>>(
-            (float *)a, (float *)b, (float *)c, num);
-    } else {
-        int blocksize = block_work_size();
-        int gridsize = (num + block_work_size() - 1) / block_work_size();
-        SWITCH_DTYPE_SPECIAL(add, dType)
-    }
+    int blocksize = block_work_size();
+    int gridsize = (num + block_work_size() - 1) / block_work_size();
+    SWITCH_DTYPE_SPECIAL(add, dType)
+}
+void mul_special_kernel(int dType, void *a, void *b, void *c, int num) {
+    int blocksize = block_work_size();
+    int gridsize = (num + block_work_size() - 1) / block_work_size();
+    SWITCH_DTYPE_SPECIAL(mul, dType)
 }
 void pow_special_kernel(int dType, void *a, void *b, void *c, int num) {
     int blocksize = block_work_size();
@@ -610,6 +631,11 @@ void less_special_kernel(int dType, void *a, void *b, void *c, int num) {
     int blocksize = block_work_size();
     int gridsize = (num + block_work_size() - 1) / block_work_size();
     SWITCH_DTYPE_SPECIAL(less, dType)
+}
+void equal_special_kernel(int dType, void *a, void *b, void *c, int num) {
+    int blocksize = block_work_size();
+    int gridsize = (num + block_work_size() - 1) / block_work_size();
+    SWITCH_DTYPE_SPECIAL(equal, dType)
 }
 
 }; // namespace infini
