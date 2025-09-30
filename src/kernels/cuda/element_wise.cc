@@ -142,9 +142,44 @@ class ElementWiseCuda : public CudaKernelWithoutConfig {
                 pow_const_kernel(dType, aData, bData, cData,
                                  op->getOutput()->size());
                 return;
+            } else if (op->getOpType() == OpType::Mul) {
+                mul_const_kernel(dType, aData, bData, cData,
+                                 op->getOutput()->size());
+                return;
+            } else if (op->getOpType() == OpType::Add) {
+                add_const_kernel(dType, aData, bData, cData,
+                                 op->getOutput()->size());
+                return;
             }
         }
-
+        bool condition = (a_dim.size() == b_dim.size());
+        if (condition) {
+            for (size_t i = 0; i < a_dim.size(); i++) {
+                if (a_dim[i] != b_dim[i]) {
+                    condition = false;
+                    break;
+                }
+            }
+        }
+        if (condition) {
+            if (op->getOpType() == OpType::Div) {
+                div_special_kernel(dType, aData, bData, cData,
+                                   op->getOutput()->size());
+                return;
+            } else if (op->getOpType() == OpType::Pow) {
+                pow_special_kernel(dType, aData, bData, cData,
+                                   op->getOutput()->size());
+                return;
+            } else if (op->getOpType() == OpType::Mul) {
+                mul_special_kernel(dType, aData, bData, cData,
+                                   op->getOutput()->size());
+                return;
+            } else if (op->getOpType() == OpType::Add) {
+                add_special_kernel(dType, aData, bData, cData,
+                                   op->getOutput()->size());
+                return;
+            }
+        }
         if (a_dim.size() > 4 || b_dim.size() > 4 || c_dim.size() > 4)
             IT_TODO_HALT();
 
