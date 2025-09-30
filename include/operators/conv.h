@@ -37,9 +37,7 @@ class ConvBaseObj : public OperatorObj {
     };
 
   protected:
-    int ph, pw;
-    int sh, sw;
-    int dh, dw;
+    vector<int> pads, strides, dilations;
     PaddingMode padding;
     // Auxiliary attributes. Descripitions stand on a forward perspective,
     // i.e., convTransposed2d is not regarded as the backward of conv2d.
@@ -61,17 +59,15 @@ class ConvBaseObj : public OperatorObj {
      * @param inputs The input, weight and bias tensors. Bias is optional.
      * FIXME: Split inputs into three parameters, input, weight, and bias.
      * @param output The output tensor.
-     * @param ph Padding along height dimension.
-     * @param pw Padding along weight dimension.
-     * @param sh Stride along height dimension.
-     * @param sw Stride along weight dimension.
-     * @param dh Dilation along height dimension.
-     * @param dw Dilation along weight dimension.
+     * @param pads Padding along each spatial axis.
+     * @param strides Stride along each spatial axis.
+     * @param dilations Dilation along each spatial axis.
      * @param inputInConvFWD To be removed.
      * @param weightInConvFWD To be removed.
      */
-    ConvBaseObj(OpType opType, TensorVec inputs, Tensor &output, int ph, int pw,
-                int sh, int sw, int dh, int dw, const Tensor &inputInConvFWD,
+    ConvBaseObj(OpType opType, TensorVec inputs, Tensor &output,
+                const vector<int> &pads, const vector<int> &strides,
+                const vector<int> &dilations, const Tensor &inputInConvFWD,
                 const Tensor &weightInConvFWD, ActType act = ActType::None);
     /**
      * @brief Construct a new ConvBase object by setting padding mode.
@@ -82,17 +78,15 @@ class ConvBaseObj : public OperatorObj {
      * FIXME: Split inputs into three parameters, input, weight, and bias.
      * @param output The output tensor.
      * @param mode Padding mode, which is set to Other, Same, or Valid.
-     * @param sh Stride along height dimension.
-     * @param sw Stride along weight dimension.
-     * @param dh Dilation along height dimension.
-     * @param dw Dilation along weight dimension.
+     * @param strides Stride along each spatial axis.
+     * @param dilations Dilation along each spatial axis.
      * @param inputInConvFWD To be removed.
      * @param weightInConvFWD To be removed.
      */
     ConvBaseObj(OpType opType, TensorVec inputs, Tensor &output,
-                PaddingMode mode, int sh, int sw, int dh, int dw,
-                const Tensor &inputInConvFWD, const Tensor &weightInConvFWD,
-                ActType act = ActType::None);
+                PaddingMode mode, const vector<int> &strides,
+                const vector<int> &dilations, const Tensor &inputInConvFWD,
+                const Tensor &weightInConvFWD, ActType act = ActType::None);
 
     std::string toString() const override;
     int numInputs() const override { return 2; }
@@ -102,14 +96,17 @@ class ConvBaseObj : public OperatorObj {
     PaddingMode getPaddingMode() const { return padding; }
     pair<int, int> inferPaddingSize() const;
 
-    int getDh() const { return dh; }
-    int getDw() const { return dw; }
-    int getPh() const { return ph; }
-    int getPw() const { return pw; }
-    int getSh() const { return sh; }
-    int getSw() const { return sw; }
+    int getDh() const { return dilations[0]; }
+    int getDw() const { return dilations[1]; }
+    int getPh() const { return pads[0]; }
+    int getPw() const { return pads[1]; }
+    int getSh() const { return strides[0]; }
+    int getSw() const { return strides[1]; }
     auto getNCHWFRS() const { return tuple(n, c, h, w, f, r, s); }
-    auto getPadStrideDilation() const { return tuple(ph, pw, sh, sw, dh, dw); }
+    auto getPadStrideDilation() const {
+        return tuple(pads[0], pads[1], strides[0], strides[1], dilations[0],
+                     dilations[1]);
+    }
     int getChannelPerGroup() const {
         if (type == OpType::ConvTransNHWC) {
             return inputs[1]->getDims()[3];
@@ -151,9 +148,6 @@ class ConvObj : public ConvBaseObj {
 
 class Conv3dObj : public ConvBaseObj {
   protected:
-    int pd;
-    int sd;
-    int dd;
     // Auxiliary attributes.
     int d; // Input depth.
     int q; // Weight depth.
@@ -176,7 +170,8 @@ class Conv3dObj : public ConvBaseObj {
 
     auto getNCDHWFQRS() const { return tuple(n, c, d, h, w, f, q, r, s); }
     auto getPadStrideDilation() const {
-        return tuple(pd, ph, pw, sd, sh, sw, dd, dh, dw);
+        return tuple(pads[0], pads[1], pads[2], strides[0], strides[1],
+                     strides[2], dilations[0], dilations[1], dilations[2]);
     }
 
   private:
