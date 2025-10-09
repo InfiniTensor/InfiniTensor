@@ -4,52 +4,7 @@
 #include "cuda/cuda_runtime.h"
 #include "cuda/cuda_unary.h" //需要使用cast来转换数据类型
 #include "cuda/cuda_utility.h"
-void printTensorDesc(cudnnTensorDescriptor_t desc, const std::string &name) {
-    cudnnDataType_t dataType;
-    int nbDims;
-    int dims[CUDNN_DIM_MAX];
-    int strides[CUDNN_DIM_MAX];
 
-    cudnnStatus_t status = cudnnGetTensorNdDescriptor(
-        desc, CUDNN_DIM_MAX, &dataType, &nbDims, dims, strides);
-    if (status != CUDNN_STATUS_SUCCESS) {
-        std::cerr << "Failed to get tensor descriptor for " << name << ": "
-                  << cudnnGetErrorString(status) << std::endl;
-        return;
-    }
-
-    std::cout << "Tensor " << name << ":\n";
-    std::cout << "  dtype: ";
-    switch (dataType) {
-    case CUDNN_DATA_FLOAT:
-        std::cout << "Float32";
-        break;
-    case CUDNN_DATA_HALF:
-        std::cout << "Float16";
-        break;
-    case CUDNN_DATA_INT32:
-        std::cout << "Int32";
-        break;
-    case CUDNN_DATA_INT8:
-        std::cout << "Int8";
-        break;
-    default:
-        std::cout << "Other";
-        break;
-    }
-    std::cout << "\n";
-
-    std::cout << "  nbDims: " << nbDims << "\n";
-    std::cout << "  dims: ";
-    for (int i = 0; i < nbDims; i++)
-        std::cout << dims[i] << " ";
-    std::cout << "\n";
-
-    std::cout << "  strides: ";
-    for (int i = 0; i < nbDims; i++)
-        std::cout << strides[i] << " ";
-    std::cout << "\n";
-}
 namespace infini {
 class ElementWiseCudnn : public CudaKernelWithoutConfig {
     virtual cudnnOpTensorOp_t getOpType() const = 0;
@@ -145,10 +100,11 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
         int a_size = aTensor->size();
         int b_size = bTensor->size();
         int c_size = cTensor->size();
-        float *aF = nullptr, *bF = nullptr, *cF = nullptr;
-        cudaMalloc(&aF, a_size * sizeof(float));
-        cudaMalloc(&bF, b_size * sizeof(float));
-        cudaMalloc(&cF, c_size * sizeof(float));
+
+        float *aF = (float *)context->getWorkspace((a_size + b_size + c_size) *
+                                                   sizeof(float));
+        float *bF = aF + a_size;
+        float *cF = bF + b_size;
         if (op->getDType() == DataType::Int32 ||
             op->getDType() == DataType::Int64 ||
             op->getDType() == DataType::UInt32 ||
@@ -245,9 +201,7 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
                                           &aAlpha, aDesc, aData, &bAlpha, bDesc,
                                           bData, &beta, cDesc, cData));
         }
-        cudaFree(aF);
-        cudaFree(bF);
-        cudaFree(cF);
+
         // Destories in CUDA does not require sync. But cuDNN does not state
         // whether sync is required before destories.
         checkCudnnError(cudnnDestroyTensorDescriptor(aDesc));
@@ -464,15 +418,15 @@ class ElementWiseLogicCuda : public CudaKernelWithoutConfig {
     }
 };
 
-// REGISTER_KERNEL(Device::CUDA, OpType::Add, AddCudnn, "Add_cuDNN_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Add, AddCudnn, "Add_cuDNN_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Sub, SubCudnn, "Sub_cuDNN_CUDA");
-// REGISTER_KERNEL(Device::CUDA, OpType::Mul, MulCudnn, "Mul_cuDNN_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Mul, MulCudnn, "Mul_cuDNN_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Min, MinCudnn, "Min_cuDNN_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Max, MaxCudnn, "Max_cuDNN_CUDA");
 
-REGISTER_KERNEL(Device::CUDA, OpType::Add, ElementWiseCuda, "Add_CUDA");
+// REGISTER_KERNEL(Device::CUDA, OpType::Add, ElementWiseCuda, "Add_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Div, ElementWiseCuda, "Div_CUDA");
-REGISTER_KERNEL(Device::CUDA, OpType::Mul, ElementWiseCuda, "Mul_CUDA");
+// REGISTER_KERNEL(Device::CUDA, OpType::Mul, ElementWiseCuda, "Mul_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Pow, ElementWiseCuda, "Pow_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Less, ElementWiseLogicCuda, "Less_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Equal, ElementWiseLogicCuda,
