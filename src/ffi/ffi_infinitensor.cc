@@ -106,6 +106,8 @@ void export_values(py::module &m) {
         .VALUE(OpType, BatchNormalization)
         .VALUE(OpType, Softmax)
         .VALUE(OpType, Relu)
+        .VALUE(OpType, Sin)
+        .VALUE(OpType, Cos)
         .VALUE(OpType, LeakyRelu)
         .VALUE(OpType, Gelu)
         .VALUE(OpType, PRelu)
@@ -125,6 +127,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, DepthToSpace)
         .VALUE(OpType, LRN)
         .VALUE(OpType, Elu)
+        .VALUE(OpType, ArgMax)
         .export_values();
 
 #undef VALUE
@@ -508,7 +511,7 @@ void init_graph_builder(py::module &m) {
                  std::string format = getFormat(self.getDType());
 
                  py::array numpy_array(py::dtype(format), self.getDims(),
-                                       nullptr);
+                                       stride_byte);
 
                  // Copy data to the numpy array
                  auto ptr = numpy_array.mutable_data();
@@ -552,6 +555,8 @@ void init_graph_builder(py::module &m) {
         .def("min", &Handler::min, policy::move)
         .def("max", &Handler::max, policy::move)
         .def("relu", &Handler::relu, policy::move)
+        .def("sin", &Handler::sin, policy::move)
+        .def("cos", &Handler::cos, policy::move)
         .def("equal", &Handler::equal, policy::move)
         .def("notFunction", &Handler::notFunction, policy::move)
         .def("leakyRelu", &Handler::leakyRelu, policy::move)
@@ -602,6 +607,7 @@ void init_graph_builder(py::module &m) {
         .def("erf", &Handler::erf, policy::move)
         .def("where", &Handler::where, policy::move)
         .def("lrn", &Handler::lrn, policy::move)
+        .def("argmax", &Handler::argmax, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)
         .def("optimize", &Handler::optimize, policy::automatic)
         .def("operators", &Handler::operators, policy::move)

@@ -1,6 +1,7 @@
 #include "core/graph_handler.h"
 #include "operators/all_gather.h"
 #include "operators/all_reduce.h"
+#include "operators/argmax.h"
 #include "operators/attention_kvcache.h"
 #include "operators/batch_norm.h"
 #include "operators/broadcast.h"
@@ -225,6 +226,8 @@ DEFINE_ELEMENT_WISE_METHOD(equal, Equal)
 
 DEFINE_UNARY_METHOD(silu, Silu)
 DEFINE_UNARY_METHOD(relu, Relu)
+DEFINE_UNARY_METHOD(sin, Sin)
+DEFINE_UNARY_METHOD(cos, Cos)
 DEFINE_UNARY_METHOD(gelu, Gelu)
 DEFINE_UNARY_METHOD(sigmoid, Sigmoid)
 DEFINE_UNARY_METHOD(tanh, Tanh)
@@ -706,6 +709,20 @@ Tensor GraphHandlerObj::unsqueeze(Tensor input, Tensor output, Shape axes) {
     }
 }
 
+Tensor GraphHandlerObj::argmax(Tensor input, Tensor output, int axis,
+                               int keepdims, int selectLastIndex) {
+    if (output) {
+        g->addOpWithOutputs<ArgMaxObj>(std::move(input), output, axis, keepdims,
+                                       selectLastIndex);
+        return output;
+    } else {
+        return g
+            ->addOp<ArgMaxObj>(std::move(input), output, axis, keepdims,
+                               selectLastIndex)
+            ->getOutput();
+    }
+}
+
 static CastType inferCastType(Tensor input, int to) {
     auto iType = input->getDType();
     auto oType = DataType(to);
@@ -755,6 +772,10 @@ static CastType inferCastType(Tensor input, int to) {
         return CastType::Uint322Int64;
     } else if (iType == DataType::Float16 && oType == DataType::Float32) {
         return CastType::Float162Float;
+    } else if (iType == DataType::Float16 && oType == DataType::Double) {
+        return CastType::Float162Double;
+    } else if (iType == DataType::Double && oType == DataType::Float16) {
+        return CastType::Double2Float16;
     } else if (iType == DataType::BFloat16 && oType == DataType::Float32) {
         return CastType::BFloat162Float;
     } else if (iType == DataType::Float32 && oType == DataType::Float32) {

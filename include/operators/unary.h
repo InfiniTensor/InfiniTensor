@@ -175,6 +175,8 @@ enum class CastType {
     Int642Float,
     Uint322Int64,
     Float162Float,
+    Float162Double,
+    Double2Float16,
     BFloat162Float,
     Float2Float,
     Float2Bool,

@@ -80,6 +80,16 @@ class CastCuda : public CudaKernelWithoutConfig {
                       op->getOutDType() == DataType::Float32);
             cast_kernel<half, float>((half *)inputData, (float *)outputData,
                                      num);
+        } else if (op->getType() == CastType::Float162Double) {
+            IT_ASSERT(op->getDType() == DataType::Float16 &&
+                      op->getOutDType() == DataType::Double);
+            cast_kernel<half, double>((half *)inputData, (double *)outputData,
+                                      num);
+        } else if (op->getType() == CastType::Double2Float16) {
+            IT_ASSERT(op->getDType() == DataType::Double &&
+                      op->getOutDType() == DataType::Float16);
+            cast_kernel<double, half>((double *)inputData, (half *)outputData,
+                                      num);
         } else if (op->getType() == CastType::Float2Float16) {
             IT_ASSERT(op->getDType() == DataType::Float32 &&
                       op->getOutDType() == DataType::Float16);
@@ -250,6 +260,38 @@ class LeakyReluCuda : public CudaKernelWithoutConfig {
     }
 };
 
+class SinCuda : public CudaKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<SinObj>(_op); // 假设你有 SinObj
+        void *const inputData = op->getInputs(0)->getRawDataPtr<void *>();
+        void *const outputData = op->getOutput()->getRawDataPtr<void *>();
+        size_t size = op->getOutput()->size();
+
+        if (op->getDType() == DataType::Float32) {
+            sin_kernel<float>((float *)inputData, (float *)outputData, size);
+        } else {
+            IT_TODO_HALT();
+        }
+    }
+};
+
+class CosCuda : public CudaKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<CosObj>(_op); // 假设你有 CosObj
+        void *const inputData = op->getInputs(0)->getRawDataPtr<void *>();
+        void *const outputData = op->getOutput()->getRawDataPtr<void *>();
+        size_t size = op->getOutput()->size();
+
+        if (op->getDType() == DataType::Float32) {
+            cos_kernel<float>((float *)inputData, (float *)outputData, size);
+        } else {
+            IT_TODO_HALT();
+        }
+    }
+};
+
 class ReluCudnn : public ActivationCudnn {
     cudnnActivationMode_t getOpType() const override {
         return CUDNN_ACTIVATION_RELU;
@@ -286,6 +328,8 @@ REGISTER_KERNEL(Device::CUDA, OpType::Not, UnaryCuda, "Not_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::LeakyRelu, LeakyReluCuda,
                 "LeakyRelu_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Cast, CastCuda, "Cast_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Sin, SinCuda, "Sin_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Cos, CosCuda, "Cos_CUDA");
 
 // REGISTER_KERNEL(Device::CUDA, OpType::Softmax, UnaryCuda,
 // "Softmax_CUDA"); REGISTER_KERNEL(Device::CUDA, OpType::Relu,

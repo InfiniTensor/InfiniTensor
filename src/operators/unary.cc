@@ -228,6 +228,10 @@ DataType CastObj::getOutputDataType() const {
         return DataType::Int64;
     case CastType::Float162Float:
         return DataType::Float32;
+    case CastType::Float162Double:
+        return DataType::Double;
+    case CastType::Double2Float16:
+        return DataType::Float16;
     case CastType::BFloat162Float:
         return DataType::Float32;
     case CastType::Float2BFloat16:

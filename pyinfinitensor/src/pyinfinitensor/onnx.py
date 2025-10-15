@@ -655,7 +655,9 @@ class OnnxStub:
                     ),
                     (
                         next(_parse_data(data[node.input[2]]).__iter__(), None)
-                        if len(node.input) > 2 and node.input[2] and node.input[2] in data
+                        if len(node.input) > 2
+                        and node.input[2]
+                        and node.input[2] in data
                         else None
                     ),
                 )
@@ -1127,6 +1129,27 @@ class OnnxStub:
                     beta,
                     bias,
                     size,
+                )
+            elif node.op_type == "ArgMax":
+                attributes = _parse_attribute(
+                    node, {"axis": -1, "keepdims": 1, "select_last_index": 0}
+                )
+                tensors[node.output[0]] = self.handler.argmax(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                    attributes["axis"],
+                    attributes["keepdims"],
+                    attributes["select_last_index"],
+                )
+            elif node.op_type == "Sin":
+                tensors[node.output[0]] = self.handler.sin(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                )
+            elif node.op_type == "Cos":
+                tensors[node.output[0]] = self.handler.cos(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
                 )
             else:
                 raise Exception('Unsupported operator "{}"'.format(node.op_type))

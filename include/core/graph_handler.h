@@ -58,6 +58,8 @@ class GraphHandlerObj {
 
     Tensor notFunction(Tensor x, Tensor y);
     Tensor relu(Tensor x, Tensor y);
+    Tensor sin(Tensor x, Tensor y);
+    Tensor cos(Tensor x, Tensor y);
     Tensor leakyRelu(Tensor x, Tensor y, float alpha);
     Tensor cumsum(Tensor x, Tensor y, int axis, bool exclusive, bool reverse);
     Tensor silu(Tensor x, Tensor y);
@@ -127,6 +129,8 @@ class GraphHandlerObj {
                         std::string mode);
     Tensor lrn(Tensor input, Tensor output, float alpha, float beta, float bias,
                int size);
+    Tensor argmax(Tensor input, Tensor output, int axis, int keepdims,
+                  int selectLastIndex);
 
     //------ modifiers
 

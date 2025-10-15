@@ -231,7 +231,19 @@ if(USE_CUDA)
   set_target_properties(InfiniTensor PROPERTIES CUDA_ARCHITECTURES "70;80")
   enable_language(CUDA)
   find_package(CUDAToolkit) # For nvrtc and cuda driver
-  target_link_libraries(InfiniTensor cudnn CUDA::curand CUDA::cublas CUDA::nvrtc CUDA::cudart CUDA::cuda_driver)
+  find_path(CUDNN_INCLUDE_DIR cudnn.h
+            HINTS $ENV{CUDNN_ROOT}/include)
+  
+  find_library(CUDNN_LIBRARY cudnn
+               HINTS $ENV{CUDNN_ROOT}/lib $ENV{CUDNN_ROOT}/lib64)
+  
+  if (NOT CUDNN_LIBRARY)
+      message(FATAL_ERROR "cuDNN library not found, check spack load cudnn")
+  endif()
+  
+  include_directories(${CUDNN_INCLUDE_DIR})
+  target_link_libraries(InfiniTensor ${CUDNN_LIBRARY}
+                        CUDA::curand CUDA::curand CUDA::cublas CUDA::nvrtc CUDA::cudart CUDA::cuda_driver)
   if (BUILD_DIST)
     message(STATUS "Add BUILD_DIST, use NCCL with CUDA")
     list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)

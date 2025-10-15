@@ -51,10 +51,11 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
         int a_size = aTensor->size();
         int b_size = bTensor->size();
         int c_size = cTensor->size();
-        float *aF = nullptr, *bF = nullptr, *cF = nullptr;
-        cudaMalloc(&aF, a_size * sizeof(float));
-        cudaMalloc(&bF, b_size * sizeof(float));
-        cudaMalloc(&cF, c_size * sizeof(float));
+        float *aF = (float *)context->getWorkspace((a_size + b_size + c_size) *
+                                                   sizeof(float));
+        float *bF = aF + a_size * sizeof(float);
+        float *cF = bF + b_size * sizeof(float);
+
         if (op->getDType() == DataType::Int32 ||
             op->getDType() == DataType::Int64 ||
             op->getDType() == DataType::UInt32 ||
@@ -153,9 +154,6 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
                                           &aAlpha, aDesc, aData, &bAlpha, bDesc,
                                           bData, &beta, cDesc, cData));
         }
-        cudaFree(aF);
-        cudaFree(bF);
-        cudaFree(cF);
 
         // Destories in CUDA does not require sync. But cuDNN does not state
         // whether sync is required before destories.
@@ -164,7 +162,6 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
         checkCudnnError(cudnnDestroyTensorDescriptor(cDesc));
         checkCudnnError(cudnnDestroyOpTensorDescriptor(opDesc));
     }
-
     void compute(const Operator &op, const PerfRecord &record,
                  const RuntimeObj *context) const override {
         compute(op, context);
@@ -243,11 +240,17 @@ class ElementWiseCuda : public CudaKernelWithoutConfig {
         if (op->getOpType() == OpType::Div) {
             div_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
                        b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
-        } else if (op->getOpType() == OpType::Add) {
-            add_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
+        } else if (op->getOpType() == OpType::Mul) {
+            mul_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
+                       b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
+        } else if (op->getOpType() == OpType::Sub) {
+            sub_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
                        b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
         } else if (op->getOpType() == OpType::Pow) {
             pow_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
+                       b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
+        } else if (op->getOpType() == OpType::Add) {
+            add_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
                        b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
         } else {
             IT_TODO_HALT();
@@ -288,13 +291,16 @@ class ElementWiseLogicCuda : public CudaKernelWithoutConfig {
         }
     }
 };
-REGISTER_KERNEL(Device::CUDA, OpType::Add, AddCudnn, "Add_cuDNN_CUDA");
-REGISTER_KERNEL(Device::CUDA, OpType::Sub, SubCudnn, "Sub_cuDNN_CUDA");
-REGISTER_KERNEL(Device::CUDA, OpType::Mul, MulCudnn, "Mul_cuDNN_CUDA");
+// REGISTER_KERNEL(Device::CUDA, OpType::Add, AddCudnn, "Add_cuDNN_CUDA");
+// REGISTER_KERNEL(Device::CUDA, OpType::Sub, SubCudnn, "Sub_cuDNN_CUDA");
+// REGISTER_KERNEL(Device::CUDA, OpType::Mul, MulCudnn, "Mul_cuDNN_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Min, MinCudnn, "Min_cuDNN_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Max, MaxCudnn, "Max_cuDNN_CUDA");
 
+REGISTER_KERNEL(Device::CUDA, OpType::Add, ElementWiseCuda, "Add_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Sub, ElementWiseCuda, "Sub_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Div, ElementWiseCuda, "Div_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Mul, ElementWiseCuda, "Mul_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Pow, ElementWiseCuda, "Pow_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Less, ElementWiseLogicCuda, "Less_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Equal, ElementWiseLogicCuda,

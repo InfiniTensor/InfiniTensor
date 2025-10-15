@@ -138,6 +138,11 @@ Tensor GraphObj::getTensor(int fuid) const {
 
 void GraphObj::shape_infer() {
     for (auto &op : ops) {
+        std::cout << "op type: " << op->getOpType().toString() << std::endl;
+        for (auto &tensor : op->getInputs()) {
+            std::cout << "shape of input tensor: "
+                      << vecToString(tensor->getDims()) << std::endl;
+        }
         auto ans = op->inferShape();
         IT_ASSERT(ans.has_value());
         auto oldOutputs = op->getOutputs();

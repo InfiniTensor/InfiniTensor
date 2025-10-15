@@ -86,6 +86,14 @@ __global__ void _sqrt_kernel(float *input, float *output, size_t n) {
     }
 }
 
+__global__ void _sqrt_kernel(double *input, double *output, size_t n) {
+    size_t index = threadIdx.x + blockIdx.x * blockDim.x;
+    size_t stride = blockDim.x * gridDim.x;
+    for (size_t i = index; i < n; i += stride) {
+        output[i] = sqrt(input[i]);
+    }
+}
+
 __global__ void _sqrt_kernel(half *input, half *output, size_t n) {
     size_t index = threadIdx.x + blockIdx.x * blockDim.x;
     size_t stride = blockDim.x * gridDim.x;
@@ -275,6 +283,22 @@ __global__ void _leaky_relu_kernel(T *input, T *output, size_t n,
     }
 }
 
+template <typename T>
+__global__ void _sin_kernel(T *input, T *output, size_t size) {
+    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < size) {
+        output[idx] = sinf(input[idx]); // 对 float32 使用 sinf
+    }
+}
+
+template <typename T>
+__global__ void _cos_kernel(T *input, T *output, size_t size) {
+    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < size) {
+        output[idx] = cosf(input[idx]); // 对 float32 使用 cosf
+    }
+}
+
 namespace infini {
 template <typename T> void softmax_kernel(T *input, T *output, size_t num) {
 
@@ -451,6 +475,8 @@ void unary_kernel(const Operator &_op) {
             sqrt_kernel<float>((float *)inputData, (float *)outputData, num);
         } else if (_op->getDType() == DataType::Float16) {
             sqrt_kernel<half>((half *)inputData, (half *)outputData, num);
+        } else if (_op->getDType() == DataType::Double) {
+            sqrt_kernel<double>((double *)inputData, (double *)outputData, num);
         } else {
             IT_TODO_HALT();
         }
@@ -514,9 +540,26 @@ void elu_kernel(const float *input, float *output, size_t size, float alpha) {
     int gridsize = (size + blocksize - 1) / blocksize;
     _elu_kernel<<<gridsize, blocksize>>>(input, output, size, alpha);
 }
+template <typename T> void sin_kernel(T *input, T *output, size_t size) {
+    int blocksize = block_work_size();
+    int gridsize = (size + blocksize - 1) / blocksize;
+    _sin_kernel<<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+        input, output, size);
+}
+
+template <typename T> void cos_kernel(T *input, T *output, size_t size) {
+    int blocksize = block_work_size();
+    int gridsize = (size + blocksize - 1) / blocksize;
+    _cos_kernel<<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+        input, output, size);
+}
 
 template void cast_kernel<float, half>(float *input, half *output, size_t num);
 template void cast_kernel<half, float>(half *input, float *output, size_t num);
+template void cast_kernel<half, double>(half *input, double *output,
+                                        size_t num);
+template void cast_kernel<double, half>(double *input, half *output,
+                                        size_t num);
 template void cast_kernel<float, int32_t>(float *input, int32_t *output,
                                           size_t num);
 template void cast_kernel<float, int8_t>(float *input, int8_t *output,
@@ -555,4 +598,6 @@ template void cumsum_kernel<int32_t>(const int32_t *input, int32_t *output,
                                      bool exclusive, bool reversive);
 template void leaky_relu_kernel<float>(float *input, float *output, size_t num,
                                        float alpha);
+template void sin_kernel<float>(float *input, float *output, size_t size);
+template void cos_kernel<float>(float *input, float *output, size_t size);
 }; // namespace infini
