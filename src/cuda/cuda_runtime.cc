@@ -100,6 +100,7 @@ void CudaRuntimeObj::tune(const Graph &graph, bool profiling = false) const {
 
 void CudaRuntimeObj::run(const Graph &graph, bool runTune,
                          bool profiling) const {
+    checkCudaError(cudaSetDevice(device_id));
     if (profiling)
         IT_TODO_HALT();
     if (runTune)

@@ -17,12 +17,14 @@ class CudaRuntimeObj : public RuntimeObj {
     bool isCudaGraphCreated;
     cudaGraph_t cudaGraph;
     cudaGraphExec_t cudaGraphInstance;
+    int device_id = 0;
 
   public:
     explicit CudaRuntimeObj(int deviceId = 0)
         : RuntimeObj(Device::CUDA, deviceId) {
 
         checkCudaError(cudaSetDevice(deviceId));
+        device_id = deviceId;
         checkCudnnError(cudnnCreate(&cudnn));
         checkCublasError(cublasCreate(&cublas));
         // 10GB for Longformer
