@@ -226,32 +226,51 @@ class ElementWiseCuda : public CudaKernelWithoutConfig {
             }
         }
 
-        if (a_dim.size() > 4 || b_dim.size() > 4 || c_dim.size() > 4)
+        if (a_dim.size() > 5 || b_dim.size() > 5 || c_dim.size() > 5)
             IT_TODO_HALT();
 
-        int a[4] = {1, 1, 1, 1};
-        int b[4] = {1, 1, 1, 1};
-        int c[4] = {1, 1, 1, 1};
+        int a[5] = {1, 1, 1, 1, 1};
+        int b[5] = {1, 1, 1, 1, 1};
+        int c[5] = {1, 1, 1, 1, 1};
 
-        std::copy(a_dim.begin(), a_dim.end(), a + (4 - a_dim.size()));
-        std::copy(b_dim.begin(), b_dim.end(), b + (4 - b_dim.size()));
-        std::copy(c_dim.begin(), c_dim.end(), c + (4 - c_dim.size()));
+        std::copy(a_dim.begin(), a_dim.end(), a + (5 - a_dim.size()));
+        std::copy(b_dim.begin(), b_dim.end(), b + (5 - b_dim.size()));
+        std::copy(c_dim.begin(), c_dim.end(), c + (5 - c_dim.size()));
 
         if (op->getOpType() == OpType::Div) {
-            div_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
-                       b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
+            div_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], a[4],
+                       b[0], b[1], b[2], b[3], b[4], c[0], c[1], c[2], c[3],
+                       c[4]);
         } else if (op->getOpType() == OpType::Mul) {
-            mul_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
-                       b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
+            // if (aData == nullptr) {
+            //     std::cout << "============aData is nullptr" << std::endl;
+            // }
+            // if (bData == nullptr) {
+            //     std::cout << "============bData is nullptr" << std::endl;
+            // }
+            // if (cData == nullptr) {
+            //     std::cout << "============cData is nullptr" << std::endl;
+            // }
+            // if (aData != nullptr && bData != nullptr && cData != nullptr) {
+            //     std::cout << "aDim is " << vecToString(a_dim) << std::endl;
+            //     std::cout << "bDim is " << vecToString(b_dim) << std::endl;
+            //     std::cout << "cDim is " << vecToString(c_dim) << std::endl;
+            // }
+            mul_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], a[4],
+                       b[0], b[1], b[2], b[3], b[4], c[0], c[1], c[2], c[3],
+                       c[4]);
         } else if (op->getOpType() == OpType::Sub) {
-            sub_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
-                       b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
+            sub_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], a[4],
+                       b[0], b[1], b[2], b[3], b[4], c[0], c[1], c[2], c[3],
+                       c[4]);
         } else if (op->getOpType() == OpType::Pow) {
-            pow_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
-                       b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
+            pow_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], a[4],
+                       b[0], b[1], b[2], b[3], b[4], c[0], c[1], c[2], c[3],
+                       c[4]);
         } else if (op->getOpType() == OpType::Add) {
-            add_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
-                       b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
+            add_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], a[4],
+                       b[0], b[1], b[2], b[3], b[4], c[0], c[1], c[2], c[3],
+                       c[4]);
         } else {
             IT_TODO_HALT();
         }
@@ -269,23 +288,25 @@ class ElementWiseLogicCuda : public CudaKernelWithoutConfig {
         auto c_dim = op->getOutput()->getDims();
         const int dType = _op->getDType().getIndex();
 
-        if (a_dim.size() > 4 || b_dim.size() > 4 || c_dim.size() > 4)
+        if (a_dim.size() > 5 || b_dim.size() > 5 || c_dim.size() > 5)
             IT_TODO_HALT();
 
-        int a[4] = {1, 1, 1, 1};
-        int b[4] = {1, 1, 1, 1};
-        int c[4] = {1, 1, 1, 1};
+        int a[5] = {1, 1, 1, 1, 1};
+        int b[5] = {1, 1, 1, 1, 1};
+        int c[5] = {1, 1, 1, 1, 1};
 
-        std::copy(a_dim.begin(), a_dim.end(), a + (4 - a_dim.size()));
-        std::copy(b_dim.begin(), b_dim.end(), b + (4 - b_dim.size()));
-        std::copy(c_dim.begin(), c_dim.end(), c + (4 - c_dim.size()));
+        std::copy(a_dim.begin(), a_dim.end(), a + (5 - a_dim.size()));
+        std::copy(b_dim.begin(), b_dim.end(), b + (5 - b_dim.size()));
+        std::copy(c_dim.begin(), c_dim.end(), c + (5 - c_dim.size()));
 
         if (op->getOpType() == OpType::Less) {
             less_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3],
-                        b[0], b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
+                        a[4], b[0], b[1], b[2], b[3], b[4], c[0], c[1], c[2],
+                        c[3], c[4]);
         } else if (op->getOpType() == OpType::Equal) {
             equal_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3],
-                         b[0], b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
+                         a[4], b[0], b[1], b[2], b[3], b[4], c[0], c[1], c[2],
+                         c[3], c[4]);
         } else {
             IT_TODO_HALT();
         }
