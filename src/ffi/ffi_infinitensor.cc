@@ -47,15 +47,15 @@ using policy = py::return_value_policy;
 void register_operator_timer(py::module &m) {
 #ifdef USE_CUDA
     using namespace opTimer;
-    m.def("getPerfConvCudnn", &getPerfConvCudnn);
-    m.def("getPerfConvTransposed2dCudnn", &getPerfConvTransposed2dCudnn);
+    // m.def("getPerfConvCudnn", &getPerfConvCudnn);
+    // m.def("getPerfConvTransposed2dCudnn", &getPerfConvTransposed2dCudnn);
     m.def("getPerfMatmulCublas", &getPerfMatmulCublas);
 #endif
 
 #ifdef USE_INTELCPU
     using namespace opTimer;
-    m.def("getPerfConvMkl", &getPerfConvMkl);
-    m.def("getPerfConvTransposed2dMkl", &getPerfConvTransposed2dMkl);
+    // m.def("getPerfConvMkl", &getPerfConvMkl);
+    // m.def("getPerfConvTransposed2dMkl", &getPerfConvTransposed2dMkl);
     m.def("getPerfMatmulMkl", &getPerfMatmulMkl);
 #endif
 }
@@ -79,7 +79,7 @@ void export_values(py::module &m) {
     py::enum_<decltype(OpType::type)>(m, "OpTypeId")
         .VALUE(OpType, Conv)
         .VALUE(OpType, MatMul)
-        .VALUE(OpType, ConvTranspose)
+        // .VALUE(OpType, ConvTranspose)
         .VALUE(OpType, Pad)
         .VALUE(OpType, Clip)
         .VALUE(OpType, Slice)
@@ -194,22 +194,22 @@ static Ref<ASCENDRuntimeObj> ascend_runtime() {
 static Ref<RuntimeObj> intelcpu_runtime() { return make_ref<MklRuntimeObj>(); }
 #endif
 
-static std::tuple<int, int, int, int, int, int> conv_attrs_of(Operator op) {
-    IT_ASSERT(op->getOpType() == OpType::Conv);
-    auto conv = dynamic_cast<const ConvObj *>(op.get());
-    return std::make_tuple(conv->getPh(), conv->getPw(), conv->getDh(),
-                           conv->getDw(), conv->getSh(), conv->getSw());
-}
+// static std::tuple<int, int, int, int, int, int> conv_attrs_of(Operator op) {
+//     IT_ASSERT(op->getOpType() == OpType::Conv);
+//     auto conv = dynamic_cast<const ConvObj *>(op.get());
+//     return std::make_tuple(conv->getPh(), conv->getPw(), conv->getDh(),
+//                            conv->getDw(), conv->getSh(), conv->getSw());
+// }
 
-static std::tuple<int, int, int, int, int, int, int, int>
-conv_trans_attrs_of(Operator op) {
-    IT_ASSERT(op->getOpType() == OpType::ConvTranspose);
-    auto conv = dynamic_cast<const ConvTransposed2dObj *>(op.get());
-    auto [oph, opw] = conv->getOutputPadding();
-    return std::make_tuple(conv->getPh(), conv->getPw(), conv->getDh(),
-                           conv->getDw(), conv->getSh(), conv->getSw(), oph,
-                           opw);
-}
+// static std::tuple<int, int, int, int, int, int, int, int>
+// conv_trans_attrs_of(Operator op) {
+//     IT_ASSERT(op->getOpType() == OpType::ConvTranspose);
+//     auto conv = dynamic_cast<const ConvTransposed2dObj *>(op.get());
+//     auto [oph, opw] = conv->getOutputPadding();
+//     return std::make_tuple(conv->getPh(), conv->getPw(), conv->getDh(),
+//                            conv->getDw(), conv->getSh(), conv->getSw(), oph,
+//                            opw);
+// }
 
 static std::tuple<bool, bool> matmul_attrs_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::MatMul);
@@ -372,8 +372,8 @@ void export_functions(py::module &m) {
 #ifdef USE_ASCEND
         .FUNCTION(ascend_runtime)
 #endif
-        .FUNCTION(conv_attrs_of)
-        .FUNCTION(conv_trans_attrs_of)
+        // .FUNCTION(conv_attrs_of)
+        // .FUNCTION(conv_trans_attrs_of)
         .FUNCTION(matmul_attrs_of)
         .FUNCTION(batch_norm_attrs_of)
         .FUNCTION(pool_attrs_of)
@@ -537,7 +537,8 @@ void init_graph_builder(py::module &m) {
         .def("elu", &Handler::elu, policy::move)
         .def("tensor", &Handler::tensor, policy::move)
         .def("conv", &Handler::conv, policy::move)
-        .def("convTransposed2d", &Handler::convTransposed2d, policy::move)
+        .def("convswish", &Handler::convswish, policy::move)
+        // .def("convTransposed2d", &Handler::convTransposed2d, policy::move)
         .def("matmul", &Handler::matmul, policy::move)
         .def("batchNormalization", &Handler::batchNormalization, policy::move)
         .def("layerNormalization", &Handler::layerNormalization, policy::move)

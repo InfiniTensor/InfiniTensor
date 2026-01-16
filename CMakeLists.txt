@@ -135,7 +135,8 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -UNDEBUG")
 
 
 # Source files
-file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/kernels/cpu/*.cc src/operators/*.cc src/utils/*.cc)
+# file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/kernels/cpu/*.cc src/operators/*.cc src/utils/*.cc)
+file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/operators/*.cc src/utils/*.cc)
 
 if(BUILD_NNET)
   add_compile_definitions(BUILD_NNET=1)
@@ -172,6 +173,19 @@ endif()
 
 # Libraries
 add_library(InfiniTensor SHARED ${SRC})
+target_include_directories(InfiniTensor PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/nineops/build
+)
+
+
+file(GLOB_RECURSE NINETOOTHED_LIB "${CMAKE_CURRENT_SOURCE_DIR}/nineops/build/**/*.so")
+
+if(NOT NINETOOTHED_LIB)
+    message(FATAL_ERROR "*.so not found: ${NINETOOTHED_LIB}")
+endif()
+
+message(STATUS "Using ninetoothed conv2d_swish library: ${NINETOOTHED_LIB}")
+target_link_libraries(InfiniTensor ${NINETOOTHED_LIB})
 if(USE_PROTOBUF)
   target_link_libraries(InfiniTensor tensor_proto)
 endif()
@@ -228,7 +242,7 @@ if(USE_CUDA)
       ${CMAKE_CXX_COMPILER}
       CACHE STRING "Set cuda host compiler path")
   # CMP0104 requires CUDA_ARCHITECTURES
-  set_target_properties(InfiniTensor PROPERTIES CUDA_ARCHITECTURES "70;80")
+  set_target_properties(InfiniTensor PROPERTIES CUDA_ARCHITECTURES "80")
   enable_language(CUDA)
   find_package(CUDAToolkit) # For nvrtc and cuda driver
   find_path(CUDNN_INCLUDE_DIR cudnn.h

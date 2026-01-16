@@ -47,7 +47,8 @@ struct OpType {
         Concat,
         ConcatFromSequence,
         ConstantOfShape,
-        Conv,          // ComputationIntensive
+        Conv, // ComputationIntensive
+        ConvSwish,
         Conv3d,        // ComputationIntensive
         ConvInteger,   // ComputationIntensive
         ConvTranspose, // ComputationIntensive

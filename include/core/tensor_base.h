@@ -9,13 +9,6 @@ class TensorBaseObj : public Object {
     friend class GraphObj;
 
   public:
-    // enum TensorType {
-    //     Input,
-    //     Weight,
-    //     Invalid,
-    //     NotCounted,
-    // };
-
   protected:
     int dim;
 

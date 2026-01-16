@@ -7,6 +7,7 @@
 #include "operators/broadcast.h"
 #include "operators/concat.h"
 #include "operators/conv.h"
+#include "operators/convswish.h"
 #include "operators/element_wise.h"
 #include "operators/expand.h"
 #include "operators/gather.h"
@@ -53,37 +54,53 @@ Tensor GraphHandlerObj::tensor(Shape dims, int dtype) {
     return g->addTensor(std::move(dims), dtype_repr_convert(dtype));
 }
 
-Tensor GraphHandlerObj::conv(Tensor input, Tensor weight, Tensor output, int ph,
-                             int pw, int sh, int sw, int dh, int dw) {
+Tensor GraphHandlerObj::conv(Tensor input, Tensor weight, Tensor bias,
+                             Tensor output, vector<int> p, vector<int> s,
+                             vector<int> d) {
     if (output) {
         g->addOpWithOutputs<ConvObj>(std::move(input), std::move(weight),
-                                     output, ph, pw, sh, sw, dh, dw);
+                                     std::move(bias), output, p, s, d);
         return output;
     } else {
         return g
-            ->addOp<ConvObj>(std::move(input), std::move(weight), output, ph,
-                             pw, sh, sw, dh, dw)
+            ->addOp<ConvObj>(std::move(input), std::move(weight),
+                             std::move(bias), output, p, s, d)
             ->getOutput();
     }
 }
 
-Tensor GraphHandlerObj::convTransposed2d(Tensor input, Tensor weight,
-                                         Tensor output, int ph, int pw, int sh,
-                                         int sw, int dh, int dw, int oph,
-                                         int opw) {
+Tensor GraphHandlerObj::convswish(Tensor input, Tensor weight, Tensor bias,
+                                  Tensor output, vector<int> p, vector<int> s,
+                                  vector<int> d) {
     if (output) {
-        g->addOpWithOutputs<ConvTransposed2dObj>(std::move(input),
-                                                 std::move(weight), output, ph,
-                                                 pw, sh, sw, dh, dw, oph, opw);
+        g->addOpWithOutputs<ConvSwishObj>(std::move(input), std::move(weight),
+                                          std::move(bias), output, p, s, d);
         return output;
     } else {
         return g
-            ->addOp<ConvTransposed2dObj>(std::move(input), std::move(weight),
-                                         output, ph, pw, sh, sw, dh, dw, oph,
-                                         opw)
+            ->addOp<ConvSwishObj>(std::move(input), std::move(weight),
+                                  std::move(bias), output, p, s, d)
             ->getOutput();
     }
 }
+
+// Tensor GraphHandlerObj::convTransposed2d(Tensor input, Tensor weight,
+//                                          Tensor output, int ph, int pw, int sh,
+//                                          int sw, int dh, int dw, int oph,
+//                                          int opw) {
+//     if (output) {
+//         g->addOpWithOutputs<ConvTransposed2dObj>(std::move(input),
+//                                                  std::move(weight), output, ph,
+//                                                  pw, sh, sw, dh, dw, oph, opw);
+//         return output;
+//     } else {
+//         return g
+//             ->addOp<ConvTransposed2dObj>(std::move(input), std::move(weight),
+//                                          output, ph, pw, sh, sw, dh, dw, oph,
+//                                          opw)
+//             ->getOutput();
+//     }
+// }
 
 Tensor GraphHandlerObj::matmul(Tensor a, Tensor b, Tensor y, bool transA,
                                bool transB, Tensor bias, ActType act,

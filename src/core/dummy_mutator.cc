@@ -7,21 +7,22 @@
 
 namespace infini {
 
-vector<Graph> DummyMutator::run(const Graph &inGraph) {
-    if (inGraph->getOperators().size() > 1)
-        return {inGraph};
-    // Conv -> Conv + Relu
-    auto op0 = as<ConvObj>(inGraph->getOperators()[0]);
-    auto g = make_ref<GraphObj>(runtime);
-    auto a0 = g->cloneTensor(op0->getInputs()[0]),
-         w0 = g->cloneTensor(op0->getInputs()[1]),
-         o0 = g->cloneTensor(op0->getOutput());
-    auto [ph, pw, sh, sw, dh, dw] = op0->getPadStrideDilation();
-    auto t =
-        g->addOp<ConvObj>(a0, w0, nullptr, ph, pw, sh, sw, dh, dw)->getOutput();
-    g->addOpWithOutputs<ReluObj>(t, o0);
-    return {inGraph, g};
-}
+// vector<Graph> DummyMutator::run(const Graph &inGraph) {
+//     if (inGraph->getOperators().size() > 1)
+//         return {inGraph};
+//     // Conv -> Conv + Relu
+//     auto op0 = as<ConvObj>(inGraph->getOperators()[0]);
+//     auto g = make_ref<GraphObj>(runtime);
+//     auto a0 = g->cloneTensor(op0->getInputs()[0]),
+//          w0 = g->cloneTensor(op0->getInputs()[1]),
+//          o0 = g->cloneTensor(op0->getOutput());
+//     auto [ph, pw, sh, sw, dh, dw] = op0->getPadStrideDilation();
+//     auto t =
+//         g->addOp<ConvObj>(a0, w0, nullptr, ph, pw, sh, sw, dh,
+//         dw)->getOutput();
+//     g->addOpWithOutputs<ReluObj>(t, o0);
+//     return {inGraph, g};
+// }
 
 vector<Graph> DummyMutator::mergeMultiBranch(const Graph &inGraph) {
     // Two Mamtul of the same shapes -> One Batched Matmul

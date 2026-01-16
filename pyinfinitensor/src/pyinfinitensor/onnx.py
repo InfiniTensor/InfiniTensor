@@ -122,64 +122,65 @@ class OnnxStub:
                         "dilations": [1, 1],
                         "pads": [0, 0, 0, 0],
                         "strides": [1, 1],
+                        "group": 1,
                     },
                 )
-                (d, p, s) = (
-                    attributes[name] for name in ["dilations", "pads", "strides"]
+                (d, p, s, g) = (
+                    attributes[name] for name in ["dilations", "pads", "strides", "group"]
                 )
-                if p[0] != p[2] or p[1] != p[3]:
-                    adapt = "{}-adapt".format(node.output[0])
-                    tensors[adapt] = self.handler.pad(
-                        tensors[node.input[0]], None, p, [-2, -1]
-                    )
-                    p = [0, 0, 0, 0]
-                else:
-                    adapt = node.input[0]
-
-                if len(node.input) > 2:
-                    bias = "{}-bias".format(node.output[0])
-                    reshape = "{}-reshape".format(node.output[0])
-                    tensors[bias] = self.handler.conv(
-                        tensors[adapt],
-                        tensors[node.input[1]],
-                        None,
-                        p[0],
-                        p[1],
-                        s[0],
-                        s[1],
-                        d[0],
-                        d[1],
-                    )
-                    tensors[reshape] = self.handler.reshape(
-                        tensors[node.input[2]],
-                        None,
-                        [
-                            1,
-                            reduce(
-                                lambda acc, x: acc * x,
-                                tensors[node.input[2]].shape(),
-                            ),
-                            1,
-                            1,
-                        ],
-                    )
-                    tensors[node.output[0]] = self.handler.add(
-                        tensors[bias],
-                        tensors[reshape],
-                        tensors.get(node.output[0]),
-                    )
-                else:
-                    tensors[node.output[0]] = self.handler.conv(
-                        tensors[adapt],
-                        tensors[node.input[1]],
-                        tensors.get(node.output[0]),
-                        p[0],
-                        p[1],
-                        s[0],
-                        s[1],
-                        d[0],
-                        d[1],
-                    )
+                if len(p) != 4 or p[0] != p[2] or p[1] != p[3]:
+                    raise ValueError("padding is not supported for ConvSwish")
+                if g != 1:
+                    raise ValueError("group is not supported for ConvSwish")
+                # if p[0] != 0 or p[1] != 0:
+                #     adapt = "{}-adapt".format(node.output[0])
+                #     tensors[adapt] = self.handler.pad(tensors[node.input[0]], None, p, [-2, -1])
+                #     p = [0, 0, 0, 0]
+                # else:
+                #     adapt = node.input[0]
+                tensors[node.output[0]] = self.handler.conv(
+                    # tensors[adapt],
+                    tensors[node.input[0]],
+                    tensors[node.input[1]],
+                    tensors[node.input[2]] if len(node.input) > 2 else None,
+                    tensors.get(node.output[0]),
+                    p,
+                    s,
+                    d
+                )
+            elif node.op_type == "ConvSwish":
+                attributes = _parse_attribute(
+                    node,
+                    {
+                        "dilations": [1, 1],
+                        "pads": [0, 0, 0, 0],
+                        "strides": [1, 1],
+                        "group": 1,
+                    },
+                )
+                (d, p, s, g) = (
+                    attributes[name] for name in ["dilations", "pads", "strides", "group"]
+                )
+                if len(p) != 4 or p[0] != p[2] or p[1] != p[3]:
+                    raise ValueError("padding is not supported for ConvSwish")
+                if g != 1:
+                    raise ValueError("group is not supported for ConvSwish")
+                # if p[0] != 0 or p[1] != 0:
+                #     adapt = "{}-adapt".format(node.output[0])
+                #     tensors[adapt] = self.handler.pad(tensors[node.input[0]], None, p, [-2, -1])
+                #     p = [0, 0, 0, 0]
+                # else:
+                #     adapt = node.input[0]
+                tensors[node.output[0]] = self.handler.convswish(
+                    # tensors[adapt],
+                    tensors[node.input[0]],
+                    tensors[node.input[1]],
+                    tensors[node.input[2]] if len(node.input) > 2 else None,
+                    tensors.get(node.output[0]),
+                    p,
+                    s,
+                    d
+                )
             elif node.op_type == "Elu":
                 attributes = _parse_attribute(node, {"alpha": 1.0})
                 alpha = attributes["alpha"]

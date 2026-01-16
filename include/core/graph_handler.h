@@ -25,11 +25,14 @@ class GraphHandlerObj {
 
     inline OpVec operators() { return g->getOperators(); }
 
-    Tensor conv(Tensor input, Tensor weight, Tensor output, int ph, int pw,
-                int sh, int sw, int dh, int dw);
-    Tensor convTransposed2d(Tensor input, Tensor weight, Tensor output, int ph,
-                            int pw, int sh, int sw, int dh, int dw, int oph,
-                            int opw);
+    Tensor conv(Tensor input, Tensor weight, Tensor bias, Tensor output,
+                vector<int> p, vector<int> s, vector<int> d);
+    Tensor convswish(Tensor input, Tensor weight, Tensor bias, Tensor output,
+                     vector<int> p, vector<int> s, vector<int> d);
+    // Tensor convTransposed2d(Tensor input, Tensor weight, Tensor output, int
+    // ph,
+    //                         int pw, int sh, int sw, int dh, int dw, int oph,
+    //                         int opw);
     Tensor matmul(Tensor a, Tensor b, Tensor y, bool transA, bool transB,
                   Tensor bias, ActType act,
                   std::string matmul_compute_type = "default");
