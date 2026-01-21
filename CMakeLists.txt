@@ -3,6 +3,9 @@ option(USE_CUDA "Support CUDA GPU" OFF)
 option(USE_BANG "Support BANG MLU" OFF)
 option(USE_KUNLUN "Support KUNLUN XPU" OFF)
 option(USE_ASCEND "Support HUAWEI ASCEND" OFF)
+option(USE_METAX "Support METAX" OFF)
+option(USE_MOORE "Support MOORE" OFF)
+option(USE_ILUVATAR "Support ILUVATAR" OFF)
 option(USE_INTELCPU "Support INTELCPU" OFF)
 option(USE_BACKTRACE "Print backtrace on exception and segmentation fault" ON)
 option(USE_PROTOBUF "Serialize and deserialize tensors" OFF)
@@ -236,6 +239,18 @@ if(USE_INTELCPU)
   set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -DMKL_ILP64 -qmkl=parallel ${WNO_ERRORS}") # Enable assertion
 
   find_package(IntelDPCPP REQUIRED)
+endif()
+
+if(USE_ILUVATAR)
+  add_compile_definitions(USE_ILUVATAR=1)
+endif()
+
+if(USE_METAX)
+  add_compile_definitions(USE_METAX=1)
+endif()
+
+if(USE_MOORE)
+  add_compile_definitions(USE_MOORE=1)
 endif()
 
 if(USE_CUDA)

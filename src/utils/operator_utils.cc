@@ -104,6 +104,12 @@ std::string device_to_str(Device device) {
         return "KUNLUN";
     case Device::ASCEND:
         return "ASCEND";
+    case Device::METAX:
+        return "METAX";
+    case Device::MOORE:
+        return "MOORE";
+    case Device::ILUVATAR:
+        return "ILUVATAR";
     default:
         IT_TODO_HALT();
     }

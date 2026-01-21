@@ -1,5 +1,6 @@
 #include "core/data_type.h"
 #include "core/graph_handler.h"
+#include "similar_cuda/similar_cuda_runtime.h"
 #include "operators/batch_norm.h"
 #include "operators/concat.h"
 #include "operators/conv.h"
@@ -71,6 +72,18 @@ void export_values(py::module &m) {
         .VALUE(ActType, LeakyRelu)
         .VALUE(ActType, Sigmoid)
         .VALUE(ActType, Tanh)
+        .export_values();
+
+    py::enum_<Device>(m, "Device")
+        .VALUE(Device, CPU)
+        .VALUE(Device, CUDA)
+        .VALUE(Device, BANG)
+        .VALUE(Device, ASCEND)
+        .VALUE(Device, METAX)
+        .VALUE(Device, MOORE)
+        .VALUE(Device, ILUVATAR)
+        .VALUE(Device, KUNLUN)
+        .VALUE(Device, SUGON)
         .export_values();
 
     py::class_<OpType>(m, "OpType")
@@ -361,6 +374,21 @@ void export_functions(py::module &m) {
 #ifdef USE_BANG
         .FUNCTION(bang_runtime)
 #endif
+#ifdef USE_METAX
+        .def("metax_runtime", []() -> std::shared_ptr<infini::SimilarRuntimeObj> {
+            return std::make_shared<SimilarRuntimeObj>(Device::METAX);
+        })
+#endif
+#ifdef USE_MOORE
+        .def("moore_runtime", []() -> std::shared_ptr<infini::SimilarRuntimeObj> {
+            return std::make_shared<SimilarRuntimeObj>(Device::MOORE);
+        })
+#endif
+#ifdef USE_ILUVATAR
+        .def("iluvatar_runtime", []() -> std::shared_ptr<infini::SimilarRuntimeObj> {
+            return std::make_shared<SimilarRuntimeObj>(Device::ILUVATAR);
+        })
+#endif
 
 #ifdef USE_KUNLUN
         .FUNCTION(kunlun_runtime)
@@ -462,6 +490,27 @@ void init_graph_builder(py::module &m) {
         m, "ASCENDRuntime")
         .def(py::init<int>(), py::arg("device") = 0)
         .def("init_comm", &ASCENDRuntimeObj::initComm);
+    ;
+#endif
+#ifdef USE_METAX
+    py::class_<SimilarRuntimeObj, std::shared_ptr<SimilarRuntimeObj>, RuntimeObj>(
+        m, "METAXRuntime")
+        .def(py::init<Device>(), py::arg("device") = Device::METAX)
+        .def("init_comm", &SimilarRuntimeObj::initComm);
+    ;
+#endif
+#ifdef USE_MOORE
+    py::class_<SimilarRuntimeObj, std::shared_ptr<SimilarRuntimeObj>, RuntimeObj>(
+        m, "MOORERuntime")
+        .def(py::init<Device>(), py::arg("device") = Device::MOORE)
+        .def("init_comm", &SimilarRuntimeObj::initComm);
+    ;
+#endif
+#ifdef USE_ILUVATAR
+    py::class_<SimilarRuntimeObj, std::shared_ptr<SimilarRuntimeObj>, RuntimeObj>(
+        m, "ILUVATARRuntime")
+        .def(py::init<Device>(), py::arg("device") = Device::ILUVATAR)
+        .def("init_comm", &SimilarRuntimeObj::initComm);
     ;
 #endif
     py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "Tensor",

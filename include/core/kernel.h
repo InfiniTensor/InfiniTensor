@@ -136,6 +136,7 @@ class KernelRegistry {
 
   private:
     std::map<KernelAttrs, KernelRecord> kernels;
+    static KernelRegistry* instance;
     int nKernels = 0;
 
   public:
@@ -143,9 +144,14 @@ class KernelRegistry {
         for (auto &[k, v] : kernels)
             delete std::get<0>(v);
     }
+    KernelRegistry() {
+    }
     static KernelRegistry &getInstance() {
-        static KernelRegistry instance;
-        return instance;
+        if (!instance) {
+            static KernelRegistry local_instance;
+            instance = &local_instance;
+        }
+        return *instance;
     }
     bool registerKernel(const KernelAttrs &key, Kernel *kernel, string name) {
         // TODO: mutliple kernels support: priority and check name

@@ -38,4 +38,7 @@ REGISTER_KERNEL(Device::CPU, OpType::Gemm, GemmOp, "Gemm_infiniop_CPU");
 REGISTER_KERNEL(Device::BANG, OpType::Gemm, GemmOp, "Gemm_infiniop_BANG");
 REGISTER_KERNEL(Device::ASCEND, OpType::Gemm, GemmOp, "Gemm_infiniop_ASCEND");
 REGISTER_KERNEL(Device::KUNLUN, OpType::Gemm, GemmOp, "Gemm_infiniop_KUNLUN");
+REGISTER_KERNEL(Device::METAX, OpType::Gemm, GemmOp, "Gemm_infiniop_METAX");
+REGISTER_KERNEL(Device::MOORE, OpType::Gemm, GemmOp, "Gemm_infiniop_MOORE");
+REGISTER_KERNEL(Device::ILUVATAR, OpType::Gemm, GemmOp, "Gemm_infiniop_ILUVATAR");
 } // namespace infini

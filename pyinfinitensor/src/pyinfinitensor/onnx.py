@@ -285,6 +285,8 @@ class OnnxStub:
                         tensors.get(node.output[0]),
                         alpha,
                         beta,
+                        transA,
+                        transB
                     )
             elif node.op_type == "BatchNormalization":
                 (input, mean, var, scale, bias) = (
