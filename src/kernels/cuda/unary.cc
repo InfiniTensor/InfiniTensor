@@ -89,16 +89,19 @@ class ActivationCudnn : public CudaKernelWithoutConfig {
             stride.push_back(1);
 
         auto cudnnDataType = cudnnDataTypeConvert(op->getDType());
-
+        std::vector<int> dimInt(dim.begin(), dim.end());
+        std::vector<int> strideInt(stride.begin(), stride.end());
         // get inputs
         checkCudnnError(cudnnCreateTensorDescriptor(&inputDesc));
-        checkCudnnError(cudnnSetTensorNdDescriptor(
-            inputDesc, cudnnDataType, dim.size(), dim.data(), stride.data()));
+        checkCudnnError(cudnnSetTensorNdDescriptor(inputDesc, cudnnDataType,
+                                                   dimInt.size(), dimInt.data(),
+                                                   strideInt.data()));
 
         // get outputs
         checkCudnnError(cudnnCreateTensorDescriptor(&outputDesc));
-        checkCudnnError(cudnnSetTensorNdDescriptor(
-            outputDesc, cudnnDataType, dim.size(), dim.data(), stride.data()));
+        checkCudnnError(cudnnSetTensorNdDescriptor(outputDesc, cudnnDataType,
+                                                   dimInt.size(), dimInt.data(),
+                                                   strideInt.data()));
 
         // get op descriptor
         cudnnActivationDescriptor_t activationDesc;

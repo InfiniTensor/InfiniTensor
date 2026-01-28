@@ -22,9 +22,11 @@ namespace infini {
 void CudaRuntimeObj::runWithoutSync(const Graph &graph) const {
     const auto &kernelRegistry = KernelRegistry::getInstance();
     auto &perfEngine = PerfEngine::getInstance();
+    std::cout << "===============================3.1" << std::endl;
     for (auto &op : graph->getOperators()) {
         // HACK: set correct data type
-        auto kernelAttrs = KernelAttrs{device, op->getOpType().underlying()};
+        auto kernelAttrs =
+            KernelAttrs{handle->device, op->getOpType().underlying()};
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
         auto perfData = perfEngine.getPerfData(perfKey);
@@ -33,7 +35,9 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph) const {
             ComputeFuncPtr funcPtr = kernel->getComputeFunc(perfKey);
             funcPtr(op, perfData, this);
         } else {
+            std::cout << "===============================3.2" << std::endl;
             kernel->compute(op, this);
+            std::cout << "===============================3.3" << std::endl;
         }
         checkCudaError(cudaGetLastError()) << op->toString();
     }
@@ -68,7 +72,8 @@ void CudaRuntimeObj::tune(const Graph &graph, bool profiling = false) const {
     std::map<OpType, int> opCnt;
     for (auto &op : graph->getOperators()) {
         // HACK: set correct data type
-        auto kernelAttrs = KernelAttrs{device, op->getOpType().underlying()};
+        auto kernelAttrs =
+            KernelAttrs{handle->device, op->getOpType().underlying()};
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
         auto perfData = perfEngine.getPerfData(perfKey);

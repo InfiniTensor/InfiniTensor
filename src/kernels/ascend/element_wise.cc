@@ -209,10 +209,10 @@ DEFINE_ELEMENT_WISE_Aclnn(Maximum);
 REGISTER_KERNEL(Device::ASCEND, OpType::Pow, PowTensorTensorAclnn,
                 "pow_ASCEND_float");
 REGISTER_KERNEL(Device::ASCEND, OpType::Div, DivAclnn, "div_ASCEND_float");
-REGISTER_KERNEL(Device::ASCEND, OpType::Mul, MulAclnn, "mul_ASCEND_float");
+// REGISTER_KERNEL(Device::ASCEND, OpType::Mul, MulAclnn, "mul_ASCEND_float");
 
-REGISTER_KERNEL(Device::ASCEND, OpType::Add, AddAclnn, "add_ASCEND_float");
-REGISTER_KERNEL(Device::ASCEND, OpType::Sub, SubAclnn, "sub_ASCEND_float");
+// REGISTER_KERNEL(Device::ASCEND, OpType::Add, AddAclnn, "add_ASCEND_float");
+// REGISTER_KERNEL(Device::ASCEND, OpType::Sub, SubAclnn, "sub_ASCEND_float");
 REGISTER_KERNEL(Device::ASCEND, OpType::Max, MaximumAclnn, "max_ASCEND_float");
 //  REGISTER_KERNEL(Device::ASCEND, OpType::Abs, AbsAclnn, "abs_ASCEND_float");
 

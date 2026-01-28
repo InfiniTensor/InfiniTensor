@@ -55,6 +55,7 @@ void testGemmCuda(
 
     cpuRuntime->run(cpuG);
     auto cpuOutput = cpuOp->getOutput();
+    std::cout << "===============================1" << std::endl;
 
     // cuda
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
@@ -65,11 +66,16 @@ void testGemmCuda(
 
     auto cudaOp = cudaG->addOp<GemmObj>(cudaA, cudaB, nullptr, nullptr, alpha,
                                         beta, transA, transB);
+    std::cout << "===============================2" << std::endl;
+
     cudaG->dataMalloc();
     cudaA->setData(generatorA);
     cudaB->setData(generatorB);
+    std::cout << "===============================3" << std::endl;
 
     cudaRuntime->run(cudaG);
+    std::cout << "===============================4" << std::endl;
+
     auto cudaOutput = cudaOp->getOutput()->clone(cpuRuntime);
 
     EXPECT_TRUE(cudaOutput->equalData(cpuOutput));
@@ -99,7 +105,6 @@ TEST(Gemm, Cuda) {
 }
 #endif
 
-
 void testGemmSimilarCuda(
     Device device,
     const std::function<void(void *, size_t, DataType)> &generatorA,
@@ -128,8 +133,8 @@ void testGemmSimilarCuda(
     auto A = G->addTensor(shapeA, dataType);
     auto B = G->addTensor(shapeB, dataType);
 
-    auto Op = G->addOp<GemmObj>(A, B, nullptr, nullptr, alpha,
-                                        beta, transA, transB);
+    auto Op =
+        G->addOp<GemmObj>(A, B, nullptr, nullptr, alpha, beta, transA, transB);
     G->dataMalloc();
     A->setData(generatorA);
     B->setData(generatorB);
@@ -142,22 +147,25 @@ void testGemmSimilarCuda(
 
 #ifdef USE_ILUVATAR
 TEST(Gemm, Iluvatar) {
-    testGemmSimilarCuda(Device::ILUVATAR, IncrementalGenerator(), IncrementalGenerator(), 1.0, 0.0,
-                 false, false, Shape{3, 5}, Shape{5, 2}, DataType::Float32);
+    testGemmSimilarCuda(Device::ILUVATAR, IncrementalGenerator(),
+                        IncrementalGenerator(), 1.0, 0.0, false, false,
+                        Shape{3, 5}, Shape{5, 2}, DataType::Float32);
 }
 #endif
 
 #ifdef USE_METAX
 TEST(Gemm, METAX) {
-    testGemmSimilarCuda(Device::METAX, IncrementalGenerator(), IncrementalGenerator(), 1.0, 0.0,
-                 false, false, Shape{3, 5}, Shape{5, 2}, DataType::Float32);
+    testGemmSimilarCuda(Device::METAX, IncrementalGenerator(),
+                        IncrementalGenerator(), 1.0, 0.0, false, false,
+                        Shape{3, 5}, Shape{5, 2}, DataType::Float32);
 }
 #endif
 
 #ifdef USE_MOORE
 TEST(Gemm, MOORE) {
-    testGemmSimilarCuda(Device::MOORE, IncrementalGenerator(), IncrementalGenerator(), 1.0, 0.0,
-                 false, false, Shape{3, 5}, Shape{5, 2}, DataType::Float32);
+    testGemmSimilarCuda(Device::MOORE, IncrementalGenerator(),
+                        IncrementalGenerator(), 1.0, 0.0, false, false,
+                        Shape{3, 5}, Shape{5, 2}, DataType::Float32);
 }
 #endif
 

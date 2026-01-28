@@ -1,5 +1,8 @@
 #pragma once
 #include "core/operator.h"
+#include <infiniop/ops/add.h>
+#include <infiniop/ops/mul.h>
+#include <infiniop/ops/sub.h>
 
 namespace infini {
 /**
@@ -21,6 +24,7 @@ class ElementWiseObj : public OperatorObj {
      */
     ElementWiseObj(OpType type, GraphObj *graph, Tensor input0, Tensor input1,
                    Tensor output);
+    void createOpDesc() override;
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;

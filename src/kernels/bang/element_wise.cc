@@ -660,9 +660,9 @@ class BitNotCnnl : public BitComputeCnnl {
 //     CNNL_BLEFT_SHIFT_OP_V2; }
 // };
 
-REGISTER_KERNEL(Device::BANG, OpType::Add, AddCnnl, "Add_cnnl_BANG");
-REGISTER_KERNEL(Device::BANG, OpType::Sub, SubCnnl, "Sub_cnnl_BANG");
-REGISTER_KERNEL(Device::BANG, OpType::Mul, MulCnnl, "Mul_cnnl_BANG");
+// REGISTER_KERNEL(Device::BANG, OpType::Add, AddCnnl, "Add_cnnl_BANG");
+// REGISTER_KERNEL(Device::BANG, OpType::Sub, SubCnnl, "Sub_cnnl_BANG");
+// REGISTER_KERNEL(Device::BANG, OpType::Mul, MulCnnl, "Mul_cnnl_BANG");
 
 REGISTER_KERNEL(Device::BANG, OpType::Div, DivCnnl, "Div_cnnl");
 REGISTER_KERNEL(Device::BANG, OpType::Max, MaximumCnnl, "Maximum_cnnl_BANG");

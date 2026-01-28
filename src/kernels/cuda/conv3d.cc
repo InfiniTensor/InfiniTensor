@@ -141,7 +141,7 @@ class Conv3dCudnn : public Kernel {
         checkCudnnError(cudnnCreateTensorDescriptor(&outDesc));
         checkCudnnError(cudnnSetTensorNdDescriptorEx(
             outDesc, CUDNN_TENSOR_NCHW, cudnnDataType, numDim, outDim));
-        IT_ASSERT((vector(outDim, outDim + numDim)) ==
+        IT_ASSERT((vector<size_t>(outDim, outDim + numDim)) ==
                       op->getOutput()->getDims(),
                   "cuDNN output shape mismatches with OP output shape");
 

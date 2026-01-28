@@ -140,7 +140,7 @@ if(BUILD_TEST)
   include_directories(3rd-party/googletest/googletest/include)
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Werror -Wno-error=deprecated-declarations -Wno-error=pointer-arith")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Werror -Wno-narrowing -Wno-error=deprecated-declarations -Wno-error=pointer-arith")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -UNDEBUG") # Enable assertion
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -UNDEBUG") # Enable assertion
 
@@ -260,7 +260,7 @@ if(USE_CUDA)
       ${CMAKE_CXX_COMPILER}
       CACHE STRING "Set cuda host compiler path")
   # CMP0104 requires CUDA_ARCHITECTURES
-  set_target_properties(InfiniTensor PROPERTIES CUDA_ARCHITECTURES "70;80")
+  set_target_properties(InfiniTensor PROPERTIES CUDA_ARCHITECTURES "80")
   enable_language(CUDA)
   find_package(CUDAToolkit) # For nvrtc and cuda driver
   target_link_libraries(InfiniTensor cudnn CUDA::curand CUDA::cublas CUDA::nvrtc CUDA::cudart CUDA::cuda_driver)
