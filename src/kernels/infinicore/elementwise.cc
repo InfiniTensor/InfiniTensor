@@ -14,11 +14,11 @@ class ElementWiseOp : public Kernel {
         size_t workspace_size = 0;
         if (type == OpType::Add) {
             CHECK_INFINI_ERROR(infiniopGetAddWorkspaceSize(
-                (infiniopAddDescriptor_t)op->getInfiniOpDesc(),
+                (infiniopAddDescriptor_t)(op->getInfiniOpDesc()),
                 &workspace_size));
             void *workspace = context->getWorkspace(workspace_size);
             CHECK_INFINI_ERROR(
-                infiniopAdd((infiniopAddDescriptor_t)op->getInfiniOpDesc(),
+                infiniopAdd((infiniopAddDescriptor_t)(op->getInfiniOpDesc()),
                             workspace, workspace_size, yData, aData, bData,
                             context->getCurrentStream()));
         } else if (type == OpType::Mul) {

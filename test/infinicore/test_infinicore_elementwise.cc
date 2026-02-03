@@ -71,15 +71,80 @@ void testElementWiseCuda(
 }
 #endif
 
+void testAddSimilarCuda(
+    Device device,
+    const std::function<void(void *, size_t, DataType)> &generatorA,
+    const std::function<void(void *, size_t, DataType)> &generatorB,
+    const Shape &shapeA,
+    const Shape &shapeB, const DataType &dataType) {
+    // cpu
+    auto cpuRuntime = NativeCpuRuntimeObj::getInstance();
+    Graph cpuG = make_ref<GraphObj>(cpuRuntime);
+    auto cpuA = cpuG->addTensor(shapeA, dataType);
+    auto cpuB = cpuG->addTensor(shapeB, dataType);
+
+    auto cpuOp = cpuG->addOp<AddObj>(cpuA, cpuB, nullptr);
+    cpuG->dataMalloc();
+    cpuA->setData(generatorA);
+    cpuB->setData(generatorB);
+
+    cpuRuntime->run(cpuG);
+    auto cpuOutput = cpuOp->getOutput();
+
+    // SimilarCuda
+    auto Runtime = make_ref<SimilarRuntimeObj>(device);
+
+    Graph G = make_ref<GraphObj>(Runtime);
+    auto A = G->addTensor(shapeA, dataType);
+    auto B = G->addTensor(shapeB, dataType);
+
+    auto Op = G->addOp<AddObj>(A, B, nullptr);
+    G->dataMalloc();
+    A->setData(generatorA);
+    B->setData(generatorB);
+
+    Runtime->run(G);
+    auto Output = Op->getOutput()->clone(cpuRuntime);
+    A->clone(cpuRuntime)->printData();
+    B->clone(cpuRuntime)->printData();
+    Output->printData();
+
+    EXPECT_TRUE(Output->equalData(cpuOutput));
+}
+
 TEST(Add, Cpu) {
     testElementWiseCpu(IncrementalGenerator(), IncrementalGenerator(),
                        Shape{3, 5}, Shape{3, 5}, DataType::Float32);
 }
 
+#ifdef USE_ILUVATAR
+TEST(Add, Iluvatar) {
+    testAddSimilarCuda(Device::ILUVATAR, IncrementalGenerator(), IncrementalGenerator(), Shape{3, 5}, Shape{3, 5}, DataType::Float32);
+    testAddSimilarCuda(Device::ILUVATAR, IncrementalGenerator(), IncrementalGenerator(), Shape{4, 5}, Shape{4, 5}, DataType::Float16);
+}
+#endif
+
+#ifdef USE_MOORE
+TEST(Add, Moore) {
+    testAddSimilarCuda(Device::MOORE, IncrementalGenerator(), IncrementalGenerator(), Shape{3, 5}, Shape{3, 5}, DataType::Float32);
+    testAddSimilarCuda(Device::MOORE, IncrementalGenerator(), IncrementalGenerator(), Shape{3, 5}, Shape{3, 5}, DataType::Float16);
+}
+#endif
+
+#ifdef USE_METAX
+TEST(Add, Metax) {
+    testAddSimilarCuda(Device::METAX, IncrementalGenerator(), IncrementalGenerator(), Shape{3, 5}, Shape{3, 5}, DataType::Float32);
+    testAddSimilarCuda(Device::METAX, IncrementalGenerator(), IncrementalGenerator(), Shape{3, 5}, Shape{3, 5}, DataType::Float16);
+}
+#endif
+
+
 #ifdef USE_CUDA
 TEST(Add, Cuda) {
     testElementWiseCuda(IncrementalGenerator(), IncrementalGenerator(),
                         Shape{3, 5}, Shape{3, 5}, DataType::Float32);
+                        testElementWiseCuda(IncrementalGenerator(), IncrementalGenerator(),
+                        Shape{3, 5}, Shape{3, 5}, DataType::Float16);
 }
 #endif
 

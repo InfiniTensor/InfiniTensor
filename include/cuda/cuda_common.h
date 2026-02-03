@@ -121,7 +121,12 @@ class CUDAStream {
     static cudaStream_t getCurrentStream() { return _stream; }
     static void Init() { CUDAStream::_stream = 0; };
     static void createStream() { checkCudaError(cudaStreamCreate(&_stream)); }
-    static void destroyStream() { checkCudaError(cudaStreamDestroy(_stream)); }
+    static void destroyStream() {
+        if (_stream) {
+            checkCudaError(cudaStreamDestroy(_stream));
+            _stream = 0;
+        }
+    }
 
   private:
     CUDAStream(){};

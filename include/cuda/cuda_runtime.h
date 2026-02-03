@@ -1,6 +1,7 @@
 #pragma once
 #include "core/runtime.h"
 #include "cuda/cuda_common.h"
+#include <infinirt.h>
 #ifdef INFINI_USE_NCCL
 #include "cuda/nccl_communicator.h"
 #endif
@@ -21,7 +22,7 @@ class CudaRuntimeObj : public RuntimeObj {
   public:
     explicit CudaRuntimeObj(int deviceId = 0)
         : RuntimeObj(Device::CUDA, deviceId) {
-
+        CHECK_INFINI_ERROR(infinirtSetDevice(INFINI_DEVICE_NVIDIA, deviceId));
         checkCudaError(cudaSetDevice(deviceId));
         checkCudnnError(cudnnCreate(&cudnn));
         checkCublasError(cublasCreate(&cublas));
@@ -37,11 +38,12 @@ class CudaRuntimeObj : public RuntimeObj {
             if (isCudaGraphCreated) {
                 checkCudaError(cudaGraphExecDestroy(cudaGraphInstance));
                 checkCudaError(cudaGraphDestroy(cudaGraph));
-                CUDAStream::destroyStream();
             }
+            CUDAStream::destroyStream();
             dealloc(workspace);
             checkCudnnError(cudnnDestroy(cudnn));
             checkCublasError(cublasDestroy(cublas));
+            checkCudaError(cudaDeviceSynchronize());
         } catch (const std::exception &e) {
             std::cerr << "Error in ~CudaRuntimeObj: " << e.what() << std::endl;
         }
@@ -72,6 +74,12 @@ class CudaRuntimeObj : public RuntimeObj {
 
     void copyBlobFromCPU(void *dst, const void *src,
                          size_t bytes) const override {
+        if (dst == nullptr) {
+            std::cout << "dst is nullptr==================" << std::endl;
+        }
+        if (src == nullptr) {
+            std::cout << "src is nullptr==================" << std::endl;
+        }
         checkCudaError(cudaMemcpy(dst, src, bytes, cudaMemcpyHostToDevice));
     }
 

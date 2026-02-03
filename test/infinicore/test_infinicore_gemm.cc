@@ -55,10 +55,10 @@ void testGemmCuda(
 
     cpuRuntime->run(cpuG);
     auto cpuOutput = cpuOp->getOutput();
-    std::cout << "===============================1" << std::endl;
 
     // cuda
     auto cudaRuntime = make_ref<CudaRuntimeObj>();
+    std::cout << "======================================1" << std::endl;
 
     Graph cudaG = make_ref<GraphObj>(cudaRuntime);
     auto cudaA = cudaG->addTensor(shapeA, dataType);
@@ -66,15 +66,12 @@ void testGemmCuda(
 
     auto cudaOp = cudaG->addOp<GemmObj>(cudaA, cudaB, nullptr, nullptr, alpha,
                                         beta, transA, transB);
-    std::cout << "===============================2" << std::endl;
 
-    cudaG->dataMalloc();
+    cudaG->dataMalloc(true);
     cudaA->setData(generatorA);
     cudaB->setData(generatorB);
-    std::cout << "===============================3" << std::endl;
 
     cudaRuntime->run(cudaG);
-    std::cout << "===============================4" << std::endl;
 
     auto cudaOutput = cudaOp->getOutput()->clone(cpuRuntime);
 
@@ -97,9 +94,12 @@ TEST(Gemm, Cpu) {
 }
 
 #ifdef USE_CUDA
-TEST(Gemm, Cuda) {
+TEST(Gemm, CudaFP32) {
     testGemmCuda(IncrementalGenerator(), IncrementalGenerator(), 1.0, 0.0,
                  false, false, Shape{3, 5}, Shape{5, 2}, DataType::Float32);
+}
+
+TEST(Gemm, CudaFP16) {
     testGemmCuda(IncrementalGenerator(), IncrementalGenerator(), 1.0, 0.0,
                  false, false, Shape{3, 5}, Shape{5, 2}, DataType::Float16);
 }

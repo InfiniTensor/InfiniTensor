@@ -81,6 +81,7 @@ void ElementWiseObj::createOpDesc() {
     CHECK_INFINI_ERROR(infiniopDestroyTensorDescriptor(yTensor));
     CHECK_INFINI_ERROR(infiniopDestroyTensorDescriptor(aTensor));
     CHECK_INFINI_ERROR(infiniopDestroyTensorDescriptor(bTensor));
+    CHECK_INFINI_ERROR(infiniopDestroyHandle(handle));
 }
 
 MSELossObj::MSELossObj(GraphObj *graph, Tensor input0, Tensor input1,

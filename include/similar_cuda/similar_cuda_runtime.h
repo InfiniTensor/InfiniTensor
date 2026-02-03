@@ -23,7 +23,20 @@ class SimilarRuntimeObj : public RuntimeObj {
         }else {
             throw std::runtime_error("Unsupported device");
         }
+        workspaceSize = 7ll << 30;
+        workspace = alloc(workspaceSize);
         CHECK_INFINI_ERROR(infinirtStreamCreate(&stream));
+    }
+
+    ~SimilarRuntimeObj(){
+        try {
+            dealloc(workspace);
+            CHECK_INFINI_ERROR(infinirtStreamDestroy(stream));
+            CHECK_INFINI_ERROR(infinirtSetDevice(INFINI_DEVICE_CPU, 0));
+        }catch (const std::exception &e){
+            std::cerr << "Error in ~SimilarRuntimeObj: " << e.what() << std::endl;
+        }
+        
     }
 
     void run(const Graph &graph, bool tune = false,
