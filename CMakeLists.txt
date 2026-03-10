@@ -10,9 +10,6 @@ option(BUILD_NNET "Build nnet" OFF)
 option(BUILD_DIST "Build project for distributed running" OFF)
 option(BUILD_TEST "Build tests" OFF)
 
-link_directories($ENV{HOME}/local/lib)
-include_directories($ENV{HOME}/local/include)
-
 if(USE_CUDA)
     message("CMake 3.18 or higher is required for setting CUDAToolkit")
     cmake_minimum_required(VERSION 3.18) # FindCUDAToolkit
@@ -234,16 +231,7 @@ if(USE_CUDA)
   set_target_properties(InfiniTensor PROPERTIES CUDA_ARCHITECTURES "70;80")
   enable_language(CUDA)
   find_package(CUDAToolkit) # For nvrtc and cuda driver
-  # Add the two lines for local cuDNN
-  # include_directories($ENV{CUDA_HOME}/include)
-  # link_directories($ENV{CUDA_HOME}/lib64)
-  find_library(CUDNN_LIBRARY cudnn PATHS $ENV{CUDA_HOME}/lib64 REQUIRED)
-  if(NOT CUDNN_LIBRARY)
-    message(FATAL_ERROR "cuDNN library not found in $ENV{CUDA_HOME}/lib64")
-  else ()
-    message(STATUS "cuDNN library found: ${CUDNN_LIBRARY}")
-  endif()
-  target_link_libraries(InfiniTensor ${CUDNN_LIBRARY} CUDA::curand CUDA::cublas CUDA::nvrtc CUDA::cudart CUDA::cuda_driver)
+  target_link_libraries(InfiniTensor cudnn CUDA::curand CUDA::cublas CUDA::nvrtc CUDA::cudart CUDA::cuda_driver)
   if (BUILD_DIST)
     message(STATUS "Add BUILD_DIST, use NCCL with CUDA")
     list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
