@@ -81,6 +81,8 @@ class LazyAllocator {
 
     void init();
 
+    void setPeak(size_t peak);
+
     void setMemPool(size_t memPoolSize);
 
     bool getMemPoolStatus();

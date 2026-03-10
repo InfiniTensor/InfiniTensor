@@ -159,7 +159,7 @@ void GraphObj::shape_infer() {
 void GraphObj::dataMalloc(bool useNaiveAllocator, size_t memPoolSize) {
     IT_ASSERT(topo_sort() == true);
 
-    if (useNaiveAllocator) {
+    if (useNaiveAllocator || ops.empty()) {
         IT_ASSERT(memPoolSize == 0);
         for (auto &tensor : tensors) {
             if (!tensor->isWeight() || (tensor->isWeight() && !weightAllocated))
@@ -171,6 +171,7 @@ void GraphObj::dataMalloc(bool useNaiveAllocator, size_t memPoolSize) {
     // memory规划器计算每个中间 tensor (other tensor) 的 offset
     std::unordered_map<TensorObj *, size_t> tensorToOffset;
     size_t occamyPeak = OccamyPlanner::plan(ops, tensorToOffset);
+    allocator.setPeak(occamyPeak);
 
     // weight 不参与内存池复用
     size_t weightBytes = 0;
@@ -190,6 +191,13 @@ void GraphObj::dataMalloc(bool useNaiveAllocator, size_t memPoolSize) {
             ioBytes += allocator.getAlignedSize(tensor->getBytes());
     }
     totalPoolSize += ioBytes;
+
+    // 如果外部指定了更大的内存池（例如为 heap/KV Cache 预留空间）
+    if (memPoolSize > 0) {
+        IT_ASSERT(memPoolSize >= totalPoolSize,
+                  "Specified memPoolSize is too small");
+        totalPoolSize = memPoolSize;
+    }
 
     allocator.setMemPool(totalPoolSize);
 

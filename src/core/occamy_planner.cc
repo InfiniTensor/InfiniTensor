@@ -286,10 +286,11 @@ OccamyPlanner::plan(const OpVec &ops,
                     std::unordered_map<TensorObj *, size_t> &tensorToOffset) {
     /*
      * 四种显存规划策略：
-     * 1. FIRST_FIT: 按拓扑顺序，第一个满足的空闲块
+     * 1. FIRST_FIT: 按拓扑顺序，第一个满足的空闲块(等同lazy allocator)
      * 2. BEST_FIT: 按拓扑顺序，选择最小的满足块
-     * 3. LONGER_FIRST_FIT: 按生命周期降序，使用 first-fit
-     * 4. BIGGER_FIRST_FIT: 按大小降序，使用 first-fit
+     * 3. LONGER_FIRST_FIT:
+     * 按生命周期降序后，依次寻找第一个满足的空闲块（若前序张量生命周期与当前张量不重叠，则当前张量分配时前序张量所占空间即为空闲）
+     * 4. BIGGER_FIRST_FIT: 按大小降序（同上）
      */
     const std::vector<Policy> policies = {
         Policy::FIRST_FIT,
@@ -307,6 +308,8 @@ OccamyPlanner::plan(const OpVec &ops,
     for (auto policy : policies) {
         std::unordered_map<TensorObj *, size_t> offsets;
         size_t peak = runSchedule(liveness, ops, policy, offsets);
+        // std::cout << "OccamyPlanner: Policy " << static_cast<int>(policy)
+        //           << " yields peak " << peak << " bytes\n";
         if (peak < bestPeak) {
             bestPeak = peak;
             bestOffsets = std::move(offsets);

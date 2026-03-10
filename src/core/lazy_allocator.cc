@@ -48,6 +48,8 @@ void LazyAllocator::init() {
     this->ptr = nullptr;
 }
 
+void LazyAllocator::setPeak(size_t peak) { this->peak = peak; }
+
 void LazyAllocator::setMemPool(size_t memPoolSize) {
     IT_ASSERT(memPoolSize > 0);
     if (!this->hasMemPool) {
@@ -129,7 +131,7 @@ size_t LazyAllocator::heapAlloc(size_t size) {
     size = this->getAlignedSize(size);
     this->heapPeak += size;
     IT_ASSERT(this->memPoolSize >=
-              this->weightPeak + this->peak + this->heapPeak);
+              this->weightPeak + this->ioPeak + this->peak + this->heapPeak);
     size_t retAddr = this->memPoolSize - this->heapPeak;
     return retAddr;
 }
