@@ -26,6 +26,8 @@ class LazyAllocator {
 
     size_t weightPeak = 0;
 
+    size_t ioPeak = 0;
+
     size_t heapPeak = 0;
 
     size_t alignment;
@@ -39,6 +41,8 @@ class LazyAllocator {
 
     // pointer to the weight memory space
     void *weightPtr = nullptr;
+
+    void *ioPtr = nullptr;
 
     // memory pool ptr
     void *memPoolPtr = nullptr;
@@ -89,7 +93,11 @@ class LazyAllocator {
 
     size_t allocWeight(size_t size);
 
+    size_t allocIO(size_t size);
+
     size_t heapAlloc(size_t size);
+
+    size_t getAlignedSize(size_t size);
 
     void freeHeap();
 
@@ -109,14 +117,16 @@ class LazyAllocator {
 
     void *getWeightPtr();
 
+    void *getIOPtr();
+
     void *getHeapPtr();
 
     void info();
 
-  private:
-    // function: memory alignment, rouned up
-    // return: size of the aligned memory block
-    size_t getAlignedSize(size_t size);
+    // private:
+    //   // function: memory alignment, rouned up
+    //   // return: size of the aligned memory block
+    //   size_t getAlignedSize(size_t size);
 };
 
 } // namespace infini

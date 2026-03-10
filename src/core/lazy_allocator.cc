@@ -1,4 +1,5 @@
 #include "core/lazy_allocator.h"
+#include <cstddef>
 #include <utility>
 
 namespace infini {
@@ -116,6 +117,14 @@ size_t LazyAllocator::allocWeight(size_t size) {
     return retAddr;
 }
 
+size_t LazyAllocator::allocIO(size_t size) {
+    IT_ASSERT(this->ioPtr == nullptr);
+    size = this->getAlignedSize(size);
+    size_t retAddr = this->ioPeak;
+    this->ioPeak += size;
+    return retAddr;
+}
+
 size_t LazyAllocator::heapAlloc(size_t size) {
     size = this->getAlignedSize(size);
     this->heapPeak += size;
@@ -178,8 +187,9 @@ void *LazyAllocator::getPtr() {
         }
         return this->ptr;
     } else {
-        IT_ASSERT(this->memPoolSize >= this->weightPeak + this->peak);
-        return static_cast<uint8_t *>(this->memPoolPtr) + weightPeak;
+        IT_ASSERT(this->memPoolSize >=
+                  this->weightPeak + this->peak + this->ioPeak);
+        return static_cast<uint8_t *>(this->memPoolPtr) + weightPeak + ioPeak;
     }
 }
 
@@ -196,6 +206,18 @@ void *LazyAllocator::getWeightPtr() {
         return this->weightPtr;
     } else {
         return this->memPoolPtr;
+    }
+}
+
+void *LazyAllocator::getIOPtr() {
+    if (!hasMemPool) {
+        if (this->ioPtr == nullptr) {
+            this->ioPtr = runtime->alloc(this->ioPeak);
+        }
+        return this->ioPtr;
+    } else {
+        IT_ASSERT(this->memPoolSize >= this->weightPeak + this->ioPeak);
+        return static_cast<uint8_t *>(this->memPoolPtr) + weightPeak;
     }
 }
 
