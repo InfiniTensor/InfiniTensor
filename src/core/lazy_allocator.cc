@@ -1,5 +1,4 @@
 #include "core/lazy_allocator.h"
-#include <cstddef>
 #include <utility>
 
 namespace infini {
@@ -47,8 +46,6 @@ void LazyAllocator::init() {
     }
     this->ptr = nullptr;
 }
-
-void LazyAllocator::setPeak(size_t peak) { this->peak = peak; }
 
 void LazyAllocator::setMemPool(size_t memPoolSize) {
     IT_ASSERT(memPoolSize > 0);
@@ -119,19 +116,11 @@ size_t LazyAllocator::allocWeight(size_t size) {
     return retAddr;
 }
 
-size_t LazyAllocator::allocIO(size_t size) {
-    IT_ASSERT(this->ioPtr == nullptr);
-    size = this->getAlignedSize(size);
-    size_t retAddr = this->ioPeak;
-    this->ioPeak += size;
-    return retAddr;
-}
-
 size_t LazyAllocator::heapAlloc(size_t size) {
     size = this->getAlignedSize(size);
     this->heapPeak += size;
     IT_ASSERT(this->memPoolSize >=
-              this->weightPeak + this->ioPeak + this->peak + this->heapPeak);
+              this->weightPeak + this->peak + this->heapPeak);
     size_t retAddr = this->memPoolSize - this->heapPeak;
     return retAddr;
 }
@@ -189,9 +178,8 @@ void *LazyAllocator::getPtr() {
         }
         return this->ptr;
     } else {
-        IT_ASSERT(this->memPoolSize >=
-                  this->weightPeak + this->peak + this->ioPeak);
-        return static_cast<uint8_t *>(this->memPoolPtr) + weightPeak + ioPeak;
+        IT_ASSERT(this->memPoolSize >= this->weightPeak + this->peak);
+        return static_cast<uint8_t *>(this->memPoolPtr) + weightPeak;
     }
 }
 
@@ -211,18 +199,6 @@ void *LazyAllocator::getWeightPtr() {
     }
 }
 
-void *LazyAllocator::getIOPtr() {
-    if (!hasMemPool) {
-        if (this->ioPtr == nullptr) {
-            this->ioPtr = runtime->alloc(this->ioPeak);
-        }
-        return this->ioPtr;
-    } else {
-        IT_ASSERT(this->memPoolSize >= this->weightPeak + this->ioPeak);
-        return static_cast<uint8_t *>(this->memPoolPtr) + weightPeak;
-    }
-}
-
 void *LazyAllocator::getHeapPtr() {
     IT_ASSERT(hasMemPool);
     return this->memPoolPtr;
@@ -235,7 +211,7 @@ size_t LazyAllocator::getAlignedSize(size_t size) {
 void LazyAllocator::info() {
     std::cout << "Used memory: " << this->used + this->weightPeak
               << ", peak memory: " << this->peak + this->weightPeak
-              << std::endl;
+              << ", non weight tensor memory: " << this->peak << std::endl;
 }
 
 } // namespace infini

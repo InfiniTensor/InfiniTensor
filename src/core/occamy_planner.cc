@@ -308,8 +308,8 @@ OccamyPlanner::plan(const OpVec &ops,
     for (auto policy : policies) {
         std::unordered_map<TensorObj *, size_t> offsets;
         size_t peak = runSchedule(liveness, ops, policy, offsets);
-        // std::cout << "OccamyPlanner: Policy " << static_cast<int>(policy)
-        //           << " yields peak " << peak << " bytes\n";
+        std::cout << "OccamyPlanner: Policy " << static_cast<int>(policy)
+                  << " yields peak " << peak << " bytes\n";
         if (peak < bestPeak) {
             bestPeak = peak;
             bestOffsets = std::move(offsets);
