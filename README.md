@@ -41,6 +41,7 @@ There are several configurable CMake options, see the [CMakeLists.txt](/CMakeLis
   - ✔ Cambricon MLU
   - ✔ Kunlunxin XPU
   - ✔ Ascend NPU
+  - ✔ Intel CPU
 
 ## Contributor Guide
 
