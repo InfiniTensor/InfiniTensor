@@ -5,7 +5,7 @@
 [![Build](https://github.com/InfiniTensor/InfiniTensor/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/InfiniTensor/InfiniTensor/actions)
 [![issue](https://img.shields.io/github/issues/InfiniTensor/InfiniTensor)](https://github.com/InfiniTensor/InfiniTensor/issues)
 ![license](https://img.shields.io/github/license/InfiniTensor/InfiniTensor)
-![star](https://atomgit.com/InfiniTensor/InfiniLM/star/badge.svg)
+![star](https://atomgit.com/InfiniTensor/InfiniTensor/star/badge.svg)
 
 InfiniTensor is a high-performance inference engine tailored for GPUs and AI accelerators. Its design focuses on effective deployment and swift academic validation.
 
