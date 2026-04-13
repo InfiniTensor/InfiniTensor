@@ -125,6 +125,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, DepthToSpace)
         .VALUE(OpType, LRN)
         .VALUE(OpType, Elu)
+        .VALUE(OpType, ArgMax)
         .export_values();
 
 #undef VALUE
@@ -491,6 +492,11 @@ void init_graph_builder(py::module &m) {
                  void *data_np = buf_info.ptr;
                  size_t itemsize = buf_info.itemsize;
                  size_t size = buf_info.size;
+                 std::cout << "Numpy array itemsize: " << itemsize
+                           << ", size: " << size << std::endl;
+                 std::cout << "Tensor dtype size: "
+                           << self.getDType().getSize()
+                           << ", Tensor size: " << self.size() << std::endl;
                  IT_ASSERT(itemsize == self.getDType().getSize());
                  IT_ASSERT(size == self.size());
                  for (size_t i = 0; i < self.getRank(); i++) {
@@ -609,6 +615,8 @@ void init_graph_builder(py::module &m) {
         .def("get_perf_time", &Handler::get_perf_time, policy::automatic)
         .def("tune", &Handler::tune, policy::automatic)
         .def("run", &Handler::run, policy::automatic)
+        .def("argmax", &Handler::argmax, policy::move)
+
 #ifdef USE_CUDA
         .def("run_with_cudagraph", &Handler::run_with_cudagraph,
              policy::automatic)

@@ -30,6 +30,7 @@
 #include "operators/unary.h"
 #include "operators/unsqueeze.h"
 #include "operators/where.h"
+#include "operators/argmax.h"
 #include <numeric>
 
 namespace infini {
@@ -405,6 +406,16 @@ Tensor GraphHandlerObj::RoPE(Tensor pos, Tensor input, Tensor output) {
             ->getOutput();
     }
 }
+// TODO: implement argmax
+Tensor GraphHandlerObj::argmax(Tensor input, Tensor output, int axis, bool keepdim) {
+    if (output) {
+        g->addOpWithOutputs<ArgMaxObj>(std::move(input), output, axis);
+        return output;
+    } else {
+        return g->addOp<ArgMaxObj>(std::move(input), output, axis)
+            ->getOutput();
+    }
+}
 
 TensorVec GraphHandlerObj::split(Tensor input, std::optional<TensorVec> outputs,
                                  int axis,
@@ -746,6 +757,8 @@ static CastType inferCastType(Tensor input, int to) {
         return CastType::BFloat162Float;
     } else if (iType == DataType::Float32 && oType == DataType::Float32) {
         return CastType::Float2Float;
+    } else if (iType == DataType::Float32 && oType == DataType::Bool) {
+        return CastType::Float322Bool;
     } else {
         IT_TODO_HALT_MSG("Unsupported CastType : input_type is " +
                          iType.toString() + " output_type is " +

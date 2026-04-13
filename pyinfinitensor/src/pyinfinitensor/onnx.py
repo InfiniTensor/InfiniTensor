@@ -105,6 +105,10 @@ class OnnxStub:
             data[initializer.name] = initializer
             tensors[initializer.name].set_weight()
 
+        # print("Available data keys:", list(data.keys()))
+        # print("Node inputs:", node.input)
+        # print("Looking for key:", node.input[1])
+
         for input in model.graph.input:
             dims = _take_shape_dim(input.type.tensor_type.shape)
             if input.name not in tensors.keys():
@@ -115,979 +119,995 @@ class OnnxStub:
 
         for node_idx in sorted_nodes:
             node = model.graph.node[node_idx]
-            if node.op_type == "Conv":
-                attributes = _parse_attribute(
-                    node,
-                    {
-                        "dilations": [1, 1],
-                        "pads": [0, 0, 0, 0],
-                        "strides": [1, 1],
-                    },
-                )
-                (d, p, s) = (
-                    attributes[name] for name in ["dilations", "pads", "strides"]
-                )
-                if p[0] != p[2] or p[1] != p[3]:
-                    adapt = "{}-adapt".format(node.output[0])
-                    tensors[adapt] = self.handler.pad(
-                        tensors[node.input[0]], None, p, [-2, -1]
+            try:
+                if node.op_type == "Conv":
+                    attributes = _parse_attribute(
+                        node,
+                        {
+                            "dilations": [1, 1],
+                            "pads": [0, 0, 0, 0],
+                            "strides": [1, 1],
+                        },
                     )
-                    p = [0, 0, 0, 0]
-                else:
-                    adapt = node.input[0]
+                    (d, p, s) = (
+                        attributes[name] for name in ["dilations", "pads", "strides"]
+                    )
+                    if p[0] != p[2] or p[1] != p[3]:
+                        adapt = "{}-adapt".format(node.output[0])
+                        tensors[adapt] = self.handler.pad(
+                            tensors[node.input[0]], None, p, [-2, -1]
+                        )
+                        p = [0, 0, 0, 0]
+                    else:
+                        adapt = node.input[0]
 
-                if len(node.input) > 2:
-                    bias = "{}-bias".format(node.output[0])
-                    reshape = "{}-reshape".format(node.output[0])
-                    tensors[bias] = self.handler.conv(
-                        tensors[adapt],
+                    if len(node.input) > 2:
+                        bias = "{}-bias".format(node.output[0])
+                        reshape = "{}-reshape".format(node.output[0])
+                        tensors[bias] = self.handler.conv(
+                            tensors[adapt],
+                            tensors[node.input[1]],
+                            None,
+                            p[0],
+                            p[1],
+                            s[0],
+                            s[1],
+                            d[0],
+                            d[1],
+                        )
+                        tensors[reshape] = self.handler.reshape(
+                            tensors[node.input[2]],
+                            None,
+                            [
+                                1,
+                                reduce(
+                                    lambda acc, x: acc * x,
+                                    tensors[node.input[2]].shape(),
+                                ),
+                                1,
+                                1,
+                            ],
+                        )
+                        tensors[node.output[0]] = self.handler.add(
+                            tensors[bias],
+                            tensors[reshape],
+                            tensors.get(node.output[0]),
+                        )
+                    else:
+                        tensors[node.output[0]] = self.handler.conv(
+                            tensors[adapt],
+                            tensors[node.input[1]],
+                            tensors.get(node.output[0]),
+                            p[0],
+                            p[1],
+                            s[0],
+                            s[1],
+                            d[0],
+                            d[1],
+                        )
+                elif node.op_type == "Elu":
+                    attributes = _parse_attribute(node, {"alpha": 1.0})
+                    alpha = attributes["alpha"]
+                    tensors[node.output[0]] = self.handler.elu(
+                        tensors[node.input[0]], tensors.get(node.output[0]), alpha
+                    )
+                elif node.op_type == "ConvTranspose":
+                    attributes = _parse_attribute(
+                        node,
+                        {
+                            "dilations": [1, 1],
+                            "pads": [0, 0, 0, 0],
+                            "strides": [1, 1],
+                            "output_padding": [0, 0],
+                        },
+                    )
+                    (d, p, s, op) = (
+                        attributes[name]
+                        for name in ["dilations", "pads", "strides", "output_padding"]
+                    )
+                    if p[0] != p[2] or p[1] != p[3]:
+                        adapt = "{}-adapt".format(node.output[0])
+                        tensors[adapt] = self.handler.pad(
+                            tensors[node.input[0]], None, p, [-2, -1]
+                        )
+                        p = [0, 0, 0, 0]
+                    else:
+                        adapt = node.input[0]
+
+                    if len(node.input) > 2:
+                        bias = "{}-bias".format(node.output[0])
+                        reshape = "{}-reshape".format(node.output[0])
+                        tensors[bias] = self.handler.convTransposed2d(
+                            tensors[adapt],
+                            tensors[node.input[1]],
+                            None,
+                            p[0],
+                            p[1],
+                            s[0],
+                            s[1],
+                            d[0],
+                            d[1],
+                            op[0],
+                            op[1],
+                        )
+                        tensors[reshape] = self.handler.reshape(
+                            tensors[node.input[2]],
+                            None,
+                            [
+                                1,
+                                reduce(
+                                    lambda acc, x: acc * x,
+                                    tensors[node.input[2]].shape(),
+                                ),
+                                1,
+                                1,
+                            ],
+                        )
+                        tensors[node.output[0]] = self.handler.add(
+                            tensors[bias],
+                            tensors[reshape],
+                            tensors.get(node.output[0]),
+                        )
+                    else:
+                        tensors[node.output[0]] = self.handler.convTransposed2d(
+                            tensors[adapt],
+                            tensors[node.input[1]],
+                            tensors.get(node.output[0]),
+                            p[0],
+                            p[1],
+                            s[0],
+                            s[1],
+                            d[0],
+                            d[1],
+                            op[0],
+                            op[1],
+                        )
+                elif node.op_type == "MatMul":
+                    tensors[node.output[0]] = self.handler.matmul(
+                        tensors[node.input[0]],  # input
+                        tensors[node.input[1]],  # weight
+                        tensors.get(node.output[0]),
+                        False,
+                        False,
+                        None,
+                        backend.ActType.Linear,
+                        matmul_compute_type,
+                    )
+                elif node.op_type == "Gemm":
+                    attributes = _parse_attribute(
+                        node, {"alpha": 1.0, "beta": 1.0, "transA": 0, "transB": 0}
+                    )
+                    (alpha, beta, transA, transB) = (
+                        attributes[name] for name in ["alpha", "beta", "transA", "transB"]
+                    )
+                    # FIXME unsupport attributes: `alpha` `beta`
+                    assert alpha == 1.0
+                    assert beta == 1.0
+                    tensors[node.output[0]] = self.handler.matmul(
+                        tensors[node.input[0]],
                         tensors[node.input[1]],
-                        None,
-                        p[0],
-                        p[1],
-                        s[0],
-                        s[1],
-                        d[0],
-                        d[1],
+                        tensors.get(node.output[0]),
+                        transA == 1,
+                        transB == 1,
+                        tensors[node.input[2]] if len(node.input) > 2 else None,
+                        backend.ActType.Linear,
+                        matmul_compute_type,
                     )
-                    tensors[reshape] = self.handler.reshape(
-                        tensors[node.input[2]],
-                        None,
-                        [
-                            1,
-                            reduce(
-                                lambda acc, x: acc * x,
-                                tensors[node.input[2]].shape(),
-                            ),
-                            1,
-                            1,
-                        ],
+                elif node.op_type == "BatchNormalization":
+                    (input, mean, var, scale, bias) = (
+                        tensors[node.input[i]] for i in [0, 3, 4, 1, 2]
                     )
+                    output = tensors.get(node.output[0])
+                    attributes = _parse_attribute(
+                        node, {"momentum": 0.9, "epsilon": 1e-05, "training_mode": 0}
+                    )
+                    (momentum, eps, training) = (
+                        attributes[name]
+                        for name in ["momentum", "epsilon", "training_mode"]
+                    )
+                    tensors[node.output[0]] = self.handler.batchNormalization(
+                        input,
+                        output,
+                        mean,
+                        var,
+                        scale,
+                        bias,
+                        momentum,
+                        eps,
+                        training != 0,
+                    )
+                elif node.op_type == "LayerNormalization":
+                    (input, scale) = (tensors[node.input[i]] for i in [0, 1])
+                    bias = None if len(node.input) < 3 else tensors[node.input[2]]
+                    output = tensors.get(node.output[0])
+                    attributes = _parse_attribute(
+                        node, {"axis": -1, "epsilon": 1e-05, "stash_type": 1}
+                    )
+                    (axis, eps, stash_type) = (
+                        attributes[name] for name in ["axis", "epsilon", "stash_type"]
+                    )
+                    tensors[node.output[0]] = self.handler.layerNormalization(
+                        input,
+                        scale,
+                        output,
+                        bias,
+                        eps,
+                        axis,
+                        stash_type,
+                    )
+                elif node.op_type == "InstanceNormalization":
+                    (input, scale, bias) = (tensors[node.input[i]] for i in [0, 1, 2])
+
+                    output = tensors.get(node.output[0])
+
+                    tensors[node.output[0]] = self.handler.instanceNormalization(
+                        input,
+                        output,
+                        scale,
+                        bias,
+                        next(
+                            (attr.f for attr in node.attribute if attr.name == "epsilon"),
+                            1e-5,
+                        ),
+                    )
+                elif node.op_type == "RMSNorm":
+                    tensors[node.output[0]] = self.handler.RMSNorm(
+                        tensors[node.input[0]],
+                        tensors[node.input[1]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "MaxPool":
+                    attributes = _parse_attribute(
+                        node,
+                        {
+                            "kernel_shape": None,
+                            "dilations": [1, 1],
+                            "pads": [0, 0, 0, 0],
+                            "strides": [1, 1],
+                            "ceil_mode": 0,
+                        },
+                    )
+                    (k, d, p, s, ceil_mode) = (
+                        attributes[name]
+                        for name in [
+                            "kernel_shape",
+                            "dilations",
+                            "pads",
+                            "strides",
+                            "ceil_mode",
+                        ]
+                    )
+                    if p[0] != p[2] or p[1] != p[3]:
+                        adapt = "{}-adapt".format(node.output[0])
+                        tensors[adapt] = self.handler.pad(
+                            tensors.get(node.input[0]), None, p, [-2, -1]
+                        )
+                        tensors[node.output[0]] = self.handler.maxPool(
+                            tensors[adapt],
+                            tensors.get(node.output[0]),
+                            k[0],
+                            k[1],
+                            d[0],
+                            d[1],
+                            0,
+                            0,
+                            s[0],
+                            s[1],
+                            ceil_mode,
+                        )
+                    else:
+                        tensors[node.output[0]] = self.handler.maxPool(
+                            tensors[node.input[0]],
+                            tensors.get(node.output[0]),
+                            k[0],
+                            k[1],
+                            d[0],
+                            d[1],
+                            p[0],
+                            p[1],
+                            s[0],
+                            s[1],
+                            ceil_mode,
+                        )
+                elif node.op_type == "AveragePool":
+                    attributes = _parse_attribute(
+                        node,
+                        {
+                            "kernel_shape": None,
+                            "pads": [0, 0, 0, 0],
+                            "strides": [1, 1],
+                            "ceil_mode": 0,
+                        },
+                    )
+                    (k, p, s, ceil_mode) = (
+                        attributes[name]
+                        for name in ["kernel_shape", "pads", "strides", "ceil_mode"]
+                    )
+
+                    # Avg Pool 1D
+                    if len(p) == 2:
+                        tensors[node.output[0]] = self.handler.avgPool(
+                            tensors[node.input[0]],
+                            tensors.get(node.output[0]),
+                            1,
+                            k[0],
+                            1,
+                            1,
+                            0,
+                            p[0],
+                            1,
+                            s[0],
+                            ceil_mode,
+                        )
+                    elif p[0] != p[2] or p[1] != p[3]:
+                        adapt = "{}-adapt".format(node.output[0])
+                        tensors[adapt] = self.handler.pad(
+                            tensors.get(node.input[0]), None, p, [-2, -1]
+                        )
+                        tensors[node.output[0]] = self.handler.avgPool(
+                            tensors[adapt],
+                            tensors.get(node.output[0]),
+                            k[0],
+                            k[1],
+                            1,
+                            1,
+                            0,
+                            0,
+                            s[0],
+                            s[1],
+                            ceil_mode,
+                        )
+                    else:
+                        tensors[node.output[0]] = self.handler.avgPool(
+                            tensors[node.input[0]],
+                            tensors.get(node.output[0]),
+                            k[0],
+                            k[1],
+                            1,
+                            1,
+                            p[0],
+                            p[1],
+                            s[0],
+                            s[1],
+                            ceil_mode,
+                        )
+                elif node.op_type == "GlobalAveragePool":
+                    [_, _, h, w] = tensors[node.input[0]].shape()
+                    tensors[node.output[0]] = self.handler.avgPool(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        h,
+                        w,
+                        1,
+                        1,
+                        0,
+                        0,
+                        1,
+                        1,
+                        0,
+                    )
+                elif node.op_type == "Add":
                     tensors[node.output[0]] = self.handler.add(
-                        tensors[bias],
-                        tensors[reshape],
-                        tensors.get(node.output[0]),
-                    )
-                else:
-                    tensors[node.output[0]] = self.handler.conv(
-                        tensors[adapt],
+                        tensors[node.input[0]],
                         tensors[node.input[1]],
                         tensors.get(node.output[0]),
-                        p[0],
-                        p[1],
-                        s[0],
-                        s[1],
-                        d[0],
-                        d[1],
                     )
-            elif node.op_type == "Elu":
-                attributes = _parse_attribute(node, {"alpha": 1.0})
-                alpha = attributes["alpha"]
-                tensors[node.output[0]] = self.handler.elu(
-                    tensors[node.input[0]], tensors.get(node.output[0]), alpha
-                )
-            elif node.op_type == "ConvTranspose":
-                attributes = _parse_attribute(
-                    node,
-                    {
-                        "dilations": [1, 1],
-                        "pads": [0, 0, 0, 0],
-                        "strides": [1, 1],
-                        "output_padding": [0, 0],
-                    },
-                )
-                (d, p, s, op) = (
-                    attributes[name]
-                    for name in ["dilations", "pads", "strides", "output_padding"]
-                )
-                if p[0] != p[2] or p[1] != p[3]:
-                    adapt = "{}-adapt".format(node.output[0])
-                    tensors[adapt] = self.handler.pad(
-                        tensors[node.input[0]], None, p, [-2, -1]
-                    )
-                    p = [0, 0, 0, 0]
-                else:
-                    adapt = node.input[0]
-
-                if len(node.input) > 2:
-                    bias = "{}-bias".format(node.output[0])
-                    reshape = "{}-reshape".format(node.output[0])
-                    tensors[bias] = self.handler.convTransposed2d(
-                        tensors[adapt],
+                elif node.op_type == "Sub":
+                    tensors[node.output[0]] = self.handler.sub(
+                        tensors[node.input[0]],
                         tensors[node.input[1]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "Mul":
+                    tensors[node.output[0]] = self.handler.mul(
+                        tensors[node.input[0]],
+                        tensors[node.input[1]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "Div":
+                    tensors[node.output[0]] = self.handler.div(
+                        tensors[node.input[0]],
+                        tensors[node.input[1]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "Pow":
+                    tensors[node.output[0]] = self.handler.pow(
+                        tensors[node.input[0]],
+                        tensors[node.input[1]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "Min":
+                    tensors[node.output[0]] = self.handler.min(
+                        tensors[node.input[0]],
+                        tensors[node.input[1]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "Max":
+                    tensors[node.output[0]] = self.handler.max(
+                        tensors[node.input[0]],
+                        tensors[node.input[1]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "Relu":
+                    tensors[node.output[0]] = self.handler.relu(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "LeakyRelu":
+                    tensors[node.output[0]] = self.handler.leakyRelu(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        next(
+                            (attr.f for attr in node.attribute if attr.name == "alpha"),
+                            0.01,
+                        ),
+                    )
+                elif node.op_type == "Silu":
+                    tensors[node.output[0]] = self.handler.silu(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "Gelu":
+                    tensors[node.output[0]] = self.handler.gelu(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "Sigmoid":
+                    tensors[node.output[0]] = self.handler.sigmoid(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "HardSigmoid":
+                    tensors[node.output[0]] = self.handler.hardSigmoid(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "HardSwish":
+                    tensors[node.output[0]] = self.handler.hardSwish(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "Tanh":
+                    tensors[node.output[0]] = self.handler.tanh(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "Softmax":
+                    tensors[node.output[0]] = self.handler.softmax(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        next(
+                            (attr.i for attr in node.attribute if attr.name == "axis"),
+                            -1,
+                        ),
+                    )
+                elif node.op_type == "Abs":
+                    tensors[node.output[0]] = self.handler.abs(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "Sqrt":
+                    tensors[node.output[0]] = self.handler.sqrt(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "Neg":
+                    tensors[node.output[0]] = self.handler.neg(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "Shape":
+                    tensors[node.output[0]] = self.handler.shape(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "Identity":
+                    tensors[node.output[0]] = self.handler.identity(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "Flatten":
+                    tensors[node.output[0]] = self.handler.flatten(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        next(
+                            (attr.i for attr in node.attribute if attr.name == "axis"),
+                            1,
+                        ),
+                    )
+                elif node.op_type == "PRelu":
+                    tensors[node.output[0]] = self.handler.pRelu(
+                        tensors[node.input[0]],
+                        tensors[node.input[1]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "Clip":
+                    tensors[node.output[0]] = self.handler.clip(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        (
+                            next(_parse_data(data[node.input[1]]).__iter__(), None)
+                            if len(node.input) > 1
+                            else None
+                        ),
+                        (
+                            next(_parse_data(data[node.input[2]]).__iter__(), None)
+                            if len(node.input) > 2
+                            else None
+                        ),
+                    )
+                elif node.op_type == "Transpose":
+                    perm = next(
+                        (attr.ints for attr in node.attribute if attr.name == "perm"),
                         None,
-                        p[0],
-                        p[1],
-                        s[0],
-                        s[1],
-                        d[0],
-                        d[1],
-                        op[0],
-                        op[1],
                     )
-                    tensors[reshape] = self.handler.reshape(
+                    tensors[node.output[0]] = self.handler.transpose(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        perm,
+                    )
+                elif node.op_type == "DepthToSpace":
+                    blocksize = next(
+                        (attr.i for attr in node.attribute if attr.name == "blocksize"),
+                        None,
+                    )
+                    mode = next(
+                        (attr.s for attr in node.attribute if attr.name == "mode"),
+                        None,
+                    )
+                    tensors[node.output[0]] = self.handler.depthToSpace(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        blocksize,
+                        mode,
+                    )
+                elif node.op_type == "Reshape":
+                    shape = _parse_data(data[node.input[1]])
+                    tensors[node.output[0]] = self.handler.reshape(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        shape,
+                    )
+                elif node.op_type == "Resize":
+                    output = tensors.get(node.output[0])
+                    attributes = _parse_attribute(
+                        node,
+                        {
+                            "antialias": 0,
+                            "axes": None,
+                            "coordinate_transformation_mode": "half_pixel",
+                            "cubic_coeff_a": -0.75,
+                            "exclude_outside": 0,
+                            "extrapolation_value": 0.0,
+                            "keep_aspect_ratio_policy": "stretch",
+                            "mode": "nearest",
+                            "nearest_mode": "none",
+                        },
+                    )
+                    (
+                        axes,
+                        keep_aspect_ratio_policy,
+                        coordinate_transformation_mode,
+                        mode,
+                        nearest_mode,
+                    ) = (
+                        attributes[name]
+                        for name in [
+                            "axes",
+                            "keep_aspect_ratio_policy",
+                            "coordinate_transformation_mode",
+                            "mode",
+                            "nearest_mode",
+                        ]
+                    )
+                    if len(node.input) > 1 and node.input[1] in data:
+                        roiVal = _parse_data(data[node.input[1]])
+                    else:
+                        roiVal = []
+                    if len(node.input) > 2 and node.input[2] in data:
+                        scalesVal = _parse_data(data[node.input[2]])
+                    else:
+                        scalesVal = []
+                    if len(node.input) > 3 and node.input[3] in data:
+                        sizesVal = _parse_data(data[node.input[3]])
+                    else:
+                        sizesVal = []
+                    tensors[node.output[0]] = self.handler.resize(
+                        tensors[node.input[0]],
+                        output,
+                        axes,
+                        (
+                            tensors[node.input[3]]
+                            if len(node.input) > 3 and node.input[3] != ""
+                            else None
+                        ),
+                        (
+                            tensors[node.input[2]]
+                            if len(node.input) > 2 and node.input[2] != ""
+                            else None
+                        ),
+                        (
+                            tensors[node.input[1]]
+                            if len(node.input) > 1 and node.input[1] != ""
+                            else None
+                        ),
+                        sizesVal,
+                        scalesVal,
+                        roiVal,
+                        mode,
+                        keep_aspect_ratio_policy,
+                        nearest_mode,
+                        coordinate_transformation_mode,
+                    )
+                elif node.op_type == "Squeeze":
+                    axes = _parse_data(data[node.input[1]]) if len(node.input) > 1 else None
+                    if axes is None:
+                        axes = next(
+                            (attr.ints for attr in node.attribute if attr.name == "axes"),
+                            [],
+                        )
+                    tensors[node.output[0]] = self.handler.squeeze(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        axes,
+                    )
+                elif node.op_type == "Unsqueeze":
+                    axes = _parse_data(data[node.input[1]]) if len(node.input) > 1 else None
+                    if axes is None:
+                        axes = next(
+                            (attr.ints for attr in node.attribute if attr.name == "axes")
+                        )
+                    tensors[node.output[0]] = self.handler.unsqueeze(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        axes,
+                    )
+                elif node.op_type == "Concat":
+                    tensors[node.output[0]] = self.handler.concat(
+                        [tensors[name] for name in node.input],
+                        tensors.get(node.output[0]),
+                        next((attr.i for attr in node.attribute if attr.name == "axis")),
+                    )
+                elif node.op_type == "AttentionKVCache":
+                    tensors[node.output[0]] = self.handler.attentionKVCache(
+                        tensors[node.input[0]],
+                        tensors[node.input[1]],
                         tensors[node.input[2]],
-                        None,
-                        [
-                            1,
-                            reduce(
-                                lambda acc, x: acc * x,
-                                tensors[node.input[2]].shape(),
-                            ),
-                            1,
-                            1,
-                        ],
-                    )
-                    tensors[node.output[0]] = self.handler.add(
-                        tensors[bias],
-                        tensors[reshape],
+                        tensors[node.input[3]],
+                        tensors[node.input[4]],
+                        tensors[node.input[5]],
                         tensors.get(node.output[0]),
                     )
-                else:
-                    tensors[node.output[0]] = self.handler.convTransposed2d(
-                        tensors[adapt],
+                elif node.op_type == "RoPE":
+                    tensors[node.output[0]] = self.handler.RoPE(
+                        tensors[node.input[0]],
                         tensors[node.input[1]],
                         tensors.get(node.output[0]),
-                        p[0],
-                        p[1],
-                        s[0],
-                        s[1],
-                        d[0],
-                        d[1],
-                        op[0],
-                        op[1],
                     )
-            elif node.op_type == "MatMul":
-                tensors[node.output[0]] = self.handler.matmul(
-                    tensors[node.input[0]],  # input
-                    tensors[node.input[1]],  # weight
-                    tensors.get(node.output[0]),
-                    False,
-                    False,
-                    None,
-                    backend.ActType.Linear,
-                    matmul_compute_type,
-                )
-            elif node.op_type == "Gemm":
-                attributes = _parse_attribute(
-                    node, {"alpha": 1.0, "beta": 1.0, "transA": 0, "transB": 0}
-                )
-                (alpha, beta, transA, transB) = (
-                    attributes[name] for name in ["alpha", "beta", "transA", "transB"]
-                )
-                # FIXME unsupport attributes: `alpha` `beta`
-                assert alpha == 1.0
-                assert beta == 1.0
-                tensors[node.output[0]] = self.handler.matmul(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                    transA == 1,
-                    transB == 1,
-                    tensors[node.input[2]] if len(node.input) > 2 else None,
-                    backend.ActType.Linear,
-                    matmul_compute_type,
-                )
-            elif node.op_type == "BatchNormalization":
-                (input, mean, var, scale, bias) = (
-                    tensors[node.input[i]] for i in [0, 3, 4, 1, 2]
-                )
-                output = tensors.get(node.output[0])
-                attributes = _parse_attribute(
-                    node, {"momentum": 0.9, "epsilon": 1e-05, "training_mode": 0}
-                )
-                (momentum, eps, training) = (
-                    attributes[name]
-                    for name in ["momentum", "epsilon", "training_mode"]
-                )
-                tensors[node.output[0]] = self.handler.batchNormalization(
-                    input,
-                    output,
-                    mean,
-                    var,
-                    scale,
-                    bias,
-                    momentum,
-                    eps,
-                    training != 0,
-                )
-            elif node.op_type == "LayerNormalization":
-                (input, scale) = (tensors[node.input[i]] for i in [0, 1])
-                bias = None if len(node.input) < 3 else tensors[node.input[2]]
-                output = tensors.get(node.output[0])
-                attributes = _parse_attribute(
-                    node, {"axis": -1, "epsilon": 1e-05, "stash_type": 1}
-                )
-                (axis, eps, stash_type) = (
-                    attributes[name] for name in ["axis", "epsilon", "stash_type"]
-                )
-                tensors[node.output[0]] = self.handler.layerNormalization(
-                    input,
-                    scale,
-                    output,
-                    bias,
-                    eps,
-                    axis,
-                    stash_type,
-                )
-            elif node.op_type == "InstanceNormalization":
-                (input, scale, bias) = (tensors[node.input[i]] for i in [0, 1, 2])
-
-                output = tensors.get(node.output[0])
-
-                tensors[node.output[0]] = self.handler.instanceNormalization(
-                    input,
-                    output,
-                    scale,
-                    bias,
-                    next(
-                        (attr.f for attr in node.attribute if attr.name == "epsilon"),
-                        1e-5,
-                    ),
-                )
-            elif node.op_type == "RMSNorm":
-                tensors[node.output[0]] = self.handler.RMSNorm(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "MaxPool":
-                attributes = _parse_attribute(
-                    node,
-                    {
-                        "kernel_shape": None,
-                        "dilations": [1, 1],
-                        "pads": [0, 0, 0, 0],
-                        "strides": [1, 1],
-                        "ceil_mode": 0,
-                    },
-                )
-                (k, d, p, s, ceil_mode) = (
-                    attributes[name]
-                    for name in [
-                        "kernel_shape",
-                        "dilations",
-                        "pads",
-                        "strides",
-                        "ceil_mode",
-                    ]
-                )
-                if p[0] != p[2] or p[1] != p[3]:
-                    adapt = "{}-adapt".format(node.output[0])
-                    tensors[adapt] = self.handler.pad(
-                        tensors.get(node.input[0]), None, p, [-2, -1]
+                elif node.op_type == "Split":
+                    split = (
+                        _parse_data(data[node.input[1]]) if (len(node.input) > 1) else None
                     )
-                    tensors[node.output[0]] = self.handler.maxPool(
-                        tensors[adapt],
-                        tensors.get(node.output[0]),
-                        k[0],
-                        k[1],
-                        d[0],
-                        d[1],
-                        0,
-                        0,
-                        s[0],
-                        s[1],
-                        ceil_mode,
-                    )
-                else:
-                    tensors[node.output[0]] = self.handler.maxPool(
+                    if split is None:
+                        split = next(
+                            (attr.ints for attr in node.attribute if attr.name == "split"),
+                            None,
+                        )
+                    for name, tensor in zip(
+                        node.output,
+                        self.handler.split(
+                            tensors[node.input[0]],
+                            None,
+                            next(
+                                (attr.i for attr in node.attribute if attr.name == "axis"),
+                                0,
+                            ),
+                            split if split is not None else len(node.output),
+                        ),
+                    ):
+                        tensors[name] = tensor
+                elif node.op_type == "Gather":
+                    tensors[node.output[0]] = self.handler.gather(
                         tensors[node.input[0]],
+                        tensors[node.input[1]],
                         tensors.get(node.output[0]),
-                        k[0],
-                        k[1],
-                        d[0],
-                        d[1],
-                        p[0],
-                        p[1],
-                        s[0],
-                        s[1],
-                        ceil_mode,
-                    )
-            elif node.op_type == "AveragePool":
-                attributes = _parse_attribute(
-                    node,
-                    {
-                        "kernel_shape": None,
-                        "pads": [0, 0, 0, 0],
-                        "strides": [1, 1],
-                        "ceil_mode": 0,
-                    },
-                )
-                (k, p, s, ceil_mode) = (
-                    attributes[name]
-                    for name in ["kernel_shape", "pads", "strides", "ceil_mode"]
-                )
-
-                # Avg Pool 1D
-                if len(p) == 2:
-                    tensors[node.output[0]] = self.handler.avgPool(
-                        tensors[node.input[0]],
-                        tensors.get(node.output[0]),
-                        1,
-                        k[0],
-                        1,
-                        1,
-                        0,
-                        p[0],
-                        1,
-                        s[0],
-                        ceil_mode,
-                    )
-                elif p[0] != p[2] or p[1] != p[3]:
-                    adapt = "{}-adapt".format(node.output[0])
-                    tensors[adapt] = self.handler.pad(
-                        tensors.get(node.input[0]), None, p, [-2, -1]
-                    )
-                    tensors[node.output[0]] = self.handler.avgPool(
-                        tensors[adapt],
-                        tensors.get(node.output[0]),
-                        k[0],
-                        k[1],
-                        1,
-                        1,
-                        0,
-                        0,
-                        s[0],
-                        s[1],
-                        ceil_mode,
-                    )
-                else:
-                    tensors[node.output[0]] = self.handler.avgPool(
-                        tensors[node.input[0]],
-                        tensors.get(node.output[0]),
-                        k[0],
-                        k[1],
-                        1,
-                        1,
-                        p[0],
-                        p[1],
-                        s[0],
-                        s[1],
-                        ceil_mode,
-                    )
-            elif node.op_type == "GlobalAveragePool":
-                [_, _, h, w] = tensors[node.input[0]].shape()
-                tensors[node.output[0]] = self.handler.avgPool(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    h,
-                    w,
-                    1,
-                    1,
-                    0,
-                    0,
-                    1,
-                    1,
-                    0,
-                )
-            elif node.op_type == "Add":
-                tensors[node.output[0]] = self.handler.add(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Sub":
-                tensors[node.output[0]] = self.handler.sub(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Mul":
-                tensors[node.output[0]] = self.handler.mul(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Div":
-                tensors[node.output[0]] = self.handler.div(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Pow":
-                tensors[node.output[0]] = self.handler.pow(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Min":
-                tensors[node.output[0]] = self.handler.min(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Max":
-                tensors[node.output[0]] = self.handler.max(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Relu":
-                tensors[node.output[0]] = self.handler.relu(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "LeakyRelu":
-                tensors[node.output[0]] = self.handler.leakyRelu(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    next(
-                        (attr.f for attr in node.attribute if attr.name == "alpha"),
-                        0.01,
-                    ),
-                )
-            elif node.op_type == "Silu":
-                tensors[node.output[0]] = self.handler.silu(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Gelu":
-                tensors[node.output[0]] = self.handler.gelu(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Sigmoid":
-                tensors[node.output[0]] = self.handler.sigmoid(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "HardSigmoid":
-                tensors[node.output[0]] = self.handler.hardSigmoid(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "HardSwish":
-                tensors[node.output[0]] = self.handler.hardSwish(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Tanh":
-                tensors[node.output[0]] = self.handler.tanh(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Softmax":
-                tensors[node.output[0]] = self.handler.softmax(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    next(
-                        (attr.i for attr in node.attribute if attr.name == "axis"),
-                        -1,
-                    ),
-                )
-            elif node.op_type == "Abs":
-                tensors[node.output[0]] = self.handler.abs(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Sqrt":
-                tensors[node.output[0]] = self.handler.sqrt(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Neg":
-                tensors[node.output[0]] = self.handler.neg(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Shape":
-                tensors[node.output[0]] = self.handler.shape(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Identity":
-                tensors[node.output[0]] = self.handler.identity(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Flatten":
-                tensors[node.output[0]] = self.handler.flatten(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    next(
-                        (attr.i for attr in node.attribute if attr.name == "axis"),
-                        1,
-                    ),
-                )
-            elif node.op_type == "PRelu":
-                tensors[node.output[0]] = self.handler.pRelu(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Clip":
-                tensors[node.output[0]] = self.handler.clip(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    (
-                        next(_parse_data(data[node.input[1]]).__iter__(), None)
-                        if len(node.input) > 1
-                        else None
-                    ),
-                    (
-                        next(_parse_data(data[node.input[2]]).__iter__(), None)
-                        if len(node.input) > 2
-                        else None
-                    ),
-                )
-            elif node.op_type == "Transpose":
-                perm = next(
-                    (attr.ints for attr in node.attribute if attr.name == "perm"),
-                    None,
-                )
-                tensors[node.output[0]] = self.handler.transpose(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    perm,
-                )
-            elif node.op_type == "DepthToSpace":
-                blocksize = next(
-                    (attr.i for attr in node.attribute if attr.name == "blocksize"),
-                    None,
-                )
-                mode = next(
-                    (attr.s for attr in node.attribute if attr.name == "mode"),
-                    None,
-                )
-                tensors[node.output[0]] = self.handler.depthToSpace(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    blocksize,
-                    mode,
-                )
-            elif node.op_type == "Reshape":
-                shape = _parse_data(data[node.input[1]])
-                tensors[node.output[0]] = self.handler.reshape(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    shape,
-                )
-            elif node.op_type == "Resize":
-                output = tensors.get(node.output[0])
-                attributes = _parse_attribute(
-                    node,
-                    {
-                        "antialias": 0,
-                        "axes": None,
-                        "coordinate_transformation_mode": "half_pixel",
-                        "cubic_coeff_a": -0.75,
-                        "exclude_outside": 0,
-                        "extrapolation_value": 0.0,
-                        "keep_aspect_ratio_policy": "stretch",
-                        "mode": "nearest",
-                        "nearest_mode": "none",
-                    },
-                )
-                (
-                    axes,
-                    keep_aspect_ratio_policy,
-                    coordinate_transformation_mode,
-                    mode,
-                    nearest_mode,
-                ) = (
-                    attributes[name]
-                    for name in [
-                        "axes",
-                        "keep_aspect_ratio_policy",
-                        "coordinate_transformation_mode",
-                        "mode",
-                        "nearest_mode",
-                    ]
-                )
-                if len(node.input) > 1 and node.input[1] in data:
-                    roiVal = _parse_data(data[node.input[1]])
-                else:
-                    roiVal = []
-                if len(node.input) > 2 and node.input[2] in data:
-                    scalesVal = _parse_data(data[node.input[2]])
-                else:
-                    scalesVal = []
-                if len(node.input) > 3 and node.input[3] in data:
-                    sizesVal = _parse_data(data[node.input[3]])
-                else:
-                    sizesVal = []
-                tensors[node.output[0]] = self.handler.resize(
-                    tensors[node.input[0]],
-                    output,
-                    axes,
-                    (
-                        tensors[node.input[3]]
-                        if len(node.input) > 3 and node.input[3] != ""
-                        else None
-                    ),
-                    (
-                        tensors[node.input[2]]
-                        if len(node.input) > 2 and node.input[2] != ""
-                        else None
-                    ),
-                    (
-                        tensors[node.input[1]]
-                        if len(node.input) > 1 and node.input[1] != ""
-                        else None
-                    ),
-                    sizesVal,
-                    scalesVal,
-                    roiVal,
-                    mode,
-                    keep_aspect_ratio_policy,
-                    nearest_mode,
-                    coordinate_transformation_mode,
-                )
-            elif node.op_type == "Squeeze":
-                axes = _parse_data(data[node.input[1]]) if len(node.input) > 1 else None
-                if axes is None:
-                    axes = next(
-                        (attr.ints for attr in node.attribute if attr.name == "axes"),
-                        [],
-                    )
-                tensors[node.output[0]] = self.handler.squeeze(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    axes,
-                )
-            elif node.op_type == "Unsqueeze":
-                axes = _parse_data(data[node.input[1]]) if len(node.input) > 1 else None
-                if axes is None:
-                    axes = next(
-                        (attr.ints for attr in node.attribute if attr.name == "axes")
-                    )
-                tensors[node.output[0]] = self.handler.unsqueeze(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    axes,
-                )
-            elif node.op_type == "Concat":
-                tensors[node.output[0]] = self.handler.concat(
-                    [tensors[name] for name in node.input],
-                    tensors.get(node.output[0]),
-                    next((attr.i for attr in node.attribute if attr.name == "axis")),
-                )
-            elif node.op_type == "AttentionKVCache":
-                tensors[node.output[0]] = self.handler.attentionKVCache(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors[node.input[2]],
-                    tensors[node.input[3]],
-                    tensors[node.input[4]],
-                    tensors[node.input[5]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "RoPE":
-                tensors[node.output[0]] = self.handler.RoPE(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Split":
-                split = (
-                    _parse_data(data[node.input[1]]) if (len(node.input) > 1) else None
-                )
-                if split is None:
-                    split = next(
-                        (attr.ints for attr in node.attribute if attr.name == "split"),
-                        None,
-                    )
-                for name, tensor in zip(
-                    node.output,
-                    self.handler.split(
-                        tensors[node.input[0]],
-                        None,
                         next(
                             (attr.i for attr in node.attribute if attr.name == "axis"),
                             0,
                         ),
-                        split if split is not None else len(node.output),
-                    ),
-                ):
-                    tensors[name] = tensor
-            elif node.op_type == "Gather":
-                tensors[node.output[0]] = self.handler.gather(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                    next(
-                        (attr.i for attr in node.attribute if attr.name == "axis"),
-                        0,
-                    ),
-                )
-            elif node.op_type == "GatherElements":
-                tensors[node.output[0]] = self.handler.gatherElements(
-                    tensors[node.input[0]],
-                    tensors[node.input[1]],
-                    tensors.get(node.output[0]),
-                    next(
-                        (attr.i for attr in node.attribute if attr.name == "axis"),
-                        0,
-                    ),
-                )
-            elif node.op_type == "ReduceMean":
-                tensors[node.output[0]] = self.handler.reduceMean(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    # NOTE(constroy): `axes` is an attribute until opset version 13.
-                    next(
-                        (attr.ints for attr in node.attribute if attr.name == "axes"),
-                        None,
-                    ),
-                    next(
-                        (attr.i for attr in node.attribute if attr.name == "keepdims"),
-                        1,
                     )
-                    != 0,
-                )
-            elif node.op_type == "Slice":
-
-                def clamp(nums):
-                    MAX_INT = 0x7FFFFFFF
-                    return [min(x, MAX_INT) for x in nums]
-
-                tensors[node.output[0]] = self.handler.slice(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    clamp(_parse_data(data[node.input[1]])),
-                    clamp(_parse_data(data[node.input[2]])),
-                    (
-                        clamp(_parse_data(data[node.input[3]]))
-                        if len(node.input) > 3
-                        else None
-                    ),
-                    (
-                        clamp(_parse_data(data[node.input[4]]))
-                        if len(node.input) > 4
-                        else None
-                    ),
-                )
-            elif node.op_type == "Pad":
-                tensors[node.output[0]] = self.handler.pad(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    _parse_data(data[node.input[1]]),
-                    _parse_data(data[node.input[3]]) if len(node.input) > 3 else None,
-                )
-            elif node.op_type == "Dropout":
-                for name, tensor in zip(
-                    node.output,
-                    self.handler.dropout(
+                elif node.op_type == "GatherElements":
+                    tensors[node.output[0]] = self.handler.gatherElements(
+                        tensors[node.input[0]],
+                        tensors[node.input[1]],
+                        tensors.get(node.output[0]),
+                        next(
+                            (attr.i for attr in node.attribute if attr.name == "axis"),
+                            0,
+                        ),
+                    )
+                elif node.op_type == "ReduceMean":
+                    tensors[node.output[0]] = self.handler.reduceMean(
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
-                        tensors.get(node.output[1]) if len(node.output) > 1 else None,
+                        # NOTE(constroy): `axes` is an attribute until opset version 13.
+                        next(
+                            (attr.ints for attr in node.attribute if attr.name == "axes"),
+                            None,
+                        ),
+                        next(
+                            (attr.i for attr in node.attribute if attr.name == "keepdims"),
+                            1,
+                        )
+                        != 0,
+                    )
+                elif node.op_type == "Slice":
+
+                    def clamp(nums):
+                        MAX_INT = 0x7FFFFFFF
+                        return [min(x, MAX_INT) for x in nums]
+
+                    tensors[node.output[0]] = self.handler.slice(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        clamp(_parse_data(data[node.input[1]])),
+                        clamp(_parse_data(data[node.input[2]])),
                         (
-                            _parse_data(data[node.input[1]])[0]
-                            if len(node.input) > 1
-                            else 0.5
+                            clamp(_parse_data(data[node.input[3]]))
+                            if len(node.input) > 3
+                            else None
                         ),
                         (
-                            _parse_data(data[node.input[2]])[0]
-                            if len(node.input) > 2
-                            else False
+                            clamp(_parse_data(data[node.input[4]]))
+                            if len(node.input) > 4
+                            else None
                         ),
-                    ),
-                ):
-                    tensors[name] = tensor
-            elif node.op_type == "Cast":
-                tensors[node.output[0]] = self.handler.cast(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    next((attr.i for attr in node.attribute if attr.name == "to")),
-                )
-            elif node.op_type == "ReduceSum":
-                if any(attr.name == "communicator" for attr in node.attribute):
-                    # ReduceSum with communicator is treated as allReduceSum.
+                    )
+                elif node.op_type == "Pad":
+                    tensors[node.output[0]] = self.handler.pad(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        _parse_data(data[node.input[1]]),
+                        _parse_data(data[node.input[3]]) if len(node.input) > 3 else None,
+                    )
+                elif node.op_type == "Dropout":
+                    for name, tensor in zip(
+                        node.output,
+                        self.handler.dropout(
+                            tensors[node.input[0]],
+                            tensors.get(node.output[0]),
+                            tensors.get(node.output[1]) if len(node.output) > 1 else None,
+                            (
+                                _parse_data(data[node.input[1]])[0]
+                                if len(node.input) > 1
+                                else 0.5
+                            ),
+                            (
+                                _parse_data(data[node.input[2]])[0]
+                                if len(node.input) > 2
+                                else False
+                            ),
+                        ),
+                    ):
+                        tensors[name] = tensor
+                elif node.op_type == "Cast":
+                    tensors[node.output[0]] = self.handler.cast(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        next((attr.i for attr in node.attribute if attr.name == "to")),
+                    )
+                elif node.op_type == "ReduceSum":
+                    if any(attr.name == "communicator" for attr in node.attribute):
+                        # ReduceSum with communicator is treated as allReduceSum.
+                        tensors[node.output[0]] = self.handler.allReduceSum(
+                            tensors[node.input[0]],
+                            tensors.get(node.output[0]),
+                        )
+                    else:
+                        # NOTE: `axes` is an attribute until opset version 13.
+                        if len(node.input) > 1:
+                            axis = _parse_data(data[node.input[1]])
+                        else:
+                            axis = next(
+                                (
+                                    attr.ints
+                                    for attr in node.attribute
+                                    if attr.name == "axes"
+                                ),
+                                None,
+                            )
+                        keepdims = (
+                            next(
+                                (
+                                    attr.i
+                                    for attr in node.attribute
+                                    if attr.name == "keepdims"
+                                ),
+                                1,
+                            )
+                            != 0
+                        )
+
+                        tensors[node.output[0]] = self.handler.reduceSum(
+                            tensors[node.input[0]],
+                            tensors.get(node.output[0]),
+                            axis,
+                            keepdims,
+                        )
+                elif node.op_type == "AllReduceSum":
                     tensors[node.output[0]] = self.handler.allReduceSum(
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
                     )
-                else:
-                    # NOTE: `axes` is an attribute until opset version 13.
-                    if len(node.input) > 1:
-                        axis = _parse_data(data[node.input[1]])
-                    else:
-                        axis = next(
-                            (
-                                attr.ints
-                                for attr in node.attribute
-                                if attr.name == "axes"
-                            ),
-                            None,
-                        )
-                    keepdims = (
-                        next(
-                            (
-                                attr.i
-                                for attr in node.attribute
-                                if attr.name == "keepdims"
-                            ),
-                            1,
-                        )
-                        != 0
-                    )
-
-                    tensors[node.output[0]] = self.handler.reduceSum(
+                elif node.op_type == "AllReduceProd":
+                    tensors[node.output[0]] = self.handler.allReduceProd(
                         tensors[node.input[0]],
                         tensors.get(node.output[0]),
-                        axis,
-                        keepdims,
                     )
-            elif node.op_type == "AllReduceSum":
-                tensors[node.output[0]] = self.handler.allReduceSum(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "AllReduceProd":
-                tensors[node.output[0]] = self.handler.allReduceProd(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "AllReduceMin":
-                tensors[node.output[0]] = self.handler.allReduceMin(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "AllReduceMax":
-                tensors[node.output[0]] = self.handler.allReduceMax(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "AllReduceAvg":
-                tensors[node.output[0]] = self.handler.allReduceAvg(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "AllGather":
-                for name, tensor in zip(
-                    node.output,
-                    self.handler.allGather(
+                elif node.op_type == "AllReduceMin":
+                    tensors[node.output[0]] = self.handler.allReduceMin(
                         tensors[node.input[0]],
-                        None,
-                        len(node.output),
-                    ),
-                ):
-                    tensors[name] = tensor
-            elif node.op_type == "Broadcast":
-                tensors[node.output[0]] = self.handler.broadcast(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    next(
-                        (attr.i for attr in node.attribute if attr.name == "root"),
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "AllReduceMax":
+                    tensors[node.output[0]] = self.handler.allReduceMax(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "AllReduceAvg":
+                    tensors[node.output[0]] = self.handler.allReduceAvg(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "AllGather":
+                    for name, tensor in zip(
+                        node.output,
+                        self.handler.allGather(
+                            tensors[node.input[0]],
+                            None,
+                            len(node.output),
+                        ),
+                    ):
+                        tensors[name] = tensor
+                elif node.op_type == "Broadcast":
+                    tensors[node.output[0]] = self.handler.broadcast(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        next(
+                            (attr.i for attr in node.attribute if attr.name == "root"),
+                            0,
+                        ),
+                    )
+                elif node.op_type == "Send":
+                    source = next(
+                        (attr.i for attr in node.attribute if attr.name == "source"),
                         0,
-                    ),
-                )
-            elif node.op_type == "Send":
-                source = next(
-                    (attr.i for attr in node.attribute if attr.name == "source"),
-                    0,
-                )
-                destination = next(
-                    (attr.i for attr in node.attribute if attr.name == "destination"),
-                    0,
-                )
+                    )
+                    destination = next(
+                        (attr.i for attr in node.attribute if attr.name == "destination"),
+                        0,
+                    )
 
-                self.handler.send(
-                    tensors[node.input[0]],
-                    source,
-                    destination,
-                    None,
-                )
-            elif node.op_type == "Recv":
-                source = next(
-                    (attr.i for attr in node.attribute if attr.name == "source"),
-                    0,
-                )
-                destination = next(
-                    (attr.i for attr in node.attribute if attr.name == "destination"),
-                    0,
-                )
+                    self.handler.send(
+                        tensors[node.input[0]],
+                        source,
+                        destination,
+                        None,
+                    )
+                elif node.op_type == "Recv":
+                    source = next(
+                        (attr.i for attr in node.attribute if attr.name == "source"),
+                        0,
+                    )
+                    destination = next(
+                        (attr.i for attr in node.attribute if attr.name == "destination"),
+                        0,
+                    )
 
-                for attr in node.attribute:
-                    if attr.name == "shape":
-                        shapeBasic = attr.ints
-                shape = []
-                for item in shapeBasic:
-                    shape.append(item)
+                    for attr in node.attribute:
+                        if attr.name == "shape":
+                            shapeBasic = attr.ints
+                    shape = []
+                    for item in shapeBasic:
+                        shape.append(item)
 
-                for attr in node.attribute:
-                    if attr.name == "dataType":
-                        outputType = attr.i
-                tensors[node.output[0]] = self.handler.recv(
-                    tensors.get(node.output[0]),
-                    source,
-                    destination,
-                    shape,
-                    outputType,
-                    None,
-                )
-            elif node.op_type == "Expand":
-                shape = _parse_data(data[node.input[1]])
-                tensors[node.output[0]] = self.handler.expand(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    shape,
-                )
-            elif node.op_type == "Erf":
-                tensors[node.output[0]] = self.handler.erf(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type == "Where":
-                ## If Y is single -inf, treat Where as Add
-                ## TODO: deal with cases where Y is single inf or 0
-                if node.input[0] in data and node.input[2] in data:
-                    where_condition = to_array(data[node.input[0]])
-                    where_alt = to_array(data[node.input[2]])
-                    if where_alt.size == 1:
-                        if np.isneginf(where_alt) or np.all(where_alt < -3e38):
-                            node.input[0] = node.input[0] + "_alt"
-                            if node.input[0] not in data:
-                                where_value = np.where(
-                                    where_condition, 0, -np.inf
-                                ).astype(where_alt.dtype)
-                                data[node.input[0]] = from_array(
-                                    where_value, node.input[0]
+                    for attr in node.attribute:
+                        if attr.name == "dataType":
+                            outputType = attr.i
+                    tensors[node.output[0]] = self.handler.recv(
+                        tensors.get(node.output[0]),
+                        source,
+                        destination,
+                        shape,
+                        outputType,
+                        None,
+                    )
+                elif node.op_type == "Expand":
+                    shape = _parse_data(data[node.input[1]])
+                    tensors[node.output[0]] = self.handler.expand(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        shape,
+                    )
+                elif node.op_type == "Erf":
+                    tensors[node.output[0]] = self.handler.erf(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type == "Where":
+                    ## If Y is single -inf, treat Where as Add
+                    ## TODO: deal with cases where Y is single inf or 0
+                    if node.input[0] in data and node.input[2] in data:
+                        where_condition = to_array(data[node.input[0]])
+                        where_alt = to_array(data[node.input[2]])
+                        if where_alt.size == 1:
+                            if np.isneginf(where_alt) or np.all(where_alt < -3e38):
+                                node.input[0] = node.input[0] + "_alt"
+                                if node.input[0] not in data:
+                                    where_value = np.where(
+                                        where_condition, 0, -np.inf
+                                    ).astype(where_alt.dtype)
+                                    data[node.input[0]] = from_array(
+                                        where_value, node.input[0]
+                                    )
+                                    tensors[node.input[0]] = self.handler.tensor(
+                                        list(where_value.shape),
+                                        data[node.input[0]].data_type,
+                                    )
+                                    tensors[node.input[0]].set_weight()
+                                tensors[node.output[0]] = self.handler.add(
+                                    tensors[node.input[1]],
+                                    tensors[node.input[0]],
+                                    tensors.get(node.output[0]),
                                 )
-                                tensors[node.input[0]] = self.handler.tensor(
-                                    list(where_value.shape),
-                                    data[node.input[0]].data_type,
-                                )
-                                tensors[node.input[0]].set_weight()
-                            tensors[node.output[0]] = self.handler.add(
-                                tensors[node.input[1]],
-                                tensors[node.input[0]],
-                                tensors.get(node.output[0]),
-                            )
-                            continue
-                tensors[node.output[0]] = self.handler.where(
-                    tensors[node.input[1]],
-                    tensors[node.input[2]],
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                )
-            elif node.op_type in ["Constant", "ConstantOfShape"]:
-                output_name = node.output[0]
-                attributes = _parse_attribute(node)
-                tensor = attributes["value"]
-                dims = [d for d in tensor.dims]
-                tensors[output_name] = self.handler.tensor(dims, tensor.data_type)
-                data[output_name] = tensor
-                tensors[output_name].set_weight()
-            elif node.op_type == "LRN":
-                attributes = _parse_attribute(
-                    node, {"alpha": 0.0001, "beta": 0.75, "bias": 1.0, "size": 1}
-                )
-                (alpha, beta, bias, size) = (
-                    attributes[name] for name in ["alpha", "beta", "bias", "size"]
-                )
-                tensors[node.output[0]] = self.handler.lrn(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    alpha,
-                    beta,
-                    bias,
-                    size,
-                )
-            else:
-                raise Exception('Unsupported operator "{}"'.format(node.op_type))
-
+                                continue
+                    tensors[node.output[0]] = self.handler.where(
+                        tensors[node.input[1]],
+                        tensors[node.input[2]],
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                elif node.op_type in ["Constant", "ConstantOfShape"]:
+                    output_name = node.output[0]
+                    attributes = _parse_attribute(node)
+                    tensor = attributes["value"]
+                    dims = [d for d in tensor.dims]
+                    tensors[output_name] = self.handler.tensor(dims, tensor.data_type)
+                    data[output_name] = tensor
+                    tensors[output_name].set_weight()
+                elif node.op_type == "LRN":
+                    attributes = _parse_attribute(
+                        node, {"alpha": 0.0001, "beta": 0.75, "bias": 1.0, "size": 1}
+                    )
+                    (alpha, beta, bias, size) = (
+                        attributes[name] for name in ["alpha", "beta", "bias", "size"]
+                    )
+                    tensors[node.output[0]] = self.handler.lrn(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        alpha,
+                        beta,
+                        bias,
+                        size,
+                    )
+                elif node.op_type == "ArgMax":
+                    attributes = _parse_attribute(
+                        node, {"axis": -1, "keepdims": 1, "select_last_index": 0}
+                    )
+                    if attributes["keepdims"] == 0:
+                        attributes["keepdims"] = False
+                    else:
+                        attributes["keepdims"] = True
+                    tensors[node.output[0]] = self.handler.argmax(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        attributes["axis"],
+                        attributes["keepdims"],       
+                    )
+                else:
+                    raise Exception('Unsupported operator "{}"'.format(node.op_type))
+            except Exception as e:
+                print('Error occurred while processing node "{}": {}'.format(node.name, str(e)))
         for output in model.graph.output:
             tensors[output.name].set_output()
         ################################
@@ -1128,6 +1148,7 @@ class OnnxStub:
             self.tensors[name] = obj
 
         for output in model.graph.output:
+            print(f"Output: {output.name}")
             self.outputs[output.name] = tensors[output.name]
 
     def to_onnx(self, name: str) -> ModelProto:

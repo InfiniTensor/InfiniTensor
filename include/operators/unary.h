@@ -177,6 +177,8 @@ enum class CastType {
     Float162Float,
     BFloat162Float,
     Float2Float,
+    //fix
+    Float322Bool
 };
 
 class CastObj : public OperatorObj {

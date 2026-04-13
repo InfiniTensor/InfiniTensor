@@ -24,8 +24,8 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph) const {
     auto &perfEngine = PerfEngine::getInstance();
     for (auto &op : graph->getOperators()) {
         // HACK: set correct data type
-        auto kernelAttrs = KernelAttrs{device, op->getOpType().underlying()};
-        Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
+        auto kernelAttrs = KernelAttrs{device, op->getOpType().underlying()}; //获取内核属性
+        Kernel *kernel = kernelRegistry.getKernel(kernelAttrs); // 获取内核实现
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
         auto perfData = perfEngine.getPerfData(perfKey);
         // IT_ASSERT(perfData, "No perf data for OP " + op->toString());
@@ -33,7 +33,7 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph) const {
             ComputeFuncPtr funcPtr = kernel->getComputeFunc(perfKey);
             funcPtr(op, perfData, this);
         } else {
-            kernel->compute(op, this);
+            kernel->compute(op, this); //调用内核计算
         }
         checkCudaError(cudaGetLastError()) << op->toString();
     }

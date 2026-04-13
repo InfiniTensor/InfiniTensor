@@ -90,6 +90,8 @@ class GraphHandlerObj {
                             Tensor input_q, Tensor input_k, Tensor input_v,
                             Tensor position_id, Tensor output_matmul);
     Tensor RoPE(Tensor pos, Tensor input, Tensor output);
+    // TODO:
+    Tensor argmax(Tensor input, Tensor output, int axis, bool keepdims);
     TensorVec split(Tensor input, std::optional<TensorVec> outputs, int axis,
                     std::variant<int, vector<int>> numOrRatio);
     Tensor gather(Tensor data, Tensor indices, Tensor output, int axis);

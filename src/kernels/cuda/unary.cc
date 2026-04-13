@@ -61,7 +61,25 @@ class CastCuda : public CudaKernelWithoutConfig {
                       op->getOutDType() == DataType::Float32);
             cast_kernel<int8_t, float>((int8_t *)inputData, (float *)outputData,
                                        num);
-        } else {
+        } else if (op->getType() == CastType::Float322Bool){
+            IT_ASSERT(op->getDType() == DataType::Float32 &&
+                      op->getOutDType() == DataType::Bool);
+            cast_kernel<float, bool>((float *)inputData, (bool *) outputData,
+                                      num); 
+        } else if (op->getType() == CastType::Int642Float){
+            IT_ASSERT(op->getDType() == DataType::Int64&&
+                      op->getOutDType() == DataType::Float32);
+            cast_kernel<long int, float>((long int *)inputData, (float *) outputData,
+                                      num); 
+        } else if (op->getType() == CastType::Int642Int32){
+            IT_ASSERT(op->getDType() == DataType::Int64 &&
+                      op->getOutDType() == DataType::Int32);
+            cast_kernel<long int, int>((long int *)inputData, (int *) outputData,
+                                      num);
+        } 
+        else {
+            //std::cout << "Unsupported cast type: " << op->getType()->to<< std::endl;
+
             IT_ASSERT(false);
         }
     }
