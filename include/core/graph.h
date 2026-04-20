@@ -1,7 +1,9 @@
 #pragma once
 #include "core/lazy_allocator.h"
+#include "core/memory_allocator.h"
 #include "core/operator.h"
 #include "core/tensor.h"
+#include "memory_allocator.h"
 #include <algorithm>
 #include <cstdint>
 
@@ -13,10 +15,12 @@ class GraphObj : public Object {
     TensorVec tensors;
     OpVec ops;
     LazyAllocator allocator;
+    MemoryAllocator memAllocator;
 
   public:
     explicit GraphObj(Runtime runtime)
-        : runtime(runtime), allocator(runtime), sorted(false){};
+        : runtime(runtime), allocator(runtime), memAllocator(runtime),
+          sorted(false){};
     GraphObj(Runtime runtime, OpVec ops_in);
     string toString() const override;
     Runtime getRuntime() const { return runtime; }
@@ -70,6 +74,9 @@ class GraphObj : public Object {
     void shape_infer();
 
     void dataMalloc(bool useNaiveAllocator = false, size_t memPoolSize = 0);
+
+    // void dataMallocOptimizeWithOccamy(bool useOccamy = true,
+    //                                   size_t memPoolSize = 0);
 
     Tensor cloneKV(Tensor &tensor);
 
