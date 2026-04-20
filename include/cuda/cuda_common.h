@@ -1,5 +1,6 @@
 #pragma once
 #include "core/common.h"
+#include "infinitensor_export.h"
 #include <cublas_v2.h>
 #include <cuda.h>
 #include <cuda_profiler_api.h>
@@ -125,7 +126,7 @@ class CUDAStream {
 
   private:
     CUDAStream(){};
-    static cudaStream_t _stream;
+    static INFINITENSOR_EXPORT cudaStream_t _stream;
 };
 
 } // namespace infini
