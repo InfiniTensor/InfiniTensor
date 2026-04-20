@@ -52,4 +52,9 @@ class ReduceSumObj : public ReduceBaseObj {
     ReduceSumObj(GraphObj *graph, Tensor input, Tensor output,
                  const optional<vector<int>> &axes, bool keepDims = true);
 };
+class ReduceL2Obj : public ReduceBaseObj {
+  public:
+    ReduceL2Obj(GraphObj *graph, Tensor input, Tensor output,
+                const optional<vector<int>> &axes, bool keepDims = true);
+};
 } // namespace infini

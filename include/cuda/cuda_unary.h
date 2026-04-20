@@ -21,5 +21,8 @@ template <typename INPUT, typename OUTPUT>
 void cast_kernel(INPUT *input, OUTPUT *output, size_t num);
 void elu_kernel(const float *input, float *output, size_t size, float alpha);
 void unary_kernel(const Operator &_op);
+template <typename Tdata>
+void cumsum_kernel(const Tdata *input, Tdata *output, int outer, int inner,
+                   int dimsize, bool exclusive, bool reversive);
 
 }; // namespace infini

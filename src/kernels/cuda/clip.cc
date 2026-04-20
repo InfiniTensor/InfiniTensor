@@ -15,7 +15,11 @@ class ClipCuda : public CudaKernelWithoutConfig {
         auto min = op->getMin();
         auto max = op->getMax();
         auto dim = op->getInputs(0)->getDims();
-        int num = dim[0] * dim[1] * dim[2] * dim[3];
+        int ndim = op->getOutput()->getDims().size();
+        int num = 1;
+        for (int i = 0; i < ndim; i++) {
+            num *= dim[i];
+        }
         clip_kernel((float *)inputData, (float *)outputData, num,
                     min ? *min : NAN, max ? *max : NAN);
     }
