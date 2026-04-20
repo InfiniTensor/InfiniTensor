@@ -32,6 +32,31 @@ class ElementWiseObj : public OperatorObj {
     vector<int> getOpAttrVector() const override;
 };
 
+class ElementWiseLogicObj : public OperatorObj {
+  public:
+    /**
+     * @brief Construct a new ElementWiseLogic object
+     *
+     * @param type Operator type.
+     * @param graph The computation graph that this operator belongs to.
+     * @param input0 The first input tensor.
+     * @param input1 The second input tensor.
+     * @param output The output tensor.
+     */
+    ElementWiseLogicObj(OpType type, GraphObj *graph, Tensor input0,
+                        Tensor input1, Tensor output);
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
+
+    std::string toString() const override;
+    int numInputs() const override { return 2; }
+    int numOutputs() const override { return 1; }
+
+  private:
+    vector<int> getWorkloadVector() const override;
+    vector<int> getOpAttrVector() const override;
+    vector<DataType> inferDataType(const TensorVec &inputs) const override;
+};
+
 class MSELossObj : public OperatorObj {
   public:
     enum Reduction { None = 0, Sum, Mean };
@@ -60,6 +85,14 @@ class MSELossObj : public OperatorObj {
         OP_CLONE(prefix##Obj);                                                 \
     };
 
+#define DEFINE_ELEMENT_WISE_LOGIC_OBJ(prefix, type)                            \
+    class prefix##Obj : public ElementWiseLogicObj {                           \
+      public:                                                                  \
+        prefix##Obj(GraphObj *graph, Tensor input0, Tensor input1,             \
+                    Tensor output)                                             \
+            : ElementWiseLogicObj(type, graph, input0, input1, output) {}      \
+        OP_CLONE(prefix##Obj);                                                 \
+    };
 DEFINE_ELEMENT_WISE_OBJ(Add, OpType::Add)
 DEFINE_ELEMENT_WISE_OBJ(Sub, OpType::Sub)
 DEFINE_ELEMENT_WISE_OBJ(Mul, OpType::Mul)
@@ -71,18 +104,18 @@ DEFINE_ELEMENT_WISE_OBJ(Power, OpType::Pow)
 DEFINE_ELEMENT_WISE_OBJ(FloorDiv, OpType::FloorDiv)
 DEFINE_ELEMENT_WISE_OBJ(FloorMod, OpType::FloorMod)
 DEFINE_ELEMENT_WISE_OBJ(SquaredDifference, OpType::SquaredDifference)
-DEFINE_ELEMENT_WISE_OBJ(Equal, OpType::Equal)
-DEFINE_ELEMENT_WISE_OBJ(GreaterThan, OpType::Greater)
-DEFINE_ELEMENT_WISE_OBJ(GreaterEqual, OpType::GreaterOrEqual)
-DEFINE_ELEMENT_WISE_OBJ(LessThan, OpType::Less)
-DEFINE_ELEMENT_WISE_OBJ(LessEqual, OpType::LessOrEqual)
-DEFINE_ELEMENT_WISE_OBJ(And, OpType::And)
-DEFINE_ELEMENT_WISE_OBJ(Or, OpType::Or)
-DEFINE_ELEMENT_WISE_OBJ(Xor, OpType::Xor)
-DEFINE_ELEMENT_WISE_OBJ(Not, OpType::Not)
-DEFINE_ELEMENT_WISE_OBJ(BitAnd, OpType::BitwiseAnd)
-DEFINE_ELEMENT_WISE_OBJ(BitOr, OpType::BitwiseOr)
-DEFINE_ELEMENT_WISE_OBJ(BitXor, OpType::BitwiseXor)
-DEFINE_ELEMENT_WISE_OBJ(BitNot, OpType::BitwiseNot)
-DEFINE_ELEMENT_WISE_OBJ(BitLeftShift, OpType::BitShift)
+DEFINE_ELEMENT_WISE_LOGIC_OBJ(Equal, OpType::Equal)
+DEFINE_ELEMENT_WISE_LOGIC_OBJ(GreaterThan, OpType::Greater)
+DEFINE_ELEMENT_WISE_LOGIC_OBJ(GreaterEqual, OpType::GreaterOrEqual)
+DEFINE_ELEMENT_WISE_LOGIC_OBJ(LessThan, OpType::Less)
+DEFINE_ELEMENT_WISE_LOGIC_OBJ(LessEqual, OpType::LessOrEqual)
+DEFINE_ELEMENT_WISE_LOGIC_OBJ(And, OpType::And)
+DEFINE_ELEMENT_WISE_LOGIC_OBJ(Or, OpType::Or)
+DEFINE_ELEMENT_WISE_LOGIC_OBJ(Xor, OpType::Xor)
+// DEFINE_ELEMENT_WISE_OBJ(Not, OpType::Not)
+DEFINE_ELEMENT_WISE_LOGIC_OBJ(BitAnd, OpType::BitwiseAnd)
+DEFINE_ELEMENT_WISE_LOGIC_OBJ(BitOr, OpType::BitwiseOr)
+DEFINE_ELEMENT_WISE_LOGIC_OBJ(BitXor, OpType::BitwiseXor)
+DEFINE_ELEMENT_WISE_LOGIC_OBJ(BitNot, OpType::BitwiseNot)
+DEFINE_ELEMENT_WISE_LOGIC_OBJ(BitLeftShift, OpType::BitShift)
 }; // namespace infini

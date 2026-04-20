@@ -39,8 +39,29 @@ class TransposeCuda : public CudaKernelWithoutConfig {
         }
 
         const int dType = op->getDType().getIndex();
-        transpose_kernel(dType, inputData, outputData, nDims, size, strides,
-                         outputDims);
+        bool condition = false;
+        if (dType == 1 && nDims == 4) {
+            if (perm[0] == 0 && perm[1] == 2 && perm[2] == 1 && perm[3] == 3) {
+                condition = true;
+            }
+        }
+
+        // std::cout << "transpose: " << dType << std::endl;
+        // for (int i = 0; i < nDims; i++) {
+        //     printf("%d ", inputShape[i]);
+        // }
+        // printf("\n");
+        // for (int i = 0; i < nDims; i++) {
+        //     printf("%d ", outputShape[i]);
+        // }
+        // printf("\n");
+        if (condition) {
+            transpose_nchw2nhcw(inputData, outputData, inputShape[0],
+                                inputShape[1], inputShape[2], inputShape[3]);
+        } else {
+            transpose_kernel(dType, inputData, outputData, nDims, size, strides,
+                             outputDims);
+        }
     }
 };
 

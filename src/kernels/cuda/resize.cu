@@ -1,6 +1,7 @@
 #include "cmath"
 #include "cuda/cuda_common.h"
 #include "cuda/resize.cuh"
+#include "operators/resize.h"
 #include <functional>
 
 // nearest mode
@@ -59,6 +60,137 @@ using coordinate_trans_mod_func_t = float (*)(int idxO, MetaData metaData,
 __device__ coordinate_trans_mod_func_t p_cooridnate_trans_mode_func[] = {
     half_pixel, pytorch_half_pixel, align_corners, asymmetric,
     tf_crop_and_resize};
+__device__ __forceinline__ float
+getTransformedCoord(int dIdx, const MetaData &meta, int dim, int mode) {
+    float scale = meta.scale[dim];
+    float inDim = static_cast<float>(meta.inDims[dim]);
+    float outDim = static_cast<float>(meta.oDims[dim]);
+
+    switch (mode) {
+    case 0: // enum_to_underlying(infini::ResizeObj::ECoordinateTransMode::halfPixel):
+            // // half_pixel
+        return (dIdx + 0.5f) / scale - 0.5f;
+    case 1:     // infini::ResizeObj::ECoordinateTransMode::
+    asymmetric: // pytorch_half_pixel
+        return (scale * inDim > 1.0f) ? ((dIdx + 0.5f) / scale - 0.5f) : 0.0f;
+    case 2: // infini::ResizeObj::ECoordinateTransMode::alignCorners: //
+            // align_corners
+        return (scale * inDim == 1.0f)
+                   ? 0.0f
+                   : (float)dIdx * (inDim - 1.0f) / (scale * inDim - 1.0f);
+    case 3:           // infini::ResizeObj::ECoordinateTransMode::
+    pytorchHalfPixel: // asymmetric
+        return dIdx / scale;
+    case 4:          // infini::ResizeObj::ECoordinateTransMode::
+    tfCropAndResize: // tf_crop_and_resize
+        if (scale * inDim > 1.0f)
+            return meta.roiS[dim] * (inDim - 1) +
+                   dIdx * (meta.roiE[dim] - meta.roiS[dim]) * (inDim - 1) /
+                       (scale * inDim - 1);
+        else
+            return 0.5f * (meta.roiS[dim] + meta.roiE[dim]) * (inDim - 1);
+    default:
+        return dIdx / scale; // fallback: asymmetric
+    }
+}
+
+__device__ __forceinline__ int roundNearest(float x, int mode) {
+    switch (mode) {
+    case 0: // infini::ResizeObj::ENearestMode::roundPreferFloor:
+        return (x > 0.0f) ? floorf(x + 0.4f)
+                          : ceilf(x - 0.4f); // round_prefer_floor
+    case 1: // infini::ResizeObj::ENearestMode::roundPreferCeil:
+        return (x > 0.0f) ? floorf(x + 0.5f)
+                          : ceilf(x - 0.5f); // round_prefer_ceil
+    case 2:               // infini::ResizeObj::ENearestMode::floor:
+        return floorf(x); // prefer_floor
+    case 3:               // infini::ResizeObj::ENearestMode::ceil:
+        return ceilf(x);  // prefer_ceil
+    default:
+        return __float2int_rn(x); // fallback: round to nearest
+    }
+}
+__device__ __forceinline__ int nearestCoordinateTrans_4D(int dOffset,
+                                                         const MetaData &meta,
+                                                         int coordinateMode,
+                                                         int nearestMode) {
+    int oW = meta.oDims[3];
+    int oH = meta.oDims[2];
+    int oC = meta.oDims[1];
+    int oN = meta.oDims[0];
+
+    int iW = meta.inDims[3];
+    int iH = meta.inDims[2];
+    int iC = meta.inDims[1];
+    int iN = meta.inDims[0];
+
+    int sW = meta.inStride[3];
+    int sH = meta.inStride[2];
+    int sC = meta.inStride[1];
+    int sN = meta.inStride[0];
+
+    int dW = dOffset % oW;
+    dOffset /= oW;
+    int dH = dOffset % oH;
+    dOffset /= oH;
+    int dC = dOffset % oC;
+    dOffset /= oC;
+    int dN = dOffset;
+
+    int sOffset = 0;
+
+    // N dimension
+    int sNIdx =
+        (iN == oN)
+            ? dN
+            : roundNearest(getTransformedCoord(dN, meta, 0, coordinateMode),
+                           nearestMode);
+    sNIdx = max(0, min(iN - 1, sNIdx));
+    sOffset += sNIdx * sN;
+
+    // C dimension
+    int sCIdx =
+        (iC == oC)
+            ? dC
+            : roundNearest(getTransformedCoord(dC, meta, 1, coordinateMode),
+                           nearestMode);
+    sCIdx = max(0, min(iC - 1, sCIdx));
+    sOffset += sCIdx * sC;
+
+    // H dimension
+    int sHIdx =
+        (iH == oH)
+            ? dH
+            : roundNearest(getTransformedCoord(dH, meta, 2, coordinateMode),
+                           nearestMode);
+    sHIdx = max(0, min(iH - 1, sHIdx));
+    sOffset += sHIdx * sH;
+
+    // W dimension
+    int sWIdx =
+        (iW == oW)
+            ? dW
+            : roundNearest(getTransformedCoord(dW, meta, 3, coordinateMode),
+                           nearestMode);
+    sWIdx = max(0, min(iW - 1, sWIdx));
+    sOffset += sWIdx * sW;
+
+    return sOffset;
+}
+__global__ void _resize_kernel_nearest_4D(const float *__restrict__ in,
+                                          float *__restrict__ out,
+                                          MetaData meta, size_t num,
+                                          int coordinateMode, int nearestMode) {
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    int stride = blockDim.x * gridDim.x;
+
+    while (tid < num) {
+        int offset =
+            nearestCoordinateTrans_4D(tid, meta, coordinateMode, nearestMode);
+        out[tid] = in[offset];
+        tid += stride;
+    }
+}
 
 template <typename T1, typename T2>
 __device__ int nearestCoordinateTrans(int dOffset, MetaData metaData,
@@ -209,13 +341,19 @@ void resize_kernel_nearest(float *in, float *out, const MetaData &metaData,
                            size_t num, int coordinateMode, int nearestMode) {
     int blocksize = 32 * 16;
     auto gridsize = (num + blocksize - 1) / blocksize;
-    IT_ASSERT(coordinateMode < sizeof(p_cooridnate_trans_mode_func) /
-                                   sizeof(p_cooridnate_trans_mode_func[0]));
-    IT_ASSERT(nearestMode <
-              sizeof(p_nearest_mode_fun) / sizeof(p_nearest_mode_fun[0]));
-    _resize_kernel_nearest
-        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
-        (in, out, metaData, num, coordinateMode, nearestMode);
+    if (metaData.nDims == 4) {
+        _resize_kernel_nearest_4D<<<gridsize, blocksize, 0,
+                                    CUDAStream::getCurrentStream()>>>(
+            in, out, metaData, num, coordinateMode, nearestMode);
+    } else {
+        IT_ASSERT(coordinateMode < sizeof(p_cooridnate_trans_mode_func) /
+                                       sizeof(p_cooridnate_trans_mode_func[0]));
+        IT_ASSERT(nearestMode <
+                  sizeof(p_nearest_mode_fun) / sizeof(p_nearest_mode_fun[0]));
+        _resize_kernel_nearest<<<gridsize, blocksize, 0,
+                                 CUDAStream::getCurrentStream()>>>(
+            in, out, metaData, num, coordinateMode, nearestMode);
+    }
 }
 
 void resize_kernel_linear(float *in, float *out, const MetaData &metaData,
@@ -224,9 +362,9 @@ void resize_kernel_linear(float *in, float *out, const MetaData &metaData,
     auto gridsize = (num + blocksize - 1) / blocksize;
     IT_ASSERT(coordinateMode < sizeof(p_cooridnate_trans_mode_func) /
                                    sizeof(p_cooridnate_trans_mode_func[0]));
-    _resize_kernel_linear_coeff
-        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
-        (in, out, metaData, num, coordinateMode);
+    _resize_kernel_linear_coeff<<<gridsize, blocksize, 0,
+                                  CUDAStream::getCurrentStream()>>>(
+        in, out, metaData, num, coordinateMode);
 }
 
 void resize_kernel_cubic(float *in, float *out, const MetaData &metaData,
@@ -235,8 +373,8 @@ void resize_kernel_cubic(float *in, float *out, const MetaData &metaData,
     auto gridsize = (num + blocksize - 1) / blocksize;
     IT_ASSERT(coordinateMode < sizeof(p_cooridnate_trans_mode_func) /
                                    sizeof(p_cooridnate_trans_mode_func[0]));
-    _resize_kernel_cubic_coeff
-        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>
-        (in, out, metaData, num, coordinateMode);
+    _resize_kernel_cubic_coeff<<<gridsize, blocksize, 0,
+                                 CUDAStream::getCurrentStream()>>>(
+        in, out, metaData, num, coordinateMode);
 }
 } // namespace infini

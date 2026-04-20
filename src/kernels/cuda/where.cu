@@ -39,10 +39,29 @@ _whereKernel(const T *inputX, const T *inputY, const uint8_t *condition,
             condition[conditionIdx] ? inputX[inputXIdx] : inputY[inputYIdx];
     }
 }
+template <typename T>
+__global__ void _where_const_Kernel(const T *inputX, const T *inputY,
+                                    const uint8_t *condition, T *output,
+                                    int outputsize, bool const_x, bool const_y,
+                                    bool const_c) {
 
+    int outputIdx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (outputIdx >= outputsize)
+        return;
+
+    // 根据标志位决定索引
+    int inputXIdx = const_x ? 0 : outputIdx;
+    int inputYIdx = const_y ? 0 : outputIdx;
+    int conditionIdx = const_c ? 0 : outputIdx;
+
+    // where逻辑
+    output[outputIdx] =
+        condition[conditionIdx] ? inputX[inputXIdx] : inputY[inputYIdx];
+}
 namespace infini {
-void whereKernel(const float *inputX, const float *inputY,
-                 const uint8_t *condition, float *output, int nDims,
+template <typename Tdata>
+void whereKernel(const Tdata *inputX, const Tdata *inputY,
+                 const uint8_t *condition, Tdata *output, int nDims,
                  int outputsize, SmallArray inputXShape, SmallArray inputYShape,
                  SmallArray conditionShape, SmallArray outputShape, int xSize,
                  int ySize, int cSize) {
@@ -61,34 +80,69 @@ void whereKernel(const float *inputX, const float *inputY,
         blocksize = 32;
     }
     int gridsize = (outputsize + blocksize - 1) / blocksize;
-    _whereKernel<float>
-        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
-        inputX, inputY, condition, output, nDims, outputsize, inputXShape,
-        inputYShape, conditionShape, outputShape, xSize, ySize, cSize);
-}
-void whereKernel(const half *inputX, const half *inputY,
-                 const uint8_t *condition, half *output, int nDims,
-                 int outputsize, SmallArray inputXShape, SmallArray inputYShape,
-                 SmallArray conditionShape, SmallArray outputShape, int xSize,
-                 int ySize, int cSize) {
-    int blocksize;
-    if (outputsize > 511) {
-        blocksize = 1024;
-    } else if (outputsize > 255) {
-        blocksize = 512;
-    } else if (outputsize > 127) {
-        blocksize = 256;
-    } else if (outputsize > 63) {
-        blocksize = 128;
-    } else if (outputsize > 31) {
-        blocksize = 64;
-    } else {
-        blocksize = 32;
+    bool const_x = true;
+    bool const_y = true;
+    bool const_c = true;
+
+    for (int i = 0; i < nDims; i++) {
+        if (inputYShape.data[i] != conditionShape.data[i]) {
+            const_x = false;
+            break;
+        }
     }
-    int gridsize = (outputsize + blocksize - 1) / blocksize;
-    _whereKernel<half>
-        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
-        inputX, inputY, condition, output, nDims, outputsize, inputXShape,
-        inputYShape, conditionShape, outputShape, xSize, ySize, cSize);
+    for (int i = 0; i < nDims; i++) {
+        if (inputXShape.data[i] != conditionShape.data[i]) {
+            const_y = false;
+            break;
+        }
+    }
+    for (int i = 0; i < nDims; i++) {
+        if (inputYShape.data[i] != inputXShape.data[i]) {
+            const_c = false;
+            break;
+        }
+    }
+    if (xSize == 0 && const_x) {
+
+        _where_const_Kernel<Tdata>
+            <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+                inputX, inputY, condition, output, outputsize, true, false,
+                false);
+    } else if (ySize == 0 && const_y) {
+
+        _where_const_Kernel<Tdata>
+            <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+                inputX, inputY, condition, output, outputsize, false, true,
+                false);
+    } else if (cSize == 0 && const_c) {
+
+        _where_const_Kernel<Tdata>
+            <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+                inputX, inputY, condition, output, outputsize, false, false,
+                true);
+    } else {
+
+        _whereKernel<Tdata>
+            <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+                inputX, inputY, condition, output, nDims, outputsize,
+                inputXShape, inputYShape, conditionShape, outputShape, xSize,
+                ySize, cSize);
+    }
 }
+
+template void whereKernel<float>(const float *inputX, const float *inputY,
+                                 const uint8_t *condition, float *output,
+                                 int nDims, int outputsize,
+                                 SmallArray inputXShape, SmallArray inputYShape,
+                                 SmallArray conditionShape,
+                                 SmallArray outputShape, int xSize, int ySize,
+                                 int cSize);
+template void whereKernel<half>(const half *inputX, const half *inputY,
+                                const uint8_t *condition, half *output,
+                                int nDims, int outputsize,
+                                SmallArray inputXShape, SmallArray inputYShape,
+                                SmallArray conditionShape,
+                                SmallArray outputShape, int xSize, int ySize,
+                                int cSize);
+
 } // namespace infini

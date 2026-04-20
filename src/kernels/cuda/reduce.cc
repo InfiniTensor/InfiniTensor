@@ -120,9 +120,17 @@ class ReduceSumCudnn : public ReduceCudnnBase {
     }
 };
 
+class ReduceL2Cudnn : public ReduceCudnnBase {
+    cudnnReduceTensorOp_t getReduceOp() const override {
+        return CUDNN_REDUCE_TENSOR_NORM2;
+    }
+};
+
 REGISTER_KERNEL(Device::CUDA, OpType::ReduceMean, ReduceMeanCudnn,
                 "ReduceMean_cuDNN_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::ReduceSum, ReduceSumCudnn,
                 "ReduceSum_cuDNN_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::ReduceL2, ReduceL2Cudnn,
+                "ReduceL2_cuDNN_CUDA");
 
 }; // namespace infini

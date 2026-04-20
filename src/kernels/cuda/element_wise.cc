@@ -2,6 +2,7 @@
 #include "cuda/cuda_element_wise.h"
 #include "cuda/cuda_kernel_wihtout_config.h"
 #include "cuda/cuda_runtime.h"
+#include "cuda/cuda_unary.h" //需要使用cast来转换数据类型
 #include "cuda/cuda_utility.h"
 
 namespace infini {
@@ -31,12 +32,60 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
         void *const cData = (cTensor->getRawDataPtr<void *>());
 
         cudnnTensorDescriptor_t aDesc, bDesc, cDesc;
-        auto a_dim = aTensor->getDims();
-        auto b_dim = bTensor->getDims();
-        auto c_dim = cTensor->getDims();
+        // auto a_dim = aTensor->getDims();
+        // auto b_dim = bTensor->getDims();
+        // auto c_dim = cTensor->getDims();
 
-        if (a_dim.size() > 4 || b_dim.size() > 4 || c_dim.size() > 4)
+        auto a_dim_base = aTensor->getDims();
+        auto b_dim_base = bTensor->getDims();
+        auto c_dim_base = cTensor->getDims();
+        std::vector<int> a_dim;
+        std::vector<int> b_dim;
+        std::vector<int> c_dim;
+        if (a_dim_base.size() > 4) {
+            for (int d : a_dim_base) {
+                if (d != 1) {
+                    a_dim.push_back(d);
+                }
+            }
+            if (a_dim.empty()) {
+                a_dim.push_back(a_dim_base.back());
+            }
+
+        } else {
+            a_dim = a_dim_base;
+        }
+        if (b_dim_base.size() > 4) {
+
+            for (int d : b_dim_base) {
+                if (d != 1) {
+                    b_dim.push_back(d);
+                }
+            }
+            if (b_dim.empty()) {
+                b_dim.push_back(b_dim_base.back());
+            }
+
+        } else {
+            b_dim = b_dim_base;
+        }
+        if (c_dim_base.size() > 4) {
+
+            for (int d : c_dim_base) {
+                if (d != 1) {
+                    c_dim.push_back(d);
+                }
+            }
+            if (c_dim.empty()) {
+                c_dim.push_back(c_dim_base.back());
+            }
+        } else {
+            c_dim = c_dim_base;
+        }
+        if (a_dim.size() > 4 || b_dim.size() > 4 || c_dim.size() > 4) {
+
             IT_TODO_HALT();
+        }
 
         int a[4] = {1, 1, 1, 1};
         int b[4] = {1, 1, 1, 1};
@@ -46,7 +95,55 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
         std::copy(b_dim.begin(), b_dim.end(), b + (4 - b_dim.size()));
         std::copy(c_dim.begin(), c_dim.end(), c + (4 - c_dim.size()));
 
-        auto cudnnDataType = cudnnDataTypeConvert(op->getDType());
+        // auto cudnnDataType = cudnnDataTypeConvert(op->getDType());
+        cudnnDataType_t cudnnDataType;
+        int a_size = aTensor->size();
+        int b_size = bTensor->size();
+        int c_size = cTensor->size();
+
+        float *aF = (float *)context->getWorkspace((a_size + b_size + c_size) *
+                                                   sizeof(float));
+        float *bF = aF + a_size;
+        float *cF = bF + b_size;
+        if (op->getDType() == DataType::Int32 ||
+            op->getDType() == DataType::Int64 ||
+            op->getDType() == DataType::UInt32 ||
+            op->getDType() == DataType::UInt64) {
+            cudnnDataType = CUDNN_DATA_FLOAT;
+
+            if (op->getDType() == DataType::Int32) {
+                cast_kernel<int32_t, float>((int32_t *)aData, (float *)aF,
+                                            a_size);
+                cast_kernel<int32_t, float>((int32_t *)bData, (float *)bF,
+                                            b_size);
+                cast_kernel<int32_t, float>((int32_t *)cData, (float *)cF,
+                                            c_size);
+            } else if (op->getDType() == DataType::Int64) {
+                cast_kernel<int64_t, float>((int64_t *)aData, (float *)aF,
+                                            a_size);
+                cast_kernel<int64_t, float>((int64_t *)bData, (float *)bF,
+                                            b_size);
+                cast_kernel<int64_t, float>((int64_t *)cData, (float *)cF,
+                                            c_size);
+            } else if (op->getDType() == DataType::UInt32) {
+                cast_kernel<uint32_t, float>((uint32_t *)aData, (float *)aF,
+                                             a_size);
+                cast_kernel<uint32_t, float>((uint32_t *)bData, (float *)bF,
+                                             b_size);
+                cast_kernel<uint32_t, float>((uint32_t *)cData, (float *)cF,
+                                             c_size);
+            } else if (op->getDType() == DataType::UInt64) {
+                cast_kernel<uint64_t, float>((uint64_t *)aData, (float *)aF,
+                                             a_size);
+                cast_kernel<uint64_t, float>((uint64_t *)bData, (float *)bF,
+                                             b_size);
+                cast_kernel<uint64_t, float>((uint64_t *)cData, (float *)cF,
+                                             c_size);
+            }
+
+        } else {
+            cudnnDataType = cudnnDataTypeConvert(op->getDType());
+        }
         // get inputs
         checkCudnnError(cudnnCreateTensorDescriptor(&aDesc));
         checkCudnnError(cudnnSetTensor4dDescriptor(
@@ -66,12 +163,44 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
         checkCudnnError(cudnnCreateOpTensorDescriptor(&opDesc));
         checkCudnnError(cudnnSetOpTensorDescriptor(
             opDesc, getOpType(), CUDNN_DATA_FLOAT, CUDNN_NOT_PROPAGATE_NAN));
-
         auto [aAlpha, bAlpha, beta] = getAlphBeta();
+        if (op->getDType() == DataType::Int32 ||
+            op->getDType() == DataType::Int64 ||
+            op->getDType() == DataType::UInt32 ||
+            op->getDType() == DataType::UInt64) {
+            cudnnDataType = CUDNN_DATA_FLOAT;
 
-        checkCudnnError(cudnnOpTensor(context->cudnnHandle(), opDesc, &aAlpha,
-                                      aDesc, aData, &bAlpha, bDesc, bData,
-                                      &beta, cDesc, cData));
+            if (op->getDType() == DataType::Int32) {
+                checkCudnnError(cudnnOpTensor(context->cudnnHandle(), opDesc,
+                                              &aAlpha, aDesc, aF, &bAlpha,
+                                              bDesc, bF, &beta, cDesc, cF));
+                cast_kernel<float, int32_t>((float *)cF, (int32_t *)cData,
+                                            c_size);
+            } else if (op->getDType() == DataType::Int64) {
+                checkCudnnError(cudnnOpTensor(context->cudnnHandle(), opDesc,
+                                              &aAlpha, aDesc, aF, &bAlpha,
+                                              bDesc, bF, &beta, cDesc, cF));
+                cast_kernel<float, int64_t>((float *)cF, (int64_t *)cData,
+                                            c_size);
+            } else if (op->getDType() == DataType::UInt32) {
+                checkCudnnError(cudnnOpTensor(context->cudnnHandle(), opDesc,
+                                              &aAlpha, aDesc, aF, &bAlpha,
+                                              bDesc, bF, &beta, cDesc, cF));
+                cast_kernel<float, uint32_t>((float *)cF, (uint32_t *)cData,
+                                             c_size);
+            } else if (op->getDType() == DataType::UInt64) {
+                checkCudnnError(cudnnOpTensor(context->cudnnHandle(), opDesc,
+                                              &aAlpha, aDesc, aF, &bAlpha,
+                                              bDesc, bF, &beta, cDesc, cF));
+                cast_kernel<float, uint64_t>((float *)cF, (uint64_t *)cData,
+                                             c_size);
+            }
+
+        } else {
+            checkCudnnError(cudnnOpTensor(context->cudnnHandle(), opDesc,
+                                          &aAlpha, aDesc, aData, &bAlpha, bDesc,
+                                          bData, &beta, cDesc, cData));
+        }
 
         // Destories in CUDA does not require sync. But cuDNN does not state
         // whether sync is required before destories.
@@ -127,13 +256,13 @@ class ElementWiseCuda : public CudaKernelWithoutConfig {
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
-        auto a_dim = op->getInputs(0)->getDims();
-        auto b_dim = op->getInputs(1)->getDims();
-        auto c_dim = op->getOutput()->getDims();
+        auto a_dim_base = op->getInputs(0)->getDims();
+        auto b_dim_base = op->getInputs(1)->getDims();
+        auto c_dim_base = op->getOutput()->getDims();
         const int dType = _op->getDType().getIndex();
 
         // Use optimized kernel if b is constant
-        if (b_dim.size() == 0) {
+        if (b_dim_base.size() == 0) {
             if (op->getOpType() == OpType::Div) {
                 div_const_kernel(dType, aData, bData, cData,
                                  op->getOutput()->size());
@@ -142,11 +271,91 @@ class ElementWiseCuda : public CudaKernelWithoutConfig {
                 pow_const_kernel(dType, aData, bData, cData,
                                  op->getOutput()->size());
                 return;
+            } else if (op->getOpType() == OpType::Mul) {
+                mul_const_kernel(dType, aData, bData, cData,
+                                 op->getOutput()->size());
+                return;
+            } else if (op->getOpType() == OpType::Add) {
+                add_const_kernel(dType, aData, bData, cData,
+                                 op->getOutput()->size());
+                return;
             }
         }
+        bool condition = (a_dim_base.size() == b_dim_base.size());
+        if (condition) {
+            for (size_t i = 0; i < a_dim_base.size(); i++) {
+                if (a_dim_base[i] != b_dim_base[i]) {
+                    condition = false;
+                    break;
+                }
+            }
+        }
+        if (condition) {
+            if (op->getOpType() == OpType::Div) {
+                div_special_kernel(dType, aData, bData, cData,
+                                   op->getOutput()->size());
+                return;
+            } else if (op->getOpType() == OpType::Pow) {
+                pow_special_kernel(dType, aData, bData, cData,
+                                   op->getOutput()->size());
+                return;
+            } else if (op->getOpType() == OpType::Mul) {
+                mul_special_kernel(dType, aData, bData, cData,
+                                   op->getOutput()->size());
+                return;
+            } else if (op->getOpType() == OpType::Add) {
+                add_special_kernel(dType, aData, bData, cData,
+                                   op->getOutput()->size());
+                return;
+            }
+        }
+        std::vector<int> a_dim;
+        std::vector<int> b_dim;
+        std::vector<int> c_dim;
+        if (a_dim_base.size() > 4) {
+            for (int d : a_dim_base) {
+                if (d != 1) {
+                    a_dim.push_back(d);
+                }
+            }
+            if (a_dim.empty()) {
+                a_dim.push_back(a_dim_base.back());
+            }
 
-        if (a_dim.size() > 4 || b_dim.size() > 4 || c_dim.size() > 4)
+        } else {
+            a_dim = a_dim_base;
+        }
+        if (b_dim_base.size() > 4) {
+
+            for (int d : b_dim_base) {
+                if (d != 1) {
+                    b_dim.push_back(d);
+                }
+            }
+            if (b_dim.empty()) {
+                b_dim.push_back(b_dim_base.back());
+            }
+
+        } else {
+            b_dim = b_dim_base;
+        }
+        if (c_dim_base.size() > 4) {
+
+            for (int d : c_dim_base) {
+                if (d != 1) {
+                    c_dim.push_back(d);
+                }
+            }
+            if (c_dim.empty()) {
+                c_dim.push_back(c_dim_base.back());
+            }
+        } else {
+            c_dim = c_dim_base;
+        }
+        if (a_dim.size() > 4 || b_dim.size() > 4 || c_dim.size() > 4) {
+
             IT_TODO_HALT();
+        }
 
         int a[4] = {1, 1, 1, 1};
         int b[4] = {1, 1, 1, 1};
@@ -165,9 +374,44 @@ class ElementWiseCuda : public CudaKernelWithoutConfig {
         } else if (op->getOpType() == OpType::Pow) {
             pow_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
                        b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
-        } else if (op->getOpType() == OpType::Less) {
+        } else if (op->getOpType() == OpType::Mul) {
+            mul_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
+                       b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
+        } else {
+            IT_TODO_HALT();
+        }
+    }
+};
+
+class ElementWiseLogicCuda : public CudaKernelWithoutConfig {
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        auto op = as<ElementWiseLogicObj>(_op);
+        void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
+        void *const bData = (op->getInputs(1)->getRawDataPtr<void *>());
+        void *const cData = (op->getOutput()->getRawDataPtr<void *>());
+        auto a_dim = op->getInputs(0)->getDims();
+        auto b_dim = op->getInputs(1)->getDims();
+        auto c_dim = op->getOutput()->getDims();
+        const int dType = _op->getDType().getIndex();
+
+        if (a_dim.size() > 4 || b_dim.size() > 4 || c_dim.size() > 4)
+            IT_TODO_HALT();
+
+        int a[4] = {1, 1, 1, 1};
+        int b[4] = {1, 1, 1, 1};
+        int c[4] = {1, 1, 1, 1};
+
+        std::copy(a_dim.begin(), a_dim.end(), a + (4 - a_dim.size()));
+        std::copy(b_dim.begin(), b_dim.end(), b + (4 - b_dim.size()));
+        std::copy(c_dim.begin(), c_dim.end(), c + (4 - c_dim.size()));
+
+        if (op->getOpType() == OpType::Less) {
             less_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3],
                         b[0], b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
+        } else if (op->getOpType() == OpType::Equal) {
+            equal_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3],
+                         b[0], b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
         } else {
             IT_TODO_HALT();
         }
@@ -180,8 +424,12 @@ REGISTER_KERNEL(Device::CUDA, OpType::Mul, MulCudnn, "Mul_cuDNN_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Min, MinCudnn, "Min_cuDNN_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Max, MaxCudnn, "Max_cuDNN_CUDA");
 
+// REGISTER_KERNEL(Device::CUDA, OpType::Add, ElementWiseCuda, "Add_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Div, ElementWiseCuda, "Div_CUDA");
+// REGISTER_KERNEL(Device::CUDA, OpType::Mul, ElementWiseCuda, "Mul_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Pow, ElementWiseCuda, "Pow_CUDA");
-REGISTER_KERNEL(Device::CUDA, OpType::Less, ElementWiseCuda, "Less_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Less, ElementWiseLogicCuda, "Less_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Equal, ElementWiseLogicCuda,
+                "Equal_CUDA");
 
 }; // namespace infini
