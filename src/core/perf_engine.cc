@@ -40,10 +40,42 @@ void from_json(const json &j, PerfRecord &p) {
 
 void to_json(json &j, const PerfEngine &p) {
     auto &x = p.getInstance();
-    j["data"] = x.get_data();
+    auto data = x.get_data();
+    json arr = json::array();
+    for (auto &[key, record] : data) {
+        auto &[kernelAttrs, opPerfKey] = key;
+        auto &[device, opType] = kernelAttrs;
+        arr.push_back(json{
+            {"device_type", static_cast<int>(device.type())},
+            {"device_index", device.index()},
+            {"opType", opType},
+            {"perfHash", opPerfKey.hash},
+            {"perfOpType", opPerfKey.opType},
+            {"perfAttrs", opPerfKey.attrs},
+            {"record", record}
+        });
+    }
+    j["data"] = arr;
 }
 void from_json(const json &j, PerfEngine &p) {
-    auto tmp = j["data"].get<map<PerfEngine::Key, PerfRecord>>();
+    std::unordered_map<PerfEngine::Key, PerfRecord> tmp;
+    for (auto &item : j["data"]) {
+        ops::Device device(
+            static_cast<ops::Device::Type>(item["device_type"].get<int>()),
+            item["device_index"].get<int>());
+        OpType::underlying_t opType = item["opType"].get<OpType::underlying_t>();
+        KernelAttrs kernelAttrs{device, opType};
+
+        OpPerfKey opPerfKey;
+        opPerfKey.hash = item["perfHash"].get<HashType>();
+        opPerfKey.opType = item["perfOpType"].get<OpType::underlying_t>();
+        opPerfKey.attrs = item["perfAttrs"].get<vector<int>>();
+
+        PerfRecord record;
+        from_json(item["record"], record);
+
+        tmp.emplace(PerfEngine::Key{kernelAttrs, opPerfKey}, record);
+    }
     p.set_data(tmp);
 }
 

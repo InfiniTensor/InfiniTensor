@@ -72,9 +72,6 @@ class NativeElementWise : public CpuKernelWithoutConfig {
         auto n = op->getOutput()->size();
         T (*_doCompute)(T val0, T val1);
         switch (op->getOpType().underlying()) {
-        case OpType::Add:
-            _doCompute = addCompute<T>;
-            break;
         case OpType::Sub:
             _doCompute = subCompute<T>;
             break;
@@ -129,18 +126,18 @@ class NativeElementWise : public CpuKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CPU, OpType::Add, NativeElementWise, "addNaive_CPU");
-REGISTER_KERNEL(Device::CPU, OpType::Sub, NativeElementWise, "subNaive_CPU");
-REGISTER_KERNEL(Device::CPU, OpType::Mul, NativeElementWise, "mulNaive_CPU");
-REGISTER_KERNEL(Device::CPU, OpType::Div, NativeElementWise, "divNaive_CPU");
-REGISTER_KERNEL(Device::CPU, OpType::Equal, NativeElementWise,
+// Add is now handled by InfiniOps adapter (src/kernels/infiniops/add.cc)
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Sub, NativeElementWise, "subNaive_CPU");
+// Mul is now handled by InfiniOps adapter (src/kernels/infiniops/mul.cc)
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Div, NativeElementWise, "divNaive_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Equal, NativeElementWise,
                 "equalNaive_CPU");
-REGISTER_KERNEL(Device::CPU, OpType::GreaterOrEqual, NativeElementWise,
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::GreaterOrEqual, NativeElementWise,
                 "greaterEqualNaive_CPU");
-REGISTER_KERNEL(Device::CPU, OpType::Greater, NativeElementWise,
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Greater, NativeElementWise,
                 "greaterThanNaive_CPU");
-REGISTER_KERNEL(Device::CPU, OpType::LessOrEqual, NativeElementWise,
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::LessOrEqual, NativeElementWise,
                 "lessEqualNaive_CPU");
-REGISTER_KERNEL(Device::CPU, OpType::Less, NativeElementWise,
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Less, NativeElementWise,
                 "lessEqualNaive_CPU");
 }; // namespace infini

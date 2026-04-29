@@ -100,8 +100,8 @@ class NativePooling : public CpuKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CPU, OpType::MaxPool, NativePooling,
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::MaxPool, NativePooling,
                 "maxPoolNaive_CPU");
-REGISTER_KERNEL(Device::CPU, OpType::AveragePool, NativePooling,
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::AveragePool, NativePooling,
                 "avgPoolNaive_CPU");
 } // namespace infini

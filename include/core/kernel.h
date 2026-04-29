@@ -5,6 +5,7 @@
 #include "utils/operator_utils.h"
 #include <functional>
 #include <nlohmann/json.hpp>
+#include <unordered_map>
 namespace infini {
 using json = nlohmann::json;
 
@@ -36,7 +37,7 @@ class Kernel {
 
   protected:
     // Map storing the pairs of perfKey and corresponding optimal function ptr
-    std::map<Key, ComputeFuncPtr> computeMap;
+    std::unordered_map<Key, ComputeFuncPtr> computeMap;
     // Vector storing all computing function pointers
     std::vector<ComputeFuncPtr> funcVec;
 
@@ -135,7 +136,7 @@ class KernelRegistry {
         tuple<Kernel *const, const string, const int>; // Kernel, name, ID
 
   private:
-    std::map<KernelAttrs, KernelRecord> kernels;
+    std::unordered_map<KernelAttrs, KernelRecord> kernels;
     int nKernels = 0;
 
   public:
@@ -153,6 +154,9 @@ class KernelRegistry {
                   "Kernel already registered");
         kernels.emplace(key, KernelRecord{kernel, name, ++nKernels});
         return true;
+    }
+    bool hasKernel(const KernelAttrs &key) const {
+        return kernels.find(key) != kernels.end();
     }
     Kernel *getKernel(const KernelAttrs &kernelAttrs) const {
         auto it = kernels.find(kernelAttrs);

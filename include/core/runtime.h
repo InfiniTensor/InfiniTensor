@@ -3,6 +3,7 @@
 #include "core/communicator.h"
 #include "core/op_type.h"
 #include "core/ref.h"
+#include "device.h"
 #include <memory>
 
 namespace infini {
@@ -32,7 +33,10 @@ using OpLists = list<Operator>;
 
 using VType = uint32_t;
 
-enum class Device { CPU = 1, CUDA, BANG, INTELCPU, KUNLUN, ASCEND };
+// Use InfiniOps Device as the unified device abstraction.
+// InfiniOps Device is a class with Type enum (kCpu, kNvidia, kCambricon, etc.)
+// and an index field for multi-device support.
+using Device = infini::ops::Device;
 /***************** Forward declaration end *****************/
 
 class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
@@ -70,12 +74,20 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
     double getPerfTime(const Graph &graph, bool profiling = false) const;
     Blob allocBlob(size_t size);
     bool isCpu() const {
-        return device == Device::CPU || device == Device::INTELCPU;
+        return device.type() == Device::Type::kCpu;
     }
-    bool isCuda() const { return device == Device::CUDA; }
-    bool isBang() const { return device == Device::BANG; }
-    bool isKUNLUN() const { return device == Device::KUNLUN; }
-    bool isAscend() const { return device == Device::ASCEND; }
+    bool isCuda() const {
+        return device.type() == Device::Type::kNvidia;
+    }
+    bool isBang() const {
+        return device.type() == Device::Type::kCambricon;
+    }
+    bool isKUNLUN() const {
+        return device.type() == Device::Type::kKunlun;
+    }
+    bool isAscend() const {
+        return device.type() == Device::Type::kAscend;
+    }
     void copyBlob(const TensorObj *dst, const TensorObj *src) const;
     // TODO: unify these copy APIs
     virtual void copyBlobFromCPU(void *dst, const void *src,
@@ -85,6 +97,8 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
     virtual string toString() const = 0;
 
     int getDeviceId() const { return deviceId; }
+
+    const Device &getDevice() const { return device; }
 
     virtual void initComm(const string &name, int worldSize, int rank) = 0;
 
@@ -117,7 +131,7 @@ class CpuRuntimeObj : public RuntimeObj {
 
 class NativeCpuRuntimeObj : public CpuRuntimeObj {
   public:
-    NativeCpuRuntimeObj() : CpuRuntimeObj(Device::CPU) {}
+    NativeCpuRuntimeObj() : CpuRuntimeObj(Device(Device::Type::kCpu)) {}
 
     static Ref<NativeCpuRuntimeObj> &getInstance() {
         static Ref<NativeCpuRuntimeObj> instance =

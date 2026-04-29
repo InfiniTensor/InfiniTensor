@@ -60,6 +60,6 @@ class NaiveConcat : public CpuKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CPU, OpType::Concat, NaiveConcat, "ConcatNaive_CPU");
+// Concat is now handled by InfiniOps adapter (src/kernels/infiniops/concat.cc)
 
 } // namespace infini

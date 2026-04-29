@@ -42,6 +42,6 @@ class NaiveMatmul : public CpuKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CPU, OpType::MatMul, NaiveMatmul, "MatmulNaive_CPU");
+// MatMul is now handled by InfiniOps adapter (src/kernels/infiniops/matmul.cc)
 
 } // namespace infini
