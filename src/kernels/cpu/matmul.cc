@@ -3,7 +3,7 @@
 
 namespace infini {
 
-class NaiveMatmul : public CpuKernelWithoutConfig {
+class NaiveMatmul : public KernelWithoutConfig {
     template <typename T>
     void doCompute(const Operator &_op, const RuntimeObj *context) const {
         auto op = as<MatmulObj>(_op);

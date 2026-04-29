@@ -3,7 +3,7 @@
 #include "utils/operator_utils.h"
 
 namespace infini {
-class NativeElementWise : public CpuKernelWithoutConfig {
+class NativeElementWise : public KernelWithoutConfig {
     template <typename T> static T addCompute(T val0, T val1) {
         return val0 + val1;
     }

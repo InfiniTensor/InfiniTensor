@@ -5,9 +5,9 @@
 namespace infini {
 
 // Unified runtime object that uses InfiniOps for operator execution.
-// Inherits graph execution (run()) and blob copy (memcpy) from CpuRuntimeObj.
+// Inherits graph execution (run()) and blob copy (memcpy) from RuntimeObj.
 // Overrides alloc/dealloc to support device-specific memory allocation.
-class InfiniOpsRuntimeObj : public CpuRuntimeObj {
+class InfiniOpsRuntimeObj : public RuntimeObj {
   public:
     explicit InfiniOpsRuntimeObj(Device device);
 

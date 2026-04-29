@@ -4,7 +4,7 @@
 #include "operators/softmax.h"
 
 namespace infini {
-class NativeUnary : public CpuKernelWithoutConfig {
+class NativeUnary : public KernelWithoutConfig {
     template <typename T> static T reluCompute(T val) {
         return std::max(T(0), val);
     }
@@ -175,7 +175,7 @@ class NativeUnary : public CpuKernelWithoutConfig {
     }
 };
 
-class NaiveSoftmax : public CpuKernelWithoutConfig {
+class NaiveSoftmax : public KernelWithoutConfig {
     template <typename T>
     void doCompute(const Operator &_op, const RuntimeObj *context) const {
         auto op = as<SoftmaxObj>(_op);
@@ -211,7 +211,7 @@ class NaiveSoftmax : public CpuKernelWithoutConfig {
     }
 };
 
-class Clip : public CpuKernelWithoutConfig {
+class Clip : public KernelWithoutConfig {
     template <typename T>
     void doCompute(const Operator &_op, const RuntimeObj *context) const {
         auto op = as<ClipObj>(_op);
@@ -247,7 +247,7 @@ class Clip : public CpuKernelWithoutConfig {
     }
 };
 
-class Log : public CpuKernelWithoutConfig {
+class Log : public KernelWithoutConfig {
     template <typename T>
     void doCompute(const Operator &_op, const RuntimeObj *context) const {
         auto op = as<LogObj>(_op);

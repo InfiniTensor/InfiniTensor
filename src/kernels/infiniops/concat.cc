@@ -1,11 +1,11 @@
-#include "core/infiniops_bridge/adapter_kernel.h"
+#include "core/kernel.h"
 #include "core/infiniops_bridge/tensor_convert.h"
 #include "cpu/cat/cat.h"
 #include "operators/concat.h"
 
 namespace infini {
 
-class ConcatInfiniOpsKernel : public InfiniOpsAdapterKernel {
+class ConcatInfiniOpsKernel : public KernelWithoutConfig {
     void compute(const Operator &op, const RuntimeObj *context) const override {
         auto concatOp = as<ConcatObj>(op);
 

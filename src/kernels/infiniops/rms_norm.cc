@@ -1,11 +1,11 @@
-#include "core/infiniops_bridge/adapter_kernel.h"
+#include "core/kernel.h"
 #include "core/infiniops_bridge/tensor_convert.h"
 #include "cpu/rms_norm/rms_norm.h"
 #include "operators/rms_norm.h"
 
 namespace infini {
 
-class RMSNormInfiniOpsKernel : public InfiniOpsAdapterKernel {
+class RMSNormInfiniOpsKernel : public KernelWithoutConfig {
     void compute(const Operator &op, const RuntimeObj *context) const override {
         auto normOp = as<RMSNormObj>(op);
 

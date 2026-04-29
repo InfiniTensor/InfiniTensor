@@ -9,7 +9,7 @@
 namespace infini {
 
 InfiniOpsRuntimeObj::InfiniOpsRuntimeObj(Device device)
-    : CpuRuntimeObj(device) {
+    : RuntimeObj(device) {
     switch (device.type()) {
     case Device::Type::kCpu:
         workspace_ = std::malloc(workspaceSize_);

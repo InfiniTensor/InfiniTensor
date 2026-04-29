@@ -4,7 +4,7 @@
 #include "operators/unsqueeze.h"
 
 namespace infini {
-class NaiveIdentity : public CpuKernelWithoutConfig {
+class NaiveIdentity : public KernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *context) const override {
         auto size = _op->getInputs()[0]->getBytes();

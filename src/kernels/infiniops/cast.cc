@@ -1,11 +1,11 @@
-#include "core/infiniops_bridge/adapter_kernel.h"
+#include "core/kernel.h"
 #include "core/infiniops_bridge/tensor_convert.h"
 #include "cpu/cast/cast.h"
 #include "operators/unary.h"
 
 namespace infini {
 
-class CastInfiniOpsKernel : public InfiniOpsAdapterKernel {
+class CastInfiniOpsKernel : public KernelWithoutConfig {
     void compute(const Operator &op, const RuntimeObj *context) const override {
         auto castOp = as<CastObj>(op);
 

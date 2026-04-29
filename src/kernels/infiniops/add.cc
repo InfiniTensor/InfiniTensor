@@ -1,11 +1,11 @@
-#include "core/infiniops_bridge/adapter_kernel.h"
+#include "core/kernel.h"
 #include "core/infiniops_bridge/tensor_convert.h"
 #include "cpu/add/add.h"
 #include "operators/element_wise.h"
 
 namespace infini {
 
-class AddInfiniOpsKernel : public InfiniOpsAdapterKernel {
+class AddInfiniOpsKernel : public KernelWithoutConfig {
     void compute(const Operator &op, const RuntimeObj *context) const override {
         auto elemOp = as<ElementWiseObj>(op);
 

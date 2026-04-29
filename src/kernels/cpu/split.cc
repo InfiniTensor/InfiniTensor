@@ -3,7 +3,7 @@
 
 namespace infini {
 
-class NaiveSplit : public CpuKernelWithoutConfig {
+class NaiveSplit : public KernelWithoutConfig {
     template <typename T>
     void doCompute(const Operator &_op, const RuntimeObj *context) const {
         auto op = as<SplitObj>(_op);

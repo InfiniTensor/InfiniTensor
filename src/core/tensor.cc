@@ -178,7 +178,7 @@ void TensorObj::setData(
         generator(getRawDataPtr<void *>(), size(), dtype);
     } else {
         // Create a CPU buffer for the generetor and copy results to the device
-        auto cpuRuntime = NativeCpuRuntimeObj::getInstance();
+        auto cpuRuntime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
         size_t nBytes = size() * dtype.getSize();
         Blob buffer = cpuRuntime->allocBlob(nBytes);
         generator(buffer->getPtr<void *>(), size(), dtype);

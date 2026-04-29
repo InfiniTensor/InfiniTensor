@@ -3,7 +3,7 @@
 
 namespace infini {
 
-class NaiveConv : public CpuKernelWithoutConfig {
+class NaiveConv : public KernelWithoutConfig {
     template <typename T>
     void doCompute(const Operator &_op, const RuntimeObj *context) const {
         auto op = as<ConvObj>(_op);

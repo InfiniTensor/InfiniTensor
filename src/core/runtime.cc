@@ -6,7 +6,7 @@
 #include <chrono>
 #include <cstring>
 namespace infini {
-void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
+void RuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
     if (!tune && profiling)
         IT_TODO_HALT();
     const auto &kernelRegistry = KernelRegistry::getInstance();
@@ -145,21 +145,19 @@ void RuntimeObj::copyBlob(const TensorObj *dst, const TensorObj *src) const {
         IT_TODO_HALT();
 }
 
-void CpuRuntimeObj::copyBlobFromCPU(void *dst, const void *src,
+void RuntimeObj::copyBlobFromCPU(void *dst, const void *src,
                                     size_t bytes) const {
     copyBlobInsideRuntime(dst, src, bytes);
 }
 
-void CpuRuntimeObj::copyBlobToCPU(void *dst, const void *src,
+void RuntimeObj::copyBlobToCPU(void *dst, const void *src,
                                   size_t bytes) const {
     copyBlobInsideRuntime(dst, src, bytes);
 }
 
-void CpuRuntimeObj::copyBlobInsideRuntime(void *dst, const void *src,
+void RuntimeObj::copyBlobInsideRuntime(void *dst, const void *src,
                                           size_t bytes) const {
     memcpy(dst, src, bytes);
 }
-
-string NativeCpuRuntimeObj::toString() const { return "CPU Runtime"; }
 
 } // namespace infini

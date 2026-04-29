@@ -13,7 +13,7 @@ class Mutator {
 
   public:
     Mutator(int candidatesLimit,
-            Runtime runtime = NativeCpuRuntimeObj::getInstance())
+            Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu)))
         : candidatesLimit(candidatesLimit), runtime(runtime){};
     virtual ~Mutator(){};
 

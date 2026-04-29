@@ -59,10 +59,13 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
      * can be independent method.
      * @param profiling Whether to print breakdown of time
      */
-    virtual void run(const Graph &graph, bool tune = false,
-                     bool profiling = false) const = 0;
-    virtual void *alloc(size_t size) = 0;
-    virtual void dealloc(void *ptr) = 0;
+    void run(const Graph &graph, bool tune = false,
+             bool profiling = false) const;
+    virtual void *alloc(size_t size) {
+        return calloc((size + sizeof(uint64_t) - 1) / sizeof(uint64_t),
+                      sizeof(uint64_t));
+    }
+    virtual void dealloc(void *ptr) { return free(ptr); }
     /**
      * @brief Get the execution time of each operator in performance record. No
      * execution happens.
@@ -91,60 +94,27 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
     void copyBlob(const TensorObj *dst, const TensorObj *src) const;
     // TODO: unify these copy APIs
     virtual void copyBlobFromCPU(void *dst, const void *src,
-                                 size_t bytes) const = 0;
+                                 size_t bytes) const;
     virtual void copyBlobToCPU(void *dst, const void *src,
-                               size_t bytes) const = 0;
-    virtual string toString() const = 0;
+                               size_t bytes) const;
+    virtual string toString() const { return "Runtime"; }
 
     int getDeviceId() const { return deviceId; }
 
     const Device &getDevice() const { return device; }
 
-    virtual void initComm(const string &name, int worldSize, int rank) = 0;
+    virtual void initComm(const string &name, int worldSize, int rank) {
+        IT_TODO_HALT();
+    }
 
-    virtual CommunicatorObj &getCommunicator() const = 0;
+    virtual CommunicatorObj &getCommunicator() const { IT_TODO_HALT(); }
 
   protected:
     void printProfilingData(double totTime,
                             const std::map<OpType, double> &opTime,
                             const std::map<OpType, int> &opCnt) const;
     virtual void copyBlobInsideRuntime(void *dst, const void *src,
-                                       size_t bytes) const = 0;
-};
-
-class CpuRuntimeObj : public RuntimeObj {
-  public:
-    CpuRuntimeObj(Device dev) : RuntimeObj(dev) {}
-
-    void run(const Graph &graph, bool tune = false,
-             bool profiling = false) const override;
-
-    void copyBlobFromCPU(void *dst, const void *src,
-                         size_t bytes) const override;
-    void copyBlobToCPU(void *dst, const void *src, size_t bytes) const override;
-    void copyBlobInsideRuntime(void *dst, const void *src,
-                               size_t bytes) const override;
-    void initComm(const string &, int, int) override { IT_TODO_HALT(); }
-
-    CommunicatorObj &getCommunicator() const override { IT_TODO_HALT(); }
-};
-
-class NativeCpuRuntimeObj : public CpuRuntimeObj {
-  public:
-    NativeCpuRuntimeObj() : CpuRuntimeObj(Device(Device::Type::kCpu)) {}
-
-    static Ref<NativeCpuRuntimeObj> &getInstance() {
-        static Ref<NativeCpuRuntimeObj> instance =
-            make_ref<NativeCpuRuntimeObj>();
-        return instance;
-    }
-    void dealloc(void *ptr) override { return free(ptr); };
-
-    void *alloc(size_t size) override {
-        return calloc((size + sizeof(uint64_t) - 1) / sizeof(uint64_t),
-                      sizeof(uint64_t));
-    };
-    string toString() const override;
+                                       size_t bytes) const;
 };
 
 } // namespace infini

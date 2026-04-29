@@ -14,7 +14,7 @@ inline Shape idx2Pos(const Shape &shape, size_t idx) {
     return pos;
 }
 
-class NaiveTranspose : public CpuKernelWithoutConfig {
+class NaiveTranspose : public KernelWithoutConfig {
     template <typename T>
     void doCompute(const Operator &_op, const RuntimeObj *context) const {
         auto op = as<TransposeObj>(_op);

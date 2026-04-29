@@ -170,7 +170,7 @@ class KernelRegistry {
     }
 };
 
-class CpuKernelWithoutConfig : public Kernel {
+class KernelWithoutConfig : public Kernel {
   public:
     void compute(const Operator &op, const PerfRecord &record,
                  const RuntimeObj *context) const override {
@@ -184,6 +184,9 @@ class CpuKernelWithoutConfig : public Kernel {
         return make_ref<PerfRecordObj>(timeit([&]() { compute(op, context); }));
     }
 };
+
+using CpuKernelWithoutConfig [[deprecated("Use KernelWithoutConfig instead")]] =
+    KernelWithoutConfig;
 
 } // namespace infini
 

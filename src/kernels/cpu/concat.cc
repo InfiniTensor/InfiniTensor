@@ -3,7 +3,7 @@
 
 namespace infini {
 
-class NaiveConcat : public CpuKernelWithoutConfig {
+class NaiveConcat : public KernelWithoutConfig {
     template <typename T>
     void doCompute(const Operator &_op, const RuntimeObj *context) const {
         auto op = as<ConcatObj>(_op);

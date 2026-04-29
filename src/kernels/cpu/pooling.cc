@@ -2,7 +2,7 @@
 #include "core/kernel.h"
 
 namespace infini {
-class NativePooling : public CpuKernelWithoutConfig {
+class NativePooling : public KernelWithoutConfig {
     template <typename T>
     static T getMaxPoolingValue(int kh, int kw, int posh, int posw, int ih,
                                 int iw, T *inptr) {

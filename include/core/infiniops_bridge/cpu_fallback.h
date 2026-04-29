@@ -11,7 +11,7 @@ namespace infini {
 ///
 /// For now this is a placeholder — the actual device-specific memory
 /// copy will be added when GPU backends are enabled.
-class GpuToCpuFallback : public CpuKernelWithoutConfig {
+class GpuToCpuFallback : public KernelWithoutConfig {
   public:
     GpuToCpuFallback(Kernel *cpuKernel) : cpuKernel_(cpuKernel) {}
     ~GpuToCpuFallback() override { delete cpuKernel_; }
