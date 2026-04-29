@@ -14,7 +14,7 @@ class MatmulInfiniOpsKernel : public KernelWithoutConfig {
         auto *out0 = matmulOp->getOutput().get();
         auto output = toInfiniOpsTensor(out0);
 
-        infini::ops::Handle handle;
+        infini::ops::Handle handle = context->makeHandle();
         infini::ops::Config config;
 
         bool transA = matmulOp->getTransA();

@@ -4,6 +4,7 @@
 #include "core/op_type.h"
 #include "core/ref.h"
 #include "device.h"
+#include "handle.h"
 #include <memory>
 
 namespace infini {
@@ -44,38 +45,34 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
     Device device;
     int deviceId;
 
+    // Workspace management
+    static constexpr size_t kDefaultWorkspaceSize = 7ull << 30;
+    size_t workspaceSize_ = kDefaultWorkspaceSize;
+    size_t workspaceCursor_ = 0;
+    void *workspace_ = nullptr;
+
   public:
-    explicit RuntimeObj(Device device, int deviceId = 0)
-        : device(device), deviceId(deviceId) {}
+    explicit RuntimeObj(Device device, int deviceId = 0);
     RuntimeObj(RuntimeObj &other) = delete;
     RuntimeObj &operator=(RuntimeObj const &) = delete;
-    virtual ~RuntimeObj() {}
+    ~RuntimeObj();
 
     /**
      * @brief Execute a graph.
-     *
-     * @param graph
-     * @param tune If there is no performance record, whether to tune it. These
-     * can be independent method.
-     * @param profiling Whether to print breakdown of time
      */
     void run(const Graph &graph, bool tune = false,
              bool profiling = false) const;
-    virtual void *alloc(size_t size) {
-        return calloc((size + sizeof(uint64_t) - 1) / sizeof(uint64_t),
-                      sizeof(uint64_t));
-    }
-    virtual void dealloc(void *ptr) { return free(ptr); }
+
+    void *alloc(size_t size);
+    void dealloc(void *ptr);
+
     /**
      * @brief Get the execution time of each operator in performance record. No
      * execution happens.
-     *
-     * @param graph
-     * @param profiling Whether to print breakdown of time
-     * @return double Return the sum of perf time for each operator
      */
     double getPerfTime(const Graph &graph, bool profiling = false) const;
     Blob allocBlob(size_t size);
+
     bool isCpu() const {
         return device.type() == Device::Type::kCpu;
     }
@@ -91,17 +88,22 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
     bool isAscend() const {
         return device.type() == Device::Type::kAscend;
     }
+
     void copyBlob(const TensorObj *dst, const TensorObj *src) const;
-    // TODO: unify these copy APIs
-    virtual void copyBlobFromCPU(void *dst, const void *src,
-                                 size_t bytes) const;
-    virtual void copyBlobToCPU(void *dst, const void *src,
-                               size_t bytes) const;
-    virtual string toString() const { return "Runtime"; }
+    void copyBlobFromCPU(void *dst, const void *src, size_t bytes) const;
+    void copyBlobToCPU(void *dst, const void *src, size_t bytes) const;
 
     int getDeviceId() const { return deviceId; }
-
     const Device &getDevice() const { return device; }
+
+    // Workspace management for operators that need scratch memory.
+    void *getWorkspace(size_t size);
+    void resetWorkspace();
+
+    // Create a populated Handle for InfiniOps operator calls.
+    infini::ops::Handle makeHandle() const;
+
+    string toString() const;
 
     virtual void initComm(const string &name, int worldSize, int rank) {
         IT_TODO_HALT();
@@ -109,12 +111,18 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
 
     virtual CommunicatorObj &getCommunicator() const { IT_TODO_HALT(); }
 
+    // Internal constructor that skips workspace allocation
+    // (for temporary helper runtimes that don't need workspace).
+    struct NoWorkspace {};
+    RuntimeObj(Device device, int deviceId, NoWorkspace)
+        : device(device), deviceId(deviceId) {}
+
   protected:
     void printProfilingData(double totTime,
                             const std::map<OpType, double> &opTime,
                             const std::map<OpType, int> &opCnt) const;
-    virtual void copyBlobInsideRuntime(void *dst, const void *src,
-                                       size_t bytes) const;
+    void copyBlobInsideRuntime(void *dst, const void *src,
+                               size_t bytes) const;
 };
 
 } // namespace infini

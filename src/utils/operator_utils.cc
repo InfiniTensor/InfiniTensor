@@ -91,12 +91,8 @@ size_t delocate_index(const Shape &shapeIndex, const Shape &shape,
     return ans;
 }
 
-std::string device_to_str(Device device) {
-    return device.ToString();
-}
-
 std::string get_kernel_attrs_str(const KernelAttrs &kernelAttrs) {
-    std::string deviceStr = device_to_str(std::get<0>(kernelAttrs));
+    std::string deviceStr = std::get<0>(kernelAttrs).ToString();
     std::string opStr = OpType(std::get<1>(kernelAttrs)).toString();
     return deviceStr + ", " + opStr;
 }

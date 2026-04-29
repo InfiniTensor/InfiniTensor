@@ -13,7 +13,7 @@ class RMSNormInfiniOpsKernel : public KernelWithoutConfig {
         auto weight = toInfiniOpsTensor(normOp->getInputs(1).get());
         auto output = toInfiniOpsTensor(normOp->getOutput().get());
 
-        infini::ops::Handle handle;
+        infini::ops::Handle handle = context->makeHandle();
         infini::ops::Config config;
 
         // Use default eps (1e-6) — InfiniTensor's RMSNormObj doesn't expose eps

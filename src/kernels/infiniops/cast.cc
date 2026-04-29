@@ -12,7 +12,7 @@ class CastInfiniOpsKernel : public KernelWithoutConfig {
         auto input = toInfiniOpsTensor(castOp->getInputs(0).get());
         auto output = toInfiniOpsTensor(castOp->getOutput().get());
 
-        infini::ops::Handle handle;
+        infini::ops::Handle handle = context->makeHandle();
         infini::ops::Config config;
 
         infini::ops::Cast::Call(handle, config, input, output);

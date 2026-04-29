@@ -19,7 +19,7 @@ class ConcatInfiniOpsKernel : public KernelWithoutConfig {
         }
         auto output = toInfiniOpsTensor(concatOp->getOutput().get());
 
-        infini::ops::Handle handle;
+        infini::ops::Handle handle = context->makeHandle();
         infini::ops::Config config;
 
         infini::ops::Cat::Call(handle, config, first_input, rest_inputs,

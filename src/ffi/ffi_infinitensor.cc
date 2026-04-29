@@ -1,6 +1,6 @@
 #include "core/data_type.h"
 #include "core/graph_handler.h"
-#include "core/infiniops_bridge/infiniops_runtime.h"
+#include "core/runtime.h"
 #include "operators/batch_norm.h"
 #include "operators/concat.h"
 #include "operators/conv.h"
@@ -137,30 +137,30 @@ static int tensor_dtype(Tensor t) {
 }
 
 static Runtime cpu_runtime() {
-    return make_ref<InfiniOpsRuntimeObj>(Device(Device::Type::kCpu));
+    return make_ref<RuntimeObj>(Device(Device::Type::kCpu));
 }
 
 #ifdef WITH_NVIDIA
 static Runtime cuda_runtime() {
-    return make_ref<InfiniOpsRuntimeObj>(Device(Device::Type::kNvidia));
+    return make_ref<RuntimeObj>(Device(Device::Type::kNvidia));
 }
 #endif
 
 #ifdef WITH_CAMBRICON
 static Runtime bang_runtime() {
-    return make_ref<InfiniOpsRuntimeObj>(Device(Device::Type::kCambricon));
+    return make_ref<RuntimeObj>(Device(Device::Type::kCambricon));
 }
 #endif
 
 // Kunlun device type exists in InfiniOps but no WITH_KUNLUN compile flag.
 // The runtime factory is always available.
 static Runtime kunlun_runtime() {
-    return make_ref<InfiniOpsRuntimeObj>(Device(Device::Type::kKunlun));
+    return make_ref<RuntimeObj>(Device(Device::Type::kKunlun));
 }
 
 #ifdef WITH_ASCEND
 static Runtime ascend_runtime() {
-    return make_ref<InfiniOpsRuntimeObj>(Device(Device::Type::kAscend));
+    return make_ref<RuntimeObj>(Device(Device::Type::kAscend));
 }
 #endif
 
@@ -399,8 +399,6 @@ void init_graph_builder(py::module &m) {
     using Handler = GraphHandlerObj;
 
     py::class_<RuntimeObj, std::shared_ptr<RuntimeObj>>(m, "Runtime");
-    py::class_<InfiniOpsRuntimeObj, std::shared_ptr<InfiniOpsRuntimeObj>,
-               RuntimeObj>(m, "InfiniOpsRuntime");
     py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "Tensor",
                                                       py::buffer_protocol())
         .def("fuid", &TensorObj::getFuid, policy::automatic)

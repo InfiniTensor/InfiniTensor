@@ -4,8 +4,161 @@
 #include "core/perf_engine.h"
 #include "utils/data_generator.h"
 #include <chrono>
+#include <cstdlib>
 #include <cstring>
+
+// Include InfiniOps per-device runtime headers for device-dispatched alloc/dealloc/copy
+#ifdef WITH_CPU
+#include "cpu/runtime_.h"
+#endif
+#ifdef WITH_NVIDIA
+#include "cuda/nvidia/runtime_.h"
+#endif
+
 namespace infini {
+
+RuntimeObj::RuntimeObj(Device device, int deviceId)
+    : device(device), deviceId(deviceId) {
+    switch (device.type()) {
+    case Device::Type::kCpu:
+        workspace_ = std::malloc(workspaceSize_);
+        break;
+#ifdef WITH_NVIDIA
+    case Device::Type::kNvidia:
+        infini::ops::Runtime<Device::Type::kNvidia>::Malloc(&workspace_,
+                                                             workspaceSize_);
+        break;
+#endif
+    default:
+        IT_TODO_HALT_MSG("RuntimeObj: device '" + device.ToString() +
+                                       "' is not supported");
+        break;
+    }
+}
+
+RuntimeObj::~RuntimeObj() { dealloc(workspace_); }
+
+void *RuntimeObj::alloc(size_t size) {
+    void *ptr = nullptr;
+    switch (device.type()) {
+    case Device::Type::kCpu:
+        ptr = std::malloc(size);
+        break;
+#ifdef WITH_NVIDIA
+    case Device::Type::kNvidia:
+        infini::ops::Runtime<Device::Type::kNvidia>::Malloc(&ptr, size);
+        break;
+#endif
+    default:
+        IT_TODO_HALT_MSG("RuntimeObj::alloc: device '" + device.ToString() +
+                                       "' is not supported");
+        break;
+    }
+    return ptr;
+}
+
+void RuntimeObj::dealloc(void *ptr) {
+    if (ptr == nullptr)
+        return;
+    switch (device.type()) {
+    case Device::Type::kCpu:
+        std::free(ptr);
+        break;
+#ifdef WITH_NVIDIA
+    case Device::Type::kNvidia:
+        infini::ops::Runtime<Device::Type::kNvidia>::Free(ptr);
+        break;
+#endif
+    default:
+        IT_TODO_HALT_MSG("RuntimeObj::dealloc: device '" + device.ToString() +
+                                       "' is not supported");
+        break;
+    }
+}
+
+void RuntimeObj::copyBlobInsideRuntime(void *dst, const void *src,
+                                       size_t bytes) const {
+    switch (device.type()) {
+    case Device::Type::kCpu:
+        std::memcpy(dst, src, bytes);
+        break;
+#ifdef WITH_NVIDIA
+    case Device::Type::kNvidia:
+        infini::ops::Runtime<Device::Type::kNvidia>::Memcpy(
+            dst, src, bytes, cudaMemcpyDefault);
+        break;
+#endif
+    default:
+        IT_TODO_HALT_MSG("RuntimeObj::copyBlobInsideRuntime: device '" +
+                                       device.ToString() + "' is not supported");
+        break;
+    }
+}
+
+void RuntimeObj::copyBlobFromCPU(void *dst, const void *src,
+                                 size_t bytes) const {
+    switch (device.type()) {
+    case Device::Type::kCpu:
+        std::memcpy(dst, src, bytes);
+        break;
+#ifdef WITH_NVIDIA
+    case Device::Type::kNvidia:
+        infini::ops::Runtime<Device::Type::kNvidia>::Memcpy(
+            dst, src, bytes,
+            infini::ops::Runtime<Device::Type::kNvidia>::MemcpyHostToDevice);
+        break;
+#endif
+    default:
+        IT_TODO_HALT_MSG("RuntimeObj::copyBlobFromCPU: device '" +
+                                       device.ToString() + "' is not supported");
+        break;
+    }
+}
+
+void RuntimeObj::copyBlobToCPU(void *dst, const void *src,
+                               size_t bytes) const {
+    switch (device.type()) {
+    case Device::Type::kCpu:
+        std::memcpy(dst, src, bytes);
+        break;
+#ifdef WITH_NVIDIA
+    case Device::Type::kNvidia:
+        infini::ops::Runtime<Device::Type::kNvidia>::Memcpy(
+            dst, src, bytes,
+            infini::ops::Runtime<Device::Type::kNvidia>::MemcpyDeviceToHost);
+        break;
+#endif
+    default:
+        IT_TODO_HALT_MSG("RuntimeObj::copyBlobToCPU: device '" +
+                                       device.ToString() + "' is not supported");
+        break;
+    }
+}
+
+void *RuntimeObj::getWorkspace(size_t size) {
+    if (size > workspaceSize_) {
+        IT_TODO_HALT_MSG("Workspace size exceeded");
+    }
+    void *ptr = static_cast<uint8_t *>(workspace_) + workspaceCursor_;
+    workspaceCursor_ += size;
+    // Align to 256 bytes
+    workspaceCursor_ = (workspaceCursor_ + 255) & ~size_t(255);
+    return ptr;
+}
+
+void RuntimeObj::resetWorkspace() { workspaceCursor_ = 0; }
+
+infini::ops::Handle RuntimeObj::makeHandle() const {
+    infini::ops::Handle handle;
+    handle.set_workspace(workspace_);
+    handle.set_workspace_size_in_bytes(workspaceSize_ - workspaceCursor_);
+    return handle;
+}
+
+string RuntimeObj::toString() const {
+    return "Runtime (" + device.ToString() + ")";
+}
+
 void RuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
     if (!tune && profiling)
         IT_TODO_HALT();
@@ -32,8 +185,6 @@ void RuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
         PerfRecord record;
         // Tune the kernel if there is no record
         if (!perfData) {
-            // TODO: record is not used
-            // printf("no record data\n");
             record = kernel->tune(op, this);
             perfEngine.setPerfData(perfKey, record);
         } else
@@ -76,8 +227,6 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling) const {
         PerfRecord record;
         // Tune the kernel if there is no record
         if (!perfData) {
-            // TODO: should tenosrs automatically allocate when access data?
-            // allocate memory for empty tensors and release it after profiling
             TensorVec allocatedTensors;
             for (auto t : op->getInputs())
                 if (!t->hasData())
@@ -90,11 +239,9 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling) const {
                 t->setData(IncrementalGenerator());
             }
 
-            // Profile operators and record the results
             record = kernel->tune(op, this);
             perfEngine.setPerfData(perfKey, record);
 
-            // Free allocated memory
             for (auto t : allocatedTensors)
                 t->freeData();
         } else
@@ -143,21 +290,6 @@ void RuntimeObj::copyBlob(const TensorObj *dst, const TensorObj *src) const {
         srcRuntime->copyBlobToCPU(dstPtr, srcPtr, bytes);
     } else
         IT_TODO_HALT();
-}
-
-void RuntimeObj::copyBlobFromCPU(void *dst, const void *src,
-                                    size_t bytes) const {
-    copyBlobInsideRuntime(dst, src, bytes);
-}
-
-void RuntimeObj::copyBlobToCPU(void *dst, const void *src,
-                                  size_t bytes) const {
-    copyBlobInsideRuntime(dst, src, bytes);
-}
-
-void RuntimeObj::copyBlobInsideRuntime(void *dst, const void *src,
-                                          size_t bytes) const {
-    memcpy(dst, src, bytes);
 }
 
 } // namespace infini

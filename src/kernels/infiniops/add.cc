@@ -13,7 +13,7 @@ class AddInfiniOpsKernel : public KernelWithoutConfig {
         auto other = toInfiniOpsTensor(elemOp->getInputs(1).get());
         auto output = toInfiniOpsTensor(elemOp->getOutput().get());
 
-        infini::ops::Handle handle;
+        infini::ops::Handle handle = context->makeHandle();
         infini::ops::Config config;
 
         infini::ops::Add::Call(handle, config, input, other, output);
