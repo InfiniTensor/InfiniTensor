@@ -1,8 +1,8 @@
-#include "core/kernel.h"
+#include "operators/concat.h"
 #include "core/data_type.h"
+#include "core/kernel.h"
 #include "core/tensor.h"
 #include "cpu/cat/cat.h"
-#include "operators/concat.h"
 
 namespace infini {
 
@@ -24,11 +24,11 @@ class ConcatInfiniOpsKernel : public KernelWithoutConfig {
         infini::ops::Config config;
 
         infini::ops::Cat::Call(handle, config, first_input, rest_inputs,
-                                 concatOp->getDim(), output);
+                               concatOp->getDim(), output);
     }
 };
 
-REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Concat, ConcatInfiniOpsKernel,
-                "Concat_InfiniOps_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Concat,
+                ConcatInfiniOpsKernel, "Concat_InfiniOps_CPU");
 
 } // namespace infini

@@ -180,6 +180,11 @@ endif()
 # to all downstream consumers of InfiniTensor, e.g. the backend pybind11 module)
 target_link_libraries(InfiniTensor PUBLIC infiniops)
 
+# InfiniOps headers define non-inline functions (e.g. IndexToOffset in
+# generic_utils.h).  Allow multiple definitions so that every translation
+# unit including those headers can compile without ODR violations.
+target_link_options(InfiniTensor PRIVATE -Wl,--allow-multiple-definition)
+
 target_link_libraries(InfiniTensor PRIVATE pybind11::embed)
 
 # TVM backend

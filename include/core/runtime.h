@@ -73,21 +73,11 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
     double getPerfTime(const Graph &graph, bool profiling = false) const;
     Blob allocBlob(size_t size);
 
-    bool isCpu() const {
-        return device.type() == Device::Type::kCpu;
-    }
-    bool isCuda() const {
-        return device.type() == Device::Type::kNvidia;
-    }
-    bool isBang() const {
-        return device.type() == Device::Type::kCambricon;
-    }
-    bool isKUNLUN() const {
-        return device.type() == Device::Type::kKunlun;
-    }
-    bool isAscend() const {
-        return device.type() == Device::Type::kAscend;
-    }
+    bool isCpu() const { return device.type() == Device::Type::kCpu; }
+    bool isCuda() const { return device.type() == Device::Type::kNvidia; }
+    bool isBang() const { return device.type() == Device::Type::kCambricon; }
+    bool isKUNLUN() const { return device.type() == Device::Type::kKunlun; }
+    bool isAscend() const { return device.type() == Device::Type::kAscend; }
 
     void copyBlob(const TensorObj *dst, const TensorObj *src) const;
     void copyBlobFromCPU(void *dst, const void *src, size_t bytes) const;
@@ -121,8 +111,7 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
     void printProfilingData(double totTime,
                             const std::map<OpType, double> &opTime,
                             const std::map<OpType, int> &opCnt) const;
-    void copyBlobInsideRuntime(void *dst, const void *src,
-                               size_t bytes) const;
+    void copyBlobInsideRuntime(void *dst, const void *src, size_t bytes) const;
 };
 
 } // namespace infini

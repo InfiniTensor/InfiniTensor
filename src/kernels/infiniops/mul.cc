@@ -1,7 +1,7 @@
-#include "core/kernel.h"
-#include "core/data_type.h"
-#include "core/tensor.h"
 #include "cpu/mul/mul.h"
+#include "core/data_type.h"
+#include "core/kernel.h"
+#include "core/tensor.h"
 #include "operators/element_wise.h"
 
 namespace infini {

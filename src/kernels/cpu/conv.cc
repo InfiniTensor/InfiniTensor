@@ -69,6 +69,7 @@ class NaiveConv : public KernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Conv, NaiveConv, "ConvNaive_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Conv, NaiveConv,
+                "ConvNaive_CPU");
 
 } // namespace infini

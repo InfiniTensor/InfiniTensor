@@ -43,7 +43,9 @@ class PerfEngine {
         data.emplace(key, record);
     }
     std::unordered_map<Key, PerfRecord> get_data() { return data; }
-    void set_data(std::unordered_map<Key, PerfRecord> data) { this->data = data; }
+    void set_data(std::unordered_map<Key, PerfRecord> data) {
+        this->data = data;
+    }
     void savePerfEngineData(std::string file_path);
     void loadPerfEngineData(std::string file_path);
 };

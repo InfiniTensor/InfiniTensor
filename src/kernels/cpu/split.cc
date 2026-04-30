@@ -58,6 +58,7 @@ class NaiveSplit : public KernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Split, NaiveSplit, "SplitNaive_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Split, NaiveSplit,
+                "SplitNaive_CPU");
 
 } // namespace infini

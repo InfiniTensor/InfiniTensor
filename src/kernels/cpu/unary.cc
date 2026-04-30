@@ -297,32 +297,53 @@ class Log : public KernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Relu, NativeUnary, "reluNaive_CPU");
-REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Gelu, NativeUnary, "geluNaive_CPU");
-REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Silu, NativeUnary, "siluNaive_CPU");
-REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Sigmoid, NativeUnary, "sigmoidNaive_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Relu, NativeUnary,
+                "reluNaive_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Gelu, NativeUnary,
+                "geluNaive_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Silu, NativeUnary,
+                "siluNaive_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Sigmoid, NativeUnary,
+                "sigmoidNaive_CPU");
 REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::HardSigmoid, NativeUnary,
                 "hardSigmoidNaive_CPU");
 REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::HardSwish, NativeUnary,
                 "hardSwishNaive_CPU");
-REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Tanh, NativeUnary, "tanhNaive_CPU");
-REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Abs, NativeUnary, "absNaive_CPU");
-REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Sqrt, NativeUnary, "sqrtNaive_CPU");
-REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Erf, NativeUnary, "erfNaive_CPU");
-REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Neg, NativeUnary, "negNaive_CPU");
-REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Cos, NativeUnary, "Cos_CPU");
-REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Sin, NativeUnary, "Sin_CPU");
-REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Tan, NativeUnary, "Tan_CPU");
-REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Sinh, NativeUnary, "Sinh_CPU");
-REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Cosh, NativeUnary, "Cosh_CPU");
-REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Acos, NativeUnary, "ACos_CPU");
-REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Acosh, NativeUnary, "ACosh_CPU");
-REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Asin, NativeUnary, "ASin_CPU");
-REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Asinh, NativeUnary, "ASinh_CPU");
-REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Atan, NativeUnary, "Atan_CPU");
-REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Atanh, NativeUnary, "ATanh_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Tanh, NativeUnary,
+                "tanhNaive_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Abs, NativeUnary,
+                "absNaive_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Sqrt, NativeUnary,
+                "sqrtNaive_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Erf, NativeUnary,
+                "erfNaive_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Neg, NativeUnary,
+                "negNaive_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Cos, NativeUnary,
+                "Cos_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Sin, NativeUnary,
+                "Sin_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Tan, NativeUnary,
+                "Tan_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Sinh, NativeUnary,
+                "Sinh_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Cosh, NativeUnary,
+                "Cosh_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Acos, NativeUnary,
+                "ACos_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Acosh, NativeUnary,
+                "ACosh_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Asin, NativeUnary,
+                "ASin_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Asinh, NativeUnary,
+                "ASinh_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Atan, NativeUnary,
+                "Atan_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Atanh, NativeUnary,
+                "ATanh_CPU");
 
-REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Softmax, NaiveSoftmax, "softmaxNaive_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Softmax, NaiveSoftmax,
+                "softmaxNaive_CPU");
 REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Clip, Clip, "Clip_CPU");
 REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Log, Log, "Log_CPU");
 }; // namespace infini

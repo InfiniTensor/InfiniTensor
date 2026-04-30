@@ -1,7 +1,7 @@
-#include "core/kernel.h"
-#include "core/data_type.h"
-#include "core/tensor.h"
 #include "cpu/cast/cast.h"
+#include "core/data_type.h"
+#include "core/kernel.h"
+#include "core/tensor.h"
 #include "operators/unary.h"
 
 namespace infini {

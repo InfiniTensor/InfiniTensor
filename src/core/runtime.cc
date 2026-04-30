@@ -7,7 +7,8 @@
 #include <cstdlib>
 #include <cstring>
 
-// Include InfiniOps per-device runtime headers for device-dispatched alloc/dealloc/copy
+// Include InfiniOps per-device runtime headers for device-dispatched
+// alloc/dealloc/copy
 #ifdef WITH_CPU
 #include "cpu/runtime_.h"
 #endif
@@ -26,12 +27,12 @@ RuntimeObj::RuntimeObj(Device device, int deviceId)
 #ifdef WITH_NVIDIA
     case Device::Type::kNvidia:
         infini::ops::Runtime<Device::Type::kNvidia>::Malloc(&workspace_,
-                                                             workspaceSize_);
+                                                            workspaceSize_);
         break;
 #endif
     default:
         IT_TODO_HALT_MSG("RuntimeObj: device '" + device.ToString() +
-                                       "' is not supported");
+                         "' is not supported");
         break;
     }
 }
@@ -51,7 +52,7 @@ void *RuntimeObj::alloc(size_t size) {
 #endif
     default:
         IT_TODO_HALT_MSG("RuntimeObj::alloc: device '" + device.ToString() +
-                                       "' is not supported");
+                         "' is not supported");
         break;
     }
     return ptr;
@@ -71,7 +72,7 @@ void RuntimeObj::dealloc(void *ptr) {
 #endif
     default:
         IT_TODO_HALT_MSG("RuntimeObj::dealloc: device '" + device.ToString() +
-                                       "' is not supported");
+                         "' is not supported");
         break;
     }
 }
@@ -84,13 +85,13 @@ void RuntimeObj::copyBlobInsideRuntime(void *dst, const void *src,
         break;
 #ifdef WITH_NVIDIA
     case Device::Type::kNvidia:
-        infini::ops::Runtime<Device::Type::kNvidia>::Memcpy(
-            dst, src, bytes, cudaMemcpyDefault);
+        infini::ops::Runtime<Device::Type::kNvidia>::Memcpy(dst, src, bytes,
+                                                            cudaMemcpyDefault);
         break;
 #endif
     default:
         IT_TODO_HALT_MSG("RuntimeObj::copyBlobInsideRuntime: device '" +
-                                       device.ToString() + "' is not supported");
+                         device.ToString() + "' is not supported");
         break;
     }
 }
@@ -110,13 +111,12 @@ void RuntimeObj::copyBlobFromCPU(void *dst, const void *src,
 #endif
     default:
         IT_TODO_HALT_MSG("RuntimeObj::copyBlobFromCPU: device '" +
-                                       device.ToString() + "' is not supported");
+                         device.ToString() + "' is not supported");
         break;
     }
 }
 
-void RuntimeObj::copyBlobToCPU(void *dst, const void *src,
-                               size_t bytes) const {
+void RuntimeObj::copyBlobToCPU(void *dst, const void *src, size_t bytes) const {
     switch (device.type()) {
     case Device::Type::kCpu:
         std::memcpy(dst, src, bytes);
@@ -130,7 +130,7 @@ void RuntimeObj::copyBlobToCPU(void *dst, const void *src,
 #endif
     default:
         IT_TODO_HALT_MSG("RuntimeObj::copyBlobToCPU: device '" +
-                                       device.ToString() + "' is not supported");
+                         device.ToString() + "' is not supported");
         break;
     }
 }

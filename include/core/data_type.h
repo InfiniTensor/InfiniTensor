@@ -1,10 +1,10 @@
 #pragma once
 #include "core/common.h"
 
-// Forward declaration for InfiniOps DataType conversion.
-namespace infini::ops { enum class DataType : std::int8_t; }
-
 namespace infini {
+namespace ops {
+enum class DataType : std::int8_t;
+}
 
 class DataType {
   public:
@@ -103,8 +103,6 @@ template <> struct DT<12> { using t = uint32_t; };
 template <> struct DT<13> { using t = uint64_t; };
 template <> struct DT<16> { using t = uint16_t; };
 
-// Convert InfiniTensor DataType to InfiniOps DataType (enum).
-// Defined in src/core/data_type.cc.
 infini::ops::DataType toInfiniOpsDataType(const DataType &dt);
 
 } // namespace infini

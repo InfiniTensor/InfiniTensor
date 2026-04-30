@@ -45,15 +45,13 @@ void to_json(json &j, const PerfEngine &p) {
     for (auto &[key, record] : data) {
         auto &[kernelAttrs, opPerfKey] = key;
         auto &[device, opType] = kernelAttrs;
-        arr.push_back(json{
-            {"device_type", static_cast<int>(device.type())},
-            {"device_index", device.index()},
-            {"opType", opType},
-            {"perfHash", opPerfKey.hash},
-            {"perfOpType", opPerfKey.opType},
-            {"perfAttrs", opPerfKey.attrs},
-            {"record", record}
-        });
+        arr.push_back(json{{"device_type", static_cast<int>(device.type())},
+                           {"device_index", device.index()},
+                           {"opType", opType},
+                           {"perfHash", opPerfKey.hash},
+                           {"perfOpType", opPerfKey.opType},
+                           {"perfAttrs", opPerfKey.attrs},
+                           {"record", record}});
     }
     j["data"] = arr;
 }
@@ -63,7 +61,8 @@ void from_json(const json &j, PerfEngine &p) {
         ops::Device device(
             static_cast<ops::Device::Type>(item["device_type"].get<int>()),
             item["device_index"].get<int>());
-        OpType::underlying_t opType = item["opType"].get<OpType::underlying_t>();
+        OpType::underlying_t opType =
+            item["opType"].get<OpType::underlying_t>();
         KernelAttrs kernelAttrs{device, opType};
 
         OpPerfKey opPerfKey;

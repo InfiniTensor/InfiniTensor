@@ -1,7 +1,7 @@
-#include "core/kernel.h"
-#include "core/data_type.h"
-#include "core/tensor.h"
 #include "cpu/rms_norm/rms_norm.h"
+#include "core/data_type.h"
+#include "core/kernel.h"
+#include "core/tensor.h"
 #include "operators/rms_norm.h"
 
 namespace infini {

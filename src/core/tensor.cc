@@ -2,8 +2,8 @@
 #include "core/blob.h"
 #include "core/operator.h"
 #include "core/runtime.h"
-#include "utils/dataloader.h"
 #include "tensor.h" // InfiniOps tensor.h (resolved via -I.../infiniops/src)
+#include "utils/dataloader.h"
 #include <cstring>
 #include <numeric>
 
@@ -180,7 +180,7 @@ void TensorObj::setData(
     } else {
         // Create a CPU buffer for the generetor and copy results to the device
         auto cpuRuntime = make_ref<RuntimeObj>(Device(Device::Type::kCpu), 0,
-                                                 RuntimeObj::NoWorkspace{});
+                                               RuntimeObj::NoWorkspace{});
         size_t nBytes = size() * dtype.getSize();
         Blob buffer = cpuRuntime->allocBlob(nBytes);
         generator(buffer->getPtr<void *>(), size(), dtype);

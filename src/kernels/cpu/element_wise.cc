@@ -127,17 +127,19 @@ class NativeElementWise : public KernelWithoutConfig {
 };
 
 // Add is now handled by InfiniOps adapter (src/kernels/infiniops/add.cc)
-REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Sub, NativeElementWise, "subNaive_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Sub, NativeElementWise,
+                "subNaive_CPU");
 // Mul is now handled by InfiniOps adapter (src/kernels/infiniops/mul.cc)
-REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Div, NativeElementWise, "divNaive_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Div, NativeElementWise,
+                "divNaive_CPU");
 REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Equal, NativeElementWise,
                 "equalNaive_CPU");
-REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::GreaterOrEqual, NativeElementWise,
-                "greaterEqualNaive_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::GreaterOrEqual,
+                NativeElementWise, "greaterEqualNaive_CPU");
 REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Greater, NativeElementWise,
                 "greaterThanNaive_CPU");
-REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::LessOrEqual, NativeElementWise,
-                "lessEqualNaive_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::LessOrEqual,
+                NativeElementWise, "lessEqualNaive_CPU");
 REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::Less, NativeElementWise,
                 "lessEqualNaive_CPU");
 }; // namespace infini

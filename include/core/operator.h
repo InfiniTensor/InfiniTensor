@@ -145,8 +145,8 @@ template <> struct hash<infini::KernelAttrs> {
 };
 
 template <> struct hash<std::pair<infini::KernelAttrs, infini::OpPerfKey>> {
-    size_t operator()(
-        const std::pair<infini::KernelAttrs, infini::OpPerfKey> &key) const noexcept {
+    size_t operator()(const std::pair<infini::KernelAttrs, infini::OpPerfKey>
+                          &key) const noexcept {
         size_t h1 = hash<infini::KernelAttrs>{}(key.first);
         size_t h2 = hash<infini::OpPerfKey>{}(key.second);
         return h1 ^ (h2 << 1);

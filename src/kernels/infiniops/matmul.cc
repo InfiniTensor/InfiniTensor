@@ -1,8 +1,8 @@
-#include "core/kernel.h"
+#include "operators/matmul.h"
 #include "core/data_type.h"
+#include "core/kernel.h"
 #include "core/tensor.h"
 #include "cpu/gemm/gemm.h"
-#include "operators/matmul.h"
 
 namespace infini {
 
@@ -28,26 +28,23 @@ class MatmulInfiniOpsKernel : public KernelWithoutConfig {
             auto *biasObj = bias.get();
             size_t bytes = out0->getBytes();
             std::memcpy(out0->getRawDataPtr<void *>(),
-                        biasObj->getRawDataPtr<void *>(),
-                        bytes);
+                        biasObj->getRawDataPtr<void *>(), bytes);
 
             infini::ops::Gemm::Call(handle, config, a, b,
                                     /*alpha=*/1.0f, /*beta=*/1.0f,
                                     /*trans_a=*/transA ? 1 : 0,
-                                    /*trans_b=*/transB ? 1 : 0,
-                                    output);
+                                    /*trans_b=*/transB ? 1 : 0, output);
         } else {
             // Matmul without bias: Y = A @ B
             infini::ops::Gemm::Call(handle, config, a, b,
                                     /*alpha=*/1.0f, /*beta=*/0.0f,
                                     /*trans_a=*/transA ? 1 : 0,
-                                    /*trans_b=*/transB ? 1 : 0,
-                                    output);
+                                    /*trans_b=*/transB ? 1 : 0, output);
         }
     }
 };
 
-REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::MatMul, MatmulInfiniOpsKernel,
-                "Matmul_InfiniOps_CPU");
+REGISTER_KERNEL(Device(Device::Type::kCpu), OpType::MatMul,
+                MatmulInfiniOpsKernel, "Matmul_InfiniOps_CPU");
 
 } // namespace infini
