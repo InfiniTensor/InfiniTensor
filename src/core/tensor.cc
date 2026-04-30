@@ -3,6 +3,7 @@
 #include "core/operator.h"
 #include "core/runtime.h"
 #include "utils/dataloader.h"
+#include "tensor.h" // InfiniOps tensor.h (resolved via -I.../infiniops/src)
 #include <cstring>
 #include <numeric>
 
@@ -224,4 +225,23 @@ size_t TensorObj::getOffsetByBroadcastOffset(size_t bcOffset,
 
     return getOffsetByPos(pos, shape);
 }
+
+infini::ops::Tensor toInfiniOpsTensor(const TensorObj *tensor) {
+    void *data = tensor->getRawDataPtr<void *>();
+
+    // Shape: vector<int> → vector<size_t>
+    auto dims = tensor->getDims();
+    infini::ops::Tensor::Shape shape(dims.begin(), dims.end());
+
+    auto dtype = toInfiniOpsDataType(tensor->getDType());
+
+    auto device = tensor->getRuntime()->getDevice();
+
+    // Strides: vector<int> → vector<ptrdiff_t>
+    auto stride = tensor->getStride();
+    infini::ops::Tensor::Strides strides(stride.begin(), stride.end());
+
+    return infini::ops::Tensor(data, shape, dtype, device, strides);
+}
+
 }; // namespace infini

@@ -1,5 +1,6 @@
 #include "core/kernel.h"
-#include "core/infiniops_bridge/tensor_convert.h"
+#include "core/data_type.h"
+#include "core/tensor.h"
 #include "cpu/cast/cast.h"
 #include "operators/unary.h"
 
