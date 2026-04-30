@@ -17,7 +17,6 @@ class GraphObj;
 class GraphHandlerObj;
 class RuntimeObj;
 class BlobObj;
-template <typename T> class WorkspaceObj;
 
 using TensorBase = Ref<TensorBaseObj>;
 using Tensor = Ref<TensorObj>;
@@ -26,7 +25,6 @@ using Graph = Ref<GraphObj>;
 using GraphHandler = Ref<GraphHandlerObj>;
 using Runtime = Ref<RuntimeObj>;
 using Blob = Ref<BlobObj>;
-template <typename T> using Workspace = Ref<WorkspaceObj<T>>;
 
 using TensorVec = vector<Tensor>;
 using OpVec = vector<Operator>;

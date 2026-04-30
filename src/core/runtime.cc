@@ -151,7 +151,6 @@ void RuntimeObj::resetWorkspace() { workspaceCursor_ = 0; }
 infini::ops::Handle RuntimeObj::makeHandle() const {
     infini::ops::Handle handle;
     handle.set_workspace(workspace_);
-    handle.set_workspace_size_in_bytes(workspaceSize_ - workspaceCursor_);
     return handle;
 }
 
