@@ -15,7 +15,7 @@
 namespace infini {
 // hrnet48 head   match conv-relu
 TEST(SubGraphRewriter, subGraphMatch1) {
-    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
     Graph g = make_ref<GraphObj>(runtime);
     Tensor i0 = g->addTensor({1, 3, 244, 244}, DataType::UInt32);
     Tensor w0 = g->addTensor({64, 3, 3, 3}, DataType::UInt32);
@@ -52,7 +52,7 @@ TEST(SubGraphRewriter, subGraphMatch1) {
 }
 
 TEST(MatchGraph, single_input) {
-    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
     // subG0
     Tensor si0 =
         make_ref<TensorObj>(Shape{1, 96, 28, 28}, DataType::UInt32, runtime);
@@ -139,7 +139,7 @@ TEST(MatchGraph, single_input) {
 }
 
 TEST(MatchGraph, multi_input) {
-    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
     // subG0
     Tensor i0 =
         make_ref<TensorObj>(Shape{3, 4, 5, 2}, DataType::UInt32, runtime);
@@ -201,7 +201,7 @@ TEST(MatchGraph, multi_input) {
 }
 
 TEST(MatchGraph, multi_output) {
-    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
     // subg0
     Tensor i =
         make_ref<TensorObj>(Shape{1, 192, 71, 71}, DataType::UInt32, runtime);
@@ -270,7 +270,7 @@ TEST(MatchGraph, multi_output) {
 
 // gcn
 TEST(MatchGraph, multi_input_output) {
-    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
     // subg0
     Tensor i0 =
         make_ref<TensorObj>(Shape{1, 64, 112, 112}, DataType::UInt32, runtime);
@@ -366,7 +366,7 @@ TEST(MatchGraph, multi_input_output) {
 
 /* One Node having two or more successors is not supported yet.
 TEST(MatchGraph, same_successor) {
-    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
     // subg0
     Tensor i0 =
         make_ref<TensorObj>(Shape{1, 64, 112, 112}, DataType::UInt32, runtime);

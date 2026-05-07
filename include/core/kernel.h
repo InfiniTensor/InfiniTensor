@@ -210,3 +210,32 @@ using CpuKernelWithoutConfig [[deprecated("Use KernelWithoutConfig instead")]] =
 
 #define REGISTER_CONSTRUCTOR(type, constructor)                                \
     _REGISTER_CONSTRUCTOR_1(type, constructor, __COUNTER__)
+
+// Pull in DeviceEnabled<> specializations for all InfiniOps device backends.
+// All device_.h files only depend on device.h (no GPU-specific headers),
+// so unconditional inclusion is safe.
+#include "ascend/device_.h"
+#include "cambricon/device_.h"
+#include "cpu/device_.h"
+#include "cuda/iluvatar/device_.h"
+#include "cuda/metax/device_.h"
+#include "cuda/moore/device_.h"
+#include "cuda/nvidia/device_.h"
+
+// Register kernel for all device backends (one macro call per operator).
+// If a platform lacks an operator implementation, InfiniOps dispatch will
+// report: "dispatch error: no allowed values registered for value X"
+#define REGISTER_ALL_DEVICES(opType, kernel, name)                             \
+    REGISTER_KERNEL(Device(Device::Type::kCpu), opType, kernel, name "_CPU");  \
+    REGISTER_KERNEL(Device(Device::Type::kNvidia), opType, kernel,             \
+                    name "_NVIDIA");                                           \
+    REGISTER_KERNEL(Device(Device::Type::kCambricon), opType, kernel,          \
+                    name "_CAMBRICON");                                        \
+    REGISTER_KERNEL(Device(Device::Type::kAscend), opType, kernel,             \
+                    name "_ASCEND");                                           \
+    REGISTER_KERNEL(Device(Device::Type::kMetax), opType, kernel,              \
+                    name "_METAX");                                            \
+    REGISTER_KERNEL(Device(Device::Type::kMoore), opType, kernel,              \
+                    name "_MOORE");                                            \
+    REGISTER_KERNEL(Device(Device::Type::kIluvatar), opType, kernel,           \
+                    name "_ILUVATAR")

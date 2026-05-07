@@ -152,15 +152,33 @@ static Runtime bang_runtime() {
 }
 #endif
 
-// Kunlun device type exists in InfiniOps but no WITH_KUNLUN compile flag.
-// The runtime factory is always available.
+#ifdef WITH_KUNLUN
 static Runtime kunlun_runtime() {
     return make_ref<RuntimeObj>(Device(Device::Type::kKunlun));
 }
+#endif
 
 #ifdef WITH_ASCEND
 static Runtime ascend_runtime() {
     return make_ref<RuntimeObj>(Device(Device::Type::kAscend));
+}
+#endif
+
+#ifdef WITH_ILUVATAR
+static Runtime iluvatar_runtime() {
+    return make_ref<RuntimeObj>(Device(Device::Type::kIluvatar));
+}
+#endif
+
+#ifdef WITH_METAX
+static Runtime metax_runtime() {
+    return make_ref<RuntimeObj>(Device(Device::Type::kMetax));
+}
+#endif
+
+#ifdef WITH_MOORE
+static Runtime moore_runtime() {
+    return make_ref<RuntimeObj>(Device(Device::Type::kMoore));
 }
 #endif
 
@@ -328,7 +346,9 @@ void export_functions(py::module &m) {
 #ifdef WITH_CAMBRICON
         .FUNCTION(bang_runtime)
 #endif
+#ifdef WITH_KUNLUN
         .FUNCTION(kunlun_runtime)
+#endif
 #ifdef WITH_ASCEND
         .FUNCTION(ascend_runtime)
 #endif

@@ -9,7 +9,7 @@
 namespace infini {
 
 TEST(ConvTransposed, ShapeInference) {
-    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
     { // No pad: InfoGAN ConvTranspose_0
         Graph g = make_ref<GraphObj>(runtime);
         Tensor i0 = g->addTensor({1, 228, 1, 1});

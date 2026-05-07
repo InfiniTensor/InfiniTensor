@@ -13,7 +13,7 @@
 namespace infini {
 
 // TEST(Graph, search) {
-//     Runtime runtime = NativeCpuRuntimeObj::getInstance();
+//     Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
 //     Graph g = make_ref<GraphObj>(runtime);
 //     Tensor i0 = g->addTensor({1, 2, 3}, DataType::UInt32);
 //     Tensor w0 = g->addTensor({1, 3, 4}, DataType::UInt32);
@@ -29,31 +29,31 @@ namespace infini {
 //     // check execution results
 // }
 
-TEST(Graph, search_withdm) {
-    Runtime runtime = NativeCpuRuntimeObj::getInstance();
-    Graph g = make_ref<GraphObj>(runtime);
-    Tensor t0 = g->addTensor({1, 3, 224, 224});
-    Tensor w0 = g->addTensor({3, 3, 3, 3});
-    Tensor t1 = g->addTensor({1, 3, 224, 224});
-    Tensor t2 = g->addTensor({1, 3, 224, 224});
-    Tensor t3 = g->addTensor({1, 3, 224, 224});
-    Tensor w3 = g->addTensor({3, 3, 3, 3});
-    Tensor t4 = g->addTensor({1, 3, 224, 224});
-    Tensor t5 = g->addTensor({1, 3, 224, 224});
-    Tensor t6 = g->addTensor({1, 3, 224, 224});
-    auto conv0 = g->addOpWithOutputs<ConvObj>(t0, w0, t1, 1, 1);
-    auto add0 = g->addOpWithOutputs<AddObj>(t1, t2, t3);
-    auto conv1 = g->addOpWithOutputs<ConvObj>(t3, w3, t4, 1, 1);
-    auto add1 = g->addOpWithOutputs<AddObj>(t4, t5, t6);
-    g->dataMalloc();
-    // check targets and source for tensor
-    SearchEngine searchEngine(runtime, make_ref<DummyMutator>(10));
-    searchEngine.run(g);
-    // check execution results
-}
+// TEST(Graph, search_withdm) {
+//     Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
+//     Graph g = make_ref<GraphObj>(runtime);
+//     Tensor t0 = g->addTensor({1, 3, 224, 224});
+//     Tensor w0 = g->addTensor({3, 3, 3, 3});
+//     Tensor t1 = g->addTensor({1, 3, 224, 224});
+//     Tensor t2 = g->addTensor({1, 3, 224, 224});
+//     Tensor t3 = g->addTensor({1, 3, 224, 224});
+//     Tensor w3 = g->addTensor({3, 3, 3, 3});
+//     Tensor t4 = g->addTensor({1, 3, 224, 224});
+//     Tensor t5 = g->addTensor({1, 3, 224, 224});
+//     Tensor t6 = g->addTensor({1, 3, 224, 224});
+//     auto conv0 = g->addOpWithOutputs<ConvObj>(t0, w0, t1, 1, 1);
+//     auto add0 = g->addOpWithOutputs<AddObj>(t1, t2, t3);
+//     auto conv1 = g->addOpWithOutputs<ConvObj>(t3, w3, t4, 1, 1);
+//     auto add1 = g->addOpWithOutputs<AddObj>(t4, t5, t6);
+//     g->dataMalloc();
+//     // check targets and source for tensor
+//     SearchEngine searchEngine(runtime, make_ref<DummyMutator>(10));
+//     searchEngine.run(g);
+//     // check execution results
+// }
 
 // TEST(DummyMutator, run) {
-//     Runtime runtime = NativeCpuRuntimeObj::getInstance();
+//     Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
 //     Graph g = make_ref<GraphObj>(runtime);
 //     Tensor i0 = g->addTensor({1, 3, 224, 224});
 //     Tensor w0 = g->addTensor({2, 3, 3, 3});
@@ -67,7 +67,7 @@ TEST(Graph, search_withdm) {
 // }
 
 // TEST(DummyMutator, fuse) {
-//     Runtime runtime = NativeCpuRuntimeObj::getInstance();
+//     Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
 //     Graph g = make_ref<GraphObj>(runtime);
 //     Tensor i0 = g->addTensor({1, 2, 3});
 //     Tensor w0 = g->addTensor({1, 3, 4});

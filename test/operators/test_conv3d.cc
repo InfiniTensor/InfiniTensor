@@ -8,7 +8,7 @@
 namespace infini {
 
 TEST(Conv3d, ShapeInference) {
-    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
     // Padding modes
     {
         Graph g = make_ref<GraphObj>(runtime);

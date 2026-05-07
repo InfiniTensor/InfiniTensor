@@ -9,7 +9,7 @@ namespace infini {
 
 TEST(LazyAllocator, testMergeFreeBlocks) {
     Shape shape = Shape{1, 2, 2, 3};
-    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
     Tensor a = make_ref<TensorObj>(shape, DataType::Float32, runtime);
     Tensor b = make_ref<TensorObj>(shape, DataType::Float32, runtime);
     Tensor c = make_ref<TensorObj>(shape, DataType::Float32, runtime);
@@ -34,7 +34,7 @@ TEST(LazyAllocator, testMergeFreeBlocks) {
 
 TEST(LazyAllocator, testAlloc) {
     Shape shape = Shape{1, 2, 2, 3};
-    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
     Tensor a = make_ref<TensorObj>(shape, DataType::Float32, runtime);
     Tensor b = make_ref<TensorObj>(shape, DataType::Float32, runtime);
     Tensor c = make_ref<TensorObj>(shape, DataType::Float32, runtime);
@@ -53,7 +53,7 @@ TEST(LazyAllocator, testAlloc) {
 
 TEST(LazyAllocator, testAllocWithEndFreeBlock) {
     Shape shape = Shape{1, 2, 2, 3};
-    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
     Tensor a = make_ref<TensorObj>(shape, DataType::Float32, runtime);
     Tensor b = make_ref<TensorObj>(shape, DataType::Float32, runtime);
     Tensor c = make_ref<TensorObj>(shape, DataType::Float32, runtime);
@@ -76,7 +76,7 @@ TEST(LazyAllocator, testAllocWithEndFreeBlock) {
 
 TEST(LazyAllocator, testGetPtr) {
     Shape shape = Shape{1, 2, 2, 3};
-    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
     Tensor a = make_ref<TensorObj>(shape, DataType::Float32, runtime);
     Tensor b = make_ref<TensorObj>(shape, DataType::Float32, runtime);
     Tensor c = make_ref<TensorObj>(shape, DataType::Float32, runtime);

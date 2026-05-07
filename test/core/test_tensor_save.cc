@@ -8,7 +8,7 @@ namespace infini {
 
 TEST(Prtotbuf, save_and_load) {
 #ifdef TENSOR_PROTOBUF
-    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
     Graph g = make_ref<GraphObj>(runtime);
     Tensor i0 = g->addTensor({1, 3, 4}, DataType::Float32);
     Tensor w0 = g->addTensor({1, 3, 4}, DataType::Float32);

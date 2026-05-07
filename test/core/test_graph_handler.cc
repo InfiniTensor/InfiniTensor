@@ -5,7 +5,7 @@
 namespace infini {
 
 TEST(Handler, matmul) {
-    auto runtime = NativeCpuRuntimeObj::getInstance();
+    auto runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
     auto handler = make_ref<GraphHandlerObj>(runtime);
     auto i = handler->tensor({1, 2, 3}, DataType::UInt32.getIndex());
     auto w = handler->tensor({1, 3, 4}, DataType::UInt32.getIndex());

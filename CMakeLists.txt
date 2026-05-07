@@ -4,6 +4,14 @@ option(USE_PROTOBUF "Serialize and deserialize tensors" OFF)
 option(BUILD_NNET "Build nnet" OFF)
 option(BUILD_DIST "Build project for distributed running" OFF)
 option(BUILD_TEST "Build tests" OFF)
+option(USE_CUDA "Use CUDA" OFF)
+option(USE_ASCEND "Use Ascend" OFF)
+option(USE_METAX "Use Metax" OFF)
+option(USE_MOORE "Use Moore" OFF)
+option(USE_BANG "Support BANG MLU" OFF)
+option(USE_ILUVATAR "Use Iluvatar" OFF)
+option(USE_KUNLUN "Use Kunlun" OFF)
+option(USE_TORCH "Use Torch" OFF)
 
 # InfiniOps requires CMake 3.18+ for CUDAToolkit support
 cmake_minimum_required(VERSION 3.18)
@@ -95,25 +103,37 @@ include_directories(3rd-party/pybind11/include)
 add_subdirectory(3rd-party/nlohmann_json_cmake_fetchcontent)
 include_directories(3rd-party/nlohmann_json_cmake_fetchcontent/single_include)
 
-# InfiniOps — third-party operator library (kernel provider)
 set(INFINIOPS_DIR "${CMAKE_SOURCE_DIR}/3rd-party/infiniops"
     CACHE PATH "Path to InfiniOps source directory (default: git submodule)")
 
-# Disable InfiniOps's Python bindings (InfiniTensor has its own backend pybind11 module)
 set(GENERATE_PYTHON_BINDINGS OFF CACHE BOOL "" FORCE)
-# Disable auto-detection to avoid spurious GPU backend activation.
-# InfiniOps will still build CPU support via WITH_CPU=ON below.
-set(AUTO_DETECT_DEVICES OFF CACHE BOOL "" FORCE)
-set(AUTO_DETECT_BACKENDS OFF CACHE BOOL "" FORCE)
 set(WITH_CPU ON CACHE BOOL "" FORCE)
-# Explicitly disable GPU backends unless the user enables them.
-# Override auto-detect results that may activate backends without a working compiler.
-set(WITH_NVIDIA OFF CACHE BOOL "" FORCE)
-set(WITH_ILUVATAR OFF CACHE BOOL "" FORCE)
-set(WITH_METAX OFF CACHE BOOL "" FORCE)
-set(WITH_MOORE OFF CACHE BOOL "" FORCE)
-set(WITH_CAMBRICON OFF CACHE BOOL "" FORCE)
-set(WITH_ASCEND OFF CACHE BOOL "" FORCE)
+
+if(USE_CUDA)
+    set(WITH_NVIDIA ON CACHE BOOL "" FORCE)
+endif()
+if(USE_BANG)
+    set(WITH_CAMBRICON ON CACHE BOOL "" FORCE)
+endif()
+if(USE_KUNLUN)
+    set(WITH_KUNLUN ON CACHE BOOL "" FORCE)
+endif()
+if(USE_ASCEND)
+    set(WITH_NVIDIA ON CACHE BOOL "" FORCE)
+endif()
+if(USE_METAX)
+    set(WITH_METAX ON CACHE BOOL "" FORCE)
+endif()
+if(USE_MOORE)
+    set(WITH_MOORE ON CACHE BOOL "" FORCE)
+endif()
+if(USE_ILUVATAR)
+    set(WITH_ILUVATAR ON CACHE BOOL "" FORCE)
+endif()
+if(USE_TORCH)
+    set(WITH_TORCH ON CACHE BOOL "" FORCE)
+endif()
+
 
 add_subdirectory(${INFINIOPS_DIR} ${CMAKE_BINARY_DIR}/infiniops EXCLUDE_FROM_ALL)
 
@@ -148,7 +168,7 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -UNDEBUG")
 
 
 # Source files
-file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/kernels/cpu/*.cc src/operators/*.cc src/utils/*.cc)
+file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/operators/*.cc src/utils/*.cc)
 
 if(BUILD_NNET)
   add_compile_definitions(BUILD_NNET=1)
@@ -159,16 +179,17 @@ if(BUILD_NNET)
 endif()
 
 # InfiniOps adapter kernels
-file(GLOB_RECURSE SRC_INFINIOPS_ADAPTER src/kernels/infiniops/*.cc)
-if(SRC_INFINIOPS_ADAPTER)
-  list(APPEND SRC ${SRC_INFINIOPS_ADAPTER})
+file(GLOB_RECURSE SRC_INFINIOPS_ADAPTER src/kernels/*.cc)
+if(WITH_NVIDIA OR WITH_ILUVATAR)
+    include(CheckLanguage)
+    check_language(CUDA)
+    if(CMAKE_CUDA_COMPILER)
+        enable_language(CUDA)
+        set_source_files_properties(${SRC_INFINIOPS_ADAPTER}
+            PROPERTIES LANGUAGE CUDA)
+    endif()
 endif()
-
-# CPU fallback kernels (for operators not yet supported by InfiniOps)
-file(GLOB_RECURSE SRC_FALLBACK src/kernels/infiniops_fallback/*.cc)
-if(SRC_FALLBACK)
-  list(APPEND SRC ${SRC_FALLBACK})
-endif()
+list(APPEND SRC ${SRC_INFINIOPS_ADAPTER})
 
 # Libraries
 add_library(InfiniTensor SHARED ${SRC})
@@ -220,14 +241,14 @@ if(BUILD_TEST)
     build_test(test/trace/*.cc)
   endif()
   if(BUILD_TEST_CORE)
-    # TODO: re-enable after migrating test files to use RuntimeObj
-    # build_test(test/core/*.cc)
-    # build_test(test/operators/*.cc)
-    # build_test(test/kernels/nativecpu/*.cc)
+    build_test(test/core/*.cc)
+    build_test(test/operators/*.cc)
   endif()
   if(BUILD_TEST_PET)
     build_test(test/pet/*.cc)
   endif()
+  include_directories(test/kernels)
+  build_test(test/kernels/*.cpp)
   if(BUILD_NNET AND BUILD_TEST)
     build_test(test/nnet/test_*.cc)
 

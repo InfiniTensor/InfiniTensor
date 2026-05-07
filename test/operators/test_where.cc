@@ -8,7 +8,7 @@
 namespace infini {
 
 TEST(WhereFp32, ShapeInference) {
-    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
     {
         Graph g = make_ref<GraphObj>(runtime);
         Tensor x = g->addTensor({2, 2}, DataType::Float32);
@@ -43,7 +43,7 @@ TEST(WhereFp32, ShapeInference) {
     }
 }
 TEST(WhereFp16, ShapeInference) {
-    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
     {
         Graph g = make_ref<GraphObj>(runtime);
         Tensor x = g->addTensor({2, 2}, DataType::Float16);
