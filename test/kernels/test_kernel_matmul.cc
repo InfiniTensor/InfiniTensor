@@ -96,6 +96,7 @@ TEST(MatmulCpu, Batched_2x2x3_x_2x3x2) {
 // ============================================================
 
 class MatmulCrossPlatform : public ::testing::TestWithParam<Device::Type> {};
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(MatmulCrossPlatform);
 
 TEST_P(MatmulCrossPlatform, Square_128x128) {
     auto device = GetParam();

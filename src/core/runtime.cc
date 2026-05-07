@@ -7,133 +7,154 @@
 #include <cstdlib>
 #include <cstring>
 
-// Include InfiniOps per-device runtime headers for device-dispatched
-// alloc/dealloc/copy
 #ifdef WITH_CPU
 #include "cpu/runtime_.h"
 #endif
 #ifdef WITH_NVIDIA
 #include "cuda/nvidia/runtime_.h"
 #endif
+#ifdef WITH_MOORE
+#include "cuda/moore/runtime_.h"
+#endif
+#ifdef WITH_ILUVATAR
+#include "cuda/iluvatar/runtime_.h"
+#endif
+#ifdef WITH_METAX
+#include "cuda/metax/runtime_.h"
+#endif
+#ifdef WITH_CAMBRICON
+#include "cambricon/runtime_.h"
+#endif
+#ifdef WITH_ASCEND
+#include "ascend/runtime_.h"
+#endif
 
 namespace infini {
 
-RuntimeObj::RuntimeObj(Device device, int deviceId)
-    : device(device), deviceId(deviceId) {
-    switch (device.type()) {
+namespace {
+
+template <Device::Type DT> struct DeviceTag {
+    static constexpr Device::Type value = DT;
+};
+
+template <typename F> void dispatchDevice(Device::Type type, F &&func) {
+#define DISPATCH_CASE(TYPE)                                                    \
+    case Device::Type::TYPE:                                                   \
+        std::forward<F>(func)(DeviceTag<Device::Type::TYPE>{});                \
+        break;
+    switch (type) {
     case Device::Type::kCpu:
-        workspace_ = std::malloc(workspaceSize_);
+        std::forward<F>(func)(DeviceTag<Device::Type::kCpu>{});
         break;
 #ifdef WITH_NVIDIA
     case Device::Type::kNvidia:
-        infini::ops::Runtime<Device::Type::kNvidia>::Malloc(&workspace_,
-                                                            workspaceSize_);
+        std::forward<F>(func)(DeviceTag<Device::Type::kNvidia>{});
+        break;
+#endif
+#ifdef WITH_MOORE
+    case Device::Type::kMoore:
+        std::forward<F>(func)(DeviceTag<Device::Type::kMoore>{});
+        break;
+#endif
+#ifdef WITH_ILUVATAR
+    case Device::Type::kIluvatar:
+        std::forward<F>(func)(DeviceTag<Device::Type::kIluvatar>{});
+        break;
+#endif
+#ifdef WITH_METAX
+    case Device::Type::kMetax:
+        std::forward<F>(func)(DeviceTag<Device::Type::kMetax>{});
+        break;
+#endif
+#ifdef WITH_CAMBRICON
+    case Device::Type::kCambricon:
+        std::forward<F>(func)(DeviceTag<Device::Type::kCambricon>{});
+        break;
+#endif
+#ifdef WITH_ASCEND
+    case Device::Type::kAscend:
+        std::forward<F>(func)(DeviceTag<Device::Type::kAscend>{});
         break;
 #endif
     default:
-        IT_TODO_HALT_MSG("RuntimeObj: device '" + device.ToString() +
-                         "' is not supported");
-        break;
+        IT_TODO_HALT_MSG("RuntimeObj: unsupported device type " +
+                         std::to_string(static_cast<int>(type)));
     }
+#undef DISPATCH_CASE
+}
+
+} // anonymous namespace
+
+// ---- Constructor ----
+
+RuntimeObj::RuntimeObj(Device device, int deviceId)
+    : device(device), deviceId(deviceId) {
+    dispatchDevice(device.type(), [&](auto tag) {
+        constexpr auto DT = decltype(tag)::value;
+        infini::ops::Runtime<DT>::Malloc(&workspace_, workspaceSize_);
+    });
 }
 
 RuntimeObj::~RuntimeObj() { dealloc(workspace_); }
 
+// ---- alloc / dealloc ----
+
 void *RuntimeObj::alloc(size_t size) {
     void *ptr = nullptr;
-    switch (device.type()) {
-    case Device::Type::kCpu:
-        ptr = std::malloc(size);
-        break;
-#ifdef WITH_NVIDIA
-    case Device::Type::kNvidia:
-        infini::ops::Runtime<Device::Type::kNvidia>::Malloc(&ptr, size);
-        break;
-#endif
-    default:
-        IT_TODO_HALT_MSG("RuntimeObj::alloc: device '" + device.ToString() +
-                         "' is not supported");
-        break;
-    }
+    dispatchDevice(device.type(), [&](auto tag) {
+        constexpr auto DT = decltype(tag)::value;
+        infini::ops::Runtime<DT>::Malloc(&ptr, size);
+    });
     return ptr;
 }
 
 void RuntimeObj::dealloc(void *ptr) {
-    if (ptr == nullptr)
+    if (!ptr)
         return;
-    switch (device.type()) {
-    case Device::Type::kCpu:
-        std::free(ptr);
-        break;
-#ifdef WITH_NVIDIA
-    case Device::Type::kNvidia:
-        infini::ops::Runtime<Device::Type::kNvidia>::Free(ptr);
-        break;
-#endif
-    default:
-        IT_TODO_HALT_MSG("RuntimeObj::dealloc: device '" + device.ToString() +
-                         "' is not supported");
-        break;
-    }
+    dispatchDevice(device.type(), [&](auto tag) {
+        constexpr auto DT = decltype(tag)::value;
+        infini::ops::Runtime<DT>::Free(ptr);
+    });
 }
+
+// ---- Blob copy ----
 
 void RuntimeObj::copyBlobInsideRuntime(void *dst, const void *src,
                                        size_t bytes) const {
-    switch (device.type()) {
-    case Device::Type::kCpu:
-        std::memcpy(dst, src, bytes);
-        break;
-#ifdef WITH_NVIDIA
-    case Device::Type::kNvidia:
-        infini::ops::Runtime<Device::Type::kNvidia>::Memcpy(dst, src, bytes,
-                                                            cudaMemcpyDefault);
-        break;
-#endif
-    default:
-        IT_TODO_HALT_MSG("RuntimeObj::copyBlobInsideRuntime: device '" +
-                         device.ToString() + "' is not supported");
-        break;
-    }
+    dispatchDevice(device.type(), [&](auto tag) {
+        constexpr auto DT = decltype(tag)::value;
+        if constexpr (DT == Device::Type::kCpu) {
+            std::memcpy(dst, src, bytes);
+        } else {
+            // TODO: Uncomment once InfiniOps adds MemcpyDeviceToDevice to
+            //       Runtime interface, then remove the IT_TODO_HALT below.
+            // infini::ops::Runtime<DT>::Memcpy(
+            //     dst, src, bytes,
+            //     infini::ops::Runtime<DT>::MemcpyDeviceToDevice);
+            IT_TODO_HALT_MSG("copyBlobInsideRuntime: device '" +
+                             device.ToString() + "' is not supported");
+        }
+    });
 }
 
 void RuntimeObj::copyBlobFromCPU(void *dst, const void *src,
                                  size_t bytes) const {
-    switch (device.type()) {
-    case Device::Type::kCpu:
-        std::memcpy(dst, src, bytes);
-        break;
-#ifdef WITH_NVIDIA
-    case Device::Type::kNvidia:
-        infini::ops::Runtime<Device::Type::kNvidia>::Memcpy(
-            dst, src, bytes,
-            infini::ops::Runtime<Device::Type::kNvidia>::MemcpyHostToDevice);
-        break;
-#endif
-    default:
-        IT_TODO_HALT_MSG("RuntimeObj::copyBlobFromCPU: device '" +
-                         device.ToString() + "' is not supported");
-        break;
-    }
+    dispatchDevice(device.type(), [&](auto tag) {
+        constexpr auto DT = decltype(tag)::value;
+        infini::ops::Runtime<DT>::Memcpy(
+            dst, src, bytes, infini::ops::Runtime<DT>::MemcpyHostToDevice);
+    });
 }
 
 void RuntimeObj::copyBlobToCPU(void *dst, const void *src, size_t bytes) const {
-    switch (device.type()) {
-    case Device::Type::kCpu:
-        std::memcpy(dst, src, bytes);
-        break;
-#ifdef WITH_NVIDIA
-    case Device::Type::kNvidia:
-        infini::ops::Runtime<Device::Type::kNvidia>::Memcpy(
-            dst, src, bytes,
-            infini::ops::Runtime<Device::Type::kNvidia>::MemcpyDeviceToHost);
-        break;
-#endif
-    default:
-        IT_TODO_HALT_MSG("RuntimeObj::copyBlobToCPU: device '" +
-                         device.ToString() + "' is not supported");
-        break;
-    }
+    dispatchDevice(device.type(), [&](auto tag) {
+        constexpr auto DT = decltype(tag)::value;
+        infini::ops::Runtime<DT>::Memcpy(
+            dst, src, bytes, infini::ops::Runtime<DT>::MemcpyDeviceToHost);
+    });
 }
+
+// ---- Workspace / Handle / toString ----
 
 void *RuntimeObj::getWorkspace(size_t size) {
     if (size > workspaceSize_) {
@@ -157,6 +178,8 @@ infini::ops::Handle RuntimeObj::makeHandle() const {
 string RuntimeObj::toString() const {
     return "Runtime (" + device.ToString() + ")";
 }
+
+// ---- Graph execution ----
 
 void RuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
     if (!tune && profiling)

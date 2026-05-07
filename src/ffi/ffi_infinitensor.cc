@@ -352,6 +352,15 @@ void export_functions(py::module &m) {
 #ifdef WITH_ASCEND
         .FUNCTION(ascend_runtime)
 #endif
+#ifdef WITH_METAX
+        .FUNCTION(metax_runtime)
+#endif
+#ifdef WITH_ILUVATAR
+        .FUNCTION(iluvatar_runtime)
+#endif
+#ifdef WITH_MOORE
+        .FUNCTION(moore_runtime)
+#endif
         .FUNCTION(conv_attrs_of)
         .FUNCTION(conv_trans_attrs_of)
         .FUNCTION(matmul_attrs_of)

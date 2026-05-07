@@ -7,7 +7,6 @@
 namespace infini {
 namespace test {
 
-// Get all platforms available in the current build (controlled by CMake macros)
 inline std::vector<Device::Type> availablePlatforms() {
     std::vector<Device::Type> platforms;
     platforms.push_back(Device::Type::kCpu);

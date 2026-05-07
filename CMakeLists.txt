@@ -123,9 +123,11 @@ if(USE_ASCEND)
 endif()
 if(USE_METAX)
     set(WITH_METAX ON CACHE BOOL "" FORCE)
+    add_compile_definitions(WITH_METAX=1)
 endif()
 if(USE_MOORE)
     set(WITH_MOORE ON CACHE BOOL "" FORCE)
+    add_compile_definitions(WITH_MOORE=1)
 endif()
 if(USE_ILUVATAR)
     set(WITH_ILUVATAR ON CACHE BOOL "" FORCE)
@@ -188,11 +190,92 @@ if(WITH_NVIDIA OR WITH_ILUVATAR)
         set_source_files_properties(${SRC_INFINIOPS_ADAPTER}
             PROPERTIES LANGUAGE CUDA)
     endif()
+    list(APPEND SRC ${SRC_INFINIOPS_ADAPTER})
+elseif(WITH_MOORE)
+    # Adapter kernel files must be compiled with mcc (MUSA compiler)
+    # because they include MUSA-specific headers (__device__, musa_fp16, etc.)
+    # that g++ cannot handle. Compile them via custom commands and link .o files.
+    set(MCC_WRAPPER "${INFINIOPS_DIR}/scripts/mcc_wrapper.sh")
+    set(MUSA_ROOT "")
+    foreach(_env MUSA_ROOT MUSA_HOME MUSA_PATH)
+        if(NOT MUSA_ROOT AND DEFINED ENV{${_env}} AND NOT "$ENV{${_env}}" STREQUAL "")
+            set(MUSA_ROOT "$ENV{${_env}}")
+        endif()
+    endforeach()
+    if(NOT MUSA_ROOT AND EXISTS "/usr/local/musa")
+        set(MUSA_ROOT "/usr/local/musa")
+    endif()
+    set(_moore_adapter_objs "")
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/moore_adapter")
+    foreach(_src ${SRC_INFINIOPS_ADAPTER})
+        get_filename_component(_name ${_src} NAME_WE)
+        set(_obj "${CMAKE_CURRENT_BINARY_DIR}/moore_adapter/${_name}.o")
+        add_custom_command(
+            OUTPUT ${_obj}
+            COMMAND ${MCC_WRAPPER} -c -x musa -std=c++17 -O2 -fPIC
+                -I${CMAKE_CURRENT_SOURCE_DIR}/include
+                -I${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/nlohmann_json_cmake_fetchcontent/single_include
+                -I${CMAKE_CURRENT_SOURCE_DIR}/test/kernels
+                -I${INFINIOPS_DIR}/src
+                -I${MUSA_ROOT}/include
+                -DNDEBUG -DWITH_CPU=1 -DWITH_MOORE=1 -DBUILD_TEST=1
+                -o ${_obj} ${_src}
+            DEPENDS ${_src}
+            COMMENT "Compiling ${_src} with mcc (MUSA compiler)"
+        )
+        list(APPEND _moore_adapter_objs ${_obj})
+    endforeach()
+    add_custom_target(moore_adapter DEPENDS ${_moore_adapter_objs})
+    # Object files will be added to InfiniTensor after target creation
+elseif(WITH_METAX)
+    # Adapter kernel files must be compiled with mxcc (METAX compiler)
+    # because they include METAX-specific headers that g++ cannot handle.
+    # Compile them via custom commands and link .o files.
+    set(METAX_COMPILER "mxcc")
+    foreach(_env MXCC_PATH MACA_HOME METAX_ROOT)
+        if(DEFINED ENV{${_env}} AND NOT "$ENV{${_env}}" STREQUAL "")
+            set(METAX_COMPILER "$ENV{${_env}}/bin/mxcc")
+            break()
+        endif()
+    endforeach()
+    if(NOT EXISTS "${METAX_COMPILER}" AND EXISTS "/opt/maca/mxgpu_llvm/bin/mxcc")
+        set(METAX_COMPILER "/opt/maca/mxgpu_llvm/bin/mxcc")
+    endif()
+    set(_metax_adapter_objs "")
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/metax_adapter")
+    foreach(_src ${SRC_INFINIOPS_ADAPTER})
+        get_filename_component(_name ${_src} NAME_WE)
+        set(_obj "${CMAKE_CURRENT_BINARY_DIR}/metax_adapter/${_name}.o")
+        add_custom_command(
+            OUTPUT ${_obj}
+            COMMAND ${METAX_COMPILER} -c -x maca -std=c++17 -O2 -fPIC
+                -I${CMAKE_CURRENT_SOURCE_DIR}/include
+                -I${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/nlohmann_json_cmake_fetchcontent/single_include
+                -I${CMAKE_CURRENT_SOURCE_DIR}/test/kernels
+                -I${INFINIOPS_DIR}/src
+                -DNDEBUG -DWITH_CPU=1 -DWITH_METAX=1 -DBUILD_TEST=1
+                -o ${_obj} ${_src}
+            DEPENDS ${_src}
+            COMMENT "Compiling ${_src} with mxcc (METAX compiler)"
+        )
+        list(APPEND _metax_adapter_objs ${_obj})
+    endforeach()
+    add_custom_target(metax_adapter DEPENDS ${_metax_adapter_objs})
+    # Object files will be added to InfiniTensor after target creation
+else()
+    list(APPEND SRC ${SRC_INFINIOPS_ADAPTER})
 endif()
-list(APPEND SRC ${SRC_INFINIOPS_ADAPTER})
 
 # Libraries
 add_library(InfiniTensor SHARED ${SRC})
+if(WITH_MOORE)
+    target_sources(InfiniTensor PRIVATE ${_moore_adapter_objs})
+    add_dependencies(InfiniTensor moore_adapter)
+endif()
+if(WITH_METAX)
+    target_sources(InfiniTensor PRIVATE ${_metax_adapter_objs})
+    add_dependencies(InfiniTensor metax_adapter)
+endif()
 if(USE_PROTOBUF)
   target_link_libraries(InfiniTensor PRIVATE tensor_proto)
 endif()
@@ -200,6 +283,17 @@ endif()
 # Link InfiniOps operator library (PUBLIC so InfiniOps headers are available
 # to all downstream consumers of InfiniTensor, e.g. the backend pybind11 module)
 target_link_libraries(InfiniTensor PUBLIC infiniops)
+
+# Remove inherited -x musa/-x maca from InfiniTensor's global compile options;
+# these flags should only apply to the adapter kernel files, not all sources.
+# infiniops stores "-x;musa" or "-x;maca" as separate list entries in
+# INTERFACE_COMPILE_OPTIONS — remove both the "-x" and the language name.
+get_target_property(_infiniops_interface_opts infiniops INTERFACE_COMPILE_OPTIONS)
+if(_infiniops_interface_opts)
+    list(FILTER _infiniops_interface_opts EXCLUDE REGEX "^-x$")
+    list(FILTER _infiniops_interface_opts EXCLUDE REGEX "^(musa|maca)$")
+    set_target_properties(infiniops PROPERTIES INTERFACE_COMPILE_OPTIONS "${_infiniops_interface_opts}")
+endif()
 
 target_link_options(InfiniTensor PRIVATE -Wl,--allow-multiple-definition)
 
@@ -248,7 +342,7 @@ if(BUILD_TEST)
     build_test(test/pet/*.cc)
   endif()
   include_directories(test/kernels)
-  build_test(test/kernels/*.cpp)
+  build_test(test/kernels/*.cc)
   if(BUILD_NNET AND BUILD_TEST)
     build_test(test/nnet/test_*.cc)
 
