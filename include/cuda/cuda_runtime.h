@@ -23,7 +23,7 @@ class CudaRuntimeObj : public RuntimeObj {
         : RuntimeObj(dev, deviceId) {
 
         checkCudaError(cudaSetDevice(deviceId));
-#ifdef USE_MACA
+#ifdef USE_METAX
         // Resize cubic kernels allocate multi-KiB frame-local arrays per
         // thread; MACA reports mcErrorMemoryValueTooLarge with the default
         // stack limit.

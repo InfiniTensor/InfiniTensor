@@ -258,7 +258,7 @@ if(USE_METAX)
   if(BUILD_DIST)
     message(FATAL_ERROR "USE_METAX does not support BUILD_DIST (NCCL) in this configuration.")
   endif()
-  add_compile_definitions(USE_CUDA=1 USE_METAX=1 USE_MACA=1)
+  add_compile_definitions(USE_CUDA=1 USE_METAX=1)
 
   if((NOT DEFINED MACA_PATH) AND (NOT DEFINED ENV{MACA_PATH}))
     set(MACA_PATH "/opt/maca" CACHE PATH "MetaX MACA install prefix")
