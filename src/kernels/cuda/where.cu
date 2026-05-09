@@ -63,8 +63,8 @@ void whereKernel(const float *inputX, const float *inputY,
     int gridsize = (outputsize + blocksize - 1) / blocksize;
     _whereKernel<float>
         <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
-            inputX, inputY, condition, output, nDims, outputsize, inputXShape,
-            inputYShape, conditionShape, outputShape, xSize, ySize, cSize);
+        inputX, inputY, condition, output, nDims, outputsize, inputXShape,
+        inputYShape, conditionShape, outputShape, xSize, ySize, cSize);
 }
 void whereKernel(const half *inputX, const half *inputY,
                  const uint8_t *condition, half *output, int nDims,
@@ -88,7 +88,7 @@ void whereKernel(const half *inputX, const half *inputY,
     int gridsize = (outputsize + blocksize - 1) / blocksize;
     _whereKernel<half>
         <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
-            inputX, inputY, condition, output, nDims, outputsize, inputXShape,
-            inputYShape, conditionShape, outputShape, xSize, ySize, cSize);
+        inputX, inputY, condition, output, nDims, outputsize, inputXShape,
+        inputYShape, conditionShape, outputShape, xSize, ySize, cSize);
 }
 } // namespace infini

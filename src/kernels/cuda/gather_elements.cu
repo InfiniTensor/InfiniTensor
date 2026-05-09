@@ -42,26 +42,26 @@ void gather_elements_kernel(void *in, void *out, GatherMetaData metaData,
         metaData.indexType == DataType::Int64) {
         _gather_elements_kernel<float, int64_t>
             <<<gridSize, blockSize, 0, CUDAStream::getCurrentStream()>>>(
-                reinterpret_cast<float *>(in), reinterpret_cast<float *>(out),
-                metaData, num);
+            reinterpret_cast<float *>(in), reinterpret_cast<float *>(out),
+            metaData, num);
     } else if (metaData.dataType == DataType::Int32 &&
                metaData.indexType == DataType::Int64) {
         _gather_elements_kernel<int, int64_t>
             <<<gridSize, blockSize, 0, CUDAStream::getCurrentStream()>>>(
-                reinterpret_cast<int *>(in), reinterpret_cast<int *>(out),
-                metaData, num);
+            reinterpret_cast<int *>(in), reinterpret_cast<int *>(out), metaData,
+            num);
     } else if (metaData.dataType == DataType::Float32 &&
                metaData.indexType == DataType::Int32) {
         _gather_elements_kernel<float, int>
             <<<gridSize, blockSize, 0, CUDAStream::getCurrentStream()>>>(
-                reinterpret_cast<float *>(in), reinterpret_cast<float *>(out),
-                metaData, num);
+            reinterpret_cast<float *>(in), reinterpret_cast<float *>(out),
+            metaData, num);
     } else if (metaData.dataType == DataType::Int32 &&
                metaData.indexType == DataType::Int32) {
         _gather_elements_kernel<int, int>
             <<<gridSize, blockSize, 0, CUDAStream::getCurrentStream()>>>(
-                reinterpret_cast<int *>(in), reinterpret_cast<int *>(out),
-                metaData, num);
+            reinterpret_cast<int *>(in), reinterpret_cast<int *>(out), metaData,
+            num);
     } else {
         IT_TODO_HALT_MSG(
             "GatherElements Cuda Kernel: Unsupported data type.\n");
