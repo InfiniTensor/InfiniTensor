@@ -19,10 +19,15 @@ class CudaRuntimeObj : public RuntimeObj {
     cudaGraphExec_t cudaGraphInstance;
 
   public:
-    explicit CudaRuntimeObj(int deviceId = 0)
-        : RuntimeObj(Device::CUDA, deviceId) {
+    explicit CudaRuntimeObj(int deviceId = 0, Device dev = Device::CUDA)
+        : RuntimeObj(dev, deviceId) {
 
         checkCudaError(cudaSetDevice(deviceId));
+#ifdef USE_MACA
+        // Resize cubic kernels allocate multi-KiB frame-local arrays per thread;
+        // MACA reports mcErrorMemoryValueTooLarge with the default stack limit.
+        checkCudaError(cudaDeviceSetLimit(cudaLimitStackSize, 65536));
+#endif
         checkCudnnError(cudnnCreate(&cudnn));
         checkCublasError(cublasCreate(&cublas));
         // 10GB for Longformer
@@ -49,7 +54,7 @@ class CudaRuntimeObj : public RuntimeObj {
     string toString() const override;
 
     void run(const Graph &graph, bool tune = false,
-             bool profiling = false) const;
+             bool profiling = false) const override;
     // double runEvaluation(const Graph &graph, int nWarmups,
     //                      int nEvaluations) const;
     void sync() const;

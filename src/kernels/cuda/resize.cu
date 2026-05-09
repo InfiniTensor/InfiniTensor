@@ -196,6 +196,61 @@ __global__ void _resize_kernel_linear_coeff(float *in, float *out,
                                 getLinearCoef);
 }
 
+#ifdef USE_METAX
+// Cubic: MACA rejects the generic kernel's large per-thread stack
+// (mcErrorMemoryValueTooLarge). Low-stack path with identical math.
+__global__ void _resize_kernel_cubic_coeff(float *in, float *out,
+                                           MetaData metaData, size_t num,
+                                           int coordinateMode) {
+    coordinate_trans_mod_func_t coTransFunc =
+        p_cooridnate_trans_mode_func[coordinateMode];
+    auto tid = threadIdx.x + blockIdx.x * blockDim.x;
+    auto stride = blockDim.x * gridDim.x;
+
+    while (tid < num) {
+        int neighbors_cache[4][4];
+        float power_cache[4][4];
+
+        size_t dOffsetSz = tid;
+        for (int dim = metaData.nDims - 1; dim >= 0; --dim) {
+            int dIdx = static_cast<int>(dOffsetSz % metaData.oDims[dim]);
+            dOffsetSz /= metaData.oDims[dim];
+
+            float sIdx = coTransFunc(dIdx, metaData, dim);
+            int base = std::floor(sIdx);
+            float power[4];
+            getCubicCoef(sIdx - static_cast<float>(base), power);
+            int neighbors[4];
+            getEvenNeighbors<4>(sIdx, metaData.inDims[dim] - 1, neighbors);
+            for (int t = 0; t < 4; ++t) {
+                neighbors_cache[dim][t] = neighbors[t];
+                power_cache[dim][t] = power[t];
+            }
+        }
+
+        int totalCombos = 1;
+        for (int dim = 0; dim < metaData.nDims; ++dim) {
+            totalCombos *= 4;
+        }
+
+        float val = 0.f;
+        for (int c = 0; c < totalCombos; ++c) {
+            int combo = c;
+            int offset = 0;
+            float w = 1.f;
+            for (int dim = metaData.nDims - 1; dim >= 0; --dim) {
+                int pick = combo & 3;
+                combo >>= 2;
+                offset += neighbors_cache[dim][pick] * metaData.inStride[dim];
+                w *= power_cache[dim][pick];
+            }
+            val += in[offset] * w;
+        }
+        out[tid] = val;
+        tid += stride;
+    }
+}
+#else
 __global__ void _resize_kernel_cubic_coeff(float *in, float *out,
                                            MetaData metaData, size_t num,
                                            int coordinateMode) {
@@ -203,6 +258,7 @@ __global__ void _resize_kernel_cubic_coeff(float *in, float *out,
                                  p_cooridnate_trans_mode_func[coordinateMode],
                                  getCubicCoef);
 }
+#endif
 
 namespace infini {
 void resize_kernel_nearest(float *in, float *out, const MetaData &metaData,

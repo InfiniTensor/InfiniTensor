@@ -42,8 +42,13 @@ __global__ void _expandKernel(void *input, void *output, int nDims,
 template <class T>
 static __global__ void _expandRowKernel(void *__restrict__ dst,
                                         void const *__restrict__ src) {
+#ifdef USE_METAX
+    unsigned int da = gridDim.x, db = blockDim.y, dx = blockDim.x, n = blockIdx.y,
+                 a = blockIdx.x, b = threadIdx.y, x = threadIdx.x;
+#else
     auto da = gridDim.x, db = blockDim.y, dx = blockDim.x, n = blockIdx.y,
          a = blockIdx.x, b = threadIdx.y, x = threadIdx.x;
+#endif
     auto i = ((n * da + a) * db + b) * dx + x, j = (a * db + b) * dx + x;
     reinterpret_cast<T *>(dst)[i] = reinterpret_cast<T const *>(src)[j];
 }
