@@ -67,8 +67,9 @@ TEST(TestCudaRuntime, CudaGraph) {
 
     EXPECT_GT(milliseconds_1, 0.f);
     EXPECT_GT(milliseconds_2, 0.f);
-    // cudaEvent resolution is coarse (~10–20µs); cu-bridge/MACA graph replay is not
-    // always faster than eager on micro-graphs. Allow small absolute + relative slack.
+    // cudaEvent resolution is coarse (~10–20µs); cu-bridge/MACA graph replay is
+    // not always faster than eager on micro-graphs. Allow small absolute +
+    // relative slack.
     constexpr float kAbsEpsMs = 0.02f;
     constexpr float kRelEps = 0.35f;
     const float graphBudgetMs = milliseconds_1 * (1.f + kRelEps) + kAbsEpsMs;

@@ -189,10 +189,9 @@ class Conv3dCudnn : public Kernel {
                 continue;
             }
             void *wsData = context->getWorkspace(wsSize);
-            stat = cudnnConvolutionForward(context->cudnnHandle(), &alpha, inDesc,
-                                           inData, knDesc, knData, convDesc,
-                                           ALGOS[ai], wsData, wsSize, &beta,
-                                           outDesc, outData);
+            stat = cudnnConvolutionForward(
+                context->cudnnHandle(), &alpha, inDesc, inData, knDesc, knData,
+                convDesc, ALGOS[ai], wsData, wsSize, &beta, outDesc, outData);
             if (stat == CUDNN_STATUS_SUCCESS) {
                 destroyDescriptors();
                 return true;

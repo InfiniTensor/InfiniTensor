@@ -175,7 +175,9 @@ static int tensor_dtype(Tensor t) {
 #endif
 
 #ifdef USE_METAX
-static Ref<MetaxRuntimeObj> metax_runtime() { return make_ref<MetaxRuntimeObj>(0); }
+static Ref<MetaxRuntimeObj> metax_runtime() {
+    return make_ref<MetaxRuntimeObj>(0);
+}
 #endif
 
 #ifdef USE_BANG
