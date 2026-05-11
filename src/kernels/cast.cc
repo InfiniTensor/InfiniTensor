@@ -18,6 +18,8 @@ class CastInfiniOpsKernel : public KernelWithoutConfig {
 
         infini::ops::Handle handle = context->makeHandle();
         infini::ops::Config config;
+        config.set_implementation_index(
+            context->resolveImplementationIndex<infini::ops::Cast>());
 
         infini::ops::Cast::Call(handle, config, input, output);
     }

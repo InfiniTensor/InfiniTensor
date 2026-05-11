@@ -19,6 +19,8 @@ class MulInfiniOpsKernel : public KernelWithoutConfig {
 
         infini::ops::Handle handle = context->makeHandle();
         infini::ops::Config config;
+        config.set_implementation_index(
+            context->resolveImplementationIndex<infini::ops::Mul>());
 
         infini::ops::Mul::Call(handle, config, input, other, output);
     }

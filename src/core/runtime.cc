@@ -26,6 +26,7 @@
 #include "cambricon/runtime_.h"
 #endif
 #ifdef WITH_ASCEND
+#include "acl/acl.h"
 #include "ascend/runtime_.h"
 #endif
 
@@ -89,13 +90,39 @@ template <typename F> void dispatchDevice(Device::Type type, F &&func) {
 
 RuntimeObj::RuntimeObj(Device device, int deviceId)
     : device(device), deviceId(deviceId) {
+#ifdef WITH_ASCEND
+    if (device.type() == Device::Type::kAscend) {
+        auto ret = aclInit(nullptr);
+        if (ret != ACL_SUCCESS) {
+            fprintf(stderr, "aclInit failed: %d\n", ret);
+        }
+        ret = aclrtSetDevice(deviceId);
+        if (ret != ACL_SUCCESS) {
+            fprintf(stderr, "aclrtSetDevice failed: %d\n", ret);
+        }
+        ret = aclrtCreateStream(static_cast<aclrtStream *>(&stream_));
+        if (ret != ACL_SUCCESS) {
+            fprintf(stderr, "aclrtCreateStream failed: %d\n", ret);
+        }
+    }
+#endif
     dispatchDevice(device.type(), [&](auto tag) {
         constexpr auto DT = decltype(tag)::value;
         infini::ops::Runtime<DT>::Malloc(&workspace_, workspaceSize_);
     });
 }
 
-RuntimeObj::~RuntimeObj() { dealloc(workspace_); }
+RuntimeObj::~RuntimeObj() {
+    dealloc(workspace_);
+#ifdef WITH_ASCEND
+    // Destroy stream (only for Ascend device type)
+    if (device.type() == Device::Type::kAscend && stream_) {
+        aclrtDestroyStream(static_cast<aclrtStream>(stream_));
+        aclrtResetDevice(deviceId);
+        aclFinalize();
+    }
+#endif
+}
 
 // ---- alloc / dealloc ----
 
@@ -172,6 +199,7 @@ void RuntimeObj::resetWorkspace() { workspaceCursor_ = 0; }
 infini::ops::Handle RuntimeObj::makeHandle() const {
     infini::ops::Handle handle;
     handle.set_workspace(workspace_);
+    handle.set_stream(stream_);
     return handle;
 }
 

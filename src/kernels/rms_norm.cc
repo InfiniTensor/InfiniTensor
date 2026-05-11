@@ -31,6 +31,8 @@ class RMSNormInfiniOpsKernel : public KernelWithoutConfig {
 
         infini::ops::Handle handle = context->makeHandle();
         infini::ops::Config config;
+        config.set_implementation_index(
+            context->resolveImplementationIndex<infini::ops::RmsNorm>());
 
         // Use default eps (1e-6) — InfiniTensor's RMSNormObj doesn't expose eps
         infini::ops::RmsNorm::Call(handle, config, input, weight, output);

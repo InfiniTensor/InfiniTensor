@@ -5,6 +5,7 @@
 #include "test.h"
 #include <cmath>
 #include <functional>
+#include <optional>
 #include <vector>
 
 namespace infini {
@@ -20,8 +21,12 @@ using OpBuilder = std::function<Operator(GraphObj *, const TensorVec &)>;
 inline std::vector<float> runOpAndGetOutput(
     Device::Type deviceType,
     const std::vector<std::pair<Shape, std::vector<float>>> &inputs,
-    OpBuilder opBuilder, DataType dtype = DataType::Float32) {
+    OpBuilder opBuilder, DataType dtype = DataType::Float32,
+    std::optional<std::size_t> implOverride = std::nullopt) {
     Runtime runtime = createRuntime(deviceType);
+    if (implOverride.has_value()) {
+        runtime->setTestImplOverride(*implOverride);
+    }
     Graph g = make_ref<GraphObj>(runtime);
 
     TensorVec inputTensors;

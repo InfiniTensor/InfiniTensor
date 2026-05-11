@@ -17,6 +17,9 @@
 #ifdef WITH_MOORE
 #include "cuda/moore/add/kernel.h"
 #endif
+#ifdef WITH_TORCH
+#include "torch/add/add.h"
+#endif
 #include "core/data_type.h"
 #include "core/kernel.h"
 #include "core/tensor.h"
@@ -34,6 +37,8 @@ class AddInfiniOpsKernel : public KernelWithoutConfig {
 
         infini::ops::Handle handle = context->makeHandle();
         infini::ops::Config config;
+        config.set_implementation_index(
+            context->resolveImplementationIndex<infini::ops::Add>());
 
         infini::ops::Add::Call(handle, config, input, other, output);
     }

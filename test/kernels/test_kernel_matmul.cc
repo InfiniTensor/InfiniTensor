@@ -23,6 +23,15 @@ static std::vector<float> generateRandomData(size_t n, unsigned seed = 42) {
     return data;
 }
 
+static bool matmulTransNotSupported(Device::Type device) {
+    switch (device) {
+    case Device::Type::kCambricon:
+        return true;
+    default:
+        return false;
+    }
+}
+
 // ============================================================
 // CPU Golden Tests — compare against pre-computed results
 // ============================================================
@@ -124,6 +133,9 @@ TEST_P(MatmulCrossPlatform, Large_1024x1024) {
 
 TEST_P(MatmulCrossPlatform, TransA) {
     auto device = GetParam();
+    if (matmulTransNotSupported(device)) {
+        GTEST_SKIP() << "transA is not supported on " << platformName(device);
+    }
     int M = 128, K = 256, N = 128;
     auto aData = generateRandomData(K * M); // stored shape (K, M)
     auto bData = generateRandomData(K * N);
@@ -133,6 +145,9 @@ TEST_P(MatmulCrossPlatform, TransA) {
 
 TEST_P(MatmulCrossPlatform, TransB) {
     auto device = GetParam();
+    if (matmulTransNotSupported(device)) {
+        GTEST_SKIP() << "transB is not supported on " << platformName(device);
+    }
     int M = 128, K = 256, N = 128;
     auto aData = generateRandomData(M * K);
     auto bData = generateRandomData(N * K); // stored shape (N, K)
@@ -164,6 +179,91 @@ INSTANTIATE_TEST_SUITE_P(
     [](const ::testing::TestParamInfo<Device::Type> &info) {
         return platformName(info.param);
     });
+
+// ============================================================
+// Torch Implementation Tests — verify torch Gemm correctness
+// ============================================================
+
+#ifdef WITH_TORCH
+
+// Torch Gemm is at implementation_index = 2 in InfiniOps.
+static constexpr std::size_t kTorchGemmImplIndex = 2;
+
+// CPU golden tests using torch implementation
+TEST(MatmulTorchCpu, Basic_2x3_x_3x2) {
+    auto result = runOpAndGetOutput(
+        Device::Type::kCpu,
+        {{{2, 3}, {1, 2, 3, 4, 5, 6}}, {{3, 2}, {1, 2, 3, 4, 5, 6}}},
+        makeMatmulBuilder(false, false), DataType::Float32,
+        kTorchGemmImplIndex);
+    verifyGoldenData(result, {22, 28, 49, 64});
+}
+
+TEST(MatmulTorchCpu, TransA_3x2_x_3x2) {
+    auto result = runOpAndGetOutput(
+        Device::Type::kCpu,
+        {{{3, 2}, {1, 2, 3, 4, 5, 6}}, {{3, 2}, {1, 2, 3, 4, 5, 6}}},
+        makeMatmulBuilder(true, false), DataType::Float32, kTorchGemmImplIndex);
+    verifyGoldenData(result, {35, 44, 44, 56});
+}
+
+TEST(MatmulTorchCpu, TransB_2x3_x_2x3) {
+    auto result = runOpAndGetOutput(
+        Device::Type::kCpu,
+        {{{2, 3}, {1, 2, 3, 4, 5, 6}}, {{2, 3}, {1, 2, 3, 4, 5, 6}}},
+        makeMatmulBuilder(false, true), DataType::Float32, kTorchGemmImplIndex);
+    verifyGoldenData(result, {14, 32, 32, 77});
+}
+
+TEST(MatmulTorchCpu, Batched_2x2x3_x_2x3x2) {
+    auto result = runOpAndGetOutput(
+        Device::Type::kCpu,
+        {{{2, 2, 3}, {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}},
+         {{2, 3, 2}, {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}}},
+        makeMatmulBuilder(false, false), DataType::Float32,
+        kTorchGemmImplIndex);
+    verifyGoldenData(result, {22, 28, 49, 64, 220, 244, 301, 334});
+}
+
+// Cross-platform torch tests — compare against CPU native results
+class MatmulTorchCrossPlatform : public ::testing::TestWithParam<Device::Type> {
+};
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(MatmulTorchCrossPlatform);
+
+TEST_P(MatmulTorchCrossPlatform, Square_128x128) {
+    auto device = GetParam();
+    auto aData = generateRandomData(128 * 128);
+    auto bData = generateRandomData(128 * 128);
+    // CPU uses native (index 0), target uses torch (index 2)
+    auto cpuResult = runOpAndGetOutput(
+        Device::Type::kCpu, {{{128, 128}, aData}, {{128, 128}, bData}},
+        makeMatmulBuilder(false, false));
+    auto torchResult =
+        runOpAndGetOutput(device, {{{128, 128}, aData}, {{128, 128}, bData}},
+                          makeMatmulBuilder(false, false), DataType::Float32,
+                          kTorchGemmImplIndex);
+    ASSERT_EQ(cpuResult.size(), torchResult.size());
+    for (size_t i = 0; i < cpuResult.size(); i++) {
+        double diff = std::fabs(static_cast<double>(cpuResult[i]) -
+                                static_cast<double>(torchResult[i]));
+        double denom = std::max(std::fabs(static_cast<double>(cpuResult[i])),
+                                std::fabs(static_cast<double>(torchResult[i])));
+        double threshold = 1e-2 + 1e-2 * denom;
+        EXPECT_LE(diff, threshold)
+            << "Mismatch at index " << i << ": cpu=" << cpuResult[i]
+            << " torch=" << torchResult[i];
+    }
+}
+
+// Register all available platforms (including CPU) for torch tests
+INSTANTIATE_TEST_SUITE_P(
+    TorchAllPlatforms, MatmulTorchCrossPlatform,
+    ::testing::ValuesIn([]() { return availablePlatforms(); }()),
+    [](const ::testing::TestParamInfo<Device::Type> &info) {
+        return "Torch_" + platformName(info.param);
+    });
+
+#endif // WITH_TORCH
 
 } // namespace test
 } // namespace infini

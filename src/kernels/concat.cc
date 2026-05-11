@@ -25,6 +25,8 @@ class ConcatInfiniOpsKernel : public KernelWithoutConfig {
 
         infini::ops::Handle handle = context->makeHandle();
         infini::ops::Config config;
+        config.set_implementation_index(
+            context->resolveImplementationIndex<infini::ops::Cat>());
 
         infini::ops::Cat::Call(handle, config, first_input, rest_inputs,
                                concatOp->getDim(), output);

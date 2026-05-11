@@ -5,7 +5,9 @@
 #include "core/ref.h"
 #include "device.h"
 #include "handle.h"
+#include <algorithm>
 #include <memory>
+#include <optional>
 
 namespace infini {
 
@@ -43,11 +45,16 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
     Device device;
     int deviceId;
 
+    // Test-only: override auto-selected implementation index.
+    // When set, kernels use this index instead of auto-detection.
+    std::optional<std::size_t> test_impl_override_;
+
     // Workspace management
     static constexpr size_t kDefaultWorkspaceSize = 7ull << 30;
     size_t workspaceSize_ = kDefaultWorkspaceSize;
     size_t workspaceCursor_ = 0;
     void *workspace_ = nullptr;
+    void *stream_ = nullptr;
 
   public:
     explicit RuntimeObj(Device device, int deviceId = 0);
@@ -83,6 +90,28 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
 
     int getDeviceId() const { return deviceId; }
     const Device &getDevice() const { return device; }
+
+    // Test-only API to override auto-selected implementation index.
+    void setTestImplOverride(std::optional<std::size_t> index) {
+        test_impl_override_ = index;
+    }
+
+    // Resolves the implementation index for an InfiniOps operator.
+    // Priority: test override > native (index 0) > first available (torch
+    // fallback)
+    template <typename InfiniOpsOperator>
+    std::size_t resolveImplementationIndex() const {
+        if (test_impl_override_.has_value()) {
+            return *test_impl_override_;
+        }
+        auto indices =
+            InfiniOpsOperator::active_implementation_indices(device.type());
+        auto it = std::find(indices.begin(), indices.end(), std::size_t{0});
+        if (it != indices.end()) {
+            return 0;
+        }
+        return indices.empty() ? 0 : indices[0];
+    }
 
     // Workspace management for operators that need scratch memory.
     void *getWorkspace(size_t size);

@@ -436,18 +436,30 @@ void init_graph_builder(py::module &m) {
         .def("set_input", &TensorObj::setInput, policy::move)
         .def("set_output", &TensorObj::setOutput, policy::move)
         .def("dtype", &TensorObj::getDTypeIndex, policy::automatic)
-        .def("copyin_float", &TensorObj::copyin<float>, policy::move)
-        .def("copyin_int32", &TensorObj::copyin<int32_t>, policy::move)
-        .def("copyin_int64", &TensorObj::copyin<int64_t>, policy::move)
-        .def("copyin_int8", &TensorObj::copyin<int8_t>, policy::move)
-        .def("copyin_uint8", &TensorObj::copyin<uint8_t>, policy::move)
-        .def("copyin_float16", &TensorObj::copyin<uint16_t>, policy::move)
-        .def("copyout_float", &TensorObj::copyout<float>, policy::move)
-        .def("copyout_int32", &TensorObj::copyout<int32_t>, policy::move)
-        .def("copyout_int64", &TensorObj::copyout<int64_t>, policy::move)
-        .def("copyout_int8", &TensorObj::copyout<int8_t>, policy::move)
-        .def("copyout_uint8", &TensorObj::copyout<uint8_t>, policy::move)
-        .def("copyout_float16", &TensorObj::copyout<uint16_t>, policy::move)
+        .def("copyout_float",
+             static_cast<std::vector<float> (TensorObj::*)() const>(
+                 &TensorObj::copyout<float>),
+             policy::move)
+        .def("copyout_int32",
+             static_cast<std::vector<int32_t> (TensorObj::*)() const>(
+                 &TensorObj::copyout<int32_t>),
+             policy::move)
+        .def("copyout_int64",
+             static_cast<std::vector<int64_t> (TensorObj::*)() const>(
+                 &TensorObj::copyout<int64_t>),
+             policy::move)
+        .def("copyout_int8",
+             static_cast<std::vector<int8_t> (TensorObj::*)() const>(
+                 &TensorObj::copyout<int8_t>),
+             policy::move)
+        .def("copyout_uint8",
+             static_cast<std::vector<uint8_t> (TensorObj::*)() const>(
+                 &TensorObj::copyout<uint8_t>),
+             policy::move)
+        .def("copyout_float16",
+             static_cast<std::vector<uint16_t> (TensorObj::*)() const>(
+                 &TensorObj::copyout<uint16_t>),
+             policy::move)
         // Copy data from a Numpy array
         .def("copyin_numpy",
              [](TensorObj &self, py::buffer buf) {

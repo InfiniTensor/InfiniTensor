@@ -22,6 +22,9 @@
 #ifdef WITH_MOORE
 #include "cuda/moore/gemm/mublas.h"
 #endif
+#ifdef WITH_TORCH
+#include "torch/gemm/gemm.h"
+#endif
 
 namespace infini {
 
@@ -36,6 +39,8 @@ class MatmulInfiniOpsKernel : public KernelWithoutConfig {
 
         infini::ops::Handle handle = context->makeHandle();
         infini::ops::Config config;
+        config.set_implementation_index(
+            context->resolveImplementationIndex<infini::ops::Gemm>());
 
         bool transA = matmulOp->getTransA();
         bool transB = matmulOp->getTransB();

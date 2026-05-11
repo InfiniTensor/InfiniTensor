@@ -114,12 +114,13 @@ if(USE_CUDA)
 endif()
 if(USE_BANG)
     set(WITH_CAMBRICON ON CACHE BOOL "" FORCE)
+    add_compile_definitions(WITH_CAMBRICON=1)
 endif()
 if(USE_KUNLUN)
     set(WITH_KUNLUN ON CACHE BOOL "" FORCE)
 endif()
 if(USE_ASCEND)
-    set(WITH_NVIDIA ON CACHE BOOL "" FORCE)
+    set(WITH_ASCEND ON CACHE BOOL "" FORCE)
 endif()
 if(USE_METAX)
     set(WITH_METAX ON CACHE BOOL "" FORCE)
@@ -170,7 +171,7 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -UNDEBUG")
 
 
 # Source files
-file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/operators/*.cc src/utils/*.cc)
+file(GLOB_RECURSE SRC src/core/*.cc src/operators/*.cc src/utils/*.cc)
 
 if(BUILD_NNET)
   add_compile_definitions(BUILD_NNET=1)
@@ -296,8 +297,6 @@ if(_infiniops_interface_opts)
 endif()
 
 target_link_options(InfiniTensor PRIVATE -Wl,--allow-multiple-definition)
-
-target_link_libraries(InfiniTensor PRIVATE pybind11::embed)
 
 # TVM backend
 if(BUILD_NNET AND BUILD_TEST AND TVM_LIB_DIR)
