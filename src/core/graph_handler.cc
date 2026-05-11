@@ -6,6 +6,7 @@
 #include "operators/broadcast.h"
 #include "operators/concat.h"
 #include "operators/conv.h"
+#include "operators/det.h"
 #include "operators/element_wise.h"
 #include "operators/expand.h"
 #include "operators/gather.h"
@@ -21,11 +22,14 @@
 #include "operators/resize.h"
 #include "operators/rms_norm.h"
 #include "operators/rope.h"
+#include "operators/scatterElements.h"
+#include "operators/scatterND.h"
 #include "operators/send.h"
 #include "operators/slice.h"
 #include "operators/softmax.h"
 #include "operators/split.h"
 #include "operators/squeeze.h"
+#include "operators/topk.h"
 #include "operators/transpose.h"
 #include "operators/unary.h"
 #include "operators/unsqueeze.h"
@@ -208,8 +212,14 @@ DEFINE_ELEMENT_WISE_METHOD(sub, Sub)
 DEFINE_ELEMENT_WISE_METHOD(mul, Mul)
 DEFINE_ELEMENT_WISE_METHOD(div, Div)
 DEFINE_ELEMENT_WISE_METHOD(pow, Pow)
+DEFINE_ELEMENT_WISE_METHOD(equal, Equal)
 DEFINE_ELEMENT_WISE_METHOD(min, Minimum)
 DEFINE_ELEMENT_WISE_METHOD(max, Maximum)
+DEFINE_ELEMENT_WISE_METHOD(less, LessThan)
+DEFINE_ELEMENT_WISE_METHOD(notFunction, Not)
+DEFINE_ELEMENT_WISE_METHOD(andFunction, And)
+DEFINE_ELEMENT_WISE_METHOD(greater, GreaterThan)
+DEFINE_ELEMENT_WISE_METHOD(greaterEqual, GreaterEqual)
 
 // see operators/unary.h
 #define DEFINE_UNARY_METHOD(name, obj)                                         \
@@ -231,6 +241,7 @@ DEFINE_UNARY_METHOD(hardSigmoid, HardSigmoid)
 DEFINE_UNARY_METHOD(hardSwish, HardSwish)
 DEFINE_UNARY_METHOD(abs, Abs)
 DEFINE_UNARY_METHOD(sqrt, Sqrt)
+DEFINE_UNARY_METHOD(exp, Exp)
 DEFINE_UNARY_METHOD(neg, Neg)
 DEFINE_UNARY_METHOD(shape, Shape)
 DEFINE_UNARY_METHOD(erf, Erf)
@@ -257,13 +268,23 @@ Tensor GraphHandlerObj::leakyRelu(Tensor x, Tensor y, float alpha) {
     }
 }
 
-Tensor GraphHandlerObj::clip(Tensor x, Tensor y, std::optional<float> min,
-                             std::optional<float> max) {
+Tensor GraphHandlerObj::log(Tensor input, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<LogObj>(std::move(input), output,
+                                    LogObj::LogType::LogE);
+        return output;
+    } else {
+        return g->addOp<LogObj>(std::move(input), output, LogObj::LogType::LogE)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::clip(TensorVec inputs, Tensor y) {
     if (y) {
-        g->addOpWithOutputs<ClipObj>(std::move(x), y, min, max);
+        g->addOpWithOutputs<ClipObj>(std::move(inputs), y);
         return y;
     } else {
-        return g->addOp<ClipObj>(std::move(x), y, min, max)->getOutput();
+        return g->addOp<ClipObj>(std::move(inputs), y)->getOutput();
     }
 }
 
@@ -277,6 +298,47 @@ Tensor GraphHandlerObj::softmax(Tensor input, Tensor output, int axis) {
     }
 }
 
+TensorVec GraphHandlerObj::topk(Tensor input, std::optional<TensorVec> outputs,
+                                Shape K, int axis, int Largest, int sorted) {
+    if (outputs) {
+        g->addOpWithOutputs<TopKObj>(std::move(input), outputs, std::move(K),
+                                     axis, Largest, sorted);
+        return *outputs;
+    } else {
+        return g
+            ->addOp<TopKObj>(std::move(input), outputs, std::move(K), axis,
+                             Largest, sorted)
+            ->getOutputs();
+    }
+}
+Tensor GraphHandlerObj::scatterND(Tensor data, Tensor indices, Tensor updates,
+                                  Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<ScatterNDObj>(std::move(data), std::move(indices),
+                                          std::move(updates), output);
+        return output;
+    } else {
+        return g
+            ->addOp<ScatterNDObj>(std::move(data), std::move(indices),
+                                  std::move(updates), output)
+            ->getOutput();
+    }
+}
+Tensor GraphHandlerObj::scatterElements(Tensor data, Tensor indices,
+                                        Tensor updates, Tensor output,
+                                        int axis) {
+    if (output) {
+        g->addOpWithOutputs<ScatterElementsObj>(
+            std::move(data), std::move(indices), std::move(updates), output,
+            axis);
+        return output;
+    } else {
+        return g
+            ->addOp<ScatterElementsObj>(std::move(data), std::move(indices),
+                                        std::move(updates), output, axis)
+            ->getOutput();
+    }
+}
 Tensor GraphHandlerObj::flatten(Tensor input, Tensor output, int axis) {
     if (output) {
         g->addOpWithOutputs<FlattenObj>(std::move(input), output, axis);
@@ -693,6 +755,15 @@ Tensor GraphHandlerObj::unsqueeze(Tensor input, Tensor output, Shape axes) {
     }
 }
 
+Tensor GraphHandlerObj::det(Tensor input, Tensor output, std::string mode) {
+    if (output) {
+        g->addOpWithOutputs<DetObj>(std::move(input), output, mode);
+        return output;
+    } else {
+        return g->addOp<DetObj>(std::move(input), output, mode)->getOutput();
+    }
+}
+
 static CastType inferCastType(Tensor input, int to) {
     auto iType = input->getDType();
     auto oType = DataType(to);
@@ -746,6 +817,8 @@ static CastType inferCastType(Tensor input, int to) {
         return CastType::BFloat162Float;
     } else if (iType == DataType::Float32 && oType == DataType::Float32) {
         return CastType::Float2Float;
+    } else if (iType == DataType::Float32 && oType == DataType::Bool) {
+        return CastType::Float2Bool;
     } else {
         IT_TODO_HALT_MSG("Unsupported CastType : input_type is " +
                          iType.toString() + " output_type is " +

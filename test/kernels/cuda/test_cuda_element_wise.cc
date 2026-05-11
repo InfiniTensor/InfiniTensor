@@ -66,6 +66,16 @@ TEST(cuDNN_ElementWise, run) {
         ExpectOutput{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11});
     testElementWiseCudnn<PowObj>(IncrementalGenerator(), Shape{1, 2, 2, 1},
                                  ExpectOutput{1, 1, 4, 27});
+    // testElementWiseCudnn<GreaterThanObj>(
+    //     IncrementalGenerator(), Shape{1, 2, 2, 3},
+    //     ExpectOutput{false, false, false, false, false, false, false, false,
+    //                  false, false, false, false});
+    // testElementWiseCudnn<GreaterEqualObj>(OneGenerator(), Shape{1, 2, 2, 3},
+    //                                       ExpectOutput{true, true, true,
+    //                                       true,
+    //                                                    true, true, true,
+    //                                                    true, true, true,
+    //                                                    true, true});
 }
 
 } // namespace infini

@@ -16,7 +16,7 @@ class AvgPooling : public KUNLUNKernelWithoutConfig {
         auto [ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
         auto outShape = op->getOutput()->getDims();
 
-        std::vector<int> ksize = {kh, kw};
+        std::vector<int> ksize = {kh < h ? kh : h, kw < w ? kw : w};
         std::vector<int> stride = {sh, sw};
         std::vector<int> pad = {ph, pw};
 

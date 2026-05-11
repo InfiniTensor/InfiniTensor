@@ -12,7 +12,6 @@ class MatmulAclnn : public ASCENDKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<MatmulObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
-        IT_ASSERT(op->getDType() == DataType::Float32);
 
         auto input_num = op->numInputs();
 
@@ -50,20 +49,22 @@ class MatmulAclnn : public ASCENDKernelWithoutConfig {
             biasStride = castTo64(biasS);
         }
 
+        auto aclDataType = aclnnDataTypeConvert(op->getDType());
+
         auto selfTensor = aclCreateTensor(
-            selfDim.data(), selfDim.size(), ACL_FLOAT, selfStride.data(), 0,
+            selfDim.data(), selfDim.size(), aclDataType, selfStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, selfDim.data(), selfDim.size(), aData);
         auto matTensor = aclCreateTensor(
-            matDim.data(), matDim.size(), ACL_FLOAT, matStride.data(), 0,
+            matDim.data(), matDim.size(), aclDataType, matStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, matDim.data(), matDim.size(), bData);
         auto outputTensor =
-            aclCreateTensor(outputDim.data(), outputDim.size(), ACL_FLOAT,
+            aclCreateTensor(outputDim.data(), outputDim.size(), aclDataType,
                             outputStride.data(), 0, aclFormat::ACL_FORMAT_ND,
                             outputDim.data(), outputDim.size(), cData);
         aclTensor *biasTensor = NULL;
         if (input_num > 2) {
             biasTensor =
-                aclCreateTensor(biasDim.data(), biasDim.size(), ACL_FLOAT,
+                aclCreateTensor(biasDim.data(), biasDim.size(), aclDataType,
                                 biasStride.data(), 0, aclFormat::ACL_FORMAT_ND,
                                 biasDim.data(), biasDim.size(), biasData);
         }

@@ -3,6 +3,7 @@
 #include "cuda/cuda_kernel_wihtout_config.h"
 #include "cuda/cuda_runtime.h"
 #include "cuda/cuda_utility.h"
+#include <cstdint>
 
 namespace infini {
 class ElementWiseCudnn : public CudaKernelWithoutConfig {
@@ -162,20 +163,33 @@ class ElementWiseCuda : public CudaKernelWithoutConfig {
         } else if (op->getOpType() == OpType::Add) {
             add_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
                        b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
+        } else if (op->getOpType() == OpType::Sub) {
+            sub_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
+                       b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
         } else if (op->getOpType() == OpType::Pow) {
             pow_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
                        b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
         } else if (op->getOpType() == OpType::Less) {
             less_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3],
                         b[0], b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
+        } else if (op->getOpType() == OpType::Equal) {
+            equal_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3],
+                         b[0], b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
+        } else if (op->getOpType() == OpType::Greater) {
+            greater_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3],
+                           b[0], b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
+        } else if (op->getOpType() == OpType::GreaterOrEqual) {
+            greater_or_equal_kernel(dType, aData, bData, cData, a[0], a[1],
+                                    a[2], a[3], b[0], b[1], b[2], b[3], c[0],
+                                    c[1], c[2], c[3]);
         } else {
             IT_TODO_HALT();
         }
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Add, AddCudnn, "Add_cuDNN_CUDA");
-REGISTER_KERNEL(Device::CUDA, OpType::Sub, SubCudnn, "Sub_cuDNN_CUDA");
+// REGISTER_KERNEL(Device::CUDA, OpType::Add, AddCudnn, "Add_cuDNN_CUDA");
+// REGISTER_KERNEL(Device::CUDA, OpType::Sub, SubCudnn, "Sub_cuDNN_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Mul, MulCudnn, "Mul_cuDNN_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Min, MinCudnn, "Min_cuDNN_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Max, MaxCudnn, "Max_cuDNN_CUDA");
@@ -183,5 +197,11 @@ REGISTER_KERNEL(Device::CUDA, OpType::Max, MaxCudnn, "Max_cuDNN_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Div, ElementWiseCuda, "Div_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Pow, ElementWiseCuda, "Pow_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Less, ElementWiseCuda, "Less_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Add, ElementWiseCuda, "Add_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Sub, ElementWiseCuda, "Sub_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Equal, ElementWiseCuda, "Equal_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Greater, ElementWiseCuda, "Greater_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::GreaterOrEqual, ElementWiseCuda,
+                "GreaterOrEqual_CUDA");
 
 }; // namespace infini

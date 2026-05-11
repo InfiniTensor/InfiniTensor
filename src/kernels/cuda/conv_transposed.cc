@@ -124,12 +124,12 @@ class convBackwardDataCudnn : public Kernel {
         if (op->getOpType() == OpType::ConvTransNHWC) {
             on = outputShape[0];
             oh = outputShape[1];
-            ow = outputShape[2];
-            oc = outputShape[3];
+            ow = outputShape.at(2);
+            oc = op->getOutput()->getRank() == 3 ? 1 : outputShape.at(3);
         } else {
             on = outputShape[0];
-            oh = outputShape[2];
-            ow = outputShape[3];
+            oh = outputShape.at(2);
+            ow = op->getOutput()->getRank() == 3 ? 1 : outputShape.at(3);
             oc = outputShape[1];
         }
         cudnnTensorDescriptor_t outDesc;

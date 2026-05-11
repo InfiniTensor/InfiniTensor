@@ -74,8 +74,9 @@ class ReduceCudnnBase : public CudaKernelWithoutConfig {
         cudnnReduceTensorDescriptor_t reduceDesc;
         checkCudnnError(cudnnCreateReduceTensorDescriptor(&reduceDesc));
         checkCudnnError(cudnnSetReduceTensorDescriptor(
-            reduceDesc, getReduceOp(), cudnnDataType, CUDNN_NOT_PROPAGATE_NAN,
-            CUDNN_REDUCE_TENSOR_NO_INDICES, CUDNN_32BIT_INDICES));
+            reduceDesc, getReduceOp(), CUDNN_DATA_FLOAT,
+            CUDNN_NOT_PROPAGATE_NAN, CUDNN_REDUCE_TENSOR_NO_INDICES,
+            CUDNN_32BIT_INDICES));
 
         // get workspace
         size_t workspaceSize = 0;

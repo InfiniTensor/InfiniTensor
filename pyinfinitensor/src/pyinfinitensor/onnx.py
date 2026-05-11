@@ -9,6 +9,7 @@ from onnx import (
 )
 from onnx.helper import (
     make_node,
+    make_tensor_type_proto,
     make_tensor_value_info,
     make_tensor,
     make_graph,
@@ -48,6 +49,18 @@ class OnnxStub:
         # We use some user-defined operators for distributed inference
         try:
             # onnx simplifier performs inplace simplify
+            for i in range(len(model.graph.input)):
+                input_shape = []
+                for dim in model.graph.input[i].type.tensor_type.shape.dim:
+                    input_shape.append(
+                        dim.dim_value if dim.HasField("dim_value") else 1
+                    )
+                # print("input shape :", input_shape)
+                new_input_shape = make_tensor_type_proto(
+                    elem_type=model.graph.input[i].type.tensor_type.elem_type,
+                    shape=input_shape,
+                )
+                model.graph.input[i].type.CopyFrom(new_input_shape)
             model_simp, check = simplify(copy.deepcopy(model))
             if check:
                 model = model_simp
@@ -127,6 +140,13 @@ class OnnxStub:
                 (d, p, s) = (
                     attributes[name] for name in ["dilations", "pads", "strides"]
                 )
+                isConv1D = (
+                    len(p) == 2 and p[0] == p[1] and len(d) == len(s) and len(d) == 1
+                )
+                if isConv1D:
+                    p = [p[0], 0, p[1], 0]
+                    s = [s[0], 1]
+                    d = [d[0], 1]
                 if p[0] != p[2] or p[1] != p[3]:
                     adapt = "{}-adapt".format(node.output[0])
                     tensors[adapt] = self.handler.pad(
@@ -153,15 +173,26 @@ class OnnxStub:
                     tensors[reshape] = self.handler.reshape(
                         tensors[node.input[2]],
                         None,
-                        [
-                            1,
-                            reduce(
-                                lambda acc, x: acc * x,
-                                tensors[node.input[2]].shape(),
-                            ),
-                            1,
-                            1,
-                        ],
+                        (
+                            [
+                                1,
+                                reduce(
+                                    lambda acc, x: acc * x,
+                                    tensors[node.input[2]].shape(),
+                                ),
+                                1,
+                                1,
+                            ]
+                            if not isConv1D
+                            else [
+                                1,
+                                reduce(
+                                    lambda acc, x: acc * x,
+                                    tensors[node.input[2]].shape(),
+                                ),
+                                1,
+                            ]
+                        ),
                     )
                     tensors[node.output[0]] = self.handler.add(
                         tensors[bias],
@@ -200,6 +231,18 @@ class OnnxStub:
                     attributes[name]
                     for name in ["dilations", "pads", "strides", "output_padding"]
                 )
+                isConvTranspose1D = (
+                    len(p) == 2
+                    and len(op) == 2
+                    and p[0] == p[1]
+                    and len(d) == len(s)
+                    and len(d) == 1
+                )
+                if isConvTranspose1D:
+                    p = [p[0], 0, p[1], 0]
+                    s = [s[0], 1]
+                    d = [d[0], 1]
+                    op = [op[0], op[1]]
                 if p[0] != p[2] or p[1] != p[3]:
                     adapt = "{}-adapt".format(node.output[0])
                     tensors[adapt] = self.handler.pad(
@@ -228,15 +271,26 @@ class OnnxStub:
                     tensors[reshape] = self.handler.reshape(
                         tensors[node.input[2]],
                         None,
-                        [
-                            1,
-                            reduce(
-                                lambda acc, x: acc * x,
-                                tensors[node.input[2]].shape(),
-                            ),
-                            1,
-                            1,
-                        ],
+                        (
+                            [
+                                1,
+                                reduce(
+                                    lambda acc, x: acc * x,
+                                    tensors[node.input[2]].shape(),
+                                ),
+                                1,
+                                1,
+                            ]
+                            if not isConvTranspose1D
+                            else [
+                                1,
+                                reduce(
+                                    lambda acc, x: acc * x,
+                                    tensors[node.input[2]].shape(),
+                                ),
+                                1,
+                            ]
+                        ),
                     )
                     tensors[node.output[0]] = self.handler.add(
                         tensors[bias],
@@ -511,6 +565,12 @@ class OnnxStub:
                     tensors[node.input[1]],
                     tensors.get(node.output[0]),
                 )
+            elif node.op_type == "Equal":
+                tensors[node.output[0]] = self.handler.equal(
+                    tensors[node.input[0]],
+                    tensors[node.input[1]],
+                    tensors.get(node.output[0]),
+                )
             elif node.op_type == "Min":
                 tensors[node.output[0]] = self.handler.min(
                     tensors[node.input[0]],
@@ -576,6 +636,68 @@ class OnnxStub:
                         -1,
                     ),
                 )
+            elif node.op_type == "TopK":
+                K = _parse_data(data[node.input[1]])
+                for name, tensor in zip(
+                    node.output,
+                    self.handler.topk(
+                        tensors[node.input[0]],
+                        None,
+                        K,
+                        next(
+                            (attr.i for attr in node.attribute if attr.name == "axis"),
+                            -1,
+                        ),
+                        next(
+                            (
+                                attr.i
+                                for attr in node.attribute
+                                if attr.name == "Largest"
+                            ),
+                            1,
+                        ),
+                        next(
+                            (
+                                attr.i
+                                for attr in node.attribute
+                                if attr.name == "sorted"
+                            ),
+                            1,
+                        ),
+                    ),
+                ):
+                    tensors[name] = tensor
+            elif node.op_type == "ScatterND":
+                tensors[node.output[0]] = self.handler.scatterND(
+                    tensors[node.input[0]],
+                    tensors[node.input[1]],
+                    tensors[node.input[2]],
+                    tensors.get(node.output[0]),
+                )
+            elif node.op_type == "ScatterElements":
+                tensors[node.output[0]] = self.handler.scatterElements(
+                    tensors[node.input[0]],
+                    tensors[node.input[1]],
+                    tensors[node.input[2]],
+                    tensors.get(node.output[0]),
+                    next(
+                        (attr.i for attr in node.attribute if attr.name == "axis"),
+                        0,
+                    ),
+                )
+            elif node.op_type == "LogSoftmax":
+                softmax_node = self.handler.softmax(
+                    tensors[node.input[0]],
+                    None,
+                    next(
+                        (attr.i for attr in node.attribute if attr.name == "axis"),
+                        -1,
+                    ),
+                )
+                tensors[node.output[0]] = self.handler.log(
+                    softmax_node,
+                    tensors.get(node.output[0]),
+                )
             elif node.op_type == "Abs":
                 tensors[node.output[0]] = self.handler.abs(
                     tensors[node.input[0]],
@@ -586,9 +708,32 @@ class OnnxStub:
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
                 )
+            elif node.op_type == "Log":
+                tensors[node.output[0]] = self.handler.log(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                )
             elif node.op_type == "Neg":
                 tensors[node.output[0]] = self.handler.neg(
                     tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                )
+            elif node.op_type == "Less":
+                tensors[node.output[0]] = self.handler.less(
+                    tensors[node.input[0]],
+                    tensors[node.input[1]],
+                    tensors.get(node.output[0]),
+                )
+            elif node.op_type == "Not":
+                tensors[node.output[0]] = self.handler.notFunction(
+                    tensors[node.input[0]],
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                )
+            elif node.op_type == "And":
+                tensors[node.output[0]] = self.handler.andFunction(
+                    tensors[node.input[0]],
+                    tensors[node.input[1]],
                     tensors.get(node.output[0]),
                 )
             elif node.op_type == "Shape":
@@ -610,6 +755,11 @@ class OnnxStub:
                         1,
                     ),
                 )
+            elif node.op_type == "Exp":
+                tensors[node.output[0]] = self.handler.exp(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                )
             elif node.op_type == "PRelu":
                 tensors[node.output[0]] = self.handler.pRelu(
                     tensors[node.input[0]],
@@ -618,18 +768,8 @@ class OnnxStub:
                 )
             elif node.op_type == "Clip":
                 tensors[node.output[0]] = self.handler.clip(
-                    tensors[node.input[0]],
+                    [tensors[name] for name in node.input if name != ""],
                     tensors.get(node.output[0]),
-                    (
-                        next(_parse_data(data[node.input[1]]).__iter__(), None)
-                        if len(node.input) > 1
-                        else None
-                    ),
-                    (
-                        next(_parse_data(data[node.input[2]]).__iter__(), None)
-                        if len(node.input) > 2
-                        else None
-                    ),
                 )
             elif node.op_type == "Transpose":
                 perm = next(
@@ -713,12 +853,16 @@ class OnnxStub:
                     axes,
                     (
                         tensors[node.input[3]]
-                        if len(node.input) > 3 and node.input[3] != ""
+                        if len(node.input) > 3
+                        and node.input[3] != ""
+                        and sizesVal != []
                         else None
                     ),
                     (
                         tensors[node.input[2]]
-                        if len(node.input) > 2 and node.input[2] != ""
+                        if len(node.input) > 2
+                        and node.input[2] != ""
+                        and scalesVal != []
                         else None
                     ),
                     (
@@ -840,24 +984,49 @@ class OnnxStub:
 
                 def clamp(nums):
                     MAX_INT = 0x7FFFFFFF
-                    return [min(x, MAX_INT) for x in nums]
+                    MIN_INT = -0x80000000
+                    return [max(min(x, MAX_INT), MIN_INT) for x in nums]
 
-                tensors[node.output[0]] = self.handler.slice(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    clamp(_parse_data(data[node.input[1]])),
-                    clamp(_parse_data(data[node.input[2]])),
-                    (
-                        clamp(_parse_data(data[node.input[3]]))
-                        if len(node.input) > 3
-                        else None
-                    ),
-                    (
-                        clamp(_parse_data(data[node.input[4]]))
-                        if len(node.input) > 4
-                        else None
-                    ),
-                )
+                if len(node.input) == 1:
+                    # onnx v1 slice with only one input, and the other info in attr
+                    tensors[node.output[0]] = self.handler.slice(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        next(
+                            attr.ints
+                            for attr in node.attribute
+                            if attr.name == "starts"
+                        ),
+                        next(
+                            attr.ints for attr in node.attribute if attr.name == "ends"
+                        ),
+                        next(
+                            (
+                                attr.ints
+                                for attr in node.attribute
+                                if attr.name == "axex"
+                            ),
+                            None,
+                        ),
+                        None,
+                    )
+                else:
+                    tensors[node.output[0]] = self.handler.slice(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        clamp(_parse_data(data[node.input[1]])),
+                        clamp(_parse_data(data[node.input[2]])),
+                        (
+                            clamp(_parse_data(data[node.input[3]]))
+                            if len(node.input) > 3
+                            else None
+                        ),
+                        (
+                            clamp(_parse_data(data[node.input[4]]))
+                            if len(node.input) > 4
+                            else None
+                        ),
+                    )
             elif node.op_type == "Pad":
                 tensors[node.output[0]] = self.handler.pad(
                     tensors[node.input[0]],
@@ -1085,6 +1254,281 @@ class OnnxStub:
                     bias,
                     size,
                 )
+            elif node.op_type == "Det":
+                mode = next(
+                    (attr.s for attr in node.attribute if attr.name == "mode"),
+                    "normal",
+                )
+                tensors[node.output[0]] = self.handler.det(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                    mode,
+                )
+            elif node.op_type == "Greater":
+                tensors[node.output[0]] = self.handler.greater(
+                    tensors[node.input[0]],
+                    tensors[node.input[1]],
+                    tensors.get(node.output[0]),
+                )
+            elif node.op_type == "GreaterOrEqual":
+                tensors[node.output[0]] = self.handler.greaterEqual(
+                    tensors[node.input[0]],
+                    tensors[node.input[1]],
+                    tensors.get(node.output[0]),
+                )
+            elif node.op_type == "LSTM":
+                attributes = _parse_attribute(
+                    node,
+                    {
+                        "hidden_size": 1,  # 默认隐藏状态大小
+                        "direction": "forward",  # 默认单向
+                    },
+                )
+                hidden_size = attributes["hidden_size"]
+                direction = attributes["direction"]
+                bidirectional = direction == "bidirectional"
+
+                # 初始状态检查
+                h_0 = tensors[node.input[5]] if len(node.input) > 5 else None
+                c_0 = tensors[node.input[6]] if len(node.input) > 6 else None
+
+                # 输入权重分块（W, R, B）
+                W = tensors[
+                    node.input[1]
+                ]  # 输入权重，形状: [num_directions, 4 * hidden_size, input_size]
+                R = tensors[
+                    node.input[2]
+                ]  # 隐藏状态权重，形状: [num_directions, 4 * hidden_size, hidden_size]
+                B = (
+                    tensors[node.input[3]] if len(node.input) > 3 else None
+                )  # 偏置，形状: [num_directions, 8 * hidden_size]
+
+                # 获取输入序列
+                X = tensors[node.input[0]]
+
+                # 初始化输出变量
+                outputs = []
+
+                # 处理每个时间步
+                seq_length = X.shape()[0]  # 假设第 0 维是时间步
+                batch_size = X.shape()[1]
+                input_size = X.shape()[2]
+
+                num_directions = 2 if bidirectional else 1
+
+                # 初始化隐藏状态和细胞状态
+                h_t = (
+                    h_0
+                    if h_0 is not None
+                    else self.handler.zeros([num_directions, batch_size, hidden_size])
+                )
+                c_t = (
+                    c_0
+                    if c_0 is not None
+                    else self.handler.zeros([num_directions, batch_size, hidden_size])
+                )
+
+                for t in range(seq_length):
+                    # 当前时间步输入
+                    X_t = self.handler.slice(
+                        X, None, [t, 0, 0], [t + 1, batch_size, input_size], None, None
+                    )
+                    X_t = self.handler.reshape(
+                        X_t, None, [batch_size, input_size]
+                    )  # 去除时间维度
+
+                    # 初始化新的隐藏状态和细胞状态的列表
+                    new_h_t = []
+                    new_c_t = []
+
+                    # 对每个方向分别计算
+                    for d in range(num_directions):
+                        W_d = self.handler.slice(
+                            W,
+                            None,
+                            [d, 0, 0],
+                            [d + 1, 4 * hidden_size, input_size],
+                            None,
+                            None,
+                        )
+                        R_d = self.handler.slice(
+                            R,
+                            None,
+                            [d, 0, 0],
+                            [d + 1, 4 * hidden_size, hidden_size],
+                            None,
+                            None,
+                        )
+                        B_d = (
+                            self.handler.slice(
+                                B, None, [d, 0], [d + 1, 8 * hidden_size], None, None
+                            )
+                            if B is not None
+                            else None
+                        )
+
+                        # 转换权重维度
+                        W_d = self.handler.squeeze(
+                            W_d, None, [0]
+                        )  # 移除 num_directions 维度
+                        R_d = self.handler.squeeze(R_d, None, [0])
+                        if B_d is not None:
+                            B_d = self.handler.squeeze(B_d, None, [0])
+
+                        h_td = self.handler.squeeze(
+                            self.handler.slice(
+                                h_t,
+                                None,
+                                [d, 0, 0],
+                                [d + 1, batch_size, hidden_size],
+                                None,
+                                None,
+                            ),
+                            None,
+                            [0],
+                        )
+
+                        c_td = self.handler.squeeze(
+                            self.handler.slice(
+                                c_t,
+                                None,
+                                [d, 0, 0],
+                                [d + 1, batch_size, hidden_size],
+                                None,
+                                None,
+                            ),
+                            None,
+                            [0],
+                        )
+
+                        # 线性变换
+                        gates = self.handler.add(
+                            self.handler.matmul(
+                                X_t,
+                                self.handler.transpose(W_d, None, [1, 0]),
+                                None,
+                                False,
+                                False,
+                                None,
+                                backend.ActType.Linear,
+                                matmul_compute_type,
+                            ),
+                            self.handler.matmul(
+                                h_td,
+                                self.handler.transpose(R_d, None, [1, 0]),
+                                None,
+                                False,
+                                False,
+                                None,
+                                backend.ActType.Linear,
+                                matmul_compute_type,
+                            ),
+                            None,
+                        )
+
+                        if B_d is not None:
+                            # 按 ONNX 规范，将偏置切分为 [Wb | Rb]
+                            Wb, Rb = self.handler.split(B_d, None, -1, 2)
+                            gates = self.handler.add(
+                                gates, self.handler.add(Wb, Rb, None), None
+                            )
+
+                        # 分割门
+                        i, f, o, g = self.handler.split(gates, None, -1, 4)
+
+                        # 激活函数
+                        i = self.handler.sigmoid(i, None)  # 输入门
+                        f = self.handler.sigmoid(f, None)  # 遗忘门
+                        o = self.handler.sigmoid(o, None)  # 输出门
+                        g = self.handler.tanh(g, None)  # 候选值
+
+                        # 更新细胞状态
+                        c_td = self.handler.add(
+                            self.handler.mul(f, c_td, None),  # 遗忘门作用于当前细胞状态
+                            self.handler.mul(i, g, None),  # 输入门作用于候选值
+                            None,
+                        )
+
+                        # 更新隐藏状态
+                        h_td = self.handler.mul(o, self.handler.tanh(c_td, None), None)
+
+                        # 添加到新的状态列表中
+                        new_h_t.append(self.handler.unsqueeze(h_td, None, [0]))
+                        new_c_t.append(self.handler.unsqueeze(c_td, None, [0]))
+
+                    # 拼接所有方向的隐藏状态和细胞状态
+                    h_t = self.handler.concat(new_h_t, None, 0)
+                    c_t = self.handler.concat(new_c_t, None, 0)
+
+                    outputs.append(h_t)
+
+                # 输出拼接
+                outputs = [
+                    self.handler.unsqueeze(output, None, [0]) for output in outputs
+                ]
+                tensors[node.output[0]] = self.handler.concat(outputs, None, 0)
+                if len(node.output) > 1:
+                    tensors[node.output[1]] = h_t  # 最终隐藏状态
+                if len(node.output) > 2:
+                    tensors[node.output[2]] = c_t  # 最终细胞状态
+            elif node.op_type == "RandomNormal":
+                output_name = node.output[0]
+                attributes = _parse_attribute(
+                    node, {"dtype": 1, "mean": 0.0, "scale": 1.0, "seed": None}
+                )
+                (dtype, mean, scale, seed, shape) = (
+                    attributes[name]
+                    for name in ["dtype", "mean", "scale", "seed", "shape"]
+                )
+                if seed is not None:
+                    # np.random.seed need int type seed
+                    np.random.seed(int(seed))
+                from onnx.mapping import TENSOR_TYPE_MAP
+
+                random_values = np.random.normal(mean, scale, shape).astype(
+                    TENSOR_TYPE_MAP[dtype].np_dtype
+                )
+                tensors[output_name] = self.handler.tensor(shape, dtype)
+                tensors[output_name].set_weight()
+
+                tensor_proto = make_tensor(
+                    name=output_name,
+                    data_type=dtype,
+                    dims=shape,
+                    vals=random_values.flatten().tolist(),
+                )
+                data[output_name] = tensor_proto
+            elif node.op_type == "RandomNormalLike":
+                output_name = node.output[0]
+                attributes = _parse_attribute(
+                    node, {"dtype": None, "mean": 0.0, "scale": 1.0, "seed": None}
+                )
+                (dtype, mean, scale, seed) = (
+                    attributes[name] for name in ["dtype", "mean", "scale", "seed"]
+                )
+                if seed is not None:
+                    # np.random.seed need int type seed
+                    np.random.seed(int(seed))
+                from onnx.mapping import TENSOR_TYPE_MAP
+
+                if dtype is None:
+                    dtype = tensors[node.input[0]].data_type
+                shape = tensors[node.input[0]].shape()
+
+                random_values = np.random.normal(mean, scale, shape).astype(
+                    TENSOR_TYPE_MAP[dtype].np_dtype
+                )
+                tensors[output_name] = self.handler.tensor(shape, dtype)
+                tensors[output_name].set_weight()
+
+                tensor_proto = make_tensor(
+                    name=output_name,
+                    data_type=dtype,
+                    dims=shape,
+                    vals=random_values.flatten().tolist(),
+                )
+                data[output_name] = tensor_proto
+
             else:
                 raise Exception('Unsupported operator "{}"'.format(node.op_type))
 
@@ -1269,6 +1713,9 @@ class OnnxStub:
                         "Gemm", inputs, outputs, name, transA=transA, transB=transB
                     )
                 )
+            elif ty == backend.OpTypeId.Det:
+                mode = backend.det_attr_of(op)
+                ctx.push_node(make_node("Det", inputs, outputs, mode))
             elif ty == backend.OpTypeId.BatchNormalization:
                 inputs = [inputs[i] for i in [0, 3, 4, 1, 2]]
                 momentum, eps, training = backend.batch_norm_attrs_of(op)
@@ -1329,8 +1776,10 @@ class OnnxStub:
                 backend.OpTypeId.Identity,
                 backend.OpTypeId.PRelu,
                 backend.OpTypeId.Sqrt,
+                backend.OpTypeId.Exp,
                 backend.OpTypeId.Erf,
                 backend.OpTypeId.Neg,
+                backend.OpTypeId.Equal,
             ]:
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Flatten:
@@ -1424,23 +1873,6 @@ class OnnxStub:
                 )
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Clip:
-                min, max = backend.clip_attrs_of(op)
-                if min != None:
-                    inputs.append(
-                        ctx.push_data_input(name, "min", TensorProto.FLOAT, [], [min])
-                    )
-                else:
-                    inputs.append(
-                        ctx.push_data_input(name, "min", TensorProto.FLOAT, [], [])
-                    )
-                if max != None:
-                    inputs.append(
-                        ctx.push_data_input(name, "max", TensorProto.FLOAT, [], [max])
-                    )
-                else:
-                    inputs.append(
-                        ctx.push_data_input(name, "max", TensorProto.FLOAT, [], [])
-                    )
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Cast:
                 to = backend.cast_to_of(op)

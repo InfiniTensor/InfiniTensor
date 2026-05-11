@@ -3,7 +3,7 @@
 #include "operators/unary.h"
 
 namespace infini {
-void clip_kernel(float *input, float *output, int num, float minValue,
-                 float maxValue);
+template <typename T>
+void clip_kernel(T *input, T *output, int num, T *minValue, T *maxValue);
 
 }; // namespace infini

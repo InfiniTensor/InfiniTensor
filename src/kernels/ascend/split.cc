@@ -1,5 +1,5 @@
 #include "operators/split.h"
-#include "aclnnop/aclnn_split_tensor.h"
+#include "aclnnop/aclnn_split_with_size.h"
 #include "ascend/ascend_kernel_without_config.h"
 #include "ascend/ascend_runtime.h"
 
@@ -10,7 +10,6 @@ class SplitAclnn : public ASCENDKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<SplitObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
-        IT_ASSERT(op->getDType() == DataType::Float32);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
 
@@ -21,11 +20,15 @@ class SplitAclnn : public ASCENDKernelWithoutConfig {
 
         int64_t dim = op->getDim();
         int num = op->numOutputs();
-        int dimSize = a.at(op->getDim());
-        uint64_t splitSections = dimSize / num;
+        // int dimSize = a.at(op->getDim());
+        // uint64_t splitSections = dimSize / num;
+        vector<int> ratio = op->getRatio();
+        std::vector<int64_t> Ratio = castTo64(ratio);
+
+        auto aclDataType = aclnnDataTypeConvert(op->getDType());
 
         auto inputA = aclCreateTensor(
-            aDim.data(), aDim.size(), ACL_FLOAT, aStride.data(), 0,
+            aDim.data(), aDim.size(), aclDataType, aStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, aDim.data(), aDim.size(), aData);
 
         std::vector<aclTensor *> outputsData{};
@@ -39,7 +42,7 @@ class SplitAclnn : public ASCENDKernelWithoutConfig {
             void *const cData = (op->getOutput(i)->getRawDataPtr<void *>());
 
             aclTensor *tmpTensor = aclCreateTensor(
-                cDim.data(), cDim.size(), ACL_FLOAT, cStride.data(), 0,
+                cDim.data(), cDim.size(), aclDataType, cStride.data(), 0,
                 aclFormat::ACL_FORMAT_ND, cDim.data(), cDim.size(), cData);
 
             outputsData.push_back(tmpTensor);
@@ -47,11 +50,16 @@ class SplitAclnn : public ASCENDKernelWithoutConfig {
         aclTensorList *tensorList =
             aclCreateTensorList(outputsData.data(), outputsData.size());
 
+        aclIntArray *splitSize = aclCreateIntArray(Ratio.data(), Ratio.size());
+
         uint64_t workspaceSize = 0;
         aclOpExecutor *executor;
 
-        auto ret = aclnnSplitTensorGetWorkspaceSize(
-            inputA, splitSections, dim, tensorList, &workspaceSize, &executor);
+        // auto ret = aclnnSplitTensorGetWorkspaceSize(
+        //     inputA, splitSections, dim, tensorList, &workspaceSize,
+        //     &executor);
+        auto ret = aclnnSplitWithSizeGetWorkspaceSize(
+            inputA, splitSize, dim, tensorList, &workspaceSize, &executor);
         checkASCENDError(ret);
 
         void *workspaceAddr = nullptr;
@@ -59,8 +67,10 @@ class SplitAclnn : public ASCENDKernelWithoutConfig {
             workspaceAddr = context->getWorkspace(workspaceSize);
         }
 
-        ret = aclnnSplitTensor(workspaceAddr, workspaceSize, executor,
-                               context->ASCENDHandle());
+        // ret = aclnnSplitTensor(workspaceAddr, workspaceSize, executor,
+        //                        context->ASCENDHandle());
+        ret = aclnnSplitWithSize(workspaceAddr, workspaceSize, executor,
+                                 context->ASCENDHandle());
         checkASCENDError(ret);
 
         aclDestroyTensor(inputA);

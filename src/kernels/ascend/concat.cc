@@ -11,12 +11,13 @@ class ConcatAclnn : public ASCENDKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<ConcatObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
-        IT_ASSERT(op->getDType() == DataType::Float32);
 
         int dim = op->getDim();
         int num = op->numInputs();
 
         std::vector<aclTensor *> inputsData{};
+
+        auto aclDataType = aclnnDataTypeConvert(op->getDType());
 
         for (int i = 0; i < num; ++i) {
             auto inD = op->getInputs(i)->getDims();
@@ -26,7 +27,7 @@ class ConcatAclnn : public ASCENDKernelWithoutConfig {
 
             void *const inData = (op->getInputs(i)->getRawDataPtr<void *>());
             auto tmpTensor =
-                aclCreateTensor(inputDim.data(), inputDim.size(), ACL_FLOAT,
+                aclCreateTensor(inputDim.data(), inputDim.size(), aclDataType,
                                 inputStride.data(), 0, aclFormat::ACL_FORMAT_ND,
                                 inputDim.data(), inputDim.size(), inData);
 
@@ -42,7 +43,7 @@ class ConcatAclnn : public ASCENDKernelWithoutConfig {
         std::vector<int64_t> outputStride = castTo64(outS);
 
         auto outputTensor =
-            aclCreateTensor(outputDim.data(), outputDim.size(), ACL_FLOAT,
+            aclCreateTensor(outputDim.data(), outputDim.size(), aclDataType,
                             outputStride.data(), 0, aclFormat::ACL_FORMAT_ND,
                             outputDim.data(), outputDim.size(), outData);
 
