@@ -9,6 +9,10 @@
         if (ACL_SUCCESS != err) {                                              \
             fprintf(stderr, "ASCEND error in %s:%i : .\n", __FILE__,           \
                     __LINE__);                                                 \
+            auto tmp_err_msg = aclGetRecentErrMsg();                           \
+            if (tmp_err_msg != NULL) {                                         \
+                printf(" ERROR Message : %s \n ", tmp_err_msg);                \
+            }                                                                  \
             exit(EXIT_FAILURE);                                                \
         }                                                                      \
     }
