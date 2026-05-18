@@ -26,6 +26,7 @@
 #include "operators/softmax.h"
 #include "operators/split.h"
 #include "operators/squeeze.h"
+#include "operators/swiglu.h"
 #include "operators/transpose.h"
 #include "operators/unary.h"
 #include "operators/unsqueeze.h"
@@ -158,6 +159,17 @@ Tensor GraphHandlerObj::rmsNorm(Tensor input, Tensor weight, Tensor output) {
         return output;
     } else {
         return g->addOp<RMSNormObj>(std::move(input), std::move(weight), output)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::swiGLU(Tensor input, Tensor gate, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<SwiGLUObj>(std::move(input), std::move(gate),
+                                       output);
+        return output;
+    } else {
+        return g->addOp<SwiGLUObj>(std::move(input), std::move(gate), output)
             ->getOutput();
     }
 }

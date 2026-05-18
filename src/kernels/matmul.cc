@@ -1,5 +1,4 @@
 #include "operators/matmul.h"
-#include "core/data_type.h"
 #include "core/kernel.h"
 #include "core/tensor.h"
 #include "cpu/gemm/gemm.h"

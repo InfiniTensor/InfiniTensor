@@ -14,7 +14,6 @@
 #ifdef WITH_MOORE
 #include "cuda/moore/rms_norm/kernel.h"
 #endif
-#include "core/data_type.h"
 #include "core/kernel.h"
 #include "core/tensor.h"
 #include "operators/rms_norm.h"

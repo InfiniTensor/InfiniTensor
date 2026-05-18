@@ -132,6 +132,7 @@ if(USE_MOORE)
 endif()
 if(USE_ILUVATAR)
     set(WITH_ILUVATAR ON CACHE BOOL "" FORCE)
+    add_compile_definitions(WITH_ILUVATAR=1)
 endif()
 if(USE_TORCH)
     set(WITH_TORCH ON CACHE BOOL "" FORCE)
@@ -183,7 +184,49 @@ endif()
 
 # InfiniOps adapter kernels
 file(GLOB_RECURSE SRC_INFINIOPS_ADAPTER src/kernels/*.cc)
-if(WITH_NVIDIA OR WITH_ILUVATAR)
+if(WITH_ILUVATAR)
+    # Iluvatar: use clang++ with -x ivcore (similar to Moore/Metax approach)
+    # because adapter files include CUDA-specific headers that g++ cannot handle
+    set(ILUVATAR_CLANGXX "clang++")
+    set(ILUVATAR_ROOT "")
+    foreach(_env COREX_ROOT ILUVATAR_ROOT)
+        if(DEFINED ENV{${_env}} AND NOT "$ENV{${_env}}" STREQUAL "")
+            set(ILUVATAR_ROOT "$ENV{${_env}}")
+            set(ILUVATAR_CLANGXX "${ILUVATAR_ROOT}/bin/clang++")
+            break()
+        endif()
+    endforeach()
+    if(NOT ILUVATAR_ROOT AND EXISTS "/usr/local/corex")
+        set(ILUVATAR_ROOT "/usr/local/corex")
+        set(ILUVATAR_CLANGXX "${ILUVATAR_ROOT}/bin/clang++")
+    endif()
+    set(_iluvatar_adapter_objs "")
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/iluvatar_adapter")
+    foreach(_src ${SRC_INFINIOPS_ADAPTER})
+        get_filename_component(_name ${_src} NAME_WE)
+        set(_obj "${CMAKE_CURRENT_BINARY_DIR}/iluvatar_adapter/${_name}.o")
+        add_custom_command(
+            OUTPUT ${_obj}
+            COMMAND ${ILUVATAR_CLANGXX} -c
+                --cuda-gpu-arch=${ILUVATAR_ARCH}
+                --cuda-path=${ILUVATAR_ROOT}
+                -x ivcore -std=c++17 -O2 -fPIC
+                -I${CMAKE_CURRENT_SOURCE_DIR}/include
+                -I${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/nlohmann_json_cmake_fetchcontent/single_include
+                -I${CMAKE_CURRENT_SOURCE_DIR}/test/kernels
+                -I${INFINIOPS_DIR}/src
+                -I${ILUVATAR_ROOT}/include
+                -Wno-error=unused-variable -Wno-error=unused-private-field -Wno-unused-variable
+                -DNDEBUG -DWITH_CPU=1 -DWITH_ILUVATAR=1
+                -o ${_obj} ${_src}
+            DEPENDS ${_src}
+            COMMENT "Compiling ${_src} with clang++ (Iluvatar ivcore compiler)"
+        )
+        list(APPEND _iluvatar_adapter_objs ${_obj})
+    endforeach()
+    add_custom_target(iluvatar_adapter DEPENDS ${_iluvatar_adapter_objs})
+    # Object files will be added to InfiniTensor after target creation
+elseif(WITH_NVIDIA)
     include(CheckLanguage)
     check_language(CUDA)
     if(CMAKE_CUDA_COMPILER)
@@ -276,6 +319,10 @@ endif()
 if(WITH_METAX)
     target_sources(InfiniTensor PRIVATE ${_metax_adapter_objs})
     add_dependencies(InfiniTensor metax_adapter)
+endif()
+if(WITH_ILUVATAR)
+    target_sources(InfiniTensor PRIVATE ${_iluvatar_adapter_objs})
+    add_dependencies(InfiniTensor iluvatar_adapter)
 endif()
 if(USE_PROTOBUF)
   target_link_libraries(InfiniTensor PRIVATE tensor_proto)

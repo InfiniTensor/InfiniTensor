@@ -37,6 +37,7 @@ class GraphHandlerObj {
     Tensor instanceNormalization(Tensor input, Tensor output, Tensor scale,
                                  Tensor bias, float eps);
     Tensor rmsNorm(Tensor input, Tensor weight, Tensor output);
+    Tensor swiGLU(Tensor input, Tensor gate, Tensor output);
 
     Tensor maxPool(Tensor input, Tensor output, int kh, int kw, int dh, int dw,
                    int ph, int pw, int sh, int sw, int ceilMode);
