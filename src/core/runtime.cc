@@ -8,26 +8,26 @@
 #include <cstring>
 
 #ifdef WITH_CPU
-#include "cpu/runtime_.h"
+#include "native/cpu/runtime_.h"
 #endif
 #ifdef WITH_NVIDIA
-#include "cuda/nvidia/runtime_.h"
+#include "native/cuda/nvidia/runtime_.h"
 #endif
 #ifdef WITH_MOORE
-#include "cuda/moore/runtime_.h"
+#include "native/cuda/moore/runtime_.h"
 #endif
 #ifdef WITH_ILUVATAR
-#include "cuda/iluvatar/runtime_.h"
+#include "native/cuda/iluvatar/runtime_.h"
 #endif
 #ifdef WITH_METAX
-#include "cuda/metax/runtime_.h"
+#include "native/cuda/metax/runtime_.h"
 #endif
 #ifdef WITH_CAMBRICON
-#include "cambricon/runtime_.h"
+#include "native/cambricon/runtime_.h"
 #endif
 #ifdef WITH_ASCEND
 #include "acl/acl.h"
-#include "ascend/runtime_.h"
+#include "native/ascend/runtime_.h"
 #endif
 
 namespace infini {

@@ -1,6 +1,6 @@
-#include "cpu/cast/cast.h"
+#include "native/cpu/ops/cast/cast.h"
 #ifdef WITH_ASCEND
-#include "ascend/cast/kernel.h"
+#include "native/ascend/ops/cast/kernel.h"
 #endif
 #include "core/data_type.h"
 #include "core/kernel.h"

@@ -12,9 +12,9 @@ using json = nlohmann::json;
 class RuntimeObj; // Forward declaration for Kernel::compute
 
 struct PerfRecordObj {
-    PerfRecordObj(){};
-    PerfRecordObj(double time) : time(time){};
-    virtual ~PerfRecordObj(){};
+    PerfRecordObj() {};
+    PerfRecordObj(double time) : time(time) {};
+    virtual ~PerfRecordObj() {};
     double time = 0; // in milliseconds
     virtual void to_json(json &j) {
         j["type"] = 0;
@@ -214,13 +214,13 @@ using CpuKernelWithoutConfig [[deprecated("Use KernelWithoutConfig instead")]] =
 // Pull in DeviceEnabled<> specializations for all InfiniOps device backends.
 // All device_.h files only depend on device.h (no GPU-specific headers),
 // so unconditional inclusion is safe.
-#include "ascend/device_.h"
-#include "cambricon/device_.h"
-#include "cpu/device_.h"
-#include "cuda/iluvatar/device_.h"
-#include "cuda/metax/device_.h"
-#include "cuda/moore/device_.h"
-#include "cuda/nvidia/device_.h"
+#include "native/ascend/device_.h"
+#include "native/cambricon/device_.h"
+#include "native/cpu/device_.h"
+#include "native/cuda/iluvatar/device_.h"
+#include "native/cuda/metax/device_.h"
+#include "native/cuda/moore/device_.h"
+#include "native/cuda/nvidia/device_.h"
 
 // Register kernel for all device backends (one macro call per operator).
 // If a platform lacks an operator implementation, InfiniOps dispatch will

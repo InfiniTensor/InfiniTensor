@@ -1,6 +1,6 @@
-#include "cpu/mul/mul.h"
+#include "native/cpu/ops/mul/mul.h"
 #ifdef WITH_ASCEND
-#include "ascend/mul/kernel.h"
+#include "native/ascend/ops/mul/kernel.h"
 #endif
 #include "core/data_type.h"
 #include "core/kernel.h"

@@ -2,9 +2,9 @@
 #include "core/data_type.h"
 #include "core/kernel.h"
 #include "core/tensor.h"
-#include "cpu/cat/cat.h"
+#include "native/cpu/ops/cat/cat.h"
 #ifdef WITH_ASCEND
-#include "ascend/cat/kernel.h"
+#include "native/ascend/ops/cat/kernel.h"
 #endif
 
 namespace infini {

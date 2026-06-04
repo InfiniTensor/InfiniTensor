@@ -1,24 +1,24 @@
-#include "cpu/add/add.h"
+#include "native/cpu/ops/add/add.h"
 #ifdef WITH_NVIDIA
-#include "cuda/nvidia/add/kernel.h"
+#include "native/cuda/nvidia/ops/add/kernel.h"
 #endif
 #ifdef WITH_CAMBRICON
 // TODO: add cambricon/add when available
 #endif
 #ifdef WITH_ASCEND
-#include "ascend/add/kernel.h"
+#include "native/ascend/ops/add/kernel.h"
 #endif
 #ifdef WITH_ILUVATAR
-#include "cuda/iluvatar/add/kernel.h"
+#include "native/cuda/iluvatar/ops/add/kernel.h"
 #endif
 #ifdef WITH_METAX
-#include "cuda/metax/add/kernel.h"
+#include "native/cuda/metax/ops/add/kernel.h"
 #endif
 #ifdef WITH_MOORE
-#include "cuda/moore/add/kernel.h"
+#include "native/cuda/moore/ops/add/kernel.h"
 #endif
 #ifdef WITH_TORCH
-#include "torch/add/add.h"
+#include "torch/ops/add/add.h"
 #endif
 #include "core/data_type.h"
 #include "core/kernel.h"

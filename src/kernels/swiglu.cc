@@ -1,15 +1,15 @@
-#include "cpu/swiglu/swiglu.h"
+#include "native/cpu/ops/swiglu/swiglu.h"
 #ifdef WITH_NVIDIA
-#include "cuda/nvidia/swiglu/kernel.h"
+#include "native/cuda/nvidia/ops/swiglu/kernel.h"
 #endif
 #ifdef WITH_ILUVATAR
-#include "cuda/iluvatar/swiglu/kernel.h"
+#include "native/cuda/iluvatar/ops/swiglu/kernel.h"
 #endif
 #ifdef WITH_METAX
-#include "cuda/metax/swiglu/kernel.h"
+#include "native/cuda/metax/ops/swiglu/kernel.h"
 #endif
 #ifdef WITH_MOORE
-#include "cuda/moore/swiglu/kernel.h"
+#include "native/cuda/moore/ops/swiglu/kernel.h"
 #endif
 #include "core/kernel.h"
 #include "core/tensor.h"

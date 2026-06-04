@@ -1,18 +1,18 @@
-#include "cpu/rms_norm/rms_norm.h"
+#include "native/cpu/ops/rms_norm/rms_norm.h"
 #ifdef WITH_NVIDIA
-#include "cuda/nvidia/rms_norm/kernel.h"
+#include "native/cuda/nvidia/ops/rms_norm/kernel.h"
 #endif
 #ifdef WITH_CAMBRICON
-#include "cambricon/rms_norm/rms_norm.h"
+#include "native/cambricon/ops/rms_norm/rms_norm.h"
 #endif
 #ifdef WITH_ILUVATAR
-#include "cuda/iluvatar/rms_norm/kernel.h"
+#include "native/cuda/iluvatar/ops/rms_norm/kernel.h"
 #endif
 #ifdef WITH_METAX
-#include "cuda/metax/rms_norm/kernel.h"
+#include "native/cuda/metax/ops/rms_norm/kernel.h"
 #endif
 #ifdef WITH_MOORE
-#include "cuda/moore/rms_norm/kernel.h"
+#include "native/cuda/moore/ops/rms_norm/kernel.h"
 #endif
 #include "core/kernel.h"
 #include "core/tensor.h"

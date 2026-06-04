@@ -141,6 +141,24 @@ endif()
 
 add_subdirectory(${INFINIOPS_DIR} ${CMAKE_BINARY_DIR}/infiniops EXCLUDE_FROM_ALL)
 
+# Auto-generate InfiniTensor kernel bridges for InfiniOps torch ops.
+# Runs at configure time so the generated .cc files are visible to GLOB.
+if(WITH_TORCH)
+    set(GENERATED_KERNELS_DIR "${CMAKE_BINARY_DIR}/generated_kernels")
+    file(MAKE_DIRECTORY ${GENERATED_KERNELS_DIR})
+    execute_process(
+        COMMAND ${Python_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/scripts/generate_infiniops_kernels.py
+            --mapping ${CMAKE_SOURCE_DIR}/scripts/infiniops_op_mapping.yaml
+            --infiniops-dir ${INFINIOPS_DIR}
+            --output-dir ${GENERATED_KERNELS_DIR}
+        RESULT_VARIABLE _gen_result
+    )
+    if(NOT _gen_result EQUAL 0)
+        message(FATAL_ERROR "Failed to generate InfiniTensor kernel bridges")
+    endif()
+endif()
+
 # TVM backend
 if(BUILD_NNET AND BUILD_TEST)
   # TVM and DMLC for invoking TVM packed functions
@@ -308,6 +326,12 @@ elseif(WITH_METAX)
     # Object files will be added to InfiniTensor after target creation
 else()
     list(APPEND SRC ${SRC_INFINIOPS_ADAPTER})
+endif()
+
+# Generated torch kernel bridges (only when WITH_TORCH is enabled).
+if(WITH_TORCH)
+    file(GLOB GENERATED_KERNEL_SRCS "${GENERATED_KERNELS_DIR}/*.cc")
+    list(APPEND SRC ${GENERATED_KERNEL_SRCS})
 endif()
 
 # Libraries

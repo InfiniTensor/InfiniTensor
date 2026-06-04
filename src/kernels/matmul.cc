@@ -1,28 +1,28 @@
 #include "operators/matmul.h"
 #include "core/kernel.h"
 #include "core/tensor.h"
-#include "cpu/gemm/gemm.h"
+#include "native/cpu/ops/gemm/gemm.h"
 #ifdef WITH_NVIDIA
-#include "cuda/nvidia/gemm/cublas.h"
-#include "cuda/nvidia/gemm/cublaslt.h"
+#include "native/cuda/nvidia/ops/gemm/cublas.h"
+#include "native/cuda/nvidia/ops/gemm/cublaslt.h"
 #endif
 #ifdef WITH_CAMBRICON
-#include "cambricon/gemm/cnblas.h"
+#include "native/cambricon/ops/gemm/cnblas.h"
 #endif
 #ifdef WITH_ASCEND
-#include "ascend/gemm/kernel.h"
+#include "native/ascend/ops/gemm/kernel.h"
 #endif
 #ifdef WITH_ILUVATAR
-#include "cuda/iluvatar/gemm/cublas.h"
+#include "native/cuda/iluvatar/ops/gemm/cublas.h"
 #endif
 #ifdef WITH_METAX
-#include "cuda/metax/gemm/mcblas.h"
+#include "native/cuda/metax/ops/gemm/mcblas.h"
 #endif
 #ifdef WITH_MOORE
-#include "cuda/moore/gemm/mublas.h"
+#include "native/cuda/moore/ops/gemm/mublas.h"
 #endif
 #ifdef WITH_TORCH
-#include "torch/gemm/gemm.h"
+#include "torch/ops/gemm/gemm.h"
 #endif
 
 namespace infini {

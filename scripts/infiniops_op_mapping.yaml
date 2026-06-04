@@ -1,0 +1,43 @@
+# Mapping: InfiniTensor OpType → InfiniOps generated op name
+#
+# Each entry maps an InfiniTensor OpType enum value to the InfiniOps operator
+# name (snake_case, matching the ATen op name used by generate_torch_ops.py).
+# The Pascal Case class name is derived automatically (relu → Relu).
+#
+# Categories:
+#   unary  — 1 tensor input, 1 tensor output (uses UnaryObj)
+#   binary — 2 tensor inputs, 1 tensor output (uses ElementWiseObj)
+
+unary:
+  Sigmoid: sigmoid
+  Tanh: tanh
+  Abs: abs
+  Exp: exp
+  Sin: sin
+  Cos: cos
+  Sqrt: sqrt
+  Ceil: ceil
+  Floor: floor
+  Neg: neg
+  Reciprocal: reciprocal
+  Erf: erf
+  Silu: silu
+  # Gelu needs extra scalar param (approximate: std::string) — not pure unary
+  HardSigmoid: hard_sigmoid
+  HardSwish: hard_swish
+  Rsqrt: rsqrt
+  Sign: sign
+  Asin: asin
+  Acos: acos
+  Atan: atan
+  Sinh: sinh
+  Cosh: cosh
+  Asinh: asinh
+  Acosh: acosh
+  Atanh: atanh
+
+binary:
+  # Sub needs extra scalar (alpha) — not pure binary, skip for Phase 1
+  Div: div
+  Max: maximum
+  Min: minimum
