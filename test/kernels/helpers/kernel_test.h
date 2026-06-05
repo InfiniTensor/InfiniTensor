@@ -56,7 +56,7 @@ inline void verifyAgainstCpu(
     auto cpuResult = runOpAndGetOutput(Device::Type::kCpu, inputs, opBuilder);
     auto targetResult = runOpAndGetOutput(targetType, inputs, opBuilder);
 
-    ASSERT_EQ(cpuResult.size(), targetResult.size())
+    EXPECT_EQ(cpuResult.size(), targetResult.size())
         << "CPU and target output sizes differ: cpu=" << cpuResult.size()
         << " target=" << targetResult.size();
 
