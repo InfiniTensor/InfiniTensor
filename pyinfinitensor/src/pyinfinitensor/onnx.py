@@ -822,14 +822,18 @@ class OnnxStub:
                     ),
                 )
             elif node.op_type == "ReduceMean":
+                # ONNX opset 13+: `axes` is a second input, not an attribute.
+                # PyTorch 2.x exports all ReduceMean nodes with the new spec.
+                axes = next(
+                    (attr.ints for attr in node.attribute if attr.name == "axes"),
+                    None,
+                )
+                if axes is None and len(node.input) > 1 and node.input[1]:
+                    axes = _parse_data(data[node.input[1]])
                 tensors[node.output[0]] = self.handler.reduceMean(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
-                    # NOTE(constroy): `axes` is an attribute until opset version 13.
-                    next(
-                        (attr.ints for attr in node.attribute if attr.name == "axes"),
-                        None,
-                    ),
+                    axes,
                     next(
                         (attr.i for attr in node.attribute if attr.name == "keepdims"),
                         1,
