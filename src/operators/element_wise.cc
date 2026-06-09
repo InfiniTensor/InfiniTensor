@@ -8,6 +8,42 @@ ElementWiseObj::ElementWiseObj(OpType type, GraphObj *graph, Tensor input0,
     IT_ASSERT(checkValid(graph));
 }
 
+void ElementWiseObj::initInfiniOp(const Runtime context) {
+    auto a_dim = inputs[0]->getDims();
+    auto b_dim = inputs[1]->getDims();
+    auto c_dim = outputs[0]->getDims();
+
+    if (type == OpType::Add) {
+        auto a_shape = toInfiniopShape(a_dim);
+        auto b_shape = toInfiniopShape(b_dim);
+        auto c_shape = toInfiniopShape(c_dim);
+        // create tensor descriptor
+        infiniopTensorDescriptor_t a_tensor;
+        CHECK_ERROR(infiniopCreateTensorDescriptor(
+            &a_tensor, a_dim.size(), a_shape.data(), nullptr,
+            toInfiniopDataLayout(inputs[0]->getDType().getIndex())));
+        infiniopTensorDescriptor_t b_tensor;
+        CHECK_ERROR(infiniopCreateTensorDescriptor(
+            &b_tensor, b_dim.size(), b_shape.data(), nullptr,
+            toInfiniopDataLayout(inputs[1]->getDType().getIndex())));
+        infiniopTensorDescriptor_t c_tensor;
+        CHECK_ERROR(infiniopCreateTensorDescriptor(
+            &c_tensor, c_dim.size(), c_shape.data(), nullptr,
+            toInfiniopDataLayout(outputs[0]->getDType().getIndex())));
+        // create op descriptor
+        CHECK_ERROR(infiniopCreateAddDescriptor(
+            context->opHandle(), (infiniopAddDescriptor_t *)&opDesc, c_tensor,
+            a_tensor, b_tensor));
+
+        // destroy tensor descriptor and op descriptor
+        CHECK_ERROR(infiniopDestroyTensorDescriptor(a_tensor));
+        CHECK_ERROR(infiniopDestroyTensorDescriptor(b_tensor));
+        CHECK_ERROR(infiniopDestroyTensorDescriptor(c_tensor));
+    } else {
+        opDesc = nullptr;
+    }
+}
+
 optional<vector<Shape>> ElementWiseObj::inferShape(const TensorVec &inputs) {
     const auto A = inputs[0], B = inputs[1];
     auto res = infer_broadcast(A->getDims(), B->getDims());

@@ -6,6 +6,19 @@
 #include <chrono>
 #include <cstring>
 namespace infini {
+DeviceEnum toInfiniopDevice(Device device) {
+    switch (device) {
+    case Device::CPU:
+        return DevCpu;
+    case Device::CUDA:
+        return DevNvGpu;
+    case Device::BANG:
+        return DevCambriconMlu;
+    default:
+        IT_TODO_HALT();
+    };
+}
+
 void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
     if (!tune && profiling)
         IT_TODO_HALT();
