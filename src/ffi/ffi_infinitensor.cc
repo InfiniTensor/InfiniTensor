@@ -24,6 +24,9 @@
 #include "cuda/cuda_runtime.h"
 #include "cuda/operator_timer.h"
 #endif
+#ifdef USE_METAX
+#include "metax/metax_runtime.h"
+#endif
 #ifdef USE_BANG
 #include "bang/bang_runtime.h"
 #endif
@@ -168,6 +171,12 @@ static int tensor_dtype(Tensor t) {
 // NOTE(lizhouyang): deprecate this, use CudaRuntime directly.
 [[deprecated]] static Ref<CudaRuntimeObj> cuda_runtime() {
     return make_ref<CudaRuntimeObj>(0);
+}
+#endif
+
+#ifdef USE_METAX
+static Ref<MetaxRuntimeObj> metax_runtime() {
+    return make_ref<MetaxRuntimeObj>(0);
 }
 #endif
 
@@ -352,11 +361,11 @@ void export_functions(py::module &m) {
 #ifdef USE_CUDA
         .def("cuda_runtime", cuda_runtime)
 #endif
+#ifdef USE_METAX
+        .def("metax_runtime", metax_runtime)
+#endif
 #ifdef USE_INTELCPU
         .def("intelcpu_runtime", intelcpu_runtime)
-#endif
-#ifdef USE_CUDA
-        .FUNCTION(cuda_runtime)
 #endif
 #ifdef USE_BANG
         .FUNCTION(bang_runtime)
@@ -441,6 +450,12 @@ void init_graph_builder(py::module &m) {
 #ifdef USE_CUDA
     py::class_<CudaRuntimeObj, std::shared_ptr<CudaRuntimeObj>, RuntimeObj>(
         m, "CudaRuntime")
+        .def(py::init<int>(), py::arg("device") = 0)
+        .def("init_comm", &CudaRuntimeObj::initComm);
+#endif
+#ifdef USE_METAX
+    py::class_<MetaxRuntimeObj, std::shared_ptr<MetaxRuntimeObj>, RuntimeObj>(
+        m, "MetaxRuntime")
         .def(py::init<int>(), py::arg("device") = 0)
         .def("init_comm", &CudaRuntimeObj::initComm);
 #endif
@@ -611,6 +626,10 @@ void init_graph_builder(py::module &m) {
         .def("run", &Handler::run, policy::automatic)
 #ifdef USE_CUDA
         .def("run_with_cudagraph", &Handler::run_with_cudagraph,
+             policy::automatic)
+#endif
+#if defined(USE_METAX)
+        .def("run_with_metaxgraph", &Handler::run_with_metaxgraph,
              policy::automatic)
 #endif
         .def("shape_infer", &Handler::shape_infer, policy::automatic)

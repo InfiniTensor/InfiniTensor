@@ -33,6 +33,8 @@
 
 build/
 build_debug/
+# Out-of-tree CMake dirs: build-<device|config> (e.g. build-metax, build-cuda).
+build-*/
 
 .vscode/
 

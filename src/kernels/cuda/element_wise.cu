@@ -202,7 +202,12 @@ __global__ void _pow_const_kernel<half>(void const *__restrict__ x,
                                         void *__restrict__ z, const size_t n) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     if (tid < n) {
+#ifdef USE_METAX
+        ((half *)z)[tid] =
+            (half)powf(((float)((half *)x)[tid]), (float)*((half *)y));
+#else
         ((half *)z)[tid] = pow(((float)((half *)x)[tid]), *((half *)y));
+#endif
     }
 }
 

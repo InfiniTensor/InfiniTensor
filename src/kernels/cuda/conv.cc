@@ -142,6 +142,57 @@ class convCudnn : public Kernel {
 
     bool cuDNNUnfused(const Ref<ConvObj> &op, const ConvCuDnnPerfRecord &record,
                       const CudaRuntimeObj *context) const {
+#ifdef USE_METAX
+        const auto &[inData, knData, outData, inDesc, knDesc, biasDesc,
+                     convDesc, actDesc, outDesc] =
+            createCuDNNDescriptor(op, record);
+
+        auto destroyDescriptors = [&]() {
+            checkCudnnError(cudnnDestroyTensorDescriptor(outDesc));
+            checkCudnnError(cudnnDestroyActivationDescriptor(actDesc));
+            checkCudnnError(cudnnDestroyConvolutionDescriptor(convDesc));
+            checkCudnnError(cudnnDestroyTensorDescriptor(biasDesc));
+            checkCudnnError(cudnnDestroyFilterDescriptor(knDesc));
+            checkCudnnError(cudnnDestroyTensorDescriptor(inDesc));
+        };
+
+        // MACA cu-bridge: query workspace and fall back across algos when the
+        // default perf record does not match an executable forward config.
+        int tryAlgo[N_ALGO];
+        tryAlgo[0] = record->algo;
+        int k = 1;
+        for (int i = 0; i < N_ALGO; ++i) {
+            if (i != record->algo) {
+                tryAlgo[k++] = i;
+            }
+        }
+
+        float alpha = 1.f, beta = 0.f;
+        for (int j = 0; j < N_ALGO; ++j) {
+            const int ai = tryAlgo[j];
+            size_t wsSize = 0;
+            cudnnStatus_t stat = cudnnGetConvolutionForwardWorkspaceSize(
+                context->cudnnHandle(), inDesc, knDesc, convDesc, outDesc,
+                ALGOS[ai], &wsSize);
+            if (stat != CUDNN_STATUS_SUCCESS) {
+                continue;
+            }
+            if (wsSize > context->getWorkspaceSize()) {
+                continue;
+            }
+            void *wsData = context->getWorkspace(wsSize);
+            stat = cudnnConvolutionForward(
+                context->cudnnHandle(), &alpha, inDesc, inData, knDesc, knData,
+                convDesc, ALGOS[ai], wsData, wsSize, &beta, outDesc, outData);
+            if (stat == CUDNN_STATUS_SUCCESS) {
+                destroyDescriptors();
+                return true;
+            }
+        }
+
+        destroyDescriptors();
+        return false;
+#else
         cudnnStatus_t stat;
 
         const auto &[inData, knData, outData, inDesc, knDesc, biasDesc,
@@ -165,6 +216,7 @@ class convCudnn : public Kernel {
         checkCudnnError(cudnnDestroyFilterDescriptor(knDesc));
         checkCudnnError(cudnnDestroyTensorDescriptor(inDesc));
         return true;
+#endif
     }
 
     void compute(const Operator &op, const RuntimeObj *context) const override {

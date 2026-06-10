@@ -106,6 +106,8 @@ std::string device_to_str(Device device) {
         return "KUNLUN";
     case Device::ASCEND:
         return "ASCEND";
+    case Device::METAX:
+        return "METAX";
     default:
         IT_TODO_HALT();
     }
