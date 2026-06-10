@@ -233,6 +233,10 @@ DataType CastObj::getOutputDataType() const {
         return DataType::BFloat16;
     case CastType::Float2Float:
         return DataType::Float32;
+    case CastType::Float2Bool:
+        return DataType::Bool;
+    case CastType::Bool2Int32:
+        return DataType::Int32;
     default:
         IT_TODO_HALT();
     }

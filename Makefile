@@ -1,6 +1,6 @@
 ﻿.PHONY : build clean format install-python test-cpp test-onnx
 
-TYPE ?= Release
+TYPE ?= Debug
 CUDA ?= OFF
 BANG ?= OFF
 KUNLUN ?= OFF

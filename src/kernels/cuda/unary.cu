@@ -386,4 +386,25 @@ template void cast_kernel<int8_t, float>(int8_t *input, float *output,
                                          size_t num);
 template void leaky_relu_kernel<float>(float *input, float *output, size_t num,
                                        float alpha);
+template void cast_kernel<float, bool>(float *input, bool *output, size_t num);
+template void cast_kernel<int64_t, int32_t>(int64_t *input, int32_t *output,
+                                            size_t num);
+template void cast_kernel<int32_t, int64_t>(int32_t *input, int64_t *output,
+                                            size_t num);
+template void cast_kernel<int32_t, float>(int32_t *input, float *output,
+                                          size_t num);
+template void cast_kernel<int64_t, float>(int64_t *input, float *output,
+                                          size_t num);
+template void cast_kernel<uint32_t, float>(uint32_t *input, float *output,
+                                           size_t num);
+template void cast_kernel<uint64_t, float>(uint64_t *input, float *output,
+                                           size_t num);
+template void cast_kernel<float, int64_t>(float *input, int64_t *output,
+                                          size_t num);
+template void cast_kernel<float, uint32_t>(float *input, uint32_t *output,
+                                           size_t num);
+template void cast_kernel<float, uint64_t>(float *input, uint64_t *output,
+                                           size_t num);
+template void cast_kernel<bool, int32_t>(bool *input, int32_t *output,
+                                         size_t num);
 }; // namespace infini
