@@ -2,6 +2,7 @@
 #include "core/graph.h"
 #include "core/kernel.h"
 #include <nlohmann/json_fwd.hpp>
+#include <unordered_map>
 namespace infini {
 using json = nlohmann::json;
 
@@ -16,7 +17,7 @@ class PerfEngine {
     PerfEngine &operator=(PerfEngine const &) = delete;
 
   private:
-    map<Key, PerfRecord> data;
+    std::unordered_map<Key, PerfRecord> data;
 
   public:
     static PerfEngine &getInstance() {
@@ -41,8 +42,10 @@ class PerfEngine {
         IT_ASSERT(data.find(key) == data.end(), "Perf data already exist");
         data.emplace(key, record);
     }
-    map<Key, PerfRecord> get_data() { return data; }
-    void set_data(map<Key, PerfRecord> data) { this->data = data; }
+    std::unordered_map<Key, PerfRecord> get_data() { return data; }
+    void set_data(std::unordered_map<Key, PerfRecord> data) {
+        this->data = data;
+    }
     void savePerfEngineData(std::string file_path);
     void loadPerfEngineData(std::string file_path);
 };

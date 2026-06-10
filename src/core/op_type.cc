@@ -216,6 +216,7 @@ const char *OpType::toString() const {
         CASE(FloorMod);
         CASE(Square);
         CASE(SquaredDifference);
+        CASE(SwiGLU);
 
         // Communcation
         CASE(AllReduceSum);

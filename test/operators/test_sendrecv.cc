@@ -6,7 +6,7 @@
 
 namespace infini {
 TEST(Send, ShapeTypeInfer) {
-    auto runtime = NativeCpuRuntimeObj::getInstance();
+    auto runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
     int source = 0;
     int destination = 1;
     Shape dims = {1, 3, 2, 4};
@@ -20,7 +20,7 @@ TEST(Send, ShapeTypeInfer) {
     }
 }
 TEST(Recv, ShapeTypeInfer) {
-    auto runtime = NativeCpuRuntimeObj::getInstance();
+    auto runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
     int source = 0;
     int destination = 1;
     Shape dims = {1, 3, 2, 4};

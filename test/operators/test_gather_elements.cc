@@ -8,7 +8,7 @@
 namespace infini {
 
 TEST(Gather, ShapeTypeInference) {
-    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
     {
         Graph g = make_ref<GraphObj>(runtime);
         Tensor i = g->addTensor({3, 3, 3}, DataType::Int32);

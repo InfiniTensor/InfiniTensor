@@ -2,6 +2,9 @@
 
 #include "core/op_type.h"
 #include "core/tensor.h"
+#include "device.h"
+#include <functional>
+#include <utility>
 
 namespace infini {
 using KernelAttrs = std::tuple<Device, OpType::underlying_t>;
@@ -25,20 +28,6 @@ struct OpPerfKey {
         if (attrs != rhs.attrs)
             return false;
         return true;
-    }
-
-    // TODO: remove this function after we use unordered_map in PerfEngine
-    bool operator<(const OpPerfKey &rhs) const {
-        if (hash != rhs.hash)
-            return hash < rhs.hash;
-        if (opType != rhs.opType)
-            return opType < rhs.opType;
-        if (attrs.size() != rhs.attrs.size())
-            return attrs.size() < rhs.attrs.size();
-        for (size_t i = 0; i < attrs.size(); ++i)
-            if (attrs[i] != rhs.attrs[i])
-                return attrs[i] < rhs.attrs[i];
-        return false;
     }
 };
 
@@ -145,5 +134,22 @@ class OperatorObj : public Object {
 namespace std {
 template <> struct hash<infini::OpPerfKey> {
     size_t operator()(const infini::OpPerfKey &key) const { return key.hash; }
+};
+
+template <> struct hash<infini::KernelAttrs> {
+    size_t operator()(const infini::KernelAttrs &key) const noexcept {
+        size_t h1 = hash<infini::Device>{}(std::get<0>(key));
+        size_t h2 = hash<infini::OpType::underlying_t>{}(std::get<1>(key));
+        return h1 ^ (h2 << 1);
+    }
+};
+
+template <> struct hash<std::pair<infini::KernelAttrs, infini::OpPerfKey>> {
+    size_t operator()(const std::pair<infini::KernelAttrs, infini::OpPerfKey>
+                          &key) const noexcept {
+        size_t h1 = hash<infini::KernelAttrs>{}(key.first);
+        size_t h2 = hash<infini::OpPerfKey>{}(key.second);
+        return h1 ^ (h2 << 1);
+    }
 };
 } // namespace std

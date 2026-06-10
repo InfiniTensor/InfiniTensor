@@ -5,7 +5,7 @@
 
 namespace infini {
 TEST(Broadcast, ShapeTypeInfer) {
-    auto runtime = NativeCpuRuntimeObj::getInstance();
+    auto runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
     int root = 0;
     {
         Graph g = make_ref<GraphObj>(runtime);

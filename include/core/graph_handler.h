@@ -6,10 +6,6 @@
 #include <cstdint>
 #include <iostream>
 
-#ifdef USE_CUDA
-#include "cuda/cuda_runtime.h"
-#endif
-
 namespace infini {
 
 class GraphHandlerObj {
@@ -41,6 +37,7 @@ class GraphHandlerObj {
     Tensor instanceNormalization(Tensor input, Tensor output, Tensor scale,
                                  Tensor bias, float eps);
     Tensor rmsNorm(Tensor input, Tensor weight, Tensor output);
+    Tensor swiGLU(Tensor input, Tensor gate, Tensor output);
 
     Tensor maxPool(Tensor input, Tensor output, int kh, int kw, int dh, int dw,
                    int ph, int pw, int sh, int sw, int ceilMode);
@@ -148,12 +145,6 @@ class GraphHandlerObj {
     inline void run() { g->getRuntime()->run(g); }
 
     inline double get_perf_time() { return g->getRuntime()->getPerfTime(g); }
-
-#ifdef USE_CUDA
-    inline void run_with_cudagraph() {
-        (as<CudaRuntimeObj>(g->getRuntime()))->runWithCudaGraph(g);
-    }
-#endif
 };
 
 } // namespace infini

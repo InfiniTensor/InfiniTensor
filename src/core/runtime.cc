@@ -4,9 +4,212 @@
 #include "core/perf_engine.h"
 #include "utils/data_generator.h"
 #include <chrono>
+#include <cstdlib>
 #include <cstring>
+
+#ifdef WITH_CPU
+#include "native/cpu/runtime_.h"
+#endif
+#ifdef WITH_NVIDIA
+#include "native/cuda/nvidia/runtime_.h"
+#endif
+#ifdef WITH_MOORE
+#include "native/cuda/moore/runtime_.h"
+#endif
+#ifdef WITH_ILUVATAR
+#include "native/cuda/iluvatar/runtime_.h"
+#endif
+#ifdef WITH_METAX
+#include "native/cuda/metax/runtime_.h"
+#endif
+#ifdef WITH_CAMBRICON
+#include "native/cambricon/runtime_.h"
+#endif
+#ifdef WITH_ASCEND
+#include "acl/acl.h"
+#include "native/ascend/runtime_.h"
+#endif
+
 namespace infini {
-void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
+
+namespace {
+
+template <Device::Type DT> struct DeviceTag {
+    static constexpr Device::Type value = DT;
+};
+
+template <typename F> void dispatchDevice(Device::Type type, F &&func) {
+#define DISPATCH_CASE(TYPE)                                                    \
+    case Device::Type::TYPE:                                                   \
+        std::forward<F>(func)(DeviceTag<Device::Type::TYPE>{});                \
+        break;
+    switch (type) {
+    case Device::Type::kCpu:
+        std::forward<F>(func)(DeviceTag<Device::Type::kCpu>{});
+        break;
+#ifdef WITH_NVIDIA
+    case Device::Type::kNvidia:
+        std::forward<F>(func)(DeviceTag<Device::Type::kNvidia>{});
+        break;
+#endif
+#ifdef WITH_MOORE
+    case Device::Type::kMoore:
+        std::forward<F>(func)(DeviceTag<Device::Type::kMoore>{});
+        break;
+#endif
+#ifdef WITH_ILUVATAR
+    case Device::Type::kIluvatar:
+        std::forward<F>(func)(DeviceTag<Device::Type::kIluvatar>{});
+        break;
+#endif
+#ifdef WITH_METAX
+    case Device::Type::kMetax:
+        std::forward<F>(func)(DeviceTag<Device::Type::kMetax>{});
+        break;
+#endif
+#ifdef WITH_CAMBRICON
+    case Device::Type::kCambricon:
+        std::forward<F>(func)(DeviceTag<Device::Type::kCambricon>{});
+        break;
+#endif
+#ifdef WITH_ASCEND
+    case Device::Type::kAscend:
+        std::forward<F>(func)(DeviceTag<Device::Type::kAscend>{});
+        break;
+#endif
+    default:
+        IT_TODO_HALT_MSG("RuntimeObj: unsupported device type " +
+                         std::to_string(static_cast<int>(type)));
+    }
+#undef DISPATCH_CASE
+}
+
+} // anonymous namespace
+
+// ---- Constructor ----
+
+RuntimeObj::RuntimeObj(Device device, int deviceId)
+    : device(device), deviceId(deviceId) {
+#ifdef WITH_ASCEND
+    if (device.type() == Device::Type::kAscend) {
+        auto ret = aclInit(nullptr);
+        if (ret != ACL_SUCCESS) {
+            fprintf(stderr, "aclInit failed: %d\n", ret);
+        }
+        ret = aclrtSetDevice(deviceId);
+        if (ret != ACL_SUCCESS) {
+            fprintf(stderr, "aclrtSetDevice failed: %d\n", ret);
+        }
+        ret = aclrtCreateStream(static_cast<aclrtStream *>(&stream_));
+        if (ret != ACL_SUCCESS) {
+            fprintf(stderr, "aclrtCreateStream failed: %d\n", ret);
+        }
+    }
+#endif
+    dispatchDevice(device.type(), [&](auto tag) {
+        constexpr auto DT = decltype(tag)::value;
+        infini::ops::Runtime<DT>::Malloc(&workspace_, workspaceSize_);
+    });
+}
+
+RuntimeObj::~RuntimeObj() {
+    dealloc(workspace_);
+#ifdef WITH_ASCEND
+    // Destroy stream (only for Ascend device type)
+    if (device.type() == Device::Type::kAscend && stream_) {
+        aclrtDestroyStream(static_cast<aclrtStream>(stream_));
+        aclrtResetDevice(deviceId);
+        aclFinalize();
+    }
+#endif
+}
+
+// ---- alloc / dealloc ----
+
+void *RuntimeObj::alloc(size_t size) {
+    void *ptr = nullptr;
+    dispatchDevice(device.type(), [&](auto tag) {
+        constexpr auto DT = decltype(tag)::value;
+        infini::ops::Runtime<DT>::Malloc(&ptr, size);
+    });
+    return ptr;
+}
+
+void RuntimeObj::dealloc(void *ptr) {
+    if (!ptr)
+        return;
+    dispatchDevice(device.type(), [&](auto tag) {
+        constexpr auto DT = decltype(tag)::value;
+        infini::ops::Runtime<DT>::Free(ptr);
+    });
+}
+
+// ---- Blob copy ----
+
+void RuntimeObj::copyBlobInsideRuntime(void *dst, const void *src,
+                                       size_t bytes) const {
+    dispatchDevice(device.type(), [&](auto tag) {
+        constexpr auto DT = decltype(tag)::value;
+        if constexpr (DT == Device::Type::kCpu) {
+            std::memcpy(dst, src, bytes);
+        } else {
+            // TODO: Uncomment once InfiniOps adds MemcpyDeviceToDevice to
+            //       Runtime interface, then remove the IT_TODO_HALT below.
+            // infini::ops::Runtime<DT>::Memcpy(
+            //     dst, src, bytes,
+            //     infini::ops::Runtime<DT>::MemcpyDeviceToDevice);
+            IT_TODO_HALT_MSG("copyBlobInsideRuntime: device '" +
+                             device.ToString() + "' is not supported");
+        }
+    });
+}
+
+void RuntimeObj::copyBlobFromCPU(void *dst, const void *src,
+                                 size_t bytes) const {
+    dispatchDevice(device.type(), [&](auto tag) {
+        constexpr auto DT = decltype(tag)::value;
+        infini::ops::Runtime<DT>::Memcpy(
+            dst, src, bytes, infini::ops::Runtime<DT>::MemcpyHostToDevice);
+    });
+}
+
+void RuntimeObj::copyBlobToCPU(void *dst, const void *src, size_t bytes) const {
+    dispatchDevice(device.type(), [&](auto tag) {
+        constexpr auto DT = decltype(tag)::value;
+        infini::ops::Runtime<DT>::Memcpy(
+            dst, src, bytes, infini::ops::Runtime<DT>::MemcpyDeviceToHost);
+    });
+}
+
+// ---- Workspace / Handle / toString ----
+
+void *RuntimeObj::getWorkspace(size_t size) {
+    if (size > workspaceSize_) {
+        IT_TODO_HALT_MSG("Workspace size exceeded");
+    }
+    void *ptr = static_cast<uint8_t *>(workspace_) + workspaceCursor_;
+    workspaceCursor_ += size;
+    // Align to 256 bytes
+    workspaceCursor_ = (workspaceCursor_ + 255) & ~size_t(255);
+    return ptr;
+}
+
+void RuntimeObj::resetWorkspace() { workspaceCursor_ = 0; }
+
+infini::ops::Handle RuntimeObj::makeHandle() const {
+    infini::ops::Handle handle;
+    handle.set_workspace(workspace_);
+    handle.set_stream(stream_);
+    return handle;
+}
+
+string RuntimeObj::toString() const {
+    return "Runtime (" + device.ToString() + ")";
+}
+
+// ---- Graph execution ----
+
+void RuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
     if (!tune && profiling)
         IT_TODO_HALT();
     const auto &kernelRegistry = KernelRegistry::getInstance();
@@ -32,8 +235,6 @@ void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
         PerfRecord record;
         // Tune the kernel if there is no record
         if (!perfData) {
-            // TODO: record is not used
-            // printf("no record data\n");
             record = kernel->tune(op, this);
             perfEngine.setPerfData(perfKey, record);
         } else
@@ -76,8 +277,6 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling) const {
         PerfRecord record;
         // Tune the kernel if there is no record
         if (!perfData) {
-            // TODO: should tenosrs automatically allocate when access data?
-            // allocate memory for empty tensors and release it after profiling
             TensorVec allocatedTensors;
             for (auto t : op->getInputs())
                 if (!t->hasData())
@@ -90,11 +289,9 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling) const {
                 t->setData(IncrementalGenerator());
             }
 
-            // Profile operators and record the results
             record = kernel->tune(op, this);
             perfEngine.setPerfData(perfKey, record);
 
-            // Free allocated memory
             for (auto t : allocatedTensors)
                 t->freeData();
         } else
@@ -144,22 +341,5 @@ void RuntimeObj::copyBlob(const TensorObj *dst, const TensorObj *src) const {
     } else
         IT_TODO_HALT();
 }
-
-void CpuRuntimeObj::copyBlobFromCPU(void *dst, const void *src,
-                                    size_t bytes) const {
-    copyBlobInsideRuntime(dst, src, bytes);
-}
-
-void CpuRuntimeObj::copyBlobToCPU(void *dst, const void *src,
-                                  size_t bytes) const {
-    copyBlobInsideRuntime(dst, src, bytes);
-}
-
-void CpuRuntimeObj::copyBlobInsideRuntime(void *dst, const void *src,
-                                          size_t bytes) const {
-    memcpy(dst, src, bytes);
-}
-
-string NativeCpuRuntimeObj::toString() const { return "CPU Runtime"; }
 
 } // namespace infini

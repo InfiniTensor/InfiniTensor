@@ -5,7 +5,7 @@
 
 namespace infini {
 TEST(AllGather, ShapeTypeInfer) {
-    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
     int world_size = 8;
     {
         Shape shape = {1, 3, 2, 4};

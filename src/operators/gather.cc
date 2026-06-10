@@ -35,7 +35,8 @@ bool GatherObj::CheckIndexValid() const {
     if (index->getDataBlob() == nullptr)
         return true;
 
-    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu), 0,
+                                           RuntimeObj::NoWorkspace{});
     bool ret = true;
     auto value = inputs[0]->getDims()[axis];
     if (index->getDType() == DataType::Int32) {

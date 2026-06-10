@@ -1,4 +1,5 @@
 #include "core/data_type.h"
+#include "data_type.h" // InfiniOps data_type.h (resolved via -I.../infiniops/src)
 
 namespace infini {
 // Move implementation here to avoid compile time error on some platform
@@ -20,4 +21,36 @@ const DataType DataType::UInt32(12);
 const DataType DataType::UInt64(13);
 // TODO: Reserved for complex data type.
 const DataType DataType::BFloat16(16);
+
+infini::ops::DataType toInfiniOpsDataType(const DataType &dt) {
+    switch (dt.getIndex()) {
+    case 1:
+        return infini::ops::DataType::kFloat32;
+    case 2:
+        return infini::ops::DataType::kUInt8;
+    case 3:
+        return infini::ops::DataType::kInt8;
+    case 4:
+        return infini::ops::DataType::kUInt16;
+    case 5:
+        return infini::ops::DataType::kInt16;
+    case 6:
+        return infini::ops::DataType::kInt32;
+    case 7:
+        return infini::ops::DataType::kInt64;
+    case 10:
+        return infini::ops::DataType::kFloat16;
+    case 11:
+        return infini::ops::DataType::kFloat64;
+    case 12:
+        return infini::ops::DataType::kUInt32;
+    case 13:
+        return infini::ops::DataType::kUInt64;
+    case 16:
+        return infini::ops::DataType::kBFloat16;
+    default:
+        IT_TODO_HALT_MSG("Unsupported DataType for InfiniOps");
+    }
+}
+
 } // namespace infini

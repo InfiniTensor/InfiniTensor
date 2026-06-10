@@ -9,7 +9,7 @@ namespace infini {
 
 using ExpectOutput = vector<float>;
 TEST(ElementWise, ShapeInference) {
-    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
     {
         Graph g = make_ref<GraphObj>(runtime);
         Tensor i0 = g->addTensor({2, 3, 3, 4}, DataType::UInt32);

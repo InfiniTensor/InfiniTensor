@@ -7,7 +7,7 @@
 namespace infini {
 TEST(Split, ShapeInfer) {
     {
-        Runtime runtime = NativeCpuRuntimeObj::getInstance();
+        Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
         Graph g = make_ref<GraphObj>(runtime);
         auto input = g->addTensor({1, 3, 2, 15}, DataType::Float32);
 
@@ -21,7 +21,7 @@ TEST(Split, ShapeInfer) {
     }
 
     {
-        Runtime runtime = NativeCpuRuntimeObj::getInstance();
+        Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
         Graph g = make_ref<GraphObj>(runtime);
         auto input = g->addTensor({1, 3, 2, 15}, DataType::Float32);
 
@@ -35,7 +35,7 @@ TEST(Split, ShapeInfer) {
     }
 
     {
-        Runtime runtime = NativeCpuRuntimeObj::getInstance();
+        Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
         Graph g = make_ref<GraphObj>(runtime);
         auto input = g->addTensor({1, 3, 2, 15}, DataType::Float32);
 

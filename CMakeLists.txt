@@ -1,21 +1,20 @@
 # Do not change these options in this file. Use cmake.config, cmake -DOPTION=VALUE, or ccmake to specify them.
-option(USE_CUDA "Support CUDA GPU" OFF)
-option(USE_BANG "Support BANG MLU" OFF)
-option(USE_KUNLUN "Support KUNLUN XPU" OFF)
-option(USE_ASCEND "Support HUAWEI ASCEND" OFF)
-option(USE_INTELCPU "Support INTELCPU" OFF)
 option(USE_BACKTRACE "Print backtrace on exception and segmentation fault" ON)
 option(USE_PROTOBUF "Serialize and deserialize tensors" OFF)
 option(BUILD_NNET "Build nnet" OFF)
 option(BUILD_DIST "Build project for distributed running" OFF)
 option(BUILD_TEST "Build tests" OFF)
+option(USE_CUDA "Use CUDA" OFF)
+option(USE_ASCEND "Use Ascend" OFF)
+option(USE_METAX "Use Metax" OFF)
+option(USE_MOORE "Use Moore" OFF)
+option(USE_BANG "Support BANG MLU" OFF)
+option(USE_ILUVATAR "Use Iluvatar" OFF)
+option(USE_KUNLUN "Use Kunlun" OFF)
+option(USE_TORCH "Use Torch" OFF)
 
-if(USE_CUDA)
-    message("CMake 3.18 or higher is required for setting CUDAToolkit")
-    cmake_minimum_required(VERSION 3.18) # FindCUDAToolkit
-else()
-    cmake_minimum_required(VERSION 3.17)
-endif()
+# InfiniOps requires CMake 3.18+ for CUDAToolkit support
+cmake_minimum_required(VERSION 3.18)
 
 include(CMakeDependentOption)
 project(InfiniTensor C CXX)
@@ -104,6 +103,62 @@ include_directories(3rd-party/pybind11/include)
 add_subdirectory(3rd-party/nlohmann_json_cmake_fetchcontent)
 include_directories(3rd-party/nlohmann_json_cmake_fetchcontent/single_include)
 
+set(INFINIOPS_DIR "${CMAKE_SOURCE_DIR}/3rd-party/infiniops"
+    CACHE PATH "Path to InfiniOps source directory (default: git submodule)")
+
+set(GENERATE_PYTHON_BINDINGS OFF CACHE BOOL "" FORCE)
+set(WITH_CPU ON CACHE BOOL "" FORCE)
+
+if(USE_CUDA)
+    set(WITH_NVIDIA ON CACHE BOOL "" FORCE)
+endif()
+if(USE_BANG)
+    set(WITH_CAMBRICON ON CACHE BOOL "" FORCE)
+    add_compile_definitions(WITH_CAMBRICON=1)
+endif()
+if(USE_KUNLUN)
+    set(WITH_KUNLUN ON CACHE BOOL "" FORCE)
+endif()
+if(USE_ASCEND)
+    set(WITH_ASCEND ON CACHE BOOL "" FORCE)
+endif()
+if(USE_METAX)
+    set(WITH_METAX ON CACHE BOOL "" FORCE)
+    add_compile_definitions(WITH_METAX=1)
+endif()
+if(USE_MOORE)
+    set(WITH_MOORE ON CACHE BOOL "" FORCE)
+    add_compile_definitions(WITH_MOORE=1)
+endif()
+if(USE_ILUVATAR)
+    set(WITH_ILUVATAR ON CACHE BOOL "" FORCE)
+    add_compile_definitions(WITH_ILUVATAR=1)
+endif()
+if(USE_TORCH)
+    set(WITH_TORCH ON CACHE BOOL "" FORCE)
+endif()
+
+
+add_subdirectory(${INFINIOPS_DIR} ${CMAKE_BINARY_DIR}/infiniops EXCLUDE_FROM_ALL)
+
+# Auto-generate InfiniTensor kernel bridges for InfiniOps torch ops.
+# Runs at configure time so the generated .cc files are visible to GLOB.
+if(WITH_TORCH)
+    set(GENERATED_KERNELS_DIR "${CMAKE_BINARY_DIR}/generated_kernels")
+    file(MAKE_DIRECTORY ${GENERATED_KERNELS_DIR})
+    execute_process(
+        COMMAND ${Python_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/scripts/generate_infiniops_kernels.py
+            --mapping ${CMAKE_SOURCE_DIR}/scripts/infiniops_op_mapping.yaml
+            --infiniops-dir ${INFINIOPS_DIR}
+            --output-dir ${GENERATED_KERNELS_DIR}
+        RESULT_VARIABLE _gen_result
+    )
+    if(NOT _gen_result EQUAL 0)
+        message(FATAL_ERROR "Failed to generate InfiniTensor kernel bridges")
+    endif()
+endif()
+
 # TVM backend
 if(BUILD_NNET AND BUILD_TEST)
   # TVM and DMLC for invoking TVM packed functions
@@ -135,7 +190,7 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -UNDEBUG")
 
 
 # Source files
-file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/kernels/cpu/*.cc src/operators/*.cc src/utils/*.cc)
+file(GLOB_RECURSE SRC src/core/*.cc src/operators/*.cc src/utils/*.cc)
 
 if(BUILD_NNET)
   add_compile_definitions(BUILD_NNET=1)
@@ -145,42 +200,178 @@ if(BUILD_NNET)
   set_source_files_properties(src/nnet/test.cc PROPERTIES COMPILE_OPTIONS "-DINFINI_PROJECT_HOME=${CMAKE_CURRENT_SOURCE_DIR}")
 endif()
 
-if(USE_CUDA)
-  file(GLOB_RECURSE SRC_CUDA src/cuda/*.cc src/cuda/*.cu src/kernels/cuda/*.cc src/kernels/cuda/*.cu)
-  list (APPEND SRC ${SRC_CUDA})
+# InfiniOps adapter kernels
+file(GLOB_RECURSE SRC_INFINIOPS_ADAPTER src/kernels/*.cc)
+if(WITH_ILUVATAR)
+    # Iluvatar: use clang++ with -x ivcore (similar to Moore/Metax approach)
+    # because adapter files include CUDA-specific headers that g++ cannot handle
+    set(ILUVATAR_CLANGXX "clang++")
+    set(ILUVATAR_ROOT "")
+    foreach(_env COREX_ROOT ILUVATAR_ROOT)
+        if(DEFINED ENV{${_env}} AND NOT "$ENV{${_env}}" STREQUAL "")
+            set(ILUVATAR_ROOT "$ENV{${_env}}")
+            set(ILUVATAR_CLANGXX "${ILUVATAR_ROOT}/bin/clang++")
+            break()
+        endif()
+    endforeach()
+    if(NOT ILUVATAR_ROOT AND EXISTS "/usr/local/corex")
+        set(ILUVATAR_ROOT "/usr/local/corex")
+        set(ILUVATAR_CLANGXX "${ILUVATAR_ROOT}/bin/clang++")
+    endif()
+    set(_iluvatar_adapter_objs "")
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/iluvatar_adapter")
+    foreach(_src ${SRC_INFINIOPS_ADAPTER})
+        get_filename_component(_name ${_src} NAME_WE)
+        set(_obj "${CMAKE_CURRENT_BINARY_DIR}/iluvatar_adapter/${_name}.o")
+        add_custom_command(
+            OUTPUT ${_obj}
+            COMMAND ${ILUVATAR_CLANGXX} -c
+                --cuda-gpu-arch=${ILUVATAR_ARCH}
+                --cuda-path=${ILUVATAR_ROOT}
+                -x ivcore -std=c++17 -O2 -fPIC
+                -I${CMAKE_CURRENT_SOURCE_DIR}/include
+                -I${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/nlohmann_json_cmake_fetchcontent/single_include
+                -I${CMAKE_CURRENT_SOURCE_DIR}/test/kernels
+                -I${INFINIOPS_DIR}/src
+                -I${ILUVATAR_ROOT}/include
+                -Wno-error=unused-variable -Wno-error=unused-private-field -Wno-unused-variable
+                -DNDEBUG -DWITH_CPU=1 -DWITH_ILUVATAR=1
+                -o ${_obj} ${_src}
+            DEPENDS ${_src}
+            COMMENT "Compiling ${_src} with clang++ (Iluvatar ivcore compiler)"
+        )
+        list(APPEND _iluvatar_adapter_objs ${_obj})
+    endforeach()
+    add_custom_target(iluvatar_adapter DEPENDS ${_iluvatar_adapter_objs})
+    # Object files will be added to InfiniTensor after target creation
+elseif(WITH_NVIDIA)
+    include(CheckLanguage)
+    check_language(CUDA)
+    if(CMAKE_CUDA_COMPILER)
+        enable_language(CUDA)
+        set_source_files_properties(${SRC_INFINIOPS_ADAPTER}
+            PROPERTIES LANGUAGE CUDA)
+    endif()
+    list(APPEND SRC ${SRC_INFINIOPS_ADAPTER})
+elseif(WITH_MOORE)
+    # Adapter kernel files must be compiled with mcc (MUSA compiler)
+    # because they include MUSA-specific headers (__device__, musa_fp16, etc.)
+    # that g++ cannot handle. Compile them via custom commands and link .o files.
+    set(MCC_WRAPPER "${INFINIOPS_DIR}/scripts/mcc_wrapper.sh")
+    set(MUSA_ROOT "")
+    foreach(_env MUSA_ROOT MUSA_HOME MUSA_PATH)
+        if(NOT MUSA_ROOT AND DEFINED ENV{${_env}} AND NOT "$ENV{${_env}}" STREQUAL "")
+            set(MUSA_ROOT "$ENV{${_env}}")
+        endif()
+    endforeach()
+    if(NOT MUSA_ROOT AND EXISTS "/usr/local/musa")
+        set(MUSA_ROOT "/usr/local/musa")
+    endif()
+    set(_moore_adapter_objs "")
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/moore_adapter")
+    foreach(_src ${SRC_INFINIOPS_ADAPTER})
+        get_filename_component(_name ${_src} NAME_WE)
+        set(_obj "${CMAKE_CURRENT_BINARY_DIR}/moore_adapter/${_name}.o")
+        add_custom_command(
+            OUTPUT ${_obj}
+            COMMAND ${MCC_WRAPPER} -c -x musa -std=c++17 -O2 -fPIC
+                -I${CMAKE_CURRENT_SOURCE_DIR}/include
+                -I${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/nlohmann_json_cmake_fetchcontent/single_include
+                -I${CMAKE_CURRENT_SOURCE_DIR}/test/kernels
+                -I${INFINIOPS_DIR}/src
+                -I${MUSA_ROOT}/include
+                -DNDEBUG -DWITH_CPU=1 -DWITH_MOORE=1 -DBUILD_TEST=1
+                -o ${_obj} ${_src}
+            DEPENDS ${_src}
+            COMMENT "Compiling ${_src} with mcc (MUSA compiler)"
+        )
+        list(APPEND _moore_adapter_objs ${_obj})
+    endforeach()
+    add_custom_target(moore_adapter DEPENDS ${_moore_adapter_objs})
+    # Object files will be added to InfiniTensor after target creation
+elseif(WITH_METAX)
+    # Adapter kernel files must be compiled with mxcc (METAX compiler)
+    # because they include METAX-specific headers that g++ cannot handle.
+    # Compile them via custom commands and link .o files.
+    set(METAX_COMPILER "mxcc")
+    foreach(_env MXCC_PATH MACA_HOME METAX_ROOT)
+        if(DEFINED ENV{${_env}} AND NOT "$ENV{${_env}}" STREQUAL "")
+            set(METAX_COMPILER "$ENV{${_env}}/bin/mxcc")
+            break()
+        endif()
+    endforeach()
+    if(NOT EXISTS "${METAX_COMPILER}" AND EXISTS "/opt/maca/mxgpu_llvm/bin/mxcc")
+        set(METAX_COMPILER "/opt/maca/mxgpu_llvm/bin/mxcc")
+    endif()
+    set(_metax_adapter_objs "")
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/metax_adapter")
+    foreach(_src ${SRC_INFINIOPS_ADAPTER})
+        get_filename_component(_name ${_src} NAME_WE)
+        set(_obj "${CMAKE_CURRENT_BINARY_DIR}/metax_adapter/${_name}.o")
+        add_custom_command(
+            OUTPUT ${_obj}
+            COMMAND ${METAX_COMPILER} -c -x maca -std=c++17 -O2 -fPIC
+                -I${CMAKE_CURRENT_SOURCE_DIR}/include
+                -I${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/nlohmann_json_cmake_fetchcontent/single_include
+                -I${CMAKE_CURRENT_SOURCE_DIR}/test/kernels
+                -I${INFINIOPS_DIR}/src
+                -DNDEBUG -DWITH_CPU=1 -DWITH_METAX=1 -DBUILD_TEST=1
+                -o ${_obj} ${_src}
+            DEPENDS ${_src}
+            COMMENT "Compiling ${_src} with mxcc (METAX compiler)"
+        )
+        list(APPEND _metax_adapter_objs ${_obj})
+    endforeach()
+    add_custom_target(metax_adapter DEPENDS ${_metax_adapter_objs})
+    # Object files will be added to InfiniTensor after target creation
+else()
+    list(APPEND SRC ${SRC_INFINIOPS_ADAPTER})
 endif()
 
-if(USE_BANG)
-  file(GLOB_RECURSE SRC_BANG src/bang/*.cc src/kernels/bang/*.cc )
-  list (APPEND SRC ${SRC_BANG})
-endif()
-
-if(USE_KUNLUN)
-  file(GLOB_RECURSE SRC_KUNLUN src/kunlun/*.cc src/kernels/kunlun/*.cc )
-  list (APPEND SRC ${SRC_KUNLUN})
-endif()
-
-if(USE_ASCEND)
-  file(GLOB_RECURSE SRC_ASCEND src/ascend/*.cc src/kernels/ascend/*.cc )
-  list (APPEND SRC ${SRC_ASCEND})
-endif()
-
-if(USE_INTELCPU)
-  file(GLOB_RECURSE SRC_INTELCPU src/intelcpu/*.cc src/kernels/intelcpu/*.cc )
-  list (APPEND SRC ${SRC_INTELCPU})
+# Generated torch kernel bridges (only when WITH_TORCH is enabled).
+if(WITH_TORCH)
+    file(GLOB GENERATED_KERNEL_SRCS "${GENERATED_KERNELS_DIR}/*.cc")
+    list(APPEND SRC ${GENERATED_KERNEL_SRCS})
 endif()
 
 # Libraries
 add_library(InfiniTensor SHARED ${SRC})
+if(WITH_MOORE)
+    target_sources(InfiniTensor PRIVATE ${_moore_adapter_objs})
+    add_dependencies(InfiniTensor moore_adapter)
+endif()
+if(WITH_METAX)
+    target_sources(InfiniTensor PRIVATE ${_metax_adapter_objs})
+    add_dependencies(InfiniTensor metax_adapter)
+endif()
+if(WITH_ILUVATAR)
+    target_sources(InfiniTensor PRIVATE ${_iluvatar_adapter_objs})
+    add_dependencies(InfiniTensor iluvatar_adapter)
+endif()
 if(USE_PROTOBUF)
-  target_link_libraries(InfiniTensor tensor_proto)
+  target_link_libraries(InfiniTensor PRIVATE tensor_proto)
 endif()
 
-target_link_libraries(InfiniTensor pybind11::embed)
+# Link InfiniOps operator library (PUBLIC so InfiniOps headers are available
+# to all downstream consumers of InfiniTensor, e.g. the backend pybind11 module)
+target_link_libraries(InfiniTensor PUBLIC infiniops)
+
+# Remove inherited -x musa/-x maca from InfiniTensor's global compile options;
+# these flags should only apply to the adapter kernel files, not all sources.
+# infiniops stores "-x;musa" or "-x;maca" as separate list entries in
+# INTERFACE_COMPILE_OPTIONS — remove both the "-x" and the language name.
+get_target_property(_infiniops_interface_opts infiniops INTERFACE_COMPILE_OPTIONS)
+if(_infiniops_interface_opts)
+    list(FILTER _infiniops_interface_opts EXCLUDE REGEX "^-x$")
+    list(FILTER _infiniops_interface_opts EXCLUDE REGEX "^(musa|maca)$")
+    set_target_properties(infiniops PROPERTIES INTERFACE_COMPILE_OPTIONS "${_infiniops_interface_opts}")
+endif()
+
+target_link_options(InfiniTensor PRIVATE -Wl,--allow-multiple-definition)
 
 # TVM backend
 if(BUILD_NNET AND BUILD_TEST AND TVM_LIB_DIR)
-  target_link_libraries(InfiniTensor ${TVM_LIB_DIR}/libtvm.so)
+  target_link_libraries(InfiniTensor PRIVATE ${TVM_LIB_DIR}/libtvm.so)
 endif()
 
 # Python bindings
@@ -193,176 +384,8 @@ if(USE_BACKTRACE)
   add_subdirectory(3rd-party/backward-cpp)
   include_directories(3rd-party/backward-cpp)
   add_backward(InfiniTensor)
-  target_link_libraries(InfiniTensor dw)
+  target_link_libraries(InfiniTensor PRIVATE dw)
 endif()
-
-if(USE_INTELCPU)
-  add_compile_definitions(USE_INTELCPU=1)
-  find_package(MKL CONFIG REQUIRED)
-
-  # Refer to https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl-link-line-advisor.html
-  target_link_libraries(InfiniTensor sycl OpenCL)
-
-  set(DNNL_CONFIGURATION "cpu_gomp")
-  find_package(dnnl CONFIG REQUIRED)
-  if(dnnl_FOUND)
-      add_compile_definitions(USE_MKL=1)
-      include_directories(BEFORE ${dnnl_DIR}/../../../cpu_gomp/include/)
-      link_directories(${dnnl_DIR}/../../../cpu_gomp/lib)
-      target_link_libraries(InfiniTensor   dnnl)
-  else()
-      message(FATAL_ERROR "dnnl library not found")
-  endif()
-  set(WNO_ERRORS "-Wno-error=unused-parameter -Wno-error=unused-function -Wno-error=unused-private-field -Wno-error=ignored-attributes -Wno-error=unused-const-variable -Wno-error=inconsistent-missing-override -Wno-error=unused-variable -Wno-error=tautological-constant-compare")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMKL_ILP64 -qmkl=parallel -Werror  ${WNO_ERRORS}")
-  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DMKL_ILP64 -qmkl=parallel ${WNO_ERRORS}") # Enable assertion
-  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -DMKL_ILP64 -qmkl=parallel ${WNO_ERRORS}") # Enable assertion
-
-  find_package(IntelDPCPP REQUIRED)
-endif()
-
-if(USE_CUDA)
-  add_compile_definitions(USE_CUDA=1)
-  # Since enable_language only executes once, rerun cmake is required if CMAKE_CUDA_HOST_COMPILER is wrong
-  set(CMAKE_CUDA_HOST_COMPILER
-      ${CMAKE_CXX_COMPILER}
-      CACHE STRING "Set cuda host compiler path")
-  # CMP0104 requires CUDA_ARCHITECTURES
-  set_target_properties(InfiniTensor PROPERTIES CUDA_ARCHITECTURES "70;80")
-  enable_language(CUDA)
-  find_package(CUDAToolkit) # For nvrtc and cuda driver
-  target_link_libraries(InfiniTensor cudnn CUDA::curand CUDA::cublas CUDA::nvrtc CUDA::cudart CUDA::cuda_driver)
-  if (BUILD_DIST)
-    message(STATUS "Add BUILD_DIST, use NCCL with CUDA")
-    list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-    find_package(NCCL REQUIRED)
-    add_compile_definitions(INFINI_USE_NCCL=1)
-    target_link_libraries(InfiniTensor nccl)
-  endif()
-endif()
-
-if(USE_BANG)
-  add_compile_definitions(USE_BANG=1)
-  include_directories(src/kernels/mlu/include)
-  ################################################################################
-  # Neuware Evironment
-  ################################################################################
-  # cnrt cndrv cnnl
-  if ((NOT DEFINED NEUWARE_HOME) AND (NOT DEFINED ENV{NEUWARE_HOME}))
-    message(FATAL_ERROR "NEUWARE_HOME is not defined from cmake or env")
-  elseif (DEFINED NEUWARE_HOME)
-    set(NEUWARE_HOME ${NEUWARE_HOME} CACHE STRING "NEUWARE_HOME directory for Cambricon Neuware development")
-  else()
-    set(NEUWARE_HOME $ENV{NEUWARE_HOME} CACHE STRING "NEUWARE_HOME directory for Cambricon Neuware development")
-  endif()
-  message(STATUS "NEUWARE_HOME: ${NEUWARE_HOME}")
-
-  include_directories("${NEUWARE_HOME}/include")
-  find_library(CAMBRICON_CNNL libcnnl.so "${NEUWARE_HOME}/lib64")
-  find_library(CAMBRICON_CNRT libcnrt.so "${NEUWARE_HOME}/lib64")
-  find_library(CAMBRICON_CNDRV libcndrv.so "${NEUWARE_HOME}/lib64")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lstdc++ -Wall -Werror")
-
-  if ((NOT DEFINED TARGET_CPU_ARCH) AND (NOT DEFINED ENV{TARGET_CPU_ARCH}))
-    execute_process(COMMAND uname -m OUTPUT_VARIABLE _uname_m OUTPUT_STRIP_TRAILING_WHITESPACE)
-    set(TARGET_CPU_ARCH "${_uname_m}" CACHE STRING "Target CPU ARCH")
-  elseif(DEFINED TARGET_CPU_ARCH)
-    set(TARGET_CPU_ARCH ${TARGET_CPU_ARCH} CACHE STRING "Target CPU ARCH")
-  else()
-    set(TARGET_CPU_ARCH $ENV{TARGET_CPU_ARCH} CACHE STRING "Target CPU ARCH")
-  endif()
-  message(STATUS "TARGET_CPU_ARCH: ${TARGET_CPU_ARCH}")
-
-  ################################################################################
-  # BangC Kernels
-  ################################################################################
-
-  if (BUILD_DIST)
-    find_library(CAMBRICON_CNCL libcncl.so "${NEUWARE_HOME}/lib64")
-    target_link_libraries(InfiniTensor ${CAMBRICON_CNCL} ${CAMBRICON_CNNL} ${CAMBRICON_CNRT} ${CAMBRICON_CNDRV} stdc++)
-    message(STATUS "Add BUILD_DIST, use CNCL with BANG")
-    add_compile_definitions(INFINI_USE_CNCL=1)
-  else()
-    target_link_libraries(InfiniTensor ${CAMBRICON_CNNL} ${CAMBRICON_CNRT} ${CAMBRICON_CNDRV} stdc++)
-  endif()
-endif()
-
-if(USE_KUNLUN)
-  add_compile_definitions(USE_KUNLUN=1)
-  if ((NOT DEFINED KUNLUN_HOME) AND (NOT DEFINED ENV{KUNLUN_HOME}))
-    message(FATAL_ERROR "KUNLUN_HOME is not defined from cmake or env")
-  elseif (DEFINED KUNLUN_HOME)
-          set(KUNLUN_HOME ${KUNLUN_HOME} CACHE STRING "KUNLUN_HOME directory for Kunlun development")
-  else()
-          set(KUNLUN_HOME $ENV{KUNLUN_HOME} CACHE STRING "KUNLUN_HOME directory for Kunlun development")
-  endif()
-  message(STATUS "KUNLUN_HOME: ${KUNLUN_HOME}")
-
-  include_directories("${KUNLUN_HOME}/include/")
-  find_library(KUNLUN_RT libxpurt.so "${KUNLUN_HOME}/lib64/")
-  find_library(KUNLUN_DNN libxpuapi.so "${KUNLUN_HOME}/lib64/")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lstdc++ -Wall -Werror")
-
-  if ((NOT DEFINED TARGET_CPU_ARCH) AND (NOT DEFINED ENV{TARGET_CPU_ARCH}))
-    execute_process(COMMAND uname -m OUTPUT_VARIABLE _uname_m OUTPUT_STRIP_TRAILING_WHITESPACE)
-    set(TARGET_CPU_ARCH "${_uname_m}" CACHE STRING "Target CPU ARCH")
-  elseif(DEFINED TARGET_CPU_ARCH)
-    set(TARGET_CPU_ARCH ${TARGET_CPU_ARCH} CACHE STRING "Target CPU ARCH")
-  else()
-    set(TARGET_CPU_ARCH $ENV{TARGET_CPU_ARCH} CACHE STRING "Target CPU ARCH")
-  endif()
-
-  message(STATUS "TARGET_CPU_ARCH: ${TARGET_CPU_ARCH}")
-
-  if (BUILD_DIST)
-    message(STATUS "Add BUILD_DIST, use XCCL with KUNLUN XPU")
-    list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-    find_package(XCCL REQUIRED)
-    add_compile_definitions(INFINI_USE_XCCL=1)
-    target_link_libraries(InfiniTensor ${XCCL_LIBRARIES})
-  endif()
-  target_link_libraries(InfiniTensor ${KUNLUN_RT} ${KUNLUN_DNN} stdc++)
-endif()
-
-if(USE_ASCEND)
-  add_compile_definitions(USE_ASCEND=1)
-  if ((NOT DEFINED ASCEND_HOME) AND (NOT DEFINED ENV{ASCEND_HOME}))
-    message(FATAL_ERROR "ASCEND_HOME is not defined from cmake or env")
-  elseif (DEFINED ASCEND_HOME)
-    set(ASCEND_HOME ${ASCEND_HOME} CACHE STRING "ASCEND_HOME directory for Ascend development")
-  else()
-    set(ASCEND_HOME $ENV{ASCEND_HOME} CACHE STRING "ASCEND_HOME directory for Ascend development")
-  endif()
-  message(STATUS "ASCEND_HOME: ${ASCEND_HOME}")
-
-  include_directories("${ASCEND_HOME}/include/")
-  include_directories("${ASCEND_HOME}/include/aclnn")
-  find_library(ASCEND_CL libascendcl.so "${ASCEND_HOME}/lib64")
-  find_library(ASCEND_BASE libnnopbase.so "${ASCEND_HOME}/lib64")
-  find_library(ASCEND_DNN libopapi.so "${ASCEND_HOME}/lib64")
-  find_library(ASCEND_HCCL libhccl.so "${ASCEND_HOME}/lib64")
-  find_library(ASCEND_HAL libascend_hal.so "${ASCEND_HOME}/../../driver/lib64/driver")
-  # find_library(ASCEND_RT libruntime.so "${ASCEND_HOME}/lib64")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lstdc++ -Wall -Werror")
-  if ((NOT DEFINED TARGET_CPU_ARCH) AND (NOT DEFINED ENV{TARGET_CPU_ARCH}))
-    execute_process(COMMAND uname -m OUTPUT_VARIABLE _uname_m OUTPUT_STRIP_TRAILING_WHITESPACE)
-    set(TARGET_CPU_ARCH "${_uname_m}" CACHE STRING "Target CPU ARCH")
-  elseif(DEFINED TARGET_CPU_ARCH)
-    set(TARGET_CPU_ARCH ${TARGET_CPU_ARCH} CACHE STRING "Target CPU ARCH")
-  else()
-    set(TARGET_CPU_ARCH $ENV{TARGET_CPU_ARCH} CACHE STRING "Target CPU ARCH")
-  endif()
-  message(STATUS "TARGET_CPU_ARCH: ${TARGET_CPU_ARCH}")
-  target_link_libraries(InfiniTensor ${ASCEND_HAL} ${ASCEND_CL} ${ASCEND_BASE} ${ASCEND_DNN} ${ASCEND_HCCL} stdc++)
-  if (BUILD_DIST)
-    message(STATUS "Add BUILD_DIST, use HCCL with ASCEND")
-    add_compile_definitions(INFINI_USE_HCCL=1)
-  endif()
-endif()
-
-# # Python bindings
-# pybind11_add_module(infini MODULE ${FFI})
-# target_link_libraries(infini PRIVATE infini_cpp)
 
 function(build_test files)
   # Non-recursive glob for skip failed tests
@@ -384,29 +407,12 @@ if(BUILD_TEST)
   if(BUILD_TEST_CORE)
     build_test(test/core/*.cc)
     build_test(test/operators/*.cc)
-    build_test(test/kernels/nativecpu/*.cc)
-    if (USE_CUDA)
-      build_test(test/kernels/cuda/*.cc)
-      build_test(test/cuda/*.cc)
-    endif()
-    if (USE_BANG)
-      build_test(test/kernels/bang/*.cc)
-      build_test(test/bang/*.cc)
-    endif()
-    if (USE_KUNLUN)
-      build_test(test/kernels/kunlun/*.cc)
-      build_test(test/kunlun/*.cc)
-    endif()
-    if (USE_ASCEND)
-      build_test(test/kernels/ascend/*.cc)
-    endif()
-    if (USE_INTELCPU)
-      build_test(test/kernels/intelcpu/*.cc)
-    endif()
   endif()
   if(BUILD_TEST_PET)
     build_test(test/pet/*.cc)
   endif()
+  include_directories(test/kernels)
+  build_test(test/kernels/*.cc)
   if(BUILD_NNET AND BUILD_TEST)
     build_test(test/nnet/test_*.cc)
 

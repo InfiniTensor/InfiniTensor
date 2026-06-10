@@ -3,7 +3,11 @@
 #include "core/communicator.h"
 #include "core/op_type.h"
 #include "core/ref.h"
+#include "device.h"
+#include "handle.h"
+#include <algorithm>
 #include <memory>
+#include <optional>
 
 namespace infini {
 
@@ -15,7 +19,6 @@ class GraphObj;
 class GraphHandlerObj;
 class RuntimeObj;
 class BlobObj;
-template <typename T> class WorkspaceObj;
 
 using TensorBase = Ref<TensorBaseObj>;
 using Tensor = Ref<TensorObj>;
@@ -24,7 +27,6 @@ using Graph = Ref<GraphObj>;
 using GraphHandler = Ref<GraphHandlerObj>;
 using Runtime = Ref<RuntimeObj>;
 using Blob = Ref<BlobObj>;
-template <typename T> using Workspace = Ref<WorkspaceObj<T>>;
 
 using TensorVec = vector<Tensor>;
 using OpVec = vector<Operator>;
@@ -32,7 +34,10 @@ using OpLists = list<Operator>;
 
 using VType = uint32_t;
 
-enum class Device { CPU = 1, CUDA, BANG, INTELCPU, KUNLUN, ASCEND };
+// Use InfiniOps Device as the unified device abstraction.
+// InfiniOps Device is a class with Type enum (kCpu, kNvidia, kCambricon, etc.)
+// and an index field for multi-device support.
+using Device = infini::ops::Device;
 /***************** Forward declaration end *****************/
 
 class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
@@ -40,97 +45,100 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
     Device device;
     int deviceId;
 
+    // Test-only: override auto-selected implementation index.
+    // When set, kernels use this index instead of auto-detection.
+    std::optional<std::size_t> test_impl_override_;
+
+    // Workspace management
+    static constexpr size_t kDefaultWorkspaceSize = 7ull << 30;
+    size_t workspaceSize_ = kDefaultWorkspaceSize;
+    size_t workspaceCursor_ = 0;
+    void *workspace_ = nullptr;
+    void *stream_ = nullptr;
+
   public:
-    explicit RuntimeObj(Device device, int deviceId = 0)
-        : device(device), deviceId(deviceId) {}
+    explicit RuntimeObj(Device device, int deviceId = 0);
     RuntimeObj(RuntimeObj &other) = delete;
     RuntimeObj &operator=(RuntimeObj const &) = delete;
-    virtual ~RuntimeObj() {}
+    ~RuntimeObj();
 
     /**
      * @brief Execute a graph.
-     *
-     * @param graph
-     * @param tune If there is no performance record, whether to tune it. These
-     * can be independent method.
-     * @param profiling Whether to print breakdown of time
      */
-    virtual void run(const Graph &graph, bool tune = false,
-                     bool profiling = false) const = 0;
-    virtual void *alloc(size_t size) = 0;
-    virtual void dealloc(void *ptr) = 0;
+    void run(const Graph &graph, bool tune = false,
+             bool profiling = false) const;
+
+    void *alloc(size_t size);
+    void dealloc(void *ptr);
+
     /**
      * @brief Get the execution time of each operator in performance record. No
      * execution happens.
-     *
-     * @param graph
-     * @param profiling Whether to print breakdown of time
-     * @return double Return the sum of perf time for each operator
      */
     double getPerfTime(const Graph &graph, bool profiling = false) const;
     Blob allocBlob(size_t size);
-    bool isCpu() const {
-        return device == Device::CPU || device == Device::INTELCPU;
-    }
-    bool isCuda() const { return device == Device::CUDA; }
-    bool isBang() const { return device == Device::BANG; }
-    bool isKUNLUN() const { return device == Device::KUNLUN; }
-    bool isAscend() const { return device == Device::ASCEND; }
+
+    bool isCpu() const { return device.type() == Device::Type::kCpu; }
+    bool isCuda() const { return device.type() == Device::Type::kNvidia; }
+    bool isBang() const { return device.type() == Device::Type::kCambricon; }
+    bool isKUNLUN() const { return device.type() == Device::Type::kKunlun; }
+    bool isAscend() const { return device.type() == Device::Type::kAscend; }
+
     void copyBlob(const TensorObj *dst, const TensorObj *src) const;
-    // TODO: unify these copy APIs
-    virtual void copyBlobFromCPU(void *dst, const void *src,
-                                 size_t bytes) const = 0;
-    virtual void copyBlobToCPU(void *dst, const void *src,
-                               size_t bytes) const = 0;
-    virtual string toString() const = 0;
+    void copyBlobFromCPU(void *dst, const void *src, size_t bytes) const;
+    void copyBlobToCPU(void *dst, const void *src, size_t bytes) const;
 
     int getDeviceId() const { return deviceId; }
+    const Device &getDevice() const { return device; }
 
-    virtual void initComm(const string &name, int worldSize, int rank) = 0;
+    // Test-only API to override auto-selected implementation index.
+    void setTestImplOverride(std::optional<std::size_t> index) {
+        test_impl_override_ = index;
+    }
 
-    virtual CommunicatorObj &getCommunicator() const = 0;
+    // Resolves the implementation index for an InfiniOps operator.
+    // Priority: test override > native (index 0) > first available (torch
+    // fallback)
+    template <typename InfiniOpsOperator>
+    std::size_t resolveImplementationIndex() const {
+        if (test_impl_override_.has_value()) {
+            return *test_impl_override_;
+        }
+        auto indices =
+            InfiniOpsOperator::active_implementation_indices(device.type());
+        auto it = std::find(indices.begin(), indices.end(), std::size_t{0});
+        if (it != indices.end()) {
+            return 0;
+        }
+        return indices.empty() ? 0 : indices[0];
+    }
+
+    // Workspace management for operators that need scratch memory.
+    void *getWorkspace(size_t size);
+    void resetWorkspace();
+
+    // Create a populated Handle for InfiniOps operator calls.
+    infini::ops::Handle makeHandle() const;
+
+    string toString() const;
+
+    virtual void initComm(const string &name, int worldSize, int rank) {
+        IT_TODO_HALT();
+    }
+
+    virtual CommunicatorObj &getCommunicator() const { IT_TODO_HALT(); }
+
+    // Internal constructor that skips workspace allocation
+    // (for temporary helper runtimes that don't need workspace).
+    struct NoWorkspace {};
+    RuntimeObj(Device device, int deviceId, NoWorkspace)
+        : device(device), deviceId(deviceId) {}
 
   protected:
     void printProfilingData(double totTime,
                             const std::map<OpType, double> &opTime,
                             const std::map<OpType, int> &opCnt) const;
-    virtual void copyBlobInsideRuntime(void *dst, const void *src,
-                                       size_t bytes) const = 0;
-};
-
-class CpuRuntimeObj : public RuntimeObj {
-  public:
-    CpuRuntimeObj(Device dev) : RuntimeObj(dev) {}
-
-    void run(const Graph &graph, bool tune = false,
-             bool profiling = false) const override;
-
-    void copyBlobFromCPU(void *dst, const void *src,
-                         size_t bytes) const override;
-    void copyBlobToCPU(void *dst, const void *src, size_t bytes) const override;
-    void copyBlobInsideRuntime(void *dst, const void *src,
-                               size_t bytes) const override;
-    void initComm(const string &, int, int) override { IT_TODO_HALT(); }
-
-    CommunicatorObj &getCommunicator() const override { IT_TODO_HALT(); }
-};
-
-class NativeCpuRuntimeObj : public CpuRuntimeObj {
-  public:
-    NativeCpuRuntimeObj() : CpuRuntimeObj(Device::CPU) {}
-
-    static Ref<NativeCpuRuntimeObj> &getInstance() {
-        static Ref<NativeCpuRuntimeObj> instance =
-            make_ref<NativeCpuRuntimeObj>();
-        return instance;
-    }
-    void dealloc(void *ptr) override { return free(ptr); };
-
-    void *alloc(size_t size) override {
-        return calloc((size + sizeof(uint64_t) - 1) / sizeof(uint64_t),
-                      sizeof(uint64_t));
-    };
-    string toString() const override;
+    void copyBlobInsideRuntime(void *dst, const void *src, size_t bytes) const;
 };
 
 } // namespace infini

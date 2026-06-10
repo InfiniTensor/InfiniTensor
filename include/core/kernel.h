@@ -5,15 +5,16 @@
 #include "utils/operator_utils.h"
 #include <functional>
 #include <nlohmann/json.hpp>
+#include <unordered_map>
 namespace infini {
 using json = nlohmann::json;
 
 class RuntimeObj; // Forward declaration for Kernel::compute
 
 struct PerfRecordObj {
-    PerfRecordObj(){};
-    PerfRecordObj(double time) : time(time){};
-    virtual ~PerfRecordObj(){};
+    PerfRecordObj() {};
+    PerfRecordObj(double time) : time(time) {};
+    virtual ~PerfRecordObj() {};
     double time = 0; // in milliseconds
     virtual void to_json(json &j) {
         j["type"] = 0;
@@ -36,7 +37,7 @@ class Kernel {
 
   protected:
     // Map storing the pairs of perfKey and corresponding optimal function ptr
-    std::map<Key, ComputeFuncPtr> computeMap;
+    std::unordered_map<Key, ComputeFuncPtr> computeMap;
     // Vector storing all computing function pointers
     std::vector<ComputeFuncPtr> funcVec;
 
@@ -135,7 +136,7 @@ class KernelRegistry {
         tuple<Kernel *const, const string, const int>; // Kernel, name, ID
 
   private:
-    std::map<KernelAttrs, KernelRecord> kernels;
+    std::unordered_map<KernelAttrs, KernelRecord> kernels;
     int nKernels = 0;
 
   public:
@@ -154,6 +155,9 @@ class KernelRegistry {
         kernels.emplace(key, KernelRecord{kernel, name, ++nKernels});
         return true;
     }
+    bool hasKernel(const KernelAttrs &key) const {
+        return kernels.find(key) != kernels.end();
+    }
     Kernel *getKernel(const KernelAttrs &kernelAttrs) const {
         auto it = kernels.find(kernelAttrs);
         IT_ASSERT(it != kernels.end(), "Kernel not found for key {" +
@@ -166,7 +170,7 @@ class KernelRegistry {
     }
 };
 
-class CpuKernelWithoutConfig : public Kernel {
+class KernelWithoutConfig : public Kernel {
   public:
     void compute(const Operator &op, const PerfRecord &record,
                  const RuntimeObj *context) const override {
@@ -180,6 +184,9 @@ class CpuKernelWithoutConfig : public Kernel {
         return make_ref<PerfRecordObj>(timeit([&]() { compute(op, context); }));
     }
 };
+
+using CpuKernelWithoutConfig [[deprecated("Use KernelWithoutConfig instead")]] =
+    KernelWithoutConfig;
 
 } // namespace infini
 
@@ -203,3 +210,32 @@ class CpuKernelWithoutConfig : public Kernel {
 
 #define REGISTER_CONSTRUCTOR(type, constructor)                                \
     _REGISTER_CONSTRUCTOR_1(type, constructor, __COUNTER__)
+
+// Pull in DeviceEnabled<> specializations for all InfiniOps device backends.
+// All device_.h files only depend on device.h (no GPU-specific headers),
+// so unconditional inclusion is safe.
+#include "native/ascend/device_.h"
+#include "native/cambricon/device_.h"
+#include "native/cpu/device_.h"
+#include "native/cuda/iluvatar/device_.h"
+#include "native/cuda/metax/device_.h"
+#include "native/cuda/moore/device_.h"
+#include "native/cuda/nvidia/device_.h"
+
+// Register kernel for all device backends (one macro call per operator).
+// If a platform lacks an operator implementation, InfiniOps dispatch will
+// report: "dispatch error: no allowed values registered for value X"
+#define REGISTER_ALL_DEVICES(opType, kernel, name)                             \
+    REGISTER_KERNEL(Device(Device::Type::kCpu), opType, kernel, name "_CPU");  \
+    REGISTER_KERNEL(Device(Device::Type::kNvidia), opType, kernel,             \
+                    name "_NVIDIA");                                           \
+    REGISTER_KERNEL(Device(Device::Type::kCambricon), opType, kernel,          \
+                    name "_CAMBRICON");                                        \
+    REGISTER_KERNEL(Device(Device::Type::kAscend), opType, kernel,             \
+                    name "_ASCEND");                                           \
+    REGISTER_KERNEL(Device(Device::Type::kMetax), opType, kernel,              \
+                    name "_METAX");                                            \
+    REGISTER_KERNEL(Device(Device::Type::kMoore), opType, kernel,              \
+                    name "_MOORE");                                            \
+    REGISTER_KERNEL(Device(Device::Type::kIluvatar), opType, kernel,           \
+                    name "_ILUVATAR")

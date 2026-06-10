@@ -2,6 +2,9 @@
 #include "core/common.h"
 
 namespace infini {
+namespace ops {
+enum class DataType : std::int8_t;
+}
 
 class DataType {
   public:
@@ -99,5 +102,7 @@ template <> struct DT<11> { using t = double; };
 template <> struct DT<12> { using t = uint32_t; };
 template <> struct DT<13> { using t = uint64_t; };
 template <> struct DT<16> { using t = uint16_t; };
+
+infini::ops::DataType toInfiniOpsDataType(const DataType &dt);
 
 } // namespace infini

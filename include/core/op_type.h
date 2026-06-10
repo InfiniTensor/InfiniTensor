@@ -228,6 +228,7 @@ struct OpType {
         FloorMod,
         Square,
         SquaredDifference,
+        SwiGLU,
 
         // Communication Ops
         AllReduceSum,

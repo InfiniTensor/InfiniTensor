@@ -10,7 +10,7 @@
 namespace infini {
 
 TEST(Reshape, ShapeInference) {
-    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
     {
         Graph g = make_ref<GraphObj>(runtime);
         Tensor i = g->addTensor({2, 3, 3, 4}, DataType::Float32);
@@ -19,7 +19,7 @@ TEST(Reshape, ShapeInference) {
     }
 }
 TEST(Flatten, ShapeInference) {
-    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
     {
         Graph g = make_ref<GraphObj>(runtime);
         Tensor i = g->addTensor({2, 3, 3, 4}, DataType::Float32);
@@ -47,7 +47,7 @@ TEST(Flatten, ShapeInference) {
 }
 
 TEST(Identity, ShapeInference) {
-    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
     {
         Graph g = make_ref<GraphObj>(runtime);
         Tensor i = g->addTensor({2, 3, 3, 4}, DataType::Float32);
@@ -57,7 +57,7 @@ TEST(Identity, ShapeInference) {
 }
 
 TEST(Squeeze, ShapeInference) {
-    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
     {
         Graph g = make_ref<GraphObj>(runtime);
         Tensor i = g->addTensor({2, 3, 1, 4}, DataType::Float32);
@@ -73,7 +73,7 @@ TEST(Squeeze, ShapeInference) {
 }
 
 TEST(Unsqueeze, ShapeInference) {
-    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Runtime runtime = make_ref<RuntimeObj>(Device(Device::Type::kCpu));
     {
         Graph g = make_ref<GraphObj>(runtime);
         Tensor i = g->addTensor({2, 3, 4}, DataType::Float32);
