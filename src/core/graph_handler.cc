@@ -210,6 +210,8 @@ DEFINE_ELEMENT_WISE_METHOD(div, Div)
 DEFINE_ELEMENT_WISE_METHOD(pow, Pow)
 DEFINE_ELEMENT_WISE_METHOD(min, Minimum)
 DEFINE_ELEMENT_WISE_METHOD(max, Maximum)
+DEFINE_ELEMENT_WISE_METHOD(greater, GreaterThan)
+DEFINE_ELEMENT_WISE_METHOD(greaterEqual, GreaterEqual)
 
 // see operators/unary.h
 #define DEFINE_UNARY_METHOD(name, obj)                                         \
@@ -254,6 +256,17 @@ Tensor GraphHandlerObj::leakyRelu(Tensor x, Tensor y, float alpha) {
         return y;
     } else {
         return g->addOp<LeakyReluObj>(std::move(x), y, alpha)->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::log(Tensor input, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<LogObj>(std::move(input), output,
+                                    LogObj::LogType::LogE);
+        return output;
+    } else {
+        return g->addOp<LogObj>(std::move(input), output, LogObj::LogType::LogE)
+            ->getOutput();
     }
 }
 
