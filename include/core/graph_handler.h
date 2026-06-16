@@ -5,6 +5,7 @@
 #include "core/runtime.h"
 #include <cstdint>
 #include <iostream>
+#include <variant>
 
 #ifdef USE_CUDA
 #include "cuda/cuda_runtime.h"

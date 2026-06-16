@@ -1,3 +1,5 @@
+#define DLL_EXPORT
+
 #include "core/data_type.h"
 
 namespace infini {
