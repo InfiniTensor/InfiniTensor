@@ -523,6 +523,17 @@ class OnnxStub:
                     tensors[node.input[1]],
                     tensors.get(node.output[0]),
                 )
+            elif node.op_type == "Equal":
+                tensors[node.output[0]] = self.handler.equal(
+                    tensors[node.input[0]],
+                    tensors[node.input[1]],
+                    tensors.get(node.output[0]),
+                )
+            elif node.op_type == "Not":
+                tensors[node.output[0]] = self.handler.notFunction(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                )
             elif node.op_type == "Relu":
                 tensors[node.output[0]] = self.handler.relu(
                     tensors[node.input[0]],
@@ -535,6 +546,23 @@ class OnnxStub:
                     next(
                         (attr.f for attr in node.attribute if attr.name == "alpha"),
                         0.01,
+                    ),
+                )
+            elif node.op_type == "CumSum":
+                tensors[node.output[0]] = self.handler.cumsum(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                    next(
+                        (attr.i for attr in node.attribute if attr.name == "axis"),
+                        -1,
+                    ),
+                    next(
+                        (attr.i for attr in node.attribute if attr.name == "exclusive"),
+                        False,
+                    ),
+                    next(
+                        (attr.i for attr in node.attribute if attr.name == "reverse"),
+                        False,
                     ),
                 )
             elif node.op_type == "Silu":
@@ -627,7 +655,7 @@ class OnnxStub:
                     ),
                     (
                         next(_parse_data(data[node.input[2]]).__iter__(), None)
-                        if len(node.input) > 2
+                        if len(node.input) > 2 and node.input[2] and node.input[2] in data
                         else None
                     ),
                 )
@@ -663,6 +691,18 @@ class OnnxStub:
                     tensors.get(node.output[0]),
                     shape,
                 )
+                # import torch
+                # print(dir(tensors[node.input[0]])) 
+                # print(tensors[node.input[0]].shape())
+                # print(tensors[node.input[0]].src())
+
+                # torch_tensor = torch.utils.dlpack.from_dlpack(tensors[node.input[0]].to_dlpack())
+
+                # # 2. 使用 torch.reshape
+                # reshaped = torch_tensor.reshape(shape)
+
+                # # 3. 再转回 backend.Tensor
+                # tensors[node.output[0]] = backend.Tensor.from_dlpack(torch.utils.dlpack.to_dlpack(reshaped))
             elif node.op_type == "Resize":
                 output = tensors.get(node.output[0])
                 attributes = _parse_attribute(
@@ -834,6 +874,21 @@ class OnnxStub:
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
                     axes,
+                    next(
+                        (attr.i for attr in node.attribute if attr.name == "keepdims"),
+                        1,
+                    )
+                    != 0,
+                )
+            elif node.op_type == "ReduceL2":
+                tensors[node.output[0]] = self.handler.reduceL2(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                    # NOTE(constroy): `axes` is an attribute until opset version 13.
+                    next(
+                        (attr.ints for attr in node.attribute if attr.name == "axes"),
+                        None,
+                    ),
                     next(
                         (attr.i for attr in node.attribute if attr.name == "keepdims"),
                         1,
