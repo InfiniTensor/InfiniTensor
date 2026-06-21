@@ -88,4 +88,7 @@ ReduceMeanObj::ReduceMeanObj(GraphObj *graph, Tensor input, Tensor output,
 ReduceSumObj::ReduceSumObj(GraphObj *graph, Tensor input, Tensor output,
                            const optional<vector<int>> &_axes, bool keepDims)
     : ReduceBaseObj(graph, OpType::ReduceSum, input, output, _axes, keepDims) {}
+ReduceL2Obj::ReduceL2Obj(GraphObj *graph, Tensor input, Tensor output,
+                         const optional<vector<int>> &_axes, bool keepDims)
+    : ReduceBaseObj(graph, OpType::ReduceL2, input, output, _axes, keepDims) {}
 } // namespace infini
