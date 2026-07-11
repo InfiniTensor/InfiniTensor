@@ -501,14 +501,20 @@ void init_graph_builder(py::module &m) {
         // Return a Numpy array which copies the values of this tensor
         .def("copyout_numpy",
              [](TensorObj &self) -> py::array {
-                 vector<size_t> stride_byte;
+                 vector<py::ssize_t> shape;
+                 vector<py::ssize_t> stride_byte;
+                 shape.reserve(self.getRank());
+                 stride_byte.reserve(self.getRank());
+                 for (int dim : self.getDims()) {
+                     shape.push_back(static_cast<py::ssize_t>(dim));
+                 }
                  for (int s : self.getStride()) {
-                     stride_byte.push_back(s * self.getDType().getSize());
+                     stride_byte.push_back(static_cast<py::ssize_t>(
+                         s * self.getDType().getSize()));
                  }
                  std::string format = getFormat(self.getDType());
 
-                 py::array numpy_array(py::dtype(format), self.getDims(),
-                                       nullptr);
+                 py::array numpy_array(py::dtype(format), shape, stride_byte);
 
                  // Copy data to the numpy array
                  auto ptr = numpy_array.mutable_data();
