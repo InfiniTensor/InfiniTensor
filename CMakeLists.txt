@@ -4,6 +4,7 @@ option(USE_BANG "Support BANG MLU" OFF)
 option(USE_KUNLUN "Support KUNLUN XPU" OFF)
 option(USE_ASCEND "Support HUAWEI ASCEND" OFF)
 option(USE_INTELCPU "Support INTELCPU" OFF)
+option(USE_INFINIOPS_KERNELS "Use InfiniOps for hardware operator kernels" ON)
 option(USE_BACKTRACE "Print backtrace on exception and segmentation fault" ON)
 option(USE_PROTOBUF "Serialize and deserialize tensors" OFF)
 option(BUILD_NNET "Build nnet" OFF)
@@ -50,6 +51,14 @@ else()
     message(STATUS "Using config.cmake in CMAKE_CURRENT_SOURCE_DIR directory")
     include(${CMAKE_CURRENT_SOURCE_DIR}/config.cmake)
   endif()
+endif()
+
+set(INFINIOPS_ROOT "" CACHE PATH "InfiniOps installation prefix")
+if(USE_INFINIOPS_KERNELS AND
+   NOT USE_CUDA AND NOT USE_BANG AND NOT USE_KUNLUN AND NOT USE_ASCEND AND
+   NOT USE_INTELCPU AND NOT INFINIOPS_ROOT)
+  message(STATUS "No hardware backend enabled and INFINIOPS_ROOT is unset; disabling USE_INFINIOPS_KERNELS")
+  set(USE_INFINIOPS_KERNELS OFF)
 endif()
 
 set(CMAKE_CXX_STANDARD 17)
@@ -129,6 +138,35 @@ if(BUILD_TEST)
   include_directories(3rd-party/googletest/googletest/include)
 endif()
 
+if(USE_INFINIOPS_KERNELS)
+  if(NOT INFINIOPS_ROOT)
+    message(FATAL_ERROR "INFINIOPS_ROOT must be set when USE_INFINIOPS_KERNELS is ON")
+  endif()
+
+  find_path(INFINIOPS_INCLUDE_DIR
+    NAMES infini/ops.h
+    PATHS "${INFINIOPS_ROOT}/include"
+    NO_DEFAULT_PATH)
+  find_library(INFINIOPS_LIBRARY
+    NAMES infiniops
+    PATHS "${INFINIOPS_ROOT}" "${INFINIOPS_ROOT}/lib"
+    NO_DEFAULT_PATH)
+  find_library(INFINIRT_LIBRARY
+    NAMES infinirt
+    PATHS "${INFINIOPS_ROOT}" "${INFINIOPS_ROOT}/lib"
+    NO_DEFAULT_PATH)
+
+  if(NOT INFINIOPS_INCLUDE_DIR OR NOT INFINIOPS_LIBRARY OR NOT INFINIRT_LIBRARY)
+    message(FATAL_ERROR "Could not find InfiniOps headers/libraries under INFINIOPS_ROOT=${INFINIOPS_ROOT}")
+  endif()
+
+  get_filename_component(INFINIOPS_LIBRARY_DIR "${INFINIOPS_LIBRARY}" DIRECTORY)
+  get_filename_component(INFINIRT_LIBRARY_DIR "${INFINIRT_LIBRARY}" DIRECTORY)
+  set(INFINIOPS_RUNTIME_LIBRARY_DIRS
+      "${INFINIOPS_LIBRARY_DIR}" "${INFINIRT_LIBRARY_DIR}")
+  list(REMOVE_DUPLICATES INFINIOPS_RUNTIME_LIBRARY_DIRS)
+endif()
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Werror -Wno-error=deprecated-declarations -Wno-error=pointer-arith")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -UNDEBUG") # Enable assertion
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -UNDEBUG") # Enable assertion
@@ -146,28 +184,33 @@ if(BUILD_NNET)
 endif()
 
 if(USE_CUDA)
-  file(GLOB_RECURSE SRC_CUDA src/cuda/*.cc src/cuda/*.cu src/kernels/cuda/*.cc src/kernels/cuda/*.cu)
+  file(GLOB_RECURSE SRC_CUDA src/cuda/*.cc src/cuda/*.cu)
   list (APPEND SRC ${SRC_CUDA})
 endif()
 
 if(USE_BANG)
-  file(GLOB_RECURSE SRC_BANG src/bang/*.cc src/kernels/bang/*.cc )
+  file(GLOB_RECURSE SRC_BANG src/bang/*.cc)
   list (APPEND SRC ${SRC_BANG})
 endif()
 
 if(USE_KUNLUN)
-  file(GLOB_RECURSE SRC_KUNLUN src/kunlun/*.cc src/kernels/kunlun/*.cc )
+  file(GLOB_RECURSE SRC_KUNLUN src/kunlun/*.cc)
   list (APPEND SRC ${SRC_KUNLUN})
 endif()
 
 if(USE_ASCEND)
-  file(GLOB_RECURSE SRC_ASCEND src/ascend/*.cc src/kernels/ascend/*.cc )
+  file(GLOB_RECURSE SRC_ASCEND src/ascend/*.cc)
   list (APPEND SRC ${SRC_ASCEND})
 endif()
 
 if(USE_INTELCPU)
-  file(GLOB_RECURSE SRC_INTELCPU src/intelcpu/*.cc src/kernels/intelcpu/*.cc )
+  file(GLOB_RECURSE SRC_INTELCPU src/intelcpu/*.cc)
   list (APPEND SRC ${SRC_INTELCPU})
+endif()
+
+if(USE_INFINIOPS_KERNELS)
+  file(GLOB_RECURSE SRC_INFINIOPS_KERNELS src/kernels/infiniops/*.cc)
+  list (APPEND SRC ${SRC_INFINIOPS_KERNELS})
 endif()
 
 # Libraries
@@ -178,6 +221,21 @@ endif()
 
 target_link_libraries(InfiniTensor pybind11::embed)
 
+if(USE_INFINIOPS_KERNELS)
+  target_compile_definitions(InfiniTensor PRIVATE USE_INFINIOPS_KERNELS=1)
+  target_include_directories(InfiniTensor PRIVATE ${INFINIOPS_INCLUDE_DIR})
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    target_link_libraries(InfiniTensor ${INFINIOPS_LIBRARY}
+                          "-Wl,--no-as-needed" ${INFINIRT_LIBRARY}
+                          "-Wl,--as-needed")
+  else()
+    target_link_libraries(InfiniTensor ${INFINIOPS_LIBRARY}
+                          ${INFINIRT_LIBRARY})
+  endif()
+  set_property(TARGET InfiniTensor APPEND PROPERTY BUILD_RPATH
+               "${INFINIOPS_RUNTIME_LIBRARY_DIRS}")
+endif()
+
 # TVM backend
 if(BUILD_NNET AND BUILD_TEST AND TVM_LIB_DIR)
   target_link_libraries(InfiniTensor ${TVM_LIB_DIR}/libtvm.so)
@@ -187,6 +245,10 @@ endif()
 file(GLOB_RECURSE FFIS src/ffi/ffi_infinitensor.cc)
 pybind11_add_module(backend MODULE ${FFIS})
 target_link_libraries(backend PRIVATE InfiniTensor)
+if(USE_INFINIOPS_KERNELS)
+  set_property(TARGET backend APPEND PROPERTY BUILD_RPATH
+               "${INFINIOPS_RUNTIME_LIBRARY_DIRS}")
+endif()
 
 if(USE_BACKTRACE)
   add_definitions(-D BACKWARD_TRACE)
@@ -198,6 +260,8 @@ endif()
 
 if(USE_INTELCPU)
   add_compile_definitions(USE_INTELCPU=1)
+  target_compile_definitions(InfiniTensor PRIVATE USE_INTELCPU=1)
+  target_compile_definitions(backend PRIVATE USE_INTELCPU=1)
   find_package(MKL CONFIG REQUIRED)
 
   # Refer to https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl-link-line-advisor.html
@@ -223,15 +287,31 @@ endif()
 
 if(USE_CUDA)
   add_compile_definitions(USE_CUDA=1)
+  target_compile_definitions(InfiniTensor PRIVATE USE_CUDA=1)
+  target_compile_definitions(backend PRIVATE USE_CUDA=1)
   # Since enable_language only executes once, rerun cmake is required if CMAKE_CUDA_HOST_COMPILER is wrong
   set(CMAKE_CUDA_HOST_COMPILER
       ${CMAKE_CXX_COMPILER}
       CACHE STRING "Set cuda host compiler path")
   # CMP0104 requires CUDA_ARCHITECTURES
-  set_target_properties(InfiniTensor PROPERTIES CUDA_ARCHITECTURES "70;80")
+  set(INFINITENSOR_CUDA_ARCHITECTURES "70;80" CACHE STRING
+      "CUDA architectures for InfiniTensor CUDA runtime sources")
+  set_target_properties(InfiniTensor PROPERTIES
+      CUDA_ARCHITECTURES "${INFINITENSOR_CUDA_ARCHITECTURES}")
   enable_language(CUDA)
   find_package(CUDAToolkit) # For nvrtc and cuda driver
-  target_link_libraries(InfiniTensor cudnn CUDA::curand CUDA::cublas CUDA::nvrtc CUDA::cudart CUDA::cuda_driver)
+  find_library(CUDNN_LIBRARY
+    NAMES cudnn
+    PATHS "${CUDAToolkit_LIBRARY_DIR}" "${CUDAToolkit_TARGET_DIR}/lib"
+          "${CUDAToolkit_ROOT}/lib64"
+    NO_DEFAULT_PATH)
+  if(NOT CUDNN_LIBRARY)
+    find_library(CUDNN_LIBRARY NAMES cudnn)
+  endif()
+  if(NOT CUDNN_LIBRARY)
+    message(FATAL_ERROR "Could not find cuDNN library")
+  endif()
+  target_link_libraries(InfiniTensor ${CUDNN_LIBRARY} CUDA::curand CUDA::cublas CUDA::nvrtc CUDA::cudart CUDA::cuda_driver)
   if (BUILD_DIST)
     message(STATUS "Add BUILD_DIST, use NCCL with CUDA")
     list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
@@ -243,7 +323,8 @@ endif()
 
 if(USE_BANG)
   add_compile_definitions(USE_BANG=1)
-  include_directories(src/kernels/mlu/include)
+  target_compile_definitions(InfiniTensor PRIVATE USE_BANG=1)
+  target_compile_definitions(backend PRIVATE USE_BANG=1)
   ################################################################################
   # Neuware Evironment
   ################################################################################
@@ -289,6 +370,8 @@ endif()
 
 if(USE_KUNLUN)
   add_compile_definitions(USE_KUNLUN=1)
+  target_compile_definitions(InfiniTensor PRIVATE USE_KUNLUN=1)
+  target_compile_definitions(backend PRIVATE USE_KUNLUN=1)
   if ((NOT DEFINED KUNLUN_HOME) AND (NOT DEFINED ENV{KUNLUN_HOME}))
     message(FATAL_ERROR "KUNLUN_HOME is not defined from cmake or env")
   elseif (DEFINED KUNLUN_HOME)
@@ -326,6 +409,8 @@ endif()
 
 if(USE_ASCEND)
   add_compile_definitions(USE_ASCEND=1)
+  target_compile_definitions(InfiniTensor PRIVATE USE_ASCEND=1)
+  target_compile_definitions(backend PRIVATE USE_ASCEND=1)
   if ((NOT DEFINED ASCEND_HOME) AND (NOT DEFINED ENV{ASCEND_HOME}))
     message(FATAL_ERROR "ASCEND_HOME is not defined from cmake or env")
   elseif (DEFINED ASCEND_HOME)
@@ -386,22 +471,13 @@ if(BUILD_TEST)
     build_test(test/operators/*.cc)
     build_test(test/kernels/nativecpu/*.cc)
     if (USE_CUDA)
-      build_test(test/kernels/cuda/*.cc)
       build_test(test/cuda/*.cc)
     endif()
     if (USE_BANG)
-      build_test(test/kernels/bang/*.cc)
       build_test(test/bang/*.cc)
     endif()
     if (USE_KUNLUN)
-      build_test(test/kernels/kunlun/*.cc)
       build_test(test/kunlun/*.cc)
-    endif()
-    if (USE_ASCEND)
-      build_test(test/kernels/ascend/*.cc)
-    endif()
-    if (USE_INTELCPU)
-      build_test(test/kernels/intelcpu/*.cc)
     endif()
   endif()
   if(BUILD_TEST_PET)

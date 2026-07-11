@@ -22,7 +22,6 @@
 #include <pybind11/stl.h>
 #ifdef USE_CUDA
 #include "cuda/cuda_runtime.h"
-#include "cuda/operator_timer.h"
 #endif
 #ifdef USE_BANG
 #include "bang/bang_runtime.h"
@@ -35,7 +34,6 @@
 #endif
 #ifdef USE_INTELCPU
 #include "intelcpu/mkl_runtime.h"
-#include "intelcpu/operator_timer.h"
 #endif
 namespace py = pybind11;
 
@@ -43,22 +41,6 @@ namespace infini {
 
 using namespace py::literals;
 using policy = py::return_value_policy;
-
-void register_operator_timer(py::module &m) {
-#ifdef USE_CUDA
-    using namespace opTimer;
-    m.def("getPerfConvCudnn", &getPerfConvCudnn);
-    m.def("getPerfConvTransposed2dCudnn", &getPerfConvTransposed2dCudnn);
-    m.def("getPerfMatmulCublas", &getPerfMatmulCublas);
-#endif
-
-#ifdef USE_INTELCPU
-    using namespace opTimer;
-    m.def("getPerfConvMkl", &getPerfConvMkl);
-    m.def("getPerfConvTransposed2dMkl", &getPerfConvTransposed2dMkl);
-    m.def("getPerfMatmulMkl", &getPerfMatmulMkl);
-#endif
-}
 
 decltype(OpType::type) getId(OpType const *const ptr) { return ptr->type; }
 
@@ -628,7 +610,6 @@ void init_graph_builder(py::module &m) {
 } // namespace infini
 
 PYBIND11_MODULE(backend, m) {
-    infini::register_operator_timer(m);
     infini::export_values(m);
     infini::export_functions(m);
     infini::init_graph_builder(m);
