@@ -7,6 +7,9 @@
 
 #include <memory>
 
+#ifdef USE_CUDA
+#include "cuda/cuda_common.h"
+#endif
 #ifdef USE_BANG
 #include "bang/bang_runtime.h"
 #endif
@@ -187,6 +190,12 @@ toInfiniOpsBroadcastTensor(const Tensor &tensor, const Shape &outputDims,
 
 inline ::infini::ops::Handle makeInfiniOpsHandle(const RuntimeObj *context) {
     ::infini::ops::Handle handle;
+#ifdef USE_CUDA
+    if (context->isCuda()) {
+        handle.set_stream(
+            reinterpret_cast<void *>(CUDAStream::getCurrentStream()));
+    }
+#endif
 #ifdef USE_BANG
     if (context->isBang()) {
         auto bangContext = dynamic_cast<const BangRuntimeObj *>(context);

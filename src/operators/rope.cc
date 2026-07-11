@@ -13,6 +13,10 @@ optional<vector<Shape>> RoPEObj::inferShape(const TensorVec &inputs) {
     return {{output_dim}};
 }
 
+vector<DataType> RoPEObj::inferDataType(const TensorVec &inputs) const {
+    return {inputs[1]->getDType()};
+}
+
 std::string RoPEObj::toString() const {
     std::ostringstream os;
     os << type.toString() << "[" << getGuid() << "]";
