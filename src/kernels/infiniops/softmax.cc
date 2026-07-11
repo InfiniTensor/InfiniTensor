@@ -27,5 +27,14 @@ class SoftmaxInfiniOps : public infiniops::KernelWithoutConfig {
 REGISTER_KERNEL(Device::CUDA, OpType::Softmax, SoftmaxInfiniOps,
                 "Softmax_InfiniOps_CUDA");
 #endif
+#ifdef USE_ILUVATAR
+REGISTER_KERNEL(Device::ILUVATAR, OpType::Softmax, SoftmaxInfiniOps, "Softmax_InfiniOps_ILUVATAR");
+#endif
+#ifdef USE_METAX
+REGISTER_KERNEL(Device::METAX, OpType::Softmax, SoftmaxInfiniOps, "Softmax_InfiniOps_METAX");
+#endif
+#ifdef USE_MOORE
+REGISTER_KERNEL(Device::MOORE, OpType::Softmax, SoftmaxInfiniOps, "Softmax_InfiniOps_MOORE");
+#endif
 
 } // namespace infini

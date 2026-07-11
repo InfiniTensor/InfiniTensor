@@ -127,5 +127,21 @@ class MatmulInfiniOps : public infiniops::KernelWithoutConfig {
 REGISTER_KERNEL(Device::CUDA, OpType::MatMul, MatmulInfiniOps,
                 "Matmul_InfiniOps_CUDA");
 #endif
+#ifdef USE_ASCEND
+REGISTER_KERNEL(Device::ASCEND, OpType::MatMul, MatmulInfiniOps,
+                "Matmul_InfiniOps_ASCEND");
+#endif
+#ifdef USE_ILUVATAR
+REGISTER_KERNEL(Device::ILUVATAR, OpType::MatMul, MatmulInfiniOps,
+                "Matmul_InfiniOps_ILUVATAR");
+#endif
+#ifdef USE_METAX
+REGISTER_KERNEL(Device::METAX, OpType::MatMul, MatmulInfiniOps,
+                "Matmul_InfiniOps_METAX");
+#endif
+#ifdef USE_MOORE
+REGISTER_KERNEL(Device::MOORE, OpType::MatMul, MatmulInfiniOps,
+                "Matmul_InfiniOps_MOORE");
+#endif
 
 } // namespace infini

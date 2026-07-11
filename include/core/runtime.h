@@ -32,7 +32,18 @@ using OpLists = list<Operator>;
 
 using VType = uint32_t;
 
-enum class Device { CPU = 1, CUDA, BANG, INTELCPU, KUNLUN, ASCEND };
+enum class Device {
+    CPU = 1,
+    CUDA,
+    BANG,
+    INTELCPU,
+    KUNLUN,
+    ASCEND,
+    ILUVATAR,
+    METAX,
+    MOORE,
+    HYGON,
+};
 /***************** Forward declaration end *****************/
 
 class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
@@ -76,7 +87,14 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
     bool isBang() const { return device == Device::BANG; }
     bool isKUNLUN() const { return device == Device::KUNLUN; }
     bool isAscend() const { return device == Device::ASCEND; }
+    bool isIluvatar() const { return device == Device::ILUVATAR; }
+    bool isMetax() const { return device == Device::METAX; }
+    bool isMoore() const { return device == Device::MOORE; }
+    bool isHygon() const { return device == Device::HYGON; }
     void copyBlob(const TensorObj *dst, const TensorObj *src) const;
+    void copyBlobInside(void *dst, const void *src, size_t bytes) const {
+        copyBlobInsideRuntime(dst, src, bytes);
+    }
     // TODO: unify these copy APIs
     virtual void copyBlobFromCPU(void *dst, const void *src,
                                  size_t bytes) const = 0;
@@ -96,6 +114,19 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
                             const std::map<OpType, int> &opCnt) const;
     virtual void copyBlobInsideRuntime(void *dst, const void *src,
                                        size_t bytes) const = 0;
+};
+
+// Common graph execution path for runtimes backed by a vendor SDK. Concrete
+// runtimes retain ownership of allocation, copies, streams, and synchronization
+// so an InfiniRT provider can replace the SDK calls without changing callers.
+class SdkRuntimeObj : public RuntimeObj {
+  public:
+    explicit SdkRuntimeObj(Device device, int deviceId = 0)
+        : RuntimeObj(device, deviceId) {}
+
+    void run(const Graph &graph, bool tune = false,
+             bool profiling = false) const override;
+    virtual void sync() const = 0;
 };
 
 class CpuRuntimeObj : public RuntimeObj {

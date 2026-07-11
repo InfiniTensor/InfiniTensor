@@ -48,5 +48,17 @@ REGISTER_KERNEL(Device::BANG, OpType::RMSNorm, RMSNormInfiniOps,
 REGISTER_KERNEL(Device::INTELCPU, OpType::RMSNorm, RMSNormInfiniOps,
                 "RMSNorm_InfiniOps_INTELCPU");
 #endif
+#ifdef USE_ILUVATAR
+REGISTER_KERNEL(Device::ILUVATAR, OpType::RMSNorm, RMSNormInfiniOps,
+                "RMSNorm_InfiniOps_ILUVATAR");
+#endif
+#ifdef USE_METAX
+REGISTER_KERNEL(Device::METAX, OpType::RMSNorm, RMSNormInfiniOps,
+                "RMSNorm_InfiniOps_METAX");
+#endif
+#ifdef USE_MOORE
+REGISTER_KERNEL(Device::MOORE, OpType::RMSNorm, RMSNormInfiniOps,
+                "RMSNorm_InfiniOps_MOORE");
+#endif
 
 } // namespace infini

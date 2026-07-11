@@ -1,8 +1,8 @@
 #include "bang/bang_runtime.h"
 #include "core/kernel.h"
 #include "core/perf_engine.h"
-#ifdef INFINI_USE_CNCL
-#include "bang/cncl_communicator.h"
+#ifdef USE_INFINICCL
+#include "communication/infiniccl_communicator.h"
 #endif
 
 namespace infini {
@@ -69,10 +69,10 @@ void BangRuntimeObj::initComm(const string &name, int worldSize, int rank) {
     IT_ASSERT(rank >= 0);
     IT_ASSERT(rank < worldSize);
     IT_ASSERT(!comm) << "communicator is already initialized.";
-#ifdef INFINI_USE_CNCL
-    comm = std::make_unique<CnclCommunicatorObj>(name, worldSize, rank);
+#ifdef USE_INFINICCL
+    comm = std::make_unique<InfiniCclCommunicatorObj>(name, worldSize, rank);
 #else
-    IT_TODO_HALT_MSG("Not compiled with CNCL.");
+    IT_TODO_HALT_MSG("Not compiled with InfiniCCL.");
 #endif
 }
 } // namespace infini

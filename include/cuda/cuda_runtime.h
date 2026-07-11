@@ -1,8 +1,8 @@
 #pragma once
 #include "core/runtime.h"
 #include "cuda/cuda_common.h"
-#ifdef INFINI_USE_NCCL
-#include "cuda/nccl_communicator.h"
+#ifdef USE_INFINICCL
+#include "communication/infiniccl_communicator.h"
 #endif
 
 namespace infini {

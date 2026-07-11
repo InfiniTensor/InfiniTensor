@@ -29,5 +29,21 @@ class AddInfiniOps : public infiniops::KernelWithoutConfig {
 REGISTER_KERNEL(Device::CUDA, OpType::Add, AddInfiniOps,
                 "Add_InfiniOps_CUDA");
 #endif
+#ifdef USE_ASCEND
+REGISTER_KERNEL(Device::ASCEND, OpType::Add, AddInfiniOps,
+                "Add_InfiniOps_ASCEND");
+#endif
+#ifdef USE_ILUVATAR
+REGISTER_KERNEL(Device::ILUVATAR, OpType::Add, AddInfiniOps,
+                "Add_InfiniOps_ILUVATAR");
+#endif
+#ifdef USE_METAX
+REGISTER_KERNEL(Device::METAX, OpType::Add, AddInfiniOps,
+                "Add_InfiniOps_METAX");
+#endif
+#ifdef USE_MOORE
+REGISTER_KERNEL(Device::MOORE, OpType::Add, AddInfiniOps,
+                "Add_InfiniOps_MOORE");
+#endif
 
 } // namespace infini

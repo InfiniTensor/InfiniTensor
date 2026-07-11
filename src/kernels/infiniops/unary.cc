@@ -51,5 +51,23 @@ REGISTER_KERNEL(Device::CUDA, OpType::Sigmoid, UnaryInfiniOps,
 REGISTER_KERNEL(Device::CUDA, OpType::Silu, UnaryInfiniOps,
                 "Silu_InfiniOps_CUDA");
 #endif
+#ifdef USE_ILUVATAR
+REGISTER_KERNEL(Device::ILUVATAR, OpType::Gelu, UnaryInfiniOps, "Gelu_InfiniOps_ILUVATAR");
+REGISTER_KERNEL(Device::ILUVATAR, OpType::Relu, UnaryInfiniOps, "Relu_InfiniOps_ILUVATAR");
+REGISTER_KERNEL(Device::ILUVATAR, OpType::Sigmoid, UnaryInfiniOps, "Sigmoid_InfiniOps_ILUVATAR");
+REGISTER_KERNEL(Device::ILUVATAR, OpType::Silu, UnaryInfiniOps, "Silu_InfiniOps_ILUVATAR");
+#endif
+#ifdef USE_METAX
+REGISTER_KERNEL(Device::METAX, OpType::Gelu, UnaryInfiniOps, "Gelu_InfiniOps_METAX");
+REGISTER_KERNEL(Device::METAX, OpType::Relu, UnaryInfiniOps, "Relu_InfiniOps_METAX");
+REGISTER_KERNEL(Device::METAX, OpType::Sigmoid, UnaryInfiniOps, "Sigmoid_InfiniOps_METAX");
+REGISTER_KERNEL(Device::METAX, OpType::Silu, UnaryInfiniOps, "Silu_InfiniOps_METAX");
+#endif
+#ifdef USE_MOORE
+REGISTER_KERNEL(Device::MOORE, OpType::Gelu, UnaryInfiniOps, "Gelu_InfiniOps_MOORE");
+REGISTER_KERNEL(Device::MOORE, OpType::Relu, UnaryInfiniOps, "Relu_InfiniOps_MOORE");
+REGISTER_KERNEL(Device::MOORE, OpType::Sigmoid, UnaryInfiniOps, "Sigmoid_InfiniOps_MOORE");
+REGISTER_KERNEL(Device::MOORE, OpType::Silu, UnaryInfiniOps, "Silu_InfiniOps_MOORE");
+#endif
 
 } // namespace infini

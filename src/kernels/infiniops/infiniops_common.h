@@ -72,6 +72,22 @@ inline ::infini::rt::Device toInfiniOpsDevice(const RuntimeObj *context) {
         return {::infini::rt::Device::Type::kKunlun,
                 context->getDeviceId()};
     }
+    if (context->isIluvatar()) {
+        return {::infini::rt::Device::Type::kIluvatar,
+                context->getDeviceId()};
+    }
+    if (context->isMetax()) {
+        return {::infini::rt::Device::Type::kMetax,
+                context->getDeviceId()};
+    }
+    if (context->isMoore()) {
+        return {::infini::rt::Device::Type::kMoore,
+                context->getDeviceId()};
+    }
+    if (context->isHygon()) {
+        return {::infini::rt::Device::Type::kHygon,
+                context->getDeviceId()};
+    }
     if (context->isCpu()) {
         return {::infini::rt::Device::Type::kCpu, context->getDeviceId()};
     }

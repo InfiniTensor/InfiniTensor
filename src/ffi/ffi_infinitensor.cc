@@ -35,6 +35,18 @@
 #ifdef USE_INTELCPU
 #include "intelcpu/mkl_runtime.h"
 #endif
+#ifdef USE_ILUVATAR
+#include "iluvatar/iluvatar_runtime.h"
+#endif
+#ifdef USE_METAX
+#include "metax/metax_runtime.h"
+#endif
+#ifdef USE_MOORE
+#include "moore/moore_runtime.h"
+#endif
+#ifdef USE_HYGON
+#include "hygon/hygon_runtime.h"
+#endif
 namespace py = pybind11;
 
 namespace infini {
@@ -171,6 +183,24 @@ static Ref<ASCENDRuntimeObj> ascend_runtime() {
 
 #ifdef USE_INTELCPU
 static Ref<RuntimeObj> intelcpu_runtime() { return make_ref<MklRuntimeObj>(); }
+#endif
+
+#ifdef USE_ILUVATAR
+static Ref<IluvatarRuntimeObj> iluvatar_runtime() {
+    return make_ref<IluvatarRuntimeObj>();
+}
+#endif
+
+#ifdef USE_METAX
+static Ref<MetaxRuntimeObj> metax_runtime() { return make_ref<MetaxRuntimeObj>(); }
+#endif
+
+#ifdef USE_MOORE
+static Ref<MooreRuntimeObj> moore_runtime() { return make_ref<MooreRuntimeObj>(); }
+#endif
+
+#ifdef USE_HYGON
+static Ref<HygonRuntimeObj> hygon_runtime() { return make_ref<HygonRuntimeObj>(); }
 #endif
 
 static std::tuple<int, int, int, int, int, int> conv_attrs_of(Operator op) {
@@ -351,6 +381,18 @@ void export_functions(py::module &m) {
 #ifdef USE_ASCEND
         .FUNCTION(ascend_runtime)
 #endif
+#ifdef USE_ILUVATAR
+        .FUNCTION(iluvatar_runtime)
+#endif
+#ifdef USE_METAX
+        .FUNCTION(metax_runtime)
+#endif
+#ifdef USE_MOORE
+        .FUNCTION(moore_runtime)
+#endif
+#ifdef USE_HYGON
+        .FUNCTION(hygon_runtime)
+#endif
         .FUNCTION(conv_attrs_of)
         .FUNCTION(conv_trans_attrs_of)
         .FUNCTION(matmul_attrs_of)
@@ -445,6 +487,26 @@ void init_graph_builder(py::module &m) {
         .def(py::init<int>(), py::arg("device") = 0)
         .def("init_comm", &ASCENDRuntimeObj::initComm);
     ;
+#endif
+#ifdef USE_ILUVATAR
+    py::class_<IluvatarRuntimeObj, std::shared_ptr<IluvatarRuntimeObj>, RuntimeObj>(m, "IluvatarRuntime")
+        .def(py::init<int>(), py::arg("device") = 0)
+        .def("init_comm", &IluvatarRuntimeObj::initComm);
+#endif
+#ifdef USE_METAX
+    py::class_<MetaxRuntimeObj, std::shared_ptr<MetaxRuntimeObj>, RuntimeObj>(m, "MetaxRuntime")
+        .def(py::init<int>(), py::arg("device") = 0)
+        .def("init_comm", &MetaxRuntimeObj::initComm);
+#endif
+#ifdef USE_MOORE
+    py::class_<MooreRuntimeObj, std::shared_ptr<MooreRuntimeObj>, RuntimeObj>(m, "MooreRuntime")
+        .def(py::init<int>(), py::arg("device") = 0)
+        .def("init_comm", &MooreRuntimeObj::initComm);
+#endif
+#ifdef USE_HYGON
+    py::class_<HygonRuntimeObj, std::shared_ptr<HygonRuntimeObj>, RuntimeObj>(m, "HygonRuntime")
+        .def(py::init<int>(), py::arg("device") = 0)
+        .def("init_comm", &HygonRuntimeObj::initComm);
 #endif
     py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "Tensor",
                                                       py::buffer_protocol())

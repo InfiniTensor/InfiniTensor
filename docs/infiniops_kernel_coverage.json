@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "baseline_commit": "e0e261ec",
+  "baseline_file": "docs/infiniops_kernel_baseline.txt",
+  "default": {
+    "status": "upstream_todo",
+    "upstream": "InfiniOps",
+    "reason": "The current InfiniOps installation does not expose a compatible operator adapter."
+  },
+  "device_defaults": {
+    "KUNLUN": {
+      "upstream": "InfiniOps",
+      "reason": "InfiniOps has no Kunlun backend in the current release."
+    },
+    "ASCEND": {
+      "upstream": "InfiniOps",
+      "reason": "Only the explicitly listed Ascend adapters are available in the current InfiniOps release."
+    },
+    "BANG": {
+      "upstream": "InfiniOps",
+      "reason": "Only the explicitly listed Cambricon adapters are available in the current InfiniOps release."
+    },
+    "INTELCPU": {
+      "upstream": "InfiniOps",
+      "reason": "Only runtime-copy migration is available for the remaining IntelCPU kernels."
+    }
+  },
+  "overrides": [
+    {"device": "CUDA", "op": "Add", "status": "infiniops_available", "source": "src/kernels/infiniops/element_wise.cc", "registration": "Device::CUDA, OpType::Add"},
+    {"device": "CUDA", "op": "Conv", "status": "infiniops_available", "source": "src/kernels/infiniops/conv.cc", "registration": "Device::CUDA, OpType::Conv"},
+    {"device": "CUDA", "op": "Conv3d", "status": "infiniops_available", "source": "src/kernels/infiniops/conv.cc", "registration": "Device::CUDA, OpType::Conv3d"},
+    {"device": "CUDA", "op": "Gelu", "status": "infiniops_available", "source": "src/kernels/infiniops/unary.cc", "registration": "Device::CUDA, OpType::Gelu"},
+    {"device": "CUDA", "op": "MatMul", "status": "infiniops_available", "source": "src/kernels/infiniops/matmul.cc", "registration": "Device::CUDA, OpType::MatMul"},
+    {"device": "CUDA", "op": "Relu", "status": "infiniops_available", "source": "src/kernels/infiniops/unary.cc", "registration": "Device::CUDA, OpType::Relu"},
+    {"device": "CUDA", "op": "RMSNorm", "status": "infiniops_available", "source": "src/kernels/infiniops/rms_norm.cc", "registration": "Device::CUDA, OpType::RMSNorm"},
+    {"device": "CUDA", "op": "RoPE", "status": "infiniops_available", "source": "src/kernels/infiniops/rope.cc", "registration": "Device::CUDA, OpType::RoPE"},
+    {"device": "CUDA", "op": "Sigmoid", "status": "infiniops_available", "source": "src/kernels/infiniops/unary.cc", "registration": "Device::CUDA, OpType::Sigmoid"},
+    {"device": "CUDA", "op": "Silu", "status": "infiniops_available", "source": "src/kernels/infiniops/unary.cc", "registration": "Device::CUDA, OpType::Silu"},
+    {"device": "CUDA", "op": "Softmax", "status": "infiniops_available", "source": "src/kernels/infiniops/softmax.cc", "registration": "Device::CUDA, OpType::Softmax"},
+
+    {"device": "CUDA", "op": "Flatten", "status": "runtime_sdk", "source": "src/kernels/infiniops/reshape.cc", "registration": "Device::CUDA, OpType::Flatten"},
+    {"device": "CUDA", "op": "Identity", "status": "runtime_sdk", "source": "src/kernels/infiniops/reshape.cc", "registration": "Device::CUDA, OpType::Identity"},
+    {"device": "CUDA", "op": "Reshape", "status": "runtime_sdk", "source": "src/kernels/infiniops/reshape.cc", "registration": "Device::CUDA, OpType::Reshape"},
+    {"device": "CUDA", "op": "Squeeze", "status": "runtime_sdk", "source": "src/kernels/infiniops/reshape.cc", "registration": "Device::CUDA, OpType::Squeeze"},
+    {"device": "CUDA", "op": "Unsqueeze", "status": "runtime_sdk", "source": "src/kernels/infiniops/reshape.cc", "registration": "Device::CUDA, OpType::Unsqueeze"},
+
+    {"device": "CUDA", "op": "AllGather", "status": "infiniccl_available", "source": "src/communication/infiniccl_kernels.cc", "registration": "REGISTER_INFINICCL_KERNELS(Device::CUDA"},
+    {"device": "CUDA", "op": "AllReduceAvg", "status": "infiniccl_available", "source": "src/communication/infiniccl_kernels.cc", "registration": "REGISTER_INFINICCL_KERNELS(Device::CUDA"},
+    {"device": "CUDA", "op": "AllReduceMax", "status": "infiniccl_available", "source": "src/communication/infiniccl_kernels.cc", "registration": "REGISTER_INFINICCL_KERNELS(Device::CUDA"},
+    {"device": "CUDA", "op": "AllReduceMin", "status": "infiniccl_available", "source": "src/communication/infiniccl_kernels.cc", "registration": "REGISTER_INFINICCL_KERNELS(Device::CUDA"},
+    {"device": "CUDA", "op": "AllReduceProd", "status": "infiniccl_available", "source": "src/communication/infiniccl_kernels.cc", "registration": "REGISTER_INFINICCL_KERNELS(Device::CUDA"},
+    {"device": "CUDA", "op": "AllReduceSum", "status": "infiniccl_available", "source": "src/communication/infiniccl_kernels.cc", "registration": "REGISTER_INFINICCL_KERNELS(Device::CUDA"},
+    {"device": "CUDA", "op": "Broadcast", "status": "infiniccl_available", "source": "src/communication/infiniccl_kernels.cc", "registration": "REGISTER_INFINICCL_KERNELS(Device::CUDA"},
+    {"device": "CUDA", "op": "Recv", "status": "infiniccl_available", "source": "src/communication/infiniccl_kernels.cc", "registration": "REGISTER_INFINICCL_KERNELS(Device::CUDA"},
+    {"device": "CUDA", "op": "Send", "status": "infiniccl_available", "source": "src/communication/infiniccl_kernels.cc", "registration": "REGISTER_INFINICCL_KERNELS(Device::CUDA"},
+
+    {"device": "BANG", "op": "Flatten", "status": "runtime_sdk", "source": "src/kernels/infiniops/reshape.cc", "registration": "Device::BANG, OpType::Flatten"},
+    {"device": "BANG", "op": "Identity", "status": "runtime_sdk", "source": "src/kernels/infiniops/reshape.cc", "registration": "Device::BANG, OpType::Identity"},
+    {"device": "BANG", "op": "Reshape", "status": "runtime_sdk", "source": "src/kernels/infiniops/reshape.cc", "registration": "Device::BANG, OpType::Reshape"},
+    {"device": "BANG", "op": "Squeeze", "status": "runtime_sdk", "source": "src/kernels/infiniops/reshape.cc", "registration": "Device::BANG, OpType::Squeeze"},
+    {"device": "BANG", "op": "Unsqueeze", "status": "runtime_sdk", "source": "src/kernels/infiniops/reshape.cc", "registration": "Device::BANG, OpType::Unsqueeze"},
+    {"device": "BANG", "op": "AllGather", "status": "infiniccl_available", "source": "src/communication/infiniccl_kernels.cc", "registration": "REGISTER_INFINICCL_KERNELS(Device::BANG"},
+    {"device": "BANG", "op": "AllReduceMax", "status": "infiniccl_available", "source": "src/communication/infiniccl_kernels.cc", "registration": "REGISTER_INFINICCL_KERNELS(Device::BANG"},
+    {"device": "BANG", "op": "AllReduceMin", "status": "infiniccl_available", "source": "src/communication/infiniccl_kernels.cc", "registration": "REGISTER_INFINICCL_KERNELS(Device::BANG"},
+    {"device": "BANG", "op": "AllReduceProd", "status": "infiniccl_available", "source": "src/communication/infiniccl_kernels.cc", "registration": "REGISTER_INFINICCL_KERNELS(Device::BANG"},
+    {"device": "BANG", "op": "AllReduceSum", "status": "infiniccl_available", "source": "src/communication/infiniccl_kernels.cc", "registration": "REGISTER_INFINICCL_KERNELS(Device::BANG"},
+    {"device": "BANG", "op": "Broadcast", "status": "infiniccl_available", "source": "src/communication/infiniccl_kernels.cc", "registration": "REGISTER_INFINICCL_KERNELS(Device::BANG"},
+
+    {"device": "ASCEND", "op": "Add", "status": "infiniops_available", "source": "src/kernels/infiniops/element_wise.cc", "registration": "Device::ASCEND, OpType::Add"},
+    {"device": "ASCEND", "op": "MatMul", "status": "infiniops_available", "source": "src/kernels/infiniops/matmul.cc", "registration": "Device::ASCEND, OpType::MatMul"},
+    {"device": "ASCEND", "op": "Flatten", "status": "runtime_sdk", "source": "src/kernels/infiniops/reshape.cc", "registration": "Device::ASCEND, OpType::Flatten"},
+    {"device": "ASCEND", "op": "Identity", "status": "runtime_sdk", "source": "src/kernels/infiniops/reshape.cc", "registration": "Device::ASCEND, OpType::Identity"},
+    {"device": "ASCEND", "op": "Reshape", "status": "runtime_sdk", "source": "src/kernels/infiniops/reshape.cc", "registration": "Device::ASCEND, OpType::Reshape"},
+    {"device": "ASCEND", "op": "Squeeze", "status": "runtime_sdk", "source": "src/kernels/infiniops/reshape.cc", "registration": "Device::ASCEND, OpType::Squeeze"},
+    {"device": "ASCEND", "op": "Unsqueeze", "status": "runtime_sdk", "source": "src/kernels/infiniops/reshape.cc", "registration": "Device::ASCEND, OpType::Unsqueeze"},
+
+    {"device": "KUNLUN", "op": "Flatten", "status": "runtime_sdk", "source": "src/kernels/infiniops/reshape.cc", "registration": "Device::KUNLUN, OpType::Flatten"},
+    {"device": "KUNLUN", "op": "Identity", "status": "runtime_sdk", "source": "src/kernels/infiniops/reshape.cc", "registration": "Device::KUNLUN, OpType::Identity"},
+    {"device": "KUNLUN", "op": "Reshape", "status": "runtime_sdk", "source": "src/kernels/infiniops/reshape.cc", "registration": "Device::KUNLUN, OpType::Reshape"},
+    {"device": "KUNLUN", "op": "Squeeze", "status": "runtime_sdk", "source": "src/kernels/infiniops/reshape.cc", "registration": "Device::KUNLUN, OpType::Squeeze"},
+
+    {"device": "INTELCPU", "op": "Flatten", "status": "runtime_sdk", "source": "src/kernels/infiniops/reshape.cc", "registration": "Device::INTELCPU, OpType::Flatten"},
+    {"device": "INTELCPU", "op": "Identity", "status": "runtime_sdk", "source": "src/kernels/infiniops/reshape.cc", "registration": "Device::INTELCPU, OpType::Identity"},
+    {"device": "INTELCPU", "op": "Reshape", "status": "runtime_sdk", "source": "src/kernels/infiniops/reshape.cc", "registration": "Device::INTELCPU, OpType::Reshape"}
+  ],
+  "new_devices": {
+    "ILUVATAR": {"runtime": "vendor_sdk", "operators": ["Add", "Conv", "Conv3d", "Flatten", "Gelu", "Identity", "MatMul", "Relu", "RMSNorm", "RoPE", "Sigmoid", "Silu", "Softmax", "Reshape", "Squeeze", "Unsqueeze"], "collectives": "infiniccl_available"},
+    "METAX": {"runtime": "vendor_sdk", "operators": ["Add", "Conv", "Conv3d", "Flatten", "Gelu", "Identity", "MatMul", "Relu", "RMSNorm", "RoPE", "Sigmoid", "Silu", "Softmax", "Reshape", "Squeeze", "Unsqueeze"], "collectives": "infiniccl_available"},
+    "MOORE": {"runtime": "vendor_sdk", "operators": ["Add", "Conv", "Conv3d", "Flatten", "Gelu", "Identity", "MatMul", "Relu", "RMSNorm", "RoPE", "Sigmoid", "Silu", "Softmax", "Reshape", "Squeeze", "Unsqueeze"], "collectives": "infiniccl_available"},
+    "HYGON": {"runtime": "vendor_sdk", "operators": ["Flatten", "Identity", "Reshape", "Squeeze", "Unsqueeze"], "collectives": "upstream_todo"}
+  }
+}

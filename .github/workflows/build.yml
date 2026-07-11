@@ -64,6 +64,9 @@ jobs:
     #     sudo make install
     #     sudo ldconfig
 
+    - name: Audit kernel migration coverage
+      run: python scripts/audit_infiniops_coverage.py --check
+
     - name: Build
       run: make
 

@@ -88,5 +88,23 @@ REGISTER_KERNEL(Device::CUDA, OpType::Conv, ConvInfiniOps,
 REGISTER_KERNEL(Device::CUDA, OpType::Conv3d, Conv3dInfiniOps,
                 "Conv3d_InfiniOps_CUDA");
 #endif
+#ifdef USE_ILUVATAR
+REGISTER_KERNEL(Device::ILUVATAR, OpType::Conv, ConvInfiniOps,
+                "Conv_InfiniOps_ILUVATAR");
+REGISTER_KERNEL(Device::ILUVATAR, OpType::Conv3d, Conv3dInfiniOps,
+                "Conv3d_InfiniOps_ILUVATAR");
+#endif
+#ifdef USE_METAX
+REGISTER_KERNEL(Device::METAX, OpType::Conv, ConvInfiniOps,
+                "Conv_InfiniOps_METAX");
+REGISTER_KERNEL(Device::METAX, OpType::Conv3d, Conv3dInfiniOps,
+                "Conv3d_InfiniOps_METAX");
+#endif
+#ifdef USE_MOORE
+REGISTER_KERNEL(Device::MOORE, OpType::Conv, ConvInfiniOps,
+                "Conv_InfiniOps_MOORE");
+REGISTER_KERNEL(Device::MOORE, OpType::Conv3d, Conv3dInfiniOps,
+                "Conv3d_InfiniOps_MOORE");
+#endif
 
 } // namespace infini

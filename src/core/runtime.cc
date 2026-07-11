@@ -59,6 +59,34 @@ void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
         printProfilingData(totalTime, opTime, opCnt);
 }
 
+void SdkRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
+    IT_ASSERT(!profiling,
+              "SDK runtimes do not expose profiling before hardware validation");
+
+    const auto &kernelRegistry = KernelRegistry::getInstance();
+    auto &perfEngine = PerfEngine::getInstance();
+    for (auto &op : graph->getOperators()) {
+        const auto kernelAttrs =
+            KernelAttrs{device, op->getOpType().underlying()};
+        auto *kernel = kernelRegistry.getKernel(kernelAttrs);
+        const auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
+        auto perfData = perfEngine.getPerfData(perfKey);
+
+        if (!perfData && !tune) {
+            kernel->compute(op, this);
+            continue;
+        }
+
+        if (!perfData) {
+            perfData = kernel->tune(op, this);
+            perfEngine.setPerfData(perfKey, perfData);
+        }
+        kernel->computeFuncTune(perfKey, op, perfData, this);
+        kernel->getComputeFunc(perfKey)(op, perfData, this);
+    }
+    sync();
+}
+
 double RuntimeObj::getPerfTime(const Graph &graph, bool profiling) const {
     const auto &kernelRegistry = KernelRegistry::getInstance();
     auto &perfEngine = PerfEngine::getInstance();
