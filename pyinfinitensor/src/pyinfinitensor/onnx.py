@@ -45,6 +45,7 @@ class OnnxStub:
         use_naive_allocator: bool = False,
         matmul_compute_type: str = "default",
     ):
+        model = copy.deepcopy(model)
         # We use some user-defined operators for distributed inference
         try:
             # onnx simplifier performs inplace simplify
@@ -61,6 +62,7 @@ class OnnxStub:
         self.tensors: Dict[str, backend.Tensor] = {}
         self.tensor_node_map: Dict[str, str] = {}
         self.initializer: Dict[int, TensorProto] = {}
+        self._initializer_by_name: Dict[str, TensorProto] = {}
         self.use_naive_allocator: bool = use_naive_allocator
         # try:
         #     model = infer_shapes(model)
@@ -80,21 +82,39 @@ class OnnxStub:
                 names[node.name] = 0
         # 拓扑排序
         sorted_nodes = []
+        pending_nodes = set(range(len(model.graph.node)))
         known_edge = set(t.name for t in model.graph.input)
         known_edge.update(t.name for t in model.graph.initializer)
-        while len(sorted_nodes) < len(model.graph.node):
+        while pending_nodes:
             updated = False
             for i, node in enumerate(model.graph.node):
+                if i not in pending_nodes:
+                    continue
                 # TODO：only consider the case where the input of resize exist emptyInput
                 if all(t in known_edge or t == "" for t in node.input):
                     node.name = str(len(sorted_nodes)) + "_" + node.name
                     sorted_nodes.append(i)
+                    pending_nodes.remove(i)
                     known_edge.update(node.output)
                     for t_ in node.output:
                         self.tensor_node_map[t_] = node.name
                     updated = True
             if not updated:
-                raise Exception("Graph has cycle")
+                unresolved = []
+                for i in sorted(pending_nodes):
+                    node = model.graph.node[i]
+                    missing = [
+                        name for name in node.input if name and name not in known_edge
+                    ]
+                    unresolved.append(
+                        "{} ({}) missing {}".format(
+                            node.name or node.op_type, node.op_type, missing
+                        )
+                    )
+                raise ValueError(
+                    "Unable to resolve ONNX graph; it contains a cycle or "
+                    "missing inputs: {}".format("; ".join(unresolved))
+                )
 
         tensors: Dict[str, backend.Tensor] = dict()
         data: Dict[str, TensorProto] = dict()
@@ -620,16 +640,8 @@ class OnnxStub:
                 tensors[node.output[0]] = self.handler.clip(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
-                    (
-                        next(_parse_data(data[node.input[1]]).__iter__(), None)
-                        if len(node.input) > 1
-                        else None
-                    ),
-                    (
-                        next(_parse_data(data[node.input[2]]).__iter__(), None)
-                        if len(node.input) > 2
-                        else None
-                    ),
+                    _parse_static_scalar(data, node, 1),
+                    _parse_static_scalar(data, node, 2),
                 )
             elif node.op_type == "Transpose":
                 perm = next(
@@ -657,7 +669,7 @@ class OnnxStub:
                     mode,
                 )
             elif node.op_type == "Reshape":
-                shape = _parse_data(data[node.input[1]])
+                shape = _parse_static_input(data, node, 1, required=True)
                 tensors[node.output[0]] = self.handler.reshape(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
@@ -735,7 +747,7 @@ class OnnxStub:
                     coordinate_transformation_mode,
                 )
             elif node.op_type == "Squeeze":
-                axes = _parse_data(data[node.input[1]]) if len(node.input) > 1 else None
+                axes = _parse_static_input(data, node, 1)
                 if axes is None:
                     axes = next(
                         (attr.ints for attr in node.attribute if attr.name == "axes"),
@@ -747,11 +759,14 @@ class OnnxStub:
                     axes,
                 )
             elif node.op_type == "Unsqueeze":
-                axes = _parse_data(data[node.input[1]]) if len(node.input) > 1 else None
+                axes = _parse_static_input(data, node, 1)
                 if axes is None:
                     axes = next(
-                        (attr.ints for attr in node.attribute if attr.name == "axes")
+                        (attr.ints for attr in node.attribute if attr.name == "axes"),
+                        None,
                     )
+                if axes is None:
+                    raise ValueError("Unsqueeze requires constant axes")
                 tensors[node.output[0]] = self.handler.unsqueeze(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
@@ -780,9 +795,7 @@ class OnnxStub:
                     tensors.get(node.output[0]),
                 )
             elif node.op_type == "Split":
-                split = (
-                    _parse_data(data[node.input[1]]) if (len(node.input) > 1) else None
-                )
+                split = _parse_static_input(data, node, 1)
                 if split is None:
                     split = next(
                         (attr.ints for attr in node.attribute if attr.name == "split"),
@@ -829,7 +842,7 @@ class OnnxStub:
                     None,
                 )
                 if axes is None and len(node.input) > 1 and node.input[1]:
-                    axes = _parse_data(data[node.input[1]])
+                    axes = _parse_static_input(data, node, 1)
                 tensors[node.output[0]] = self.handler.reduceMean(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
@@ -849,46 +862,53 @@ class OnnxStub:
                 tensors[node.output[0]] = self.handler.slice(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
-                    clamp(_parse_data(data[node.input[1]])),
-                    clamp(_parse_data(data[node.input[2]])),
+                    clamp(_parse_static_input(data, node, 1, required=True)),
+                    clamp(_parse_static_input(data, node, 2, required=True)),
                     (
-                        clamp(_parse_data(data[node.input[3]]))
-                        if len(node.input) > 3
+                        clamp(_parse_static_input(data, node, 3))
+                        if _has_input(node, 3)
                         else None
                     ),
                     (
-                        clamp(_parse_data(data[node.input[4]]))
-                        if len(node.input) > 4
+                        clamp(_parse_static_input(data, node, 4))
+                        if _has_input(node, 4)
                         else None
                     ),
                 )
             elif node.op_type == "Pad":
+                attributes = _parse_attribute(node, {"mode": b"constant"})
+                mode = attributes["mode"]
+                if mode not in ["constant", b"constant"]:
+                    raise NotImplementedError(
+                        'Pad mode "{}" is not supported'.format(
+                            mode.decode() if isinstance(mode, bytes) else mode
+                        )
+                    )
+                constant_value = _parse_static_scalar(data, node, 2)
+                if constant_value not in [None, 0, 0.0, False]:
+                    raise NotImplementedError(
+                        "Pad only supports a constant value of zero"
+                    )
                 tensors[node.output[0]] = self.handler.pad(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
-                    _parse_data(data[node.input[1]]),
-                    _parse_data(data[node.input[3]]) if len(node.input) > 3 else None,
+                    _parse_static_input(data, node, 1, required=True),
+                    _parse_static_input(data, node, 3),
                 )
             elif node.op_type == "Dropout":
-                for name, tensor in zip(
-                    node.output,
-                    self.handler.dropout(
-                        tensors[node.input[0]],
-                        tensors.get(node.output[0]),
-                        tensors.get(node.output[1]) if len(node.output) > 1 else None,
-                        (
-                            _parse_data(data[node.input[1]])[0]
-                            if len(node.input) > 1
-                            else 0.5
-                        ),
-                        (
-                            _parse_data(data[node.input[2]])[0]
-                            if len(node.input) > 2
-                            else False
-                        ),
-                    ),
-                ):
-                    tensors[name] = tensor
+                _parse_static_scalar(data, node, 1)
+                training_mode = _parse_static_scalar(data, node, 2)
+                if training_mode:
+                    raise NotImplementedError(
+                        "Dropout training mode is not supported"
+                    )
+                if len(node.output) > 1 and node.output[1]:
+                    raise NotImplementedError(
+                        "Dropout mask output is not supported"
+                    )
+                tensors[node.output[0]] = self.handler.identity(
+                    tensors[node.input[0]], tensors.get(node.output[0])
+                )
             elif node.op_type == "Cast":
                 tensors[node.output[0]] = self.handler.cast(
                     tensors[node.input[0]],
@@ -904,8 +924,8 @@ class OnnxStub:
                     )
                 else:
                     # NOTE: `axes` is an attribute until opset version 13.
-                    if len(node.input) > 1:
-                        axis = _parse_data(data[node.input[1]])
+                    if _has_input(node, 1):
+                        axis = _parse_static_input(data, node, 1)
                     else:
                         axis = next(
                             (
@@ -1022,7 +1042,7 @@ class OnnxStub:
                     None,
                 )
             elif node.op_type == "Expand":
-                shape = _parse_data(data[node.input[1]])
+                shape = _parse_static_input(data, node, 1, required=True)
                 tensors[node.output[0]] = self.handler.expand(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
@@ -1066,7 +1086,7 @@ class OnnxStub:
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
                 )
-            elif node.op_type in ["Constant", "ConstantOfShape"]:
+            elif node.op_type == "Constant":
                 output_name = node.output[0]
                 attributes = _parse_attribute(node)
                 tensor = attributes["value"]
@@ -1074,6 +1094,11 @@ class OnnxStub:
                 tensors[output_name] = self.handler.tensor(dims, tensor.data_type)
                 data[output_name] = tensor
                 tensors[output_name].set_weight()
+            elif node.op_type == "ConstantOfShape":
+                raise NotImplementedError(
+                    'Unsupported operator "ConstantOfShape": static and dynamic '
+                    "shape execution is not implemented"
+                )
             elif node.op_type == "LRN":
                 attributes = _parse_attribute(
                     node, {"alpha": 0.0001, "beta": 0.75, "bias": 1.0, "size": 1}
@@ -1094,39 +1119,14 @@ class OnnxStub:
 
         for output in model.graph.output:
             tensors[output.name].set_output()
-        ################################
-        # Allocate memory space for data
-        ################################
-        self.handler.data_malloc(self.use_naive_allocator)
-
-        #################################
-        # Copy in data to tensor objects
-        #################################
         for name, obj in tensors.items():
             tensor = data.get(name)
-            if tensor == None:
+            if tensor is None:
                 if any(input.name == name for input in model.graph.input):
                     self.inputs[name] = obj
             else:
                 self.initializer[obj.fuid()] = tensor
-                # TODO: delete these lines after copyin_numpy is stable
-                # if tensor.data_type == TensorProto.INT32:
-                #     obj.copyin_int32(_parse_data(tensor))
-                # elif tensor.data_type == TensorProto.INT64:
-                #     obj.copyin_int64(_parse_data(tensor))
-                # elif tensor.data_type == TensorProto.FLOAT:
-                #     obj.copyin_float(_parse_data(tensor))
-                # elif tensor.data_type == TensorProto.BOOL:
-                #     obj.copyin_int8(_parse_data(tensor))
-                # elif tensor.data_type == TensorProto.FLOAT16:
-                #     obj.copyin_float16(_parse_data_fp16(tensor))
-                # elif tensor.data_type == TensorProto.INT8:
-                #     obj.copyin_uint8(_parse_data(tensor))
-                # elif tensor.data_type == TensorProto.BFLOAT16:
-                #     obj.copyin_float16(_parse_data_fp16(tensor))
-                # else:
-                #     assert False, "Unsupported Tensor Type: {}".format(tensor.data_type)
-                obj.copyin_numpy(to_array(tensor))
+                self._initializer_by_name[name] = tensor
 
         for name, obj in tensors.items():
             self.tensors[name] = obj
@@ -1134,22 +1134,21 @@ class OnnxStub:
         for output in model.graph.output:
             self.outputs[output.name] = tensors[output.name]
 
+        self.init()
+
     def to_onnx(self, name: str) -> ModelProto:
         class Context:
-            # saves object names, including tensors and operators
-            names: Dict[Union[backend.Tensor, backend.Operator], str] = dict()
-            # counts the occurrence times of each operator for naming
-            count_op: Dict[backend.OpTypeId, int] = dict()
-            # counts input and output tensors for naming
-            count_in, count_out = 0, 0
-            # saves nodes (operators)
-            nodes: List[NodeProto] = []
-            # saves global input tensors
-            inputs: List[ValueInfoProto] = []
-            # saves global output tensors
-            outputs: List[ValueInfoProto] = []
-            # saves global input tensors
-            initializers: List[TensorProto] = []
+            def __init__(self):
+                self.names: Dict[
+                    Union[backend.Tensor, backend.Operator], str
+                ] = {}
+                self.count_op: Dict[backend.OpTypeId, int] = {}
+                self.count_in = 0
+                self.count_out = 0
+                self.nodes: List[NodeProto] = []
+                self.inputs: List[ValueInfoProto] = []
+                self.outputs: List[ValueInfoProto] = []
+                self.initializers: List[TensorProto] = []
 
             def name_op(self, op: backend.Operator) -> Tuple[backend.OpTypeId, str]:
                 ty = op.op_type().id()
@@ -1177,7 +1176,8 @@ class OnnxStub:
                     self.count_in += 1
                     name = "input{}".format(self.count_in)
                     self.names[tensor] = name
-                    if init != None:
+                    if init is not None:
+                        init = copy.deepcopy(init)
                         init.name = name
                         self.initializers.append(init)
                     else:
@@ -1260,7 +1260,7 @@ class OnnxStub:
                         inputs,
                         outputs,
                         name,
-                        pads=[ph, pw],
+                        pads=[ph, pw, ph, pw],
                         strides=[sh, sw],
                         dilations=[dh, dw],
                         output_padding=[oph, opw],
@@ -1328,7 +1328,6 @@ class OnnxStub:
                 backend.OpTypeId.HardSigmoid,
                 backend.OpTypeId.HardSwish,
                 backend.OpTypeId.Tanh,
-                backend.OpTypeId.Softmax,
                 backend.OpTypeId.Abs,
                 backend.OpTypeId.Identity,
                 backend.OpTypeId.PRelu,
@@ -1337,6 +1336,11 @@ class OnnxStub:
                 backend.OpTypeId.Neg,
             ]:
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
+            elif ty == backend.OpTypeId.Softmax:
+                axis = backend.softmax_axis_of(op)
+                ctx.push_node(
+                    make_node(ty.name, inputs, outputs, name, axis=axis)
+                )
             elif ty == backend.OpTypeId.Flatten:
                 axis = backend.flatten_axis_of(op)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, axis=axis))
@@ -1384,15 +1388,14 @@ class OnnxStub:
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, axis=axis))
             elif ty == backend.OpTypeId.Split:
                 axis = backend.split_axis_of(op)
-                num_outputs = len(outputs)
-                split = op.inputs()[0].shape()[axis] // num_outputs
+                split = [output.shape()[axis] for output in op.outputs()]
                 inputs.append(
                     ctx.push_data_input(
                         name,
                         "split",
                         TensorProto.INT64,
-                        [len(outputs)],
-                        [split for _ in range(0, num_outputs)],
+                        [len(split)],
+                        split,
                     )
                 )
                 ctx.push_node(
@@ -1428,22 +1431,21 @@ class OnnxStub:
                 )
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Clip:
-                min, max = backend.clip_attrs_of(op)
-                if min != None:
+                min_value, max_value = backend.clip_attrs_of(op)
+                input_dtype = backend.tensor_dtype(op.inputs()[0])
+                if min_value is not None:
                     inputs.append(
-                        ctx.push_data_input(name, "min", TensorProto.FLOAT, [], [min])
+                        ctx.push_data_input(
+                            name, "min", input_dtype, [], [min_value]
+                        )
                     )
-                else:
+                elif max_value is not None:
+                    inputs.append("")
+                if max_value is not None:
                     inputs.append(
-                        ctx.push_data_input(name, "min", TensorProto.FLOAT, [], [])
-                    )
-                if max != None:
-                    inputs.append(
-                        ctx.push_data_input(name, "max", TensorProto.FLOAT, [], [max])
-                    )
-                else:
-                    inputs.append(
-                        ctx.push_data_input(name, "max", TensorProto.FLOAT, [], [])
+                        ctx.push_data_input(
+                            name, "max", input_dtype, [], [max_value]
+                        )
                     )
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Cast:
@@ -1455,7 +1457,12 @@ class OnnxStub:
                 ctx.push_node(make_node(ty.name, new_inputs, outputs, name))
             elif ty == backend.OpTypeId.Expand:
                 shape = backend.expand_shape_of(op)
-                ctx.push_node(make_node(ty.name, inputs, outputs, name, shape=shape))
+                inputs.append(
+                    ctx.push_data_input(
+                        name, "shape", TensorProto.INT64, [len(shape)], shape
+                    )
+                )
+                ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.LRN:
                 alpha, beta, bias, size = backend.lrn_attrs_of(op)
                 ctx.push_node(
@@ -1464,10 +1471,10 @@ class OnnxStub:
                         inputs,
                         outputs,
                         name,
-                        alpha,
-                        beta,
-                        bias,
-                        size,
+                        alpha=alpha,
+                        beta=beta,
+                        bias=bias,
+                        size=size,
                     )
                 )
             else:
@@ -1477,6 +1484,11 @@ class OnnxStub:
 
     def init(self) -> None:
         self.handler.data_malloc(self.use_naive_allocator)
+        self._copy_initializers()
+
+    def _copy_initializers(self) -> None:
+        for name, initializer in self._initializer_by_name.items():
+            self.tensors[name].copyin_numpy(to_array(initializer))
 
     def optimize(self) -> None:
         self.handler.optimize()
@@ -1487,12 +1499,17 @@ class OnnxStub:
     def free_heap(self) -> None:
         self.handler.free_heap()
 
-    def set_input(self, inputShapes: List[int]) -> None:
+    def set_input(self, inputShapes: List[Sequence[int]]) -> None:
+        if len(inputShapes) != len(self.inputs):
+            raise ValueError(
+                "inputShapes must contain one shape per model input; expected "
+                "{}, got {}".format(len(self.inputs), len(inputShapes))
+            )
         for newInput, oldInput in zip(inputShapes, self.inputs):
             oldTensor = self.inputs[oldInput]
             self.handler.change_shape(newInput, oldTensor.fuid())
         self.handler.shape_infer()
-        self.handler.data_malloc(self.use_naive_allocator)
+        self.init()
 
     def getShape(self, name: str) -> List[int]:
         if name in self.inputs:
@@ -1511,7 +1528,7 @@ class OnnxStub:
         self.handler.run_with_cudagraph()
 
     def get_perf_time(self) -> float:
-        self.handler.get_perf_time()
+        return self.handler.get_perf_time()
 
 
 def from_onnx(model: ModelProto, runtime):
@@ -1519,7 +1536,54 @@ def from_onnx(model: ModelProto, runtime):
     return stub.inputs, stub.outputs, stub.handler
 
 
-def _parse_attribute(node: NodeProto, attrs: Dict[str, Any] = dict()) -> Dict[str, Any]:
+def _has_input(node: NodeProto, index: int) -> bool:
+    return index < len(node.input) and bool(node.input[index])
+
+
+def _parse_static_input(
+    data: Dict[str, TensorProto],
+    node: NodeProto,
+    index: int,
+    required: bool = False,
+) -> Optional[List[Any]]:
+    if not _has_input(node, index):
+        if required:
+            raise ValueError(
+                '{} input {} is required and must be constant'.format(
+                    node.op_type, index
+                )
+            )
+        return None
+
+    name = node.input[index]
+    if name not in data:
+        raise ValueError(
+            '{} input {} ("{}") must be constant'.format(
+                node.op_type, index, name
+            )
+        )
+    return _parse_data(data[name])
+
+
+def _parse_static_scalar(
+    data: Dict[str, TensorProto], node: NodeProto, index: int
+) -> Optional[Any]:
+    values = _parse_static_input(data, node, index)
+    if values is None:
+        return None
+    if len(values) != 1:
+        raise ValueError(
+            '{} input {} must contain exactly one value'.format(
+                node.op_type, index
+            )
+        )
+    return values[0]
+
+
+def _parse_attribute(
+    node: NodeProto, attrs: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    attrs = {} if attrs is None else dict(attrs)
     for attr in node.attribute:
         if attr.type == AttributeProto.INT:
             attrs[attr.name] = attr.i

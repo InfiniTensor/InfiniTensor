@@ -595,20 +595,21 @@ class TestStringMethods(unittest.TestCase):
 
 class TestDynamicTensor(unittest.TestCase):
     def test_dynamic_tensor(self):
-        filename = r"resnet18-v2-7.onnx"
-        current_path = os.getcwd()
-        model_file = ""
-        for root, dirs, files in os.walk(current_path):
-            if filename in files:
-                model_file = os.path.join(root, filename)
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 2])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3])
+        weight = make_tensor(
+            "weight",
+            TensorProto.FLOAT,
+            [2, 3],
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+        )
+        matmul = make_node("MatMul", ["x", "weight"], ["y"], name="matmul")
+        graph = make_graph([matmul], "dynamic_matmul", [x], [y], [weight])
+        model = OnnxStub(make_model(graph), backend.cpu_runtime())
 
-        model = OnnxStub(onnx.load(model_file), backend.cpu_runtime())
-        output_key = list(model.outputs.keys())[0]
-        old_output_shape = model.getShape(output_key)
-        self.assertEqual(old_output_shape, ([1, 1000]))
-        model.set_input([[5, 3, 224, 224]])
-        new_output_shape = model.getShape(output_key)
-        self.assertEqual(new_output_shape, ([5, 1000]))
+        self.assertEqual(model.getShape("y"), [1, 3])
+        model.set_input([[5, 2]])
+        self.assertEqual(model.getShape("y"), [5, 3])
 
 
 if __name__ == "__main__":

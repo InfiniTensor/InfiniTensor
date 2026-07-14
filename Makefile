@@ -60,6 +60,7 @@ test-cpp:
 
 test-onnx:
 	@echo
+	python3 pyinfinitensor/tests/test_onnxstub.py
 	python3 pyinfinitensor/tests/test_onnx.py
 
 test-api:
