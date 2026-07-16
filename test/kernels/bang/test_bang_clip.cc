@@ -17,16 +17,30 @@ void testClip(const std::function<void(void *, size_t, DataType)> &generator,
 
     // Build input data on CPU
     Tensor inputCpu = make_ref<TensorObj>(shape, DataType::Float32, cpuRuntime);
+    Tensor inputMin =
+        make_ref<TensorObj>(Shape{}, DataType::Float32, cpuRuntime);
+    Tensor inputMax =
+        make_ref<TensorObj>(Shape{}, DataType::Float32, cpuRuntime);
+
     inputCpu->dataMalloc();
+    inputMin->dataMalloc();
+    inputMax->dataMalloc();
     inputCpu->setData(generator);
 
     // GPU
     Graph bangGraph = make_ref<GraphObj>(bangRuntime);
     auto inputGpu = bangGraph->cloneTensor(inputCpu);
+    auto inputMinGpu = bangGraph->cloneTensor(inputMin);
+    auto inputMaxGpu = bangGraph->cloneTensor(inputMax);
     float min = 1.0;
     float max = 4.0;
-    auto gpuOp = bangGraph->addOp<T>(inputGpu, nullptr, min, max);
+    inputMin->copyin(vector<float>{min});
+    inputMax->copyin(vector<float>{max});
+    auto gpuOp = bangGraph->addOp<T>(
+        TensorVec{inputGpu, inputMinGpu, inputMaxGpu}, nullptr);
     bangGraph->dataMalloc();
+    inputMinGpu->copyin(vector<float>{min});
+    inputMaxGpu->copyin(vector<float>{max});
     bangRuntime->run(bangGraph);
     auto outputGpu = gpuOp->getOutput();
     auto outputGpu2Cpu = outputGpu->clone(cpuRuntime);

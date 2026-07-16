@@ -10,7 +10,7 @@ class MeanAclnn : public ASCENDKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ReduceBaseObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
+        auto aclDataType = aclnnDataTypeConvert(op->getDType());
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -34,10 +34,10 @@ class MeanAclnn : public ASCENDKernelWithoutConfig {
         std::vector<int64_t> axes_64 = castTo64(axes);
 
         auto inputA = aclCreateTensor(
-            aDim.data(), aDim.size(), ACL_FLOAT, aStride.data(), 0,
+            aDim.data(), aDim.size(), aclDataType, aStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, aDim.data(), aDim.size(), aData);
         auto output = aclCreateTensor(
-            cDim.data(), cDim.size(), ACL_FLOAT, cStride.data(), 0,
+            cDim.data(), cDim.size(), aclDataType, cStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, cDim.data(), cDim.size(), cData);
         aclIntArray *dim = aclCreateIntArray(axes_64.data(), axes_64.size());
 
@@ -69,7 +69,7 @@ class ReduceSumAclnn : public ASCENDKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<ReduceBaseObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
+        auto aclDataType = aclnnDataTypeConvert(op->getDType());
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
@@ -93,10 +93,10 @@ class ReduceSumAclnn : public ASCENDKernelWithoutConfig {
         std::vector<int64_t> axes_64 = castTo64(axes);
 
         auto inputA = aclCreateTensor(
-            aDim.data(), aDim.size(), ACL_FLOAT, aStride.data(), 0,
+            aDim.data(), aDim.size(), aclDataType, aStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, aDim.data(), aDim.size(), aData);
         auto output = aclCreateTensor(
-            cDim.data(), cDim.size(), ACL_FLOAT, cStride.data(), 0,
+            cDim.data(), cDim.size(), aclDataType, cStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, cDim.data(), cDim.size(), cData);
         aclIntArray *dim = aclCreateIntArray(axes_64.data(), axes_64.size());
 
@@ -125,7 +125,7 @@ class ReduceSumAclnn : public ASCENDKernelWithoutConfig {
 };
 
 REGISTER_KERNEL(Device::ASCEND, OpType::ReduceMean, MeanAclnn,
-                "reduceMean_ASCEND_float");
+                "reduceMean_ASCEND");
 REGISTER_KERNEL(Device::ASCEND, OpType::ReduceSum, ReduceSumAclnn,
-                "reduceSum_ASCEND_float");
+                "reduceSum_ASCEND");
 } // namespace infini

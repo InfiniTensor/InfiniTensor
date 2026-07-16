@@ -2,6 +2,7 @@
 #include "core/kernel.h"
 #include "cuda/cuda_kernel_wihtout_config.h"
 #include "cuda/cuda_runtime.h"
+#include "cuda/cuda_utility.h"
 
 namespace infini {
 class BatchNormCudnn : public CudaKernelWithoutConfig {
@@ -10,7 +11,7 @@ class BatchNormCudnn : public CudaKernelWithoutConfig {
         auto op = as<BatchNormObj>(_op);
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         cudnnStatus_t stat;
-        IT_ASSERT(op->getDType() == DataType::Float32);
+        auto cudnnDataType = cudnnDataTypeConvert(op->getDType());
         void *const inData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const outData = (op->getOutput()->getRawDataPtr<void *>());
         void *const meanData = (op->getInputs(1)->getRawDataPtr<void *>());
@@ -43,13 +44,13 @@ class BatchNormCudnn : public CudaKernelWithoutConfig {
         cudnnTensorDescriptor_t inDesc;
         checkCudnnError(cudnnCreateTensorDescriptor(&inDesc));
         checkCudnnError(cudnnSetTensorNdDescriptor(
-            inDesc, CUDNN_DATA_FLOAT, dims.size(), dimArray, strideArray));
+            inDesc, cudnnDataType, dims.size(), dimArray, strideArray));
 
         // get bnScaleBiasMeanVarDesc
         cudnnTensorDescriptor_t paraDesc;
         checkCudnnError(cudnnCreateTensorDescriptor(&paraDesc));
         checkCudnnError(cudnnSetTensorNdDescriptor(
-            paraDesc, CUDNN_DATA_FLOAT, dims.size(), dimPArray, stridePArray));
+            paraDesc, cudnnDataType, dims.size(), dimPArray, stridePArray));
 
         float alpha = 1.f, beta = 0.f;
         // This mode is intended for use after convolutional layers

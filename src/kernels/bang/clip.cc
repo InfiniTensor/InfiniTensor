@@ -11,8 +11,12 @@ class ClipCnnl : public BangKernelWithoutConfig {
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
-        float min = op->getMin().value();
-        float max = op->getMax().value();
+        void *const min = op->numInputs() > 1
+                              ? (op->getInputs(1)->getRawDataPtr<void *>())
+                              : nullptr;
+        void *const max = op->numInputs() > 2
+                              ? (op->getInputs(2)->getRawDataPtr<void *>())
+                              : nullptr;
 
         cnnlTensorDescriptor_t aDesc;
         auto aDim = op->getInputs(0)->getDims();
@@ -21,12 +25,23 @@ class ClipCnnl : public BangKernelWithoutConfig {
         checkCnnlError(cnnlSetTensorDescriptor(
             aDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
             aDim.size(), aDim.data()));
+
+        cnnlTensorDescriptor_t cDesc;
+        auto cDim = op->getOutput()->getDims();
+
+        checkCnnlError(cnnlCreateTensorDescriptor(&cDesc));
+        checkCnnlError(cnnlSetTensorDescriptor(
+            cDesc, CNNL_LAYOUT_NCHW, cnnlDataTypeConvert(op->getDType()),
+            cDim.size(), cDim.data()));
+
         cnnlStatus_t stat =
-            cnnlClip(context->cnnlHandle(), aDesc, aData, &min, &max, cData);
+            cnnlClip_v2(context->cnnlHandle(), CNNL_POINTER_MODE_DEVICE, aDesc,
+                        aData, min, max, cDesc, cData);
         if (stat != CNNL_STATUS_SUCCESS)
             return;
 
         checkCnnlError(cnnlDestroyTensorDescriptor(aDesc));
+        checkCnnlError(cnnlDestroyTensorDescriptor(cDesc));
     }
 };
 

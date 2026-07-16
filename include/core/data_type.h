@@ -59,6 +59,7 @@ class DataType {
     DataType() = default;
     constexpr DataType(int index) : index(index) {}
     bool operator==(const DataType &rhs) const { return index == rhs.index; }
+    bool operator!=(const DataType &rhs) const { return index != rhs.index; }
     bool operator<(const DataType &rhs) const { return index < rhs.index; }
 
     template <typename T> static int get() {

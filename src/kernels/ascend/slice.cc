@@ -10,7 +10,6 @@ class SliceAclnn : public ASCENDKernelWithoutConfig {
                  const RuntimeObj *_context) const override {
         auto op = as<SliceObj>(_op);
         auto context = dynamic_cast<const ASCENDRuntimeObj *>(_context);
-        IT_ASSERT(op->getDType() == DataType::Float32);
 
         void *const aData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const cData = (op->getOutput()->getRawDataPtr<void *>());
@@ -38,11 +37,13 @@ class SliceAclnn : public ASCENDKernelWithoutConfig {
             axes_64[i] = i;
         }
 
+        auto aclDataType = aclnnDataTypeConvert(op->getDType());
+
         auto inputA = aclCreateTensor(
-            aDim.data(), aDim.size(), ACL_FLOAT, aStride.data(), 0,
+            aDim.data(), aDim.size(), aclDataType, aStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, aDim.data(), aDim.size(), aData);
         auto output = aclCreateTensor(
-            cDim.data(), cDim.size(), ACL_FLOAT, cStride.data(), 0,
+            cDim.data(), cDim.size(), aclDataType, cStride.data(), 0,
             aclFormat::ACL_FORMAT_ND, cDim.data(), cDim.size(), cData);
         aclIntArray *starts =
             aclCreateIntArray(starts_64.data(), starts_64.size());
