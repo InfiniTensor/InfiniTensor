@@ -896,7 +896,6 @@ class OnnxStub:
                     _parse_static_input(data, node, 3),
                 )
             elif node.op_type == "Dropout":
-                _parse_static_scalar(data, node, 1)
                 training_mode = _parse_static_scalar(data, node, 2)
                 if training_mode:
                     raise NotImplementedError(
@@ -1253,7 +1252,7 @@ class OnnxStub:
                 alpha = backend.elu_alpha_of(op)
                 ctx.push_node(make_node("Elu", inputs, outputs, name, alpha=alpha))
             elif ty == backend.OpTypeId.ConvTranspose:
-                ph, pw, sh, sw, dh, dw, oph, opw = backend.conv_trans_attrs_of(op)
+                ph, pw, dh, dw, sh, sw, oph, opw = backend.conv_trans_attrs_of(op)
                 ctx.push_node(
                     make_node(
                         ty.name,

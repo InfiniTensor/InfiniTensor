@@ -211,16 +211,6 @@ class TestStaticOnnxInputs(unittest.TestCase):
             )
         )
 
-        training = initializer("training", np.array(False, dtype=np.bool_))
-        cases.append(
-            make_model(
-                [helper.make_node("Dropout", ["x", "", "training"], ["y"])],
-                [value_info("x", [2])],
-                [value_info("y", [2])],
-                [training],
-            )
-        )
-
         cases.append(
             make_model(
                 [helper.make_node("ReduceSum", ["x", ""], ["y"], keepdims=0)],
@@ -277,7 +267,21 @@ class TestStaticOnnxInputs(unittest.TestCase):
         with self.assertRaisesRegex(NotImplementedError, "value of zero"):
             import_model(nonzero)
 
-    def test_dropout_rejects_training_and_mask_output(self):
+    def test_dropout_inference_and_unsupported_features(self):
+        inference_training = initializer(
+            "training", np.array(False, dtype=np.bool_)
+        )
+        inference_model = make_model(
+            [helper.make_node("Dropout", ["x", "ratio", "training"], ["y"])],
+            [
+                value_info("x", [2]),
+                value_info("ratio", [], TensorProto.FLOAT),
+            ],
+            [value_info("y", [2])],
+            [inference_training],
+        )
+        import_model(inference_model)
+
         training = initializer("training", np.array(True, dtype=np.bool_))
         training_model = make_model(
             [helper.make_node("Dropout", ["x", "", "training"], ["y"])],
@@ -302,7 +306,7 @@ class TestOnnxStubExport(unittest.TestCase):
         checker.check_model(model)
         return model.graph.node[0]
 
-    def test_conv_transpose_exports_four_pads(self):
+    def test_conv_transpose_preserves_attributes(self):
         weight = np.ones((1, 1, 3, 3), dtype=np.float32)
         model = make_model(
             [
@@ -311,15 +315,21 @@ class TestOnnxStubExport(unittest.TestCase):
                     ["x", "weight"],
                     ["y"],
                     pads=[1, 1, 1, 1],
+                    strides=[2, 3],
+                    dilations=[1, 2],
+                    output_padding=[1, 2],
                 )
             ],
             [value_info("x", [1, 1, 3, 3])],
-            [value_info("y", [1, 1, 3, 3])],
+            [value_info("y", [1, 1, 6, 11])],
             [initializer("weight", weight)],
         )
         node = self.assert_valid_export(import_model(model).to_onnx("export"))
 
         self.assertEqual(node_attribute(node, "pads"), [1, 1, 1, 1])
+        self.assertEqual(node_attribute(node, "strides"), [2, 3])
+        self.assertEqual(node_attribute(node, "dilations"), [1, 2])
+        self.assertEqual(node_attribute(node, "output_padding"), [1, 2])
 
     def test_softmax_preserves_axis(self):
         model = make_model(
