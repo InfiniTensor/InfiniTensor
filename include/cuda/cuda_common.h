@@ -2,6 +2,7 @@
 #include "core/common.h"
 #include <cublas_v2.h>
 #include <cuda.h>
+#include <cuda_bf16.h>
 #include <cuda_profiler_api.h>
 #include <cudnn.h>
 #include <curand.h>
@@ -106,6 +107,10 @@ inline const char *curandGetErrorString(curandStatus_t error) {
         return "CURAND_STATUS_ARCH_MISMATCH";
     case CURAND_STATUS_INTERNAL_ERROR:
         return "CURAND_STATUS_INTERNAL_ERROR";
+#if defined(USE_METAX)
+    case MCRAND_STATUS_NOT_IMPLEMENTED:
+        return "MCRAND_STATUS_NOT_IMPLEMENTED";
+#endif
     }
     return "<unknown>";
 }

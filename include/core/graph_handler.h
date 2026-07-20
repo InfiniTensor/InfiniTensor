@@ -154,6 +154,11 @@ class GraphHandlerObj {
         (as<CudaRuntimeObj>(g->getRuntime()))->runWithCudaGraph(g);
     }
 #endif
+#if defined(USE_METAX)
+    inline void run_with_metaxgraph() {
+        (as<CudaRuntimeObj>(g->getRuntime()))->runWithCudaGraph(g);
+    }
+#endif
 };
 
 } // namespace infini
