@@ -11,6 +11,7 @@
 #include "operators/pooling.h"
 #include "operators/reduce.h"
 #include "operators/reshape.h"
+#include "operators/softmax.h"
 #include "operators/split.h"
 #include "operators/squeeze.h"
 #include "operators/transpose.h"
@@ -324,6 +325,11 @@ static int flatten_axis_of(Operator op) {
     return dynamic_cast<const FlattenObj *>(op.get())->getAxis();
 }
 
+static int softmax_axis_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Softmax);
+    return dynamic_cast<const SoftmaxObj *>(op.get())->getAxis();
+}
+
 static int cast_to_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Cast);
     auto castOutputDtype =
@@ -385,6 +391,7 @@ void export_functions(py::module &m) {
         .FUNCTION(split_axis_of)
         .FUNCTION(gather_axis_of)
         .FUNCTION(flatten_axis_of)
+        .FUNCTION(softmax_axis_of)
         .FUNCTION(cast_to_of)
         .FUNCTION(depth_to_space_attrs_of)
         .FUNCTION(squeeze_axes_of)
