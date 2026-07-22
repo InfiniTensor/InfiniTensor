@@ -15,6 +15,7 @@ class RoPEObj : public OperatorObj {
     RoPEObj(GraphObj *graph, Tensor pos, Tensor input, Tensor output);
     OP_CLONE(RoPEObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
+    vector<DataType> inferDataType(const TensorVec &inputs) const override;
 
     std::string toString() const override;
     int numInputs() const override { return 2; }
