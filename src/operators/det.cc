@@ -1,8 +1,8 @@
 #include "operators/det.h"
 
 namespace infini {
-DetObj::DetObj(GraphObj *graph, Tensor input, Tensor output, Mode mode)
-    : OperatorObj(OpType::Det, {input}, {output}), modeValue(mode) {
+DetObj::DetObj(GraphObj *graph, Tensor input, Tensor output)
+    : OperatorObj(OpType::Det, {input}, {output}) {
     IT_ASSERT(checkValid(graph));
 }
 
@@ -10,10 +10,18 @@ optional<vector<Shape>> DetObj::inferShape(const TensorVec &inputs) {
     const auto A = inputs[0];
     auto input = A->getDims();
     int rank = A->getRank();
+    IT_ASSERT(rank >= 2);
+
     if (rank == 2) {
+        IT_ASSERT(*input.rbegin() == *(input.rbegin() + 1));
+        std::vector<int> output = {1};
+        return {{output}};
+    } else if (rank == 3 && *input.rbegin() == 1) {
+        IT_ASSERT(*input.begin() == *(input.begin() + 1));
         std::vector<int> output = {1};
         return {{output}};
     } else {
+        IT_ASSERT(*input.rbegin() == *(input.rbegin() + 1));
         std::vector<int> output(input.begin(), input.end() - 2);
         return {{output}};
     }

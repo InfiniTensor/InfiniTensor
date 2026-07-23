@@ -147,6 +147,11 @@ class OnnxStub:
                 (d, p, s) = (
                     attributes[name] for name in ["dilations", "pads", "strides"]
                 )
+                isConv1D = len(p) == 2 and p[0] == p[1] and len(d) == len(s) and len(d) == 1
+                if isConv1D:
+                    p = [p[0], 0, p[1], 0]
+                    s = [s[0], 1]
+                    d = [d[0], 1]
                 if p[0] != p[2] or p[1] != p[3]:
                     adapt = "{}-adapt".format(node.output[0])
                     tensors[adapt] = self.handler.pad(
@@ -180,6 +185,13 @@ class OnnxStub:
                                 tensors[node.input[2]].shape(),
                             ),
                             1,
+                            1,
+                        ] if not isConv1D else [
+                            1,
+                            reduce(
+                                lambda acc, x: acc * x,
+                                tensors[node.input[2]].shape(),
+                            ),
                             1,
                         ],
                     )
@@ -220,6 +232,13 @@ class OnnxStub:
                     attributes[name]
                     for name in ["dilations", "pads", "strides", "output_padding"]
                 )
+                isConvTranspose1D = len(p) == 2 and len(op) == 2 and p[0] == p[1] and len(d) == len(s) and len(d) == 1
+                if isConvTranspose1D:
+                    p = [p[0], 0, p[1], 0]
+                    s = [s[0], 1]
+                    d = [d[0], 1]
+                    op = [op[0], op[1]]
+
                 if p[0] != p[2] or p[1] != p[3]:
                     adapt = "{}-adapt".format(node.output[0])
                     tensors[adapt] = self.handler.pad(
@@ -255,6 +274,13 @@ class OnnxStub:
                                 tensors[node.input[2]].shape(),
                             ),
                             1,
+                            1,
+                        ] if not isConvTranspose1D else [
+                            1,
+                            reduce(
+                                lambda acc, x: acc * x,
+                                tensors[node.input[2]].shape(),
+                            ),
                             1,
                         ],
                     )
@@ -531,6 +557,12 @@ class OnnxStub:
                     tensors[node.input[1]],
                     tensors.get(node.output[0]),
                 )
+            elif node.op_type == "Equal":
+                tensors[node.output[0]] = self.handler.equal(
+                    tensors[node.input[0]],
+                    tensors[node.input[1]],
+                    tensors.get(node.output[0]),
+                )
             elif node.op_type == "Min":
                 tensors[node.output[0]] = self.handler.min(
                     tensors[node.input[0]],
@@ -596,6 +628,32 @@ class OnnxStub:
                         -1,
                     ),
                 )
+            elif node.op_type == "ScatterND":
+                tensors[node.output[0]] = self.handler.scatterND(
+                    tensors[node.input[0]],
+                    tensors[node.input[1]],
+                    tensors[node.input[2]],
+                    tensors.get(node.output[0]),
+                    next(
+                        (attr.s for attr in node.attribute if attr.name == "reduction"),
+                        "none",
+                    ),
+                )
+            elif node.op_type == "ScatterElements":
+                tensors[node.output[0]] = self.handler.scatterElements(
+                    tensors[node.input[0]],
+                    tensors[node.input[1]],
+                    tensors[node.input[2]],
+                    tensors.get(node.output[0]),
+                    next(
+                        (attr.i for attr in node.attribute if attr.name == "axis"),
+                        0,
+                    ),
+                    next(
+                        (attr.s for attr in node.attribute if attr.name == "reduction"),
+                        "none",
+                    ),
+                )
             elif node.op_type == "Abs":
                 tensors[node.output[0]] = self.handler.abs(
                     tensors[node.input[0]],
@@ -603,6 +661,16 @@ class OnnxStub:
                 )
             elif node.op_type == "Sqrt":
                 tensors[node.output[0]] = self.handler.sqrt(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                )
+            elif node.op_type == "Exp":
+                tensors[node.output[0]] = self.handler.exp(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                )
+            elif node.op_type == "Log":
+                tensors[node.output[0]] = self.handler.log(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
                 )
@@ -1113,6 +1181,11 @@ class OnnxStub:
                     bias,
                     size,
                 )
+            elif node.op_type == "Det":
+                tensors[node.output[0]] = self.handler.det(
+                    tensors[node.input[0]],
+                    tensors.get(node.output[0]),
+                )
             else:
                 raise Exception('Unsupported operator "{}"'.format(node.op_type))
 
@@ -1272,6 +1345,12 @@ class OnnxStub:
                         "Gemm", inputs, outputs, name, transA=transA, transB=transB
                     )
                 )
+            elif ty == backend.OpTypeId.Det:
+                ctx.push_node(
+                    make_node(
+                        "Det", inputs, outputs
+                    )
+                )
             elif ty == backend.OpTypeId.BatchNormalization:
                 inputs = [inputs[i] for i in [0, 3, 4, 1, 2]]
                 momentum, eps, training = backend.batch_norm_attrs_of(op)
@@ -1331,8 +1410,11 @@ class OnnxStub:
                 backend.OpTypeId.Identity,
                 backend.OpTypeId.PRelu,
                 backend.OpTypeId.Sqrt,
+                backend.OpTypeId.Exp,
+                backend.OpTypeId.Log,
                 backend.OpTypeId.Erf,
                 backend.OpTypeId.Neg,
+                backend.OpTypeId.Equal,
             ]:
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Softmax:
