@@ -17,6 +17,23 @@ class UnaryObj : public OperatorObj {
      * @param output The output tensor.
      */
     UnaryObj(OpType type, GraphObj *graph, Tensor input, Tensor output);
+    ~UnaryObj() override {
+        if (opDesc) {
+            try {
+                if (type == OpType::Relu) {
+                    CHECK_ERROR(infiniopDestroyReluDescriptor(
+                        (infiniopReluDescriptor_t)opDesc));
+                } else {
+                    IT_ASSERT(false, "Unsupported unary operator type "
+                                     "for infini op destroy");
+                }
+            } catch (const std::exception &e) {
+                std::cerr << "Error in ~UnaryObj: " << e.what() << std::endl;
+            }
+        }
+    }
+
+    void initInfiniOp(const Runtime context) override;
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;

@@ -14,6 +14,45 @@ PoolingObj::PoolingObj(GraphObj *graph, OpType optype, Tensor input,
     IT_ASSERT(checkValid(graph));
 }
 
+void PoolingObj::initInfiniOp(const Runtime context) {
+    auto x_dim = inputs[0]->getDims();
+    auto y_dim = outputs[0]->getDims();
+
+    uint64_t kernel_shape[2] = {(uint64_t)kh, (uint64_t)kw};
+    uint64_t pads[2] = {(uint64_t)ph, (uint64_t)pw};
+    int64_t strides[2] = {(int64_t)sh, (int64_t)sw};
+
+    auto x_shape = toInfiniopShape(x_dim);
+    auto y_shape = toInfiniopShape(y_dim);
+
+    // create tensor descriptor
+    infiniopTensorDescriptor_t x_tensor;
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &x_tensor, x_dim.size(), x_shape.data(), nullptr,
+        toInfiniopDataLayout(inputs[0]->getDType().getIndex())));
+    infiniopTensorDescriptor_t y_tensor;
+    CHECK_ERROR(infiniopCreateTensorDescriptor(
+        &y_tensor, y_dim.size(), y_shape.data(), nullptr,
+        toInfiniopDataLayout(outputs[0]->getDType().getIndex())));
+
+    // create op descriptor
+    if (type == OpType::MaxPool) {
+        CHECK_ERROR(infiniopCreateMaxPoolDescriptor(
+            context->opHandle(), (infiniopMaxPoolDescriptor_t *)&opDesc,
+            y_tensor, x_tensor, kernel_shape, pads, strides, 2));
+    } else if (type == OpType::AveragePool) {
+        CHECK_ERROR(infiniopCreateAvgPoolDescriptor(
+            context->opHandle(), (infiniopAvgPoolDescriptor_t *)&opDesc,
+            y_tensor, x_tensor, kernel_shape, pads, strides, 2));
+    } else {
+        opDesc = nullptr;
+    }
+
+    // destroy tensor descriptor
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(y_tensor));
+    CHECK_ERROR(infiniopDestroyTensorDescriptor(x_tensor));
+}
+
 optional<vector<Shape>> PoolingObj::inferShape(const TensorVec &inputs) {
     const auto &input = inputs[0];
     int oh, ow;
