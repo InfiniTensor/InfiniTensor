@@ -211,7 +211,7 @@ size_t LazyAllocator::getAlignedSize(size_t size) {
 void LazyAllocator::info() {
     std::cout << "Used memory: " << this->used + this->weightPeak
               << ", peak memory: " << this->peak + this->weightPeak
-              << std::endl;
+              << ", non weight tensor memory: " << this->peak << std::endl;
 }
 
 } // namespace infini

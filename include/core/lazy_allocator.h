@@ -113,10 +113,12 @@ class LazyAllocator {
 
     void info();
 
+    size_t getAlignedSize(size_t size);
+
   private:
     // function: memory alignment, rouned up
     // return: size of the aligned memory block
-    size_t getAlignedSize(size_t size);
+    // size_t getAlignedSize(size_t size);
 };
 
 } // namespace infini

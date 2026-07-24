@@ -1,13 +1,16 @@
 #include "core/graph.h"
+#include "core/occamy_planner.h"
 #include "operators/reshape.h"
 #include <algorithm>
+#include <cstddef>
 #include <numeric>
 #include <queue>
 
 namespace infini {
 
 GraphObj::GraphObj(Runtime runtime, OpVec ops_in)
-    : runtime(runtime), allocator(runtime), sorted(false) {
+    : runtime(runtime), allocator(runtime), memAllocator(runtime),
+      sorted(false) {
     map<UidBaseType, Tensor> tensorPool;
     // Clone tensors
     for (const auto &op : ops_in) {
@@ -155,6 +158,87 @@ void GraphObj::shape_infer() {
     }
 }
 
+// void GraphObj::dataMalloc(bool useNaiveAllocator, size_t memPoolSize) {
+//     IT_ASSERT(topo_sort() == true);
+
+//     if (useNaiveAllocator || ops.empty()) {
+//         IT_ASSERT(memPoolSize == 0);
+//         for (auto &tensor : tensors) {
+//             if (!tensor->isWeight() || (tensor->isWeight() &&
+//             !weightAllocated))
+//                 tensor->dataMalloc();
+//         }
+//         return;
+//     }
+
+//     // memory规划器计算每个中间 tensor (other tensor) 的 offset
+//     std::unordered_map<TensorObj *, size_t> tensorToOffset;
+//     size_t occamyPeak = OccamyPlanner::plan(ops, tensorToOffset);
+//     memAllocator.setPeak(occamyPeak);
+
+//     // weight 不参与内存池复用
+//     size_t weightBytes = 0;
+//     if (!this->weightAllocated) {
+//         for (auto &tensor : tensors) {
+//             if (tensor->isWeight())
+//                 weightBytes +=
+//                 memAllocator.getAlignedSize(tensor->getBytes());
+//         }
+//     }
+
+//     // 分配整个内存池 = weight 区 + 中间 tensor 区
+//     size_t totalPoolSize = weightBytes + occamyPeak;
+//     // input/output tensor 不参与内存池复用
+//     size_t ioBytes = 0;
+//     for (auto &tensor : tensors) {
+//         if (tensor->isInput() || tensor->isOutput())
+//             ioBytes += memAllocator.getAlignedSize(tensor->getBytes());
+//     }
+//     totalPoolSize += ioBytes;
+
+//     // 如果外部指定了更大的内存池（例如为 heap/KV Cache 预留空间）
+//     if (memPoolSize > 0) {
+//         IT_ASSERT(memPoolSize >= totalPoolSize,
+//                   "Specified memPoolSize is too small");
+//         totalPoolSize = memPoolSize;
+//     }
+
+//     memAllocator.setMemPool(totalPoolSize);
+
+//     // 为 weight tensor 分配内存（内存池低地址区）
+//     if (!this->weightAllocated) {
+//         this->weightAllocated = true;
+//         for (auto &tensor : tensors) {
+//             if (!tensor->isWeight())
+//                 continue;
+//             size_t offset = memAllocator.allocWeight(tensor->getBytes());
+//             tensor->setDataBlob(make_ref<BlobObj>(
+//                 tensor->runtime,
+//                 static_cast<uint8_t *>(memAllocator.getWeightPtr()) +
+//                 offset));
+//         }
+//     }
+
+//     // 为 input/output tensor 分配内存
+//     for (auto &tensor : tensors) {
+//         if (!tensor->isInput() && !tensor->isOutput())
+//             continue;
+//         size_t offset = memAllocator.allocIO(tensor->getBytes());
+//         tensor->setDataBlob(make_ref<BlobObj>(
+//             tensor->runtime,
+//             static_cast<uint8_t *>(memAllocator.getIOPtr()) + offset));
+//     }
+
+//     // 规划结果，将中间 tensor 指向内存池的正确偏移
+//     for (auto &[tensorPtr, offset] : tensorToOffset) {
+//         // offset 是相对于 "中间 tensor 区" 起始地址的偏移
+//         // 中间 tensor 区在内存池中紧跟在 input/output 区之后
+//         tensorPtr->setDataBlob(make_ref<BlobObj>(
+//             tensorPtr->runtime,
+//             static_cast<uint8_t *>(memAllocator.getPtr()) + offset));
+//     }
+// }
+
 void GraphObj::dataMalloc(bool useNaiveAllocator, size_t memPoolSize) {
     // topological sorting first
 
@@ -188,6 +272,7 @@ void GraphObj::dataMalloc(bool useNaiveAllocator, size_t memPoolSize) {
     // record all weight tensors, including weight tensors and kvcache
     // tensors
     std::unordered_set<TensorObj *> weightTensors;
+    size_t iofootprint = 0;
     for (auto &tensor : tensors) {
         if (tensor->isWeight()) {
             // allocate memory for all weight tensors first, and this memory
@@ -200,6 +285,7 @@ void GraphObj::dataMalloc(bool useNaiveAllocator, size_t memPoolSize) {
         } else if (tensor->isInput() || tensor->isOutput()) {
             // allocate memory for all input and output tensors, and this memory
             // will not be reused later
+            iofootprint += allocator.getAlignedSize(tensor->getBytes());
             tensorToOffset[tensor.get()] = allocator.alloc(tensor->getBytes());
         } else {
             tensorToRefCount[tensor.get()] = tensor->getTargets().size();
@@ -265,6 +351,10 @@ void GraphObj::dataMalloc(bool useNaiveAllocator, size_t memPoolSize) {
                                      tensorToOffset[tensor.get()]));
         }
     }
+
+    allocator.info();
+    std::cout << "Total IO footprint(belong non weight tensor): " << iofootprint
+              << " bytes\n";
 }
 
 Tensor GraphObj::cloneKV(Tensor &tensor) {
