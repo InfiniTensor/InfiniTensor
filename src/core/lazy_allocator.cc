@@ -1,4 +1,5 @@
 #include "core/lazy_allocator.h"
+#include <limits>
 #include <utility>
 
 namespace infini {
@@ -9,6 +10,11 @@ namespace infini {
 // memory allocation routines from the driver or runtime API is always aligned
 // to at least 256 bytes.
 constexpr size_t alignmentInBytesForCUDA = 256;
+
+static size_t checkedAdd(size_t lhs, size_t rhs, const char *message) {
+    IT_ASSERT(lhs <= std::numeric_limits<size_t>::max() - rhs, message);
+    return lhs + rhs;
+}
 
 LazyAllocator::LazyAllocator(Runtime runtime) : runtime(runtime) {
     if (runtime->isCuda()) {
@@ -23,17 +29,7 @@ LazyAllocator::LazyAllocator(Runtime runtime) : runtime(runtime) {
     }
 }
 
-LazyAllocator::~LazyAllocator() {
-    if (this->ptr != nullptr) {
-        runtime->dealloc(this->ptr);
-    }
-    if (this->weightPtr != nullptr) {
-        runtime->dealloc(this->weightPtr);
-    }
-    if (this->memPoolPtr != nullptr) {
-        runtime->dealloc(this->memPoolPtr);
-    }
-}
+LazyAllocator::~LazyAllocator() = default;
 
 void LazyAllocator::init() {
     used = 0;
@@ -41,18 +37,21 @@ void LazyAllocator::init() {
     freeBlocks.clear();
     headAddrToBlockSize.clear();
     tailAddrToBlockSize.clear();
-    if (this->ptr != nullptr) {
-        runtime->dealloc(this->ptr);
-    }
-    this->ptr = nullptr;
+    this->ptr.reset();
+}
+
+void LazyAllocator::resetWeightPlan() {
+    weightPeak = 0;
+    weightPtr.reset();
 }
 
 void LazyAllocator::setMemPool(size_t memPoolSize) {
     IT_ASSERT(memPoolSize > 0);
     if (!this->hasMemPool) {
+        auto pool = runtime->allocBlob(memPoolSize);
         this->hasMemPool = true;
         this->memPoolSize = memPoolSize;
-        this->memPoolPtr = runtime->alloc(memPoolSize);
+        this->memPoolPtr = std::move(pool);
     }
 }
 
@@ -61,6 +60,8 @@ bool LazyAllocator::getMemPoolStatus() { return this->hasMemPool; }
 size_t LazyAllocator::alloc(size_t size) {
     // pad the size to the multiple of alignment
     size = this->getAlignedSize(size);
+    if (size == 0)
+        return peak;
     auto it = this->freeBlocks.lower_bound(freeBlockInfo{(size_t)0, size});
 
     size_t retAddr = this->peak;
@@ -68,7 +69,7 @@ size_t LazyAllocator::alloc(size_t size) {
         // found an alvailable free memory block for allocation
         size_t blockSize = it->blockSize;
         retAddr = it->addr;
-        size_t tailAddr = retAddr + size;
+        size_t tailAddr = checkedAdd(retAddr, size, "Memory offset overflow");
         // update the map of head and tail address offset of memory blocks
         this->headAddrToBlockSize.erase(retAddr);
         this->tailAddrToBlockSize.erase(tailAddr);
@@ -82,7 +83,8 @@ size_t LazyAllocator::alloc(size_t size) {
         }
         // update the free balanced tree
         this->freeBlocks.erase(it);
-        this->used += tailAddr - retAddr;
+        this->used =
+            checkedAdd(this->used, tailAddr - retAddr, "Used memory overflow");
     } else {
         // the allocated memory space is not sufficient for reallocation, it
         // needs to be extended
@@ -93,16 +95,18 @@ size_t LazyAllocator::alloc(size_t size) {
             // 'peak'
             retAddr = this->peak - blockTailWithPeak->second;
             IT_ASSERT(blockTailWithPeak->second < size);
-            this->peak += (size - blockTailWithPeak->second);
+            this->peak =
+                checkedAdd(this->peak, size - blockTailWithPeak->second,
+                           "Memory peak overflow");
             // updata freeBlocks, headAddrToBlockSize and tailAddrToBlockSize
             freeBlockInfo endBlock = {retAddr, blockTailWithPeak->second};
             this->freeBlocks.erase(endBlock);
             this->headAddrToBlockSize.erase(endBlock.addr);
             this->tailAddrToBlockSize.erase(endBlock.addr + endBlock.blockSize);
         } else {
-            this->peak = this->peak + size;
+            this->peak = checkedAdd(this->peak, size, "Memory peak overflow");
         }
-        this->used += size;
+        this->used = checkedAdd(this->used, size, "Used memory overflow");
     }
 
     return retAddr;
@@ -112,15 +116,19 @@ size_t LazyAllocator::allocWeight(size_t size) {
     IT_ASSERT(this->weightPtr == nullptr);
     size = this->getAlignedSize(size);
     size_t retAddr = this->weightPeak;
-    this->weightPeak += size;
+    this->weightPeak =
+        checkedAdd(this->weightPeak, size, "Weight memory overflow");
     return retAddr;
 }
 
 size_t LazyAllocator::heapAlloc(size_t size) {
     size = this->getAlignedSize(size);
-    this->heapPeak += size;
-    IT_ASSERT(this->memPoolSize >=
-              this->weightPeak + this->peak + this->heapPeak);
+    this->heapPeak = checkedAdd(this->heapPeak, size, "Heap memory overflow");
+    const auto graphPeak =
+        checkedAdd(this->weightPeak, this->peak, "Graph memory overflow");
+    const auto totalPeak =
+        checkedAdd(graphPeak, this->heapPeak, "Total memory overflow");
+    IT_ASSERT(this->memPoolSize >= totalPeak);
     size_t retAddr = this->memPoolSize - this->heapPeak;
     return retAddr;
 }
@@ -130,7 +138,9 @@ void LazyAllocator::freeHeap() { this->heapPeak = 0; }
 void LazyAllocator::free(size_t addr, size_t size) {
     IT_ASSERT(this->ptr == nullptr);
     size = getAlignedSize(size);
-    auto tailAddr = addr + size;
+    if (size == 0)
+        return;
+    auto tailAddr = checkedAdd(addr, size, "Memory offset overflow");
     freeBlockInfo block = {addr, tailAddr - addr};
     this->headAddrToBlockSize[addr] = block.blockSize;
     this->tailAddrToBlockSize[tailAddr] = block.blockSize;
@@ -164,47 +174,78 @@ void LazyAllocator::free(size_t addr, size_t size) {
             freeBlockInfo{tailAddr - subBlockSize, subBlockSize});
     }
     this->freeBlocks.insert(block);
+    IT_ASSERT(this->used >= size, "Freed memory exceeds used memory");
     this->used -= size;
 }
 
 void *LazyAllocator::getPtr() {
     if (!hasMemPool) {
         if (this->ptr == nullptr) {
-            this->ptr = runtime->alloc(this->peak);
+            this->ptr = runtime->allocBlob(this->peak);
             // #ifdef DEBUG_MODE
             //         printf("LazyAllocator really alloc non-weight: %p %lu
             //         bytes\n", this->ptr, peak);
             // #endif
         }
-        return this->ptr;
+        return this->ptr->getPtr<void *>();
     } else {
-        IT_ASSERT(this->memPoolSize >= this->weightPeak + this->peak);
-        return static_cast<uint8_t *>(this->memPoolPtr) + weightPeak;
+        const auto graphPeak =
+            checkedAdd(this->weightPeak, this->peak, "Graph memory overflow");
+        IT_ASSERT(this->memPoolSize >= graphPeak);
+        return static_cast<uint8_t *>(memPoolPtr->getPtr<void *>()) +
+               weightPeak;
     }
+}
+
+Blob LazyAllocator::getActivationBlob(size_t offset, size_t bytes) {
+    getPtr();
+    if (!hasMemPool) {
+        return make_ref<BlobObj>(ptr, offset, bytes);
+    }
+    IT_ASSERT(weightPeak <= memPoolSize);
+    IT_ASSERT(offset <= memPoolSize - weightPeak);
+    return make_ref<BlobObj>(
+        memPoolPtr, checkedAdd(weightPeak, offset, "Memory offset overflow"),
+        bytes);
 }
 
 void *LazyAllocator::getWeightPtr() {
     if (!hasMemPool) {
         if (this->weightPtr == nullptr) {
-            this->weightPtr = runtime->alloc(this->weightPeak);
+            this->weightPtr = runtime->allocBlob(this->weightPeak);
             // #ifdef DEBUG_MODE
             //         printf("LazyAllocator really alloc weight: %p %lu
             //         bytes\n",
             //                this->weightPtr, weightPeak);
             // #endif
         }
-        return this->weightPtr;
+        return this->weightPtr->getPtr<void *>();
     } else {
-        return this->memPoolPtr;
+        return this->memPoolPtr->getPtr<void *>();
     }
+}
+
+Blob LazyAllocator::getWeightBlob(size_t offset, size_t bytes) {
+    getWeightPtr();
+    const auto &storage = hasMemPool ? memPoolPtr : weightPtr;
+    return make_ref<BlobObj>(storage, offset, bytes);
 }
 
 void *LazyAllocator::getHeapPtr() {
     IT_ASSERT(hasMemPool);
-    return this->memPoolPtr;
+    return this->memPoolPtr->getPtr<void *>();
+}
+
+Blob LazyAllocator::getHeapBlob(size_t offset, size_t bytes) {
+    getHeapPtr();
+    return make_ref<BlobObj>(memPoolPtr, offset, bytes);
 }
 
 size_t LazyAllocator::getAlignedSize(size_t size) {
+    if (size == 0)
+        return 0;
+    IT_ASSERT(size <= std::numeric_limits<size_t>::max() - alignment + 1,
+              "Memory alignment overflow");
     return ((size - 1) / this->alignment + 1) * this->alignment;
 }
 

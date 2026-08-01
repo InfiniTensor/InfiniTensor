@@ -162,21 +162,23 @@ void GraphObj::dataMalloc(bool useNaiveAllocator, size_t memPoolSize) {
     if (useNaiveAllocator) {
         // can not set memory pool when use naive allocator
         IT_ASSERT(memPoolSize == 0);
-        // used for debugging memory out-of-bounds access, tensors will not be
-        // released correctly
-        // note: behavior may not match running in non-naive mode, and it may
-        // not reproduce the bug
+        // Used for debugging memory out-of-bounds access. Tensor memory is not
+        // reused, so behavior may not match non-naive mode or reproduce the
+        // same bug.
         for (auto &tensor : tensors) {
             if (!tensor->isWeight() ||
                 (tensor->isWeight() && !weightAllocated)) {
                 tensor->dataMalloc();
             }
         }
+        weightAllocated = true;
+        ++allocationGeneration;
         return;
     }
     if (memPoolSize > 0) {
         allocator.setMemPool(memPoolSize);
     }
+    const bool hasFixedMemPool = allocator.getMemPoolStatus();
     // count the number of times all tensors are used
     std::unordered_map<TensorObj *, size_t> tensorToRefCount;
     // record the memory address offsets of all tensors to be allocated
@@ -184,6 +186,8 @@ void GraphObj::dataMalloc(bool useNaiveAllocator, size_t memPoolSize) {
 
     // reinit allocator
     allocator.init();
+    if (!weightAllocated)
+        allocator.resetWeightPlan();
 
     // record all weight tensors, including weight tensors and kvcache
     // tensors
@@ -210,18 +214,33 @@ void GraphObj::dataMalloc(bool useNaiveAllocator, size_t memPoolSize) {
             }
         }
     }
+    const auto preserveData = [](TensorObj *tensor, const Blob &blob) {
+        if (tensor->hasData() && tensor->getBytes() > 0 &&
+            tensor->getDataBlob()->getBytes() == tensor->getBytes() &&
+            tensor->getDataBlob()->getPtr<void *>() != blob->getPtr<void *>()) {
+            auto copy = tensor->clone();
+            copy->setDataBlob(blob);
+            copy->copyData(tensor);
+        }
+    };
     // if memory has not yet been allocated for weight tensors,
     // allocate memory now and do not allocate again in the future.
     if (!this->weightAllocated) {
-        this->weightAllocated = true;
-        // only allocate once for weight tensors
+        vector<std::pair<TensorObj *, Blob>> weightBlobs;
+        weightBlobs.reserve(weightTensors.size());
         for (auto &tensor : weightTensors) {
             IT_ASSERT(tensorToOffset.find(tensor) != tensorToOffset.end());
-            tensor->setDataBlob(make_ref<BlobObj>(
-                tensor->runtime,
-                static_cast<uint8_t *>(allocator.getWeightPtr()) +
-                    tensorToOffset[tensor]));
+            if (tensor->hasData() &&
+                tensor->getDataBlob()->getBytes() != tensor->getBytes())
+                tensor->freeData();
+            auto blob = allocator.getWeightBlob(tensorToOffset[tensor],
+                                                tensor->getBytes());
+            preserveData(tensor, blob);
+            weightBlobs.emplace_back(tensor, std::move(blob));
         }
+        for (const auto &[tensor, blob] : weightBlobs)
+            tensor->setDataBlob(blob);
+        this->weightAllocated = true;
     }
     // traverse in topological order and simulate memory allocation
     for (auto &op : ops) {
@@ -255,26 +274,69 @@ void GraphObj::dataMalloc(bool useNaiveAllocator, size_t memPoolSize) {
         }
     }
 
-    // perform actual memory allocation for non-weight tensors
+    vector<std::pair<TensorObj *, size_t>> plannedTensorLayout;
+    vector<std::pair<TensorObj *, size_t>> plannedActivationLayout;
+    if (hasFixedMemPool) {
+        plannedTensorLayout.reserve(tensors.size());
+        plannedActivationLayout.reserve(tensors.size() - weightTensors.size());
+        for (const auto &tensor : tensors) {
+            plannedTensorLayout.emplace_back(tensor.get(), tensor->getBytes());
+            if (!tensor->isWeight()) {
+                const auto offset = tensorToOffset.find(tensor.get());
+                IT_ASSERT(offset != tensorToOffset.end());
+                plannedActivationLayout.emplace_back(tensor.get(),
+                                                     offset->second);
+            }
+        }
+        if (fixedPoolLayoutCommitted) {
+            const bool layoutUnchanged =
+                plannedTensorLayout == fixedPoolTensorLayout &&
+                plannedActivationLayout == fixedPoolActivationLayout;
+            IT_ASSERT(layoutUnchanged,
+                      "Fixed memory pool does not support dynamic memory "
+                      "layout changes");
+        }
+    }
+
+    // Invalid old views must not survive a failed physical reallocation.
+    // Fixed-pool layout changes have already been rejected, so this cannot
+    // discard data before reporting that error.
+    for (auto &tensor : tensors) {
+        if (!tensor->isWeight() && tensor->hasData() &&
+            tensor->getDataBlob()->getBytes() != tensor->getBytes())
+            tensor->freeData();
+    }
+
+    // Prepare every view before publishing any of the new addresses.
+    vector<std::pair<TensorObj *, Blob>> activationBlobs;
+    activationBlobs.reserve(tensors.size() - weightTensors.size());
     for (auto &tensor : tensors) {
         if (!tensor->isWeight()) {
             IT_ASSERT(tensorToOffset.find(tensor.get()) !=
                       tensorToOffset.end());
-            tensor->setDataBlob(make_ref<BlobObj>(
-                tensor->runtime, static_cast<uint8_t *>(allocator.getPtr()) +
-                                     tensorToOffset[tensor.get()]));
+            auto blob = allocator.getActivationBlob(
+                tensorToOffset[tensor.get()], tensor->getBytes());
+            if (tensor->getSource() == nullptr)
+                preserveData(tensor.get(), blob);
+            activationBlobs.emplace_back(tensor.get(), std::move(blob));
         }
     }
+    if (hasFixedMemPool && !fixedPoolLayoutCommitted) {
+        fixedPoolTensorLayout = std::move(plannedTensorLayout);
+        fixedPoolActivationLayout = std::move(plannedActivationLayout);
+        fixedPoolLayoutCommitted = true;
+    }
+    for (const auto &[tensor, blob] : activationBlobs)
+        tensor->setDataBlob(blob);
+    ++allocationGeneration;
 }
 
 Tensor GraphObj::cloneKV(Tensor &tensor) {
     auto obj = tensor->clone();
     if (allocator.getMemPoolStatus()) {
         if (tensor->hasData()) {
-            obj->setDataBlob(make_ref<BlobObj>(
-                tensor->runtime,
-                static_cast<uint8_t *>(allocator.getHeapPtr()) +
-                    allocator.heapAlloc(tensor->getBytes())));
+            auto offset = allocator.heapAlloc(tensor->getBytes());
+            obj->setDataBlob(allocator.getHeapBlob(offset, tensor->getBytes()));
             obj->copyData(tensor);
         }
     } else {
@@ -284,6 +346,24 @@ Tensor GraphObj::cloneKV(Tensor &tensor) {
         }
     }
     return obj;
+}
+
+void GraphObj::validateMemory() const {
+    for (const auto &tensor : tensors) {
+        IT_ASSERT(tensor != nullptr, "Graph contains a null tensor");
+        IT_ASSERT(tensor->hasData(), "Tensor " +
+                                         std::to_string(tensor->getFuid()) +
+                                         " has no allocated memory");
+        auto blob = tensor->getDataBlob();
+        IT_ASSERT(blob->getBytes() >= tensor->getBytes(),
+                  "Tensor " + std::to_string(tensor->getFuid()) + " requires " +
+                      std::to_string(tensor->getBytes()) +
+                      " bytes, but its Blob has only " +
+                      std::to_string(blob->getBytes()));
+        IT_ASSERT(blob->getPtr<void *>() != nullptr,
+                  "Tensor " + std::to_string(tensor->getFuid()) +
+                      " has null backing memory");
+    }
 }
 
 void GraphObj::freeHeap() { this->allocator.freeHeap(); }

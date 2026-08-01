@@ -1,12 +1,16 @@
 #include "core/runtime.h"
 #include "core/blob.h"
+#include "core/graph.h"
 #include "core/kernel.h"
 #include "core/perf_engine.h"
 #include "utils/data_generator.h"
+#include <algorithm>
 #include <chrono>
 #include <cstring>
 namespace infini {
 void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
+    IT_ASSERT(graph != nullptr, "Cannot run a null graph");
+    graph->validateMemory();
     if (!tune && profiling)
         IT_TODO_HALT();
     const auto &kernelRegistry = KernelRegistry::getInstance();
@@ -60,6 +64,7 @@ void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
 }
 
 double RuntimeObj::getPerfTime(const Graph &graph, bool profiling) const {
+    IT_ASSERT(graph != nullptr, "Cannot profile a null graph");
     const auto &kernelRegistry = KernelRegistry::getInstance();
     auto &perfEngine = PerfEngine::getInstance();
     // Statistics
@@ -80,19 +85,27 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling) const {
             // allocate memory for empty tensors and release it after profiling
             TensorVec allocatedTensors;
             for (auto t : op->getInputs())
-                if (!t->hasData())
+                if (!t->hasData() ||
+                    t->getDataBlob()->getBytes() != t->getBytes())
                     allocatedTensors.emplace_back(t);
             for (auto t : op->getOutputs())
-                if (!t->hasData())
+                if (!t->hasData() ||
+                    t->getDataBlob()->getBytes() != t->getBytes())
                     allocatedTensors.emplace_back(t);
-            for (auto t : allocatedTensors) {
-                t->dataMalloc();
-                t->setData(IncrementalGenerator());
-            }
+            try {
+                for (auto t : allocatedTensors) {
+                    t->dataMalloc();
+                    t->setData(IncrementalGenerator());
+                }
 
-            // Profile operators and record the results
-            record = kernel->tune(op, this);
-            perfEngine.setPerfData(perfKey, record);
+                // Profile operators and record the results
+                record = kernel->tune(op, this);
+                perfEngine.setPerfData(perfKey, record);
+            } catch (...) {
+                for (auto t : allocatedTensors)
+                    t->freeData();
+                throw;
+            }
 
             // Free allocated memory
             for (auto t : allocatedTensors)
@@ -125,7 +138,16 @@ void RuntimeObj::printProfilingData(double totalTime,
 }
 
 Blob RuntimeObj::allocBlob(size_t size) {
-    return make_ref<BlobObj>(shared_from_this(), alloc(size));
+    const auto allocationSize = std::max<size_t>(size, 1);
+    auto ptr = alloc(allocationSize);
+    if (ptr == nullptr)
+        throw std::bad_alloc();
+    try {
+        return make_ref<BlobObj>(shared_from_this(), ptr, size);
+    } catch (...) {
+        dealloc(ptr);
+        throw;
+    }
 }
 
 void RuntimeObj::copyBlob(const TensorObj *dst, const TensorObj *src) const {

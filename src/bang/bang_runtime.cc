@@ -1,4 +1,5 @@
 #include "bang/bang_runtime.h"
+#include "core/graph.h"
 #include "core/kernel.h"
 #include "core/perf_engine.h"
 #ifdef INFINI_USE_CNCL
@@ -9,6 +10,8 @@ namespace infini {
 
 void BangRuntimeObj::runWithoutSync(const Graph &graph, bool tune = false,
                                     bool profiling = false) const {
+    IT_ASSERT(graph != nullptr, "Cannot run a null graph");
+    graph->validateMemory();
     const auto &kernelRegistry = KernelRegistry::getInstance();
     auto &perfEngine = PerfEngine::getInstance();
     double totalTime = 0;

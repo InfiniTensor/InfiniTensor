@@ -4,14 +4,35 @@
 #include "core/runtime.h"
 #include "utils/dataloader.h"
 #include <cstring>
+#include <limits>
 #include <numeric>
 
 namespace infini {
 
+namespace {
+size_t getTensorSize(const Shape &shape, DataType dtype) {
+    size_t size = 1;
+    for (const auto dim : shape) {
+        IT_ASSERT(dim >= 0, "Tensor dimensions must be non-negative");
+        if (dim == 0) {
+            size = 0;
+            continue;
+        }
+        IT_ASSERT(size <= std::numeric_limits<size_t>::max() /
+                              static_cast<size_t>(dim),
+                  "Tensor element count overflow");
+        size *= static_cast<size_t>(dim);
+    }
+    IT_ASSERT(dtype.getSize() == 0 ||
+                  size <= std::numeric_limits<size_t>::max() / dtype.getSize(),
+              "Tensor byte size overflow");
+    return size;
+}
+} // namespace
+
 TensorObj::TensorObj(Shape shape_, DataType dtype, Runtime runtime)
     : TensorBaseObj(shape_.size(), dtype, runtime), shape(std::move(shape_)),
-      _size(std::accumulate(shape.begin(), shape.end(), 1, std::multiplies{})) {
-}
+      _size(getTensorSize(shape, dtype)) {}
 
 string TensorObj::toString() const {
     // Convert data pointer to string
@@ -60,9 +81,8 @@ Shape TensorObj::getStride() const {
 }
 
 void TensorObj::setShape(Shape shape_) {
-    shape = shape_;
-    size_t size = std::accumulate(shape.begin(), shape.end(), 1,
-                                  [](auto acc, auto x) { return acc * x; });
+    const auto size = getTensorSize(shape_, dtype);
+    shape = std::move(shape_);
     _size = size;
 }
 
@@ -161,8 +181,10 @@ bool TensorObj::equalData(const Tensor &rhs, double relativeError) const {
 }
 
 void TensorObj::dataMalloc() {
-    if (!data)
+    if (!data || data->getBytes() != getBytes()) {
+        data.reset();
         data = runtime->allocBlob(getBytes());
+    }
 }
 
 void TensorObj::copyData(const TensorObj *src) {

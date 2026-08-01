@@ -57,6 +57,24 @@ TEST(TestCudaRuntime, CudaGraph) {
     cudaRuntime->runWithCudaGraph(gCuda);
     cudaRuntime->runWithCudaGraph(gCuda);
 
+    const auto capturedGeneration = gCuda->getAllocationGeneration();
+    const auto capturedShape = input_q_d->getDims();
+    input_q_d->setShape({1, 1, 2, 64});
+    EXPECT_EQ(gCuda->getAllocationGeneration(), capturedGeneration);
+    EXPECT_THROW(cudaRuntime->runWithCudaGraph(gCuda), Exception);
+    input_q_d->setShape(capturedShape);
+    EXPECT_NO_THROW(cudaRuntime->runWithCudaGraph(gCuda));
+
+    const auto capturedBlob = input_q_d->getDataBlob();
+    const auto capturedAddress = input_q_d->getRawDataPtr<const void *>();
+    input_q_d->freeData();
+    input_q_d->dataMalloc();
+    EXPECT_EQ(gCuda->getAllocationGeneration(), capturedGeneration);
+    EXPECT_NE(input_q_d->getRawDataPtr<const void *>(), capturedAddress);
+    EXPECT_THROW(cudaRuntime->runWithCudaGraph(gCuda), Exception);
+    input_q_d->setDataBlob(capturedBlob);
+    EXPECT_NO_THROW(cudaRuntime->runWithCudaGraph(gCuda));
+
     cudaDeviceSynchronize();
     cudaEventRecord(start);
     cudaRuntime->runWithCudaGraph(gCuda);
@@ -65,6 +83,10 @@ TEST(TestCudaRuntime, CudaGraph) {
     cudaEventElapsedTime(&milliseconds_2, start, stop);
     printf("with cudaGraph, latency: %f ms\n", milliseconds_2);
     EXPECT_GE(milliseconds_1, milliseconds_2);
+
+    // Reallocating graph memory invalidates the addresses captured above.
+    gCuda->dataMalloc();
+    EXPECT_THROW(cudaRuntime->runWithCudaGraph(gCuda), Exception);
 }
 
 } // namespace infini
