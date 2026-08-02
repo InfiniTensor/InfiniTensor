@@ -71,6 +71,8 @@ class GraphObj : public Object {
 
     void dataMalloc(bool useNaiveAllocator = false, size_t memPoolSize = 0);
 
+    void trimMemory();
+
     void validateMemory() const;
 
     size_t getAllocationGeneration() const { return allocationGeneration; }
@@ -124,6 +126,20 @@ class GraphObj : public Object {
     bool checkValid() const;
 
   private:
+    enum class AllocationMode {
+        Uninitialized,
+        Naive,
+        DynamicPool,
+        FixedPool,
+    };
+
+    void dataMallocImpl(bool useNaiveAllocator, size_t memPoolSize, bool trim);
+
+    void dataMallocImplCore(bool useNaiveAllocator, size_t memPoolSize,
+                            bool trim);
+
+    void lockAllocationMode(bool useNaiveAllocator, size_t memPoolSize);
+
     /**
      * @brief Add reverse connections and Op relationship in ctor.
      */
@@ -138,6 +154,9 @@ class GraphObj : public Object {
      * @brief If the weight tensors are allocated.
      */
     bool weightAllocated = false;
+
+    AllocationMode allocationMode = AllocationMode::Uninitialized;
+    size_t fixedPoolSize = 0;
 
     /**
      * @brief Incremented after each successful memory layout update.

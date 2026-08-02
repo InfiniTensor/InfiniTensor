@@ -160,6 +160,13 @@ class TestOnnxStubImport(unittest.TestCase):
                         batch, 2
                     )
                     np.testing.assert_allclose(actual, x @ weight)
+                if not use_naive_allocator:
+                    stub.trim_memory()
+                    stub.run()
+                    actual = np.asarray(stub.outputs["y"].copyout_float()).reshape(
+                        3, 2
+                    )
+                    np.testing.assert_allclose(actual, x @ weight)
 
 
 class TestStaticOnnxInputs(unittest.TestCase):
@@ -475,6 +482,13 @@ class TestOnnxStubCuda(unittest.TestCase):
                     stub.run()
                     actual = np.asarray(stub.outputs["y"].copyout_float()).reshape(
                         batch, 2
+                    )
+                    np.testing.assert_allclose(actual, x @ weight, rtol=1e-5, atol=1e-6)
+                if not use_naive_allocator:
+                    stub.trim_memory()
+                    stub.run()
+                    actual = np.asarray(stub.outputs["y"].copyout_float()).reshape(
+                        2, 2
                     )
                     np.testing.assert_allclose(actual, x @ weight, rtol=1e-5, atol=1e-6)
 
