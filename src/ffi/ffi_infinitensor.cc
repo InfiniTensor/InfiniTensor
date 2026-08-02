@@ -617,6 +617,7 @@ void init_graph_builder(py::module &m) {
         .def("data_malloc", &Handler::data_malloc,
              py::arg("useNaiveAllocator") = false, py::arg("memPoolSize") = 0,
              policy::automatic)
+        .def("trim_memory", &Handler::trim_memory, policy::automatic)
         .def("clone_KV", &Handler::clone_KV, policy::move)
         .def("free_heap", &Handler::free_heap, policy::move)
         .def("get_perf_time", &Handler::get_perf_time, policy::automatic)

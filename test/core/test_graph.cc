@@ -183,6 +183,256 @@ TEST(Graph, lazy_allocator_preserves_preloaded_user_data) {
     EXPECT_TRUE(matmul->getOutput()->equalData(vector<float>{3, 4}));
 }
 
+TEST(Graph, lazy_allocator_reuses_high_watermark_capacity) {
+    auto runtime = make_ref<TrackingCpuRuntimeObj>();
+    {
+        Graph g = make_ref<GraphObj>(runtime);
+        Tensor input = g->addTensor({8, 2}, DataType::Float32);
+        Tensor weight = g->addTensor({2, 2}, DataType::Float32);
+        input->setInput();
+        weight->setWeight();
+        auto matmul = g->addOp<MatmulObj>(input, weight, nullptr);
+        Tensor output = matmul->getOutput();
+        output->setOutput();
+
+        g->dataMalloc();
+        weight->copyin(vector<float>{1, 0, 0, 1});
+        const auto allocationCount = runtime->getAllocationCount();
+        const auto deallocationCount = runtime->getDeallocationCount();
+        const auto inputAddress = input->getRawDataPtr<const void *>();
+        const auto initialGeneration = g->getAllocationGeneration();
+
+        g->dataMalloc();
+        EXPECT_EQ(runtime->getAllocationCount(), allocationCount);
+        EXPECT_EQ(runtime->getDeallocationCount(), deallocationCount);
+        EXPECT_EQ(g->getAllocationGeneration(), initialGeneration);
+
+        for (int i = 0; i < 10000; ++i) {
+            const int batch = i % 2 == 0 ? 6 : 8;
+            input->setShape({batch, 2});
+            g->shape_infer();
+            g->dataMalloc();
+        }
+
+        EXPECT_EQ(runtime->getAllocationCount(), allocationCount);
+        EXPECT_EQ(runtime->getDeallocationCount(), deallocationCount);
+        EXPECT_EQ(input->getRawDataPtr<const void *>(), inputAddress);
+
+        vector<float> data(16);
+        for (size_t i = 0; i < data.size(); ++i)
+            data[i] = static_cast<float>(i);
+        input->copyin(data);
+        runtime->run(g);
+        EXPECT_TRUE(output->equalData(data));
+    }
+    EXPECT_EQ(runtime->getLiveAllocationCount(), 0);
+    EXPECT_EQ(runtime->getAllocationCount(), runtime->getDeallocationCount());
+}
+
+TEST(Graph, lazy_allocator_grows_and_trims_capacity) {
+    auto runtime = make_ref<TrackingCpuRuntimeObj>();
+    {
+        Graph g = make_ref<GraphObj>(runtime);
+        Tensor input = g->addTensor({8, 2}, DataType::Float32);
+        Tensor weight = g->addTensor({2, 2}, DataType::Float32);
+        input->setInput();
+        weight->setWeight();
+        auto matmul = g->addOp<MatmulObj>(input, weight, nullptr);
+        Tensor output = matmul->getOutput();
+        output->setOutput();
+
+        g->dataMalloc();
+        weight->copyin(vector<float>{1, 0, 0, 1});
+        ASSERT_GE(runtime->getAllocationSizes().size(), 2);
+        const auto initialCapacity = runtime->getAllocationSizes().back();
+        const auto allocationCount = runtime->getAllocationCount();
+        const auto deallocationCount = runtime->getDeallocationCount();
+
+        input->setShape({9, 2});
+        g->shape_infer();
+        g->dataMalloc();
+        ASSERT_EQ(runtime->getAllocationCount(), allocationCount + 1);
+        EXPECT_EQ(runtime->getDeallocationCount(), deallocationCount + 1);
+        EXPECT_EQ(runtime->getAllocationSizes().back(),
+                  initialCapacity + initialCapacity / 2);
+
+        const auto grownAllocationCount = runtime->getAllocationCount();
+        const auto grownDeallocationCount = runtime->getDeallocationCount();
+        input->setShape({4, 2});
+        g->shape_infer();
+        g->dataMalloc();
+        EXPECT_EQ(runtime->getAllocationCount(), grownAllocationCount);
+        EXPECT_EQ(runtime->getDeallocationCount(), grownDeallocationCount);
+
+        vector<float> data{1, 2, 3, 4, 5, 6, 7, 8};
+        input->copyin(data);
+        const auto generationBeforeTrim = g->getAllocationGeneration();
+        g->trimMemory();
+        EXPECT_EQ(runtime->getAllocationCount(), grownAllocationCount + 1);
+        EXPECT_EQ(runtime->getDeallocationCount(), grownDeallocationCount + 1);
+        EXPECT_EQ(runtime->getAllocationSizes().back(), 64);
+        EXPECT_GT(g->getAllocationGeneration(), generationBeforeTrim);
+
+        runtime->run(g);
+        EXPECT_TRUE(output->equalData(data));
+
+        const auto generationAfterTrim = g->getAllocationGeneration();
+        g->trimMemory();
+        EXPECT_EQ(runtime->getAllocationCount(), grownAllocationCount + 1);
+        EXPECT_EQ(runtime->getDeallocationCount(), grownDeallocationCount + 1);
+        EXPECT_EQ(g->getAllocationGeneration(), generationAfterTrim);
+    }
+    EXPECT_EQ(runtime->getLiveAllocationCount(), 0);
+    EXPECT_EQ(runtime->getAllocationCount(), runtime->getDeallocationCount());
+}
+
+TEST(Graph, lazy_allocator_trim_failure_preserves_committed_layout) {
+    auto runtime = make_ref<TrackingCpuRuntimeObj>();
+    {
+        Graph g = make_ref<GraphObj>(runtime);
+        Tensor input = g->addTensor({8, 2}, DataType::Float32);
+        Tensor weight = g->addTensor({2, 2}, DataType::Float32);
+        input->setInput();
+        weight->setWeight();
+        auto matmul = g->addOp<MatmulObj>(input, weight, nullptr);
+        Tensor output = matmul->getOutput();
+        output->setOutput();
+
+        g->dataMalloc();
+        weight->copyin(vector<float>{1, 0, 0, 1});
+        input->setShape({4, 2});
+        g->shape_infer();
+        g->dataMalloc();
+        const vector<float> data{1, 2, 3, 4, 5, 6, 7, 8};
+        input->copyin(data);
+
+        const auto inputAddress = input->getRawDataPtr<const void *>();
+        const auto outputAddress = output->getRawDataPtr<const void *>();
+        const auto generation = g->getAllocationGeneration();
+        const auto liveAllocations = runtime->getLiveAllocationCount();
+
+        runtime->failNextAlloc();
+        EXPECT_THROW(g->trimMemory(), std::bad_alloc);
+        EXPECT_EQ(input->getRawDataPtr<const void *>(), inputAddress);
+        EXPECT_EQ(output->getRawDataPtr<const void *>(), outputAddress);
+        EXPECT_EQ(g->getAllocationGeneration(), generation);
+        EXPECT_EQ(runtime->getLiveAllocationCount(), liveAllocations);
+
+        runtime->failNextBlobCopy();
+        EXPECT_THROW(g->trimMemory(), Exception);
+        EXPECT_EQ(input->getRawDataPtr<const void *>(), inputAddress);
+        EXPECT_EQ(output->getRawDataPtr<const void *>(), outputAddress);
+        EXPECT_EQ(g->getAllocationGeneration(), generation);
+        EXPECT_EQ(runtime->getLiveAllocationCount(), liveAllocations);
+
+        runtime->run(g);
+        EXPECT_TRUE(output->equalData(data));
+        EXPECT_NO_THROW(g->trimMemory());
+        runtime->run(g);
+        EXPECT_TRUE(output->equalData(data));
+    }
+    EXPECT_EQ(runtime->getLiveAllocationCount(), 0);
+    EXPECT_EQ(runtime->getAllocationCount(), runtime->getDeallocationCount());
+}
+
+TEST(Graph, graph_locks_allocator_mode) {
+    auto runtime = make_ref<TrackingCpuRuntimeObj>();
+
+    Graph dynamic = make_ref<GraphObj>(runtime);
+    dynamic->addTensor({4}, DataType::Float32)->setInput();
+    dynamic->dataMalloc();
+    EXPECT_THROW(dynamic->dataMalloc(true), Exception);
+    EXPECT_THROW(dynamic->dataMalloc(false, 1024), Exception);
+
+    Graph naive = make_ref<GraphObj>(runtime);
+    naive->addTensor({4}, DataType::Float32)->setInput();
+    naive->dataMalloc(true);
+    EXPECT_THROW(naive->dataMalloc(), Exception);
+
+    Graph fixed = make_ref<GraphObj>(runtime);
+    fixed->addTensor({4}, DataType::Float32)->setInput();
+    fixed->dataMalloc(false, 1024);
+    EXPECT_NO_THROW(fixed->dataMalloc());
+    EXPECT_THROW(fixed->dataMalloc(false, 2048), Exception);
+    EXPECT_THROW(fixed->trimMemory(), Exception);
+}
+
+TEST(Graph, allocation_failure_does_not_lock_allocator_mode) {
+    auto runtime = make_ref<TrackingCpuRuntimeObj>();
+
+    Graph fixed = make_ref<GraphObj>(runtime);
+    Tensor fixedInput = fixed->addTensor({4}, DataType::Float32);
+    fixedInput->setInput();
+    EXPECT_THROW(fixed->dataMalloc(false, 8), Exception);
+    EXPECT_FALSE(fixedInput->hasData());
+    EXPECT_NO_THROW(fixed->dataMalloc(false, 1024));
+    EXPECT_TRUE(fixedInput->hasData());
+
+    Graph allocationFailure = make_ref<GraphObj>(runtime);
+    Tensor dynamicInput = allocationFailure->addTensor({4}, DataType::Float32);
+    dynamicInput->setInput();
+    runtime->failNextAlloc();
+    EXPECT_THROW(allocationFailure->dataMalloc(false, 1024), std::bad_alloc);
+    EXPECT_FALSE(dynamicInput->hasData());
+    EXPECT_NO_THROW(allocationFailure->dataMalloc());
+    EXPECT_TRUE(dynamicInput->hasData());
+}
+
+TEST(Graph, allocation_generation_tracks_blob_extent_changes) {
+    auto runtime = make_ref<TrackingCpuRuntimeObj>();
+    Graph g = make_ref<GraphObj>(runtime);
+    Tensor input = g->addTensor({1}, DataType::Float32);
+    input->setInput();
+
+    g->dataMalloc();
+    const auto address = input->getRawDataPtr<const void *>();
+    const auto generation = g->getAllocationGeneration();
+    const auto allocationCount = runtime->getAllocationCount();
+
+    input->setShape({2});
+    g->dataMalloc();
+
+    EXPECT_EQ(input->getRawDataPtr<const void *>(), address);
+    EXPECT_EQ(runtime->getAllocationCount(), allocationCount);
+    EXPECT_EQ(input->getDataBlob()->getBytes(), input->getBytes());
+    EXPECT_GT(g->getAllocationGeneration(), generation);
+}
+
+TEST(Graph, fixed_pool_checks_capacity_and_heap_lifetime) {
+    auto runtime = make_ref<TrackingCpuRuntimeObj>();
+    {
+        Graph tooSmall = make_ref<GraphObj>(runtime);
+        tooSmall->addTensor({4}, DataType::Float32)->setInput();
+        EXPECT_THROW(tooSmall->dataMalloc(false, 8), Exception);
+    }
+
+    {
+        Graph g = make_ref<GraphObj>(runtime);
+        Tensor input = g->addTensor({4}, DataType::Float32);
+        input->setInput();
+        g->dataMalloc(false, 1024);
+        input->copyin(vector<float>{1, 2, 3, 4});
+
+        const auto generation = g->getAllocationGeneration();
+        Tensor oversized =
+            make_ref<TensorObj>(Shape{300}, DataType::Float32, runtime);
+        oversized->dataMalloc();
+        EXPECT_THROW(g->cloneKV(oversized), Exception);
+        EXPECT_EQ(g->getAllocationGeneration(), generation);
+
+        runtime->failNextBlobCopy();
+        EXPECT_THROW(g->cloneKV(input), Exception);
+        EXPECT_EQ(g->getAllocationGeneration(), generation);
+
+        auto clone = g->cloneKV(input);
+        EXPECT_THROW(g->freeHeap(), Exception);
+        clone.reset();
+        EXPECT_NO_THROW(g->freeHeap());
+    }
+    EXPECT_EQ(runtime->getLiveAllocationCount(), 0);
+    EXPECT_EQ(runtime->getAllocationCount(), runtime->getDeallocationCount());
+}
+
 TEST(Graph, owned_blobs_release_exactly_once) {
     auto runtime = make_ref<TrackingCpuRuntimeObj>();
     Tensor tensor =
@@ -305,7 +555,8 @@ TEST(Graph, lazy_allocation_failure_leaves_activations_without_data) {
         EXPECT_FALSE(input->hasData());
         EXPECT_FALSE(output->hasData());
         EXPECT_TRUE(weight->hasData());
-        EXPECT_EQ(runtime->getLiveAllocationCount(), 1);
+        // The old high-watermark pool remains available for a retry.
+        EXPECT_EQ(runtime->getLiveAllocationCount(), 2);
         EXPECT_THROW(runtime->run(g), Exception);
 
         g->dataMalloc();
@@ -367,7 +618,7 @@ TEST(Graph, lazy_weight_copy_failure_can_retry) {
         ASSERT_EQ(runtime->getAllocationSizes().size(), 1);
         EXPECT_EQ(runtime->getAllocationSizes()[0], weight->getBytes());
         EXPECT_TRUE(weight->equalData(vector<float>{1, 0, 0, 1}));
-        EXPECT_EQ(runtime->getLiveAllocationCount(), 2);
+        EXPECT_EQ(runtime->getLiveAllocationCount(), 1);
 
         g->dataMalloc();
         ASSERT_GE(runtime->getAllocationSizes().size(), 3);

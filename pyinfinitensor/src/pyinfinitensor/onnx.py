@@ -1498,6 +1498,9 @@ class OnnxStub:
     def free_heap(self) -> None:
         self.handler.free_heap()
 
+    def trim_memory(self) -> None:
+        self.handler.trim_memory()
+
     def set_input(self, inputShapes: List[Sequence[int]]) -> None:
         if len(inputShapes) != len(self.inputs):
             raise ValueError(

@@ -139,6 +139,8 @@ class GraphHandlerObj {
         g->dataMalloc(useNaiveAllocator, memPoolSize);
     }
 
+    inline void trim_memory() { g->trimMemory(); }
+
     inline Tensor clone_KV(Tensor &tensor) { return g->cloneKV(tensor); }
 
     inline void free_heap() { g->freeHeap(); }
