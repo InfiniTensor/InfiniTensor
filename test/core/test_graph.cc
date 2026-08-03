@@ -101,6 +101,72 @@ TEST(Graph, build_and_run) {
     EXPECT_TRUE(o0->equalData(ans));
 }
 
+TEST(Graph, blob_views_preserve_storage_identity) {
+    auto runtime = make_ref<TrackingCpuRuntimeObj>();
+    {
+        auto storage = runtime->allocBlob(64);
+        auto view = make_ref<BlobObj>(storage, 16, 32);
+        auto nestedView = make_ref<BlobObj>(view, 8, 8);
+        auto otherStorage = runtime->allocBlob(64);
+
+        EXPECT_EQ(view->getStorageId(), storage->getStorageId());
+        EXPECT_EQ(view->getStorageOffset(), 16u);
+        EXPECT_EQ(nestedView->getStorageId(), storage->getStorageId());
+        EXPECT_EQ(nestedView->getStorageOffset(), 24u);
+        EXPECT_NE(otherStorage->getStorageId(), storage->getStorageId());
+    }
+    EXPECT_EQ(runtime->getLiveAllocationCount(), 0u);
+}
+
+TEST(Graph, capture_generation_tracks_execution_state) {
+    auto runtime = make_ref<TrackingCpuRuntimeObj>();
+    Graph g = make_ref<GraphObj>(runtime);
+    auto input = g->addTensor({4}, DataType::Float32);
+    input->setInput();
+    g->dataMalloc();
+
+    const auto stableGeneration = g->getCaptureGeneration();
+    const auto stableTopology = g->getTopologyEpoch();
+    input->setShape({4});
+    input->copyin(vector<float>{1, 2, 3, 4});
+    EXPECT_EQ(g->getCaptureGeneration(), stableGeneration);
+    EXPECT_EQ(g->getTopologyEpoch(), stableTopology);
+
+    input->setShape({2, 2});
+    EXPECT_GT(g->getCaptureGeneration(), stableGeneration);
+    EXPECT_EQ(g->getTopologyEpoch(), stableTopology);
+
+    const auto layoutGeneration = g->getCaptureGeneration();
+    auto unallocated = g->addTensor({1}, DataType::Float32);
+    EXPECT_GT(g->getCaptureGeneration(), layoutGeneration);
+    EXPECT_GT(g->getTopologyEpoch(), stableTopology);
+
+    const auto generationBeforeFailure = g->getCaptureGeneration();
+    runtime->failNextAlloc();
+    EXPECT_THROW(unallocated->dataMalloc(), std::bad_alloc);
+    EXPECT_EQ(g->getCaptureGeneration(), generationBeforeFailure);
+}
+
+TEST(Graph, shared_tensor_notifies_each_graph_with_weak_observers) {
+    auto runtime = make_ref<TrackingCpuRuntimeObj>();
+    auto tensor = make_ref<TensorObj>(Shape{2}, DataType::Float32, runtime);
+    Graph first = make_ref<GraphObj>(runtime);
+    Graph second = make_ref<GraphObj>(runtime);
+    first->addTensor(tensor);
+    second->addTensor(tensor);
+    const auto firstGeneration = first->getCaptureGeneration();
+    const auto secondGeneration = second->getCaptureGeneration();
+
+    tensor->setShape({1, 2});
+    EXPECT_GT(first->getCaptureGeneration(), firstGeneration);
+    EXPECT_GT(second->getCaptureGeneration(), secondGeneration);
+
+    first.reset();
+    const auto remainingGeneration = second->getCaptureGeneration();
+    tensor->setShape({2, 1});
+    EXPECT_GT(second->getCaptureGeneration(), remainingGeneration);
+}
+
 TEST(Graph, naive_allocator_reallocates_dynamic_tensors) {
     Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph g = make_ref<GraphObj>(runtime);
@@ -309,6 +375,7 @@ TEST(Graph, lazy_allocator_trim_failure_preserves_committed_layout) {
         const auto inputAddress = input->getRawDataPtr<const void *>();
         const auto outputAddress = output->getRawDataPtr<const void *>();
         const auto generation = g->getAllocationGeneration();
+        const auto captureGeneration = g->getCaptureGeneration();
         const auto liveAllocations = runtime->getLiveAllocationCount();
 
         runtime->failNextAlloc();
@@ -316,6 +383,7 @@ TEST(Graph, lazy_allocator_trim_failure_preserves_committed_layout) {
         EXPECT_EQ(input->getRawDataPtr<const void *>(), inputAddress);
         EXPECT_EQ(output->getRawDataPtr<const void *>(), outputAddress);
         EXPECT_EQ(g->getAllocationGeneration(), generation);
+        EXPECT_EQ(g->getCaptureGeneration(), captureGeneration);
         EXPECT_EQ(runtime->getLiveAllocationCount(), liveAllocations);
 
         runtime->failNextBlobCopy();
@@ -323,6 +391,7 @@ TEST(Graph, lazy_allocator_trim_failure_preserves_committed_layout) {
         EXPECT_EQ(input->getRawDataPtr<const void *>(), inputAddress);
         EXPECT_EQ(output->getRawDataPtr<const void *>(), outputAddress);
         EXPECT_EQ(g->getAllocationGeneration(), generation);
+        EXPECT_EQ(g->getCaptureGeneration(), captureGeneration);
         EXPECT_EQ(runtime->getLiveAllocationCount(), liveAllocations);
 
         runtime->run(g);

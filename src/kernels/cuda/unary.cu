@@ -373,7 +373,8 @@ void leaky_relu_kernel(T *input, T *output, size_t num, float alphaValue) {
 void elu_kernel(const float *input, float *output, size_t size, float alpha) {
     int blocksize = 32 * 16;
     int gridsize = (size + blocksize - 1) / blocksize;
-    _elu_kernel<<<gridsize, blocksize>>>(input, output, size, alpha);
+    _elu_kernel<<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+        input, output, size, alpha);
 }
 
 template void cast_kernel<float, half>(float *input, half *output, size_t num);

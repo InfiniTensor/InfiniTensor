@@ -5,6 +5,22 @@ import numpy as np
 
 
 class TestPythonAPI(unittest.TestCase):
+    @unittest.skipUnless(hasattr(backend, "CudaRuntime"), "CUDA is not enabled")
+    def test_cuda_graph_cache_api(self):
+        runtime = backend.CudaRuntime(device=0, cuda_graph_cache_capacity=2)
+        self.assertEqual(runtime.cuda_graph_cache_size(), 0)
+        self.assertEqual(runtime.cuda_graph_capture_count(), 0)
+        runtime.clear_cuda_graph_cache()
+        self.assertEqual(runtime.cuda_graph_cache_size(), 0)
+        self.assertEqual(runtime.cuda_graph_capture_count(), 0)
+
+        factory_runtime = backend.cuda_runtime(
+            device=0, cuda_graph_cache_capacity=2
+        )
+        self.assertEqual(factory_runtime.cuda_graph_cache_size(), 0)
+        with self.assertRaises(RuntimeError):
+            backend.CudaRuntime(device=0, cuda_graph_cache_capacity=0)
+
     def test_copyin_numpy(self):
         dims = [2, 3, 5, 4]
         np_array = np.random.random(dims).astype(np.float32)

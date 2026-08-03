@@ -1,6 +1,7 @@
 #pragma once
 #include "core/common.h"
 #include "core/ref.h"
+#include <cstdint>
 
 namespace infini {
 
@@ -13,6 +14,8 @@ class BlobObj {
     void *ptr;
     size_t bytes;
     Ref<BlobObj> owner;
+    uint64_t storageId;
+    size_t storageOffset;
 
   public:
     BlobObj(Runtime runtime, void *ptr, size_t bytes);
@@ -22,6 +25,8 @@ class BlobObj {
     ~BlobObj() noexcept;
 
     size_t getBytes() const { return bytes; }
+    uint64_t getStorageId() const { return storageId; }
+    size_t getStorageOffset() const { return storageOffset; }
     template <typename T> T getPtr() const {
         IT_ASSERT(ptr != nullptr, "Blob has no backing memory");
         return reinterpret_cast<T>(ptr);

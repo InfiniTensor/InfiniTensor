@@ -125,6 +125,7 @@ class TensorObj : public TensorBaseObj {
 
     Tensor clone() const {
         auto obj = make_ref<TensorObj>(*this);
+        obj->clearCaptureStates();
         obj->freeData();
         obj->targets.clear();
         obj->source.reset();
@@ -132,6 +133,7 @@ class TensorObj : public TensorBaseObj {
     }
     Tensor clone(Runtime runtime) const {
         auto obj = make_ref<TensorObj>(*this);
+        obj->clearCaptureStates();
         obj->runtime = runtime;
         obj->freeData();
         obj->targets.clear();
