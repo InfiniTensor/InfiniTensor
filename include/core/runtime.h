@@ -86,6 +86,8 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
 
     int getDeviceId() const { return deviceId; }
 
+    virtual void invalidateGraphCaptureCache(uint64_t) noexcept {}
+
     virtual void initComm(const string &name, int worldSize, int rank) = 0;
 
     virtual CommunicatorObj &getCommunicator() const = 0;

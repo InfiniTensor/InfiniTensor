@@ -1,5 +1,6 @@
 #include "core/tensor.h"
 #include "core/blob.h"
+#include "core/graph.h"
 #include "core/operator.h"
 #include "core/runtime.h"
 #include "utils/dataloader.h"
@@ -82,8 +83,11 @@ Shape TensorObj::getStride() const {
 
 void TensorObj::setShape(Shape shape_) {
     const auto size = getTensorSize(shape_, dtype);
+    if (shape == shape_)
+        return;
     shape = std::move(shape_);
     _size = size;
+    notifyCaptureState(false);
 }
 
 void TensorObj::dumpData(std::ofstream &ofs) const {
@@ -182,8 +186,16 @@ bool TensorObj::equalData(const Tensor &rhs, double relativeError) const {
 
 void TensorObj::dataMalloc() {
     if (!data || data->getBytes() != getBytes()) {
+        const bool releasedStorage = data != nullptr;
         data.reset();
-        data = runtime->allocBlob(getBytes());
+        try {
+            data = runtime->allocBlob(getBytes());
+        } catch (...) {
+            if (releasedStorage)
+                notifyCaptureState(true);
+            throw;
+        }
+        notifyCaptureState(true);
     }
 }
 
@@ -209,7 +221,19 @@ void TensorObj::setData(
     }
 }
 
-void TensorObj::setDataBlob(const Blob &blob) { this->data = blob; }
+void TensorObj::setDataBlob(const Blob &blob) {
+    const auto previousStorageId = data ? data->getStorageId() : 0;
+    const auto previousAddress = data ? data->getPtr<const void *>() : nullptr;
+    const auto previousBytes = data ? data->getBytes() : 0;
+    const auto nextStorageId = blob ? blob->getStorageId() : 0;
+    const auto nextAddress = blob ? blob->getPtr<const void *>() : nullptr;
+    const auto nextBytes = blob ? blob->getBytes() : 0;
+    if (previousStorageId == nextStorageId && previousAddress == nextAddress &&
+        previousBytes == nextBytes)
+        return;
+    data = blob;
+    notifyCaptureState(previousStorageId != nextStorageId);
+}
 
 void TensorObj::load(std::string file_path) { loadTensorData(this, file_path); }
 

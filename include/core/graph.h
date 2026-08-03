@@ -7,17 +7,49 @@
 
 namespace infini {
 
+class GraphCaptureStateObj {
+  private:
+    uint64_t id;
+    Runtime runtime;
+    size_t generation = 0;
+    size_t topologyEpoch = 0;
+    size_t updateDepth = 0;
+    bool pendingLayoutChange = false;
+    bool pendingStorageChange = false;
+    bool pendingTopologyChange = false;
+
+    void applyPendingChanges() noexcept;
+
+  public:
+    GraphCaptureStateObj(uint64_t id, Runtime runtime)
+        : id(id), runtime(std::move(runtime)) {}
+
+    uint64_t getId() const { return id; }
+    size_t getGeneration() const { return generation; }
+    size_t getTopologyEpoch() const { return topologyEpoch; }
+
+    void beginUpdate();
+    void commitUpdate() noexcept;
+    void finishMemoryUpdate(bool layoutChanged, bool storageChanged);
+    void markChanged(bool storageChanged) noexcept;
+    void markTopologyChanged() noexcept;
+};
+
 class GraphObj : public Object {
   protected:
     Runtime runtime;
     TensorVec tensors;
     OpVec ops;
     LazyAllocator allocator;
+    Ref<GraphCaptureStateObj> captureState;
 
   public:
     explicit GraphObj(Runtime runtime)
-        : runtime(runtime), allocator(runtime), sorted(false){};
+        : runtime(runtime), allocator(runtime),
+          captureState(make_ref<GraphCaptureStateObj>(guid, runtime)),
+          sorted(false){};
     GraphObj(Runtime runtime, OpVec ops_in);
+    ~GraphObj() override;
     string toString() const override;
     Runtime getRuntime() const { return runtime; }
 
@@ -30,17 +62,9 @@ class GraphObj : public Object {
     Tensor cloneTensor(const Tensor &tensor) {
         return addTensor(tensor->clone(runtime));
     }
-    void removeOperator(Operator op) {
-        auto it = std::find(ops.begin(), ops.end(), op);
-        if (it != ops.end())
-            ops.erase(it);
-    }
+    void removeOperator(Operator op);
 
-    void removeTensor(Tensor tensor) {
-        auto it = std::find(tensors.begin(), tensors.end(), tensor);
-        if (it != tensors.end())
-            tensors.erase(it);
-    }
+    void removeTensor(Tensor tensor);
 
     void deleteConnection(Tensor tensor, Operator op);
     void addConnection(Tensor tensor, Operator op);
@@ -76,6 +100,11 @@ class GraphObj : public Object {
     void validateMemory() const;
 
     size_t getAllocationGeneration() const { return allocationGeneration; }
+    uint64_t getCaptureStateId() const { return captureState->getId(); }
+    size_t getCaptureGeneration() const {
+        return captureState->getGeneration();
+    }
+    size_t getTopologyEpoch() const { return captureState->getTopologyEpoch(); }
 
     Tensor cloneKV(Tensor &tensor);
 
@@ -139,6 +168,9 @@ class GraphObj : public Object {
                             bool trim);
 
     void lockAllocationMode(bool useNaiveAllocator, size_t memPoolSize);
+
+    void registerTensorCaptureState(const Tensor &tensor);
+    void markTopologyChanged();
 
     /**
      * @brief Add reverse connections and Op relationship in ctor.

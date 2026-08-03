@@ -51,4 +51,36 @@ TEST(CUDA_BatchNorm, run) {
     EXPECT_TRUE(ocpu->equalData(vector<float>{
         -0.5, 0, 0.5, 1, -2, -1, 0, 1, -0.333333, 0, 0.333333, 0.666667}));
 }
+
+TEST(CUDA_BatchNorm, preservesInputShapeDuringRunAndCapture) {
+    auto cudaRuntime = make_ref<CudaRuntimeObj>();
+    Graph graph = make_ref<GraphObj>(cudaRuntime);
+    auto input = graph->addTensor(Shape{2, 3}, DataType::Float32);
+    auto mean = graph->addTensor(Shape{3}, DataType::Float32);
+    auto var = graph->addTensor(Shape{3}, DataType::Float32);
+    auto scale = graph->addTensor(Shape{3}, DataType::Float32);
+    auto bias = graph->addTensor(Shape{3}, DataType::Float32);
+    auto batchNorm = graph->addOp<BatchNormObj>(input, nullptr, mean, var,
+                                                scale, bias, 0.9, 0);
+    graph->dataMalloc();
+
+    input->copyin(vector<float>{0, 1, 2, 3, 4, 5});
+    mean->copyin(vector<float>{0, 1, 2});
+    var->copyin(vector<float>{1, 1, 1});
+    scale->copyin(vector<float>{1, 1, 1});
+    bias->copyin(vector<float>{0, 0, 0});
+    const Shape originalShape{2, 3};
+
+    cudaRuntime->run(graph);
+    EXPECT_EQ(input->getDims(), originalShape);
+    cudaRuntime->runWithCudaGraph(graph);
+    EXPECT_EQ(input->getDims(), originalShape);
+    cudaRuntime->runWithCudaGraph(graph);
+    EXPECT_EQ(input->getDims(), originalShape);
+    EXPECT_EQ(cudaRuntime->getCudaGraphCaptureCount(), 1u);
+
+    auto output =
+        batchNorm->getOutput()->clone(NativeCpuRuntimeObj::getInstance());
+    EXPECT_TRUE(output->equalData(vector<float>{0, 0, 0, 3, 3, 3}));
+}
 } // namespace infini

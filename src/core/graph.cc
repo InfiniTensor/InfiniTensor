@@ -6,8 +6,56 @@
 
 namespace infini {
 
+void GraphCaptureStateObj::applyPendingChanges() noexcept {
+    if (!pendingLayoutChange && !pendingStorageChange && !pendingTopologyChange)
+        return;
+    ++generation;
+    if (pendingTopologyChange)
+        ++topologyEpoch;
+    if (pendingStorageChange || pendingTopologyChange)
+        runtime->invalidateGraphCaptureCache(id);
+    pendingLayoutChange = false;
+    pendingStorageChange = false;
+    pendingTopologyChange = false;
+}
+
+void GraphCaptureStateObj::beginUpdate() { ++updateDepth; }
+
+void GraphCaptureStateObj::commitUpdate() noexcept {
+    if (updateDepth == 0)
+        return;
+    --updateDepth;
+    if (updateDepth == 0)
+        applyPendingChanges();
+}
+
+void GraphCaptureStateObj::finishMemoryUpdate(bool layoutChanged,
+                                              bool storageChanged) {
+    IT_ASSERT(updateDepth == 1, "Unexpected nested capture state update");
+    pendingLayoutChange = pendingTopologyChange || layoutChanged;
+    pendingStorageChange = pendingTopologyChange || storageChanged;
+    commitUpdate();
+}
+
+void GraphCaptureStateObj::markChanged(bool storageChanged) noexcept {
+    pendingLayoutChange = true;
+    pendingStorageChange = pendingStorageChange || storageChanged;
+    if (updateDepth == 0)
+        applyPendingChanges();
+}
+
+void GraphCaptureStateObj::markTopologyChanged() noexcept {
+    pendingLayoutChange = true;
+    pendingStorageChange = true;
+    pendingTopologyChange = true;
+    if (updateDepth == 0)
+        applyPendingChanges();
+}
+
 GraphObj::GraphObj(Runtime runtime, OpVec ops_in)
-    : runtime(runtime), allocator(runtime), sorted(false) {
+    : runtime(runtime), allocator(runtime),
+      captureState(make_ref<GraphCaptureStateObj>(guid, runtime)),
+      sorted(false) {
     map<UidBaseType, Tensor> tensorPool;
     // Clone tensors
     for (const auto &op : ops_in) {
@@ -42,8 +90,23 @@ GraphObj::GraphObj(Runtime runtime, OpVec ops_in)
     }
 }
 
-void GraphObj::addOperatorAndConnect(const Operator &op) {
+GraphObj::~GraphObj() {
+    captureState->markTopologyChanged();
+    for (const auto &tensor : tensors)
+        tensor->unregisterCaptureState(captureState->getId());
+}
+
+void GraphObj::registerTensorCaptureState(const Tensor &tensor) {
+    tensor->registerCaptureState(captureState);
+}
+
+void GraphObj::markTopologyChanged() {
     sorted = false;
+    captureState->markTopologyChanged();
+}
+
+void GraphObj::addOperatorAndConnect(const Operator &op) {
+    markTopologyChanged();
     ops.push_back(op);
     for (auto &input : op->getInputs()) {
         if (input) {
@@ -196,8 +259,57 @@ void GraphObj::trimMemory() {
 
 void GraphObj::dataMallocImpl(bool useNaiveAllocator, size_t memPoolSize,
                               bool trim) {
+    struct CaptureMemoryState {
+        uint64_t storageId;
+        size_t storageOffset;
+        size_t blobBytes;
+        const void *address;
+
+        bool operator==(const CaptureMemoryState &other) const {
+            return storageId == other.storageId &&
+                   storageOffset == other.storageOffset &&
+                   blobBytes == other.blobBytes && address == other.address;
+        }
+        bool operator!=(const CaptureMemoryState &other) const {
+            return !(*this == other);
+        }
+    };
+    const auto getCaptureMemoryState = [](const Tensor &tensor) {
+        const auto &blob = tensor->getDataBlob();
+        if (!blob)
+            return CaptureMemoryState{0, 0, 0, nullptr};
+        return CaptureMemoryState{blob->getStorageId(),
+                                  blob->getStorageOffset(), blob->getBytes(),
+                                  tensor->getRawDataPtr<const void *>()};
+    };
+    vector<CaptureMemoryState> previousCaptureStates;
+    previousCaptureStates.reserve(tensors.size());
+    for (const auto &tensor : tensors)
+        previousCaptureStates.emplace_back(getCaptureMemoryState(tensor));
+    const auto finishCaptureStateUpdate = [&]() {
+        bool layoutChanged = previousCaptureStates.size() != tensors.size();
+        bool storageChanged = layoutChanged;
+        for (size_t i = 0;
+             i < previousCaptureStates.size() && i < tensors.size(); ++i) {
+            const auto current = getCaptureMemoryState(tensors[i]);
+            layoutChanged =
+                layoutChanged || previousCaptureStates[i] != current;
+            storageChanged =
+                storageChanged ||
+                previousCaptureStates[i].storageId != current.storageId;
+        }
+        captureState->finishMemoryUpdate(layoutChanged, storageChanged);
+    };
+
+    captureState->beginUpdate();
     if (allocationMode != AllocationMode::Uninitialized) {
-        dataMallocImplCore(useNaiveAllocator, memPoolSize, trim);
+        try {
+            dataMallocImplCore(useNaiveAllocator, memPoolSize, trim);
+            finishCaptureStateUpdate();
+        } catch (...) {
+            finishCaptureStateUpdate();
+            throw;
+        }
         return;
     }
 
@@ -209,6 +321,7 @@ void GraphObj::dataMallocImpl(bool useNaiveAllocator, size_t memPoolSize,
     const auto previousGeneration = allocationGeneration;
     try {
         dataMallocImplCore(useNaiveAllocator, memPoolSize, trim);
+        finishCaptureStateUpdate();
     } catch (...) {
         for (size_t i = 0; i < tensors.size(); ++i)
             tensors[i]->setDataBlob(previousData[i]);
@@ -220,6 +333,7 @@ void GraphObj::dataMallocImpl(bool useNaiveAllocator, size_t memPoolSize,
         fixedPoolTensorLayout.clear();
         fixedPoolActivationLayout.clear();
         allocationGeneration = previousGeneration;
+        finishCaptureStateUpdate();
         throw;
     }
 }
@@ -477,6 +591,7 @@ Tensor GraphObj::cloneKV(Tensor &tensor) {
                 throw;
             }
             ++allocationGeneration;
+            captureState->markChanged(true);
         }
     } else {
         if (tensor->hasData()) {
@@ -510,10 +625,16 @@ void GraphObj::freeHeap() {
     allocator.freeHeap();
     if (changed)
         ++allocationGeneration;
+    if (changed)
+        captureState->markChanged(true);
 }
 
 Tensor GraphObj::addTensor(Shape dim, DataType dtype) {
-    return tensors.emplace_back(make_ref<TensorObj>(dim, dtype, runtime));
+    auto tensor = make_ref<TensorObj>(dim, dtype, runtime);
+    registerTensorCaptureState(tensor);
+    tensors.emplace_back(tensor);
+    markTopologyChanged();
+    return tensor;
 }
 
 Tensor GraphObj::addTensor(const Tensor &tensor) {
@@ -522,6 +643,8 @@ Tensor GraphObj::addTensor(const Tensor &tensor) {
                   tensor->getRuntime()->toString() + " to " +
                   runtime->toString());
     tensors.emplace_back(tensor);
+    registerTensorCaptureState(tensor);
+    markTopologyChanged();
     return tensor;
 }
 
@@ -529,6 +652,23 @@ TensorVec GraphObj::addTensor(const TensorVec &tensors) {
     for (auto &t : tensors)
         addTensor(t);
     return tensors;
+}
+
+void GraphObj::removeOperator(Operator op) {
+    auto it = std::find(ops.begin(), ops.end(), op);
+    if (it == ops.end())
+        return;
+    ops.erase(it);
+    markTopologyChanged();
+}
+
+void GraphObj::removeTensor(Tensor tensor) {
+    auto it = std::find(tensors.begin(), tensors.end(), tensor);
+    if (it == tensors.end())
+        return;
+    tensor->unregisterCaptureState(captureState->getId());
+    tensors.erase(it);
+    markTopologyChanged();
 }
 
 OpVec GraphObj::getComputeOps() const {
@@ -549,6 +689,7 @@ void GraphObj::deleteConnection(Tensor tensor, Operator op) {
         tensor->getSource()->removeSuccessors(op);
         op->removePredecessors(tensor->getSource());
     }
+    markTopologyChanged();
 }
 
 // add op as a target
@@ -558,6 +699,7 @@ void GraphObj::addConnection(Tensor tensor, Operator op) {
         tensor->getSource()->addSuccessors(op);
         op->addPredecessors(tensor->getSource());
     }
+    markTopologyChanged();
 }
 
 void GraphObj::replaceConnection(Tensor oldTensor, Tensor newTensor,
