@@ -103,8 +103,38 @@ void testLeakyRelu(const Shape &shape, const vector<float> &inputData,
     EXPECT_TRUE(outputNpu2Cpu->equalData(ExpectData));
 }
 
+void testHardSigmoid(const Shape &shape, const vector<float> &inputData,
+                   const vector<float> &ExpectData) {
+    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Graph gCpu = make_ref<GraphObj>(runtime);
+
+    auto input = gCpu->addTensor(shape, DataType::Float32);
+
+    gCpu->dataMalloc();
+
+    input->copyin(inputData);
+    auto npuRuntime = make_ref<ASCENDRuntimeObj>();
+    Graph npuGraph = make_ref<GraphObj>(npuRuntime);
+    // NPU
+
+    auto inputNpu = npuGraph->cloneTensor(input);
+    auto npuOp = npuGraph->addOp<HardSigmoidObj>(inputNpu, nullptr);
+    npuGraph->dataMalloc();
+    inputNpu->copyin(inputData);
+    npuRuntime->run(npuGraph);
+    auto outputNpu = npuOp->getOutput();
+    auto outputNpu2Cpu = outputNpu->clone(cpuRuntime);
+
+    // Check
+    EXPECT_TRUE(outputNpu2Cpu->equalData(ExpectData));
+}
+
 TEST(ascend_Unary, run) {
     aclInit(nullptr);
+    testHardSigmoid(Shape{1,2,2,3}, 
+                    vector<float>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
+                    vector<float>{0.5, 0.666667, 0.833333, 1, 1, 1, 1, 1, 1, 1, 1, 1});
     testLeakyRelu(Shape{1, 2, 2, 3},
                   vector<float>{-6, -5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 6},
                   vector<float>{-0.0600, -0.0500, -0.0400, -0.0300, -0.0200,
