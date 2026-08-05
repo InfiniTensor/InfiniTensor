@@ -73,12 +73,12 @@ TEST(cuBLAS_Matmul, tune) {
     Graph g = make_ref<GraphObj>(cudaRuntime);
     auto a = g->addTensor(transA ? Shape{B, K, M} : Shape{B, M, K});
     auto b = g->addTensor(transB ? Shape{B, N, K} : Shape{B, K, N});
-    // allocate CUDA memory
+
+    auto matmul = g->addOp<MatmulObj>(a, b, nullptr, transA, transB);
+    // Allocate after the graph is complete so the output is included.
     g->dataMalloc();
     a->setData(IncrementalGenerator());
     b->setData(IncrementalGenerator());
-
-    auto matmul = g->addOp<MatmulObj>(a, b, nullptr, transA, transB);
     matmul->print();
     double time = cudaRuntime->getPerfTime(g);
     EXPECT_GT(time, 1e-3);

@@ -20,6 +20,8 @@ void CHECK_CUDA_KERNEL_ERROR(infini::Operator op) {
 
 namespace infini {
 void CudaRuntimeObj::runWithoutSync(const Graph &graph) const {
+    IT_ASSERT(graph != nullptr, "Cannot run a null graph");
+    graph->validateMemory();
     const auto &kernelRegistry = KernelRegistry::getInstance();
     auto &perfEngine = PerfEngine::getInstance();
     for (auto &op : graph->getOperators()) {
@@ -40,7 +42,22 @@ void CudaRuntimeObj::runWithoutSync(const Graph &graph) const {
 }
 
 void CudaRuntimeObj::runWithCudaGraph(const Graph &graph) {
+    IT_ASSERT(graph != nullptr, "Cannot run a null graph");
+    graph->validateMemory();
     if (!isCudaGraphCreated) {
+        vector<const TensorObj *> capturedTensors;
+        vector<const void *> capturedTensorAddresses;
+        vector<vector<int>> capturedTensorShapes;
+        capturedTensors.reserve(graph->getTensors().size());
+        capturedTensorAddresses.reserve(graph->getTensors().size());
+        capturedTensorShapes.reserve(graph->getTensors().size());
+        for (const auto &tensor : graph->getTensors()) {
+            capturedTensors.emplace_back(tensor.get());
+            capturedTensorAddresses.emplace_back(
+                tensor->getRawDataPtr<const void *>());
+            capturedTensorShapes.emplace_back(tensor->getDims());
+        }
+
         CUDAStream::createStream();
         checkCudnnError(cudnnSetStream(cudnn, CUDAStream::getCurrentStream()));
         checkCublasError(
@@ -53,7 +70,30 @@ void CudaRuntimeObj::runWithCudaGraph(const Graph &graph) {
         checkCudaError(
             cudaGraphInstantiate(&cudaGraphInstance, cudaGraph, NULL, NULL, 0));
         isCudaGraphCreated = true;
+        cudaGraphOwner = graph;
+        cudaGraphAllocationGeneration = graph->getAllocationGeneration();
+        cudaGraphTensors = std::move(capturedTensors);
+        cudaGraphTensorAddresses = std::move(capturedTensorAddresses);
+        cudaGraphTensorShapes = std::move(capturedTensorShapes);
     } else {
+        auto owner = cudaGraphOwner.lock();
+        IT_ASSERT(owner && owner.get() == graph.get(),
+                  "CUDA Graph was captured for a different graph");
+        IT_ASSERT(cudaGraphAllocationGeneration ==
+                      graph->getAllocationGeneration(),
+                  "CUDA Graph memory changed after capture; capture a new "
+                  "runtime before replay");
+        const auto &tensors = graph->getTensors();
+        IT_ASSERT(cudaGraphTensors.size() == tensors.size(),
+                  "CUDA Graph tensor set changed after capture");
+        for (size_t i = 0; i < tensors.size(); ++i) {
+            IT_ASSERT(cudaGraphTensors[i] == tensors[i].get() &&
+                          cudaGraphTensorAddresses[i] ==
+                              tensors[i]->getRawDataPtr<const void *>() &&
+                          cudaGraphTensorShapes[i] == tensors[i]->getDims(),
+                      "CUDA Graph tensor memory or shape changed after "
+                      "capture; capture a new runtime before replay");
+        }
         checkCudaError(
             cudaGraphLaunch(cudaGraphInstance, CUDAStream::getCurrentStream()));
     }
@@ -61,6 +101,8 @@ void CudaRuntimeObj::runWithCudaGraph(const Graph &graph) {
 }
 
 void CudaRuntimeObj::tune(const Graph &graph, bool profiling = false) const {
+    IT_ASSERT(graph != nullptr, "Cannot tune a null graph");
+    graph->validateMemory();
     const auto &kernelRegistry = KernelRegistry::getInstance();
     auto &perfEngine = PerfEngine::getInstance();
     double totalTime = 0;

@@ -32,12 +32,12 @@ def initializer(name, values, dtype=None):
     return numpy_helper.from_array(array, name=name)
 
 
-def import_model(model, runtime=None):
+def import_model(model, runtime=None, use_naive_allocator=False):
     runtime = backend.cpu_runtime() if runtime is None else runtime
     with patch.object(
         onnx_frontend, "simplify", side_effect=lambda candidate: (candidate, False)
     ):
-        return OnnxStub(model, runtime)
+        return OnnxStub(model, runtime, use_naive_allocator=use_naive_allocator)
 
 
 def node_attribute(node, name):
@@ -148,15 +148,18 @@ class TestOnnxStubImport(unittest.TestCase):
             [value_info("y", [1, 2])],
             [initializer("weight", weight)],
         )
-        stub = import_model(model)
-
-        for batch in (2, 3):
-            x = np.arange(batch * 2, dtype=np.float32).reshape(batch, 2)
-            stub.set_input([[batch, 2]])
-            stub.inputs["x"].copyin_numpy(x)
-            stub.run()
-            actual = np.asarray(stub.outputs["y"].copyout_float()).reshape(batch, 2)
-            np.testing.assert_allclose(actual, x @ weight)
+        for use_naive_allocator in (False, True):
+            with self.subTest(use_naive_allocator=use_naive_allocator):
+                stub = import_model(model, use_naive_allocator=use_naive_allocator)
+                for batch in (2, 1, 8192, 3):
+                    x = np.arange(batch * 2, dtype=np.float32).reshape(batch, 2)
+                    stub.set_input([[batch, 2]])
+                    stub.inputs["x"].copyin_numpy(x)
+                    stub.run()
+                    actual = np.asarray(stub.outputs["y"].copyout_float()).reshape(
+                        batch, 2
+                    )
+                    np.testing.assert_allclose(actual, x @ weight)
 
 
 class TestStaticOnnxInputs(unittest.TestCase):
@@ -458,15 +461,22 @@ class TestOnnxStubCuda(unittest.TestCase):
             [value_info("y", [1, 2])],
             [initializer("weight", weight)],
         )
-        stub = import_model(model, backend.cuda_runtime())
-        x = np.arange(6, dtype=np.float32).reshape(3, 2)
-
-        stub.set_input([[3, 2]])
-        stub.inputs["x"].copyin_numpy(x)
-        stub.run()
-        actual = np.asarray(stub.outputs["y"].copyout_float()).reshape(3, 2)
-
-        np.testing.assert_allclose(actual, x @ weight, rtol=1e-5, atol=1e-6)
+        for use_naive_allocator in (False, True):
+            with self.subTest(use_naive_allocator=use_naive_allocator):
+                stub = import_model(
+                    model,
+                    backend.cuda_runtime(),
+                    use_naive_allocator=use_naive_allocator,
+                )
+                for batch in (3, 1, 8192, 2):
+                    x = np.arange(batch * 2, dtype=np.float32).reshape(batch, 2)
+                    stub.set_input([[batch, 2]])
+                    stub.inputs["x"].copyin_numpy(x)
+                    stub.run()
+                    actual = np.asarray(stub.outputs["y"].copyout_float()).reshape(
+                        batch, 2
+                    )
+                    np.testing.assert_allclose(actual, x @ weight, rtol=1e-5, atol=1e-6)
 
 
 if __name__ == "__main__":

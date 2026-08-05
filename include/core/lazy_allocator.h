@@ -35,13 +35,13 @@ class LazyAllocator {
     size_t memPoolSize = 0;
 
     // pointer to the memory actually allocated
-    void *ptr = nullptr;
+    Blob ptr;
 
     // pointer to the weight memory space
-    void *weightPtr = nullptr;
+    Blob weightPtr;
 
     // memory pool ptr
-    void *memPoolPtr = nullptr;
+    Blob memPoolPtr;
 
     // // a cache designed for a batch size that has already occurred
     // std::unordered_map<size_t, std::unordered_map<TensorObj *, size_t>>
@@ -77,6 +77,8 @@ class LazyAllocator {
 
     void init();
 
+    void resetWeightPlan();
+
     void setMemPool(size_t memPoolSize);
 
     bool getMemPoolStatus();
@@ -107,9 +109,15 @@ class LazyAllocator {
 
     // std::unordered_map<TensorObj *, size_t> getCache(size_t batchsize);
 
+    Blob getActivationBlob(size_t offset, size_t bytes);
+
     void *getWeightPtr();
 
+    Blob getWeightBlob(size_t offset, size_t bytes);
+
     void *getHeapPtr();
+
+    Blob getHeapBlob(size_t offset, size_t bytes);
 
     void info();
 

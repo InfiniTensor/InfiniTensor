@@ -71,6 +71,10 @@ class GraphObj : public Object {
 
     void dataMalloc(bool useNaiveAllocator = false, size_t memPoolSize = 0);
 
+    void validateMemory() const;
+
+    size_t getAllocationGeneration() const { return allocationGeneration; }
+
     Tensor cloneKV(Tensor &tensor);
 
     void freeHeap();
@@ -134,6 +138,20 @@ class GraphObj : public Object {
      * @brief If the weight tensors are allocated.
      */
     bool weightAllocated = false;
+
+    /**
+     * @brief Incremented after each successful memory layout update.
+     */
+    size_t allocationGeneration = 0;
+
+    /**
+     * Fixed memory pools cannot safely move live data within the same backing
+     * allocation. Remember the committed layout so changes can be rejected
+     * before any tensor data is modified.
+     */
+    bool fixedPoolLayoutCommitted = false;
+    vector<std::pair<TensorObj *, size_t>> fixedPoolTensorLayout;
+    vector<std::pair<TensorObj *, size_t>> fixedPoolActivationLayout;
 };
 
 } // namespace infini

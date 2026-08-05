@@ -17,6 +17,11 @@ class CudaRuntimeObj : public RuntimeObj {
     bool isCudaGraphCreated;
     cudaGraph_t cudaGraph;
     cudaGraphExec_t cudaGraphInstance;
+    WRef<GraphObj> cudaGraphOwner;
+    size_t cudaGraphAllocationGeneration = 0;
+    vector<const TensorObj *> cudaGraphTensors;
+    vector<const void *> cudaGraphTensorAddresses;
+    vector<vector<int>> cudaGraphTensorShapes;
 
   public:
     explicit CudaRuntimeObj(int deviceId = 0)
