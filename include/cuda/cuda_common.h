@@ -114,18 +114,28 @@ using CudaPtr = void *;
 
 class CUDAStream {
   public:
+    class Guard {
+      private:
+        cudaStream_t previous;
+
+      public:
+        explicit Guard(cudaStream_t stream) : previous(_stream) {
+            _stream = stream;
+        }
+        Guard(const Guard &) = delete;
+        Guard &operator=(const Guard &) = delete;
+        ~Guard() { _stream = previous; }
+    };
+
     CUDAStream(const CUDAStream &) = delete;
     CUDAStream(CUDAStream &&) = delete;
     void operator=(const CUDAStream &) = delete;
     void operator=(CUDAStream &&) = delete;
     static cudaStream_t getCurrentStream() { return _stream; }
-    static void Init() { CUDAStream::_stream = 0; };
-    static void createStream() { checkCudaError(cudaStreamCreate(&_stream)); }
-    static void destroyStream() { checkCudaError(cudaStreamDestroy(_stream)); }
 
   private:
     CUDAStream(){};
-    static cudaStream_t _stream;
+    static thread_local cudaStream_t _stream;
 };
 
 } // namespace infini

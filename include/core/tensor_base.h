@@ -5,6 +5,7 @@
 #include "core/runtime.h"
 namespace infini {
 class GraphObj;
+class GraphCaptureStateObj;
 class TensorBaseObj : public Object {
     friend class GraphObj;
 
@@ -24,18 +25,16 @@ class TensorBaseObj : public Object {
     WRef<OperatorObj> source;
     Blob data;
     Runtime runtime;
+    vector<WRef<GraphCaptureStateObj>> captureStates;
 
   public:
     TensorBaseObj(int dim, DataType dtype, Runtime runtime);
     virtual ~TensorBaseObj() {}
 
-    void dataMalloc(const Blob &blob) {
-        IT_ASSERT(data == nullptr);
-        data = blob;
-    }
+    void dataMalloc(const Blob &blob);
     Blob getDataBlob() const { return data; }
     bool hasData() const { return data != nullptr; }
-    void freeData() { data = nullptr; }
+    void freeData();
     template <typename T> T getRawDataPtr() const {
         static_assert(std::is_pointer_v<T>,
                       "Raw data pointer has a type of pointer");
@@ -54,7 +53,14 @@ class TensorBaseObj : public Object {
     OpVec getTargets() const { return wrefs_to_refs(targets); }
     Operator getSource() const { return source.lock(); }
 
+  protected:
+    void clearCaptureStates() { captureStates.clear(); }
+    void notifyCaptureState(bool storageChanged);
+
   private:
+    void registerCaptureState(const Ref<GraphCaptureStateObj> &state);
+    void unregisterCaptureState(uint64_t stateId);
+
     void addTarget(const Operator &op) { targets.emplace_back(op); }
     void setSource(const Operator &op) { source = op; }
     void removeTarget(const Operator &op) {

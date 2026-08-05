@@ -167,8 +167,9 @@ static int tensor_dtype(Tensor t) {
 
 #ifdef USE_CUDA
 // NOTE(lizhouyang): deprecate this, use CudaRuntime directly.
-[[deprecated]] static Ref<CudaRuntimeObj> cuda_runtime() {
-    return make_ref<CudaRuntimeObj>(0);
+[[deprecated]] static Ref<CudaRuntimeObj>
+cuda_runtime(int device = 0, size_t cudaGraphCacheCapacity = 16) {
+    return make_ref<CudaRuntimeObj>(device, cudaGraphCacheCapacity);
 }
 #endif
 
@@ -356,13 +357,11 @@ void export_functions(py::module &m) {
 #define FUNCTION(NAME) def(#NAME, &NAME)
     m.def("cpu_runtime", &NativeCpuRuntimeObj::getInstance)
 #ifdef USE_CUDA
-        .def("cuda_runtime", cuda_runtime)
+        .def("cuda_runtime", cuda_runtime, py::arg("device") = 0,
+             py::arg("cuda_graph_cache_capacity") = 16)
 #endif
 #ifdef USE_INTELCPU
         .def("intelcpu_runtime", intelcpu_runtime)
-#endif
-#ifdef USE_CUDA
-        .FUNCTION(cuda_runtime)
 #endif
 #ifdef USE_BANG
         .FUNCTION(bang_runtime)
@@ -448,7 +447,12 @@ void init_graph_builder(py::module &m) {
 #ifdef USE_CUDA
     py::class_<CudaRuntimeObj, std::shared_ptr<CudaRuntimeObj>, RuntimeObj>(
         m, "CudaRuntime")
-        .def(py::init<int>(), py::arg("device") = 0)
+        .def(py::init<int, size_t>(), py::arg("device") = 0,
+             py::arg("cuda_graph_cache_capacity") = 16)
+        .def("clear_cuda_graph_cache", &CudaRuntimeObj::clearCudaGraphCache)
+        .def("cuda_graph_cache_size", &CudaRuntimeObj::getCudaGraphCacheSize)
+        .def("cuda_graph_capture_count",
+             &CudaRuntimeObj::getCudaGraphCaptureCount)
         .def("init_comm", &CudaRuntimeObj::initComm);
 #endif
 #ifdef USE_BANG
