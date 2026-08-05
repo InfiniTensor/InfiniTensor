@@ -43,6 +43,10 @@ class LazyAllocator {
     // memory pool ptr
     Blob memPoolPtr;
 
+    // Weak references prevent heap offsets from being reused while a cloned
+    // tensor still points into the fixed memory pool.
+    vector<WRef<BlobObj>> heapBlobs;
+
     // // a cache designed for a batch size that has already occurred
     // std::unordered_map<size_t, std::unordered_map<TensorObj *, size_t>>
     // batchsizeToTensorOffset;
@@ -77,6 +81,8 @@ class LazyAllocator {
 
     void init();
 
+    void reset();
+
     void resetWeightPlan();
 
     void setMemPool(size_t memPoolSize);
@@ -93,7 +99,11 @@ class LazyAllocator {
 
     size_t heapAlloc(size_t size);
 
+    void rollbackHeap(size_t previousPeak);
+
     void freeHeap();
+
+    bool hasLiveHeapBlobs();
 
     // function: simulate memory free
     // arguments:
@@ -105,11 +115,23 @@ class LazyAllocator {
     // return: pointer to the head address of the allocated memory
     void *getPtr();
 
+    Blob prepareActivationStorage(bool exactCapacity = false,
+                                  bool forceNewStorage = false);
+
+    void commitActivationStorage(const Blob &storage);
+
+    bool isCurrentActivationStorage(const Blob &storage) const;
+
+    size_t getHeapPeak() const { return heapPeak; }
+
     // void addCache(size_t batchsize, std::unordered_map<TensorObj *, size_t>);
 
     // std::unordered_map<TensorObj *, size_t> getCache(size_t batchsize);
 
     Blob getActivationBlob(size_t offset, size_t bytes);
+
+    Blob getActivationBlob(const Blob &storage, size_t offset,
+                           size_t bytes) const;
 
     void *getWeightPtr();
 

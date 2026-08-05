@@ -84,9 +84,13 @@ TEST(TestCudaRuntime, CudaGraph) {
     printf("with cudaGraph, latency: %f ms\n", milliseconds_2);
     EXPECT_GE(milliseconds_1, milliseconds_2);
 
-    // Reallocating graph memory invalidates the addresses captured above.
+    // Replanning an unchanged layout reuses the captured addresses.
+    const auto generationBeforeReplan = gCuda->getAllocationGeneration();
+    const auto addressBeforeReplan = input_q_d->getRawDataPtr<const void *>();
     gCuda->dataMalloc();
-    EXPECT_THROW(cudaRuntime->runWithCudaGraph(gCuda), Exception);
+    EXPECT_EQ(gCuda->getAllocationGeneration(), generationBeforeReplan);
+    EXPECT_EQ(input_q_d->getRawDataPtr<const void *>(), addressBeforeReplan);
+    EXPECT_NO_THROW(cudaRuntime->runWithCudaGraph(gCuda));
 }
 
 } // namespace infini
