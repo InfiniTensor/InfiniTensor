@@ -25,10 +25,13 @@
 并使用下列环境变量传递选项参数：
 
 - `TYPE`：编译模式（`debug`/`release`），默认值为 `release`
-- `CUDA`：是否编译 CUDA 后端，默认为 `OFF`，`ON` 打开
-- `BANG`：是否编译寒武纪后端，默认为 `OFF`，`ON` 打开
-- `KUNLUN`：是否编译昆仑后端，默认为 `OFF`，`ON` 打开
-- `ASCEND`：是否编译华为后端，默认为 `OFF`，`ON` 打开
+- `INFINI`：是否启用 InfiniOps 执行后端，默认为 `ON`；未设置外部安装前缀时自动关闭
+- `ATEN`：是否启用 InfiniOps 生成的 ATen 算子实现，默认为 `ON`
+- `INFINIOPS_ROOT`：目标环境的 InfiniOps 安装前缀
+- `INFINIRT_ROOT`：与 InfiniOps 匹配的 InfiniRT 安装前缀
+- `INFINIOPS_CXX11_ABI`：InfiniOps 使用的 C++11 ABI；链接 PyTorch 时应与目标 PyTorch 保持一致
+- `INFINICCL`：是否启用 InfiniCCL；默认跟随 `DIST`
+- `INFINICCL_ROOT`：目标环境的 InfiniCCL 安装前缀
 - `BACKTRACE`：是否启用栈回溯，默认为 `ON`，`OFF` 关闭，建议调试时打开
 - `TEST`：是否编译 `googletest`，默认为 `ON`，`OFF` 关闭，只有 `test-cpp` 时必要
 
@@ -55,7 +58,7 @@ stub = OnnxStub(onnx.load("model_file"), backend.cpu_runtime())
 
 [`onnx.load`](https://onnx.ai/onnx/api/serialization.html#load-a-model) 是 onnx 提供的加载函数，将 onnx 文件读取为保存在内存中的 onnx 模型。
 
-`OnnxStub` 是 onnx 模型在项目中的表示，通过构造这个对象，将 onnx 模型导入到项目中。其构造器的第一个参数是 onnx 模型文件；第二个参数是模型运行的后端运行时，可以是 `backend.cpu_runtime()`、`backend.cuda_runtime()` 或 `backend.bang_runtime()`。
+`OnnxStub` 是 onnx 模型在项目中的表示，通过构造这个对象，将 onnx 模型导入到项目中。其构造器的第一个参数是 onnx 模型文件；第二个参数是模型运行的 runtime。原生 CPU 使用 `backend.cpu_runtime()`；加速设备统一使用 `backend.runtime("<infini-rt-device>", index)`，设备名称由当前 InfiniRT 安装提供。
 
 构造出的 stub 对象可以用于操作项目中的模型和运行时。
 

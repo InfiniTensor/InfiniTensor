@@ -1526,8 +1526,8 @@ class OnnxStub:
     def run(self) -> None:
         self.handler.run()
 
-    def run_with_cudagraph(self) -> None:
-        self.handler.run_with_cudagraph()
+    def run_with_graph(self) -> None:
+        self.handler.run_with_graph()
 
     def get_perf_time(self) -> float:
         return self.handler.get_perf_time()

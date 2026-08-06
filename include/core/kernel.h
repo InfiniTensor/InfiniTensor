@@ -183,16 +183,16 @@ class CpuKernelWithoutConfig : public Kernel {
 
 } // namespace infini
 
-#define _REGISTER_KERNEL_1(device, opType, kernel, name, cnt)                  \
+#define _REGISTER_KERNEL_1(provider, opType, kernel, name, cnt)                \
     namespace infini {                                                         \
     static const bool _CAT(_register_kernel_, cnt) =                           \
-        KernelRegistry::getInstance().registerKernel(KernelAttrs{device,       \
+        KernelRegistry::getInstance().registerKernel(KernelAttrs{provider,     \
                                                                  opType},      \
                                                      new kernel(), name);      \
     }
 
-#define REGISTER_KERNEL(device, opType, kernel, name)                          \
-    _REGISTER_KERNEL_1(device, opType, kernel, name, __COUNTER__)
+#define REGISTER_KERNEL(provider, opType, kernel, name)                        \
+    _REGISTER_KERNEL_1(provider, opType, kernel, name, __COUNTER__)
 
 #define _REGISTER_CONSTRUCTOR_1(type, constructor, cnt)                        \
     namespace infini {                                                         \

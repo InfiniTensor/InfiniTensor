@@ -2,10 +2,7 @@
 #include "core/operator.h"
 
 namespace infini {
-/**
- *
- * https://docs.nvidia.com/deeplearning/nccl/archives/nccl_2193/user-guide/docs/index.html
- */
+/** @brief Receives a tensor from the source rank on the destination rank. */
 class RecvObj : public OperatorObj {
 
   public:

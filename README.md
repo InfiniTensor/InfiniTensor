@@ -20,9 +20,9 @@ InfiniTensor is a high-performance inference engine tailored for GPUs and AI acc
 
 ---
 
-> - Sets env: `TEST=OFF` to accelerate compiling.
-> - Sets env: `CUDA=ON` to enable cuda.
-> - Sets env: `BANG=ON` to enable bang.
+> - Set `TEST=OFF` to skip tests while compiling.
+> - Set `INFINIOPS_ROOT` and `INFINIRT_ROOT` to a target-specific
+>   InfiniOps/InfiniRT installation to enable accelerator execution.
 
 ### CMake Options
 
@@ -30,19 +30,18 @@ There are several configurable CMake options, see the [CMakeLists.txt](/CMakeLis
 
 - If `USE_BACKTRACE` is `ON`, `libdw-dev` have to be installed. See the README of [backward-cpp](https://github.com/bombela/backward-cpp) for details.
 - If `USE_PROTOBUF` is `ON`, `protobuf` have to be installed. See the README of [protobuf](https://github.com/protocolbuffers/protobuf) for details.
-- If `USE_CUDA` is `ON`, `cuda` have to be installed.
+- If `USE_INFINIOPS_KERNELS` is `ON`, `INFINIOPS_ROOT` must point to an
+  InfiniOps installation and `INFINIRT_ROOT` must point to its matching
+  InfiniRT installation. The external installation selects the hardware;
+  InfiniTensor itself has no per-vendor build switch.
 
 ## Roadmap
 
 - [RefactorGraph](https://github.com/InfiniTensor/RefactorGraph) is a newly designed AI framework that is set to replace the current main branch.
 - [EinNet](https://github.com/InfiniTensor/InfiniTensor/tree/NNET_e2e) is going to be merged into the main branch.
 - Integration of [PET](https://github.com/thu-pacman/PET), a tensor program optimizer supporting partially equivalent transformations.
-- Supported hardware
-  - ✔ NVIDIA GPU
-  - ✔ Cambricon MLU
-  - ✔ Kunlunxin XPU
-  - ✔ Ascend NPU
-  - ✔ Intel CPU
+- Hardware execution is provided through the installed InfiniOps and InfiniRT
+  backends.
 
 ## Contributor Guide
 

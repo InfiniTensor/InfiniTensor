@@ -9,9 +9,6 @@ namespace infini {
  * k ranks and performing a sum, each rank will provide an array Vk of N values,
  * and receive an identical arrays S of N values, where S[i] =
  * V0[i]+V1[i]+…+Vk-1[i].
- *
- * For more details:
- * https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/usage/collectives.html#allreduce
  */
 class AllReduceBaseObj : public OperatorObj {
 

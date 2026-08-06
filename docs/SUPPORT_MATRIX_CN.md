@@ -9,13 +9,17 @@
 
 ## 环境支持
 
-目前的软硬件环境支持矩阵
+InfiniTensor 内置 `NativeCpu` 执行路径；加速设备统一通过外部
+InfiniRT 和 InfiniOps 安装提供，项目本身不再包含厂商 runtime、SDK
+头文件或硬件 kernel。
 
-| Host CPU | Device        | OS            |  Support   |
-| -------- | ------------  | -----------   | ---------- |
-| X86-64   | Nvidia GPU    |  Ubuntu-22.04 |  Yes       |
-| X86-64   | Cambricon MLU |  Ubuntu-22.04 |  Yes       |
-| arm64    | Ascend NPU    |OpenEuler-22.03|  Yes       |
+| Execution provider | Device | Support |
+| --- | --- | --- |
+| NativeCpu | CPU | Yes |
+| Infini | InfiniRT/InfiniOps 当前安装所支持的设备 | Depends on external installation |
+
+NVIDIA GPU 和 Cambricon MLU 已完成端到端模型验证。其他设备的可用性以
+对应 InfiniRT/InfiniOps 版本及目标机器验证结果为准。
 
 ## 神经网络支持
 
