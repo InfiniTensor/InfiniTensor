@@ -43,6 +43,7 @@ class SplitObj : public OperatorObj {
     int numInputs() const override { return 1; }
     int numOutputs() const override { return num; }
     int getDim() const { return dim; }
+    vector<int> getRatio() const { return ratio; }
 
   private:
     vector<int> getWorkloadVector() const override;
