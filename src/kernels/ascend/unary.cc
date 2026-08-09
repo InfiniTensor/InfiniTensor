@@ -15,6 +15,7 @@
 #include "aclnnop/level2/aclnn_relu.h"
 #include "aclnnop/level2/aclnn_round.h"
 #include "aclnnop/level2/aclnn_sigmoid.h"
+#include "aclnnop/level2/aclnn_hardsigmoid.h"
 #include "aclnnop/level2/aclnn_sin.h"
 #include "aclnnop/level2/aclnn_sqrt.h"
 #include "aclnnop/level2/aclnn_tanh.h"
@@ -211,6 +212,7 @@ class LeakyReluAclnn : public ASCENDKernelWithoutConfig {
 
 DEFINE_UNARY_Aclnn(Abs);
 DEFINE_UNARY_Aclnn(Sigmoid);
+DEFINE_UNARY_Aclnn(Hardsigmoid);
 DEFINE_UNARY_Aclnn(Hardswish);
 DEFINE_UNARY_Aclnn(Gelu);
 
@@ -236,6 +238,10 @@ REGISTER_KERNEL(Device::ASCEND, OpType::LeakyRelu, LeakyReluAclnn,
 REGISTER_KERNEL(Device::ASCEND, OpType::Abs, AbsAclnn, "abs_ASCEND_float");
 REGISTER_KERNEL(Device::ASCEND, OpType::Sigmoid, SigmoidAclnn,
                 "sigmoid_ASCEND_float");
+// HardSigmoid has different def in acl and onnx, we use acl here.
+// TODO: Replace this acl def with onnx def
+REGISTER_KERNEL(Device::ASCEND, OpType::HardSigmoid, HardsigmoidAclnn,
+                "hardsigmoid_ASCEND_float");                
 REGISTER_KERNEL(Device::ASCEND, OpType::HardSwish, HardswishAclnn,
                 "hardswish_ASCEND_float");
 REGISTER_KERNEL(Device::ASCEND, OpType::Tanh, TanhAclnn, "tanh_ASCEND_float");
