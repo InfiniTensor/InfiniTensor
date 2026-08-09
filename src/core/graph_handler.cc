@@ -6,6 +6,7 @@
 #include "operators/broadcast.h"
 #include "operators/concat.h"
 #include "operators/conv.h"
+#include "operators/det.h"
 #include "operators/element_wise.h"
 #include "operators/expand.h"
 #include "operators/gather.h"
@@ -21,6 +22,8 @@
 #include "operators/resize.h"
 #include "operators/rms_norm.h"
 #include "operators/rope.h"
+#include "operators/scatterElements.h"
+#include "operators/scatterND.h"
 #include "operators/send.h"
 #include "operators/slice.h"
 #include "operators/softmax.h"
@@ -208,6 +211,7 @@ DEFINE_ELEMENT_WISE_METHOD(sub, Sub)
 DEFINE_ELEMENT_WISE_METHOD(mul, Mul)
 DEFINE_ELEMENT_WISE_METHOD(div, Div)
 DEFINE_ELEMENT_WISE_METHOD(pow, Pow)
+DEFINE_ELEMENT_WISE_METHOD(equal, Equal)
 DEFINE_ELEMENT_WISE_METHOD(min, Minimum)
 DEFINE_ELEMENT_WISE_METHOD(max, Maximum)
 
@@ -231,6 +235,7 @@ DEFINE_UNARY_METHOD(hardSigmoid, HardSigmoid)
 DEFINE_UNARY_METHOD(hardSwish, HardSwish)
 DEFINE_UNARY_METHOD(abs, Abs)
 DEFINE_UNARY_METHOD(sqrt, Sqrt)
+DEFINE_UNARY_METHOD(exp, Exp)
 DEFINE_UNARY_METHOD(neg, Neg)
 DEFINE_UNARY_METHOD(shape, Shape)
 DEFINE_UNARY_METHOD(erf, Erf)
@@ -257,6 +262,17 @@ Tensor GraphHandlerObj::leakyRelu(Tensor x, Tensor y, float alpha) {
     }
 }
 
+Tensor GraphHandlerObj::log(Tensor input, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<LogObj>(std::move(input), output,
+                                    LogObj::LogType::LogE);
+        return output;
+    } else {
+        return g->addOp<LogObj>(std::move(input), output, LogObj::LogType::LogE)
+            ->getOutput();
+    }
+}
+
 Tensor GraphHandlerObj::clip(Tensor x, Tensor y, std::optional<float> min,
                              std::optional<float> max) {
     if (y) {
@@ -276,7 +292,37 @@ Tensor GraphHandlerObj::softmax(Tensor input, Tensor output, int axis) {
             ->getOutput();
     }
 }
-
+Tensor GraphHandlerObj::scatterND(Tensor data, Tensor indices, Tensor updates,
+                                  Tensor output, std::string reduction) {
+    if (output) {
+        g->addOpWithOutputs<ScatterNDObj>(std::move(data), std::move(indices),
+                                          std::move(updates), output,
+                                          std::move(reduction));
+        return output;
+    } else {
+        return g
+            ->addOp<ScatterNDObj>(std::move(data), std::move(indices),
+                                  std::move(updates), output,
+                                  std::move(reduction))
+            ->getOutput();
+    }
+}
+Tensor GraphHandlerObj::scatterElements(Tensor data, Tensor indices,
+                                        Tensor updates, Tensor output, int axis,
+                                        std::string reduction) {
+    if (output) {
+        g->addOpWithOutputs<ScatterElementsObj>(
+            std::move(data), std::move(indices), std::move(updates), output,
+            axis, std::move(reduction));
+        return output;
+    } else {
+        return g
+            ->addOp<ScatterElementsObj>(std::move(data), std::move(indices),
+                                        std::move(updates), output, axis,
+                                        std::move(reduction))
+            ->getOutput();
+    }
+}
 Tensor GraphHandlerObj::flatten(Tensor input, Tensor output, int axis) {
     if (output) {
         g->addOpWithOutputs<FlattenObj>(std::move(input), output, axis);
@@ -690,6 +736,15 @@ Tensor GraphHandlerObj::unsqueeze(Tensor input, Tensor output, Shape axes) {
     } else {
         return g->addOp<UnsqueezeObj>(std::move(input), output, std::move(axes))
             ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::det(Tensor input, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<DetObj>(std::move(input), output);
+        return output;
+    } else {
+        return g->addOp<DetObj>(std::move(input), output)->getOutput();
     }
 }
 

@@ -52,6 +52,7 @@ class GraphHandlerObj {
     Tensor mul(Tensor a, Tensor b, Tensor c);
     Tensor div(Tensor a, Tensor b, Tensor c);
     Tensor pow(Tensor a, Tensor b, Tensor c);
+    Tensor equal(Tensor a, Tensor b, Tensor c);
     Tensor min(Tensor a, Tensor b, Tensor c);
     Tensor max(Tensor a, Tensor b, Tensor c);
 
@@ -65,8 +66,14 @@ class GraphHandlerObj {
     Tensor tanh(Tensor x, Tensor y);
     Tensor erf(Tensor x, Tensor y);
     Tensor softmax(Tensor x, Tensor y, int axis);
+    Tensor scatterND(Tensor data, Tensor indices, Tensor updates, Tensor output,
+                     std::string reduction);
+    Tensor scatterElements(Tensor data, Tensor indices, Tensor updates,
+                           Tensor output, int axis, std::string reduction);
     Tensor abs(Tensor x, Tensor y);
     Tensor sqrt(Tensor x, Tensor y);
+    Tensor exp(Tensor x, Tensor y);
+    Tensor log(Tensor x, Tensor y);
     Tensor neg(Tensor x, Tensor y);
     Tensor shape(Tensor x, Tensor y);
     Tensor identity(Tensor x, Tensor y);
@@ -122,6 +129,7 @@ class GraphHandlerObj {
                         std::string mode);
     Tensor lrn(Tensor input, Tensor output, float alpha, float beta, float bias,
                int size);
+    Tensor det(Tensor input, Tensor output);
 
     //------ modifiers
 

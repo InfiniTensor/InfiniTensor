@@ -4,18 +4,15 @@
 namespace infini {
 class DetObj : public OperatorObj {
   public:
-    enum Mode { NormalDet = 0, LogDet };
-    DetObj(GraphObj *graph, Tensor input, Tensor output, Mode mode);
+    DetObj(GraphObj *graph, Tensor input, Tensor output);
     OP_CLONE(DetObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
     int numInputs() const override { return 1; }
     int numOutputs() const override { return 1; }
-    Mode getMode() const { return modeValue; }
 
   private:
-    Mode modeValue;
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;
 };

@@ -65,6 +65,41 @@ class TestStringMethods(unittest.TestCase):
         )
         make_and_import_model(make_graph([conv], "conv", [i, w], [o]))
 
+    def test_scatterND(self):
+        data = make_tensor_value_info("data", TensorProto.FLOAT, [3, 3])
+        indices = make_tensor_value_info("indices", TensorProto.INT64, [2, 1])
+        updates = make_tensor_value_info("updates", TensorProto.FLOAT, [2, 3])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [3, 3])
+        scatterND = make_node(
+            "ScatterND",
+            ["data", "indices", "updates"],
+            ["output"],
+            "scatterND",
+            reduction="none",
+        )
+        make_and_import_model(
+            make_graph([scatterND], "scatterND", [data, indices, updates], [output])
+        )
+
+    def test_scatterElements(self):
+        data = make_tensor_value_info("data", TensorProto.FLOAT, [3, 3])
+        indices = make_tensor_value_info("indices", TensorProto.INT64, [2, 3])
+        updates = make_tensor_value_info("updates", TensorProto.FLOAT, [2, 3])
+        output = make_tensor_value_info("output", TensorProto.FLOAT, [3, 3])
+        scatterElements = make_node(
+            "ScatterElements",
+            ["data", "indices", "updates"],
+            ["output"],
+            "scatterElements",
+            axis=0,
+            reduction="none",
+        )
+        make_and_import_model(
+            make_graph(
+                [scatterElements], "scatterElements", [data, indices, updates], [output]
+            )
+        )
+
     def test_conv_fp16(self):
         i = make_tensor_value_info("i", TensorProto.FLOAT16, [1, 3, 4, 4])
         w = make_tensor_value_info("w", TensorProto.FLOAT16, [2, 3, 3, 3])
@@ -202,6 +237,13 @@ class TestStringMethods(unittest.TestCase):
         pow = make_node("Pow", ["a", "b"], ["c"], name="pow")
         make_and_import_model(make_graph([pow], "pow", [a, b], [c]))
 
+    def test_equal(self):
+        a = make_tensor_value_info("a", TensorProto.FLOAT, [1, 3, 5, 7])
+        b = make_tensor_value_info("b", TensorProto.FLOAT, [1, 3, 5, 7])
+        c = make_tensor_value_info("c", TensorProto.BOOL, [1, 3, 5, 7])
+        equal = make_node("Equal", ["a", "b"], ["c"], name="equal")
+        make_and_import_model(make_graph([equal], "equal", [a, b], [c]))
+
     def test_relu(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
@@ -215,11 +257,7 @@ class TestStringMethods(unittest.TestCase):
 
         # Define the LeakyRelu node
         leaky_relu = make_node(
-            "LeakyRelu",
-            ["x"],
-            ["y"],
-            "leaky_relu",
-            alpha=0.01  # LeakyReLU alpha value
+            "LeakyRelu", ["x"], ["y"], "leaky_relu", alpha=0.01  # LeakyReLU alpha value
         )
 
         # Create the graph and model
@@ -247,6 +285,18 @@ class TestStringMethods(unittest.TestCase):
         sqrt = make_node("Sqrt", ["x"], ["y"], name="sqrt")
         make_and_import_model(make_graph([sqrt], "sqrt", [x], [y]))
 
+    def test_exp(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        exp = make_node("Exp", ["x"], ["y"], name="exp")
+        make_and_import_model(make_graph([exp], "exp", [x], [y]))
+
+    def test_log(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
+        log = make_node("Log", ["x"], ["y"], name="log")
+        make_and_import_model(make_graph([log], "log", [x], [y]))
+        
     def test_sigmoid(self):
         x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 5, 7])
         y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 5, 7])
@@ -343,6 +393,12 @@ class TestStringMethods(unittest.TestCase):
             make_graph([unsqueeze], "unsqueeze", [input, axes], [output], [axes_data])
         )
 
+    def test_det(self):
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [2, 3, 3])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [2])
+        det = make_node("Det", ["x"], ["y"], name="det")
+        make_and_import_model(make_graph([det], "det", [x], [y]))
+        
     def test_concat(self):
         input1 = make_tensor_value_info("input1", TensorProto.FLOAT, [1, 3, 2, 4])
         input2 = make_tensor_value_info("input2", TensorProto.FLOAT, [1, 3, 2, 5])
