@@ -54,7 +54,7 @@ class NaiveTranspose : public CpuKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CPU, OpType::Transpose, NaiveTranspose,
+REGISTER_KERNEL(ExecutionProvider::NativeCpu, OpType::Transpose, NaiveTranspose,
                 "TransposeNaive_CPU");
 
 } // namespace infini

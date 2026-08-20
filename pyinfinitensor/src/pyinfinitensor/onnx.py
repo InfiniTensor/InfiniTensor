@@ -26,6 +26,13 @@ from onnx.shape_inference import infer_shapes
 from onnx.numpy_helper import to_array, from_array
 from typing import Dict, List, Any, Tuple, Sequence, Union, Optional
 from functools import reduce
+try:
+    import onnxruntime as _onnxruntime
+except ModuleNotFoundError as error:
+    raise ModuleNotFoundError(
+        "pyinfinitensor ONNX import requires onnxruntime; install the "
+        "declared pyinfinitensor dependencies before importing OnnxStub"
+    ) from error
 from onnxsim import simplify
 import copy
 import warnings
@@ -1526,8 +1533,8 @@ class OnnxStub:
     def run(self) -> None:
         self.handler.run()
 
-    def run_with_cudagraph(self) -> None:
-        self.handler.run_with_cudagraph()
+    def run_with_graph(self) -> None:
+        self.handler.run_with_graph()
 
     def get_perf_time(self) -> float:
         return self.handler.get_perf_time()

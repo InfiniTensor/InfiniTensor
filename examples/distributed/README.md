@@ -1,39 +1,35 @@
-# 分布式脚本
+# 分布式示例
 
-## 英伟达平台运行方式
+分布式执行使用 InfiniRT 创建各 rank 的 runtime，并通过 InfiniCCL 初始化通信。切换硬件时，只更换目标环境中的 InfiniRT、InfiniOps、InfiniCCL 和设备名称，不需要修改 InfiniTensor 源码。
 
-#### 1. 运行pytorch模型并生成输入和标准输出，可选择导出onnx
+## 准备数据
 
-使用 `--export_onnx` 设置导出onnx的目录，默认为当前路径 `./`，不使用这个flag则只进行计算和生成输入输出。
+假设 `--name demo`，启动目录中需要准备：
 
-```bash
-python run_pytorch.py --model gpt2  --batch_size 1  --length 1 --export_onnx ./
-```
+- `demo_inputs.npy`：模型输入；
+- `demo_results.npy`：参考输出。
 
-会在当前目录下生成输入输出文件`test_inputs.npy` 和 `test_results.npy`，目前只支持单一输入输出。
+文件内容必须与模型的输入输出 shape 和 dtype 一致。
 
-#### 2. 运行InfiniTensor分布式脚本
-
-```bash
-python cuda_launch.py --model "/XXX/XXX.onnx" --nproc_per_node 4 
-```
-
-## 寒武纪平台运行方式
-
-**将上述运行脚本 `run_pytorch.py` 以及 `cuda_launch.py` 针对寒武纪平台做了相应的适配，具体见 `run_pytorch_mlu.py` 以及 `bang_launch.py`。**
-
-#### 1. 运行pytorch模型并生成输入和标准输出，可选择导出onnx
-
-使用 `--export_onnx` 设置导出onnx的目录，默认为当前路径 `./`，不使用这个flag则只进行计算和生成输入输出。
+## 启动
 
 ```bash
-python run_pytorch_mlu.py --model gpt2  --batch_size 1  --length 1 --export_onnx ./
+python3 launch.py \
+  --device nvidia \
+  --model /path/to/model.onnx \
+  --name demo \
+  --nproc-per-node 4
 ```
 
-会在当前目录下生成输入输出文件`test_inputs.npy` 和 `test_results.npy`，目前只支持单一输入输出。
+`nvidia` 只是设备名称示例。`--device` 必须使用当前 InfiniRT 构建实际提供的名称。
 
-#### 2. 运行InfiniTensor分布式脚本
+常用参数：
 
-```bash
-python bang_launch.py --model "/XXX/XXX.onnx" --nproc_per_node 4 
-```
+- `--model`：ONNX 模型路径；
+- `--device`：InfiniRT 设备名称；
+- `--name`：输入和参考输出文件的前缀，默认 `test`；
+- `--nproc-per-node`：当前节点启动的进程数，默认 `1`；
+- `--num-nodes`：节点数，默认 `1`；
+- `--matmul-compute-type`：矩阵乘计算类型，可选 `default`、`fp16` 或 `tf32`。
+
+启动器为每个本地 rank 创建独立 runtime，并调用 `runtime.init_comm()` 初始化通信。运行前请确认设备数量、InfiniCCL 配置和可见卡号与进程数一致。

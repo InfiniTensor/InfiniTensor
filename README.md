@@ -1,62 +1,93 @@
 # InfiniTensor
 
-[中文项目简介](/README_CN.md) | Documentation | [中文文档](/docs/INDEX.md)
+[中文介绍](/README_CN.md) | [中文文档](/docs/INDEX.md)
 
 [![Build](https://github.com/InfiniTensor/InfiniTensor/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/InfiniTensor/InfiniTensor/actions)
 [![issue](https://img.shields.io/github/issues/InfiniTensor/InfiniTensor)](https://github.com/InfiniTensor/InfiniTensor/issues)
 ![license](https://img.shields.io/github/license/InfiniTensor/InfiniTensor)
 ![star](https://atomgit.com/InfiniTensor/InfiniTensor/star/badge.svg)
 
-InfiniTensor is a high-performance inference engine tailored for GPUs and AI accelerators. Its design focuses on effective deployment and swift academic validation.
+InfiniTensor imports, transforms, and executes computation graphs. It provides a native CPU runtime and uses InfiniOps and InfiniRT for accelerator execution. Distributed execution is built on InfiniCCL.
 
-## Get started
+Hardware-specific SDK headers and implementations stay outside InfiniTensor. The available accelerator devices and operators are determined by the installed InfiniOps and InfiniRT build.
 
-### Make Commands
+## Quick start
 
-- `make`/`make build`: Builds the project;
-- `make install-python`: Builds the project then install the python frontend;
-- `make test-cpp`: Builds the project then run cpp unit tests;
-- `make test-onnx`: Run python unit tests;
+Initialize the pinned lower-stack sources after cloning:
 
----
+```bash
+git submodule update --init --recursive
+```
 
-> - Sets env: `TEST=OFF` to accelerate compiling.
-> - Sets env: `CUDA=ON` to enable cuda.
-> - Sets env: `BANG=ON` to enable bang.
+Install the Python package for the native CPU runtime:
 
-### CMake Options
+```bash
+make install-python INFINI=OFF PYTHON="$(command -v python3)"
+```
 
-There are several configurable CMake options, see the [CMakeLists.txt](/CMakeLists.txt#L5) file.
+To use an accelerator, first install matching InfiniOps and InfiniRT prefixes for the target machine, then build InfiniTensor against them:
 
-- If `USE_BACKTRACE` is `ON`, `libdw-dev` have to be installed. See the README of [backward-cpp](https://github.com/bombela/backward-cpp) for details.
-- If `USE_PROTOBUF` is `ON`, `protobuf` have to be installed. See the README of [protobuf](https://github.com/protocolbuffers/protobuf) for details.
-- If `USE_CUDA` is `ON`, `cuda` have to be installed.
+```bash
+make install-python \
+  INFINI=ON \
+  INFINIOPS_ROOT=/path/to/infiniops-prefix \
+  INFINIRT_ROOT=/path/to/infinirt-prefix \
+  PYTHON="$(command -v python3)"
+```
+
+If the selected InfiniOps build requires Python provider modules, pass them with `PROVIDER_MODULES` during installation and `INFINIOPS_PROVIDER_MODULES` at runtime.
+
+Common targets:
+
+- `make build`: build the C++ project.
+- `make install-python`: build and install `pyinfinitensor`.
+- `make test-cpp`: run C++ tests.
+- `make test-onnx`: run ONNX frontend tests.
+- `make test-api`: run Python API tests.
+- `make clean`: remove generated build files.
+
+See the [installation guide](/docs/INSTALL_GUIDE_CN.md) for lower-stack preparation, offline installation, ABI matching, and post-install checks.
+
+## Hardware and model compatibility
+
+InfiniTensor does not maintain a separate static hardware matrix. Check the exact InfiniOps and InfiniRT build, vendor SDK, driver, and device runtime used on the target machine.
+
+Model compatibility is not limited to a fixed model list. It depends on ONNX importer coverage, operator semantics, data types and shapes, and the implementations available in the selected InfiniOps backend. Unsupported operators fail explicitly instead of silently falling back to CPU.
+
+## Build notes
+
+- `TEST=OFF` skips test targets during compilation.
+- `BACKTRACE=OFF` is the default for portable Release builds. Enable it only when `libdw-dev` is available.
+- `USE_PROTOBUF=ON` requires a compatible Protobuf installation.
+- `INFINIOPS_ROOT` and `INFINIRT_ROOT` must refer to matching lower-stack builds.
+- ATen-backed InfiniOps builds must use the same Python/PyTorch C++11 ABI as InfiniTensor.
+- `INFINIOPS_PROVIDER_LIBRARY_DIRS` is only needed when provider libraries are outside the selected Python/PyTorch environment.
+
+## Documentation
+
+- [Installation guide](/docs/INSTALL_GUIDE_CN.md)
+- [User guide](/docs/USER_GUIDE_CN.md)
+- [Distributed example](/examples/distributed/README.md)
 
 ## Roadmap
 
-- [RefactorGraph](https://github.com/InfiniTensor/RefactorGraph) is a newly designed AI framework that is set to replace the current main branch.
-- [EinNet](https://github.com/InfiniTensor/InfiniTensor/tree/NNET_e2e) is going to be merged into the main branch.
-- Integration of [PET](https://github.com/thu-pacman/PET), a tensor program optimizer supporting partially equivalent transformations.
-- Supported hardware
-  - ✔ NVIDIA GPU
-  - ✔ Cambricon MLU
-  - ✔ Kunlunxin XPU
-  - ✔ Ascend NPU
-  - ✔ Intel CPU
+- [RefactorGraph](https://github.com/InfiniTensor/RefactorGraph) is the next-generation graph framework under development.
+- [EinNet](https://github.com/InfiniTensor/InfiniTensor/tree/NNET_e2e) provides derivation-based tensor program optimization.
+- [PET](https://github.com/thu-pacman/PET) provides partially equivalent transformations and automated corrections.
+- Accelerator support continues to evolve through InfiniOps and InfiniRT.
 
-## Contributor Guide
+## Contributor guide
 
-InfiniTensor development is based on the pull request on Github. Before requesting for merging, a PR should satisfy the following requirements
+Development uses GitHub pull requests. Before requesting review:
 
-1. Pass all tests.
-    1. Now CI on Github will test everything that can be tested in the ci environment, including code format. So, script `test/script/clang_format_inplace.sh` is for formatting all code.
-    2. Contributors should run `ctest` manually and copy its output to the PR. Use fenced code blocks (triple backquotes, i.e., `` ``` ``) to avoid referencing in Github. Otherwise, `#` in the output is interpreted as a Github reference. Do not directly paste the ctest output in commit messages either for the same reason.
-2. Receive at least one approval from reviewers.
-3. PR title should be concise since it is going to be the commit message in the main branch after merging and squashing.
+1. Run the relevant tests and formatting checks. Use `test/script/clang_format_inplace.sh` for C++ formatting.
+2. Include the `ctest` result in the pull request when C++ code changes. Put terminal output in a fenced code block.
+3. Use a concise pull request title because squash merges use it as the commit message.
+4. Obtain at least one reviewer approval.
 
 ## Reference
 
-Please cite EinNet or PET in your publications if it helps your research:
+Please cite EinNet or PET if they support your research:
 
 ```plaintext
 @article{zheng2023einnet,

@@ -21,22 +21,8 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#ifdef USE_CUDA
-#include "cuda/cuda_runtime.h"
-#include "cuda/operator_timer.h"
-#endif
-#ifdef USE_BANG
-#include "bang/bang_runtime.h"
-#endif
-#ifdef USE_KUNLUN
-#include "kunlun/kunlun_runtime.h"
-#endif
-#ifdef USE_ASCEND
-#include "ascend/ascend_runtime.h"
-#endif
-#ifdef USE_INTELCPU
-#include "intelcpu/mkl_runtime.h"
-#include "intelcpu/operator_timer.h"
+#ifdef USE_INFINIOPS_KERNELS
+#include "core/infini_runtime.h"
 #endif
 namespace py = pybind11;
 
@@ -44,22 +30,6 @@ namespace infini {
 
 using namespace py::literals;
 using policy = py::return_value_policy;
-
-void register_operator_timer(py::module &m) {
-#ifdef USE_CUDA
-    using namespace opTimer;
-    m.def("getPerfConvCudnn", &getPerfConvCudnn);
-    m.def("getPerfConvTransposed2dCudnn", &getPerfConvTransposed2dCudnn);
-    m.def("getPerfMatmulCublas", &getPerfMatmulCublas);
-#endif
-
-#ifdef USE_INTELCPU
-    using namespace opTimer;
-    m.def("getPerfConvMkl", &getPerfConvMkl);
-    m.def("getPerfConvTransposed2dMkl", &getPerfConvTransposed2dMkl);
-    m.def("getPerfMatmulMkl", &getPerfMatmulMkl);
-#endif
-}
 
 decltype(OpType::type) getId(OpType const *const ptr) { return ptr->type; }
 
@@ -165,32 +135,25 @@ static int tensor_dtype(Tensor t) {
     IT_ASSERT(false, "Unsupported data type");
 }
 
-#ifdef USE_CUDA
-// NOTE(lizhouyang): deprecate this, use CudaRuntime directly.
-[[deprecated]] static Ref<CudaRuntimeObj>
-cuda_runtime(int device = 0, size_t cudaGraphCacheCapacity = 16) {
-    return make_ref<CudaRuntimeObj>(device, cudaGraphCacheCapacity);
+static Runtime runtime(const string &device = "cpu", int index = 0,
+                       size_t graphCacheCapacity = 16) {
+    if (device == "cpu") {
+        IT_ASSERT(index == 0, "The native CPU runtime only supports index 0");
+        return NativeCpuRuntimeObj::getInstance();
+    }
+#ifdef USE_INFINIOPS_KERNELS
+    return make_ref<InfiniRuntimeObj>(device, index, graphCacheCapacity);
+#else
+    IT_TODO_HALT_MSG(
+        "InfiniTensor was built without the InfiniOps execution provider");
+#endif
 }
-#endif
 
-#ifdef USE_BANG
-static Ref<BangRuntimeObj> bang_runtime() { return make_ref<BangRuntimeObj>(); }
-#endif
-
-#ifdef USE_KUNLUN
-static Ref<KUNLUNRuntimeObj> kunlun_runtime() {
-    return make_ref<KUNLUNRuntimeObj>();
+#ifdef USE_INFINIOPS_KERNELS
+static string defaultInfiniDevice() {
+    return string(::infini::rt::Device::StringFromType(
+        ::infini::rt::runtime_device_type()));
 }
-#endif
-
-#ifdef USE_ASCEND
-static Ref<ASCENDRuntimeObj> ascend_runtime() {
-    return make_ref<ASCENDRuntimeObj>();
-}
-#endif
-
-#ifdef USE_INTELCPU
-static Ref<RuntimeObj> intelcpu_runtime() { return make_ref<MklRuntimeObj>(); }
 #endif
 
 static std::tuple<int, int, int, int, int, int> conv_attrs_of(Operator op) {
@@ -356,23 +319,10 @@ static std::tuple<float, float, float, int> lrn_attrs_of(Operator op) {
 void export_functions(py::module &m) {
 #define FUNCTION(NAME) def(#NAME, &NAME)
     m.def("cpu_runtime", &NativeCpuRuntimeObj::getInstance)
-#ifdef USE_CUDA
-        .def("cuda_runtime", cuda_runtime, py::arg("device") = 0,
-             py::arg("cuda_graph_cache_capacity") = 16)
-#endif
-#ifdef USE_INTELCPU
-        .def("intelcpu_runtime", intelcpu_runtime)
-#endif
-#ifdef USE_BANG
-        .FUNCTION(bang_runtime)
-#endif
-
-#ifdef USE_KUNLUN
-        .FUNCTION(kunlun_runtime)
-#endif
-
-#ifdef USE_ASCEND
-        .FUNCTION(ascend_runtime)
+        .def("runtime", runtime, py::arg("device") = "cpu",
+             py::arg("index") = 0, py::arg("graph_cache_capacity") = 16)
+#ifdef USE_INFINIOPS_KERNELS
+        .def("default_infini_device", defaultInfiniDevice)
 #endif
         .FUNCTION(conv_attrs_of)
         .FUNCTION(conv_trans_attrs_of)
@@ -441,39 +391,18 @@ static std::string getFormat(DataType type) {
 void init_graph_builder(py::module &m) {
     using Handler = GraphHandlerObj;
 
-    py::class_<RuntimeObj, std::shared_ptr<RuntimeObj>>(m, "Runtime");
+    py::class_<RuntimeObj, std::shared_ptr<RuntimeObj>>(m, "Runtime")
+        .def("init_comm", &RuntimeObj::initComm)
+        .def("clear_graph_cache", &RuntimeObj::clearGraphCache)
+        .def("graph_cache_size", &RuntimeObj::getGraphCacheSize)
+        .def("graph_capture_count", &RuntimeObj::getGraphCaptureCount);
     py::class_<NativeCpuRuntimeObj, std::shared_ptr<NativeCpuRuntimeObj>,
                RuntimeObj>(m, "CpuRuntime");
-#ifdef USE_CUDA
-    py::class_<CudaRuntimeObj, std::shared_ptr<CudaRuntimeObj>, RuntimeObj>(
-        m, "CudaRuntime")
-        .def(py::init<int, size_t>(), py::arg("device") = 0,
-             py::arg("cuda_graph_cache_capacity") = 16)
-        .def("clear_cuda_graph_cache", &CudaRuntimeObj::clearCudaGraphCache)
-        .def("cuda_graph_cache_size", &CudaRuntimeObj::getCudaGraphCacheSize)
-        .def("cuda_graph_capture_count",
-             &CudaRuntimeObj::getCudaGraphCaptureCount)
-        .def("init_comm", &CudaRuntimeObj::initComm);
-#endif
-#ifdef USE_BANG
-    py::class_<BangRuntimeObj, std::shared_ptr<BangRuntimeObj>, RuntimeObj>(
-        m, "BangRuntime")
-        .def(py::init<int>(), py::arg("device") = 0)
-        .def("init_comm", &BangRuntimeObj::initComm);
-#endif
-#ifdef USE_KUNLUN
-    py::class_<KUNLUNRuntimeObj, std::shared_ptr<KUNLUNRuntimeObj>, RuntimeObj>(
-        m, "KUNLUNRuntime")
-        .def(py::init<int>(), py::arg("device") = 0)
-        .def("init_comm", &KUNLUNRuntimeObj::initComm);
-#endif
-
-#ifdef USE_ASCEND
-    py::class_<ASCENDRuntimeObj, std::shared_ptr<ASCENDRuntimeObj>, RuntimeObj>(
-        m, "ASCENDRuntime")
-        .def(py::init<int>(), py::arg("device") = 0)
-        .def("init_comm", &ASCENDRuntimeObj::initComm);
-    ;
+#ifdef USE_INFINIOPS_KERNELS
+    py::class_<InfiniRuntimeObj, std::shared_ptr<InfiniRuntimeObj>, RuntimeObj>(
+        m, "InfiniRuntime")
+        .def(py::init<const string &, int, size_t>(), py::arg("device"),
+             py::arg("index") = 0, py::arg("graph_cache_capacity") = 16);
 #endif
     py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "Tensor",
                                                       py::buffer_protocol())
@@ -627,10 +556,7 @@ void init_graph_builder(py::module &m) {
         .def("get_perf_time", &Handler::get_perf_time, policy::automatic)
         .def("tune", &Handler::tune, policy::automatic)
         .def("run", &Handler::run, policy::automatic)
-#ifdef USE_CUDA
-        .def("run_with_cudagraph", &Handler::run_with_cudagraph,
-             policy::automatic)
-#endif
+        .def("run_with_graph", &Handler::run_with_graph, policy::automatic)
         .def("shape_infer", &Handler::shape_infer, policy::automatic)
         .def("change_shape", &Handler::change_shape, policy::automatic)
         .def("getDims", &Handler::getDims, policy::automatic)
@@ -640,7 +566,6 @@ void init_graph_builder(py::module &m) {
 } // namespace infini
 
 PYBIND11_MODULE(backend, m) {
-    infini::register_operator_timer(m);
     infini::export_values(m);
     infini::export_functions(m);
     infini::init_graph_builder(m);

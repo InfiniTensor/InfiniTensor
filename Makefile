@@ -1,16 +1,25 @@
-﻿.PHONY : build clean format install-python test-cpp test-onnx
+﻿.PHONY : build clean format install-python test-cpp test-onnx test-api
 
+PYTHON ?= python3
+JOBS ?= 8
+BUILD_DIR ?= build/$(TYPE)
+PIP_INSTALL_ARGS ?=
 TYPE ?= Release
-CUDA ?= OFF
-BANG ?= OFF
-KUNLUN ?= OFF
-ASCEND ?= OFF
-INTELCPU ?= off
-BACKTRACE ?= ON
+INFINI ?= ON
+ATEN ?= ON
+INFINIOPS_ROOT ?=
+INFINIRT_ROOT ?=
+INFINIOPS_CXX11_ABI ?=
+INFINIOPS_PROVIDER_LIBRARY_DIRS ?=
+BACKTRACE ?= OFF
 TEST ?= ON
+PROVIDER_MODULES ?=
+CHECK_BACKEND ?=
+CHECK_DEVICE ?= 0
 DIST ?= OFF
+INFINICCL ?= $(DIST)
+INFINICCL_ROOT ?=
 NNET ?= OFF
-DIST ?= OFF
 FORMAT_ORIGIN ?=
 # Docker build options
 DOCKER_NAME ?= infinitensor
@@ -18,41 +27,39 @@ DOCKER_IMAGE_NAME ?= infinitensor
 DOCKER_FILE ?= infinitensor_ubuntu_22.04.dockerfile
 DOCKER_RUN_OPTION ?=
 
-# CUDA option.
-ifeq ($(CUDA), ON)
-	DOCKER_IMAGE_NAME = infinitensor_cuda
-	DOCKER_NAME = infinitensor_cuda
-	DOCKER_FILE = infinitensor_ubuntu_22.04_CUDA.dockerfile
-	DOCKER_RUN_OPTION += --gpus all -it --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 -v `pwd`:`pwd` -w `pwd`
-endif
-
 CMAKE_OPT = -DCMAKE_BUILD_TYPE=$(TYPE)
-CMAKE_OPT += -DUSE_CUDA=$(CUDA)
-CMAKE_OPT += -DUSE_BANG=$(BANG)
-CMAKE_OPT += -DUSE_KUNLUN=$(KUNLUN)
-CMAKE_OPT += -DUSE_ASCEND=$(ASCEND)
+CMAKE_OPT += "-DPython_EXECUTABLE=$(PYTHON)"
+CMAKE_OPT += -DUSE_INFINIOPS_KERNELS=$(INFINI)
+CMAKE_OPT += -DUSE_INFINIOPS_ATEN_KERNELS=$(ATEN)
+CMAKE_OPT += -DINFINIOPS_ROOT=$(INFINIOPS_ROOT)
+CMAKE_OPT += -DINFINIRT_ROOT=$(INFINIRT_ROOT)
+CMAKE_OPT += -DINFINIOPS_CXX11_ABI=$(INFINIOPS_CXX11_ABI)
+CMAKE_OPT += "-DINFINIOPS_PROVIDER_LIBRARY_DIRS=$(INFINIOPS_PROVIDER_LIBRARY_DIRS)"
 CMAKE_OPT += -DUSE_BACKTRACE=$(BACKTRACE)
 CMAKE_OPT += -DBUILD_TEST=$(TEST)
 CMAKE_OPT += -DBUILD_DIST=$(DIST)
+CMAKE_OPT += -DUSE_INFINICCL=$(INFINICCL)
+CMAKE_OPT += -DINFINICCL_ROOT=$(INFINICCL_ROOT)
 CMAKE_OPT += -DBUILD_NNET=$(NNET)
 
-ifeq ($(INTELCPU), ON)
-	CMAKE_OPT += -DUSE_INTELCPU=ON -DCMAKE_CXX_COMPILER=dpcpp
-endif
-
 build:
-	mkdir -p build/$(TYPE)
-	cd build/$(TYPE) && cmake $(CMAKE_OPT) ../.. && make -j8
+	mkdir -p $(BUILD_DIR)
+	cmake -S . -B $(BUILD_DIR) $(CMAKE_OPT)
+	cmake --build $(BUILD_DIR) --parallel $(JOBS)
 
 clean:
 	rm -rf build
 
 format:
-	@python3 scripts/format.py $(FORMAT_ORIGIN)
+	@$(PYTHON) scripts/format.py $(FORMAT_ORIGIN)
 
 install-python: build
-	cp build/$(TYPE)/backend*.so pyinfinitensor/src/pyinfinitensor
-	pip install -e pyinfinitensor/
+	install -m 0755 $(BUILD_DIR)/backend*.so pyinfinitensor/src/pyinfinitensor/
+	install -m 0755 $(BUILD_DIR)/libInfiniTensor.so pyinfinitensor/src/pyinfinitensor/
+	$(PYTHON) -m pip install $(PIP_INSTALL_ARGS) -e pyinfinitensor/
+	INFINIOPS_PROVIDER_MODULES="$(PROVIDER_MODULES)" $(PYTHON) scripts/check_install.py \
+		$(if $(strip $(PROVIDER_MODULES)),--provider-modules "$(PROVIDER_MODULES)",) \
+		$(if $(strip $(CHECK_BACKEND)),--backend "$(CHECK_BACKEND)" --device "$(CHECK_DEVICE)",)
 
 test-cpp:
 	@echo

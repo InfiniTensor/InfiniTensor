@@ -5,12 +5,7 @@
 
 namespace infini {
 
-// In
-// cuda-c-programming-guide(https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#device-memory-accesses):
-// Any address of a variable residing in global memory or returned by one of the
-// memory allocation routines from the driver or runtime API is always aligned
-// to at least 256 bytes.
-constexpr size_t alignmentInBytesForCUDA = 256;
+constexpr size_t alignmentInBytesForInfiniRuntime = 256;
 
 static size_t checkedAdd(size_t lhs, size_t rhs, const char *message) {
     IT_ASSERT(lhs <= std::numeric_limits<size_t>::max() - rhs, message);
@@ -18,14 +13,11 @@ static size_t checkedAdd(size_t lhs, size_t rhs, const char *message) {
 }
 
 LazyAllocator::LazyAllocator(Runtime runtime) : runtime(runtime) {
-    if (runtime->isCuda()) {
-        // TODO: the alignment on cuda might need further discussion
-        alignment = alignmentInBytesForCUDA;
+    if (runtime->isInfini()) {
+        alignment = alignmentInBytesForInfiniRuntime;
     } else {
-        // 'alignment' defaults to sizeof(uint64_t), because it is the length of
-        // the longest data type currently supported by the DataType field of
-        // the tensor
-        // TODO: the alignment on bang might need further discussion
+        // Native CPU allocations only need alignment for the widest scalar
+        // type supported by Tensor.
         alignment = sizeof(uint64_t);
     }
 }

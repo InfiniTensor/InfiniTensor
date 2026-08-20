@@ -6,9 +6,6 @@ namespace infini {
  * @brief The AllGather operation gathers N values from k ranks into
  * an output of size k*N, and distributes that result to all ranks.
  * The output is ordered by rank index.
- *
- * For more details:
- * https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/usage/collectives.html#allgather
  */
 class AllGatherObj : public OperatorObj {
 

@@ -32,17 +32,20 @@ using OpLists = list<Operator>;
 
 using VType = uint32_t;
 
-enum class Device { CPU = 1, CUDA, BANG, INTELCPU, KUNLUN, ASCEND };
+enum class ExecutionProvider {
+    NativeCpu = 1,
+    Infini,
+};
 /***************** Forward declaration end *****************/
 
 class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
   protected:
-    Device device;
+    ExecutionProvider provider;
     int deviceId;
 
   public:
-    explicit RuntimeObj(Device device, int deviceId = 0)
-        : device(device), deviceId(deviceId) {}
+    explicit RuntimeObj(ExecutionProvider provider, int deviceId = 0)
+        : provider(provider), deviceId(deviceId) {}
     RuntimeObj(RuntimeObj &other) = delete;
     RuntimeObj &operator=(RuntimeObj const &) = delete;
     virtual ~RuntimeObj() {}
@@ -69,14 +72,13 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
      */
     double getPerfTime(const Graph &graph, bool profiling = false) const;
     Blob allocBlob(size_t size);
-    bool isCpu() const {
-        return device == Device::CPU || device == Device::INTELCPU;
-    }
-    bool isCuda() const { return device == Device::CUDA; }
-    bool isBang() const { return device == Device::BANG; }
-    bool isKUNLUN() const { return device == Device::KUNLUN; }
-    bool isAscend() const { return device == Device::ASCEND; }
+    bool isCpu() const { return provider == ExecutionProvider::NativeCpu; }
+    bool isInfini() const { return provider == ExecutionProvider::Infini; }
+    ExecutionProvider getExecutionProvider() const { return provider; }
     void copyBlob(const TensorObj *dst, const TensorObj *src) const;
+    void copyBlobInside(void *dst, const void *src, size_t bytes) const {
+        copyBlobInsideRuntime(dst, src, bytes);
+    }
     // TODO: unify these copy APIs
     virtual void copyBlobFromCPU(void *dst, const void *src,
                                  size_t bytes) const = 0;
@@ -87,6 +89,12 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
     int getDeviceId() const { return deviceId; }
 
     virtual void invalidateGraphCaptureCache(uint64_t) noexcept {}
+    virtual void runWithGraph(const Graph &) {
+        IT_TODO_HALT_MSG("Graph capture is not supported by this runtime");
+    }
+    virtual void clearGraphCache() {}
+    virtual size_t getGraphCacheSize() const { return 0; }
+    virtual size_t getGraphCaptureCount() const { return 0; }
 
     virtual void initComm(const string &name, int worldSize, int rank) = 0;
 
@@ -102,7 +110,7 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
 
 class CpuRuntimeObj : public RuntimeObj {
   public:
-    CpuRuntimeObj(Device dev) : RuntimeObj(dev) {}
+    CpuRuntimeObj() : RuntimeObj(ExecutionProvider::NativeCpu) {}
 
     void run(const Graph &graph, bool tune = false,
              bool profiling = false) const override;
@@ -119,7 +127,7 @@ class CpuRuntimeObj : public RuntimeObj {
 
 class NativeCpuRuntimeObj : public CpuRuntimeObj {
   public:
-    NativeCpuRuntimeObj() : CpuRuntimeObj(Device::CPU) {}
+    NativeCpuRuntimeObj() = default;
 
     static Ref<NativeCpuRuntimeObj> &getInstance() {
         static Ref<NativeCpuRuntimeObj> instance =
