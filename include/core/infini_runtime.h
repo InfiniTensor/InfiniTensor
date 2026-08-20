@@ -64,7 +64,6 @@ class InfiniRuntimeObj final : public RuntimeObj {
     GraphCache graphCache;
     std::unordered_map<uint64_t, ActiveGraphState> activeGraphs;
 #endif
-    std::unique_ptr<CommunicatorObj> communicator;
     mutable std::recursive_mutex executionMutex;
 #if INFINITENSOR_INFINIRT_HAS_GRAPH_API
     mutable std::recursive_mutex cacheMutex;
@@ -99,9 +98,6 @@ class InfiniRuntimeObj final : public RuntimeObj {
         return runtimeDevice;
     }
     string toString() const override;
-
-    void initComm(const string &name, int worldSize, int rank) override;
-    CommunicatorObj &getCommunicator() const override;
 
   private:
     void activateDevice() const;

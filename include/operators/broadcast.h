@@ -5,6 +5,9 @@ namespace infini {
 /**
  * @brief The Broadcast operation copies an N-element buffer on the root rank to
  * all ranks.
+ *
+ * For more details:
+ * https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/usage/collectives.html#broadcast
  */
 class BroadcastObj : public OperatorObj {
   public:

@@ -96,20 +96,9 @@ make test-onnx
 make test-api
 ```
 
-## 分布式构建
+## 分布式执行
 
-设置 `DIST=ON` 并提供 InfiniCCL 前缀：
-
-```bash
-make build \
-  INFINI=ON \
-  DIST=ON \
-  INFINIOPS_ROOT="$INFINIOPS_ROOT" \
-  INFINIRT_ROOT="$INFINIRT_ROOT" \
-  INFINICCL_ROOT=/path/to/infiniccl-prefix
-```
-
-多卡通信配置、设备可见性和启动参数由 InfiniCCL 与目标运行时负责。分布式示例见 `examples/distributed/README.md`。
+当前通用 Infini 后端只支持单设备执行。`BUILD_DIST=ON` 会在 CMake 配置阶段明确报错。分布式通信将在后续 InfiniCCL 集成中单独实现和验证。
 
 ## 常见问题
 

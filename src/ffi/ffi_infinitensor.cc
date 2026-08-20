@@ -392,7 +392,6 @@ void init_graph_builder(py::module &m) {
     using Handler = GraphHandlerObj;
 
     py::class_<RuntimeObj, std::shared_ptr<RuntimeObj>>(m, "Runtime")
-        .def("init_comm", &RuntimeObj::initComm)
         .def("clear_graph_cache", &RuntimeObj::clearGraphCache)
         .def("graph_cache_size", &RuntimeObj::getGraphCacheSize)
         .def("graph_capture_count", &RuntimeObj::getGraphCaptureCount);

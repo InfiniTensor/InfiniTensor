@@ -7,7 +7,7 @@
 ![license](https://img.shields.io/github/license/InfiniTensor/InfiniTensor)
 ![star](https://atomgit.com/InfiniTensor/InfiniTensor/star/badge.svg)
 
-InfiniTensor imports, transforms, and executes computation graphs. It provides a native CPU runtime and uses InfiniOps and InfiniRT for accelerator execution. Distributed execution is built on InfiniCCL.
+InfiniTensor imports, transforms, and executes computation graphs. It provides a native CPU runtime and uses InfiniOps and InfiniRT for accelerator execution. The generic Infini backend currently supports single-device execution.
 
 Hardware-specific SDK headers and implementations stay outside InfiniTensor. The available accelerator devices and operators are determined by the installed InfiniOps and InfiniRT build.
 

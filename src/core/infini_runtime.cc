@@ -4,9 +4,6 @@
 #include "core/graph.h"
 #include "core/kernel.h"
 #include "core/perf_engine.h"
-#ifdef USE_INFINICCL
-#include "communication/infiniccl_communicator.h"
-#endif
 
 #include <algorithm>
 #include <cstdio>
@@ -110,7 +107,6 @@ InfiniRuntimeObj::~InfiniRuntimeObj() {
 #if INFINITENSOR_INFINIRT_HAS_GRAPH_API
     clearGraphCacheImpl();
 #endif
-    communicator.reset();
     if (stream) {
         logInfiniRtError("InfiniRT StreamDestroy",
                          ::infini::rt::runtime::StreamDestroy(stream));
@@ -493,25 +489,6 @@ void InfiniRuntimeObj::sync() const {
 
 string InfiniRuntimeObj::toString() const {
     return "Infini Runtime (" + runtimeDevice.ToString() + ")";
-}
-
-void InfiniRuntimeObj::initComm(const string &name, int worldSize, int rank) {
-    std::lock_guard<std::recursive_mutex> lock(executionMutex);
-    activateDevice();
-    IT_ASSERT(worldSize > 0, "World size must be positive");
-    IT_ASSERT(rank >= 0 && rank < worldSize, "Rank is out of range");
-    IT_ASSERT(!communicator, "Communicator is already initialized");
-#ifdef USE_INFINICCL
-    communicator =
-        std::make_unique<InfiniCclCommunicatorObj>(name, worldSize, rank);
-#else
-    IT_TODO_HALT_MSG("InfiniTensor was not built with InfiniCCL");
-#endif
-}
-
-CommunicatorObj &InfiniRuntimeObj::getCommunicator() const {
-    IT_ASSERT(communicator != nullptr, "Communicator is not initialized");
-    return *communicator;
 }
 
 } // namespace infini

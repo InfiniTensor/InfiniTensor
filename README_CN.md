@@ -2,14 +2,13 @@
 
 [English README](README.md) | [项目文档](docs/INDEX.md)
 
-InfiniTensor 用于导入、变换和执行计算图，可直接运行 ONNX 模型。项目内置 CPU runtime；加速卡上的算子与设备管理分别由 InfiniOps 和 InfiniRT 提供，分布式通信由 InfiniCCL 提供。
+InfiniTensor 用于导入、变换和执行计算图，可直接运行 ONNX 模型。项目内置 CPU runtime；加速卡上的算子与设备管理分别由 InfiniOps 和 InfiniRT 提供。当前通用 Infini 后端仅支持单设备执行。
 
 ## 架构边界
 
 - **InfiniTensor**：负责计算图、ONNX 前端、图变换和执行调度。
 - **InfiniOps**：提供统一算子接口及各硬件后端实现。
 - **InfiniRT**：提供设备、内存、流和运行时接口。
-- **InfiniCCL**：提供多卡和多机通信能力。
 
 InfiniTensor 不包含厂商 SDK 头文件，也不设置逐平台编译分支。目标硬件是否可用，应以该机器上实际安装的 InfiniOps、InfiniRT、驱动和 SDK 为准。
 

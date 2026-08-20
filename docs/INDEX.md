@@ -2,4 +2,3 @@
 
 - [安装部署指南](INSTALL_GUIDE_CN.md)
 - [使用指南](USER_GUIDE_CN.md)
-- [分布式示例](../examples/distributed/README.md)

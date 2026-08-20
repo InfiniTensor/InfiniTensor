@@ -2,7 +2,10 @@
 #include "core/operator.h"
 
 namespace infini {
-/** @brief Sends a tensor from the source rank to the destination rank. */
+/**
+ *
+ * https://docs.nvidia.com/deeplearning/nccl/archives/nccl_2193/user-guide/docs/index.html
+ */
 class SendObj : public OperatorObj {
 
   public:

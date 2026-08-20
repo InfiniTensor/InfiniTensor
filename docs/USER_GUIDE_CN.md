@@ -23,8 +23,6 @@
 | `INFINIRT_ROOT` | 空 | 与 InfiniOps 匹配的 InfiniRT 安装前缀 |
 | `BACKTRACE` | `OFF` | 启用栈回溯；需要额外系统依赖 |
 | `TEST` | `ON` | 构建测试目标 |
-| `DIST` | `OFF` | 启用分布式构建 |
-| `INFINICCL_ROOT` | 空 | InfiniCCL 安装前缀 |
 | `PROVIDER_MODULES` | 空 | 安装检查前预加载的 Python provider |
 
 完整安装步骤见[安装部署指南](INSTALL_GUIDE_CN.md)。
@@ -140,8 +138,6 @@ python3 examples/python/onnx_inference.py model.onnx
 INFINITENSOR_DEVICE=device_name \
 python3 examples/python/onnx_inference.py model.onnx
 ```
-
-分布式执行见[分布式示例](../examples/distributed/README.md)。
 
 ## 7. 测试与问题定位
 

@@ -6,7 +6,6 @@ option(USE_BACKTRACE "Print backtrace on exception and segmentation fault" ON)
 option(USE_PROTOBUF "Serialize and deserialize tensors" OFF)
 option(BUILD_NNET "Build nnet" OFF)
 option(BUILD_DIST "Build project for distributed running" OFF)
-option(USE_INFINICCL "Use InfiniCCL for distributed communication" OFF)
 option(BUILD_TEST "Build tests" OFF)
 
 cmake_minimum_required(VERSION 3.17)
@@ -55,7 +54,6 @@ set(INFINIRT_ROOT "" CACHE PATH "InfiniRT installation prefix")
 set(INFINIOPS_CXX11_ABI "" CACHE STRING "C++11 ABI used to build InfiniOps")
 set(INFINIOPS_PROVIDER_LIBRARY_DIRS "" CACHE STRING
     "Provider library directories required by the InfiniOps ATen backend")
-set(INFINICCL_ROOT "" CACHE PATH "InfiniCCL installation prefix")
 if(USE_INFINIOPS_KERNELS AND NOT INFINIOPS_ROOT)
   message(STATUS "INFINIOPS_ROOT is unset; disabling the InfiniOps execution provider")
   set(USE_INFINIOPS_KERNELS OFF)
@@ -455,29 +453,9 @@ if(USE_INFINIOPS_KERNELS)
   list(REMOVE_DUPLICATES INFINIOPS_RUNTIME_LIBRARY_DIRS)
 endif()
 
-if(BUILD_DIST AND NOT USE_INFINICCL)
-  message(FATAL_ERROR "BUILD_DIST requires USE_INFINICCL=ON; direct vendor collective backends are no longer used")
-endif()
-
-if(USE_INFINICCL AND NOT USE_INFINIOPS_KERNELS)
+if(BUILD_DIST)
   message(FATAL_ERROR
-          "USE_INFINICCL requires USE_INFINIOPS_KERNELS=ON because communication kernels use the InfiniRuntime stream")
-endif()
-
-if(USE_INFINICCL)
-  if(NOT INFINICCL_ROOT)
-    message(FATAL_ERROR "INFINICCL_ROOT must be set when USE_INFINICCL is ON")
-  endif()
-  find_path(INFINICCL_INCLUDE_DIR
-    NAMES comm.h
-    PATHS "${INFINICCL_ROOT}/include"
-          "${INFINICCL_ROOT}/include/infiniccl"
-    NO_DEFAULT_PATH)
-  find_library(INFINICCL_LIBRARY NAMES infiniccl PATHS "${INFINICCL_ROOT}" "${INFINICCL_ROOT}/lib" NO_DEFAULT_PATH)
-  if(NOT INFINICCL_INCLUDE_DIR OR NOT INFINICCL_LIBRARY)
-    message(FATAL_ERROR "Could not find InfiniCCL headers/library under INFINICCL_ROOT=${INFINICCL_ROOT}")
-  endif()
-  get_filename_component(INFINICCL_LIBRARY_DIR "${INFINICCL_LIBRARY}" DIRECTORY)
+          "Distributed execution is not supported by the generic Infini backend yet")
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Werror -Wno-error=deprecated-declarations -Wno-error=pointer-arith")
@@ -488,11 +466,6 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -UNDEBUG")
 # Source files
 file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/kernels/cpu/*.cc src/operators/*.cc src/utils/*.cc)
 list(REMOVE_ITEM SRC "${CMAKE_CURRENT_SOURCE_DIR}/src/core/infini_runtime.cc")
-
-if(USE_INFINICCL)
-  file(GLOB_RECURSE SRC_INFINICCL src/communication/*.cc)
-  list(APPEND SRC ${SRC_INFINICCL})
-endif()
 
 if(BUILD_NNET)
   add_compile_definitions(BUILD_NNET=1)
@@ -518,15 +491,6 @@ if(USE_PROTOBUF)
 endif()
 
 target_link_libraries(InfiniTensor pybind11::embed)
-
-if(USE_INFINICCL)
-  target_compile_definitions(InfiniTensor PRIVATE USE_INFINICCL=1)
-  target_include_directories(InfiniTensor PRIVATE ${INFINICCL_INCLUDE_DIR})
-  target_link_libraries(InfiniTensor ${INFINICCL_LIBRARY})
-  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    set_property(TARGET InfiniTensor APPEND PROPERTY BUILD_RPATH "${INFINICCL_LIBRARY_DIR}")
-  endif()
-endif()
 
 if(USE_INFINIOPS_KERNELS)
   target_compile_definitions(InfiniTensor PRIVATE USE_INFINIOPS_KERNELS=1)
@@ -583,11 +547,6 @@ endif()
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   set_property(TARGET InfiniTensor APPEND PROPERTY BUILD_RPATH "$ORIGIN")
   set_property(TARGET backend APPEND PROPERTY BUILD_RPATH "$ORIGIN")
-endif()
-
-if(USE_INFINICCL)
-  target_compile_definitions(backend PRIVATE USE_INFINICCL=1)
-  target_include_directories(backend PRIVATE ${INFINICCL_INCLUDE_DIR})
 endif()
 
 if(USE_BACKTRACE)

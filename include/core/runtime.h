@@ -1,6 +1,5 @@
 #pragma once
 #include "core/common.h"
-#include "core/communicator.h"
 #include "core/op_type.h"
 #include "core/ref.h"
 #include <memory>
@@ -96,10 +95,6 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
     virtual size_t getGraphCacheSize() const { return 0; }
     virtual size_t getGraphCaptureCount() const { return 0; }
 
-    virtual void initComm(const string &name, int worldSize, int rank) = 0;
-
-    virtual CommunicatorObj &getCommunicator() const = 0;
-
   protected:
     void printProfilingData(double totTime,
                             const std::map<OpType, double> &opTime,
@@ -120,9 +115,6 @@ class CpuRuntimeObj : public RuntimeObj {
     void copyBlobToCPU(void *dst, const void *src, size_t bytes) const override;
     void copyBlobInsideRuntime(void *dst, const void *src,
                                size_t bytes) const override;
-    void initComm(const string &, int, int) override { IT_TODO_HALT(); }
-
-    CommunicatorObj &getCommunicator() const override { IT_TODO_HALT(); }
 };
 
 class NativeCpuRuntimeObj : public CpuRuntimeObj {
