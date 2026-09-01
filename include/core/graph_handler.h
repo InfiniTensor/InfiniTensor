@@ -56,7 +56,8 @@ class GraphHandlerObj {
     Tensor silu(Tensor x, Tensor y);
     Tensor gelu(Tensor x, Tensor y);
     Tensor sigmoid(Tensor x, Tensor y);
-    Tensor hardSigmoid(Tensor x, Tensor y);
+    Tensor hardSigmoid(Tensor x, Tensor y, double alpha = 0.2,
+                       double beta = 0.5);
     Tensor hardSwish(Tensor x, Tensor y);
     Tensor tanh(Tensor x, Tensor y);
     Tensor erf(Tensor x, Tensor y);

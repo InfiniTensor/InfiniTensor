@@ -54,10 +54,22 @@ set(INFINIRT_ROOT "" CACHE PATH "InfiniRT installation prefix")
 set(INFINIOPS_CXX11_ABI "" CACHE STRING "C++11 ABI used to build InfiniOps")
 set(INFINIOPS_PROVIDER_LIBRARY_DIRS "" CACHE STRING
     "Provider library directories required by the InfiniOps ATen backend")
+# Only auto-disable when the user did not explicitly request the Infini
+# backend. An explicit ON with a missing dependency is a configuration
+# error, not something to silently fall back to NativeCpu.
 if(USE_INFINIOPS_KERNELS AND NOT INFINIOPS_ROOT)
-  message(STATUS "INFINIOPS_ROOT is unset; disabling the InfiniOps execution provider")
-  set(USE_INFINIOPS_KERNELS OFF)
-  set(USE_INFINIOPS_ATEN_KERNELS OFF)
+  string(TOUPPER "${USE_INFINIOPS_KERNELS}" _infini_mode)
+  if(_infini_mode STREQUAL "ON" OR _infini_mode STREQUAL "TRUE" OR _infini_mode STREQUAL "1")
+    message(FATAL_ERROR
+      "USE_INFINIOPS_KERNELS=ON requires INFINIOPS_ROOT to be set. "
+      "Either install InfiniOps and set INFINIOPS_ROOT, or set "
+      "USE_INFINIOPS_KERNELS=OFF for a NativeCpu-only build.")
+  else()
+    # AUTO or any other value: silently disable if dependency is missing
+    message(STATUS "INFINIOPS_ROOT is unset; disabling the InfiniOps execution provider")
+    set(USE_INFINIOPS_KERNELS OFF)
+    set(USE_INFINIOPS_ATEN_KERNELS OFF)
+  endif()
 endif()
 if(NOT USE_INFINIOPS_KERNELS AND USE_INFINIOPS_ATEN_KERNELS)
   message(STATUS "Disabling InfiniOps ATen kernels because the InfiniOps execution provider is disabled")

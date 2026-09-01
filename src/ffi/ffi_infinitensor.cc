@@ -502,7 +502,8 @@ void init_graph_builder(py::module &m) {
         .def("gelu", &Handler::gelu, policy::move)
         .def("sigmoid", &Handler::sigmoid, policy::move)
         .def("tanh", &Handler::tanh, policy::move)
-        .def("hardSigmoid", &Handler::hardSigmoid, policy::move)
+        .def("hardSigmoid", &Handler::hardSigmoid, policy::move, py::arg("x"),
+             py::arg("y"), py::arg("alpha") = 0.2, py::arg("beta") = 0.5)
         .def("hardSwish", &Handler::hardSwish, policy::move)
         .def("softmax", &Handler::softmax, policy::move)
         .def("abs", &Handler::abs, policy::move)

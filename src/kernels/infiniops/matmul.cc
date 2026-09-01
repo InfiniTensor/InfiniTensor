@@ -29,8 +29,22 @@ size_t leadingProduct(const Shape &dims) {
     IT_ASSERT(dims.size() >= 2);
     const auto physicalRows = static_cast<size_t>(dims[dims.size() - 2]);
     const auto physicalCols = static_cast<size_t>(dims[dims.size() - 1]);
-    const auto leading = leadingProduct(dims);
-    IT_ASSERT(leading == batch || leading == 1 || batch == 1);
+    const auto ndim = dims.size();
+    const auto batchRank = ndim - 2;
+
+    // Compute broadcast-compatible batch strides: dimensions of size 1 get
+    // stride 0 so the backend view matches the output's logical batch shape.
+    std::vector<size_t> batchShape(batchRank);
+    std::vector<size_t> batchStrides(batchRank);
+
+    // Start from the tensor's own batch dims (right-to-left stride build).
+    size_t runningStride = physicalRows * physicalCols;
+    for (int64_t i = static_cast<int64_t>(batchRank) - 1; i >= 0; --i) {
+        const auto dim = static_cast<size_t>(dims[static_cast<size_t>(i)]);
+        batchShape[static_cast<size_t>(i)] = dim;
+        batchStrides[static_cast<size_t>(i)] = dim == 1 ? 0 : runningStride;
+        runningStride *= dim;
+    }
 
     const auto rows = transposed ? physicalCols : physicalRows;
     const auto cols = transposed ? physicalRows : physicalCols;
@@ -39,13 +53,20 @@ size_t leadingProduct(const Shape &dims) {
 
     ::infini::rt::TensorView::Shape shape;
     ::infini::rt::TensorView::Strides strides;
-    if (batch > 1) {
-        shape = {batch, rows, cols};
-        strides = {leading == 1 ? 0
-                                : static_cast<::infini::rt::TensorView::Stride>(
-                                      physicalRows * physicalCols),
-                   static_cast<::infini::rt::TensorView::Stride>(rowStride),
-                   static_cast<::infini::rt::TensorView::Stride>(colStride)};
+    if (batch > 1 || batchRank > 1) {
+        shape.reserve(ndim);
+        strides.reserve(ndim);
+        for (size_t i = 0; i < batchRank; ++i) {
+            shape.push_back(batchShape[i]);
+            strides.push_back(
+                static_cast<::infini::rt::TensorView::Stride>(batchStrides[i]));
+        }
+        shape.push_back(rows);
+        shape.push_back(cols);
+        strides.push_back(
+            static_cast<::infini::rt::TensorView::Stride>(rowStride));
+        strides.push_back(
+            static_cast<::infini::rt::TensorView::Stride>(colStride));
     } else {
         shape = {rows, cols};
         strides = {static_cast<::infini::rt::TensorView::Stride>(rowStride),

@@ -580,9 +580,18 @@ class OnnxStub:
                     tensors.get(node.output[0]),
                 )
             elif node.op_type == "HardSigmoid":
+                alpha = next(
+                    (attr.f for attr in node.attribute if attr.name == "alpha"),
+                    0.2,
+                )
+                beta = next(
+                    (attr.f for attr in node.attribute if attr.name == "beta"),
+                    0.5,
+                )
                 tensors[node.output[0]] = self.handler.hardSigmoid(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
+                    alpha, beta,
                 )
             elif node.op_type == "HardSwish":
                 tensors[node.output[0]] = self.handler.hardSwish(

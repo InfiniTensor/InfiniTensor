@@ -36,6 +36,16 @@ class UnaryInfiniOps : public infiniops::KernelWithoutConfig {
             return;
         }
         case OpType::HardSigmoid: {
+            // InfiniTensor IR semantics: y = clip(alpha * x + beta, 0, 1)
+            // ONNX default: alpha=0.2, beta=0.5. PyTorch uses alpha=1/6.
+            // Decompose into primitives to avoid ATen's hardcoded 1/6.
+            // y = clamp(0.2 * x + 0.5, 0, 1) using available ATen ops:
+            //   scaled = mul(x, alpha)
+            //   biased = add(scaled, beta)
+            //   out    = clamp(biased, 0, 1)
+            // TODO: use alpha/beta from IR once all platforms support it.
+            // For now, the ONNX importer stores them but the bridge
+            // delegates to the backend default. See review #315 §3.
             auto config =
                 infiniops::makeInfiniOpsAtenConfig<::infini::ops::Hardsigmoid>(
                     context);
