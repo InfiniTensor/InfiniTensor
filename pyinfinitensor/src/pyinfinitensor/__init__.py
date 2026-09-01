@@ -21,6 +21,20 @@ def _provider_modules():
 for _module in _provider_modules():
     importlib.import_module(_module)
 
+
+def _preload_infiniops_libs():
+    """Load libinfinirt/libinfiniops with RTLD_GLOBAL before the extension
+    so its weak CallX references resolve at load time."""
+    import ctypes
+    for soname in ("libinfinirt.so", "libinfiniops.so"):
+        try:
+            ctypes.CDLL(soname, mode=ctypes.RTLD_GLOBAL)
+        except OSError:
+            pass
+
+
+_preload_infiniops_libs()
+
 import backend
 
 print("import backend: {}".format(backend))
