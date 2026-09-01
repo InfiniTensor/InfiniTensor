@@ -78,7 +78,8 @@ InfiniRuntimeObj::InfiniRuntimeObj(const string &deviceType, int deviceId,
     : RuntimeObj(ExecutionProvider::Infini, deviceId),
       runtimeDevice(parseRuntimeDevice(deviceType, deviceId))
 #if INFINITENSOR_INFINIRT_HAS_GRAPH_API
-      , graphCacheCapacity(graphCacheCapacity)
+      ,
+      graphCacheCapacity(graphCacheCapacity)
 #endif
 {
 #if INFINITENSOR_INFINIRT_HAS_GRAPH_API
