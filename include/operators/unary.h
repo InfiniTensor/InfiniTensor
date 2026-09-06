@@ -224,10 +224,19 @@ class ShapeObj : public OperatorObj {
     ShapeObj(GraphObj *graph, Tensor input, Tensor output);
     OP_CLONE(ShapeObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
+    vector<DataType> inferDataType(const TensorVec &) const override {
+        return {DataType::Int64};
+    }
 
     std::string toString() const override;
     int numInputs() const override { return 1; }
     int numOutputs() const override { return 1; }
+
+  private:
+    vector<int> getWorkloadVector() const override {
+        return {type.underlying(), static_cast<int>(inputs[0]->getRank())};
+    }
+    vector<int> getOpAttrVector() const override { return {type.underlying()}; }
 };
 
 class PReluObj : public OperatorObj {

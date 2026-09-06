@@ -1,0 +1,92 @@
+Internal ctest changing into directory: ${REPO}/build/Release
+Test project ${REPO}/build/Release
+      Start  3: test_graph
+      Start  2: test_dynamic_shape
+      Start  8: test_search
+      Start 39: test_nativecpu_conv3d
+ 1/43 Test #39: test_nativecpu_conv3d ............   Passed    0.34 sec
+      Start 17: test_conv
+ 2/43 Test #17: test_conv ........................   Passed    0.18 sec
+      Start 42: test_nativecpu_split
+ 3/43 Test #42: test_nativecpu_split .............   Passed    0.03 sec
+      Start 38: test_nativecpu_concat
+ 4/43 Test #38: test_nativecpu_concat ............   Passed    0.03 sec
+      Start 43: test_nativecpu_transpose
+ 5/43 Test #43: test_nativecpu_transpose .........   Passed    0.00 sec
+      Start  5: test_graph_replace
+ 6/43 Test  #5: test_graph_replace ...............   Passed    0.00 sec
+      Start 14: test_broadcast
+ 7/43 Test #14: test_broadcast ...................   Passed    0.00 sec
+      Start 34: test_split
+ 8/43 Test #34: test_split .......................   Passed    0.00 sec
+      Start  7: test_lazy_allocator
+ 9/43 Test  #8: test_search ......................   Passed    0.60 sec
+      Start 10: test_verify
+10/43 Test  #7: test_lazy_allocator ..............   Passed    0.00 sec
+      Start 22: test_extend
+11/43 Test #10: test_verify ......................   Passed    0.00 sec
+      Start 32: test_sendrecv
+12/43 Test #22: test_extend ......................   Passed    0.00 sec
+      Start 33: test_slice
+13/43 Test #32: test_sendrecv ....................   Passed    0.00 sec
+      Start 35: test_transpose
+14/43 Test #33: test_slice .......................   Passed    0.00 sec
+      Start 40: test_nativecpu_elementwise
+15/43 Test #35: test_transpose ...................   Passed    0.00 sec
+      Start 15: test_clip
+16/43 Test #40: test_nativecpu_elementwise .......   Passed    0.00 sec
+      Start 28: test_reduce
+17/43 Test #15: test_clip ........................   Passed    0.00 sec
+      Start  6: test_hash
+18/43 Test #28: test_reduce ......................   Passed    0.00 sec
+      Start 41: test_nativecpu_identity
+19/43 Test  #6: test_hash ........................   Passed    0.00 sec
+      Start 37: test_where
+20/43 Test #41: test_nativecpu_identity ..........   Passed    0.00 sec
+      Start 18: test_conv3d
+21/43 Test #37: test_where .......................   Passed    0.00 sec
+      Start 20: test_element_wise
+22/43 Test #18: test_conv3d ......................   Passed    0.00 sec
+      Start 12: test_all_reduce
+23/43 Test #20: test_element_wise ................   Passed    0.00 sec
+      Start 31: test_rope
+24/43 Test #12: test_all_reduce ..................   Passed    0.00 sec
+      Start  4: test_graph_handler
+25/43 Test #31: test_rope ........................   Passed    0.00 sec
+      Start 26: test_pad
+26/43 Test  #4: test_graph_handler ...............   Passed    0.00 sec
+      Start 13: test_batch_norm
+27/43 Test #26: test_pad .........................   Passed    0.00 sec
+      Start 30: test_resize
+28/43 Test #13: test_batch_norm ..................   Passed    0.00 sec
+      Start 16: test_concat
+29/43 Test #30: test_resize ......................   Passed    0.00 sec
+      Start 25: test_matmul
+30/43 Test #16: test_concat ......................   Passed    0.00 sec
+      Start 19: test_conv_transposed_2d
+31/43 Test #25: test_matmul ......................   Passed    0.00 sec
+      Start 21: test_expand
+32/43 Test #19: test_conv_transposed_2d ..........   Passed    0.00 sec
+      Start  9: test_tensor_save
+33/43 Test  #9: test_tensor_save .................   Passed    0.00 sec
+      Start 29: test_reshape
+34/43 Test #21: test_expand ......................   Passed    0.00 sec
+      Start 24: test_gather_elements
+35/43 Test #29: test_reshape .....................   Passed    0.00 sec
+      Start 11: test_all_gather
+36/43 Test #24: test_gather_elements .............   Passed    0.00 sec
+      Start 36: test_unary
+37/43 Test #11: test_all_gather ..................   Passed    0.00 sec
+      Start 27: test_pooling
+38/43 Test #36: test_unary .......................   Passed    0.00 sec
+      Start 23: test_gather
+39/43 Test #27: test_pooling .....................   Passed    0.00 sec
+      Start  1: test_onnx_dynamic_shape
+40/43 Test #23: test_gather ......................   Passed    0.00 sec
+41/43 Test  #2: test_dynamic_shape ...............   Passed    1.18 sec
+42/43 Test  #1: test_onnx_dynamic_shape ..........   Passed    1.12 sec
+43/43 Test  #3: test_graph .......................   Passed    3.83 sec
+
+100% tests passed, 0 tests failed out of 43
+
+Total Test time (real) =   3.83 sec

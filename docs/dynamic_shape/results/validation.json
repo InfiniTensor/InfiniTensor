@@ -1,0 +1,38 @@
+{
+  "date": "2026-09-07",
+  "base_commit": "5cb7c1fc",
+  "cpu_ctest": {
+    "passed": 43,
+    "failed": 0,
+    "note": "42 C++ executables plus the Python dynamic-shape CTest entry"
+  },
+  "python_unittest": {
+    "run": 90,
+    "passed": 87,
+    "skipped": 3,
+    "failed": 0
+  },
+  "cuda_ctest": {
+    "passed": 6,
+    "failed": 0
+  },
+  "dynamic_suite_with_cuda": {
+    "passed": 8,
+    "failed": 0
+  },
+  "compute_sanitizer_errors": 0,
+  "cuda_gather_sanitizer_errors": 0,
+  "environment": {
+    "cpu": "AMD Ryzen 9 7945HX",
+    "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU (8 GiB)",
+    "os": "WSL2 Linux",
+    "python": "3.10.21",
+    "numpy": "2.2.6",
+    "onnx": "1.22.0",
+    "onnxruntime": "1.23.2",
+    "onnxsim": "0.7.3",
+    "cuda_toolkit": "12.4.131",
+    "cudnn": "9.10.2",
+    "omp_num_threads": 1
+  }
+}

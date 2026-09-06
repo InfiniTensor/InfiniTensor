@@ -1,0 +1,146 @@
+..s.Stack trace (most recent call last):
+#31   Source "/usr/local/src/conda/python-3.10.21/Objects/call.c", line 215, in _PyObject_MakeTpCall
+#30   Source "/usr/local/src/conda/python-3.10.21/Objects/typeobject.c", line 7494, in slot_tp_call
+#29   Source "/usr/local/src/conda/python-3.10.21/Objects/call.c", line 431, in _PyObject_Call_Prepend
+#28 | Source "/usr/local/src/conda/python-3.10.21/Objects/call.c", line 142, in _PyFunction_Vectorcall
+    | Source "/usr/local/src/conda/python-3.10.21/Objects/call.c", line 342, in _PyEval_Vector
+    | Source "/usr/local/src/conda/python-3.10.21/Python/ceval.c", line 5067, in _PyEval_EvalFrame
+      Source "/usr/local/src/conda/python-3.10.21/Include/internal/pycore_ceval.h", line 46, in _PyObject_FastCallDictTstate
+#27 | Source "/usr/local/src/conda/python-3.10.21/Python/ceval.c", line 4277, in do_call_core
+      Source "/usr/local/src/conda/python-3.10.21/Python/ceval.c", line 5945, in _PyEval_EvalFrameDefault
+#26 | Source "/usr/local/src/conda/python-3.10.21/Objects/classobject.c", line 83, in _PyObject_VectorcallTstate
+    | Source "/usr/local/src/conda/python-3.10.21/Include/cpython/abstract.h", line 114, in _PyFunction_Vectorcall
+    | Source "/usr/local/src/conda/python-3.10.21/Objects/call.c", line 342, in _PyEval_Vector
+    | Source "/usr/local/src/conda/python-3.10.21/Python/ceval.c", line 5067, in _PyEval_EvalFrame
+      Source "/usr/local/src/conda/python-3.10.21/Include/internal/pycore_ceval.h", line 46, in method_vectorcall
+#25 | Source "/usr/local/src/conda/python-3.10.21/Python/ceval.c", line 4213, in call_function
+    | Source "/usr/local/src/conda/python-3.10.21/Python/ceval.c", line 5893, in PyObject_Vectorcall
+    | Source "/usr/local/src/conda/python-3.10.21/Include/cpython/abstract.h", line 123, in _PyObject_VectorcallTstate
+    | Source "/usr/local/src/conda/python-3.10.21/Include/cpython/abstract.h", line 99, in _PyObject_VectorcallTstate
+      Source "/usr/local/src/conda/python-3.10.21/Include/cpython/abstract.h", line 112, in _PyEval_EvalFrameDefault
+#24   Source "/usr/local/src/conda/python-3.10.21/Objects/call.c", line 215, in _PyObject_MakeTpCall
+#23   Source "/usr/local/src/conda/python-3.10.21/Objects/typeobject.c", line 7494, in slot_tp_call
+#22   Source "/usr/local/src/conda/python-3.10.21/Objects/call.c", line 431, in _PyObject_Call_Prepend
+#21 | Source "/usr/local/src/conda/python-3.10.21/Objects/call.c", line 142, in _PyFunction_Vectorcall
+    | Source "/usr/local/src/conda/python-3.10.21/Objects/call.c", line 342, in _PyEval_Vector
+    | Source "/usr/local/src/conda/python-3.10.21/Python/ceval.c", line 5067, in _PyEval_EvalFrame
+      Source "/usr/local/src/conda/python-3.10.21/Include/internal/pycore_ceval.h", line 46, in _PyObject_FastCallDictTstate
+#20 | Source "/usr/local/src/conda/python-3.10.21/Python/ceval.c", line 4277, in do_call_core
+      Source "/usr/local/src/conda/python-3.10.21/Python/ceval.c", line 5945, in _PyEval_EvalFrameDefault
+#19 | Source "/usr/local/src/conda/python-3.10.21/Objects/classobject.c", line 83, in _PyObject_VectorcallTstate
+    | Source "/usr/local/src/conda/python-3.10.21/Include/cpython/abstract.h", line 114, in _PyFunction_Vectorcall
+    | Source "/usr/local/src/conda/python-3.10.21/Objects/call.c", line 342, in _PyEval_Vector
+    | Source "/usr/local/src/conda/python-3.10.21/Python/ceval.c", line 5067, in _PyEval_EvalFrame
+      Source "/usr/local/src/conda/python-3.10.21/Include/internal/pycore_ceval.h", line 46, in method_vectorcall
+#18 | Source "/usr/local/src/conda/python-3.10.21/Python/ceval.c", line 4198, in call_function
+    | Source "/usr/local/src/conda/python-3.10.21/Python/ceval.c", line 5893, in PyObject_Vectorcall
+    | Source "/usr/local/src/conda/python-3.10.21/Include/cpython/abstract.h", line 123, in _PyObject_VectorcallTstate
+      Source "/usr/local/src/conda/python-3.10.21/Include/cpython/abstract.h", line 114, in _PyEval_EvalFrameDefault
+#17 | Source "/usr/local/src/conda/python-3.10.21/Objects/call.c", line 342, in _PyEval_Vector
+    | Source "/usr/local/src/conda/python-3.10.21/Python/ceval.c", line 5067, in _PyEval_EvalFrame
+      Source "/usr/local/src/conda/python-3.10.21/Include/internal/pycore_ceval.h", line 46, in _PyFunction_Vectorcall
+#16 | Source "/usr/local/src/conda/python-3.10.21/Python/ceval.c", line 4213, in call_function
+    | Source "/usr/local/src/conda/python-3.10.21/Python/ceval.c", line 5893, in PyObject_Vectorcall
+    | Source "/usr/local/src/conda/python-3.10.21/Include/cpython/abstract.h", line 123, in _PyObject_VectorcallTstate
+      Source "/usr/local/src/conda/python-3.10.21/Include/cpython/abstract.h", line 114, in _PyEval_EvalFrameDefault
+#15 | Source "/usr/local/src/conda/python-3.10.21/Objects/classobject.c", line 53, in _PyObject_VectorcallTstate
+    | Source "/usr/local/src/conda/python-3.10.21/Include/cpython/abstract.h", line 114, in _PyFunction_Vectorcall
+    | Source "/usr/local/src/conda/python-3.10.21/Objects/call.c", line 342, in _PyEval_Vector
+    | Source "/usr/local/src/conda/python-3.10.21/Python/ceval.c", line 5067, in _PyEval_EvalFrame
+      Source "/usr/local/src/conda/python-3.10.21/Include/internal/pycore_ceval.h", line 46, in method_vectorcall
+#14 | Source "/usr/local/src/conda/python-3.10.21/Python/ceval.c", line 4198, in call_function
+    | Source "/usr/local/src/conda/python-3.10.21/Python/ceval.c", line 5893, in PyObject_Vectorcall
+    | Source "/usr/local/src/conda/python-3.10.21/Include/cpython/abstract.h", line 123, in _PyObject_VectorcallTstate
+      Source "/usr/local/src/conda/python-3.10.21/Include/cpython/abstract.h", line 114, in _PyEval_EvalFrameDefault
+#13 | Source "/usr/local/src/conda/python-3.10.21/Objects/call.c", line 342, in _PyEval_Vector
+    | Source "/usr/local/src/conda/python-3.10.21/Python/ceval.c", line 5067, in _PyEval_EvalFrame
+      Source "/usr/local/src/conda/python-3.10.21/Include/internal/pycore_ceval.h", line 46, in _PyFunction_Vectorcall
+#12 | Source "/usr/local/src/conda/python-3.10.21/Python/ceval.c", line 4198, in call_function
+    | Source "/usr/local/src/conda/python-3.10.21/Python/ceval.c", line 5893, in PyObject_Vectorcall
+    | Source "/usr/local/src/conda/python-3.10.21/Include/cpython/abstract.h", line 123, in _PyObject_VectorcallTstate
+      Source "/usr/local/src/conda/python-3.10.21/Include/cpython/abstract.h", line 114, in _PyEval_EvalFrameDefault
+#11 | Source "/usr/local/src/conda/python-3.10.21/Objects/call.c", line 342, in _PyEval_Vector
+    | Source "/usr/local/src/conda/python-3.10.21/Python/ceval.c", line 5067, in _PyEval_EvalFrame
+      Source "/usr/local/src/conda/python-3.10.21/Include/internal/pycore_ceval.h", line 46, in _PyFunction_Vectorcall
+#10 | Source "/usr/local/src/conda/python-3.10.21/Python/ceval.c", line 4198, in call_function
+    | Source "/usr/local/src/conda/python-3.10.21/Python/ceval.c", line 5893, in PyObject_Vectorcall
+    | Source "/usr/local/src/conda/python-3.10.21/Include/cpython/abstract.h", line 123, in _PyObject_VectorcallTstate
+      Source "/usr/local/src/conda/python-3.10.21/Include/cpython/abstract.h", line 114, in _PyEval_EvalFrameDefault
+#9  | Source "/usr/local/src/conda/python-3.10.21/Objects/call.c", line 342, in _PyEval_Vector
+    | Source "/usr/local/src/conda/python-3.10.21/Python/ceval.c", line 5067, in _PyEval_EvalFrame
+      Source "/usr/local/src/conda/python-3.10.21/Include/internal/pycore_ceval.h", line 46, in _PyFunction_Vectorcall
+#8  | Source "/usr/local/src/conda/python-3.10.21/Python/ceval.c", line 4181, in call_function
+    | Source "/usr/local/src/conda/python-3.10.21/Python/ceval.c", line 5893, in PyObject_Vectorcall
+    | Source "/usr/local/src/conda/python-3.10.21/Include/cpython/abstract.h", line 123, in _PyObject_VectorcallTstate
+      Source "/usr/local/src/conda/python-3.10.21/Include/cpython/abstract.h", line 114, in _PyEval_EvalFrameDefault
+#7  | Source "/usr/local/src/conda/python-3.10.21/Objects/classobject.c", line 53, in _PyObject_VectorcallTstate
+    | Source "/usr/local/src/conda/python-3.10.21/Include/cpython/abstract.h", line 99, in _PyObject_VectorcallTstate
+      Source "/usr/local/src/conda/python-3.10.21/Include/cpython/abstract.h", line 112, in method_vectorcall
+#6    Source "/usr/local/src/conda/python-3.10.21/Objects/call.c", line 215, in _PyObject_MakeTpCall
+#5    Source "/usr/local/src/conda/python-3.10.21/Objects/methodobject.c", line 543, in cfunction_call
+#4    Object "${REPO}/build/Release/backend.cpython-310-x86_64-linux-gnu.so", at 0x7a36775aa901, in
+#3    Object "${REPO}/build/Release/backend.cpython-310-x86_64-linux-gnu.so", at 0x7a36775ce123, in
+#2    Source "${REPO}/src/core/graph.cc", line 211, in shape_infer
+        208:         auto inferenceInputs = op->getInputs();
+        209:         if (op->getOpType() == OpType::Reshape && inferenceInputs.size() == 2)
+        210:             inferenceInputs[1] = evaluateShapeTensor(inferenceInputs[1]);
+      > 211:         auto ans = op->inferShape(inferenceInputs);
+        212:         IT_ASSERT(ans.has_value());
+        213:         auto oldOutputs = op->getOutputs();
+        214:         IT_ASSERT(ans.value().size() == oldOutputs.size());
+#1    Source "${REPO}/src/operators/reshape.cc", line 58, in inferShape
+         55:                   "Reshape inferred dimension overflow");
+         56:         outputShape[index] = static_cast<int>(size / knownSize);
+         57:     } else {
+      >  58:         IT_ASSERT(knownSize == size, "Reshape element count mismatch");
+         59:     }
+         60:     return {{outputShape}};
+         61: }
+#0    Source "${REPO}/src/utils/exception.cc", line 15, in Exception
+         12: Exception::Exception(const std::string &msg)
+         13:     : std::runtime_error(msg), info(msg) {
+         14:     backward_trace::StackTrace st;
+      >  15:     st.load_here(32);
+         16:     backward_trace::Printer p;
+         17:     p.print(st);
+         18: }
+......s.......................................WARNING: failed to run "Recv" op (name is "recv"), skip... Traceback (most recent call last):
+  File "${PYTHON_ENV}/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+  File "${PYTHON_ENV}/lib/python3.10/runpy.py", line 86, in _run_code
+  File "${PYTHON_ENV}/lib/python3.10/unittest/__main__.py", line 18, in <module>
+  File "${PYTHON_ENV}/lib/python3.10/unittest/main.py", line 101, in __init__
+  File "${PYTHON_ENV}/lib/python3.10/unittest/main.py", line 271, in runTests
+  File "${PYTHON_ENV}/lib/python3.10/unittest/runner.py", line 184, in run
+  File "${PYTHON_ENV}/lib/python3.10/unittest/suite.py", line 84, in __call__
+  File "${PYTHON_ENV}/lib/python3.10/unittest/suite.py", line 122, in run
+  File "${PYTHON_ENV}/lib/python3.10/unittest/suite.py", line 84, in __call__
+  File "${PYTHON_ENV}/lib/python3.10/unittest/suite.py", line 122, in run
+  File "${PYTHON_ENV}/lib/python3.10/unittest/suite.py", line 84, in __call__
+  File "${PYTHON_ENV}/lib/python3.10/unittest/suite.py", line 122, in run
+  File "${PYTHON_ENV}/lib/python3.10/unittest/case.py", line 650, in __call__
+  File "${PYTHON_ENV}/lib/python3.10/unittest/case.py", line 591, in run
+  File "${PYTHON_ENV}/lib/python3.10/unittest/case.py", line 549, in _callTestMethod
+  File "${REPO}/pyinfinitensor/tests/test_onnx.py", line 589, in test_recv
+  File "${REPO}/pyinfinitensor/src/pyinfinitensor/onnx.py", line 1606, in from_onnx
+  File "${REPO}/pyinfinitensor/src/pyinfinitensor/onnx.py", line 70, in __init__
+  File "${PYTHON_ENV}/lib/python3.10/site-packages/onnxsim/onnx_simplifier.py", line 703, in simplify
+  File "${PYTHON_ENV}/lib/python3.10/site-packages/onnxsim/onnx_simplifier.py", line 844, in Run
+  File "${PYTHON_ENV}/lib/python3.10/site-packages/onnxsim/backend.py", line 220, in run_model
+  File "${PYTHON_ENV}/lib/python3.10/site-packages/onnxsim/backend.py", line 157, in _run_with_onnxruntime
+  File "${PYTHON_ENV}/lib/python3.10/site-packages/onnxruntime/capi/onnxruntime_inference_collection.py", line 486, in __init__
+  File "${PYTHON_ENV}/lib/python3.10/site-packages/onnxruntime/capi/onnxruntime_inference_collection.py", line 575, in _create_inference_session
+Fail: [ONNXRuntimeError] : 1 : FAIL : /onnxruntime_src/onnxruntime/core/graph/model.cc:181 onnxruntime::Model::Model(onnx::ModelProto&&, const onnxruntime::PathString&, const onnxruntime::IOnnxRuntimeOpSchemaRegistryList*, const onnxruntime::logging::Logger&, const onnxruntime::ModelOptions&) Unsupported model IR version: 13, max supported IR version: 11
+
+...................s....................
+----------------------------------------------------------------------
+Ran 90 tests in 0.885s
+
+OK (skipped=3)
+import backend: <module 'backend' from '${REPO}/build/Release/backend.cpython-310-x86_64-linux-gnu.so'>
+The model contains custom operator(s) ['Broadcast'] in the default ONNX domain (e.g. a TensorRT plugin). They are preserved unchanged and skipped during model checking.
+The model contains custom operator(s) ['AllReduceAvg'] in the default ONNX domain (e.g. a TensorRT plugin). They are preserved unchanged and skipped during model checking.
+The model contains custom operator(s) ['AllReduceMax'] in the default ONNX domain (e.g. a TensorRT plugin). They are preserved unchanged and skipped during model checking.
+The model contains custom operator(s) ['AllReduceMin'] in the default ONNX domain (e.g. a TensorRT plugin). They are preserved unchanged and skipped during model checking.
+The model contains custom operator(s) ['AllReduceProd'] in the default ONNX domain (e.g. a TensorRT plugin). They are preserved unchanged and skipped during model checking.
+The model contains custom operator(s) ['AllReduceSum'] in the default ONNX domain (e.g. a TensorRT plugin). They are preserved unchanged and skipped during model checking.
+The model contains custom operator(s) ['Recv'] in the default ONNX domain (e.g. a TensorRT plugin). They are preserved unchanged and skipped during model checking.

@@ -130,6 +130,14 @@ class GraphHandlerObj {
     inline void optimize() { g->optimize(); }
 
     inline void shape_infer() { g->shape_infer(); }
+    Tensor reshape_dynamic(Tensor input, Tensor shape, Tensor output,
+                           bool allowZero = false);
+    Tensor global_avg_pool(Tensor input, Tensor output);
+    inline void set_memory_reuse(bool reuse) { g->setMemoryReuse(reuse); }
+    inline auto memory_stats() const { return g->getMemoryStats(); }
+    inline size_t shape_compute_count() const {
+        return g->getShapeComputeCount();
+    }
 
     void change_shape(const vector<int> &shape, int tensorId);
     //------ runtime

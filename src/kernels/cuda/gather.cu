@@ -16,6 +16,14 @@ __device__ T gatheredOffset2Offset(int gOffset,
             }
 
             idx = static_cast<T *>(metaData.indexValue)[idxOffset];
+            // Validate values at execution time, including CUDA Graph replay.
+            // A trap reports invalid indices without issuing an OOB load.
+            if (idx < -metaData.axisSize || idx >= metaData.axisSize) {
+                asm("trap;");
+                return 0;
+            }
+            if (idx < 0)
+                idx += metaData.axisSize;
             k = k - metaData.idxNDim;
 
         } else {
@@ -45,12 +53,12 @@ void gather_kernel(T *in, T *out, GatherMetaData metaData, size_t num) {
     int gridSize = (num + blockSize - 1) / blockSize;
     if (metaData.indexType == DataType::Int64) {
         _gather_kernel<T, int64_t>
-            <<<gridSize, blockSize, 0, CUDAStream::getCurrentStream()>>>
-            (in, out, metaData, num);
+            <<<gridSize, blockSize, 0, CUDAStream::getCurrentStream()>>>(
+                in, out, metaData, num);
     } else {
         _gather_kernel<T, int>
-            <<<gridSize, blockSize, 0, CUDAStream::getCurrentStream()>>>
-            (in, out, metaData, num);
+            <<<gridSize, blockSize, 0, CUDAStream::getCurrentStream()>>>(
+                in, out, metaData, num);
     }
 }
 template void gather_kernel<float>(float *in, float *out,

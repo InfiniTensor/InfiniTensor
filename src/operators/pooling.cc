@@ -4,18 +4,27 @@ namespace infini {
 
 PoolingObj::PoolingObj(GraphObj *graph, OpType optype, Tensor input,
                        Tensor output, int kh, int kw, int dh, int dw, int ph,
-                       int pw, int sh, int sw, int ceilMode)
+                       int pw, int sh, int sw, int ceilMode, bool globalPooling)
     : OperatorObj(optype, {input}, {output}), kh(kh), kw(kw), dh(dh), dw(dw),
       ph(ph), pw(pw), sh(sh), sw(sw), ceilMode(ceilMode),
       n(input->getDims().at(0)), c(input->getDims().at(1)),
       h(input->getRank() == 3 ? 1 : input->getDims().at(2)),
       w(input->getRank() == 3 ? input->getDims().at(2)
-                              : input->getDims().at(3)) {
+                              : input->getDims().at(3)),
+      globalPooling(globalPooling) {
     IT_ASSERT(checkValid(graph));
 }
 
 optional<vector<Shape>> PoolingObj::inferShape(const TensorVec &inputs) {
     const auto &input = inputs[0];
+    n = input->getDims().at(0);
+    c = input->getDims().at(1);
+    h = input->getRank() == 3 ? 1 : input->getDims().at(2);
+    w = input->getDims().back();
+    if (globalPooling) {
+        kh = h;
+        kw = w;
+    }
     int oh, ow;
     if (ceilMode) {
         oh = ceil(((float)(h + 2 * ph - dh * (kh - 1) - 1)) / sh + 1);
@@ -53,7 +62,8 @@ vector<int> PoolingObj::getWorkloadVector() const {
 }
 
 vector<int> PoolingObj::getOpAttrVector() const {
-    return {type.underlying(), kh, kw, ph, pw, sh, sw, dh, dw, ceilMode};
+    return {type.underlying(), kh,           kw, ph, pw, sh, sw, dh, dw,
+            ceilMode,          globalPooling};
 }
 
 }; // namespace infini

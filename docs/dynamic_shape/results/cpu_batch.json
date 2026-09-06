@@ -1,0 +1,141 @@
+{
+  "device": "cpu",
+  "cuda_graph": false,
+  "model": "batch_model",
+  "rtol": 0.0001,
+  "atol": 1e-05,
+  "onnxruntime": "1.23.2",
+  "shape_optimization": {
+    "nodes_before": 7,
+    "nodes_after": 4,
+    "folded_nodes": 3,
+    "eliminated_nodes": 0
+  },
+  "runs": [
+    {
+      "input_shape": [
+        1,
+        2,
+        3
+      ],
+      "output_shapes": {
+        "y": [
+          1,
+          4
+        ]
+      },
+      "max_abs_error": {
+        "y": 4.470348358154297e-08
+      },
+      "end_to_end_ms": 0.3518570010783151,
+      "memory": {
+        "activation_allocations": 1,
+        "activation_capacity": 120,
+        "activation_required": 120,
+        "peak_activation_capacity": 120,
+        "peak_pool_bytes_during_reallocation": 120,
+        "weight_bytes": 120
+      }
+    },
+    {
+      "input_shape": [
+        2,
+        2,
+        3
+      ],
+      "output_shapes": {
+        "y": [
+          2,
+          4
+        ]
+      },
+      "max_abs_error": {
+        "y": 6.705522537231445e-08
+      },
+      "end_to_end_ms": 0.09216500620823354,
+      "memory": {
+        "activation_allocations": 2,
+        "activation_capacity": 184,
+        "activation_required": 184,
+        "peak_activation_capacity": 184,
+        "peak_pool_bytes_during_reallocation": 304,
+        "weight_bytes": 120
+      }
+    },
+    {
+      "input_shape": [
+        8,
+        2,
+        3
+      ],
+      "output_shapes": {
+        "y": [
+          8,
+          4
+        ]
+      },
+      "max_abs_error": {
+        "y": 2.384185791015625e-07
+      },
+      "end_to_end_ms": 0.037550998968072236,
+      "memory": {
+        "activation_allocations": 3,
+        "activation_capacity": 568,
+        "activation_required": 568,
+        "peak_activation_capacity": 568,
+        "peak_pool_bytes_during_reallocation": 752,
+        "weight_bytes": 120
+      }
+    },
+    {
+      "input_shape": [
+        3,
+        2,
+        3
+      ],
+      "output_shapes": {
+        "y": [
+          3,
+          4
+        ]
+      },
+      "max_abs_error": {
+        "y": 2.384185791015625e-07
+      },
+      "end_to_end_ms": 0.03367300087120384,
+      "memory": {
+        "activation_allocations": 3,
+        "activation_capacity": 568,
+        "activation_required": 248,
+        "peak_activation_capacity": 568,
+        "peak_pool_bytes_during_reallocation": 752,
+        "weight_bytes": 120
+      }
+    },
+    {
+      "input_shape": [
+        1,
+        2,
+        3
+      ],
+      "output_shapes": {
+        "y": [
+          1,
+          4
+        ]
+      },
+      "max_abs_error": {
+        "y": 1.1920928955078125e-07
+      },
+      "end_to_end_ms": 0.034576005418784916,
+      "memory": {
+        "activation_allocations": 3,
+        "activation_capacity": 568,
+        "activation_required": 120,
+        "peak_activation_capacity": 568,
+        "peak_pool_bytes_during_reallocation": 752,
+        "weight_bytes": 120
+      }
+    }
+  ]
+}

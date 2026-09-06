@@ -1,0 +1,172 @@
+{
+  "device": "cuda",
+  "cuda_graph": true,
+  "features": 1024,
+  "sequence": [
+    1,
+    2,
+    8,
+    3,
+    1
+  ],
+  "warmup_sequences": 1,
+  "timed_sequences": 20,
+  "python": "3.10.21",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+  "timing_scope": "prepare includes shape evaluation and memory planning; end-to-end includes input/output copies; each run is synchronized",
+  "memory_scope": "activation pool capacity and old/new pool overlap during reallocation; excludes runtime workspace, library metadata, Python/ORT and externally retained tensor views",
+  "results": [
+    {
+      "constant_folding": false,
+      "capacity_reuse": false,
+      "shape_optimization": {
+        "nodes_before": 7,
+        "nodes_after": 7,
+        "folded_nodes": 0,
+        "eliminated_nodes": 0
+      },
+      "runtime_shape_nodes": 7,
+      "timings": {
+        "prepare_ms": {
+          "mean": 0.24641922999999996,
+          "median": 0.2226375,
+          "p95": 0.40315085
+        },
+        "execute_ms": {
+          "mean": 0.06009744,
+          "median": 0.0565375,
+          "p95": 0.08787619999999996
+        },
+        "end_to_end_ms": {
+          "mean": 0.37332857,
+          "median": 0.33025649999999995,
+          "p95": 0.72037085
+        }
+      },
+      "memory": {
+        "activation_allocations": 85,
+        "activation_capacity": 10240,
+        "activation_required": 10240,
+        "peak_activation_capacity": 67840,
+        "peak_pool_bytes_during_reallocation": 94464,
+        "weight_bytes": 66048
+      },
+      "timed_pool_allocations": 80,
+      "cuda_graph_captures": 85
+    },
+    {
+      "constant_folding": true,
+      "capacity_reuse": false,
+      "shape_optimization": {
+        "nodes_before": 7,
+        "nodes_after": 4,
+        "folded_nodes": 3,
+        "eliminated_nodes": 0
+      },
+      "runtime_shape_nodes": 4,
+      "timings": {
+        "prepare_ms": {
+          "mean": 0.18858772000000001,
+          "median": 0.1627185,
+          "p95": 0.3923238499999999
+        },
+        "execute_ms": {
+          "mean": 0.05210448,
+          "median": 0.055305,
+          "p95": 0.06987215
+        },
+        "end_to_end_ms": {
+          "mean": 0.29084326,
+          "median": 0.2649975,
+          "p95": 0.50534925
+        }
+      },
+      "memory": {
+        "activation_allocations": 85,
+        "activation_capacity": 9472,
+        "activation_required": 9472,
+        "peak_activation_capacity": 67072,
+        "peak_pool_bytes_during_reallocation": 92928,
+        "weight_bytes": 66304
+      },
+      "timed_pool_allocations": 80,
+      "cuda_graph_captures": 85
+    },
+    {
+      "constant_folding": false,
+      "capacity_reuse": true,
+      "shape_optimization": {
+        "nodes_before": 7,
+        "nodes_after": 7,
+        "folded_nodes": 0,
+        "eliminated_nodes": 0
+      },
+      "runtime_shape_nodes": 7,
+      "timings": {
+        "prepare_ms": {
+          "mean": 0.23162022999999998,
+          "median": 0.189224,
+          "p95": 0.489408
+        },
+        "execute_ms": {
+          "mean": 0.03658254,
+          "median": 0.0324165,
+          "p95": 0.05972509999999998
+        },
+        "end_to_end_ms": {
+          "mean": 0.3335981,
+          "median": 0.26914550000000004,
+          "p95": 0.6366045499999998
+        }
+      },
+      "memory": {
+        "activation_allocations": 3,
+        "activation_capacity": 67840,
+        "activation_required": 10240,
+        "peak_activation_capacity": 67840,
+        "peak_pool_bytes_during_reallocation": 86272,
+        "weight_bytes": 66048
+      },
+      "timed_pool_allocations": 0,
+      "cuda_graph_captures": 6
+    },
+    {
+      "constant_folding": true,
+      "capacity_reuse": true,
+      "shape_optimization": {
+        "nodes_before": 7,
+        "nodes_after": 4,
+        "folded_nodes": 3,
+        "eliminated_nodes": 0
+      },
+      "runtime_shape_nodes": 4,
+      "timings": {
+        "prepare_ms": {
+          "mean": 0.17127644000000003,
+          "median": 0.14499499999999999,
+          "p95": 0.26842184999999985
+        },
+        "execute_ms": {
+          "mean": 0.03099764,
+          "median": 0.029456,
+          "p95": 0.04553289999999999
+        },
+        "end_to_end_ms": {
+          "mean": 0.2594773,
+          "median": 0.226044,
+          "p95": 0.48203564999999976
+        }
+      },
+      "memory": {
+        "activation_allocations": 3,
+        "activation_capacity": 67072,
+        "activation_required": 9472,
+        "peak_activation_capacity": 67072,
+        "peak_pool_bytes_during_reallocation": 84736,
+        "weight_bytes": 66304
+      },
+      "timed_pool_allocations": 0,
+      "cuda_graph_captures": 6
+    }
+  ]
+}

@@ -42,12 +42,17 @@ class GraphObj : public Object {
     OpVec ops;
     LazyAllocator allocator;
     Ref<GraphCaptureStateObj> captureState;
+    // Host values survive activation planning; only the small shape dependency
+    // closure is evaluated here, never arbitrary data operators.
+    std::unordered_map<TensorObj *, Tensor> shapeTensorValues;
+    std::unordered_set<OperatorObj *> shapeOperators;
+    bool reuseMemory = true;
 
   public:
     explicit GraphObj(Runtime runtime)
         : runtime(runtime), allocator(runtime),
           captureState(make_ref<GraphCaptureStateObj>(guid, runtime)),
-          sorted(false){};
+          sorted(false) {};
     GraphObj(Runtime runtime, OpVec ops_in);
     ~GraphObj() override;
     string toString() const override;
@@ -92,6 +97,21 @@ class GraphObj : public Object {
     void optimize();
 
     void shape_infer();
+    Tensor evaluateShapeTensor(const Tensor &tensor);
+    void evaluateShapeOperator(const Operator &op);
+    void uploadShapeTensors();
+    bool isShapeOperator(const Operator &op) const {
+        return shapeOperators.count(op.get()) != 0;
+    }
+    bool isShapeTensor(const Tensor &tensor) const {
+        return tensor->getSource() &&
+               shapeTensorValues.count(tensor.get()) != 0;
+    }
+    size_t getShapeComputeCount() const { return shapeOperators.size(); }
+    void setMemoryReuse(bool reuse) { reuseMemory = reuse; }
+    std::map<string, size_t> getMemoryStats() const {
+        return allocator.getMemoryStats();
+    }
 
     void dataMalloc(bool useNaiveAllocator = false, size_t memPoolSize = 0);
 

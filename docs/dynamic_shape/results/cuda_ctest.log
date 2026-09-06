@@ -1,0 +1,18 @@
+Internal ctest changing into directory: ${REPO}/build/CUDA
+Test project ${REPO}/build/CUDA
+    Start 59: test_cuda_gather
+1/6 Test #59: test_cuda_gather .................   Passed    1.24 sec
+    Start 60: test_cuda_gather_elements
+2/6 Test #60: test_cuda_gather_elements ........   Passed    0.65 sec
+    Start 63: test_cuda_matmul
+3/6 Test #63: test_cuda_matmul .................   Passed    1.46 sec
+    Start 65: test_cuda_pooling
+4/6 Test #65: test_cuda_pooling ................   Passed    0.65 sec
+    Start 67: test_cuda_reshape
+5/6 Test #67: test_cuda_reshape ................   Passed    0.83 sec
+    Start 78: test_cudagraph
+6/6 Test #78: test_cudagraph ...................   Passed    6.20 sec
+
+100% tests passed, 0 tests failed out of 6
+
+Total Test time (real) =  11.03 sec

@@ -1,0 +1,168 @@
+{
+  "device": "cpu",
+  "cuda_graph": false,
+  "features": 1024,
+  "sequence": [
+    1,
+    2,
+    8,
+    3,
+    1
+  ],
+  "warmup_sequences": 1,
+  "timed_sequences": 20,
+  "python": "3.10.21",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+  "timing_scope": "prepare includes shape evaluation and memory planning; end-to-end includes input/output copies; each run is synchronized",
+  "memory_scope": "activation pool capacity and old/new pool overlap during reallocation; excludes runtime workspace, library metadata, Python/ORT and externally retained tensor views",
+  "results": [
+    {
+      "constant_folding": false,
+      "capacity_reuse": false,
+      "shape_optimization": {
+        "nodes_before": 7,
+        "nodes_after": 7,
+        "folded_nodes": 0,
+        "eliminated_nodes": 0
+      },
+      "runtime_shape_nodes": 7,
+      "timings": {
+        "prepare_ms": {
+          "mean": 0.01993065,
+          "median": 0.017799000000000002,
+          "p95": 0.025571649999999994
+        },
+        "execute_ms": {
+          "mean": 0.028697779999999996,
+          "median": 0.019230999999999998,
+          "p95": 0.07424495
+        },
+        "end_to_end_ms": {
+          "mean": 0.05030445,
+          "median": 0.0420395,
+          "p95": 0.09526205
+        }
+      },
+      "memory": {
+        "activation_allocations": 85,
+        "activation_capacity": 8344,
+        "activation_required": 8344,
+        "peak_activation_capacity": 66136,
+        "peak_pool_bytes_during_reallocation": 90992,
+        "weight_bytes": 65552
+      },
+      "timed_pool_allocations": 80
+    },
+    {
+      "constant_folding": true,
+      "capacity_reuse": false,
+      "shape_optimization": {
+        "nodes_before": 7,
+        "nodes_after": 4,
+        "folded_nodes": 3,
+        "eliminated_nodes": 0
+      },
+      "runtime_shape_nodes": 4,
+      "timings": {
+        "prepare_ms": {
+          "mean": 0.016971280000000002,
+          "median": 0.0159505,
+          "p95": 0.023444999999999997
+        },
+        "execute_ms": {
+          "mean": 0.02913939,
+          "median": 0.019061500000000002,
+          "p95": 0.07719705
+        },
+        "end_to_end_ms": {
+          "mean": 0.04782077,
+          "median": 0.036369,
+          "p95": 0.09710985
+        }
+      },
+      "memory": {
+        "activation_allocations": 85,
+        "activation_capacity": 8312,
+        "activation_required": 8312,
+        "peak_activation_capacity": 66104,
+        "peak_pool_bytes_during_reallocation": 90928,
+        "weight_bytes": 65560
+      },
+      "timed_pool_allocations": 80
+    },
+    {
+      "constant_folding": false,
+      "capacity_reuse": true,
+      "shape_optimization": {
+        "nodes_before": 7,
+        "nodes_after": 7,
+        "folded_nodes": 0,
+        "eliminated_nodes": 0
+      },
+      "runtime_shape_nodes": 7,
+      "timings": {
+        "prepare_ms": {
+          "mean": 0.01801092,
+          "median": 0.016812,
+          "p95": 0.0250846
+        },
+        "execute_ms": {
+          "mean": 0.028825730000000004,
+          "median": 0.019156,
+          "p95": 0.07466049999999999
+        },
+        "end_to_end_ms": {
+          "mean": 0.04850241999999999,
+          "median": 0.037732,
+          "p95": 0.095642
+        }
+      },
+      "memory": {
+        "activation_allocations": 3,
+        "activation_capacity": 66136,
+        "activation_required": 8344,
+        "peak_activation_capacity": 66136,
+        "peak_pool_bytes_during_reallocation": 82736,
+        "weight_bytes": 65552
+      },
+      "timed_pool_allocations": 0
+    },
+    {
+      "constant_folding": true,
+      "capacity_reuse": true,
+      "shape_optimization": {
+        "nodes_before": 7,
+        "nodes_after": 4,
+        "folded_nodes": 3,
+        "eliminated_nodes": 0
+      },
+      "runtime_shape_nodes": 4,
+      "timings": {
+        "prepare_ms": {
+          "mean": 0.01555717,
+          "median": 0.0147675,
+          "p95": 0.02221045
+        },
+        "execute_ms": {
+          "mean": 0.028833930000000004,
+          "median": 0.0191365,
+          "p95": 0.0763506
+        },
+        "end_to_end_ms": {
+          "mean": 0.046056790000000014,
+          "median": 0.035828,
+          "p95": 0.0936311
+        }
+      },
+      "memory": {
+        "activation_allocations": 3,
+        "activation_capacity": 66104,
+        "activation_required": 8312,
+        "peak_activation_capacity": 66104,
+        "peak_pool_bytes_during_reallocation": 82672,
+        "weight_bytes": 65560
+      },
+      "timed_pool_allocations": 0
+    }
+  ]
+}

@@ -275,4 +275,25 @@ TEST(Gather, Cuda) {
     }
 }
 
+TEST(Gather, NegativeIndicesCudaGraphReplay) {
+    auto runtime = make_ref<CudaRuntimeObj>();
+    auto g = make_ref<GraphObj>(runtime);
+    auto x = g->addTensor({2, 3});
+    auto indices = g->addTensor({2}, DataType::Int64);
+    x->setInput();
+    indices->setInput();
+    auto output = g->addOp<GatherObj>(x, indices, nullptr, 1)->getOutput();
+    output->setOutput();
+    g->dataMalloc();
+    x->copyin(vector<float>{1, 2, 3, 4, 5, 6});
+    indices->copyin(vector<int64_t>{-1, 0});
+    runtime->run(g);
+    EXPECT_EQ(output->copyout<float>(), (vector<float>{3, 1, 6, 4}));
+    runtime->runWithCudaGraph(g);
+    indices->copyin(vector<int64_t>{0, -2});
+    runtime->runWithCudaGraph(g);
+    EXPECT_EQ(output->copyout<float>(), (vector<float>{1, 2, 4, 5}));
+    EXPECT_EQ(runtime->getCudaGraphCaptureCount(), 1u);
+}
+
 } // namespace infini

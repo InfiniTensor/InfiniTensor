@@ -243,7 +243,13 @@ Blob LazyAllocator::prepareActivationStorage(bool exactCapacity,
                        "Activation pool capacity overflow");
         newCapacity = std::max(newCapacity, grownCapacity);
     }
-    return runtime->allocBlob(newCapacity);
+    auto storage = runtime->allocBlob(newCapacity);
+    ++activationAllocations;
+    peakActivationCapacity = std::max(peakActivationCapacity, newCapacity);
+    peakActivationReallocationBytes = std::max(
+        peakActivationReallocationBytes,
+        checkedAdd(currentCapacity, newCapacity, "Pool statistics overflow"));
+    return storage;
 }
 
 void LazyAllocator::commitActivationStorage(const Blob &storage) {

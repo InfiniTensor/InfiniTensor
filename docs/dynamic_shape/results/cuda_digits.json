@@ -1,0 +1,146 @@
+{
+  "device": "cuda",
+  "cuda_graph": false,
+  "model": "examples/dynamic_shape/artifacts/digits_cnn.onnx",
+  "rtol": 0.0001,
+  "atol": 1e-05,
+  "onnxruntime": "1.23.2",
+  "shape_optimization": {
+    "nodes_before": 4,
+    "nodes_after": 4,
+    "folded_nodes": 0,
+    "eliminated_nodes": 0
+  },
+  "runs": [
+    {
+      "input_shape": [
+        1,
+        1,
+        8,
+        8
+      ],
+      "output_shapes": {
+        "logits": [
+          1,
+          10
+        ]
+      },
+      "max_abs_error": {
+        "logits": 3.814697265625e-06
+      },
+      "end_to_end_ms": 121.49569598841481,
+      "memory": {
+        "activation_allocations": 2,
+        "activation_capacity": 22016,
+        "activation_required": 22016,
+        "peak_activation_capacity": 22016,
+        "peak_pool_bytes_during_reallocation": 24320,
+        "weight_bytes": 26624
+      }
+    },
+    {
+      "input_shape": [
+        2,
+        1,
+        12,
+        10
+      ],
+      "output_shapes": {
+        "logits": [
+          2,
+          10
+        ]
+      },
+      "max_abs_error": {
+        "logits": 7.62939453125e-06
+      },
+      "end_to_end_ms": 3.854347000014968,
+      "memory": {
+        "activation_allocations": 3,
+        "activation_capacity": 79104,
+        "activation_required": 79104,
+        "peak_activation_capacity": 79104,
+        "peak_pool_bytes_during_reallocation": 101120,
+        "weight_bytes": 26624
+      }
+    },
+    {
+      "input_shape": [
+        4,
+        1,
+        16,
+        16
+      ],
+      "output_shapes": {
+        "logits": [
+          4,
+          10
+        ]
+      },
+      "max_abs_error": {
+        "logits": 7.867813110351562e-06
+      },
+      "end_to_end_ms": 1.0218999959761277,
+      "memory": {
+        "activation_allocations": 4,
+        "activation_capacity": 333056,
+        "activation_required": 333056,
+        "peak_activation_capacity": 333056,
+        "peak_pool_bytes_during_reallocation": 412160,
+        "weight_bytes": 26624
+      }
+    },
+    {
+      "input_shape": [
+        3,
+        1,
+        10,
+        12
+      ],
+      "output_shapes": {
+        "logits": [
+          3,
+          10
+        ]
+      },
+      "max_abs_error": {
+        "logits": 7.62939453125e-06
+      },
+      "end_to_end_ms": 0.5993020022287965,
+      "memory": {
+        "activation_allocations": 4,
+        "activation_capacity": 333056,
+        "activation_required": 118016,
+        "peak_activation_capacity": 333056,
+        "peak_pool_bytes_during_reallocation": 412160,
+        "weight_bytes": 26624
+      }
+    },
+    {
+      "input_shape": [
+        1,
+        1,
+        8,
+        8
+      ],
+      "output_shapes": {
+        "logits": [
+          1,
+          10
+        ]
+      },
+      "max_abs_error": {
+        "logits": 7.62939453125e-06
+      },
+      "end_to_end_ms": 0.4141219978919253,
+      "memory": {
+        "activation_allocations": 4,
+        "activation_capacity": 333056,
+        "activation_required": 22016,
+        "peak_activation_capacity": 333056,
+        "peak_pool_bytes_during_reallocation": 412160,
+        "weight_bytes": 26624
+      }
+    }
+  ]
+}

@@ -185,6 +185,8 @@ void CudaRuntimeObj::runWithoutSyncImpl(const Graph &graph,
     const auto &kernelRegistry = KernelRegistry::getInstance();
     auto &perfEngine = PerfEngine::getInstance();
     for (auto &op : graph->getOperators()) {
+        if (graph->isShapeOperator(op))
+            continue;
         auto kernelAttrs = KernelAttrs{device, op->getOpType().underlying()};
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
@@ -434,6 +436,8 @@ void CudaRuntimeObj::tune(const Graph &graph, bool profiling) const {
     std::map<OpType, double> opTime;
     std::map<OpType, int> opCnt;
     for (auto &op : graph->getOperators()) {
+        if (graph->isShapeOperator(op))
+            continue;
         auto kernelAttrs = KernelAttrs{device, op->getOpType().underlying()};
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};

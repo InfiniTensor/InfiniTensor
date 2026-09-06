@@ -1,0 +1,4 @@
+# Generated reports and model artifacts should not be diffed as text.
+*.pdf binary
+*.onnx binary
+*.npz binary

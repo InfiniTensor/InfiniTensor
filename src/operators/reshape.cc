@@ -1,5 +1,7 @@
 #include "operators/reshape.h"
+#include "core/graph.h"
 #include "utils/operator_utils.h"
+#include <limits>
 #include <numeric>
 
 namespace infini {
@@ -9,36 +11,65 @@ ReshapeObj::ReshapeObj(GraphObj *graph, Tensor input, Tensor output, Shape dims)
 }
 
 optional<vector<Shape>> ReshapeObj::inferShape(const TensorVec &inputs) {
-    int count = 0;
-    for (auto x : dims) {
-        if (x == -1) {
-            count++;
+    Shape target = dims;
+    if (isDynamic()) {
+        const auto &shape = inputs.at(1);
+        IT_ASSERT(shape->getRank() == 1 && shape->getDType() == DataType::Int64,
+                  "Reshape shape must be a rank-one int64 tensor");
+        IT_ASSERT(shape->hasData(), "Reshape shape tensor has no value");
+        target.clear();
+        for (int64_t dim : shape->copyout<int64_t>()) {
+            IT_ASSERT(dim >= -1 && dim <= std::numeric_limits<int>::max(),
+                      "Reshape dimension is outside the supported int32 range");
+            target.emplace_back(static_cast<int>(dim));
         }
-        IT_ASSERT(x == -1 || x >= 0);
     }
-    IT_ASSERT(count == 0 || count == 1);
-    auto inputShape = inputs[0]->getDims();
-    int size = inputs[0]->size();
+    const auto inputShape = inputs[0]->getDims();
+    const size_t size = inputs[0]->size();
     int index = -1;
-    outputShape = dims;
-    for (int i = 0; i < (int)dims.size(); ++i) {
-        if (dims[i] == 0) {
+    size_t knownSize = 1;
+    outputShape = target;
+    for (size_t i = 0; i < target.size(); ++i) {
+        IT_ASSERT(target[i] >= -1, "Reshape dimension must be >= -1");
+        if (target[i] == 0 && !allowZero) {
+            IT_ASSERT(i < inputShape.size(),
+                      "Reshape zero index exceeds input rank");
             outputShape[i] = inputShape[i];
         }
-        if (dims[i] == -1) {
+        if (target[i] == -1) {
+            IT_ASSERT(index == -1, "Reshape permits only one -1 dimension");
             index = i;
+            continue;
         }
+        const auto dim = static_cast<size_t>(outputShape[i]);
+        IT_ASSERT(dim == 0 ||
+                      knownSize <= std::numeric_limits<size_t>::max() / dim,
+                  "Reshape element count overflow");
+        knownSize *= dim;
     }
     if (index != -1) {
-        outputShape[index] =
-            size / (-std::accumulate(outputShape.begin(), outputShape.end(), 1,
-                                     [](auto acc, auto x) { return acc * x; }));
+        IT_ASSERT(knownSize != 0,
+                  "Reshape cannot infer -1 with a zero product");
+        IT_ASSERT(size % knownSize == 0, "Reshape element count mismatch");
+        IT_ASSERT(size / knownSize <= std::numeric_limits<int>::max(),
+                  "Reshape inferred dimension overflow");
+        outputShape[index] = static_cast<int>(size / knownSize);
+    } else {
+        IT_ASSERT(knownSize == size, "Reshape element count mismatch");
     }
-    int outputSize = std::accumulate(outputShape.begin(), outputShape.end(), 1,
-                                     [](auto acc, auto x) { return acc * x; });
-    IT_ASSERT(outputSize == size);
-
     return {{outputShape}};
+}
+
+ReshapeObj::ReshapeObj(GraphObj *graph, Tensor input, Tensor shape,
+                       Tensor output, bool allowZero)
+    : OperatorObj(OpType::Reshape, {input, shape}, {output}),
+      allowZero(allowZero) {
+    // Construction can already evaluate a Shape-derived target, before the
+    // device activation pool exists. Keep the real edge after validation.
+    if (graph)
+        inputs[1] = graph->evaluateShapeTensor(shape);
+    IT_ASSERT(checkValid(graph));
+    inputs[1] = shape;
 }
 
 std::string ReshapeObj::toString() const {

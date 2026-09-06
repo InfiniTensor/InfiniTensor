@@ -21,6 +21,8 @@ void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
     std::map<OpType, int> opCnt;
 
     for (auto &op : graph->getOperators()) {
+        if (graph->isShapeOperator(op))
+            continue;
         auto kernelAttrs = KernelAttrs{device, op->getOpType().underlying()};
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
@@ -73,6 +75,8 @@ double RuntimeObj::getPerfTime(const Graph &graph, bool profiling) const {
     std::map<OpType, int> opCnt;
 
     for (auto &op : graph->getOperators()) {
+        if (graph->isShapeOperator(op))
+            continue;
         auto kernelAttrs = KernelAttrs{device, op->getOpType().underlying()};
         Kernel *kernel = kernelRegistry.getKernel(kernelAttrs);
         auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};

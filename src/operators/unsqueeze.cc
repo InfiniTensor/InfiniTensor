@@ -13,9 +13,9 @@ optional<vector<Shape>> UnsqueezeObj::inferShape(const TensorVec &inputs) {
     auto rank = inputs[0]->getRank() + axes.size();
     Shape outputShape(rank, -1);
     for (size_t i = 0; i < axes.size(); ++i) {
-        axes[i] = get_real_axis(axes[i], rank);
-        IT_ASSERT(outputShape[axes[i]] == -1, "Axes have duplicate");
-        outputShape[axes[i]] = 1;
+        const auto axis = get_real_axis(axes[i], rank);
+        IT_ASSERT(outputShape[axis] == -1, "Axes have duplicate");
+        outputShape[axis] = 1;
     }
     auto it = inputDim.begin();
     for (size_t i = 0; i < outputShape.size(); ++i) {

@@ -215,11 +215,7 @@ class TestStringMethods(unittest.TestCase):
 
         # Define the LeakyRelu node
         leaky_relu = make_node(
-            "LeakyRelu",
-            ["x"],
-            ["y"],
-            "leaky_relu",
-            alpha=0.01  # LeakyReLU alpha value
+            "LeakyRelu", ["x"], ["y"], "leaky_relu", alpha=0.01  # LeakyReLU alpha value
         )
 
         # Create the graph and model
@@ -595,8 +591,8 @@ class TestStringMethods(unittest.TestCase):
 
 class TestDynamicTensor(unittest.TestCase):
     def test_dynamic_tensor(self):
-        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 2])
-        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3])
+        x = make_tensor_value_info("x", TensorProto.FLOAT, ["batch", 2])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, ["batch", 3])
         weight = make_tensor(
             "weight",
             TensorProto.FLOAT,

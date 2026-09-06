@@ -1,0 +1,33 @@
+{
+  "dataset": "scikit-learn load_digits (UCI optical recognition of handwritten digits)",
+  "dataset_url": "https://scikit-learn.org/stable/modules/generated/sklearn.datasets.load_digits.html",
+  "train_examples": 1437,
+  "test_examples": 360,
+  "seed": 2026,
+  "epochs": 80,
+  "held_out_accuracy": 0.9611111283302307,
+  "parameters": 6218,
+  "torch": "2.9.0+cu126",
+  "sklearn": "1.7.2",
+  "onnx": "1.19.1",
+  "sha256": "08d5a8c34f3d983cebd85dc4101798342f7e6453241b95cb50b88ae20b08ff92",
+  "operators": [
+    "Conv",
+    "Relu",
+    "Conv",
+    "Relu",
+    "Conv",
+    "Relu",
+    "GlobalAveragePool",
+    "Shape",
+    "Constant",
+    "Gather",
+    "Constant",
+    "Unsqueeze",
+    "Constant",
+    "Concat",
+    "Reshape",
+    "MatMul",
+    "Add"
+  ]
+}
