@@ -31,6 +31,66 @@ import copy
 import warnings
 import numpy as np
 
+import operator
+from dataclasses import dataclass
+from enum import Enum
+
+
+class DimensionKind(str, Enum):
+
+    FIXED = "fixed"
+    SYMBOLIC = "symbolic"
+    UNKNOWN = "unknown"
+
+@dataclass(frozen=True)
+class DimensionSpec():
+
+    kind: DimensionKind
+    value: Optional[int] = None  
+    symbolic: Optional[str] = None 
+    
+ShapeSpec = tuple[DimensionSpec,...]
+
+def _parse_shape_spec(shape: TensorShapeProto) -> ShapeSpec:
+    dimensions = [] 
+    for dim in shape.dim:
+        field = dim.WhichOneof("value")
+
+        if field == "dim_value":
+            dimensions.append(DimensionSpec(
+                kind=DimensionKind.FIXED,
+                value=int(dim.dim_value),
+            ))
+        elif field == "dim_param" and dim.dim_param:
+            dimensions.append(DimensionSpec(
+                kind=DimensionKind.SYMBOLIC,
+                symbolic=str(dim.dim_param),
+            ))
+        else :
+            dimensions.append(DimensionSpec(
+                kind=DimensionKind.UNKNOWN,
+            ))
+
+    return tuple(dimensions)
+
+def _materialize_shape(dimensions: ShapeSpec, default_dim: int = 1) -> list[int]:
+    dim = []
+
+    for dimension in dimensions:
+        if dimension.kind == DimensionKind.FIXED:
+            dim.append(dimension.value)
+        elif dimension.kind == DimensionKind.SYMBOLIC:
+            dim.append(default_dim)
+        else :
+            dim.append(default_dim)
+
+    return dim 
+
+def _shape_spec_is_dynamic(shape: ShapeSpec) -> bool:
+    return any(
+        dimension.kind != DimensionKind.FIXED
+        for dimension in shape 
+    )
 
 class OnnxStub:
     """
@@ -47,17 +107,38 @@ class OnnxStub:
     ):
         model = copy.deepcopy(model)
         # We use some user-defined operators for distributed inference
-        try:
+        # 因为是动态模型，所以需要验证一下
+
+        origin_initializer_name = {  
+            initializer.name
+            for initializer in model.graph.initializer
+        }
+        origin_input_shape_spec = {
+            input_info.name: _parse_shape_spec(input_info.type.tensor_type.shape)
+            for input_info in model.graph.input
+            if input_info.name not in origin_initializer_name
+        }
+
+        dynamic_flag = any(
+            _shape_spec_is_dynamic(shape_spec)
+            for shape_spec  in origin_input_shape_spec.values()
+        )
+        if not dynamic_flag:
+            try:
             # onnx simplifier performs inplace simplify
-            model_simp, check = simplify(copy.deepcopy(model))
-            if check:
-                model = model_simp
-        except ValidationError:
-            pass
-        except RuntimeError:
-            pass
+                model_simp, check = simplify(copy.deepcopy(model))
+                if check:
+                    model = model_simp
+            except ValidationError:
+                pass
+            except RuntimeError:
+                pass
 
         self.inputs: Dict[str, backend.Tensor] = {}
+
+        self.input_shape_specs: Dict[str, ShapeSpec]= dict(origin_input_shape_spec)
+        self.current_input_shapes: Dict[str, Tuple[int, ...]] = {}
+
         self.outputs: Dict[str, backend.Tensor] = {}
         self.tensors: Dict[str, backend.Tensor] = {}
         self.tensor_node_map: Dict[str, str] = {}
@@ -128,6 +209,11 @@ class OnnxStub:
         for input in model.graph.input:
             dims = _take_shape_dim(input.type.tensor_type.shape)
             if input.name not in tensors.keys():
+                shape_spec = self.input_shape_specs.get(input.name)
+                if shape_spec is None: 
+                    shape_spec = _parse_shape_spec(input.type.tensor_type.shape)
+                    self.input_shape_specs[input.name] = shape_spec
+                dims = _materialize_shape(shape_spec)
                 tensors[input.name] = self.handler.tensor(
                     dims, input.type.tensor_type.elem_type
                 )
@@ -1133,7 +1219,17 @@ class OnnxStub:
         for output in model.graph.output:
             self.outputs[output.name] = tensors[output.name]
 
+        self.current_input_shapes = {
+            name: tuple(tensor.shape())
+            for name, tensor in self.inputs.items()
+        }
+
         self.init()
+
+    def get_input_shape_spec(self, name: str) -> ShapeSpec:
+        if name not in self.input_shape_specs:
+            raise KeyError('Unkown model input "{}"'.format(name)) 
+        return self.input_shape_specs[name]
 
     def to_onnx(self, name: str) -> ModelProto:
         class Context:
@@ -1507,11 +1603,17 @@ class OnnxStub:
                 "inputShapes must contain one shape per model input; expected "
                 "{}, got {}".format(len(self.inputs), len(inputShapes))
             )
+        
         for newInput, oldInput in zip(inputShapes, self.inputs):
             oldTensor = self.inputs[oldInput]
             self.handler.change_shape(newInput, oldTensor.fuid())
         self.handler.shape_infer()
         self.init()
+
+        self.current_input_shapes = {
+            name: tuple(shape)
+            for name, shape in zip(self.inputs, inputShapes)
+        }
 
     def getShape(self, name: str) -> List[int]:
         if name in self.inputs:
@@ -1623,4 +1725,4 @@ def _parse_data_fp16(tensor: TensorProto):
 
 
 def _take_shape_dim(shape: TensorShapeProto) -> List[int]:
-    return [(d.dim_value if d.dim_value > 0 else 1) for d in shape.dim]
+    return _materialize_shape(_parse_shape_spec(shape))

@@ -43,7 +43,7 @@ class GatherObj : public GatherBaseObj {
     vector<DataType> inferDataType(const TensorVec &inputs) const override;
 
   private:
-    bool CheckIndexValid() const;
+    //bool CheckIndexValid() const;
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;
 };

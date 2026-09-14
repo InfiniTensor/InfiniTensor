@@ -173,13 +173,13 @@ std::string CastObj::toString() const {
 }
 
 vector<int> CastObj::getWorkloadVector() const {
-    vector<int> ret{type.underlying()};
+    vector<int> ret{type.underlying(), static_cast<int>(castType)};
     const Shape shape = outputs[0]->getDims();
     ret.insert(ret.end(), shape.begin(), shape.end());
     return ret;
 }
 
-vector<int> CastObj::getOpAttrVector() const { return {type.underlying()}; }
+vector<int> CastObj::getOpAttrVector() const { return {type.underlying(), static_cast<int>(castType)}; }
 
 DataType CastObj::getOutputDataType() const {
     switch (castType) {
@@ -246,6 +246,23 @@ ShapeObj::ShapeObj(GraphObj *graph, Tensor input, Tensor output)
 optional<vector<Shape>> ShapeObj::inferShape(const TensorVec &inputs) {
     return {{{static_cast<int>(inputs[0]->getRank())}}};
 }
+
+vector<DataType> ShapeObj::inferDataType(const TensorVec &inputs) const{
+    IT_ASSERT(inputs.size()==1);
+    return {DataType::Int64};
+}
+
+vector<int> ShapeObj::getWorkloadVector() const {
+    vector<int> ret{type.underlying()};
+    const Shape inputShape = inputs[0]->getDims();
+    ret.insert(ret.end(),inputShape.begin(), inputShape.end());
+    return ret;
+}
+
+vector<int> ShapeObj::getOpAttrVector() const{
+    return {type.underlying()};
+}
+
 
 std::string ShapeObj::toString() const {
     std::ostringstream os;
