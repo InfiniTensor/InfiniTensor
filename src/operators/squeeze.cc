@@ -12,20 +12,25 @@ optional<vector<Shape>> SqueezeObj::inferShape(const TensorVec &inputs) {
     Shape inputDim = inputs[0]->getDims();
     Shape outputShape;
     auto rank = inputs[0]->getRank();
-    if (axes.size() == 0) {
+    auto new_axes = axes;
+    if (new_axes.empty()) {
         for (int i = 0; i < (int)rank; ++i) {
             if (inputDim[i] == 1) {
-                axes.emplace_back(i);
+                new_axes.emplace_back(i);
             }
         }
     }
-    auto new_axes = axes;
-    std::transform(axes.begin(), axes.end(), new_axes.begin(),
+    std::transform(new_axes.begin(), new_axes.end(), new_axes.begin(),
                    [inputDim, rank](auto x) {
                        x = get_real_axis(x, rank);
                        IT_ASSERT(inputDim[x] == 1);
                        return x;
                    });
+    auto unique_axes = new_axes;
+    std::sort(unique_axes.begin(), unique_axes.end());
+    IT_ASSERT(std::adjacent_find(unique_axes.begin(), unique_axes.end()) ==
+                  unique_axes.end(),
+              "Squeeze axes have duplicates");
     for (int i = 0; i < (int)rank; ++i) {
         auto it = std::find(new_axes.begin(), new_axes.end(), i);
         if (it == new_axes.end()) {

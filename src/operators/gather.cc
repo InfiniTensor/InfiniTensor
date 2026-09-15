@@ -8,13 +8,15 @@ GatherObj::GatherObj(GraphObj *graph, Tensor input, Tensor indices,
     int rank = input->getRank();
     this->axis = get_real_axis(axis, rank);
     IT_ASSERT(checkValid(graph));
+    IT_ASSERT(CheckIndexValid(), "Gather index is out of bounds");
 }
 
 optional<vector<Shape>> GatherObj::inferShape(const TensorVec &inputs) {
     auto dims0 = inputs[0]->getDims();
     auto dims1 = inputs[1]->getDims();
 
-    IT_ASSERT(CheckIndexValid());
+    // Values may still belong to the preceding dynamic invocation here.
+    // Kernels validate indices when they consume the current values.
 
     Shape dim = dims0;
     dim.erase(dim.begin() + axis);
@@ -43,7 +45,7 @@ bool GatherObj::CheckIndexValid() const {
         index->getRuntime()->copyBlobToCPU(
             (void *)data, index->getRawDataPtr<void *>(), index->getBytes());
         for (size_t i = 0; i < index->size(); ++i) {
-            if (data[i] < 0 || data[i] >= value) {
+            if (data[i] < -value || data[i] >= value) {
                 ret = false;
                 break;
             }
@@ -54,7 +56,7 @@ bool GatherObj::CheckIndexValid() const {
         index->getRuntime()->copyBlobToCPU(
             (void *)data, index->getRawDataPtr<void *>(), index->getBytes());
         for (size_t i = 0; i < index->size(); ++i) {
-            if (data[i] < 0 || data[i] >= value) {
+            if (data[i] < -value || data[i] >= value) {
                 ret = false;
                 break;
             }

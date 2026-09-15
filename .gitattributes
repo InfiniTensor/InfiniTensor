@@ -1,0 +1,3 @@
+# Model fixtures should not be diffed as text.
+*.onnx binary
+*.npz binary

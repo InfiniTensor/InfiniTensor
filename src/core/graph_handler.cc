@@ -790,6 +790,18 @@ static DataType dtype_repr_convert(int dtype) {
     }
 }
 
+Tensor GraphHandlerObj::reshape_dynamic(Tensor input, Tensor shape,
+                                        Tensor output, bool allowZero) {
+    return g->addOp<ReshapeObj>(input, shape, output, allowZero)->getOutput();
+}
+
+Tensor GraphHandlerObj::global_avg_pool(Tensor input, Tensor output) {
+    return g
+        ->addOp<PoolingObj>(OpType::AveragePool, input, output, 1, 1, 1, 1, 0,
+                            0, 1, 1, 0, true)
+        ->getOutput();
+}
+
 void GraphHandlerObj::change_shape(const vector<int> &shape, int tensorId) {
     auto tensor = g->getTensor(tensorId);
     IT_ASSERT(tensor != nullptr);
