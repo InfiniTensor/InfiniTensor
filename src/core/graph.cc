@@ -249,6 +249,23 @@ void GraphObj::dataMalloc(bool useNaiveAllocator, size_t memPoolSize) {
     dataMallocImpl(useNaiveAllocator, memPoolSize, false);
 }
 
+void GraphObj::remallocForCurrentShapes() {
+    switch(allocationMode){
+    case AllocationMode::Uninitialized:
+        dataMalloc(false, 0);
+        break;
+    case AllocationMode::Naive:
+        dataMalloc(true, 0);
+        break;
+    case AllocationMode::DynamicPool:
+        dataMalloc(false, 0);
+        break;
+    case AllocationMode::FixedPool:
+        dataMalloc(false, 0);
+        break;
+    }
+}
+
 void GraphObj::trimMemory() {
     IT_ASSERT(allocationMode == AllocationMode::DynamicPool,
               "trimMemory requires an allocated dynamic memory pool");

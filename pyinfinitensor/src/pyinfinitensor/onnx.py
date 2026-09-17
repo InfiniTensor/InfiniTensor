@@ -200,6 +200,11 @@ class OnnxStub:
         tensors: Dict[str, backend.Tensor] = dict()
         data: Dict[str, TensorProto] = dict()
 
+        declared_value_info = {
+            value.name: value 
+            for value in list(model.graph.value_info) + list(model.graph.output)
+        }
+
         for initializer in model.graph.initializer:
             dims = [d for d in initializer.dims]
             tensors[initializer.name] = self.handler.tensor(dims, initializer.data_type)
@@ -755,12 +760,48 @@ class OnnxStub:
                     mode,
                 )
             elif node.op_type == "Reshape":
+                if not _has_input(node, 1):
+                    raise ValueError("Reshape requires a shape input")
+
+                attributes = _parse_attribute(node, {"allowzero": 0})
+                if attributes["allowzero"] != 0:
+                    raise NotImplementedError("Reshape allowzero=1 is not supported in the first version")
+
+                shape_name = node.input[1] 
+                if shape_name in data:
+                    # initializer/Constant：保持原有静态路径。
+                    tensors[node.output[0]] = self.handler.reshape(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        _parse_data(data[shape_name]),
+                    )
+                else:
+                    # Shape/Gather/Concat 等运行时子图。
+                    output = tensors.get(node.output[0])
+                    declared = declared_value_info.get(node.output[0])
+
+                    if output is None and declared is not None:
+                        tensor_type = declared.type.tensor_type
+                        output = self.handler.tensor(
+                            _materialize_shape(_parse_shape_spec(tensor_type.shape)),
+                            tensor_type.elem_type,
+                        )
+                        tensors[node.output[0]] = output
+
+                    tensors[node.output[0]] = self.handler.reshape_dynamic(
+                        tensors[node.input[0]],
+                        tensors[shape_name],
+                        output,
+                        False,
+                    )
+                """
                 shape = _parse_static_input(data, node, 1, required=True)
                 tensors[node.output[0]] = self.handler.reshape(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
                     shape,
                 )
+                """
             elif node.op_type == "Resize":
                 output = tensors.get(node.output[0])
                 attributes = _parse_attribute(
@@ -1443,16 +1484,17 @@ class OnnxStub:
                 perm = backend.transpose_permute_of(op)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, perm=perm))
             elif ty == backend.OpTypeId.Reshape:
-                shape = backend.reshape_shape_of(op)
-                inputs.append(
-                    ctx.push_data_input(
-                        name,
-                        "shape",
-                        TensorProto.INT64,
-                        [len(shape)],
-                        shape,
+                if not backend.reshape_is_dynamic_of(op):
+                    shape = backend.reshape_shape_of(op)
+                    inputs.append(
+                        ctx.push_data_input(
+                            name,
+                            "shape",
+                            TensorProto.INT64,
+                            [len(shape)],
+                            shape,
+                        )
                     )
-                )
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Squeeze:
                 axes = backend.squeeze_axes_of(op)
