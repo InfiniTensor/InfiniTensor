@@ -1645,16 +1645,43 @@ class OnnxStub:
                 "inputShapes must contain one shape per model input; expected "
                 "{}, got {}".format(len(self.inputs), len(inputShapes))
             )
-        
-        for newInput, oldInput in zip(inputShapes, self.inputs):
-            oldTensor = self.inputs[oldInput]
-            self.handler.change_shape(newInput, oldTensor.fuid())
+
+        normalized_shapes = []
+        for name, supplied_shape in zip(self.inputs, inputShapes):
+            spec = self.input_shape_specs[name]
+            if len(supplied_shape) != len(spec):
+                raise ValueError(
+                    f"Input {name}: expected rank {len(spec)}, "
+                    f"got {len(supplied_shape)}"
+                )
+
+            shape = []
+            for axis, (value, dimension) in enumerate(zip(supplied_shape, spec)):
+                try:
+                    actual = operator.index(value)
+                except TypeError as exc:
+                    raise ValueError(
+                        f"Input {name}, axis {axis}: dimension must be an integer"
+                    ) from exc
+                if actual < 0:
+                    raise ValueError(
+                        f"Input {name}, axis {axis}: dimension must be non-negative"
+                    )
+                if dimension.kind == DimensionKind.FIXED and actual != dimension.value:
+                    raise ValueError(
+                        f"Input {name}, axis {axis}: fixed dimension "
+                        f"must be {dimension.value}, got {actual}"
+                    )
+                shape.append(actual)
+            normalized_shapes.append(shape)
+
+        for name, shape in zip(self.inputs, normalized_shapes):
+            self.handler.change_shape(shape, self.inputs[name].fuid())
         self.handler.shape_infer()
         self.init()
-
         self.current_input_shapes = {
             name: tuple(shape)
-            for name, shape in zip(self.inputs, inputShapes)
+            for name, shape in zip(self.inputs, normalized_shapes)
         }
 
     def getShape(self, name: str) -> List[int]:
