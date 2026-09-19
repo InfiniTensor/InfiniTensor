@@ -116,6 +116,9 @@ TEST_F(WorkspaceCaptureTest, FailureReleasesWorkspaceAndAllowsRecovery) {
 }
 
 TEST_F(WorkspaceCaptureTest, BatchNormMaxPoolDynamicShapeAndReplay) {
+#if !INFINITENSOR_TEST_HAS_ATEN
+    GTEST_SKIP() << "BN/MaxPool require USE_INFINIOPS_ATEN_KERNELS";
+#else
     for (bool naive : {false, true}) {
         // Capacity one forces recapture when returning to an earlier shape.
         auto runtime = makeRuntime(1);
@@ -169,6 +172,7 @@ TEST_F(WorkspaceCaptureTest, BatchNormMaxPoolDynamicShapeAndReplay) {
             }
         }
     }
+#endif
 }
 #endif
 } // namespace

@@ -21,6 +21,8 @@ class TestWorkspaceGraphCapture(unittest.TestCase):
             self.skipTest(f"Graph API unavailable: {error}")
 
     def test_batch_norm_and_max_pool(self):
+        if not backend.has_infini_aten_kernels:
+            self.skipTest("BN/MaxPool require USE_INFINIOPS_ATEN_KERNELS")
         for kind in ("bn", "max", "bn_max"):
             for dtype, proto in ((np.float32, TensorProto.FLOAT),
                                  (np.float16, TensorProto.FLOAT16)):
