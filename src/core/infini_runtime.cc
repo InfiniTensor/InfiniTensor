@@ -166,10 +166,12 @@ void InfiniRuntimeObj::copyBlobInsideRuntime(void *dst, const void *src,
                                              size_t bytes) const {
     std::lock_guard<std::recursive_mutex> lock(executionMutex);
     activateDevice();
-    checkInfiniRt(
-        ::infini::rt::runtime::Memcpy(
-            dst, src, bytes, ::infini::rt::runtime::kMemcpyDeviceToDevice),
-        "InfiniRT device-to-device Memcpy");
+    ensureExecutionStream();
+    // Keep graph copies ordered with kernels and visible to stream capture.
+    checkInfiniRt(::infini::rt::runtime::MemcpyAsync(
+                      dst, src, bytes,
+                      ::infini::rt::runtime::kMemcpyDeviceToDevice, stream),
+                  "InfiniRT device-to-device MemcpyAsync");
 }
 
 void InfiniRuntimeObj::runWithoutSyncImpl(const Graph &graph,
