@@ -28,6 +28,14 @@ class LazyAllocator {
 
     size_t heapPeak = 0;
 
+    // How many times activation storage has actually been asked of the
+    // runtime. Storage that gets reused does not count, which is the whole
+    // point: this is the number a workload that keeps changing shape is
+    // trying to hold down. It is a tally over the allocator's life and so
+    // outlives `init` and `reset` -- a layout that was rolled back still
+    // allocated, and a measurement that forgot it would flatter the result.
+    size_t activationAllocations = 0;
+
     size_t alignment;
 
     bool hasMemPool = false;
@@ -123,6 +131,22 @@ class LazyAllocator {
     bool isCurrentActivationStorage(const Blob &storage) const;
 
     size_t getHeapPeak() const { return heapPeak; }
+
+    size_t getWeightPeak() const { return weightPeak; }
+
+    // What the activations need, as against what is being held for them. The
+    // two differ by exactly the slack that buys the reuse: capacity is kept at
+    // the high watermark a series of shapes reached, so a later smaller shape
+    // fits without asking for memory again.
+    size_t getActivationPeak() const { return peak; }
+
+    size_t getActivationCapacity() const {
+        if (hasMemPool)
+            return memPoolSize;
+        return ptr ? ptr->getBytes() : 0;
+    }
+
+    size_t getActivationAllocations() const { return activationAllocations; }
 
     // void addCache(size_t batchsize, std::unordered_map<TensorObj *, size_t>);
 

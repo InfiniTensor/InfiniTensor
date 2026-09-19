@@ -21,7 +21,10 @@ Exception::Exception(const std::string &msg)
 #else
 
 namespace infini {
-Exception::Exception(const std::string &msg) : std::runtime_error(msg) {}
+// `info` backs the overridden `what()`, so it must carry the message here too,
+// otherwise every assertion message is lost when tracing is disabled.
+Exception::Exception(const std::string &msg)
+    : std::runtime_error(msg), info(msg) {}
 } // namespace infini
 
 #endif

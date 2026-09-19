@@ -4,6 +4,7 @@
 #include "core/operator.h"
 #include "core/runtime.h"
 #include "utils/dataloader.h"
+#include <algorithm>
 #include <cstring>
 #include <limits>
 #include <numeric>
@@ -88,6 +89,102 @@ void TensorObj::setShape(Shape shape_) {
     shape = std::move(shape_);
     _size = size;
     notifyCaptureState(false);
+}
+
+void TensorObj::setDimDescs(DimDescs descs) {
+    IT_ASSERT(descs.empty() || descs.size() == shape.size(),
+              "dimension descriptions must match the tensor rank");
+    dimDescs = std::move(descs);
+}
+
+bool TensorObj::isDimDynamic(size_t dim) const {
+    IT_ASSERT(dim < shape.size());
+    // A weight is the data it carries, and its shape is that data's shape. It
+    // is not something a caller hands a shape to, so none of its dimensions can
+    // change -- whatever it was or was not told about them.
+    if (isWeight()) {
+        return false;
+    }
+    // Without declared dimensionality every dimension stays replaceable.
+    return dimDescs.empty() || dimDescs[dim].dynamic;
+}
+
+string TensorObj::getDimName(size_t dim) const {
+    IT_ASSERT(dim < shape.size());
+    return dimDescs.empty() ? string() : dimDescs[dim].name;
+}
+
+void TensorObj::validateShapeChange(const Shape &target) const {
+    if (dimDescs.empty())
+        return;
+    IT_ASSERT(target.size() == shape.size(),
+              "tensor " + std::to_string(guid) + " declares rank " +
+                  std::to_string(shape.size()) + " but got rank " +
+                  std::to_string(target.size()));
+    for (size_t i = 0; i < target.size(); ++i) {
+        if (dimDescs[i].dynamic) {
+            IT_ASSERT(target[i] > 0, "tensor " + std::to_string(guid) +
+                                         " dim " + std::to_string(i) +
+                                         " must be positive, but got " +
+                                         std::to_string(target[i]));
+            continue;
+        }
+        IT_ASSERT(target[i] == shape[i],
+                  "tensor " + std::to_string(guid) + " dim " +
+                      std::to_string(i) + " is fixed, expected " +
+                      std::to_string(shape[i]) + " but got " +
+                      std::to_string(target[i]));
+    }
+}
+
+bool TensorObj::canHoldShapeValue() const {
+    return (dtype == DataType::Int32 || dtype == DataType::Int64) &&
+           shape.size() <= 1;
+}
+
+void TensorObj::setShapeValue(vector<int64_t> value) {
+    const auto elements = value.size();
+    setShapeValue(std::move(value), vector<bool>(elements, true));
+}
+
+void TensorObj::setShapeValue(vector<int64_t> value, vector<bool> fixed) {
+    IT_ASSERT(canHoldShapeValue(),
+              "only a rank one integer tensor can hold a shape value");
+    IT_ASSERT(value.size() == fixed.size(),
+              "a shape value and its fixedness must describe the same number "
+              "of elements");
+    shapeValue = std::move(value);
+    shapeValueFixed = std::move(fixed);
+}
+
+bool TensorObj::isShapeValueFixed(size_t index) const {
+    IT_ASSERT(shapeValue.has_value(),
+              "tensor " + std::to_string(guid) + " has no shape value");
+    IT_ASSERT(index < shapeValueFixed.size());
+    return shapeValueFixed[index];
+}
+
+bool TensorObj::isShapeValueWhollyFixed() const {
+    if (!shapeValue.has_value() || shapeValue->empty()) {
+        return false;
+    }
+    return std::all_of(shapeValueFixed.begin(), shapeValueFixed.end(),
+                       [](const bool fixed) { return fixed; });
+}
+
+Shape TensorObj::getShapeValueAsShape() const {
+    IT_ASSERT(shapeValue.has_value(),
+              "tensor " + std::to_string(guid) + " has no shape value");
+    Shape narrowed;
+    narrowed.reserve(shapeValue->size());
+    for (const auto v : *shapeValue) {
+        IT_ASSERT(v >= std::numeric_limits<ShapeElem>::min() &&
+                      v <= std::numeric_limits<ShapeElem>::max(),
+                  "shape value " + std::to_string(v) + " of tensor " +
+                      std::to_string(guid) + " is out of range");
+        narrowed.push_back(static_cast<ShapeElem>(v));
+    }
+    return narrowed;
 }
 
 void TensorObj::dumpData(std::ofstream &ofs) const {

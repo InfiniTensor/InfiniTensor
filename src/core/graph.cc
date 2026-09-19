@@ -1,8 +1,10 @@
 #include "core/graph.h"
 #include "operators/reshape.h"
 #include <algorithm>
+#include <map>
 #include <numeric>
 #include <queue>
+#include <tuple>
 
 namespace infini {
 
@@ -182,12 +184,340 @@ bool GraphObj::topo_sort() {
 }
 
 void GraphObj::optimize() {
+    foldFixedShapeSubgraph();
+    // After the fold, because what it leaves behind is what may still be
+    // duplicated: a chain that settled is gone entirely, and two copies of one
+    // that did not are still two operators reading the same tensors.
+    mergeDuplicateShapeOperators();
     for (auto &op : ops) {
         switch (op->getOpType().underlying()) {
         default:
             break;
         }
     }
+}
+
+namespace {
+/// Whether `op` only reports, selects or joins dimensions, so that its result
+/// is worked out during shape inference rather than by running anything.
+bool describesShapes(const Operator &op) {
+    switch (op->getOpType().underlying()) {
+    case OpType::Shape:
+    case OpType::Gather:
+    case OpType::Unsqueeze:
+    case OpType::Squeeze:
+    case OpType::Slice:
+    case OpType::Concat:
+    case OpType::Identity:
+    // The arithmetic a shape computation is built from. Each of these is a
+    // pure function of its inputs, so one whose result nobody reads has no
+    // effect left to lose.
+    case OpType::Add:
+    case OpType::Sub:
+    case OpType::Mul:
+    case OpType::Div:
+    case OpType::Max:
+    case OpType::Min:
+    case OpType::FloorDiv:
+    case OpType::FloorMod:
+        return true;
+    default:
+        return false;
+    }
+}
+
+/// Write a settled shape value into the tensor itself.
+///
+/// Shape inference leaves the result beside the tensor rather than in it,
+/// which is enough for a `Reshape` -- that reads the value while shapes are
+/// worked out. It is not enough for an operator that still runs: a `Concat`
+/// joining a settled dimension with one that still moves reads its inputs
+/// through a kernel, and would find whatever the memory last held. Nothing
+/// runs to fill this tensor once its producer is gone, so it is filled here.
+void writeShapeValueAsData(const Tensor &tensor) {
+    const auto &value = *tensor->getShapeValue();
+    // Nothing runs to fill this tensor once its producer is gone, so it has to
+    // keep what is written here for good. Storage from the pool does not last
+    // that long: a tensor with no producer is given an offset and a count of
+    // its readers, and the offset is handed out again once the last of them has
+    // run. So a plain intermediate is given storage of its own and marked a
+    // weight, which is what allocation calls memory it must leave alone.
+    //
+    // A tensor the graph takes in or gives back already has storage that is
+    // never reused, and marking one a weight would take away the very thing
+    // that makes it an input or an output, so those keep what they have.
+    const bool needsStorageOfItsOwn = tensor->isOthers();
+    if (needsStorageOfItsOwn) {
+        tensor->freeData();
+    }
+    if (!tensor->hasData()) {
+        tensor->dataMalloc();
+    }
+    if (tensor->getDType() == DataType::Int64) {
+        tensor->copyin(vector<int64_t>(value.begin(), value.end()));
+    } else {
+        // `canHoldShapeValue` allows only the two integer types, so this is
+        // the other one.
+        IT_ASSERT(tensor->getDType() == DataType::Int32);
+        tensor->copyin(vector<int32_t>(value.begin(), value.end()));
+    }
+    if (needsStorageOfItsOwn) {
+        tensor->setWeight();
+    }
+}
+} // namespace
+
+size_t GraphObj::shapeSubgraphSize() const {
+    // The same test the fold applies, so that the two cannot come to disagree
+    // about what a shape operator is. Both halves are needed: the type says
+    // which operators a shape computation is built from, and carrying a shape
+    // value says this one is part of such a computation rather than of the
+    // model. The types are shared -- an attention export squeezes and scales
+    // activations with the very operators an exporter joins dimensions with --
+    // so the type alone counts arithmetic on data as though shapes could be
+    // folded out of it.
+    return static_cast<size_t>(
+        std::count_if(ops.begin(), ops.end(), [](const Operator &op) {
+            if (!describesShapes(op)) {
+                return false;
+            }
+            const auto &outputs = op->getOutputs();
+            return !outputs.empty() &&
+                   std::all_of(outputs.begin(), outputs.end(),
+                               [](const Tensor &t) {
+                                   return t->getShapeValue().has_value();
+                               });
+        }));
+}
+
+size_t GraphObj::foldFixedShapeSubgraph() {
+    foldedAwayTensors.clear();
+
+    OpVec foldable;
+    for (const auto &op : ops) {
+        if (!describesShapes(op)) {
+            continue;
+        }
+        // Every output must already hold its final contents. A `Concat`
+        // joining a settled dimension with one that still moves is not
+        // foldable, and reports itself as such by leaving that element
+        // unfixed.
+        const auto &outputs = op->getOutputs();
+        if (outputs.empty()) {
+            continue;
+        }
+        if (!std::all_of(outputs.begin(), outputs.end(), [](const Tensor &t) {
+                return t->isShapeValueWhollyFixed();
+            })) {
+            continue;
+        }
+        // Something the graph was asked to produce has to keep whatever
+        // produces it. The graph promises that every tensor it holds is either
+        // produced by an operator or given from outside, and an output left
+        // with neither would break that promise even though the numbers in it
+        // are right. What feeds such an operator still folds, so a settled
+        // chain collapses to the one operator at its end.
+        if (std::any_of(outputs.begin(), outputs.end(),
+                        [](const Tensor &t) { return t->isOutput(); })) {
+            continue;
+        }
+        foldable.emplace_back(op);
+    }
+
+    // A tensor the graph can no longer reach: nothing produces it and nothing
+    // reads it. Such a tensor breaks the graph invariant, so it is let go of --
+    // unless it is one of the graph's own inputs or outputs, which stay
+    // whatever happens around them. Any reference held elsewhere keeps the
+    // value readable; it is only the graph that lets go.
+    const auto releaseIfUnreachable = [this](const Tensor &tensor) {
+        if (!tensor->getTargets().empty() || tensor->getSource()) {
+            return;
+        }
+        if (tensor->isInput() || tensor->isOutput()) {
+            return;
+        }
+        foldedAwayTensors.push_back(tensor->getFuid());
+        removeTensor(tensor);
+    };
+
+    // Taking an operator out of the graph, having settled what happens to what
+    // it produced. Its inputs lose a reader, which may leave whatever computed
+    // them working for nobody, so those producers come back as candidates.
+    OpVec pending;
+    const auto detach = [&](const Operator &op) {
+        const auto inputs = op->getInputs();
+        const auto outputs = op->getOutputs();
+        for (const auto &output : outputs) {
+            output->setSource(Operator{});
+            // The operator is about to go, so no consumer may still name it as
+            // what comes before them.
+            for (const auto &consumer : output->getTargets()) {
+                consumer->removePredecessors(op);
+            }
+        }
+        for (const auto &input : inputs) {
+            deleteConnection(input, op);
+        }
+        removeOperator(op);
+        for (const auto &output : outputs) {
+            releaseIfUnreachable(output);
+        }
+        for (const auto &input : inputs) {
+            if (input->getTargets().empty()) {
+                if (const auto producer = input->getSource()) {
+                    pending.emplace_back(producer);
+                }
+            }
+            releaseIfUnreachable(input);
+        }
+    };
+
+    size_t dropped = 0;
+    for (const auto &op : foldable) {
+        // The output keeps its place in the graph and merely loses its
+        // producer. Nothing downstream is rewired, so a consumer cannot be
+        // missed, and a reference held elsewhere stays valid. A result nobody
+        // reads is not worth a constant; asked for as an output of the graph it
+        // is read by whoever asked, so it gets one.
+        for (const auto &output : op->getOutputs()) {
+            if (!output->getTargets().empty() || output->isInput() ||
+                output->isOutput()) {
+                writeShapeValueAsData(output);
+            }
+        }
+        detach(op);
+        ++dropped;
+    }
+
+    // Whatever the folds above left with nothing to feed. An operator only
+    // goes if everything it produces is unread -- one consumer left anywhere
+    // means it is still doing work -- and only if it is one of the operators
+    // this pass understands, so that nothing with an effect of its own is
+    // dropped for looking unused.
+    while (!pending.empty()) {
+        const auto op = pending.back();
+        pending.pop_back();
+        if (std::find(ops.begin(), ops.end(), op) == ops.end()) {
+            continue;
+        }
+        if (!describesShapes(op)) {
+            continue;
+        }
+        const auto &outputs = op->getOutputs();
+        if (!std::all_of(outputs.begin(), outputs.end(), [](const Tensor &t) {
+                return t->getTargets().empty() && !t->isInput() &&
+                       !t->isOutput();
+            })) {
+            continue;
+        }
+        detach(op);
+        ++dropped;
+    }
+
+    // Mixed tensors stay intact. A fixed Gather or Slice result already folds
+    // above; splitting its input while retaining the producer only adds work.
+    return dropped;
+}
+
+size_t GraphObj::mergeDuplicateShapeOperators() {
+    IT_ASSERT(topo_sort() == true);
+
+    // What makes two of these operators the same computation: the same kind of
+    // operator, reading the very same tensors, with the same attributes. The
+    // tensors are compared as objects rather than by what they currently hold,
+    // so two that happen to carry equal numbers under this shape are not taken
+    // for one another -- they may part company under the next.
+    //
+    // The attributes come from the vector each operator already reports for
+    // scheduling, which is exactly the list of what distinguishes it from
+    // another of its kind. Reading them from there rather than naming them
+    // here means an operator that gains an attribute cannot quietly start
+    // being merged with one that differs in it.
+    using Signature =
+        std::tuple<OpType::underlying_t, vector<UidBaseType>, vector<int>>;
+    const auto signatureOf = [](const Operator &op) {
+        vector<UidBaseType> inputs;
+        inputs.reserve(op->getInputs().size());
+        for (const auto &input : op->getInputs())
+            inputs.push_back(input->getFuid());
+        return Signature{op->getOpType().underlying(), std::move(inputs),
+                         op->getOpAttrVector()};
+    };
+
+    // Whether this operator may stand in for an earlier one, or be replaced by
+    // it. Only shape computations are considered, for the reason the fold
+    // gives: these types serve data as readily as dimensions, and carrying a
+    // shape value is what says this one describes dimensions.
+    const auto isMergeable = [](const Operator &op) {
+        if (!describesShapes(op)) {
+            return false;
+        }
+        const auto &outputs = op->getOutputs();
+        if (outputs.empty()) {
+            return false;
+        }
+        return std::all_of(outputs.begin(), outputs.end(), [](const Tensor &t) {
+            // Something the graph was asked for keeps its own producer:
+            // dropping it would leave the graph owing a tensor nothing
+            // produces. One it was given is not produced here at all.
+            return t->getShapeValue().has_value() && !t->isInput() &&
+                   !t->isOutput();
+        });
+    };
+
+    size_t merged = 0;
+    // Merging a pair makes their consumers read one tensor where they read two,
+    // which is what makes those consumers duplicates in turn: the second
+    // `Gather` of a pair only becomes a copy of the first once both read the
+    // same `Shape` output. So the scan repeats until a pass finds nothing, and
+    // a chain of any length collapses rather than only its first link.
+    for (;;) {
+        std::map<Signature, Operator> canonical;
+        vector<std::pair<Operator, Operator>> merges;
+        for (const auto &op : ops) {
+            if (!isMergeable(op)) {
+                continue;
+            }
+            const auto [it, inserted] =
+                canonical.try_emplace(signatureOf(op), op);
+            if (inserted) {
+                continue;
+            }
+            const auto &keep = it->second;
+            if (keep->getOutputs().size() != op->getOutputs().size()) {
+                continue;
+            }
+            merges.emplace_back(op, keep);
+        }
+        if (merges.empty()) {
+            break;
+        }
+
+        for (const auto &[drop, keep] : merges) {
+            const auto &dropOutputs = drop->getOutputs();
+            const auto &keepOutputs = keep->getOutputs();
+            for (size_t i = 0; i < dropOutputs.size(); ++i) {
+                // Whoever read the copy now reads the one that stays. The
+                // consumers are copied first: rewiring one takes it off this
+                // very list.
+                const auto consumers = dropOutputs[i]->getTargets();
+                for (const auto &consumer : consumers)
+                    replaceConnection(dropOutputs[i], keepOutputs[i], consumer);
+            }
+            for (const auto &output : dropOutputs) {
+                output->setSource(Operator{});
+                IT_ASSERT(output->getTargets().empty(),
+                          "a merged output still has a reader");
+                foldedAwayTensors.push_back(output->getFuid());
+                removeTensor(output);
+            }
+            for (const auto &input : drop->getInputs())
+                deleteConnection(input, drop);
+            removeOperator(drop);
+            ++merged;
+        }
+    }
+    return merged;
 }
 
 Tensor GraphObj::getTensor(int fuid) const {
@@ -197,6 +527,33 @@ Tensor GraphObj::getTensor(int fuid) const {
         }
     }
     return nullptr;
+}
+
+void GraphObj::spreadFixedDims(const Operator &op) {
+    const auto &inputs = op->getInputs();
+    const auto &outputs = op->getOutputs();
+    for (size_t o = 0; o < outputs.size(); ++o) {
+        const auto rank = outputs[o]->getRank();
+        DimDescs descs(rank, DimDesc{false, ""});
+        for (size_t d = 0; d < rank; ++d) {
+            // A dimension follows some input dimensions, and can change exactly
+            // when one of those can. Naming none of them says it follows
+            // nothing a caller may vary.
+            for (const auto &source : op->dimSources(o, d)) {
+                IT_ASSERT(source.input < inputs.size());
+                if (inputs[source.input]->isDimDynamic(source.dim)) {
+                    descs[d].dynamic = true;
+                    break;
+                }
+            }
+        }
+        // A tensor with every dimension dynamic is the same thing as one that
+        // declared nothing, and that is how such a tensor has always been left.
+        const bool anyFixed =
+            std::any_of(descs.begin(), descs.end(),
+                        [](const DimDesc &d) { return !d.dynamic; });
+        outputs[o]->setDimDescs(anyFixed ? std::move(descs) : DimDescs{});
+    }
 }
 
 void GraphObj::shape_infer() {
@@ -215,6 +572,16 @@ void GraphObj::shape_infer() {
                 tensor->setShape(newShape);
             }
         }
+        // Which of these dimensions can change follows from which of the ones
+        // they were worked out from can. This goes after the shapes are in
+        // place, because a `Reshape` may have just given an output a different
+        // rank and a description has to have one per dimension.
+        spreadFixedDims(op);
+        // Shapes are settled for this operator, so a shape value that follows
+        // from them can be worked out now. `ops` is in topological order, so
+        // every consumer is visited after its producers and sees a current
+        // value rather than one left over from earlier shapes.
+        op->inferShapeValue();
     }
 }
 
@@ -379,7 +746,10 @@ void GraphObj::dataMallocImplCore(bool useNaiveAllocator, size_t memPoolSize,
                 tensor->dataMalloc();
             }
         }
-        weightAllocated = true;
+        if (!weightAllocated) {
+            weightAllocated = true;
+            ++weightDataGeneration;
+        }
         updateAllocationGeneration();
         return;
     }
@@ -449,6 +819,7 @@ void GraphObj::dataMallocImplCore(bool useNaiveAllocator, size_t memPoolSize,
         for (const auto &[tensor, blob] : weightBlobs)
             tensor->setDataBlob(blob);
         this->weightAllocated = true;
+        ++weightDataGeneration;
     }
     // traverse in topological order and simulate memory allocation
     for (auto &op : ops) {

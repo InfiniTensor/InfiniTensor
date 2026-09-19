@@ -17,6 +17,18 @@ namespace infini {
 // TODO: how to deal with this
 using ShapeElem = int;
 using Shape = vector<ShapeElem>;
+
+/// @brief Describes whether one dimension may change between executions.
+///
+/// It mirrors how ONNX declares a dimension: `dim_value` yields a fixed
+/// dimension, `dim_param` yields a symbolic one carrying its name, and a
+/// dimension with neither is dynamic but anonymous.
+struct DimDesc {
+    bool dynamic = false; ///< Whether the dimension may change.
+    string name;          ///< Symbolic name, empty when there is none.
+};
+using DimDescs = vector<DimDesc>;
+
 class TensorObj : public TensorBaseObj {
   private:
     Shape shape;
@@ -24,6 +36,16 @@ class TensorObj : public TensorBaseObj {
     Fuid fuid;    // Cloned tensors share the same id. Tensors constructed from
                   // scratch have a new id.
     TensorType tensorType = TensorType::others;
+    // Per-dimension dynamicity. Empty means the tensor never declared which
+    // dimensions are dynamic, in which case its shape may be replaced freely.
+    DimDescs dimDescs;
+    // Contents of an integer tensor that describes shapes, worked out during
+    // shape inference. See `getShapeValue`.
+    optional<vector<int64_t>> shapeValue;
+    // Which elements of `shapeValue` are the same under every shape the graph
+    // may legally be given. Always as long as `shapeValue` when that holds a
+    // value, because both are written together. See `isShapeValueFixed`.
+    vector<bool> shapeValueFixed;
 
   public:
     TensorObj(Shape shape, DataType dtype, Runtime runtime);
@@ -36,6 +58,68 @@ class TensorObj : public TensorBaseObj {
     Shape getDims() const { return shape; }
     void setShape(Shape shape_);
     size_t getRank() const { return shape.size(); }
+
+    /// @brief Declares which dimensions are dynamic. Once declared, the fixed
+    /// dimensions are protected by `validateShapeChange`.
+    void setDimDescs(DimDescs descs);
+    const DimDescs &getDimDescs() const { return dimDescs; }
+    /// @brief Whether dimension `dim` may change. Tensors without declared
+    /// dimensionality report every dimension as dynamic, matching the
+    /// historical behavior of replacing their shape freely.
+    bool isDimDynamic(size_t dim) const;
+    /// @brief Symbolic name of dimension `dim`, empty when it has none.
+    string getDimName(size_t dim) const;
+    /// @brief Throws when `target` violates the declared dimensionality.
+    /// Does nothing for tensors that never declared it.
+    void validateShapeChange(const Shape &target) const;
+
+    /// @brief Contents of this tensor, when they describe shapes and are known
+    /// without executing anything.
+    ///
+    /// Operators that only rearrange dimensions -- `Shape`, `Gather`,
+    /// `Concat` and the like -- can be worked out during shape inference,
+    /// because their result follows from the shapes of their inputs. Shape
+    /// inference stores that result here, so that a `Reshape` reading its
+    /// target shape from a tensor can find it. Empty when the contents are
+    /// unknown, which is the case for ordinary data.
+    ///
+    /// The value describes the current shapes, so it is rewritten whenever
+    /// shape inference runs again.
+    const optional<vector<int64_t>> &getShapeValue() const {
+        return shapeValue;
+    }
+    /// @brief Records `value` as following only from fixed dimensions.
+    ///
+    /// This is the right reading for the contents of a constant, which are
+    /// whatever the model file says whatever shape the graph is given.
+    void setShapeValue(vector<int64_t> value);
+    /// @brief Records `value` along with which of its elements are the same
+    /// under every shape the graph may legally be given.
+    void setShapeValue(vector<int64_t> value, vector<bool> fixed);
+    void clearShapeValue() {
+        shapeValue.reset();
+        shapeValueFixed.clear();
+    }
+    /// @brief Whether element `index` of the shape value is the same under
+    /// every shape the graph may legally be given.
+    ///
+    /// A dimension the model declared fixed cannot change: `set_input` goes
+    /// through `validateShapeChange`, which rejects any attempt to. So an
+    /// element that follows only from such dimensions is already its final
+    /// value while the graph is being built, and whatever computes it need not
+    /// be run again -- or kept at all.
+    bool isShapeValueFixed(size_t index) const;
+    /// @brief Whether every element of the shape value is fixed.
+    /// False when there is no shape value to speak of.
+    bool isShapeValueWhollyFixed() const;
+    /// @brief The shape value narrowed to `Shape`, checking every element fits.
+    Shape getShapeValueAsShape() const;
+    /// @brief Whether this tensor is shaped and typed like a dimension list.
+    ///
+    /// A shape is a list of integers, so anything of a wider rank or of a
+    /// different type holds data rather than dimensions.
+    bool canHoldShapeValue() const;
+
     Shape getStride() const;
     size_t getOffset(const vector<int> &ds) const;
     void dataMalloc();
