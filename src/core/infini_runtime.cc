@@ -201,12 +201,27 @@ void InfiniRuntimeObj::copyBlobInsideRuntime(void *dst, const void *src,
                                              size_t bytes) const {
     std::lock_guard<std::recursive_mutex> lock(executionMutex);
     activateDevice();
+    // The pinned CPU backend does not implement MemcpyAsync.
+    if (runtimeDevice.type() == ::infini::rt::Device::Type::kCpu) {
+        checkInfiniRt(::infini::rt::runtime::Memcpy(
+                          dst, src, bytes,
+                          ::infini::rt::runtime::kMemcpyDeviceToDevice),
+                      "InfiniRT CPU device-to-device Memcpy");
+        return;
+    }
     ensureExecutionStream();
     // Keep graph copies ordered with kernels and visible to stream capture.
     checkInfiniRt(::infini::rt::runtime::MemcpyAsync(
                       dst, src, bytes,
                       ::infini::rt::runtime::kMemcpyDeviceToDevice, stream),
                   "InfiniRT device-to-device MemcpyAsync");
+    // Outside capture, callers may immediately read the result or release
+    // either allocation. Preserve the synchronous copy contract explicitly;
+    // device Free/host copies need not synchronize this execution stream.
+#if INFINITENSOR_INFINIRT_HAS_GRAPH_API
+    if (!streamCaptureActive)
+#endif
+        syncImpl();
 }
 
 void InfiniRuntimeObj::runWithoutSyncImpl(const Graph &graph,
@@ -277,18 +292,21 @@ InfiniRuntimeObj::captureGraph(const Graph &graph, CapturedGraphState state) {
                                       kStreamCaptureModeThreadLocal),
                       "InfiniRT StreamBeginCapture");
         captureStarted = true;
+        streamCaptureActive = true;
         runWithoutSyncImpl(graph, false);
         IT_ASSERT(captureWorkspaceCursor == entry->workspaces.size(),
                   "Capture requested fewer workspace buffers than warmup");
         auto endStatus =
             ::infini::rt::runtime::StreamEndCapture(stream, &entry->graph);
         captureStarted = false;
+        streamCaptureActive = false;
         checkInfiniRt(endStatus, "InfiniRT StreamEndCapture");
         checkInfiniRt(::infini::rt::runtime::GraphInstantiate(&entry->instance,
                                                               entry->graph),
                       "InfiniRT GraphInstantiate");
     } catch (...) {
         captureWorkspaces = nullptr;
+        streamCaptureActive = false;
         replayCaptureWorkspaces = false;
         auto originalError = std::current_exception();
         if (captureStarted) {

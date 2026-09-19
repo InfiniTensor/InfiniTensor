@@ -152,8 +152,26 @@ TEST(InfiniCopyLifetimeTest, CloneReadbackSourceReleaseAndStorageReuse) {
             make_ref<TensorObj>(Shape{16384}, DataType::Int32, runtime);
         reused->dataMalloc();
         reused->copyin(vector<int32_t>(16384, -1));
-        runtime->sync();
         EXPECT_EQ(survivor->copyout<int32_t>(), values);
+    }
+}
+
+// Ordinary Infini CPU copies must run even when Graph API is unavailable.
+TEST(InfiniCopyLifetimeTest, OrdinaryCopyOperators) {
+    auto runtime = makeCopyRuntime();
+    for (int kind = 0; kind < 5; ++kind) {
+        for (bool naive : {false, true}) {
+            auto graph = make_ref<GraphObj>(runtime);
+            auto input = graph->addTensor({2, 1, 3}, DataType::Int32);
+            input->setInput();
+            auto output = addCopyOp(graph, input, kind);
+            output->setOutput();
+            graph->dataMalloc(naive);
+            vector<int32_t> values{1, -2, 3, -4, 5, 6};
+            input->copyin(values);
+            runtime->run(graph);
+            EXPECT_EQ(output->copyout<int32_t>(), values);
+        }
     }
 }
 

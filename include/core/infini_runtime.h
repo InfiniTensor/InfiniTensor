@@ -75,6 +75,7 @@ class InfiniRuntimeObj final : public RuntimeObj {
     mutable vector<CaptureWorkspace> *captureWorkspaces = nullptr;
     mutable size_t captureWorkspaceCursor = 0;
     mutable bool replayCaptureWorkspaces = false;
+    bool streamCaptureActive = false;
 #endif
     mutable std::recursive_mutex executionMutex;
 #if INFINITENSOR_INFINIRT_HAS_GRAPH_API
