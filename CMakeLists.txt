@@ -345,8 +345,10 @@ if(USE_INFINIOPS_KERNELS)
     endif()
   endif()
   if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    target_link_libraries(InfiniTensor ${INFINIOPS_LIBRARY}
-                          "-Wl,--no-as-needed" InfiniRT::infinirt
+    # InfiniOps entry points are weak references; retain the provider DSO so
+    # standalone C++ consumers can resolve them without Python preloading it.
+    target_link_libraries(InfiniTensor "-Wl,--no-as-needed"
+                          ${INFINIOPS_LIBRARY} InfiniRT::infinirt
                           "-Wl,--as-needed")
   else()
     target_link_libraries(InfiniTensor ${INFINIOPS_LIBRARY}
@@ -365,6 +367,8 @@ endif()
 file(GLOB_RECURSE FFIS src/ffi/ffi_infinitensor.cc)
 pybind11_add_module(backend MODULE ${FFIS})
 target_link_libraries(backend PRIVATE InfiniTensor)
+target_compile_definitions(backend PRIVATE
+  INFINITENSOR_BINDINGS_HAS_ATEN=$<BOOL:${USE_INFINIOPS_ATEN_KERNELS}>)
 if(USE_INFINIOPS_KERNELS)
   target_compile_definitions(backend PRIVATE USE_INFINIOPS_KERNELS=1)
   target_include_directories(backend SYSTEM PRIVATE
@@ -398,6 +402,8 @@ function(build_test files)
     get_filename_component(testname ${testsourcefile} NAME_WE)
     add_executable(${testname} ${testsourcefile})
     target_link_libraries(${testname} InfiniTensor GTest::gtest_main)
+    target_compile_definitions(${testname} PRIVATE
+      INFINITENSOR_TEST_HAS_ATEN=$<BOOL:${USE_INFINIOPS_ATEN_KERNELS}>)
     add_test(NAME ${testname} COMMAND ${testname})
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND
        USE_INFINIOPS_ATEN_KERNELS AND INFINIOPS_PROVIDER_LIBRARY_DIRS)

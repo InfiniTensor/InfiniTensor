@@ -27,16 +27,15 @@ class BatchNormAtenInfiniOps : public infiniops::KernelWithoutConfig {
 
         const auto channels = op->getInputs(1)->size();
         const auto savedBytes = channels * sizeof(float);
-        auto savedMeanBlob = infiniops::allocTemporaryBlob(context, savedBytes);
-        auto savedInvStdBlob =
-            infiniops::allocTemporaryBlob(context, savedBytes);
+        auto savedMeanBlob = infiniops::acquireWorkspace(context, savedBytes);
+        auto savedInvStdBlob = infiniops::acquireWorkspace(context, savedBytes);
         ::infini::rt::TensorView::Shape savedShape{channels};
         auto savedMean = infiniops::makeInfiniOpsTensor(
-            savedMeanBlob->getPtr<void *>(), savedShape,
-            ::infini::rt::DataType::kFloat32, context);
+            savedMeanBlob.get(), savedShape, ::infini::rt::DataType::kFloat32,
+            context);
         auto savedInvStd = infiniops::makeInfiniOpsTensor(
-            savedInvStdBlob->getPtr<void *>(), savedShape,
-            ::infini::rt::DataType::kFloat32, context);
+            savedInvStdBlob.get(), savedShape, ::infini::rt::DataType::kFloat32,
+            context);
 
         auto handle = infiniops::makeInfiniOpsHandle(context);
         auto config =

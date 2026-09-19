@@ -317,6 +317,11 @@ static std::tuple<float, float, float, int> lrn_attrs_of(Operator op) {
 }
 
 void export_functions(py::module &m) {
+#if INFINITENSOR_BINDINGS_HAS_ATEN
+    m.attr("has_infini_aten_kernels") = true;
+#else
+    m.attr("has_infini_aten_kernels") = false;
+#endif
 #define FUNCTION(NAME) def(#NAME, &NAME)
     m.def("cpu_runtime", &NativeCpuRuntimeObj::getInstance)
         .def("runtime", runtime, py::arg("device") = "cpu",

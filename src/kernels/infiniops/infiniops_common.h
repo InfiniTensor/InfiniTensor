@@ -92,6 +92,13 @@ inline Blob allocTemporaryBlob(const RuntimeObj *context, size_t bytes) {
     return runtime->allocBlob(bytes);
 }
 
+inline std::shared_ptr<void> acquireWorkspace(const RuntimeObj *context,
+                                              size_t bytes) {
+    auto runtime = dynamic_cast<const InfiniRuntimeObj *>(context);
+    IT_ASSERT(runtime != nullptr, "Workspace requires an Infini runtime");
+    return runtime->acquireWorkspace(bytes);
+}
+
 inline ::infini::ops::Tensor
 makeInfiniOpsTensor(void *data, const ::infini::rt::TensorView::Shape &shape,
                     const ::infini::rt::DataType &dtype,
