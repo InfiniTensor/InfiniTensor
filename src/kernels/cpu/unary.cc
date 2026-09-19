@@ -182,14 +182,54 @@ class NaiveSoftmax : public CpuKernelWithoutConfig {
         T *inptr = op->getInputs(0)->getRawDataPtr<T *>();
         T *outptr = op->getOutput()->getRawDataPtr<T *>();
 
-        auto outDim = op->getOutput()->getDims();
-        auto n = op->getOutput()->size();
-        auto sum = T(0);
-        for (size_t offset = 0; offset < n; offset++) {
-            sum += pow(E_CONSTANT, inptr[offset]);
+        // Softmax normalises along one axis, so the tensor is read as a stack
+        // of independent runs: `outer` of them ahead of the axis, and `inner`
+        // elements between neighbours within a run. Summing the whole tensor
+        // instead answers one distribution over every element, which is only
+        // the same thing when the tensor is a single run to begin with.
+        const auto dims = op->getOutput()->getDims();
+        const int axis = op->getAxis();
+        const size_t mid = dims.at(axis);
+        // A run of no elements has nothing to normalise and no largest element
+        // to take out of it. A dimension still standing at the placeholder it
+        // was given on import arrives here that way, so this is a shape that
+        // genuinely turns up rather than a guard against the impossible.
+        if (mid == 0) {
+            return;
         }
-        for (size_t offset = 0; offset < n; offset++) {
-            outptr[offset] = pow(E_CONSTANT, inptr[offset]) / sum;
+        size_t outer = 1, inner = 1;
+        for (int i = 0; i < axis; ++i) {
+            outer *= dims[i];
+        }
+        for (size_t i = axis + 1; i < dims.size(); ++i) {
+            inner *= dims[i];
+        }
+
+        for (size_t o = 0; o < outer; ++o) {
+            for (size_t i = 0; i < inner; ++i) {
+                const size_t base = o * mid * inner + i;
+                // Taking the largest element out first leaves every exponent
+                // at most zero. Without it a run of large values overflows to
+                // infinity and comes back as not-a-number, though the answer
+                // is an ordinary set of fractions.
+                T largest = inptr[base];
+                for (size_t m = 1; m < mid; ++m) {
+                    largest = std::max(largest, inptr[base + m * inner]);
+                }
+                double sum = 0;
+                for (size_t m = 0; m < mid; ++m) {
+                    sum +=
+                        std::exp(static_cast<double>(inptr[base + m * inner]) -
+                                 static_cast<double>(largest));
+                }
+                for (size_t m = 0; m < mid; ++m) {
+                    const size_t offset = base + m * inner;
+                    outptr[offset] = static_cast<T>(
+                        std::exp(static_cast<double>(inptr[offset]) -
+                                 static_cast<double>(largest)) /
+                        sum);
+                }
+            }
         }
     }
 

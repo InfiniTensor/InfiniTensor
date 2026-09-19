@@ -84,6 +84,12 @@ class ConcatCuda : private CudaCompute, public CudaKernelWithoutConfig {
             do_compute<half>(_op->getOutput(), _op->getInputs(),
                              as<ConcatObj>(_op)->getDim(),
                              _op->getOutput()->getRank(), false);
+        } else if (_op->getDType() == DataType::Int64) {
+            // Joining dimensions rather than data: a shape computation reaches
+            // Concat with the Int64 that dimensions are carried in.
+            do_compute<int64_t>(_op->getOutput(), _op->getInputs(),
+                                as<ConcatObj>(_op)->getDim(),
+                                _op->getOutput()->getRank(), false);
         } else {
             IT_ASSERT(false);
         }

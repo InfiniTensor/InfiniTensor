@@ -18,6 +18,8 @@ class UnaryObj : public OperatorObj {
      */
     UnaryObj(OpType type, GraphObj *graph, Tensor input, Tensor output);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
+    /// Applied to each element in place, so a dimension is the one it was.
+    vector<DimSource> dimSources(size_t output, size_t dim) const override;
 
     std::string toString() const override;
     int numInputs() const override { return 1; }
@@ -224,10 +226,20 @@ class ShapeObj : public OperatorObj {
     ShapeObj(GraphObj *graph, Tensor input, Tensor output);
     OP_CLONE(ShapeObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
+    /// @brief A shape is a list of dimensions, so the output is always Int64
+    /// rather than a value of the input's type.
+    vector<DataType> inferDataType(const TensorVec &inputs) const override;
+    void inferShapeValue() override;
 
     std::string toString() const override;
     int numInputs() const override { return 1; }
     int numOutputs() const override { return 1; }
+
+  private:
+    /// A shape reads nothing but the dimensions of its input, so those are the
+    /// whole of its workload, and it has no attributes of its own.
+    vector<int> getWorkloadVector() const override;
+    vector<int> getOpAttrVector() const override;
 };
 
 class PReluObj : public OperatorObj {

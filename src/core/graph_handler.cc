@@ -26,6 +26,7 @@
 #include "operators/softmax.h"
 #include "operators/split.h"
 #include "operators/squeeze.h"
+#include "operators/tile.h"
 #include "operators/transpose.h"
 #include "operators/unary.h"
 #include "operators/unsqueeze.h"
@@ -164,29 +165,31 @@ Tensor GraphHandlerObj::rmsNorm(Tensor input, Tensor weight, Tensor output) {
 
 Tensor GraphHandlerObj::maxPool(Tensor input, Tensor output, int kh, int kw,
                                 int dh, int dw, int ph, int pw, int sh, int sw,
-                                int ceilMode) {
+                                int ceilMode, bool globalWindow) {
     if (output) {
         g->addOpWithOutputs<MaxPoolObj>(std::move(input), output, kh, kw, dh,
-                                        dw, ph, pw, sh, sw, ceilMode);
+                                        dw, ph, pw, sh, sw, ceilMode,
+                                        globalWindow);
         return output;
     } else {
         return g
             ->addOp<MaxPoolObj>(std::move(input), output, kh, kw, dh, dw, ph,
-                                pw, sh, sw, ceilMode)
+                                pw, sh, sw, ceilMode, globalWindow)
             ->getOutput();
     }
 }
 Tensor GraphHandlerObj::avgPool(Tensor input, Tensor output, int kh, int kw,
                                 int dh, int dw, int ph, int pw, int sh, int sw,
-                                int ceilMode) {
+                                int ceilMode, bool globalWindow) {
     if (output) {
         g->addOpWithOutputs<AvgPoolObj>(std::move(input), output, kh, kw, dh,
-                                        dw, ph, pw, sh, sw, ceilMode);
+                                        dw, ph, pw, sh, sw, ceilMode,
+                                        globalWindow);
         return output;
     } else {
         return g
             ->addOp<AvgPoolObj>(std::move(input), output, kh, kw, dh, dw, ph,
-                                pw, sh, sw, ceilMode)
+                                pw, sh, sw, ceilMode, globalWindow)
             ->getOutput();
     }
 }
@@ -304,6 +307,18 @@ Tensor GraphHandlerObj::reshape(Tensor data, Tensor reshaped, Shape shape) {
         return reshaped;
     } else {
         return g->addOp<ReshapeObj>(std::move(data), reshaped, std::move(shape))
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::reshape_with_shape_input(Tensor data, Tensor shape,
+                                                 Tensor reshaped) {
+    if (reshaped) {
+        g->addOpWithOutputs<ReshapeObj>(std::move(data), std::move(shape),
+                                        reshaped);
+        return reshaped;
+    } else {
+        return g->addOp<ReshapeObj>(std::move(data), std::move(shape), reshaped)
             ->getOutput();
     }
 }
@@ -496,6 +511,21 @@ Tensor GraphHandlerObj::slice(Tensor input, Tensor output,
     }
 }
 
+Tensor GraphHandlerObj::slice_with_bound_inputs(
+    Tensor input, Tensor starts, Tensor ends, Tensor output,
+    const optional<vector<int>> &axes, const optional<vector<int>> &steps) {
+    if (output) {
+        g->addOpWithOutputs<SliceObj>(std::move(input), std::move(starts),
+                                      std::move(ends), output, axes, steps);
+        return output;
+    } else {
+        return g
+            ->addOp<SliceObj>(std::move(input), std::move(starts),
+                              std::move(ends), output, axes, steps)
+            ->getOutput();
+    }
+}
+
 Tensor GraphHandlerObj::pad(Tensor input, Tensor output,
                             const vector<int> &pads,
                             const optional<vector<int>> &axes) {
@@ -627,6 +657,40 @@ Tensor GraphHandlerObj::expand(Tensor input, Tensor output, Shape dims) {
         return output;
     } else {
         return g->addOp<ExpandObj>(std::move(input), output, std::move(dims))
+            ->getOutput();
+    }
+}
+Tensor GraphHandlerObj::expand_with_shape_input(Tensor input, Tensor shape,
+                                                Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<ExpandObj>(std::move(input), std::move(shape),
+                                       output);
+        return output;
+    } else {
+        return g->addOp<ExpandObj>(std::move(input), std::move(shape), output)
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::tile(Tensor input, Tensor output, Shape repeats) {
+    if (output) {
+        g->addOpWithOutputs<TileObj>(std::move(input), output,
+                                     std::move(repeats));
+        return output;
+    } else {
+        return g->addOp<TileObj>(std::move(input), output, std::move(repeats))
+            ->getOutput();
+    }
+}
+
+Tensor GraphHandlerObj::tile_with_repeats_input(Tensor input, Tensor repeats,
+                                                Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<TileObj>(std::move(input), std::move(repeats),
+                                     output);
+        return output;
+    } else {
+        return g->addOp<TileObj>(std::move(input), std::move(repeats), output)
             ->getOutput();
     }
 }
@@ -794,7 +858,15 @@ void GraphHandlerObj::change_shape(const vector<int> &shape, int tensorId) {
     auto tensor = g->getTensor(tensorId);
     IT_ASSERT(tensor != nullptr);
     IT_ASSERT(shape.size() != 0);
+    tensor->validateShapeChange(shape);
     tensor->setShape(shape);
+}
+
+void GraphHandlerObj::set_dim_descs(const vector<DimDesc> &descs,
+                                    int tensorId) {
+    auto tensor = g->getTensor(tensorId);
+    IT_ASSERT(tensor != nullptr);
+    tensor->setDimDescs(descs);
 }
 
 } // namespace infini

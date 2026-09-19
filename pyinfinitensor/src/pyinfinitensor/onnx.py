@@ -44,6 +44,7 @@ class OnnxStub:
         runtime,
         use_naive_allocator: bool = False,
         matmul_compute_type: str = "default",
+        input_shapes: Optional[Dict[str, Sequence[int]]] = None,
     ):
         model = copy.deepcopy(model)
         # We use some user-defined operators for distributed inference
@@ -63,6 +64,9 @@ class OnnxStub:
         self.tensor_node_map: Dict[str, str] = {}
         self.initializer: Dict[int, TensorProto] = {}
         self._initializer_by_name: Dict[str, TensorProto] = {}
+        # Which handing-out of weight storage the initializers were last written
+        # into. `None` until they have been written at all.
+        self._weights_written_at: Optional[int] = None
         self.use_naive_allocator: bool = use_naive_allocator
         # try:
         #     model = infer_shapes(model)
@@ -124,14 +128,47 @@ class OnnxStub:
             tensors[initializer.name] = self.handler.tensor(dims, initializer.data_type)
             data[initializer.name] = initializer
             tensors[initializer.name].set_weight()
+            # A small integer constant may take part in a shape computation, so
+            # hand its contents over before any operator is built: shape
+            # inference runs while the graph is being constructed, and the
+            # initializer data itself is only copied in much later, by `init`.
+            _seed_shape_value(tensors[initializer.name], initializer)
+
+        graph_input_names = {input.name for input in model.graph.input}
+        input_shapes = {} if input_shapes is None else dict(input_shapes)
+        unknown_shapes = set(input_shapes).difference(graph_input_names)
+        if unknown_shapes:
+            raise ValueError(
+                "input_shapes names are not graph inputs: {}".format(
+                    ", ".join(sorted(unknown_shapes))
+                )
+            )
 
         for input in model.graph.input:
-            dims = _take_shape_dim(input.type.tensor_type.shape)
+            shape_proto = input.type.tensor_type.shape
+            dims = _take_shape_dim(shape_proto)
             if input.name not in tensors.keys():
                 tensors[input.name] = self.handler.tensor(
                     dims, input.type.tensor_type.elem_type
                 )
                 tensors[input.name].set_input()
+                # Keep which dimensions the model declared dynamic, so that
+                # later shape changes can reject illegal ones.
+                descs = _take_dim_descs(shape_proto)
+                if descs:
+                    self.handler.set_dim_descs(descs, tensors[input.name].fuid())
+
+        # Operators infer their output shapes while they are constructed. A
+        # symbolic ONNX dimension has only the placeholder one at that point,
+        # which may be too small for a valid geometry chain. Let callers seed
+        # a legal concrete realization before the first operator is made; later
+        # set_input calls still use the same DimDesc validation and may vary
+        # every dynamic dimension.
+        for name, shape in input_shapes.items():
+            try:
+                self.handler.change_shape(list(shape), tensors[name].fuid())
+            except RuntimeError as e:
+                raise RuntimeError('input_shapes["{}"]: {}'.format(name, e)) from e
 
         for node_idx in sorted_nodes:
             node = model.graph.node[node_idx]
@@ -144,7 +181,7 @@ class OnnxStub:
                         "strides": [1, 1],
                     },
                 )
-                (d, p, s) = (
+                d, p, s = (
                     attributes[name] for name in ["dilations", "pads", "strides"]
                 )
                 if p[0] != p[2] or p[1] != p[3]:
@@ -216,7 +253,7 @@ class OnnxStub:
                         "output_padding": [0, 0],
                     },
                 )
-                (d, p, s, op) = (
+                d, p, s, op = (
                     attributes[name]
                     for name in ["dilations", "pads", "strides", "output_padding"]
                 )
@@ -292,7 +329,7 @@ class OnnxStub:
                 attributes = _parse_attribute(
                     node, {"alpha": 1.0, "beta": 1.0, "transA": 0, "transB": 0}
                 )
-                (alpha, beta, transA, transB) = (
+                alpha, beta, transA, transB = (
                     attributes[name] for name in ["alpha", "beta", "transA", "transB"]
                 )
                 # FIXME unsupport attributes: `alpha` `beta`
@@ -309,14 +346,14 @@ class OnnxStub:
                     matmul_compute_type,
                 )
             elif node.op_type == "BatchNormalization":
-                (input, mean, var, scale, bias) = (
+                input, mean, var, scale, bias = (
                     tensors[node.input[i]] for i in [0, 3, 4, 1, 2]
                 )
                 output = tensors.get(node.output[0])
                 attributes = _parse_attribute(
                     node, {"momentum": 0.9, "epsilon": 1e-05, "training_mode": 0}
                 )
-                (momentum, eps, training) = (
+                momentum, eps, training = (
                     attributes[name]
                     for name in ["momentum", "epsilon", "training_mode"]
                 )
@@ -332,13 +369,13 @@ class OnnxStub:
                     training != 0,
                 )
             elif node.op_type == "LayerNormalization":
-                (input, scale) = (tensors[node.input[i]] for i in [0, 1])
+                input, scale = (tensors[node.input[i]] for i in [0, 1])
                 bias = None if len(node.input) < 3 else tensors[node.input[2]]
                 output = tensors.get(node.output[0])
                 attributes = _parse_attribute(
                     node, {"axis": -1, "epsilon": 1e-05, "stash_type": 1}
                 )
-                (axis, eps, stash_type) = (
+                axis, eps, stash_type = (
                     attributes[name] for name in ["axis", "epsilon", "stash_type"]
                 )
                 tensors[node.output[0]] = self.handler.layerNormalization(
@@ -351,7 +388,7 @@ class OnnxStub:
                     stash_type,
                 )
             elif node.op_type == "InstanceNormalization":
-                (input, scale, bias) = (tensors[node.input[i]] for i in [0, 1, 2])
+                input, scale, bias = (tensors[node.input[i]] for i in [0, 1, 2])
 
                 output = tensors.get(node.output[0])
 
@@ -382,7 +419,7 @@ class OnnxStub:
                         "ceil_mode": 0,
                     },
                 )
-                (k, d, p, s, ceil_mode) = (
+                k, d, p, s, ceil_mode = (
                     attributes[name]
                     for name in [
                         "kernel_shape",
@@ -434,7 +471,7 @@ class OnnxStub:
                         "ceil_mode": 0,
                     },
                 )
-                (k, p, s, ceil_mode) = (
+                k, p, s, ceil_mode = (
                     attributes[name]
                     for name in ["kernel_shape", "pads", "strides", "ceil_mode"]
                 )
@@ -487,7 +524,23 @@ class OnnxStub:
                         ceil_mode,
                     )
             elif node.op_type == "GlobalAveragePool":
-                [_, _, h, w] = tensors[node.input[0]].shape()
+                # The window is the whole input by definition, so it is not
+                # passed: a spatial size read here would be the placeholder a
+                # dynamic dimension carries before any real shape arrives, and a
+                # window of that pools one element and returns the input as it
+                # was. `globalWindow` has the operator read the size off each
+                # input instead.
+                input_shape = tensors[node.input[0]].shape()
+                if len(input_shape) == 3:
+                    h, w = 1, input_shape[-1]
+                elif len(input_shape) == 4:
+                    h, w = input_shape[-2:]
+                else:
+                    raise ValueError(
+                        "GlobalAveragePool input must have rank 3 or 4, got {}".format(
+                            len(input_shape)
+                        )
+                    )
                 tensors[node.output[0]] = self.handler.avgPool(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
@@ -500,6 +553,7 @@ class OnnxStub:
                     1,
                     1,
                     0,
+                    True,
                 )
             elif node.op_type == "Add":
                 tensors[node.output[0]] = self.handler.add(
@@ -669,12 +723,22 @@ class OnnxStub:
                     mode,
                 )
             elif node.op_type == "Reshape":
-                shape = _parse_static_input(data, node, 1, required=True)
-                tensors[node.output[0]] = self.handler.reshape(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    shape,
-                )
+                if _has_input(node, 1) and node.input[1] not in data:
+                    # The target shape is worked out from the shape of an
+                    # input, so wire it up as an edge of the graph instead of
+                    # reading a constant that is not there.
+                    tensors[node.output[0]] = self.handler.reshape_with_shape_input(
+                        tensors[node.input[0]],
+                        tensors[node.input[1]],
+                        tensors.get(node.output[0]),
+                    )
+                else:
+                    shape = _parse_static_input(data, node, 1, required=True)
+                    tensors[node.output[0]] = self.handler.reshape(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        shape,
+                    )
             elif node.op_type == "Resize":
                 output = tensors.get(node.output[0])
                 attributes = _parse_attribute(
@@ -857,24 +921,45 @@ class OnnxStub:
 
                 def clamp(nums):
                     MAX_INT = 0x7FFFFFFF
-                    return [min(x, MAX_INT) for x in nums]
+                    MIN_INT = -0x80000000
+                    return [max(MIN_INT, min(x, MAX_INT)) for x in nums]
 
-                tensors[node.output[0]] = self.handler.slice(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    clamp(_parse_static_input(data, node, 1, required=True)),
-                    clamp(_parse_static_input(data, node, 2, required=True)),
-                    (
-                        clamp(_parse_static_input(data, node, 3))
-                        if _has_input(node, 3)
-                        else None
-                    ),
-                    (
-                        clamp(_parse_static_input(data, node, 4))
-                        if _has_input(node, 4)
-                        else None
-                    ),
+                # Which axes are sliced, and at what step, is written as a
+                # constant even by an exporter that computes the bounds: the
+                # bounds move with the shape while the axes do not.
+                axes = (
+                    clamp(_parse_static_input(data, node, 3))
+                    if _has_input(node, 3)
+                    else None
                 )
+                steps = (
+                    clamp(_parse_static_input(data, node, 4))
+                    if _has_input(node, 4)
+                    else None
+                )
+                computed = (node.input[1] not in data) or (node.input[2] not in data)
+                if computed:
+                    # A bound is worked out from the shape of an input, so wire
+                    # both up as edges of the graph instead of reading constants
+                    # that are not there. A constant bound is an edge too, and
+                    # carries its value as a shape value.
+                    tensors[node.output[0]] = self.handler.slice_with_bound_inputs(
+                        tensors[node.input[0]],
+                        tensors[node.input[1]],
+                        tensors[node.input[2]],
+                        tensors.get(node.output[0]),
+                        axes,
+                        steps,
+                    )
+                else:
+                    tensors[node.output[0]] = self.handler.slice(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        clamp(_parse_static_input(data, node, 1, required=True)),
+                        clamp(_parse_static_input(data, node, 2, required=True)),
+                        axes,
+                        steps,
+                    )
             elif node.op_type == "Pad":
                 attributes = _parse_attribute(node, {"mode": b"constant"})
                 mode = attributes["mode"]
@@ -898,22 +983,30 @@ class OnnxStub:
             elif node.op_type == "Dropout":
                 training_mode = _parse_static_scalar(data, node, 2)
                 if training_mode:
-                    raise NotImplementedError(
-                        "Dropout training mode is not supported"
-                    )
+                    raise NotImplementedError("Dropout training mode is not supported")
                 if len(node.output) > 1 and node.output[1]:
-                    raise NotImplementedError(
-                        "Dropout mask output is not supported"
-                    )
+                    raise NotImplementedError("Dropout mask output is not supported")
                 tensors[node.output[0]] = self.handler.identity(
                     tensors[node.input[0]], tensors.get(node.output[0])
                 )
             elif node.op_type == "Cast":
-                tensors[node.output[0]] = self.handler.cast(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    next((attr.i for attr in node.attribute if attr.name == "to")),
-                )
+                to = next(attr.i for attr in node.attribute if attr.name == "to")
+                if to == tensors[node.input[0]].dtype():
+                    # A cast to the type a tensor already holds does nothing.
+                    # An exporter emits these freely, and around a shape
+                    # subgraph in particular, so reading one as a copy keeps
+                    # the chain of shape values unbroken. Same idiom as
+                    # `Dropout` above, which is also a copy at inference.
+                    tensors[node.output[0]] = self.handler.identity(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                    )
+                else:
+                    tensors[node.output[0]] = self.handler.cast(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        to,
+                    )
             elif node.op_type == "ReduceSum":
                 if any(attr.name == "communicator" for attr in node.attribute):
                     # ReduceSum with communicator is treated as allReduceSum.
@@ -1041,12 +1134,39 @@ class OnnxStub:
                     None,
                 )
             elif node.op_type == "Expand":
-                shape = _parse_static_input(data, node, 1, required=True)
-                tensors[node.output[0]] = self.handler.expand(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    shape,
-                )
+                if _has_input(node, 1) and node.input[1] not in data:
+                    # The target is worked out from the shape of an input, so
+                    # wire it up as an edge of the graph instead of reading a
+                    # constant that is not there.
+                    tensors[node.output[0]] = self.handler.expand_with_shape_input(
+                        tensors[node.input[0]],
+                        tensors[node.input[1]],
+                        tensors.get(node.output[0]),
+                    )
+                else:
+                    shape = _parse_static_input(data, node, 1, required=True)
+                    tensors[node.output[0]] = self.handler.expand(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        shape,
+                    )
+            elif node.op_type == "Tile":
+                if node.input[1] not in data:
+                    # The counts are worked out from the shape of an input, so
+                    # wire them up as an edge of the graph instead of reading a
+                    # constant that is not there.
+                    tensors[node.output[0]] = self.handler.tile_with_repeats_input(
+                        tensors[node.input[0]],
+                        tensors[node.input[1]],
+                        tensors.get(node.output[0]),
+                    )
+                else:
+                    repeats = _parse_static_input(data, node, 1, required=True)
+                    tensors[node.output[0]] = self.handler.tile(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        repeats,
+                    )
             elif node.op_type == "Erf":
                 tensors[node.output[0]] = self.handler.erf(
                     tensors[node.input[0]],
@@ -1093,6 +1213,10 @@ class OnnxStub:
                 tensors[output_name] = self.handler.tensor(dims, tensor.data_type)
                 data[output_name] = tensor
                 tensors[output_name].set_weight()
+                # An axis or a shape reaches a graph either as an initializer or
+                # as a `Constant`, and an exporter may choose either. Seed both
+                # the same way; see the loop over `model.graph.initializer`.
+                _seed_shape_value(tensors[output_name], tensor)
             elif node.op_type == "ConstantOfShape":
                 raise NotImplementedError(
                     'Unsupported operator "ConstantOfShape": static and dynamic '
@@ -1102,7 +1226,7 @@ class OnnxStub:
                 attributes = _parse_attribute(
                     node, {"alpha": 0.0001, "beta": 0.75, "bias": 1.0, "size": 1}
                 )
-                (alpha, beta, bias, size) = (
+                alpha, beta, bias, size = (
                     attributes[name] for name in ["alpha", "beta", "bias", "size"]
                 )
                 tensors[node.output[0]] = self.handler.lrn(
@@ -1138,9 +1262,7 @@ class OnnxStub:
     def to_onnx(self, name: str) -> ModelProto:
         class Context:
             def __init__(self):
-                self.names: Dict[
-                    Union[backend.Tensor, backend.Operator], str
-                ] = {}
+                self.names: Dict[Union[backend.Tensor, backend.Operator], str] = {}
                 self.count_op: Dict[backend.OpTypeId, int] = {}
                 self.count_in = 0
                 self.count_out = 0
@@ -1287,7 +1409,18 @@ class OnnxStub:
                     )
                 )
             elif ty == backend.OpTypeId.MaxPool:
-                kh, kw, dh, dw, ph, pw, sh, sw, ceil_mode = backend.pool_attrs_of(op)
+                (
+                    kh,
+                    kw,
+                    dh,
+                    dw,
+                    ph,
+                    pw,
+                    sh,
+                    sw,
+                    ceil_mode,
+                    _,
+                ) = backend.pool_attrs_of(op)
                 ctx.push_node(
                     make_node(
                         ty.name,
@@ -1302,19 +1435,37 @@ class OnnxStub:
                     )
                 )
             elif ty == backend.OpTypeId.AveragePool:
-                kh, kw, dh, dw, ph, pw, sh, sw, ceil_mode = backend.pool_attrs_of(op)
-                ctx.push_node(
-                    make_node(
-                        "AveragePool",
-                        inputs,
-                        outputs,
-                        name,
-                        kernel_shape=[kh, kw],
-                        pads=[ph, pw, ph, pw],
-                        strides=[sh, sw],
-                        ceil_mode=ceil_mode,
+                (
+                    kh,
+                    kw,
+                    dh,
+                    dw,
+                    ph,
+                    pw,
+                    sh,
+                    sw,
+                    ceil_mode,
+                    global_window,
+                ) = backend.pool_attrs_of(op)
+                if global_window:
+                    # The window is the whole input, which is what
+                    # `GlobalAveragePool` means and what no window size can say.
+                    # Writing the size held right now would fix the pool to the
+                    # last shape it was given.
+                    ctx.push_node(make_node("GlobalAveragePool", inputs, outputs, name))
+                else:
+                    ctx.push_node(
+                        make_node(
+                            "AveragePool",
+                            inputs,
+                            outputs,
+                            name,
+                            kernel_shape=[kh, kw],
+                            pads=[ph, pw, ph, pw],
+                            strides=[sh, sw],
+                            ceil_mode=ceil_mode,
+                        )
                     )
-                )
             elif ty in [
                 backend.OpTypeId.Add,
                 backend.OpTypeId.Sub,
@@ -1333,13 +1484,12 @@ class OnnxStub:
                 backend.OpTypeId.Sqrt,
                 backend.OpTypeId.Erf,
                 backend.OpTypeId.Neg,
+                backend.OpTypeId.Shape,
             ]:
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Softmax:
                 axis = backend.softmax_axis_of(op)
-                ctx.push_node(
-                    make_node(ty.name, inputs, outputs, name, axis=axis)
-                )
+                ctx.push_node(make_node(ty.name, inputs, outputs, name, axis=axis))
             elif ty == backend.OpTypeId.Flatten:
                 axis = backend.flatten_axis_of(op)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, axis=axis))
@@ -1347,16 +1497,20 @@ class OnnxStub:
                 perm = backend.transpose_permute_of(op)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, perm=perm))
             elif ty == backend.OpTypeId.Reshape:
-                shape = backend.reshape_shape_of(op)
-                inputs.append(
-                    ctx.push_data_input(
-                        name,
-                        "shape",
-                        TensorProto.INT64,
-                        [len(shape)],
-                        shape,
+                # A Reshape reading its target from an edge already has the
+                # second input ONNX asks for; only the other shape has to spell
+                # the target out as a constant.
+                if len(inputs) == 1:
+                    shape = backend.reshape_shape_of(op)
+                    inputs.append(
+                        ctx.push_data_input(
+                            name,
+                            "shape",
+                            TensorProto.INT64,
+                            [len(shape)],
+                            shape,
+                        )
                     )
-                )
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Squeeze:
                 axes = backend.squeeze_axes_of(op)
@@ -1434,17 +1588,13 @@ class OnnxStub:
                 input_dtype = backend.tensor_dtype(op.inputs()[0])
                 if min_value is not None:
                     inputs.append(
-                        ctx.push_data_input(
-                            name, "min", input_dtype, [], [min_value]
-                        )
+                        ctx.push_data_input(name, "min", input_dtype, [], [min_value])
                     )
                 elif max_value is not None:
                     inputs.append("")
                 if max_value is not None:
                     inputs.append(
-                        ctx.push_data_input(
-                            name, "max", input_dtype, [], [max_value]
-                        )
+                        ctx.push_data_input(name, "max", input_dtype, [], [max_value])
                     )
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Cast:
@@ -1455,12 +1605,30 @@ class OnnxStub:
                 new_inputs = [inputs[2], inputs[0], inputs[1]]
                 ctx.push_node(make_node(ty.name, new_inputs, outputs, name))
             elif ty == backend.OpTypeId.Expand:
-                shape = backend.expand_shape_of(op)
-                inputs.append(
-                    ctx.push_data_input(
-                        name, "shape", TensorProto.INT64, [len(shape)], shape
+                # As with Reshape: one reading its target from an edge already
+                # has the second input ONNX asks for.
+                if len(inputs) == 1:
+                    shape = backend.expand_shape_of(op)
+                    inputs.append(
+                        ctx.push_data_input(
+                            name, "shape", TensorProto.INT64, [len(shape)], shape
+                        )
                     )
-                )
+                ctx.push_node(make_node(ty.name, inputs, outputs, name))
+            elif ty == backend.OpTypeId.Tile:
+                # ONNX always asks for the counts as a second input, so one that
+                # holds them as a constant has to write them out.
+                if len(inputs) == 1:
+                    repeats = backend.tile_repeats_of(op)
+                    inputs.append(
+                        ctx.push_data_input(
+                            name,
+                            "repeats",
+                            TensorProto.INT64,
+                            [len(repeats)],
+                            repeats,
+                        )
+                    )
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.LRN:
                 alpha, beta, bias, size = backend.lrn_attrs_of(op)
@@ -1486,11 +1654,126 @@ class OnnxStub:
         self._copy_initializers()
 
     def _copy_initializers(self) -> None:
+        """Write the weights the model came with into the graph.
+
+        Weight storage is handed out once and then left alone however often the
+        shape changes afterwards, so what was written into it stands and writing
+        it again produces what is already there. Reading a weight out of the
+        model is not cheap -- protobuf to numpy, then a copy into the graph --
+        and on a model of any size it is the greater part of what a shape change
+        costs, so the work is skipped rather than its result cached.
+
+        The graph says when it hands weight storage out afresh, which is the one
+        thing that invalidates what was written: a failed allocation rolls back
+        to none of it being held, and the weights want writing again after. A
+        shape change on its own moves activations only and does not count.
+        """
+        generation = self.handler.weight_data_generation()
+        if self._weights_written_at == generation:
+            return
         for name, initializer in self._initializer_by_name.items():
             self.tensors[name].copyin_numpy(to_array(initializer))
+        self._weights_written_at = generation
 
     def optimize(self) -> None:
         self.handler.optimize()
+        self._forget_folded_tensors()
+
+    def shape_subgraph_size(self) -> int:
+        """How many operators describe shapes rather than data.
+
+        This is the part of the graph `fold_shape_subgraph` can reach, so
+        reading it before a fold says what the fold started from.
+        """
+        return self.handler.shape_subgraph_size()
+
+    def fold_shape_subgraph(self) -> int:
+        """Replace the settled part of the shape subgraph with constants.
+
+        A dimension the model declared fixed cannot change, so whatever follows
+        only from such dimensions is already its final value and need not be
+        worked out again on every inference. Returns how many operators this
+        removed. Dimensions the model declared dynamic are left alone, along
+        with everything reading them.
+        """
+        dropped = self.handler.fold_fixed_shape_subgraph()
+        self._forget_folded_tensors()
+        return dropped
+
+    def merge_duplicate_shape_operators(self) -> int:
+        """Leave one of each shape computation the graph works out twice over.
+
+        An exporter that reads a dimension off the same tensor in several places
+        emits the read several times, and each copy is then run on every
+        inference. Two operators of the same kind, reading the very same tensors
+        with the same attributes, produce the same answer under every shape, so
+        whoever read the copy is pointed at the one that stays. Returns how many
+        operators this removed.
+
+        Tensors are compared as objects rather than by what they currently hold,
+        so two that happen to carry equal numbers under this shape are not taken
+        for one another. This is separate from `fold_shape_subgraph`: that one
+        removes a computation whose answer has settled, and this one removes a
+        second copy of a computation that has not.
+        """
+        merged = self.handler.merge_duplicate_shape_operators()
+        self._forget_folded_tensors()
+        return merged
+
+    def pin_dims(self, name: str, axes: Sequence[int]) -> None:
+        """Declare that some of an input's dimensions are fixed from here on.
+
+        A model is commonly exported with a dimension left dynamic and then
+        deployed at one size for good: an export makes the batch variable, and
+        the server that loads it serves one batch size. Saying so lets
+        everything following from that dimension be worked out once by
+        `fold_shape_subgraph`, which is knowledge no simplifier run before the
+        deployment existed could have had.
+
+        The pinned dimensions keep the size they hold now, and asking for
+        another one afterwards is refused.
+        """
+        if name not in self.inputs:
+            raise ValueError(
+                'no input named "{}"; this model takes {}'.format(
+                    name, ", ".join(self.inputs) or "nothing"
+                )
+            )
+        tensor = self.inputs[name]
+        rank = len(tensor.shape())
+        descs = list(tensor.dim_descs())
+        if not descs:
+            # A tensor that declared nothing counts every dimension dynamic.
+            descs = [backend.DimDesc(True, "") for _ in range(rank)]
+        for axis in axes:
+            if not 0 <= axis < rank:
+                raise ValueError(
+                    'input "{}" has rank {}, so it has no axis {}'.format(
+                        name, rank, axis
+                    )
+                )
+            descs[axis] = backend.DimDesc(False, "")
+        self.handler.set_dim_descs(descs, tensor.fuid())
+        # Spreading this fixedness through the shape values takes a round of
+        # inference, and `set_input` will not do it: it skips a shape the
+        # tensor already carries, which is exactly the size just pinned.
+        self.handler.shape_infer()
+
+    def _forget_folded_tensors(self) -> None:
+        """Drop what the graph no longer holds.
+
+        A constant that took part only in a settled shape computation is gone
+        from the graph along with the operators that read it. Copying its
+        contents in again would write into memory the graph has stopped
+        accounting for, so it is taken off the list of things to copy.
+        """
+        gone = set(self.handler.folded_away_tensors())
+        if not gone:
+            return
+        for name in [n for n, t in self.tensors.items() if t.fuid() in gone]:
+            self._initializer_by_name.pop(name, None)
+        for fuid in gone:
+            self.initializer.pop(fuid, None)
 
     def clone_KV(self, tensor: backend.Tensor) -> backend.Tensor:
         return self.handler.clone_KV(tensor)
@@ -1501,15 +1784,64 @@ class OnnxStub:
     def trim_memory(self) -> None:
         self.handler.trim_memory()
 
+    def activation_allocations(self) -> int:
+        """How many times activation storage has been asked of the runtime.
+
+        Storage that is reused does not count, so this is what a workload
+        changing shape from one inference to the next is trying to hold down.
+        """
+        return self.handler.activation_allocations()
+
+    def activation_peak(self) -> int:
+        """Bytes the activations need for the shape currently in place."""
+        return self.handler.activation_peak()
+
+    def activation_capacity(self) -> int:
+        """Bytes actually held for activations.
+
+        This stands at the high watermark of the shapes seen so far; the
+        difference from `activation_peak` is the slack that buys the reuse.
+        """
+        return self.handler.activation_capacity()
+
+    def allocated_bytes(self) -> int:
+        """Every byte the graph holds: activations, weights and heap."""
+        return self.handler.allocated_bytes()
+
     def set_input(self, inputShapes: List[Sequence[int]]) -> None:
         if len(inputShapes) != len(self.inputs):
             raise ValueError(
                 "inputShapes must contain one shape per model input; expected "
                 "{}, got {}".format(len(self.inputs), len(inputShapes))
             )
+        # Shapes that are already in place need nothing done to them, and one
+        # shape is commonly asked for many times over -- a batch size that
+        # holds from one inference to the next. Laying the memory out again
+        # costs more than running the whole graph, so it is worth not doing.
+        # A shape equal to the one a tensor already carries is valid by having
+        # been accepted once, so nothing is skipped but the work itself.
+        if all(
+            list(requested) == self.inputs[name].shape()
+            for requested, name in zip(inputShapes, self.inputs)
+        ):
+            return
+        changed = []
         for newInput, oldInput in zip(inputShapes, self.inputs):
             oldTensor = self.inputs[oldInput]
-            self.handler.change_shape(newInput, oldTensor.fuid())
+            previous = oldTensor.shape()
+            try:
+                self.handler.change_shape(newInput, oldTensor.fuid())
+            except (RuntimeError, TypeError) as e:
+                # change_shape validates before mutation. No inference or
+                # allocation has happened yet, so restore earlier inputs to
+                # keep their metadata consistent with the existing storage.
+                for tensor, shape in reversed(changed):
+                    self.handler.change_shape(shape, tensor.fuid())
+                # Name the offending input; the backend only knows tensor ids.
+                if isinstance(e, TypeError):
+                    raise
+                raise RuntimeError('input "{}": {}'.format(oldInput, e)) from e
+            changed.append((oldTensor, previous))
         self.handler.shape_infer()
         self.init()
 
@@ -1551,7 +1883,7 @@ def _parse_static_input(
     if not _has_input(node, index):
         if required:
             raise ValueError(
-                '{} input {} is required and must be constant'.format(
+                "{} input {} is required and must be constant".format(
                     node.op_type, index
                 )
             )
@@ -1560,9 +1892,7 @@ def _parse_static_input(
     name = node.input[index]
     if name not in data:
         raise ValueError(
-            '{} input {} ("{}") must be constant'.format(
-                node.op_type, index, name
-            )
+            '{} input {} ("{}") must be constant'.format(node.op_type, index, name)
         )
     return _parse_data(data[name])
 
@@ -1575,9 +1905,7 @@ def _parse_static_scalar(
         return None
     if len(values) != 1:
         raise ValueError(
-            '{} input {} must contain exactly one value'.format(
-                node.op_type, index
-            )
+            "{} input {} must contain exactly one value".format(node.op_type, index)
         )
     return values[0]
 
@@ -1624,3 +1952,40 @@ def _parse_data_fp16(tensor: TensorProto):
 
 def _take_shape_dim(shape: TensorShapeProto) -> List[int]:
     return [(d.dim_value if d.dim_value > 0 else 1) for d in shape.dim]
+
+
+# A tensor taking part in a shape computation holds one entry per dimension, so
+# it is tiny. The bound keeps large integer tensors, which are data rather than
+# shapes, from being copied for nothing.
+_SHAPE_VALUE_MAX_ELEMENTS = 64
+_SHAPE_VALUE_DTYPES = (TensorProto.INT32, TensorProto.INT64)
+
+
+def _seed_shape_value(tensor: backend.Tensor, initializer: TensorProto) -> None:
+    """Give the backend the contents of a small integer constant."""
+    if initializer.data_type not in _SHAPE_VALUE_DTYPES:
+        return
+    if len(initializer.dims) > 1:
+        return
+    values = to_array(initializer).reshape(-1)
+    if values.size > _SHAPE_VALUE_MAX_ELEMENTS:
+        return
+    tensor.set_shape_value([int(v) for v in values])
+
+
+def _take_dim_descs(shape: TensorShapeProto) -> List[backend.DimDesc]:
+    """Describe each dimension of `shape` as fixed, symbolic or unknown.
+
+    Returns an empty list when every dimension is fixed, which tells the
+    backend that the tensor never declared its dynamicity and that its shape
+    may still be replaced as a whole.
+    """
+    descs = []
+    for d in shape.dim:
+        if d.dim_value > 0:
+            descs.append(backend.DimDesc(False))
+        else:
+            # `dim_param` names a symbolic dimension; without it the dimension
+            # is dynamic but anonymous.
+            descs.append(backend.DimDesc(True, d.dim_param))
+    return descs if any(desc.dynamic for desc in descs) else []

@@ -113,6 +113,24 @@ optional<vector<Shape>> ConvObj::inferShape(const TensorVec &inputs) {
     return {{{on, oc, oh, ow}}};
 }
 
+vector<DimSource> ConvObj::dimSources(size_t output, size_t dim) const {
+    IT_ASSERT(output == 0);
+    IT_ASSERT(dim < 4);
+    // A bias is added to channels already counted, so it is never what a
+    // dimension followed and is left out whether or not one was given.
+    switch (dim) {
+    case 0:
+        return {DimSource{0, 0}}; // batch, as given
+    case 1:
+        return {DimSource{1, 0}}; // one channel per filter the weight holds
+    default:
+        // Spatial, worked out from the input and the kernel together. Padding,
+        // stride and dilation are attributes rather than dimensions, and are
+        // fixed for the life of the operator.
+        return {DimSource{0, dim}, DimSource{1, dim}};
+    }
+}
+
 void Conv3dObj::setAuxilaryAttributes(PaddingMode mode) {
     const Tensor &input = inputs[0];
     const Tensor &weight = inputs[1];
@@ -265,6 +283,25 @@ ConvTransposed2dObj::inferShape(const TensorVec &inputs) {
     oh = (h - 1) * sh - 2 * ph + dh * (r - 1) + oph + 1;
     ow = (w - 1) * sw - 2 * pw + dw * (s - 1) + opw + 1;
     return {{{on, oc, oh, ow}}};
+}
+
+vector<DimSource> ConvTransposed2dObj::dimSources(size_t output,
+                                                  size_t dim) const {
+    IT_ASSERT(output == 0);
+    IT_ASSERT(dim < 4);
+    switch (dim) {
+    case 0:
+        return {DimSource{0, 0}}; // batch, as given
+    case 1:
+        // Channels per group come from the weight, and the group count is an
+        // attribute, so nothing a caller varies is followed.
+        return {DimSource{1, 1}};
+    default:
+        // Spatial, worked out from the input and the kernel together. Padding,
+        // stride, dilation and output padding are attributes rather than
+        // dimensions, and are fixed for the life of the operator.
+        return {DimSource{0, dim}, DimSource{1, dim}};
+    }
 }
 
 void ConvTransposed2dObj::setAuxilaryAttributes(PaddingMode mode) {

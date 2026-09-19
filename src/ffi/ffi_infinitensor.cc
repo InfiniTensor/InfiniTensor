@@ -14,6 +14,7 @@
 #include "operators/softmax.h"
 #include "operators/split.h"
 #include "operators/squeeze.h"
+#include "operators/tile.h"
 #include "operators/transpose.h"
 #include "operators/unary.h"
 #include "operators/unsqueeze.h"
@@ -99,6 +100,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, GatherElements)
         .VALUE(OpType, ReduceMean)
         .VALUE(OpType, ReduceSum)
+        .VALUE(OpType, Shape)
         .VALUE(OpType, Reshape)
         .VALUE(OpType, Squeeze)
         .VALUE(OpType, Unsqueeze)
@@ -121,6 +123,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, Sqrt)
         .VALUE(OpType, Neg)
         .VALUE(OpType, Expand)
+        .VALUE(OpType, Tile)
         .VALUE(OpType, Erf)
         .VALUE(OpType, Where)
         .VALUE(OpType, DepthToSpace)
@@ -229,14 +232,19 @@ static std::tuple<float, float, bool> batch_norm_attrs_of(Operator op) {
                            batchnorm->getTrainingMode());
 }
 
-static std::tuple<int, int, int, int, int, int, int, int, int>
+/// The window comes last as a flag rather than a size, because a global pool's
+/// window is the input it is given. Writing the size it currently holds back
+/// out would turn a pool that follows any picture into one fixed to the last
+/// picture it saw.
+static std::tuple<int, int, int, int, int, int, int, int, int, bool>
 pool_attrs_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::MaxPool ||
               op->getOpType() == OpType::AveragePool);
     auto pool = dynamic_cast<const PoolingObj *>(op.get());
     return std::make_tuple(pool->getKh(), pool->getKw(), pool->getDh(),
                            pool->getDw(), pool->getPh(), pool->getPw(),
-                           pool->getSh(), pool->getSw(), pool->getCeilMode());
+                           pool->getSh(), pool->getSw(), pool->getCeilMode(),
+                           pool->isGlobalWindow());
 }
 
 static std::tuple<std::optional<float>, std::optional<float>>
@@ -294,6 +302,15 @@ static vector<int64_t> unsqueeze_axes_of(Operator op) {
     auto axes = dynamic_cast<const UnsqueezeObj *>(op.get())->getAxes();
     vector<int64_t> ans(axes.size());
     std::transform(axes.begin(), axes.end(), ans.begin(),
+                   [](auto x) { return static_cast<int64_t>(x); });
+    return ans;
+}
+
+static vector<int64_t> tile_repeats_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Tile);
+    auto repeats = dynamic_cast<const TileObj *>(op.get())->getRepeats();
+    vector<int64_t> ans(repeats.size());
+    std::transform(repeats.begin(), repeats.end(), ans.begin(),
                    [](auto x) { return static_cast<int64_t>(x); });
     return ans;
 }
@@ -384,6 +401,7 @@ void export_functions(py::module &m) {
         .FUNCTION(tensor_dtype)
         .FUNCTION(reshape_shape_of)
         .FUNCTION(expand_shape_of)
+        .FUNCTION(tile_repeats_of)
         .FUNCTION(pad_pads_of)
         .FUNCTION(transpose_permute_of)
         .FUNCTION(concat_axis_of)
@@ -475,10 +493,34 @@ void init_graph_builder(py::module &m) {
         .def("init_comm", &ASCENDRuntimeObj::initComm);
     ;
 #endif
+    py::class_<DimDesc>(m, "DimDesc")
+        .def(py::init<>())
+        .def(py::init([](bool dynamic, string name) {
+                 return DimDesc{dynamic, std::move(name)};
+             }),
+             py::arg("dynamic"), py::arg("name") = string())
+        .def_readwrite("dynamic", &DimDesc::dynamic)
+        .def_readwrite("name", &DimDesc::name);
     py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "Tensor",
                                                       py::buffer_protocol())
         .def("fuid", &TensorObj::getFuid, policy::automatic)
         .def("shape", &TensorObj::getDims, policy::move)
+        // Must copy: `move` would steal the names out of the tensor, because
+        // pybind's move constructor casts away the constness of the reference.
+        .def("dim_descs", &TensorObj::getDimDescs, policy::copy)
+        .def("is_dim_dynamic", &TensorObj::isDimDynamic, policy::automatic)
+        .def("dim_name", &TensorObj::getDimName, policy::move)
+        .def("shape_value", &TensorObj::getShapeValue, policy::copy)
+        .def("is_shape_value_fixed", &TensorObj::isShapeValueFixed,
+             policy::automatic)
+        .def("is_shape_value_wholly_fixed", &TensorObj::isShapeValueWhollyFixed,
+             policy::automatic)
+        // The contents of a constant are fixed, which is the reading the
+        // one-argument setter takes. Naming it settles the overload.
+        .def("set_shape_value",
+             static_cast<void (TensorObj::*)(vector<int64_t>)>(
+                 &TensorObj::setShapeValue),
+             policy::automatic)
         .def("set_weight", &TensorObj::setWeight, policy::move)
         .def("set_input", &TensorObj::setInput, policy::move)
         .def("set_output", &TensorObj::setOutput, policy::move)
@@ -558,8 +600,16 @@ void init_graph_builder(py::module &m) {
         .def("instanceNormalization", &Handler::instanceNormalization,
              policy::move)
         .def("RMSNorm", &Handler::rmsNorm, policy::move)
-        .def("maxPool", &Handler::maxPool, policy::move)
-        .def("avgPool", &Handler::avgPool, policy::move)
+        // `globalWindow` is last and defaulted, so every existing eleven
+        // argument call still means what it did.
+        .def("maxPool", &Handler::maxPool, py::arg("input"), py::arg("output"),
+             py::arg("kh"), py::arg("kw"), py::arg("dh"), py::arg("dw"),
+             py::arg("ph"), py::arg("pw"), py::arg("sh"), py::arg("sw"),
+             py::arg("ceilMode"), py::arg("globalWindow") = false, policy::move)
+        .def("avgPool", &Handler::avgPool, py::arg("input"), py::arg("output"),
+             py::arg("kh"), py::arg("kw"), py::arg("dh"), py::arg("dw"),
+             py::arg("ph"), py::arg("pw"), py::arg("sh"), py::arg("sw"),
+             py::arg("ceilMode"), py::arg("globalWindow") = false, policy::move)
         .def("add", &Handler::add, policy::move)
         .def("sub", &Handler::sub, policy::move)
         .def("mul", &Handler::mul, policy::move)
@@ -588,6 +638,8 @@ void init_graph_builder(py::module &m) {
         .def("transpose", &Handler::transpose, policy::move)
         .def("depthToSpace", &Handler::depthToSpace, policy::move)
         .def("reshape", &Handler::reshape, policy::move)
+        .def("reshape_with_shape_input", &Handler::reshape_with_shape_input,
+             policy::move)
         .def("resize", &Handler::resize, policy::move)
         .def("squeeze", &Handler::squeeze, policy::move)
         .def("unsqueeze", &Handler::unsqueeze, policy::move)
@@ -600,6 +652,8 @@ void init_graph_builder(py::module &m) {
         .def("reduceMean", &Handler::reduceMean, policy::move)
         .def("reduceSum", &Handler::reduceSum, policy::move)
         .def("slice", &Handler::slice, policy::move)
+        .def("slice_with_bound_inputs", &Handler::slice_with_bound_inputs,
+             policy::move)
         .def("pad", &Handler::pad, policy::move)
         .def("allReduceSum", &Handler::allReduceSum, policy::move)
         .def("allReduceProd", &Handler::allReduceProd, policy::move)
@@ -612,6 +666,11 @@ void init_graph_builder(py::module &m) {
         .def("recv", &Handler::recv, policy::move)
         .def("cast", &Handler::cast, policy::move)
         .def("expand", &Handler::expand, policy::move)
+        .def("expand_with_shape_input", &Handler::expand_with_shape_input,
+             policy::move)
+        .def("tile", &Handler::tile, policy::move)
+        .def("tile_with_repeats_input", &Handler::tile_with_repeats_input,
+             policy::move)
         .def("erf", &Handler::erf, policy::move)
         .def("where", &Handler::where, policy::move)
         .def("lrn", &Handler::lrn, policy::move)
@@ -622,6 +681,14 @@ void init_graph_builder(py::module &m) {
              py::arg("useNaiveAllocator") = false, py::arg("memPoolSize") = 0,
              policy::automatic)
         .def("trim_memory", &Handler::trim_memory, policy::automatic)
+        .def("activation_allocations", &Handler::activation_allocations,
+             policy::automatic)
+        .def("activation_peak", &Handler::activation_peak, policy::automatic)
+        .def("activation_capacity", &Handler::activation_capacity,
+             policy::automatic)
+        .def("allocated_bytes", &Handler::allocated_bytes, policy::automatic)
+        .def("weight_data_generation", &Handler::weight_data_generation,
+             policy::automatic)
         .def("clone_KV", &Handler::clone_KV, policy::move)
         .def("free_heap", &Handler::free_heap, policy::move)
         .def("get_perf_time", &Handler::get_perf_time, policy::automatic)
@@ -633,8 +700,16 @@ void init_graph_builder(py::module &m) {
 #endif
         .def("shape_infer", &Handler::shape_infer, policy::automatic)
         .def("change_shape", &Handler::change_shape, policy::automatic)
-        .def("getDims", &Handler::getDims, policy::automatic)
-        .def("get_perf_time", &Handler::get_perf_time, policy::automatic);
+        .def("set_dim_descs", &Handler::set_dim_descs, policy::automatic)
+        .def("fold_fixed_shape_subgraph", &Handler::fold_fixed_shape_subgraph,
+             policy::automatic)
+        .def("merge_duplicate_shape_operators",
+             &Handler::merge_duplicate_shape_operators, policy::automatic)
+        .def("folded_away_tensors", &Handler::folded_away_tensors, policy::copy)
+        .def("operator_count", &Handler::operator_count, policy::automatic)
+        .def("shape_subgraph_size", &Handler::shape_subgraph_size,
+             policy::automatic)
+        .def("getDims", &Handler::getDims, policy::automatic);
 }
 
 } // namespace infini

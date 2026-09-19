@@ -1,4 +1,5 @@
 #include "operators/resize.h"
+#include <algorithm>
 #include <cmath>
 namespace infini {
 ResizeObj::ResizeObj(GraphObj *graph, Tensor input, Tensor output,
@@ -109,40 +110,8 @@ void ResizeObj::InitBySizes(Tensor input, Tensor sizes,
     sizes->getRuntime()->copyBlobToCPU(
         (void *)data, sizes->getRawDataPtr<void *>(), sizes->getBytes());
 
-    auto inDims = input->getDims();
-    int n = this->axes.size();
-    switch (ratioPolicy) {
-    case EKeepAspectRatioPolicy::stretch:
-        for (int i = 0; i < n; ++i) {
-            scales[this->axes[i]] =
-                (float)data[i] / (float)inDims[this->axes[i]];
-        }
-        break;
-    case EKeepAspectRatioPolicy::notLarger: {
-        float scale = (float)data[0] / (float)inDims[this->axes[0]];
-        for (int i = 1; i < n; ++i) {
-            auto tmp = (float)data[i] / (float)inDims[this->axes[i]];
-            scale = scale < tmp ? scale : tmp;
-        }
-        for (int i = 0; i < n; ++i) {
-            scales[this->axes[i]] = scale;
-        }
-        break;
-    }
-    case EKeepAspectRatioPolicy::notSmaller: {
-        float scale = (float)data[0] / (float)inDims[this->axes[0]];
-        for (int i = 1; i < n; ++i) {
-            auto tmp = (float)data[i] / (float)inDims[this->axes[i]];
-            scale = scale > tmp ? scale : tmp;
-        }
-        for (int i = 0; i < n; ++i) {
-            scales[this->axes[i]] = scale;
-        }
-        break;
-    }
-    default:
-        IT_ASSERT(0);
-    }
+    sizesRequested.assign(data, data + this->axes.size());
+    takeScalesFromSizes(input);
 }
 
 void ResizeObj::InitByScales(Tensor input, Tensor scales,
@@ -187,6 +156,50 @@ void ResizeObj::InitByScales(Tensor input, Tensor scales,
     }
 }
 
+void ResizeObj::takeScalesFromSizes(const Tensor &input) {
+    IT_ASSERT(isResizeBySizes());
+    IT_ASSERT(sizesRequested.size() == axes.size());
+    const auto inDims = input->getDims();
+    const int n = static_cast<int>(axes.size());
+    const auto ratio = [&](int i) {
+        return (float)sizesRequested[i] / (float)inDims[axes[i]];
+    };
+    switch (ratioPolicy) {
+    case EKeepAspectRatioPolicy::stretch:
+        // Each axis reaches the size asked of it on its own, so each keeps its
+        // own ratio.
+        for (int i = 0; i < n; ++i) {
+            scales[axes[i]] = ratio(i);
+        }
+        break;
+    case EKeepAspectRatioPolicy::notLarger: {
+        // One ratio for every axis, the smallest, so that none overshoots the
+        // size asked of it.
+        float scale = ratio(0);
+        for (int i = 1; i < n; ++i) {
+            scale = std::min(scale, ratio(i));
+        }
+        for (int i = 0; i < n; ++i) {
+            scales[axes[i]] = scale;
+        }
+        break;
+    }
+    case EKeepAspectRatioPolicy::notSmaller: {
+        // The largest, so that none falls short of it.
+        float scale = ratio(0);
+        for (int i = 1; i < n; ++i) {
+            scale = std::max(scale, ratio(i));
+        }
+        for (int i = 0; i < n; ++i) {
+            scales[axes[i]] = scale;
+        }
+        break;
+    }
+    default:
+        IT_ASSERT(0);
+    }
+}
+
 vector<DataType> ResizeObj::inferDataType(const TensorVec &inputs) const {
     IT_ASSERT(inputs.size() == 2 || inputs.size() == 3);
     if (inputs.size() == 3) {
@@ -209,6 +222,12 @@ float ResizeObj::round_int(float x) const {
 
 // output shape is related to sizes/scales value.
 optional<vector<Shape>> ResizeObj::inferShape(const TensorVec &inputs) {
+    // A ratio taken against a placeholder input dimension describes that
+    // placeholder and nothing else, so the scales are worked out again from the
+    // sizes the model asked for whenever the input shape may have moved.
+    if (isResizeBySizes()) {
+        takeScalesFromSizes(inputs[0]);
+    }
     auto inDims = inputs[0]->getDims();
     Shape ret = inDims;
     int rank = inputs[0]->getRank();
@@ -218,6 +237,32 @@ optional<vector<Shape>> ResizeObj::inferShape(const TensorVec &inputs) {
     }
 
     return {{ret}};
+}
+
+vector<DimSource> ResizeObj::dimSources(size_t output, size_t dim) const {
+    IT_ASSERT(output == 0);
+    IT_ASSERT(dim < outputs[0]->getRank());
+    const bool resized = std::find(axes.begin(), axes.end(),
+                                   static_cast<int>(dim)) != axes.end();
+    // An axis nobody resized is passed through, and one resized by a scale is
+    // that many times the dimension it came from: either way it follows its own
+    // place in the input.
+    if (!resized || !isResizeBySizes()) {
+        return {DimSource{0, dim}};
+    }
+    // Resizing by sizes settles the axis at the size the model asked for, which
+    // no input shape can change -- except under a policy that holds one ratio
+    // across the resized axes, where the ratio chosen depends on all of them
+    // and so every one of those dimensions is followed.
+    if (ratioPolicy == EKeepAspectRatioPolicy::stretch) {
+        return {};
+    }
+    vector<DimSource> sources;
+    sources.reserve(axes.size());
+    for (const auto axis : axes) {
+        sources.push_back(DimSource{0, static_cast<size_t>(axis)});
+    }
+    return sources;
 }
 
 std::string ResizeObj::toString() const {

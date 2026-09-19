@@ -82,5 +82,20 @@ void split_concat_kernel(const ElementTensorMetadata<half> &eleMeta,
         <<<gridSize, blockSize, 0, CUDAStream::getCurrentStream()>>>
         (eleMeta, compMeta, dim, nDims, isSplit);
 }
+// Dimensions are Int64, so a shape computation joining them lands here. The
+// kernel only moves elements, so nothing but the type differs from above.
+void split_concat_kernel(const ElementTensorMetadata<int64_t> &eleMeta,
+                         const ComposedTensorMetadata<int64_t> &compMeta,
+                         int dim, int batchSize, int nDims, bool isSplit) {
+    dim3 blockSize = dim3(32 * 16);
+    int max_n_elements =
+        *std::max_element(eleMeta.nElements, eleMeta.nElements + batchSize);
+    int gridDimX = (max_n_elements - 1) / (32 * 16) + 1;
+    dim3 gridSize(gridDimX, batchSize);
+
+    _split_concat_kernel<<<gridSize, blockSize, 0,
+                           CUDAStream::getCurrentStream()>>>(
+        eleMeta, compMeta, dim, nDims, isSplit);
+}
 
 } // namespace infini

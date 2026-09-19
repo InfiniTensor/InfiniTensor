@@ -84,6 +84,13 @@ class ResizeObj : public OperatorObj {
   private:
     vector<int> axes;
     vector<float> scales;
+    // Output sizes as the model asked for them, one per entry of `axes`, kept
+    // only when resizing by sizes. A scale is the ratio of one of these to the
+    // input dimension it applies to, so it cannot be worked out once and kept:
+    // a dynamic input dimension is a placeholder until a real shape arrives,
+    // and a ratio taken against the placeholder resizes every later shape by
+    // it. The request is what the model settled; the ratio follows the input.
+    vector<int64_t> sizesRequested;
     vector<float> roi;
     bool isGivenSizes = false;
 
@@ -116,6 +123,10 @@ class ResizeObj : public OperatorObj {
     // Operator clone(TensorVec inputs, TensorVec outputs) override;
     vector<DataType> inferDataType(const TensorVec &inputs) const override;
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
+    /// Every dimension keeps its place. One being resized by an explicit size
+    /// is that size whatever it was given, so it follows nothing; one resized
+    /// by a scale follows the dimension it scales.
+    vector<DimSource> dimSources(size_t output, size_t dim) const override;
     std::string toString() const override;
     int numInputs() const override { return inputs.size(); }
     int numOutputs() const override { return 1; }
@@ -152,6 +163,11 @@ class ResizeObj : public OperatorObj {
               const Tensor &roi, const std::optional<vector<int>> &axes);
     void InitBySizes(Tensor input, Tensor sizes,
                      const std::optional<vector<int>> &axes);
+    /// Works the scales out afresh from `sizesRequested` against the shape
+    /// `input` carries now. Called whenever shapes are inferred, so that the
+    /// scales the kernels read describe the current input rather than the one
+    /// construction happened to see.
+    void takeScalesFromSizes(const Tensor &input);
     void InitByScales(Tensor input, Tensor sizes,
                       const std::optional<vector<int>> &axes);
 };

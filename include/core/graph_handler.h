@@ -43,9 +43,14 @@ class GraphHandlerObj {
     Tensor rmsNorm(Tensor input, Tensor weight, Tensor output);
 
     Tensor maxPool(Tensor input, Tensor output, int kh, int kw, int dh, int dw,
-                   int ph, int pw, int sh, int sw, int ceilMode);
+                   int ph, int pw, int sh, int sw, int ceilMode,
+                   bool globalWindow = false);
+    /// `globalWindow` says the window is the whole input rather than `kh` by
+    /// `kw`, which is what a global pool needs: its spatial size may be
+    /// dynamic, and then there is no window to pass until an input arrives.
     Tensor avgPool(Tensor input, Tensor output, int kh, int kw, int dh, int dw,
-                   int ph, int pw, int sh, int sw, int ceilMode);
+                   int ph, int pw, int sh, int sw, int ceilMode,
+                   bool globalWindow = false);
 
     Tensor add(Tensor a, Tensor b, Tensor c);
     Tensor sub(Tensor a, Tensor b, Tensor c);
@@ -77,6 +82,9 @@ class GraphHandlerObj {
                 std::optional<float> max);
     Tensor transpose(Tensor data, Tensor transposed, Shape perm);
     Tensor reshape(Tensor data, Tensor reshaped, Shape shape);
+    /// @brief Reshapes `data` to the shape another tensor describes, rather
+    /// than to a shape known when the graph is built.
+    Tensor reshape_with_shape_input(Tensor data, Tensor shape, Tensor reshaped);
     Tensor resize(Tensor input, Tensor output,
                   const std::optional<vector<int>> &axes, Tensor sizes,
                   Tensor scales, Tensor roi, vector<int64_t> sizes_,
@@ -101,10 +109,23 @@ class GraphHandlerObj {
     Tensor slice(Tensor input, Tensor output, const vector<int> &starts,
                  const vector<int> &ends, const optional<vector<int>> &axes,
                  const optional<vector<int>> &steps);
+    /// Slices at bounds the graph works out rather than ones the model spells
+    /// out. See the matching `SliceObj` constructor.
+    Tensor slice_with_bound_inputs(Tensor input, Tensor starts, Tensor ends,
+                                   Tensor output,
+                                   const optional<vector<int>> &axes,
+                                   const optional<vector<int>> &steps);
     Tensor pad(Tensor input, Tensor output, const vector<int> &pads,
                const optional<vector<int>> &axes);
     Tensor cast(Tensor input, Tensor output, int to);
     Tensor expand(Tensor input, Tensor output, Shape dims);
+    /// Expands to a shape the graph works out rather than one the model spells
+    /// out. See the matching `ExpandObj` constructor.
+    Tensor expand_with_shape_input(Tensor input, Tensor shape, Tensor output);
+    Tensor tile(Tensor input, Tensor output, Shape repeats);
+    /// Repeats by counts the graph works out rather than ones the model spells
+    /// out. See the matching `TileObj` constructor.
+    Tensor tile_with_repeats_input(Tensor input, Tensor repeats, Tensor output);
     Tensor where(Tensor inputX, Tensor inputY, Tensor condition, Tensor output);
     std::vector<int> getDims(Tensor x) { return x->getDims(); }
 
@@ -129,9 +150,26 @@ class GraphHandlerObj {
 
     inline void optimize() { g->optimize(); }
 
+    inline size_t fold_fixed_shape_subgraph() {
+        return g->foldFixedShapeSubgraph();
+    }
+
+    inline size_t merge_duplicate_shape_operators() {
+        return g->mergeDuplicateShapeOperators();
+    }
+
+    inline const vector<UidBaseType> &folded_away_tensors() const {
+        return g->getFoldedAwayTensors();
+    }
+
+    inline size_t operator_count() const { return g->getOperators().size(); }
+
+    inline size_t shape_subgraph_size() const { return g->shapeSubgraphSize(); }
+
     inline void shape_infer() { g->shape_infer(); }
 
     void change_shape(const vector<int> &shape, int tensorId);
+    void set_dim_descs(const vector<DimDesc> &descs, int tensorId);
     //------ runtime
 
     inline void data_malloc(bool useNaiveAllocator = false,
@@ -140,6 +178,22 @@ class GraphHandlerObj {
     }
 
     inline void trim_memory() { g->trimMemory(); }
+
+    inline size_t weight_data_generation() const {
+        return g->getWeightDataGeneration();
+    }
+
+    inline size_t activation_allocations() const {
+        return g->getActivationAllocations();
+    }
+
+    inline size_t activation_peak() const { return g->getActivationPeak(); }
+
+    inline size_t activation_capacity() const {
+        return g->getActivationCapacity();
+    }
+
+    inline size_t allocated_bytes() const { return g->getAllocatedBytes(); }
 
     inline Tensor clone_KV(Tensor &tensor) { return g->cloneKV(tensor); }
 

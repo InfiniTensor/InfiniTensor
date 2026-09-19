@@ -1,6 +1,8 @@
 #include "operators/element_wise.h"
 #include "core/kernel.h"
 #include "utils/operator_utils.h"
+#include <cmath>
+#include <type_traits>
 
 namespace infini {
 class NativeElementWise : public CpuKernelWithoutConfig {
@@ -17,7 +19,20 @@ class NativeElementWise : public CpuKernelWithoutConfig {
     }
 
     template <typename T> static T divCompute(T val0, T val1) {
+        if constexpr (std::is_integral_v<T>) {
+            // A whole number divided by zero has no answer to give, and the
+            // hardware answers by halting the process, so the operand is
+            // checked here where it is still known what was asked for.
+            IT_ASSERT(val1 != 0, "element-wise division by zero");
+        }
         return (T)(val0 / val1);
+    }
+
+    template <typename T> static T powCompute(T val0, T val1) {
+        // std::pow works in floating point, which is exact for the whole
+        // numbers a shape computation deals in and is what the operator means
+        // for the floating-point case anyway.
+        return (T)std::pow(val0, val1);
     }
 
     template <typename T> static T equalCompute(T val0, T val1) {
@@ -84,6 +99,9 @@ class NativeElementWise : public CpuKernelWithoutConfig {
         case OpType::Div:
             _doCompute = divCompute<T>;
             break;
+        case OpType::Pow:
+            _doCompute = powCompute<T>;
+            break;
         case OpType::Equal:
             _doCompute = equalCompute<T>;
             break;
@@ -121,6 +139,10 @@ class NativeElementWise : public CpuKernelWithoutConfig {
         switch (dataTypeIdx) {
             CASE(1); // DataType::Float32
             break;
+            CASE(6); // DataType::Int32
+            break;
+            CASE(7); // DataType::Int64
+            break;
             CASE(12); // DataType::UInt32
             break;
         default:
@@ -133,6 +155,7 @@ REGISTER_KERNEL(Device::CPU, OpType::Add, NativeElementWise, "addNaive_CPU");
 REGISTER_KERNEL(Device::CPU, OpType::Sub, NativeElementWise, "subNaive_CPU");
 REGISTER_KERNEL(Device::CPU, OpType::Mul, NativeElementWise, "mulNaive_CPU");
 REGISTER_KERNEL(Device::CPU, OpType::Div, NativeElementWise, "divNaive_CPU");
+REGISTER_KERNEL(Device::CPU, OpType::Pow, NativeElementWise, "powNaive_CPU");
 REGISTER_KERNEL(Device::CPU, OpType::Equal, NativeElementWise,
                 "equalNaive_CPU");
 REGISTER_KERNEL(Device::CPU, OpType::GreaterOrEqual, NativeElementWise,

@@ -48,6 +48,33 @@ optional<vector<Shape>> MatmulObj::inferShape(const TensorVec &inputs) {
     return {{ret}};
 }
 
+vector<DimSource> MatmulObj::dimSources(size_t output, size_t dim) const {
+    IT_ASSERT(output == 0);
+    const auto rank = outputs[0]->getRank();
+    IT_ASSERT(dim < rank);
+    // The result is [..., M, N]. K constrains validity, but does not size an
+    // output axis; neither does a bias broadcast onto that result.
+    if (dim == rank - 2) {
+        const auto rankA = inputs[0]->getRank();
+        return {{0, rankA - (transA ? 1 : 2)}};
+    }
+    if (dim == rank - 1) {
+        const auto rankB = inputs[1]->getRank();
+        return {{1, rankB - (transB ? 2 : 1)}};
+    }
+    // Batch axes align from the right, just as in inferShape. A dynamic axis
+    // currently equal to one must remain a source: it can grow on the next
+    // request and become the side that determines the broadcast extent.
+    vector<DimSource> sources;
+    for (size_t i = 0; i < 2; ++i) {
+        const auto missing = rank - inputs[i]->getRank();
+        if (dim >= missing) {
+            sources.push_back({i, dim - missing});
+        }
+    }
+    return sources;
+}
+
 vector<int> MatmulObj::getWorkloadVector() const {
     return {type.underlying(),      b, m, n, k, transA, transB,
             enum_to_underlying(act)};

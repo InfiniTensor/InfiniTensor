@@ -352,6 +352,100 @@ TEST(Graph, lazy_allocator_grows_and_trims_capacity) {
     EXPECT_EQ(runtime->getAllocationCount(), runtime->getDeallocationCount());
 }
 
+// The two counters a benchmark reads have to mean what they say, and what they
+// say is different things: one counts memory actually asked of the runtime, the
+// other counts layouts. A shape that shrinks moves every tensor to a new offset
+// without any memory changing hands, which is where the two part company. The
+// tracking runtime is the standard here -- its counts are what the tests above
+// establish -- so the activation count is checked against it rather than
+// against itself.
+TEST(Graph, activation_allocation_count_tracks_real_allocations) {
+    auto runtime = make_ref<TrackingCpuRuntimeObj>();
+    {
+        Graph g = make_ref<GraphObj>(runtime);
+        Tensor input = g->addTensor({8, 2}, DataType::Float32);
+        Tensor weight = g->addTensor({2, 2}, DataType::Float32);
+        input->setInput();
+        weight->setWeight();
+        auto matmul = g->addOp<MatmulObj>(input, weight, nullptr);
+        Tensor output = matmul->getOutput();
+        output->setOutput();
+
+        g->dataMalloc();
+        weight->copyin(vector<float>{1, 0, 0, 1});
+        EXPECT_GT(g->getActivationAllocations(), 0u);
+        EXPECT_GT(g->getActivationCapacity(), 0u);
+        EXPECT_LE(g->getActivationPeak(), g->getActivationCapacity());
+
+        // Reuse: neither counter moves, and neither does the generation, since
+        // laying the same shape out again changes nothing at all.
+        {
+            const auto activations = g->getActivationAllocations();
+            const auto generation = g->getAllocationGeneration();
+            const auto runtimeCount = runtime->getAllocationCount();
+            g->dataMalloc();
+            EXPECT_EQ(g->getActivationAllocations(), activations);
+            EXPECT_EQ(g->getAllocationGeneration(), generation);
+            EXPECT_EQ(runtime->getAllocationCount(), runtimeCount);
+        }
+
+        // Growth past capacity: one allocation, counted once, and the capacity
+        // afterwards is the grown one rather than what the shape needs.
+        {
+            const auto activations = g->getActivationAllocations();
+            const auto runtimeCount = runtime->getAllocationCount();
+            const auto capacity = g->getActivationCapacity();
+            input->setShape({9, 2});
+            g->shape_infer();
+            g->dataMalloc();
+            EXPECT_EQ(g->getActivationAllocations(), activations + 1);
+            EXPECT_EQ(runtime->getAllocationCount(), runtimeCount + 1);
+            EXPECT_EQ(g->getActivationCapacity(), capacity + capacity / 2);
+            EXPECT_LT(g->getActivationPeak(), g->getActivationCapacity());
+        }
+
+        // Shrinking is where the two counters diverge: the layout is new, so
+        // the generation moves, but the storage is the old one and no memory is
+        // asked for. This is the claim the two doc comments make.
+        {
+            const auto activations = g->getActivationAllocations();
+            const auto generation = g->getAllocationGeneration();
+            const auto capacity = g->getActivationCapacity();
+            input->setShape({4, 2});
+            g->shape_infer();
+            g->dataMalloc();
+            EXPECT_EQ(g->getActivationAllocations(), activations);
+            EXPECT_GT(g->getAllocationGeneration(), generation);
+            EXPECT_EQ(g->getActivationCapacity(), capacity);
+        }
+
+        // A long series within the watermark costs nothing, which is the whole
+        // claim of the reuse and the number a benchmark is after.
+        {
+            const auto activations = g->getActivationAllocations();
+            for (int i = 0; i < 100; ++i) {
+                input->setShape({i % 2 == 0 ? 6 : 8, 2});
+                g->shape_infer();
+                g->dataMalloc();
+            }
+            EXPECT_EQ(g->getActivationAllocations(), activations);
+        }
+
+        // Trimming hands the slack back, which costs one allocation, and
+        // leaves capacity equal to what the shape needs.
+        {
+            const auto activations = g->getActivationAllocations();
+            g->trimMemory();
+            EXPECT_EQ(g->getActivationAllocations(), activations + 1);
+            EXPECT_EQ(g->getActivationCapacity(), g->getActivationPeak());
+        }
+
+        EXPECT_GE(g->getAllocatedBytes(), g->getActivationCapacity());
+    }
+    EXPECT_EQ(runtime->getLiveAllocationCount(), 0);
+    EXPECT_EQ(runtime->getAllocationCount(), runtime->getDeallocationCount());
+}
+
 TEST(Graph, lazy_allocator_trim_failure_preserves_committed_layout) {
     auto runtime = make_ref<TrackingCpuRuntimeObj>();
     {
@@ -465,6 +559,68 @@ TEST(Graph, allocation_generation_tracks_blob_extent_changes) {
     EXPECT_EQ(runtime->getAllocationCount(), allocationCount);
     EXPECT_EQ(input->getDataBlob()->getBytes(), input->getBytes());
     EXPECT_GT(g->getAllocationGeneration(), generation);
+}
+
+TEST(Graph, weight_data_generation_moves_only_when_weights_are_given_storage) {
+    auto runtime = make_ref<TrackingCpuRuntimeObj>();
+    for (const bool useNaiveAllocator : {false, true}) {
+        Graph g = make_ref<GraphObj>(runtime);
+        Tensor input = g->addTensor({8, 2}, DataType::Float32);
+        Tensor weight = g->addTensor({2, 2}, DataType::Float32);
+        input->setInput();
+        weight->setWeight();
+        auto matmul = g->addOp<MatmulObj>(input, weight, nullptr);
+        matmul->getOutput()->setOutput();
+
+        // Nothing is held before the first allocation, so whoever writes the
+        // weights cannot have a generation to match against this one.
+        EXPECT_EQ(g->getWeightDataGeneration(), 0u);
+        g->dataMalloc(useNaiveAllocator);
+        const auto written = g->getWeightDataGeneration();
+        EXPECT_GT(written, 0u);
+        const auto weightAddress = weight->getRawDataPtr<const void *>();
+
+        // Shapes move the activations about; the weights keep the storage they
+        // were handed, so what was written into them still stands.
+        for (const int batch : {6, 8, 1, 8192, 4}) {
+            input->setShape({batch, 2});
+            g->shape_infer();
+            g->dataMalloc(useNaiveAllocator);
+            EXPECT_EQ(g->getWeightDataGeneration(), written);
+            EXPECT_EQ(weight->getRawDataPtr<const void *>(), weightAddress);
+        }
+
+        if (!useNaiveAllocator) {
+            // Giving back the slack relays the activations and leaves the
+            // weights alone, so it is not a reason to write them again.
+            g->trimMemory();
+            EXPECT_EQ(g->getWeightDataGeneration(), written);
+            EXPECT_EQ(weight->getRawDataPtr<const void *>(), weightAddress);
+        }
+    }
+}
+
+TEST(Graph, weight_data_generation_does_not_return_to_a_rolled_back_value) {
+    auto runtime = make_ref<TrackingCpuRuntimeObj>();
+    Graph g = make_ref<GraphObj>(runtime);
+    Tensor input = g->addTensor({4, 2}, DataType::Float32);
+    Tensor weight = g->addTensor({2, 2}, DataType::Float32);
+    input->setInput();
+    weight->setWeight();
+    auto matmul = g->addOp<MatmulObj>(input, weight, nullptr);
+    matmul->getOutput()->setOutput();
+
+    // A failed allocation leaves the graph holding nothing, so the weights want
+    // writing afresh once it succeeds. Winding the count back would hand out a
+    // value someone may already have recorded against weights that are gone,
+    // and tell them their writing still stands when it does not.
+    runtime->failNextAlloc();
+    EXPECT_THROW(g->dataMalloc(), std::bad_alloc);
+    const auto afterRollback = g->getWeightDataGeneration();
+
+    EXPECT_NO_THROW(g->dataMalloc());
+    EXPECT_NE(g->getWeightDataGeneration(), afterRollback);
+    EXPECT_TRUE(weight->hasData());
 }
 
 TEST(Graph, fixed_pool_checks_capacity_and_heap_lifetime) {

@@ -23,6 +23,7 @@ class UnsqueezeObj : public OperatorObj {
     OP_CLONE(UnsqueezeObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
+    void inferShapeValue() override;
 
     std::string toString() const override;
     int numInputs() const override { return 1; }

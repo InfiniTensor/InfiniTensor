@@ -27,8 +27,14 @@ class GatherCuda : public CudaKernelWithoutConfig {
         } else if (op->getDType() == DataType::Int8) {
             gather_kernel<int8_t>((int8_t *)inputData, (int8_t *)outputData,
                                   metaData, op->getOutput()->size());
+        } else if (op->getDType() == DataType::Int64) {
+            gather_kernel<int64_t>((int64_t *)inputData, (int64_t *)outputData,
+                                   metaData, op->getOutput()->size());
+        } else if (op->getDType() == DataType::Int32) {
+            gather_kernel<int32_t>((int32_t *)inputData, (int32_t *)outputData,
+                                   metaData, op->getOutput()->size());
         } else {
-            IT_ASSERT(false);
+            IT_ASSERT(false, "Gather has no CUDA kernel for this data type");
         }
     }
 };

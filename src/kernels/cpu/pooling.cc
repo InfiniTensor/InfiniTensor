@@ -1,12 +1,17 @@
 #include "operators/pooling.h"
 #include "core/kernel.h"
+#include <limits>
 
 namespace infini {
 class NativePooling : public CpuKernelWithoutConfig {
     template <typename T>
     static T getMaxPoolingValue(int kh, int kw, int posh, int posw, int ih,
                                 int iw, T *inptr) {
-        T maxval = 0;
+        // Starting from zero enters a candidate no element of the window put
+        // there, and it wins whenever every element is negative. The lowest
+        // value the type holds loses to any real element, and for an unsigned
+        // type it is zero anyway.
+        T maxval = std::numeric_limits<T>::lowest();
         for (auto k = 0; k < kh; k++) {
             for (auto l = 0; l < kw; l++) {
                 auto inPosH = posh + k;
