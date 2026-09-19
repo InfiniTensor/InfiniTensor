@@ -52,6 +52,10 @@ class NaiveConcat : public CpuKernelWithoutConfig {
         switch (dataTypeIdx) {
             CASE(1); // DataType::Float32
             break;
+            CASE(6); // DataType::Int32
+            break;
+            CASE(7); // DataType::Int64
+            break;
             CASE(12); // DataType::UInt32
             break;
         default:
