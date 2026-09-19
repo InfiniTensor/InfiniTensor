@@ -203,10 +203,10 @@ void InfiniRuntimeObj::copyBlobInsideRuntime(void *dst, const void *src,
     activateDevice();
     // The pinned CPU backend does not implement MemcpyAsync.
     if (runtimeDevice.type() == ::infini::rt::Device::Type::kCpu) {
-        checkInfiniRt(::infini::rt::runtime::Memcpy(
-                          dst, src, bytes,
-                          ::infini::rt::runtime::kMemcpyDeviceToDevice),
-                      "InfiniRT CPU device-to-device Memcpy");
+        checkInfiniRt(
+            ::infini::rt::runtime::Memcpy(
+                dst, src, bytes, ::infini::rt::runtime::kMemcpyDeviceToDevice),
+            "InfiniRT CPU device-to-device Memcpy");
         return;
     }
     ensureExecutionStream();
