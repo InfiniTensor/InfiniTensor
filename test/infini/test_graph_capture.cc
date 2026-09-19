@@ -343,11 +343,10 @@ TEST_F(InfiniGraphCaptureTest, GraphCaptureRecoversAfterCaptureFailure) {
     invalid->dataMalloc();
     input->copyin(increasingValues(2));
 
-    testing::internal::CaptureStderr();
     EXPECT_THROW(runtime->runWithGraph(invalid), Exception);
-    const auto cleanupLog = testing::internal::GetCapturedStderr();
-    EXPECT_NE(cleanupLog.find("InfiniRT StreamEndCapture after failure"),
-              string::npos);
+    // Ending an invalid capture can succeed on some backends (e.g. Ascend).
+    // Verify recovery and cache integrity rather than requiring a cleanup
+    // error message that is specific to the CUDA implementation.
     EXPECT_EQ(runtime->getGraphCaptureCount(), 1u);
     EXPECT_EQ(runtime->getGraphCacheSize(), 1u);
 
