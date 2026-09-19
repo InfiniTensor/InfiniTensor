@@ -41,15 +41,15 @@ class PoolingAtenInfiniOps : public infiniops::KernelWithoutConfig {
 
         IT_ASSERT(op->getOpType() == OpType::MaxPool);
         const auto indexBytes = op->getOutput()->size() * sizeof(int64_t);
-        auto indexBlob = infiniops::allocTemporaryBlob(context, indexBytes);
+        auto indexBlob = infiniops::acquireWorkspace(context, indexBytes);
         ::infini::rt::TensorView::Shape indexShape;
         for (const auto dim : op->getOutput()->getDims()) {
             indexShape.push_back(
                 static_cast<::infini::rt::TensorView::Size>(dim));
         }
         auto indices = infiniops::makeInfiniOpsTensor(
-            indexBlob->getPtr<void *>(), indexShape,
-            ::infini::rt::DataType::kInt64, context);
+            indexBlob.get(), indexShape, ::infini::rt::DataType::kInt64,
+            context);
         auto config = infiniops::makeInfiniOpsAtenConfig<
             ::infini::ops::MaxPool2dWithIndices>(context);
         infiniops::dispatch::callMaxPool2dWithIndices(

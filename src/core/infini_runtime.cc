@@ -142,6 +142,41 @@ void InfiniRuntimeObj::dealloc(void *ptr) {
     checkInfiniRt(::infini::rt::runtime::Free(ptr), "InfiniRT Free");
 }
 
+std::shared_ptr<void> InfiniRuntimeObj::acquireWorkspace(size_t bytes) const {
+    std::lock_guard<std::recursive_mutex> lock(executionMutex);
+#if INFINITENSOR_INFINIRT_HAS_GRAPH_API
+    if (captureWorkspaces && replayCaptureWorkspaces) {
+        IT_ASSERT(captureWorkspaceCursor < captureWorkspaces->size(),
+                  "Capture requested more workspace buffers than warmup");
+        const auto &workspace = (*captureWorkspaces)[captureWorkspaceCursor++];
+        IT_ASSERT(workspace.bytes == bytes,
+                  "Capture workspace size differs from warmup");
+        return workspace.data;
+    }
+#endif
+    activateDevice();
+    void *ptr = nullptr;
+    checkInfiniRt(
+        ::infini::rt::runtime::Malloc(&ptr, std::max(bytes, size_t{1})),
+        "InfiniRT workspace Malloc");
+    // A Blob holds a strong runtime reference. Putting Blobs inside the
+    // runtime's graph cache would create an ownership cycle, so capture the
+    // device identity directly in this allocation's non-throwing deleter.
+    auto data = std::shared_ptr<void>(ptr, [device = runtimeDevice](void *p) {
+        ::infini::rt::set_runtime_device_type(device.type());
+        const auto status = ::infini::rt::runtime::SetDevice(device.index());
+        logInfiniRtError("InfiniRT SetDevice during workspace cleanup", status);
+        if (status == ::infini::rt::runtime::kSuccess)
+            logInfiniRtError("InfiniRT workspace Free",
+                             ::infini::rt::runtime::Free(p));
+    });
+#if INFINITENSOR_INFINIRT_HAS_GRAPH_API
+    if (captureWorkspaces)
+        captureWorkspaces->push_back(CaptureWorkspace{bytes, data});
+#endif
+    return data;
+}
+
 void InfiniRuntimeObj::copyBlobFromCPU(void *dst, const void *src,
                                        size_t bytes) const {
     std::lock_guard<std::recursive_mutex> lock(executionMutex);
@@ -227,13 +262,24 @@ InfiniRuntimeObj::captureGraph(const Graph &graph, CapturedGraphState state) {
     auto entry = std::make_unique<GraphCacheEntry>(WRef<GraphObj>(graph),
                                                    std::move(state));
     bool captureStarted = false;
+    IT_ASSERT(captureWorkspaces == nullptr, "Nested graph preparation");
+    captureWorkspaces = &entry->workspaces;
+    captureWorkspaceCursor = 0;
+    replayCaptureWorkspaces = false;
     try {
+        // Prepare both InfiniOps descriptors and scratch storage outside
+        // capture. Each captured graph owns its own workspace allocations.
+        runWithoutSyncImpl(graph, false);
+        syncImpl();
+        replayCaptureWorkspaces = true;
         checkInfiniRt(::infini::rt::runtime::StreamBeginCapture(
                           stream, ::infini::rt::runtime::StreamCaptureMode::
                                       kStreamCaptureModeThreadLocal),
                       "InfiniRT StreamBeginCapture");
         captureStarted = true;
         runWithoutSyncImpl(graph, false);
+        IT_ASSERT(captureWorkspaceCursor == entry->workspaces.size(),
+                  "Capture requested fewer workspace buffers than warmup");
         auto endStatus =
             ::infini::rt::runtime::StreamEndCapture(stream, &entry->graph);
         captureStarted = false;
@@ -242,6 +288,8 @@ InfiniRuntimeObj::captureGraph(const Graph &graph, CapturedGraphState state) {
                                                               entry->graph),
                       "InfiniRT GraphInstantiate");
     } catch (...) {
+        captureWorkspaces = nullptr;
+        replayCaptureWorkspaces = false;
         auto originalError = std::current_exception();
         if (captureStarted) {
             ::infini::rt::runtime::Graph abandonedGraph{};
@@ -269,6 +317,8 @@ InfiniRuntimeObj::captureGraph(const Graph &graph, CapturedGraphState state) {
         recoverExecutionStreamAfterFailure();
         std::rethrow_exception(originalError);
     }
+    captureWorkspaces = nullptr;
+    replayCaptureWorkspaces = false;
     return entry;
 }
 
@@ -415,10 +465,6 @@ void InfiniRuntimeObj::runWithGraph(const Graph &graph) {
         return;
     }
 
-    // InfiniOps creates shape-specific operator objects on first use. Warm up
-    // before capture so initialization and allocation stay outside the graph.
-    runWithoutSyncImpl(graph, false);
-    syncImpl();
     auto entry = captureGraph(graph, std::move(state));
     if (generation != graph->getCaptureGeneration()) {
         destroyGraphEntry(*entry);

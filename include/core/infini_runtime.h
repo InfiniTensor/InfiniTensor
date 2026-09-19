@@ -5,6 +5,7 @@
 #include <infini/rt.h>
 
 #include <list>
+#include <memory>
 #include <mutex>
 #include <unordered_map>
 
@@ -17,6 +18,11 @@ namespace infini {
 class InfiniRuntimeObj final : public RuntimeObj {
   private:
 #if INFINITENSOR_INFINIRT_HAS_GRAPH_API
+    struct CaptureWorkspace {
+        size_t bytes;
+        std::shared_ptr<void> data;
+    };
+
     struct CapturedTensorState {
         const TensorObj *tensor;
         int dtype;
@@ -43,6 +49,7 @@ class InfiniRuntimeObj final : public RuntimeObj {
         CapturedGraphState state;
         ::infini::rt::runtime::Graph graph{};
         ::infini::rt::runtime::GraphExec instance{};
+        vector<CaptureWorkspace> workspaces;
 
         GraphCacheEntry(WRef<GraphObj> owner, CapturedGraphState state)
             : owner(std::move(owner)), state(std::move(state)) {}
@@ -63,6 +70,11 @@ class InfiniRuntimeObj final : public RuntimeObj {
     size_t graphCaptureCount = 0;
     GraphCache graphCache;
     std::unordered_map<uint64_t, ActiveGraphState> activeGraphs;
+    // Scoped to one cache miss, under executionMutex. Warmup records the
+    // workspace requests; capture must replay the same sizes and order.
+    mutable vector<CaptureWorkspace> *captureWorkspaces = nullptr;
+    mutable size_t captureWorkspaceCursor = 0;
+    mutable bool replayCaptureWorkspaces = false;
 #endif
     mutable std::recursive_mutex executionMutex;
 #if INFINITENSOR_INFINIRT_HAS_GRAPH_API
@@ -93,6 +105,10 @@ class InfiniRuntimeObj final : public RuntimeObj {
                                size_t bytes) const override;
 
     void sync() const;
+    // Scratch storage for one kernel invocation. During graph warmup/capture
+    // it is retained by the graph cache; ordinary execution gets a temporary.
+    // The allocation owns its device identity, not the runtime (no cycle).
+    std::shared_ptr<void> acquireWorkspace(size_t bytes) const;
     void *getStream() const { return reinterpret_cast<void *>(stream); }
     const ::infini::rt::Device &getInfiniDevice() const {
         return runtimeDevice;
