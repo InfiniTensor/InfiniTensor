@@ -118,7 +118,7 @@ for name, tensor in stub.inputs.items():
     tensor.copyin_float(input.flatten().tolist())
 ```
 
-`stub.init()` 为所有张量分配空间。空间是预分配的，所以不支持动态 size 的模型。
+`stub.init()` 为所有张量分配空间。空间是预分配的，一次分配对应一组形状；形状随请求变化的模型用 `stub.set_input(<shapes>)` 给出这一次的形状，它会重新推断下游形状并重新分配，见[动态 Shape 子图编译与执行](DYNAMIC_SHAPE_CN.md)。
 
 `tensor.copyin_float(<data>)` 向张量传入数据。其参数必须是一个 `List[float]`，即压平的数据。类似的函数还有 `copyin_int32(<data>)` 和 `copyin_int64(<data>)`
 
