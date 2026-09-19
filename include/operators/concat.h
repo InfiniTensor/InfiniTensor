@@ -23,6 +23,7 @@ class ConcatObj : public OperatorObj {
     OP_CLONE(ConcatObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
+    void inferShapeValue() override;
 
     std::string toString() const override;
     int numInputs() const override { return inputs.size(); }

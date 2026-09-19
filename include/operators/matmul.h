@@ -50,6 +50,7 @@ class MatmulObj : public OperatorObj {
 
     std::string toString() const override;
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
+    vector<DimSource> dimSources(size_t output, size_t dim) const override;
 
     int numInputs() const override { return inputs.size(); }
     int numOutputs() const override { return 1; }

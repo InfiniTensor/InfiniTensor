@@ -24,6 +24,7 @@ class SqueezeObj : public OperatorObj {
     OP_CLONE(SqueezeObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
+    void inferShapeValue() override;
 
     std::string toString() const override;
     int numInputs() const override { return 1; }

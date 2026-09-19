@@ -144,6 +144,10 @@ class ConvObj : public ConvBaseObj {
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
     int getNumGroups() const override { return c / getChannelPerGroup(); }
+    /// Batch is the batch it was given, the channels are as many as the weight
+    /// holds, and each spatial dimension follows the one it was worked out
+    /// from.
+    vector<DimSource> dimSources(size_t output, size_t dim) const override;
 
   private:
     void setAuxilaryAttributes(PaddingMode mode) override;
@@ -228,6 +232,10 @@ class ConvTransposed2dObj : public ConvBaseObj {
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
     int getNumGroups() const override { return group; }
     std::pair<int, int> getOutputPadding() const { return {oph, opw}; }
+    /// Batch is the batch it was given, the channels are as many as the weight
+    /// holds across the groups, and each spatial dimension follows the one it
+    /// was worked out from.
+    vector<DimSource> dimSources(size_t output, size_t dim) const override;
 
   private:
     void setAuxilaryAttributes(PaddingMode mode) override;

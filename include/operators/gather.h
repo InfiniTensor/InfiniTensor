@@ -41,6 +41,7 @@ class GatherObj : public GatherBaseObj {
     std::string toString() const override;
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
     vector<DataType> inferDataType(const TensorVec &inputs) const override;
+    void inferShapeValue() override;
 
   private:
     bool CheckIndexValid() const;
