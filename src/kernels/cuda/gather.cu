@@ -59,4 +59,10 @@ template void gather_kernel<half>(half *in, half *out, GatherMetaData metaData,
                                   size_t num);
 template void gather_kernel<int8_t>(int8_t *in, int8_t *out,
                                     GatherMetaData metaData, size_t num);
+// A shape is a list of int64 dimensions, so a Gather reading one out of a
+// shape has int64 for its element type as well as for its index.
+template void gather_kernel<int64_t>(int64_t *in, int64_t *out,
+                                     GatherMetaData metaData, size_t num);
+template void gather_kernel<int32_t>(int32_t *in, int32_t *out,
+                                     GatherMetaData metaData, size_t num);
 } // namespace infini

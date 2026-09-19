@@ -33,4 +33,9 @@ void split_concat_kernel(const ElementTensorMetadata<float> &eleMeta,
 void split_concat_kernel(const ElementTensorMetadata<half> &eleMeta,
                          const ComposedTensorMetadata<half> &compMeta, int dim,
                          int batchSize, int nDims, bool isSplit);
+// A shape computation joins dimensions, which are Int64, so `Concat` has to
+// take that type as readily as the two above.
+void split_concat_kernel(const ElementTensorMetadata<int64_t> &eleMeta,
+                         const ComposedTensorMetadata<int64_t> &compMeta,
+                         int dim, int batchSize, int nDims, bool isSplit);
 } // namespace infini

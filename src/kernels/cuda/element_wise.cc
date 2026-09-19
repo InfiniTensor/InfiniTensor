@@ -6,6 +6,7 @@
 
 namespace infini {
 class ElementWiseCudnn : public CudaKernelWithoutConfig {
+  protected:
     virtual cudnnOpTensorOp_t getOpType() const = 0;
     virtual tuple<float, float, float> getAlphBeta() const {
         return {1.f, 1.f, 0.f};
@@ -99,6 +100,40 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
 
 class AddCudnn : public ElementWiseCudnn {
     cudnnOpTensorOp_t getOpType() const override { return CUDNN_OP_TENSOR_ADD; }
+
+    /// A cuDNN tensor descriptor does not admit INT64, and a shape computation
+    /// is carried in INT64 -- so joining two dimensions with `Add` reached
+    /// cuDNN and was refused outright. The kernel below is our own, and its
+    /// dtype switch already covers Int64, so that is where such an Add goes.
+    /// Everything else keeps taking the cuDNN path it took before.
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        if (_op->getDType().getIndex() != DataType::Int64.getIndex()) {
+            ElementWiseCudnn::compute(_op, _context);
+            return;
+        }
+        const auto &a_dim = _op->getInputs(0)->getDims();
+        const auto &b_dim = _op->getInputs(1)->getDims();
+        const auto &c_dim = _op->getOutput()->getDims();
+        if (a_dim.size() > 4 || b_dim.size() > 4 || c_dim.size() > 4)
+            IT_TODO_HALT();
+
+        // Broadcasting lines shapes up at the right, so a shorter shape sits
+        // at the far end and reads as one before it. The kernel pairs the two
+        // by index, so the padding is written out here.
+        int a[4] = {1, 1, 1, 1};
+        int b[4] = {1, 1, 1, 1};
+        int c[4] = {1, 1, 1, 1};
+        std::copy(a_dim.begin(), a_dim.end(), a + (4 - a_dim.size()));
+        std::copy(b_dim.begin(), b_dim.end(), b + (4 - b_dim.size()));
+        std::copy(c_dim.begin(), c_dim.end(), c + (4 - c_dim.size()));
+
+        add_kernel(_op->getDType().getIndex(),
+                   _op->getInputs(0)->getRawDataPtr<void *>(),
+                   _op->getInputs(1)->getRawDataPtr<void *>(),
+                   _op->getOutput()->getRawDataPtr<void *>(), a[0], a[1], a[2],
+                   a[3], b[0], b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
+    }
 };
 
 class SubCudnn : public ElementWiseCudnn {
@@ -110,6 +145,41 @@ class SubCudnn : public ElementWiseCudnn {
 
 class MulCudnn : public ElementWiseCudnn {
     cudnnOpTensorOp_t getOpType() const override { return CUDNN_OP_TENSOR_MUL; }
+
+    /// A cuDNN tensor descriptor does not admit INT64, and a shape computation
+    /// is carried in INT64 -- so scaling a dimension with `Mul` reached cuDNN
+    /// and was refused. Unlike `Add`, there was no kernel of our own to fall
+    /// back to, so `_mul_kernel` is written alongside the others in the .cu;
+    /// its dtype switch covers Int64 like theirs. Everything else keeps taking
+    /// the cuDNN path it took before.
+    void compute(const Operator &_op,
+                 const RuntimeObj *_context) const override {
+        if (_op->getDType().getIndex() != DataType::Int64.getIndex()) {
+            ElementWiseCudnn::compute(_op, _context);
+            return;
+        }
+        const auto &a_dim = _op->getInputs(0)->getDims();
+        const auto &b_dim = _op->getInputs(1)->getDims();
+        const auto &c_dim = _op->getOutput()->getDims();
+        if (a_dim.size() > 4 || b_dim.size() > 4 || c_dim.size() > 4)
+            IT_TODO_HALT();
+
+        // Broadcasting lines shapes up at the right, so a shorter shape sits
+        // at the far end and reads as one before it. The kernel pairs the two
+        // by index, so the padding is written out here.
+        int a[4] = {1, 1, 1, 1};
+        int b[4] = {1, 1, 1, 1};
+        int c[4] = {1, 1, 1, 1};
+        std::copy(a_dim.begin(), a_dim.end(), a + (4 - a_dim.size()));
+        std::copy(b_dim.begin(), b_dim.end(), b + (4 - b_dim.size()));
+        std::copy(c_dim.begin(), c_dim.end(), c + (4 - c_dim.size()));
+
+        mul_kernel(_op->getDType().getIndex(),
+                   _op->getInputs(0)->getRawDataPtr<void *>(),
+                   _op->getInputs(1)->getRawDataPtr<void *>(),
+                   _op->getOutput()->getRawDataPtr<void *>(), a[0], a[1], a[2],
+                   a[3], b[0], b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
+    }
 };
 
 class MinCudnn : public ElementWiseCudnn {
