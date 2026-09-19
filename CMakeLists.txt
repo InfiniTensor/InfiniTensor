@@ -345,8 +345,10 @@ if(USE_INFINIOPS_KERNELS)
     endif()
   endif()
   if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    target_link_libraries(InfiniTensor ${INFINIOPS_LIBRARY}
-                          "-Wl,--no-as-needed" InfiniRT::infinirt
+    # InfiniOps entry points are weak references; retain the provider DSO so
+    # standalone C++ consumers can resolve them without Python preloading it.
+    target_link_libraries(InfiniTensor "-Wl,--no-as-needed"
+                          ${INFINIOPS_LIBRARY} InfiniRT::infinirt
                           "-Wl,--as-needed")
   else()
     target_link_libraries(InfiniTensor ${INFINIOPS_LIBRARY}
