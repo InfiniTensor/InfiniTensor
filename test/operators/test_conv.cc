@@ -42,6 +42,23 @@ TEST(Conv, ShapeInference) {
     }
 }
 
+TEST(Conv, DynamicPlaceholderGeometryIsDeferred) {
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Graph g = make_ref<GraphObj>(runtime);
+    Tensor input = g->addTensor({1, 3, 1, 1}, DataType::Float32);
+    input->setDimDescs(
+        {{false, ""}, {false, ""}, {true, "height"}, {true, "width"}});
+    Tensor weight = g->addTensor({2, 3, 3, 3}, DataType::Float32);
+
+    auto conv =
+        g->addOp<ConvObj>(input, weight, nullptr, ConvObj::PaddingMode::Valid);
+    EXPECT_EQ(conv->getOutput()->getDims(), (Shape{1, 2, 1, 1}));
+
+    input->setShape({1, 3, 5, 5});
+    g->shape_infer();
+    EXPECT_EQ(conv->getOutput()->getDims(), (Shape{1, 2, 3, 3}));
+}
+
 TEST(Conv, NaiveCPU) {
     Runtime runtime = NativeCpuRuntimeObj::getInstance();
     Graph g = make_ref<GraphObj>(runtime);

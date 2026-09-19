@@ -26,6 +26,47 @@ TEST(MaxPool, ShapeInference) {
     }
 }
 
+/// A window wider than what it is given still covers a position, and covers it
+/// once, so there is one row and one column of results however small the input
+/// is. Working the count out arithmetically gives zero or less there, and a
+/// spatial size of zero is not a picture the rest of a graph can read: the
+/// shape chain after a pooling carries that zero into a reshape target, where
+/// ONNX spells a dimension of zero the same way it spells keeping the dimension
+/// the input already has. The positive result is deliberate project behavior:
+/// ONNX Runtime instead rejects negative geometry and may return an empty
+/// tensor for a zero extent.
+TEST(MaxPool, AWindowWiderThanItsInputStillYieldsOne) {
+    Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
+    { // Two by two striding by two, over the sizes either side of the turn.
+        // Three is the largest input such a window covers once, four the
+        // smallest it covers twice.
+        for (const auto &[given, expected] : vector<std::pair<int, int>>{
+                 {1, 1}, {2, 1}, {3, 1}, {4, 2}, {5, 2}, {8, 4}}) {
+            Graph g = make_ref<GraphObj>(cpuRuntime);
+            Tensor i = g->addTensor({1, 1, given, given}, DataType::Float32);
+            auto op =
+                g->addOp<MaxPoolObj>(i, nullptr, 2, 2, 1, 1, 0, 0, 2, 2, 0);
+            EXPECT_EQ(op->getOutput()->getDims(),
+                      (Shape{1, 1, expected, expected}))
+                << "input " << given;
+        }
+    }
+
+    { // Wider still, so that the count works out negative rather than zero.
+        Graph g = make_ref<GraphObj>(cpuRuntime);
+        Tensor i = g->addTensor({1, 8, 1, 1}, DataType::Float32);
+        auto op = g->addOp<MaxPoolObj>(i, nullptr, 5, 5, 1, 1, 0, 0, 2, 2, 0);
+        EXPECT_EQ(op->getOutput()->getDims(), (Shape{1, 8, 1, 1}));
+    }
+
+    { // The two sides are counted apart, so a window can outgrow one of them.
+        Graph g = make_ref<GraphObj>(cpuRuntime);
+        Tensor i = g->addTensor({1, 8, 1, 9}, DataType::Float32);
+        auto op = g->addOp<MaxPoolObj>(i, nullptr, 3, 3, 1, 1, 0, 0, 2, 2, 0);
+        EXPECT_EQ(op->getOutput()->getDims(), (Shape{1, 8, 1, 4}));
+    }
+}
+
 TEST(MaxPool, NaiveCPU) {
     Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     Graph g = make_ref<GraphObj>(cpuRuntime);

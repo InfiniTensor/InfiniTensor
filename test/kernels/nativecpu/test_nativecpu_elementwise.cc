@@ -39,6 +39,12 @@ TEST(ElementWise, NativeCpu) {
     testElementWiseNativeCpu<DivObj>(
         IncrementalGenerator(), OneGenerator(), Shape{1, 2, 2, 3, 1},
         Shape{2, 1, 1}, ExpectOutput{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11});
+    // A square root is how a shape read at runtime becomes a scale factor,
+    // so the exponent is what this case exercises. Anything to the power of
+    // zero is one, which is what std::pow answers for zero as well.
+    testElementWiseNativeCpu<PowObj>(
+        IncrementalGenerator(), IncrementalGenerator(), Shape{1, 2, 2, 3, 1},
+        Shape{2, 1, 1}, ExpectOutput{1, 1, 1, 3, 4, 5, 1, 1, 1, 9, 10, 11});
 }
 
 } // namespace infini
