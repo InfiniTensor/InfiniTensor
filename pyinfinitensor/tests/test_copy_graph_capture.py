@@ -30,61 +30,64 @@ class TestCopyGraphCapture(unittest.TestCase):
             ("Squeeze", [2, 3], "axes", [1], {}),
             ("Unsqueeze", [1, 2, 1, 3], "axes", [0], {}),
         )
-        dtypes = (
-            (np.float32, TensorProto.FLOAT),
-            (np.float16, TensorProto.FLOAT16),
-            (np.int32, TensorProto.INT32),
-        )
-        for op, shape, parameter, parameter_value, attributes in cases:
-            for numpy_dtype, onnx_dtype in dtypes:
-                for naive in (False, True):
-                    with self.subTest(op=op, dtype=numpy_dtype, naive=naive):
-                        initializers = []
-                        inputs = ["x"]
-                        if parameter is not None:
-                            inputs.append(parameter)
-                            initializers.append(
-                                numpy_helper.from_array(
-                                    np.asarray(parameter_value, dtype=np.int64),
-                                    parameter,
-                                )
-                            )
-                        graph = helper.make_graph(
-                            [helper.make_node(op, inputs, ["y"], **attributes)],
-                            "copy_capture",
-                            [helper.make_tensor_value_info("x", onnx_dtype, [2, 1, 3])],
-                            [helper.make_tensor_value_info("y", onnx_dtype, shape)],
-                            initializer=initializers,
+        # C++ owns the full operator/dtype/allocator matrix. Here retain
+        # ONNX conversion for each operator and representative binding cases.
+        configurations = [(case, np.float32, TensorProto.FLOAT, False)
+                          for case in cases]
+        configurations.extend([
+            (cases[2], np.float16, TensorProto.FLOAT16, False),
+            (cases[2], np.int32, TensorProto.INT32, False),
+            (cases[0], np.float32, TensorProto.FLOAT, True),
+        ])
+        for case, numpy_dtype, onnx_dtype, naive in configurations:
+            op, shape, parameter, parameter_value, attributes = case
+            with self.subTest(op=op, dtype=numpy_dtype, naive=naive):
+                initializers = []
+                inputs = ["x"]
+                if parameter is not None:
+                    inputs.append(parameter)
+                    initializers.append(
+                        numpy_helper.from_array(
+                            np.asarray(parameter_value, dtype=np.int64),
+                            parameter,
                         )
-                        model = helper.make_model(
-                            graph, opset_imports=[helper.make_opsetid("", 18)]
-                        )
-                        checker.check_model(model)
-                        runtime = backend.runtime(backend.default_infini_device())
-                        # Preserve the actual copy node instead of allowing the
-                        # simplifier to eliminate the operation under test.
-                        with patch.object(
-                            onnx_frontend, "simplify", side_effect=lambda m: (m, False)
-                        ):
-                            stub = onnx_frontend.OnnxStub(
-                                model, runtime, use_naive_allocator=naive
-                            )
-                        self.assertEqual(len(stub.handler.operators()), 1)
-                        for iteration in range(4):
-                            values = (
-                                np.arange(6, dtype=numpy_dtype) + iteration * 10 - 7
-                            ).reshape(2, 1, 3)
-                            stub.inputs["x"].copyin_numpy(values)
-                            if iteration == 0:
-                                stub.run()
-                            else:
-                                stub.run_with_graph()
-                                self.assertEqual(runtime.graph_capture_count(), 1)
-                                self.assertEqual(runtime.graph_cache_size(), 1)
-                            actual = stub.outputs["y"].copyout_numpy()
-                            self.assertEqual(actual.shape, tuple(shape))
-                            self.assertEqual(actual.dtype, numpy_dtype)
-                            np.testing.assert_array_equal(actual, values.reshape(shape))
+                    )
+                graph = helper.make_graph(
+                    [helper.make_node(op, inputs, ["y"], **attributes)],
+                    "copy_capture",
+                    [helper.make_tensor_value_info("x", onnx_dtype, [2, 1, 3])],
+                    [helper.make_tensor_value_info("y", onnx_dtype, shape)],
+                    initializer=initializers,
+                )
+                model = helper.make_model(
+                    graph, opset_imports=[helper.make_opsetid("", 18)]
+                )
+                checker.check_model(model)
+                runtime = backend.runtime(backend.default_infini_device())
+                # Preserve the actual copy node instead of allowing the
+                # simplifier to eliminate the operation under test.
+                with patch.object(
+                    onnx_frontend, "simplify", side_effect=lambda m: (m, False)
+                ):
+                    stub = onnx_frontend.OnnxStub(
+                        model, runtime, use_naive_allocator=naive
+                    )
+                self.assertEqual(len(stub.handler.operators()), 1)
+                for iteration in range(4):
+                    values = (
+                        np.arange(6, dtype=numpy_dtype) + iteration * 10 - 7
+                    ).reshape(2, 1, 3)
+                    stub.inputs["x"].copyin_numpy(values)
+                    if iteration == 0:
+                        stub.run()
+                    else:
+                        stub.run_with_graph()
+                        self.assertEqual(runtime.graph_capture_count(), 1)
+                        self.assertEqual(runtime.graph_cache_size(), 1)
+                    actual = stub.outputs["y"].copyout_numpy()
+                    self.assertEqual(actual.shape, tuple(shape))
+                    self.assertEqual(actual.dtype, numpy_dtype)
+                    np.testing.assert_array_equal(actual, values.reshape(shape))
 
 
 if __name__ == "__main__":

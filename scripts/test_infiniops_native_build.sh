@@ -31,6 +31,6 @@ cmake -S "$src" -B "$work/build-it" \
     -DUSE_INFINIOPS_KERNELS=ON -DUSE_INFINIOPS_ATEN_KERNELS=OFF \
     -DINFINIOPS_ROOT="$work/prefix" -DINFINIRT_ROOT="$work/prefix" \
     -DINFINIOPS_CXX11_ABI=1 -DPython_EXECUTABLE="$py"
-cmake --build "$work/build-it" -j "$jobs"
+cmake --build "$work/build-it" --target test_copy_graph_capture -j "$jobs"
 "$work/build-it/test_copy_graph_capture" \
     --gtest_filter=InfiniCopyLifetimeTest.*

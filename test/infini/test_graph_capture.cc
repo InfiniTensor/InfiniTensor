@@ -8,6 +8,7 @@
 #include "test.h"
 #include <atomic>
 #include <cmath>
+#include <cstdlib>
 #include <thread>
 
 namespace infini {
@@ -114,8 +115,7 @@ const GraphCaptureSupport &graphCaptureSupport() {
     static const auto support = []() {
         try {
             auto runtime = makeRuntime();
-            GraphCaptureFixture fixture(runtime, 2);
-            fixture.run(increasingValues(2));
+            runtime->runWithGraph(make_ref<GraphObj>(runtime));
             return GraphCaptureSupport{true, {}};
         } catch (const std::exception &error) {
             return GraphCaptureSupport{false, error.what()};
@@ -128,9 +128,11 @@ class InfiniGraphCaptureTest : public ::testing::Test {
   protected:
     void SetUp() override {
         const auto &support = graphCaptureSupport();
-        if (!support.available) {
+        if (std::getenv("INFINITENSOR_REQUIRE_GRAPH_CAPTURE")) {
+            ASSERT_TRUE(support.available) << support.reason;
+        } else if (!support.available) {
             GTEST_SKIP() << "The installed InfiniRT/InfiniOps backend cannot "
-                            "capture the test operator: "
+                            "capture an empty graph: "
                          << support.reason;
         }
     }
@@ -182,18 +184,6 @@ TEST_F(InfiniGraphCaptureTest, GraphCaptureIgnoresTensorContents) {
 
     EXPECT_EQ(runtime->getGraphCaptureCount(), 1u);
     EXPECT_TRUE(fixture.outputEquals(rmsNormValues(values, 2, 3)));
-}
-
-TEST_F(InfiniGraphCaptureTest,
-       GraphCaptureCapturesNativeKernelOnRuntimeStream) {
-    auto runtime = makeRuntime();
-    GraphCaptureFixture fixture(runtime, 2);
-    const auto values = vector<float>{-1, 0, 1, 2};
-
-    fixture.run(values);
-    fixture.run(values);
-    EXPECT_EQ(runtime->getGraphCaptureCount(), 1u);
-    EXPECT_TRUE(fixture.outputEquals(rmsNormValues(values)));
 }
 
 TEST_F(InfiniGraphCaptureTest, GraphCaptureInvalidatesReplacedStorage) {
