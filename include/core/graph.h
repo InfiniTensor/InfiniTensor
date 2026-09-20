@@ -100,6 +100,15 @@ class GraphObj : public Object {
     void validateMemory() const;
 
     size_t getAllocationGeneration() const { return allocationGeneration; }
+    size_t getPlannedActivationBytes() const {
+        return allocator.getPlannedActivationBytes();
+    }
+    size_t getActivationCapacity() const {
+        return allocator.getActivationCapacity();
+    }
+    uint64_t getActivationStorageId() const {
+        return allocator.getActivationStorageId();
+    }
     uint64_t getCaptureStateId() const { return captureState->getId(); }
     size_t getCaptureGeneration() const {
         return captureState->getGeneration();

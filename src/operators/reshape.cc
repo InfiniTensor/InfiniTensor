@@ -1,6 +1,8 @@
 #include "operators/reshape.h"
 #include "utils/operator_utils.h"
 #include <numeric>
+#include <limits>
+#include <stdexcept>
 
 namespace infini {
 ReshapeObj::ReshapeObj(GraphObj *graph, Tensor input, Tensor output, Shape dims)
@@ -8,35 +10,64 @@ ReshapeObj::ReshapeObj(GraphObj *graph, Tensor input, Tensor output, Shape dims)
     IT_ASSERT(checkValid(graph));
 }
 
+ReshapeObj::ReshapeObj(GraphObj *graph, Tensor input, Tensor target, Tensor output)
+    : OperatorObj(OpType::Reshape, {input, target}, {output}) {
+    IT_ASSERT(checkValid(graph));
+}
+
 optional<vector<Shape>> ReshapeObj::inferShape(const TensorVec &inputs) {
+    if (inputs.size() == 2) {
+        auto target = inputs[1];
+        if (!(target->getDType() == DataType::Int64) || target->getRank() != 1 ||
+            !target->hasData())
+            throw std::invalid_argument("Reshape target must be a populated int64 vector");
+        dims.clear();
+        for (auto dim : target->copyout<int64_t>()) {
+            if (dim < -1 || dim > std::numeric_limits<int>::max())
+                throw std::invalid_argument("Reshape target dimension out of range");
+            dims.push_back(static_cast<int>(dim));
+        }
+    }
     int count = 0;
     for (auto x : dims) {
         if (x == -1) {
             count++;
         }
-        IT_ASSERT(x == -1 || x >= 0);
+        if (x < -1)
+            throw std::invalid_argument("Reshape dimensions must be >= -1");
     }
-    IT_ASSERT(count == 0 || count == 1);
+    if (count > 1)
+        throw std::invalid_argument("Reshape allows at most one -1");
     auto inputShape = inputs[0]->getDims();
-    int size = inputs[0]->size();
+    size_t size = inputs[0]->size();
     int index = -1;
     outputShape = dims;
     for (int i = 0; i < (int)dims.size(); ++i) {
         if (dims[i] == 0) {
+            if (i >= static_cast<int>(inputShape.size()))
+                throw std::invalid_argument("Reshape zero axis exceeds input rank");
             outputShape[i] = inputShape[i];
         }
         if (dims[i] == -1) {
             index = i;
         }
     }
-    if (index != -1) {
-        outputShape[index] =
-            size / (-std::accumulate(outputShape.begin(), outputShape.end(), 1,
-                                     [](auto acc, auto x) { return acc * x; }));
+    size_t product = 1;
+    for (auto dim : outputShape) {
+        if (dim == -1)
+            continue;
+        if (dim && product > std::numeric_limits<size_t>::max() / dim)
+            throw std::invalid_argument("Reshape element count overflow");
+        product *= dim;
     }
-    int outputSize = std::accumulate(outputShape.begin(), outputShape.end(), 1,
-                                     [](auto acc, auto x) { return acc * x; });
-    IT_ASSERT(outputSize == size);
+    if (index != -1) {
+        if (!product || size % product ||
+            size / product > static_cast<size_t>(std::numeric_limits<int>::max()))
+            throw std::invalid_argument("Reshape cannot infer integral dimension");
+        outputShape[index] = static_cast<int>(size / product);
+    } else if (product != size) {
+        throw std::invalid_argument("Reshape element count mismatch");
+    }
 
     return {{outputShape}};
 }

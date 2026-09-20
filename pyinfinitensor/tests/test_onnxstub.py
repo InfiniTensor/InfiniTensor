@@ -144,8 +144,8 @@ class TestOnnxStubImport(unittest.TestCase):
         weight = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
         model = make_model(
             [helper.make_node("MatMul", ["x", "weight"], ["y"])],
-            [value_info("x", [1, 2])],
-            [value_info("y", [1, 2])],
+            [value_info("x", ["batch", 2])],
+            [value_info("y", ["batch", 2])],
             [initializer("weight", weight)],
         )
         for use_naive_allocator in (False, True):
@@ -464,8 +464,8 @@ class TestOnnxStubCuda(unittest.TestCase):
         weight = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
         model = make_model(
             [helper.make_node("MatMul", ["x", "weight"], ["y"])],
-            [value_info("x", [1, 2])],
-            [value_info("y", [1, 2])],
+            [value_info("x", ["batch", 2])],
+            [value_info("y", ["batch", 2])],
             [initializer("weight", weight)],
         )
         for use_naive_allocator in (False, True):

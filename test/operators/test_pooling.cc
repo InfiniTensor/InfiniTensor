@@ -26,6 +26,22 @@ TEST(MaxPool, ShapeInference) {
     }
 }
 
+TEST(MaxPool, DynamicSpatialShapeRefreshesCachedDimensions) {
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    Graph graph = make_ref<GraphObj>(runtime);
+    Tensor input = graph->addTensor({1, 3, 15, 15}, DataType::Float32);
+    auto pool = graph->addOp<MaxPoolObj>(input, nullptr, 3, 3, 1, 1, 0, 0,
+                                        2, 2, 1);
+    EXPECT_EQ(pool->getOutput()->getDims(), (Shape{1, 3, 7, 7}));
+
+    input->setShape({1, 3, 23, 31});
+    graph->shape_infer();
+    EXPECT_EQ(pool->getOutput()->getDims(), (Shape{1, 3, 11, 15}));
+    const auto [n, c, h, w, kh, kw] = pool->getNCHWRS();
+    EXPECT_EQ((Shape{n, c, h, w, kh, kw}),
+              (Shape{1, 3, 23, 31, 3, 3}));
+}
+
 TEST(MaxPool, NaiveCPU) {
     Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     Graph g = make_ref<GraphObj>(cpuRuntime);

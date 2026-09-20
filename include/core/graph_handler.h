@@ -77,6 +77,7 @@ class GraphHandlerObj {
                 std::optional<float> max);
     Tensor transpose(Tensor data, Tensor transposed, Shape perm);
     Tensor reshape(Tensor data, Tensor reshaped, Shape shape);
+    Tensor reshape_tensor(Tensor data, Tensor target, Tensor reshaped);
     Tensor resize(Tensor input, Tensor output,
                   const std::optional<vector<int>> &axes, Tensor sizes,
                   Tensor scales, Tensor roi, vector<int64_t> sizes_,
@@ -140,6 +141,22 @@ class GraphHandlerObj {
     }
 
     inline void trim_memory() { g->trimMemory(); }
+
+    inline size_t allocation_generation() const {
+        return g->getAllocationGeneration();
+    }
+
+    inline size_t planned_activation_bytes() const {
+        return g->getPlannedActivationBytes();
+    }
+
+    inline size_t activation_pool_capacity() const {
+        return g->getActivationCapacity();
+    }
+
+    inline uint64_t activation_pool_storage_id() const {
+        return g->getActivationStorageId();
+    }
 
     inline Tensor clone_KV(Tensor &tensor) { return g->cloneKV(tensor); }
 

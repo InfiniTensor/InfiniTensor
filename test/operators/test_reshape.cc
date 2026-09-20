@@ -9,6 +9,37 @@
 
 namespace infini {
 
+TEST(Reshape, RuntimeTargetTensor) {
+    auto runtime = NativeCpuRuntimeObj::getInstance();
+    auto graph = make_ref<GraphObj>(runtime);
+    auto input = graph->addTensor({2, 3}, DataType::Float32);
+    auto target = graph->addTensor({2}, DataType::Int64);
+    target->setWeight();
+    target->dataMalloc();
+    target->copyin(vector<int64_t>{3, 2});
+    auto op = graph->addOp<ReshapeObj>(input, target, nullptr);
+    EXPECT_EQ(op->numInputs(), 2);
+    EXPECT_EQ(op->getOutput()->getDims(), (Shape{3, 2}));
+    target->copyin(vector<int64_t>{1, -1});
+    graph->shape_infer();
+    EXPECT_EQ(op->getOutput()->getDims(), (Shape{1, 6}));
+    target->copyin(vector<int64_t>{-1, -1});
+    EXPECT_THROW(graph->shape_infer(), std::invalid_argument);
+    target->copyin(vector<int64_t>{4, -1});
+    EXPECT_THROW(graph->shape_infer(), std::invalid_argument);
+    target->copyin(vector<int64_t>{0, -1});
+    graph->shape_infer();
+    EXPECT_EQ(op->getOutput()->getDims(), (Shape{2, 3}));
+    graph->dataMalloc();
+    input->copyin(vector<float>{1, 2, 3, 4, 5, 6});
+    target->copyin(vector<int64_t>{3, 2});
+    graph->shape_infer();
+    graph->dataMalloc();
+    runtime->run(graph);
+    EXPECT_EQ(op->getOutput()->getDims(), (Shape{3, 2}));
+    EXPECT_EQ(op->getOutput()->copyout<float>(), (vector<float>{1, 2, 3, 4, 5, 6}));
+}
+
 TEST(Reshape, ShapeInference) {
     Runtime runtime = NativeCpuRuntimeObj::getInstance();
     {

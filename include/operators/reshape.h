@@ -22,12 +22,13 @@ class ReshapeObj : public OperatorObj {
      * @param outputShape The real shape of output tensor.
      */
     ReshapeObj(GraphObj *graph, Tensor input, Tensor output, Shape dims);
+    ReshapeObj(GraphObj *graph, Tensor input, Tensor target, Tensor output);
     OP_CLONE(ReshapeObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
-    int numInputs() const override { return 1; }
+    int numInputs() const override { return inputs.size(); }
     int numOutputs() const override { return 1; }
 
     inline Shape getShape() const { return outputShape; }

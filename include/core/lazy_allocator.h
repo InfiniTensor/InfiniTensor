@@ -122,6 +122,18 @@ class LazyAllocator {
 
     bool isCurrentActivationStorage(const Blob &storage) const;
 
+    size_t getPlannedActivationBytes() const { return peak; }
+
+    size_t getActivationCapacity() const {
+        const auto &storage = hasMemPool ? memPoolPtr : ptr;
+        return storage ? storage->getBytes() : 0;
+    }
+
+    uint64_t getActivationStorageId() const {
+        const auto &storage = hasMemPool ? memPoolPtr : ptr;
+        return storage ? storage->getStorageId() : 0;
+    }
+
     size_t getHeapPeak() const { return heapPeak; }
 
     // void addCache(size_t batchsize, std::unordered_map<TensorObj *, size_t>);
