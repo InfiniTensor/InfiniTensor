@@ -8,14 +8,33 @@ UnsqueezeObj::UnsqueezeObj(GraphObj *graph, Tensor input, Tensor output,
     IT_ASSERT(checkValid(graph));
 }
 
+UnsqueezeObj::UnsqueezeObj(GraphObj *graph, Tensor input, Tensor axesTensor,
+                           Tensor output)
+    : OperatorObj(OpType::Unsqueeze, {input, axesTensor}, {output}),
+      dynamicAxes(true) {
+    IT_ASSERT(checkValid(graph));
+}
+
 optional<vector<Shape>> UnsqueezeObj::inferShape(const TensorVec &inputs) {
     Shape inputDim = inputs[0]->getDims();
-    auto rank = inputs[0]->getRank() + axes.size();
+    Shape currentAxes = axes;
+    if (dynamicAxes && inputs[1]->hasData()) {
+        currentAxes.clear();
+        if (inputs[1]->getDType() == DataType::Int64)
+            for (auto x : inputs[1]->copyout<int64_t>())
+                currentAxes.push_back(static_cast<int>(x));
+        else {
+            IT_ASSERT(inputs[1]->getDType() == DataType::Int32);
+            for (auto x : inputs[1]->copyout<int32_t>())
+                currentAxes.push_back(x);
+        }
+    }
+    auto rank = inputs[0]->getRank() + currentAxes.size();
     Shape outputShape(rank, -1);
-    for (size_t i = 0; i < axes.size(); ++i) {
-        axes[i] = get_real_axis(axes[i], rank);
-        IT_ASSERT(outputShape[axes[i]] == -1, "Axes have duplicate");
-        outputShape[axes[i]] = 1;
+    for (size_t i = 0; i < currentAxes.size(); ++i) {
+        currentAxes[i] = get_real_axis(currentAxes[i], rank);
+        IT_ASSERT(outputShape[currentAxes[i]] == -1, "Axes have duplicate");
+        outputShape[currentAxes[i]] = 1;
     }
     auto it = inputDim.begin();
     for (size_t i = 0; i < outputShape.size(); ++i) {
@@ -40,6 +59,8 @@ std::string UnsqueezeObj::toString() const {
 vector<int> UnsqueezeObj::getWorkloadVector() const {
     vector<int> ret = inputs[0]->getDims();
     ret.insert(ret.end(), axes.begin(), axes.end());
+    if (dynamicAxes)
+        ret.emplace_back(inputs[1]->getDims().size());
     ret.emplace(ret.begin(), type.underlying());
     return ret;
 }

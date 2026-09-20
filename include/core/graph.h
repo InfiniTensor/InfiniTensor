@@ -4,6 +4,7 @@
 #include "core/tensor.h"
 #include <algorithm>
 #include <cstdint>
+#include <unordered_set>
 
 namespace infini {
 
@@ -35,7 +36,7 @@ class GraphCaptureStateObj {
     void markTopologyChanged() noexcept;
 };
 
-class GraphObj : public Object {
+class GraphObj : public Object, public std::enable_shared_from_this<GraphObj> {
   protected:
     Runtime runtime;
     TensorVec tensors;
@@ -92,6 +93,9 @@ class GraphObj : public Object {
     void optimize();
 
     void shape_infer();
+
+    void prepareDynamicShapes();
+    std::unordered_set<OperatorObj *> getDynamicShapeOperators() const;
 
     void dataMalloc(bool useNaiveAllocator = false, size_t memPoolSize = 0);
 

@@ -10,6 +10,7 @@ namespace infini {
  */
 class SqueezeObj : public OperatorObj {
     Shape axes;
+    bool dynamicAxes = false;
 
   public:
     /**
@@ -21,12 +22,14 @@ class SqueezeObj : public OperatorObj {
      * @param axes List of integers indicating the dimensions to squeeze.
      */
     SqueezeObj(GraphObj *graph, Tensor input, Tensor output, Shape axes);
+    SqueezeObj(GraphObj *graph, Tensor input, Tensor axesTensor,
+               Tensor output);
     OP_CLONE(SqueezeObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
-    int numInputs() const override { return 1; }
+    int numInputs() const override { return dynamicAxes ? 2 : 1; }
     int numOutputs() const override { return 1; }
 
     inline Shape getAxes() const { return axes; }

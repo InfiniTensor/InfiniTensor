@@ -1,5 +1,6 @@
 
 #pragma once
+#include <cstdint>
 #include <cstdio>
 
 const int BATCH_SIZE = 32; // parallel tensor number.
@@ -32,5 +33,8 @@ void split_concat_kernel(const ElementTensorMetadata<float> &eleMeta,
                          int batchSize, int nDims, bool isSplit);
 void split_concat_kernel(const ElementTensorMetadata<half> &eleMeta,
                          const ComposedTensorMetadata<half> &compMeta, int dim,
+                         int batchSize, int nDims, bool isSplit);
+void split_concat_kernel(const ElementTensorMetadata<int64_t> &eleMeta,
+                         const ComposedTensorMetadata<int64_t> &compMeta, int dim,
                          int batchSize, int nDims, bool isSplit);
 } // namespace infini

@@ -70,13 +70,18 @@ class GraphHandlerObj {
     Tensor neg(Tensor x, Tensor y);
     Tensor shape(Tensor x, Tensor y);
     Tensor identity(Tensor x, Tensor y);
+    Tensor constantOfShape(Tensor shape, Tensor output, float value,
+                           int outputDType);
     Tensor flatten(Tensor s, Tensor y, int axis);
     Tensor pRelu(Tensor x, Tensor slope, Tensor y);
     Tensor elu(Tensor x, Tensor y, float alpha);
     Tensor clip(Tensor x, Tensor y, std::optional<float> min,
                 std::optional<float> max);
     Tensor transpose(Tensor data, Tensor transposed, Shape perm);
-    Tensor reshape(Tensor data, Tensor reshaped, Shape shape);
+    Tensor reshape(Tensor data, Tensor reshaped, Shape shape,
+                   bool allowZero = false);
+    Tensor reshape_dynamic(Tensor data, Tensor shape, Tensor reshaped,
+                           bool allowZero = false);
     Tensor resize(Tensor input, Tensor output,
                   const std::optional<vector<int>> &axes, Tensor sizes,
                   Tensor scales, Tensor roi, vector<int64_t> sizes_,
@@ -84,7 +89,9 @@ class GraphHandlerObj {
                   string ratioPolicy, string nearestMode,
                   string coordTransMode);
     Tensor squeeze(Tensor input, Tensor output, Shape axes);
+    Tensor squeeze_dynamic(Tensor input, Tensor axes, Tensor output);
     Tensor unsqueeze(Tensor input, Tensor output, Shape axes);
+    Tensor unsqueeze_dynamic(Tensor input, Tensor axes, Tensor output);
     Tensor concat(TensorVec inputs, Tensor output, int dim);
     Tensor attentionKVCache(Tensor input_k_cache, Tensor input_v_cache,
                             Tensor input_q, Tensor input_k, Tensor input_v,
@@ -130,6 +137,7 @@ class GraphHandlerObj {
     inline void optimize() { g->optimize(); }
 
     inline void shape_infer() { g->shape_infer(); }
+    inline void prepare_dynamic_shapes() { g->prepareDynamicShapes(); }
 
     void change_shape(const vector<int> &shape, int tensorId);
     //------ runtime

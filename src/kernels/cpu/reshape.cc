@@ -2,6 +2,7 @@
 #include "core/kernel.h"
 #include "operators/squeeze.h"
 #include "operators/unsqueeze.h"
+#include "operators/unary.h"
 
 namespace infini {
 class NaiveIdentity : public CpuKernelWithoutConfig {
@@ -15,6 +16,16 @@ class NaiveIdentity : public CpuKernelWithoutConfig {
     }
 };
 
+class ShapeCpu : public CpuKernelWithoutConfig {
+    void compute(const Operator &op, const RuntimeObj *) const override {
+        auto shape = as<ShapeObj>(op);
+        auto *output = shape->getOutput()->getRawDataPtr<int64_t *>();
+        const auto dims = shape->getInputs(0)->getDims();
+        for (size_t i = 0; i < dims.size(); ++i)
+            output[i] = static_cast<int64_t>(dims[i]);
+    }
+};
+
 REGISTER_KERNEL(Device::CPU, OpType::Reshape, NaiveIdentity,
                 "ReshapeNaive_CPU");
 REGISTER_KERNEL(Device::CPU, OpType::Identity, NaiveIdentity,
@@ -25,5 +36,6 @@ REGISTER_KERNEL(Device::CPU, OpType::Squeeze, NaiveIdentity,
                 "SqueezeNaive_CPU");
 REGISTER_KERNEL(Device::CPU, OpType::Flatten, NaiveIdentity,
                 "FlattenNaive_CPU");
+REGISTER_KERNEL(Device::CPU, OpType::Shape, ShapeCpu, "Shape_CPU");
 
 } // namespace infini

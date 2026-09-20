@@ -8,6 +8,32 @@
 #include <chrono>
 #include <cstring>
 namespace infini {
+namespace {
+} // namespace
+
+void RuntimeObj::runShape(const Graph &graph) const {
+    IT_ASSERT(graph != nullptr, "Cannot prepare a null graph");
+    IT_ASSERT(graph->topo_sort(), "Cannot prepare dynamic shapes in a cyclic graph");
+    const auto &registry = KernelRegistry::getInstance();
+    const auto shape_ops = graph->getDynamicShapeOperators();
+    for (const auto &op : graph->getOperators()) {
+        if (shape_ops.find(op.get()) == shape_ops.end())
+            continue;
+        try {
+            auto *kernel = registry.getKernel({device, op->getOpType().underlying()});
+            kernel->compute(op, this);
+        } catch (const std::exception &e) {
+            throw std::runtime_error(std::string("shape kernel ") +
+                                     op->getOpType().toString() +
+                                     " failed: " + e.what());
+        } catch (...) {
+            throw std::runtime_error(std::string("shape kernel ") +
+                                     op->getOpType().toString() +
+                                     " failed with unknown exception");
+        }
+    }
+}
+
 void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
     IT_ASSERT(graph != nullptr, "Cannot run a null graph");
     graph->validateMemory();

@@ -297,15 +297,38 @@ Tensor GraphHandlerObj::transpose(Tensor data, Tensor transposed, Shape perm) {
     }
 }
 
-Tensor GraphHandlerObj::reshape(Tensor data, Tensor reshaped, Shape shape) {
+Tensor GraphHandlerObj::reshape(Tensor data, Tensor reshaped, Shape shape,
+                                bool allowZero) {
     if (reshaped) {
         g->addOpWithOutputs<ReshapeObj>(std::move(data), reshaped,
-                                        std::move(shape));
+                                        std::move(shape), allowZero);
         return reshaped;
     } else {
-        return g->addOp<ReshapeObj>(std::move(data), reshaped, std::move(shape))
-            ->getOutput();
+        return g->addOp<ReshapeObj>(std::move(data), reshaped, std::move(shape),
+                                    allowZero)->getOutput();
     }
+}
+
+Tensor GraphHandlerObj::reshape_dynamic(Tensor data, Tensor shape,
+                                        Tensor reshaped, bool allowZero) {
+    if (reshaped) {
+        g->addOpWithOutputs<ReshapeObj>(std::move(data), std::move(shape),
+                                        reshaped, allowZero);
+        return reshaped;
+    }
+    return g->addOp<ReshapeObj>(std::move(data), std::move(shape), reshaped,
+                                allowZero)->getOutput();
+}
+
+Tensor GraphHandlerObj::constantOfShape(Tensor shape, Tensor output,
+                                        float value, int outputDType) {
+    if (output) {
+        g->addOpWithOutputs<ConstantOfShapeObj>(std::move(shape), output, value,
+                                                DataType(outputDType));
+        return output;
+    }
+    return g->addOp<ConstantOfShapeObj>(std::move(shape), output, value,
+                                        DataType(outputDType))->getOutput();
 }
 
 Tensor GraphHandlerObj::resize(Tensor input, Tensor output,
@@ -682,6 +705,17 @@ Tensor GraphHandlerObj::squeeze(Tensor input, Tensor output, Shape axes) {
     }
 }
 
+Tensor GraphHandlerObj::squeeze_dynamic(Tensor input, Tensor axes,
+                                        Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<SqueezeObj>(std::move(input), std::move(axes),
+                                        output);
+        return output;
+    }
+    return g->addOp<SqueezeObj>(std::move(input), std::move(axes), output)
+        ->getOutput();
+}
+
 Tensor GraphHandlerObj::unsqueeze(Tensor input, Tensor output, Shape axes) {
     if (output) {
         g->addOpWithOutputs<UnsqueezeObj>(std::move(input), output,
@@ -691,6 +725,17 @@ Tensor GraphHandlerObj::unsqueeze(Tensor input, Tensor output, Shape axes) {
         return g->addOp<UnsqueezeObj>(std::move(input), output, std::move(axes))
             ->getOutput();
     }
+}
+
+Tensor GraphHandlerObj::unsqueeze_dynamic(Tensor input, Tensor axes,
+                                          Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<UnsqueezeObj>(std::move(input), std::move(axes),
+                                          output);
+        return output;
+    }
+    return g->addOp<UnsqueezeObj>(std::move(input), std::move(axes), output)
+        ->getOutput();
 }
 
 static CastType inferCastType(Tensor input, int to) {
