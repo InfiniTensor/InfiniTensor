@@ -163,7 +163,7 @@ python3 pyinfinitensor/tests/test_onnx.py
 
 ## 验收边界
 
-已验证：CPU 动态 Shape 链、单卡 CUDA 动态 Shape 链、动态 Reshape `0/-1/allowzero` 语义、连续 shape 内存重规划、CUDA Graph 多 shape 重捕获/缓存、动态 H/W、sequence 和 Conv 五组 ORT 对齐、动态 `Unsqueeze/Squeeze` axes、静态和动态 `ConstantOfShape`、静态 folding、CPU/CUDA 专项回归、容量 storage 复用以及 CPU/CUDA P50/P99 benchmark、rank-8 Gather 和标量 Gather。尚未声称通过：更复杂真实网络模型和多进程分布式验证。单卡不能替代多卡证据。
+已验证：CPU 动态 Shape 链、单卡 CUDA 动态 Shape 链、动态 Reshape `0/-1/allowzero` 语义、连续 shape 内存重规划、CUDA Graph 多 shape 重捕获/缓存、动态 H/W、sequence 和 Conv 五组 ORT 对齐、动态 `Unsqueeze/Squeeze` axes、静态和动态 `ConstantOfShape`、静态 folding、CPU/CUDA 专项回归、容量 storage 复用以及 CPU/CUDA P50/P99 benchmark、rank-8 Gather 和标量 Gather。双 GPU NCCL、双进程动态 Shape 集成和两进程动态 TP smoke 也已通过。尚未声称通过：更复杂真实网络模型和完整 DDP/PP 训练黑盒验证；已有 NCCL/TP 证据不能替代这两类训练验证。
 
 ## 高级场景复现
 
