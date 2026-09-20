@@ -80,6 +80,14 @@ torch_npu 2.7.1.post10；原始 2.7.1 wheel 缺少此接口，会在 InfiniOps
 的提交顺序；启用该队列会被明确拒绝。此设置关闭主机侧的延迟提交，设备流
 仍可异步执行，图捕获与重放仍然可用。
 
+Ascend ATen 图捕获还依赖 InfiniOps 的 `BeginGraphCaptureMemory` 接口。
+请使用本仓库固定版本的 InfiniOps 重新构建，保证安装的头文件和动态库一致。
+每个缓存图持有独立的 torch_npu 内存池，保留由其缓存分配器管理的 ATen 临时张量；
+调用 `torch.npu.empty_cache()` 不会释放这些仍被图引用的内存。图失效、
+被缓存淘汰或执行 `runtime.clear_graph_cache()` 后，其内存池才可被回收。
+MaxPool 只需要池化值，Ascend 的辅助掩码由 provider 自行分配，避免将
+CPU/CUDA 的 INT64 indices 格式套用于 torch_npu 的内部表示。
+
 运行时先导入 `torch_npu` 并初始化 NPU；使用 Python 包安装入口时，将
 `PROVIDER_MODULES` / `INFINIOPS_PROVIDER_MODULES` 设置为 `torch_npu`。
 在加载 CANN 环境后，可对构建目录执行以下普通运行及捕获重放回归：
@@ -88,6 +96,13 @@ torch_npu 2.7.1.post10；原始 2.7.1 wheel 缺少此接口，会在 InfiniOps
 TASK_QUEUE_ENABLE=0 PYTHONPATH=/path/to/infinitensor-build:$PYTHONPATH \
   python test/infini/test_ascend_aten.py
 ```
+
+Ascend ATen 依赖上述 Python/provider 初始化，不支持直接从未初始化的
+独立 C++ 进程调用。`test_workspace_graph_capture` 在 Ascend 上跳过
+BN/MaxPool 数值用例；该覆盖由上述 Python 入口负责，包括动态通道数、
+两种分配器和捕获重放。C++ 的工作区所有权与异常恢复用例仍然执行。
+硬件验证必须同时运行此 Python 入口及 CTest；已知支持图捕获的设备应设置
+`INFINITENSOR_REQUIRE_GRAPH_CAPTURE=1`，避免将图能力错误作为跳过处理。
 
 原生构建不依赖 PyTorch 或上述 NPU provider。可运行
 `bash scripts/test_infiniops_native_build.sh`，从固定子模块提交创建全新的
