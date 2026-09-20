@@ -2,7 +2,7 @@
 
 ## 目标
 
-本项目把 ONNX 的动态输入维度和运行时 Shape Tensor 接到 InfiniTensor 的图、算子、内存规划和 Runtime。目标链路是：
+这项工作把 ONNX 的动态输入维度和运行时 Shape Tensor 接入 InfiniTensor 的图、算子、内存规划和 Runtime。整体链路是：
 
 ```text
 ONNX 输入 [N, 2, 3]
@@ -14,7 +14,7 @@ ONNX 输入 [N, 2, 3]
  -> 输出 [N, 6]
 ```
 
-## 已实现的第一条垂直切片
+## 已完成的基础链路
 
 - Python 导入器保存固定维度、符号维度和未知维度的约束信息。
 - `set_input()` 检查 rank、正数维度和固定维度，动态维度允许变化。
@@ -85,7 +85,7 @@ ONNX protobuf -> Python importer -> GraphHandler -> Graph/Tensor/Operator
              -> shape inference -> memory planner -> KernelRegistry -> CPU/CUDA kernel
 ```
 
-前端负责语义转换和固定维度约束；Graph 是中间表示，保存 Tensor、Operator 以及 producer/consumer 拓扑；Operator 的 `inferShape()`、dtype 推断和 workload key 是算子契约；`dataMalloc()` 根据当前 shape 和 tensor 生命周期规划 activation storage；Runtime 最后按 `(Device, OpType)` 查找 kernel。新增算子必须同时满足这些契约，不能只写一个 kernel。
+前端负责把 ONNX 语义转换成内部对象，并检查固定维度约束；Graph 保存 Tensor、Operator 以及 producer/consumer 关系；Operator 负责 `inferShape()`、dtype 推断和 workload key；`dataMalloc()` 根据当前 shape 和 Tensor 生命周期安排 activation storage；Runtime 最后按 `(Device, OpType)` 查找 kernel。新增算子要把这些环节都接上，不能只补一个 kernel。
 
 动态 Shape 的难点是形状值本身也是图计算结果。普通数据 kernel 需要先知道输出大小，但 `Shape -> Gather -> Unsqueeze -> Concat` 的结果又决定 `Reshape` 输出大小，所以执行顺序必须是：
 
@@ -192,7 +192,7 @@ python3 scripts/benchmark_dynamic_shape.py --device cuda --warmup 10 --repeat 10
 
 RTX 3050 的一次实际 CUDA 结果：same-shape preparation P50/P99=`0.1119/0.2763 ms`、total=`0.1992/0.8999 ms`；alternating-shape preparation=`0.1103/0.3035 ms`、total=`0.2003/0.9291 ms`。这些是当前 WSL 单卡环境的观测值，不代表多卡吞吐。
 
-## 当前未完成项
+## 还缺哪些验证
 
 补充：双进程 NCCL 动态 Shape 集成已经在双 4090 服务器通过；仍未完成的是完整 DDP/PP 训练黑盒验证。
 
