@@ -38,8 +38,6 @@ def build_model():
             helper.make_tensor_value_info("flat", TensorProto.FLOAT, ["batch", 6])
         ],
     )
-    # 本人工模型只使用 IR 8 / opset 18 能表达的功能。
-    # 不要据此给真实模型随意降 IR 版本。
     model = helper.make_model(
         graph, opset_imports=[helper.make_opsetid("", 18)], ir_version=8
     )
@@ -49,7 +47,6 @@ def build_model():
 
 def validate_model(naive=False, batches=(1, 2, 8, 3, 1), verbose=True):
     model = build_model()
-    # 两个实例都只创建一次，必须在循环外。
     stub = OnnxStub(model, backend.cpu_runtime(), use_naive_allocator=naive)
     reference = ort.InferenceSession(
         model.SerializeToString(), providers=["CPUExecutionProvider"]
@@ -58,7 +55,6 @@ def validate_model(naive=False, batches=(1, 2, 8, 3, 1), verbose=True):
     records = []
     for batch in batches:
         x = rng.standard_normal((batch, 2, 3)).astype(np.float32)
-        # 顺序不能颠倒：set_input 可能重新分配内存，之后再写输入。
         stub.set_input([list(x.shape)])
         stub.inputs["x"].copyin_numpy(x)
         stub.run()
@@ -69,7 +65,6 @@ def validate_model(naive=False, batches=(1, 2, 8, 3, 1), verbose=True):
             raise AssertionError(
                 f"Shape mismatch: InfiniTensor={actual_shape}, ORT={expected.shape}"
             )
-        # 先比较真实 Shape，再 reshape 数据；不能用期望 Shape 掩盖 metadata 错误。
         actual = np.asarray(
             stub.outputs["y"].copyout_float(), dtype=np.float32
         ).reshape(actual_shape)
