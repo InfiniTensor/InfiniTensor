@@ -141,6 +141,10 @@ class GraphHandlerObj {
 
     inline void trim_memory() { g->trimMemory(); }
 
+    inline std::map<std::string, size_t> memory_stats() const {
+        return g->getMemoryStats();
+    }
+
     inline Tensor clone_KV(Tensor &tensor) { return g->cloneKV(tensor); }
 
     inline void free_heap() { g->freeHeap(); }

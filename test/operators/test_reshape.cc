@@ -18,6 +18,34 @@ TEST(Reshape, ShapeInference) {
         EXPECT_EQ(op->getOutput()->getDims(), (Shape{3, 2, 4, 3}));
     }
 }
+TEST(Reshape, RuntimeShapeUpdateAndMemory) {
+    auto runtime = NativeCpuRuntimeObj::getInstance();
+    auto graph = make_ref<GraphObj>(runtime);
+    auto input = graph->addTensor({1, 4}, DataType::Float32);
+    input->setInput();
+    auto op = graph->addOp<ReshapeObj>(input, nullptr, Shape{2, 2});
+    auto output = op->getOutput();
+    output->setOutput();
+    const auto outputId = output->getFuid();
+    for (int batch : {1, 2, 8, 3, 1}) {
+        input->setShape({batch, 4});
+        op->setDims({2, batch * 2});
+        graph->shape_infer();
+        graph->dataMalloc();
+        graph->validateMemory();
+        vector<float> values(batch * 4, float(batch));
+        input->copyin(values);
+        runtime->run(graph);
+        EXPECT_EQ(output->getDims(), (Shape{2, batch * 2}));
+        EXPECT_EQ(output->getFuid(), outputId);
+        EXPECT_EQ(output->copyout<float>(), values);
+    }
+    const auto stats = graph->getMemoryStats();
+    EXPECT_EQ(stats.at("activation_allocations"), 3u);
+    EXPECT_GT(stats.at("activation_capacity_bytes"),
+              stats.at("activation_required_bytes"));
+}
+
 TEST(Flatten, ShapeInference) {
     Runtime runtime = NativeCpuRuntimeObj::getInstance();
     {

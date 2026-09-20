@@ -1,4 +1,4 @@
-﻿.PHONY : build clean format install-python test-cpp test-onnx
+.PHONY : build clean format install-python test-cpp test-onnx
 
 TYPE ?= Release
 CUDA ?= OFF
@@ -78,3 +78,14 @@ docker-start:
 
 docker-exec:
 	docker exec -it $(DOCKER_IMAGE_NAME) bash
+
+.PHONY: test-dynamic-shape demo-dynamic-shape benchmark-dynamic-shape
+test-dynamic-shape:
+	python -m pytest -q pyinfinitensor/tests/test_dynamic_shape.py
+	ctest --test-dir build/$(TYPE) --output-on-failure
+
+demo-dynamic-shape:
+	python examples/dynamic_shape/demo.py
+
+benchmark-dynamic-shape:
+	python examples/dynamic_shape/benchmark.py
