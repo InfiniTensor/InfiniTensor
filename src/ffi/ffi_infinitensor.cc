@@ -479,6 +479,7 @@ void init_graph_builder(py::module &m) {
                                                       py::buffer_protocol())
         .def("fuid", &TensorObj::getFuid, policy::automatic)
         .def("shape", &TensorObj::getDims, policy::move)
+        .def("data_malloc", &TensorObj::dataMalloc)
         .def("set_weight", &TensorObj::setWeight, policy::move)
         .def("set_input", &TensorObj::setInput, policy::move)
         .def("set_output", &TensorObj::setOutput, policy::move)
@@ -588,6 +589,7 @@ void init_graph_builder(py::module &m) {
         .def("transpose", &Handler::transpose, policy::move)
         .def("depthToSpace", &Handler::depthToSpace, policy::move)
         .def("reshape", &Handler::reshape, policy::move)
+        .def("reshape_tensor", &Handler::reshape_tensor, policy::move)
         .def("resize", &Handler::resize, policy::move)
         .def("squeeze", &Handler::squeeze, policy::move)
         .def("unsqueeze", &Handler::unsqueeze, policy::move)
@@ -622,6 +624,14 @@ void init_graph_builder(py::module &m) {
              py::arg("useNaiveAllocator") = false, py::arg("memPoolSize") = 0,
              policy::automatic)
         .def("trim_memory", &Handler::trim_memory, policy::automatic)
+        .def("allocation_generation", &Handler::allocation_generation,
+             policy::automatic)
+        .def("planned_activation_bytes", &Handler::planned_activation_bytes,
+             policy::automatic)
+        .def("activation_pool_capacity", &Handler::activation_pool_capacity,
+             policy::automatic)
+        .def("activation_pool_storage_id",
+             &Handler::activation_pool_storage_id, policy::automatic)
         .def("clone_KV", &Handler::clone_KV, policy::move)
         .def("free_heap", &Handler::free_heap, policy::move)
         .def("get_perf_time", &Handler::get_perf_time, policy::automatic)

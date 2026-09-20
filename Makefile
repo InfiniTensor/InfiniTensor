@@ -62,6 +62,7 @@ test-onnx:
 	@echo
 	python3 pyinfinitensor/tests/test_onnxstub.py
 	python3 pyinfinitensor/tests/test_onnx.py
+	python3 -m unittest discover -s pyinfinitensor/tests -p 'test_dynamic_shape.py' -v
 
 test-api:
 	@echo

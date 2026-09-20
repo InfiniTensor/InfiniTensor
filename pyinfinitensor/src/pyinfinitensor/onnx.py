@@ -30,6 +30,7 @@ from onnxsim import simplify
 import copy
 import warnings
 import numpy as np
+from .shape_program import ShapeProgram, dimension_schema, validate_shapes
 
 
 class OnnxStub:
@@ -44,12 +45,23 @@ class OnnxStub:
         runtime,
         use_naive_allocator: bool = False,
         matmul_compute_type: str = "default",
+        optimize_shape_program: bool = True,
+        input_shapes: Optional[List[Sequence[int]]] = None,
     ):
         model = copy.deepcopy(model)
+        self._source_model = copy.deepcopy(model)
+        weights = {t.name for t in model.graph.initializer}
+        self.input_schema = {v.name: dimension_schema(v) for v in model.graph.input
+                             if v.name not in weights}
         # We use some user-defined operators for distributed inference
         try:
             # onnx simplifier performs inplace simplify
-            model_simp, check = simplify(copy.deepcopy(model))
+            # Keep runtime Shape dependencies intact. Our shape compiler performs
+            # conservative partial evaluation without specializing dynamic axes.
+            if any(n.op_type == "Shape" for n in model.graph.node):
+                model_simp, check = model, False
+            else:
+                model_simp, check = simplify(copy.deepcopy(model))
             if check:
                 model = model_simp
         except ValidationError:
@@ -116,6 +128,15 @@ class OnnxStub:
                     "missing inputs: {}".format("; ".join(unresolved))
                 )
 
+        self._shape_program = ShapeProgram(
+            model, [model.graph.node[i] for i in sorted_nodes],
+            self.input_schema, optimize_shape_program)
+        self.shape_program_stats = self._shape_program.stats
+        initial_shapes = {name: [d if isinstance(d, int) else 1 for d in dims]
+                          for name, dims in self.input_schema.items()}
+        initial_shapes = validate_shapes(
+            self.input_schema, list(initial_shapes.values()) if input_shapes is None else input_shapes)
+        self._shape_values = self._shape_program.evaluate(initial_shapes)
         tensors: Dict[str, backend.Tensor] = dict()
         data: Dict[str, TensorProto] = dict()
 
@@ -126,7 +147,7 @@ class OnnxStub:
             tensors[initializer.name].set_weight()
 
         for input in model.graph.input:
-            dims = _take_shape_dim(input.type.tensor_type.shape)
+            dims = initial_shapes.get(input.name, _take_shape_dim(input.type.tensor_type.shape))
             if input.name not in tensors.keys():
                 tensors[input.name] = self.handler.tensor(
                     dims, input.type.tensor_type.elem_type
@@ -135,6 +156,18 @@ class OnnxStub:
 
         for node_idx in sorted_nodes:
             node = model.graph.node[node_idx]
+            if node.output[0] in self._shape_values:
+                value = self._shape_values[node.output[0]]
+                tensor = self.handler.tensor(list(value.shape), from_array(value).data_type)
+                # Shape values live across activation replanning, like weights,
+                # but are refreshed for each concrete input shape.
+                tensor.set_weight()
+                tensor.data_malloc()
+                tensor.copyin_numpy(value)
+                tensors[node.output[0]] = tensor
+                if node.output[0] in self._shape_program.folded or node.op_type == "Constant":
+                    data[node.output[0]] = from_array(value, node.output[0])
+                continue
             if node.op_type == "Conv":
                 attributes = _parse_attribute(
                     node,
@@ -669,12 +702,16 @@ class OnnxStub:
                     mode,
                 )
             elif node.op_type == "Reshape":
-                shape = _parse_static_input(data, node, 1, required=True)
-                tensors[node.output[0]] = self.handler.reshape(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    shape,
-                )
+                if _parse_attribute(node).get("allowzero", 0):
+                    raise ValueError("Reshape allowzero=1 is not supported")
+                if node.input[1] in self._shape_values:
+                    tensors[node.output[0]] = self.handler.reshape_tensor(
+                        tensors[node.input[0]], tensors[node.input[1]],
+                        tensors.get(node.output[0]))
+                else:
+                    shape = _parse_static_input(data, node, 1, required=True)
+                    tensors[node.output[0]] = self.handler.reshape(
+                        tensors[node.input[0]], tensors.get(node.output[0]), shape)
             elif node.op_type == "Resize":
                 output = tensors.get(node.output[0])
                 attributes = _parse_attribute(
@@ -1136,6 +1173,10 @@ class OnnxStub:
         self.init()
 
     def to_onnx(self, name: str) -> ModelProto:
+        if self._shape_program.nodes:
+            model = copy.deepcopy(self._source_model)
+            model.graph.name = name
+            return model
         class Context:
             def __init__(self):
                 self.names: Dict[
@@ -1484,6 +1525,15 @@ class OnnxStub:
     def init(self) -> None:
         self.handler.data_malloc(self.use_naive_allocator)
         self._copy_initializers()
+        self._copy_shape_values()
+
+    def _copy_shape_values(self) -> None:
+        for name, value in self._shape_values.items():
+            tensor = self.tensors[name]
+            if tensor.shape() != list(value.shape):
+                self.handler.change_shape(list(value.shape), tensor.fuid())
+            tensor.data_malloc()
+            tensor.copyin_numpy(value)
 
     def _copy_initializers(self) -> None:
         for name, initializer in self._initializer_by_name.items():
@@ -1507,11 +1557,25 @@ class OnnxStub:
                 "inputShapes must contain one shape per model input; expected "
                 "{}, got {}".format(len(self.inputs), len(inputShapes))
             )
-        for newInput, oldInput in zip(inputShapes, self.inputs):
-            oldTensor = self.inputs[oldInput]
-            self.handler.change_shape(newInput, oldTensor.fuid())
-        self.handler.shape_infer()
-        self.init()
+        concrete = validate_shapes(self.input_schema, inputShapes)
+        values = self._shape_program.evaluate(concrete)
+        previous = {name: tensor.shape() for name, tensor in self.inputs.items()}
+        old_values = self._shape_values
+        try:
+            for name, dims in concrete.items():
+                self.handler.change_shape(dims, self.inputs[name].fuid())
+            self._shape_values = values
+            self._copy_shape_values()
+            self.handler.shape_infer()
+            self.init()
+        except (ValueError, RuntimeError):
+            for name, dims in previous.items():
+                self.handler.change_shape(dims, self.inputs[name].fuid())
+            self._shape_values = old_values
+            self._copy_shape_values()
+            self.handler.shape_infer()
+            self.init()
+            raise
 
     def getShape(self, name: str) -> List[int]:
         if name in self.inputs:
