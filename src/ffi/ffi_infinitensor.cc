@@ -168,8 +168,10 @@ static int tensor_dtype(Tensor t) {
 #ifdef USE_CUDA
 // NOTE(lizhouyang): deprecate this, use CudaRuntime directly.
 [[deprecated]] static Ref<CudaRuntimeObj>
-cuda_runtime(int device = 0, size_t cudaGraphCacheCapacity = 16) {
-    return make_ref<CudaRuntimeObj>(device, cudaGraphCacheCapacity);
+cuda_runtime(int device = 0, size_t cudaGraphCacheCapacity = 16,
+             size_t workspaceSize = 7ll << 30) {
+    return make_ref<CudaRuntimeObj>(device, cudaGraphCacheCapacity,
+                                    workspaceSize);
 }
 #endif
 
@@ -358,7 +360,8 @@ void export_functions(py::module &m) {
     m.def("cpu_runtime", &NativeCpuRuntimeObj::getInstance)
 #ifdef USE_CUDA
         .def("cuda_runtime", cuda_runtime, py::arg("device") = 0,
-             py::arg("cuda_graph_cache_capacity") = 16)
+             py::arg("cuda_graph_cache_capacity") = 16,
+             py::arg("workspace_size") = 7ll << 30)
 #endif
 #ifdef USE_INTELCPU
         .def("intelcpu_runtime", intelcpu_runtime)
@@ -582,15 +585,23 @@ void init_graph_builder(py::module &m) {
         .def("neg", &Handler::neg, policy::move)
         .def("shape", &Handler::shape, policy::move)
         .def("identity", &Handler::identity, policy::move)
+        .def("constant_of_shape", &Handler::constantOfShape, policy::move)
         .def("flatten", &Handler::flatten, policy::move)
         .def("pRelu", &Handler::pRelu, policy::move)
         .def("clip", &Handler::clip, policy::move)
         .def("transpose", &Handler::transpose, policy::move)
         .def("depthToSpace", &Handler::depthToSpace, policy::move)
-        .def("reshape", &Handler::reshape, policy::move)
+        .def("reshape", &Handler::reshape, py::arg("data"),
+             py::arg("reshaped"), py::arg("shape"),
+             py::arg("allowzero") = false, policy::move)
+        .def("reshape_dynamic", &Handler::reshape_dynamic, py::arg("data"),
+             py::arg("shape"), py::arg("reshaped"),
+             py::arg("allowzero") = false, policy::move)
         .def("resize", &Handler::resize, policy::move)
         .def("squeeze", &Handler::squeeze, policy::move)
+        .def("squeeze_dynamic", &Handler::squeeze_dynamic, policy::move)
         .def("unsqueeze", &Handler::unsqueeze, policy::move)
+        .def("unsqueeze_dynamic", &Handler::unsqueeze_dynamic, policy::move)
         .def("concat", &Handler::concat, policy::move)
         .def("attentionKVCache", &Handler::attentionKVCache, policy::move)
         .def("RoPE", &Handler::RoPE, policy::move)
@@ -632,6 +643,8 @@ void init_graph_builder(py::module &m) {
              policy::automatic)
 #endif
         .def("shape_infer", &Handler::shape_infer, policy::automatic)
+        .def("prepare_dynamic_shapes", &Handler::prepare_dynamic_shapes,
+             policy::automatic)
         .def("change_shape", &Handler::change_shape, policy::automatic)
         .def("getDims", &Handler::getDims, policy::automatic)
         .def("get_perf_time", &Handler::get_perf_time, policy::automatic);

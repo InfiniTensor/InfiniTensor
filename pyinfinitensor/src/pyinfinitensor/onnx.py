@@ -57,12 +57,18 @@ class OnnxStub:
         except RuntimeError:
             pass
 
+        model, folded_shape_nodes = _fold_static_shape_subgraph(model)
+
         self.inputs: Dict[str, backend.Tensor] = {}
         self.outputs: Dict[str, backend.Tensor] = {}
         self.tensors: Dict[str, backend.Tensor] = {}
         self.tensor_node_map: Dict[str, str] = {}
         self.initializer: Dict[int, TensorProto] = {}
         self._initializer_by_name: Dict[str, TensorProto] = {}
+        self._input_shape_specs: Dict[str, List[Tuple[Optional[int], Optional[str]]]] = {}
+        self.shape_optimization_stats = {
+            "folded_static_shape_nodes": folded_shape_nodes,
+        }
         self.use_naive_allocator: bool = use_naive_allocator
         # try:
         #     model = infer_shapes(model)
@@ -127,6 +133,7 @@ class OnnxStub:
 
         for input in model.graph.input:
             dims = _take_shape_dim(input.type.tensor_type.shape)
+            self._input_shape_specs[input.name] = _shape_spec(input.type.tensor_type.shape)
             if input.name not in tensors.keys():
                 tensors[input.name] = self.handler.tensor(
                     dims, input.type.tensor_type.elem_type
@@ -669,12 +676,23 @@ class OnnxStub:
                     mode,
                 )
             elif node.op_type == "Reshape":
-                shape = _parse_static_input(data, node, 1, required=True)
-                tensors[node.output[0]] = self.handler.reshape(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    shape,
-                )
+                allowzero = next(
+                    (int(attr.i) for attr in node.attribute if attr.name == "allowzero"),
+                    0,
+                ) != 0
+                shape = _parse_static_input(data, node, 1, allow_runtime=True)
+                if shape is not None:
+                    tensors[node.output[0]] = self.handler.reshape(
+                        tensors[node.input[0]], tensors.get(node.output[0]), shape,
+                        allowzero,
+                    )
+                else:
+                    if not _has_input(node, 1):
+                        raise ValueError("Reshape input 1 is required")
+                    tensors[node.output[0]] = self.handler.reshape_dynamic(
+                        tensors[node.input[0]], tensors[node.input[1]],
+                        tensors.get(node.output[0]), allowzero,
+                    )
             elif node.op_type == "Resize":
                 output = tensors.get(node.output[0])
                 attributes = _parse_attribute(
@@ -747,31 +765,40 @@ class OnnxStub:
                     coordinate_transformation_mode,
                 )
             elif node.op_type == "Squeeze":
-                axes = _parse_static_input(data, node, 1)
-                if axes is None:
-                    axes = next(
-                        (attr.ints for attr in node.attribute if attr.name == "axes"),
-                        [],
-                    )
-                tensors[node.output[0]] = self.handler.squeeze(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    axes,
-                )
-            elif node.op_type == "Unsqueeze":
-                axes = _parse_static_input(data, node, 1)
+                axes = _parse_static_input(data, node, 1, allow_runtime=True)
                 if axes is None:
                     axes = next(
                         (attr.ints for attr in node.attribute if attr.name == "axes"),
                         None,
                     )
+                if axes is None and _has_input(node, 1):
+                    tensors[node.output[0]] = self.handler.squeeze_dynamic(
+                        tensors[node.input[0]], tensors[node.input[1]],
+                        tensors.get(node.output[0]),
+                    )
+                else:
+                    tensors[node.output[0]] = self.handler.squeeze(
+                        tensors[node.input[0]], tensors.get(node.output[0]),
+                        axes or [],
+                    )
+            elif node.op_type == "Unsqueeze":
+                axes = _parse_static_input(data, node, 1, allow_runtime=True)
                 if axes is None:
+                    axes = next(
+                        (attr.ints for attr in node.attribute if attr.name == "axes"),
+                        None,
+                    )
+                if axes is None and _has_input(node, 1):
+                    tensors[node.output[0]] = self.handler.unsqueeze_dynamic(
+                        tensors[node.input[0]], tensors[node.input[1]],
+                        tensors.get(node.output[0]),
+                    )
+                elif axes is None:
                     raise ValueError("Unsqueeze requires constant axes")
-                tensors[node.output[0]] = self.handler.unsqueeze(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    axes,
-                )
+                else:
+                    tensors[node.output[0]] = self.handler.unsqueeze(
+                        tensors[node.input[0]], tensors.get(node.output[0]), axes
+                    )
             elif node.op_type == "Concat":
                 tensors[node.output[0]] = self.handler.concat(
                     [tensors[name] for name in node.input],
@@ -1094,10 +1121,44 @@ class OnnxStub:
                 data[output_name] = tensor
                 tensors[output_name].set_weight()
             elif node.op_type == "ConstantOfShape":
-                raise NotImplementedError(
-                    'Unsupported operator "ConstantOfShape": static and dynamic '
-                    "shape execution is not implemented"
+                shape_values = _parse_static_input(data, node, 0, allow_runtime=True)
+                if shape_values is None:
+                    shape_tensor = tensors[node.input[0]]
+                    output_dtype = TensorProto.FLOAT
+                    value = 0.0
+                    value_attr = next(
+                        (attr for attr in node.attribute if attr.name == "value"), None
+                    )
+                    if value_attr is not None:
+                        value_array = to_array(value_attr.t).reshape(-1)
+                        if value_array.size != 1:
+                            raise ValueError("ConstantOfShape value must be scalar")
+                        value = float(value_array[0])
+                        output_dtype = int(value_attr.t.data_type)
+                    tensors[node.output[0]] = self.handler.constant_of_shape(
+                        shape_tensor, tensors.get(node.output[0]), value,
+                        output_dtype,
+                    )
+                    continue
+                shape = [int(value) for value in shape_values]
+                if any(value < 0 for value in shape):
+                    raise ValueError("ConstantOfShape shape must be non-negative")
+                value_attr = next(
+                    (attr for attr in node.attribute if attr.name == "value"), None
                 )
+                if value_attr is None:
+                    value = np.array(0.0, dtype=np.float32)
+                else:
+                    value = to_array(value_attr.t).reshape(-1)
+                    if value.size != 1:
+                        raise ValueError("ConstantOfShape value must be scalar")
+                constant = np.full(shape, value.reshape(-1)[0], dtype=value.dtype)
+                tensor_proto = from_array(constant, name=node.output[0])
+                tensors[node.output[0]] = self.handler.tensor(
+                    list(constant.shape), tensor_proto.data_type
+                )
+                tensors[node.output[0]].set_weight()
+                data[node.output[0]] = tensor_proto
             elif node.op_type == "LRN":
                 attributes = _parse_attribute(
                     node, {"alpha": 0.0001, "beta": 0.75, "bias": 1.0, "size": 1}
@@ -1508,8 +1569,26 @@ class OnnxStub:
                 "{}, got {}".format(len(self.inputs), len(inputShapes))
             )
         for newInput, oldInput in zip(inputShapes, self.inputs):
+            spec = self._input_shape_specs.get(oldInput, [])
+            if len(newInput) != len(spec):
+                raise ValueError(
+                    'input "{}" rank mismatch: expected {}, got {}'.format(
+                        oldInput, len(spec), len(newInput)
+                    )
+                )
+            for index, (value, constraint) in enumerate(zip(newInput, spec)):
+                fixed, _ = constraint
+                if value <= 0:
+                    raise ValueError('input "{}" dimension {} must be positive'.format(oldInput, index))
+                if fixed is not None and value != fixed:
+                    raise ValueError(
+                        'input "{}" fixed dimension {} must be {}, got {}'.format(
+                            oldInput, index, fixed, value
+                        )
+                    )
             oldTensor = self.inputs[oldInput]
             self.handler.change_shape(newInput, oldTensor.fuid())
+        self.handler.prepare_dynamic_shapes()
         self.handler.shape_infer()
         self.init()
 
@@ -1538,6 +1617,114 @@ def from_onnx(model: ModelProto, runtime):
     return stub.inputs, stub.outputs, stub.handler
 
 
+def _fold_static_shape_subgraph(model: ModelProto) -> Tuple[ModelProto, int]:
+    """Fold only shape-value nodes whose inputs are compile-time constants.
+
+    Dynamic graph inputs deliberately do not enter ``static_shapes``; their
+    Shape chain remains in the runtime preparation phase.
+    """
+    model = copy.deepcopy(model)
+    static_values: Dict[str, np.ndarray] = {}
+    static_shapes: Dict[str, List[int]] = {}
+    for tensor in model.graph.initializer:
+        static_values[tensor.name] = np.asarray(to_array(tensor)).copy()
+        static_shapes[tensor.name] = list(tensor.dims)
+    for value_info in model.graph.input:
+        dims = _shape_spec(value_info.type.tensor_type.shape)
+        if all(fixed is not None for fixed, _ in dims):
+            static_shapes[value_info.name] = [fixed for fixed, _ in dims]
+
+    folded_initializers = []
+    remaining = []
+    folded = 0
+
+    def axes_for(node: NodeProto) -> Optional[List[int]]:
+        if _has_input(node, 1) and node.input[1] in static_values:
+            return [int(x) for x in static_values[node.input[1]].reshape(-1)]
+        for attr in node.attribute:
+            if attr.name == "axes":
+                return [int(x) for x in attr.ints]
+        return None
+
+    def add_constant(name: str, value: np.ndarray, elem_type: int) -> None:
+        value = np.asarray(value)
+        tensor = from_array(value.astype({
+            TensorProto.FLOAT: np.float32,
+            TensorProto.FLOAT16: np.float16,
+            TensorProto.INT32: np.int32,
+            TensorProto.INT64: np.int64,
+        }.get(elem_type, value.dtype)), name=name)
+        tensor.data_type = elem_type
+        folded_initializers.append(tensor)
+        static_values[name] = value.copy()
+
+    pending = list(model.graph.node)
+    while pending:
+        next_pending = []
+        progress = False
+        for node in pending:
+            output = node.output[0] if node.output else ""
+            value = None
+            elem_type = TensorProto.INT64
+            if node.op_type == "Shape" and node.input[0] in static_shapes:
+                full_shape = static_shapes[node.input[0]]
+                start = next((int(attr.i) for attr in node.attribute if attr.name == "start"), 0)
+                end = next((int(attr.i) for attr in node.attribute if attr.name == "end"), len(full_shape))
+                rank = len(full_shape)
+                start = max(0, min(start if start >= 0 else start + rank, rank))
+                end = max(0, min(end if end >= 0 else end + rank, rank))
+                value = np.asarray(full_shape[start:end], dtype=np.int64)
+            elif node.op_type == "Gather" and all(name in static_values for name in node.input[:2]):
+                axis = next((int(attr.i) for attr in node.attribute if attr.name == "axis"), 0)
+                axis = axis if axis >= 0 else axis + static_values[node.input[0]].ndim
+                value = np.take(static_values[node.input[0]], static_values[node.input[1]], axis=axis)
+                elem_type = next((int(t.data_type) for t in model.graph.initializer
+                                  if t.name == node.input[0]), TensorProto.INT64)
+            elif node.op_type in ("Unsqueeze", "Squeeze") and node.input[0] in static_values:
+                axes = axes_for(node)
+                if axes is not None:
+                    value = static_values[node.input[0]]
+                    if node.op_type == "Unsqueeze":
+                        rank = value.ndim + len(axes)
+                        for axis in sorted((axis if axis >= 0 else axis + rank) for axis in axes):
+                            value = np.expand_dims(value, axis)
+                    else:
+                        normalized = sorted((axis if axis >= 0 else axis + value.ndim) for axis in axes)
+                        value = np.squeeze(value, axis=tuple(normalized))
+                    elem_type = next((int(t.data_type) for t in model.graph.initializer
+                                      if t.name == node.input[0]), TensorProto.INT64)
+            elif node.op_type == "Concat" and node.input and all(name in static_values for name in node.input):
+                axis = next((int(attr.i) for attr in node.attribute if attr.name == "axis"), 0)
+                value = np.concatenate([static_values[name] for name in node.input], axis=axis)
+                elem_type = next((int(t.data_type) for t in model.graph.initializer
+                                  if t.name == node.input[0]), TensorProto.INT64)
+            elif node.op_type == "Cast" and node.input[0] in static_values:
+                target = next((int(attr.i) for attr in node.attribute if attr.name == "to"), None)
+                dtype = {TensorProto.FLOAT: np.float32, TensorProto.FLOAT16: np.float16,
+                         TensorProto.INT32: np.int32, TensorProto.INT64: np.int64}.get(target)
+                if dtype is not None:
+                    value = static_values[node.input[0]].astype(dtype)
+                    elem_type = target
+
+            if value is None:
+                next_pending.append(node)
+                continue
+            add_constant(output, value, elem_type)
+            static_shapes[output] = list(value.shape)
+            folded += 1
+            progress = True
+        if not progress:
+            remaining.extend(next_pending)
+            break
+        pending = next_pending
+
+    if folded:
+        model.graph.ClearField("node")
+        model.graph.node.extend(remaining)
+        model.graph.initializer.extend(folded_initializers)
+    return model, folded
+
+
 def _has_input(node: NodeProto, index: int) -> bool:
     return index < len(node.input) and bool(node.input[index])
 
@@ -1547,6 +1734,7 @@ def _parse_static_input(
     node: NodeProto,
     index: int,
     required: bool = False,
+    allow_runtime: bool = False,
 ) -> Optional[List[Any]]:
     if not _has_input(node, index):
         if required:
@@ -1559,6 +1747,8 @@ def _parse_static_input(
 
     name = node.input[index]
     if name not in data:
+        if allow_runtime:
+            return None
         raise ValueError(
             '{} input {} ("{}") must be constant'.format(
                 node.op_type, index, name
@@ -1623,4 +1813,14 @@ def _parse_data_fp16(tensor: TensorProto):
 
 
 def _take_shape_dim(shape: TensorShapeProto) -> List[int]:
-    return [(d.dim_value if d.dim_value > 0 else 1) for d in shape.dim]
+    return [d.dim_value if d.HasField("dim_value") else 1 for d in shape.dim]
+
+
+def _shape_spec(shape: TensorShapeProto) -> List[Tuple[Optional[int], Optional[str]]]:
+    """Keep fixed dimensions and symbolic/unknown dimension metadata separate."""
+    result = []
+    for dim in shape.dim:
+        fixed = int(dim.dim_value) if dim.HasField("dim_value") else None
+        symbolic = dim.dim_param if dim.dim_param else None
+        result.append((fixed, symbolic))
+    return result

@@ -1,5 +1,6 @@
 #include "cuda/cuda_common.h"
 #include "cuda/cuda_split_concat.h"
+#include <algorithm>
 template <typename T>
 __host__ __device__ int
 elementIdx2ComposedIdx(int elementIndex, int dimBgNo, int dimSize, int dim,
@@ -81,6 +82,16 @@ void split_concat_kernel(const ElementTensorMetadata<half> &eleMeta,
     _split_concat_kernel
         <<<gridSize, blockSize, 0, CUDAStream::getCurrentStream()>>>
         (eleMeta, compMeta, dim, nDims, isSplit);
+}
+void split_concat_kernel(const ElementTensorMetadata<int64_t> &eleMeta,
+                         const ComposedTensorMetadata<int64_t> &compMeta, int dim,
+                         int batchSize, int nDims, bool isSplit) {
+    const int blockSize = 32 * 16;
+    const int maxElements = *std::max_element(eleMeta.nElements,
+                                               eleMeta.nElements + batchSize);
+    const dim3 grid((maxElements + blockSize - 1) / blockSize, batchSize);
+    _split_concat_kernel<<<grid, blockSize, 0, CUDAStream::getCurrentStream()>>>(
+        eleMeta, compMeta, dim, nDims, isSplit);
 }
 
 } // namespace infini

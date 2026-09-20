@@ -218,6 +218,55 @@ void GraphObj::shape_infer() {
     }
 }
 
+void GraphObj::prepareDynamicShapes() { runtime->runShape(shared_from_this()); }
+
+std::unordered_set<OperatorObj *> GraphObj::getDynamicShapeOperators() const {
+    auto isShapeValueOperator = [](const Operator &op) {
+        switch (op->getOpType().underlying()) {
+        case OpType::Shape:
+        case OpType::Gather:
+        case OpType::Unsqueeze:
+        case OpType::Squeeze:
+        case OpType::Concat:
+        case OpType::Cast:
+            return true;
+        default:
+            return false;
+        }
+    };
+    std::unordered_set<OperatorObj *> result;
+    std::queue<Operator> pending;
+    for (const auto &op : ops) {
+        Tensor shapeInput = nullptr;
+        if ((op->getOpType() == OpType::Reshape &&
+             op->getInputs().size() > 1) ||
+            ((op->getOpType() == OpType::Unsqueeze ||
+              op->getOpType() == OpType::Squeeze) &&
+             op->getInputs().size() > 1) ||
+            (op->getOpType() == OpType::ConstantOfShape &&
+             !op->getInputs().empty())) {
+            shapeInput = op->getInputs().back();
+        }
+        if (shapeInput) {
+            auto producer = shapeInput->getSource();
+            if (producer && isShapeValueOperator(producer))
+                pending.push(producer);
+        }
+    }
+    while (!pending.empty()) {
+        auto op = pending.front();
+        pending.pop();
+        if (!result.insert(op.get()).second)
+            continue;
+        for (const auto &input : op->getInputs()) {
+            auto producer = input->getSource();
+            if (producer && isShapeValueOperator(producer))
+                pending.push(producer);
+        }
+    }
+    return result;
+}
+
 void GraphObj::lockAllocationMode(bool useNaiveAllocator, size_t memPoolSize) {
     AllocationMode requestedMode;
     if (useNaiveAllocator) {

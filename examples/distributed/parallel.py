@@ -37,7 +37,9 @@ def parallel_model(model: ModelProto, tp_world_size: int = 1, tp_rank: int = 0):
             dim = array.ndim - 1
         assert array.shape[dim] % tp_world_size == 0
         seg = array.shape[dim] // tp_world_size
-        array = array[tp_rank * seg : (tp_rank + 1) * seg]
+        slices = [slice(None)] * array.ndim
+        slices[dim] = slice(tp_rank * seg, (tp_rank + 1) * seg)
+        array = array[tuple(slices)]
         return numpy_helper.from_array(array, name=tensor.name + f":sharded({dim})")
 
     def shard_gemm(node: NodeProto):

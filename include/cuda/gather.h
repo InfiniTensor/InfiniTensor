@@ -20,13 +20,13 @@ struct GatherMetaData {
     // Rank of indices
     int idxNDim;
     // Shape of output
-    int outDim[4];
+    int outDim[8];
     // Shape of indices
-    int idxDim[4];
+    int idxDim[8];
     // Strides of indices
-    int idxStride[4];
+    int idxStride[8];
     // Strides of input
-    int inStride[4];
+    int inStride[8];
 };
 
 inline void initGatherMetaData(GatherMetaData &metaData,
@@ -36,13 +36,17 @@ inline void initGatherMetaData(GatherMetaData &metaData,
     Ref<TensorObj> in = op->getInputs(0);
     Ref<TensorObj> index = op->getInputs(1);
     Ref<TensorObj> out = op->getOutput();
+    metaData.inNDim = in->getRank();
+    metaData.outNDim = out->getRank();
+    metaData.idxNDim = index->getRank();
+    IT_ASSERT(metaData.inNDim >= 1 && metaData.inNDim <= 8 &&
+              metaData.outNDim >= 0 && metaData.outNDim <= 8 &&
+              metaData.idxNDim >= 0 && metaData.idxNDim <= 8,
+              "CUDA Gather supports ranks up to 8");
     metaData.indexValue = index->getRawDataPtr<void *>();
     metaData.indexType = index->getDType();
     metaData.dataType = in->getDType();
     metaData.axis = op->getAxis();
-    metaData.inNDim = in->getRank();
-    metaData.outNDim = out->getRank();
-    metaData.idxNDim = index->getRank();
     for (int i = 0; i < metaData.outNDim; ++i)
         metaData.outDim[i] = out->getDims()[i];
     for (int i = 0; i < metaData.idxNDim; ++i) {

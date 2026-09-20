@@ -595,8 +595,8 @@ class TestStringMethods(unittest.TestCase):
 
 class TestDynamicTensor(unittest.TestCase):
     def test_dynamic_tensor(self):
-        x = make_tensor_value_info("x", TensorProto.FLOAT, [1, 2])
-        y = make_tensor_value_info("y", TensorProto.FLOAT, [1, 3])
+        x = make_tensor_value_info("x", TensorProto.FLOAT, [None, 2])
+        y = make_tensor_value_info("y", TensorProto.FLOAT, [None, 3])
         weight = make_tensor(
             "weight",
             TensorProto.FLOAT,

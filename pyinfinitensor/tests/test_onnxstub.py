@@ -2,6 +2,11 @@ import unittest
 from unittest.mock import Mock, patch
 
 import numpy as np
+
+try:
+    import onnxruntime as ort
+except ImportError:
+    ort = None
 from onnx import TensorProto, checker, helper, numpy_helper
 
 from pyinfinitensor import backend
@@ -115,7 +120,7 @@ class TestOnnxStubImport(unittest.TestCase):
         parsed["axis"] = 2
         self.assertEqual(defaults, {"axis": 1})
 
-    def test_constant_of_shape_is_explicitly_rejected(self):
+    def test_constant_of_shape_dynamic_input_is_supported(self):
         shape = value_info("shape", [2], TensorProto.INT64)
         output = value_info("output", [2, 2])
         model = make_model(
@@ -124,14 +129,147 @@ class TestOnnxStubImport(unittest.TestCase):
             [output],
         )
 
-        with self.assertRaisesRegex(NotImplementedError, "ConstantOfShape"):
-            import_model(model)
+        stub = import_model(model)
+        stub.inputs["shape"].copyin_numpy(np.array([2, 2], dtype=np.int64))
+        stub.set_input([[2]])
+        stub.run()
+        actual = np.asarray(stub.outputs["output"].copyout_float()).reshape(2, 2)
+        np.testing.assert_array_equal(actual, np.zeros((2, 2), dtype=np.float32))
+
+    def test_constant_of_shape_static_is_folded(self):
+        shape = initializer("shape", np.array([2, 3], dtype=np.int64))
+        output = value_info("output", [2, 3])
+        model = make_model(
+            [
+                helper.make_node(
+                    "ConstantOfShape", ["shape"], ["output"],
+                    value=numpy_helper.from_array(
+                        np.array([2.5], dtype=np.float32), name="value"
+                    ),
+                )
+            ],
+            [],
+            [output],
+            [shape],
+        )
+        stub = import_model(model)
+        stub.run()
+        actual = np.asarray(stub.outputs["output"].copyout_float()).reshape(2, 3)
+        np.testing.assert_array_equal(actual, np.full((2, 3), 2.5, dtype=np.float32))
+
+    def test_constant_of_shape_dynamic_input_matches_ort(self):
+        shape = value_info("shape", [2], TensorProto.INT64)
+        output = value_info("output", [None, None], TensorProto.FLOAT)
+        value = numpy_helper.from_array(
+            np.array([1.25], dtype=np.float32), name="fill_value"
+        )
+        model = make_model(
+            [helper.make_node("ConstantOfShape", ["shape"], ["output"], value=value)],
+            [shape],
+            [output],
+        )
+        stub = import_model(model)
+        ort_session = ort.InferenceSession(
+            model.SerializeToString(), providers=["CPUExecutionProvider"]
+        ) if ort is not None else None
+        for dims in ([2, 3], [3, 1], [1, 4]):
+            shape_values = np.asarray(dims, dtype=np.int64)
+            stub.inputs["shape"].copyin_numpy(shape_values)
+            stub.set_input([[2]])
+            stub.run()
+            actual = np.asarray(stub.outputs["output"].copyout_float()).reshape(dims)
+            np.testing.assert_array_equal(
+                actual, np.full(dims, 1.25, dtype=np.float32)
+            )
+            if ort_session is not None:
+                expected = ort_session.run(["output"], {"shape": shape_values})[0]
+                np.testing.assert_allclose(actual, expected, rtol=0, atol=0)
+
+    def test_constant_of_shape_from_shape_subgraph_matches_ort(self):
+        x = value_info("x", [None, 2, 3])
+        output = value_info("output", [None, None, None])
+        value = numpy_helper.from_array(
+            np.array([3.0], dtype=np.float32), name="fill_value"
+        )
+        model = make_model(
+            [
+                helper.make_node("Shape", ["x"], ["runtime_shape"]),
+                helper.make_node(
+                    "ConstantOfShape", ["runtime_shape"], ["output"], value=value
+                ),
+            ],
+            [x],
+            [output],
+        )
+        stub = import_model(model)
+        ort_session = ort.InferenceSession(
+            model.SerializeToString(), providers=["CPUExecutionProvider"]
+        ) if ort is not None else None
+        for batch in (1, 5, 2, 1):
+            values = np.zeros((batch, 2, 3), dtype=np.float32)
+            stub.set_input([[batch, 2, 3]])
+            stub.inputs["x"].copyin_numpy(values)
+            stub.run()
+            actual = np.asarray(stub.outputs["output"].copyout_float()).reshape(
+                batch, 2, 3
+            )
+            np.testing.assert_array_equal(
+                actual, np.full((batch, 2, 3), 3.0, dtype=np.float32)
+            )
+            if ort_session is not None:
+                expected = ort_session.run(["output"], {"x": values})[0]
+                np.testing.assert_allclose(actual, expected, rtol=0, atol=0)
+
+    @unittest.skipUnless(hasattr(backend, "cuda_runtime"), "CUDA backend not built")
+    def test_constant_of_shape_dynamic_cuda(self):
+        shape = value_info("shape", [2], TensorProto.INT64)
+        output = value_info("output", [None, None], TensorProto.FLOAT)
+        value = numpy_helper.from_array(
+            np.array([2.0], dtype=np.float32), name="fill_value"
+        )
+        model = make_model(
+            [helper.make_node("ConstantOfShape", ["shape"], ["output"], value=value)],
+            [shape],
+            [output],
+        )
+        stub = import_model(
+            model, backend.cuda_runtime(workspace_size=64 << 20)
+        )
+        for dims in ([2, 2], [4, 1], [1, 5]):
+            shape_values = np.asarray(dims, dtype=np.int64)
+            stub.inputs["shape"].copyin_numpy(shape_values)
+            stub.set_input([[2]])
+            stub.run()
+            actual = np.asarray(stub.outputs["output"].copyout_float()).reshape(dims)
+            np.testing.assert_array_equal(actual, np.full(dims, 2.0, dtype=np.float32))
+
+    def test_reshape_allowzero_semantics(self):
+        shape = initializer("shape", np.array([0, 3], dtype=np.int64))
+        model = make_model(
+            [helper.make_node("Reshape", ["x", "shape"], ["y"], allowzero=1)],
+            [value_info("x", [0, 3])],
+            [value_info("y", [0, 3])],
+            [shape],
+        )
+        stub = import_model(model)
+        stub.run()
+        self.assertEqual(stub.getShape("y"), [0, 3])
+
+        invalid = make_model(
+            [helper.make_node("Reshape", ["x", "shape"], ["y"], allowzero=1)],
+            [value_info("x", [2, 3])],
+            [value_info("y", [2, 3])],
+            [initializer("shape", np.array([0, -1], dtype=np.int64))],
+            check=False,
+        )
+        with self.assertRaisesRegex(RuntimeError, "allowzero"):
+            import_model(invalid)
 
     def test_set_input_requires_one_shape_per_input(self):
         model = make_model(
             [helper.make_node("Identity", ["x"], ["y"])],
-            [value_info("x", [1, 2])],
-            [value_info("y", [1, 2])],
+            [value_info("x", [None, 2])],
+            [value_info("y", [None, 2])],
         )
         stub = import_model(model)
 
@@ -144,8 +282,8 @@ class TestOnnxStubImport(unittest.TestCase):
         weight = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
         model = make_model(
             [helper.make_node("MatMul", ["x", "weight"], ["y"])],
-            [value_info("x", [1, 2])],
-            [value_info("y", [1, 2])],
+            [value_info("x", [None, 2])],
+            [value_info("y", [None, 2])],
             [initializer("weight", weight)],
         )
         for use_naive_allocator in (False, True):
@@ -433,8 +571,8 @@ class TestOnnxStubExport(unittest.TestCase):
         )
         model = make_model(
             [helper.make_node("MatMul", ["x", "weight"], ["y"])],
-            [value_info("x", [1, 2])],
-            [value_info("y", [1, 2])],
+            [value_info("x", [None, 2])],
+            [value_info("y", [None, 2])],
             [weight],
         )
         stub = import_model(model)
@@ -464,15 +602,15 @@ class TestOnnxStubCuda(unittest.TestCase):
         weight = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
         model = make_model(
             [helper.make_node("MatMul", ["x", "weight"], ["y"])],
-            [value_info("x", [1, 2])],
-            [value_info("y", [1, 2])],
+            [value_info("x", [None, 2])],
+            [value_info("y", [None, 2])],
             [initializer("weight", weight)],
         )
         for use_naive_allocator in (False, True):
             with self.subTest(use_naive_allocator=use_naive_allocator):
                 stub = import_model(
                     model,
-                    backend.cuda_runtime(),
+                    backend.cuda_runtime(workspace_size=64 << 20),
                     use_naive_allocator=use_naive_allocator,
                 )
                 for batch in (3, 1, 8192, 2):
@@ -491,6 +629,265 @@ class TestOnnxStubCuda(unittest.TestCase):
                         2, 2
                     )
                     np.testing.assert_allclose(actual, x @ weight, rtol=1e-5, atol=1e-6)
+
+
+class TestDynamicShapeSubgraph(unittest.TestCase):
+    def make_model(self):
+        # X[N, 2, 3] -> Shape -> Gather(batch) -> Unsqueeze ->
+        # Concat([batch], [6]) -> Reshape(X, [N, 6]).
+        x = value_info("x", [None, 2, 3])
+        y = value_info("y", [None, 6])
+        indices = initializer("batch_index", np.array(0, dtype=np.int64))
+        tail = initializer("tail", np.array([6], dtype=np.int64))
+        nodes = [
+            helper.make_node("Shape", ["x"], ["x_shape"], name="shape"),
+            helper.make_node(
+                "Gather", ["x_shape", "batch_index"], ["batch_value"],
+                axis=0, name="gather_batch"
+            ),
+            helper.make_node(
+                "Unsqueeze", ["batch_value", "axes"], ["batch_vector"],
+                name="unsqueeze_batch"
+            ),
+            helper.make_node(
+                "Concat", ["batch_vector", "tail"], ["target_shape"],
+                axis=0, name="concat_target"
+            ),
+            helper.make_node(
+                "Reshape", ["x", "target_shape"], ["y"], name="dynamic_reshape"
+            ),
+        ]
+        axes = initializer("axes", np.array([0], dtype=np.int64))
+        return make_model(nodes, [x], [y], [indices, axes, tail])
+
+    def test_continuous_dynamic_shape_execution_and_fixed_dimension_validation(self):
+        model = self.make_model()
+        stub = import_model(model)
+        ort_session = (
+            ort.InferenceSession(
+                model.SerializeToString(), providers=["CPUExecutionProvider"]
+            )
+            if ort is not None
+            else None
+        )
+        self.assertEqual(stub.tensors["x_shape"].dtype(), TensorProto.INT64)
+        for batch in (1, 2, 8, 3, 1):
+            values = np.arange(batch * 6, dtype=np.float32).reshape(batch, 2, 3)
+            stub.set_input([[batch, 2, 3]])
+            stub.inputs["x"].copyin_numpy(values)
+            stub.run()
+            self.assertEqual(stub.getShape("y"), [batch, 6])
+            actual = np.asarray(stub.outputs["y"].copyout_float()).reshape(batch, 6)
+            np.testing.assert_allclose(actual, values.reshape(batch, 6), rtol=0, atol=0)
+            if ort_session is not None:
+                expected = ort_session.run(["y"], {"x": values})[0]
+                self.assertEqual(tuple(expected.shape), (batch, 6))
+                np.testing.assert_allclose(actual, expected, rtol=1e-4, atol=1e-5)
+
+        with self.assertRaisesRegex(ValueError, "fixed dimension 1 must be 2"):
+            stub.set_input([[2, 4, 3]])
+
+    def test_static_shape_subgraph_is_folded_but_dynamic_shape_is_retained(self):
+        model = self.make_model()
+        static_input = value_info("x", [2, 2, 3])
+        model.graph.input[0].CopyFrom(static_input)
+        nodes = list(model.graph.node)
+        model.graph.ClearField("node")
+        model.graph.node.extend(reversed(nodes))
+        stub = import_model(model)
+        self.assertEqual(stub.shape_optimization_stats["folded_static_shape_nodes"], 4)
+
+    def test_dynamic_height_width_shape_chain_matches_ort(self):
+        x = value_info("x", [1, 3, None, None])
+        y = value_info("y", [1, 3, None, None])
+        nodes = [
+            helper.make_node("Shape", ["x"], ["x_shape"], name="shape"),
+            helper.make_node(
+                "Gather", ["x_shape", "height_index"], ["height"],
+                axis=0, name="gather_height"
+            ),
+            helper.make_node(
+                "Gather", ["x_shape", "width_index"], ["width"],
+                axis=0, name="gather_width"
+            ),
+            helper.make_node(
+                "Unsqueeze", ["height", "axes"], ["height_vector"],
+                name="unsqueeze_height"
+            ),
+            helper.make_node(
+                "Unsqueeze", ["width", "axes"], ["width_vector"],
+                name="unsqueeze_width"
+            ),
+            helper.make_node(
+                "Concat",
+                ["batch", "channels", "height_vector", "width_vector"],
+                ["target_shape"], axis=0, name="concat_target"
+            ),
+            helper.make_node(
+                "Reshape", ["x", "target_shape"], ["y"], name="dynamic_reshape"
+            ),
+        ]
+        initializers = [
+            initializer("height_index", np.array(2, dtype=np.int64)),
+            initializer("width_index", np.array(3, dtype=np.int64)),
+            initializer("axes", np.array([0], dtype=np.int64)),
+            initializer("batch", np.array([1], dtype=np.int64)),
+            initializer("channels", np.array([3], dtype=np.int64)),
+        ]
+        model = make_model(nodes, [x], [y], initializers)
+        stub = import_model(model)
+        ort_session = ort.InferenceSession(
+            model.SerializeToString(), providers=["CPUExecutionProvider"]
+        ) if ort is not None else None
+
+        for height, width in ((2, 3), (5, 4), (1, 7), (3, 2), (2, 3)):
+            values = np.arange(3 * height * width, dtype=np.float32).reshape(
+                1, 3, height, width
+            )
+            stub.set_input([[1, 3, height, width]])
+            stub.inputs["x"].copyin_numpy(values)
+            stub.run()
+            actual = np.asarray(stub.outputs["y"].copyout_float()).reshape(
+                1, 3, height, width
+            )
+            np.testing.assert_array_equal(actual, values)
+            if ort_session is not None:
+                expected = ort_session.run(["y"], {"x": values})[0]
+                np.testing.assert_allclose(actual, expected, rtol=0, atol=0)
+
+    def test_runtime_axes_for_unsqueeze_matches_ort(self):
+        x = value_info("x", [2, 3])
+        axes = value_info("axes", [1], TensorProto.INT64)
+        y = value_info("y", [None, None, None])
+        model = make_model(
+            [helper.make_node("Unsqueeze", ["x", "axes"], ["y"])],
+            [x, axes],
+            [y],
+        )
+        stub = import_model(model)
+        values = np.arange(6, dtype=np.float32).reshape(2, 3)
+        stub.inputs["axes"].copyin_numpy(np.array([1], dtype=np.int64))
+        stub.set_input([[2, 3], [1]])
+        stub.inputs["x"].copyin_numpy(values)
+        stub.run()
+        self.assertEqual(stub.getShape("y"), [2, 1, 3])
+
+        stub.inputs["axes"].copyin_numpy(np.array([0], dtype=np.int64))
+        stub.set_input([[2, 3], [1]])
+        stub.inputs["x"].copyin_numpy(values)
+        stub.run()
+        self.assertEqual(stub.getShape("y"), [1, 2, 3])
+        actual = np.asarray(stub.outputs["y"].copyout_float()).reshape(1, 2, 3)
+        np.testing.assert_array_equal(actual, values.reshape(1, 2, 3))
+
+    def test_runtime_axes_for_squeeze_matches_ort(self):
+        x = value_info("x", [1, 2, 1, 3])
+        axes = value_info("axes", [1], TensorProto.INT64)
+        y = value_info("y", [None, None, None])
+        model = make_model(
+            [helper.make_node("Squeeze", ["x", "axes"], ["y"])],
+            [x, axes],
+            [y],
+        )
+        stub = import_model(model)
+        values = np.arange(6, dtype=np.float32).reshape(1, 2, 1, 3)
+        stub.inputs["axes"].copyin_numpy(np.array([2], dtype=np.int64))
+        stub.set_input([[1, 2, 1, 3], [1]])
+        stub.inputs["x"].copyin_numpy(values)
+        stub.run()
+        self.assertEqual(stub.getShape("y"), [1, 2, 3])
+        actual = np.asarray(stub.outputs["y"].copyout_float()).reshape(1, 2, 3)
+        np.testing.assert_array_equal(actual, values.reshape(1, 2, 3))
+
+    def test_dynamic_sequence_length_matches_ort(self):
+        x = value_info("x", [1, None, 4])
+        y = value_info("y", [1, None, 4])
+        nodes = [
+            helper.make_node("Shape", ["x"], ["shape"]),
+            helper.make_node(
+                "Gather", ["shape", "sequence_index"], ["sequence"], axis=0
+            ),
+            helper.make_node("Unsqueeze", ["sequence", "axes"], ["sequence_vector"]),
+            helper.make_node(
+                "Concat", ["batch", "sequence_vector", "hidden"],
+                ["target"], axis=0
+            ),
+            helper.make_node("Reshape", ["x", "target"], ["reshaped"]),
+            helper.make_node("MatMul", ["reshaped", "weight"], ["y"]),
+        ]
+        initializers = [
+            initializer("sequence_index", np.array(1, dtype=np.int64)),
+            initializer("axes", np.array([0], dtype=np.int64)),
+            initializer("batch", np.array([1], dtype=np.int64)),
+            initializer("hidden", np.array([4], dtype=np.int64)),
+            initializer("weight", np.eye(4, dtype=np.float32)),
+        ]
+        model = make_model(nodes, [x], [y], initializers)
+        stub = import_model(model)
+        ort_session = ort.InferenceSession(
+            model.SerializeToString(), providers=["CPUExecutionProvider"]
+        ) if ort is not None else None
+
+        for sequence in (1, 7, 3, 12, 1):
+            values = np.arange(sequence * 4, dtype=np.float32).reshape(1, sequence, 4)
+            stub.set_input([[1, sequence, 4]])
+            stub.inputs["x"].copyin_numpy(values)
+            stub.run()
+            self.assertEqual(stub.getShape("y"), [1, sequence, 4])
+            actual = np.asarray(stub.outputs["y"].copyout_float()).reshape(
+                1, sequence, 4
+            )
+            np.testing.assert_array_equal(actual, values)
+            if ort_session is not None:
+                expected = ort_session.run(["y"], {"x": values})[0]
+                np.testing.assert_allclose(actual, expected, rtol=0, atol=0)
+
+    def test_dynamic_image_conv_matches_ort(self):
+        x = value_info("x", [1, 1, None, None])
+        y = value_info("y", [1, 1, None, None])
+        weight = initializer(
+            "weight", np.ones((1, 1, 3, 3), dtype=np.float32)
+        )
+        model = make_model(
+            [
+                helper.make_node(
+                    "Conv", ["x", "weight"], ["conv"],
+                    pads=[1, 1, 1, 1], name="conv"
+                ),
+                helper.make_node("Relu", ["conv"], ["y"], name="relu"),
+            ],
+            [x],
+            [y],
+            [weight],
+        )
+        stub = import_model(model)
+        ort_session = ort.InferenceSession(
+            model.SerializeToString(), providers=["CPUExecutionProvider"]
+        ) if ort is not None else None
+        for height, width in ((5, 5), (7, 6), (3, 8), (5, 5)):
+            values = np.arange(height * width, dtype=np.float32).reshape(
+                1, 1, height, width
+            )
+            stub.set_input([[1, 1, height, width]])
+            stub.inputs["x"].copyin_numpy(values)
+            stub.run()
+            actual = np.asarray(stub.outputs["y"].copyout_float()).reshape(
+                1, 1, height, width
+            )
+            if ort_session is not None:
+                expected = ort_session.run(["y"], {"x": values})[0]
+                np.testing.assert_allclose(actual, expected, rtol=1e-5, atol=1e-5)
+
+    def test_symbolic_and_unknown_dimensions_are_distinguished(self):
+        model = make_model(
+            [helper.make_node("Identity", ["x"], ["y"])],
+            [value_info("x", ["batch", None, 3])],
+            [value_info("y", ["batch", None, 3])],
+        )
+        stub = import_model(model)
+        self.assertEqual(
+            stub._input_shape_specs["x"], [(None, "batch"), (None, None), (3, None)]
+        )
 
 
 if __name__ == "__main__":

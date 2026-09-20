@@ -224,10 +224,38 @@ class ShapeObj : public OperatorObj {
     ShapeObj(GraphObj *graph, Tensor input, Tensor output);
     OP_CLONE(ShapeObj);
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
+    vector<DataType> inferDataType(const TensorVec &inputs) const override;
 
     std::string toString() const override;
     int numInputs() const override { return 1; }
     int numOutputs() const override { return 1; }
+
+  private:
+    vector<int> getWorkloadVector() const override;
+    vector<int> getOpAttrVector() const override;
+};
+
+class ConstantOfShapeObj : public OperatorObj {
+    float value;
+    DataType outputDType;
+
+  public:
+    ConstantOfShapeObj(GraphObj *graph, Tensor shapeTensor, Tensor output,
+                       float value, DataType outputDType);
+    OP_CLONE(ConstantOfShapeObj);
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
+    vector<DataType> inferDataType(const TensorVec &) const override {
+        return {outputDType};
+    }
+    std::string toString() const override;
+    int numInputs() const override { return 1; }
+    int numOutputs() const override { return 1; }
+    float getValue() const { return value; }
+    DataType getOutputDType() const { return outputDType; }
+
+  private:
+    vector<int> getWorkloadVector() const override;
+    vector<int> getOpAttrVector() const override;
 };
 
 class PReluObj : public OperatorObj {

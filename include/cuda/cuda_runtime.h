@@ -57,7 +57,7 @@ class CudaRuntimeObj : public RuntimeObj {
     cublasHandle_t cublas = nullptr;
     std::unique_ptr<CommunicatorObj> comm;
     CudaPtr workspace = nullptr;
-    size_t workspaceSize = 7ll << 30;
+    size_t workspaceSize;
     mutable cudaStream_t stream = nullptr;
     size_t cudaGraphCacheCapacity;
     size_t cudaGraphCaptureCount = 0;
@@ -68,12 +68,14 @@ class CudaRuntimeObj : public RuntimeObj {
 
   public:
     explicit CudaRuntimeObj(int deviceId = 0,
-                            size_t cudaGraphCacheCapacity = 16);
+                            size_t cudaGraphCacheCapacity = 16,
+                            size_t workspaceSize = 7ll << 30);
     ~CudaRuntimeObj() override;
     string toString() const override;
 
     void run(const Graph &graph, bool tune = false,
              bool profiling = false) const override;
+    void runShape(const Graph &graph) const override;
     // double runEvaluation(const Graph &graph, int nWarmups,
     //                      int nEvaluations) const;
     void sync() const;

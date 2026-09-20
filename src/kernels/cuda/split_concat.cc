@@ -84,6 +84,10 @@ class ConcatCuda : private CudaCompute, public CudaKernelWithoutConfig {
             do_compute<half>(_op->getOutput(), _op->getInputs(),
                              as<ConcatObj>(_op)->getDim(),
                              _op->getOutput()->getRank(), false);
+        } else if (_op->getDType() == DataType::Int64) {
+            do_compute<int64_t>(_op->getOutput(), _op->getInputs(),
+                                as<ConcatObj>(_op)->getDim(),
+                                _op->getOutput()->getRank(), false);
         } else {
             IT_ASSERT(false);
         }
@@ -101,6 +105,10 @@ class SplitCuda : private CudaCompute, public CudaKernelWithoutConfig {
             do_compute<half>(_op->getInputs(0), _op->getOutputs(),
                              as<SplitObj>(_op)->getDim(),
                              _op->getInputs(0)->getRank(), true);
+        } else if (_op->getDType() == DataType::Int64) {
+            do_compute<int64_t>(_op->getInputs(0), _op->getOutputs(),
+                                as<SplitObj>(_op)->getDim(),
+                                _op->getInputs(0)->getRank(), true);
         } else {
             IT_ASSERT(false);
         }

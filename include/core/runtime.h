@@ -57,6 +57,7 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
      */
     virtual void run(const Graph &graph, bool tune = false,
                      bool profiling = false) const = 0;
+    virtual void runShape(const Graph &graph) const;
     virtual void *alloc(size_t size) = 0;
     virtual void dealloc(void *ptr) = 0;
     /**

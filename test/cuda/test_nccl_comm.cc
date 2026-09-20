@@ -9,7 +9,8 @@ namespace infini {
 
 void allReduceSum(float *data, int deviceId) {
     // Create Runtime and setup communication
-    CudaRuntimeObj *cuda_runtime = new CudaRuntimeObj(deviceId);
+    CudaRuntimeObj *cuda_runtime =
+        new CudaRuntimeObj(deviceId, 16, 64ull << 20);
     int rank = deviceId;
     cuda_runtime->initComm("test_nccl_comm", WORLD_SIZE, rank);
     ncclComm_t comm =

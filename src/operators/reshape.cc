@@ -1,41 +1,99 @@
 #include "operators/reshape.h"
 #include "utils/operator_utils.h"
+#include <limits>
 #include <numeric>
 
 namespace infini {
-ReshapeObj::ReshapeObj(GraphObj *graph, Tensor input, Tensor output, Shape dims)
-    : OperatorObj(OpType::Reshape, {input}, {output}), dims(std::move(dims)) {
+ReshapeObj::ReshapeObj(GraphObj *graph, Tensor input, Tensor output, Shape dims,
+                       bool allowZero)
+    : OperatorObj(OpType::Reshape, {input}, {output}), dims(std::move(dims)),
+      allowZero(allowZero) {
+    IT_ASSERT(checkValid(graph));
+}
+
+ReshapeObj::ReshapeObj(GraphObj *graph, Tensor input, Tensor shapeTensor,
+                       Tensor output, bool allowZero)
+    : OperatorObj(OpType::Reshape, {input, shapeTensor}, {output}),
+      dynamicShape(true), allowZero(allowZero) {
+    // Until the first shape subgraph execution, keep the input shape as a
+    // conservative placeholder so the graph can allocate its shape tensors.
+    dims = input->getDims();
     IT_ASSERT(checkValid(graph));
 }
 
 optional<vector<Shape>> ReshapeObj::inferShape(const TensorVec &inputs) {
+    Shape requested = dims;
+    if (dynamicShape && inputs.size() > 1 && inputs[1]->hasData()) {
+        IT_ASSERT(inputs[1]->getDType() == DataType::Int64 ||
+                  inputs[1]->getDType() == DataType::Int32);
+        requested.clear();
+        if (inputs[1]->getDType() == DataType::Int64) {
+            for (auto value : inputs[1]->copyout<int64_t>())
+                IT_ASSERT(value >= std::numeric_limits<int>::min() &&
+                          value <= std::numeric_limits<int>::max());
+            for (auto value : inputs[1]->copyout<int64_t>())
+                requested.push_back(static_cast<int>(value));
+        } else {
+            for (auto value : inputs[1]->copyout<int32_t>())
+                requested.push_back(value);
+        }
+    }
     int count = 0;
-    for (auto x : dims) {
+    bool hasZero = false;
+    for (auto x : requested) {
         if (x == -1) {
             count++;
         }
+        if (x == 0)
+            hasZero = true;
         IT_ASSERT(x == -1 || x >= 0);
     }
     IT_ASSERT(count == 0 || count == 1);
+    IT_ASSERT(!(allowZero && hasZero && count != 0),
+              "Reshape allowzero cannot be combined with -1");
     auto inputShape = inputs[0]->getDims();
-    int size = inputs[0]->size();
+    const size_t size = inputs[0]->size();
     int index = -1;
-    outputShape = dims;
-    for (int i = 0; i < (int)dims.size(); ++i) {
-        if (dims[i] == 0) {
+    outputShape = requested;
+    for (int i = 0; i < (int)requested.size(); ++i) {
+        if (requested[i] == 0 && !allowZero) {
+            IT_ASSERT(i < static_cast<int>(inputShape.size()),
+                      "Reshape zero dimension exceeds input rank");
             outputShape[i] = inputShape[i];
         }
-        if (dims[i] == -1) {
+        if (requested[i] == -1) {
             index = i;
         }
     }
     if (index != -1) {
-        outputShape[index] =
-            size / (-std::accumulate(outputShape.begin(), outputShape.end(), 1,
-                                     [](auto acc, auto x) { return acc * x; }));
+        uint64_t known = 1;
+        for (int i = 0; i < static_cast<int>(outputShape.size()); ++i) {
+            if (i == index)
+                continue;
+            const auto dimension = static_cast<uint64_t>(outputShape[i]);
+            IT_ASSERT(dimension == 0 || known <= std::numeric_limits<uint64_t>::max() / dimension,
+                      "Reshape known product overflows");
+            known *= dimension;
+        }
+        IT_ASSERT(known != 0, "Reshape cannot infer -1 from a zero product");
+        IT_ASSERT(size % known == 0, "Reshape element count is not divisible");
+        const auto inferred = size / known;
+        IT_ASSERT(inferred <= static_cast<size_t>(std::numeric_limits<int>::max()),
+                  "Reshape inferred dimension exceeds int range");
+        outputShape[index] = static_cast<int>(inferred);
     }
-    int outputSize = std::accumulate(outputShape.begin(), outputShape.end(), 1,
-                                     [](auto acc, auto x) { return acc * x; });
+    size_t outputSize = 1;
+    for (const auto x : outputShape) {
+        IT_ASSERT(x >= 0, "Reshape output dimension must be non-negative");
+        if (x == 0) {
+            outputSize = 0;
+            continue;
+        }
+        IT_ASSERT(outputSize <= std::numeric_limits<size_t>::max() /
+                                       static_cast<size_t>(x),
+                  "Reshape output size overflows");
+        outputSize *= static_cast<size_t>(x);
+    }
     IT_ASSERT(outputSize == size);
 
     return {{outputShape}};

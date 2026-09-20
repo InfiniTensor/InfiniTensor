@@ -22,6 +22,36 @@ void CHECK_CUDA_KERNEL_ERROR(infini::Operator op) {
 
 namespace infini {
 
+void CudaRuntimeObj::runShape(const Graph &graph) const {
+    IT_ASSERT(graph != nullptr, "Cannot prepare a null graph");
+    IT_ASSERT(graph->topo_sort(), "Cannot prepare dynamic shapes in a cyclic graph");
+    std::lock_guard<std::recursive_mutex> lock(executionMutex);
+    activateDevice();
+    ensureExecutionStream();
+    CUDAStream::Guard streamGuard(stream);
+    const auto &registry = KernelRegistry::getInstance();
+    const auto shape_ops = graph->getDynamicShapeOperators();
+    for (const auto &op : graph->getOperators()) {
+        if (shape_ops.find(op.get()) == shape_ops.end())
+            continue;
+        switch (op->getOpType().underlying()) {
+        case OpType::Shape:
+        case OpType::Gather:
+        case OpType::Unsqueeze:
+        case OpType::Squeeze:
+        case OpType::Concat:
+        case OpType::Cast:
+            registry.getKernel({device, op->getOpType().underlying()})
+                ->compute(op, this);
+            checkCudaError(cudaGetLastError()) << op->toString();
+            break;
+        default:
+            break;
+        }
+    }
+    syncImpl();
+}
+
 namespace {
 void logCudaCleanupError(const char *operation, cudaError_t error) noexcept {
     if (error != cudaSuccess)
@@ -72,11 +102,14 @@ CudaRuntimeObj::CudaGraphCacheEntry::~CudaGraphCacheEntry() noexcept {
         logCudaCleanupError("cudaGraphDestroy", cudaGraphDestroy(graph));
 }
 
-CudaRuntimeObj::CudaRuntimeObj(int deviceId, size_t cudaGraphCacheCapacity)
+CudaRuntimeObj::CudaRuntimeObj(int deviceId, size_t cudaGraphCacheCapacity,
+                               size_t workspaceSize)
     : RuntimeObj(Device::CUDA, deviceId),
+      workspaceSize(workspaceSize),
       cudaGraphCacheCapacity(cudaGraphCacheCapacity) {
     IT_ASSERT(cudaGraphCacheCapacity > 0,
               "CUDA Graph cache capacity must be greater than zero");
+    IT_ASSERT(workspaceSize > 0, "CUDA workspace size must be greater than zero");
     try {
         activateDevice();
         checkCudaError(cudaStreamCreate(&stream));

@@ -135,38 +135,38 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -UNDEBUG")
 
 
 # Source files
-file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/kernels/cpu/*.cc src/operators/*.cc src/utils/*.cc)
+file(GLOB_RECURSE SRC CONFIGURE_DEPENDS src/ffi/*.cc src/core/*.cc src/kernels/cpu/*.cc src/operators/*.cc src/utils/*.cc)
 
 if(BUILD_NNET)
   add_compile_definitions(BUILD_NNET=1)
-  file(GLOB_RECURSE SRC_NNET src/nnet/*.cc)
+  file(GLOB_RECURSE SRC_NNET CONFIGURE_DEPENDS src/nnet/*.cc)
   list (APPEND SRC ${SRC_NNET})
   # For locating resource files
   set_source_files_properties(src/nnet/test.cc PROPERTIES COMPILE_OPTIONS "-DINFINI_PROJECT_HOME=${CMAKE_CURRENT_SOURCE_DIR}")
 endif()
 
 if(USE_CUDA)
-  file(GLOB_RECURSE SRC_CUDA src/cuda/*.cc src/cuda/*.cu src/kernels/cuda/*.cc src/kernels/cuda/*.cu)
+  file(GLOB_RECURSE SRC_CUDA CONFIGURE_DEPENDS src/cuda/*.cc src/cuda/*.cu src/kernels/cuda/*.cc src/kernels/cuda/*.cu)
   list (APPEND SRC ${SRC_CUDA})
 endif()
 
 if(USE_BANG)
-  file(GLOB_RECURSE SRC_BANG src/bang/*.cc src/kernels/bang/*.cc )
+  file(GLOB_RECURSE SRC_BANG CONFIGURE_DEPENDS src/bang/*.cc src/kernels/bang/*.cc )
   list (APPEND SRC ${SRC_BANG})
 endif()
 
 if(USE_KUNLUN)
-  file(GLOB_RECURSE SRC_KUNLUN src/kunlun/*.cc src/kernels/kunlun/*.cc )
+  file(GLOB_RECURSE SRC_KUNLUN CONFIGURE_DEPENDS src/kunlun/*.cc src/kernels/kunlun/*.cc )
   list (APPEND SRC ${SRC_KUNLUN})
 endif()
 
 if(USE_ASCEND)
-  file(GLOB_RECURSE SRC_ASCEND src/ascend/*.cc src/kernels/ascend/*.cc )
+  file(GLOB_RECURSE SRC_ASCEND CONFIGURE_DEPENDS src/ascend/*.cc src/kernels/ascend/*.cc )
   list (APPEND SRC ${SRC_ASCEND})
 endif()
 
 if(USE_INTELCPU)
-  file(GLOB_RECURSE SRC_INTELCPU src/intelcpu/*.cc src/kernels/intelcpu/*.cc )
+  file(GLOB_RECURSE SRC_INTELCPU CONFIGURE_DEPENDS src/intelcpu/*.cc src/kernels/intelcpu/*.cc )
   list (APPEND SRC ${SRC_INTELCPU})
 endif()
 
@@ -184,7 +184,7 @@ if(BUILD_NNET AND BUILD_TEST AND TVM_LIB_DIR)
 endif()
 
 # Python bindings
-file(GLOB_RECURSE FFIS src/ffi/ffi_infinitensor.cc)
+file(GLOB_RECURSE FFIS CONFIGURE_DEPENDS src/ffi/ffi_infinitensor.cc)
 pybind11_add_module(backend MODULE ${FFIS})
 target_link_libraries(backend PRIVATE InfiniTensor)
 
@@ -228,7 +228,10 @@ if(USE_CUDA)
       ${CMAKE_CXX_COMPILER}
       CACHE STRING "Set cuda host compiler path")
   # CMP0104 requires CUDA_ARCHITECTURES
-  set_target_properties(InfiniTensor PROPERTIES CUDA_ARCHITECTURES "70;80")
+  set(INFINI_CUDA_ARCHITECTURES "70;80" CACHE STRING
+      "CUDA architectures to compile, e.g. 89 for RTX 4090")
+  set_target_properties(InfiniTensor PROPERTIES
+                        CUDA_ARCHITECTURES "${INFINI_CUDA_ARCHITECTURES}")
   enable_language(CUDA)
   find_package(CUDAToolkit) # For nvrtc and cuda driver
   target_link_libraries(InfiniTensor cudnn CUDA::curand CUDA::cublas CUDA::nvrtc CUDA::cudart CUDA::cuda_driver)
@@ -366,7 +369,7 @@ endif()
 
 function(build_test files)
   # Non-recursive glob for skip failed tests
-  file(GLOB TEST_SOURCES ${files})
+  file(GLOB TEST_SOURCES CONFIGURE_DEPENDS ${files})
   foreach(testsourcefile ${TEST_SOURCES})
     get_filename_component(testname ${testsourcefile} NAME_WE)
     add_executable(${testname} ${testsourcefile})

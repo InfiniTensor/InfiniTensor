@@ -119,6 +119,56 @@ vector<int> FillObj::getWorkloadVector() const {
 
 vector<int> FillObj::getOpAttrVector() const { return {type.underlying()}; }
 
+ConstantOfShapeObj::ConstantOfShapeObj(GraphObj *graph, Tensor shapeTensor,
+                                       Tensor output, float value,
+                                       DataType outputDType)
+    : OperatorObj(OpType::ConstantOfShape, {shapeTensor}, {output}),
+      value(value), outputDType(outputDType) {
+    IT_ASSERT(outputDType.getSize() > 0, "Invalid ConstantOfShape dtype");
+    IT_ASSERT(checkValid(graph));
+}
+
+optional<vector<Shape>>
+ConstantOfShapeObj::inferShape(const TensorVec &inputs) {
+    auto shape = inputs[0];
+    IT_ASSERT(shape->getDType() == DataType::Int64 ||
+              shape->getDType() == DataType::Int32);
+    if (!shape->hasData())
+        return {{Shape{static_cast<int>(shape->size())}}};
+    Shape output;
+    if (shape->getDType() == DataType::Int64) {
+        for (auto dim : shape->copyout<int64_t>()) {
+            IT_ASSERT(dim >= 0 && dim <= std::numeric_limits<int>::max(),
+                      "ConstantOfShape dimension is invalid");
+            output.push_back(static_cast<int>(dim));
+        }
+    } else {
+        for (auto dim : shape->copyout<int32_t>()) {
+            IT_ASSERT(dim >= 0, "ConstantOfShape dimension is invalid");
+            output.push_back(dim);
+        }
+    }
+    return {{output}};
+}
+
+std::string ConstantOfShapeObj::toString() const {
+    std::ostringstream os;
+    os << "ConstantOfShape[" << getGuid() << "](input="
+       << inputs[0]->getGuid() << ",output=" << outputs[0]->getGuid()
+       << ",value=" << value << ",dtype=" << outputDType.toString() << ")";
+    return os.str();
+}
+
+vector<int> ConstantOfShapeObj::getWorkloadVector() const {
+    vector<int> ret = outputs[0]->getDims();
+    ret.emplace(ret.begin(), type.underlying());
+    return ret;
+}
+
+vector<int> ConstantOfShapeObj::getOpAttrVector() const {
+    return {type.underlying(), outputDType.getIndex()};
+}
+
 L2LossObj::L2LossObj(GraphObj *graph, Tensor input, Tensor output)
     : OperatorObj(OpType::L2Loss, {input}, {output}) {
     IT_ASSERT(checkValid(graph));
@@ -246,6 +296,18 @@ ShapeObj::ShapeObj(GraphObj *graph, Tensor input, Tensor output)
 optional<vector<Shape>> ShapeObj::inferShape(const TensorVec &inputs) {
     return {{{static_cast<int>(inputs[0]->getRank())}}};
 }
+
+vector<DataType> ShapeObj::inferDataType(const TensorVec &) const {
+    return {DataType::Int64};
+}
+
+vector<int> ShapeObj::getWorkloadVector() const {
+    vector<int> ret = inputs[0]->getDims();
+    ret.emplace(ret.begin(), type.underlying());
+    return ret;
+}
+
+vector<int> ShapeObj::getOpAttrVector() const { return {type.underlying()}; }
 
 std::string ShapeObj::toString() const {
     std::ostringstream os;

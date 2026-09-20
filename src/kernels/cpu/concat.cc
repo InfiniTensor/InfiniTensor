@@ -54,6 +54,8 @@ class NaiveConcat : public CpuKernelWithoutConfig {
             break;
             CASE(12); // DataType::UInt32
             break;
+            CASE(7); // DataType::Int64
+            break;
         default:
             IT_TODO_HALT();
         }

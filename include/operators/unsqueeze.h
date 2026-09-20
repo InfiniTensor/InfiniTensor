@@ -9,6 +9,7 @@ namespace infini {
  */
 class UnsqueezeObj : public OperatorObj {
     Shape axes;
+    bool dynamicAxes = false;
 
   public:
     /**
@@ -20,12 +21,14 @@ class UnsqueezeObj : public OperatorObj {
      * @param axes List of integers indicating the dimensions to be inserted.
      */
     UnsqueezeObj(GraphObj *graph, Tensor input, Tensor output, Shape axes);
+    UnsqueezeObj(GraphObj *graph, Tensor input, Tensor axesTensor,
+                 Tensor output);
     OP_CLONE(UnsqueezeObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
-    int numInputs() const override { return 1; }
+    int numInputs() const override { return dynamicAxes ? 2 : 1; }
     int numOutputs() const override { return 1; }
 
     inline Shape getAxes() const { return axes; }
