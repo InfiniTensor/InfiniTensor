@@ -72,11 +72,13 @@ CudaRuntimeObj::CudaGraphCacheEntry::~CudaGraphCacheEntry() noexcept {
         logCudaCleanupError("cudaGraphDestroy", cudaGraphDestroy(graph));
 }
 
-CudaRuntimeObj::CudaRuntimeObj(int deviceId, size_t cudaGraphCacheCapacity)
-    : RuntimeObj(Device::CUDA, deviceId),
+CudaRuntimeObj::CudaRuntimeObj(int deviceId, size_t cudaGraphCacheCapacity,
+                               size_t workspaceBytes)
+    : RuntimeObj(Device::CUDA, deviceId), workspaceSize(workspaceBytes),
       cudaGraphCacheCapacity(cudaGraphCacheCapacity) {
     IT_ASSERT(cudaGraphCacheCapacity > 0,
               "CUDA Graph cache capacity must be greater than zero");
+    IT_ASSERT(workspaceSize > 0, "CUDA workspace must be greater than zero");
     try {
         activateDevice();
         checkCudaError(cudaStreamCreate(&stream));

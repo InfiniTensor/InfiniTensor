@@ -32,6 +32,7 @@ class ReshapeObj : public OperatorObj {
 
     inline Shape getShape() const { return outputShape; }
     inline Shape getDims() const { return dims; }
+    void setDims(Shape value) { dims = std::move(value); }
 
   private:
     vector<int> getWorkloadVector() const override;

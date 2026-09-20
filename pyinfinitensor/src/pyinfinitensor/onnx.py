@@ -1,4 +1,4 @@
-﻿import backend
+import backend
 from onnx import (
     ModelProto,
     TensorProto,
@@ -1624,3 +1624,6 @@ def _parse_data_fp16(tensor: TensorProto):
 
 def _take_shape_dim(shape: TensorShapeProto) -> List[int]:
     return [(d.dim_value if d.dim_value > 0 else 1) for d in shape.dim]
+
+# Explicit dynamic execution API; the static OnnxStub path remains compatible.
+from .dynamic import DynamicOnnxStub

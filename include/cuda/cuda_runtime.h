@@ -57,7 +57,7 @@ class CudaRuntimeObj : public RuntimeObj {
     cublasHandle_t cublas = nullptr;
     std::unique_ptr<CommunicatorObj> comm;
     CudaPtr workspace = nullptr;
-    size_t workspaceSize = 7ll << 30;
+    size_t workspaceSize;
     mutable cudaStream_t stream = nullptr;
     size_t cudaGraphCacheCapacity;
     size_t cudaGraphCaptureCount = 0;
@@ -67,8 +67,10 @@ class CudaRuntimeObj : public RuntimeObj {
     mutable std::recursive_mutex cacheMutex;
 
   public:
+    static constexpr size_t DEFAULT_WORKSPACE_BYTES = 512ull << 20;
     explicit CudaRuntimeObj(int deviceId = 0,
-                            size_t cudaGraphCacheCapacity = 16);
+                            size_t cudaGraphCacheCapacity = 16,
+                            size_t workspaceBytes = DEFAULT_WORKSPACE_BYTES);
     ~CudaRuntimeObj() override;
     string toString() const override;
 

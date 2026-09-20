@@ -100,6 +100,15 @@ class GraphObj : public Object {
     void validateMemory() const;
 
     size_t getAllocationGeneration() const { return allocationGeneration; }
+    // Dynamic-pool statistics; naive/fixed pool backing allocations are
+    // excluded.
+    std::map<std::string, size_t> getMemoryStats() const {
+        return {
+            {"activation_capacity_bytes", allocator.getActivationCapacity()},
+            {"activation_required_bytes", allocator.getActivationPeak()},
+            {"activation_allocations", allocator.getActivationAllocations()},
+            {"weight_bytes", allocator.getWeightBytes()}};
+    }
     uint64_t getCaptureStateId() const { return captureState->getId(); }
     size_t getCaptureGeneration() const {
         return captureState->getGeneration();

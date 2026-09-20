@@ -21,7 +21,8 @@ class AttentionKVCacheCompute {
   public:
     void do_compute(Tensor input_k_cache, Tensor input_v_cache, Tensor input_q,
                     Tensor input_k, Tensor input_v, Tensor position_id,
-                    Tensor output_matmul, CudaPtr p_workspace) const {
+                    Tensor output_matmul, CudaPtr p_workspace,
+                    size_t partialOutputBytes) const {
         AttentionKVCacheMetadata metadata;
         initAttentionKVCacheMetadata(metadata, input_v_cache);
 
@@ -33,7 +34,7 @@ class AttentionKVCacheCompute {
                                  position_id->getRawDataPtr<int *>(),
                                  output_matmul->getRawDataPtr<float *>(),
                                  metadata, (float *)p_workspace,
-                                 (float *)(p_workspace + (1ll << 30)));
+                                 (float *)(p_workspace + partialOutputBytes));
     }
 };
 
@@ -43,13 +44,22 @@ class AttentionKVCacheCuda : private AttentionKVCacheCompute,
                  const RuntimeObj *_context) const override {
         IT_ASSERT(_op->getDType() == DataType::Float32);
 
-        size_t workspaceSize = 2ll << 30;
+        // Each 16-token tile stores one partial output and one softmax sum.
+        // Reserve for the cache capacity; the device position selects the
+        // active prefix. The partial output uses float4 loads/stores.
+        const auto &dims = _op->getInputs()[1]->getDims();
+        IT_ASSERT(dims.size() == 4 && dims[3] == 128);
+        const size_t tiles = (static_cast<size_t>(dims[2]) + 15) / 16;
+        const size_t partials = static_cast<size_t>(dims[0]) * dims[1] * tiles;
+        const size_t partialOutputBytes = partials * dims[3] * sizeof(float);
+        const size_t workspaceSize =
+            partialOutputBytes + partials * sizeof(float);
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         CudaPtr idxWsData = context->getWorkspace(workspaceSize);
         do_compute(_op->getInputs()[0], _op->getInputs()[1],
                    _op->getInputs()[2], _op->getInputs()[3],
                    _op->getInputs()[4], _op->getInputs()[5],
-                   _op->getOutputs()[0], idxWsData);
+                   _op->getOutputs()[0], idxWsData, partialOutputBytes);
     }
 };
 

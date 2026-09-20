@@ -22,6 +22,9 @@ class LazyAllocator {
 
     size_t used = 0;
 
+    // Successful activation backing allocations over this allocator lifetime.
+    size_t activationAllocations = 0;
+
     size_t peak = 0;
 
     size_t weightPeak = 0;
@@ -123,6 +126,10 @@ class LazyAllocator {
     bool isCurrentActivationStorage(const Blob &storage) const;
 
     size_t getHeapPeak() const { return heapPeak; }
+    size_t getActivationCapacity() const { return ptr ? ptr->getBytes() : 0; }
+    size_t getActivationPeak() const { return peak; }
+    size_t getActivationAllocations() const { return activationAllocations; }
+    size_t getWeightBytes() const { return weightPeak; }
 
     // void addCache(size_t batchsize, std::unordered_map<TensorObj *, size_t>);
 

@@ -168,8 +168,10 @@ static int tensor_dtype(Tensor t) {
 #ifdef USE_CUDA
 // NOTE(lizhouyang): deprecate this, use CudaRuntime directly.
 [[deprecated]] static Ref<CudaRuntimeObj>
-cuda_runtime(int device = 0, size_t cudaGraphCacheCapacity = 16) {
-    return make_ref<CudaRuntimeObj>(device, cudaGraphCacheCapacity);
+cuda_runtime(int device = 0, size_t cudaGraphCacheCapacity = 16,
+             size_t workspaceBytes = CudaRuntimeObj::DEFAULT_WORKSPACE_BYTES) {
+    return make_ref<CudaRuntimeObj>(device, cudaGraphCacheCapacity,
+                                    workspaceBytes);
 }
 #endif
 
@@ -358,7 +360,9 @@ void export_functions(py::module &m) {
     m.def("cpu_runtime", &NativeCpuRuntimeObj::getInstance)
 #ifdef USE_CUDA
         .def("cuda_runtime", cuda_runtime, py::arg("device") = 0,
-             py::arg("cuda_graph_cache_capacity") = 16)
+             py::arg("cuda_graph_cache_capacity") = 16,
+             py::arg("workspace_size") =
+                 CudaRuntimeObj::DEFAULT_WORKSPACE_BYTES)
 #endif
 #ifdef USE_INTELCPU
         .def("intelcpu_runtime", intelcpu_runtime)
@@ -447,8 +451,11 @@ void init_graph_builder(py::module &m) {
 #ifdef USE_CUDA
     py::class_<CudaRuntimeObj, std::shared_ptr<CudaRuntimeObj>, RuntimeObj>(
         m, "CudaRuntime")
-        .def(py::init<int, size_t>(), py::arg("device") = 0,
-             py::arg("cuda_graph_cache_capacity") = 16)
+        .def(py::init<int, size_t, size_t>(), py::arg("device") = 0,
+             py::arg("cuda_graph_cache_capacity") = 16,
+             py::arg("workspace_size") =
+                 CudaRuntimeObj::DEFAULT_WORKSPACE_BYTES)
+        .def("workspace_size", &CudaRuntimeObj::getWorkspaceSize)
         .def("clear_cuda_graph_cache", &CudaRuntimeObj::clearCudaGraphCache)
         .def("cuda_graph_cache_size", &CudaRuntimeObj::getCudaGraphCacheSize)
         .def("cuda_graph_capture_count",
@@ -540,6 +547,19 @@ void init_graph_builder(py::module &m) {
              py::overload_cast<const Tensor &>(&TensorObj::copyData),
              policy::move);
     py::class_<OperatorObj, std::shared_ptr<OperatorObj>>(m, "Operator")
+        .def("infer_shape",
+             [](OperatorObj &op) {
+                 auto shapes = op.inferShape(op.getInputs());
+                 IT_ASSERT(shapes.has_value(), "Cannot infer operator shape");
+                 for (size_t i = 0; i < shapes->size(); ++i)
+                     op.getOutputs()[i]->setShape(shapes->at(i));
+             })
+        .def("set_reshape_dims",
+             [](Operator op, Shape dims) {
+                 IT_ASSERT(op->getOpType() == OpType::Reshape,
+                           "set_reshape_dims requires Reshape");
+                 as<ReshapeObj>(op)->setDims(std::move(dims));
+             })
         .def("op_type", &OperatorObj::getOpType, policy::automatic)
         .def("inputs", py::overload_cast<>(&OperatorObj::getInputs, py::const_),
              policy::reference)
@@ -622,6 +642,7 @@ void init_graph_builder(py::module &m) {
              py::arg("useNaiveAllocator") = false, py::arg("memPoolSize") = 0,
              policy::automatic)
         .def("trim_memory", &Handler::trim_memory, policy::automatic)
+        .def("memory_stats", &Handler::memory_stats, policy::automatic)
         .def("clone_KV", &Handler::clone_KV, policy::move)
         .def("free_heap", &Handler::free_heap, policy::move)
         .def("get_perf_time", &Handler::get_perf_time, policy::automatic)

@@ -227,8 +227,13 @@ if(USE_CUDA)
   set(CMAKE_CUDA_HOST_COMPILER
       ${CMAKE_CXX_COMPILER}
       CACHE STRING "Set cuda host compiler path")
-  # CMP0104 requires CUDA_ARCHITECTURES
-  set_target_properties(InfiniTensor PROPERTIES CUDA_ARCHITECTURES "70;80")
+  set(INFINITENSOR_CUDA_ARCHITECTURES "70;75;80" CACHE STRING
+      "CUDA architectures compiled by InfiniTensor")
+  # Set the compiler default before enable_language (CMP0104), and expose the
+  # target architectures so small GPUs need not compile unrelated kernels.
+  set(CMAKE_CUDA_ARCHITECTURES "${INFINITENSOR_CUDA_ARCHITECTURES}")
+  set_target_properties(InfiniTensor PROPERTIES CUDA_ARCHITECTURES
+                        "${INFINITENSOR_CUDA_ARCHITECTURES}")
   enable_language(CUDA)
   find_package(CUDAToolkit) # For nvrtc and cuda driver
   target_link_libraries(InfiniTensor cudnn CUDA::curand CUDA::cublas CUDA::nvrtc CUDA::cudart CUDA::cuda_driver)
