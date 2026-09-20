@@ -12,15 +12,16 @@ optional<vector<Shape>> SqueezeObj::inferShape(const TensorVec &inputs) {
     Shape inputDim = inputs[0]->getDims();
     Shape outputShape;
     auto rank = inputs[0]->getRank();
-    if (axes.size() == 0) {
+    Shape axesCopy = axes;
+    if (axesCopy.size() == 0) {
         for (int i = 0; i < (int)rank; ++i) {
             if (inputDim[i] == 1) {
-                axes.emplace_back(i);
+                axesCopy.emplace_back(i);
             }
         }
     }
-    auto new_axes = axes;
-    std::transform(axes.begin(), axes.end(), new_axes.begin(),
+    auto new_axes = axesCopy;
+    std::transform(axesCopy.begin(), axesCopy.end(), new_axes.begin(),
                    [inputDim, rank](auto x) {
                        x = get_real_axis(x, rank);
                        IT_ASSERT(inputDim[x] == 1);

@@ -280,6 +280,11 @@ static vector<int64_t> reshape_shape_of(Operator op) {
     return ans;
 }
 
+static bool reshape_is_dynamic_of(Operator op) {
+    IT_ASSERT(op->getOpType() == OpType::Reshape);
+    return dynamic_cast<const ReshapeObj *>(op.get())->isRuntimeShape();
+}
+
 static vector<int64_t> squeeze_axes_of(Operator op) {
     IT_ASSERT(op->getOpType() == OpType::Squeeze);
     auto axes = dynamic_cast<const SqueezeObj *>(op.get())->getAxes();
@@ -383,6 +388,7 @@ void export_functions(py::module &m) {
         .FUNCTION(reduce_attrs_of)
         .FUNCTION(tensor_dtype)
         .FUNCTION(reshape_shape_of)
+        .FUNCTION(reshape_is_dynamic_of)
         .FUNCTION(expand_shape_of)
         .FUNCTION(pad_pads_of)
         .FUNCTION(transpose_permute_of)
@@ -588,6 +594,7 @@ void init_graph_builder(py::module &m) {
         .def("transpose", &Handler::transpose, policy::move)
         .def("depthToSpace", &Handler::depthToSpace, policy::move)
         .def("reshape", &Handler::reshape, policy::move)
+        .def("reshape_dynamic", &Handler::reshapeDynamic, policy::move)
         .def("resize", &Handler::resize, policy::move)
         .def("squeeze", &Handler::squeeze, policy::move)
         .def("unsqueeze", &Handler::unsqueeze, policy::move)

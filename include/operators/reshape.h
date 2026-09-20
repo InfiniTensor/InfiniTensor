@@ -11,6 +11,9 @@ class ReshapeObj : public OperatorObj {
     Shape dims;
     Shape outputShape;
 
+    bool runtimeShape = false;
+    bool allowZero = false;
+
   public:
     /**
      * @brief Construct a new Reshape object.
@@ -22,13 +25,23 @@ class ReshapeObj : public OperatorObj {
      * @param outputShape The real shape of output tensor.
      */
     ReshapeObj(GraphObj *graph, Tensor input, Tensor output, Shape dims);
+    ReshapeObj(GraphObj *graph, Tensor input, Tensor shapeTensor, Tensor output,
+               bool allowZero = false);
     OP_CLONE(ReshapeObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
-    int numInputs() const override { return 1; }
+    int numInputs() const override { return static_cast<int>(inputs.size()); }
     int numOutputs() const override { return 1; }
+
+    bool isRuntimeShape() const { return runtimeShape; }
+    bool getAllowZero() const { return allowZero; }
+
+    Tensor getShapeTensor() const {
+        return runtimeShape ? inputs.at(1) : nullptr;
+    }
+    bool resolveRuntimeShape();
 
     inline Shape getShape() const { return outputShape; }
     inline Shape getDims() const { return dims; }

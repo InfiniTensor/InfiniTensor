@@ -31,6 +31,66 @@ import copy
 import warnings
 import numpy as np
 
+import operator
+from dataclasses import dataclass
+from enum import Enum
+
+
+class DimensionKind(str, Enum):
+
+    FIXED = "fixed"
+    SYMBOLIC = "symbolic"
+    UNKNOWN = "unknown"
+
+@dataclass(frozen=True)
+class DimensionSpec():
+
+    kind: DimensionKind
+    value: Optional[int] = None  
+    symbolic: Optional[str] = None 
+    
+ShapeSpec = tuple[DimensionSpec,...]
+
+def _parse_shape_spec(shape: TensorShapeProto) -> ShapeSpec:
+    dimensions = [] 
+    for dim in shape.dim:
+        field = dim.WhichOneof("value")
+
+        if field == "dim_value":
+            dimensions.append(DimensionSpec(
+                kind=DimensionKind.FIXED,
+                value=int(dim.dim_value),
+            ))
+        elif field == "dim_param" and dim.dim_param:
+            dimensions.append(DimensionSpec(
+                kind=DimensionKind.SYMBOLIC,
+                symbolic=str(dim.dim_param),
+            ))
+        else :
+            dimensions.append(DimensionSpec(
+                kind=DimensionKind.UNKNOWN,
+            ))
+
+    return tuple(dimensions)
+
+def _materialize_shape(dimensions: ShapeSpec, default_dim: int = 1) -> list[int]:
+    dim = []
+
+    for dimension in dimensions:
+        if dimension.kind == DimensionKind.FIXED:
+            dim.append(dimension.value)
+        elif dimension.kind == DimensionKind.SYMBOLIC:
+            dim.append(default_dim)
+        else :
+            dim.append(default_dim)
+
+    return dim 
+
+def _shape_spec_is_dynamic(shape: ShapeSpec) -> bool:
+    return any(
+        dimension.kind != DimensionKind.FIXED
+        for dimension in shape 
+    )
 
 class OnnxStub:
     """
@@ -47,17 +107,38 @@ class OnnxStub:
     ):
         model = copy.deepcopy(model)
         # We use some user-defined operators for distributed inference
-        try:
+        # 因为是动态模型，所以需要验证一下
+
+        origin_initializer_name = {  
+            initializer.name
+            for initializer in model.graph.initializer
+        }
+        origin_input_shape_spec = {
+            input_info.name: _parse_shape_spec(input_info.type.tensor_type.shape)
+            for input_info in model.graph.input
+            if input_info.name not in origin_initializer_name
+        }
+
+        dynamic_flag = any(
+            _shape_spec_is_dynamic(shape_spec)
+            for shape_spec  in origin_input_shape_spec.values()
+        )
+        if not dynamic_flag:
+            try:
             # onnx simplifier performs inplace simplify
-            model_simp, check = simplify(copy.deepcopy(model))
-            if check:
-                model = model_simp
-        except ValidationError:
-            pass
-        except RuntimeError:
-            pass
+                model_simp, check = simplify(copy.deepcopy(model))
+                if check:
+                    model = model_simp
+            except ValidationError:
+                pass
+            except RuntimeError:
+                pass
 
         self.inputs: Dict[str, backend.Tensor] = {}
+
+        self.input_shape_specs: Dict[str, ShapeSpec]= dict(origin_input_shape_spec)
+        self.current_input_shapes: Dict[str, Tuple[int, ...]] = {}
+
         self.outputs: Dict[str, backend.Tensor] = {}
         self.tensors: Dict[str, backend.Tensor] = {}
         self.tensor_node_map: Dict[str, str] = {}
@@ -119,6 +200,11 @@ class OnnxStub:
         tensors: Dict[str, backend.Tensor] = dict()
         data: Dict[str, TensorProto] = dict()
 
+        declared_value_info = {
+            value.name: value 
+            for value in list(model.graph.value_info) + list(model.graph.output)
+        }
+
         for initializer in model.graph.initializer:
             dims = [d for d in initializer.dims]
             tensors[initializer.name] = self.handler.tensor(dims, initializer.data_type)
@@ -128,6 +214,11 @@ class OnnxStub:
         for input in model.graph.input:
             dims = _take_shape_dim(input.type.tensor_type.shape)
             if input.name not in tensors.keys():
+                shape_spec = self.input_shape_specs.get(input.name)
+                if shape_spec is None: 
+                    shape_spec = _parse_shape_spec(input.type.tensor_type.shape)
+                    self.input_shape_specs[input.name] = shape_spec
+                dims = _materialize_shape(shape_spec)
                 tensors[input.name] = self.handler.tensor(
                     dims, input.type.tensor_type.elem_type
                 )
@@ -669,12 +760,48 @@ class OnnxStub:
                     mode,
                 )
             elif node.op_type == "Reshape":
+                if not _has_input(node, 1):
+                    raise ValueError("Reshape requires a shape input")
+
+                attributes = _parse_attribute(node, {"allowzero": 0})
+                if attributes["allowzero"] != 0:
+                    raise NotImplementedError("Reshape allowzero=1 is not supported in the first version")
+
+                shape_name = node.input[1] 
+                if shape_name in data:
+                    # initializer/Constant：保持原有静态路径。
+                    tensors[node.output[0]] = self.handler.reshape(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        _parse_data(data[shape_name]),
+                    )
+                else:
+                    # Shape/Gather/Concat 等运行时子图。
+                    output = tensors.get(node.output[0])
+                    declared = declared_value_info.get(node.output[0])
+
+                    if output is None and declared is not None:
+                        tensor_type = declared.type.tensor_type
+                        output = self.handler.tensor(
+                            _materialize_shape(_parse_shape_spec(tensor_type.shape)),
+                            tensor_type.elem_type,
+                        )
+                        tensors[node.output[0]] = output
+
+                    tensors[node.output[0]] = self.handler.reshape_dynamic(
+                        tensors[node.input[0]],
+                        tensors[shape_name],
+                        output,
+                        False,
+                    )
+                """
                 shape = _parse_static_input(data, node, 1, required=True)
                 tensors[node.output[0]] = self.handler.reshape(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
                     shape,
                 )
+                """
             elif node.op_type == "Resize":
                 output = tensors.get(node.output[0])
                 attributes = _parse_attribute(
@@ -1133,7 +1260,17 @@ class OnnxStub:
         for output in model.graph.output:
             self.outputs[output.name] = tensors[output.name]
 
+        self.current_input_shapes = {
+            name: tuple(tensor.shape())
+            for name, tensor in self.inputs.items()
+        }
+
         self.init()
+
+    def get_input_shape_spec(self, name: str) -> ShapeSpec:
+        if name not in self.input_shape_specs:
+            raise KeyError('Unkown model input "{}"'.format(name)) 
+        return self.input_shape_specs[name]
 
     def to_onnx(self, name: str) -> ModelProto:
         class Context:
@@ -1347,16 +1484,17 @@ class OnnxStub:
                 perm = backend.transpose_permute_of(op)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, perm=perm))
             elif ty == backend.OpTypeId.Reshape:
-                shape = backend.reshape_shape_of(op)
-                inputs.append(
-                    ctx.push_data_input(
-                        name,
-                        "shape",
-                        TensorProto.INT64,
-                        [len(shape)],
-                        shape,
+                if not backend.reshape_is_dynamic_of(op):
+                    shape = backend.reshape_shape_of(op)
+                    inputs.append(
+                        ctx.push_data_input(
+                            name,
+                            "shape",
+                            TensorProto.INT64,
+                            [len(shape)],
+                            shape,
+                        )
                     )
-                )
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Squeeze:
                 axes = backend.squeeze_axes_of(op)
@@ -1507,11 +1645,44 @@ class OnnxStub:
                 "inputShapes must contain one shape per model input; expected "
                 "{}, got {}".format(len(self.inputs), len(inputShapes))
             )
-        for newInput, oldInput in zip(inputShapes, self.inputs):
-            oldTensor = self.inputs[oldInput]
-            self.handler.change_shape(newInput, oldTensor.fuid())
+
+        normalized_shapes = []
+        for name, supplied_shape in zip(self.inputs, inputShapes):
+            spec = self.input_shape_specs[name]
+            if len(supplied_shape) != len(spec):
+                raise ValueError(
+                    f"Input {name}: expected rank {len(spec)}, "
+                    f"got {len(supplied_shape)}"
+                )
+
+            shape = []
+            for axis, (value, dimension) in enumerate(zip(supplied_shape, spec)):
+                try:
+                    actual = operator.index(value)
+                except TypeError as exc:
+                    raise ValueError(
+                        f"Input {name}, axis {axis}: dimension must be an integer"
+                    ) from exc
+                if actual < 0:
+                    raise ValueError(
+                        f"Input {name}, axis {axis}: dimension must be non-negative"
+                    )
+                if dimension.kind == DimensionKind.FIXED and actual != dimension.value:
+                    raise ValueError(
+                        f"Input {name}, axis {axis}: fixed dimension "
+                        f"must be {dimension.value}, got {actual}"
+                    )
+                shape.append(actual)
+            normalized_shapes.append(shape)
+
+        for name, shape in zip(self.inputs, normalized_shapes):
+            self.handler.change_shape(shape, self.inputs[name].fuid())
         self.handler.shape_infer()
         self.init()
+        self.current_input_shapes = {
+            name: tuple(shape)
+            for name, shape in zip(self.inputs, normalized_shapes)
+        }
 
     def getShape(self, name: str) -> List[int]:
         if name in self.inputs:
@@ -1623,4 +1794,4 @@ def _parse_data_fp16(tensor: TensorProto):
 
 
 def _take_shape_dim(shape: TensorShapeProto) -> List[int]:
-    return [(d.dim_value if d.dim_value > 0 else 1) for d in shape.dim]
+    return _materialize_shape(_parse_shape_spec(shape))

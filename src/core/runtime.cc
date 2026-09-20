@@ -3,14 +3,114 @@
 #include "core/graph.h"
 #include "core/kernel.h"
 #include "core/perf_engine.h"
+#include "operators/reshape.h"
 #include "utils/data_generator.h"
 #include <algorithm>
 #include <chrono>
 #include <cstring>
+#include <unordered_set>
+
 namespace infini {
+
+namespace {
+
+bool isShapeValueOp(OpType type) {
+    switch (type.underlying()) {
+    case OpType::Shape:
+    case OpType::Gather:
+    case OpType::Unsqueeze:
+    case OpType::Squeeze:
+    case OpType::Concat:
+    case OpType::Cast:
+    case OpType::Identity:
+        return true;
+    default:
+        return false;
+    }
+}
+
+void collectShapeValueOps(
+    //
+    const Tensor &tensor, std::unordered_set<OperatorObj *> &requiredShapeOps) {
+
+    const Operator source = tensor->getSource();
+
+    if (!source)
+        return;
+    IT_ASSERT(isShapeValueOp(source->getOpType()),
+              "Runtime Rshape shape input unsupported");
+
+    if (!requiredShapeOps.insert(source.get()).second)
+        return;
+
+    if (source->getOpType() == OpType::Shape)
+        return;
+
+    for (const Tensor &input : source->getInputs())
+        collectShapeValueOps(input, requiredShapeOps);
+}
+
+bool prepareRuntimeShapes(const Graph &graph, Device device,
+                          const RuntimeObj *runtime) {
+    bool hasDynamicReshape = false;
+    std::unordered_set<OperatorObj *> requiredShapeOps;
+
+    IT_ASSERT(graph->topo_sort(), "Graph contains a cycle");
+
+    for (const Operator &op : graph->getOperators()) {
+        if (op->getOpType() != OpType::Reshape)
+            continue;
+        const auto reshape = as<ReshapeObj>(op);
+        IT_ASSERT(reshape != nullptr);
+        if (!reshape->isRuntimeShape())
+            continue;
+
+        hasDynamicReshape = true;
+        collectShapeValueOps(reshape->getShapeTensor(), requiredShapeOps);
+    }
+
+    if (!hasDynamicReshape)
+        return false;
+
+    IT_ASSERT(device == Device::CPU,
+              "Runtime Shape Tensor currently supports Native CPU only");
+
+    const auto &kernelRegistry = KernelRegistry::getInstance();
+    bool shapeChanged = false;
+
+    for (const Operator &op : graph->getOperators()) {
+        if (requiredShapeOps.count(op.get())) {
+            const KernelAttrs attrs{device, op->getOpType().underlying()};
+            Kernel *kernel = kernelRegistry.getKernel(attrs);
+            kernel->compute(op, runtime);
+        }
+
+        if (op->getOpType() != OpType::Reshape)
+            continue;
+
+        const auto reshape = as<ReshapeObj>(op);
+        if (!reshape->isRuntimeShape())
+            continue;
+
+        shapeChanged = reshape->resolveRuntimeShape() || shapeChanged;
+
+        graph->shape_infer();
+    }
+
+    if (shapeChanged) {
+        graph->remallocForCurrentShapes();
+        graph->validateMemory();
+    }
+
+    return true;
+}
+
+} // namespace
+
 void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
     IT_ASSERT(graph != nullptr, "Cannot run a null graph");
     graph->validateMemory();
+    prepareRuntimeShapes(graph, device, this);
     if (!tune && profiling)
         IT_TODO_HALT();
     const auto &kernelRegistry = KernelRegistry::getInstance();

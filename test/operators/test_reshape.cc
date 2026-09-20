@@ -9,6 +9,34 @@
 
 namespace infini {
 
+TEST(Reshape, RuntimeShapeTensorChanges) {
+    Runtime runtime = NativeCpuRuntimeObj::getInstance();
+    for (bool naive : {false, true}) {
+        Graph g = make_ref<GraphObj>(runtime);
+        auto data = g->addTensor({2, 3}, DataType::Float32);
+        auto target = g->addTensor({2}, DataType::Int64);
+        data->setInput();
+        target->setInput();
+        auto op = g->addOp<ReshapeObj>(data, target, nullptr, false);
+        op->getOutput()->setOutput();
+        g->dataMalloc(naive);
+
+        const vector<float> values{0, 1, 2, 3, 4, 5};
+        data->copyin(values);
+        for (const auto &spec :
+             vector<vector<int64_t>>{{3, 2}, {1, 6}, {0, -1}}) {
+            target->copyin(spec);
+            runtime->run(g);
+            const Shape expected = spec[0] == 0
+                                       ? Shape{2, 3}
+                                       : Shape{static_cast<int>(spec[0]),
+                                               static_cast<int>(spec[1])};
+            EXPECT_EQ(op->getOutput()->getDims(), expected);
+            EXPECT_TRUE(op->getOutput()->equalData(values));
+        }
+    }
+}
+
 TEST(Reshape, ShapeInference) {
     Runtime runtime = NativeCpuRuntimeObj::getInstance();
     {

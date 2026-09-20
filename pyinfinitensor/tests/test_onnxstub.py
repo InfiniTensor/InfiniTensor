@@ -140,12 +140,30 @@ class TestOnnxStubImport(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "expected 1, got 2"):
             stub.set_input([[1, 2], [1, 2]])
 
+    def test_fixed_dimension_is_rejected_before_mutation(self):
+        model = make_model(
+            [helper.make_node("Identity", ["x"], ["y"])],
+            [value_info("x", ["batch", 2])],
+            [value_info("y", ["batch", 2])],
+        )
+        stub = import_model(model)
+        stub.set_input([[3, 2]])
+        before = tuple(stub.getShape("x"))
+
+        with self.assertRaisesRegex(ValueError, "fixed dimension"):
+            stub.set_input([[3, 4]])
+        self.assertEqual(tuple(stub.getShape("x")), before)
+
+        with self.assertRaisesRegex(ValueError, "rank"):
+            stub.set_input([[6]])
+        self.assertEqual(tuple(stub.getShape("x")), before)
+
     def test_initializer_is_restored_after_reallocation(self):
         weight = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
         model = make_model(
             [helper.make_node("MatMul", ["x", "weight"], ["y"])],
-            [value_info("x", [1, 2])],
-            [value_info("y", [1, 2])],
+            [value_info("x", ["batch", 2])],
+            [value_info("y", ["batch", 2])],
             [initializer("weight", weight)],
         )
         for use_naive_allocator in (False, True):
@@ -464,8 +482,8 @@ class TestOnnxStubCuda(unittest.TestCase):
         weight = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
         model = make_model(
             [helper.make_node("MatMul", ["x", "weight"], ["y"])],
-            [value_info("x", [1, 2])],
-            [value_info("y", [1, 2])],
+            [value_info("x", ["batch", 2])],
+            [value_info("y", ["batch", 2])],
             [initializer("weight", weight)],
         )
         for use_naive_allocator in (False, True):
@@ -491,7 +509,6 @@ class TestOnnxStubCuda(unittest.TestCase):
                         2, 2
                     )
                     np.testing.assert_allclose(actual, x @ weight, rtol=1e-5, atol=1e-6)
-
 
 if __name__ == "__main__":
     unittest.main()

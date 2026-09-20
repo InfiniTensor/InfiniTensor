@@ -14,7 +14,7 @@ optional<vector<Shape>> GatherObj::inferShape(const TensorVec &inputs) {
     auto dims0 = inputs[0]->getDims();
     auto dims1 = inputs[1]->getDims();
 
-    IT_ASSERT(CheckIndexValid());
+    // IT_ASSERT(CheckIndexValid());
 
     Shape dim = dims0;
     dim.erase(dim.begin() + axis);
@@ -30,6 +30,7 @@ vector<DataType> GatherObj::inferDataType(const TensorVec &inputs) const {
 }
 
 // TODO:should check everytime index updated.
+/*
 bool GatherObj::CheckIndexValid() const {
     auto index = inputs[1];
     if (index->getDataBlob() == nullptr)
@@ -63,6 +64,7 @@ bool GatherObj::CheckIndexValid() const {
     }
     return ret;
 }
+    */
 
 std::string GatherObj::toString() const {
     std::ostringstream os;

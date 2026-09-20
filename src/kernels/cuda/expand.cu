@@ -50,9 +50,9 @@ static __global__ void _expandRowKernel(void *__restrict__ dst,
 namespace infini {
 
 #define CASE(T)                                                                \
-    _expandKernel<DT_CUDA<T>::t><<<gridsize, blocksize,                        \
-        0, CUDAStream::getCurrentStream()>>>(                                  \
-        input, output, nDims, outputsize, inputShape, outputShape);
+    _expandKernel<DT_CUDA<T>::t>                                               \
+        <<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(          \
+            input, output, nDims, outputsize, inputShape, outputShape);
 
 #define SWITCH_DTYPE(DTYPE)                                                    \
     switch (DTYPE) {                                                           \
@@ -150,7 +150,8 @@ void expandKernel(int dType, void *input, void *output, int nDims,
         IT_TODO_HALT();                                                        \
     }
 
-// Optimization for expanding a row vector. The row length must be a multiple of 32
+// Optimization for expanding a row vector. The row length must be a multiple of
+// 32
 void expandRowKernel(int dType, void *input, void *output, int n_rows,
                      int row_len) {
     // Factorize row_len: row_len = a x b x 32 (32 is the warp size), b<=32
@@ -160,7 +161,8 @@ void expandRowKernel(int dType, void *input, void *output, int n_rows,
     // block: b x 32
     auto c = row_len / 32, b = c;
     if (b > 32) {
-        for (b = 32; c % b != 0; --b);
+        for (b = 32; c % b != 0; --b)
+            ;
     }
     auto a = c / b;
     dim3 grid(a, n_rows), block(32, b);

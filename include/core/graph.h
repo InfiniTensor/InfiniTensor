@@ -95,6 +95,8 @@ class GraphObj : public Object {
 
     void dataMalloc(bool useNaiveAllocator = false, size_t memPoolSize = 0);
 
+    void remallocForCurrentShapes();
+
     void trimMemory();
 
     void validateMemory() const;
