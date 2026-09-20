@@ -1,7 +1,7 @@
 #include "core/kernel.h"
 #include "operators/unary.h"
 
-namespace infini{
+namespace infini {
 
 class CastCPU final : public CpuKernelWithoutConfig {
     template <typename InputT, typename OutputT>
@@ -17,7 +17,8 @@ class CastCPU final : public CpuKernelWithoutConfig {
         }
     }
 
-    void compute(const Operator &_op, const RuntimeObj *context) const override{
+    void compute(const Operator &_op,
+                 const RuntimeObj *context) const override {
         auto op = as<CastObj>(_op);
         IT_ASSERT(op != nullptr);
 
@@ -44,12 +45,11 @@ class CastCPU final : public CpuKernelWithoutConfig {
             doCompute<float, float>(_op);
             break;
         default:
-            IT_ASSERT(false, 
-                "Cast type not supported") ; 
+            IT_ASSERT(false, "Cast type not supported");
         }
     }
 };
 
 REGISTER_KERNEL(Device::CPU, OpType::Cast, CastCPU, "Cast_CPU");
 
-}
+} // namespace infini

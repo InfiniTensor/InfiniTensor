@@ -25,7 +25,8 @@ class ReshapeObj : public OperatorObj {
      * @param outputShape The real shape of output tensor.
      */
     ReshapeObj(GraphObj *graph, Tensor input, Tensor output, Shape dims);
-    ReshapeObj(GraphObj *graph, Tensor input, Tensor shapeTensor, Tensor output, bool allowZero = false);
+    ReshapeObj(GraphObj *graph, Tensor input, Tensor shapeTensor, Tensor output,
+               bool allowZero = false);
     OP_CLONE(ReshapeObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
@@ -38,7 +39,7 @@ class ReshapeObj : public OperatorObj {
     bool getAllowZero() const { return allowZero; }
 
     Tensor getShapeTensor() const {
-      return runtimeShape ? inputs.at(1) : nullptr;
+        return runtimeShape ? inputs.at(1) : nullptr;
     }
     bool resolveRuntimeShape();
 

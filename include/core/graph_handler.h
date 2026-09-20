@@ -77,7 +77,8 @@ class GraphHandlerObj {
                 std::optional<float> max);
     Tensor transpose(Tensor data, Tensor transposed, Shape perm);
     Tensor reshape(Tensor data, Tensor reshaped, Shape shape);
-    Tensor reshapeDynamic(Tensor data, Tensor shapeTensor, Tensor reshaped, bool allowZero = false);
+    Tensor reshapeDynamic(Tensor data, Tensor shapeTensor, Tensor reshaped,
+                          bool allowZero = false);
     Tensor resize(Tensor input, Tensor output,
                   const std::optional<vector<int>> &axes, Tensor sizes,
                   Tensor scales, Tensor roi, vector<int64_t> sizes_,

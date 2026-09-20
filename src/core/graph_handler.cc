@@ -308,12 +308,17 @@ Tensor GraphHandlerObj::reshape(Tensor data, Tensor reshaped, Shape shape) {
     }
 }
 
-Tensor GraphHandlerObj::reshapeDynamic(Tensor data, Tensor shapeTensor, Tensor reshaped, bool allowZero){
+Tensor GraphHandlerObj::reshapeDynamic(Tensor data, Tensor shapeTensor,
+                                       Tensor reshaped, bool allowZero) {
     if (reshaped) {
-        g->addOpWithOutputs<ReshapeObj>(std::move(data), std::move(shapeTensor), reshaped, allowZero);
+        g->addOpWithOutputs<ReshapeObj>(std::move(data), std::move(shapeTensor),
+                                        reshaped, allowZero);
         return reshaped;
     }
-    return g->addOp<ReshapeObj>(std::move(data), std::move(shapeTensor), reshaped, allowZero)->getOutput();
+    return g
+        ->addOp<ReshapeObj>(std::move(data), std::move(shapeTensor), reshaped,
+                            allowZero)
+        ->getOutput();
 }
 
 Tensor GraphHandlerObj::resize(Tensor input, Tensor output,

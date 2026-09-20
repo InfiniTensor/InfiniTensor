@@ -250,7 +250,7 @@ void GraphObj::dataMalloc(bool useNaiveAllocator, size_t memPoolSize) {
 }
 
 void GraphObj::remallocForCurrentShapes() {
-    switch(allocationMode){
+    switch (allocationMode) {
     case AllocationMode::Uninitialized:
         dataMalloc(false, 0);
         break;

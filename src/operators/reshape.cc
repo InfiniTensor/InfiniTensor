@@ -8,7 +8,8 @@ namespace infini {
 
 namespace {
 
-Shape resolveReshapeSpec(const Shape &inputShape, size_t inputSize, const vector<int64_t> &spec, bool allowZero) {
+Shape resolveReshapeSpec(const Shape &inputShape, size_t inputSize,
+                         const vector<int64_t> &spec, bool allowZero) {
     Shape result(spec.size());
     int inferAxis = -1;
     bool hasLiteralZero = false;
@@ -26,22 +27,25 @@ Shape resolveReshapeSpec(const Shape &inputShape, size_t inputSize, const vector
         }
 
         if (value == 0) {
-            if (allowZero){
+            if (allowZero) {
                 hasLiteralZero = true;
             } else {
-                IT_ASSERT(i < inputShape.size(), "Reshape 0 dimension exceeds input rank");
+                IT_ASSERT(i < inputShape.size(),
+                          "Reshape 0 dimension exceeds input rank");
                 value = inputShape[i];
             }
         }
 
-        IT_ASSERT(value <= std::numeric_limits<int>::max(), "Reshape dimension exceeds InfiniTensor Shape range");
+        IT_ASSERT(value <= std::numeric_limits<int>::max(),
+                  "Reshape dimension exceeds InfiniTensor Shape range");
         result[i] = static_cast<int>(value);
 
-        if (value == 0){
+        if (value == 0) {
             knownProduct = 0;
-        } else if (knownProduct != 0 ){
+        } else if (knownProduct != 0) {
             const size_t dim = static_cast<size_t>(value);
-            IT_ASSERT(knownProduct <= std::numeric_limits<size_t>::max() / dim, "Reshape element count overflow");
+            IT_ASSERT(knownProduct <= std::numeric_limits<size_t>::max() / dim,
+                      "Reshape element count overflow");
             knownProduct *= dim;
         }
     }
@@ -55,8 +59,8 @@ Shape resolveReshapeSpec(const Shape &inputShape, size_t inputSize, const vector
                   "Reshape -1 dimension cannot be inferred exactly");
 
         const size_t inferred = inputSize / knownProduct;
-        IT_ASSERT(inferred <= static_cast<size_t>(
-                                  std::numeric_limits<int>::max()),
+        IT_ASSERT(inferred <=
+                      static_cast<size_t>(std::numeric_limits<int>::max()),
                   "Inferred Reshape dimension is too large");
         result[inferAxis] = static_cast<int>(inferred);
     } else {
@@ -65,9 +69,9 @@ Shape resolveReshapeSpec(const Shape &inputShape, size_t inputSize, const vector
     }
 
     return result;
-}    
+}
 
-vector<int64_t> toInt64(const Shape & shape){
+vector<int64_t> toInt64(const Shape &shape) {
     return vector<int64_t>(shape.begin(), shape.end());
 }
 
@@ -81,30 +85,34 @@ Shape makeRuntimePlaceholder(const Tensor &input, size_t outputRank) {
         return {};
     }
 
-    IT_ASSERT(input->size() <= static_cast<size_t>(
-                                   std::numeric_limits<int>::max()),
+    IT_ASSERT(input->size() <=
+                  static_cast<size_t>(std::numeric_limits<int>::max()),
               "Reshape placeholder dimension is too large");
     Shape placeholder(outputRank, 1);
     placeholder[0] = static_cast<int>(input->size());
     return placeholder;
 }
 
-}
-
+} // namespace
 
 ReshapeObj::ReshapeObj(GraphObj *graph, Tensor input, Tensor output, Shape dims)
-    : OperatorObj(OpType::Reshape, {input}, {output}), dims(std::move(dims)), runtimeShape(false), allowZero(false) {
+    : OperatorObj(OpType::Reshape, {input}, {output}), dims(std::move(dims)),
+      runtimeShape(false), allowZero(false) {
     IT_ASSERT(checkValid(graph));
 }
 
-ReshapeObj::ReshapeObj(GraphObj *graph, Tensor input, Tensor shapeTensor, Tensor output, bool allowZero)
+ReshapeObj::ReshapeObj(GraphObj *graph, Tensor input, Tensor shapeTensor,
+                       Tensor output, bool allowZero)
     : OperatorObj(OpType::Reshape, {input, shapeTensor}, {output}),
-    outputShape(output ? output->getDims(): makeRuntimePlaceholder(input, shapeTensor->size())),
-    runtimeShape(true), allowZero(allowZero){
-        IT_ASSERT(shapeTensor->getRank() == 1, "Reshape shape input must be a 1-D Tensor");
-        IT_ASSERT(shapeTensor->getDType() == DataType::Int64, "ONNX Reshape shape input must be Int64");
-        IT_ASSERT(checkValid(graph));
-    }
+      outputShape(output ? output->getDims()
+                         : makeRuntimePlaceholder(input, shapeTensor->size())),
+      runtimeShape(true), allowZero(allowZero) {
+    IT_ASSERT(shapeTensor->getRank() == 1,
+              "Reshape shape input must be a 1-D Tensor");
+    IT_ASSERT(shapeTensor->getDType() == DataType::Int64,
+              "ONNX Reshape shape input must be Int64");
+    IT_ASSERT(checkValid(graph));
+}
 
 optional<vector<Shape>> ReshapeObj::inferShape(const TensorVec &inputs) {
     if (runtimeShape) {
@@ -113,7 +121,8 @@ optional<vector<Shape>> ReshapeObj::inferShape(const TensorVec &inputs) {
     }
 
     IT_ASSERT(inputs.size() == 1);
-    outputShape = resolveReshapeSpec(inputs[0]->getDims(), inputs[0]->size(), toInt64(dims), allowZero);
+    outputShape = resolveReshapeSpec(inputs[0]->getDims(), inputs[0]->size(),
+                                     toInt64(dims), allowZero);
 
     return {{outputShape}};
     /*
@@ -149,9 +158,6 @@ optional<vector<Shape>> ReshapeObj::inferShape(const TensorVec &inputs) {
     return {{outputShape}};*/
 }
 
-
-
-
 bool ReshapeObj::resolveRuntimeShape() {
     IT_ASSERT(runtimeShape,
               "resolveRuntimeShape is only valid for dynamic Reshape");
@@ -163,13 +169,12 @@ bool ReshapeObj::resolveRuntimeShape() {
               "Dynamic Reshape output rank cannot change in the first version");
     IT_ASSERT(shapeTensor->hasData(),
               "Runtime Reshape shape Tensor has no data");
-    IT_ASSERT(shapeTensor->getDataBlob()->getBytes() ==
-                  shapeTensor->getBytes(),
+    IT_ASSERT(shapeTensor->getDataBlob()->getBytes() == shapeTensor->getBytes(),
               "Runtime Reshape shape Tensor storage is invalid");
 
     const vector<int64_t> spec = shapeTensor->copyout<int64_t>();
-    Shape resolved = resolveReshapeSpec(inputs[0]->getDims(),
-                                        inputs[0]->size(), spec, allowZero);
+    Shape resolved = resolveReshapeSpec(inputs[0]->getDims(), inputs[0]->size(),
+                                        spec, allowZero);
 
     const bool changed = resolved != outputShape;
     outputShape = std::move(resolved);
@@ -270,7 +275,5 @@ vector<int> IdentityObj::getWorkloadVector() const {
     return ret;
 }
 vector<int> IdentityObj::getOpAttrVector() const { return {type.underlying()}; }
-
-
 
 } // namespace infini

@@ -14,7 +14,7 @@ optional<vector<Shape>> GatherObj::inferShape(const TensorVec &inputs) {
     auto dims0 = inputs[0]->getDims();
     auto dims1 = inputs[1]->getDims();
 
-    //IT_ASSERT(CheckIndexValid());
+    // IT_ASSERT(CheckIndexValid());
 
     Shape dim = dims0;
     dim.erase(dim.begin() + axis);
