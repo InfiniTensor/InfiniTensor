@@ -6,10 +6,6 @@
 #include <cstdint>
 #include <iostream>
 
-#ifdef USE_CUDA
-#include "cuda/cuda_runtime.h"
-#endif
-
 namespace infini {
 
 class GraphHandlerObj {
@@ -60,7 +56,8 @@ class GraphHandlerObj {
     Tensor silu(Tensor x, Tensor y);
     Tensor gelu(Tensor x, Tensor y);
     Tensor sigmoid(Tensor x, Tensor y);
-    Tensor hardSigmoid(Tensor x, Tensor y);
+    Tensor hardSigmoid(Tensor x, Tensor y, double alpha = 0.2,
+                       double beta = 0.5);
     Tensor hardSwish(Tensor x, Tensor y);
     Tensor tanh(Tensor x, Tensor y);
     Tensor erf(Tensor x, Tensor y);
@@ -151,11 +148,7 @@ class GraphHandlerObj {
 
     inline double get_perf_time() { return g->getRuntime()->getPerfTime(g); }
 
-#ifdef USE_CUDA
-    inline void run_with_cudagraph() {
-        (as<CudaRuntimeObj>(g->getRuntime()))->runWithCudaGraph(g);
-    }
-#endif
+    inline void run_with_graph() { g->getRuntime()->runWithGraph(g); }
 };
 
 } // namespace infini

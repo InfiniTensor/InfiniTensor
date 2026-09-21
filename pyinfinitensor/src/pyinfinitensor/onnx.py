@@ -26,6 +26,13 @@ from onnx.shape_inference import infer_shapes
 from onnx.numpy_helper import to_array, from_array
 from typing import Dict, List, Any, Tuple, Sequence, Union, Optional
 from functools import reduce
+try:
+    import onnxruntime as _onnxruntime
+except ModuleNotFoundError as error:
+    raise ModuleNotFoundError(
+        "pyinfinitensor ONNX import requires onnxruntime; install the "
+        "declared pyinfinitensor dependencies before importing OnnxStub"
+    ) from error
 from onnxsim import simplify
 import copy
 import warnings
@@ -573,9 +580,18 @@ class OnnxStub:
                     tensors.get(node.output[0]),
                 )
             elif node.op_type == "HardSigmoid":
+                alpha = next(
+                    (attr.f for attr in node.attribute if attr.name == "alpha"),
+                    0.2,
+                )
+                beta = next(
+                    (attr.f for attr in node.attribute if attr.name == "beta"),
+                    0.5,
+                )
                 tensors[node.output[0]] = self.handler.hardSigmoid(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
+                    alpha, beta,
                 )
             elif node.op_type == "HardSwish":
                 tensors[node.output[0]] = self.handler.hardSwish(
@@ -1526,8 +1542,8 @@ class OnnxStub:
     def run(self) -> None:
         self.handler.run()
 
-    def run_with_cudagraph(self) -> None:
-        self.handler.run_with_cudagraph()
+    def run_with_graph(self) -> None:
+        self.handler.run_with_graph()
 
     def get_perf_time(self) -> float:
         return self.handler.get_perf_time()

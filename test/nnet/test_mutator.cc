@@ -1,16 +1,24 @@
-#ifdef USE_CUDA
+#ifdef USE_INFINIOPS_KERNELS
 
 #include "core/blob.h"
 #include "core/dummy_mutator.h"
 #include "core/graph.h"
+#include "core/infini_runtime.h"
 #include "core/runtime.h"
 #include "core/search_engine.h"
-#include "cuda/cuda_runtime.h"
 #include "nnet/nmutator.h"
 #include "operators/conv.h"
 #include "test.h"
 
 namespace infini {
+
+namespace {
+Ref<InfiniRuntimeObj> makeTestInfiniRuntime() {
+    const auto type = ::infini::rt::runtime_device_type();
+    return make_ref<InfiniRuntimeObj>(
+        string(::infini::rt::Device::StringFromType(type)));
+}
+} // namespace
 
 TEST(Mutator, NaiveConvWithInterpreter) {
     // verifyNaiveMembound True: subgraph after transformation
@@ -59,7 +67,7 @@ TEST(Mutator, NaiveConvWithInterpreter) {
 // FIXME: failed since implicit transpose for DLT
 TEST(Mutator, InfoGAN_TConv_3_correctness) {
     const bool useMutatorDirectly = true;
-    Runtime runtime = make_ref<CudaRuntimeObj>();
+    Runtime runtime = makeTestInfiniRuntime();
     Graph g = make_ref<GraphObj>(runtime);
     Runtime cpu = NativeCpuRuntimeObj::getInstance(); // CPUruntime is singleton
     Graph gCpu = make_ref<GraphObj>(cpu);

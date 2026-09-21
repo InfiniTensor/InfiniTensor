@@ -4,7 +4,7 @@
 #include "core/tensor.h"
 
 namespace infini {
-using KernelAttrs = std::tuple<Device, OpType::underlying_t>;
+using KernelAttrs = std::tuple<ExecutionProvider, OpType::underlying_t>;
 
 struct OpPerfKey {
     HashType hash;

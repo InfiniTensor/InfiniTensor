@@ -42,6 +42,7 @@ class NaiveMatmul : public CpuKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CPU, OpType::MatMul, NaiveMatmul, "MatmulNaive_CPU");
+REGISTER_KERNEL(ExecutionProvider::NativeCpu, OpType::MatMul, NaiveMatmul,
+                "MatmulNaive_CPU");
 
 } // namespace infini

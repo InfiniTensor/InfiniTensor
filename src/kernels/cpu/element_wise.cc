@@ -129,18 +129,22 @@ class NativeElementWise : public CpuKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CPU, OpType::Add, NativeElementWise, "addNaive_CPU");
-REGISTER_KERNEL(Device::CPU, OpType::Sub, NativeElementWise, "subNaive_CPU");
-REGISTER_KERNEL(Device::CPU, OpType::Mul, NativeElementWise, "mulNaive_CPU");
-REGISTER_KERNEL(Device::CPU, OpType::Div, NativeElementWise, "divNaive_CPU");
-REGISTER_KERNEL(Device::CPU, OpType::Equal, NativeElementWise,
+REGISTER_KERNEL(ExecutionProvider::NativeCpu, OpType::Add, NativeElementWise,
+                "addNaive_CPU");
+REGISTER_KERNEL(ExecutionProvider::NativeCpu, OpType::Sub, NativeElementWise,
+                "subNaive_CPU");
+REGISTER_KERNEL(ExecutionProvider::NativeCpu, OpType::Mul, NativeElementWise,
+                "mulNaive_CPU");
+REGISTER_KERNEL(ExecutionProvider::NativeCpu, OpType::Div, NativeElementWise,
+                "divNaive_CPU");
+REGISTER_KERNEL(ExecutionProvider::NativeCpu, OpType::Equal, NativeElementWise,
                 "equalNaive_CPU");
-REGISTER_KERNEL(Device::CPU, OpType::GreaterOrEqual, NativeElementWise,
-                "greaterEqualNaive_CPU");
-REGISTER_KERNEL(Device::CPU, OpType::Greater, NativeElementWise,
-                "greaterThanNaive_CPU");
-REGISTER_KERNEL(Device::CPU, OpType::LessOrEqual, NativeElementWise,
-                "lessEqualNaive_CPU");
-REGISTER_KERNEL(Device::CPU, OpType::Less, NativeElementWise,
+REGISTER_KERNEL(ExecutionProvider::NativeCpu, OpType::GreaterOrEqual,
+                NativeElementWise, "greaterEqualNaive_CPU");
+REGISTER_KERNEL(ExecutionProvider::NativeCpu, OpType::Greater,
+                NativeElementWise, "greaterThanNaive_CPU");
+REGISTER_KERNEL(ExecutionProvider::NativeCpu, OpType::LessOrEqual,
+                NativeElementWise, "lessEqualNaive_CPU");
+REGISTER_KERNEL(ExecutionProvider::NativeCpu, OpType::Less, NativeElementWise,
                 "lessEqualNaive_CPU");
 }; // namespace infini

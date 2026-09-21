@@ -299,7 +299,21 @@ DEFINE_UNARY_OBJ(Sigmoid, OpType::Sigmoid)
 DEFINE_UNARY_OBJ(Tanh, OpType::Tanh)
 // DEFINE_UNARY_OBJ(Softmax, OpType::Softmax)
 DEFINE_UNARY_OBJ(Abs, OpType::Abs)
-DEFINE_UNARY_OBJ(HardSigmoid, OpType::HardSigmoid)
+class HardSigmoidObj : public UnaryObj {
+  public:
+    HardSigmoidObj(GraphObj *graph, Tensor input, Tensor output,
+                   double alpha = 0.2, double beta = 0.5)
+        : UnaryObj(OpType::HardSigmoid, graph, input, output), alpha_(alpha),
+          beta_(beta) {}
+    OP_CLONE(HardSigmoidObj);
+
+    double getAlpha() const { return alpha_; }
+    double getBeta() const { return beta_; }
+
+  private:
+    double alpha_;
+    double beta_;
+};
 DEFINE_UNARY_OBJ(HardSwish, OpType::HardSwish)
 
 DEFINE_UNARY_OBJ(Sin, OpType::Sin)

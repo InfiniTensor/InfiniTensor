@@ -1,4 +1,4 @@
-
+import os
 import paddle
 import paddle.vision.transforms as T
 from paddle.vision.datasets import Cifar10
@@ -49,7 +49,9 @@ def run_cifar_train_and_infer():
     # 加载onnx模型并放到Infinitensor中
     model_path = save_path + ".onnx"
     onnx_model = onnx.load(model_path)
-    gofusion_model = OnnxStub(onnx_model, backend.cuda_runtime())
+    gofusion_model = OnnxStub(
+        onnx_model, backend.runtime(os.getenv("INFINITENSOR_DEVICE", "cpu"))
+    )
     model = gofusion_model
     model.init()
 

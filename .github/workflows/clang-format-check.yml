@@ -1,13 +1,14 @@
 name: clang-format Check
 on:
   push:
+    branches: [master]
     paths-ignore:
-      - '**.md'
-      - 'LICENSE'
+      - "**.md"
+      - "LICENSE"
   pull_request:
-    paths:
-      - '**.md'
-      - 'LICENSE'
+    paths-ignore:
+      - "**.md"
+      - "LICENSE"
 
 jobs:
   formatting-check:
@@ -16,13 +17,13 @@ jobs:
     strategy:
       matrix:
         path:
-          - 'include'
-          - 'src'
-          - 'test'
+          - "include"
+          - "src"
+          - "test"
     steps:
     - uses: actions/checkout@v3
     - name: Run clang-format style check for C/C++/Protobuf programs.
       uses: jidicula/clang-format-action@v4.8.0
       with:
-        clang-format-version: '14'
+        clang-format-version: "14"
         check-path: ${{ matrix.path }}

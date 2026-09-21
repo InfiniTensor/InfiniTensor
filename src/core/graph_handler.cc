@@ -227,7 +227,16 @@ DEFINE_UNARY_METHOD(relu, Relu)
 DEFINE_UNARY_METHOD(gelu, Gelu)
 DEFINE_UNARY_METHOD(sigmoid, Sigmoid)
 DEFINE_UNARY_METHOD(tanh, Tanh)
-DEFINE_UNARY_METHOD(hardSigmoid, HardSigmoid)
+Tensor GraphHandlerObj::hardSigmoid(Tensor x, Tensor y, double alpha,
+                                    double beta) {
+    if (y) {
+        g->addOpWithOutputs<HardSigmoidObj>(std::move(x), y, alpha, beta);
+        return y;
+    } else {
+        auto op = g->addOp<HardSigmoidObj>(std::move(x), nullptr, alpha, beta);
+        return op->getOutput();
+    }
+}
 DEFINE_UNARY_METHOD(hardSwish, HardSwish)
 DEFINE_UNARY_METHOD(abs, Abs)
 DEFINE_UNARY_METHOD(sqrt, Sqrt)

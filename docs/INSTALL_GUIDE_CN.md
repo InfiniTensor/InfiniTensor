@@ -1,194 +1,147 @@
-﻿# 安装部署指南
+# 安装部署指南
 
-## 目录
+## 前置条件
 
-- [环境准备](#环境准备)
-- [编译本项目](#编译本项目)
-- [技术支持](#技术支持)
+InfiniTensor 负责计算图、ONNX 前端和执行调度。加速设备的算子实现与运行时由 InfiniOps 和 InfiniRT 提供。使用加速设备前，先在目标环境中完成与该设备匹配的 InfiniRT 和 InfiniOps 安装；InfiniTensor 不直接依赖厂商 SDK。
 
-## 环境准备
+需要准备：
 
-目前的软硬件环境支持矩阵
+- CMake 3.17 或更高版本；
+- 可用的 C/C++ 编译器、Python 3、pip 和 make；
+- 构建加速后端时，使用与 InfiniOps 相同的 Python/PyTorch 及 C++11 ABI；
+- 驱动、厂商 SDK、InfiniRT 和 InfiniOps 已在目标机器上完成各自的基础验证。
 
-| Host CPU | Device        | OS            |  Support   |
-| -------- | ------------  | -----------   | ---------- |
-| X86-64   | Nvidia GPU    |  Ubuntu-22.04 |  Yes       |
-| X86-64   | Cambricon MLU |  Ubuntu-22.04 |  Yes       |
-| arm64    | Ascend NPU    |OpenEuler-22.03|  Yes       |
+普通 Release 构建默认 `BACKTRACE=OFF`，不需要 `libdw-dev`。只有启用 backtrace 时才需要该系统依赖。
 
-推荐使用 X86-64 机器以及 Ubuntu-22.04，本文以此环境为例。
+## 获取源码
 
-1. 确认 GCC 版本为 11.3 及以上的稳定版本，如若您的机器 GCC 版本不满足此条件，请自行编译安装，下述方式二选一：
+GitHub 操作使用 SSH：
 
-   - [GCC 官方文档](https://gcc.gnu.org/onlinedocs/gcc-11.3.0/gcc/)
-
-   - [网友安装分享](https://zhuanlan.zhihu.com/p/509695395)
-
-2. 确认 CMake 版本为 3.17 及以上的稳定版本， 如若您的机器 CMake 版本不满足此条件，请自行编译安装，下述方式二选一：
-
-   - [CMake 官方文档](https://cmake.org/install/)
-
-   - [网友安装分享](https://zhuanlan.zhihu.com/p/110793004)
-
-3. 第三方加速卡软件资源安装，目前本项目已经适配了如下的第三方加速卡：
-
-   - 如您的第三方加速卡为英伟达 GPU，请参考英伟达官方文档进行：
-
-     > [驱动安装](https://www.nvidia.cn/geforce/drivers/)，
-     > [CUDA Toolkit 安装](https://developer.nvidia.com/cuda-toolkit)，
-     > [Cudnn 安装](https://developer.nvidia.com/rdp/cudnn-download)，
-     > [Cublas 安装](https://developer.nvidia.com/cublas)，
-     > 安装完成后请进行相应的环境变量配置，将可执行文件目录与库目录添加到操作系统识别的路径中，例如
-     >
-     > ```bash
-     > # 将如下内容写入到你的 bashrc 文件并 source 该文件
-     > export CUDA_HOME="/PATH/TO/YOUR/CUDA_HOME"
-     > export CUDNN_HOME="/PATH/TO/YOUR/CUDNN_HOME"
-     > export PATH="${CUDA_HOME}/bin:${PATH}"
-     > export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${LD_LIBRARY_PATH}"
-     > # 如您不方便将上述环境变量配置到 bashrc 文件中进行长期使用，你也可以在我们提供的 env.sh 文件中进行正确配置并激活，作为临时使用
-     > source env.sh
-     > ```
-
-     我们强烈建议您规范安装，统一到一个目录下，以免不必要的麻烦。
-
-   - 如您的第三方加速卡为寒武纪 MLU，请参考寒武纪官方文档进行：
-     > [驱动安装](https://www.cambricon.com/docs/sdk_1.11.0/driver_5.10.6/user_guide_5.10.6/index.html)，
-     > [CNToolkit 安装](https://www.cambricon.com/docs/sdk_1.11.0/cntoolkit_3.4.1/cntoolkit_install_3.4.1/index.html)，
-     > [CNNL 安装](https://www.cambricon.com/docs/sdk_1.11.0/cambricon_cnnl_1.16.1/user_guide/index.html)，
-     > 安装完成后请进行相应的环境变量配置，将可执行文件目录与库目录添加到操作系统识别的路径中，例如
-     >
-     > ```bash
-     > # 将如下内容写入到你的 bashrc 文件并 source 该文件
-     > export NEUWARE_HOME="/usr/local/neuware"
-     > export PATH="${NEUWARE_HOME}/bin:${PATH}"
-     > export LD_LIBRARY_PATH="${NEUWARE_HOME}/lib64:${LD_LIBRARY_PATH}"
-     > # 如您不方便将上述环境变量配置到 bashrc 文件中进行长期使用，你也可以在我们提供的 env.sh 文件中进行正确配置并激活，作为临时使用
-     > source env.sh
-     > ```
-
-     我们强烈建议您规范安装，统一到一个目录下，以免不必要的麻烦。另外请注意，由于 MLU 上层软件建设适配程度有限，如您在其覆盖的机器，操作系统之外运行，需要在安装驱动之后使用上层软件的 Docker。
-
-   - 如您的第三方加速卡为昇腾 NPU，请参考昇腾官方文档进行：
-     > [驱动及CANN安装](https://www.hiascend.com/document/detail/zh/canncommercial/80RC1/quickstart/quickstart/quickstart_18_0006.html)
-     > 安装完成后请进行相应的环境变量配置，将可执行文件目录与库目录添加到操作系统识别的路径中，例如
-     >
-     > ```bash
-     > # 将如下内容写入到你的 bashrc 文件并 source 该文件
-     > export ASCEND_HOME=/usr/local/Ascend/ascend-toolkit/latest
-     > source /usr/local/Ascend/ascend-toolkit/set_env.sh
-     > # 如您不方便将上述环境变量配置到 bashrc 文件中进行长期使用，你也可以在我们提供的 env.sh 文件中进行正确配置并激活，作为临时使用
-     > source env.sh
-     > ```
-
-     我们强烈建议您规范安装，统一到一个目录下，以免不必要的麻烦。
-     
-4. 确认您安装了 make，build-essential， python-is-python3， python-dev-is-python3， python3-pip， libdw-dev，如您的机器没有上述基础依赖，请自行按需安装。
-
-   - 在使用 apt-get 工具情况下，您可以这样执行
-
-     ```bash
-     sudo apt-get install make cmake build-essential python-is-python3 python-dev-is-python3 python3-pip libdw-dev
-     ```
-
-5. 更新pip并切换到清华源
-
-   ```bash
-   python -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --upgrade pip
-   pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
-   ```
-
-6. 安装一些不必要的项目（可选）
-
-   - 如您需要运行本项目下的 example 代码，您需要安装一些辅助项目。请注意这些项目不是必要的，若您不需要运行样例代码，这些项目无需安装。
-
-     > [Pytorch](https://pytorch.org/get-started/locally/)：业界内流行的神经网络编程框架
-     > [ONNX](https://onnx.ai/get-started.html)：业界内流行的神经网络模型存储文件与转换器
-     > [onnxsim](https://pypi.org/project/onnxsim/)：一个简化onnx模型的小工具
-     > [onnx2torch](https://github.com/ENOT-AutoDL/onnx2torch)：一个将onnx模型转换pytorch模型的小工具
-     > [tqdm](https://pypi.org/project/tqdm/)：一个显示程序运行进度条的小工具
-
-   - 如您需要使用本项目下的 InfiniTest 测试工具，你还需要安装如下的项目：
-
-     > [protobuf](https://github.com/protocolbuffers/protobuf)： 一种序列化文件的格式及其编译、序列化、解析工具
-
-## 编译本项目
-
-推荐使用 X86-64 机器以及 Ubuntu-22.04，本文以此环境为例。
-
-1. 配置环境
-
-   打开 env.sh 文件进行环境变量配置，之后执行
-
-   ```bash
-   source env.sh
-   ```
-
-2. 编译本项目并打包成 Python 库进行安装
-
-   我们提供了意见编译参数，您可以在项目根目录下执行下面的命令。第一次执行会同时安装 python 依赖库，耗时略长，请耐心等待。
-
-   仅编译 CPU 部分，不编译第三方计算卡：
-
-   ```bash
-   make install-python
-   ```
-
-   编译 CPU 部分，同时编译英伟达 GPU 部分：
-
-   ```bash
-   export CUDA_HOME=/path/to/your/cuda_home
-   make install-python CUDA=ON
-   ```
-
-   编译 CPU 部分，同时编译寒武纪 MLU 部分：
-
-   ```bash
-   export NEUWARE_HOME=/path/to/your/neuware_home
-   make install-python BANG=ON
-   ```
-
-   编译 CPU 部分，同时编译昆仑 XPU 部分：
-
-   ```bash
-   export KUNLUN_HOME=/path/to/your/kunlun_home
-   make install-python KUNLUN=ON
-   ```
-
-   编译 CPU 部分，同时编译昇腾 NPU 部分：
-
-   ```bash
-   export ASCEND_HOME=/path/to/your/ascend_home
-   make install-python ASCEND=ON
-   ```
-
-3. 使用方法
-
-   安装成功后，您就可以使用本项目的 Python 接口进行编码并运行。具体使用方式可以参考项目样例代码 example/Resnet/resnet.py 以及用户使用手册
-
-## Docker
-
-本项目也提供了 Docker 的环境，您可以使用 `make docker-build` 或 `make docker-build CUDA=ON` 命令启动并编译 Dockerfile，您可以通过添加编译选项或者修改 Makefile 变量修改 docker image 名称或者所选的 Dockerfile 文件。
- 
-由于在拉取 github repo 时需要将 ssh key 加入到 github profile 中，因此暂时注释掉拉取 repo 并编译项目的过程，由用户在进入 docker 后自己维护 ssh key（将 host 中的 ssh key 复制到 docker 中可能会遇到环境不一致的问题）。
-
-```shell
-# Build docker container.
-make docker-build
-# Run docker image.
-make docker-run
-# Execute docker image.
-make docker-exec
+```bash
+git clone git@github.com:InfiniTensor/InfiniTensor.git
+cd InfiniTensor
+git submodule update --init --recursive
 ```
 
-如果需要编译 CUDA 版，请使用如下命令：
-```shell
-# Build docker container.
-make docker-build CUDA=ON
-# Run docker image.
-make docker-run CUDA=ON
+`3rd-party/InfiniOps` 和 `3rd-party/InfiniRT` 固定当前版本对应的下层源码版本。它们不会在构建 InfiniTensor 时自动编译。下层构建参数、厂商 SDK 和设备架构参数应留在各自仓库中维护。
+
+## 仅使用 CPU
+
+```bash
+make install-python \
+  INFINI=OFF \
+  PYTHON="$(command -v python3)"
 ```
 
-## 技术支持
+## 使用加速设备
 
-如遇到问题，请联系我们技术支持团队
+先设置已经安装好的、彼此兼容的 InfiniOps 和 InfiniRT 前缀：
+
+```bash
+export INFINIOPS_ROOT=/path/to/infiniops-prefix
+export INFINIRT_ROOT=/path/to/infinirt-prefix
+```
+
+然后构建并安装：
+
+```bash
+make install-python \
+  INFINI=ON \
+  ATEN=ON \
+  INFINIOPS_ROOT="$INFINIOPS_ROOT" \
+  INFINIRT_ROOT="$INFINIRT_ROOT" \
+  PYTHON="$(command -v python3)"
+```
+
+如果 InfiniOps 后端依赖 Python provider，在安装和运行时使用同一组模块：
+
+```bash
+make install-python \
+  INFINI=ON \
+  ATEN=ON \
+  INFINIOPS_ROOT="$INFINIOPS_ROOT" \
+  INFINIRT_ROOT="$INFINIRT_ROOT" \
+  PROVIDER_MODULES=provider_module \
+  PYTHON="$(command -v python3)"
+
+export INFINIOPS_PROVIDER_MODULES=provider_module
+```
+
+`INFINIOPS_ROOT` 和 `INFINIRT_ROOT` 必须来自同一套兼容构建。ATen 版本的 InfiniOps 必须以 `WITH_TORCH=ON` 构建，并与当前 Python/PyTorch 使用相同的 C++11 ABI。若 provider 动态库不在 Python/PyTorch 环境的默认搜索路径中，可设置 `INFINIOPS_PROVIDER_LIBRARY_DIRS`。
+
+Ascend ATen 构建还需要与 PyTorch 匹配、提供
+`c10_npu::getStreamFromExternal` 的 torch_npu。对于 PyTorch 2.7.1，使用
+torch_npu 2.7.1.post10；原始 2.7.1 wheel 缺少此接口，会在 InfiniOps
+配置阶段被拒绝。InfiniOps 使用 NPU 专用 `from_blob` 封装 InfiniRT 分配的
+内存，并将生成的 ATen 算子绑定到 InfiniRT 的流。
+
+必须在导入 torch_npu 之前设置 `TASK_QUEUE_ENABLE=0`。当前 torch_npu 的
+主机异步任务队列无法保证外部流上 ATen 算子与 InfiniRT 复制、捕获结束之间
+的提交顺序；启用该队列会被明确拒绝。此设置关闭主机侧的延迟提交，设备流
+仍可异步执行，图捕获与重放仍然可用。
+
+Ascend ATen 图捕获还依赖 InfiniOps 的 `BeginGraphCaptureMemory` 接口。
+请使用本仓库固定版本的 InfiniOps 重新构建，保证安装的头文件和动态库一致。
+每个缓存图持有独立的 torch_npu 内存池，保留由其缓存分配器管理的 ATen 临时张量；
+调用 `torch.npu.empty_cache()` 不会释放这些仍被图引用的内存。图失效、
+被缓存淘汰或执行 `runtime.clear_graph_cache()` 后，其内存池才可被回收。
+MaxPool 只需要池化值，Ascend 的辅助掩码由 provider 自行分配，避免将
+CPU/CUDA 的 INT64 indices 格式套用于 torch_npu 的内部表示。
+
+运行时先导入 `torch_npu` 并初始化 NPU；使用 Python 包安装入口时，将
+`PROVIDER_MODULES` / `INFINIOPS_PROVIDER_MODULES` 设置为 `torch_npu`。
+在加载 CANN 环境后，可对构建目录执行以下普通运行及捕获重放回归：
+
+```bash
+TASK_QUEUE_ENABLE=0 PYTHONPATH=/path/to/infinitensor-build:$PYTHONPATH \
+  python test/infini/test_ascend_aten.py
+```
+
+Ascend ATen 依赖上述 Python/provider 初始化，不支持直接从未初始化的
+独立 C++ 进程调用。`test_workspace_graph_capture` 在 Ascend 上跳过
+BN/MaxPool 数值用例；该覆盖由上述 Python 入口负责，包括动态通道数、
+两种分配器和捕获重放。C++ 的工作区所有权与异常恢复用例仍然执行。
+硬件验证必须同时运行此 Python 入口及 CTest；已知支持图捕获的设备应设置
+`INFINITENSOR_REQUIRE_GRAPH_CAPTURE=1`，避免将图能力错误作为跳过处理。
+
+原生构建不依赖 PyTorch 或上述 NPU provider。可运行
+`bash scripts/test_infiniops_native_build.sh`，从固定子模块提交创建全新的
+CPU provider 源码、构建及安装目录，验证 `USE_INFINIOPS_ATEN_KERNELS=OFF`。
+
+## 验证安装
+
+先确认 Python 包可以导入：
+
+```bash
+python3 -c 'import pyinfinitensor; import backend; print(pyinfinitensor.__file__); print(backend.__file__)'
+```
+
+CPU 可用时可创建 CPU runtime：
+
+```bash
+python3 - <<'PY'
+from pyinfinitensor import backend
+print(backend.runtime("cpu", 0))
+PY
+```
+
+加速设备名称由 InfiniRT 决定。使用目标环境实际提供的名称和可见设备编号创建 runtime；名称无效、设备不可见或下层后端未构建时会直接报错，不会回退到 CPU。
+
+项目内测试入口：
+
+```bash
+make test-cpp
+make test-onnx
+make test-api
+```
+
+## 分布式执行
+
+当前通用 Infini 后端只支持单设备执行。`BUILD_DIST=ON` 会在 CMake 配置阶段明确报错。分布式通信将在后续 InfiniCCL 集成中单独实现和验证。
+
+## 常见问题
+
+- `InfiniOps` 或 `InfiniRT` 未找到：检查两个前缀及其 CMake 包是否完整。
+- Python/PyTorch ABI 不一致：使用与 InfiniOps ATen 构建相同的 Python/PyTorch 环境重新构建。
+- provider 导入失败：先加载该后端要求的 Python provider，并确认其动态库搜索路径。
+- 设备 runtime 创建失败：检查设备名称、可见设备编号、驱动和下层运行时安装。
