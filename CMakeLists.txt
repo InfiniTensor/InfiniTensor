@@ -242,6 +242,14 @@ if(USE_INFINIOPS_KERNELS)
   if(NOT INFINIOPS_INCLUDE_DIR OR NOT INFINIOPS_LIBRARY)
     message(FATAL_ERROR "Could not find InfiniOps headers/libraries under INFINIOPS_ROOT=${INFINIOPS_ROOT}")
   endif()
+  if(USE_INFINIOPS_ATEN_KERNELS AND
+     (NOT EXISTS "${INFINIOPS_INCLUDE_DIR}/infini/ops/graph_capture.h" OR
+      NOT EXISTS "${INFINIOPS_INCLUDE_DIR}/infini/ops/pooling.h"))
+    message(FATAL_ERROR
+      "The InfiniOps ATen provider lacks capture memory or value-only pooling support. "
+      "Rebuild and install the pinned 3rd-party/InfiniOps revision, then set "
+      "INFINIOPS_ROOT to that installation.")
+  endif()
   if(NOT TARGET InfiniRT::infinirt)
     message(FATAL_ERROR "InfiniRT::infinirt is unavailable under INFINIRT_ROOT=${INFINIRT_ROOT}")
   endif()

@@ -5,6 +5,10 @@
 #include "core/kernel.h"
 #include "core/perf_engine.h"
 
+#ifdef USE_INFINIOPS_ATEN_KERNELS
+#include <infini/ops/graph_capture.h>
+#endif
+
 #include <algorithm>
 #include <cstdio>
 #include <stdexcept>
@@ -287,6 +291,13 @@ InfiniRuntimeObj::captureGraph(const Graph &graph, CapturedGraphState state) {
         runWithoutSyncImpl(graph, false);
         syncImpl();
         replayCaptureWorkspaces = true;
+#ifdef USE_INFINIOPS_ATEN_KERNELS
+        // ATen can allocate intermediates independently of acquireWorkspace.
+        // Redirect those allocations before starting the native capture and
+        // keep their pool alive with this graph, including between replays.
+        entry->providerCaptureMemory =
+            ::infini::ops::BeginGraphCaptureMemory(runtimeDevice, getStream());
+#endif
         checkInfiniRt(::infini::rt::runtime::StreamBeginCapture(
                           stream, ::infini::rt::runtime::StreamCaptureMode::
                                       kStreamCaptureModeThreadLocal),
@@ -300,6 +311,10 @@ InfiniRuntimeObj::captureGraph(const Graph &graph, CapturedGraphState state) {
             ::infini::rt::runtime::StreamEndCapture(stream, &entry->graph);
         captureStarted = false;
         streamCaptureActive = false;
+#ifdef USE_INFINIOPS_ATEN_KERNELS
+        if (entry->providerCaptureMemory)
+            entry->providerCaptureMemory->EndCapture();
+#endif
         checkInfiniRt(endStatus, "InfiniRT StreamEndCapture");
         checkInfiniRt(::infini::rt::runtime::GraphInstantiate(&entry->instance,
                                                               entry->graph),
@@ -332,6 +347,9 @@ InfiniRuntimeObj::captureGraph(const Graph &graph, CapturedGraphState state) {
                              ::infini::rt::runtime::GraphDestroy(entry->graph));
             entry->graph = {};
         }
+        // Destruction ends any unfinished allocator scope, including when
+        // StreamBeginCapture/EndCapture or a captured operator threw.
+        entry->providerCaptureMemory.reset();
         recoverExecutionStreamAfterFailure();
         std::rethrow_exception(originalError);
     }
@@ -352,6 +370,8 @@ void InfiniRuntimeObj::destroyGraphEntry(GraphCacheEntry &entry) noexcept {
                          ::infini::rt::runtime::GraphDestroy(entry.graph));
         entry.graph = {};
     }
+    // Provider intermediates must outlive both graph handles.
+    entry.providerCaptureMemory.reset();
 }
 
 void InfiniRuntimeObj::markActiveGraph(GraphCache::iterator entry,

@@ -1,28 +1,6 @@
 #include "infiniops_dispatch.h"
 #include "core/common.h"
 
-#include <base/add.h>
-#include <base/avg_pool2d.h>
-#include <base/cat.h>
-#include <base/clip.h>
-#include <base/convolution.h>
-#include <base/expand_copy.h>
-#include <base/gelu.h>
-#include <base/hardsigmoid.h>
-#include <base/matmul.h>
-#include <base/max_pool2d_with_indices.h>
-#include <base/mean.h>
-#include <base/mul.h>
-#include <base/native_batch_norm.h>
-#include <base/permute_copy.h>
-#include <base/relu.h>
-#include <base/rms_norm.h>
-#include <base/rotary_embedding_infinilm.h>
-#include <base/sigmoid.h>
-#include <base/silu.h>
-#include <base/slice_copy.h>
-#include <base/softmax.h>
-
 #include <algorithm>
 
 #if defined(__GNUC__) || defined(__clang__)
@@ -30,6 +8,33 @@
 #else
 #define INFINIOPS_OPTIONAL_DISPATCH
 #endif
+
+// These operator names are only dispatch keys. Some of their definitions are
+// generated only by WITH_TORCH builds of InfiniOps, so the bridge must not
+// include their headers when consuming a native-only provider.
+namespace infini::ops {
+class Add;
+class AvgPool2d;
+class Cat;
+class Clip;
+class Convolution;
+class ExpandCopy;
+class Gelu;
+class Hardsigmoid;
+class Matmul;
+class MaxPool2dWithIndices;
+class Mean;
+class Mul;
+class NativeBatchNorm;
+class PermuteCopy;
+class Relu;
+class RmsNorm;
+class RotaryEmbeddingInfinilm;
+class Sigmoid;
+class Silu;
+class SliceCopy;
+class Softmax;
+} // namespace infini::ops
 
 namespace infini::ops::generated_dispatch {
 
