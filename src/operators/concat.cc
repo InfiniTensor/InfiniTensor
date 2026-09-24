@@ -12,6 +12,9 @@ ConcatObj::ConcatObj(GraphObj *graph, TensorVec inputs, Tensor output, int _dim)
 optional<vector<Shape>> ConcatObj::inferShape(const TensorVec &inputs) {
     Shape dims = inputs[0]->getDims();
     auto rank = inputs[0]->getRank();
+    for (const auto &input : inputs)
+        IT_ASSERT(input->getDType() == inputs[0]->getDType(),
+                  "Concat inputs must have the same dtype");
     if (inputs.size() == 2) {
         for (size_t i = 0; i < inputs.size(); ++i) {
             if (inputs[i]->size() == 0) {

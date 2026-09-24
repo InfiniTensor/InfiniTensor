@@ -144,8 +144,8 @@ class TestOnnxStubImport(unittest.TestCase):
         weight = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
         model = make_model(
             [helper.make_node("MatMul", ["x", "weight"], ["y"])],
-            [value_info("x", [1, 2])],
-            [value_info("y", [1, 2])],
+            [value_info("x", ["batch", 2])],
+            [value_info("y", ["batch", 2])],
             [initializer("weight", weight)],
         )
         for use_naive_allocator in (False, True):
@@ -163,9 +163,7 @@ class TestOnnxStubImport(unittest.TestCase):
                 if not use_naive_allocator:
                     stub.trim_memory()
                     stub.run()
-                    actual = np.asarray(stub.outputs["y"].copyout_float()).reshape(
-                        3, 2
-                    )
+                    actual = np.asarray(stub.outputs["y"].copyout_float()).reshape(3, 2)
                     np.testing.assert_allclose(actual, x @ weight)
 
 
@@ -278,9 +276,7 @@ class TestStaticOnnxInputs(unittest.TestCase):
             import_model(nonzero)
 
     def test_dropout_inference_and_unsupported_features(self):
-        inference_training = initializer(
-            "training", np.array(False, dtype=np.bool_)
-        )
+        inference_training = initializer("training", np.array(False, dtype=np.bool_))
         inference_model = make_model(
             [helper.make_node("Dropout", ["x", "ratio", "training"], ["y"])],
             [
@@ -487,9 +483,7 @@ class TestOnnxStubCuda(unittest.TestCase):
                 if not use_naive_allocator:
                     stub.trim_memory()
                     stub.run()
-                    actual = np.asarray(stub.outputs["y"].copyout_float()).reshape(
-                        2, 2
-                    )
+                    actual = np.asarray(stub.outputs["y"].copyout_float()).reshape(2, 2)
                     np.testing.assert_allclose(actual, x @ weight, rtol=1e-5, atol=1e-6)
 
 

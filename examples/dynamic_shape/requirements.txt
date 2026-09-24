@@ -1,0 +1,7 @@
+# Inference, tests and benchmarks (Python >= 3.10).
+numpy>=1.24,<3
+onnx>=1.14,<2
+onnxsim>=0.4
+onnxruntime>=1.20,<2
+# Optional training/export: torch==2.9.0 scikit-learn==1.7.2
+# Optional PDF regeneration: reportlab==4.4.4 matplotlib

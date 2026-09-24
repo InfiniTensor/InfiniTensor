@@ -200,8 +200,15 @@ Tensor GraphObj::getTensor(int fuid) const {
 }
 
 void GraphObj::shape_infer() {
+    IT_ASSERT(topo_sort(), "Shape inference requires an acyclic graph");
+    shapeTensorValues.clear();
+    const auto previousShapeOperators = shapeOperators;
+    shapeOperators.clear();
     for (auto &op : ops) {
-        auto ans = op->inferShape();
+        auto inferenceInputs = op->getInputs();
+        if (op->getOpType() == OpType::Reshape && inferenceInputs.size() == 2)
+            inferenceInputs[1] = evaluateShapeTensor(inferenceInputs[1]);
+        auto ans = op->inferShape(inferenceInputs);
         IT_ASSERT(ans.has_value());
         auto oldOutputs = op->getOutputs();
         IT_ASSERT(ans.value().size() == oldOutputs.size());
@@ -215,7 +222,10 @@ void GraphObj::shape_infer() {
                 tensor->setShape(newShape);
             }
         }
+        evaluateShapeOperator(op);
     }
+    if (shapeOperators != previousShapeOperators)
+        captureState->markTopologyChanged();
 }
 
 void GraphObj::lockAllocationMode(bool useNaiveAllocator, size_t memPoolSize) {
@@ -246,7 +256,8 @@ void GraphObj::lockAllocationMode(bool useNaiveAllocator, size_t memPoolSize) {
 }
 
 void GraphObj::dataMalloc(bool useNaiveAllocator, size_t memPoolSize) {
-    dataMallocImpl(useNaiveAllocator, memPoolSize, false);
+    dataMallocImpl(useNaiveAllocator, memPoolSize, !reuseMemory);
+    uploadShapeTensors();
 }
 
 void GraphObj::trimMemory() {
@@ -255,6 +266,7 @@ void GraphObj::trimMemory() {
     IT_ASSERT(!allocator.hasLiveHeapBlobs(),
               "Cannot trim memory while heap tensors are still alive");
     dataMallocImpl(false, 0, true);
+    uploadShapeTensors();
 }
 
 void GraphObj::dataMallocImpl(bool useNaiveAllocator, size_t memPoolSize,
@@ -409,7 +421,8 @@ void GraphObj::dataMallocImplCore(bool useNaiveAllocator, size_t memPoolSize,
                 tensorToOffset[tensor.get()] =
                     allocator.allocWeight(tensor->getBytes());
             }
-        } else if (tensor->isInput() || tensor->isOutput()) {
+        } else if (tensor->isInput() || tensor->isOutput() ||
+                   isShapeTensor(tensor)) {
             // allocate memory for all input and output tensors, and this memory
             // will not be reused later
             tensorToOffset[tensor.get()] = allocator.alloc(tensor->getBytes());
@@ -456,7 +469,7 @@ void GraphObj::dataMallocImplCore(bool useNaiveAllocator, size_t memPoolSize,
         auto outputs = op->getOutputs();
         for (auto &tensor : outputs) {
             if (tensor) {
-                if (tensor->isOthers()) {
+                if (tensor->isOthers() && !isShapeTensor(tensor)) {
                     tensorToOffset[tensor.get()] =
                         allocator.alloc(tensor->getBytes());
                 }
@@ -465,7 +478,7 @@ void GraphObj::dataMallocImplCore(bool useNaiveAllocator, size_t memPoolSize,
         auto inputs = op->getInputs();
         for (auto &tensor : inputs) {
             if (tensor) {
-                if (tensor->isOthers()) {
+                if (tensor->isOthers() && !isShapeTensor(tensor)) {
                     auto tensorIter = tensorToRefCount.find(tensor.get());
                     IT_ASSERT(tensorIter != tensorToRefCount.end());
                     IT_ASSERT(tensorToRefCount[tensor.get()] > 0);

@@ -42,6 +42,7 @@ build_debug/
 
 # onnx model
 *.onnx
+!examples/dynamic_shape/artifacts/digits_cnn.onnx
 *.pb
 *.npy
 

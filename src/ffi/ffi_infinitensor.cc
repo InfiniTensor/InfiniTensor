@@ -482,6 +482,7 @@ void init_graph_builder(py::module &m) {
         .def("set_weight", &TensorObj::setWeight, policy::move)
         .def("set_input", &TensorObj::setInput, policy::move)
         .def("set_output", &TensorObj::setOutput, policy::move)
+        .def("data_malloc", &TensorObj::dataMalloc)
         .def("dtype", &TensorObj::getDTypeIndex, policy::automatic)
         .def("copyin_float", &TensorObj::copyin<float>, policy::move)
         .def("copyin_int32", &TensorObj::copyin<int32_t>, policy::move)
@@ -632,6 +633,13 @@ void init_graph_builder(py::module &m) {
              policy::automatic)
 #endif
         .def("shape_infer", &Handler::shape_infer, policy::automatic)
+        .def("reshape_dynamic", &Handler::reshape_dynamic, py::arg("input"),
+             py::arg("shape"), py::arg("output") = nullptr,
+             py::arg("allowzero") = false)
+        .def("set_memory_reuse", &Handler::set_memory_reuse)
+        .def("memory_stats", &Handler::memory_stats)
+        .def("shape_compute_count", &Handler::shape_compute_count)
+        .def("global_avg_pool", &Handler::global_avg_pool)
         .def("change_shape", &Handler::change_shape, policy::automatic)
         .def("getDims", &Handler::getDims, policy::automatic)
         .def("get_perf_time", &Handler::get_perf_time, policy::automatic);

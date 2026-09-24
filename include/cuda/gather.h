@@ -13,6 +13,7 @@ struct GatherMetaData {
     DataType dataType;
     // Axis of the gather operation
     int axis;
+    int axisSize;
     // Rank of input
     int inNDim;
     // Rank of output
@@ -40,9 +41,13 @@ inline void initGatherMetaData(GatherMetaData &metaData,
     metaData.indexType = index->getDType();
     metaData.dataType = in->getDType();
     metaData.axis = op->getAxis();
+    metaData.axisSize = in->getDims().at(metaData.axis);
     metaData.inNDim = in->getRank();
     metaData.outNDim = out->getRank();
     metaData.idxNDim = index->getRank();
+    IT_ASSERT(metaData.inNDim <= 4 && metaData.outNDim <= 4 &&
+                  metaData.idxNDim <= 4,
+              "CUDA Gather supports tensor ranks up to four");
     for (int i = 0; i < metaData.outNDim; ++i)
         metaData.outDim[i] = out->getDims()[i];
     for (int i = 0; i < metaData.idxNDim; ++i) {

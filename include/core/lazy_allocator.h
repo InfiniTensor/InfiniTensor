@@ -29,6 +29,9 @@ class LazyAllocator {
     size_t heapPeak = 0;
 
     size_t alignment;
+    size_t activationAllocations = 0;
+    size_t peakActivationCapacity = 0;
+    size_t peakActivationReallocationBytes = 0;
 
     bool hasMemPool = false;
 
@@ -142,6 +145,15 @@ class LazyAllocator {
     Blob getHeapBlob(size_t offset, size_t bytes);
 
     void info();
+    std::map<string, size_t> getMemoryStats() const {
+        return {{"activation_allocations", activationAllocations},
+                {"activation_capacity", ptr ? ptr->getBytes() : memPoolSize},
+                {"activation_required", peak},
+                {"peak_activation_capacity", peakActivationCapacity},
+                {"peak_pool_bytes_during_reallocation",
+                 peakActivationReallocationBytes},
+                {"weight_bytes", weightPeak}};
+    }
 
   private:
     // function: memory alignment, rouned up

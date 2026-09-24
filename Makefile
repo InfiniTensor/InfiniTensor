@@ -62,6 +62,11 @@ test-onnx:
 	@echo
 	python3 pyinfinitensor/tests/test_onnxstub.py
 	python3 pyinfinitensor/tests/test_onnx.py
+	python3 pyinfinitensor/tests/test_dynamic_shape.py
+
+.PHONY: test-dynamic-shape
+test-dynamic-shape:
+	PYTHONPATH=build/$(TYPE):pyinfinitensor/src OMP_NUM_THREADS=1 python3 pyinfinitensor/tests/test_dynamic_shape.py
 
 test-api:
 	@echo

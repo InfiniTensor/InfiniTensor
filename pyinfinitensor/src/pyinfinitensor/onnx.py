@@ -30,6 +30,12 @@ from onnxsim import simplify
 import copy
 import warnings
 import numpy as np
+from .dynamic_shape import (
+    input_specs,
+    validate_shapes,
+    shape_dependencies,
+    fold_shape_subgraphs,
+)
 
 
 class OnnxStub:
@@ -44,12 +50,25 @@ class OnnxStub:
         runtime,
         use_naive_allocator: bool = False,
         matmul_compute_type: str = "default",
+        optimize_shapes: bool = True,
+        memory_reuse: bool = True,
     ):
         model = copy.deepcopy(model)
+        self.input_specs = input_specs(model)
+        self.input_dtypes = {
+            v.name: v.type.tensor_type.elem_type
+            for v in model.graph.input
+            if v.name in self.input_specs
+        }
+        has_shape_program = any(node.op_type == "Shape" for node in model.graph.node)
+        self._source_model = copy.deepcopy(model)
+        model, self.shape_optimization = fold_shape_subgraphs(model, optimize_shapes)
         # We use some user-defined operators for distributed inference
         try:
             # onnx simplifier performs inplace simplify
-            model_simp, check = simplify(copy.deepcopy(model))
+            model_simp, check = (
+                (model, False) if has_shape_program else simplify(copy.deepcopy(model))
+            )
             if check:
                 model = model_simp
         except ValidationError:
@@ -69,6 +88,9 @@ class OnnxStub:
         # except:
         #     warnings.warn("infer_shapes failed.")
         self.handler = backend.GraphHandler(runtime)
+        self.handler.set_memory_reuse(memory_reuse)
+        self._shape_dependencies = shape_dependencies(model)
+        self._has_shape_program = has_shape_program
 
         # 处理重名和匿名算子
         names = {}
@@ -124,6 +146,9 @@ class OnnxStub:
             tensors[initializer.name] = self.handler.tensor(dims, initializer.data_type)
             data[initializer.name] = initializer
             tensors[initializer.name].set_weight()
+            if initializer.name in self._shape_dependencies:
+                tensors[initializer.name].data_malloc()
+                tensors[initializer.name].copyin_numpy(to_array(initializer))
 
         for input in model.graph.input:
             dims = _take_shape_dim(input.type.tensor_type.shape)
@@ -144,7 +169,7 @@ class OnnxStub:
                         "strides": [1, 1],
                     },
                 )
-                (d, p, s) = (
+                d, p, s = (
                     attributes[name] for name in ["dilations", "pads", "strides"]
                 )
                 if p[0] != p[2] or p[1] != p[3]:
@@ -216,7 +241,7 @@ class OnnxStub:
                         "output_padding": [0, 0],
                     },
                 )
-                (d, p, s, op) = (
+                d, p, s, op = (
                     attributes[name]
                     for name in ["dilations", "pads", "strides", "output_padding"]
                 )
@@ -292,7 +317,7 @@ class OnnxStub:
                 attributes = _parse_attribute(
                     node, {"alpha": 1.0, "beta": 1.0, "transA": 0, "transB": 0}
                 )
-                (alpha, beta, transA, transB) = (
+                alpha, beta, transA, transB = (
                     attributes[name] for name in ["alpha", "beta", "transA", "transB"]
                 )
                 # FIXME unsupport attributes: `alpha` `beta`
@@ -309,14 +334,14 @@ class OnnxStub:
                     matmul_compute_type,
                 )
             elif node.op_type == "BatchNormalization":
-                (input, mean, var, scale, bias) = (
+                input, mean, var, scale, bias = (
                     tensors[node.input[i]] for i in [0, 3, 4, 1, 2]
                 )
                 output = tensors.get(node.output[0])
                 attributes = _parse_attribute(
                     node, {"momentum": 0.9, "epsilon": 1e-05, "training_mode": 0}
                 )
-                (momentum, eps, training) = (
+                momentum, eps, training = (
                     attributes[name]
                     for name in ["momentum", "epsilon", "training_mode"]
                 )
@@ -332,13 +357,13 @@ class OnnxStub:
                     training != 0,
                 )
             elif node.op_type == "LayerNormalization":
-                (input, scale) = (tensors[node.input[i]] for i in [0, 1])
+                input, scale = (tensors[node.input[i]] for i in [0, 1])
                 bias = None if len(node.input) < 3 else tensors[node.input[2]]
                 output = tensors.get(node.output[0])
                 attributes = _parse_attribute(
                     node, {"axis": -1, "epsilon": 1e-05, "stash_type": 1}
                 )
-                (axis, eps, stash_type) = (
+                axis, eps, stash_type = (
                     attributes[name] for name in ["axis", "epsilon", "stash_type"]
                 )
                 tensors[node.output[0]] = self.handler.layerNormalization(
@@ -351,7 +376,7 @@ class OnnxStub:
                     stash_type,
                 )
             elif node.op_type == "InstanceNormalization":
-                (input, scale, bias) = (tensors[node.input[i]] for i in [0, 1, 2])
+                input, scale, bias = (tensors[node.input[i]] for i in [0, 1, 2])
 
                 output = tensors.get(node.output[0])
 
@@ -382,7 +407,7 @@ class OnnxStub:
                         "ceil_mode": 0,
                     },
                 )
-                (k, d, p, s, ceil_mode) = (
+                k, d, p, s, ceil_mode = (
                     attributes[name]
                     for name in [
                         "kernel_shape",
@@ -434,7 +459,7 @@ class OnnxStub:
                         "ceil_mode": 0,
                     },
                 )
-                (k, p, s, ceil_mode) = (
+                k, p, s, ceil_mode = (
                     attributes[name]
                     for name in ["kernel_shape", "pads", "strides", "ceil_mode"]
                 )
@@ -487,19 +512,8 @@ class OnnxStub:
                         ceil_mode,
                     )
             elif node.op_type == "GlobalAveragePool":
-                [_, _, h, w] = tensors[node.input[0]].shape()
-                tensors[node.output[0]] = self.handler.avgPool(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    h,
-                    w,
-                    1,
-                    1,
-                    0,
-                    0,
-                    1,
-                    1,
-                    0,
+                tensors[node.output[0]] = self.handler.global_avg_pool(
+                    tensors[node.input[0]], tensors.get(node.output[0])
                 )
             elif node.op_type == "Add":
                 tensors[node.output[0]] = self.handler.add(
@@ -612,6 +626,10 @@ class OnnxStub:
                     tensors.get(node.output[0]),
                 )
             elif node.op_type == "Shape":
+                if node.attribute:
+                    raise NotImplementedError(
+                        "Shape start/end slicing is not supported"
+                    )
                 tensors[node.output[0]] = self.handler.shape(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
@@ -669,12 +687,28 @@ class OnnxStub:
                     mode,
                 )
             elif node.op_type == "Reshape":
-                shape = _parse_static_input(data, node, 1, required=True)
-                tensors[node.output[0]] = self.handler.reshape(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    shape,
-                )
+                if not _has_input(node, 1):
+                    raise ValueError("Reshape requires a shape tensor")
+                allowzero = _parse_attribute(node, {"allowzero": 0})["allowzero"]
+                if node.input[1] in data and not allowzero:
+                    target = to_array(data[node.input[1]])
+                    if target.dtype != np.int64 or target.ndim != 1:
+                        raise ValueError(
+                            "Reshape shape must be a rank-one int64 tensor"
+                        )
+                    tensors[node.output[0]] = self.handler.reshape(
+                        tensors[node.input[0]],
+                        tensors.get(node.output[0]),
+                        target.tolist(),
+                    )
+                else:
+                    self._has_shape_program = True
+                    tensors[node.output[0]] = self.handler.reshape_dynamic(
+                        tensors[node.input[0]],
+                        tensors[node.input[1]],
+                        tensors.get(node.output[0]),
+                        bool(allowzero),
+                    )
             elif node.op_type == "Resize":
                 output = tensors.get(node.output[0])
                 attributes = _parse_attribute(
@@ -898,22 +932,22 @@ class OnnxStub:
             elif node.op_type == "Dropout":
                 training_mode = _parse_static_scalar(data, node, 2)
                 if training_mode:
-                    raise NotImplementedError(
-                        "Dropout training mode is not supported"
-                    )
+                    raise NotImplementedError("Dropout training mode is not supported")
                 if len(node.output) > 1 and node.output[1]:
-                    raise NotImplementedError(
-                        "Dropout mask output is not supported"
-                    )
+                    raise NotImplementedError("Dropout mask output is not supported")
                 tensors[node.output[0]] = self.handler.identity(
                     tensors[node.input[0]], tensors.get(node.output[0])
                 )
             elif node.op_type == "Cast":
-                tensors[node.output[0]] = self.handler.cast(
-                    tensors[node.input[0]],
-                    tensors.get(node.output[0]),
-                    next((attr.i for attr in node.attribute if attr.name == "to")),
-                )
+                to = next(attr.i for attr in node.attribute if attr.name == "to")
+                if backend.tensor_dtype(tensors[node.input[0]]) == to:
+                    tensors[node.output[0]] = self.handler.identity(
+                        tensors[node.input[0]], tensors.get(node.output[0])
+                    )
+                else:
+                    tensors[node.output[0]] = self.handler.cast(
+                        tensors[node.input[0]], tensors.get(node.output[0]), to
+                    )
             elif node.op_type == "ReduceSum":
                 if any(attr.name == "communicator" for attr in node.attribute):
                     # ReduceSum with communicator is treated as allReduceSum.
@@ -1093,6 +1127,9 @@ class OnnxStub:
                 tensors[output_name] = self.handler.tensor(dims, tensor.data_type)
                 data[output_name] = tensor
                 tensors[output_name].set_weight()
+                if output_name in self._shape_dependencies:
+                    tensors[output_name].data_malloc()
+                    tensors[output_name].copyin_numpy(to_array(tensor))
             elif node.op_type == "ConstantOfShape":
                 raise NotImplementedError(
                     'Unsupported operator "ConstantOfShape": static and dynamic '
@@ -1102,7 +1139,7 @@ class OnnxStub:
                 attributes = _parse_attribute(
                     node, {"alpha": 0.0001, "beta": 0.75, "bias": 1.0, "size": 1}
                 )
-                (alpha, beta, bias, size) = (
+                alpha, beta, bias, size = (
                     attributes[name] for name in ["alpha", "beta", "bias", "size"]
                 )
                 tensors[node.output[0]] = self.handler.lrn(
@@ -1133,14 +1170,21 @@ class OnnxStub:
         for output in model.graph.output:
             self.outputs[output.name] = tensors[output.name]
 
+        if self._has_shape_program:
+            self.handler.shape_infer()
         self.init()
 
     def to_onnx(self, name: str) -> ModelProto:
+        if self._has_shape_program:
+            # The lowered graph uses static attributes for folded constants;
+            # exporting that graph would lose the symbolic input contract.
+            model = copy.deepcopy(self._source_model)
+            model.graph.name = name
+            return model
+
         class Context:
             def __init__(self):
-                self.names: Dict[
-                    Union[backend.Tensor, backend.Operator], str
-                ] = {}
+                self.names: Dict[Union[backend.Tensor, backend.Operator], str] = {}
                 self.count_op: Dict[backend.OpTypeId, int] = {}
                 self.count_in = 0
                 self.count_out = 0
@@ -1337,9 +1381,7 @@ class OnnxStub:
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Softmax:
                 axis = backend.softmax_axis_of(op)
-                ctx.push_node(
-                    make_node(ty.name, inputs, outputs, name, axis=axis)
-                )
+                ctx.push_node(make_node(ty.name, inputs, outputs, name, axis=axis))
             elif ty == backend.OpTypeId.Flatten:
                 axis = backend.flatten_axis_of(op)
                 ctx.push_node(make_node(ty.name, inputs, outputs, name, axis=axis))
@@ -1434,17 +1476,13 @@ class OnnxStub:
                 input_dtype = backend.tensor_dtype(op.inputs()[0])
                 if min_value is not None:
                     inputs.append(
-                        ctx.push_data_input(
-                            name, "min", input_dtype, [], [min_value]
-                        )
+                        ctx.push_data_input(name, "min", input_dtype, [], [min_value])
                     )
                 elif max_value is not None:
                     inputs.append("")
                 if max_value is not None:
                     inputs.append(
-                        ctx.push_data_input(
-                            name, "max", input_dtype, [], [max_value]
-                        )
+                        ctx.push_data_input(name, "max", input_dtype, [], [max_value])
                     )
                 ctx.push_node(make_node(ty.name, inputs, outputs, name))
             elif ty == backend.OpTypeId.Cast:
@@ -1502,16 +1540,47 @@ class OnnxStub:
         self.handler.trim_memory()
 
     def set_input(self, inputShapes: List[Sequence[int]]) -> None:
-        if len(inputShapes) != len(self.inputs):
-            raise ValueError(
-                "inputShapes must contain one shape per model input; expected "
-                "{}, got {}".format(len(self.inputs), len(inputShapes))
-            )
+        inputShapes = validate_shapes(self.input_specs, inputShapes)
+        previous = [tensor.shape() for tensor in self.inputs.values()]
+        try:
+            self._set_shapes(inputShapes)
+        except Exception:
+            # Restore a usable instance after invalid reshape/shape arithmetic.
+            self._set_shapes(previous)
+            raise
+
+    def _set_shapes(self, inputShapes):
         for newInput, oldInput in zip(inputShapes, self.inputs):
             oldTensor = self.inputs[oldInput]
             self.handler.change_shape(newInput, oldTensor.fuid())
         self.handler.shape_infer()
-        self.init()
+        self.handler.data_malloc(self.use_naive_allocator)
+
+    def infer(self, feeds: Dict[str, np.ndarray], cuda_graph: bool = False):
+        """Validate, prepare, execute and copy outputs using this model instance."""
+        if set(feeds) != set(self.inputs):
+            raise ValueError(f"Expected inputs {list(self.inputs)}, got {list(feeds)}")
+        arrays = {}
+        from onnx.helper import tensor_dtype_to_np_dtype
+
+        for name in self.inputs:
+            value = np.asarray(feeds[name])
+            dtype = np.dtype(tensor_dtype_to_np_dtype(self.input_dtypes[name]))
+            if value.dtype != dtype:
+                raise ValueError(f"{name}: expected dtype {dtype}, got {value.dtype}")
+            arrays[name] = np.ascontiguousarray(value) if value.ndim else value.copy()
+        self.set_input([arrays[name].shape for name in self.inputs])
+        for name, value in arrays.items():
+            self.inputs[name].copyin_numpy(value)
+        if cuda_graph:
+            self.run_with_cudagraph()
+        else:
+            self.run()
+        return {name: tensor.copyout_numpy() for name, tensor in self.outputs.items()}
+
+    def memory_stats(self):
+        """Pool statistics; allocation counts are actual pool allocations."""
+        return self.handler.memory_stats()
 
     def getShape(self, name: str) -> List[int]:
         if name in self.inputs:
@@ -1551,7 +1620,7 @@ def _parse_static_input(
     if not _has_input(node, index):
         if required:
             raise ValueError(
-                '{} input {} is required and must be constant'.format(
+                "{} input {} is required and must be constant".format(
                     node.op_type, index
                 )
             )
@@ -1560,9 +1629,7 @@ def _parse_static_input(
     name = node.input[index]
     if name not in data:
         raise ValueError(
-            '{} input {} ("{}") must be constant'.format(
-                node.op_type, index, name
-            )
+            '{} input {} ("{}") must be constant'.format(node.op_type, index, name)
         )
     return _parse_data(data[name])
 
@@ -1575,9 +1642,7 @@ def _parse_static_scalar(
         return None
     if len(values) != 1:
         raise ValueError(
-            '{} input {} must contain exactly one value'.format(
-                node.op_type, index
-            )
+            "{} input {} must contain exactly one value".format(node.op_type, index)
         )
     return values[0]
 
@@ -1623,4 +1688,4 @@ def _parse_data_fp16(tensor: TensorProto):
 
 
 def _take_shape_dim(shape: TensorShapeProto) -> List[int]:
-    return [(d.dim_value if d.dim_value > 0 else 1) for d in shape.dim]
+    return [(d.dim_value if d.HasField("dim_value") else 1) for d in shape.dim]

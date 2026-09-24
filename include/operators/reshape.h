@@ -10,6 +10,7 @@ namespace infini {
 class ReshapeObj : public OperatorObj {
     Shape dims;
     Shape outputShape;
+    bool allowZero = false;
 
   public:
     /**
@@ -22,16 +23,20 @@ class ReshapeObj : public OperatorObj {
      * @param outputShape The real shape of output tensor.
      */
     ReshapeObj(GraphObj *graph, Tensor input, Tensor output, Shape dims);
+    ReshapeObj(GraphObj *graph, Tensor input, Tensor shape, Tensor output,
+               bool allowZero = false);
     OP_CLONE(ReshapeObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
 
     std::string toString() const override;
-    int numInputs() const override { return 1; }
+    int numInputs() const override { return inputs.size(); }
     int numOutputs() const override { return 1; }
 
     inline Shape getShape() const { return outputShape; }
     inline Shape getDims() const { return dims; }
+    bool isDynamic() const { return inputs.size() == 2; }
+    bool getAllowZero() const { return allowZero; }
 
   private:
     vector<int> getWorkloadVector() const override;

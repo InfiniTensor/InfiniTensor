@@ -14,6 +14,7 @@ class PoolingObj : public OperatorObj {
     int sh, sw;
     int ceilMode;
     int n, c, h, w;
+    bool globalPooling;
 
   public:
     /**
@@ -38,7 +39,7 @@ class PoolingObj : public OperatorObj {
      */
     PoolingObj(GraphObj *graph, OpType optype, Tensor input, Tensor output,
                int kh, int kw, int dh, int dw, int ph, int pw, int sh, int sw,
-               int ceilMode);
+               int ceilMode, bool globalPooling = false);
     OP_CLONE(PoolingObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
