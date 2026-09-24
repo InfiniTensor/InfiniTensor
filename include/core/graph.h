@@ -52,7 +52,7 @@ class GraphObj : public Object {
     explicit GraphObj(Runtime runtime)
         : runtime(runtime), allocator(runtime),
           captureState(make_ref<GraphCaptureStateObj>(guid, runtime)),
-          sorted(false) {};
+          sorted(false){};
     GraphObj(Runtime runtime, OpVec ops_in);
     ~GraphObj() override;
     string toString() const override;
