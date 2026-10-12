@@ -83,6 +83,7 @@ class NaiveConv3d : public CpuKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CPU, OpType::Conv3d, NaiveConv3d, "Conv3dNaive_CPU");
+REGISTER_KERNEL(ExecutionProvider::NativeCpu, OpType::Conv3d, NaiveConv3d,
+                "Conv3dNaive_CPU");
 
 } // namespace infini

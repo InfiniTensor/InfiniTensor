@@ -13,3 +13,9 @@
 [submodule "examples/distributed/onnxsim_large_model"]
 	path = examples/distributed/onnxsim_large_model
 	url = git@github.com:luchangli03/onnxsim_large_model.git
+[submodule "InfiniOps"]
+	path = 3rd-party/InfiniOps
+	url = git@github.com:InfiniTensor/InfiniOps.git
+[submodule "InfiniRT"]
+	path = 3rd-party/InfiniRT
+	url = git@github.com:InfiniTensor/InfiniRT.git

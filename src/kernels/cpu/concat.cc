@@ -60,6 +60,7 @@ class NaiveConcat : public CpuKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CPU, OpType::Concat, NaiveConcat, "ConcatNaive_CPU");
+REGISTER_KERNEL(ExecutionProvider::NativeCpu, OpType::Concat, NaiveConcat,
+                "ConcatNaive_CPU");
 
 } // namespace infini

@@ -80,8 +80,8 @@ class MemboundInterpreter : public Kernel {
     }
 };
 
-REGISTER_KERNEL(Device::CPU, OpType::MemBound, MemboundInterpreter,
-                "MemboundInterpreter_CPU");
+REGISTER_KERNEL(ExecutionProvider::NativeCpu, OpType::MemBound,
+                MemboundInterpreter, "MemboundInterpreter_CPU");
 
 } // namespace infini
 

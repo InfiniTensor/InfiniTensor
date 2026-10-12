@@ -5,21 +5,28 @@ import numpy as np
 
 
 class TestPythonAPI(unittest.TestCase):
-    @unittest.skipUnless(hasattr(backend, "CudaRuntime"), "CUDA is not enabled")
-    def test_cuda_graph_cache_api(self):
-        runtime = backend.CudaRuntime(device=0, cuda_graph_cache_capacity=2)
-        self.assertEqual(runtime.cuda_graph_cache_size(), 0)
-        self.assertEqual(runtime.cuda_graph_capture_count(), 0)
-        runtime.clear_cuda_graph_cache()
-        self.assertEqual(runtime.cuda_graph_cache_size(), 0)
-        self.assertEqual(runtime.cuda_graph_capture_count(), 0)
-
-        factory_runtime = backend.cuda_runtime(
-            device=0, cuda_graph_cache_capacity=2
+    @unittest.skipUnless(
+        hasattr(backend, "InfiniRuntime"), "InfiniOps provider is not enabled"
+    )
+    def test_graph_cache_api(self):
+        device = backend.default_infini_device()
+        runtime = backend.InfiniRuntime(
+            device=device, index=0, graph_cache_capacity=2
         )
-        self.assertEqual(factory_runtime.cuda_graph_cache_size(), 0)
+        self.assertEqual(runtime.graph_cache_size(), 0)
+        self.assertEqual(runtime.graph_capture_count(), 0)
+        runtime.clear_graph_cache()
+        self.assertEqual(runtime.graph_cache_size(), 0)
+        self.assertEqual(runtime.graph_capture_count(), 0)
+
+        factory_runtime = backend.runtime(
+            device=device, index=0, graph_cache_capacity=2
+        )
+        self.assertEqual(factory_runtime.graph_cache_size(), 0)
         with self.assertRaises(RuntimeError):
-            backend.CudaRuntime(device=0, cuda_graph_cache_capacity=0)
+            backend.InfiniRuntime(
+                device=device, index=0, graph_cache_capacity=0
+            )
 
     def test_copyin_numpy(self):
         dims = [2, 3, 5, 4]

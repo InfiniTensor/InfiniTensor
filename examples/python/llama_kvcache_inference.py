@@ -96,7 +96,9 @@ if __name__ == "__main__":
         print("will use exsiting onnx graph")
 
     onnx_model = onnx.load(ONNX_MODEL_PATH)
-    stub = OnnxStub(onnx_model, backend.cuda_runtime())
+    stub = OnnxStub(
+        onnx_model, backend.runtime(os.getenv("INFINITENSOR_DEVICE", "cpu"))
+    )
 
     count_wrong = 0
     for i in tqdm(range(0, args.n_max_length)):

@@ -1,8 +1,8 @@
-#ifdef USE_CUDA
+#ifdef USE_INFINIOPS_KERNELS
 
 #include "core/graph.h"
+#include "core/infini_runtime.h"
 #include "core/runtime.h"
-#include "cuda/cuda_runtime.h"
 #include "nnet/Visitor/MatchReshapeVisitor.h"
 #include "nnet/expr.h"
 #include "nnet/nmutator.h"
@@ -13,6 +13,14 @@
 #include "test.h"
 using namespace infini;
 using namespace std;
+
+namespace {
+Ref<InfiniRuntimeObj> makeTestInfiniRuntime() {
+    const auto type = ::infini::rt::runtime_device_type();
+    return make_ref<InfiniRuntimeObj>(
+        string(::infini::rt::Device::StringFromType(type)));
+}
+} // namespace
 
 class NNetMemboundOp : public ::testing::Test {
   protected:
@@ -59,7 +67,7 @@ TEST_F(NNetMemboundOp, MemboundOpInterpretation) {
 }
 
 TEST_F(NNetMemboundOp, MemboundOp_Ansor_Codegen) {
-    auto runtime = make_ref<CudaRuntimeObj>();
+    auto runtime = makeTestInfiniRuntime();
     Runtime cpu = NativeCpuRuntimeObj::getInstance();
     Graph gCpu = make_ref<GraphObj>(cpu);
     Graph g = make_ref<GraphObj>(runtime);
@@ -109,9 +117,9 @@ pair<std::vector<nnet::Tensor>, nnet::Expr> getPReluExpr(int size) {
 }
 
 TEST_F(NNetMemboundOp, PRelu_Ansor_Codegen) {
-    auto cuda = make_ref<CudaRuntimeObj>();
+    auto infiniRuntime = makeTestInfiniRuntime();
     Runtime cpu = NativeCpuRuntimeObj::getInstance();
-    Graph g = make_ref<GraphObj>(cuda);
+    Graph g = make_ref<GraphObj>(infiniRuntime);
     Tensor i0 = g->addTensor(vector{12});
     Tensor w0 = g->addTensor(vector{12});
     Tensor o0 = g->addTensor(vector{12});
@@ -121,7 +129,7 @@ TEST_F(NNetMemboundOp, PRelu_Ansor_Codegen) {
     g->dataMalloc();
     i0->setData(IncrementalGenerator());
     w0->setData(ValGenerator<5>());
-    cuda->run(g, true); // tune kernels
+    infiniRuntime->run(g, true); // tune kernels
 
     // check answer
     auto ans = make_ref<TensorObj>(Shape{12}, DataType::Float32, cpu);

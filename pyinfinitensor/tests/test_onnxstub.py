@@ -458,8 +458,10 @@ class TestOnnxStubExport(unittest.TestCase):
         )
 
 
-class TestOnnxStubCuda(unittest.TestCase):
-    @unittest.skipUnless(hasattr(backend, "cuda_runtime"), "CUDA backend not built")
+class TestOnnxStubInfini(unittest.TestCase):
+    @unittest.skipUnless(
+        hasattr(backend, "InfiniRuntime"), "InfiniOps provider not built"
+    )
     def test_dynamic_reallocation_restores_initializer(self):
         weight = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
         model = make_model(
@@ -472,7 +474,7 @@ class TestOnnxStubCuda(unittest.TestCase):
             with self.subTest(use_naive_allocator=use_naive_allocator):
                 stub = import_model(
                     model,
-                    backend.cuda_runtime(),
+                    backend.runtime(backend.default_infini_device()),
                     use_naive_allocator=use_naive_allocator,
                 )
                 for batch in (3, 1, 8192, 2):

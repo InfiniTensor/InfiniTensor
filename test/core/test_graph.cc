@@ -22,7 +22,7 @@ class TrackingCpuRuntimeObj final : public CpuRuntimeObj {
     vector<size_t> allocationSizes;
 
   public:
-    TrackingCpuRuntimeObj() : CpuRuntimeObj(Device::CPU) {}
+    TrackingCpuRuntimeObj() = default;
 
     void *alloc(size_t size) override {
         if (failNextAllocation) {

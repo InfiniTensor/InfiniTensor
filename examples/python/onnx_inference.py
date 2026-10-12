@@ -1,3 +1,4 @@
+import os
 import sys
 import onnx
 import torch
@@ -21,7 +22,9 @@ if __name__ == '__main__':
     # print(input_shape)
     input_data = np.random.random(input_shape).astype(np.float32)
 
-    model = OnnxStub(onnx_model, backend.cuda_runtime())
+    model = OnnxStub(
+        onnx_model, backend.runtime(os.getenv("INFINITENSOR_DEVICE", "cpu"))
+    )
     next(iter(model.inputs.values())).copyin_numpy(input_data)
     model.run()
     outputs = next(iter(model.outputs.values())).copyout_numpy()
