@@ -55,8 +55,14 @@ class SliceObj : public OperatorObj {
                        [](auto x) { return x.step; });
         return ans;
     }
+    void setSliceParameters(const vector<int> &starts, const vector<int> &ends,
+                            const optional<vector<int>> &axes,
+                            const optional<vector<int>> &steps);
 
   private:
+    void buildAxes(const Shape &shape, const vector<int> &starts,
+                   const vector<int> &ends, const optional<vector<int>> &axes,
+                   const optional<vector<int>> &steps);
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;
 };

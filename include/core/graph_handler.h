@@ -5,6 +5,7 @@
 #include "core/runtime.h"
 #include <cstdint>
 #include <iostream>
+#include <map>
 
 namespace infini {
 
@@ -129,6 +130,11 @@ class GraphHandlerObj {
     inline void shape_infer() { g->shape_infer(); }
 
     void change_shape(const vector<int> &shape, int tensorId);
+    void update_reshape(const vector<int> &dims, int outputTensorId);
+    void update_expand(const vector<int> &dims, int outputTensorId);
+    void update_slice(const vector<int> &starts, const vector<int> &ends,
+                      const optional<vector<int>> &axes,
+                      const optional<vector<int>> &steps, int outputTensorId);
     //------ runtime
 
     inline void data_malloc(bool useNaiveAllocator = false,
@@ -147,8 +153,17 @@ class GraphHandlerObj {
     inline void run() { g->getRuntime()->run(g); }
 
     inline double get_perf_time() { return g->getRuntime()->getPerfTime(g); }
+    inline std::map<std::string, size_t> memory_stats() const {
+        return {{"activation_bytes", g->getActivationBytes()},
+                {"weight_bytes", g->getWeightBytes()},
+                {"heap_bytes", g->getHeapBytes()},
+                {"allocation_generation", g->getAllocationGeneration()}};
+    }
 
     inline void run_with_graph() { g->getRuntime()->runWithGraph(g); }
+    inline void clear_graph_cache() {
+        g->getRuntime()->invalidateGraphCaptureCache(g->getCaptureStateId());
+    }
 };
 
 } // namespace infini

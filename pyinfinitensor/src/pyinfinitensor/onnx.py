@@ -35,8 +35,431 @@ except ModuleNotFoundError as error:
     ) from error
 from onnxsim import simplify
 import copy
+import operator
+import os
 import warnings
 import numpy as np
+import time
+
+
+_SHAPE_EVALUATOR_OPS = {
+    "Shape", "Gather", "Slice", "Concat", "Unsqueeze", "Squeeze", "Cast",
+    "Add", "Sub", "Mul", "Div", "Max", "Min", "Equal", "Less", "Greater",
+    "Where", "Range", "ConstantOfShape", "Expand", "Reshape", "Identity",
+    "Constant",
+}
+
+
+def _fuse_exact_gelu(model: ModelProto) -> int:
+    """Replace the exported exact-GELU arithmetic pattern with ``Gelu``.
+
+    PyTorch opset-17 exports GELU as ``x * (erf(x / sqrt(2)) + 1) * .5``.
+    Keeping that decomposition is mathematically correct, but vendor eager
+    backends use their fused GELU kernel.  The difference accumulates across
+    BERT layers on Ascend.  This strict, use-count-checked rewrite preserves
+    the ONNX result while allowing every provider to use the same fused ATen
+    semantic as the PyTorch reference.
+    """
+    nodes = list(model.graph.node)
+    producer = {name: index for index, node in enumerate(nodes) for name in node.output}
+    consumers: Dict[str, int] = {}
+    for node in nodes:
+        for name in node.input:
+            consumers[name] = consumers.get(name, 0) + 1
+    initializers = {item.name: item for item in model.graph.initializer}
+
+    def scalar(name: str) -> Optional[float]:
+        value = initializers.get(name)
+        if value is not None:
+            array = np.asarray(to_array(value))
+        else:
+            index = producer.get(name)
+            if index is None or nodes[index].op_type != "Constant":
+                return None
+            attribute = next((item for item in nodes[index].attribute if item.name == "value"), None)
+            if attribute is None:
+                return None
+            array = np.asarray(to_array(attribute.t))
+        return float(array.reshape(-1)[0]) if array.size == 1 else None
+
+    def split_constant(inputs: Sequence[str], expected: float) -> Optional[Tuple[str, str]]:
+        for position, name in enumerate(inputs):
+            value = scalar(name)
+            if value is not None and np.isclose(value, expected, rtol=0, atol=1e-6):
+                return inputs[1 - position], name
+        return None
+
+    removed, replacements = set(), {}
+    for final_index, final in enumerate(nodes):
+        if final.op_type != "Mul" or len(final.input) != 2:
+            continue
+        half = split_constant(final.input, 0.5)
+        if half is None:
+            continue
+        product_name, half_name = half
+        product_index = producer.get(product_name)
+        if product_index is None or nodes[product_index].op_type != "Mul":
+            continue
+        product = nodes[product_index]
+        add_match = None
+        for name in product.input:
+            candidate = producer.get(name)
+            if candidate is None or nodes[candidate].op_type != "Add":
+                continue
+            candidate_plus_one = split_constant(nodes[candidate].input, 1.0)
+            if candidate_plus_one is not None:
+                add_match = (candidate, candidate_plus_one)
+                break
+        if add_match is None:
+            continue
+        add_index, plus_one = add_match
+        add = nodes[add_index]
+        erf_name, one_name = plus_one
+        erf_index = producer.get(erf_name)
+        if erf_index is None or nodes[erf_index].op_type != "Erf":
+            continue
+        erf = nodes[erf_index]
+        div_index = producer.get(erf.input[0])
+        if div_index is None or nodes[div_index].op_type != "Div":
+            continue
+        div = nodes[div_index]
+        # Division is not commutative: accept only x / sqrt(2), never
+        # sqrt(2) / x even though both expressions contain the same scalar.
+        sqrt_value = scalar(div.input[1]) if len(div.input) == 2 else None
+        if sqrt_value is None or not np.isclose(sqrt_value, np.sqrt(2.0), rtol=0, atol=1e-6):
+            continue
+        x_name, sqrt_name = div.input
+        if x_name not in product.input:
+            continue
+        compute_indexes = {div_index, erf_index, add_index, product_index, final_index}
+        if any(consumers.get(nodes[index].output[0], 0) != 1
+               for index in compute_indexes if index != final_index):
+            continue
+        pattern_indexes = set(compute_indexes)
+        for constant_name in (sqrt_name, one_name, half_name):
+            constant_index = producer.get(constant_name)
+            if constant_index is not None and consumers.get(constant_name, 0) == 1:
+                pattern_indexes.add(constant_index)
+        if removed & pattern_indexes:
+            continue
+        insertion = min(pattern_indexes)
+        replacements[insertion] = make_node(
+            "Gelu", [x_name], list(final.output),
+            name=(final.name or final.output[0]) + "__fused_exact_gelu",
+        )
+        removed.update(pattern_indexes)
+
+    if not replacements:
+        return 0
+    rewritten = []
+    for index, node in enumerate(nodes):
+        if index in replacements:
+            rewritten.append(replacements[index])
+        if index not in removed:
+            rewritten.append(node)
+    del model.graph.node[:]
+    model.graph.node.extend(rewritten)
+    return len(replacements)
+
+
+class ShapeValueEvaluator:
+    """Evaluate the integer, metadata-only part of an ONNX graph on the CPU.
+
+    This evaluator deliberately never accepts activation values.  Its only
+    runtime source is input dimensions, propagated through intermediate tensor
+    metadata and exposed through ONNX ``Shape``. It updates Reshape/Expand/Slice
+    parameters without treating symbolic dimensions as a permanent ``1``.
+    """
+
+    def __init__(self, model: ModelProto):
+        self.model = model
+        # Retain protobuf wrappers so attribute cache keys remain stable.
+        # The importer owns a private, immutable model template.
+        self._nodes = tuple(model.graph.node)
+        self._control_nodes = _shape_control_node_indexes(model)
+        self._attributes = {}
+        for node in self._nodes:
+            attributes = {}
+            for attr in node.attribute:
+                if attr.type == AttributeProto.INT:
+                    attributes[attr.name] = attr.i
+                elif attr.type == AttributeProto.INTS:
+                    attributes[attr.name] = tuple(attr.ints)
+                elif attr.type == AttributeProto.TENSOR:
+                    attributes[attr.name] = np.asarray(to_array(attr.t))
+            self._attributes[id(node)] = attributes
+        self.initial_values = {
+            item.name: np.asarray(to_array(item)) for item in model.graph.initializer
+        }
+        for node in self._nodes:
+            if node.op_type == "Constant":
+                self.initial_values[node.output[0]] = self._attribute(node, "value")
+        self._initial_shapes = {name: value.shape for name, value in self.initial_values.items()}
+        self._values: Dict[str, np.ndarray] = {}
+
+    def evaluate(self, input_shapes: Dict[str, Sequence[int]]) -> None:
+        values = dict(self.initial_values)
+        input_shapes = {
+            name: tuple(int(dim) for dim in dims)
+            for name, dims in input_shapes.items()
+        }
+        shapes = dict(self._initial_shapes)
+        shapes.update(input_shapes)
+        control = self._control_nodes
+        pending = list(enumerate(self._nodes))
+        progress = True
+        while pending and progress:
+            progress = False
+            next_pending = []
+            for index, node in pending:
+                try:
+                    inferred = self._infer_metadata(node, shapes, values)
+                except KeyError:
+                    inferred = None
+                except (TypeError, ValueError, IndexError) as error:
+                    raise ValueError('shape preparation failed at {} ({}): {}'.format(
+                        node.name or node.output[0], node.op_type, error)) from error
+                if inferred is not None:
+                    for name, shape in zip(node.output, inferred):
+                        if name not in shapes:
+                            shapes[name] = tuple(shape)
+                            progress = True
+                if node.op_type == "Constant":
+                    continue
+                if index not in control:
+                    if inferred is None:
+                        next_pending.append((index, node))
+                    continue
+                if node.op_type == "Shape":
+                    if not node.input or node.input[0] not in shapes:
+                        next_pending.append((index, node))
+                        continue
+                elif any(name and name not in values for name in node.input):
+                    next_pending.append((index, node))
+                    continue
+                try:
+                    result = self._execute(node, values, shapes)
+                except (TypeError, ValueError, IndexError):
+                    next_pending.append((index, node))
+                    continue
+                if len(result) != len(node.output):
+                    raise ValueError("shape evaluator output arity mismatch at {}".format(
+                        node.name or node.op_type
+                    ))
+                values.update(zip(node.output, result))
+                shapes.update((name, np.asarray(value).shape) for name, value in zip(node.output, result))
+                progress = True
+            pending = next_pending
+        self._values = values
+        self.shapes = shapes
+
+    def _infer_metadata(self, node, shapes, values):
+        """Infer tensor dimensions without reading any activation values."""
+        op = node.op_type
+        attr = lambda name, default=None: self._attribute(node, name, default)
+        if op == "Constant":
+            return [np.asarray(attr("value")).shape]
+        x = shapes[node.input[0]]
+        if op == "Shape":
+            return [(len(x[attr("start", 0):attr("end", len(x))]),)]
+        if op in {"Identity", "Cast", "LayerNormalization", "Softmax", "Erf", "Sqrt", "Gelu", "Relu", "Tanh", "Sigmoid"}:
+            return [x]
+        if op in {"Add", "Sub", "Mul", "Div", "Pow", "Equal", "Less", "Greater", "Where"}:
+            return [np.broadcast_shapes(*(shapes[name] for name in node.input if name))]
+        if op == "Gather":
+            axis = int(attr("axis", 0)) % len(x)
+            return [x[:axis] + shapes[node.input[1]] + x[axis+1:]]
+        if op == "MatMul":
+            y = shapes[node.input[1]]
+            left = (1,) + x if len(x) == 1 else x
+            right = y + (1,) if len(y) == 1 else y
+            if left[-1] != right[-2]:
+                raise ValueError("MatMul contracting dimensions differ")
+            out = np.broadcast_shapes(left[:-2], right[:-2]) + (left[-2], right[-1])
+            if len(x) == 1:
+                out = out[:-2] + out[-1:]
+            if len(y) == 1:
+                out = out[:-1]
+            return [out]
+        if op == "Transpose":
+            return [tuple(x[i] for i in attr("perm", list(reversed(range(len(x))))))]
+        if op in {"Unsqueeze", "Squeeze"}:
+            axes = attr("axes")
+            if axes is None and len(node.input) > 1:
+                axes = values[node.input[1]].reshape(-1).tolist()
+            if op == "Squeeze":
+                axes = [i for i,d in enumerate(x) if d == 1] if axes is None else [int(i) % len(x) for i in axes]
+                if any(x[i] != 1 for i in axes):
+                    raise ValueError("Squeeze requires singleton dimensions")
+                return [tuple(d for i,d in enumerate(x) if i not in axes)]
+            rank = len(x) + len(axes)
+            axes = sorted(int(i) % rank for i in axes)
+            out = list(x)
+            for i in axes:
+                out.insert(i, 1)
+            return [tuple(out)]
+        if op == "Concat":
+            axis = int(attr("axis", 0)) % len(x)
+            out = list(x)
+            out[axis] = sum(shapes[name][axis] for name in node.input)
+            return [tuple(out)]
+        if op == "Reshape":
+            target = [int(d) for d in values[node.input[1]].reshape(-1)]
+            if not attr("allowzero", 0):
+                target = [x[i] if d == 0 else d for i,d in enumerate(target)]
+            if target.count(-1) > 1 or any(d < -1 for d in target):
+                raise ValueError("invalid Reshape dimensions")
+            count = int(np.prod(x))
+            known = int(np.prod([d for d in target if d != -1]))
+            if -1 in target:
+                if known == 0 or count % known:
+                    raise ValueError("invalid Reshape inferred dimension")
+                target[target.index(-1)] = count // known
+            if int(np.prod(target)) != count:
+                raise ValueError("Reshape changes element count")
+            return [tuple(target)]
+        if op == "Expand":
+            return [np.broadcast_shapes(x, tuple(int(d) for d in values[node.input[1]].reshape(-1)))]
+        if op == "Slice":
+            starts, ends = (values[name].reshape(-1) for name in node.input[1:3])
+            axes = values[node.input[3]].reshape(-1) if _has_input(node, 3) else range(len(starts))
+            steps = values[node.input[4]].reshape(-1) if _has_input(node, 4) else [1]*len(starts)
+            out = list(x)
+            for start, end, axis, step in zip(starts, ends, axes, steps):
+                axis = int(axis) % len(x)
+                out[axis] = len(range(*slice(int(start), int(end), int(step)).indices(x[axis])))
+            return [tuple(out)]
+        return None
+
+    def value(self, name: str) -> List[int]:
+        if name not in self._values:
+            raise ValueError(
+                'dynamic shape value "{}" cannot be evaluated from input metadata; '
+                "the path is unsupported or depends on activation data".format(name)
+            )
+        value = np.asarray(self._values[name])
+        if not np.issubdtype(value.dtype, np.integer):
+            raise ValueError('shape value "{}" must be integer, got {}'.format(name, value.dtype))
+        return [int(item) for item in value.reshape(-1).tolist()]
+
+    def _attribute(self, node: NodeProto, name: str, default=None):
+        attributes = self._attributes.get(id(node))
+        if attributes is not None:
+            return attributes.get(name, default)
+        for attr in node.attribute:
+            if attr.name == name:
+                if attr.type == AttributeProto.INT:
+                    return attr.i
+                if attr.type == AttributeProto.INTS:
+                    return list(attr.ints)
+                if attr.type == AttributeProto.TENSOR:
+                    return np.asarray(to_array(attr.t))
+        return default
+
+    def _execute(self, node, values, input_shapes):
+        op = node.op_type
+        if op == "Shape":
+            shape = list(input_shapes[node.input[0]])
+            start = self._attribute(node, "start", 0)
+            end = self._attribute(node, "end", len(shape))
+            return [np.asarray(shape[start:end], dtype=np.int64)]
+        inputs = [values[name] for name in node.input if name]
+        if op == "Constant":
+            return [self._attribute(node, "value")]
+        if op == "Identity":
+            return [inputs[0]]
+        if op == "Cast":
+            onnx_type = int(self._attribute(node, "to"))
+            return [inputs[0].astype(_onnx_numpy_dtype(onnx_type), copy=False)]
+        if op == "Gather":
+            return [np.take(inputs[0], inputs[1], axis=int(self._attribute(node, "axis", 0)))]
+        if op == "Concat":
+            return [np.concatenate(inputs, axis=int(self._attribute(node, "axis", 0)))]
+        if op == "Unsqueeze":
+            axes = self._attribute(node, "axes")
+            if axes is None:
+                axes = inputs[1].reshape(-1).tolist()
+            return [np.expand_dims(inputs[0], tuple(int(x) for x in axes))]
+        if op == "Squeeze":
+            axes = self._attribute(node, "axes")
+            if axes is None and len(inputs) > 1:
+                axes = inputs[1].reshape(-1).tolist()
+            return [np.squeeze(inputs[0], axis=None if axes is None else tuple(axes))]
+        if op == "Slice":
+            starts, ends = inputs[1].reshape(-1), inputs[2].reshape(-1)
+            axes = inputs[3].reshape(-1) if len(inputs) > 3 else np.arange(len(starts))
+            steps = inputs[4].reshape(-1) if len(inputs) > 4 else np.ones(len(starts), dtype=np.int64)
+            slices = [slice(None)] * inputs[0].ndim
+            for start, end, axis, step in zip(starts, ends, axes, steps):
+                slices[int(axis)] = slice(int(start), int(end), int(step))
+            return [inputs[0][tuple(slices)]]
+        if op in {"Add", "Sub", "Mul", "Div", "Max", "Min", "Equal", "Less", "Greater"}:
+            if op == "Div":
+                left, right = inputs[:2]
+                if np.any(right == 0):
+                    raise ValueError("division by zero in shape expression")
+                if np.issubdtype(left.dtype, np.integer):
+                    # ONNX integer division truncates toward zero. Avoid a
+                    # float conversion that loses precision for int64 shapes.
+                    quotient = np.floor_divide(left, right)
+                    correction = ((left < 0) != (right < 0)) & (np.remainder(left, right) != 0)
+                    return [quotient + correction.astype(quotient.dtype)]
+                return [np.divide(left, right)]
+            functions = {
+                "Add": np.add, "Sub": np.subtract, "Mul": np.multiply,
+                "Div": np.floor_divide, "Max": np.maximum, "Min": np.minimum,
+                "Equal": np.equal, "Less": np.less, "Greater": np.greater,
+            }
+            return [functions[op](inputs[0], inputs[1])]
+        if op == "Where":
+            return [np.where(inputs[0], inputs[1], inputs[2])]
+        if op == "Range":
+            return [np.arange(int(inputs[0]), int(inputs[1]), int(inputs[2]), dtype=inputs[0].dtype)]
+        if op == "ConstantOfShape":
+            fill = self._attribute(node, "value", np.asarray(0, dtype=np.int64))
+            return [np.full(tuple(int(x) for x in inputs[0].reshape(-1)), fill.reshape(-1)[0], dtype=fill.dtype)]
+        if op == "Expand":
+            return [np.broadcast_to(inputs[0], tuple(int(x) for x in inputs[1].reshape(-1)))]
+        if op == "Reshape":
+            return [np.reshape(inputs[0], tuple(int(x) for x in inputs[1].reshape(-1)))]
+        raise ValueError("unsupported shape op " + op)
+
+
+def _onnx_numpy_dtype(dtype: int):
+    mapping = {
+        TensorProto.FLOAT: np.float32, TensorProto.DOUBLE: np.float64,
+        TensorProto.INT64: np.int64, TensorProto.INT32: np.int32,
+        TensorProto.INT16: np.int16, TensorProto.INT8: np.int8,
+        TensorProto.UINT64: np.uint64, TensorProto.UINT32: np.uint32,
+        TensorProto.UINT16: np.uint16, TensorProto.UINT8: np.uint8,
+        TensorProto.BOOL: np.bool_, TensorProto.FLOAT16: np.float16,
+    }
+    if dtype not in mapping:
+        raise ValueError("unsupported ONNX dtype in shape evaluator: {}".format(dtype))
+    return mapping[dtype]
+
+
+def _shape_control_node_indexes(model: ModelProto) -> set:
+    """Return the reverse-reachable metadata subgraph used by dynamic attrs."""
+    producer = {output: index for index, node in enumerate(model.graph.node) for output in node.output}
+    roots = []
+    for node in model.graph.node:
+        indexes = {"Reshape": [1], "Expand": [1], "Slice": [1, 2, 3, 4]}.get(node.op_type, [])
+        roots.extend(node.input[index] for index in indexes if _has_input(node, index))
+    result, pending = set(), list(roots)
+    while pending:
+        value = pending.pop()
+        index = producer.get(value)
+        if index is None or index in result:
+            continue
+        node = model.graph.node[index]
+        if node.op_type not in _SHAPE_EVALUATOR_OPS:
+            continue
+        result.add(index)
+        # Shape consumes dimensions, not its input's activation-producing graph.
+        if node.op_type != "Shape":
+            pending.extend(name for name in node.input if name)
+    return result
 
 
 class OnnxStub:
@@ -51,6 +474,8 @@ class OnnxStub:
         runtime,
         use_naive_allocator: bool = False,
         matmul_compute_type: str = "default",
+        execution_mode: str = "normal",
+        graph_capture_after: int = 4,
     ):
         model = copy.deepcopy(model)
         # We use some user-defined operators for distributed inference
@@ -64,6 +489,12 @@ class OnnxStub:
         except RuntimeError:
             pass
 
+        provider_modules = {
+            item.strip() for item in os.environ.get("INFINIOPS_PROVIDER_MODULES", "").split(",")
+            if item.strip()
+        }
+        self._gelu_fusion_count = 0 if "torch_mlu" in provider_modules else _fuse_exact_gelu(model)
+
         self.inputs: Dict[str, backend.Tensor] = {}
         self.outputs: Dict[str, backend.Tensor] = {}
         self.tensors: Dict[str, backend.Tensor] = {}
@@ -71,11 +502,30 @@ class OnnxStub:
         self.initializer: Dict[int, TensorProto] = {}
         self._initializer_by_name: Dict[str, TensorProto] = {}
         self.use_naive_allocator: bool = use_naive_allocator
+        self._input_shape_specs = {
+            item.name: _shape_spec(item.type.tensor_type.shape)
+            for item in model.graph.input
+            if item.name not in {initializer.name for initializer in model.graph.initializer}
+        }
+        self._shape_evaluator = ShapeValueEvaluator(model)
+        self._shape_control_nodes = _shape_control_node_indexes(model)
+        self._dynamic_bindings: List[Dict[str, Any]] = []
+        self._prepared_input_shapes: Optional[Dict[str, Tuple[int, ...]]] = None
+        self._prepared_is_valid = False
+        self._weights_uploaded = False
+        self._weight_copy_count = 0
+        self.last_timing: Dict[str, float] = {}
         # try:
         #     model = infer_shapes(model)
         # except:
         #     warnings.warn("infer_shapes failed.")
         self.handler = backend.GraphHandler(runtime)
+        self._runtime = runtime
+        self._same_shape_runs = 0
+        self._execution_stats = {"normal_runs": 0, "captures": 0, "replays": 0,
+                                 "graph_failures": 0, "last_execution": "none"}
+        self.set_execution_mode(execution_mode, graph_capture_after)
+        self._model_nodes = []
 
         # 处理重名和匿名算子
         names = {}
@@ -87,6 +537,10 @@ class OnnxStub:
                 node.name += "_" + str(names[node.name])
             else:
                 names[node.name] = 0
+            self._model_nodes.append({
+                "name": node.name, "op": node.op_type,
+                "inputs": list(node.input), "outputs": list(node.output),
+            })
         # 拓扑排序
         sorted_nodes = []
         pending_nodes = set(range(len(model.graph.node)))
@@ -140,8 +594,17 @@ class OnnxStub:
                 )
                 tensors[input.name].set_input()
 
+        # The first import uses a concrete placeholder only to construct the
+        # graph.  Its symbolic dimensions remain in _input_shape_specs and are
+        # rebound by prepare() before each actual request.
+        self._shape_evaluator.evaluate(
+            {name: _take_shape_dim_from_spec(spec) for name, spec in self._input_shape_specs.items()}
+        )
+
         for node_idx in sorted_nodes:
             node = model.graph.node[node_idx]
+            if node_idx in self._shape_control_nodes and node.op_type != "Constant":
+                continue
             if node.op_type == "Conv":
                 attributes = _parse_attribute(
                     node,
@@ -685,12 +1148,17 @@ class OnnxStub:
                     mode,
                 )
             elif node.op_type == "Reshape":
-                shape = _parse_static_input(data, node, 1, required=True)
+                shape, dynamic = self._parse_shape_parameter(data, node, 1, required=True)
                 tensors[node.output[0]] = self.handler.reshape(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
                     shape,
                 )
+                if dynamic:
+                    self._dynamic_bindings.append({
+                        "kind": "reshape", "output": tensors[node.output[0]].fuid(),
+                        "params": [node.input[1]], "node": node.name,
+                    })
             elif node.op_type == "Resize":
                 output = tensors.get(node.output[0])
                 attributes = _parse_attribute(
@@ -875,22 +1343,21 @@ class OnnxStub:
                     MAX_INT = 0x7FFFFFFF
                     return [min(x, MAX_INT) for x in nums]
 
+                starts, starts_dynamic = self._parse_shape_parameter(data, node, 1, required=True)
+                ends, ends_dynamic = self._parse_shape_parameter(data, node, 2, required=True)
+                axes, axes_dynamic = self._parse_shape_parameter(data, node, 3)
+                steps, steps_dynamic = self._parse_shape_parameter(data, node, 4)
                 tensors[node.output[0]] = self.handler.slice(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
-                    clamp(_parse_static_input(data, node, 1, required=True)),
-                    clamp(_parse_static_input(data, node, 2, required=True)),
-                    (
-                        clamp(_parse_static_input(data, node, 3))
-                        if _has_input(node, 3)
-                        else None
-                    ),
-                    (
-                        clamp(_parse_static_input(data, node, 4))
-                        if _has_input(node, 4)
-                        else None
-                    ),
+                    clamp(starts), clamp(ends), clamp(axes) if axes is not None else None,
+                    clamp(steps) if steps is not None else None,
                 )
+                if starts_dynamic or ends_dynamic or axes_dynamic or steps_dynamic:
+                    self._dynamic_bindings.append({
+                        "kind": "slice", "output": tensors[node.output[0]].fuid(),
+                        "params": list(node.input[1:5]), "node": node.name,
+                    })
             elif node.op_type == "Pad":
                 attributes = _parse_attribute(node, {"mode": b"constant"})
                 mode = attributes["mode"]
@@ -1057,12 +1524,17 @@ class OnnxStub:
                     None,
                 )
             elif node.op_type == "Expand":
-                shape = _parse_static_input(data, node, 1, required=True)
+                shape, dynamic = self._parse_shape_parameter(data, node, 1, required=True)
                 tensors[node.output[0]] = self.handler.expand(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
                     shape,
                 )
+                if dynamic:
+                    self._dynamic_bindings.append({
+                        "kind": "expand", "output": tensors[node.output[0]].fuid(),
+                        "params": [node.input[1]], "node": node.name,
+                    })
             elif node.op_type == "Erf":
                 tensors[node.output[0]] = self.handler.erf(
                     tensors[node.input[0]],
@@ -1130,7 +1602,12 @@ class OnnxStub:
                     size,
                 )
             else:
-                raise Exception('Unsupported operator "{}"'.format(node.op_type))
+                raise NotImplementedError(
+                    'Unsupported ONNX operator "{}" at node "{}"; inputs={}, outputs={}'.format(
+                        node.op_type, node.name or node.op_type,
+                        list(node.input), list(node.output),
+                    )
+                )
 
         for output in model.graph.output:
             tensors[output.name].set_output()
@@ -1150,6 +1627,12 @@ class OnnxStub:
             self.outputs[output.name] = tensors[output.name]
 
         self.init()
+        if not any(_shape_is_dynamic(spec) for spec in self._input_shape_specs.values()):
+            self._prepared_input_shapes = {
+                name: tuple(_take_shape_dim_from_spec(spec))
+                for name, spec in self._input_shape_specs.items()
+            }
+            self._prepared_is_valid = True
 
     def to_onnx(self, name: str) -> ModelProto:
         class Context:
@@ -1497,13 +1980,31 @@ class OnnxStub:
 
         return ctx.build(name)
 
-    def init(self) -> None:
+    def init(self, reload_weights: bool = False) -> None:
+        """Allocate graph storage, uploading initializers only once by default."""
         self.handler.data_malloc(self.use_naive_allocator)
-        self._copy_initializers()
+        if reload_weights or not self._weights_uploaded:
+            self._copy_initializers()
+            self._weights_uploaded = True
 
     def _copy_initializers(self) -> None:
         for name, initializer in self._initializer_by_name.items():
             self.tensors[name].copyin_numpy(to_array(initializer))
+            self._weight_upload_bytes = getattr(self, "_weight_upload_bytes", 0) + to_array(initializer).nbytes
+        self._weight_copy_count += 1
+
+    @property
+    def weight_upload_count(self) -> int:
+        """Number of initializer upload passes, useful for lifecycle tests."""
+        return self._weight_copy_count
+
+    @property
+    def weight_upload_bytes(self) -> int:
+        return getattr(self, "_weight_upload_bytes", 0)
+
+    @property
+    def weight_addresses(self) -> Dict[str, int]:
+        return {name: self.tensors[name].data_ptr() for name in self._initializer_by_name}
 
     def optimize(self) -> None:
         self.handler.optimize()
@@ -1517,17 +2018,188 @@ class OnnxStub:
     def trim_memory(self) -> None:
         self.handler.trim_memory()
 
-    def set_input(self, inputShapes: List[Sequence[int]]) -> None:
-        if len(inputShapes) != len(self.inputs):
+    def memory_stats(self) -> Dict[str, int]:
+        """InfiniTensor allocator counters for acceptance resource sampling."""
+        try:
+            return {name: int(value) for name, value in self.handler.memory_stats().items()}
+        except AttributeError as error:
+            raise RuntimeError("this pyinfinitensor extension lacks memory_stats; rebuild InfiniTensor") from error
+
+    def _parse_shape_parameter(
+        self, data: Dict[str, TensorProto], node: NodeProto, index: int,
+        required: bool = False,
+    ) -> Tuple[Optional[List[int]], bool]:
+        if not _has_input(node, index):
+            if required:
+                raise ValueError('{} input {} is required'.format(node.op_type, index))
+            return None, False
+        name = node.input[index]
+        if name in data:
+            return [int(item) for item in _parse_data(data[name])], False
+        try:
+            return self._shape_evaluator.value(name), True
+        except ValueError as error:
             raise ValueError(
-                "inputShapes must contain one shape per model input; expected "
-                "{}, got {}".format(len(self.inputs), len(inputShapes))
-            )
-        for newInput, oldInput in zip(inputShapes, self.inputs):
-            oldTensor = self.inputs[oldInput]
-            self.handler.change_shape(newInput, oldTensor.fuid())
-        self.handler.shape_infer()
-        self.init()
+                '{} node "{}" has unsupported dynamic shape input {} ("{}"): {}'.format(
+                    node.op_type, node.name or node.op_type, index, name, error
+                )
+            ) from error
+
+    def _normalise_input_shapes(
+        self, input_shapes: Union[Dict[str, Sequence[int]], Sequence[Sequence[int]]]
+    ) -> Dict[str, Tuple[int, ...]]:
+        names = list(self.inputs)
+        if isinstance(input_shapes, dict):
+            if set(input_shapes) != set(names):
+                raise ValueError("input_shapes must contain exactly {}".format(names))
+            pairs = [(name, input_shapes[name]) for name in names]
+        else:
+            if len(input_shapes) != len(names):
+                raise ValueError("inputShapes must contain one shape per model input; expected {}, got {}".format(len(names), len(input_shapes)))
+            pairs = list(zip(names, input_shapes))
+        normalised = {}
+        symbols = {}
+        def dimension(value):
+            if isinstance(value, (bool, np.bool_)):
+                raise TypeError("boolean dimension")
+            return operator.index(value)
+        for name, shape in pairs:
+            try:
+                dims = tuple(dimension(item) for item in shape)
+            except (TypeError, ValueError) as error:
+                raise ValueError("invalid shape for {}".format(name)) from error
+            spec = self._input_shape_specs.get(name, [])
+            if len(dims) != len(spec) or any(item <= 0 for item in dims):
+                raise ValueError("invalid shape for {}: {}; expected positive rank-{} dimensions".format(name, dims, len(spec)))
+            for symbol, dim in zip(spec, dims):
+                if isinstance(symbol, str) and symbol:
+                    if symbol in symbols and symbols[symbol] != dim:
+                        raise ValueError("inconsistent symbolic dimension {} for input {}".format(symbol, name))
+                    symbols[symbol] = dim
+            normalised[name] = dims
+        return normalised
+
+    def _update_dynamic_parameters(self, shapes: Dict[str, Tuple[int, ...]], *, values_ready=False) -> None:
+        if not self._dynamic_bindings:
+            return
+        if not values_ready:
+            self._shape_evaluator.evaluate(shapes)
+        for binding in self._dynamic_bindings:
+            values = [self._shape_evaluator.value(name) if name else None for name in binding["params"]]
+            try:
+                if binding["kind"] == "reshape":
+                    self.handler.update_reshape(values[0], binding["output"])
+                elif binding["kind"] == "expand":
+                    self.handler.update_expand(values[0], binding["output"])
+                elif binding["kind"] == "slice":
+                    self.handler.update_slice(values[0], values[1], values[2], values[3], binding["output"])
+                else:
+                    raise AssertionError("unknown dynamic binding")
+            except AttributeError as error:
+                raise RuntimeError(
+                    "this pyinfinitensor extension lacks dynamic shape support; rebuild InfiniTensor"
+                ) from error
+
+    def prepare(self, input_shapes: Union[Dict[str, Sequence[int]], Sequence[Sequence[int]]]) -> None:
+        """Prepare one resident graph for concrete input shapes without reloading weights."""
+        shapes = self._normalise_input_shapes(input_shapes)
+        if shapes == self._prepared_input_shapes and self._prepared_is_valid:
+            return
+        # Shape inference can fail, so do every validation/evaluation before
+        # touching tensors.  A failure therefore leaves the old prepared graph usable.
+        self._shape_evaluator.evaluate(shapes)
+        old_shapes = self._prepared_input_shapes
+        old_valid = self._prepared_is_valid
+        try:
+            for name, dims in shapes.items():
+                self.handler.change_shape(list(dims), self.inputs[name].fuid())
+            self._update_dynamic_parameters(shapes, values_ready=True)
+            self.handler.shape_infer()
+            self.handler.data_malloc(self.use_naive_allocator)
+            # Drop only this graph's executable and provider pool. Other
+            # OnnxStubs may share the same runtime.
+            self.handler.clear_graph_cache()
+            self._prepared_input_shapes = shapes
+            self._prepared_is_valid = True
+            self._same_shape_runs = 0
+        except Exception:
+            self._prepared_is_valid = False
+            if old_shapes is not None and old_valid:
+                try:
+                    for name, dims in old_shapes.items():
+                        self.handler.change_shape(list(dims), self.inputs[name].fuid())
+                    self._update_dynamic_parameters(old_shapes)
+                    self.handler.shape_infer()
+                    self.handler.data_malloc(self.use_naive_allocator)
+                    self._prepared_input_shapes = old_shapes
+                    self._prepared_is_valid = True
+                except Exception:
+                    self._prepared_input_shapes = None
+            raise
+
+    def check_capabilities(self, input_shapes: Optional[Union[Dict[str, Sequence[int]], Sequence[Sequence[int]]]] = None) -> Dict[str, Any]:
+        """Return node-level readiness evidence without evaluating activations."""
+        supported = {
+            "Add", "Cast", "Concat", "Constant", "Div", "Erf", "Gather", "Gelu",
+            "LayerNormalization", "MatMul", "Mul", "Pow", "Reshape", "Shape",
+            "Slice", "Softmax", "Sqrt", "Sub", "Transpose", "Unsqueeze",
+        }
+        unsupported = [node for node in self._model_nodes if node["op"] not in supported]
+        if unsupported:
+            node = unsupported[0]
+            raise RuntimeError("capability check failed at node {name} ({op}); unsupported ONNX frontend operator".format(**node))
+        report = {
+            "runtime": type(self._runtime).__name__,
+            "inputs": {name: {"dtype": str(tensor.dtype()), "shape_spec": self._input_shape_specs[name]} for name, tensor in self.inputs.items()},
+            "nodes": self._model_nodes,
+            "required_ops": sorted({node["op"] for node in self._model_nodes}),
+            "dynamic_shape_bindings": len(self._dynamic_bindings),
+            "exact_gelu_fusions": self._gelu_fusion_count,
+            "provider_modules": [item for item in os.environ.get("INFINIOPS_PROVIDER_MODULES", "").split(",") if item],
+        }
+        if input_shapes is not None:
+            shapes = self._normalise_input_shapes(input_shapes)
+            try:
+                self._shape_evaluator.evaluate(shapes)
+                report["prepared_shapes"] = {name: list(dims) for name, dims in shapes.items()}
+            except Exception as error:
+                raise RuntimeError("capability shape preparation failed: {}".format(error)) from error
+        return report
+
+    def set_input(self, inputShapes: List[Sequence[int]]) -> None:
+        """Compatibility wrapper for the legacy positional input-shape API."""
+        self.prepare(inputShapes)
+
+    def run_numpy(self, inputs: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
+        """Validate, prepare, execute and return independently-owned NumPy arrays."""
+        if set(inputs) != set(self.inputs):
+            raise ValueError("inputs must contain exactly {}".format(list(self.inputs)))
+        # np.ascontiguousarray promotes rank-0 arrays to rank 1. Preserve ONNX
+        # scalar inputs (for example a scalar Gather index).
+        arrays = {name: np.asarray(value) for name, value in inputs.items()}
+        arrays = {name: value if value.flags.c_contiguous else np.ascontiguousarray(value)
+                  for name, value in arrays.items()}
+        for name, array in arrays.items():
+            expected = _onnx_numpy_dtype(self.inputs[name].dtype())
+            if array.dtype != expected:
+                raise TypeError("input {} must have dtype {}, got {}".format(name, expected, array.dtype))
+        shapes = {name: array.shape for name, array in arrays.items()}
+        started = time.perf_counter()
+        self.prepare(shapes)
+        prepared = time.perf_counter()
+        for name, array in arrays.items():
+            self.inputs[name].copyin_numpy(array)
+        copied_in = time.perf_counter()
+        self.run()
+        ran = time.perf_counter()
+        outputs = {name: np.array(tensor.copyout_numpy(), copy=True) for name, tensor in self.outputs.items()}
+        copied_out = time.perf_counter()
+        self.last_timing = {
+            "prepare_s": prepared - started, "h2d_s": copied_in - prepared,
+            "run_s": ran - copied_in, "d2h_s": copied_out - ran,
+            "total_s": copied_out - started,
+        }
+        return outputs
 
     def getShape(self, name: str) -> List[int]:
         if name in self.inputs:
@@ -1540,10 +2212,65 @@ class OnnxStub:
         self.handler.tune()
 
     def run(self) -> None:
-        self.handler.run()
+        mode = self.execution_mode
+        graph = mode == "graph" or (mode == "auto" and
+                                    self._same_shape_runs + 1 >= self.graph_capture_after)
+        self._execute(graph)
+
+    def set_execution_mode(self, mode: str, graph_capture_after: Optional[int] = None) -> None:
+        """Select normal, explicit graph, or capture after repeated stable shapes.
+
+        All device graph operations go through GraphHandler -> InfiniRuntime
+        -> InfiniRT. A capture error is propagated, never silently retried.
+        """
+        if mode not in {"normal", "graph", "auto"}:
+            raise ValueError('execution_mode must be "normal", "graph" or "auto"')
+        after = self.graph_capture_after if graph_capture_after is None else graph_capture_after
+        if isinstance(after, (bool, np.bool_)):
+            raise ValueError("graph_capture_after must be a positive integer")
+        try:
+            after = operator.index(after)
+        except TypeError as error:
+            raise ValueError("graph_capture_after must be a positive integer") from error
+        if after < 1:
+            raise ValueError("graph_capture_after must be a positive integer")
+        if mode != "normal" and not isinstance(self._runtime, getattr(backend, "InfiniRuntime", ())):
+            raise ValueError("device graph execution requires the InfiniRT backend")
+        self.execution_mode, self.graph_capture_after = mode, after
+        self._same_shape_runs = 0
+
+    def execution_stats(self) -> Dict[str, Any]:
+        return dict(self._execution_stats, mode=self.execution_mode,
+                    graph_capture_after=self.graph_capture_after,
+                    same_shape_runs=self._same_shape_runs)
+
+    def _execute(self, use_graph: bool) -> None:
+        if self._prepared_input_shapes is None or not self._prepared_is_valid:
+            raise RuntimeError("dynamic graph has not been prepared; call prepare() or run_numpy() first")
+        if not use_graph:
+            self.handler.run()
+            self._execution_stats["normal_runs"] += 1
+            self._execution_stats["last_execution"] = "normal"
+        else:
+            before = self._runtime.graph_capture_count()
+            started = time.perf_counter()
+            try:
+                self.handler.run_with_graph()
+            except Exception:
+                self._same_shape_runs = 0
+                self._execution_stats["graph_failures"] += 1
+                self._execution_stats["last_execution"] = "graph_failed"
+                raise
+            elapsed = time.perf_counter() - started
+            captured = self._runtime.graph_capture_count() > before
+            key = "captures" if captured else "replays"
+            self._execution_stats[key] += 1
+            self._execution_stats["last_execution"] = "capture" if captured else "replay"
+            self._execution_stats["last_" + ("capture_s" if captured else "replay_s")] = elapsed
+        self._same_shape_runs += 1
 
     def run_with_graph(self) -> None:
-        self.handler.run_with_graph()
+        self._execute(True)
 
     def get_perf_time(self) -> float:
         return self.handler.get_perf_time()
@@ -1640,3 +2367,23 @@ def _parse_data_fp16(tensor: TensorProto):
 
 def _take_shape_dim(shape: TensorShapeProto) -> List[int]:
     return [(d.dim_value if d.dim_value > 0 else 1) for d in shape.dim]
+
+
+def _shape_spec(shape: TensorShapeProto) -> List[Union[int, str, None]]:
+    result: List[Union[int, str, None]] = []
+    for dim in shape.dim:
+        if dim.dim_value > 0:
+            result.append(int(dim.dim_value))
+        elif dim.dim_param:
+            result.append(dim.dim_param)
+        else:
+            result.append(None)
+    return result
+
+
+def _shape_is_dynamic(spec: Sequence[Union[int, str, None]]) -> bool:
+    return any(not isinstance(dim, int) or dim <= 0 for dim in spec)
+
+
+def _take_shape_dim_from_spec(spec: Sequence[Union[int, str, None]]) -> List[int]:
+    return [dim if isinstance(dim, int) and dim > 0 else 1 for dim in spec]

@@ -806,4 +806,32 @@ void GraphHandlerObj::change_shape(const vector<int> &shape, int tensorId) {
     tensor->setShape(shape);
 }
 
+void GraphHandlerObj::update_reshape(const vector<int> &dims, int outputTensorId) {
+    auto tensor = g->getTensor(outputTensorId);
+    IT_ASSERT(tensor != nullptr);
+    auto *op = dynamic_cast<ReshapeObj *>(tensor->getSource().get());
+    IT_ASSERT(op != nullptr, "Tensor is not produced by Reshape");
+    op->setDims(dims);
+}
+
+void GraphHandlerObj::update_expand(const vector<int> &dims, int outputTensorId) {
+    auto tensor = g->getTensor(outputTensorId);
+    IT_ASSERT(tensor != nullptr);
+    auto *op = dynamic_cast<ExpandObj *>(tensor->getSource().get());
+    IT_ASSERT(op != nullptr, "Tensor is not produced by Expand");
+    op->setShape(dims);
+}
+
+void GraphHandlerObj::update_slice(const vector<int> &starts,
+                                   const vector<int> &ends,
+                                   const optional<vector<int>> &axes,
+                                   const optional<vector<int>> &steps,
+                                   int outputTensorId) {
+    auto tensor = g->getTensor(outputTensorId);
+    IT_ASSERT(tensor != nullptr);
+    auto *op = dynamic_cast<SliceObj *>(tensor->getSource().get());
+    IT_ASSERT(op != nullptr, "Tensor is not produced by Slice");
+    op->setSliceParameters(starts, ends, axes, steps);
+}
+
 } // namespace infini

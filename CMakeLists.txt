@@ -127,7 +127,7 @@ if(USE_INFINIOPS_ATEN_KERNELS)
   if(INFINIOPS_PROVIDER_LIBRARY_DIRS STREQUAL "")
     execute_process(
       COMMAND "${Python_EXECUTABLE}" -c
-              "from torch.utils.cpp_extension import library_paths; print(';'.join(library_paths()))"
+              "import importlib.util, os, pathlib; from torch.utils.cpp_extension import library_paths; paths = library_paths(); modules = [x.strip() for x in os.environ.get('INFINIOPS_PROVIDER_MODULES', '').split(',') if x.strip()]; roots = [pathlib.Path(importlib.util.find_spec(x).origin).parent for x in modules]; paths += [str(root / suffix) for root in roots for suffix in ('lib', 'csrc/lib') if (root / suffix).is_dir()]; print(';'.join(dict.fromkeys(paths)))"
       RESULT_VARIABLE _infinitensor_torch_library_result
       OUTPUT_VARIABLE _infinitensor_torch_library_dirs
       ERROR_VARIABLE _infinitensor_torch_library_error

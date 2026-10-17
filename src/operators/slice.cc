@@ -6,7 +6,21 @@ SliceObj::SliceObj(GraphObj *graph, Tensor input, Tensor output,
                    const optional<vector<int>> &_axes,
                    const optional<vector<int>> &_steps)
     : OperatorObj(OpType::Slice, {input}, {output}) {
-    auto shape = input->getDims(); // shape of input
+    buildAxes(input->getDims(), starts, ends, _axes, _steps);
+    IT_ASSERT(checkValid(graph));
+}
+
+void SliceObj::setSliceParameters(const vector<int> &starts,
+                                  const vector<int> &ends,
+                                  const optional<vector<int>> &_axes,
+                                  const optional<vector<int>> &_steps) {
+    buildAxes(inputs[0]->getDims(), starts, ends, _axes, _steps);
+}
+
+void SliceObj::buildAxes(const Shape &shape, const vector<int> &starts,
+                         const vector<int> &ends,
+                         const optional<vector<int>> &_axes,
+                         const optional<vector<int>> &_steps) {
     map<size_t, size_t> axes;
     vector<int> steps;
     {
@@ -41,6 +55,7 @@ SliceObj::SliceObj(GraphObj *graph, Tensor input, Tensor output,
         }
     }
 
+    this->axes.clear();
     auto size = shape.size();
     this->axes.reserve(size);
     for (size_t i = 0; i < size; ++i) {
@@ -59,7 +74,6 @@ SliceObj::SliceObj(GraphObj *graph, Tensor input, Tensor output,
             this->axes.push_back({0, len, 1});
         }
     }
-    IT_ASSERT(checkValid(graph));
 }
 
 optional<vector<Shape>> SliceObj::inferShape(const TensorVec &inputs) {

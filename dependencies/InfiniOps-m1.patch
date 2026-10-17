@@ -1,0 +1,289 @@
+diff --git a/scripts/generate_torch_ops.py b/scripts/generate_torch_ops.py
+index 2650405..9f98898 100644
+--- a/scripts/generate_torch_ops.py
++++ b/scripts/generate_torch_ops.py
+@@ -1434,7 +1434,32 @@ def _generate_torch_method_source(name: str, op: Op) -> str:
+ 
+         return api_param.api_name
+ 
+-    if op.is_inplace:
++    if op.aten_name == "gelu":
++        # torch_npu does not implement aten::gelu.out and silently falls back
++        # to CPU, while its regular aten::gelu kernel is device-native.  Copy
++        # the returned tensor into InfiniOps-owned storage so every provider
++        # keeps the normal out-parameter contract without a hidden fallback.
++        out_param = next(p for p in op.params if p.is_out)
++        input_param = next(p for p in op.params if p.is_tensor and not p.is_out)
++        extra_args = [
++            _render_arg(index, p)
++            for index, p in enumerate(op.params)
++            if p is not out_param and p is not input_param
++        ]
++        rendered_extra = ", " + ", ".join(extra_args) if extra_args else ""
++        out_arg_order = [(index, p) for index, p in enumerate(op.params) if p.is_out] + [
++            (index, p) for index, p in enumerate(op.params) if not p.is_out
++        ]
++        out_args = ", ".join(_render_arg(index, p) for index, p in out_arg_order)
++        aten_call = (
++            "if constexpr (kDev == Device::Type::kAscend) {\n"
++            f"      at_{out_param.name}.copy_(at::gelu("
++            f"at_{input_param.name}{rendered_extra}));\n"
++            "    } else {\n"
++            f"      at::gelu_out({out_args});\n"
++            "    }"
++        )
++    elif op.is_inplace:
+         # In-place ATen calls keep the mutable input in positional order,
+         # unlike `_out` calls which place output tensors first.
+         input_param = op.params[0]
+diff --git a/src/base/onnx_gather.h b/src/base/onnx_gather.h
+new file mode 100644
+index 0000000..c74216f
+--- /dev/null
++++ b/src/base/onnx_gather.h
+@@ -0,0 +1,12 @@
++#pragma once
++#include "operator.h"
++
++namespace infini::ops {
++// ONNX Gather inserts the complete index shape at axis, unlike ATen gather.
++class OnnxGather : public Operator<OnnxGather> {
++ public:
++  OnnxGather(const Tensor input, const Tensor index, const int64_t axis, Tensor out) {}
++  virtual void operator()(const Tensor input, const Tensor index,
++                          const int64_t axis, Tensor out) const = 0;
++};
++}
+diff --git a/src/graph_capture.cc b/src/graph_capture.cc
+index 6b997e9..591b91f 100644
+--- a/src/graph_capture.cc
++++ b/src/graph_capture.cc
+@@ -40,6 +40,14 @@ class AscendGraphCaptureMemory final : public GraphCaptureMemory {
+       // The caller must destroy its graph executable before dropping this
+       // owner. Until then empty_cache/OOM reclamation must not free the pool.
+       c10_npu::NPUCachingAllocator::releasePool(device_, pool_.id());
++      // releasePool only marks a private pool freeable. Unlike the ordinary
++      // pool, its blocks cannot be reused by the next capture's distinct pool.
++      // Waiting for allocation failure is too late: allocator reclamation is
++      // forbidden while capture is underway. Reclaim at this safe boundary,
++      // after both graph handles have been destroyed and capture has ended.
++      // This releases only unused caches in this process, never live tensors
++      // or pools still owned by other graph executables.
++      c10_npu::NPUCachingAllocator::get()->emptyCache(true);
+     } catch (const std::exception& error) {
+       // If ending capture failed, retain the pool instead of making memory
+       // available while the allocator might still be redirecting into it.
+diff --git a/src/native/cambricon/ops/rms_norm/kernel.mlu b/src/native/cambricon/ops/rms_norm/kernel.mlu
+index b4d7e8d..99d230a 100644
+--- a/src/native/cambricon/ops/rms_norm/kernel.mlu
++++ b/src/native/cambricon/ops/rms_norm/kernel.mlu
+@@ -286,7 +286,10 @@ void RmsNormUnion(void* workspace, int core_per_cluster, int cluster_count,
+   RmsNorm<T, TW><<<kernel_dim, kernel_type, queue>>>(
+       x_, w_, y_, mlu_shape, mlu_y_strides, mlu_x_strides, eps, ndim, dim_s);
+ 
+-  cnrtQueueSync(queue);
++  // Metadata copies and the kernel are ordered on the caller's queue. The
++  // cached Operator owns the host metadata until completion/replay. A queue
++  // synchronization here invalidates an active CNRT graph capture; completion
++  // belongs to the caller, as for other asynchronous InfiniOps kernels.
+ }
+ 
+ template void RmsNormUnion<__half, __half>(void*, int, int, cnrtQueue_t, void*,
+diff --git a/src/torch/ascend/c10.h b/src/torch/ascend/c10.h
+index 6467e96..9152f99 100644
+--- a/src/torch/ascend/c10.h
++++ b/src/torch/ascend/c10.h
+@@ -3,6 +3,7 @@
+ 
+ #include <torch_npu/csrc/core/npu/NPUGuard.h>
+ #include <torch_npu/csrc/core/npu/NPUStream.h>
++#include <torch_npu/csrc/core/npu/NPUFunctions.h>
+ 
+ #include <cstdlib>
+ #include <cstring>
+@@ -19,6 +20,14 @@ struct C10<Device::Type::kAscend> {
+   static c10_npu::NPUStream GetStreamFromExternal(void* stream,
+                                                   int device_index) {
+     const auto device = static_cast<c10::DeviceIndex>(device_index);
++    // InfiniRT activates ACL directly; torch_npu also caches the current
++    // device in TLS. Synchronize that cache before NPUStreamGuard saves it,
++    // otherwise its destructor can restore device 0 after an external runtime
++    // selected device 1, invalidating subsequent native stream operations.
++    const auto status = c10_npu::SetDevice(device);
++    TORCH_CHECK(status == ACL_ERROR_NONE,
++                "torch_npu SetDevice for external runtime stream failed: ",
++                status);
+     if (stream == nullptr) {
+       return c10_npu::getCurrentNPUStream(device);
+     }
+diff --git a/src/torch/encoder_stream.h b/src/torch/encoder_stream.h
+new file mode 100644
+index 0000000..f88c4d6
+--- /dev/null
++++ b/src/torch/encoder_stream.h
+@@ -0,0 +1,24 @@
++#pragma once
++#include "torch/c10.h"
++#ifdef WITH_NVIDIA
++#include "torch/nvidia/c10.h"
++#endif
++#ifdef WITH_CAMBRICON
++#include "torch/cambricon/c10.h"
++#endif
++#ifdef WITH_ASCEND
++#include "torch/ascend/c10.h"
++#endif
++
++namespace infini::ops {
++template <Device::Type kDev, typename Fn>
++void WithEncoderStream(void* stream, int device_index, Fn&& fn) {
++  if constexpr (kDev == Device::Type::kNvidia || kDev == Device::Type::kCambricon || kDev == Device::Type::kAscend) {
++    const typename C10<kDev>::StreamGuard guard{
++        C10<kDev>::GetStreamFromExternal(stream, device_index)};
++    fn();
++  } else {
++    fn();
++  }
++}
++}
+diff --git a/src/torch/ops/cast/cast.cc b/src/torch/ops/cast/cast.cc
+new file mode 100644
+index 0000000..b1d004f
+--- /dev/null
++++ b/src/torch/ops/cast/cast.cc
+@@ -0,0 +1,28 @@
++#include "torch/ops/cast/cast.h"
++#include "torch/tensor_.h"
++#include "torch/encoder_stream.h"
++
++namespace infini::ops {
++template <Device::Type kDev>
++void Operator<Cast, kDev, 8>::operator()(const Tensor input, Tensor out) const {
++  WithEncoderStream<kDev>(stream_, out.device().index(), [&] {
++    auto x = ToAtenTensor<kDev>(const_cast<void*>(input.data()), input.shape(),
++        input.strides(), input.dtype(), input.device().index());
++    auto y = ToAtenTensor<kDev>(out.data(), out.shape(), out.strides(),
++        out.dtype(), out.device().index());
++    y.copy_(x);
++  });
++}
++#ifdef WITH_CPU
++template class Operator<Cast, Device::Type::kCpu, 8>;
++#endif
++#ifdef WITH_NVIDIA
++template class Operator<Cast, Device::Type::kNvidia, 8>;
++#endif
++#ifdef WITH_CAMBRICON
++template class Operator<Cast, Device::Type::kCambricon, 8>;
++#endif
++#ifdef WITH_ASCEND
++template class Operator<Cast, Device::Type::kAscend, 8>;
++#endif
++}
+diff --git a/src/torch/ops/cast/cast.h b/src/torch/ops/cast/cast.h
+new file mode 100644
+index 0000000..e01b9f5
+--- /dev/null
++++ b/src/torch/ops/cast/cast.h
+@@ -0,0 +1,10 @@
++#pragma once
++#include "base/cast.h"
++namespace infini::ops {
++template <Device::Type kDev>
++class Operator<Cast, kDev, 8> : public Cast {
++ public:
++  using Cast::Cast;
++  void operator()(const Tensor input, Tensor out) const override;
++};
++}
+diff --git a/src/torch/ops/onnx_gather/onnx_gather.cc b/src/torch/ops/onnx_gather/onnx_gather.cc
+new file mode 100644
+index 0000000..6a2e6e5
+--- /dev/null
++++ b/src/torch/ops/onnx_gather/onnx_gather.cc
+@@ -0,0 +1,36 @@
++#include "torch/ops/onnx_gather/onnx_gather.h"
++#include "torch/tensor_.h"
++#include "torch/encoder_stream.h"
++
++namespace infini::ops {
++template <Device::Type kDev>
++void Operator<OnnxGather, kDev, 8>::operator()(const Tensor input,
++    const Tensor index, const int64_t axis, Tensor out) const {
++  WithEncoderStream<kDev>(stream_, out.device().index(), [&] {
++    auto x = ToAtenTensor<kDev>(const_cast<void*>(input.data()), input.shape(),
++        input.strides(), input.dtype(), input.device().index());
++    auto indices = ToAtenTensor<kDev>(const_cast<void*>(index.data()), index.shape(),
++        index.strides(), index.dtype(), index.device().index()).reshape({-1});
++    auto y = ToAtenTensor<kDev>(out.data(), out.shape(), out.strides(),
++        out.dtype(), out.device().index());
++    // Normalize only negative indices. Out-of-range indices remain invalid.
++    auto normalized = at::where(indices < 0, indices + x.size(axis), indices);
++    auto flat_shape = x.sizes().vec();
++    flat_shape[axis] = indices.numel();
++    auto flat_out = y.view(flat_shape);
++    at::index_select_out(flat_out, x, axis, normalized);
++  });
++}
++#ifdef WITH_CPU
++template class Operator<OnnxGather, Device::Type::kCpu, 8>;
++#endif
++#ifdef WITH_NVIDIA
++template class Operator<OnnxGather, Device::Type::kNvidia, 8>;
++#endif
++#ifdef WITH_CAMBRICON
++template class Operator<OnnxGather, Device::Type::kCambricon, 8>;
++#endif
++#ifdef WITH_ASCEND
++template class Operator<OnnxGather, Device::Type::kAscend, 8>;
++#endif
++}
+diff --git a/src/torch/ops/onnx_gather/onnx_gather.h b/src/torch/ops/onnx_gather/onnx_gather.h
+new file mode 100644
+index 0000000..11bfae2
+--- /dev/null
++++ b/src/torch/ops/onnx_gather/onnx_gather.h
+@@ -0,0 +1,11 @@
++#pragma once
++#include "base/onnx_gather.h"
++namespace infini::ops {
++template <Device::Type kDev>
++class Operator<OnnxGather, kDev, 8> : public OnnxGather {
++ public:
++  using OnnxGather::OnnxGather;
++  void operator()(const Tensor input, const Tensor index,
++                  const int64_t axis, Tensor out) const override;
++};
++}
+diff --git a/src/torch/tensor_.h b/src/torch/tensor_.h
+index 8082afe..d38c38d 100644
+--- a/src/torch/tensor_.h
++++ b/src/torch/tensor_.h
+@@ -3,7 +3,6 @@
+ 
+ #include <torch/torch.h>
+ #include <torch/version.h>
+-
+ #ifdef WITH_ASCEND
+ #include <torch_npu/csrc/aten/common/from_blob.h>
+ #endif
+@@ -110,6 +109,7 @@ inline at::Tensor ToAtenTensor(
+     if (dim == 0) return at::empty_strided(at_shape, at_strides, options);
+   }
+ 
++  at::globalContext().lazyInitDevice(options.device().type());
+ #ifdef WITH_ASCEND
+   if constexpr (kDev == Device::Type::kAscend) {
+     // NPU tensors require torch_npu's storage descriptor. Supplying the
+@@ -119,7 +119,10 @@ inline at::Tensor ToAtenTensor(
+                                      options.device());
+   }
+ #endif
+-  return at::from_blob(data, at_shape, at_strides, options);
++  // The device is supplied by InfiniRT. Do not ask a PrivateUse1 backend to
++  // rediscover it from an external allocation (not every provider has that hook).
++  return at::for_blob(data, at_shape).strides(at_strides)
++      .options(options).target_device(options.device()).make_tensor();
+ }
+ 
+ }  // namespace infini::ops

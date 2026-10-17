@@ -27,6 +27,7 @@ class ExpandObj : public OperatorObj {
     int numInputs() const override { return 1; }
     int numOutputs() const override { return 1; }
     Shape getShape() const { return dims; }
+    inline void setShape(Shape newDims) { dims = std::move(newDims); }
 
   private:
     vector<int> getWorkloadVector() const override;
