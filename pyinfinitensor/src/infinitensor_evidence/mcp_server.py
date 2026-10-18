@@ -33,7 +33,9 @@ def serve(args):
 
     def host_filters(filters):
         filters=dict(filters or {})
-        versions=dict(filters.get('versions',{}))
+        versions=filters.get('versions',{})
+        if not isinstance(versions,dict):raise ValueError('versions must be an exact-version object')
+        versions=dict(versions)
         if args.platform:
             if filters.get('platform',args.platform)!=args.platform:raise ValueError('platform is outside host scope')
             filters['platform']=args.platform

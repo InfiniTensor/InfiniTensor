@@ -50,6 +50,8 @@ class TestEvidenceMCP(unittest.IsolatedAsyncioTestCase):
                     self.assertTrue(invalid.isError)
                     outside=await session.call_tool('search_evidence',{'query':'图捕获','filters':{'platform':'nvidia'}})
                     self.assertTrue(outside.isError)
+                    malformed=await session.call_tool('search_evidence',{'query':'图捕获','filters':{'versions':[]}})
+                    self.assertTrue(malformed.isError)
                     concurrent=await asyncio.gather(*[session.call_tool('search_evidence',{'query':'图捕获'}) for _ in range(3)])
                     self.assertTrue(all(not reply.isError for reply in concurrent))
 
