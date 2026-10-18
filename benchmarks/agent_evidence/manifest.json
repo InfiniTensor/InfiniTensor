@@ -1,0 +1,15 @@
+{
+  "source_revision": "4cf8f226486015e0d04b6d2e7043a8fc6a063f69",
+  "source_files": 13,
+  "documents": 60,
+  "real_queries": 42,
+  "labeled_queries": 9,
+  "issues_sha256": "7e3a4b36e9536c915bd3f53c99270412289b2ff8b5058a4e543461c330ab71f9",
+  "sha256": {
+    "documents.jsonl": "95b4d3ae9831e0aae979e6caa5b5222e1662dd1b9923cfdfba04d0b4b3ab37b2",
+    "queries.jsonl": "9da6e6d3db9268c9c986f00cbc309718c7e34124a101c1b4ecd1d2c0238cd5e8"
+  },
+  "selection": "all nonempty issue titles from fixed snapshot; corpus is repository documentation only",
+  "leakage_control": "issue questions, bodies and comments are never included in the search corpus",
+  "scope": "small real-query retrieval pilot; no generated questions, no LLM task-success claim"
+}
