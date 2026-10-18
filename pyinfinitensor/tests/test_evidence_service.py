@@ -35,7 +35,7 @@ class TestEvidenceService(unittest.TestCase):
         engine=FixtureEngine();seen=[]
         def score(pairs):seen.extend(pairs);return np.ones(len(pairs),np.float32)
         engine.score=score;service=self.make(engine)
-        result=service.search_evidence('图捕获',filters={'platform':'ascend'},context_budget=1000)
+        result=service.search_evidence('图捕获',filters={'platform':'ascend'},context_budget=1000,rerank=True)
         self.assertEqual([c['document_id'] for c in result['citations']],['allowed'])
         self.assertEqual(len(seen),1)
         self.assertLessEqual(len(result['context']),1000)
@@ -78,8 +78,15 @@ class TestEvidenceService(unittest.TestCase):
             return np.ones(len(pairs),np.float32)
         engine.score=score;service=self.make(engine)
         with ThreadPoolExecutor(max_workers=4) as pool:
-            results=list(pool.map(lambda _:service.search_evidence('图捕获'),range(8)))
+            results=list(pool.map(lambda _:service.search_evidence('图捕获',rerank=True),range(8)))
         self.assertEqual(peak,1);self.assertTrue(all(r['citations'] for r in results))
+
+    def test_reranking_is_an_explicit_domain_quality_choice(self):
+        self.store.upsert([record()],lambda t:np.tile(np.asarray([[1.,0.]],np.float32),(len(t),1)),'test-model')
+        engine=FixtureEngine()
+        def fail(pairs):raise AssertionError('default must not call the reranker')
+        engine.score=fail
+        self.assertFalse(self.make(engine).search_evidence('图捕获')['reranked'])
 
 
 if __name__=='__main__':unittest.main()

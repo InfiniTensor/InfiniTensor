@@ -49,7 +49,7 @@ class EvidenceService:
         return [dict(rows[i],vector_score=float(scores[i])) for i in order]
 
     def search_evidence(self,query,filters=None,top_k=5,recall_k=50,context_budget=2048,
-                        mode='hybrid',rerank=True):
+                        mode='hybrid',rerank=False):
         if not isinstance(query,str) or not query.strip():raise ValueError('query must be a nonempty string')
         positive(top_k,'top_k',20);positive(recall_k,'recall_k',200);positive(context_budget,'context_budget',32768)
         if top_k>recall_k:raise ValueError('top_k cannot exceed recall_k')
@@ -104,10 +104,10 @@ class EvidenceService:
                           'context_s':finished-reranked_at,'total_s':finished-started},
                 'mode':mode,'reranked':rerank,'answerability':'not inferred from relevance scores'}
 
-    def read_evidence(self,citation_id,context_budget=4096):
+    def read_evidence(self,citation_id,context_budget=4096,filters=None):
         positive(context_budget,'context_budget',32768)
         with self.lock,self.store.snapshot():
-            row=self.store.read(citation_id,self.principal,self.namespaces)
+            row=self.store.read(citation_id,self.principal,self.namespaces,filters)
             context=render(row)
             count=int(self.count(context))
             if count>context_budget:

@@ -97,5 +97,36 @@ class TestEvidenceStore(unittest.TestCase):
         self.assertEqual(spans[0][0],0);self.assertEqual(spans[-1][1],len(text))
         self.assertTrue(all(a[1]-15==b[0] for a,b in zip(spans,spans[1:])))
 
+    def test_explicit_namespace_sync_withdraws_only_absent_documents(self):
+        self.store.upsert([record('keep'),record('remove'),record('other',namespace='different')])
+        result=self.store.upsert([record('keep')],sync_namespace='backend')
+        self.assertEqual(result['withdrawn_documents'],1)
+        self.assertEqual([x['document_id'] for x in self.search()],['keep'])
+        self.assertEqual(len(self.store.lexical_search('图捕获','alice',['different'])),1)
+        with self.assertRaises(ValueError):self.store.upsert([record(namespace='different')],sync_namespace='backend')
+
+    def test_concurrent_writer_cannot_publish_a_mixed_snapshot(self):
+        encode=lambda t:np.tile(np.asarray([[1.,0.]],np.float32),(len(t),1))
+        self.store.upsert([record('keep'),record('change')],encode,'model')
+        other=EvidenceStore(self.path)
+        try:
+            def race(texts):
+                other.upsert([record('keep',revision='writer-b-2'),record('change',revision='writer-b-3')],encode,'model')
+                return encode(texts)
+            with self.assertRaisesRegex(RuntimeError,'concurrently'):
+                self.store.upsert([record('keep'),record('change',revision='writer-a-2')],race,'model',sync_namespace='backend')
+            rows=self.search()
+            self.assertEqual({x['document_id']:x['source_revision'] for x in rows},
+                             {'keep':'writer-b-2','change':'writer-b-3'})
+        finally:other.close()
+
+    def test_read_checks_current_and_historical_environment_scope(self):
+        self.store.upsert([record(versions={'InfiniOps':['old']})]);old=self.search()[0]['citation_id']
+        with self.assertRaises(KeyError):self.store.read(old,'alice',['backend'],{'platform':'nvidia'})
+        with self.assertRaises(KeyError):self.store.read(old,'alice',['backend'],{'versions':{'InfiniOps':'new'}})
+        self.store.upsert([record(versions={'InfiniOps':['new']},revision='new')])
+        with self.assertRaises(KeyError):self.store.read(old,'alice',['backend'],{'versions':{'InfiniOps':'new'}})
+        self.assertFalse(self.store.read(old,'alice',['backend'])['is_current'])
+
 
 if __name__=='__main__':unittest.main()

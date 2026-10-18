@@ -106,9 +106,13 @@ CREATE VIRTUAL TABLE IF NOT EXISTS lexical USING fts5(title_terms,body_terms,tok
             except BaseException:
                 self.db.execute('ROLLBACK');raise
 
-    def upsert(self,documents,encode=None,fingerprint=None,chunker=character_chunks):
+    def upsert(self,documents,encode=None,fingerprint=None,chunker=character_chunks,sync_namespace=None):
+        if self.read_only:raise PermissionError('evidence store is read-only')
         values=[document(x) for x in documents]
         keys=[sha(canonical([x['namespace'],x['id']])) for x in values]
+        if sync_namespace is not None and (not isinstance(sync_namespace,str) or not sync_namespace or
+                any(x['namespace']!=sync_namespace for x in values)):
+            raise ValueError('sync requires one explicitly matching namespace')
         if len(set(keys))!=len(keys):raise ValueError('duplicate document in update')
         if (encode is None)!=(fingerprint is None):raise ValueError('encode and fingerprint must be supplied together')
         # Keep model work outside the write transaction. A failed encode must
@@ -116,7 +120,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS lexical USING fts5(title_terms,body_terms,tok
         with self.lock:
             bound=self.setting('embedding_fingerprint')
             if bound is not None and fingerprint!=bound:raise ValueError('embedding package differs; build a new store')
-            prepared=[]
+            prepared=[];observed={}
             for value,key in zip(values,keys):
                 revision=sha(canonical(value));spans=chunker(value['text'])
                 chunks=[]
@@ -127,6 +131,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS lexical USING fts5(title_terms,body_terms,tok
                         'embedding_text':value['title']+'\n'+body,
                         'citation_id':sha(canonical([key,revision,start,end]))})
                 current=self.db.execute('SELECT current_revision,withdrawn FROM documents WHERE doc_key=?',(key,)).fetchone()
+                observed[key]=tuple(current) if current else None
                 if current and current[0]==revision and not current[1]:continue
                 prepared.append((value,key,revision,chunks))
             texts=[chunk['embedding_text'] for _,_,_,chunks in prepared for chunk in chunks]
@@ -142,10 +147,17 @@ CREATE VIRTUAL TABLE IF NOT EXISTS lexical USING fts5(title_terms,body_terms,tok
                 # encoder was working. Recheck its package inside the commit.
                 bound=self.setting('embedding_fingerprint')
                 if bound is not None and fingerprint!=bound:raise ValueError('embedding package changed concurrently')
+                for key,expected in observed.items():
+                    current=self.db.execute('SELECT current_revision,withdrawn FROM documents WHERE doc_key=?',(key,)).fetchone()
+                    if (tuple(current) if current else None)!=expected:
+                        raise RuntimeError('document changed concurrently; retry the complete update')
                 if vectors is not None:
+                    dimension=self.setting('dimension')
+                    if dimension is not None and int(dimension)!=vectors.shape[1]:
+                        raise ValueError('embedding dimension changed concurrently')
                     self.db.execute("INSERT OR REPLACE INTO settings VALUES('embedding_fingerprint',?)",(fingerprint,))
                     self.db.execute("INSERT OR REPLACE INTO settings VALUES('dimension',?)",(str(vectors.shape[1]),))
-                offset=0
+                offset=0;withdrawn=0
                 for value,key,revision,chunks in prepared:
                     self.db.execute('DELETE FROM lexical WHERE rowid IN (SELECT rowid FROM chunks WHERE doc_key=?)',(key,))
                     self.db.execute('INSERT OR IGNORE INTO revisions VALUES(?,?,?,?)',(key,revision,canonical(value),time.time()))
@@ -160,8 +172,14 @@ CREATE VIRTUAL TABLE IF NOT EXISTS lexical USING fts5(title_terms,body_terms,tok
                         self.db.execute('INSERT INTO lexical(rowid,title_terms,body_terms) VALUES(?,?,?)',
                             (rowid,' '.join(terms(value['title'])),' '.join(terms(chunk['body']))))
                         offset+=1
+                if sync_namespace is not None:
+                    present=set(keys)
+                    for row in self.db.execute('SELECT doc_key FROM documents WHERE namespace=? AND withdrawn=0',(sync_namespace,)).fetchall():
+                        if row[0] not in present:
+                            self.db.execute('DELETE FROM lexical WHERE rowid IN (SELECT rowid FROM chunks WHERE doc_key=?)',(row[0],))
+                            self.db.execute('UPDATE documents SET withdrawn=1 WHERE doc_key=?',(row[0],));withdrawn+=1
             return {'updated_documents':len(prepared),'encoded_chunks':len(texts) if vectors is not None else 0,
-                    'chunks':sum(len(x[3]) for x in prepared)}
+                    'chunks':sum(len(x[3]) for x in prepared),'withdrawn_documents':withdrawn}
 
     def withdraw(self,namespace,doc_id):
         key=sha(canonical([namespace,doc_id]))
@@ -214,15 +232,24 @@ CREATE VIRTUAL TABLE IF NOT EXISTS lexical USING fts5(title_terms,body_terms,tok
  WHERE d.current_revision=c.revision_hash AND '''+scope+' ORDER BY c.citation_id'
         with self.lock:return [self._row(row) for row in self.db.execute(sql,params)]
 
-    def read(self,citation_id,principal,namespaces):
+    def read(self,citation_id,principal,namespaces,filters=None):
         if not isinstance(citation_id,str) or len(citation_id)!=64:raise ValueError('invalid citation id')
-        scope,params=self._scope(principal,namespaces)
+        scope,params=self._scope(principal,namespaces,filters)
         sql='''SELECT c.*,r.payload,d.current_revision FROM chunks c JOIN documents d ON d.doc_key=c.doc_key
  JOIN revisions r ON r.doc_key=c.doc_key AND r.revision_hash=c.revision_hash
  WHERE c.citation_id=? AND '''+scope
         with self.lock:row=self.db.execute(sql,[citation_id,*params]).fetchone()
         if row is None:raise KeyError('evidence is unavailable in this scope')
         result=self._row(row)
+        # A historical quote must also match the host environment itself, even
+        # when the latest document has since moved to another platform/version.
+        filters=filters or {}
+        if filters.get('platform') and not {'any',filters['platform']}.intersection(result['platforms']):
+            raise KeyError('evidence is unavailable in this scope')
+        for component,version in filters.get('versions',{}).items():
+            allowed=result['versions'].get(component)
+            if allowed is not None and '*' not in allowed and version not in allowed:
+                raise KeyError('evidence is unavailable in this scope')
         result['is_current']=result.pop('current_revision')==result['revision_hash']
         result['status']='current' if result['is_current'] else 'superseded'
         result.pop('vector',None);result.pop('embedding_text',None)
