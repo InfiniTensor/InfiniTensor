@@ -1,0 +1,749 @@
+{
+  "schema": 1,
+  "date": "2026-10-19",
+  "status": "PASS",
+  "source_commit": "3b19df772a0c052e9835b75151cd65ab890863aa",
+  "runtime_git_blob_manifest_sha256": "be66afac15f9c62edb40fdc15fea18a469a029ff96763bbf762404b9b71582b2",
+  "base_commit": "4cf8f226486015e0d04b6d2e7043a8fc6a063f69",
+  "shared_environment": true,
+  "dataset": {
+    "source_revision": "4cf8f226486015e0d04b6d2e7043a8fc6a063f69",
+    "source_files": 13,
+    "documents": 60,
+    "real_queries": 42,
+    "labeled_queries": 9,
+    "issues_sha256": "7e3a4b36e9536c915bd3f53c99270412289b2ff8b5058a4e543461c330ab71f9",
+    "sha256": {
+      "documents.jsonl": "95b4d3ae9831e0aae979e6caa5b5222e1662dd1b9923cfdfba04d0b4b3ab37b2",
+      "queries.jsonl": "9da6e6d3db9268c9c986f00cbc309718c7e34124a101c1b4ecd1d2c0238cd5e8"
+    },
+    "selection": "all nonempty issue titles from fixed snapshot; corpus is repository documentation only",
+    "leakage_control": "issue questions, bodies and comments are never included in the search corpus",
+    "scope": "small real-query retrieval pilot; no generated questions, no LLM task-success claim"
+  },
+  "endpoints": {
+    "l20": {
+      "label": "L20",
+      "status": "PASS",
+      "unit_tests": 22,
+      "precision": {
+        "embedding_max_abs_error": 8.940696716308594e-08,
+        "reranker_max_abs_error": 0.0
+      },
+      "mcp": {
+        "concurrent_requests": 3,
+        "stable_citations": true,
+        "startup_s": 29.525252648993046,
+        "status": "PASS",
+        "strict_input_validation": true,
+        "tools": [
+          "search_evidence",
+          "read_evidence"
+        ]
+      },
+      "build": {
+        "chunks": 95,
+        "encoded_chunks": 95,
+        "updated_documents": 60,
+        "withdrawn_documents": 0
+      },
+      "quality": {
+        "hybrid": {
+          "guidance_hit5": 0.8888888888888888,
+          "guidance_mrr5": 0.5185185185185185,
+          "labeled_queries": 9
+        },
+        "lexical": {
+          "guidance_hit5": 0.7777777777777778,
+          "guidance_mrr5": 0.4074074074074074,
+          "labeled_queries": 9
+        },
+        "reranked": {
+          "guidance_hit5": 0.6666666666666666,
+          "guidance_mrr5": 0.30925925925925923,
+          "labeled_queries": 9
+        },
+        "vector": {
+          "guidance_hit5": 1.0,
+          "guidance_mrr5": 0.6851851851851851,
+          "labeled_queries": 9
+        }
+      },
+      "benchmark": {
+        "lexical": {
+          "pooled_p50_ms": 1.087930504581891,
+          "pooled_p95_ms": 2.173457047319971,
+          "measured_requests": 252,
+          "rounds": [
+            {
+              "round": 1,
+              "p50_ms": 1.0901185014517978,
+              "p95_ms": 2.1547224961977918
+            },
+            {
+              "round": 2,
+              "p50_ms": 1.085859003069345,
+              "p95_ms": 2.186892300960608
+            },
+            {
+              "round": 3,
+              "p50_ms": 1.089402001525741,
+              "p95_ms": 2.17409919569036
+            }
+          ]
+        },
+        "hybrid_default": {
+          "pooled_p50_ms": 7.632785498572048,
+          "pooled_p95_ms": 8.823795500211418,
+          "measured_requests": 252,
+          "rounds": [
+            {
+              "round": 1,
+              "p50_ms": 7.646973492228426,
+              "p95_ms": 8.769450801628409
+            },
+            {
+              "round": 2,
+              "p50_ms": 7.606723498611245,
+              "p95_ms": 8.700986508483766
+            },
+            {
+              "round": 3,
+              "p50_ms": 7.622340002853889,
+              "p95_ms": 8.836146246176213
+            }
+          ]
+        },
+        "uncached": {
+          "pooled_p50_ms": 90.34834699559724,
+          "pooled_p95_ms": 96.57054938943475,
+          "measured_requests": 252,
+          "rounds": [
+            {
+              "round": 1,
+              "p50_ms": 89.97695449215826,
+              "p95_ms": 95.85633574097301
+            },
+            {
+              "round": 2,
+              "p50_ms": 90.31790350127267,
+              "p95_ms": 96.25451369865914
+            },
+            {
+              "round": 3,
+              "p50_ms": 90.5858174955938,
+              "p95_ms": 96.95427061014925
+            }
+          ]
+        },
+        "exact_cached": {
+          "pooled_p50_ms": 3.1631259989808314,
+          "pooled_p95_ms": 4.245189396897331,
+          "measured_requests": 252,
+          "rounds": [
+            {
+              "round": 1,
+              "p50_ms": 3.153261997795198,
+              "p95_ms": 4.234491897659609
+            },
+            {
+              "round": 2,
+              "p50_ms": 3.1677785009378567,
+              "p95_ms": 4.247078955086181
+            },
+            {
+              "round": 3,
+              "p50_ms": 3.158628001983743,
+              "p95_ms": 4.244227697927272
+            }
+          ]
+        }
+      },
+      "startup": {
+        "index_s": 0.3139926900039427,
+        "model_load_s": 27.749384647002444
+      },
+      "memory_max_sampled": {
+        "rss_bytes": 4737802240,
+        "process_device_memory_bytes": 3250585600,
+        "aten_allocated_bytes": 28704768,
+        "aten_reserved_bytes": 1237319680
+      },
+      "memory_scope": "validation process after same-device references; not minimal service footprint",
+      "python": "3.12.3",
+      "torch": "2.9.1+cu128",
+      "update_contract": "PASS",
+      "length_guard": "PASS",
+      "evidence_archive_sha256": "1ac9c87f5d5cc84552150c98438d178de2605c18a6c82313e161da054bd11fc6",
+      "evidence_files_sha256": {
+        "driver-device.txt": "fb2d575b9bc58b23cfa271f42c505958ca44e2559b9be41813750ef594175259",
+        "embedding-manifest.json": "739063c46e23752c83f1693346193550c2f2bb72b99c5ce9f447e2b9b638bc91",
+        "native-binary-sha256.txt": "7eb454f565268abc5aa60e1c62b59ead1178f7b00438f9bc16ddf3bd0a86dee9",
+        "native.log": "d6a1938c2f93878b6ea6a10aa440bd8631e00a59aab61a5bb646dfbd3e287321",
+        "pip-freeze.txt": "6cc8460f735858d13ec6e5096611922d680db69823f92ecfa7dc9c6ee27b8415",
+        "reranker-manifest.json": "6741d53fa7e58599cfc59a3acab76915d3bb7c0a5d0a46bfc62a393d8bcb19a5",
+        "source-archive-sha256.txt": "94bfde33928e3bb6cac1028171f3b1f42be6d8817f0244740b739d249a20c14e",
+        "source-commit.txt": "19e9fb0200dae238a167739cee8827a90835daa6bfdc8ca00a47685219463c61",
+        "unit.log": "9d323b722c424c7cb2a4961327946e3dbc0ab596a903c500ecc53571e9b2bdbe",
+        "native\\benchmark-progress.json": "d0eaec4c0bcf55b0a8d488f1fe271c970b13f0571eae377c6e7df093182d422b",
+        "native\\evidence.db": "2d7f031e7c071f4b18c9eb450d5bffcf87089bf1818bee47ca20dc26d2524401",
+        "native\\evidence.db-shm": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb",
+        "native\\evidence.db-wal": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "native\\mcp-server.log": "172e95c063389f8736acd47910e658a96225dd0d9c06c0664a5e1fa076f73c17",
+        "native\\quality.json": "34ec22f55821f1c70948c1b5d63fe2e27852ea0fc2e6249b3eb9a39bfd8efe21",
+        "native\\result.json": "777a3ef2950056b2e7ef7caca7f52d05ae264f8b8e2e298eb08337e6c98bd261",
+        "native\\retrieval-traces.jsonl": "613315678cfbfd13d37029ce3e8b7755017011e4bf454b2048d50c7f12c78631",
+        "native\\update-contract.db": "735409ef2fb6bd86d7fdbd329dd1f8314e96fd62b7ed04bba9d8f67ca525fe4e"
+      }
+    },
+    "a100": {
+      "label": "A100",
+      "status": "PASS",
+      "unit_tests": 22,
+      "precision": {
+        "embedding_max_abs_error": 7.450580596923828e-08,
+        "reranker_max_abs_error": 1.9073486328125e-06
+      },
+      "mcp": {
+        "concurrent_requests": 3,
+        "stable_citations": true,
+        "startup_s": 30.79567446000874,
+        "status": "PASS",
+        "strict_input_validation": true,
+        "tools": [
+          "search_evidence",
+          "read_evidence"
+        ]
+      },
+      "build": {
+        "chunks": 95,
+        "encoded_chunks": 95,
+        "updated_documents": 60,
+        "withdrawn_documents": 0
+      },
+      "quality": {
+        "hybrid": {
+          "guidance_hit5": 0.8888888888888888,
+          "guidance_mrr5": 0.5185185185185185,
+          "labeled_queries": 9
+        },
+        "lexical": {
+          "guidance_hit5": 0.7777777777777778,
+          "guidance_mrr5": 0.4074074074074074,
+          "labeled_queries": 9
+        },
+        "reranked": {
+          "guidance_hit5": 0.6666666666666666,
+          "guidance_mrr5": 0.30925925925925923,
+          "labeled_queries": 9
+        },
+        "vector": {
+          "guidance_hit5": 1.0,
+          "guidance_mrr5": 0.6851851851851851,
+          "labeled_queries": 9
+        }
+      },
+      "benchmark": {
+        "lexical": {
+          "pooled_p50_ms": 1.6764122992753983,
+          "pooled_p95_ms": 3.4628527238965034,
+          "measured_requests": 252,
+          "rounds": [
+            {
+              "round": 1,
+              "p50_ms": 1.7157690599560738,
+              "p95_ms": 3.460983093827963
+            },
+            {
+              "round": 2,
+              "p50_ms": 1.6678618267178535,
+              "p95_ms": 3.4599294885993004
+            },
+            {
+              "round": 3,
+              "p50_ms": 1.6764122992753983,
+              "p95_ms": 3.4637955017387867
+            }
+          ]
+        },
+        "hybrid_default": {
+          "pooled_p50_ms": 12.463558465242386,
+          "pooled_p95_ms": 14.509015530347822,
+          "measured_requests": 252,
+          "rounds": [
+            {
+              "round": 1,
+              "p50_ms": 12.490211054682732,
+              "p95_ms": 14.55958392471075
+            },
+            {
+              "round": 2,
+              "p50_ms": 12.481610290706158,
+              "p95_ms": 14.68169055879116
+            },
+            {
+              "round": 3,
+              "p50_ms": 12.378283776342869,
+              "p95_ms": 14.312497060745955
+            }
+          ]
+        },
+        "uncached": {
+          "pooled_p50_ms": 145.23658715188503,
+          "pooled_p95_ms": 154.5853686518967,
+          "measured_requests": 252,
+          "rounds": [
+            {
+              "round": 1,
+              "p50_ms": 145.82006633281708,
+              "p95_ms": 155.43140666559339
+            },
+            {
+              "round": 2,
+              "p50_ms": 144.70100030303,
+              "p95_ms": 153.89536786824465
+            },
+            {
+              "round": 3,
+              "p50_ms": 144.85739823430777,
+              "p95_ms": 153.72592462226748
+            }
+          ]
+        },
+        "exact_cached": {
+          "pooled_p50_ms": 4.713650792837143,
+          "pooled_p95_ms": 6.478718388825655,
+          "measured_requests": 252,
+          "rounds": [
+            {
+              "round": 1,
+              "p50_ms": 4.7402409836649895,
+              "p95_ms": 6.4788383431732655
+            },
+            {
+              "round": 2,
+              "p50_ms": 4.727538675069809,
+              "p95_ms": 6.4456007443368435
+            },
+            {
+              "round": 3,
+              "p50_ms": 4.6958839520812035,
+              "p95_ms": 6.469098385423422
+            }
+          ]
+        }
+      },
+      "startup": {
+        "index_s": 0.47653654031455517,
+        "model_load_s": 28.52235409244895
+      },
+      "memory_max_sampled": {
+        "rss_bytes": 4827910144,
+        "process_device_memory_bytes": null,
+        "aten_allocated_bytes": 25559040,
+        "aten_reserved_bytes": 1237319680
+      },
+      "memory_scope": "validation process after same-device references; not minimal service footprint",
+      "python": "3.12.3",
+      "torch": "2.8.0a0+5228986c39.nv25.06",
+      "update_contract": "PASS",
+      "length_guard": "PASS",
+      "evidence_archive_sha256": "85d6dc5711b0e70d8462987231a976139ad552c8ee89d30b5959b35e1bf99d66",
+      "evidence_files_sha256": {
+        "driver-device.txt": "64ad8afaa88cbf6f1009962fcd5c4245baecd907d9c619061fea4143a8812fd2",
+        "embedding-manifest.json": "739063c46e23752c83f1693346193550c2f2bb72b99c5ce9f447e2b9b638bc91",
+        "native-binary-sha256.txt": "d96dfb3461d288c7827e9893a4aaa882d420669a5cb7a3903f1d549238cb52bc",
+        "native.log": "cdda094cfd8dbedce8d886580095083100beb3e871e95ad9ad5fdc3b6698c60a",
+        "pip-freeze.txt": "73617fb44d44bf21ec92c7117f7660569249a9794673965d8a0317d9a489f1e1",
+        "reranker-manifest.json": "6741d53fa7e58599cfc59a3acab76915d3bb7c0a5d0a46bfc62a393d8bcb19a5",
+        "source-archive-sha256.txt": "94bfde33928e3bb6cac1028171f3b1f42be6d8817f0244740b739d249a20c14e",
+        "source-commit.txt": "19e9fb0200dae238a167739cee8827a90835daa6bfdc8ca00a47685219463c61",
+        "unit.log": "41a63b1302c98750be5da0d160c276095722859964db00bcbf6211ecb33151a6",
+        "native\\benchmark-progress.json": "1168b391410d28b06d2f1139509de2e4a61c066f7bc10feb0fba327a33e3e607",
+        "native\\evidence.db": "6eea96e9617f32711dac405932632b31bb03495400f176c62d57c170121dcbe8",
+        "native\\evidence.db-shm": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb",
+        "native\\evidence.db-wal": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "native\\mcp-server.log": "236cf11c077ff3aeff01fef60d142ca1eceff8cadfb45f6a6495b8b61f4095fb",
+        "native\\quality.json": "34ec22f55821f1c70948c1b5d63fe2e27852ea0fc2e6249b3eb9a39bfd8efe21",
+        "native\\result.json": "8aa50b97a8e07cbbbe14cb1361d98b3449e71ba2c596e19838dd3de3654c22a8",
+        "native\\retrieval-traces.jsonl": "1ac21f7053117e93a3cbefbfba53d515b6ae8e15c527b7dc76e546c5d68ea144",
+        "native\\update-contract.db": "d8d607fd8cba0e8b5e76b8579ac90f2234e2b0c32ddba068b833378ff09be86e"
+      }
+    },
+    "mlu1": {
+      "label": "MLU590",
+      "status": "PASS",
+      "unit_tests": 22,
+      "precision": {
+        "embedding_max_abs_error": 9.534414857625961e-08,
+        "reranker_max_abs_error": 9.5367431640625e-07
+      },
+      "mcp": {
+        "concurrent_requests": 3,
+        "stable_citations": true,
+        "startup_s": 54.933900164440274,
+        "status": "PASS",
+        "strict_input_validation": true,
+        "tools": [
+          "search_evidence",
+          "read_evidence"
+        ]
+      },
+      "build": {
+        "chunks": 95,
+        "encoded_chunks": 95,
+        "updated_documents": 60,
+        "withdrawn_documents": 0
+      },
+      "quality": {
+        "hybrid": {
+          "guidance_hit5": 0.8888888888888888,
+          "guidance_mrr5": 0.5185185185185185,
+          "labeled_queries": 9
+        },
+        "lexical": {
+          "guidance_hit5": 0.7777777777777778,
+          "guidance_mrr5": 0.4074074074074074,
+          "labeled_queries": 9
+        },
+        "reranked": {
+          "guidance_hit5": 0.6666666666666666,
+          "guidance_mrr5": 0.30925925925925923,
+          "labeled_queries": 9
+        },
+        "vector": {
+          "guidance_hit5": 1.0,
+          "guidance_mrr5": 0.6851851851851851,
+          "labeled_queries": 9
+        }
+      },
+      "benchmark": {
+        "lexical": {
+          "pooled_p50_ms": 2.056606113910675,
+          "pooled_p95_ms": 4.236659267917275,
+          "measured_requests": 252,
+          "rounds": [
+            {
+              "round": 1,
+              "p50_ms": 2.0821685902774334,
+              "p95_ms": 4.235099721699953
+            },
+            {
+              "round": 2,
+              "p50_ms": 2.0461073145270348,
+              "p95_ms": 4.231848008930683
+            },
+            {
+              "round": 3,
+              "p50_ms": 2.042704727500677,
+              "p95_ms": 4.233143478631973
+            }
+          ]
+        },
+        "hybrid_default": {
+          "pooled_p50_ms": 16.99401019141078,
+          "pooled_p95_ms": 19.223816134035587,
+          "measured_requests": 252,
+          "rounds": [
+            {
+              "round": 1,
+              "p50_ms": 17.06771133467555,
+              "p95_ms": 19.234439078718424
+            },
+            {
+              "round": 2,
+              "p50_ms": 16.931154299527407,
+              "p95_ms": 19.238103460520506
+            },
+            {
+              "round": 3,
+              "p50_ms": 16.99401019141078,
+              "p95_ms": 19.166597025468946
+            }
+          ]
+        },
+        "uncached": {
+          "pooled_p50_ms": 133.76152887940407,
+          "pooled_p95_ms": 138.18064937368035,
+          "measured_requests": 252,
+          "rounds": [
+            {
+              "round": 1,
+              "p50_ms": 133.6450930684805,
+              "p95_ms": 138.94864614121616
+            },
+            {
+              "round": 2,
+              "p50_ms": 133.7363920174539,
+              "p95_ms": 138.01061818376184
+            },
+            {
+              "round": 3,
+              "p50_ms": 133.8546727783978,
+              "p95_ms": 138.06162043474615
+            }
+          ]
+        },
+        "exact_cached": {
+          "pooled_p50_ms": 5.656528752297163,
+          "pooled_p95_ms": 7.821911666542292,
+          "measured_requests": 252,
+          "rounds": [
+            {
+              "round": 1,
+              "p50_ms": 5.6649078615009785,
+              "p95_ms": 7.849281188100576
+            },
+            {
+              "round": 2,
+              "p50_ms": 5.650789942592382,
+              "p95_ms": 7.816203450784088
+            },
+            {
+              "round": 3,
+              "p50_ms": 5.620307754725218,
+              "p95_ms": 7.801347179338336
+            }
+          ]
+        }
+      },
+      "startup": {
+        "index_s": 0.8939224816858768,
+        "model_load_s": 44.5854112142697
+      },
+      "memory_max_sampled": {
+        "rss_bytes": 4202598400,
+        "process_device_memory_bytes": 3132096512,
+        "aten_allocated_bytes": 0,
+        "aten_reserved_bytes": 1442840576
+      },
+      "memory_scope": "validation process after same-device references; not minimal service footprint",
+      "python": "3.10.8",
+      "torch": "2.6.0+cpu",
+      "update_contract": "PASS",
+      "length_guard": "PASS",
+      "evidence_archive_sha256": "99b72dcd30ac623f2a3e6f8178159110f25ea9ead200ad737312b3816cda9442",
+      "evidence_files_sha256": {
+        "driver-device.txt": "61bf07aed2adf2e434603bb56bf4166d1bc4deccdb5f668d52b128f3d5d50f67",
+        "embedding-manifest.json": "739063c46e23752c83f1693346193550c2f2bb72b99c5ce9f447e2b9b638bc91",
+        "native-binary-sha256.txt": "f3580e7d27786536a37ed5fd3ccbd3501b1f9d1dab599ff2331c416d22850afd",
+        "native.log": "4128143836e97777ba68ab8334e7fe1562eec7726c981f69e027a20c02ca6068",
+        "pip-freeze.txt": "c8b5c9c019a9d535bb6cede9101adcdba39a925f193d6e0935dce70518bd6810",
+        "reranker-manifest.json": "6741d53fa7e58599cfc59a3acab76915d3bb7c0a5d0a46bfc62a393d8bcb19a5",
+        "source-archive-sha256.txt": "94bfde33928e3bb6cac1028171f3b1f42be6d8817f0244740b739d249a20c14e",
+        "source-commit.txt": "19e9fb0200dae238a167739cee8827a90835daa6bfdc8ca00a47685219463c61",
+        "unit.log": "7259c2460df8625477ac0e9d091fbaabc412828d86481dc5c007443bfb271004",
+        "native\\benchmark-progress.json": "8898d465cd6e9deaa6c940deaf757ff95fb5ebecfddf7f35f99899a35b7d559a",
+        "native\\evidence.db": "319cd940c0af53e03af288b1583a79fc979a33dad00ee680d5874767015bfed0",
+        "native\\evidence.db-shm": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb",
+        "native\\evidence.db-wal": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "native\\mcp-server.log": "50e4310510f9fa724524f1090d4b3a02a6a1676601b25e866cfd0357d1904e8e",
+        "native\\quality.json": "34ec22f55821f1c70948c1b5d63fe2e27852ea0fc2e6249b3eb9a39bfd8efe21",
+        "native\\result.json": "83516f6d78e97d64efa8b08edb2d527b8287a6e8e5fb18fa569ffae5fb7b35aa",
+        "native\\retrieval-traces.jsonl": "bd37c07beb52e3d1f9645472f65302eac203b03f70ba5940bd6b95096a3e5604",
+        "native\\update-contract.db": "ab89b4a11f812a8463c5dbc2707b8ebbdf4f72f3f541c7255176d5e62365f812"
+      }
+    },
+    "npu1": {
+      "label": "昇腾 910B2C",
+      "status": "PASS",
+      "unit_tests": 22,
+      "precision": {
+        "embedding_max_abs_error": 7.82310962677002e-08,
+        "reranker_max_abs_error": 1.9073486328125e-06
+      },
+      "mcp": {
+        "concurrent_requests": 3,
+        "stable_citations": true,
+        "startup_s": 45.06644089240581,
+        "status": "PASS",
+        "strict_input_validation": true,
+        "tools": [
+          "search_evidence",
+          "read_evidence"
+        ]
+      },
+      "build": {
+        "chunks": 95,
+        "encoded_chunks": 95,
+        "updated_documents": 60,
+        "withdrawn_documents": 0
+      },
+      "quality": {
+        "hybrid": {
+          "guidance_hit5": 0.8888888888888888,
+          "guidance_mrr5": 0.5185185185185185,
+          "labeled_queries": 9
+        },
+        "lexical": {
+          "guidance_hit5": 0.7777777777777778,
+          "guidance_mrr5": 0.4074074074074074,
+          "labeled_queries": 9
+        },
+        "reranked": {
+          "guidance_hit5": 0.6666666666666666,
+          "guidance_mrr5": 0.30925925925925923,
+          "labeled_queries": 9
+        },
+        "vector": {
+          "guidance_hit5": 1.0,
+          "guidance_mrr5": 0.6851851851851851,
+          "labeled_queries": 9
+        }
+      },
+      "benchmark": {
+        "lexical": {
+          "pooled_p50_ms": 1.6012927517294884,
+          "pooled_p95_ms": 3.4114576876163483,
+          "measured_requests": 252,
+          "rounds": [
+            {
+              "round": 1,
+              "p50_ms": 1.6217161901295185,
+              "p95_ms": 3.3914449624717236
+            },
+            {
+              "round": 2,
+              "p50_ms": 1.5844604931771755,
+              "p95_ms": 3.394746221601963
+            },
+            {
+              "round": 3,
+              "p50_ms": 1.6012927517294884,
+              "p95_ms": 3.436802653595805
+            }
+          ]
+        },
+        "hybrid_default": {
+          "pooled_p50_ms": 7.834088522940874,
+          "pooled_p95_ms": 9.6647126134485,
+          "measured_requests": 252,
+          "rounds": [
+            {
+              "round": 1,
+              "p50_ms": 7.882385980337858,
+              "p95_ms": 9.730189386755226
+            },
+            {
+              "round": 2,
+              "p50_ms": 7.821281440556049,
+              "p95_ms": 9.656914789229631
+            },
+            {
+              "round": 3,
+              "p50_ms": 7.823660038411617,
+              "p95_ms": 9.640739532187581
+            }
+          ]
+        },
+        "uncached": {
+          "pooled_p50_ms": 69.23946272581816,
+          "pooled_p95_ms": 73.31544240005314,
+          "measured_requests": 252,
+          "rounds": [
+            {
+              "round": 1,
+              "p50_ms": 69.23944223672152,
+              "p95_ms": 73.07835277169943
+            },
+            {
+              "round": 2,
+              "p50_ms": 69.31564258411527,
+              "p95_ms": 73.2280190102756
+            },
+            {
+              "round": 3,
+              "p50_ms": 69.21824160963297,
+              "p95_ms": 73.31591299735008
+            }
+          ]
+        },
+        "exact_cached": {
+          "pooled_p50_ms": 3.769204020500183,
+          "pooled_p95_ms": 5.5680579505860806,
+          "measured_requests": 252,
+          "rounds": [
+            {
+              "round": 1,
+              "p50_ms": 3.7316670641303062,
+              "p95_ms": 5.540438136085867
+            },
+            {
+              "round": 2,
+              "p50_ms": 3.786567132920027,
+              "p95_ms": 5.5646947119385
+            },
+            {
+              "round": 3,
+              "p50_ms": 3.776963334530592,
+              "p95_ms": 5.569229926913977
+            }
+          ]
+        }
+      },
+      "startup": {
+        "index_s": 2.45409151352942,
+        "model_load_s": 37.469276025891304
+      },
+      "memory_max_sampled": {
+        "rss_bytes": 5690028032,
+        "process_device_memory_bytes": 3159359488,
+        "aten_allocated_bytes": 0,
+        "aten_reserved_bytes": 1375731712
+      },
+      "memory_scope": "validation process after same-device references; not minimal service footprint",
+      "python": "3.10.18",
+      "torch": "2.7.1+cpu",
+      "update_contract": "PASS",
+      "length_guard": "PASS",
+      "evidence_archive_sha256": "45ed8941044d7738620a5cebc529c197df6a5f2cddef6aa1631f746d263fb4f8",
+      "evidence_files_sha256": {
+        "driver-device.txt": "daeff74aca7ce2aa001f21dc09230d5719b859b0bfe52ce1ec88deb945e6b0ae",
+        "embedding-manifest.json": "739063c46e23752c83f1693346193550c2f2bb72b99c5ce9f447e2b9b638bc91",
+        "native-binary-sha256.txt": "c4277452df08b1044d16f18402a57bc3912fa68c15c45538902d39a34f13bdfa",
+        "native.log": "0fc5d757c0c9e002607ffd3c606dc43a6186b9ba3f5d3da4b615a1c71a973a6f",
+        "pip-freeze.txt": "f562116207588d1f26eaab804aa879ed5093aa2f85f808ef9b7e316d26a699f5",
+        "reranker-manifest.json": "6741d53fa7e58599cfc59a3acab76915d3bb7c0a5d0a46bfc62a393d8bcb19a5",
+        "source-archive-sha256.txt": "94bfde33928e3bb6cac1028171f3b1f42be6d8817f0244740b739d249a20c14e",
+        "source-commit.txt": "19e9fb0200dae238a167739cee8827a90835daa6bfdc8ca00a47685219463c61",
+        "unit.log": "f4d249d562d16bbbccd02431773f95bf12c09ed146cf0a7be2f3dd2cecc68ce4",
+        "native\\benchmark-progress.json": "a9ce385dde31ed1ef501cb7f267c489b49035c75bfa6cb6df258e1dc2c3adca4",
+        "native\\evidence.db": "29b546109a75dae9e85d01dd5c588c78ba4f7de7baf21079fcc47059be3be9f5",
+        "native\\evidence.db-shm": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb",
+        "native\\evidence.db-wal": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "native\\mcp-server.log": "f18db5bfc8337fa3c244e9e213aca230e315319a46be251fd8191fd13a135fd6",
+        "native\\quality.json": "34ec22f55821f1c70948c1b5d63fe2e27852ea0fc2e6249b3eb9a39bfd8efe21",
+        "native\\result.json": "c98cffbfe4ed8bafa31e6e2b331d1cd96b7e33667583845c7373f8580ea55455",
+        "native\\retrieval-traces.jsonl": "82427514a416981bb8f2665804c4bbbd47ad65e64caf0399fc483d601091add2",
+        "native\\update-contract.db": "1b7b4106a7a840514f2ba873467977016b8fb4668fd9d52c5d5e93d84ba6ed35"
+      }
+    }
+  },
+  "source_archive_sha256": "65fb5b8b898333d5cc1943bbcc36b12537272932fe2f0af13ab662e15461a2c5",
+  "models": {
+    "embedding": {
+      "model": "BAAI/bge-small-zh-v1.5",
+      "onnx_sha256": "97648ad1745c1c98ba298ce0e065ec18b6c999e3b923d6b593a0196cb01676f3",
+      "revision": "7999e1d3359715c523056ef9478215996d62a620"
+    },
+    "reranker": {
+      "model": "BAAI/bge-reranker-base",
+      "onnx_sha256": "a9a32ba00423a53ec0c06bc7ed707198e87aca4b4e0458c7050b0d8a8bd86217",
+      "revision": "2cfc18c9415c912f9d8155881c133215df768a70"
+    }
+  },
+  "method": {
+    "rounds": 3,
+    "warmup": 5,
+    "samples_per_round": 84,
+    "resident_process": true,
+    "query_count": 42,
+    "labeled_queries": 9,
+    "recall_k": 24,
+    "top_k": 5,
+    "context_budget": 2048,
+    "timing": "synchronized in-process full request; excludes stdio transport and LLM generation",
+    "cache": "exact queries/pairs, primed with all 42 queries; no GPU forward during timed cache hits",
+    "limits": "application pilot, not a new M1 six-endpoint stability certification or LLM task-success evaluation"
+  }
+}
