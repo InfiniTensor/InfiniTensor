@@ -1,2 +1,2 @@
 dependencies/*.patch -text
-benchmarks/agent_evidence/* -text
+benchmarks/agent_evidence/* -text whitespace=cr-at-eol
