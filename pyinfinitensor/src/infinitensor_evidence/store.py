@@ -85,6 +85,17 @@ CREATE VIRTUAL TABLE IF NOT EXISTS lexical USING fts5(title_terms,body_terms,tok
         with self.lock:self.db.close()
 
     @contextmanager
+    def snapshot(self):
+        """One read snapshot for filtering, ranking and quote assembly."""
+        with self.lock:
+            if self.db.in_transaction:
+                yield
+                return
+            self.db.execute('BEGIN')
+            try:yield
+            finally:self.db.execute('ROLLBACK')
+
+    @contextmanager
     def transaction(self):
         if self.read_only:raise PermissionError('evidence store is read-only')
         with self.lock:
