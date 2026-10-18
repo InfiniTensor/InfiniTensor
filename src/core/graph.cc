@@ -190,6 +190,14 @@ void GraphObj::optimize() {
     }
 }
 
+void GraphObj::enableMemoryViews(bool enabled) {
+    IT_ASSERT(allocationMode == AllocationMode::Uninitialized,
+              "Configure memory views before allocating the graph");
+    IT_ASSERT(!enabled || runtime->isInfini(),
+              "Memory view optimization requires the Infini backend");
+    memoryViewsEnabled = enabled;
+}
+
 Tensor GraphObj::getTensor(int fuid) const {
     for (auto tensor : tensors) {
         if (tensor->getFuid() == fuid) {
@@ -236,7 +244,6 @@ void GraphObj::lockAllocationMode(bool useNaiveAllocator, size_t memPoolSize) {
             fixedPoolSize = memPoolSize;
         return;
     }
-
     IT_ASSERT(allocationMode == requestedMode,
               "Cannot change allocator mode after the first allocation");
     if (requestedMode == AllocationMode::FixedPool && memPoolSize > 0) {
@@ -383,6 +390,35 @@ void GraphObj::dataMallocImplCore(bool useNaiveAllocator, size_t memPoolSize,
         updateAllocationGeneration();
         return;
     }
+    // Tensor storage is dense in this IR. Only shape-only, same-byte views of
+    // intermediate activations are eligible. Keep each alias group alive
+    // until the last consumer of ANY of its members has finished.
+    std::unordered_map<TensorObj *, TensorObj *> storageRoot;
+    memoryViewCount = memoryViewBytes = 0;
+    if (memoryViewsEnabled) {
+        for (const auto &tensor : tensors)
+            storageRoot[tensor.get()] = tensor.get();
+        for (const auto &op : ops) {
+            const auto type = op->getOpType().underlying();
+            if (type != OpType::Reshape && type != OpType::Flatten &&
+                type != OpType::Identity && type != OpType::Squeeze &&
+                type != OpType::Unsqueeze)
+                continue;
+            const auto &input = op->getInputs(0);
+            const auto &output = op->getOutput();
+            if (!input->isOthers() || !output->isOthers() ||
+                !(input->getDType() == output->getDType()) ||
+                input->getBytes() == 0 ||
+                input->getBytes() != output->getBytes())
+                continue;
+            storageRoot[output.get()] = storageRoot.at(input.get());
+            ++memoryViewCount;
+            memoryViewBytes += output->getBytes();
+        }
+    }
+    const auto storageRootOf = [&](TensorObj *tensor) {
+        return memoryViewsEnabled ? storageRoot.at(tensor) : tensor;
+    };
     if (allocationMode == AllocationMode::FixedPool) {
         allocator.setMemPool(fixedPoolSize);
     }
@@ -414,7 +450,8 @@ void GraphObj::dataMallocImplCore(bool useNaiveAllocator, size_t memPoolSize,
             // will not be reused later
             tensorToOffset[tensor.get()] = allocator.alloc(tensor->getBytes());
         } else {
-            tensorToRefCount[tensor.get()] = tensor->getTargets().size();
+            tensorToRefCount[storageRootOf(tensor.get())] +=
+                tensor->getTargets().size();
             // allocate memory for all user-created tensors
             if (tensor.get()->getSource() == nullptr) {
                 tensorToOffset[tensor.get()] =
@@ -456,7 +493,8 @@ void GraphObj::dataMallocImplCore(bool useNaiveAllocator, size_t memPoolSize,
         auto outputs = op->getOutputs();
         for (auto &tensor : outputs) {
             if (tensor) {
-                if (tensor->isOthers()) {
+                if (tensor->isOthers() &&
+                    storageRootOf(tensor.get()) == tensor.get()) {
                     tensorToOffset[tensor.get()] =
                         allocator.alloc(tensor->getBytes());
                 }
@@ -466,20 +504,26 @@ void GraphObj::dataMallocImplCore(bool useNaiveAllocator, size_t memPoolSize,
         for (auto &tensor : inputs) {
             if (tensor) {
                 if (tensor->isOthers()) {
-                    auto tensorIter = tensorToRefCount.find(tensor.get());
+                    auto root = storageRootOf(tensor.get());
+                    auto tensorIter = tensorToRefCount.find(root);
                     IT_ASSERT(tensorIter != tensorToRefCount.end());
-                    IT_ASSERT(tensorToRefCount[tensor.get()] > 0);
-                    tensorToRefCount[tensor.get()] -= 1;
-                    if (tensorToRefCount[tensor.get()] == 0) {
+                    IT_ASSERT(tensorToRefCount[root] > 0);
+                    tensorToRefCount[root] -= 1;
+                    if (tensorToRefCount[root] == 0) {
                         // indicate that this tensor will no longer be used and
                         // perform memory free
-                        tensorToRefCount.erase(tensor.get());
-                        allocator.free(tensorToOffset[tensor.get()],
-                                       tensor->getBytes());
+                        tensorToRefCount.erase(root);
+                        allocator.free(tensorToOffset.at(root),
+                                       root->getBytes());
                     }
                 }
             }
         }
+    }
+
+    for (const auto &[tensor, root] : storageRoot) {
+        if (root != tensor)
+            tensorToOffset[tensor] = tensorToOffset.at(root);
     }
 
     vector<std::pair<TensorObj *, size_t>> plannedTensorLayout;

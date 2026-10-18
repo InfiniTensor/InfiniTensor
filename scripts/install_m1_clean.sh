@@ -67,7 +67,7 @@ export PATH="$(dirname "$PYTHON"):$PATH"
 export LD_LIBRARY_PATH="$PREFIX/lib:${LD_LIBRARY_PATH:-}"
 python3 - "$DEVICE" "$ROOT/selected_ops.json" <<'PY'
 import json,sys
-names='add mul relu gelu cat matmul softmax gather onnx_gather cast index_select native_layer_norm sub div erf sqrt pow where eq lt gt expand_copy permute_copy slice_copy native_batch_norm max_pool2d_with_indices avg_pool2d'.split()
+names='add addmm mul relu gelu tanh cat matmul softmax gather onnx_gather cast index_select native_layer_norm sub div erf sqrt pow where eq lt gt expand_copy permute_copy slice_copy native_batch_norm max_pool2d_with_indices avg_pool2d'.split()
 selection = {name: {'implementations': [8]} for name in names}
 # master graph/copy regression fixtures use the native RMSNorm implementation.
 selection['rms_norm'] = {'implementations': [0]}

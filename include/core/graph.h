@@ -91,6 +91,12 @@ class GraphObj : public Object {
 
     void optimize();
 
+    // Dense intermediate views share storage. Public inputs, outputs and
+    // weights retain their independent storage and existing copy contracts.
+    void enableMemoryViews(bool enabled);
+    size_t getMemoryViewCount() const { return memoryViewCount; }
+    size_t getMemoryViewBytes() const { return memoryViewBytes; }
+
     void shape_infer();
 
     void dataMalloc(bool useNaiveAllocator = false, size_t memPoolSize = 0);
@@ -189,6 +195,9 @@ class GraphObj : public Object {
      * @brief If the weight tensors are allocated.
      */
     bool weightAllocated = false;
+    bool memoryViewsEnabled = false;
+    size_t memoryViewCount = 0;
+    size_t memoryViewBytes = 0;
 
     AllocationMode allocationMode = AllocationMode::Uninitialized;
     size_t fixedPoolSize = 0;

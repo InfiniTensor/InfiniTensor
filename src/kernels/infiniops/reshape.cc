@@ -11,6 +11,12 @@ class CopyInfiniOps : public infiniops::KernelWithoutConfig {
                  const RuntimeObj *context) const override {
         auto runtime = dynamic_cast<const InfiniRuntimeObj *>(context);
         IT_ASSERT(runtime != nullptr);
+        if (_op->getOutput()->getRawDataPtr<void *>() ==
+            _op->getInputs(0)->getRawDataPtr<void *>()) {
+            IT_ASSERT(_op->getOutput()->getBytes() ==
+                      _op->getInputs(0)->getBytes());
+            return;
+        }
         // A synchronous/default-queue copy need not wait for ATen work on
         // this runtime's queue (notably on MLU). Keep data movement ordered
         // with its producer and consumer, and usable inside graph capture.

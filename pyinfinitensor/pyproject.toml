@@ -21,6 +21,7 @@ dependencies = [
 
 [project.optional-dependencies]
 embedding = ["transformers>=4.30,<5", "torch>=2.6,<3", "safetensors>=0.4"]
+retrieval = ["transformers>=4.30,<5", "torch>=2.6,<3", "safetensors>=0.4", "pyarrow>=17,<22", "sentencepiece>=0.2,<0.3"]
 benchmark = ["onnxruntime-gpu>=1.17,<2"]
 
 [tool.setuptools.packages.find]

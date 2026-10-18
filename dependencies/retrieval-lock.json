@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "model": "BAAI/bge-reranker-base",
+  "model_revision": "2cfc18c9415c912f9d8155881c133215df768a70",
+  "model_safetensors_sha256": "ced967c45fd1902eb92716c9ceeca7c95a936770ea9db611f5a841b926e33fbd",
+  "onnx_sha256": "a9a32ba00423a53ec0c06bc7ed707198e87aca4b4e0458c7050b0d8a8bd86217",
+  "opset": 17,
+  "precision": "FP32, eager attention, TF32/HF32 disabled during inference",
+  "dataset": "C-MTEB/T2Reranking",
+  "dataset_revision": "76631901a18387f85eaa53e5450019b87ad58ef9",
+  "parquet_sha256": "ceaf1ba1a4777dbb7aecad86fb8aa9cae7a678af6d711d5529c238e89bb6adff",
+  "queries_sha256": "2b73eccd213fbfa2e4a6b15b18a2b6d1d334f7d4ebf2976dfa0de4b411cedea5",
+  "documents_sha256": "4b4be9a9c511362dc6f0cc8631792b4ea02c464113bb79f444059baedfd7ee13",
+  "queries": 64,
+  "documents": 992,
+  "infiniops_commit": "ef76088d21283bd96dccfca3cb301bd05d8c716e",
+  "additional_aten_implementations": {
+    "addmm": 8,
+    "tanh": 8
+  },
+  "scope": "Deterministic application subset, not a public leaderboard result"
+}

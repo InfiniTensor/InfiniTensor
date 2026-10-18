@@ -3,7 +3,7 @@
   "InfiniRT": "0cdbb16967e15f2e055dea1ec9641617bf3b6cf6",
   "InfiniOps_base": "f43ba8c1174c1cce2a89b690932fe59787bc9361",
   "InfiniOps_patch": "InfiniOps-m1.patch",
-  "InfiniOps_patch_sha256": "a51ac35ec24945fceccc4b743bdca0f31698c1f12665563f5fe5e93af4dd853d",
+  "InfiniOps_patch_sha256": "5343d1116012ce44529e77505b486332278c033c5d0f8df8dc21eda6c294922b",
   "CUTLASS": "087c84df83d254b5fb295a7a408f1a1d554085cf",
   "CUTLASS_archive_sha256": "ec842fec148fdc0009cb55ffafe4fff7e7e97ec5aba5131467334d1c2dd315f2"
 }

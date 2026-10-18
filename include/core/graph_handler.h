@@ -126,6 +126,9 @@ class GraphHandlerObj {
     inline bool topo_sort() { return g->topo_sort(); }
 
     inline void optimize() { g->optimize(); }
+    inline void enable_memory_views(bool enabled) {
+        g->enableMemoryViews(enabled);
+    }
 
     inline void shape_infer() { g->shape_infer(); }
 
@@ -157,6 +160,8 @@ class GraphHandlerObj {
         return {{"activation_bytes", g->getActivationBytes()},
                 {"weight_bytes", g->getWeightBytes()},
                 {"heap_bytes", g->getHeapBytes()},
+                {"view_ops", g->getMemoryViewCount()},
+                {"view_copy_bytes_elided", g->getMemoryViewBytes()},
                 {"allocation_generation", g->getAllocationGeneration()}};
     }
 

@@ -562,6 +562,7 @@ void init_graph_builder(py::module &m) {
         .def("clone_KV", &Handler::clone_KV, policy::move)
         .def("free_heap", &Handler::free_heap, policy::move)
         .def("memory_stats", &Handler::memory_stats, policy::automatic)
+        .def("enable_memory_views", &Handler::enable_memory_views)
         .def("tune", &Handler::tune, policy::automatic)
         .def("run", &Handler::run, policy::automatic)
         .def("run_with_graph", &Handler::run_with_graph, policy::automatic)

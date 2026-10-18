@@ -162,6 +162,41 @@ def _fuse_exact_gelu(model: ModelProto) -> int:
     return len(replacements)
 
 
+def _linear_bias_patterns(model: ModelProto) -> Dict[int, Tuple[int, str]]:
+    """Find single-use dense projections with a constant one-dimensional bias.
+
+    Retain the original ONNX graph for metadata evaluation. The importer emits
+    one Matmul IR operation with a bias for each matched pair, avoiding an
+    invalid rank-3 ONNX Gemm rewrite.
+    """
+    nodes = list(model.graph.node)
+    producer = {name: index for index, node in enumerate(nodes) for name in node.output}
+    uses: Dict[str, int] = {}
+    for node in nodes:
+        for name in node.input:
+            uses[name] = uses.get(name, 0) + 1
+    exposed = {value.name for value in model.graph.output}
+    constants = {value.name: value for value in model.graph.initializer}
+    patterns = {}
+    for index, node in enumerate(nodes):
+        if node.op_type != "Add" or len(node.input) != 2:
+            continue
+        for position, value in enumerate(node.input):
+            source = producer.get(value)
+            if source is None or value in exposed or uses.get(value) != 1:
+                continue
+            matmul = nodes[source]
+            bias_name = node.input[1 - position]
+            weight = constants.get(matmul.input[1]) if matmul.op_type == "MatMul" and len(matmul.input) == 2 else None
+            bias = constants.get(bias_name)
+            if (weight is not None and bias is not None and len(weight.dims) == 2
+                    and list(bias.dims) == [weight.dims[1]]
+                    and weight.data_type == bias.data_type == TensorProto.FLOAT):
+                patterns[index] = (source, bias_name)
+                break
+    return patterns
+
+
 class ShapeValueEvaluator:
     """Evaluate the integer, metadata-only part of an ONNX graph on the CPU.
 
@@ -476,6 +511,8 @@ class OnnxStub:
         matmul_compute_type: str = "default",
         execution_mode: str = "normal",
         graph_capture_after: int = 4,
+        memory_views: bool = False,
+        fuse_linear_bias: bool = False,
     ):
         model = copy.deepcopy(model)
         # We use some user-defined operators for distributed inference
@@ -494,6 +531,9 @@ class OnnxStub:
             if item.strip()
         }
         self._gelu_fusion_count = 0 if "torch_mlu" in provider_modules else _fuse_exact_gelu(model)
+        self._linear_bias_fusions = _linear_bias_patterns(model) if fuse_linear_bias else {}
+        self._fused_linear_matmuls = {value[0] for value in self._linear_bias_fusions.values()}
+        self._memory_views_enabled = bool(memory_views)
 
         self.inputs: Dict[str, backend.Tensor] = {}
         self.outputs: Dict[str, backend.Tensor] = {}
@@ -520,6 +560,8 @@ class OnnxStub:
         # except:
         #     warnings.warn("infer_shapes failed.")
         self.handler = backend.GraphHandler(runtime)
+        if memory_views:
+            self.handler.enable_memory_views(True)
         self._runtime = runtime
         self._same_shape_runs = 0
         self._execution_stats = {"normal_runs": 0, "captures": 0, "replays": 0,
@@ -604,6 +646,17 @@ class OnnxStub:
         for node_idx in sorted_nodes:
             node = model.graph.node[node_idx]
             if node_idx in self._shape_control_nodes and node.op_type != "Constant":
+                continue
+            if node_idx in self._fused_linear_matmuls:
+                continue
+            if node_idx in self._linear_bias_fusions:
+                source_index, bias_name = self._linear_bias_fusions[node_idx]
+                projection = model.graph.node[source_index]
+                tensors[node.output[0]] = self.handler.matmul(
+                    tensors[projection.input[0]], tensors[projection.input[1]],
+                    tensors.get(node.output[0]), False, False, tensors[bias_name],
+                    backend.ActType.Linear, matmul_compute_type,
+                )
                 continue
             if node.op_type == "Conv":
                 attributes = _parse_attribute(
@@ -2142,9 +2195,11 @@ class OnnxStub:
         supported = {
             "Add", "Cast", "Concat", "Constant", "Div", "Erf", "Gather", "Gelu",
             "LayerNormalization", "MatMul", "Mul", "Pow", "Reshape", "Shape",
-            "Slice", "Softmax", "Sqrt", "Sub", "Transpose", "Unsqueeze",
+            "Slice", "Softmax", "Sqrt", "Sub", "Transpose", "Unsqueeze", "Tanh", "Gemm",
+            "Expand", "Where", "Identity", "Flatten", "Squeeze",
         }
-        unsupported = [node for node in self._model_nodes if node["op"] not in supported]
+        unsupported = [node for index, node in enumerate(self._model_nodes)
+                       if node["op"] not in supported and index not in self._shape_control_nodes]
         if unsupported:
             node = unsupported[0]
             raise RuntimeError("capability check failed at node {name} ({op}); unsupported ONNX frontend operator".format(**node))
@@ -2155,6 +2210,8 @@ class OnnxStub:
             "required_ops": sorted({node["op"] for node in self._model_nodes}),
             "dynamic_shape_bindings": len(self._dynamic_bindings),
             "exact_gelu_fusions": self._gelu_fusion_count,
+            "linear_bias_fusions": len(self._linear_bias_fusions),
+            "memory_views_enabled": self._memory_views_enabled,
             "provider_modules": [item for item in os.environ.get("INFINIOPS_PROVIDER_MODULES", "").split(",") if item],
         }
         if input_shapes is not None:

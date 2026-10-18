@@ -1,5 +1,6 @@
 ﻿import importlib
 import importlib.util
+import logging
 import os
 import sys
 
@@ -79,4 +80,4 @@ try:
 finally:
     _restore_precision_flags(_npu_precision_state)
 
-print("import backend: {}".format(backend))
+logging.getLogger(__name__).debug("Loaded backend from %s", backend.__file__)

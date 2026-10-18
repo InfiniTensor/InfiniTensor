@@ -83,6 +83,7 @@ class EmbeddingSession:
         self, model_dir: Union[str, Path], device: str = "nvidia", device_id: int = 0,
         model_name: str = "model.onnx", max_batch_size: int = 32, max_length: int = 512,
         execution_mode: str = "normal", graph_capture_after: int = 4,
+        memory_views: bool = False, fuse_linear_bias: bool = False,
     ):
         try:
             import onnx
@@ -99,11 +100,15 @@ class EmbeddingSession:
         if self.max_length != 512:
             raise ValueError("BGE-small-zh M1 is certified at max_length=512")
         self.model_path = self._find_model(model_name)
+        from .model_package import package_identity
+        self.package_identity = package_identity(self.model_dir, self.model_path)
         self.tokenizer = AutoTokenizer.from_pretrained(str(self.model_dir), local_files_only=True)
         self.stub = OnnxStub(onnx.load(str(self.model_path)),
                              backend.runtime(device, int(device_id), graph_cache_capacity=1),
                              execution_mode=execution_mode,
-                             graph_capture_after=graph_capture_after)
+                             graph_capture_after=graph_capture_after,
+                             memory_views=memory_views,
+                             fuse_linear_bias=fuse_linear_bias)
         # Reserve the certified upper-bound activation pool once.  Growing a
         # device allocation while the previous executable state remains valid
         # temporarily needs both pools, which is fragile on shared GPUs.  All

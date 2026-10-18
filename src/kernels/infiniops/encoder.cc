@@ -13,6 +13,7 @@
 #include <base/pow.h>
 #include <base/sqrt.h>
 #include <base/sub.h>
+#include <base/tanh.h>
 
 namespace infini {
 namespace {
@@ -80,6 +81,7 @@ class EncoderUnaryInfiniOps : public infiniops::KernelWithoutConfig {
         case OpType::Cast: callEncoder<::infini::ops::Cast>(context, input, output); return;
         case OpType::Erf: callEncoder<::infini::ops::Erf>(context, input, output); return;
         case OpType::Sqrt: callEncoder<::infini::ops::Sqrt>(context, input, output); return;
+        case OpType::Tanh: callEncoder<::infini::ops::Tanh>(context, input, output); return;
         default: IT_TODO_HALT_MSG("unsupported encoder unary operator");
         }
     }
@@ -113,6 +115,7 @@ REGISTER_KERNEL(ExecutionProvider::Infini, OpType::LayerNormalization, LayerNorm
 REGISTER_KERNEL(ExecutionProvider::Infini, OpType::Cast, EncoderUnaryInfiniOps, "Cast_InfiniOps");
 REGISTER_KERNEL(ExecutionProvider::Infini, OpType::Erf, EncoderUnaryInfiniOps, "Erf_InfiniOps");
 REGISTER_KERNEL(ExecutionProvider::Infini, OpType::Sqrt, EncoderUnaryInfiniOps, "Sqrt_InfiniOps");
+REGISTER_KERNEL(ExecutionProvider::Infini, OpType::Tanh, EncoderUnaryInfiniOps, "Tanh_InfiniOps");
 REGISTER_KERNEL(ExecutionProvider::Infini, OpType::Sub, EncoderBinaryInfiniOps, "Sub_InfiniOps");
 REGISTER_KERNEL(ExecutionProvider::Infini, OpType::Div, EncoderBinaryInfiniOps, "Div_InfiniOps");
 REGISTER_KERNEL(ExecutionProvider::Infini, OpType::Pow, EncoderBinaryInfiniOps, "Pow_InfiniOps");

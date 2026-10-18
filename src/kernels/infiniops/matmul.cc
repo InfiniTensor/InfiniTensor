@@ -4,6 +4,7 @@
 
 #ifdef USE_INFINIOPS_ATEN_KERNELS
 #include <base/add.h>
+#include <base/addmm.h>
 #include <base/matmul.h>
 #endif
 
@@ -105,6 +106,31 @@ class MatmulInfiniOps : public infiniops::KernelWithoutConfig {
         (void)n;
         (void)k;
         const auto batchSize = static_cast<size_t>(batch);
+        // A dense projection is one GEMM over all leading rows. Addmm fuses
+        // its bias without a second operator, and these tensor views do not
+        // move or resize externally-owned storage. Batched attention retains
+        // the existing full-rank Matmul path below.
+        if (op->getBias() && !op->getTransA() &&
+            op->getInputs(1)->getRank() == 2 &&
+            op->getBias()->getDims() == Shape{n} &&
+            op->getInputs(0)->getDType() == DataType::Float32 && k > 0) {
+            const auto rows = op->getInputs(0)->size() / size_t(k);
+            auto flatInput = infiniops::makeInfiniOpsTensor(
+                op->getInputs(0)->getRawDataPtr<void *>(), {rows, size_t(k)},
+                ::infini::rt::DataType::kFloat32, context);
+            auto weight = makeMatmulInputView(op->getInputs(1), 1,
+                                              op->getTransB(), context);
+            auto bias = infiniops::toInfiniOpsTensor(op->getBias(), context);
+            auto flatOutput = infiniops::makeInfiniOpsTensor(
+                op->getOutput()->getRawDataPtr<void *>(), {rows, size_t(n)},
+                ::infini::rt::DataType::kFloat32, context);
+            auto config =
+                infiniops::makeInfiniOpsAtenConfig<::infini::ops::Addmm>(context);
+            ::infini::ops::Operator<::infini::ops::Addmm>::Call(
+                infiniops::makeInfiniOpsHandle(context), config, bias,
+                flatInput, weight, 1.0, 1.0, flatOutput);
+            return;
+        }
         auto inputA = makeMatmulInputView(op->getInputs(0), batchSize,
                                           op->getTransA(), context);
         auto inputB = makeMatmulInputView(op->getInputs(1), batchSize,
