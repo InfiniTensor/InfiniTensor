@@ -306,6 +306,14 @@ Tensor GraphHandlerObj::transpose(Tensor data, Tensor transposed, Shape perm) {
     }
 }
 
+Tensor GraphHandlerObj::reshape_tensor(Tensor data, Tensor target, Tensor reshaped) {
+    if (reshaped) {
+        g->addOpWithOutputs<ReshapeObj>(data, target, reshaped);
+        return reshaped;
+    }
+    return g->addOp<ReshapeObj>(data, target, reshaped)->getOutput();
+}
+
 Tensor GraphHandlerObj::reshape(Tensor data, Tensor reshaped, Shape shape) {
     if (reshaped) {
         g->addOpWithOutputs<ReshapeObj>(std::move(data), reshaped,
@@ -802,7 +810,7 @@ static DataType dtype_repr_convert(int dtype) {
 void GraphHandlerObj::change_shape(const vector<int> &shape, int tensorId) {
     auto tensor = g->getTensor(tensorId);
     IT_ASSERT(tensor != nullptr);
-    IT_ASSERT(shape.size() != 0);
+    // An empty dimension vector is a valid rank-zero (scalar) tensor.
     tensor->setShape(shape);
 }
 

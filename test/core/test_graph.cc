@@ -263,6 +263,10 @@ TEST(Graph, lazy_allocator_reuses_high_watermark_capacity) {
 
         g->dataMalloc();
         weight->copyin(vector<float>{1, 0, 0, 1});
+        const auto initialCapacity = g->getActivationCapacity();
+        const auto initialStorageId = g->getActivationStorageId();
+        EXPECT_EQ(g->getPlannedActivationBytes(), initialCapacity);
+        EXPECT_NE(initialStorageId, 0u);
         const auto allocationCount = runtime->getAllocationCount();
         const auto deallocationCount = runtime->getDeallocationCount();
         const auto inputAddress = input->getRawDataPtr<const void *>();
@@ -283,6 +287,9 @@ TEST(Graph, lazy_allocator_reuses_high_watermark_capacity) {
         EXPECT_EQ(runtime->getAllocationCount(), allocationCount);
         EXPECT_EQ(runtime->getDeallocationCount(), deallocationCount);
         EXPECT_EQ(input->getRawDataPtr<const void *>(), inputAddress);
+        EXPECT_EQ(g->getActivationCapacity(), initialCapacity);
+        EXPECT_EQ(g->getActivationStorageId(), initialStorageId);
+        EXPECT_LE(g->getPlannedActivationBytes(), initialCapacity);
 
         vector<float> data(16);
         for (size_t i = 0; i < data.size(); ++i)
@@ -311,6 +318,7 @@ TEST(Graph, lazy_allocator_grows_and_trims_capacity) {
         weight->copyin(vector<float>{1, 0, 0, 1});
         ASSERT_GE(runtime->getAllocationSizes().size(), 2);
         const auto initialCapacity = runtime->getAllocationSizes().back();
+        EXPECT_EQ(g->getActivationCapacity(), initialCapacity);
         const auto allocationCount = runtime->getAllocationCount();
         const auto deallocationCount = runtime->getDeallocationCount();
 
@@ -320,6 +328,8 @@ TEST(Graph, lazy_allocator_grows_and_trims_capacity) {
         ASSERT_EQ(runtime->getAllocationCount(), allocationCount + 1);
         EXPECT_EQ(runtime->getDeallocationCount(), deallocationCount + 1);
         EXPECT_EQ(runtime->getAllocationSizes().back(),
+                  initialCapacity + initialCapacity / 2);
+        EXPECT_EQ(g->getActivationCapacity(),
                   initialCapacity + initialCapacity / 2);
 
         const auto grownAllocationCount = runtime->getAllocationCount();
@@ -337,6 +347,8 @@ TEST(Graph, lazy_allocator_grows_and_trims_capacity) {
         EXPECT_EQ(runtime->getAllocationCount(), grownAllocationCount + 1);
         EXPECT_EQ(runtime->getDeallocationCount(), grownDeallocationCount + 1);
         EXPECT_EQ(runtime->getAllocationSizes().back(), 64);
+        EXPECT_EQ(g->getActivationCapacity(), 64u);
+        EXPECT_EQ(g->getPlannedActivationBytes(), 64u);
         EXPECT_GT(g->getAllocationGeneration(), generationBeforeTrim);
 
         runtime->run(g);

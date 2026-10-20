@@ -16,6 +16,14 @@ PoolingObj::PoolingObj(GraphObj *graph, OpType optype, Tensor input,
 
 optional<vector<Shape>> PoolingObj::inferShape(const TensorVec &inputs) {
     const auto &input = inputs[0];
+    // A pooling operator can outlive one concrete input shape. Refresh the
+    // dimensions used by shape inference and by runtime kernels so dynamic
+    // H/W changes propagate beyond the first pooling node.
+    n = input->getDims().at(0);
+    c = input->getDims().at(1);
+    h = input->getRank() == 3 ? 1 : input->getDims().at(2);
+    w = input->getRank() == 3 ? input->getDims().at(2)
+                              : input->getDims().at(3);
     int oh, ow;
     if (ceilMode) {
         oh = ceil(((float)(h + 2 * ph - dh * (kh - 1) - 1)) / sh + 1);
