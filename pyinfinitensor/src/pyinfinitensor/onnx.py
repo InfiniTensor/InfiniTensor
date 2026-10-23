@@ -44,14 +44,23 @@ class OnnxStub:
         runtime,
         use_naive_allocator: bool = False,
         matmul_compute_type: str = "default",
+        simplify_model: bool = True,
     ):
         model = copy.deepcopy(model)
+        if any(node.domain == "com.infinitensor.rvne" for node in model.graph.node):
+            versions = [item.version for item in model.opset_import
+                        if item.domain == "com.infinitensor.rvne"]
+            if versions != [1]:
+                raise ValueError("com.infinitensor.rvne requires exactly one opset import at version 1")
         # We use some user-defined operators for distributed inference
         try:
             # onnx simplifier performs inplace simplify
-            model_simp, check = simplify(copy.deepcopy(model))
-            if check:
-                model = model_simp
+            has_rvne = any(node.domain == "com.infinitensor.rvne" or
+                           node.op_type in ("LSMSequence", "MLP") for node in model.graph.node)
+            if simplify_model and not has_rvne:
+                model_simp, check = simplify(copy.deepcopy(model))
+                if check:
+                    model = model_simp
         except ValidationError:
             pass
         except RuntimeError:
@@ -135,7 +144,41 @@ class OnnxStub:
 
         for node_idx in sorted_nodes:
             node = model.graph.node[node_idx]
-            if node.op_type == "Conv":
+            if node.domain == "com.infinitensor.rvne":
+                if node.op_type == "MLP":
+                    if len(node.input) != 5 or len(node.output) != 1:
+                        raise ValueError("MLP requires five inputs and one output")
+                    attrs = _parse_attribute(node, {"execution": b"qemu"})
+                    execution = attrs["execution"]
+                    if isinstance(execution, bytes):
+                        execution = execution.decode("utf-8")
+                    if execution not in ("qemu", "reference"):
+                        raise ValueError("MLP execution must be qemu or reference")
+                    tensors[node.output[0]] = self.handler.mlp(
+                        *(tensors[name] for name in node.input), execution == "qemu")
+                    continue
+                if node.op_type != "LSMSequence":
+                    raise ValueError("Unsupported RVNE operator: " + node.op_type)
+                if len(node.input) != 4 or len(node.output) != 3:
+                    raise ValueError("LSMSequence requires four inputs and three outputs")
+                attrs = _parse_attribute(node, {"execution": b"qemu", "trace_all": 0})
+                execution = attrs["execution"]
+                if isinstance(execution, bytes):
+                    execution = execution.decode("utf-8")
+                if execution not in ("qemu", "reference"):
+                    raise ValueError("LSMSequence execution must be qemu or reference")
+                if attrs["trace_all"] not in (0, 1):
+                    raise ValueError("LSMSequence trace_all must be 0 or 1")
+                if "parameters" not in attrs:
+                    raise ValueError("LSMSequence requires parameters")
+                values = self.handler.lsm_sequence(
+                    *(tensors[name] for name in node.input), attrs["parameters"],
+                    execution == "qemu", bool(attrs["trace_all"]))
+                for name, value in zip(node.output, values):
+                    tensors[name] = value
+            elif node.op_type in ("LSMSequence", "MLP"):
+                raise ValueError(node.op_type + " requires domain com.infinitensor.rvne")
+            elif node.op_type == "Conv":
                 attributes = _parse_attribute(
                     node,
                     {

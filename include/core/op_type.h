@@ -239,6 +239,8 @@ struct OpType {
         Broadcast,
         Send,
         Recv,
+        MLP,
+        LSMSequence,
     } type;
 
     constexpr OpType(decltype(type) t) : type(t) {}

@@ -12,6 +12,7 @@
 #include "operators/instance_norm.h"
 #include "operators/layer_norm.h"
 #include "operators/lrn.h"
+#include "operators/lsm_sequence.h"
 #include "operators/matmul.h"
 #include "operators/pad.h"
 #include "operators/pooling.h"
@@ -50,6 +51,25 @@ Tensor GraphHandlerObj::elu(Tensor input, Tensor output, float alpha) {
 
 Tensor GraphHandlerObj::tensor(Shape dims, int dtype) {
     return g->addTensor(std::move(dims), dtype_repr_convert(dtype));
+}
+
+Tensor GraphHandlerObj::mlp(Tensor x, Tensor w1, Tensor b1, Tensor w2,
+                            Tensor b2, bool useQemu) {
+    return g
+        ->addOp<MLPObj>(std::move(x), std::move(w1), std::move(b1),
+                        std::move(w2), std::move(b2), useQemu)
+        ->getOutput();
+}
+
+TensorVec GraphHandlerObj::lsmSequence(Tensor spikes, Tensor inputWeights,
+                                       Tensor recurrent, Tensor state,
+                                       const vector<int> &parameters,
+                                       bool useQemu, bool traceAll) {
+    return g
+        ->addOp<LSMSequenceObj>(std::move(spikes), std::move(inputWeights),
+                                std::move(recurrent), std::move(state),
+                                parameters, useQemu, traceAll)
+        ->getOutputs();
 }
 
 Tensor GraphHandlerObj::conv(Tensor input, Tensor weight, Tensor output, int ph,

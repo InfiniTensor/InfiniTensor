@@ -21,6 +21,13 @@ class GraphHandlerObj {
 
     Tensor tensor(Shape dims, int dtype);
 
+    TensorVec lsmSequence(Tensor spikes, Tensor inputWeights, Tensor recurrent,
+                          Tensor state, const vector<int> &parameters,
+                          bool useQemu = true, bool traceAll = false);
+
+    Tensor mlp(Tensor x, Tensor w1, Tensor b1, Tensor w2, Tensor b2,
+               bool useQemu = true);
+
     //------ operators
 
     inline OpVec operators() { return g->getOperators(); }

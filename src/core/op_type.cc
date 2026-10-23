@@ -7,6 +7,8 @@ const char *OpType::toString() const {
         return #NAME
 
     switch (type) {
+        CASE(MLP);
+        CASE(LSMSequence);
         CASE(Unknown);
         CASE(Abs);
         CASE(Acos);
