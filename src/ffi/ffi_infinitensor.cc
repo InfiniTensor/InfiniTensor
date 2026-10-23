@@ -78,6 +78,8 @@ void export_values(py::module &m) {
         .def(py::init<decltype(OpType::type)>())
         .def("id", getId, policy::automatic);
     py::enum_<decltype(OpType::type)>(m, "OpTypeId")
+        .VALUE(OpType, MLP)
+        .VALUE(OpType, LSMSequence)
         .VALUE(OpType, Conv)
         .VALUE(OpType, MatMul)
         .VALUE(OpType, ConvTranspose)
@@ -550,6 +552,14 @@ void init_graph_builder(py::module &m) {
         .def(py::init<Runtime>())
         .def("elu", &Handler::elu, policy::move)
         .def("tensor", &Handler::tensor, policy::move)
+        .def("mlp", &Handler::mlp, py::arg("x"), py::arg("w1"), py::arg("b1"),
+             py::arg("w2"), py::arg("b2"), py::arg("use_qemu") = true,
+             policy::move)
+        .def("lsm_sequence", &Handler::lsmSequence, py::arg("spikes"),
+             py::arg("input_weights"), py::arg("recurrent_weights"),
+             py::arg("state"), py::arg("parameters"),
+             py::arg("use_qemu") = true, py::arg("trace_all") = false,
+             policy::move)
         .def("conv", &Handler::conv, policy::move)
         .def("convTransposed2d", &Handler::convTransposed2d, policy::move)
         .def("matmul", &Handler::matmul, policy::move)

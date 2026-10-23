@@ -4,6 +4,7 @@
 #include "core/kernel.h"
 #include "core/perf_engine.h"
 #include "utils/data_generator.h"
+#include "utils/rvne_session.h"
 #include <algorithm>
 #include <chrono>
 #include <cstring>
@@ -11,6 +12,7 @@ namespace infini {
 void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
     IT_ASSERT(graph != nullptr, "Cannot run a null graph");
     graph->validateMemory();
+    rvne::SessionScope rvneSessionScope;
     if (!tune && profiling)
         IT_TODO_HALT();
     const auto &kernelRegistry = KernelRegistry::getInstance();
@@ -59,6 +61,7 @@ void CpuRuntimeObj::run(const Graph &graph, bool tune, bool profiling) const {
             opCnt[op->getOpType()]++;
         }
     }
+    rvneSessionScope.finish();
     if (profiling)
         printProfilingData(totalTime, opTime, opCnt);
 }
