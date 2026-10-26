@@ -5,7 +5,10 @@
 #ifdef USE_INFINIOPS_ATEN_KERNELS
 #include <base/avg_pool2d.h>
 #include <base/max_pool2d_with_indices.h>
+#if __has_include(<infini/ops/pooling.h>)
 #include <infini/ops/pooling.h>
+#define INFINITENSOR_HAS_VALUE_ONLY_POOLING 1
+#endif
 #endif
 #include <cstdint>
 #include <optional>
@@ -43,12 +46,14 @@ class PoolingAtenInfiniOps : public infiniops::KernelWithoutConfig {
         IT_ASSERT(op->getOpType() == OpType::MaxPool);
         // Some providers use private mask formats for indices. InfiniTensor
         // only exposes values, so let those providers manage the extra output.
+#ifdef INFINITENSOR_HAS_VALUE_ONLY_POOLING
         if (::infini::ops::TryMaxPool2dValues(
                 input, poolingValues(op->getKh(), op->getKw()),
                 poolingValues(sh, sw), poolingValues(ph, pw),
                 poolingValues(dh, dw), op->getCeilMode() != 0, output,
                 handle.stream()))
             return;
+#endif
         const auto indexBytes = op->getOutput()->size() * sizeof(int64_t);
         auto indexBlob = infiniops::acquireWorkspace(context, indexBytes);
         ::infini::rt::TensorView::Shape indexShape;

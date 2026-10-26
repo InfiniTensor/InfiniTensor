@@ -32,6 +32,9 @@ class ReshapeObj : public OperatorObj {
 
     inline Shape getShape() const { return outputShape; }
     inline Shape getDims() const { return dims; }
+    // Dynamic ONNX models keep the graph and weights resident while the shape
+    // parameter of a Reshape node changes between requests.
+    inline void setDims(Shape newDims) { dims = std::move(newDims); }
 
   private:
     vector<int> getWorkloadVector() const override;
