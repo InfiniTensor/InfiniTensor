@@ -1,0 +1,18 @@
+{
+  "InfiniTensor_base": "703596a91fc20288d0cb17bd1993b011721ef378",
+  "InfiniOps": "8c0bedc358724e114f93363907f0164ce1bb06ac",
+  "InfiniOps_branch": "feat/encoder-aten-operators",
+  "InfiniRT": "cd1d48258f0a6b8d9f66111d5d6cb1664205e78d",
+  "model": "BAAI/bge-small-zh-v1.5",
+  "model_revision": "7999e1d3359715c523056ef9478215996d62a620",
+  "onnx_opset": 17,
+  "model_onnx_sha256": "97648ad1745c1c98ba298ce0e065ec18b6c999e3b923d6b593a0196cb01676f3",
+  "validation_versions": {
+    "torch": "2.9.1+cu128",
+    "transformers": "4.44.2",
+    "onnx": "1.17.0",
+    "onnxruntime-gpu": "1.20.2"
+  },
+  "execution": "normal",
+  "precision": "FP32"
+}

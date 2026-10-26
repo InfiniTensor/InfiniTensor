@@ -5,7 +5,7 @@
 #include "core/kernel.h"
 #include "core/perf_engine.h"
 
-#ifdef USE_INFINIOPS_ATEN_KERNELS
+#if defined(USE_INFINIOPS_ATEN_KERNELS) && INFINITENSOR_INFINIRT_HAS_GRAPH_API
 #include <infini/ops/graph_capture.h>
 #endif
 

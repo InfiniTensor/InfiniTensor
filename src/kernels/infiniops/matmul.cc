@@ -53,7 +53,7 @@ size_t leadingProduct(const Shape &dims) {
 
     ::infini::rt::TensorView::Shape shape;
     ::infini::rt::TensorView::Strides strides;
-    if (batch > 1 || batchRank > 1) {
+    if (batchRank > 0) {
         shape.reserve(ndim);
         strides.reserve(ndim);
         for (size_t i = 0; i < batchRank; ++i) {
@@ -86,26 +86,11 @@ size_t leadingProduct(const Shape &dims) {
     const auto cols = static_cast<size_t>(dims[dims.size() - 1]);
     IT_ASSERT(leadingProduct(dims) == batch);
 
-    ::infini::rt::TensorView::Shape shape;
-    ::infini::rt::TensorView::Strides strides;
-    if (batch > 1) {
-        shape = {batch, rows, cols};
-        strides = {static_cast<::infini::rt::TensorView::Stride>(rows * cols),
-                   static_cast<::infini::rt::TensorView::Stride>(cols), 1};
-    } else {
-        shape = {rows, cols};
-        strides = {static_cast<::infini::rt::TensorView::Stride>(cols), 1};
-    }
-
-    return infiniops::makeInfiniOpsTensor(
-        tensor->getRawDataPtr<void *>(), shape,
-        infiniops::toInfiniOpsDataType(tensor->getDType()), context, strides);
-}
-
-Shape flattenedOutputDims(const MatmulObj &op) {
-    const auto [batch, m, n, k] = op.getBMNK();
-    (void)k;
-    return batch > 1 ? Shape{batch, m, n} : Shape{m, n};
+    (void)rows;
+    (void)cols;
+    // Preserve every batch axis. Flattening only the output makes ATen resize
+    // an externally owned tensor for attention inputs such as [B,H,S,D].
+    return infiniops::toInfiniOpsTensor(tensor, context);
 }
 
 class MatmulInfiniOps : public infiniops::KernelWithoutConfig {
@@ -132,7 +117,7 @@ class MatmulInfiniOps : public infiniops::KernelWithoutConfig {
         infiniops::dispatch::callMatmul(handle, config, inputA, inputB, output);
         if (op->getBias()) {
             auto bias = infiniops::toInfiniOpsBroadcastTensor(
-                op->getBias(), flattenedOutputDims(*op), context);
+                op->getBias(), op->getOutput()->getDims(), context);
             auto addConfig =
                 infiniops::makeInfiniOpsConfig<::infini::ops::Add>(context);
             infiniops::dispatch::callAdd(handle, addConfig, output, bias, 1.0,
