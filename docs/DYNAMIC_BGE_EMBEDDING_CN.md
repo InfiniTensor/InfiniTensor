@@ -6,7 +6,7 @@
 
 ## 固定依赖与安装
 
-`dependencies/embedding-lock.json` 记录源码和模型版本，`3rd-party/InfiniOps` / `InfiniRT` gitlink 与锁文件一致。InfiniOps 暂依赖独立的 `feat/encoder-aten-operators` 分支提交；合并或 squash 后需同步更新 gitlink 和锁文件并重新验证。
+`dependencies/embedding-lock.json` 记录源码和模型版本，`3rd-party/InfiniOps` / `InfiniRT` gitlink 与锁文件一致。InfiniOps 固定到已合入官方 master 的 [PR #1009](https://github.com/InfiniTensor/InfiniOps/pull/1009)，提交为 `640475a658de1f26bbf7c018fd0e0f8d5303a74c`，不再依赖开发分支。
 
 构建仍使用外部安装前缀，不把 InfiniOps 或 InfiniRT 源码编入 InfiniTensor。以下示例在仓库根目录执行；编译器、驱动和 CUDA Toolkit 须与 PyTorch 匹配。
 

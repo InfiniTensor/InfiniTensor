@@ -1,7 +1,6 @@
 {
   "InfiniTensor_base": "703596a91fc20288d0cb17bd1993b011721ef378",
-  "InfiniOps": "8c0bedc358724e114f93363907f0164ce1bb06ac",
-  "InfiniOps_branch": "feat/encoder-aten-operators",
+  "InfiniOps": "640475a658de1f26bbf7c018fd0e0f8d5303a74c",
   "InfiniRT": "cd1d48258f0a6b8d9f66111d5d6cb1664205e78d",
   "model": "BAAI/bge-small-zh-v1.5",
   "model_revision": "7999e1d3359715c523056ef9478215996d62a620",
