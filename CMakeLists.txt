@@ -242,14 +242,6 @@ if(USE_INFINIOPS_KERNELS)
   if(NOT INFINIOPS_INCLUDE_DIR OR NOT INFINIOPS_LIBRARY)
     message(FATAL_ERROR "Could not find InfiniOps headers/libraries under INFINIOPS_ROOT=${INFINIOPS_ROOT}")
   endif()
-  if(USE_INFINIOPS_ATEN_KERNELS AND
-     (NOT EXISTS "${INFINIOPS_INCLUDE_DIR}/infini/ops/graph_capture.h" OR
-      NOT EXISTS "${INFINIOPS_INCLUDE_DIR}/infini/ops/pooling.h"))
-    message(FATAL_ERROR
-      "The InfiniOps ATen provider lacks capture memory or value-only pooling support. "
-      "Rebuild and install the pinned 3rd-party/InfiniOps revision, then set "
-      "INFINIOPS_ROOT to that installation.")
-  endif()
   if(NOT TARGET InfiniRT::infinirt)
     message(FATAL_ERROR "InfiniRT::infinirt is unavailable under INFINIRT_ROOT=${INFINIRT_ROOT}")
   endif()
@@ -281,12 +273,19 @@ if(USE_INFINIOPS_KERNELS)
   else()
     unset(CMAKE_TRY_COMPILE_TARGET_TYPE)
   endif()
-  if(INFINITENSOR_INFINIRT_GRAPH_API_COMPILES)
+  if(INFINITENSOR_INFINIRT_GRAPH_API_COMPILES AND
+     (NOT USE_INFINIOPS_ATEN_KERNELS OR
+      EXISTS "${INFINIOPS_INCLUDE_DIR}/infini/ops/graph_capture.h"))
     set(INFINITENSOR_INFINIRT_HAS_GRAPH_API 1)
   else()
     set(INFINITENSOR_INFINIRT_HAS_GRAPH_API 0)
   endif()
-  message(STATUS "InfiniRT graph capture API: ${INFINITENSOR_INFINIRT_HAS_GRAPH_API}")
+  message(STATUS "InfiniTensor graph capture compatibility: ${INFINITENSOR_INFINIRT_HAS_GRAPH_API}")
+  if(NOT INFINITENSOR_INFINIRT_HAS_GRAPH_API)
+    message(STATUS
+      "Graph capture is unavailable with this component build; ordinary execution remains available. "
+      "runWithGraph requires both a compatible InfiniRT Graph API and, for ATen, the InfiniOps capture allocator.")
+  endif()
 
   get_filename_component(INFINIOPS_LIBRARY_DIR "${INFINIOPS_LIBRARY}" DIRECTORY)
   set(INFINIRT_LIBRARY_DIR "${INFINIRT_ROOT}/lib")

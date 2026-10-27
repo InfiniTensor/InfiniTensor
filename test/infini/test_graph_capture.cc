@@ -139,6 +139,21 @@ class InfiniGraphCaptureTest : public ::testing::Test {
 };
 } // namespace
 
+#if !INFINITENSOR_INFINIRT_HAS_GRAPH_API
+TEST(InfiniGraphCapabilityTest,
+     UnavailableCaptureRejectsWithoutBreakingCopies) {
+    auto runtime = makeRuntime();
+    auto graph = make_ref<GraphObj>(runtime);
+    EXPECT_THROW(runtime->runWithGraph(graph), std::exception);
+
+    auto tensor = graph->addTensor({4}, DataType::Float32);
+    graph->dataMalloc();
+    const vector<float> values{1, -2, 3, -4};
+    tensor->copyin(values);
+    EXPECT_EQ(tensor->copyout<float>(), values);
+}
+#endif
+
 TEST_F(InfiniGraphCaptureTest, GraphCaptureCapturesFirstRunAndReplays) {
     auto runtime = makeRuntime();
     GraphCaptureFixture fixture(runtime);

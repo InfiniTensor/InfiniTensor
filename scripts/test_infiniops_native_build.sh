@@ -11,8 +11,9 @@ echo "Clean native build: $work"
 mkdir -p "$work/ops" "$work/rt"
 # InfiniOps code generation writes into its source tree. Archive the pinned
 # commits so an earlier WITH_TORCH build cannot contaminate this regression.
-git -C "$src/3rd-party/InfiniOps" archive HEAD | tar -x -C "$work/ops"
-git -C "$src/3rd-party/InfiniRT" archive HEAD | tar -x -C "$work/rt"
+core="$src/3rd-party/InfiniCore/submodules"
+git -C "$core/InfiniOps" archive HEAD | tar -x -C "$work/ops"
+git -C "$core/InfiniRT" archive HEAD | tar -x -C "$work/rt"
 cmake -S "$work/rt" -B "$work/build-rt" \
     -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$work/prefix" \
     -DWITH_CPU=ON -DPython_EXECUTABLE="$py"
