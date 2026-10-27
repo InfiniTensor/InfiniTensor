@@ -86,12 +86,8 @@ InfiniRuntimeObj::InfiniRuntimeObj(const string &deviceType, int deviceId,
       graphCacheCapacity(graphCacheCapacity)
 #endif
 {
-#if INFINITENSOR_INFINIRT_HAS_GRAPH_API
     IT_ASSERT(graphCacheCapacity > 0,
               "Graph cache capacity must be greater than zero");
-#else
-    (void)graphCacheCapacity;
-#endif
     activateDevice();
     checkInfiniRt(::infini::rt::runtime::StreamCreate(&stream),
                   "InfiniRT StreamCreate");
