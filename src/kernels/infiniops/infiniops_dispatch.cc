@@ -374,7 +374,7 @@ PreparedCall prepareCapture(const char *name, Factory factory,
         op->set_stream(invocation->stream());
         op->set_workspace(invocation->workspace());
         op->set_workspace_size_in_bytes(invocation->workspace_size_in_bytes());
-        static_cast<const Key &>(*op)(args...);
+        static_cast<const Key &> (*op)(args...);
     };
 }
 #define INFINITENSOR_CAPTURE_FACTORY(Name)                                     \
