@@ -104,9 +104,11 @@ export INFINIOPS_PROVIDER_MODULES=provider_module
 普通 MaxPool 使用标准 `MaxPool2dWithIndices` 接口；非标准索引格式的 provider
 需要独立适配和验证，不能沿用历史 Ascend pooling 的通过记录。
 
-InfiniRT 提供图运行时接口，但当前正式 InfiniOps 没有上述 ATen 捕获内存接口，
-InfiniTensor 因此不启用 ATen Graph 路径。配置阶段输出能力状态，调用
-`runWithGraph` 明确报错，不执行普通前向替代捕获。图捕获的重新接入与验收单独进行。
+图捕获、实例化、重放和销毁统一通过 InfiniRT，不依赖旧的 InfiniOps 捕获内存接口。
+InfiniTensor 在捕获前创建实际选中的算子实例，检查其 `capture_safe()`，并将实例
+和稳定工作区保留到图销毁。未声明安全的实现（包括当前未标记的 ATen provider）
+在进入捕获前明确拒绝，普通执行仍可用，不以普通前向替代图重放。
+同一 ATen 构建中的安全原生实现仍可捕获，不因启用 ATen 而整体关闭 Graph。
 
 Ascend / MLU 的 provider 初始化、外部张量与流互操作也须按正式组件版本重新验证；
 旧开发版的跨平台测试和图捕获结果不适用于这个依赖组合。

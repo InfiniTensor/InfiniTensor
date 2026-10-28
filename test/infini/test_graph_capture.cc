@@ -4,6 +4,7 @@
 #include "core/runtime.h"
 #include "operators/dropout.h"
 #include "operators/rms_norm.h"
+#include "operators/unary.h"
 
 #include "test.h"
 #include <atomic>
@@ -151,6 +152,35 @@ TEST(InfiniGraphCapabilityTest,
     const vector<float> values{1, -2, 3, -4};
     tensor->copyin(values);
     EXPECT_EQ(tensor->copyout<float>(), values);
+}
+#endif
+
+#if INFINITENSOR_TEST_HAS_ATEN
+TEST_F(InfiniGraphCaptureTest, RejectsUnsafeProviderAndPreservesCapturedGraph) {
+    auto runtime = makeRuntime();
+    GraphCaptureFixture valid(runtime, 2);
+    valid.run(increasingValues(2));
+
+    auto graph = make_ref<GraphObj>(runtime);
+    auto input = graph->addTensor({4}, DataType::Float32);
+    auto output = graph->addOp<ReluObj>(input, nullptr)->getOutput();
+    input->setInput();
+    output->setOutput();
+    graph->dataMalloc();
+    input->copyin(vector<float>{1, -2, 3, -4});
+    try {
+        runtime->runWithGraph(graph);
+        FAIL() << "ATen provider without capture_safe was accepted";
+    } catch (const std::exception &error) {
+        EXPECT_NE(string(error.what()).find("not capture-safe"), string::npos);
+    }
+    EXPECT_EQ(runtime->getGraphCaptureCount(), 1u);
+    EXPECT_EQ(runtime->getGraphCacheSize(), 1u);
+    runtime->run(graph);
+    EXPECT_EQ(output->copyout<float>(), (vector<float>{1, 0, 3, 0}));
+    valid.run(increasingValues(2, 5));
+    EXPECT_EQ(runtime->getGraphCaptureCount(), 1u);
+    EXPECT_TRUE(valid.outputEquals(rmsNormValues(increasingValues(2, 5))));
 }
 #endif
 

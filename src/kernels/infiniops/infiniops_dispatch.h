@@ -3,6 +3,8 @@
 #include <infini/ops.h>
 
 #include <cstdint>
+#include <functional>
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -13,6 +15,39 @@ using Config = ::infini::ops::Config;
 using DataType = ::infini::rt::DataType;
 using Handle = ::infini::ops::Handle;
 using Tensor = ::infini::ops::Tensor;
+
+// A captured graph owns the exact prepared implementations and workspaces.
+// Operator selection and construction happen before entering InfiniRT capture.
+using WorkspaceAllocator = std::function<std::shared_ptr<void>(size_t)>;
+using PreparedCall =
+    std::function<void(const Handle &, const WorkspaceAllocator &)>;
+struct CapturePlan {
+    struct Entry {
+        std::string name;
+        size_t implementation;
+        PreparedCall invoke;
+    };
+    std::vector<Entry> operators;
+};
+
+class CaptureScope {
+    CapturePlan &plan;
+    bool replay;
+    size_t cursor = 0;
+    WorkspaceAllocator workspace;
+    static thread_local CaptureScope *active;
+
+  public:
+    CaptureScope(CapturePlan &plan, bool replay, WorkspaceAllocator workspace);
+    ~CaptureScope();
+    CaptureScope(const CaptureScope &) = delete;
+    CaptureScope &operator=(const CaptureScope &) = delete;
+    static CaptureScope *current() { return active; }
+    void call(const std::string &name, size_t implementation,
+              const std::function<PreparedCall()> &prepare,
+              const Handle &handle);
+    void finish() const;
+};
 
 void callAdd(const Handle &handle, const Config &config, Tensor input,
              Tensor other, double alpha, Tensor out);

@@ -115,7 +115,8 @@ TEST_F(WorkspaceCaptureTest, FailureReleasesWorkspaceAndAllowsRecovery) {
     EXPECT_TRUE(scratch.back().expired()); // ordinary execution is temporary
 }
 
-TEST_F(WorkspaceCaptureTest, BatchNormMaxPoolDynamicShapeAndReplay) {
+TEST_F(WorkspaceCaptureTest,
+       BatchNormMaxPoolOrdinaryExecutionRejectsUnsafeCapture) {
 #if !INFINITENSOR_TEST_HAS_ATEN
     GTEST_SKIP() << "BN/MaxPool require USE_INFINIOPS_ATEN_KERNELS";
 #else
@@ -145,7 +146,6 @@ TEST_F(WorkspaceCaptureTest, BatchNormMaxPoolDynamicShapeAndReplay) {
             graph->addOp<MaxPoolObj>(bn, nullptr, 2, 2, 1, 1, 0, 0, 2, 2, 0)
                 ->getOutput();
         y->setOutput();
-        size_t captures = 0;
         for (int channels : {2, 3, 2}) {
             x->setShape({1, channels, 4, 4});
             for (auto &param : params)
@@ -169,10 +169,10 @@ TEST_F(WorkspaceCaptureTest, BatchNormMaxPoolDynamicShapeAndReplay) {
                                  iteration) /
                                     std::sqrt(4.f + 1e-5f) * 2 -
                                 1);
-                runtime->runWithGraph(graph);
-                if (iteration == 0)
-                    ++captures;
-                EXPECT_EQ(runtime->getGraphCaptureCount(), captures);
+                EXPECT_THROW(runtime->runWithGraph(graph), std::exception);
+                EXPECT_EQ(runtime->getGraphCacheSize(), 0u);
+                EXPECT_EQ(runtime->getGraphCaptureCount(), 0u);
+                runtime->run(graph);
                 EXPECT_TRUE(y->clone(NativeCpuRuntimeObj::getInstance())
                                 ->equalData(expected));
             }

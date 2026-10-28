@@ -273,9 +273,7 @@ if(USE_INFINIOPS_KERNELS)
   else()
     unset(CMAKE_TRY_COMPILE_TARGET_TYPE)
   endif()
-  if(INFINITENSOR_INFINIRT_GRAPH_API_COMPILES AND
-     (NOT USE_INFINIOPS_ATEN_KERNELS OR
-      EXISTS "${INFINIOPS_INCLUDE_DIR}/infini/ops/graph_capture.h"))
+  if(INFINITENSOR_INFINIRT_GRAPH_API_COMPILES)
     set(INFINITENSOR_INFINIRT_HAS_GRAPH_API 1)
   else()
     set(INFINITENSOR_INFINIRT_HAS_GRAPH_API 0)
@@ -284,7 +282,7 @@ if(USE_INFINIOPS_KERNELS)
   if(NOT INFINITENSOR_INFINIRT_HAS_GRAPH_API)
     message(STATUS
       "Graph capture is unavailable with this component build; ordinary execution remains available. "
-      "runWithGraph requires both a compatible InfiniRT Graph API and, for ATen, the InfiniOps capture allocator.")
+      "runWithGraph requires a compatible InfiniRT Graph API.")
   endif()
 
   get_filename_component(INFINIOPS_LIBRARY_DIR "${INFINIOPS_LIBRARY}" DIRECTORY)

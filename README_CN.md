@@ -31,8 +31,8 @@ make install-python \
   PYTHON="$(command -v python3)"
 ```
 
-当前固定组件组合提供普通推理执行；ATen 图捕获的内存管理接入尚待迁移，
-调用 `runWithGraph` 会明确报错，不会执行普通前向来代替捕获。
+图捕获和重放统一通过 InfiniRT。捕获前检查实际算子实现的 `capture_safe()`；
+未声明安全的实现明确拒绝捕获，普通执行仍可用。图持有已准备的算子实例及稳定工作区。
 
 详细步骤见：
 

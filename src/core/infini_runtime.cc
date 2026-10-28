@@ -5,9 +5,7 @@
 #include "core/kernel.h"
 #include "core/perf_engine.h"
 
-#if defined(USE_INFINIOPS_ATEN_KERNELS) && INFINITENSOR_INFINIRT_HAS_GRAPH_API
-#include <infini/ops/graph_capture.h>
-#endif
+#include "../kernels/infiniops/infiniops_dispatch.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -284,33 +282,35 @@ InfiniRuntimeObj::captureGraph(const Graph &graph, CapturedGraphState state) {
     try {
         // Prepare both InfiniOps descriptors and scratch storage outside
         // capture. Each captured graph owns its own workspace allocations.
-        runWithoutSyncImpl(graph, false);
+        entry->operators = std::make_shared<infiniops::dispatch::CapturePlan>();
+        const auto workspace = [this](size_t bytes) {
+            return acquireWorkspace(bytes);
+        };
+        {
+            infiniops::dispatch::CaptureScope prepare(*entry->operators, false,
+                                                      workspace);
+            runWithoutSyncImpl(graph, false);
+        }
         syncImpl();
         replayCaptureWorkspaces = true;
-#ifdef USE_INFINIOPS_ATEN_KERNELS
-        // ATen can allocate intermediates independently of acquireWorkspace.
-        // Redirect those allocations before starting the native capture and
-        // keep their pool alive with this graph, including between replays.
-        entry->providerCaptureMemory =
-            ::infini::ops::BeginGraphCaptureMemory(runtimeDevice, getStream());
-#endif
         checkInfiniRt(::infini::rt::runtime::StreamBeginCapture(
                           stream, ::infini::rt::runtime::StreamCaptureMode::
                                       kStreamCaptureModeThreadLocal),
                       "InfiniRT StreamBeginCapture");
         captureStarted = true;
         streamCaptureActive = true;
-        runWithoutSyncImpl(graph, false);
+        {
+            infiniops::dispatch::CaptureScope capture(*entry->operators, true,
+                                                      workspace);
+            runWithoutSyncImpl(graph, false);
+            capture.finish();
+        }
         IT_ASSERT(captureWorkspaceCursor == entry->workspaces.size(),
                   "Capture requested fewer workspace buffers than warmup");
         auto endStatus =
             ::infini::rt::runtime::StreamEndCapture(stream, &entry->graph);
         captureStarted = false;
         streamCaptureActive = false;
-#ifdef USE_INFINIOPS_ATEN_KERNELS
-        if (entry->providerCaptureMemory)
-            entry->providerCaptureMemory->EndCapture();
-#endif
         checkInfiniRt(endStatus, "InfiniRT StreamEndCapture");
         checkInfiniRt(::infini::rt::runtime::GraphInstantiate(&entry->instance,
                                                               entry->graph),
@@ -343,9 +343,11 @@ InfiniRuntimeObj::captureGraph(const Graph &graph, CapturedGraphState state) {
                              ::infini::rt::runtime::GraphDestroy(entry->graph));
             entry->graph = {};
         }
-        // Destruction ends any unfinished allocator scope, including when
-        // StreamBeginCapture/EndCapture or a captured operator threw.
-        entry->providerCaptureMemory.reset();
+        // Warmup may have submitted work before a later provider was rejected.
+        // Keep its implementations and workspaces alive until that work ends.
+        logInfiniRtError("InfiniRT StreamSynchronize after capture failure",
+                         ::infini::rt::runtime::StreamSynchronize(stream));
+        entry->operators.reset();
         recoverExecutionStreamAfterFailure();
         std::rethrow_exception(originalError);
     }
@@ -366,8 +368,8 @@ void InfiniRuntimeObj::destroyGraphEntry(GraphCacheEntry &entry) noexcept {
                          ::infini::rt::runtime::GraphDestroy(entry.graph));
         entry.graph = {};
     }
-    // Provider intermediates must outlive both graph handles.
-    entry.providerCaptureMemory.reset();
+    // Prepared implementations must outlive both graph handles.
+    entry.operators.reset();
 }
 
 void InfiniRuntimeObj::markActiveGraph(GraphCache::iterator entry,

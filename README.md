@@ -65,9 +65,10 @@ Model compatibility is not limited to a fixed model list. It depends on ONNX imp
 - `INFINIOPS_ROOT` and `INFINIRT_ROOT` must refer to matching lower-stack builds.
 - ATen-backed InfiniOps builds must use the same Python/PyTorch C++11 ABI as InfiniTensor.
 - `INFINIOPS_PROVIDER_LIBRARY_DIRS` is only needed when provider libraries are outside the selected Python/PyTorch environment.
-- The pinned stack supports ordinary execution. ATen graph capture is unavailable
-  until the capture allocator integration is ported; `runWithGraph` rejects the
-  request instead of running an uncaptured forward pass.
+- Graph capture and replay use InfiniRT. Each selected InfiniOps implementation
+  must report `capture_safe()`; unmarked implementations are rejected before
+  capture while ordinary execution remains available. Captured graphs retain
+  their prepared operator instances and stable workspaces.
 
 ## Documentation
 

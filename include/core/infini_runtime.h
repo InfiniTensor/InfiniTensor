@@ -13,8 +13,8 @@
 #define INFINITENSOR_INFINIRT_HAS_GRAPH_API 0
 #endif
 
-namespace infini::ops {
-class GraphCaptureMemory;
+namespace infini::infiniops::dispatch {
+struct CapturePlan;
 }
 
 namespace infini {
@@ -54,8 +54,7 @@ class InfiniRuntimeObj final : public RuntimeObj {
         ::infini::rt::runtime::Graph graph{};
         ::infini::rt::runtime::GraphExec instance{};
         vector<CaptureWorkspace> workspaces;
-        std::shared_ptr<::infini::ops::GraphCaptureMemory>
-            providerCaptureMemory;
+        std::shared_ptr<infiniops::dispatch::CapturePlan> operators;
 
         GraphCacheEntry(WRef<GraphObj> owner, CapturedGraphState state)
             : owner(std::move(owner)), state(std::move(state)) {}
