@@ -9,6 +9,7 @@
 #include "operators/element_wise.h"
 #include "operators/expand.h"
 #include "operators/gather.h"
+#include "operators/infini_op.h"
 #include "operators/instance_norm.h"
 #include "operators/layer_norm.h"
 #include "operators/lrn.h"
@@ -33,6 +34,17 @@
 #include <numeric>
 
 namespace infini {
+
+Operator
+GraphHandlerObj::infiniOp(const std::string &name,
+                          const std::map<std::string, TensorVec> &inputs,
+                          const std::map<std::string, TensorVec> &outputs,
+                          const std::string &attributes) {
+    IT_ASSERT(g->getRuntime()->isInfini(),
+              "InfiniOp requires an Infini runtime");
+    return g->addOp<InfiniOpObj>(name, inputs, outputs,
+                                 nlohmann::json::parse(attributes));
+}
 
 static DataType dtype_repr_convert(int);
 static CastType inferCastType(Tensor input, int to);

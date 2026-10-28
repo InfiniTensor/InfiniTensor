@@ -40,6 +40,10 @@ vector<std::weak_ptr<void>> scratch;
 int calls = 0;
 bool failCapture = false;
 class WorkspaceProbeKernel : public Kernel {
+  public:
+    bool captureSafe() const override { return true; }
+
+  private:
     void compute(const Operator &op, const PerfRecord &,
                  const RuntimeObj *context) const override {
         compute(op, context);

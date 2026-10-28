@@ -2,10 +2,8 @@
 
 #include "core/blob.h"
 #include "core/graph.h"
-#include "core/kernel.h"
-#include "core/perf_engine.h"
 
-#include "../kernels/infiniops/infiniops_dispatch.h"
+#include "../kernels/infiniops/lowering.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -106,6 +104,7 @@ InfiniRuntimeObj::~InfiniRuntimeObj() {
 #if INFINITENSOR_INFINIRT_HAS_GRAPH_API
     clearGraphCacheImpl();
 #endif
+    ordinaryPlan.reset();
     if (stream) {
         logInfiniRtError("InfiniRT StreamDestroy",
                          ::infini::rt::runtime::StreamDestroy(stream));
@@ -222,27 +221,15 @@ void InfiniRuntimeObj::copyBlobInsideRuntime(void *dst, const void *src,
         syncImpl();
 }
 
-void InfiniRuntimeObj::runWithoutSyncImpl(const Graph &graph,
-                                          bool validate) const {
-    IT_ASSERT(graph != nullptr, "Cannot run a null graph");
-    if (validate)
-        graph->validateMemory();
-    const auto &kernelRegistry = KernelRegistry::getInstance();
-    auto &perfEngine = PerfEngine::getInstance();
-    for (auto &op : graph->getOperators()) {
-        const auto kernelAttrs = KernelAttrs{ExecutionProvider::Infini,
-                                             op->getOpType().underlying()};
-        auto *kernel = kernelRegistry.getKernel(kernelAttrs);
-        const auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
-        auto perfData = perfEngine.getPerfData(perfKey);
-        if (perfData) {
-            kernel->getComputeFunc(perfKey)(op, perfData, this);
-        } else {
-            kernel->compute(op, this);
-        }
-    }
+std::shared_ptr<infiniops::PreparedGraph>
+InfiniRuntimeObj::prepare(const Graph &graph) const {
+    const auto generation = graph->getCaptureGeneration();
+    const auto owner = ordinaryPlan ? ordinaryPlan->owner.lock() : Graph{};
+    if (!ordinaryPlan || owner.get() != graph.get() ||
+        ordinaryPlan->generation != generation)
+        ordinaryPlan = infiniops::prepareGraph(graph, this);
+    return ordinaryPlan;
 }
-
 #if INFINITENSOR_INFINIRT_HAS_GRAPH_API
 InfiniRuntimeObj::CapturedGraphState
 InfiniRuntimeObj::captureStateOf(const Graph &graph) const {
@@ -276,21 +263,20 @@ InfiniRuntimeObj::captureGraph(const Graph &graph, CapturedGraphState state) {
                                                    std::move(state));
     bool captureStarted = false;
     IT_ASSERT(captureWorkspaces == nullptr, "Nested graph preparation");
-    captureWorkspaces = &entry->workspaces;
     captureWorkspaceCursor = 0;
     replayCaptureWorkspaces = false;
     try {
         // Prepare both InfiniOps descriptors and scratch storage outside
         // capture. Each captured graph owns its own workspace allocations.
-        entry->operators = std::make_shared<infiniops::dispatch::CapturePlan>();
-        const auto workspace = [this](size_t bytes) {
-            return acquireWorkspace(bytes);
-        };
-        {
-            infiniops::dispatch::CaptureScope prepare(*entry->operators, false,
-                                                      workspace);
-            runWithoutSyncImpl(graph, false);
-        }
+        entry->prepared = prepare(graph);
+        for (const auto &step : entry->prepared->plan.steps)
+            IT_ASSERT(step.captureSafe,
+                      "InfiniOps implementation is not capture-safe: " +
+                          step.name);
+        ::infini::ops::Handle handle;
+        handle.set_stream(getStream());
+        captureWorkspaces = &entry->workspaces;
+        entry->prepared->plan.run(handle);
         syncImpl();
         replayCaptureWorkspaces = true;
         checkInfiniRt(::infini::rt::runtime::StreamBeginCapture(
@@ -299,12 +285,7 @@ InfiniRuntimeObj::captureGraph(const Graph &graph, CapturedGraphState state) {
                       "InfiniRT StreamBeginCapture");
         captureStarted = true;
         streamCaptureActive = true;
-        {
-            infiniops::dispatch::CaptureScope capture(*entry->operators, true,
-                                                      workspace);
-            runWithoutSyncImpl(graph, false);
-            capture.finish();
-        }
+        entry->prepared->plan.run(handle);
         IT_ASSERT(captureWorkspaceCursor == entry->workspaces.size(),
                   "Capture requested fewer workspace buffers than warmup");
         auto endStatus =
@@ -347,7 +328,7 @@ InfiniRuntimeObj::captureGraph(const Graph &graph, CapturedGraphState state) {
         // Keep its implementations and workspaces alive until that work ends.
         logInfiniRtError("InfiniRT StreamSynchronize after capture failure",
                          ::infini::rt::runtime::StreamSynchronize(stream));
-        entry->operators.reset();
+        entry->prepared.reset();
         recoverExecutionStreamAfterFailure();
         std::rethrow_exception(originalError);
     }
@@ -369,7 +350,7 @@ void InfiniRuntimeObj::destroyGraphEntry(GraphCacheEntry &entry) noexcept {
         entry.graph = {};
     }
     // Prepared implementations must outlive both graph handles.
-    entry.operators.reset();
+    entry.prepared.reset();
 }
 
 void InfiniRuntimeObj::markActiveGraph(GraphCache::iterator entry,
@@ -414,15 +395,6 @@ void InfiniRuntimeObj::clearGraphCacheImpl() noexcept {
     for (auto &entry : graphCache)
         destroyGraphEntry(*entry);
     graphCache.clear();
-}
-
-void InfiniRuntimeObj::invalidateGraphCaptureCache(uint64_t graphId) noexcept {
-    std::lock_guard<std::recursive_mutex> executionLock(executionMutex);
-    std::lock_guard<std::recursive_mutex> cacheLock(cacheMutex);
-    ::infini::rt::set_runtime_device_type(runtimeDevice.type());
-    logInfiniRtError("InfiniRT SetDevice during graph invalidation",
-                     ::infini::rt::runtime::SetDevice(deviceId));
-    eraseGraphCacheEntries(graphId);
 }
 
 void InfiniRuntimeObj::clearGraphCache() {
@@ -528,6 +500,19 @@ void InfiniRuntimeObj::runWithGraph(const Graph &graph) {
 }
 #endif
 
+void InfiniRuntimeObj::invalidateGraphCaptureCache(uint64_t graphId) noexcept {
+    std::lock_guard<std::recursive_mutex> executionLock(executionMutex);
+#if INFINITENSOR_INFINIRT_HAS_GRAPH_API
+    std::lock_guard<std::recursive_mutex> cacheLock(cacheMutex);
+    ::infini::rt::set_runtime_device_type(runtimeDevice.type());
+    logInfiniRtError("InfiniRT SetDevice during graph invalidation",
+                     ::infini::rt::runtime::SetDevice(deviceId));
+    eraseGraphCacheEntries(graphId);
+#endif
+    if (ordinaryPlan && ordinaryPlan->graphId == graphId)
+        ordinaryPlan.reset();
+}
+
 void InfiniRuntimeObj::run(const Graph &graph, bool tune,
                            bool profiling) const {
     std::lock_guard<std::recursive_mutex> lock(executionMutex);
@@ -536,27 +521,11 @@ void InfiniRuntimeObj::run(const Graph &graph, bool tune,
     IT_ASSERT(!profiling, "Infini runtime profiling is not implemented yet");
     graph->validateMemory();
 
-    if (!tune) {
-        runWithoutSyncImpl(graph, false);
-        syncImpl();
-        return;
-    }
-
-    const auto &kernelRegistry = KernelRegistry::getInstance();
-    auto &perfEngine = PerfEngine::getInstance();
-    for (auto &op : graph->getOperators()) {
-        const auto kernelAttrs = KernelAttrs{ExecutionProvider::Infini,
-                                             op->getOpType().underlying()};
-        auto *kernel = kernelRegistry.getKernel(kernelAttrs);
-        const auto perfKey = PerfEngine::Key{kernelAttrs, op->getOpPerfKey()};
-        auto perfData = perfEngine.getPerfData(perfKey);
-        if (!perfData) {
-            perfData = kernel->tune(op, this);
-            perfEngine.setPerfData(perfKey, perfData);
-        }
-        kernel->computeFuncTune(perfKey, op, perfData, this);
-        kernel->getComputeFunc(perfKey)(op, perfData, this);
-    }
+    IT_ASSERT(!tune, "InfiniTensor kernel tuning is unavailable for prepared "
+                     "InfiniOps execution; configure InfiniOps tuning instead");
+    ::infini::ops::Handle handle;
+    handle.set_stream(getStream());
+    prepare(graph)->plan.run(handle);
     syncImpl();
 }
 

@@ -158,3 +158,65 @@ make test-api
 - 设备名称、卡号、执行命令和数值误差。
 
 提交问题时，请附上最小复现模型、命令、完整错误日志和上述环境信息。问题入口为 [GitHub Issues](https://github.com/InfiniTensor/InfiniTensor/issues)。
+
+
+## 8. 直接使用 InfiniOps 算子
+
+构建时，InfiniTensor 从已安装 InfiniOps SDK 的公开工厂声明生成绑定。
+算子是否可用取决于该 SDK 的构建选择及设备实现，不再需要在 InfiniTensor
+新增 kernel 类、工厂映射、dispatch 声明或实现编号。
+
+以下接口直接构造通用节点，参数名称来自 SDK；输入与输出均用名称到张量列表的映射：
+
+```python
+import json
+from onnx import TensorProto
+from pyinfinitensor import backend
+
+runtime = backend.InfiniRuntime(backend.default_infini_device(), 0)
+handler = backend.GraphHandler(runtime)
+x = handler.tensor([2, 4], TensorProto.FLOAT)
+w = handler.tensor([4], TensorProto.FLOAT)
+y = handler.tensor([2, 4], TensorProto.FLOAT)
+x.set_input()
+w.set_weight()
+y.set_output()
+
+schemas = json.loads(backend.infini_operator_schemas())
+print(schemas["RmsNorm"])
+op = handler.infini_op(
+    "RmsNorm", {"input": [x], "weight": [w]}, {"out": [y]}, {"eps": 1e-6}
+)
+handler.data_malloc()
+x.copyin_float([1, 2, 3, 4, -1, -2, -3, -4])
+w.copyin_float([1, 1, 1, 1])
+handler.run()
+print(y.copyout_numpy())
+```
+
+同一入口支持 Tensor、Tensor 列表、整数、浮点数、布尔、字符串、整数列表和相应
+optional 参数。缺省 optional 参数传空值；没有公开缺省重载的必需参数必须显式提供。
+DataType 属性可使用 ONNX 类型编号或 InfiniRT 类型名称（如 `float32`、`float64`）。
+生成清单位于构建目录的 `generated/infiniops_bindings.json`，包含 SDK 摘要、签名及
+暂不支持的参数类型；SDK 声明格式不兼容时构建会明确失败。
+
+通用节点要求前端提供正确的输出形状和 dtype，不从 C++ 参数签名猜测算子数学语义。
+动态改变输入形状时，先调用 `op.set_output_shapes([...])`，再调用
+`handler.shape_infer()` 和 `handler.data_malloc()`。ONNX 中的新语义仍需要前端完成
+属性解释与形状推导；语义和名称一致的既有简单算子可直接使用自动生成的绑定，
+旧 IR 与 InfiniOps 参数有差异时只在 `lowering.cc` 保留语义适配。
+
+普通执行和 Graph 共用同一份准备计划、实际算子实例和工作区。
+InfiniOps 负责选择实现并声明捕获安全性；InfiniRT 负责图捕获、实例化及重放。
+未声明安全的 provider 在捕获前被拒绝，仍可普通执行。
+旧 RoPE 节点需要根据运行时位置 ID 生成表，按拓扑顺序读取位置并执行，暂不支持捕获。
+该后端使用 InfiniOps 的自动选择，不支持旧的 InfiniTensor kernel 调优入口；
+`handler.tune()` 会明确报错，不影响 `handler.run()`。
+
+回归命令：
+
+```bash
+python scripts/tests/test_generate_infiniops_bindings.py
+# SDK 需包含 RmsNorm、Cat、Softmax、Abs、Erf；缺少能力直接失败。
+python pyinfinitensor/tests/test_infiniops_bindings.py
+```

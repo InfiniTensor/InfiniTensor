@@ -23,6 +23,10 @@ Ref<InfiniRuntimeObj> makeRuntime(size_t graphCacheCapacity = 16) {
 }
 
 class CaptureUnsupportedKernel : public Kernel {
+  public:
+    bool captureSafe() const override { return true; }
+
+  private:
     void compute(const Operator &op, const PerfRecord &,
                  const RuntimeObj *context) const override {
         compute(op, context);

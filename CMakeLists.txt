@@ -316,7 +316,19 @@ endif()
 
 if(USE_INFINIOPS_KERNELS)
   file(GLOB_RECURSE SRC_INFINIOPS_KERNELS src/kernels/infiniops/*.cc)
-  list(APPEND SRC src/core/infini_runtime.cc ${SRC_INFINIOPS_KERNELS})
+  set(_infiniops_sdk "${INFINIOPS_INCLUDE_DIR}/infini/operator_call_instantiations.h")
+  set(_infiniops_bindings "${CMAKE_CURRENT_BINARY_DIR}/generated/infiniops_bindings.cc")
+  execute_process(
+    COMMAND "${Python_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_infiniops_bindings.py"
+            --header "${_infiniops_sdk}" --output "${_infiniops_bindings}"
+            --manifest "${CMAKE_CURRENT_BINARY_DIR}/generated/infiniops_bindings.json"
+    RESULT_VARIABLE _infiniops_generation_result)
+  if(NOT _infiniops_generation_result EQUAL 0)
+    message(FATAL_ERROR "Unable to generate bindings from the installed InfiniOps SDK")
+  endif()
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${_infiniops_sdk}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_infiniops_bindings.py")
+  list(APPEND SRC src/core/infini_runtime.cc ${SRC_INFINIOPS_KERNELS} "${_infiniops_bindings}")
 endif()
 
 # Libraries
@@ -337,6 +349,7 @@ if(USE_INFINIOPS_KERNELS)
     target_compile_definitions(InfiniTensor PRIVATE
                                USE_INFINIOPS_ATEN_KERNELS=1)
   endif()
+  target_include_directories(InfiniTensor PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/kernels/infiniops")
   target_include_directories(InfiniTensor SYSTEM PRIVATE
                              ${INFINIOPS_INCLUDE_DIR})
   if(USE_INFINIOPS_ATEN_KERNELS AND INFINIOPS_PROVIDER_LIBRARY_DIRS)
@@ -423,6 +436,8 @@ endfunction()
 if(BUILD_TEST)
   add_compile_definitions(BUILD_TEST=1)
   enable_testing()
+  add_test(NAME test_infiniops_binding_generator
+    COMMAND "${Python_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/tests/test_generate_infiniops_bindings.py")
   if(USE_TRACE)
     build_test(test/trace/*.cc)
   endif()

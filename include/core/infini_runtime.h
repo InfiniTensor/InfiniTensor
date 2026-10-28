@@ -13,8 +13,8 @@
 #define INFINITENSOR_INFINIRT_HAS_GRAPH_API 0
 #endif
 
-namespace infini::infiniops::dispatch {
-struct CapturePlan;
+namespace infini::infiniops {
+struct PreparedGraph;
 }
 
 namespace infini {
@@ -54,7 +54,7 @@ class InfiniRuntimeObj final : public RuntimeObj {
         ::infini::rt::runtime::Graph graph{};
         ::infini::rt::runtime::GraphExec instance{};
         vector<CaptureWorkspace> workspaces;
-        std::shared_ptr<infiniops::dispatch::CapturePlan> operators;
+        std::shared_ptr<infiniops::PreparedGraph> prepared;
 
         GraphCacheEntry(WRef<GraphObj> owner, CapturedGraphState state)
             : owner(std::move(owner)), state(std::move(state)) {}
@@ -68,6 +68,7 @@ class InfiniRuntimeObj final : public RuntimeObj {
     };
 #endif
 
+    mutable std::shared_ptr<infiniops::PreparedGraph> ordinaryPlan;
     ::infini::rt::Device runtimeDevice;
     mutable ::infini::rt::runtime::Stream stream{};
 #if INFINITENSOR_INFINIRT_HAS_GRAPH_API
@@ -99,8 +100,8 @@ class InfiniRuntimeObj final : public RuntimeObj {
     void clearGraphCache() override;
     size_t getGraphCacheSize() const override;
     size_t getGraphCaptureCount() const override;
-    void invalidateGraphCaptureCache(uint64_t graphId) noexcept override;
 #endif
+    void invalidateGraphCaptureCache(uint64_t graphId) noexcept override;
 
     void *alloc(size_t size) override;
     void dealloc(void *ptr) override;
@@ -124,8 +125,8 @@ class InfiniRuntimeObj final : public RuntimeObj {
   private:
     void activateDevice() const;
     void ensureExecutionStream() const;
-    void runWithoutSyncImpl(const Graph &graph, bool validate) const;
     void syncImpl() const;
+    std::shared_ptr<infiniops::PreparedGraph> prepare(const Graph &graph) const;
 #if INFINITENSOR_INFINIRT_HAS_GRAPH_API
     CapturedGraphState captureStateOf(const Graph &graph) const;
     std::unique_ptr<GraphCacheEntry> captureGraph(const Graph &graph,
