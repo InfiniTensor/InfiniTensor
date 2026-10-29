@@ -4,7 +4,9 @@
 #include "operators/concat.h"
 #include "operators/conv.h"
 #include "operators/expand.h"
+#include "operators/gather.h"
 #include "operators/infini_op.h"
+#include "operators/layer_norm.h"
 #include "operators/matmul.h"
 #include "operators/pooling.h"
 #include "operators/reduce.h"
@@ -241,7 +243,7 @@ bool lower(const Operator &node, const RuntimeObj *runtime, Builder &builder) {
         builder.plan.steps.push_back({[runtime, src, dst](const Handle &) {
                                           runtime->copyBlob(dst, src);
                                       },
-                                      true, "Copy"});
+                                      true, "Copy", "InfiniRT"});
         return true;
     }
     if (type == OpType::MatMul) {
@@ -320,7 +322,38 @@ bool lower(const Operator &node, const RuntimeObj *runtime, Builder &builder) {
                      throw;
                  }
              },
-             false, "RoPE"});
+             false, "RoPE", "runtime position metadata"});
+        return true;
+    }
+    if (type == OpType::Gather) {
+        const auto op = as<GatherObj>(node);
+        builder.emit("OnnxGather", input(0), input(1), int64_t(op->getAxis()),
+                     output());
+        return true;
+    }
+    if (type == OpType::LayerNormalization) {
+        const auto op = as<LayerNormObj>(node);
+        IT_ASSERT(op->getDType() == ::infini::DataType::Float32 &&
+                      op->getStashType() == 1,
+                  "ONNX LayerNormalization currently requires FP32 input and "
+                  "stash_type=1");
+        const auto dims = op->getInputs(0)->getDims();
+        const auto axis = op->getAxis();
+        const Shape normalized(dims.begin() + axis, dims.end());
+        Shape stats = dims;
+        std::fill(stats.begin() + axis, stats.end(), 1);
+        std::optional<TensorView> bias;
+        if (op->getBias())
+            bias.emplace(
+                toInfiniOpsBroadcastTensor(op->getBias(), normalized, runtime));
+        builder.emit(
+            "NativeLayerNorm", input(0),
+            std::vector<int64_t>(normalized.begin(), normalized.end()),
+            std::optional<TensorView>{toInfiniOpsBroadcastTensor(
+                op->getInputs(1), normalized, runtime)},
+            bias, double(op->getEps()), output(),
+            temporary(builder, runtime, stats, ::infini::DataType::Float32),
+            temporary(builder, runtime, stats, ::infini::DataType::Float32));
         return true;
     }
     if (type == OpType::RMSNorm) {
@@ -449,6 +482,22 @@ bool lower(const Operator &node, const RuntimeObj *runtime, Builder &builder) {
         builder.emit("Gelu", input(), std::string("none"), output());
         return true;
     }
+    if (type == OpType::Sub || type == OpType::Div) {
+        const auto dims = node->getOutput()->getDims();
+        const auto lhs =
+            toInfiniOpsBroadcastTensor(node->getInputs(0), dims, runtime);
+        const auto rhs =
+            toInfiniOpsBroadcastTensor(node->getInputs(1), dims, runtime);
+        if (type == OpType::Sub)
+            builder.emit("Sub", lhs, rhs, 1.0, output());
+        else if (node->getDType() == ::infini::DataType::Int32 ||
+                 node->getDType() == ::infini::DataType::Int64)
+            builder.emit("Div", lhs, rhs, std::optional<std::string>{"trunc"},
+                         output());
+        else
+            builder.emit("Div", lhs, rhs, output());
+        return true;
+    }
     if (type == OpType::Add || type == OpType::Mul) {
         const auto dims = node->getOutput()->getDims();
         builder.emit(
@@ -484,19 +533,29 @@ std::shared_ptr<PreparedGraph> prepareGraph(const Graph &graph,
         return infini->acquireWorkspace(bytes);
     });
     for (const auto &op : graph->getOperators()) {
-        if (lower(op, runtime, builder))
-            continue;
-        const auto attrs = KernelAttrs{ExecutionProvider::Infini,
-                                       op->getOpType().underlying()};
-        auto *kernel = KernelRegistry::getInstance().getKernel(attrs);
-        WRef<OperatorObj> weak = op;
-        builder.plan.steps.push_back(
-            {[kernel, weak, runtime](const Handle &) {
-                 auto live = weak.lock();
-                 IT_ASSERT(live != nullptr, "Prepared graph was destroyed");
-                 kernel->compute(live, runtime);
-             },
-             kernel->captureSafe(), op->getOpType().toString()});
+        const auto first = builder.plan.steps.size();
+        try {
+            if (!lower(op, runtime, builder)) {
+                const auto attrs = KernelAttrs{ExecutionProvider::Infini,
+                                               op->getOpType().underlying()};
+                auto *kernel = KernelRegistry::getInstance().getKernel(attrs);
+                WRef<OperatorObj> weak = op;
+                builder.plan.steps.push_back(
+                    {[kernel, weak, runtime](const Handle &) {
+                         auto live = weak.lock();
+                         IT_ASSERT(live != nullptr,
+                                   "Prepared graph was destroyed");
+                         kernel->compute(live, runtime);
+                     },
+                     kernel->captureSafe(), op->getOpType().toString(),
+                     typeid(*kernel).name()});
+            }
+            for (size_t i = first; i < builder.plan.steps.size(); ++i)
+                builder.plan.steps[i].nodeId = op->getGuid();
+        } catch (const std::exception &error) {
+            throw Exception("InfiniOps prepare failed at " + op->toString() +
+                            ": " + error.what());
+        }
     }
     auto prepared = std::make_shared<PreparedGraph>();
     prepared->owner = graph;

@@ -29,6 +29,8 @@ class ExpandObj : public OperatorObj {
     Shape getShape() const { return dims; }
 
   private:
+    friend class GraphHandlerObj;
+    inline void setShape(Shape newDims) { dims = std::move(newDims); }
     vector<int> getWorkloadVector() const override;
     vector<int> getOpAttrVector() const override;
 };

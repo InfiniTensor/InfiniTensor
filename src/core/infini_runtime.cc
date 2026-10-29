@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <nlohmann/json.hpp>
 #include <stdexcept>
 
 namespace infini {
@@ -527,6 +528,46 @@ void InfiniRuntimeObj::run(const Graph &graph, bool tune,
     handle.set_stream(getStream());
     prepare(graph)->plan.run(handle);
     syncImpl();
+}
+
+string InfiniRuntimeObj::checkCapabilities(const Graph &graph) const {
+    std::lock_guard<std::recursive_mutex> lock(executionMutex);
+    activateDevice();
+    ensureExecutionStream();
+    graph->validateMemory();
+    auto prepared = prepare(graph);
+    nlohmann::json nodes = nlohmann::json::array();
+    for (const auto &op : graph->getOperators()) {
+        auto tensors = [](const TensorVec &values) {
+            auto result = nlohmann::json::array();
+            for (const auto &tensor : values)
+                result.push_back({{"id", tensor->getFuid()},
+                                  {"shape", tensor->getDims()},
+                                  {"dtype", tensor->getDType().toString()}});
+            return result;
+        };
+        nodes.push_back({{"id", op->getGuid()},
+                         {"operator", op->getOpType().toString()},
+                         {"inputs", tensors(op->getInputs())},
+                         {"outputs", tensors(op->getOutputs())}});
+    }
+    auto steps = nlohmann::json::array();
+    for (const auto &step : prepared->plan.steps)
+        steps.push_back({{"node_id", step.nodeId},
+                         {"operator", step.name},
+                         {"provider_cpp_type", step.provider},
+                         {"capture_safe", step.captureSafe},
+                         {"workspace_bytes", step.workspaceBytes}});
+    return nlohmann::json{
+        {"stage", "prepare"},
+        {"graph_id", graph->getCaptureStateId()},
+        {"device_type",
+         string(::infini::rt::Device::StringFromType(runtimeDevice.type()))},
+        {"device_code", static_cast<int>(runtimeDevice.type())},
+        {"device_id", deviceId},
+        {"nodes", nodes},
+        {"steps", steps}}
+        .dump();
 }
 
 void InfiniRuntimeObj::syncImpl() const {

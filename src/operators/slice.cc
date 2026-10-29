@@ -6,7 +6,31 @@ SliceObj::SliceObj(GraphObj *graph, Tensor input, Tensor output,
                    const optional<vector<int>> &_axes,
                    const optional<vector<int>> &_steps)
     : OperatorObj(OpType::Slice, {input}, {output}) {
-    auto shape = input->getDims(); // shape of input
+    setSliceParameters(starts, ends, _axes, _steps);
+    IT_ASSERT(checkValid(graph));
+}
+
+void SliceObj::setSliceParameters(const vector<int> &starts,
+                                  const vector<int> &ends,
+                                  const optional<vector<int>> &_axes,
+                                  const optional<vector<int>> &_steps) {
+    auto previous = axes;
+    try {
+        buildAxes(inputs[0]->getDims(), starts, ends, _axes, _steps);
+    } catch (...) {
+        axes = std::move(previous);
+        throw;
+    }
+    rawStarts = starts;
+    rawEnds = ends;
+    rawAxes = _axes;
+    rawSteps = _steps;
+}
+
+void SliceObj::buildAxes(const Shape &shape, const vector<int> &starts,
+                         const vector<int> &ends,
+                         const optional<vector<int>> &_axes,
+                         const optional<vector<int>> &_steps) {
     map<size_t, size_t> axes;
     vector<int> steps;
     {
@@ -22,11 +46,16 @@ SliceObj::SliceObj(GraphObj *graph, Tensor input, Tensor output,
                 auto index = _axes->at(i);
                 if (index < 0)
                     index += shape.size();
+                IT_ASSERT(index >= 0 && index < static_cast<int>(shape.size()),
+                          "Slice axis out of range");
+                IT_ASSERT(!axes.count(index), "Repeated Slice axis");
                 axes[index] = i;
             }
         } else
-            for (size_t i = 0; i < size; ++i)
+            for (size_t i = 0; i < size; ++i) {
+                IT_ASSERT(i < shape.size(), "Slice axis out of range");
                 axes[i] = i;
+            }
 
         if (_steps) {
             IT_ASSERT(size == _steps->size());
@@ -41,6 +70,7 @@ SliceObj::SliceObj(GraphObj *graph, Tensor input, Tensor output,
         }
     }
 
+    this->axes.clear();
     auto size = shape.size();
     this->axes.reserve(size);
     for (size_t i = 0; i < size; ++i) {
@@ -53,16 +83,20 @@ SliceObj::SliceObj(GraphObj *graph, Tensor input, Tensor output,
                 start = len;
             if (end > len)
                 end = len;
-            this->axes.push_back({start >= 0 ? start : start + len,
-                                  end >= 0 ? end : end + len, steps[__i]});
+            IT_ASSERT(steps[__i] > 0,
+                      "Data Slice currently requires positive steps");
+            start = std::clamp(start >= 0 ? start : start + len, 0, len);
+            end = std::clamp(end >= 0 ? end : end + len, 0, len);
+            this->axes.push_back({start, std::max(start, end), steps[__i]});
         } else {
             this->axes.push_back({0, len, 1});
         }
     }
-    IT_ASSERT(checkValid(graph));
 }
 
 optional<vector<Shape>> SliceObj::inferShape(const TensorVec &inputs) {
+    // Even constant endpoints must be normalized against the current input.
+    buildAxes(inputs[0]->getDims(), rawStarts, rawEnds, rawAxes, rawSteps);
     Shape ans;
     ans.reserve(axes.size());
     for (const auto &range : axes) {

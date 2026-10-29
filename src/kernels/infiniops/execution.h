@@ -9,6 +9,7 @@
 #include <optional>
 #include <string>
 #include <type_traits>
+#include <typeinfo>
 #include <variant>
 #include <vector>
 
@@ -26,6 +27,9 @@ struct Step {
     std::function<void(const Handle &)> run;
     bool captureSafe;
     std::string name;
+    std::string provider = {};
+    size_t workspaceBytes = 0;
+    uint64_t nodeId = 0;
 };
 struct Plan {
     // Steps own prepared operators borrowing these temporary tensor views.
@@ -100,7 +104,9 @@ Step prepareTyped(const WorkspaceAllocator &allocate, const Args &...args) {
                 (*op)(*invocation, args...);
             },
             safe,
-            {}};
+            {},
+            typeid(*op).name(),
+            bytes};
 }
 
 struct Parameter {
