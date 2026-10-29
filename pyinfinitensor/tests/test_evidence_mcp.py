@@ -3,6 +3,7 @@ import asyncio
 import os
 from pathlib import Path
 import sys
+import subprocess
 import tempfile
 import unittest
 
@@ -14,6 +15,14 @@ from test_evidence_store import record
 
 
 class TestEvidenceMCP(unittest.IsolatedAsyncioTestCase):
+    def test_model_package_import_does_not_write_protocol_stdout(self):
+        child = subprocess.run(
+            [sys.executable, '-c', 'from pyinfinitensor.embedding import EmbeddingSession; '
+             'from pyinfinitensor.reranking import RerankerSession'],
+            capture_output=True, text=True, check=True,
+        )
+        self.assertEqual(child.stdout, '')
+
     async def test_real_stdio_tools_preserve_host_identity_citations_and_errors(self):
         with tempfile.TemporaryDirectory() as folder:
             path=Path(folder)/'evidence.db';store=EvidenceStore(path)

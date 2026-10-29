@@ -1,23 +1,10 @@
 {
-  "add": {
+  "onnx_gather": {
     "implementations": [
-      0,
-      8
-    ]
-  },
-  "mul": {
-    "implementations": [
-      0,
       8
     ]
   },
   "cast": {
-    "implementations": [
-      0,
-      8
-    ]
-  },
-  "onnx_gather": {
     "implementations": [
       8
     ]
@@ -37,6 +24,11 @@
       8
     ]
   },
+  "mul": {
+    "implementations": [
+      8
+    ]
+  },
   "div": {
     "implementations": [
       8
@@ -47,17 +39,27 @@
       8
     ]
   },
+  "sqrt": {
+    "implementations": [
+      8
+    ]
+  },
+  "tanh": {
+    "implementations": [
+      8
+    ]
+  },
+  "addmm": {
+    "implementations": [
+      8
+    ]
+  },
   "softmax": {
     "implementations": [
       8
     ]
   },
-  "cat": {
-    "implementations": [
-      8
-    ]
-  },
-  "expand_copy": {
+  "where": {
     "implementations": [
       8
     ]
@@ -67,7 +69,37 @@
       8
     ]
   },
+  "expand_copy": {
+    "implementations": [
+      8
+    ]
+  },
   "slice_copy": {
+    "implementations": [
+      8
+    ]
+  },
+  "cat": {
+    "implementations": [
+      8
+    ]
+  },
+  "pow": {
+    "implementations": [
+      8
+    ]
+  },
+  "add": {
+    "implementations": [
+      0
+    ]
+  },
+  "rms_norm": {
+    "implementations": [
+      0
+    ]
+  },
+  "exp": {
     "implementations": [
       8
     ]

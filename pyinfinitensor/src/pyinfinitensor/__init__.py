@@ -36,5 +36,3 @@ def _preload_infiniops_libs():
 _preload_infiniops_libs()
 
 import backend
-
-print("import backend: {}".format(backend))

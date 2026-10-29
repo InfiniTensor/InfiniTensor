@@ -2,6 +2,8 @@
 import tempfile
 from pathlib import Path
 import unittest
+import subprocess
+import sys
 import numpy as np
 
 from infinitensor_evidence import EvidenceStore
@@ -15,6 +17,21 @@ def record(identity='npu',**overrides):
 
 
 class TestEvidenceStore(unittest.TestCase):
+    def test_cli_empty_sync_is_limited_to_host_namespaces(self):
+        self.store.upsert([record('protected',namespace='other')])
+        empty=Path(self.temp.name)/'empty.jsonl'
+        empty.write_text('',encoding='utf-8')
+        command=[sys.executable,'-m','infinitensor_evidence','build','--store',str(self.path),
+                 '--documents',str(empty),'--principal','alice','--namespace','allowed',
+                 '--sync-namespace','other','--lexical-only']
+        child=subprocess.run(command,capture_output=True,text=True)
+        self.assertNotEqual(child.returncode,0)
+        self.assertIn('outside the supplied namespaces',child.stderr)
+        self.assertEqual(len(self.store.eligible_chunks('alice',['other'])),1)
+        command[command.index('allowed')]='other'
+        subprocess.run(command,capture_output=True,text=True,check=True)
+        self.assertEqual(self.store.eligible_chunks('alice',['other']),[])
+
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory();self.path=Path(self.temp.name)/'evidence.db'
         self.store=EvidenceStore(self.path)

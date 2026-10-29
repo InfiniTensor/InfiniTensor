@@ -64,6 +64,8 @@ def main():
         return
     if args.command=='build':
         if not args.documents:p.error('build requires --documents')
+        if args.sync_namespace is not None and args.sync_namespace not in args.namespace:
+            p.error('sync namespace is outside the supplied namespaces')
         values=[json.loads(line) for line in Path(args.documents).read_text(encoding='utf-8').splitlines() if line.strip()]
         if any(value.get('namespace') not in args.namespace for value in values):p.error('input document is outside the supplied namespaces')
         engine=create_engine(args);store=EvidenceStore(args.store)
