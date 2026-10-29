@@ -305,7 +305,8 @@ TEST(PreparedResourcesTest, ClearSynchronizesAfterFailedOrdinarySubmission) {
     scratch_test::failAfterSubmit = false;
     EXPECT_NO_THROW(rt->run(g));
 }
-TEST(PreparedResourcesTest, FailedSubmissionCanSwitchGraphsWithoutExplicitClear) {
+TEST(PreparedResourcesTest,
+     FailedSubmissionCanSwitchGraphsWithoutExplicitClear) {
     resetProbes();
     auto rt = runtime();
     auto first = probe(rt, 1), second = probe(rt, 1);
