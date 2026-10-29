@@ -10,6 +10,14 @@ option(BUILD_TEST "Build tests" OFF)
 
 cmake_minimum_required(VERSION 3.17)
 
+# Bundled pybind11 still declares a pre-3.5 policy version. CMake 4 removed
+# that compatibility mode; retain the caller's override if one was supplied.
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 4.0 AND
+   NOT DEFINED CMAKE_POLICY_VERSION_MINIMUM)
+  set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+endif()
+
+
 if(POLICY CMP0144)
   cmake_policy(SET CMP0144 NEW)
 endif()
