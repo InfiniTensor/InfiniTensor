@@ -305,6 +305,35 @@ TEST(PreparedResourcesTest, ClearSynchronizesAfterFailedOrdinarySubmission) {
     scratch_test::failAfterSubmit = false;
     EXPECT_NO_THROW(rt->run(g));
 }
+TEST(PreparedResourcesTest, FailedSubmissionCanSwitchGraphsWithoutExplicitClear) {
+    resetProbes();
+    auto rt = runtime();
+    auto first = probe(rt, 1), second = probe(rt, 1);
+    scratch_test::failAfterSubmit = true;
+    EXPECT_THROW(rt->run(first), std::exception);
+    scratch_test::failAfterSubmit = false;
+    EXPECT_NO_THROW(rt->run(second));
+    ASSERT_EQ(scratch_test::slots.size(), 2u);
+    EXPECT_TRUE(scratch_test::slots.front().expired());
+    EXPECT_EQ(second->getOutputs()[0]->copyout<float>(), vector<float>(16, 3));
+    rt->clearGraphCache();
+    expectReleased();
+}
+TEST(PreparedResourcesTest, FailedSubmissionAllowsImmediateGraphDestruction) {
+    resetProbes();
+    auto rt = runtime();
+    auto first = probe(rt, 1);
+    scratch_test::failAfterSubmit = true;
+    EXPECT_THROW(rt->run(first), std::exception);
+    first.reset();
+    expectReleased();
+    scratch_test::failAfterSubmit = false;
+    auto second = probe(rt, 1);
+    EXPECT_NO_THROW(rt->run(second));
+    EXPECT_EQ(second->getOutputs()[0]->copyout<float>(), vector<float>(16, 3));
+    rt->clearGraphCache();
+    expectReleased();
+}
 #if INFINITENSOR_INFINIRT_HAS_GRAPH_API
 TEST(PreparedResourcesTest, ExplicitClearAndLruReleasePreparedAllocations) {
     resetProbes();
