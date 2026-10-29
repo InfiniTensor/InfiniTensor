@@ -20,7 +20,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-embedding = ["transformers>=4.30,<5", "torch>=2.6,<3", "safetensors>=0.4"]
+agent = ["mcp==1.28.0; python_version >= '3.10'", "transformers>=4.44,<5", "torch>=2.4,<3", "safetensors>=0.4"]
+embedding = ["transformers>=4.30,<5", "torch>=2.4,<3", "safetensors>=0.4"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

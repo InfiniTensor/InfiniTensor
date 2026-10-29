@@ -171,6 +171,8 @@ class EmbeddingSession:
             raise ValueError("BGE-small-zh M1 is certified at max_length=512")
         self.model_path = self._find_model(model_name)
         self.model_manifest = verify_model_package(self.model_dir, self.model_path)
+        from .model_package import package_identity
+        self.package_identity = package_identity(self.model_dir, self.model_path)
         self.tokenizer = AutoTokenizer.from_pretrained(
             str(self.model_dir), local_files_only=True
         )
