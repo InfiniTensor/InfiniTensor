@@ -78,6 +78,12 @@ class InfiniTensorEngine:
         self.lock=threading.RLock()
         self._token_counts=OrderedDict()
 
+    def warmup(self):
+        """Initialize provider/compiler state before entering worker threads."""
+        with self.lock:
+            self.embedding.encode([''],batch_size=1)
+            self.reranker.score([('','')],batch_size=1)
+
     def _count(self,tokenizer,text):
         key=(id(tokenizer),hashlib.sha256(text.encode('utf-8')).digest())
         with self.lock:

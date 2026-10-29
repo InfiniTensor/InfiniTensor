@@ -13,12 +13,19 @@ from .__main__ import create_service
 
 
 def serve(args):
+    # Some providers initialize process-based compiler helpers on first run.
+    # Complete cold inference on the main thread before starting server workers.
+    service=create_service(args)
+    try:
+        if service.engine is not None:service.engine.warmup()
+    except BaseException:
+        service.store.close()
+        raise
+
     @asynccontextmanager
     async def lifespan(server):
         executor=ThreadPoolExecutor(max_workers=1,thread_name_prefix='evidence-model-owner')
-        service=None
         try:
-            service=await asyncio.get_running_loop().run_in_executor(executor,partial(create_service,args))
             yield {'service':service,'executor':executor}
         finally:
             if service is not None:
