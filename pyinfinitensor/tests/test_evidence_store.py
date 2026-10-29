@@ -137,6 +137,21 @@ class TestEvidenceStore(unittest.TestCase):
                              {'keep':'writer-b-2','change':'writer-b-3'})
         finally:other.close()
 
+    def test_sync_does_not_withdraw_documents_added_during_encoding(self):
+        encode=lambda t:np.tile(np.asarray([[1.,0.]],np.float32),(len(t),1))
+        self.store.upsert([record('keep')],encode,'model')
+        other=EvidenceStore(self.path)
+        try:
+            def race(texts):
+                other.upsert([record('new')],encode,'model')
+                return encode(texts)
+            with self.assertRaisesRegex(RuntimeError,'namespace changed concurrently'):
+                self.store.upsert([record('keep',revision='updated')],race,'model',sync_namespace='backend')
+            rows=self.search()
+            self.assertEqual({row['document_id']:row['source_revision'] for row in rows},
+                             {'keep':'revision-1','new':'revision-1'})
+        finally:other.close()
+
     def test_read_checks_current_and_historical_environment_scope(self):
         self.store.upsert([record(versions={'InfiniOps':['old']})]);old=self.search()[0]['citation_id']
         with self.assertRaises(KeyError):self.store.read(old,'alice',['backend'],{'platform':'nvidia'})

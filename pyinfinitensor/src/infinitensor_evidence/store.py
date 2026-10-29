@@ -120,6 +120,11 @@ CREATE VIRTUAL TABLE IF NOT EXISTS lexical USING fts5(title_terms,body_terms,tok
         with self.lock:
             bound=self.setting('embedding_fingerprint')
             if bound is not None and fingerprint!=bound:raise ValueError('embedding package differs; build a new store')
+            def namespace_state():
+                return [tuple(row) for row in self.db.execute(
+                    'SELECT doc_key,current_revision,withdrawn FROM documents WHERE namespace=? ORDER BY doc_key',
+                    (sync_namespace,))]
+            observed_namespace=namespace_state() if sync_namespace is not None else None
             prepared=[];observed={}
             for value,key in zip(values,keys):
                 revision=sha(canonical(value));spans=chunker(value['text'])
@@ -147,6 +152,8 @@ CREATE VIRTUAL TABLE IF NOT EXISTS lexical USING fts5(title_terms,body_terms,tok
                 # encoder was working. Recheck its package inside the commit.
                 bound=self.setting('embedding_fingerprint')
                 if bound is not None and fingerprint!=bound:raise ValueError('embedding package changed concurrently')
+                if observed_namespace is not None and namespace_state()!=observed_namespace:
+                    raise RuntimeError('namespace changed concurrently; retry the complete update')
                 for key,expected in observed.items():
                     current=self.db.execute('SELECT current_revision,withdrawn FROM documents WHERE doc_key=?',(key,)).fetchone()
                     if (tuple(current) if current else None)!=expected:
