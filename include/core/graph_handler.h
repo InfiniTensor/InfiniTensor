@@ -135,6 +135,12 @@ class GraphHandlerObj {
     inline void shape_infer() { g->shape_infer(); }
 
     void change_shape(const vector<int> &shape, int tensorId);
+    void update_reshape(const vector<int> &dims, int outputTensorId);
+    void update_expand(const vector<int> &dims, int outputTensorId);
+    void update_slice(const vector<int> &starts, const vector<int> &ends,
+                      const optional<vector<int>> &axes,
+                      const optional<vector<int>> &steps, int outputTensorId);
+    string check_capabilities() const;
     //------ runtime
 
     inline void data_malloc(bool useNaiveAllocator = false,

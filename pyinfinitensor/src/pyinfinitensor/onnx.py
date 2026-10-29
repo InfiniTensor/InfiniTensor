@@ -1,4 +1,4 @@
-﻿import backend
+import backend
 from onnx import (
     ModelProto,
     TensorProto,
@@ -35,8 +35,14 @@ except ModuleNotFoundError as error:
     ) from error
 from onnxsim import simplify
 import copy
+import operator
 import warnings
 import numpy as np
+import time
+import json
+
+
+from .shape import ShapeValueEvaluator, _onnx_numpy_dtype, _shape_control_node_indexes
 
 
 class OnnxStub:
@@ -53,16 +59,23 @@ class OnnxStub:
         matmul_compute_type: str = "default",
     ):
         model = copy.deepcopy(model)
-        # We use some user-defined operators for distributed inference
-        try:
-            # onnx simplifier performs inplace simplify
-            model_simp, check = simplify(copy.deepcopy(model))
-            if check:
-                model = model_simp
-        except ValidationError:
-            pass
-        except RuntimeError:
-            pass
+        dynamic_template = any(
+            _shape_is_dynamic(_shape_spec(item.type.tensor_type.shape))
+            for item in model.graph.input
+        )
+        # Preserve symbolic input dimensions and avoid simplifier verification
+        # forwards during dynamic-model loading. Static import stays compatible.
+        if not dynamic_template:
+            # We use some user-defined operators for distributed inference
+            try:
+                # onnx simplifier performs inplace simplify
+                model_simp, check = simplify(copy.deepcopy(model))
+                if check:
+                    model = model_simp
+            except ValidationError:
+                pass
+            except RuntimeError:
+                pass
 
         self.inputs: Dict[str, backend.Tensor] = {}
         self.outputs: Dict[str, backend.Tensor] = {}
@@ -71,6 +84,19 @@ class OnnxStub:
         self.initializer: Dict[int, TensorProto] = {}
         self._initializer_by_name: Dict[str, TensorProto] = {}
         self.use_naive_allocator: bool = use_naive_allocator
+        self._input_shape_specs = {
+            item.name: _shape_spec(item.type.tensor_type.shape)
+            for item in model.graph.input
+            if item.name not in {initializer.name for initializer in model.graph.initializer}
+        }
+        self._shape_evaluator = ShapeValueEvaluator(model)
+        self._shape_control_nodes = _shape_control_node_indexes(model)
+        self._dynamic_bindings: List[Dict[str, Any]] = []
+        self._prepared_input_shapes: Optional[Dict[str, Tuple[int, ...]]] = None
+        self._prepared_is_valid = False
+        self._weights_uploaded = False
+        self._weight_copy_count = 0
+        self.last_timing: Dict[str, float] = {}
         # try:
         #     model = infer_shapes(model)
         # except:
@@ -140,8 +166,17 @@ class OnnxStub:
                 )
                 tensors[input.name].set_input()
 
+        # The first import uses a concrete placeholder only to construct the
+        # graph.  Its symbolic dimensions remain in _input_shape_specs and are
+        # rebound by prepare() before each actual request.
+        self._shape_evaluator.evaluate(
+            {name: _take_shape_dim_from_spec(spec) for name, spec in self._input_shape_specs.items()}
+        )
+
         for node_idx in sorted_nodes:
             node = model.graph.node[node_idx]
+            if node_idx in self._shape_control_nodes and node.op_type != "Constant":
+                continue
             if node.op_type == "Conv":
                 attributes = _parse_attribute(
                     node,
@@ -685,12 +720,17 @@ class OnnxStub:
                     mode,
                 )
             elif node.op_type == "Reshape":
-                shape = _parse_static_input(data, node, 1, required=True)
+                shape, dynamic = self._parse_shape_parameter(data, node, 1, required=True)
                 tensors[node.output[0]] = self.handler.reshape(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
                     shape,
                 )
+                if dynamic:
+                    self._dynamic_bindings.append({
+                        "kind": "reshape", "output": tensors[node.output[0]].fuid(),
+                        "params": [node.input[1]], "node": node.name,
+                    })
             elif node.op_type == "Resize":
                 output = tensors.get(node.output[0])
                 attributes = _parse_attribute(
@@ -875,22 +915,21 @@ class OnnxStub:
                     MAX_INT = 0x7FFFFFFF
                     return [min(x, MAX_INT) for x in nums]
 
+                starts, starts_dynamic = self._parse_shape_parameter(data, node, 1, required=True)
+                ends, ends_dynamic = self._parse_shape_parameter(data, node, 2, required=True)
+                axes, axes_dynamic = self._parse_shape_parameter(data, node, 3)
+                steps, steps_dynamic = self._parse_shape_parameter(data, node, 4)
                 tensors[node.output[0]] = self.handler.slice(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
-                    clamp(_parse_static_input(data, node, 1, required=True)),
-                    clamp(_parse_static_input(data, node, 2, required=True)),
-                    (
-                        clamp(_parse_static_input(data, node, 3))
-                        if _has_input(node, 3)
-                        else None
-                    ),
-                    (
-                        clamp(_parse_static_input(data, node, 4))
-                        if _has_input(node, 4)
-                        else None
-                    ),
+                    clamp(starts), clamp(ends), clamp(axes) if axes is not None else None,
+                    clamp(steps) if steps is not None else None,
                 )
+                if starts_dynamic or ends_dynamic or axes_dynamic or steps_dynamic:
+                    self._dynamic_bindings.append({
+                        "kind": "slice", "output": tensors[node.output[0]].fuid(),
+                        "params": [node.input[i] if _has_input(node, i) else "" for i in range(1, 5)], "node": node.name,
+                    })
             elif node.op_type == "Pad":
                 attributes = _parse_attribute(node, {"mode": b"constant"})
                 mode = attributes["mode"]
@@ -1057,12 +1096,17 @@ class OnnxStub:
                     None,
                 )
             elif node.op_type == "Expand":
-                shape = _parse_static_input(data, node, 1, required=True)
+                shape, dynamic = self._parse_shape_parameter(data, node, 1, required=True)
                 tensors[node.output[0]] = self.handler.expand(
                     tensors[node.input[0]],
                     tensors.get(node.output[0]),
                     shape,
                 )
+                if dynamic:
+                    self._dynamic_bindings.append({
+                        "kind": "expand", "output": tensors[node.output[0]].fuid(),
+                        "params": [node.input[1]], "node": node.name,
+                    })
             elif node.op_type == "Erf":
                 tensors[node.output[0]] = self.handler.erf(
                     tensors[node.input[0]],
@@ -1130,7 +1174,12 @@ class OnnxStub:
                     size,
                 )
             else:
-                raise Exception('Unsupported operator "{}"'.format(node.op_type))
+                raise NotImplementedError(
+                    'Unsupported ONNX operator "{}" at node "{}"; inputs={}, outputs={}'.format(
+                        node.op_type, node.name or node.op_type,
+                        list(node.input), list(node.output),
+                    )
+                )
 
         for output in model.graph.output:
             tensors[output.name].set_output()
@@ -1150,6 +1199,12 @@ class OnnxStub:
             self.outputs[output.name] = tensors[output.name]
 
         self.init()
+        if not any(_shape_is_dynamic(spec) for spec in self._input_shape_specs.values()):
+            self._prepared_input_shapes = {
+                name: tuple(_take_shape_dim_from_spec(spec))
+                for name, spec in self._input_shape_specs.items()
+            }
+            self._prepared_is_valid = True
 
     def to_onnx(self, name: str) -> ModelProto:
         class Context:
@@ -1497,13 +1552,33 @@ class OnnxStub:
 
         return ctx.build(name)
 
-    def init(self) -> None:
+    def init(self, reload_weights: bool = False) -> None:
+        """Allocate graph storage, uploading initializers only once by default."""
         self.handler.data_malloc(self.use_naive_allocator)
-        self._copy_initializers()
+        if reload_weights or not self._weights_uploaded:
+            self._copy_initializers()
+            self._weights_uploaded = True
 
     def _copy_initializers(self) -> None:
         for name, initializer in self._initializer_by_name.items():
             self.tensors[name].copyin_numpy(to_array(initializer))
+            self._weight_upload_bytes = (
+                getattr(self, "_weight_upload_bytes", 0) + to_array(initializer).nbytes
+            )
+        self._weight_copy_count += 1
+
+    @property
+    def weight_upload_count(self) -> int:
+        """Number of initializer upload passes, useful for lifecycle tests."""
+        return self._weight_copy_count
+
+    @property
+    def weight_upload_bytes(self) -> int:
+        return getattr(self, "_weight_upload_bytes", 0)
+
+    @property
+    def weight_addresses(self) -> Dict[str, int]:
+        return {name: self.tensors[name].data_ptr() for name in self._initializer_by_name}
 
     def optimize(self) -> None:
         self.handler.optimize()
@@ -1517,17 +1592,203 @@ class OnnxStub:
     def trim_memory(self) -> None:
         self.handler.trim_memory()
 
-    def set_input(self, inputShapes: List[Sequence[int]]) -> None:
-        if len(inputShapes) != len(self.inputs):
+
+    def _parse_shape_parameter(
+        self,
+        data: Dict[str, TensorProto],
+        node: NodeProto,
+        index: int,
+        required: bool = False,
+    ) -> Tuple[Optional[List[int]], bool]:
+        if not _has_input(node, index):
+            if required:
+                raise ValueError("{} input {} is required".format(node.op_type, index))
+            return None, False
+        name = node.input[index]
+        if name in data:
+            return [int(item) for item in _parse_data(data[name])], False
+        try:
+            return self._shape_evaluator.value(name), True
+        except ValueError as error:
             raise ValueError(
-                "inputShapes must contain one shape per model input; expected "
-                "{}, got {}".format(len(self.inputs), len(inputShapes))
-            )
-        for newInput, oldInput in zip(inputShapes, self.inputs):
-            oldTensor = self.inputs[oldInput]
-            self.handler.change_shape(newInput, oldTensor.fuid())
-        self.handler.shape_infer()
-        self.init()
+                '{} node "{}" has unsupported dynamic shape input {} ("{}"): {}'.format(
+                    node.op_type, node.name or node.op_type, index, name, error
+                )
+            ) from error
+
+    def _normalise_input_shapes(
+        self, input_shapes: Union[Dict[str, Sequence[int]], Sequence[Sequence[int]]]
+    ) -> Dict[str, Tuple[int, ...]]:
+        names = list(self.inputs)
+        if isinstance(input_shapes, dict):
+            if set(input_shapes) != set(names):
+                raise ValueError("input_shapes must contain exactly {}".format(names))
+            pairs = [(name, input_shapes[name]) for name in names]
+        else:
+            if len(input_shapes) != len(names):
+                raise ValueError(
+                    "inputShapes must contain one shape per model input; expected {}, got {}".format(
+                        len(names), len(input_shapes)
+                    )
+                )
+            pairs = list(zip(names, input_shapes))
+        normalised = {}
+        symbols = {}
+
+        def dimension(value):
+            if isinstance(value, (bool, np.bool_)):
+                raise TypeError("boolean dimension")
+            return operator.index(value)
+
+        for name, shape in pairs:
+            try:
+                dims = tuple(dimension(item) for item in shape)
+            except (TypeError, ValueError) as error:
+                raise ValueError("invalid shape for {}".format(name)) from error
+            spec = self._input_shape_specs.get(name, [])
+            if len(dims) != len(spec) or any(item <= 0 or item > np.iinfo(np.int32).max for item in dims):
+                raise ValueError(
+                    "invalid shape for {}: {}; expected positive int32 rank-{} dimensions".format(
+                        name, dims, len(spec)
+                    )
+                )
+            for symbol, dim in zip(spec, dims):
+                if isinstance(symbol, str) and symbol:
+                    if symbol in symbols and symbols[symbol] != dim:
+                        raise ValueError(
+                            "inconsistent symbolic dimension {} for input {}".format(
+                                symbol, name
+                            )
+                        )
+                    symbols[symbol] = dim
+            normalised[name] = dims
+        return normalised
+
+    def _update_dynamic_parameters(
+        self, shapes: Dict[str, Tuple[int, ...]], *, values_ready=False
+    ) -> None:
+        if not self._dynamic_bindings:
+            return
+        if not values_ready:
+            self._shape_evaluator.evaluate(shapes)
+        for binding in self._dynamic_bindings:
+            values = [
+                self._shape_evaluator.value(name) if name else None
+                for name in binding["params"]
+            ]
+            try:
+                if binding["kind"] == "reshape":
+                    self.handler.update_reshape(values[0], binding["output"])
+                elif binding["kind"] == "expand":
+                    self.handler.update_expand(values[0], binding["output"])
+                elif binding["kind"] == "slice":
+                    for index in (0, 1):
+                        values[index] = [max(-0x80000000, min(0x7FFFFFFF, value)) for value in values[index]]
+                    self.handler.update_slice(
+                        values[0], values[1], values[2], values[3], binding["output"]
+                    )
+                else:
+                    raise AssertionError("unknown dynamic binding")
+            except AttributeError as error:
+                raise RuntimeError(
+                    "this pyinfinitensor extension lacks dynamic shape support; rebuild InfiniTensor"
+                ) from error
+
+    def prepare(
+        self, input_shapes: Union[Dict[str, Sequence[int]], Sequence[Sequence[int]]]
+    ) -> None:
+        """Prepare one resident graph for concrete input shapes without reloading weights."""
+        shapes = self._normalise_input_shapes(input_shapes)
+        if shapes == self._prepared_input_shapes and self._prepared_is_valid:
+            return
+        # Shape inference can fail, so do every validation/evaluation before
+        # touching tensors.  A failure therefore leaves the old prepared graph usable.
+        self._shape_evaluator.evaluate(shapes)
+        old_shapes = self._prepared_input_shapes
+        old_valid = self._prepared_is_valid
+        try:
+            for name, dims in shapes.items():
+                self.handler.change_shape(list(dims), self.inputs[name].fuid())
+            self._update_dynamic_parameters(shapes, values_ready=True)
+            self.handler.shape_infer()
+            self.handler.data_malloc(self.use_naive_allocator)
+            self._prepared_input_shapes = shapes
+            self._prepared_is_valid = True
+        except Exception:
+            self._prepared_is_valid = False
+            if old_shapes is not None and old_valid:
+                try:
+                    for name, dims in old_shapes.items():
+                        self.handler.change_shape(list(dims), self.inputs[name].fuid())
+                    self._update_dynamic_parameters(old_shapes)
+                    self.handler.shape_infer()
+                    self.handler.data_malloc(self.use_naive_allocator)
+                    self._prepared_input_shapes = old_shapes
+                    self._prepared_is_valid = True
+                except Exception:
+                    self._prepared_input_shapes = None
+            raise
+
+
+    def check_capabilities(self, input_shapes=None):
+        """Prepare actual provider instances, without invoking the encoder."""
+        if input_shapes is not None:
+            self.prepare(input_shapes)
+        if not self._prepared_is_valid:
+            raise RuntimeError("provide concrete input_shapes before capability inspection")
+        report = json.loads(self.handler.check_capabilities())
+        names = {tensor.fuid(): name for name, tensor in self.tensors.items()}
+        for node in report["nodes"]:
+            outputs = [names.get(tensor["id"]) for tensor in node["outputs"]]
+            node["onnx_node"] = next((self.tensor_node_map[name] for name in outputs
+                                      if name in self.tensor_node_map), None)
+        return report
+
+    def set_input(self, inputShapes: List[Sequence[int]]) -> None:
+        """Compatibility wrapper for the legacy positional input-shape API."""
+        self.prepare(inputShapes)
+
+    def run_numpy(self, inputs: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
+        """Validate, prepare, execute and return independently-owned NumPy arrays."""
+        if set(inputs) != set(self.inputs):
+            raise ValueError("inputs must contain exactly {}".format(list(self.inputs)))
+        # np.ascontiguousarray promotes rank-0 arrays to rank 1. Preserve ONNX
+        # scalar inputs (for example a scalar Gather index).
+        arrays = {name: np.asarray(value) for name, value in inputs.items()}
+        arrays = {
+            name: value if value.flags.c_contiguous else np.ascontiguousarray(value)
+            for name, value in arrays.items()
+        }
+        for name, array in arrays.items():
+            expected = _onnx_numpy_dtype(self.inputs[name].dtype())
+            if array.dtype != expected:
+                raise TypeError(
+                    "input {} must have dtype {}, got {}".format(
+                        name, expected, array.dtype
+                    )
+                )
+        shapes = {name: array.shape for name, array in arrays.items()}
+        started = time.perf_counter()
+        self.prepare(shapes)
+        prepared = time.perf_counter()
+        for name, array in arrays.items():
+            self.inputs[name].copyin_numpy(array)
+        copied_in = time.perf_counter()
+        self.run()
+        ran = time.perf_counter()
+        outputs = {
+            name: np.array(tensor.copyout_numpy(), copy=True)
+            for name, tensor in self.outputs.items()
+        }
+        copied_out = time.perf_counter()
+        self.last_timing = {
+            "prepare_s": prepared - started,
+            "h2d_s": copied_in - prepared,
+            "run_s": ran - copied_in,
+            "d2h_s": copied_out - ran,
+            "total_s": copied_out - started,
+        }
+        return outputs
 
     def getShape(self, name: str) -> List[int]:
         if name in self.inputs:
@@ -1540,9 +1801,15 @@ class OnnxStub:
         self.handler.tune()
 
     def run(self) -> None:
+        if not self._prepared_is_valid:
+            raise RuntimeError(
+                "graph has not been prepared; call prepare() or run_numpy() first"
+            )
         self.handler.run()
 
     def run_with_graph(self) -> None:
+        if not self._prepared_is_valid:
+            raise RuntimeError("graph has not been prepared; call prepare() first")
         self.handler.run_with_graph()
 
     def get_perf_time(self) -> float:
@@ -1640,3 +1907,23 @@ def _parse_data_fp16(tensor: TensorProto):
 
 def _take_shape_dim(shape: TensorShapeProto) -> List[int]:
     return [(d.dim_value if d.dim_value > 0 else 1) for d in shape.dim]
+
+
+def _shape_spec(shape: TensorShapeProto) -> List[Union[int, str, None]]:
+    result: List[Union[int, str, None]] = []
+    for dim in shape.dim:
+        if dim.dim_value > 0:
+            result.append(int(dim.dim_value))
+        elif dim.dim_param:
+            result.append(dim.dim_param)
+        else:
+            result.append(None)
+    return result
+
+
+def _shape_is_dynamic(spec: Sequence[Union[int, str, None]]) -> bool:
+    return any(not isinstance(dim, int) or dim <= 0 for dim in spec)
+
+
+def _take_shape_dim_from_spec(spec: Sequence[Union[int, str, None]]) -> List[int]:
+    return [dim if isinstance(dim, int) and dim > 0 else 1 for dim in spec]

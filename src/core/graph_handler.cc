@@ -1,3 +1,6 @@
+#ifdef USE_INFINIOPS_KERNELS
+#include "core/infini_runtime.h"
+#endif
 #include "core/graph_handler.h"
 #include "operators/all_gather.h"
 #include "operators/all_reduce.h"
@@ -811,11 +814,56 @@ static DataType dtype_repr_convert(int dtype) {
     }
 }
 
+string GraphHandlerObj::check_capabilities() const {
+#ifdef USE_INFINIOPS_KERNELS
+    auto runtime =
+        dynamic_cast<const InfiniRuntimeObj *>(g->getRuntime().get());
+    IT_ASSERT(runtime != nullptr,
+              "Capability inspection requires an Infini runtime");
+    return runtime->checkCapabilities(g);
+#else
+    IT_ASSERT(false, "InfiniOps backend is not enabled");
+    return {};
+#endif
+}
+
 void GraphHandlerObj::change_shape(const vector<int> &shape, int tensorId) {
     auto tensor = g->getTensor(tensorId);
     IT_ASSERT(tensor != nullptr);
-    IT_ASSERT(shape.size() != 0);
     tensor->setShape(shape);
+}
+
+void GraphHandlerObj::update_reshape(const vector<int> &dims,
+                                     int outputTensorId) {
+    auto tensor = g->getTensor(outputTensorId);
+    IT_ASSERT(tensor != nullptr);
+    auto *op = dynamic_cast<ReshapeObj *>(tensor->getSource().get());
+    IT_ASSERT(op != nullptr, "Tensor is not produced by Reshape");
+    op->setDims(dims);
+    g->notifyOperatorParametersChanged();
+}
+
+void GraphHandlerObj::update_expand(const vector<int> &dims,
+                                    int outputTensorId) {
+    auto tensor = g->getTensor(outputTensorId);
+    IT_ASSERT(tensor != nullptr);
+    auto *op = dynamic_cast<ExpandObj *>(tensor->getSource().get());
+    IT_ASSERT(op != nullptr, "Tensor is not produced by Expand");
+    op->setShape(dims);
+    g->notifyOperatorParametersChanged();
+}
+
+void GraphHandlerObj::update_slice(const vector<int> &starts,
+                                   const vector<int> &ends,
+                                   const optional<vector<int>> &axes,
+                                   const optional<vector<int>> &steps,
+                                   int outputTensorId) {
+    auto tensor = g->getTensor(outputTensorId);
+    IT_ASSERT(tensor != nullptr);
+    auto *op = dynamic_cast<SliceObj *>(tensor->getSource().get());
+    IT_ASSERT(op != nullptr, "Tensor is not produced by Slice");
+    op->setSliceParameters(starts, ends, axes, steps);
+    g->notifyOperatorParametersChanged();
 }
 
 } // namespace infini

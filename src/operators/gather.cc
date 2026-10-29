@@ -14,7 +14,10 @@ optional<vector<Shape>> GatherObj::inferShape(const TensorVec &inputs) {
     auto dims0 = inputs[0]->getDims();
     auto dims1 = inputs[1]->getDims();
 
-    IT_ASSERT(CheckIndexValid());
+    // Shape inference must not inspect index data. During prepare() the old
+    // allocation can contain a previous request and can be smaller than the
+    // new index shape. Bounds are checked by the execution provider instead.
+    IT_ASSERT(axis >= 0 && axis < static_cast<int>(dims0.size()));
 
     Shape dim = dims0;
     dim.erase(dim.begin() + axis);
@@ -27,41 +30,6 @@ vector<DataType> GatherObj::inferDataType(const TensorVec &inputs) const {
     auto index_dtype = inputs[1]->getDType();
     IT_ASSERT(index_dtype == DataType::Int32 || index_dtype == DataType::Int64);
     return {inputs[0]->getDType()};
-}
-
-// TODO:should check everytime index updated.
-bool GatherObj::CheckIndexValid() const {
-    auto index = inputs[1];
-    if (index->getDataBlob() == nullptr)
-        return true;
-
-    Runtime runtime = NativeCpuRuntimeObj::getInstance();
-    bool ret = true;
-    auto value = inputs[0]->getDims()[axis];
-    if (index->getDType() == DataType::Int32) {
-        int *data = (int *)runtime->alloc(index->getBytes());
-        index->getRuntime()->copyBlobToCPU(
-            (void *)data, index->getRawDataPtr<void *>(), index->getBytes());
-        for (size_t i = 0; i < index->size(); ++i) {
-            if (data[i] < 0 || data[i] >= value) {
-                ret = false;
-                break;
-            }
-        }
-        runtime->dealloc(data);
-    } else {
-        int64_t *data = (int64_t *)runtime->alloc(index->getBytes());
-        index->getRuntime()->copyBlobToCPU(
-            (void *)data, index->getRawDataPtr<void *>(), index->getBytes());
-        for (size_t i = 0; i < index->size(); ++i) {
-            if (data[i] < 0 || data[i] >= value) {
-                ret = false;
-                break;
-            }
-        }
-        runtime->dealloc(data);
-    }
-    return ret;
 }
 
 std::string GatherObj::toString() const {
