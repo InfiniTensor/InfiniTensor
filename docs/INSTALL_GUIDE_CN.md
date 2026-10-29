@@ -99,7 +99,7 @@ export INFINIOPS_PROVIDER_MODULES=provider_module
 
 ### 当前组件组合的能力边界
 
-本版本以 InfiniCore 的正式组件版本为准，历史开发版 InfiniOps 的
+组件版本由 InfiniCore 子模块引用固定。依赖更新应按 InfiniOps、InfiniCore、InfiniTensor 的顺序合入；本分支不依赖历史开发版 InfiniOps 的
 `BeginGraphCaptureMemory` 和 value-only pooling helper 不再是构建前提。
 普通 MaxPool 使用标准 `MaxPool2dWithIndices` 接口；非标准索引格式的 provider
 需要独立适配和验证，不能沿用历史 Ascend pooling 的通过记录。
@@ -155,3 +155,9 @@ make test-api
 - Python/PyTorch ABI 不一致：使用与 InfiniOps ATen 构建相同的 Python/PyTorch 环境重新构建。
 - provider 导入失败：先加载该后端要求的 Python provider，并确认其动态库搜索路径。
 - 设备 runtime 创建失败：检查设备名称、可见设备编号、驱动和下层运行时安装。
+
+### 检索组件更新与开发验证
+
+检索所需的 CPU/NVIDIA/MLU/昇腾算子由 InfiniOps 提供。模型输入的 shape 推导由前端负责，算子实现的参数约束由 InfiniOps 的公开工厂检查，通用执行器不维护 RMSNorm 等算子的专用兜底。
+
+正式构建使用已提交的 InfiniCore 引用；开发阶段可通过 `INFINIOPS_ROOT` 和 `INFINIRT_ROOT` 指向独立安装前缀，验证候选组件，无需为每次试验更新依赖引用。应记录实际源码和二进制摘要。启用昇腾 ATen provider 时，启动 Python 前设置 `TASK_QUEUE_ENABLE=0` 和 `INFINIOPS_PROVIDER_MODULES=torch_npu`，确保与原生 runtime stream 的提交顺序一致。

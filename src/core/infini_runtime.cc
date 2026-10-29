@@ -537,8 +537,19 @@ void InfiniRuntimeObj::run(const Graph &graph, bool tune,
                      "InfiniOps execution; configure InfiniOps tuning instead");
     ::infini::ops::Handle handle;
     handle.set_stream(getStream());
-    prepare(graph)->plan.run(handle);
-    syncImpl();
+    try {
+        prepare(graph)->plan.run(handle);
+        syncImpl();
+    } catch (...) {
+        // A later host step may throw after earlier GPU work was submitted.
+        // Drain it before callers can replace the plan or destroy the graph.
+        try {
+            syncImpl();
+        } catch (...) {
+            // Preserve the original prepare/execute error.
+        }
+        throw;
+    }
 }
 
 string InfiniRuntimeObj::checkCapabilities(const Graph &graph) const {
