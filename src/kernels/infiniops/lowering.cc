@@ -536,7 +536,8 @@ std::shared_ptr<PreparedGraph> prepareGraph(const Graph &graph,
                                             MemoryAllocator allocate) {
     if (!allocate)
         allocate = [runtime](size_t bytes) {
-            const auto *infini = dynamic_cast<const InfiniRuntimeObj *>(runtime);
+            const auto *infini =
+                dynamic_cast<const InfiniRuntimeObj *>(runtime);
             IT_ASSERT(infini != nullptr,
                       "Prepared execution requires an Infini runtime");
             return infini->acquireWorkspace(bytes);
@@ -547,9 +548,11 @@ std::shared_ptr<PreparedGraph> prepareGraph(const Graph &graph,
             const auto first = builder.plan.steps.size();
             try {
                 if (!lower(op, runtime, builder)) {
-                    const auto attrs = KernelAttrs{ExecutionProvider::Infini,
-                                                   op->getOpType().underlying()};
-                    auto *kernel = KernelRegistry::getInstance().getKernel(attrs);
+                    const auto attrs =
+                        KernelAttrs{ExecutionProvider::Infini,
+                                    op->getOpType().underlying()};
+                    auto *kernel =
+                        KernelRegistry::getInstance().getKernel(attrs);
                     WRef<OperatorObj> weak = op;
                     builder.plan.steps.push_back(
                         {[kernel, weak, runtime](const Handle &) {
@@ -564,8 +567,8 @@ std::shared_ptr<PreparedGraph> prepareGraph(const Graph &graph,
                 for (size_t i = first; i < builder.plan.steps.size(); ++i)
                     builder.plan.steps[i].nodeId = op->getGuid();
             } catch (const std::exception &error) {
-                throw Exception("InfiniOps prepare failed at " + op->toString() +
-                                ": " + error.what());
+                throw Exception("InfiniOps prepare failed at " +
+                                op->toString() + ": " + error.what());
             }
         }
     };
