@@ -1,5 +1,4 @@
 #include "execution.h"
-#include "operators/rms_norm.h"
 #include "tensor_view.h"
 #include <cctype>
 #include <nlohmann/json.hpp>
@@ -98,21 +97,6 @@ Step Registry::prepare(const std::string &name, const Values &values,
             matches &= accepts(overload.parameters[i].type, values[i]);
         if (matches) {
             try {
-                // The pinned SDK does not check the weight bounds itself.
-                // Keep this shared by legacy IR, generic nodes and NativeCpu.
-                if (name == "RmsNorm") {
-                    const auto &input = std::get<TensorView>(values.at(0));
-                    const auto &weight = std::get<TensorView>(values.at(1));
-                    const auto &out = std::get<TensorView>(values.back());
-                    validateRmsNormShape(input.shape(), weight.numel());
-                    IT_ASSERT(input.ndim() == 2 || input.ndim() == 3,
-                              "The pinned RmsNorm SDK requires rank 2 or 3");
-                    IT_ASSERT(input.shape() == out.shape(),
-                              "RMSNorm output shape must match input");
-                    IT_ASSERT(input.dtype() == weight.dtype() &&
-                                  input.dtype() == out.dtype(),
-                              "RMSNorm tensor dtypes must match");
-                }
                 auto step = overload.factory(values, allocate);
                 step.name = name;
                 return step;
