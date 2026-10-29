@@ -65,3 +65,5 @@ python scripts/validate_retrieval_integration.py --embedding-model models/bge-sm
 ```
 
 真实设备脚本比较同设备 PyTorch FP32：embedding 演示序列、35 组矩阵、100 组随机形状及边界；reranker 变长、空字符串、512 截断和跨批次顺序；检查实际 provider 实例、权重驻留、稳定 citation 与重复查询。该脚本是本次迁移回归，不替代六端点 M1 长稳、OOM、干净安装和性能验收，也不宣称业务检索质量提升。
+
+参考模型显式使用 eager attention 和 Transformers 的 `gelu_python`，与导出的精确 Erf 表达式一致。模型权重、分词和精度阈值不变。实测当前昇腾 PyTorch 的原生 GELU 存在约 `4.7e-4` 的近似差异，默认原生 GELU 的整模型对照没有通过原阈值；不能将精确公式参考通过描述为默认厂商 PyTorch 路径一致。脚本单独记录原生 GELU 与精确公式的误差，该选择只作用于验证参考，不更改产品推理路径。

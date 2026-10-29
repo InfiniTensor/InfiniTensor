@@ -80,7 +80,7 @@ def main():
 
     try:
         import torch
-        from transformers import AutoModel, AutoModelForSequenceClassification
+        from transformers import AutoConfig, AutoModel, AutoModelForSequenceClassification
         from infinitensor_evidence.engine import InfiniTensorEngine
         from infinitensor_evidence import EvidenceStore
         from infinitensor_evidence.service import EvidenceService
@@ -94,6 +94,16 @@ def main():
         torch.manual_seed(315)
         getattr(torch, target).set_device(args.device_id)
         target += ':' + str(args.device_id)
+        report['reference_policy'] = {'attention':'eager', 'gelu':'Transformers gelu_python (exact Erf formula)',
+            'reason':'match the exported ONNX Erf expression; vendor native GELU may approximate even for FP32'}
+
+        def reference_model(kind, path):
+            config = AutoConfig.from_pretrained(path,local_files_only=True)
+            assert config.hidden_act == 'gelu', config.hidden_act
+            config.hidden_act = 'gelu_python'
+            return kind.from_pretrained(path,config=config,local_files_only=True,
+                                        attn_implementation='eager').eval().to(target)
+
         engine = InfiniTensorEngine(args.embedding_model, args.reranker_model, args.device, args.device_id)
         emb, rerank = engine.embedding, engine.reranker
         report['model_identity'] = {'embedding': emb.package_identity, 'reranker': rerank.package_identity}
@@ -106,8 +116,10 @@ def main():
         shapes += [(1,1),(32,1),(1,512),(1,1)]
         report['embedding_cases'] = []
         with fp32_inference_policy(), torch.inference_mode():
-            reference = AutoModel.from_pretrained(args.embedding_model, local_files_only=True,
-                attn_implementation='eager').eval().to(target)
+            probe = torch.linspace(-5,5,20000,device=target,dtype=torch.float32)
+            exact = .5*probe*(1+torch.erf(probe/2**.5))
+            report['native_gelu_vs_exact_erf_max_abs'] = float((torch.nn.functional.gelu(probe)-exact).abs().max().item())
+            reference = reference_model(AutoModel,args.embedding_model)
             old = saved = None
             for batch, sequence in shapes:
                 values = {'input_ids': rng.integers(1,1000,(batch,sequence),dtype=np.int64),
@@ -128,8 +140,7 @@ def main():
             report['embedding_provider_plan'] = provider_plan(emb.stub,args.device)
             del reference
             gc.collect()
-            reference = AutoModelForSequenceClassification.from_pretrained(args.reranker_model,
-                local_files_only=True,attn_implementation='eager').eval().to(target)
+            reference = reference_model(AutoModelForSequenceClassification,args.reranker_model)
             report['reranker_cases'] = []
             for pairs in [[('知识库检索','通过向量召回并精排文档'),('动态输入','一次加载后处理不同文本长度')],
                           [('', '')], [('长文本', '中文文档。'*700)],
