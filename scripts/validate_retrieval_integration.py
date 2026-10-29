@@ -38,7 +38,9 @@ def provider_plan(stub, device):
 async def mcp_check(args, namespaces):
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
-    command = ['-m','infinitensor_evidence','serve','--store',str(args.output/'evidence.db'),
+    bootstrap = ('import faulthandler; faulthandler.dump_traceback_later(120,repeat=True); '
+                 'from infinitensor_evidence.__main__ import main; main()')
+    command = ['-c',bootstrap,'serve','--store',str(args.output/'evidence.db'),
                '--principal','validation-user','--embedding-model',args.embedding_model,
                '--reranker-model',args.reranker_model,'--device',args.device,
                '--device-id',str(args.device_id),'--rerank']
@@ -48,13 +50,14 @@ async def mcp_check(args, namespaces):
     with (args.output/'mcp-server.log').open('w',encoding='utf-8') as log:
         async with stdio_client(parameters,errlog=log) as (read,write):
             async with ClientSession(read,write) as session:
-                await session.initialize()
-                tools = {tool.name for tool in (await session.list_tools()).tools}
+                await asyncio.wait_for(session.initialize(),180)
+                tools = {tool.name for tool in (await asyncio.wait_for(session.list_tools(),60)).tools}
                 assert tools == {'search_evidence','read_evidence'}
-                reply = await session.call_tool('search_evidence',{'query':'动态输入与图捕获','recall_k':8,'top_k':3})
+                reply = await asyncio.wait_for(session.call_tool('search_evidence',
+                    {'query':'动态输入与图捕获','recall_k':8,'top_k':3}),120)
                 assert not reply.isError and reply.structuredContent['citations']
                 citation = reply.structuredContent['citations'][0]['citation_id']
-                readback = await session.call_tool('read_evidence',{'citation_id':citation})
+                readback = await asyncio.wait_for(session.call_tool('read_evidence',{'citation_id':citation}),60)
                 assert not readback.isError and readback.structuredContent['is_current']
     return {'status':'PASS','tools':sorted(tools),'native_models':True}
 
@@ -122,10 +125,12 @@ def main():
             reference = reference_model(AutoModel,args.embedding_model)
             old = saved = None
             for batch, sequence in shapes:
+                started = time.perf_counter()
                 values = {'input_ids': rng.integers(1,1000,(batch,sequence),dtype=np.int64),
                           'attention_mask': np.ones((batch,sequence),np.int64),
                           'token_type_ids': np.zeros((batch,sequence),np.int64)}
                 expected = reference(**{k:torch.from_numpy(v).to(target) for k,v in values.items()}).last_hidden_state[:,0].cpu().numpy()
+                referenced = time.perf_counter()
                 raw = emb.stub.run_numpy(values)['embeddings']
                 actual = raw / np.linalg.norm(raw,axis=1,keepdims=True)
                 expected = expected / np.linalg.norm(expected,axis=1,keepdims=True)
@@ -135,7 +140,8 @@ def main():
                 if old is not None:
                     np.testing.assert_array_equal(old,saved)
                 old, saved = raw, raw.copy()
-                report['embedding_cases'].append({'shape':[batch,sequence], 'max_abs':float(abs(actual-expected).max()),'min_cosine':cosine})
+                report['embedding_cases'].append({'shape':[batch,sequence], 'max_abs':float(abs(actual-expected).max()),
+                    'min_cosine':cosine,'reference_s':referenced-started,'inference_timing':dict(emb.stub.last_timing)})
                 save()
             report['embedding_provider_plan'] = provider_plan(emb.stub,args.device)
             del reference

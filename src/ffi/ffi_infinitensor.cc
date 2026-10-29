@@ -587,7 +587,10 @@ void init_graph_builder(py::module &m) {
         .def("free_heap", &Handler::free_heap, policy::move)
         .def("get_perf_time", &Handler::get_perf_time, policy::automatic)
         .def("tune", &Handler::tune, policy::automatic)
-        .def("run", &Handler::run, policy::automatic)
+        // Providers may wait for Python-backed initialization/compiler workers.
+        // No Python objects are accessed by the C++ graph execution path.
+        .def("run", &Handler::run, policy::automatic,
+             py::call_guard<py::gil_scoped_release>())
         .def("run_with_graph", &Handler::run_with_graph, policy::automatic)
         .def("check_capabilities", &Handler::check_capabilities)
         .def("shape_infer", &Handler::shape_infer, policy::automatic)
