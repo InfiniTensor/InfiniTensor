@@ -12,5 +12,6 @@ struct PreparedGraph {
     Plan plan;
 };
 std::shared_ptr<PreparedGraph> prepareGraph(const Graph &graph,
-                                            const RuntimeObj *runtime);
+                                            const RuntimeObj *runtime,
+                                            MemoryAllocator allocate = {});
 } // namespace infini::infiniops

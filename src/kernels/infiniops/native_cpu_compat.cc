@@ -4,7 +4,8 @@
 namespace infini {
 class NativeRmsNormCompatibility final : public CpuKernelWithoutConfig {
     void compute(const Operator &op, const RuntimeObj *runtime) const override {
-        const auto noopWorkspace = [](size_t) -> std::shared_ptr<void> {
+        const auto noopWorkspace =
+            [](size_t) -> std::shared_ptr<infiniops::Workspace> {
             IT_ASSERT(false, "CPU RMSNorm unexpectedly requires workspace");
             return {};
         };

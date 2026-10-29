@@ -95,9 +95,9 @@ class InfiniRuntimeObj final : public RuntimeObj {
 
     void run(const Graph &graph, bool tune = false,
              bool profiling = false) const override;
+    void clearGraphCache() override;
 #if INFINITENSOR_INFINIRT_HAS_GRAPH_API
     void runWithGraph(const Graph &graph) override;
-    void clearGraphCache() override;
     size_t getGraphCacheSize() const override;
     size_t getGraphCaptureCount() const override;
 #endif

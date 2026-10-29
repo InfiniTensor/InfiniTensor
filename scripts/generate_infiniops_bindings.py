@@ -40,35 +40,69 @@ def supported_type(name):
     }
 
 
+def factory_blocks(header):
+    prefix = r"\bstruct\s+(?:::)?(?:\w+::)*OperatorFactory\s*<"
+    starts = list(re.finditer(prefix, header))
+    blocks = re.findall(prefix + r"([^{}]+)>\s*\{(.*?)\};", header, re.S)
+    if not starts or len(starts) != len(blocks):
+        raise ValueError("Incomplete public InfiniOps factory declarations; incompatible SDK")
+    result = []
+    for key, body in blocks:
+        name = re.sub(r"\s+", "", key).removeprefix("::")
+        name = name.removeprefix("infini::ops::")
+        if not re.fullmatch(r"[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*", name):
+            raise ValueError(f"Unsupported public factory key: {key}")
+        result.append((name, body))
+    return result
+
+
+def parameter_fields(params, skip):
+    fields = []
+    for field in split_parameters(params)[skip:]:
+        match = re.fullmatch(r"(.+?)\s+(\w+)", field, re.S)
+        if not match:
+            raise ValueError(f"Unrecognized public parameter: {field}")
+        fields.append({"name": match[2], "type": normalize_type(match[1])})
+    return fields
+
+
 def discover(header):
-    blocks = re.findall(
-        r"struct\s+detail::OperatorFactory<(?:\:\:infini::ops::)?(\w+)>\s*\{(.*?)\};",
-        header, re.S,
-    )
-    if not blocks:
-        raise ValueError("No public InfiniOps factory declarations found; incompatible SDK")
+    blocks = factory_blocks(header)
     operations, unsupported = [], []
     for operation, body in blocks:
-        constructors = []
-        for params in re.findall(r"\bMake\((.*?)\);", body, re.S):
-            constructors.append(tuple(normalize_type(re.match(r"(.+?)\s+(\w+)$", p).group(1))
-                                      for p in split_parameters(params)[1:]))
+        constructors = [parameter_fields(params, 1)
+                        for params in re.findall(r"\bMake\((.*?)\);", body, re.S)]
+        calls = [parameter_fields(params, 2)
+                 for params in re.findall(r"static\s+void\s+Call\((.*?)\);", body, re.S)]
+        types_of = lambda fields: tuple(f["type"] for f in fields)
+        constructor_types = {types_of(fields) for fields in constructors}
+        call_types = {types_of(fields) for fields in calls}
         seen = set()
-        for params in re.findall(r"static\s+void\s+Call\((.*?)\);", body, re.S):
-            fields = []
-            for field in split_parameters(params)[2:]:
-                match = re.fullmatch(r"(.+?)\s+(\w+)", field, re.S)
-                if not match:
-                    raise ValueError(f"Unrecognized public parameter: {field}")
-                fields.append({"name": match[2], "type": normalize_type(match[1])})
-            types = tuple(f["type"] for f in fields)
-            if types not in constructors or (operation, types) in seen:
+        for fields in calls:
+            types = types_of(fields)
+            if types in seen:
                 continue
-            seen.add((operation, types))
-            if not all(supported_type(t) for t in types):
-                unsupported.append({"name": operation, "parameters": fields})
-                continue
-            operations.append({"name": operation, "parameters": fields})
+            seen.add(types)
+            reason = None
+            if types not in constructor_types:
+                reason = "No matching public Make overload"
+            elif not all(supported_type(t) for t in types):
+                reason = "Unsupported parameter type"
+            entry = {"name": operation, "parameters": fields}
+            if reason:
+                unsupported.append({**entry, "reason": reason})
+            else:
+                operations.append(entry)
+        for fields in constructors:
+            if types_of(fields) not in call_types:
+                unsupported.append({"name": operation, "parameters": fields,
+                                    "reason": "No matching public Call overload"})
+        if not calls and not constructors:
+            unsupported.append({"name": operation, "parameters": [],
+                                "reason": "No public Call or Make declarations"})
+    accounted = {entry["name"] for entry in operations + unsupported}
+    if accounted != {name for name, _ in blocks}:
+        raise ValueError("Unaccounted public InfiniOps factories")
     return operations, unsupported
 
 
@@ -90,6 +124,7 @@ def generate(header, output, manifest):
     Path(output).parent.mkdir(parents=True, exist_ok=True)
     Path(output).write_text("\n".join(lines), encoding="utf-8")
     Path(manifest).write_text(json.dumps({"sdk_sha256": hashlib.sha256(content.encode()).hexdigest(),
+                                        "discovered_factories": sorted({name for name, _ in factory_blocks(content)}),
                                         "operations": operations, "unsupported_signatures": unsupported},
                                        indent=2) + "\n", encoding="utf-8")
     print(f"Generated {len(operations)} public signatures; {len(unsupported)} unsupported signatures recorded")

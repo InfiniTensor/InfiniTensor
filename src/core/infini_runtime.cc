@@ -328,6 +328,8 @@ InfiniRuntimeObj::captureGraph(const Graph &graph, CapturedGraphState state) {
         // Keep its implementations and workspaces alive until that work ends.
         logInfiniRtError("InfiniRT StreamSynchronize after capture failure",
                          ::infini::rt::runtime::StreamSynchronize(stream));
+        if (ordinaryPlan == entry->prepared)
+            ordinaryPlan.reset();
         entry->prepared.reset();
         recoverExecutionStreamAfterFailure();
         std::rethrow_exception(originalError);
@@ -350,6 +352,8 @@ void InfiniRuntimeObj::destroyGraphEntry(GraphCacheEntry &entry) noexcept {
         entry.graph = {};
     }
     // Prepared implementations must outlive both graph handles.
+    if (ordinaryPlan == entry.prepared)
+        ordinaryPlan.reset();
     entry.prepared.reset();
 }
 
@@ -395,13 +399,6 @@ void InfiniRuntimeObj::clearGraphCacheImpl() noexcept {
     for (auto &entry : graphCache)
         destroyGraphEntry(*entry);
     graphCache.clear();
-}
-
-void InfiniRuntimeObj::clearGraphCache() {
-    std::lock_guard<std::recursive_mutex> executionLock(executionMutex);
-    std::lock_guard<std::recursive_mutex> cacheLock(cacheMutex);
-    activateDevice();
-    clearGraphCacheImpl();
 }
 
 size_t InfiniRuntimeObj::getGraphCacheSize() const {
@@ -499,6 +496,20 @@ void InfiniRuntimeObj::runWithGraph(const Graph &graph) {
     }
 }
 #endif
+
+void InfiniRuntimeObj::clearGraphCache() {
+    std::lock_guard<std::recursive_mutex> executionLock(executionMutex);
+    activateDevice();
+    // A failed ordinary step may have submitted asynchronous work before
+    // throwing. Do not rely on provider Free implicitly synchronizing it.
+    if (stream)
+        syncImpl();
+#if INFINITENSOR_INFINIRT_HAS_GRAPH_API
+    std::lock_guard<std::recursive_mutex> cacheLock(cacheMutex);
+    clearGraphCacheImpl();
+#endif
+    ordinaryPlan.reset();
+}
 
 void InfiniRuntimeObj::invalidateGraphCaptureCache(uint64_t graphId) noexcept {
     std::lock_guard<std::recursive_mutex> executionLock(executionMutex);

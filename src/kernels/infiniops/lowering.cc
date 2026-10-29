@@ -15,7 +15,9 @@
 #include "operators/unary.h"
 #include "tensor_view.h"
 #include "utils/data_convert.h"
+#include <array>
 #include <cmath>
+#include <cstring>
 
 namespace infini::infiniops {
 namespace {
@@ -37,21 +39,25 @@ TensorView temporary(Builder &builder, const RuntimeObj *runtime,
 }
 TensorView scalar(Builder &builder, const RuntimeObj *runtime,
                   const ::infini::DataType &dtype, double number) {
-    auto result = temporary(builder, runtime, {}, dtype);
+    std::array<uint8_t, sizeof(double)> data{};
     if (dtype == ::infini::DataType::Float32) {
         const float v = static_cast<float>(number);
-        runtime->copyBlobFromCPU(result.data(), &v, sizeof(v));
+        std::memcpy(data.data(), &v, sizeof(v));
     } else if (dtype == ::infini::DataType::Double) {
-        runtime->copyBlobFromCPU(result.data(), &number, sizeof(number));
+        std::memcpy(data.data(), &number, sizeof(number));
     } else if (dtype == ::infini::DataType::Float16 ||
                dtype == ::infini::DataType::BFloat16) {
         const auto v = dtype == ::infini::DataType::Float16
                            ? float_to_fp16(number)
                            : float_to_bfp16(number);
-        runtime->copyBlobFromCPU(result.data(), &v, sizeof(v));
+        std::memcpy(data.data(), &v, sizeof(v));
     } else
         IT_ASSERT(false, "HardSigmoid requires floating point input");
-    return result;
+    auto storage = builder.constant(dtype.getSize(), [&](void *ptr) {
+        runtime->copyBlobFromCPU(ptr, data.data(), dtype.getSize());
+    });
+    return makeInfiniOpsTensor(storage.get(), {}, toInfiniOpsDataType(dtype),
+                               runtime);
 }
 TensorView transposed(TensorView tensor, bool transpose) {
     if (!transpose)
@@ -193,10 +199,12 @@ void lowerRope(const Operator &node, const RuntimeObj *context,
     buildRopeTables(tableLen, tableDim, headDim, sinHost, cosHost);
 
     const auto tableBytes = tableLen * tableDim * sizeof(float);
-    auto sinBlob = builder.temporary(tableBytes);
-    auto cosBlob = builder.temporary(tableBytes);
-    context->copyBlobFromCPU(sinBlob.get(), sinHost.data(), tableBytes);
-    context->copyBlobFromCPU(cosBlob.get(), cosHost.data(), tableBytes);
+    auto sinBlob = builder.constant(tableBytes, [&](void *ptr) {
+        context->copyBlobFromCPU(ptr, sinHost.data(), tableBytes);
+    });
+    auto cosBlob = builder.constant(tableBytes, [&](void *ptr) {
+        context->copyBlobFromCPU(ptr, cosHost.data(), tableBytes);
+    });
 
     ::infini::rt::TensorView::Shape ropeShape{batch, seqLen, numHeads, headDim};
     ::infini::rt::TensorView::Strides ropeStrides{
@@ -310,6 +318,7 @@ bool lower(const Operator &node, const RuntimeObj *runtime, Builder &builder) {
                  });
                  try {
                      lowerRope(live, runtime, late);
+                     late.finalize();
                      late.plan.run(handle);
                      infini->sync();
                  } catch (...) {
@@ -467,37 +476,53 @@ bool lower(const Operator &node, const RuntimeObj *runtime, Builder &builder) {
         for (const auto &t : node->getInputs())
             values.push_back(view(t, runtime));
         values.push_back(output());
-        builder.plan.steps.push_back(Registry::instance().prepare(
-            name, values,
-            [&builder](size_t bytes) { return builder.temporary(bytes); }));
+        builder.emit(name, values);
         return true;
     }
     return false;
 }
 } // namespace
 std::shared_ptr<PreparedGraph> prepareGraph(const Graph &graph,
-                                            const RuntimeObj *runtime) {
-    Builder builder([runtime](size_t bytes) {
-        const auto *infini = dynamic_cast<const InfiniRuntimeObj *>(runtime);
-        IT_ASSERT(infini != nullptr,
-                  "Prepared execution requires an Infini runtime");
-        return infini->acquireWorkspace(bytes);
-    });
-    for (const auto &op : graph->getOperators()) {
-        if (lower(op, runtime, builder))
-            continue;
-        const auto attrs = KernelAttrs{ExecutionProvider::Infini,
-                                       op->getOpType().underlying()};
-        auto *kernel = KernelRegistry::getInstance().getKernel(attrs);
-        WRef<OperatorObj> weak = op;
-        builder.plan.steps.push_back(
-            {[kernel, weak, runtime](const Handle &) {
-                 auto live = weak.lock();
-                 IT_ASSERT(live != nullptr, "Prepared graph was destroyed");
-                 kernel->compute(live, runtime);
-             },
-             kernel->captureSafe(), op->getOpType().toString()});
+                                            const RuntimeObj *runtime,
+                                            MemoryAllocator allocate) {
+    if (!allocate)
+        allocate = [runtime](size_t bytes) {
+            const auto *infini =
+                dynamic_cast<const InfiniRuntimeObj *>(runtime);
+            IT_ASSERT(infini != nullptr,
+                      "Prepared execution requires an Infini runtime");
+            return infini->acquireWorkspace(bytes);
+        };
+    const auto lowerAll = [&](Builder &builder) {
+        for (const auto &op : graph->getOperators()) {
+            builder.beginNode();
+            if (lower(op, runtime, builder))
+                continue;
+            const auto attrs = KernelAttrs{ExecutionProvider::Infini,
+                                           op->getOpType().underlying()};
+            auto *kernel = KernelRegistry::getInstance().getKernel(attrs);
+            WRef<OperatorObj> weak = op;
+            builder.plan.steps.push_back(
+                {[kernel, weak, runtime](const Handle &) {
+                     auto live = weak.lock();
+                     IT_ASSERT(live != nullptr, "Prepared graph was destroyed");
+                     kernel->compute(live, runtime);
+                 },
+                 kernel->captureSafe(), op->getOpType().toString()});
+        }
+    };
+    // Layout pass only: no provider is constructed or invoked, no constant is
+    // uploaded, and no device memory is allocated. This fixes all helper
+    // addresses before descriptors can borrow them in the real pass.
+    size_t temporaryBytes;
+    {
+        Builder layout(allocate, 0, true);
+        lowerAll(layout);
+        temporaryBytes = layout.temporaryPeak();
     }
+    Builder builder(std::move(allocate), temporaryBytes);
+    lowerAll(builder);
+    builder.finalize();
     auto prepared = std::make_shared<PreparedGraph>();
     prepared->owner = graph;
     prepared->graphId = graph->getCaptureStateId();

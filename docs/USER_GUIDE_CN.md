@@ -197,6 +197,8 @@ print(y.copyout_numpy())
 同一入口支持 Tensor、Tensor 列表、整数、浮点数、布尔、字符串、整数列表和相应
 optional 参数。缺省 optional 参数传空值；没有公开缺省重载的必需参数必须显式提供。
 DataType 属性可使用 ONNX 类型编号或 InfiniRT 类型名称（如 `float32`、`float64`）。
+算子名称保留相对命名空间，例如 `special::Erf`、`linalg::Inv`。
+生成清单会逐一记录发现的工厂，每个工厂均有已绑定签名或明确的不支持原因。
 生成清单位于构建目录的 `generated/infiniops_bindings.json`，包含 SDK 摘要、签名及
 暂不支持的参数类型；SDK 声明格式不兼容时构建会明确失败。
 
@@ -207,8 +209,16 @@ DataType 属性可使用 ONNX 类型编号或 InfiniRT 类型名称（如 `float
 旧 IR 与 InfiniOps 参数有差异时只在 `lowering.cc` 保留语义适配。
 
 普通执行和 Graph 共用同一份准备计划、实际算子实例和工作区。
+准备时先计算临时张量布局，再分配一块按节点峰值复用的临时区；所有算子的工作区
+共用另一块按最大请求分配的空间。只读常量独立保留，不会被后续节点的临时结果覆盖。
+共享区域在同一 runtime stream 上按节点顺序使用，Graph 捕获期间地址不变。
+`clear_graph_cache()` 会同步已提交工作并释放相应准备资源，包括普通执行缓存；
+捕获失败和 LRU 淘汰也会解除匹配的普通计划引用。
+
 InfiniOps 负责选择实现并声明捕获安全性；InfiniRT 负责图捕获、实例化及重放。
 未声明安全的 provider 在捕获前被拒绝，仍可普通执行。
+RMSNorm 在形状推导及调用前检查非标量输入、正的末维、权重长度、输出形状及 dtype；
+固定 SDK 的执行接口仅支持 rank 2／3，其他秩在创建算子前明确拒绝。
 旧 RoPE 节点需要根据运行时位置 ID 生成表，按拓扑顺序读取位置并执行，暂不支持捕获。
 该后端使用 InfiniOps 的自动选择，不支持旧的 InfiniTensor kernel 调优入口；
 `handler.tune()` 会明确报错，不影响 `handler.run()`。

@@ -2,6 +2,14 @@
 #include "core/operator.h"
 
 namespace infini {
+template <class ShapeT>
+void validateRmsNormShape(const ShapeT &shape, size_t weightElements) {
+    IT_ASSERT(!shape.empty(), "RMSNorm input must not be scalar");
+    IT_ASSERT(shape.back() > 0, "RMSNorm hidden dimension must be positive");
+    IT_ASSERT(
+        static_cast<size_t>(shape.back()) == weightElements,
+        "RMSNorm weight element count must equal the input last dimension");
+}
 /**
  * @brief Fused RMSNorm Operator
  *

@@ -21,7 +21,12 @@ using Value =
                  double, bool, std::string, std::vector<int64_t>, DataType>;
 using Values = std::vector<Value>;
 using NamedValues = std::map<std::string, Value>;
-using WorkspaceAllocator = std::function<std::shared_ptr<void>(size_t)>;
+using MemoryAllocator = std::function<std::shared_ptr<void>(size_t)>;
+struct Workspace {
+    size_t bytes = 0;
+    std::shared_ptr<void> data;
+};
+using WorkspaceAllocator = std::function<std::shared_ptr<Workspace>(size_t)>;
 struct Step {
     std::function<void(const Handle &)> run;
     bool captureSafe;
@@ -31,6 +36,9 @@ struct Plan {
     // Steps own prepared operators borrowing these temporary tensor views.
     // Declare storage first so it outlives operator destruction.
     std::vector<std::shared_ptr<void>> resources;
+    size_t temporaryBytes = 0;
+    std::shared_ptr<void> temporaryStorage;
+    std::shared_ptr<Workspace> workspace;
     std::vector<Step> steps;
     void run(const Handle &handle) const;
 };
@@ -88,13 +96,15 @@ Step prepareTyped(const WorkspaceAllocator &allocate, const Args &...args) {
     std::shared_ptr<::infini::ops::Operator<Key>> op =
         Key::Make(config, args...);
     const auto bytes = op->workspace_size_in_bytes();
-    auto workspace = bytes ? allocate(bytes) : std::shared_ptr<void>{};
+    auto workspace = bytes ? allocate(bytes) : std::shared_ptr<Workspace>{};
     IT_ASSERT(!bytes || workspace, "Missing operator workspace");
     const auto safe = op->capture_safe();
     return {[op, workspace, bytes, args...](const Handle &handle) {
                 auto invocation = handle.Clone();
                 if (bytes) {
-                    invocation->set_workspace(workspace.get());
+                    IT_ASSERT(workspace->data && workspace->bytes >= bytes,
+                              "Unallocated operator workspace");
+                    invocation->set_workspace(workspace->data.get());
                     invocation->set_workspace_size_in_bytes(bytes);
                 }
                 (*op)(*invocation, args...);
@@ -129,23 +139,85 @@ class Registry {
 };
 void registerGeneratedBindings(Registry &registry);
 class Builder {
-    WorkspaceAllocator allocate;
+    MemoryAllocator allocate;
+    bool planning;
+    size_t temporaryCursor = 0, peak = 0;
+    static std::shared_ptr<void> placeholder() {
+        static char unused;
+        return {&unused, [](void *) {}};
+    }
+    WorkspaceAllocator workspaceRequests() {
+        return [this](size_t bytes) {
+            plan.workspace->bytes = std::max(plan.workspace->bytes, bytes);
+            return plan.workspace;
+        };
+    }
 
   public:
     Plan plan;
-    explicit Builder(WorkspaceAllocator allocate)
-        : allocate(std::move(allocate)) {}
+    explicit Builder(MemoryAllocator allocate, size_t temporaryBytes = 0,
+                     bool planning = false)
+        : allocate(std::move(allocate)), planning(planning) {
+        plan.workspace = std::make_shared<Workspace>();
+        plan.temporaryBytes = temporaryBytes;
+        if (!planning && temporaryBytes)
+            plan.temporaryStorage = this->allocate(temporaryBytes);
+    }
+    // Helpers live through one IR node, including all its lowered steps.
+    // Nodes and their kernels execute in order on the same runtime stream.
+    void beginNode() { temporaryCursor = 0; }
+    size_t temporaryPeak() const {
+        // Round the final helper as well: capacity then equals the sum of
+        // aligned sizes, independent of C++ argument evaluation order.
+        IT_ASSERT(peak <= std::numeric_limits<size_t>::max() - 255,
+                  "Temporary layout overflow");
+        return (peak + 255) / 256 * 256;
+    }
+    void finalize() {
+        if (!planning && plan.workspace->bytes)
+            plan.workspace->data = allocate(plan.workspace->bytes);
+    }
     template <typename... Args>
     void emit(const std::string &name, const Args &...args) {
-        plan.steps.push_back(Registry::instance().prepare(
-            name, Values{argument(args)...}, allocate));
+        emit(name, Values{argument(args)...});
+    }
+    void emit(const std::string &name, const Values &values) {
+        if (!planning)
+            plan.steps.push_back(Registry::instance().prepare(
+                name, values, workspaceRequests()));
     }
     void emit(const std::string &name, const NamedValues &values) {
-        plan.steps.push_back(
-            Registry::instance().prepare(name, values, allocate));
+        if (!planning)
+            plan.steps.push_back(Registry::instance().prepare(
+                name, values, workspaceRequests()));
     }
     std::shared_ptr<void> temporary(size_t bytes) {
+        constexpr size_t alignment = 256;
+        IT_ASSERT(temporaryCursor <=
+                      std::numeric_limits<size_t>::max() - (alignment - 1),
+                  "Temporary layout overflow");
+        const auto offset =
+            (temporaryCursor + alignment - 1) / alignment * alignment;
+        IT_ASSERT(bytes <= std::numeric_limits<size_t>::max() - offset,
+                  "Temporary layout overflow");
+        temporaryCursor = offset + bytes;
+        peak = std::max(peak, temporaryCursor);
+        if (planning)
+            return placeholder();
+        IT_ASSERT(temporaryCursor <= plan.temporaryBytes,
+                  "Temporary layout changed during preparation");
+        if (!bytes)
+            return {};
+        return {plan.temporaryStorage,
+                static_cast<uint8_t *>(plan.temporaryStorage.get()) + offset};
+    }
+    // Read-only values must not alias the scratch area overwritten by nodes.
+    std::shared_ptr<void>
+    constant(size_t bytes, const std::function<void(void *)> &initialize) {
+        if (planning)
+            return placeholder();
         auto data = allocate(bytes);
+        initialize(data.get());
         plan.resources.push_back(data);
         return data;
     }
