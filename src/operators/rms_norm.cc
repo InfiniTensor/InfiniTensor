@@ -15,8 +15,6 @@ optional<vector<Shape>> RMSNormObj::inferShape(const TensorVec &inputs) {
               "RMSNorm requires a positive hidden dimension");
     IT_ASSERT(static_cast<size_t>(input_dim.back()) == inputs[1]->size(),
               "RMSNorm weight size must match the hidden dimension");
-    IT_ASSERT(A->getDType() == inputs[1]->getDType(),
-              "RMSNorm input and weight dtype must match");
     auto output_dim = input_dim;
     return {{output_dim}};
 }

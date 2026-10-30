@@ -11,11 +11,18 @@ TEST(RmsNormShapeTest, RejectsInvalidInputsDuringConstruction) {
         EXPECT_THROW(graph->addOp<RMSNormObj>(x, shortWeight, nullptr),
                      std::exception);
     }
-    auto graph = make_ref<GraphObj>(NativeCpuRuntimeObj::getInstance());
-    auto x = graph->addTensor({1, 4}, DataType::Float32);
-    auto wrongType = graph->addTensor({4}, DataType::Double);
-    EXPECT_THROW(graph->addOp<RMSNormObj>(x, wrongType, nullptr),
-                 std::exception);
+}
+
+TEST(RmsNormShapeTest, MixedPrecisionDoesNotRestrictShapeInference) {
+    for (auto dtype : {DataType::Float16, DataType::BFloat16}) {
+        auto graph = make_ref<GraphObj>(NativeCpuRuntimeObj::getInstance());
+        auto x = graph->addTensor({2, 128}, dtype);
+        auto w = graph->addTensor({128}, DataType::Float32);
+        auto y = graph->addOp<RMSNormObj>(x, w, nullptr)->getOutput();
+        EXPECT_EQ(y->getDims(), x->getDims());
+        EXPECT_EQ(y->getDType(), dtype);
+        EXPECT_NO_THROW(graph->shape_infer());
+    }
 }
 
 TEST(RmsNormShapeTest, RevalidatesWeightsAfterDynamicShapeChanges) {
