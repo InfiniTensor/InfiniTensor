@@ -239,6 +239,7 @@ struct OpType {
         Broadcast,
         Send,
         Recv,
+        InfiniOp, // Generic operator exported by the installed InfiniOps SDK
     } type;
 
     constexpr OpType(decltype(type) t) : type(t) {}

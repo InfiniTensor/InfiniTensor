@@ -7,6 +7,7 @@ InfiniTensor 用于导入、变换和执行计算图，可直接运行 ONNX 模�
 ## 架构边界
 
 - **InfiniTensor**：负责计算图、ONNX 前端、图变换和执行调度。
+- **InfiniCore**：统一固定下层组件版本，源码位于 `3rd-party/InfiniCore/submodules/`。
 - **InfiniOps**：提供统一算子接口及各硬件后端实现。
 - **InfiniRT**：提供设备、内存、流和运行时接口。
 
@@ -29,6 +30,9 @@ make install-python \
   INFINIRT_ROOT=/path/to/infinirt-prefix \
   PYTHON="$(command -v python3)"
 ```
+
+图捕获和重放统一通过 InfiniRT。捕获前检查实际算子实现的 `capture_safe()`；
+未声明安全的实现明确拒绝捕获，普通执行仍可用。图持有已准备的算子实例及稳定工作区。
 
 详细步骤见：
 

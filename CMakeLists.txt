@@ -10,6 +10,14 @@ option(BUILD_TEST "Build tests" OFF)
 
 cmake_minimum_required(VERSION 3.17)
 
+# Bundled pybind11 still declares a pre-3.5 policy version. CMake 4 removed
+# that compatibility mode; retain the caller's override if one was supplied.
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 4.0 AND
+   NOT DEFINED CMAKE_POLICY_VERSION_MINIMUM)
+  set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+endif()
+
+
 if(POLICY CMP0144)
   cmake_policy(SET CMP0144 NEW)
 endif()
@@ -242,14 +250,6 @@ if(USE_INFINIOPS_KERNELS)
   if(NOT INFINIOPS_INCLUDE_DIR OR NOT INFINIOPS_LIBRARY)
     message(FATAL_ERROR "Could not find InfiniOps headers/libraries under INFINIOPS_ROOT=${INFINIOPS_ROOT}")
   endif()
-  if(USE_INFINIOPS_ATEN_KERNELS AND
-     (NOT EXISTS "${INFINIOPS_INCLUDE_DIR}/infini/ops/graph_capture.h" OR
-      NOT EXISTS "${INFINIOPS_INCLUDE_DIR}/infini/ops/pooling.h"))
-    message(FATAL_ERROR
-      "The InfiniOps ATen provider lacks capture memory or value-only pooling support. "
-      "Rebuild and install the pinned 3rd-party/InfiniOps revision, then set "
-      "INFINIOPS_ROOT to that installation.")
-  endif()
   if(NOT TARGET InfiniRT::infinirt)
     message(FATAL_ERROR "InfiniRT::infinirt is unavailable under INFINIRT_ROOT=${INFINIRT_ROOT}")
   endif()
@@ -286,7 +286,12 @@ if(USE_INFINIOPS_KERNELS)
   else()
     set(INFINITENSOR_INFINIRT_HAS_GRAPH_API 0)
   endif()
-  message(STATUS "InfiniRT graph capture API: ${INFINITENSOR_INFINIRT_HAS_GRAPH_API}")
+  message(STATUS "InfiniTensor graph capture compatibility: ${INFINITENSOR_INFINIRT_HAS_GRAPH_API}")
+  if(NOT INFINITENSOR_INFINIRT_HAS_GRAPH_API)
+    message(STATUS
+      "Graph capture is unavailable with this component build; ordinary execution remains available. "
+      "runWithGraph requires a compatible InfiniRT Graph API.")
+  endif()
 
   get_filename_component(INFINIOPS_LIBRARY_DIR "${INFINIOPS_LIBRARY}" DIRECTORY)
   set(INFINIRT_LIBRARY_DIR "${INFINIRT_ROOT}/lib")
@@ -319,7 +324,19 @@ endif()
 
 if(USE_INFINIOPS_KERNELS)
   file(GLOB_RECURSE SRC_INFINIOPS_KERNELS src/kernels/infiniops/*.cc)
-  list(APPEND SRC src/core/infini_runtime.cc ${SRC_INFINIOPS_KERNELS})
+  set(_infiniops_sdk "${INFINIOPS_INCLUDE_DIR}/infini/operator_call_instantiations.h")
+  set(_infiniops_bindings "${CMAKE_CURRENT_BINARY_DIR}/generated/infiniops_bindings.cc")
+  execute_process(
+    COMMAND "${Python_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_infiniops_bindings.py"
+            --header "${_infiniops_sdk}" --output "${_infiniops_bindings}"
+            --manifest "${CMAKE_CURRENT_BINARY_DIR}/generated/infiniops_bindings.json"
+    RESULT_VARIABLE _infiniops_generation_result)
+  if(NOT _infiniops_generation_result EQUAL 0)
+    message(FATAL_ERROR "Unable to generate bindings from the installed InfiniOps SDK")
+  endif()
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${_infiniops_sdk}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_infiniops_bindings.py")
+  list(APPEND SRC src/core/infini_runtime.cc ${SRC_INFINIOPS_KERNELS} "${_infiniops_bindings}")
 endif()
 
 # Libraries
@@ -340,6 +357,7 @@ if(USE_INFINIOPS_KERNELS)
     target_compile_definitions(InfiniTensor PRIVATE
                                USE_INFINIOPS_ATEN_KERNELS=1)
   endif()
+  target_include_directories(InfiniTensor PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/kernels/infiniops")
   target_include_directories(InfiniTensor SYSTEM PRIVATE
                              ${INFINIOPS_INCLUDE_DIR})
   if(USE_INFINIOPS_ATEN_KERNELS AND INFINIOPS_PROVIDER_LIBRARY_DIRS)
@@ -411,7 +429,8 @@ function(build_test files)
     add_executable(${testname} ${testsourcefile})
     target_link_libraries(${testname} InfiniTensor GTest::gtest_main)
     target_compile_definitions(${testname} PRIVATE
-      INFINITENSOR_TEST_HAS_ATEN=$<BOOL:${USE_INFINIOPS_ATEN_KERNELS}>)
+      INFINITENSOR_TEST_HAS_ATEN=$<BOOL:${USE_INFINIOPS_ATEN_KERNELS}>
+      INFINITENSOR_TEST_PYTHON_DEFAULT="${Python_EXECUTABLE}")
     add_test(NAME ${testname} COMMAND ${testname})
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND
        USE_INFINIOPS_ATEN_KERNELS AND INFINIOPS_PROVIDER_LIBRARY_DIRS)
@@ -426,6 +445,8 @@ endfunction()
 if(BUILD_TEST)
   add_compile_definitions(BUILD_TEST=1)
   enable_testing()
+  add_test(NAME test_infiniops_binding_generator
+    COMMAND "${Python_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/tests/test_generate_infiniops_bindings.py")
   if(USE_TRACE)
     build_test(test/trace/*.cc)
   endif()

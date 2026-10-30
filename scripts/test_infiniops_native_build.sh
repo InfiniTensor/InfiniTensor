@@ -11,8 +11,9 @@ echo "Clean native build: $work"
 mkdir -p "$work/ops" "$work/rt"
 # InfiniOps code generation writes into its source tree. Archive the pinned
 # commits so an earlier WITH_TORCH build cannot contaminate this regression.
-git -C "$src/3rd-party/InfiniOps" archive HEAD | tar -x -C "$work/ops"
-git -C "$src/3rd-party/InfiniRT" archive HEAD | tar -x -C "$work/rt"
+core="$src/3rd-party/InfiniCore/submodules"
+git -C "$core/InfiniOps" archive HEAD | tar -x -C "$work/ops"
+git -C "$core/InfiniRT" archive HEAD | tar -x -C "$work/rt"
 cmake -S "$work/rt" -B "$work/build-rt" \
     -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$work/prefix" \
     -DWITH_CPU=ON -DPython_EXECUTABLE="$py"
@@ -31,6 +32,10 @@ cmake -S "$src" -B "$work/build-it" \
     -DUSE_INFINIOPS_KERNELS=ON -DUSE_INFINIOPS_ATEN_KERNELS=OFF \
     -DINFINIOPS_ROOT="$work/prefix" -DINFINIRT_ROOT="$work/prefix" \
     -DINFINIOPS_CXX11_ABI=1 -DPython_EXECUTABLE="$py"
-cmake --build "$work/build-it" --target test_copy_graph_capture -j "$jobs"
+cmake --build "$work/build-it" --target test_copy_graph_capture \
+    test_rms_norm test_rms_norm_safety test_prepared_resources -j "$jobs"
 "$work/build-it/test_copy_graph_capture" \
     --gtest_filter=InfiniCopyLifetimeTest.*
+"$work/build-it/test_rms_norm"
+"$work/build-it/test_rms_norm_safety"
+"$work/build-it/test_prepared_resources"

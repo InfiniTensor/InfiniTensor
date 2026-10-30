@@ -11,41 +11,44 @@
 namespace infini {
 namespace infiniops {
 
-inline ::infini::rt::DataType toInfiniOpsDataType(const DataType &dtype) {
-    if (dtype == DataType::Float32) {
+inline ::infini::rt::DataType
+toInfiniOpsDataType(const ::infini::DataType &dtype) {
+    if (dtype == ::infini::DataType::Bool)
+        return ::infini::rt::DataType::kBool;
+    if (dtype == ::infini::DataType::Float32) {
         return ::infini::rt::DataType::kFloat32;
     }
-    if (dtype == DataType::Float16) {
+    if (dtype == ::infini::DataType::Float16) {
         return ::infini::rt::DataType::kFloat16;
     }
-    if (dtype == DataType::BFloat16) {
+    if (dtype == ::infini::DataType::BFloat16) {
         return ::infini::rt::DataType::kBFloat16;
     }
-    if (dtype == DataType::Double) {
+    if (dtype == ::infini::DataType::Double) {
         return ::infini::rt::DataType::kFloat64;
     }
-    if (dtype == DataType::Int8) {
+    if (dtype == ::infini::DataType::Int8) {
         return ::infini::rt::DataType::kInt8;
     }
-    if (dtype == DataType::Int16) {
+    if (dtype == ::infini::DataType::Int16) {
         return ::infini::rt::DataType::kInt16;
     }
-    if (dtype == DataType::Int32) {
+    if (dtype == ::infini::DataType::Int32) {
         return ::infini::rt::DataType::kInt32;
     }
-    if (dtype == DataType::Int64) {
+    if (dtype == ::infini::DataType::Int64) {
         return ::infini::rt::DataType::kInt64;
     }
-    if (dtype == DataType::UInt8) {
+    if (dtype == ::infini::DataType::UInt8) {
         return ::infini::rt::DataType::kUInt8;
     }
-    if (dtype == DataType::UInt16) {
+    if (dtype == ::infini::DataType::UInt16) {
         return ::infini::rt::DataType::kUInt16;
     }
-    if (dtype == DataType::UInt32) {
+    if (dtype == ::infini::DataType::UInt32) {
         return ::infini::rt::DataType::kUInt32;
     }
-    if (dtype == DataType::UInt64) {
+    if (dtype == ::infini::DataType::UInt64) {
         return ::infini::rt::DataType::kUInt64;
     }
     IT_TODO_HALT_MSG("Unsupported InfiniTensor dtype for InfiniOps");
@@ -83,20 +86,6 @@ inline ::infini::ops::Tensor toInfiniOpsTensor(const Tensor &tensor,
     return {tensor->getRawDataPtr<void *>(), shape,
             toInfiniOpsDataType(tensor->getDType()), toInfiniOpsDevice(context),
             rtStrides};
-}
-
-inline Blob allocTemporaryBlob(const RuntimeObj *context, size_t bytes) {
-    IT_ASSERT(context != nullptr);
-    auto runtime =
-        std::const_pointer_cast<RuntimeObj>(context->shared_from_this());
-    return runtime->allocBlob(bytes);
-}
-
-inline std::shared_ptr<void> acquireWorkspace(const RuntimeObj *context,
-                                              size_t bytes) {
-    auto runtime = dynamic_cast<const InfiniRuntimeObj *>(context);
-    IT_ASSERT(runtime != nullptr, "Workspace requires an Infini runtime");
-    return runtime->acquireWorkspace(bytes);
 }
 
 inline ::infini::ops::Tensor
@@ -155,46 +144,6 @@ toInfiniOpsBroadcastTensor(const Tensor &tensor, const Shape &outputDims,
             toInfiniOpsDataType(tensor->getDType()), toInfiniOpsDevice(context),
             rtStrides};
 }
-
-inline ::infini::ops::Handle makeInfiniOpsHandle(const RuntimeObj *context) {
-    ::infini::ops::Handle handle;
-    if (context->isInfini()) {
-        auto runtime = dynamic_cast<const InfiniRuntimeObj *>(context);
-        IT_ASSERT(runtime != nullptr);
-        handle.set_stream(runtime->getStream());
-    }
-    return handle;
-}
-
-template <typename InfiniOpsOperator>
-inline ::infini::ops::Config makeInfiniOpsConfig(const RuntimeObj *) {
-    ::infini::ops::Config config;
-    config.set_implementation_index(0);
-    return config;
-}
-
-template <typename InfiniOpsOperator>
-inline ::infini::ops::Config makeInfiniOpsAtenConfig(const RuntimeObj *) {
-    ::infini::ops::Config config;
-    config.set_implementation_index(8);
-    return config;
-}
-
-class KernelWithoutConfig : public Kernel {
-  public:
-    void compute(const Operator &op, const PerfRecord &record,
-                 const RuntimeObj *context) const override {
-        compute(op, context);
-    }
-
-    virtual void compute(const Operator &op,
-                         const RuntimeObj *context) const = 0;
-
-    PerfRecord tune(const Operator &op,
-                    const RuntimeObj *context) const override {
-        return make_ref<PerfRecordObj>(timeit([&]() { compute(op, context); }));
-    }
-};
 
 } // namespace infiniops
 } // namespace infini
