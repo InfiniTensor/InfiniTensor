@@ -5,6 +5,7 @@
 #include "test.h"
 #include "utils/data_convert.h"
 #include <cmath>
+#include <cstring>
 #include <map>
 
 namespace infini {
@@ -20,8 +21,14 @@ TEST(RmsNormSafetyTest, MixedPrecisionUsesBackendCapabilities) {
     for (auto dtype : {DataType::Float16, DataType::BFloat16}) {
         const auto encode =
             dtype == DataType::Float16 ? float_to_fp16 : float_to_bfp16;
-        const auto decode =
-            dtype == DataType::Float16 ? fp16_to_float : bfp16_to_float;
+        const auto decode = [dtype](uint16_t bits) {
+            if (dtype == DataType::Float16)
+                return fp16_to_float(bits);
+            const uint32_t value = uint32_t(bits) << 16;
+            float result;
+            std::memcpy(&result, &value, sizeof(result));
+            return result;
+        };
         for (const auto &shape : vector<Shape>{{2, 128}, {2, 3, 128}}) {
             auto graph = make_ref<GraphObj>(runtime);
             auto x = graph->addTensor(shape, dtype);
