@@ -6,7 +6,7 @@
 
 ## 固定依赖与安装
 
-`dependencies/embedding-lock.json` 记录源码和模型版本，依赖由 `3rd-party/InfiniCore` 统一固定，内部 InfiniOps / InfiniRT gitlink 与锁文件一致。本分支固定到检索算子提交 `992d886c138de4580aff39fdb005d2f0dabc8462`，Core 引用为 `0e86ae9009bbb91a4784e66a8ce6ee968ba4ff43`。合并顺序是 Ops、Core、Tensor 基础 PR、此能力 PR；上游合并后再更新正式 gitlink，不以浮动 master 替代版本锁。
+`dependencies/embedding-lock.json` 记录源码和模型版本，依赖由 `3rd-party/InfiniCore` 统一固定，内部 InfiniOps / InfiniRT gitlink 与锁文件一致。本分支固定到检索算子提交 `199291cac0947a07464859473b0afc63b308480e`，包含 MLU 默认工作区延迟分配修复；Core 引用为 `5134c469da655c40ed8b72b9748dd46d7b153a77`。合并顺序是 Ops、Core、Tensor 基础 PR、此能力 PR；上游合并后再更新正式 gitlink，不以浮动 master 替代版本锁。
 
 构建仍使用外部安装前缀，不把 InfiniOps 或 InfiniRT 源码编入 InfiniTensor。以下示例在仓库根目录执行；编译器、驱动和 CUDA Toolkit 须与 PyTorch 匹配。
 

@@ -1,6 +1,6 @@
 {
   "InfiniTensor_base": "2d443132299c76fcf028bccd9ad5a9ae70ba371e",
-  "InfiniOps": "992d886c138de4580aff39fdb005d2f0dabc8462",
+  "InfiniOps": "199291cac0947a07464859473b0afc63b308480e",
   "InfiniRT": "cd1d48258f0a6b8d9f66111d5d6cb1664205e78d",
   "model": "BAAI/bge-small-zh-v1.5",
   "model_revision": "7999e1d3359715c523056ef9478215996d62a620",
@@ -14,5 +14,5 @@
   },
   "execution": "normal",
   "precision": "FP32",
-  "InfiniCore": "0e86ae9009bbb91a4784e66a8ce6ee968ba4ff43"
+  "InfiniCore": "5134c469da655c40ed8b72b9748dd46d7b153a77"
 }
