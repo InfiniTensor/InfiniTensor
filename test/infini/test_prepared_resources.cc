@@ -5,6 +5,7 @@
 #include "operators/unary.h"
 #include "test.h"
 #include <cstring>
+#include <thread>
 
 namespace infini::scratch_test {
 struct Key;
@@ -13,6 +14,7 @@ std::vector<std::weak_ptr<infiniops::Workspace>> slots;
 std::vector<std::weak_ptr<void>> descriptors;
 int makes = 0, calls = 0;
 bool unsafe = false, failCapture = false, failAfterSubmit = false;
+bool requireCreatingThread = false;
 void copy(const Handle &handle, void *dst, const void *src, size_t bytes,
           ::infini::rt::Device::Type device) {
     if (device == ::infini::rt::Device::Type::kCpu)
@@ -31,6 +33,7 @@ void copy(const Handle &handle, void *dst, const void *src, size_t bytes,
 namespace infini::ops {
 template <> class Operator<::infini::scratch_test::Key> : public OperatorBase {
     std::shared_ptr<void> marker = std::make_shared<int>(0);
+    const std::thread::id creator = std::this_thread::get_id();
 
   public:
     Operator() {
@@ -41,6 +44,9 @@ template <> class Operator<::infini::scratch_test::Key> : public OperatorBase {
     bool capture_safe() const override { return !scratch_test::unsafe; }
     void operator()(const Handle &handle, const Tensor input,
                     Tensor out) const {
+        IT_ASSERT(!scratch_test::requireCreatingThread ||
+                      creator == std::this_thread::get_id(),
+                  "Provider used by a different worker thread");
         ++scratch_test::calls;
         IT_ASSERT(!scratch_test::failCapture || scratch_test::calls != 2,
                   "Injected capture failure");
@@ -97,34 +103,39 @@ Ref<InfiniRuntimeObj> runtime(size_t capacity = 2) {
                 getArgument<TensorView>(values[1]));
         });
 #if !INFINITENSOR_TEST_HAS_ATEN
-    // The CPU-only SDK lacks MaxPool. A 1x1 copy provider supplies only the
-    // arithmetic for this fixture; graph/lowering/planning remain production.
-    Registry::instance().add(
-        "MaxPool2dWithIndices",
-        {{"input", "Tensor"},
-         {"kernel", "std::vector<int64_t>"},
-         {"stride", "std::vector<int64_t>"},
-         {"padding", "std::vector<int64_t>"},
-         {"dilation", "std::vector<int64_t>"},
-         {"ceil", "bool"},
-         {"out", "Tensor"},
-         {"indices", "Tensor"}},
-        [](const Values &v, const WorkspaceAllocator &) -> Step {
-            IT_ASSERT(std::get<std::vector<int64_t>>(v[1]) ==
-                      std::vector<int64_t>({1, 1}));
-            auto in = std::get<TensorView>(v[0]),
-                 out = std::get<TensorView>(v[6]);
-            auto indices = std::get<TensorView>(v[7]);
-            IT_ASSERT(in.device().type() == ::infini::rt::Device::Type::kCpu);
-            return {[in, out, indices](const Handle &) mutable {
-                        std::memcpy(out.data(), in.data(),
-                                    in.numel() * sizeof(float));
-                        auto *p = static_cast<int64_t *>(indices.data());
-                        for (size_t i = 0; i < indices.numel(); ++i)
-                            p[i] = i;
-                    },
-                    false, "CPU test-only 1x1 MaxPool"};
-        });
+    if (::infini::rt::runtime_device_type() ==
+        ::infini::rt::Device::Type::kCpu) {
+        // The CPU-only SDK lacks MaxPool. A 1x1 copy provider supplies only the
+        // arithmetic for this fixture; graph/lowering/planning remain
+        // production.
+        Registry::instance().add(
+            "MaxPool2dWithIndices",
+            {{"input", "Tensor"},
+             {"kernel", "std::vector<int64_t>"},
+             {"stride", "std::vector<int64_t>"},
+             {"padding", "std::vector<int64_t>"},
+             {"dilation", "std::vector<int64_t>"},
+             {"ceil", "bool"},
+             {"out", "Tensor"},
+             {"indices", "Tensor"}},
+            [](const Values &v, const WorkspaceAllocator &) -> Step {
+                IT_ASSERT(std::get<std::vector<int64_t>>(v[1]) ==
+                          std::vector<int64_t>({1, 1}));
+                auto in = std::get<TensorView>(v[0]),
+                     out = std::get<TensorView>(v[6]);
+                auto indices = std::get<TensorView>(v[7]);
+                IT_ASSERT(in.device().type() ==
+                          ::infini::rt::Device::Type::kCpu);
+                return {[in, out, indices](const Handle &) mutable {
+                            std::memcpy(out.data(), in.data(),
+                                        in.numel() * sizeof(float));
+                            auto *p = static_cast<int64_t *>(indices.data());
+                            for (size_t i = 0; i < indices.numel(); ++i)
+                                p[i] = i;
+                        },
+                        false, "CPU test-only 1x1 MaxPool"};
+            });
+    }
 #endif
     return true;
 }();
@@ -135,6 +146,7 @@ void resetProbes() {
     scratch_test::makes = scratch_test::calls = 0;
     scratch_test::unsafe = scratch_test::failCapture =
         scratch_test::failAfterSubmit = false;
+    scratch_test::requireCreatingThread = false;
 }
 Graph probe(const Ref<InfiniRuntimeObj> &rt, int count) {
     auto g = make_ref<GraphObj>(rt);
@@ -157,6 +169,33 @@ void expectReleased() {
         EXPECT_TRUE(p.expired());
     for (const auto &p : scratch_test::descriptors)
         EXPECT_TRUE(p.expired());
+}
+TEST(PreparedResourcesTest, OrdinaryPlanIsRebuiltWhenWorkerChanges) {
+    resetProbes();
+    scratch_test::requireCreatingThread = true;
+    auto rt = runtime();
+    auto g = probe(rt, 1);
+    rt->run(g);
+    ASSERT_EQ(scratch_test::makes, 1);
+    std::exception_ptr error;
+    std::thread worker([&] {
+        try {
+            rt->run(g);
+            rt->run(g); // same worker reuses its own plan
+        } catch (...) {
+            error = std::current_exception();
+        }
+    });
+    worker.join();
+    EXPECT_FALSE(error);
+    EXPECT_EQ(scratch_test::makes, 2);
+    EXPECT_TRUE(scratch_test::descriptors.front().expired());
+    rt->run(g); // the original thread needs a fresh provider too
+    EXPECT_EQ(scratch_test::makes, 3);
+    EXPECT_EQ(g->getOutputs()[0]->copyout<float>(), vector<float>(16, 3));
+    rt->clearGraphCache();
+    expectReleased();
+    resetProbes();
 }
 TEST(PreparedResourcesTest, LayoutCapacityDoesNotDependOnArgumentOrder) {
     auto rt = runtime();
@@ -207,6 +246,10 @@ TEST(PreparedResourcesTest, WorkspacePeakIsIndependentOfNodeCountAndCached) {
     }
 }
 TEST(PreparedResourcesTest, RealMaxPoolTemporaryPeakDoesNotAccumulate) {
+#if !INFINITENSOR_TEST_HAS_ATEN
+    if (::infini::rt::runtime_device_type() != ::infini::rt::Device::Type::kCpu)
+        GTEST_SKIP() << "The test-only MaxPool provider requires CPU";
+#endif
     for (int count : {1, 8, 32}) {
         auto rt = runtime();
         auto g = make_ref<GraphObj>(rt);
@@ -267,6 +310,10 @@ TEST(PreparedResourcesTest, AllocationFailureReleasesPreparedDescriptors) {
     expectReleased();
 }
 TEST(PreparedResourcesTest, LaterFailureReleasesAlreadyAllocatedHelperStorage) {
+#if !INFINITENSOR_TEST_HAS_ATEN
+    if (::infini::rt::runtime_device_type() != ::infini::rt::Device::Type::kCpu)
+        GTEST_SKIP() << "The test-only MaxPool provider requires CPU";
+#endif
     resetProbes();
     auto rt = runtime();
     auto g = make_ref<GraphObj>(rt);
@@ -336,6 +383,35 @@ TEST(PreparedResourcesTest, FailedSubmissionAllowsImmediateGraphDestruction) {
     expectReleased();
 }
 #if INFINITENSOR_INFINIRT_HAS_GRAPH_API
+TEST(PreparedResourcesTest,
+     WorkerCaptureAfterMainThreadWarmupRetainsResources) {
+    resetProbes();
+    scratch_test::requireCreatingThread = true;
+    auto rt = runtime();
+    auto g = probe(rt, 1);
+    rt->run(g);
+    std::exception_ptr error;
+    std::thread worker([&] {
+        try {
+            rt->runWithGraph(g);
+        } catch (...) {
+            error = std::current_exception();
+        }
+    });
+    worker.join();
+    ASSERT_FALSE(error);
+    ASSERT_EQ(scratch_test::makes, 2);
+    auto captured = scratch_test::descriptors.back();
+    rt->run(g); // replace ordinary plan without destroying captured resources
+    EXPECT_EQ(scratch_test::makes, 3);
+    EXPECT_FALSE(captured.expired());
+    rt->runWithGraph(g); // replay does not invoke the thread-bound provider
+    EXPECT_EQ(scratch_test::makes, 3);
+    EXPECT_EQ(g->getOutputs()[0]->copyout<float>(), vector<float>(16, 3));
+    rt->clearGraphCache();
+    expectReleased();
+    resetProbes();
+}
 TEST(PreparedResourcesTest, ExplicitClearAndLruReleasePreparedAllocations) {
     resetProbes();
     auto rt = runtime(1);

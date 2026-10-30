@@ -226,7 +226,8 @@ InfiniRuntimeObj::prepare(const Graph &graph) const {
     const auto generation = graph->getCaptureGeneration();
     const auto owner = ordinaryPlan ? ordinaryPlan->owner.lock() : Graph{};
     if (!ordinaryPlan || owner.get() != graph.get() ||
-        ordinaryPlan->generation != generation)
+        ordinaryPlan->generation != generation ||
+        ordinaryPlan->thread != std::this_thread::get_id())
         ordinaryPlan = infiniops::prepareGraph(graph, this);
     return ordinaryPlan;
 }
