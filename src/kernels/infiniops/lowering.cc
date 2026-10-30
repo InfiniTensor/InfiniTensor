@@ -184,12 +184,10 @@ void lowerRope(const Operator &node, const RuntimeObj *context,
     IT_ASSERT(inputDims[0] == posDims[0]);
     IT_ASSERT(inputDims[1] == posDims[1]);
 
-    const size_t batch = static_cast<size_t>(inputDims[0]);
     const size_t seqLen = static_cast<size_t>(inputDims[1]);
     const size_t hidden = static_cast<size_t>(inputDims[2]);
     const size_t headDim = 128;
     IT_ASSERT(hidden % headDim == 0);
-    const size_t numHeads = hidden / headDim;
     const size_t tableDim = headDim / 2;
 
     auto maxPos = readMaxPosition(pos, context);
@@ -198,37 +196,57 @@ void lowerRope(const Operator &node, const RuntimeObj *context,
     std::vector<float> cosHost;
     buildRopeTables(tableLen, tableDim, headDim, sinHost, cosHost);
 
-    const auto tableBytes = tableLen * tableDim * sizeof(float);
-    auto sinBlob = builder.constant(tableBytes, [&](void *ptr) {
-        context->copyBlobFromCPU(ptr, sinHost.data(), tableBytes);
-    });
-    auto cosBlob = builder.constant(tableBytes, [&](void *ptr) {
-        context->copyBlobFromCPU(ptr, cosHost.data(), tableBytes);
-    });
-
-    ::infini::rt::TensorView::Shape ropeShape{batch, seqLen, numHeads, headDim};
-    ::infini::rt::TensorView::Strides ropeStrides{
-        static_cast<::infini::rt::TensorView::Stride>(seqLen * hidden),
-        static_cast<::infini::rt::TensorView::Stride>(hidden),
-        static_cast<::infini::rt::TensorView::Stride>(headDim), 1};
-    ::infini::rt::TensorView::Shape tableShape{tableLen, tableDim};
-
-    auto inputView = infiniops::makeInfiniOpsTensor(
-        input->getRawDataPtr<void *>(), ropeShape,
-        infiniops::toInfiniOpsDataType(input->getDType()), context,
-        ropeStrides);
+    // RotaryEmbedding uses a packed [cos, sin] cache and updates query in
+    // place. Its NeoX flag denotes half-split rotation (the legacy flag was
+    // inverted).
+    std::vector<float> cacheHost(tableLen * headDim);
+    for (size_t row = 0; row < tableLen; ++row) {
+        std::copy_n(cosHost.data() + row * tableDim, tableDim,
+                    cacheHost.data() + row * headDim);
+        std::copy_n(sinHost.data() + row * tableDim, tableDim,
+                    cacheHost.data() + row * headDim + tableDim);
+    }
+    const auto dtype = input->getDType();
+    auto cache =
+        builder.constant(cacheHost.size() * dtype.getSize(), [&](void *ptr) {
+            if (dtype == ::infini::DataType::Float32) {
+                context->copyBlobFromCPU(ptr, cacheHost.data(),
+                                         cacheHost.size() * sizeof(float));
+            } else {
+                IT_ASSERT(dtype == ::infini::DataType::Float16 ||
+                          dtype == ::infini::DataType::BFloat16);
+                std::vector<uint16_t> encoded(cacheHost.size());
+                const auto encode = dtype == ::infini::DataType::Float16
+                                        ? float_to_fp16
+                                        : float_to_bfp16;
+                std::transform(cacheHost.begin(), cacheHost.end(),
+                               encoded.begin(), encode);
+                context->copyBlobFromCPU(ptr, encoded.data(),
+                                         encoded.size() * sizeof(uint16_t));
+            }
+        });
     auto posView = infiniops::toInfiniOpsTensor(pos, context);
-    auto sinView = infiniops::makeInfiniOpsTensor(
-        sinBlob.get(), tableShape, ::infini::rt::DataType::kFloat32, context);
-    auto cosView = infiniops::makeInfiniOpsTensor(
-        cosBlob.get(), tableShape, ::infini::rt::DataType::kFloat32, context);
-    auto outputView = infiniops::makeInfiniOpsTensor(
-        output->getRawDataPtr<void *>(), ropeShape,
-        infiniops::toInfiniOpsDataType(output->getDType()), context,
-        ropeStrides);
-
-    builder.emit("RotaryEmbeddingInfinilm", inputView, posView, sinView,
-                 cosView, false, outputView);
+    std::optional<TensorView> convertedPos;
+    if (pos->getDType() == ::infini::DataType::Int32) {
+        auto ids =
+            builder.constant(pos->size() * sizeof(int64_t), [](void *) {});
+        const TensorView::Shape shape(posView.shape().begin(),
+                                      posView.shape().end());
+        convertedPos.emplace(makeInfiniOpsTensor(
+            ids.get(), shape, ::infini::rt::DataType::kInt64, context));
+        builder.emit("Cast", posView, *convertedPos);
+    }
+    auto cacheView = makeInfiniOpsTensor(cache.get(), {tableLen, headDim},
+                                         toInfiniOpsDataType(dtype), context);
+    auto outputView = infiniops::toInfiniOpsTensor(output, context);
+    builder.plan.steps.push_back(
+        {[context, src = input.get(), dst = output.get()](const Handle &) {
+             context->copyBlob(dst, src);
+         },
+         true, "RoPE input copy"});
+    builder.emit("RotaryEmbedding", convertedPos ? *convertedPos : posView,
+                 outputView, std::optional<TensorView>{}, cacheView,
+                 int64_t(headDim), true, int64_t{0}, false);
 }
 
 bool lower(const Operator &node, const RuntimeObj *runtime, Builder &builder) {
@@ -378,11 +396,9 @@ bool lower(const Operator &node, const RuntimeObj *runtime, Builder &builder) {
         const std::vector<int64_t> kernel{op->getKh(), op->getKw()},
             stride{sh, sw}, padding{ph, pw};
         if (type == OpType::MaxPool)
-            builder.emit("MaxPool2dWithIndices", input(), kernel, stride,
-                         padding, std::vector<int64_t>{dh, dw},
-                         op->getCeilMode() != 0, output(),
-                         temporary(builder, runtime, op->getOutput()->getDims(),
-                                   ::infini::DataType::Int64));
+            builder.emit("MaxPool2d", input(), kernel, stride, padding,
+                         std::vector<int64_t>{dh, dw}, op->getCeilMode() != 0,
+                         output());
         else {
             IT_ASSERT(dh == 1 && dw == 1, "AvgPool dilation is unsupported");
             builder.emit("AvgPool2d", input(), kernel, stride, padding,

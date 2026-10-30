@@ -11,6 +11,10 @@ InfiniTensor 负责计算图、ONNX 前端和执行调度。加速设备的算�
 - 构建加速后端时，使用与 InfiniOps 相同的 Python/PyTorch 及 C++11 ABI；
 - 驱动、厂商 SDK、InfiniRT 和 InfiniOps 已在目标机器上完成各自的基础验证。
 
+使用昇腾 ATen provider 的 C++ 宿主需要先用匹配环境的 Python executable 配置解释器并导入 `torch`、`torch_npu`，且调用线程可以取得 GIL；Python 接口会加载 `INFINIOPS_PROVIDER_MODULES` 指定的模块。未初始化的 C++ 调用会明确报错。独立 C++ 测试使用 CMake 选定的 Python 来初始化环境，以保持标准库、site-packages 和厂商编译子进程的一致性；测试运行时仍需指定对应 provider 模块。这些要求不适用于纯原生 provider。
+
+运行旧 IR 的 RoPE 时，安装的 Ops SDK 需要导出 `RotaryEmbedding`；不再依赖已弃用的 `RotaryEmbeddingInfinilm`。按设备与 SDK 能力选择已有原生或 ATen 实现，均通过同一个公开接口调用。
+
 普通 Release 构建默认 `BACKTRACE=OFF`，不需要 `libdw-dev`。只有启用 backtrace 时才需要该系统依赖。
 
 ## 获取源码

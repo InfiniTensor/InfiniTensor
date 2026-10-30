@@ -1,9 +1,11 @@
 #include "../../src/kernels/infiniops/lowering.h"
+#include "../../src/kernels/infiniops/tensor_view.h"
 #include "core/infini_runtime.h"
 #include "operators/infini_op.h"
 #include "operators/pooling.h"
 #include "operators/unary.h"
 #include "test.h"
+#include "test_infini_aten.h"
 #include <cstring>
 #include <thread>
 
@@ -84,6 +86,7 @@ using infiniops::Values;
 using infiniops::WorkspaceAllocator;
 using Bindings = std::map<std::string, TensorVec>;
 Ref<InfiniRuntimeObj> runtime(size_t capacity = 2) {
+    initializeTestAtenProviders();
     return make_ref<InfiniRuntimeObj>(
         string(::infini::rt::Device::StringFromType(
             ::infini::rt::runtime_device_type())),
@@ -109,29 +112,24 @@ Ref<InfiniRuntimeObj> runtime(size_t capacity = 2) {
         // arithmetic for this fixture; graph/lowering/planning remain
         // production.
         Registry::instance().add(
-            "MaxPool2dWithIndices",
+            "MaxPool2d",
             {{"input", "Tensor"},
              {"kernel", "std::vector<int64_t>"},
              {"stride", "std::vector<int64_t>"},
              {"padding", "std::vector<int64_t>"},
              {"dilation", "std::vector<int64_t>"},
              {"ceil", "bool"},
-             {"out", "Tensor"},
-             {"indices", "Tensor"}},
+             {"out", "Tensor"}},
             [](const Values &v, const WorkspaceAllocator &) -> Step {
                 IT_ASSERT(std::get<std::vector<int64_t>>(v[1]) ==
                           std::vector<int64_t>({1, 1}));
                 auto in = std::get<TensorView>(v[0]),
                      out = std::get<TensorView>(v[6]);
-                auto indices = std::get<TensorView>(v[7]);
                 IT_ASSERT(in.device().type() ==
                           ::infini::rt::Device::Type::kCpu);
-                return {[in, out, indices](const Handle &) mutable {
+                return {[in, out](const Handle &) mutable {
                             std::memcpy(out.data(), in.data(),
                                         in.numel() * sizeof(float));
-                            auto *p = static_cast<int64_t *>(indices.data());
-                            for (size_t i = 0; i < indices.numel(); ++i)
-                                p[i] = i;
                         },
                         false, "CPU test-only 1x1 MaxPool"};
             });
@@ -245,7 +243,7 @@ TEST(PreparedResourcesTest, WorkspacePeakIsIndependentOfNodeCountAndCached) {
         expectReleased();
     }
 }
-TEST(PreparedResourcesTest, RealMaxPoolTemporaryPeakDoesNotAccumulate) {
+TEST(PreparedResourcesTest, RealMaxPoolDoesNotAllocateUnusedIndexStorage) {
 #if !INFINITENSOR_TEST_HAS_ATEN
     if (::infini::rt::runtime_device_type() != ::infini::rt::Device::Type::kCpu)
         GTEST_SKIP() << "The test-only MaxPool provider requires CPU";
@@ -270,8 +268,8 @@ TEST(PreparedResourcesTest, RealMaxPoolTemporaryPeakDoesNotAccumulate) {
             allocations.push_back(p);
             return p;
         });
-        EXPECT_EQ(plan->plan.temporaryBytes, 256u * 256 * sizeof(int64_t));
-        EXPECT_EQ(requests, vector<size_t>{256u * 256 * sizeof(int64_t)});
+        EXPECT_EQ(plan->plan.temporaryBytes, 0u);
+        EXPECT_TRUE(requests.empty());
         std::cout << nlohmann::json{{"case", "maxpool"},
                                     {"nodes", count},
                                     {"helper_bytes", plan->plan.temporaryBytes},
@@ -310,33 +308,28 @@ TEST(PreparedResourcesTest, AllocationFailureReleasesPreparedDescriptors) {
     expectReleased();
 }
 TEST(PreparedResourcesTest, LaterFailureReleasesAlreadyAllocatedHelperStorage) {
-#if !INFINITENSOR_TEST_HAS_ATEN
-    if (::infini::rt::runtime_device_type() != ::infini::rt::Device::Type::kCpu)
-        GTEST_SKIP() << "The test-only MaxPool provider requires CPU";
-#endif
     resetProbes();
     auto rt = runtime();
-    auto g = make_ref<GraphObj>(rt);
-    auto x = g->addTensor({1, 1, 256, 256}, DataType::Float32);
-    x->setInput();
-    auto pooled = g->addOp<MaxPoolObj>(x, nullptr, 1, 1, 1, 1, 0, 0, 1, 1, 0)
-                      ->getOutput();
-    auto y = g->addTensor({16}, DataType::Float32);
-    y->setOutput();
-    g->addOp<InfiniOpObj>("PreparedScratchProbe", Bindings{{"input", {pooled}}},
-                          Bindings{{"out", {y}}});
-    g->dataMalloc();
+    auto g = probe(rt, 1);
     int requests = 0;
     std::weak_ptr<void> helper;
-    EXPECT_THROW(prepareGraph(g, rt.get(),
-                              [&](size_t bytes) {
-                                  if (++requests == 2)
-                                      throw std::bad_alloc();
-                                  auto data = rt->acquireWorkspace(bytes);
-                                  helper = data;
-                                  return data;
-                              }),
-                 std::bad_alloc);
+    const auto allocate = [&](size_t bytes) {
+        if (++requests == 2)
+            throw std::bad_alloc();
+        auto data = rt->acquireWorkspace(bytes);
+        helper = data;
+        return data;
+    };
+    EXPECT_THROW(
+        ([&] {
+            infiniops::Builder builder(allocate, 512 * 1024);
+            builder.emit(
+                "PreparedScratchProbe",
+                infiniops::toInfiniOpsTensor(g->getInputs()[0], rt.get()),
+                infiniops::toInfiniOpsTensor(g->getOutputs()[0], rt.get()));
+            builder.finalize();
+        }()),
+        std::bad_alloc);
     EXPECT_EQ(requests, 2);
     EXPECT_TRUE(helper.expired());
     expectReleased();
