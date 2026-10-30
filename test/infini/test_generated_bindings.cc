@@ -8,6 +8,7 @@
 #include "test.h"
 #include <cmath>
 #include <map>
+#include <thread>
 
 namespace infini {
 namespace {
@@ -16,6 +17,43 @@ Ref<InfiniRuntimeObj> runtime() {
     return make_ref<InfiniRuntimeObj>(
         string(::infini::rt::Device::StringFromType(
             ::infini::rt::runtime_device_type())));
+}
+TEST(GeneratedInfiniOpsTest, NvidiaGemmCanMoveFromWarmupToWorker) {
+    if (::infini::rt::runtime_device_type() !=
+            ::infini::rt::Device::Type::kNvidia ||
+        infiniops::Registry::instance().schemas().find("Gemm") == string::npos)
+        GTEST_SKIP() << "Requires an SDK with native NVIDIA Gemm";
+    auto rt = runtime();
+    auto graph = make_ref<GraphObj>(rt);
+    auto a = graph->addTensor({2, 3}, DataType::Float32);
+    auto b = graph->addTensor({3, 4}, DataType::Float32);
+    auto y = graph->addTensor({2, 4}, DataType::Float32);
+    a->setInput();
+    b->setInput();
+    y->setOutput();
+    graph->addOp<InfiniOpObj>("Gemm", Bindings{{"a", {a}}, {"b", {b}}},
+                              Bindings{{"y", {y}}});
+    graph->dataMalloc();
+    a->copyin(vector<float>(6, 1));
+    b->copyin(vector<float>(12, 1));
+    rt->run(graph);
+    std::exception_ptr error;
+    std::thread worker([&] {
+        try {
+            rt->run(graph);
+            rt->runWithGraph(graph);
+        } catch (...) {
+            error = std::current_exception();
+        }
+    });
+    worker.join();
+    if (error) {
+        EXPECT_NO_THROW(std::rethrow_exception(error));
+    }
+    EXPECT_EQ(y->copyout<float>(), vector<float>(8, 3));
+    EXPECT_EQ(rt->getGraphCaptureCount(), 1u);
+    rt->runWithGraph(graph);
+    rt->clearGraphCache();
 }
 TEST(GeneratedInfiniOpsTest, GenericNodeWithNamedAttributesAndClone) {
     auto rt = runtime();

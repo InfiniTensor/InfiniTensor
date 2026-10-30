@@ -33,8 +33,9 @@ cmake -S "$src" -B "$work/build-it" \
     -DINFINIOPS_ROOT="$work/prefix" -DINFINIRT_ROOT="$work/prefix" \
     -DINFINIOPS_CXX11_ABI=1 -DPython_EXECUTABLE="$py"
 cmake --build "$work/build-it" --target test_copy_graph_capture \
-    test_rms_norm test_rms_norm_safety -j "$jobs"
+    test_rms_norm test_rms_norm_safety test_prepared_resources -j "$jobs"
 "$work/build-it/test_copy_graph_capture" \
     --gtest_filter=InfiniCopyLifetimeTest.*
 "$work/build-it/test_rms_norm"
 "$work/build-it/test_rms_norm_safety"
+"$work/build-it/test_prepared_resources"
