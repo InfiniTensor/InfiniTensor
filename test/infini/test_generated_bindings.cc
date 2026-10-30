@@ -6,6 +6,7 @@
 #include "operators/rope.h"
 #include "operators/unary.h"
 #include "test.h"
+#include "test_infini_aten.h"
 #include <cmath>
 #include <map>
 #include <thread>
@@ -14,10 +15,36 @@ namespace infini {
 namespace {
 using Bindings = std::map<std::string, TensorVec>;
 Ref<InfiniRuntimeObj> runtime() {
+    initializeTestAtenProviders();
     return make_ref<InfiniRuntimeObj>(
         string(::infini::rt::Device::StringFromType(
             ::infini::rt::runtime_device_type())));
 }
+#if INFINITENSOR_TEST_HAS_ATEN
+TEST(GeneratedInfiniOpsTest, UninitializedAscendAtenFailsWithoutCrashing) {
+    if (::infini::rt::runtime_device_type() !=
+        ::infini::rt::Device::Type::kAscend)
+        GTEST_SKIP() << "Requires the Ascend ATen provider";
+    ASSERT_FALSE(Py_IsInitialized());
+    auto rt = make_ref<InfiniRuntimeObj>("ascend");
+    auto graph = make_ref<GraphObj>(rt);
+    auto x = graph->addTensor({1}, DataType::Float32);
+    auto y = graph->addTensor({1}, DataType::Float32);
+    graph->addOp<InfiniOpObj>("Erf", Bindings{{"input", {x}}},
+                              Bindings{{"out", {y}}});
+    graph->dataMalloc();
+    x->copyin(vector<float>{1});
+    y->copyin(vector<float>{77});
+    try {
+        rt->run(graph);
+        FAIL() << "Uninitialized provider must be rejected";
+    } catch (const std::exception &error) {
+        EXPECT_NE(string(error.what()).find("initialized Python"),
+                  string::npos);
+    }
+    EXPECT_EQ(y->copyout<float>(), vector<float>{77});
+}
+#endif
 TEST(GeneratedInfiniOpsTest, NvidiaGemmCanMoveFromWarmupToWorker) {
     if (::infini::rt::runtime_device_type() !=
             ::infini::rt::Device::Type::kNvidia ||
@@ -155,34 +182,52 @@ TEST(GeneratedInfiniOpsTest,
 #if INFINITENSOR_TEST_HAS_ATEN
 TEST(GeneratedInfiniOpsTest, RopeReadsPositionsAfterProducerOnEveryRun) {
     auto rt = runtime();
-    auto graph = make_ref<GraphObj>(rt);
-    auto positions = graph->addTensor({1, 2}, DataType::Int64);
-    auto x = graph->addTensor({1, 2, 128}, DataType::Float32);
-    positions->setInput();
-    x->setInput();
-    auto produced = graph->addOp<IdentityObj>(positions, nullptr)->getOutput();
-    auto y = graph->addOp<RoPEObj>(produced, x, nullptr)->getOutput();
-    y->setOutput();
-    graph->dataMalloc();
-    x->copyin(vector<float>(256, 1));
-    for (int64_t position : {3, 7, 1}) {
-        positions->copyin(vector<int64_t>{position, position + 1});
-        rt->run(graph);
-        auto result = y->copyout<float>();
-        for (int token = 0; token < 2; ++token) {
-            for (int feature = 0; feature < 64; ++feature) {
-                const float angle =
-                    (position + token) *
-                    std::pow(10000.0f, -2.0f * feature / 128.0f);
-                EXPECT_NEAR(result[token * 128 + feature],
-                            std::cos(angle) - std::sin(angle), 1e-5);
-                EXPECT_NEAR(result[token * 128 + feature + 64],
-                            std::cos(angle) + std::sin(angle), 1e-5);
+    for (auto positionType : {DataType::Int64, DataType::Int32}) {
+        auto graph = make_ref<GraphObj>(rt);
+        auto positions = graph->addTensor({1, 2}, positionType);
+        auto x = graph->addTensor({1, 2, 128}, DataType::Float32);
+        positions->setInput();
+        x->setInput();
+        auto produced =
+            graph->addOp<IdentityObj>(positions, nullptr)->getOutput();
+        auto y = graph->addOp<RoPEObj>(produced, x, nullptr)->getOutput();
+        y->setOutput();
+        graph->dataMalloc();
+        vector<float> values(256);
+        for (size_t i = 0; i < values.size(); ++i)
+            values[i] = (int(i % 23) - 11) / 16.f;
+        x->copyin(values);
+        for (int64_t position : {3, 7, 1}) {
+            if (positionType == DataType::Int64)
+                positions->copyin(vector<int64_t>{position, position + 1});
+            else
+                positions->copyin(
+                    vector<int32_t>{int32_t(position), int32_t(position + 1)});
+            rt->run(graph);
+            auto result = y->copyout<float>();
+            EXPECT_EQ(x->copyout<float>(), values);
+            for (int token = 0; token < 2; ++token) {
+                for (int feature = 0; feature < 64; ++feature) {
+                    const float angle =
+                        (position + token) *
+                        std::pow(10000.0f, -2.0f * feature / 128.0f);
+                    EXPECT_NEAR(result[token * 128 + feature],
+                                values[token * 128 + feature] *
+                                        std::cos(angle) -
+                                    values[token * 128 + feature + 64] *
+                                        std::sin(angle),
+                                1e-5);
+                    EXPECT_NEAR(
+                        result[token * 128 + feature + 64],
+                        values[token * 128 + feature + 64] * std::cos(angle) +
+                            values[token * 128 + feature] * std::sin(angle),
+                        1e-5);
+                }
             }
         }
+        EXPECT_THROW(rt->runWithGraph(graph), std::exception);
+        rt->run(graph);
     }
-    EXPECT_THROW(rt->runWithGraph(graph), std::exception);
-    rt->run(graph);
 }
 TEST(GeneratedInfiniOpsTest, AddedSdkOperatorsRequireNoHandwrittenBridge) {
     const auto schemas =
@@ -206,12 +251,16 @@ TEST(GeneratedInfiniOpsTest, AddedSdkOperatorsRequireNoHandwrittenBridge) {
         for (float v : values)
             expected.push_back(string(name) == "Abs" ? std::abs(v)
                                                      : std::erf(v));
-        EXPECT_TRUE(
-            y->clone(NativeCpuRuntimeObj::getInstance())->equalData(expected));
+        auto actual = y->copyout<float>();
+        for (size_t i = 0; i < expected.size(); ++i)
+            EXPECT_NEAR(actual[i], expected[i],
+                        string(name) == "Abs" ? 0.f : 1e-5f);
         EXPECT_THROW(rt->runWithGraph(graph), std::exception);
         rt->run(graph);
-        EXPECT_TRUE(
-            y->clone(NativeCpuRuntimeObj::getInstance())->equalData(expected));
+        actual = y->copyout<float>();
+        for (size_t i = 0; i < expected.size(); ++i)
+            EXPECT_NEAR(actual[i], expected[i],
+                        string(name) == "Abs" ? 0.f : 1e-5f);
     }
     auto graph = make_ref<GraphObj>(rt);
     auto x = graph->addTensor({2, 3}, DataType::Float32);

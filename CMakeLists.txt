@@ -429,7 +429,8 @@ function(build_test files)
     add_executable(${testname} ${testsourcefile})
     target_link_libraries(${testname} InfiniTensor GTest::gtest_main)
     target_compile_definitions(${testname} PRIVATE
-      INFINITENSOR_TEST_HAS_ATEN=$<BOOL:${USE_INFINIOPS_ATEN_KERNELS}>)
+      INFINITENSOR_TEST_HAS_ATEN=$<BOOL:${USE_INFINIOPS_ATEN_KERNELS}>
+      INFINITENSOR_TEST_PYTHON_DEFAULT="${Python_EXECUTABLE}")
     add_test(NAME ${testname} COMMAND ${testname})
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND
        USE_INFINIOPS_ATEN_KERNELS AND INFINIOPS_PROVIDER_LIBRARY_DIRS)
