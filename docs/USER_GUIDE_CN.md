@@ -209,8 +209,11 @@ DataType 属性可使用 ONNX 类型编号或 InfiniRT 类型名称（如 `float
 旧 IR 与 InfiniOps 参数有差异时只在 `lowering.cc` 保留语义适配。
 
 普通执行和 Graph 共用同一份准备计划、实际算子实例和工作区。
-准备时先计算临时张量布局，再分配一块按节点峰值复用的临时区；所有算子的工作区
-共用另一块按最大请求分配的空间。只读常量独立保留，不会被后续节点的临时结果覆盖。
+准备时先计算临时张量布局，再分配一块按节点峰值复用的临时区；InfiniTensor 管理的
+外部 workspace 共用另一块按最大请求分配的空间。当前部分 Cambricon provider 仍会为
+每个准备实例保留内部默认 workspace，因此总 workspace 占用仍可能随节点数增加。
+这些内部缓冲随实例销毁释放；延迟分配优化留待 InfiniOps 后续处理。
+只读常量独立保留，不会被后续节点的临时结果覆盖。
 共享区域在同一 runtime stream 上按节点顺序使用，Graph 捕获期间地址不变。
 `clear_graph_cache()` 会同步已提交工作并释放相应准备资源，包括普通执行缓存；
 捕获失败和 LRU 淘汰也会解除匹配的普通计划引用。
@@ -229,4 +232,6 @@ RMSNorm 在形状推导及调用前检查非标量输入、正的末维、权重
 python scripts/tests/test_generate_infiniops_bindings.py
 # SDK 需包含 RmsNorm、Cat、Softmax、Abs、Erf；缺少能力直接失败。
 python pyinfinitensor/tests/test_infiniops_bindings.py
+# 加速设备 ATen SDK 还需包含 ScaledDotProductAttention，验证普通执行的跨 stream 顺序。
+python pyinfinitensor/tests/test_infiniops_stream.py
 ```

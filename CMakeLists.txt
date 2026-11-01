@@ -28,7 +28,6 @@ project(InfiniTensor C CXX)
 cmake_dependent_option(BUILD_TEST_CORE "Build tests for core components" ON BUILD_TEST OFF)
 cmake_dependent_option(BUILD_TEST_PET "Build tests for PET" OFF BUILD_TEST OFF)
 
-set(DEFAULT_BUILD_TYPE "RelWithDebInfo")
 # Build Type
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     message("Configuring for Debug build.")
@@ -350,7 +349,6 @@ if(USE_PROTOBUF)
 endif()
 
 if(USE_INFINIOPS_KERNELS)
-  target_compile_definitions(InfiniTensor PRIVATE USE_INFINIOPS_KERNELS=1)
   target_include_directories(InfiniTensor PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/kernels/infiniops")
   target_include_directories(InfiniTensor SYSTEM PRIVATE
                              ${INFINIOPS_INCLUDE_DIR})
@@ -400,10 +398,6 @@ if(USE_BACKTRACE)
   add_backward(InfiniTensor)
   target_link_libraries(InfiniTensor dw)
 endif()
-
-# # Python bindings
-# pybind11_add_module(infini MODULE ${FFI})
-# target_link_libraries(infini PRIVATE infini_cpp)
 
 function(build_test files)
   # Non-recursive glob for skip failed tests
