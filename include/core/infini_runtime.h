@@ -31,11 +31,9 @@ class InfiniRuntimeObj final : public RuntimeObj {
         const TensorObj *tensor;
         int dtype;
         vector<int> shape;
-        size_t tensorBytes;
         uint64_t storageId;
         size_t storageOffset;
         size_t blobBytes;
-        const void *address;
 
         bool operator==(const CapturedTensorState &other) const;
     };
@@ -49,15 +47,14 @@ class InfiniRuntimeObj final : public RuntimeObj {
     };
 
     struct GraphCacheEntry {
-        WRef<GraphObj> owner;
         CapturedGraphState state;
         ::infini::rt::runtime::Graph graph{};
         ::infini::rt::runtime::GraphExec instance{};
         vector<CaptureWorkspace> workspaces;
         std::shared_ptr<infiniops::PreparedGraph> prepared;
 
-        GraphCacheEntry(WRef<GraphObj> owner, CapturedGraphState state)
-            : owner(std::move(owner)), state(std::move(state)) {}
+        explicit GraphCacheEntry(CapturedGraphState state)
+            : state(std::move(state)) {}
     };
 
     using GraphCache = std::list<std::unique_ptr<GraphCacheEntry>>;

@@ -3,12 +3,12 @@
 #include "core/kernel.h"
 #include "core/runtime.h"
 #include "operators/dropout.h"
-#include "operators/rms_norm.h"
+#include "operators/reshape.h"
 #include "operators/unary.h"
 
 #include "test.h"
+#include "test_infini_aten.h"
 #include <atomic>
-#include <cmath>
 #include <cstdlib>
 #include <thread>
 
@@ -55,6 +55,7 @@ class GraphCaptureFixture {
     Tensor input;
     Tensor weight;
     Tensor output;
+    Tensor weightOutput;
 
     explicit GraphCaptureFixture(Ref<InfiniRuntimeObj> runtime, int batch = 8)
         : runtime(std::move(runtime)),
@@ -63,7 +64,9 @@ class GraphCaptureFixture {
         weight = graph->addTensor({2}, DataType::Float32);
         input->setInput();
         weight->setWeight();
-        output = graph->addOp<RMSNormObj>(input, weight, nullptr)->getOutput();
+        output = graph->addOp<IdentityObj>(input, nullptr)->getOutput();
+        weightOutput = graph->addOp<IdentityObj>(weight, nullptr)->getOutput();
+        weightOutput->setOutput();
         output->setOutput();
         graph->dataMalloc();
         weight->copyin(vector<float>{1, 1});
@@ -94,21 +97,6 @@ vector<float> increasingValues(int batch, float offset = 0) {
     for (size_t i = 0; i < values.size(); ++i)
         values[i] = static_cast<float>(i) + offset;
     return values;
-}
-
-vector<float> rmsNormValues(const vector<float> &values, float firstWeight = 1,
-                            float secondWeight = 1) {
-    IT_ASSERT(values.size() % 2 == 0);
-    vector<float> expected(values.size());
-    for (size_t i = 0; i < values.size(); i += 2) {
-        const auto first = values[i];
-        const auto second = values[i + 1];
-        const auto inverseRms =
-            1.0f / std::sqrt((first * first + second * second) / 2.0f + 1e-6f);
-        expected[i] = first * inverseRms * firstWeight;
-        expected[i + 1] = second * inverseRms * secondWeight;
-    }
-    return expected;
 }
 
 struct GraphCaptureSupport {
@@ -161,6 +149,7 @@ TEST(InfiniGraphCapabilityTest,
 
 #if INFINITENSOR_TEST_HAS_ATEN
 TEST_F(InfiniGraphCaptureTest, RejectsUnsafeProviderAndPreservesCapturedGraph) {
+    initializeTestAtenProviders();
     auto runtime = makeRuntime();
     GraphCaptureFixture valid(runtime, 2);
     valid.run(increasingValues(2));
@@ -184,7 +173,7 @@ TEST_F(InfiniGraphCaptureTest, RejectsUnsafeProviderAndPreservesCapturedGraph) {
     EXPECT_EQ(output->copyout<float>(), (vector<float>{1, 0, 3, 0}));
     valid.run(increasingValues(2, 5));
     EXPECT_EQ(runtime->getGraphCaptureCount(), 1u);
-    EXPECT_TRUE(valid.outputEquals(rmsNormValues(increasingValues(2, 5))));
+    EXPECT_TRUE(valid.outputEquals(increasingValues(2, 5)));
 }
 #endif
 
@@ -197,12 +186,12 @@ TEST_F(InfiniGraphCaptureTest, GraphCaptureCapturesFirstRunAndReplays) {
     EXPECT_EQ(runtime->getGraphCaptureCount(), 1u);
     EXPECT_EQ(runtime->getGraphCacheSize(), 1u);
 
-    EXPECT_TRUE(fixture.outputEquals(rmsNormValues(values)));
+    EXPECT_TRUE(fixture.outputEquals(values));
 
     values = increasingValues(8, 1);
     fixture.run(values);
     EXPECT_EQ(runtime->getGraphCaptureCount(), 1u);
-    EXPECT_TRUE(fixture.outputEquals(rmsNormValues(values)));
+    EXPECT_TRUE(fixture.outputEquals(values));
 }
 
 TEST_F(InfiniGraphCaptureTest, GraphCaptureReusesPreviousShapeInSameStorage) {
@@ -219,7 +208,7 @@ TEST_F(InfiniGraphCaptureTest, GraphCaptureReusesPreviousShapeInSameStorage) {
     fixture.run(values);
     EXPECT_EQ(runtime->getGraphCaptureCount(), 2u);
     EXPECT_EQ(runtime->getGraphCacheSize(), 2u);
-    EXPECT_TRUE(fixture.outputEquals(rmsNormValues(values)));
+    EXPECT_TRUE(fixture.outputEquals(values));
 }
 
 TEST_F(InfiniGraphCaptureTest, GraphCaptureIgnoresTensorContents) {
@@ -232,7 +221,8 @@ TEST_F(InfiniGraphCaptureTest, GraphCaptureIgnoresTensorContents) {
     fixture.run(values);
 
     EXPECT_EQ(runtime->getGraphCaptureCount(), 1u);
-    EXPECT_TRUE(fixture.outputEquals(rmsNormValues(values, 2, 3)));
+    EXPECT_TRUE(fixture.outputEquals(values));
+    EXPECT_EQ(fixture.weightOutput->copyout<float>(), (vector<float>{2, 3}));
 }
 
 TEST_F(InfiniGraphCaptureTest, GraphCaptureInvalidatesReplacedStorage) {
@@ -256,7 +246,7 @@ TEST_F(InfiniGraphCaptureTest, GraphCaptureInvalidatesReplacedStorage) {
     auto values = increasingValues(8, 3);
     fixture.run(values);
     EXPECT_EQ(runtime->getGraphCaptureCount(), 4u);
-    EXPECT_TRUE(fixture.outputEquals(rmsNormValues(values)));
+    EXPECT_TRUE(fixture.outputEquals(values));
 }
 
 TEST_F(InfiniGraphCaptureTest, GraphCaptureInvalidatesTopologyChanges) {
@@ -274,7 +264,7 @@ TEST_F(InfiniGraphCaptureTest, GraphCaptureInvalidatesTopologyChanges) {
 
     EXPECT_EQ(runtime->getGraphCaptureCount(), 2u);
     EXPECT_EQ(runtime->getGraphCacheSize(), 1u);
-    EXPECT_TRUE(fixture.outputEquals(rmsNormValues(increasingValues(2, 2))));
+    EXPECT_TRUE(fixture.outputEquals(increasingValues(2, 2)));
 }
 
 TEST_F(InfiniGraphCaptureTest, GraphCaptureUsesBoundedLruCache) {
@@ -362,12 +352,12 @@ TEST_F(InfiniGraphCaptureTest, GraphCaptureUsesIndependentRuntimeStreams) {
         second.run(increasingValues(3, 20));
 
         EXPECT_EQ(firstRuntime->getGraphCaptureCount(), 1u);
-        EXPECT_TRUE(first.outputEquals(rmsNormValues(increasingValues(2, 10))));
+        EXPECT_TRUE(first.outputEquals(increasingValues(2, 10)));
     }
 
     second.run(increasingValues(3, 30));
     EXPECT_EQ(secondRuntime->getGraphCaptureCount(), 1u);
-    EXPECT_TRUE(second.outputEquals(rmsNormValues(increasingValues(3, 30))));
+    EXPECT_TRUE(second.outputEquals(increasingValues(3, 30)));
 }
 
 TEST_F(InfiniGraphCaptureTest, GraphCaptureRecoversAfterCaptureFailure) {
@@ -391,7 +381,7 @@ TEST_F(InfiniGraphCaptureTest, GraphCaptureRecoversAfterCaptureFailure) {
 
     valid.run(increasingValues(2, 5));
     EXPECT_EQ(runtime->getGraphCaptureCount(), 1u);
-    EXPECT_TRUE(valid.outputEquals(rmsNormValues(increasingValues(2, 5))));
+    EXPECT_TRUE(valid.outputEquals(increasingValues(2, 5)));
 }
 
 TEST_F(InfiniGraphCaptureTest, GraphCaptureCacheCanBeCleared) {

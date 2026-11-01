@@ -60,10 +60,8 @@ bool isRuntimeDeviceEnabled(::infini::rt::Device::Type device) {
 bool InfiniRuntimeObj::CapturedTensorState::operator==(
     const CapturedTensorState &other) const {
     return tensor == other.tensor && dtype == other.dtype &&
-           shape == other.shape && tensorBytes == other.tensorBytes &&
-           storageId == other.storageId &&
-           storageOffset == other.storageOffset &&
-           blobBytes == other.blobBytes && address == other.address;
+           shape == other.shape && storageId == other.storageId &&
+           storageOffset == other.storageOffset && blobBytes == other.blobBytes;
 }
 
 bool InfiniRuntimeObj::CapturedGraphState::operator==(
@@ -242,8 +240,7 @@ InfiniRuntimeObj::captureStateOf(const Graph &graph) const {
         IT_ASSERT(blob != nullptr, "Cannot capture a Tensor without memory");
         state.tensors.emplace_back(CapturedTensorState{
             tensor.get(), tensor->getDTypeIndex(), tensor->getDims(),
-            tensor->getBytes(), blob->getStorageId(), blob->getStorageOffset(),
-            blob->getBytes(), tensor->getRawDataPtr<const void *>()});
+            blob->getStorageId(), blob->getStorageOffset(), blob->getBytes()});
     }
     return state;
 }
@@ -260,8 +257,7 @@ void InfiniRuntimeObj::recoverExecutionStreamAfterFailure() noexcept {
 
 std::unique_ptr<InfiniRuntimeObj::GraphCacheEntry>
 InfiniRuntimeObj::captureGraph(const Graph &graph, CapturedGraphState state) {
-    auto entry = std::make_unique<GraphCacheEntry>(WRef<GraphObj>(graph),
-                                                   std::move(state));
+    auto entry = std::make_unique<GraphCacheEntry>(std::move(state));
     bool captureStarted = false;
     IT_ASSERT(captureWorkspaces == nullptr, "Nested graph preparation");
     captureWorkspaceCursor = 0;
@@ -373,7 +369,7 @@ void InfiniRuntimeObj::clearActiveGraph(const GraphCacheEntry *entry) noexcept {
 
 void InfiniRuntimeObj::purgeExpiredGraphCacheEntries() noexcept {
     for (auto it = graphCache.begin(); it != graphCache.end();) {
-        if ((*it)->owner.expired()) {
+        if ((*it)->prepared->owner.expired()) {
             clearActiveGraph(it->get());
             destroyGraphEntry(**it);
             it = graphCache.erase(it);
@@ -426,7 +422,7 @@ void InfiniRuntimeObj::runWithGraph(const Graph &graph) {
         active->second.generation == generation) {
         auto cacheEntry = active->second.entry;
         auto *entry = cacheEntry->get();
-        auto owner = entry->owner.lock();
+        auto owner = entry->prepared->owner.lock();
         if (owner && owner.get() == graph.get()) {
             graphCache.splice(graphCache.begin(), graphCache, cacheEntry);
             try {
@@ -449,7 +445,7 @@ void InfiniRuntimeObj::runWithGraph(const Graph &graph) {
     auto state = captureStateOf(graph);
     auto hit = std::find_if(graphCache.begin(), graphCache.end(),
                             [&state, &graph](const auto &entry) {
-                                auto owner = entry->owner.lock();
+                                auto owner = entry->prepared->owner.lock();
                                 return owner && owner.get() == graph.get() &&
                                        entry->state == state;
                             });

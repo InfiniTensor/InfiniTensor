@@ -5,6 +5,7 @@
 #include "operators/dropout.h"
 #include "operators/pooling.h"
 #include "test.h"
+#include "test_infini_aten.h"
 #include <cmath>
 #include <cstdlib>
 
@@ -124,12 +125,7 @@ TEST_F(WorkspaceCaptureTest,
 #if !INFINITENSOR_TEST_HAS_ATEN
     GTEST_SKIP() << "BN/MaxPool require USE_INFINIOPS_ATEN_KERNELS";
 #else
-    // torch_npu's ATen provider requires Python initialization. Its BN/MaxPool
-    // integration runs in test_ascend_aten.py; the two workspace ownership
-    // tests above remain valid in standalone C++ on every capture backend.
-    if (::infini::rt::runtime_device_type() ==
-        ::infini::rt::Device::Type::kAscend)
-        GTEST_SKIP() << "Ascend ATen BN/MaxPool run in test_ascend_aten.py";
+    initializeTestAtenProviders();
     for (bool naive : {false, true}) {
         // Capacity one forces recapture when returning to an earlier shape.
         auto runtime = makeRuntime(1);

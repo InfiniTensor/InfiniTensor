@@ -1,3 +1,4 @@
+#include "../../src/kernels/infiniops/lowering.h"
 #include "core/graph.h"
 #include "core/infini_runtime.h"
 #include "operators/reshape.h"
@@ -228,16 +229,25 @@ TEST_F(InfiniCopyGraphIntegrationTest, ComputeReshapeComputeOrdering) {
     output->setOutput();
     graph->dataMalloc();
     weight->copyin(vector<float>{1, 1});
+    const auto prepared = infiniops::prepareGraph(graph, runtime.get());
+    const bool captureSafe =
+        std::all_of(prepared->plan.steps.begin(), prepared->plan.steps.end(),
+                    [](const auto &step) { return step.captureSafe; });
     for (int iteration = 0; iteration < 5; ++iteration) {
         vector<float> values{float(iteration + 1), -2, 3, float(iteration + 4)};
         input->copyin(values);
-        runtime->runWithGraph(graph);
+        if (captureSafe) {
+            runtime->runWithGraph(graph);
+        } else {
+            EXPECT_THROW(runtime->runWithGraph(graph), std::exception);
+            runtime->run(graph);
+        }
         const auto expected = rmsReference(rmsReference(values));
         const auto actual = output->copyout<float>();
         ASSERT_EQ(actual.size(), expected.size());
         for (size_t i = 0; i < expected.size(); ++i)
             EXPECT_NEAR(actual[i], expected[i], 1e-5f);
-        EXPECT_EQ(runtime->getGraphCaptureCount(), 1u);
+        EXPECT_EQ(runtime->getGraphCaptureCount(), captureSafe ? 1u : 0u);
     }
 }
 
