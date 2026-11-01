@@ -220,6 +220,9 @@ DataType 属性可使用 ONNX 类型编号或 InfiniRT 类型名称（如 `float
 
 InfiniOps 负责选择实现并声明捕获安全性；InfiniRT 负责图捕获、实例化及重放。
 未声明安全的 provider 在捕获前被拒绝，仍可普通执行。
+当前验证的 torch_npu 2.7.1.post10 在外部 stream 上执行四维 SDPA 时会因内部
+`NPUEvent::record` 限制报错；三维 SDPA 的普通执行与跨 stream 顺序已验证。
+该限制需要在下层 provider 或厂商运行库处理，InfiniTensor 不做隐式 CPU 回退。
 RMSNorm 在形状推导及调用前检查非标量输入、正的末维、权重长度、输出形状及 dtype；
 固定 SDK 的执行接口仅支持 rank 2／3，其他秩在创建算子前明确拒绝。
 旧 RoPE 节点需要根据运行时位置 ID 生成表，按拓扑顺序读取位置并执行，暂不支持捕获。
