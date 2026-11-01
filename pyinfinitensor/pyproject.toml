@@ -19,6 +19,9 @@ dependencies = [
     "onnxsim>=0.4.36,<0.5",
 ]
 
+[project.optional-dependencies]
+embedding = ["transformers>=4.30,<5", "torch>=2.6,<3", "safetensors>=0.4"]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 

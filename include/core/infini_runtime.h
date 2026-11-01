@@ -111,6 +111,7 @@ class InfiniRuntimeObj final : public RuntimeObj {
     void copyBlobInsideRuntime(void *dst, const void *src,
                                size_t bytes) const override;
 
+    string checkCapabilities(const Graph &graph) const;
     void sync() const;
     // Scratch storage for one kernel invocation. During graph warmup/capture
     // it is retained by the graph cache; ordinary execution gets a temporary.

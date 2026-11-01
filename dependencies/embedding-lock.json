@@ -1,0 +1,18 @@
+{
+  "InfiniTensor_base": "fe0a02da724c89c9896b08fbf4e8a8c19b8f2997",
+  "InfiniOps": "0d09f96d2db43e8e78b20604fc6d86660c8f26e6",
+  "InfiniRT": "cd1d48258f0a6b8d9f66111d5d6cb1664205e78d",
+  "model": "BAAI/bge-small-zh-v1.5",
+  "model_revision": "7999e1d3359715c523056ef9478215996d62a620",
+  "onnx_opset": 17,
+  "model_onnx_sha256": "97648ad1745c1c98ba298ce0e065ec18b6c999e3b923d6b593a0196cb01676f3",
+  "validation_versions": {
+    "torch": "2.9.1+cu128",
+    "transformers": "4.44.2",
+    "onnx": "1.17.0",
+    "onnxruntime-gpu": "1.20.2"
+  },
+  "execution": "normal",
+  "precision": "FP32",
+  "InfiniCore": "a676ef58fb2d364b4c96fc65529c593f7d495939"
+}

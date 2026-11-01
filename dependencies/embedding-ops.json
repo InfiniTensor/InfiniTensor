@@ -1,0 +1,75 @@
+{
+  "add": {
+    "implementations": [
+      0,
+      8
+    ]
+  },
+  "mul": {
+    "implementations": [
+      0,
+      8
+    ]
+  },
+  "cast": {
+    "implementations": [
+      0,
+      8
+    ]
+  },
+  "onnx_gather": {
+    "implementations": [
+      8
+    ]
+  },
+  "native_layer_norm": {
+    "implementations": [
+      8
+    ]
+  },
+  "matmul": {
+    "implementations": [
+      8
+    ]
+  },
+  "sub": {
+    "implementations": [
+      8
+    ]
+  },
+  "div": {
+    "implementations": [
+      8
+    ]
+  },
+  "erf": {
+    "implementations": [
+      8
+    ]
+  },
+  "softmax": {
+    "implementations": [
+      8
+    ]
+  },
+  "cat": {
+    "implementations": [
+      8
+    ]
+  },
+  "expand_copy": {
+    "implementations": [
+      8
+    ]
+  },
+  "permute_copy": {
+    "implementations": [
+      8
+    ]
+  },
+  "slice_copy": {
+    "implementations": [
+      8
+    ]
+  }
+}

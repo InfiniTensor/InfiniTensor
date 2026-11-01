@@ -46,6 +46,68 @@ def node_attribute(node, name):
 
 
 class TestOnnxStubImport(unittest.TestCase):
+    def test_shape_values_can_feed_outputs_and_ordinary_consumers(self):
+        for consumer in (False, True):
+            nodes = [
+                helper.make_node("Shape", ["x"], ["dims"]),
+                helper.make_node("Reshape", ["x", "dims"], ["y"]),
+            ]
+            output = "dims"
+            if consumer:
+                nodes.append(helper.make_node("Identity", ["dims"], ["sizes"]))
+                output = "sizes"
+            model = make_model(
+                nodes,
+                [value_info("x", ["B", "S"])],
+                [
+                    value_info("y", ["B", "S"]),
+                    value_info(output, [2], TensorProto.INT64),
+                ],
+            )
+            stub = import_model(model)
+            for shape in [(1, 2), (3, 7), (1, 2)]:
+                x = np.arange(np.prod(shape), dtype=np.float32).reshape(shape)
+                result = stub.run_numpy({"x": x})
+                np.testing.assert_array_equal(result["y"], x)
+                np.testing.assert_array_equal(result[output], shape)
+            self.assertEqual(stub.weight_upload_count, 1)
+
+    def test_expand_control_values_use_onnx_multidirectional_broadcast(self):
+        from pyinfinitensor.shape import ShapeValueEvaluator
+
+        for requested in ([1], []):
+            model = make_model(
+                [
+                    helper.make_node("Shape", ["x"], ["dims"]),
+                    helper.make_node("Expand", ["dims", "requested"], ["target"]),
+                    helper.make_node("Reshape", ["x", "target"], ["y"]),
+                ],
+                [value_info("x", ["B", "S"])],
+                [value_info("y", ["B", "S"])],
+                [initializer("requested", requested, np.int64)],
+            )
+            evaluator = ShapeValueEvaluator(model)
+            evaluator.evaluate({"x": (2, 3)})
+            np.testing.assert_array_equal(evaluator.value("target"), [2, 3])
+            stub = import_model(model)
+            x = np.arange(6, dtype=np.float32).reshape(2, 3)
+            np.testing.assert_array_equal(stub.run_numpy({"x": x})["y"], x)
+
+    def test_dynamic_template_does_not_run_simplifier_verification(self):
+        model = make_model(
+            [helper.make_node("Identity", ["x"], ["y"])],
+            [value_info("x", ["B", 2])],
+            [value_info("y", ["B", 2])],
+        )
+        with patch.object(
+            onnx_frontend,
+            "simplify",
+            side_effect=AssertionError("unexpected simplifier forward"),
+        ):
+            stub = OnnxStub(model, backend.cpu_runtime())
+        values = np.arange(6, dtype=np.float32).reshape(3, 2)
+        np.testing.assert_array_equal(stub.run_numpy({"x": values})["y"], values)
+
     def test_get_perf_time_returns_backend_value(self):
         stub = OnnxStub.__new__(OnnxStub)
         stub.handler = Mock()
@@ -163,10 +225,40 @@ class TestOnnxStubImport(unittest.TestCase):
                 if not use_naive_allocator:
                     stub.trim_memory()
                     stub.run()
-                    actual = np.asarray(stub.outputs["y"].copyout_float()).reshape(
-                        3, 2
-                    )
+                    actual = np.asarray(stub.outputs["y"].copyout_float()).reshape(3, 2)
                     np.testing.assert_allclose(actual, x @ weight)
+
+    def test_dynamic_shape_parameter_reuses_weight_upload(self):
+        # Shape -> Gather -> Unsqueeze -> Concat is representative of the
+        # metadata subgraphs emitted by the BERT ONNX export.  No Shape kernel
+        # is inserted into the executable graph.
+        x = value_info("x", ["batch", "sequence"])
+        y = value_info("y", ["batch", "sequence"])
+        index = initializer("batch_index", [0], np.int64)
+        sequence_index = initializer("sequence_index", [1], np.int64)
+        axes = initializer("axes", [0], np.int64)
+        nodes = [
+            helper.make_node("Shape", ["x"], ["shape"]),
+            helper.make_node("Gather", ["shape", "batch_index"], ["batch"], axis=0),
+            helper.make_node(
+                "Gather", ["shape", "sequence_index"], ["sequence"], axis=0
+            ),
+            helper.make_node("Unsqueeze", ["batch", "axes"], ["batch_vector"]),
+            helper.make_node("Unsqueeze", ["sequence", "axes"], ["sequence_vector"]),
+            helper.make_node(
+                "Concat", ["batch_vector", "sequence_vector"], ["target"], axis=0
+            ),
+            helper.make_node("Reshape", ["x", "target"], ["y"]),
+        ]
+        stub = import_model(make_model(nodes, [x], [y], [index, sequence_index, axes]))
+        uploaded = stub.weight_upload_count
+        for batch, sequence in ((1, 2), (7, 17), (3, 511), (16, 128), (1, 17)):
+            values = np.arange(batch * sequence, dtype=np.float32).reshape(
+                batch, sequence
+            )
+            output = stub.run_numpy({"x": values})["y"]
+            np.testing.assert_array_equal(output, values)
+        self.assertEqual(stub.weight_upload_count, uploaded)
 
 
 class TestStaticOnnxInputs(unittest.TestCase):
@@ -278,9 +370,7 @@ class TestStaticOnnxInputs(unittest.TestCase):
             import_model(nonzero)
 
     def test_dropout_inference_and_unsupported_features(self):
-        inference_training = initializer(
-            "training", np.array(False, dtype=np.bool_)
-        )
+        inference_training = initializer("training", np.array(False, dtype=np.bool_))
         inference_model = make_model(
             [helper.make_node("Dropout", ["x", "ratio", "training"], ["y"])],
             [
@@ -459,40 +549,234 @@ class TestOnnxStubExport(unittest.TestCase):
 
 
 class TestOnnxStubInfini(unittest.TestCase):
+    @unittest.skipUnless(hasattr(backend, "InfiniRuntime"), "InfiniOps provider not built")
+    def test_shared_shape_values_and_expand_on_device(self):
+        original_import = import_model
+        def device_import(model, **kwargs):
+            return original_import(model, backend.runtime(backend.default_infini_device()), **kwargs)
+        with patch(__name__ + ".import_model", side_effect=device_import):
+            TestOnnxStubImport.test_shape_values_can_feed_outputs_and_ordinary_consumers(self)
+            TestOnnxStubImport.test_expand_control_values_use_onnx_multidirectional_broadcast(self)
+
     @unittest.skipUnless(
         hasattr(backend, "InfiniRuntime"), "InfiniOps provider not built"
     )
     def test_dynamic_reallocation_restores_initializer(self):
-        weight = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
+        from pyinfinitensor.embedding import fp32_inference_policy
+
+        # This checks allocator correctness against NumPy FP32, so vendor
+        # reduced-precision matmul must not change the numerical oracle.
+        with fp32_inference_policy():
+            weight = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
+            model = make_model(
+                [helper.make_node("MatMul", ["x", "weight"], ["y"])],
+                [value_info("x", [1, 2])],
+                [value_info("y", [1, 2])],
+                [initializer("weight", weight)],
+            )
+            for use_naive_allocator in (False, True):
+                with self.subTest(use_naive_allocator=use_naive_allocator):
+                    stub = import_model(
+                        model,
+                        backend.runtime(backend.default_infini_device()),
+                        use_naive_allocator=use_naive_allocator,
+                    )
+                    for batch in (3, 1, 8192, 2):
+                        x = np.arange(batch * 2, dtype=np.float32).reshape(batch, 2)
+                        stub.set_input([[batch, 2]])
+                        stub.inputs["x"].copyin_numpy(x)
+                        stub.run()
+                        actual = np.asarray(stub.outputs["y"].copyout_float()).reshape(
+                            batch, 2
+                        )
+                        np.testing.assert_allclose(
+                            actual, x @ weight, rtol=1e-5, atol=1e-6
+                        )
+                    if not use_naive_allocator:
+                        stub.trim_memory()
+                        stub.run()
+                        actual = np.asarray(stub.outputs["y"].copyout_float()).reshape(
+                            2, 2
+                        )
+                        np.testing.assert_allclose(
+                            actual, x @ weight, rtol=1e-5, atol=1e-6
+                        )
+
+
+class TestIntermediateShapeMetadata(unittest.TestCase):
+    def test_variadic_shape_extrema_and_slice_optional_axes(self):
+        evaluator = onnx_frontend.ShapeValueEvaluator(make_model([], [], []))
+        values = {
+            "a": np.array([2], np.int64),
+            "b": np.array([3], np.int64),
+            "c": np.array([10], np.int64),
+        }
+        maximum = evaluator._execute(
+            helper.make_node("Max", ["a", "b", "c"], ["y"]), values, {}
+        )[0]
+        np.testing.assert_array_equal(maximum, [10])
+        values["c"] = np.array([-10], np.int64)
+        minimum = evaluator._execute(
+            helper.make_node("Min", ["a", "b", "c"], ["y"]), values, {}
+        )[0]
+        np.testing.assert_array_equal(minimum, [-10])
+        values = {
+            "x": np.array([1, 2, 3, 4], np.int64),
+            "start": np.array([0], np.int64),
+            "end": np.array([4], np.int64),
+            "step": np.array([2], np.int64),
+        }
+        sliced = evaluator._execute(
+            helper.make_node("Slice", ["x", "start", "end", "", "step"], ["y"]),
+            values,
+            {},
+        )[0]
+        np.testing.assert_array_equal(sliced, [1, 3])
+
+    def test_dynamic_slice_with_large_end_without_optional_parameters(self):
         model = make_model(
-            [helper.make_node("MatMul", ["x", "weight"], ["y"])],
-            [value_info("x", [1, 2])],
-            [value_info("y", [1, 2])],
-            [initializer("weight", weight)],
+            [
+                helper.make_node("Shape", ["x"], ["size"]),
+                helper.make_node("Max", ["size", "limit"], ["end"]),
+                helper.make_node("Slice", ["x", "start", "end"], ["y"]),
+            ],
+            [value_info("x", ["S"])],
+            [value_info("y", ["S"])],
+            [
+                initializer("start", np.array([0], np.int64)),
+                initializer("limit", np.array([np.iinfo(np.int64).max], np.int64)),
+            ],
         )
-        for use_naive_allocator in (False, True):
-            with self.subTest(use_naive_allocator=use_naive_allocator):
-                stub = import_model(
-                    model,
-                    backend.runtime(backend.default_infini_device()),
-                    use_naive_allocator=use_naive_allocator,
-                )
-                for batch in (3, 1, 8192, 2):
-                    x = np.arange(batch * 2, dtype=np.float32).reshape(batch, 2)
-                    stub.set_input([[batch, 2]])
-                    stub.inputs["x"].copyin_numpy(x)
-                    stub.run()
-                    actual = np.asarray(stub.outputs["y"].copyout_float()).reshape(
-                        batch, 2
-                    )
-                    np.testing.assert_allclose(actual, x @ weight, rtol=1e-5, atol=1e-6)
-                if not use_naive_allocator:
-                    stub.trim_memory()
-                    stub.run()
-                    actual = np.asarray(stub.outputs["y"].copyout_float()).reshape(
-                        2, 2
-                    )
-                    np.testing.assert_allclose(actual, x @ weight, rtol=1e-5, atol=1e-6)
+        stub = import_model(model)
+        for length in (1, 7, 2):
+            values = np.arange(length, dtype=np.float32)
+            stub.prepare({"x": values.shape})
+            self.assertEqual(stub.outputs["y"].shape(), list(values.shape))
+
+    def test_constant_slice_endpoints_follow_current_intermediate_shape(self):
+        model = make_model(
+            [
+                helper.make_node("Identity", ["x"], ["intermediate"]),
+                helper.make_node("Slice", ["intermediate", "starts", "ends"], ["y"]),
+            ],
+            [value_info("x", ["S"])],
+            [value_info("y", [None])],
+            [
+                initializer("starts", np.array([0], np.int64)),
+                initializer("ends", np.array([2], np.int64)),
+            ],
+        )
+        stub = import_model(model)
+        for length in (1, 3, 2, 1):
+            values = np.arange(length, dtype=np.float32)
+            stub.prepare({"x": values.shape})
+            self.assertEqual(stub.outputs["y"].shape(), list(values[:2].shape))
+
+    def test_non_integer_shapes_are_rejected_without_mutation(self):
+        model = make_model(
+            [helper.make_node("Identity", ["x"], ["y"])],
+            [value_info("x", ["B", 2])],
+            [value_info("y", ["B", 2])],
+        )
+        stub = import_model(model)
+        value = np.array([[2.0, 3.0]], np.float32)
+        np.testing.assert_array_equal(stub.run_numpy({"x": value})["y"], value)
+        for invalid in ((1.5, 2), (True, 2), ("1", 2)):
+            with (
+                self.subTest(shape=invalid),
+                self.assertRaisesRegex(ValueError, "invalid shape"),
+            ):
+                stub.prepare({"x": invalid})
+        np.testing.assert_array_equal(stub.run_numpy({"x": value})["y"], value)
+
+    def test_injected_allocation_failure_rolls_back(self):
+        model = make_model(
+            [helper.make_node("Identity", ["x"], ["y"])],
+            [value_info("x", ["B", 2])],
+            [value_info("y", ["B", 2])],
+        )
+        stub = import_model(model)
+        value = np.array([[2.0, 3.0]], np.float32)
+        np.testing.assert_array_equal(stub.run_numpy({"x": value})["y"], value)
+        real_handler = stub.handler
+        proxy = Mock(wraps=real_handler)
+        calls = 0
+
+        def fail_once(use_naive):
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                raise RuntimeError("injected allocation failure")
+            return real_handler.data_malloc(use_naive)
+
+        proxy.data_malloc.side_effect = fail_once
+        stub.handler = proxy
+        with self.assertRaisesRegex(RuntimeError, "injected allocation failure"):
+            stub.prepare({"x": (3, 2)})
+        self.assertEqual(calls, 2)
+        np.testing.assert_array_equal(stub.run_numpy({"x": value})["y"], value)
+
+    def test_integer_division_and_negative_unsqueeze_axes(self):
+        evaluator = onnx_frontend.ShapeValueEvaluator(make_model([], [], []))
+        values = {
+            "a": np.array([-7, 7, -7, 2**60 + 1], np.int64),
+            "b": np.array([3, -3, -3, 3], np.int64),
+        }
+        out = evaluator._execute(
+            helper.make_node("Div", ["a", "b"], ["y"]), values, {}
+        )[0]
+        np.testing.assert_array_equal(out, [-2, -2, 2, (2**60 + 1) // 3])
+        values = {"x": np.ones((2, 3), np.int64), "axes": np.array([-1, -3])}
+        out = evaluator._execute(
+            helper.make_node("Unsqueeze", ["x", "axes"], ["y"]), values, {}
+        )[0]
+        self.assertEqual(out.shape, (2, 1, 3, 1))
+
+    def test_dynamic_data_and_scalar_index_prepare_together(self):
+        model = make_model(
+            [helper.make_node("Gather", ["x", "index"], ["y"], axis=1)],
+            [value_info("x", ["B", 2]), value_info("index", [], TensorProto.INT64)],
+            [value_info("y", ["B"])],
+        )
+        stub = import_model(model)
+        for batch in (1, 3, 1):
+            stub.prepare({"x": (batch, 2), "index": ()})
+            self.assertEqual(stub.outputs["y"].shape(), [batch])
+
+    def test_embedding_shape_does_not_evaluate_or_remove_embedding(self):
+        model = make_model(
+            [
+                helper.make_node(
+                    "Gather", ["w", "ids"], ["embedded"], name="embedding"
+                ),
+                helper.make_node("Shape", ["embedded"], ["shape"]),
+                helper.make_node("Gather", ["shape", "zero"], ["b"]),
+                helper.make_node("Unsqueeze", ["b", "axes"], ["bv"]),
+                helper.make_node("Concat", ["bv", "tail"], ["target"], axis=0),
+                helper.make_node("Reshape", ["embedded", "target"], ["y"]),
+            ],
+            [value_info("ids", ["B", "S"], TensorProto.INT64)],
+            [value_info("y", ["B", "T"])],
+            [
+                initializer("w", np.ones((10, 4), np.float32)),
+                initializer("zero", np.array(0, np.int64)),
+                initializer("axes", np.array([0], np.int64)),
+                initializer("tail", np.array([-1], np.int64)),
+            ],
+        )
+        with patch(
+            "pyinfinitensor.shape.to_array", wraps=onnx_frontend.to_array
+        ) as read:
+            evaluator = onnx_frontend.ShapeValueEvaluator(model)
+            self.assertNotIn("w", {call.args[0].name for call in read.call_args_list})
+        self.assertNotIn("w", evaluator.initial_values)
+        self.assertNotIn(0, evaluator.control_nodes)
+        for b, s in [(1, 17), (7, 83), (3, 511), (1, 17)]:
+            evaluator.evaluate({"ids": (b, s)})
+            self.assertEqual(evaluator.value("target"), [b, -1])
+            self.assertEqual(evaluator.shapes["embedded"], (b, s, 4))
+            self.assertEqual(evaluator.shapes["y"], (b, s * 4))
+            self.assertNotIn("embedded", evaluator._values)
 
 
 if __name__ == "__main__":

@@ -65,6 +65,8 @@ test-onnx:
 	@echo
 	python3 pyinfinitensor/tests/test_onnxstub.py
 	python3 pyinfinitensor/tests/test_onnx.py
+	python3 pyinfinitensor/tests/test_embedding.py
+	python3 pyinfinitensor/tests/test_embedding_retrieval.py
 
 test-api:
 	@echo
