@@ -1,9 +1,11 @@
 #pragma once
 #include <cstdlib>
 #include <gtest/gtest.h>
-#include <pybind11/embed.h>
 #include <sstream>
 #include <stdexcept>
+#if INFINITENSOR_TEST_HAS_ATEN
+#include <pybind11/embed.h>
+#endif
 
 namespace infini {
 #if INFINITENSOR_TEST_HAS_ATEN

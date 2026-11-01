@@ -311,7 +311,7 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -UNDEBUG")
 
 
 # Source files
-file(GLOB_RECURSE SRC src/ffi/*.cc src/core/*.cc src/kernels/cpu/*.cc src/operators/*.cc src/utils/*.cc)
+file(GLOB_RECURSE SRC src/core/*.cc src/kernels/cpu/*.cc src/operators/*.cc src/utils/*.cc)
 list(REMOVE_ITEM SRC "${CMAKE_CURRENT_SOURCE_DIR}/src/core/infini_runtime.cc")
 
 if(BUILD_NNET)
@@ -349,14 +349,8 @@ if(USE_PROTOBUF)
   target_link_libraries(InfiniTensor tensor_proto)
 endif()
 
-target_link_libraries(InfiniTensor pybind11::embed)
-
 if(USE_INFINIOPS_KERNELS)
   target_compile_definitions(InfiniTensor PRIVATE USE_INFINIOPS_KERNELS=1)
-  if(USE_INFINIOPS_ATEN_KERNELS)
-    target_compile_definitions(InfiniTensor PRIVATE
-                               USE_INFINIOPS_ATEN_KERNELS=1)
-  endif()
   target_include_directories(InfiniTensor PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/kernels/infiniops")
   target_include_directories(InfiniTensor SYSTEM PRIVATE
                              ${INFINIOPS_INCLUDE_DIR})
@@ -370,16 +364,7 @@ if(USE_INFINIOPS_KERNELS)
       endforeach()
     endif()
   endif()
-  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    # InfiniOps entry points are weak references; retain the provider DSO so
-    # standalone C++ consumers can resolve them without Python preloading it.
-    target_link_libraries(InfiniTensor "-Wl,--no-as-needed"
-                          ${INFINIOPS_LIBRARY} InfiniRT::infinirt
-                          "-Wl,--as-needed")
-  else()
-    target_link_libraries(InfiniTensor ${INFINIOPS_LIBRARY}
-                          InfiniRT::infinirt)
-  endif()
+  target_link_libraries(InfiniTensor ${INFINIOPS_LIBRARY} InfiniRT::infinirt)
   set_property(TARGET InfiniTensor APPEND PROPERTY BUILD_RPATH
                "${INFINIOPS_RUNTIME_LIBRARY_DIRS}")
 endif()
@@ -390,8 +375,7 @@ if(BUILD_NNET AND BUILD_TEST AND TVM_LIB_DIR)
 endif()
 
 # Python bindings
-file(GLOB_RECURSE FFIS src/ffi/ffi_infinitensor.cc)
-pybind11_add_module(backend MODULE ${FFIS})
+pybind11_add_module(backend MODULE src/ffi/ffi_infinitensor.cc)
 target_link_libraries(backend PRIVATE InfiniTensor)
 target_compile_definitions(backend PRIVATE
   INFINITENSOR_BINDINGS_HAS_ATEN=$<BOOL:${USE_INFINIOPS_ATEN_KERNELS}>)
@@ -428,6 +412,9 @@ function(build_test files)
     get_filename_component(testname ${testsourcefile} NAME_WE)
     add_executable(${testname} ${testsourcefile})
     target_link_libraries(${testname} InfiniTensor GTest::gtest_main)
+    if(USE_INFINIOPS_ATEN_KERNELS)
+      target_link_libraries(${testname} pybind11::embed)
+    endif()
     target_compile_definitions(${testname} PRIVATE
       INFINITENSOR_TEST_HAS_ATEN=$<BOOL:${USE_INFINIOPS_ATEN_KERNELS}>
       INFINITENSOR_TEST_PYTHON_DEFAULT="${Python_EXECUTABLE}")
