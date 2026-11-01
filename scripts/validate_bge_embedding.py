@@ -2,7 +2,6 @@
 """Verify the dynamic BGE path and record an initial shared-device baseline."""
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 import time
@@ -63,13 +62,6 @@ def main():
             fp32_inference_policy,
         )
 
-        manifest = json.loads((args.model_dir / "manifest.json").read_text())
-        for name, expected in manifest["sha256"].items():
-            path = args.model_dir / name
-            assert path.resolve().is_relative_to(args.model_dir.resolve())
-            assert hashlib.sha256(path.read_bytes()).hexdigest() == expected, name
-        report["model_revision"] = manifest["revision"]
-        report["model_sha256"] = manifest["sha256"]["model.onnx"]
         torch.manual_seed(315)
         rng = np.random.default_rng(315)
         torch.cuda.set_device(args.device_id)
@@ -77,6 +69,9 @@ def main():
         session = EmbeddingSession(
             args.model_dir, device="nvidia", device_id=args.device_id
         )
+        manifest = session.model_manifest
+        report["model_revision"] = manifest["revision"]
+        report["model_sha256"] = manifest["sha256"]["model.onnx"]
         report["load_s"] = time.perf_counter() - started
         report["environment"] = {
             "torch": torch.__version__,

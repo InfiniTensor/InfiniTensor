@@ -42,7 +42,7 @@ import time
 import json
 
 
-from .shape import ShapeValueEvaluator, _onnx_numpy_dtype, _shape_control_node_indexes
+from .shape import ShapeValueEvaluator, _onnx_numpy_dtype
 
 
 class OnnxStub:
@@ -90,7 +90,8 @@ class OnnxStub:
             if item.name not in {initializer.name for initializer in model.graph.initializer}
         }
         self._shape_evaluator = ShapeValueEvaluator(model)
-        self._shape_control_nodes = _shape_control_node_indexes(model)
+        self._shape_control_nodes = self._shape_evaluator.control_nodes
+        self._shape_value_tensors = {}
         self._dynamic_bindings: List[Dict[str, Any]] = []
         self._prepared_input_shapes: Optional[Dict[str, Tuple[int, ...]]] = None
         self._prepared_is_valid = False
@@ -172,6 +173,31 @@ class OnnxStub:
         self._shape_evaluator.evaluate(
             {name: _take_shape_dim_from_spec(spec) for name, spec in self._input_shape_specs.items()}
         )
+
+        # Values shared with ordinary data consumers or graph outputs must be
+        # materialized even when their producer executes in the metadata phase.
+        control_outputs = {
+            name
+            for index in self._shape_control_nodes
+            for name in model.graph.node[index].output
+            if model.graph.node[index].op_type != "Constant"
+        }
+        shared = {item.name for item in model.graph.output} & control_outputs
+        parameter_positions = {"Reshape": {1}, "Expand": {1}, "Slice": {1, 2, 3, 4}}
+        for index, node in enumerate(model.graph.node):
+            if index not in self._shape_control_nodes:
+                shared.update(
+                    name
+                    for i, name in enumerate(node.input)
+                    if name in control_outputs
+                    and i not in parameter_positions.get(node.op_type, set())
+                )
+        for name in sorted(shared):
+            value = self._shape_evaluator.array(name)
+            tensor = self.handler.tensor(list(value.shape), from_array(value).data_type)
+            tensor.set_input()
+            tensors[name] = tensor
+            self._shape_value_tensors[name] = tensor
 
         for node_idx in sorted_nodes:
             node = model.graph.node[node_idx]
@@ -1555,15 +1581,29 @@ class OnnxStub:
     def init(self, reload_weights: bool = False) -> None:
         """Allocate graph storage, uploading initializers only once by default."""
         self.handler.data_malloc(self.use_naive_allocator)
+        self._copy_shape_values()
         if reload_weights or not self._weights_uploaded:
             self._copy_initializers()
             self._weights_uploaded = True
 
+    def _copy_shape_values(self):
+        for name, tensor in self._shape_value_tensors.items():
+            tensor.copyin_numpy(
+                np.array(self._shape_evaluator.array(name), copy=True, order="C")
+            )
+
+    def _resize_shape_values(self):
+        for name, tensor in self._shape_value_tensors.items():
+            self.handler.change_shape(
+                list(self._shape_evaluator.array(name).shape), tensor.fuid()
+            )
+
     def _copy_initializers(self) -> None:
         for name, initializer in self._initializer_by_name.items():
-            self.tensors[name].copyin_numpy(to_array(initializer))
+            array = to_array(initializer)
+            self.tensors[name].copyin_numpy(array)
             self._weight_upload_bytes = (
-                getattr(self, "_weight_upload_bytes", 0) + to_array(initializer).nbytes
+                getattr(self, "_weight_upload_bytes", 0) + array.nbytes
             )
         self._weight_copy_count += 1
 
@@ -1710,8 +1750,10 @@ class OnnxStub:
             for name, dims in shapes.items():
                 self.handler.change_shape(list(dims), self.inputs[name].fuid())
             self._update_dynamic_parameters(shapes, values_ready=True)
+            self._resize_shape_values()
             self.handler.shape_infer()
             self.handler.data_malloc(self.use_naive_allocator)
+            self._copy_shape_values()
             self._prepared_input_shapes = shapes
             self._prepared_is_valid = True
         except Exception:
@@ -1721,8 +1763,10 @@ class OnnxStub:
                     for name, dims in old_shapes.items():
                         self.handler.change_shape(list(dims), self.inputs[name].fuid())
                     self._update_dynamic_parameters(old_shapes)
+                    self._resize_shape_values()
                     self.handler.shape_infer()
                     self.handler.data_malloc(self.use_naive_allocator)
+                    self._copy_shape_values()
                     self._prepared_input_shapes = old_shapes
                     self._prepared_is_valid = True
                 except Exception:
@@ -1777,8 +1821,7 @@ class OnnxStub:
         self.run()
         ran = time.perf_counter()
         outputs = {
-            name: np.array(tensor.copyout_numpy(), copy=True)
-            for name, tensor in self.outputs.items()
+            name: tensor.copyout_numpy() for name, tensor in self.outputs.items()
         }
         copied_out = time.perf_counter()
         self.last_timing = {

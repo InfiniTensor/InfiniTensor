@@ -46,6 +46,53 @@ def node_attribute(node, name):
 
 
 class TestOnnxStubImport(unittest.TestCase):
+    def test_shape_values_can_feed_outputs_and_ordinary_consumers(self):
+        for consumer in (False, True):
+            nodes = [
+                helper.make_node("Shape", ["x"], ["dims"]),
+                helper.make_node("Reshape", ["x", "dims"], ["y"]),
+            ]
+            output = "dims"
+            if consumer:
+                nodes.append(helper.make_node("Identity", ["dims"], ["sizes"]))
+                output = "sizes"
+            model = make_model(
+                nodes,
+                [value_info("x", ["B", "S"])],
+                [
+                    value_info("y", ["B", "S"]),
+                    value_info(output, [2], TensorProto.INT64),
+                ],
+            )
+            stub = import_model(model)
+            for shape in [(1, 2), (3, 7), (1, 2)]:
+                x = np.arange(np.prod(shape), dtype=np.float32).reshape(shape)
+                result = stub.run_numpy({"x": x})
+                np.testing.assert_array_equal(result["y"], x)
+                np.testing.assert_array_equal(result[output], shape)
+            self.assertEqual(stub.weight_upload_count, 1)
+
+    def test_expand_control_values_use_onnx_multidirectional_broadcast(self):
+        from pyinfinitensor.shape import ShapeValueEvaluator
+
+        for requested in ([1], []):
+            model = make_model(
+                [
+                    helper.make_node("Shape", ["x"], ["dims"]),
+                    helper.make_node("Expand", ["dims", "requested"], ["target"]),
+                    helper.make_node("Reshape", ["x", "target"], ["y"]),
+                ],
+                [value_info("x", ["B", "S"])],
+                [value_info("y", ["B", "S"])],
+                [initializer("requested", requested, np.int64)],
+            )
+            evaluator = ShapeValueEvaluator(model)
+            evaluator.evaluate({"x": (2, 3)})
+            np.testing.assert_array_equal(evaluator.value("target"), [2, 3])
+            stub = import_model(model)
+            x = np.arange(6, dtype=np.float32).reshape(2, 3)
+            np.testing.assert_array_equal(stub.run_numpy({"x": x})["y"], x)
+
     def test_dynamic_template_does_not_run_simplifier_verification(self):
         model = make_model(
             [helper.make_node("Identity", ["x"], ["y"])],
@@ -502,6 +549,15 @@ class TestOnnxStubExport(unittest.TestCase):
 
 
 class TestOnnxStubInfini(unittest.TestCase):
+    @unittest.skipUnless(hasattr(backend, "InfiniRuntime"), "InfiniOps provider not built")
+    def test_shared_shape_values_and_expand_on_device(self):
+        original_import = import_model
+        def device_import(model, **kwargs):
+            return original_import(model, backend.runtime(backend.default_infini_device()), **kwargs)
+        with patch(__name__ + ".import_model", side_effect=device_import):
+            TestOnnxStubImport.test_shape_values_can_feed_outputs_and_ordinary_consumers(self)
+            TestOnnxStubImport.test_expand_control_values_use_onnx_multidirectional_broadcast(self)
+
     @unittest.skipUnless(
         hasattr(backend, "InfiniRuntime"), "InfiniOps provider not built"
     )
@@ -708,11 +764,13 @@ class TestIntermediateShapeMetadata(unittest.TestCase):
                 initializer("tail", np.array([-1], np.int64)),
             ],
         )
-        with patch("pyinfinitensor.shape.to_array", wraps=onnx_frontend.to_array) as read:
+        with patch(
+            "pyinfinitensor.shape.to_array", wraps=onnx_frontend.to_array
+        ) as read:
             evaluator = onnx_frontend.ShapeValueEvaluator(model)
             self.assertNotIn("w", {call.args[0].name for call in read.call_args_list})
         self.assertNotIn("w", evaluator.initial_values)
-        self.assertNotIn(0, onnx_frontend._shape_control_node_indexes(model))
+        self.assertNotIn(0, evaluator.control_nodes)
         for b, s in [(1, 17), (7, 83), (3, 511), (1, 17)]:
             evaluator.evaluate({"ids": (b, s)})
             self.assertEqual(evaluator.value("target"), [b, -1])

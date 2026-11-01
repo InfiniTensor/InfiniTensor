@@ -395,6 +395,23 @@ pybind11_add_module(backend MODULE ${FFIS})
 target_link_libraries(backend PRIVATE InfiniTensor)
 target_compile_definitions(backend PRIVATE
   INFINITENSOR_BINDINGS_HAS_ATEN=$<BOOL:${USE_INFINIOPS_ATEN_KERNELS}>)
+if(USE_INFINIOPS_ATEN_KERNELS)
+  execute_process(COMMAND "${Python_EXECUTABLE}" -c
+    "from torch.utils.cpp_extension import include_paths; print(';'.join(include_paths()))"
+    RESULT_VARIABLE _torch_include_result OUTPUT_VARIABLE _torch_includes
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  if(NOT _torch_include_result EQUAL 0)
+    message(FATAL_ERROR "Cannot locate ATen headers for the scoped FP32 guard")
+  endif()
+  target_include_directories(backend SYSTEM PRIVATE ${_torch_includes})
+  find_library(_torch_cpu_library torch_cpu
+               PATHS ${INFINIOPS_PROVIDER_LIBRARY_DIRS} NO_DEFAULT_PATH)
+  if(NOT _torch_cpu_library)
+    message(FATAL_ERROR "Cannot locate torch_cpu for the scoped FP32 guard")
+  endif()
+  target_link_libraries(backend PRIVATE ${_torch_cpu_library})
+endif()
+
 if(USE_INFINIOPS_KERNELS)
   target_compile_definitions(backend PRIVATE USE_INFINIOPS_KERNELS=1)
   target_include_directories(backend SYSTEM PRIVATE

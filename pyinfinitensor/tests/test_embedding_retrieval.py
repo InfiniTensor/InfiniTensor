@@ -2,6 +2,8 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
+from contextlib import nullcontext
 
 import numpy as np
 from pyinfinitensor.retrieval import build_index, search_index
@@ -42,12 +44,56 @@ class TestOfflineRetrieval(unittest.TestCase):
             self.assertEqual(manifest["count"], 2)
             results = search_index(session, index, "查询", 10)
             self.assertEqual([item["id"] for item in results], ["a", "z"])
-            self.assertEqual(session.calls[-1][1], {"kind": "query"})
+            self.assertEqual(session.calls[-1][1], {"kind": "query", "batch_size": 1})
             with self.assertRaises(FileExistsError):
                 build_index(session, documents, index)
             (index / "documents.jsonl").write_text("corrupted")
             with self.assertRaisesRegex(ValueError, "checksum"):
                 search_index(session, index, "查询", 2)
+
+    def test_index_and_query_respect_small_embedding_session(self):
+        from test_embedding import TestEmbeddingSession
+
+        for limit in (1, 4):
+            with (
+                self.subTest(limit=limit),
+                tempfile.TemporaryDirectory() as folder,
+                patch(
+                    "pyinfinitensor.embedding.fp32_inference_policy",
+                    side_effect=nullcontext,
+                ),
+            ):
+                session = TestEmbeddingSession().make_session()
+                session.max_batch_size = limit
+                session.model_dir, session.model_path = (
+                    Session.model_dir,
+                    Session.model_path,
+                )
+                session.model_manifest = Session.model_manifest
+                root = Path(folder)
+                documents = root / "input.jsonl"
+                documents.write_text(
+                    "{" + '"id":"a","text":"test"' + "}", encoding="utf-8"
+                )
+                build_index(session, documents, root / "index")
+                self.assertEqual(
+                    search_index(session, root / "index", "query")[0]["id"], "a"
+                )
+
+    def test_selection_generator_sorts_string_ids_and_rejects_duplicates(self):
+        import importlib.util
+
+        path = (
+            Path(__file__).resolve().parents[2]
+            / "scripts/prepare_retrieval_selection.py"
+        )
+        spec = importlib.util.spec_from_file_location("selection", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        rows = [{"_id": i, "text": str(i)} for i in (2, 10, 1)]
+        self.assertEqual([row["id"] for row in module.select(rows, 2)], ["1", "10"])
+        with self.assertRaisesRegex(ValueError, "duplicate"):
+            module.select(rows + rows[:1], 2)
 
     def test_duplicate_ids_and_mismatched_models_are_rejected(self):
         with tempfile.TemporaryDirectory() as folder:

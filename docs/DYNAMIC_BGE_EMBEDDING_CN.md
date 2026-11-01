@@ -16,6 +16,7 @@ python -m pip install torch==2.9.1 --index-url https://download.pytorch.org/whl/
 python -m pip install pybind11 transformers==4.44.2 onnx==1.17.0 onnxruntime-gpu==1.20.2 onnxsim safetensors
 export CUDA_HOME=/usr/local/cuda-12.8
 export PATH="$CUDA_HOME/bin:$PATH"
+export CPLUS_INCLUDE_PATH="$CUDA_HOME/include${CPLUS_INCLUDE_PATH:+:$CPLUS_INCLUDE_PATH}"
 
 cmake -S 3rd-party/InfiniCore/submodules/InfiniRT -B build-rt \
   -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$PWD/prefix-rt" \
@@ -72,7 +73,7 @@ assert passages.shape == (2, 512)
 assert queries.shape == (1, 512)
 ```
 
-查询模式添加 `为这个句子生成表示以用于检索相关文章：`，文档模式不添加。截断长度包含该前缀和特殊 token。CPU 执行 tokenizer 和最终 L2 归一化，Encoder 与 CLS 提取在设备执行。精度上下文在调用期间关闭 provider 的缩减精度开关，退出后恢复调用者设置；M1 为单实例串行使用，不提供跨线程精度状态隔离。
+查询模式添加 `为这个句子生成表示以用于检索相关文章：`，文档模式不添加。截断长度包含该前缀和特殊 token。CPU 执行 tokenizer 和最终 L2 归一化，Encoder 与 CLS 提取在设备执行。NVIDIA 精度上下文使用 ATen 的线程局部 NoTF32Guard，只限制本次调用的矩阵计算，不修改调用者全局 CUDA/cuDNN/MKLDNN 精度或继承关系；该 guard 仅在 ATen 构建中提供。其他 provider 的已有布尔开关仍按调用保存和恢复，当前版本不构成 MLU/昇腾认证。Session 仍为单实例串行使用。
 
 ## 动态接口和生命周期
 
@@ -80,7 +81,7 @@ assert queries.shape == (1, 512)
 
 维度来源保存在模型模板中；导入时的临时值 1 不会成为永久形状。Shape 子图只接受常量和张量维度，普通词嵌入 Gather 等数据节点留在设备。不支持的数据依赖 shape 路径明确报错，不回读中间激活模拟执行。
 
-Reshape/Expand/Slice 参数随准备更新。Slice 保存原始端点，并在拓扑形状推导时按当前输入重新归一化，避免初始小形状永久夹紧端点。Gather 形状推导只检查元数据，不从旧设备分配读取索引。初始化上传权重一次；动态变化复用 master 已有 LazyAllocator，不引入新的分配器或多形状图缓存。
+Reshape/Expand/Slice 参数随准备更新。Slice 保存原始端点，并在拓扑形状推导时按当前输入重新归一化，避免初始小形状永久夹紧端点。Gather 形状推导只检查元数据，不从旧设备分配读取索引。共享 shape 值若同时用于模型输出或普通数据输入，会物化为每次 prepare 更新的辅助输入，不被当作永久权重。初始化上传权重一次；动态变化复用 master 已有 LazyAllocator，不引入新的分配器或多形状图缓存。
 
 `weight_upload_count`、`weight_upload_bytes`、`weight_addresses` 用于检查权重驻留。普通参数校验失败保留先前可执行状态；更新失败会尝试恢复原形状，恢复失败则标记未准备并拒绝继续执行，原始异常向调用者传播。
 
@@ -128,3 +129,25 @@ python scripts/validate_embedding_retrieval.py --model-dir models/bge-small-zh \
 ```
 
 选择包保留按字符串 ID 排序的原始文本、源文件摘要与自身摘要。向量精度和平均 Top-10 集合重合率须同时通过，后者阈值为 99%；这不是完整检索榜单评测。
+
+
+## 回归边界与检索子集复现
+
+`encode(..., batch_size=None)` 和 `build_index(..., batch_size=None)` 省略批量时使用会话的 `max_batch_size`；单条查询显式使用 1。普通整数 Sub 在当前锁定 SDK 的 ATen 接口中不支持整数 alpha，本版本在准备阶段明确拒绝；完整整数支持需在 InfiniOps 修复后更新依赖。LayerNorm 的 Scale/Bias 支持广播到完整输入，对非标准 affine 形状使用无 affine 归一化再执行 Mul/Add，常见 `[H]` 参数保留直接路径。
+
+准备检索选择包（联网下载一次，或传入本地 parquet 目录）：
+
+```bash
+python -m pip install huggingface_hub pyarrow==19.0.1
+python scripts/prepare_retrieval_selection.py --output retrieval-selection.json
+# 离线复现：
+python scripts/prepare_retrieval_selection.py --source-dir /path/to/parquet --output retrieval-selection.json
+```
+
+工具固定数据 revision、源文件 SHA256、字符串 ID 排序规则与选择包 SHA256，产物与既有 100 查询/1000 文档回归包一致。之后的验证可断网运行。
+
+`make test-onnx` 运行 ONNX、Embedding 和持久化检索单测，不要求安装 Torch。真实 NVIDIA 精度、继承、异常和嵌套 guard 测试单独执行：
+
+```bash
+python scripts/validate_embedding_precision.py --model-dir models/bge-small-zh --output results/precision.json
+```

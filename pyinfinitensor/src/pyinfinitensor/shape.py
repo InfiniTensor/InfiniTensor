@@ -53,7 +53,8 @@ class ShapeValueEvaluator:
         # Retain protobuf wrappers so attribute cache keys remain stable.
         # The importer owns a private, immutable model template.
         self._nodes = tuple(model.graph.node)
-        self._control_nodes = _shape_control_node_indexes(model)
+        self.control_nodes = _shape_control_node_indexes(model)
+        self._control_nodes = self.control_nodes
         # Only control values are materialized. Weight dimensions are metadata;
         # embedding/linear weight contents must never be loaded into this evaluator.
         required_values = set()
@@ -145,9 +146,12 @@ class ShapeValueEvaluator:
                     continue
                 try:
                     result = self._execute(node, values, shapes)
-                except (TypeError, ValueError, IndexError):
-                    next_pending.append((index, node))
-                    continue
+                except (TypeError, ValueError, IndexError) as error:
+                    raise ValueError(
+                        "Invalid shape-control node {} ({}): {}".format(
+                            node.name or index, node.op_type, error
+                        )
+                    ) from error
                 if len(result) != len(node.output):
                     raise ValueError(
                         "shape evaluator output arity mismatch at {}".format(
@@ -308,13 +312,16 @@ class ShapeValueEvaluator:
             return [tuple(out)]
         return None
 
-    def value(self, name: str) -> List[int]:
+    def array(self, name: str) -> np.ndarray:
         if name not in self._values:
             raise ValueError(
                 'dynamic shape value "{}" cannot be evaluated from input metadata; '
                 "the path is unsupported or depends on activation data".format(name)
             )
-        value = np.asarray(self._values[name])
+        return np.asarray(self._values[name])
+
+    def value(self, name: str) -> List[int]:
+        value = self.array(name)
         if not np.issubdtype(value.dtype, np.integer):
             raise ValueError(
                 'shape value "{}" must be integer, got {}'.format(name, value.dtype)
@@ -434,7 +441,12 @@ class ShapeValueEvaluator:
             ]
         if op == "Expand":
             return [
-                np.broadcast_to(inputs[0], tuple(int(x) for x in inputs[1].reshape(-1)))
+                np.broadcast_to(
+                    inputs[0],
+                    np.broadcast_shapes(
+                        inputs[0].shape, tuple(int(x) for x in inputs[1].reshape(-1))
+                    ),
+                )
             ]
         if op == "Reshape":
             shapes = {node.input[0]: inputs[0].shape}

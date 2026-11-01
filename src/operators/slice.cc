@@ -39,8 +39,6 @@ void SliceObj::buildAxes(const Shape &shape, const vector<int> &starts,
 
         if (_axes) {
             IT_ASSERT(size == _axes->size());
-            // onnx doc: "Behavior is undefined if an axis is repeated."
-            IT_ASSERT(size == std::set(_axes->begin(), _axes->end()).size());
 
             for (size_t i = 0; i < size; ++i) {
                 auto index = _axes->at(i);
@@ -59,9 +57,6 @@ void SliceObj::buildAxes(const Shape &shape, const vector<int> &starts,
 
         if (_steps) {
             IT_ASSERT(size == _steps->size());
-            // onnx doc: "‘steps’ cannot be 0."
-            IT_ASSERT(std::find(_steps->begin(), _steps->end(), 0) ==
-                      _steps->end());
             steps = *_steps;
         } else {
             steps.reserve(size);
@@ -79,10 +74,6 @@ void SliceObj::buildAxes(const Shape &shape, const vector<int> &starts,
             auto __i = _i->second;
             auto start = starts[__i];
             auto end = ends[__i];
-            if (start > len)
-                start = len;
-            if (end > len)
-                end = len;
             IT_ASSERT(steps[__i] > 0,
                       "Data Slice currently requires positive steps");
             start = std::clamp(start >= 0 ? start : start + len, 0, len);

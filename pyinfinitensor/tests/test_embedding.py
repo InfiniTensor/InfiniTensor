@@ -4,6 +4,7 @@ import tempfile
 import json
 import hashlib
 from pathlib import Path
+from contextlib import nullcontext
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -43,6 +44,13 @@ class FakeStub:
 
 
 class TestEmbeddingSession(unittest.TestCase):
+    def setUp(self):
+        policy = patch(
+            "pyinfinitensor.embedding.fp32_inference_policy", side_effect=nullcontext
+        )
+        policy.start()
+        self.addCleanup(policy.stop)
+
     def make_session(self):
         session = EmbeddingSession.__new__(EmbeddingSession)
         session.max_batch_size, session.max_length = 32, 512
@@ -72,53 +80,59 @@ class TestEmbeddingSession(unittest.TestCase):
             backends=SimpleNamespace(cuda=SimpleNamespace(matmul=flag)),
             npu=SimpleNamespace(matmul=SimpleNamespace(allow_hf32=True)),
         )
-        with patch.dict(sys.modules, {"torch": fake_torch}):
+        with (
+            patch.dict(sys.modules, {"torch": fake_torch}),
+            patch(
+                "pyinfinitensor.embedding.backend.Fp32MatmulGuard",
+                return_value=SimpleNamespace(close=lambda: None),
+                create=True,
+            ),
+        ):
             with self.assertRaisesRegex(RuntimeError, "inference failed"):
                 with fp32_inference_policy():
-                    self.assertFalse(flag.allow_tf32)
+                    self.assertTrue(flag.allow_tf32)
                     self.assertFalse(fake_torch.npu.matmul.allow_hf32)
                     raise RuntimeError("inference failed")
         self.assertTrue(flag.allow_tf32)
         self.assertTrue(fake_torch.npu.matmul.allow_hf32)
 
-    def test_real_torch_precision_state_is_preserved(self):
-        import torch
+    def test_small_session_uses_configured_default_batch(self):
+        for limit in (1, 4, 8):
+            session = self.make_session()
+            session.max_batch_size = limit
+            result = session.encode(["文本"] * 9)
+            self.assertEqual(result.shape, (9, 512))
+            self.assertTrue(
+                all(len(texts) <= limit for texts, _ in session.tokenizer.calls)
+            )
 
-        previous = torch.get_float32_matmul_precision()
-        try:
-            torch.set_float32_matmul_precision("medium")
-            with fp32_inference_policy():
-                self.assertFalse(torch.backends.cuda.matmul.allow_tf32)
-                self.assertFalse(torch.backends.cudnn.allow_tf32)
-                modern = getattr(torch.backends.cuda.matmul, "fp32_precision", None)
-                if modern is not None:
-                    self.assertEqual(modern, "ieee")
-                else:
-                    self.assertEqual(torch.get_float32_matmul_precision(), "highest")
-            self.assertEqual(torch.get_float32_matmul_precision(), "medium")
-        finally:
-            torch.set_float32_matmul_precision(previous)
+    def test_precision_policy_does_not_write_inherited_torch_settings(self):
+        class ReadOnly:
+            fp32_precision = "tf32"
 
-    def test_new_precision_api_preserves_backend_overrides(self):
-        import torch
+            def __setattr__(self, name, value):
+                raise AssertionError("global precision was mutated")
 
-        matmul = torch.backends.cuda.matmul
-        if not hasattr(matmul, "fp32_precision"):
-            return  # Older supported PyTorch uses the legacy policy tested above.
-        previous = matmul.fp32_precision
-        try:
-            for setting in ("tf32", "ieee", "none"):
-                matmul.fp32_precision = setting
-                with self.assertRaisesRegex(RuntimeError, "inference failed"):
-                    with fp32_inference_policy():
-                        self.assertEqual(matmul.fp32_precision, "ieee")
-                        self.assertEqual(
-                            torch.backends.cudnn.conv.fp32_precision, "ieee"
-                        )
-                        raise RuntimeError("inference failed")
-                self.assertEqual(matmul.fp32_precision, setting)
-        finally:
-            matmul.fp32_precision = previous
+        fake_torch = SimpleNamespace(
+            backends=SimpleNamespace(cuda=SimpleNamespace(matmul=ReadOnly()))
+        )
+        guard = SimpleNamespace(close=lambda: closed.append(True))
+        closed = []
+        with (
+            patch.dict(sys.modules, {"torch": fake_torch}),
+            patch(
+                "pyinfinitensor.embedding.backend.Fp32MatmulGuard",
+                return_value=guard,
+                create=True,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "inference failed"):
+                with fp32_inference_policy():
+                    self.assertEqual(
+                        fake_torch.backends.cuda.matmul.fp32_precision, "tf32"
+                    )
+                    raise RuntimeError("inference failed")
+        self.assertEqual(closed, [True])
 
     def test_local_package_integrity_is_checked_before_loading(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -179,10 +193,17 @@ class TestEmbeddingSession(unittest.TestCase):
                 matmul=SimpleNamespace(allow_hf32=False),
             ),
         )
-        with patch.dict(sys.modules, {"torch": fake_torch}):
+        with (
+            patch.dict(sys.modules, {"torch": fake_torch}),
+            patch(
+                "pyinfinitensor.embedding.backend.Fp32MatmulGuard",
+                return_value=SimpleNamespace(close=lambda: None),
+                create=True,
+            ),
+        ):
             with fp32_inference_policy():
-                self.assertFalse(fake_torch.backends.cuda.matmul.allow_tf32)
-                self.assertFalse(fake_torch.backends.cudnn.allow_tf32)
+                self.assertTrue(fake_torch.backends.cuda.matmul.allow_tf32)
+                self.assertTrue(fake_torch.backends.cudnn.allow_tf32)
                 self.assertFalse(fake_torch.backends.mlu.matmul.allow_tf32)
                 self.assertFalse(fake_torch.backends.mlu.cnnl.allow_tf32)
                 self.assertFalse(fake_torch.npu.config.allow_internal_format)

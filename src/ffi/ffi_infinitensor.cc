@@ -26,6 +26,25 @@
 #include "../kernels/infiniops/execution.h"
 #include "core/infini_runtime.h"
 #endif
+#if INFINITENSOR_BINDINGS_HAS_ATEN
+#include <ATen/Context.h>
+#include <thread>
+namespace {
+class Fp32MatmulGuard {
+    std::unique_ptr<at::NoTF32Guard> guard;
+    std::thread::id owner = std::this_thread::get_id();
+
+  public:
+    Fp32MatmulGuard() : guard(std::make_unique<at::NoTF32Guard>()) {}
+    void close() {
+        if (owner != std::this_thread::get_id())
+            throw std::runtime_error(
+                "FP32 guard must close on its creating thread");
+        guard.reset();
+    }
+};
+} // namespace
+#endif
 namespace py = pybind11;
 
 namespace infini {
@@ -602,6 +621,11 @@ void init_graph_builder(py::module &m) {
 } // namespace infini
 
 PYBIND11_MODULE(backend, m) {
+#if INFINITENSOR_BINDINGS_HAS_ATEN
+    py::class_<Fp32MatmulGuard>(m, "Fp32MatmulGuard")
+        .def(py::init<>())
+        .def("close", &Fp32MatmulGuard::close);
+#endif
     infini::export_values(m);
     infini::export_functions(m);
     infini::init_graph_builder(m);

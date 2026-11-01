@@ -94,7 +94,7 @@ def _fingerprint(session):
     return hashlib.sha256(encoded).hexdigest()
 
 
-def build_index(session, documents_jsonl, output_dir, batch_size=32):
+def build_index(session, documents_jsonl, output_dir, batch_size=None):
     """Encode a small local knowledge base; keep document order in the artifact."""
     documents = _documents(Path(documents_jsonl))
     output = Path(output_dir)
@@ -157,7 +157,7 @@ def search_index(session, index_dir, query, top_k=10):
         or len(documents) != manifest["count"]
     ):
         raise ValueError("index shape, dtype or document count does not match")
-    query_vector = session.encode([query], kind="query")[0]
+    query_vector = session.encode([query], kind="query", batch_size=1)[0]
     matches = cosine_top_k(
         query_vector,
         vectors,

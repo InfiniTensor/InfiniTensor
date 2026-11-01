@@ -1,7 +1,7 @@
 """Chinese BGE embedding interface backed exclusively by InfiniTensor."""
 
 from pathlib import Path
-from typing import Dict, Iterator, List, Sequence, Union
+from typing import Dict, Iterator, List, Optional, Sequence, Union
 from contextlib import contextmanager
 import time
 import operator
@@ -40,57 +40,14 @@ def fp32_inference_policy() -> Iterator[None]:
     except ModuleNotFoundError:
         yield
         return
+    # ATen's thread-local guard disables TF32 without touching the global
+    # precision hierarchy (whose public getters return inherited values).
+    factory = getattr(backend, "Fp32MatmulGuard", None)
+    if factory is None:
+        raise RuntimeError("FP32 embedding execution requires an ATen-enabled backend")
+    guard = factory()
     saved = []
-
-    def remember(path, value=None, change=False):
-        owner = torch
-        fields = path.split(".")
-        try:
-            for field in fields[:-1]:
-                owner = getattr(owner, field)
-            previous = getattr(owner, fields[-1])
-        except AttributeError:
-            return False
-        if change:
-            setattr(owner, fields[-1], value)
-        saved.append(lambda: setattr(owner, fields[-1], previous))
-        return True
-
-    def override(path, value):
-        return remember(path, value, change=True)
-
     try:
-        # Preserve both the legacy policy (including "medium") and the raw
-        # per-backend overrides changed by set_float32_matmul_precision.
-        legacy = None
-        if hasattr(torch, "get_float32_matmul_precision"):
-            try:
-                legacy = torch.get_float32_matmul_precision()
-            except RuntimeError:
-                # New per-backend policies may not have a single legacy
-                # equivalent. In that case only touch the per-backend API.
-                pass
-        if legacy is not None:
-            remember("backends.cuda.matmul.fp32_precision")
-            remember("backends.mkldnn.matmul.fp32_precision")
-            torch.set_float32_matmul_precision("highest")
-            saved.append(lambda: torch.set_float32_matmul_precision(legacy))
-        if (
-            not override("backends.cuda.matmul.fp32_precision", "ieee")
-            and legacy is None
-        ):
-            override("backends.cuda.matmul.allow_tf32", False)
-        cudnn_legacy = None
-        try:
-            cudnn_legacy = torch.backends.cudnn.allow_tf32
-        except (AttributeError, RuntimeError):
-            pass
-        if cudnn_legacy is not None:
-            remember("backends.cudnn.conv.fp32_precision")
-            remember("backends.cudnn.rnn.fp32_precision")
-            override("backends.cudnn.allow_tf32", False)
-        if override("backends.cudnn.conv.fp32_precision", "ieee"):
-            override("backends.cudnn.rnn.fp32_precision", "ieee")
         for path in (
             "backends.mlu.matmul.allow_tf32",
             "backends.mlu.cnnl.allow_tf32",
@@ -98,11 +55,23 @@ def fp32_inference_policy() -> Iterator[None]:
             "npu.conv.allow_hf32",
             "npu.matmul.allow_hf32",
         ):
-            override(path, False)
+            fields = path.split(".")
+            owner = torch
+            try:
+                for field in fields[:-1]:
+                    owner = getattr(owner, field)
+                previous = getattr(owner, fields[-1])
+            except AttributeError:
+                continue
+            setattr(owner, fields[-1], False)
+            saved.append((owner, fields[-1], previous))
         yield
     finally:
-        for restore in reversed(saved):
-            restore()
+        try:
+            for owner, name, value in reversed(saved):
+                setattr(owner, name, value)
+        finally:
+            guard.close()
 
 
 def verify_model_package(model_dir: Path, model_path: Path):
@@ -199,14 +168,18 @@ class EmbeddingSession:
         self,
         texts: Union[str, Sequence[str]],
         kind: str = "passage",
-        batch_size: int = 32,
+        batch_size: Optional[int] = None,
     ) -> np.ndarray:
         if isinstance(texts, str):
             texts = [texts]
         texts = list(texts)
         if kind not in {"query", "passage"}:
             raise ValueError('kind must be "query" or "passage"')
-        batch_size = _integer(batch_size, "batch_size")
+        batch_size = (
+            self.max_batch_size
+            if batch_size is None
+            else _integer(batch_size, "batch_size")
+        )
         if not 1 <= batch_size <= self.max_batch_size:
             raise ValueError(
                 "batch_size must be in [1, {}]".format(self.max_batch_size)

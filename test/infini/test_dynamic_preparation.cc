@@ -1,5 +1,6 @@
 #include "core/graph_handler.h"
 #include "core/infini_runtime.h"
+#include "operators/element_wise.h"
 #include "operators/gather.h"
 #include "operators/layer_norm.h"
 #include "test.h"
@@ -86,6 +87,53 @@ TEST(DynamicPreparationTest,
                                 (.5f + .5f * col) +
                             (1 + col),
                         1e-5);
+}
+TEST(DynamicPreparationTest, LayerNormAffineBroadcastsOverFullInput) {
+    for (bool perRow : {false, true}) {
+        auto rt = makeDynamicRuntime();
+        auto graph = make_ref<GraphObj>(rt);
+        auto x = graph->addTensor({2, 4}, DataType::Float32);
+        auto scale = graph->addTensor(perRow ? Shape{2, 1} : Shape{1, 4},
+                                      DataType::Float32);
+        auto bias = graph->addTensor({1, 4}, DataType::Float32);
+        auto y =
+            graph->addOp<LayerNormObj>(x, scale, nullptr, bias, .002f, -1, 1)
+                ->getOutput();
+        x->setInput();
+        scale->setWeight();
+        bias->setWeight();
+        y->setOutput();
+        graph->dataMalloc();
+        x->copyin(vector<float>{0, 1, 2, 3, 4, 5, 6, 7});
+        scale->copyin(perRow ? vector<float>{1, 2} : vector<float>{1, 2, 3, 4});
+        bias->copyin(vector<float>{1, 2, 3, 4});
+        rt->run(graph);
+        auto result = y->copyout<float>();
+        for (size_t row = 0; row < 2; ++row)
+            for (size_t col = 0; col < 4; ++col)
+                EXPECT_NEAR(result[row * 4 + col],
+                            (float(col) - 1.5f) / std::sqrt(1.25f + .002f) *
+                                    (perRow ? float(row + 1) : float(col + 1)) +
+                                float(col + 1),
+                            1e-5);
+    }
+}
+TEST(DynamicPreparationTest,
+     IntegerSubFailsDuringPreparationWithActionableError) {
+    for (auto dtype : {DataType::Int32, DataType::Int64}) {
+        auto rt = makeDynamicRuntime();
+        auto graph = make_ref<GraphObj>(rt);
+        auto x = graph->addTensor({1}, dtype);
+        auto z = graph->addTensor({1}, dtype);
+        graph->addOp<SubObj>(x, z, nullptr)->getOutput()->setOutput();
+        graph->dataMalloc();
+        try {
+            rt->checkCapabilities(graph);
+            FAIL() << "integer Sub must be rejected";
+        } catch (const std::exception &e) {
+            EXPECT_NE(string(e.what()).find("integral alpha"), string::npos);
+        }
+    }
 }
 } // namespace
 #endif

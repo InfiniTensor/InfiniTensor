@@ -369,18 +369,45 @@ bool lower(const Operator &node, const RuntimeObj *runtime, Builder &builder) {
         const Shape normalized(dims.begin() + axis, dims.end());
         Shape stats = dims;
         std::fill(stats.begin() + axis, stats.end(), 1);
-        std::optional<TensorView> bias;
-        if (op->getBias())
-            bias.emplace(
-                toInfiniOpsBroadcastTensor(op->getBias(), normalized, runtime));
-        builder.emit(
-            "NativeLayerNorm", input(0),
-            std::vector<int64_t>(normalized.begin(), normalized.end()),
-            std::optional<TensorView>{toInfiniOpsBroadcastTensor(
-                op->getInputs(1), normalized, runtime)},
-            bias, double(op->getEps()), output(),
-            temporary(builder, runtime, stats, ::infini::DataType::Float32),
-            temporary(builder, runtime, stats, ::infini::DataType::Float32));
+        const bool directAffine =
+            op->getInputs(1)->getDims() == normalized &&
+            (!op->getBias() || op->getBias()->getDims() == normalized);
+        auto mean =
+            temporary(builder, runtime, stats, ::infini::DataType::Float32);
+        auto rstd =
+            temporary(builder, runtime, stats, ::infini::DataType::Float32);
+        if (directAffine) {
+            std::optional<TensorView> bias;
+            if (op->getBias())
+                bias.emplace(input(2));
+            builder.emit(
+                "NativeLayerNorm", input(0),
+                std::vector<int64_t>(normalized.begin(), normalized.end()),
+                std::optional<TensorView>{input(1)}, bias, double(op->getEps()),
+                output(), mean, rstd);
+        } else {
+            // ONNX affine parameters broadcast to the full input, unlike
+            // NativeLayerNorm's normalized_shape-only weight and bias.
+            auto normalizedValue =
+                temporary(builder, runtime, dims, op->getDType());
+            builder.emit(
+                "NativeLayerNorm", input(0),
+                std::vector<int64_t>(normalized.begin(), normalized.end()),
+                std::optional<TensorView>{}, std::optional<TensorView>{},
+                double(op->getEps()), normalizedValue, mean, rstd);
+            auto scaled = op->getBias() ? temporary(builder, runtime, dims,
+                                                    op->getDType())
+                                        : output();
+            builder.emit(
+                "Mul", normalizedValue,
+                toInfiniOpsBroadcastTensor(op->getInputs(1), dims, runtime),
+                scaled);
+            if (op->getBias())
+                builder.emit(
+                    "Add", scaled,
+                    toInfiniOpsBroadcastTensor(op->getBias(), dims, runtime),
+                    output());
+        }
         return true;
     }
     if (type == OpType::RMSNorm) {
@@ -513,10 +540,17 @@ bool lower(const Operator &node, const RuntimeObj *runtime, Builder &builder) {
             toInfiniOpsBroadcastTensor(node->getInputs(0), dims, runtime);
         const auto rhs =
             toInfiniOpsBroadcastTensor(node->getInputs(1), dims, runtime);
-        if (type == OpType::Sub)
+        if (type == OpType::Sub) {
+            IT_ASSERT(node->getDType() == ::infini::DataType::Float32 ||
+                          node->getDType() == ::infini::DataType::Float16 ||
+                          node->getDType() == ::infini::DataType::Double ||
+                          node->getDType() == ::infini::DataType::BFloat16,
+                      "Integer Sub requires an InfiniOps provider with "
+                      "integral alpha support; "
+                      "the pinned SDK accepts double alpha only");
             builder.emit("Sub", lhs, rhs, 1.0, output());
-        else if (node->getDType() == ::infini::DataType::Int32 ||
-                 node->getDType() == ::infini::DataType::Int64)
+        } else if (node->getDType() == ::infini::DataType::Int32 ||
+                   node->getDType() == ::infini::DataType::Int64)
             builder.emit("Div", lhs, rhs, std::optional<std::string>{"trunc"},
                          output());
         else
