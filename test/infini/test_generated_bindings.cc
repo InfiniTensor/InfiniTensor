@@ -2,6 +2,7 @@
 #include "core/graph.h"
 #include "core/infini_runtime.h"
 #include "operators/infini_op.h"
+#include "operators/pooling.h"
 #include "operators/reshape.h"
 #include "operators/rope.h"
 #include "operators/unary.h"
@@ -179,8 +180,12 @@ TEST(GeneratedInfiniOpsTest,
                                            Bindings{{"out", {y}}}),
                  std::exception);
 }
-#if INFINITENSOR_TEST_HAS_ATEN
 TEST(GeneratedInfiniOpsTest, RopeReadsPositionsAfterProducerOnEveryRun) {
+#if !INFINITENSOR_TEST_HAS_ATEN
+    if (::infini::rt::runtime_device_type() !=
+        ::infini::rt::Device::Type::kNvidia)
+        GTEST_SKIP() << "Requires native NVIDIA or the ATen provider";
+#endif
     auto rt = runtime();
     for (auto positionType : {DataType::Int64, DataType::Int32}) {
         auto graph = make_ref<GraphObj>(rt);
@@ -229,6 +234,29 @@ TEST(GeneratedInfiniOpsTest, RopeReadsPositionsAfterProducerOnEveryRun) {
         rt->run(graph);
     }
 }
+#if INFINITENSOR_TEST_HAS_ATEN
+TEST(GeneratedInfiniOpsTest, PoolingSpatialChangesAndCeilBoundary) {
+    auto rt = runtime();
+    auto graph = make_ref<GraphObj>(rt);
+    auto x = graph->addTensor({1, 1, 2, 2}, DataType::Float32);
+    auto y = graph->addOp<MaxPoolObj>(x, nullptr, 1, 1, 1, 1, 0, 0, 2, 2, 1)
+                 ->getOutput();
+    for (int size : {2, 8, 4, 2}) {
+        x->setShape({1, 1, size, size});
+        graph->shape_infer();
+        graph->dataMalloc();
+        vector<float> input(size * size), expected;
+        for (int i = 0; i < size * size; ++i)
+            input[i] = i;
+        for (int row = 0; row < size; row += 2)
+            for (int col = 0; col < size; col += 2)
+                expected.push_back(input[row * size + col]);
+        x->copyin(input);
+        rt->run(graph);
+        EXPECT_EQ(y->copyout<float>(), expected);
+    }
+}
+
 TEST(GeneratedInfiniOpsTest, AddedSdkOperatorsRequireNoHandwrittenBridge) {
     const auto schemas =
         nlohmann::json::parse(infiniops::Registry::instance().schemas());

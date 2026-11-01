@@ -6,51 +6,33 @@
 
 #include <infini/ops.h>
 
-#include <memory>
+#include <algorithm>
+#include <utility>
 
 namespace infini {
 namespace infiniops {
 
 inline ::infini::rt::DataType
 toInfiniOpsDataType(const ::infini::DataType &dtype) {
-    if (dtype == ::infini::DataType::Bool)
-        return ::infini::rt::DataType::kBool;
-    if (dtype == ::infini::DataType::Float32) {
-        return ::infini::rt::DataType::kFloat32;
-    }
-    if (dtype == ::infini::DataType::Float16) {
-        return ::infini::rt::DataType::kFloat16;
-    }
-    if (dtype == ::infini::DataType::BFloat16) {
-        return ::infini::rt::DataType::kBFloat16;
-    }
-    if (dtype == ::infini::DataType::Double) {
-        return ::infini::rt::DataType::kFloat64;
-    }
-    if (dtype == ::infini::DataType::Int8) {
-        return ::infini::rt::DataType::kInt8;
-    }
-    if (dtype == ::infini::DataType::Int16) {
-        return ::infini::rt::DataType::kInt16;
-    }
-    if (dtype == ::infini::DataType::Int32) {
-        return ::infini::rt::DataType::kInt32;
-    }
-    if (dtype == ::infini::DataType::Int64) {
-        return ::infini::rt::DataType::kInt64;
-    }
-    if (dtype == ::infini::DataType::UInt8) {
-        return ::infini::rt::DataType::kUInt8;
-    }
-    if (dtype == ::infini::DataType::UInt16) {
-        return ::infini::rt::DataType::kUInt16;
-    }
-    if (dtype == ::infini::DataType::UInt32) {
-        return ::infini::rt::DataType::kUInt32;
-    }
-    if (dtype == ::infini::DataType::UInt64) {
-        return ::infini::rt::DataType::kUInt64;
-    }
+    using Type = ::infini::rt::DataType;
+    static const std::pair<::infini::DataType, Type> types[]{
+        {::infini::DataType::Bool, Type::kBool},
+        {::infini::DataType::Float32, Type::kFloat32},
+        {::infini::DataType::Float16, Type::kFloat16},
+        {::infini::DataType::BFloat16, Type::kBFloat16},
+        {::infini::DataType::Double, Type::kFloat64},
+        {::infini::DataType::Int8, Type::kInt8},
+        {::infini::DataType::Int16, Type::kInt16},
+        {::infini::DataType::Int32, Type::kInt32},
+        {::infini::DataType::Int64, Type::kInt64},
+        {::infini::DataType::UInt8, Type::kUInt8},
+        {::infini::DataType::UInt16, Type::kUInt16},
+        {::infini::DataType::UInt32, Type::kUInt32},
+        {::infini::DataType::UInt64, Type::kUInt64},
+    };
+    for (const auto &[source, target] : types)
+        if (dtype == source)
+            return target;
     IT_TODO_HALT_MSG("Unsupported InfiniTensor dtype for InfiniOps");
 }
 
@@ -68,24 +50,14 @@ inline ::infini::rt::Device toInfiniOpsDevice(const RuntimeObj *context) {
 inline ::infini::ops::Tensor toInfiniOpsTensor(const Tensor &tensor,
                                                const RuntimeObj *context) {
     IT_ASSERT(tensor != nullptr);
-    auto dims = tensor->getDims();
-    auto strides = tensor->getStride();
-    ::infini::rt::TensorView::Shape shape;
-    ::infini::rt::TensorView::Strides rtStrides;
-    shape.resize(dims.size());
-    rtStrides.resize(strides.size());
-    for (size_t i = 0; i < dims.size(); ++i) {
-        const auto dim = dims[i];
-        IT_ASSERT(dim >= 0);
-        shape[i] = static_cast<::infini::rt::TensorView::Size>(dim);
-    }
-    for (size_t i = 0; i < strides.size(); ++i) {
-        rtStrides[i] =
-            static_cast<::infini::rt::TensorView::Stride>(strides[i]);
-    }
-    return {tensor->getRawDataPtr<void *>(), shape,
+    const auto &dims = tensor->getDims();
+    const auto strides = tensor->getStride();
+    IT_ASSERT(
+        std::all_of(dims.begin(), dims.end(), [](int d) { return d >= 0; }));
+    return {tensor->getRawDataPtr<void *>(),
+            ::infini::ops::Tensor::Shape(dims.begin(), dims.end()),
             toInfiniOpsDataType(tensor->getDType()), toInfiniOpsDevice(context),
-            rtStrides};
+            ::infini::ops::Tensor::Strides(strides.begin(), strides.end())};
 }
 
 inline ::infini::ops::Tensor
@@ -93,17 +65,10 @@ makeInfiniOpsTensor(void *data, const ::infini::rt::TensorView::Shape &shape,
                     const ::infini::rt::DataType &dtype,
                     const RuntimeObj *context,
                     const ::infini::rt::TensorView::Strides &strides = {}) {
-    auto rtStrides = strides;
-    if (rtStrides.empty()) {
-        rtStrides.resize(shape.size());
-        ::infini::rt::TensorView::Stride stride = 1;
-        for (auto i = shape.size(); i > 0; --i) {
-            rtStrides[i - 1] = stride;
-            stride *=
-                static_cast<::infini::rt::TensorView::Stride>(shape[i - 1]);
-        }
-    }
-    return {data, shape, dtype, toInfiniOpsDevice(context), rtStrides};
+    const auto device = toInfiniOpsDevice(context);
+    return strides.empty()
+               ? ::infini::ops::Tensor{data, shape, dtype, device}
+               : ::infini::ops::Tensor{data, shape, dtype, device, strides};
 }
 
 inline ::infini::ops::Tensor
@@ -114,30 +79,17 @@ toInfiniOpsBroadcastTensor(const Tensor &tensor, const Shape &outputDims,
     auto strides = tensor->getStride();
     IT_ASSERT(dims.size() <= outputDims.size());
 
-    ::infini::rt::TensorView::Shape shape;
-    ::infini::rt::TensorView::Strides rtStrides;
-    shape.resize(outputDims.size());
-    rtStrides.resize(outputDims.size());
-
+    ::infini::ops::Tensor::Shape shape(outputDims.begin(), outputDims.end());
+    ::infini::ops::Tensor::Strides rtStrides(outputDims.size(), 0);
     const auto rankOffset = outputDims.size() - dims.size();
     for (size_t i = 0; i < outputDims.size(); ++i) {
-        const auto outputDim = outputDims[i];
-        IT_ASSERT(outputDim >= 0);
-        shape[i] = static_cast<::infini::rt::TensorView::Size>(outputDim);
-
-        if (i < rankOffset) {
-            rtStrides[i] = 0;
+        IT_ASSERT(outputDims[i] >= 0);
+        if (i < rankOffset)
             continue;
-        }
-
-        const auto inputDim = dims[i - rankOffset];
-        IT_ASSERT(inputDim == outputDim || inputDim == 1);
-        if (inputDim == outputDim) {
-            rtStrides[i] = static_cast<::infini::rt::TensorView::Stride>(
-                strides[i - rankOffset]);
-        } else {
-            rtStrides[i] = 0;
-        }
+        const auto j = i - rankOffset;
+        IT_ASSERT(dims[j] == outputDims[i] || dims[j] == 1);
+        if (dims[j] == outputDims[i])
+            rtStrides[i] = strides[j];
     }
 
     return {tensor->getRawDataPtr<void *>(), shape,

@@ -102,70 +102,41 @@ Value jsonValue(const nlohmann::json &value) {
 void generic(const InfiniOpObj &op, const RuntimeObj *runtime,
              Builder &builder) {
     NamedValues values;
-    for (const auto &[name, range] : op.getInputBindings()) {
-        std::vector<TensorView> tensors;
-        for (size_t i = 0; i < range.second; ++i)
-            tensors.push_back(view(op.getInputs(range.first + i), runtime));
-        values.emplace(name,
-                       range.second == 1 ? Value{tensors[0]} : Value{tensors});
-    }
-    for (const auto &[name, range] : op.getOutputBindings()) {
-        std::vector<TensorView> tensors;
-        for (size_t i = 0; i < range.second; ++i)
-            tensors.push_back(view(op.getOutput(range.first + i), runtime));
-        values.emplace(name,
-                       range.second == 1 ? Value{tensors[0]} : Value{tensors});
-    }
+    const auto bind = [&](const auto &bindings, const TensorVec &tensors) {
+        for (const auto &[name, range] : bindings) {
+            std::vector<TensorView> views;
+            for (size_t i = 0; i < range.second; ++i)
+                views.push_back(view(tensors.at(range.first + i), runtime));
+            values.emplace(name,
+                           range.second == 1 ? Value{views[0]} : Value{views});
+        }
+    };
+    bind(op.getInputBindings(), op.getInputs());
+    bind(op.getOutputBindings(), op.getOutputs());
     for (const auto &item : op.getAttributes().items())
         values.emplace(item.key(), jsonValue(item.value()));
     builder.emit(op.getOperation(), values);
 }
-size_t readMaxPosition(const Tensor &pos, const RuntimeObj *context) {
+std::vector<int64_t> readPositions(const Tensor &pos,
+                                   const RuntimeObj *context) {
     IT_ASSERT(pos != nullptr);
-    size_t maxPos = 0;
     const auto count = pos->size();
-
-    if (pos->getDType() == ::infini::DataType::Int32) {
-        std::vector<int32_t> host(count);
+    std::vector<int64_t> positions;
+    const auto read = [&](auto scalar) {
+        std::vector<decltype(scalar)> host(count);
         context->copyBlobToCPU(host.data(), pos->getRawDataPtr<void *>(),
                                pos->getBytes());
-        for (auto value : host) {
-            IT_ASSERT(value >= 0);
-            maxPos = std::max(maxPos, static_cast<size_t>(value));
-        }
-        return maxPos;
-    }
-
-    if (pos->getDType() == ::infini::DataType::Int64) {
-        std::vector<int64_t> host(count);
-        context->copyBlobToCPU(host.data(), pos->getRawDataPtr<void *>(),
-                               pos->getBytes());
-        for (auto value : host) {
-            IT_ASSERT(value >= 0);
-            maxPos = std::max(maxPos, static_cast<size_t>(value));
-        }
-        return maxPos;
-    }
-
-    IT_TODO_HALT_MSG("RoPE position ids must be int32 or int64");
-}
-
-void buildRopeTables(size_t tableLen, size_t tableDim, size_t headDim,
-                     std::vector<float> &sinTable,
-                     std::vector<float> &cosTable) {
-    sinTable.resize(tableLen * tableDim);
-    cosTable.resize(tableLen * tableDim);
-
-    for (size_t pos = 0; pos < tableLen; ++pos) {
-        for (size_t i = 0; i < tableDim; ++i) {
-            const auto invFreq =
-                std::pow(10000.0f, -static_cast<float>(2 * i) /
-                                       static_cast<float>(headDim));
-            const auto angle = static_cast<float>(pos) * invFreq;
-            sinTable[pos * tableDim + i] = std::sin(angle);
-            cosTable[pos * tableDim + i] = std::cos(angle);
-        }
-    }
+        positions.assign(host.begin(), host.end());
+    };
+    if (pos->getDType() == ::infini::DataType::Int32)
+        read(int32_t{});
+    else if (pos->getDType() == ::infini::DataType::Int64)
+        read(int64_t{});
+    else
+        IT_TODO_HALT_MSG("RoPE position ids must be int32 or int64");
+    IT_ASSERT(std::all_of(positions.begin(), positions.end(),
+                          [](int64_t value) { return value >= 0; }));
+    return positions;
 }
 
 void lowerRope(const Operator &node, const RuntimeObj *context,
@@ -190,21 +161,23 @@ void lowerRope(const Operator &node, const RuntimeObj *context,
     IT_ASSERT(hidden % headDim == 0);
     const size_t tableDim = headDim / 2;
 
-    auto maxPos = readMaxPosition(pos, context);
+    const auto positions = readPositions(pos, context);
+    const auto maxPos = positions.empty()
+                            ? size_t{0}
+                            : static_cast<size_t>(*std::max_element(
+                                  positions.begin(), positions.end()));
     auto tableLen = std::max(seqLen, maxPos + 1);
-    std::vector<float> sinHost;
-    std::vector<float> cosHost;
-    buildRopeTables(tableLen, tableDim, headDim, sinHost, cosHost);
-
-    // RotaryEmbedding uses a packed [cos, sin] cache and updates query in
-    // place. Its NeoX flag denotes half-split rotation (the legacy flag was
-    // inverted).
+    // The public operator consumes one packed [cos, sin] cache and updates
+    // query in place. NeoX selects the legacy half-split rotation.
     std::vector<float> cacheHost(tableLen * headDim);
-    for (size_t row = 0; row < tableLen; ++row) {
-        std::copy_n(cosHost.data() + row * tableDim, tableDim,
-                    cacheHost.data() + row * headDim);
-        std::copy_n(sinHost.data() + row * tableDim, tableDim,
-                    cacheHost.data() + row * headDim + tableDim);
+    for (size_t i = 0; i < tableDim; ++i) {
+        const auto invFreq = std::pow(
+            10000.0f, -static_cast<float>(2 * i) / static_cast<float>(headDim));
+        for (size_t row = 0; row < tableLen; ++row) {
+            const auto angle = static_cast<float>(row) * invFreq;
+            cacheHost[row * headDim + i] = std::cos(angle);
+            cacheHost[row * headDim + tableDim + i] = std::sin(angle);
+        }
     }
     const auto dtype = input->getDType();
     auto cache =
@@ -228,13 +201,17 @@ void lowerRope(const Operator &node, const RuntimeObj *context,
     auto posView = infiniops::toInfiniOpsTensor(pos, context);
     std::optional<TensorView> convertedPos;
     if (pos->getDType() == ::infini::DataType::Int32) {
-        auto ids =
-            builder.constant(pos->size() * sizeof(int64_t), [](void *) {});
+        // Positions were already read for the cache extent. Widen that copy
+        // instead of requiring an integer Cast from every device provider.
+        auto ids = builder.constant(
+            positions.size() * sizeof(int64_t), [&](void *ptr) {
+                context->copyBlobFromCPU(ptr, positions.data(),
+                                         positions.size() * sizeof(int64_t));
+            });
         const TensorView::Shape shape(posView.shape().begin(),
                                       posView.shape().end());
         convertedPos.emplace(makeInfiniOpsTensor(
             ids.get(), shape, ::infini::rt::DataType::kInt64, context));
-        builder.emit("Cast", posView, *convertedPos);
     }
     auto cacheView = makeInfiniOpsTensor(cache.get(), {tableLen, headDim},
                                          toInfiniOpsDataType(dtype), context);
