@@ -7,9 +7,10 @@ InfiniTensor 用于导入、变换和执行计算图，可直接运行 ONNX 模�
 ## 架构边界
 
 - **InfiniTensor**：负责计算图、ONNX 前端、图变换和执行调度。
-- **InfiniCore**：统一固定下层组件版本，源码位于 `3rd-party/InfiniCore/submodules/`。
 - **InfiniOps**：提供统一算子接口及各硬件后端实现。
 - **InfiniRT**：提供设备、内存、流和运行时接口。
+
+InfiniOps 和 InfiniRT 分别由 `3rd-party/InfiniOps`、`3rd-party/InfiniRT` 子模块固定版本。更新组件时，直接在 InfiniTensor 中提交对应引用，并验证两者的兼容性。
 
 InfiniTensor 不包含厂商 SDK 头文件，也不设置逐平台编译分支。目标硬件是否可用，应以该机器上实际安装的 InfiniOps、InfiniRT、驱动和 SDK 为准。
 

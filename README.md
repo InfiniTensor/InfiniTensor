@@ -19,8 +19,8 @@ Initialize the pinned lower-stack sources after cloning:
 git submodule update --init --recursive
 ```
 
-`3rd-party/InfiniCore` pins the component versions. InfiniRT and InfiniOps sources
-are under its `submodules/` directory and are built separately before InfiniTensor.
+`3rd-party/InfiniOps` and `3rd-party/InfiniRT` pin the component versions directly.
+Build and install them separately before building InfiniTensor.
 
 Install the Python package for the native CPU runtime:
 

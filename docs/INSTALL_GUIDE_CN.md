@@ -27,21 +27,20 @@ cd InfiniTensor
 git submodule update --init --recursive
 ```
 
-`3rd-party/InfiniCore` 统一固定下层组件版本，InfiniOps、InfiniRT 和 InfiniCCL
-源码位于它的 `submodules/` 目录。它们不会在构建 InfiniTensor 时自动编译。
-下层构建参数、厂商 SDK 和设备架构参数仍在各自仓库维护；当前单设备执行不需要构建 InfiniCCL。
+`3rd-party/InfiniOps` 和 `3rd-party/InfiniRT` 分别固定算子库和运行时版本。
+它们不会在构建 InfiniTensor 时自动编译；下层构建参数、厂商 SDK 和设备架构参数仍在各自仓库维护。
 
 先构建 InfiniRT，再将 InfiniOps 安装到同一前缀。以下为不依赖 PyTorch 的 CPU 示例：
 
 ```bash
 export INFINI_PREFIX="$HOME/.infini"
-cmake -S 3rd-party/InfiniCore/submodules/InfiniRT -B build/InfiniRT \
+cmake -S 3rd-party/InfiniRT -B build/InfiniRT \
   -DCMAKE_BUILD_TYPE=Release -DWITH_CPU=ON \
   -DCMAKE_INSTALL_PREFIX="$INFINI_PREFIX"
 cmake --build build/InfiniRT --parallel
 cmake --install build/InfiniRT
 
-cmake -S 3rd-party/InfiniCore/submodules/InfiniOps -B build/InfiniOps \
+cmake -S 3rd-party/InfiniOps -B build/InfiniOps \
   -DCMAKE_BUILD_TYPE=Release -DWITH_CPU=ON -DWITH_TORCH=OFF \
   -DGENERATE_PYTHON_BINDINGS=OFF -DINFINI_RT_ROOT="$INFINI_PREFIX" \
   -DCMAKE_INSTALL_PREFIX="$INFINI_PREFIX"
@@ -54,8 +53,8 @@ make install-python INFINI=ON ATEN=OFF \
 ```
 
 加速设备和 ATen provider 的 SDK、构建选项、算子选择及 Python 依赖，分别参见
-`3rd-party/InfiniCore/submodules/InfiniRT/README.md` 和
-`3rd-party/InfiniCore/submodules/InfiniOps/README.md`。
+`3rd-party/InfiniRT/README.md` 和
+`3rd-party/InfiniOps/README.md`。
 
 ## 仅使用 CPU
 
@@ -103,8 +102,8 @@ export INFINIOPS_PROVIDER_MODULES=provider_module
 
 ### 当前组件组合的能力边界
 
-组件版本由 InfiniCore 子模块引用固定。依赖更新按 InfiniOps、InfiniCore、InfiniTensor 顺序合入。
-当前 Core 候选版本引用 Ops PR #1017 的 `52ce289`；Ops 正式合入后再固定最终提交。
+组件版本由 InfiniTensor 的两个直接子模块引用固定。下层组件修改合入后，在本仓库更新对应引用并完成集成验证。
+当前 InfiniOps 固定为 PR #1017 正式合并提交 `673ca669`，InfiniRT 保持 `cd1d482`。
 普通 MaxPool 调用公开的值输出 `MaxPool2d`，由 provider 管理辅助 mask，
 不向不需要索引的 IR 暴露厂商私有格式。
 
@@ -164,7 +163,7 @@ make test-api
 
 检索所需的 CPU/NVIDIA/MLU/昇腾算子由 InfiniOps 提供。模型输入的 shape 推导由前端负责，算子实现的参数约束由 InfiniOps 的公开工厂检查，通用执行器不维护 RMSNorm 等算子的专用兜底。
 
-正式构建使用已提交的 InfiniCore 引用；开发阶段可通过 `INFINIOPS_ROOT` 和 `INFINIRT_ROOT` 指向独立安装前缀，验证候选组件，无需为每次试验更新依赖引用。应记录实际源码和二进制摘要。启用昇腾 ATen provider 时，启动 Python 前设置 `TASK_QUEUE_ENABLE=0` 和 `INFINIOPS_PROVIDER_MODULES=torch_npu`，确保与原生 runtime stream 的提交顺序一致。
+正式构建使用已提交的 InfiniOps、InfiniRT 引用；开发阶段可通过 `INFINIOPS_ROOT` 和 `INFINIRT_ROOT` 指向独立安装前缀，验证候选组件，无需为每次试验更新依赖引用。应记录实际源码和二进制摘要。启用昇腾 ATen provider 时，启动 Python 前设置 `TASK_QUEUE_ENABLE=0` 和 `INFINIOPS_PROVIDER_MODULES=torch_npu`，确保与原生 runtime stream 的提交顺序一致。
 
 安装后可在仓库外执行安装目录中的 `check_install.py`，或在仓库根目录运行：
 
