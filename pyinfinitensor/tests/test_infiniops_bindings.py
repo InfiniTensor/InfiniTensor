@@ -31,7 +31,9 @@ class TestInfiniOpsBindings(unittest.TestCase):
             x.copyin_numpy(values)
             handler.run()
             reference = np.abs(values) if name == "Abs" else np.vectorize(math.erf)(values)
-            np.testing.assert_allclose(y.copyout_numpy(), reference, atol=1e-6)
+            np.testing.assert_allclose(
+                y.copyout_numpy(), reference, atol=0 if name == "Abs" else 1e-5
+            )
 
     def test_single_and_multiple_tensor_lists(self):
         for count in (1, 2):

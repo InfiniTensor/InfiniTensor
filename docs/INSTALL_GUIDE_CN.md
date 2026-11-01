@@ -103,10 +103,10 @@ export INFINIOPS_PROVIDER_MODULES=provider_module
 
 ### 当前组件组合的能力边界
 
-组件版本由 InfiniCore 子模块引用固定。依赖更新应按 InfiniOps、InfiniCore、InfiniTensor 的顺序合入；本分支不依赖历史开发版 InfiniOps 的
-`BeginGraphCaptureMemory` 和 value-only pooling helper 不再是构建前提。
-普通 MaxPool 使用标准 `MaxPool2dWithIndices` 接口；非标准索引格式的 provider
-需要独立适配和验证，不能沿用历史 Ascend pooling 的通过记录。
+组件版本由 InfiniCore 子模块引用固定。依赖更新按 InfiniOps、InfiniCore、InfiniTensor 顺序合入。
+当前 Core 候选版本引用 Ops PR #1017 的 `52ce289`；Ops 正式合入后再固定最终提交。
+普通 MaxPool 调用公开的值输出 `MaxPool2d`，由 provider 管理辅助 mask，
+不向不需要索引的 IR 暴露厂商私有格式。
 
 图捕获、实例化、重放和销毁统一通过 InfiniRT，不依赖旧的 InfiniOps 捕获内存接口。
 InfiniTensor 在捕获前创建实际选中的算子实例，检查其 `capture_safe()`，并将实例
@@ -165,3 +165,14 @@ make test-api
 检索所需的 CPU/NVIDIA/MLU/昇腾算子由 InfiniOps 提供。模型输入的 shape 推导由前端负责，算子实现的参数约束由 InfiniOps 的公开工厂检查，通用执行器不维护 RMSNorm 等算子的专用兜底。
 
 正式构建使用已提交的 InfiniCore 引用；开发阶段可通过 `INFINIOPS_ROOT` 和 `INFINIRT_ROOT` 指向独立安装前缀，验证候选组件，无需为每次试验更新依赖引用。应记录实际源码和二进制摘要。启用昇腾 ATen provider 时，启动 Python 前设置 `TASK_QUEUE_ENABLE=0` 和 `INFINIOPS_PROVIDER_MODULES=torch_npu`，确保与原生 runtime stream 的提交顺序一致。
+
+安装后可在仓库外执行安装目录中的 `check_install.py`，或在仓库根目录运行：
+
+```bash
+python scripts/check_install.py --backend nvidia --device 0
+```
+
+`--backend cpu` 检查 NativeCpu，`--backend infini` 检查 SDK 默认设备，其他名称选择对应 InfiniRT 设备。
+脚本加载当前安装的 Python 扩展并执行实际矩阵乘法，导入、设备或算子错误均返回非零。
+该检查只验证基本安装，不代替模型级验收。昇腾的 Tensor 执行使用独立 InfiniRT stream，
+因此仍要求启动前设置 `TASK_QUEUE_ENABLE=0`；Ops 对 Torch 自有当前／默认 stream 的放宽不改变此要求。
