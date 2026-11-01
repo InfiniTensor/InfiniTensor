@@ -99,6 +99,12 @@ class GraphObj : public Object {
 
     void validateMemory() const;
 
+    // Structural parameters can change without changing tensor shapes. They
+    // invalidate both prepared execution and captured graphs.
+    void notifyOperatorParametersChanged() {
+        captureState->markTopologyChanged();
+    }
+
     size_t getAllocationGeneration() const { return allocationGeneration; }
     uint64_t getCaptureStateId() const { return captureState->getId(); }
     size_t getCaptureGeneration() const {

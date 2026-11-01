@@ -413,6 +413,11 @@ void init_graph_builder(py::module &m) {
     py::class_<TensorObj, std::shared_ptr<TensorObj>>(m, "Tensor",
                                                       py::buffer_protocol())
         .def("fuid", &TensorObj::getFuid, policy::automatic)
+        .def("data_ptr",
+             [](const TensorObj &tensor) {
+                 return reinterpret_cast<uintptr_t>(
+                     tensor.getRawDataPtr<void *>());
+             })
         .def("shape", &TensorObj::getDims, policy::move)
         .def("set_weight", &TensorObj::setWeight, policy::move)
         .def("set_input", &TensorObj::setInput, policy::move)
@@ -584,8 +589,12 @@ void init_graph_builder(py::module &m) {
         .def("tune", &Handler::tune, policy::automatic)
         .def("run", &Handler::run, policy::automatic)
         .def("run_with_graph", &Handler::run_with_graph, policy::automatic)
+        .def("check_capabilities", &Handler::check_capabilities)
         .def("shape_infer", &Handler::shape_infer, policy::automatic)
         .def("change_shape", &Handler::change_shape, policy::automatic)
+        .def("update_reshape", &Handler::update_reshape, policy::automatic)
+        .def("update_expand", &Handler::update_expand, policy::automatic)
+        .def("update_slice", &Handler::update_slice, policy::automatic)
         .def("getDims", &Handler::getDims, policy::automatic)
         .def("get_perf_time", &Handler::get_perf_time, policy::automatic);
 }
