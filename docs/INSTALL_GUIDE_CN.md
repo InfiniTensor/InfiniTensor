@@ -1,36 +1,34 @@
-# 安装部署指南
+# 安装指南
 
-## 前置条件
+## 环境与后端
 
-InfiniTensor 负责计算图、ONNX 前端和执行调度。加速设备的算子实现与运行时由 InfiniOps 和 InfiniRT 提供。使用加速设备前，先在目标环境中完成与该设备匹配的 InfiniRT 和 InfiniOps 安装；InfiniTensor 不直接依赖厂商 SDK。
+InfiniTensor 支持两种执行方式：内置 CPU runtime，以及由 InfiniOps／InfiniRT 提供的执行后端。加速设备的驱动、SDK 和 provider 在下层组件中安装与配置。
 
-需要准备：
-
-- CMake 3.17 或更高版本；
-- 可用的 C/C++ 编译器、Python 3、pip 和 make；
-- 构建加速后端时，使用与 InfiniOps 相同的 Python/PyTorch 及 C++11 ABI；
-- 驱动、厂商 SDK、InfiniRT 和 InfiniOps 已在目标机器上完成各自的基础验证。
-
-使用昇腾 ATen provider 的 C++ 宿主需要先用匹配环境的 Python executable 配置解释器并导入 `torch`、`torch_npu`，且调用线程可以取得 GIL；Python 接口会加载 `INFINIOPS_PROVIDER_MODULES` 指定的模块。未初始化的 C++ 调用会明确报错。独立 C++ 测试使用 CMake 选定的 Python 来初始化环境，以保持标准库、site-packages 和厂商编译子进程的一致性；测试运行时仍需指定对应 provider 模块。这些要求不适用于纯原生 provider。
-
-运行旧 IR 的 RoPE 时，安装的 Ops SDK 需要导出 `RotaryEmbedding`；不再依赖已弃用的 `RotaryEmbeddingInfinilm`。按设备与 SDK 能力选择已有原生或 ATen 实现，均通过同一个公开接口调用。
-
-普通 Release 构建默认 `BACKTRACE=OFF`，不需要 `libdw-dev`。只有启用 backtrace 时才需要该系统依赖。
+构建 InfiniTensor 需要 CMake 3.17+、支持 C++17 的编译器、Python 3.9+（含开发头文件）、pip 和 make。下层组件可以有更高的工具链要求；使用 ATen provider 时，Python、PyTorch、厂商扩展和 C++11 ABI 必须匹配。普通 Release 构建无需栈回溯依赖，启用 `BACKTRACE=ON` 时需安装 `libdw-dev`。
 
 ## 获取源码
 
-GitHub 操作使用 SSH：
-
 ```bash
-git clone git@github.com:InfiniTensor/InfiniTensor.git
+git clone https://github.com/InfiniTensor/InfiniTensor.git
 cd InfiniTensor
 git submodule update --init --recursive
 ```
 
-`3rd-party/InfiniOps` 和 `3rd-party/InfiniRT` 分别固定算子库和运行时版本。
-它们不会在构建 InfiniTensor 时自动编译；下层构建参数、厂商 SDK 和设备架构参数仍在各自仓库维护。
+子模块记录与项目配套的 InfiniOps 和 InfiniRT 源码版本。组件分别构建、安装，再由 InfiniTensor 链接；具体步骤见 [InfiniRT](../3rd-party/InfiniRT/README.md) 和 [InfiniOps](../3rd-party/InfiniOps/README.md)。
 
-先构建 InfiniRT，再将 InfiniOps 安装到同一前缀。以下为不依赖 PyTorch 的 CPU 示例：
+## 安装内置 CPU runtime
+
+不使用 InfiniOps 时：
+
+```bash
+make install-python INFINI=OFF PYTHON="$(command -v python3)"
+```
+
+该命令构建扩展、安装 Python 包并执行基本安装检查。
+
+## 安装 InfiniOps 后端
+
+先构建 InfiniRT，再构建使用该 runtime 的 InfiniOps。下面以原生 CPU provider 为例；先按下层组件文档准备其构建依赖：
 
 ```bash
 export INFINI_PREFIX="$HOME/.infini"
@@ -49,129 +47,74 @@ cmake --install build/InfiniOps
 
 make install-python INFINI=ON ATEN=OFF \
   INFINIOPS_ROOT="$INFINI_PREFIX" INFINIRT_ROOT="$INFINI_PREFIX" \
+  CHECK_BACKEND=infini PYTHON="$(command -v python3)"
+```
+
+加速设备同样按此顺序安装，设备选项、架构参数及算子选择由组件的构建配置决定。InfiniTensor 从 InfiniOps SDK 的公开头文件生成绑定，需在构建 Python 环境中安装 `libclang` 和 `PyYAML`。
+
+使用已经安装好的 ATen provider：
+
+```bash
+make install-python INFINI=ON ATEN=ON \
+  INFINIOPS_ROOT=/path/to/infiniops-prefix \
+  INFINIRT_ROOT=/path/to/infinirt-prefix \
+  CHECK_BACKEND=infini PYTHON="$(command -v python3)"
+```
+
+两个安装前缀可以相同，也可以分别指定。它们必须来自兼容的构建；ATen provider 还需与所选 Python/PyTorch 使用相同的 C++11 ABI。构建时会自动读取 PyTorch ABI，也可通过 `INFINIOPS_CXX11_ABI` 显式指定。
+
+## Python provider 配置
+
+依赖厂商 Python 扩展的 provider 需要在加载后端前导入对应模块。安装时使用 `PROVIDER_MODULES`，运行时使用 `INFINIOPS_PROVIDER_MODULES`：
+
+```bash
+export INFINIOPS_PROVIDER_MODULES=torch_mlu
+make install-python INFINI=ON ATEN=ON \
+  INFINIOPS_ROOT=/path/to/infiniops-prefix \
+  INFINIRT_ROOT=/path/to/infinirt-prefix \
+  PROVIDER_MODULES="$INFINIOPS_PROVIDER_MODULES" CHECK_BACKEND=infini \
   PYTHON="$(command -v python3)"
 ```
 
-加速设备和 ATen provider 的 SDK、构建选项、算子选择及 Python 依赖，分别参见
-`3rd-party/InfiniRT/README.md` 和
-`3rd-party/InfiniOps/README.md`。
+寒武纪 ATen provider 使用 `torch_mlu`，昇腾使用 `torch_npu`。昇腾外部 runtime stream 要求在启动 Python 前设置 `TASK_QUEUE_ENABLE=0`。纯原生 provider 无需这些 Python 扩展。
 
-## 仅使用 CPU
-
-```bash
-make install-python \
-  INFINI=OFF \
-  PYTHON="$(command -v python3)"
-```
-
-## 使用加速设备
-
-先设置已经安装好的、彼此兼容的 InfiniOps 和 InfiniRT 前缀：
-
-```bash
-export INFINIOPS_ROOT=/path/to/infiniops-prefix
-export INFINIRT_ROOT=/path/to/infinirt-prefix
-```
-
-然后构建并安装：
-
-```bash
-make install-python \
-  INFINI=ON \
-  ATEN=ON \
-  INFINIOPS_ROOT="$INFINIOPS_ROOT" \
-  INFINIRT_ROOT="$INFINIRT_ROOT" \
-  PYTHON="$(command -v python3)"
-```
-
-如果 InfiniOps 后端依赖 Python provider，在安装和运行时使用同一组模块：
-
-```bash
-make install-python \
-  INFINI=ON \
-  ATEN=ON \
-  INFINIOPS_ROOT="$INFINIOPS_ROOT" \
-  INFINIRT_ROOT="$INFINIRT_ROOT" \
-  PROVIDER_MODULES=provider_module \
-  PYTHON="$(command -v python3)"
-
-export INFINIOPS_PROVIDER_MODULES=provider_module
-```
-
-`INFINIOPS_ROOT` 和 `INFINIRT_ROOT` 必须来自同一套兼容构建。ATen 版本的 InfiniOps 必须以 `WITH_TORCH=ON` 构建，并与当前 Python/PyTorch 使用相同的 C++11 ABI。若 provider 动态库不在 Python/PyTorch 环境的默认搜索路径中，可设置 `INFINIOPS_PROVIDER_LIBRARY_DIRS`。
-
-### 当前组件组合的能力边界
-
-组件版本由 InfiniTensor 的两个直接子模块引用固定。下层组件修改合入后，在本仓库更新对应引用并完成集成验证。
-当前 InfiniOps 固定为 PR #1017 正式合并提交 `673ca669`，InfiniRT 保持 `cd1d482`。
-普通 MaxPool 调用公开的值输出 `MaxPool2d`，由 provider 管理辅助 mask，
-不向不需要索引的 IR 暴露厂商私有格式。
-
-图捕获、实例化、重放和销毁统一通过 InfiniRT，不依赖旧的 InfiniOps 捕获内存接口。
-InfiniTensor 在捕获前创建实际选中的算子实例，检查其 `capture_safe()`，并将实例
-和稳定工作区保留到图销毁。未声明安全的实现（包括当前未标记的 ATen provider）
-在进入捕获前明确拒绝，普通执行仍可用，不以普通前向替代图重放。
-同一 ATen 构建中的安全原生实现仍可捕获，不因启用 ATen 而整体关闭 Graph。
-
-Ascend / MLU 的 provider 初始化、外部张量与流互操作也须按正式组件版本重新验证；
-旧开发版的跨平台测试和图捕获结果不适用于这个依赖组合。
-`INFINITENSOR_REQUIRE_GRAPH_CAPTURE=1` 仍用于要求图能力的专项测试，能力缺失时会失败。
-
-原生构建不依赖 PyTorch 或上述 NPU provider。可运行
-`bash scripts/test_infiniops_native_build.sh`，从固定子模块提交创建全新的
-CPU provider 源码、构建及安装目录，验证 `USE_INFINIOPS_ATEN_KERNELS=OFF`。
+provider 的共享库必须能被动态链接器找到；库目录不在所选 Python 环境中时，通过 `INFINIOPS_PROVIDER_LIBRARY_DIRS` 传入以分号分隔的路径。保持构建、安装检查和应用运行使用同一环境。
 
 ## 验证安装
 
-先确认 Python 包可以导入：
-
 ```bash
-python3 -c 'import pyinfinitensor; import backend; print(pyinfinitensor.__file__); print(backend.__file__)'
+# 内置 CPU runtime
+python scripts/check_install.py --backend cpu
+
+# InfiniOps SDK 默认设备
+python scripts/check_install.py --backend infini --device 0
 ```
 
-CPU 可用时可创建 CPU runtime：
+也可将 `--backend` 设为 InfiniRT 提供的具体设备名称。脚本加载已安装的扩展并执行矩阵乘法；导入、设备创建和执行失败都会返回非零。检查通过后，按[使用指南](USER_GUIDE_CN.md)运行应用模型。
 
-```bash
-python3 - <<'PY'
-from pyinfinitensor import backend
-print(backend.runtime("cpu", 0))
-PY
-```
+## 常用构建参数
 
-加速设备名称由 InfiniRT 决定。使用目标环境实际提供的名称和可见设备编号创建 runtime；名称无效、设备不可见或下层后端未构建时会直接报错，不会回退到 CPU。
+| 参数 | 默认值 | 用途 |
+| --- | --- | --- |
+| `PYTHON` | `python3` | 构建、安装与自检使用的解释器 |
+| `INFINI` | `AUTO` | 找到安装前缀时启用 InfiniOps；显式 `ON` 要求依赖完整 |
+| `ATEN` | `ON` | 链接 InfiniOps 的 ATen provider 依赖 |
+| `TYPE` | `Release` | 构建类型 |
+| `TEST` | `ON` | 构建测试可执行文件 |
+| `JOBS` | `8` | 编译并行度 |
+| `BACKTRACE` | `OFF` | 启用依赖 libdw 的栈回溯 |
+| `CHECK_BACKEND` | 空（自检使用 `cpu`） | 安装自检的执行后端 |
 
-项目内测试入口：
-
-```bash
-make test-cpp
-make test-onnx
-make test-api
-```
-
-## 分布式执行
-
-当前通用 Infini 后端只支持单设备执行。`BUILD_DIST=ON` 会在 CMake 配置阶段明确报错。分布式通信将在后续 InfiniCCL 集成中单独实现和验证。
+以上为 Makefile 入口的默认值；直接调用 CMake 时应显式设置所需选项。`make clean` 清理整个 `build/` 目录。
 
 ## 常见问题
 
-- `InfiniOps` 或 `InfiniRT` 未找到：检查两个前缀及其 CMake 包是否完整。
-- Python/PyTorch ABI 不一致：使用与 InfiniOps ATen 构建相同的 Python/PyTorch 环境重新构建。
-- provider 导入失败：先加载该后端要求的 Python provider，并确认其动态库搜索路径。
-- 设备 runtime 创建失败：检查设备名称、可见设备编号、驱动和下层运行时安装。
+| 现象 | 检查事项 |
+| --- | --- |
+| 找不到 InfiniOps／InfiniRT | 安装前缀、头文件、共享库和 CMake 包是否完整 |
+| 扩展导入失败或出现未定义符号 | Python、PyTorch、C++11 ABI 与动态库搜索路径是否匹配 |
+| provider 加载失败 | 厂商扩展是否能独立导入，运行环境是否与构建环境一致 |
+| 设备不可见 | 设备名称、卡号、驱动、SDK 及运行权限 |
+| 算子创建或执行失败 | 所选 provider 是否支持该算子、dtype、形状和外部流 |
 
-### 检索组件更新与开发验证
-
-检索所需的 CPU/NVIDIA/MLU/昇腾算子由 InfiniOps 提供。模型输入的 shape 推导由前端负责，算子实现的参数约束由 InfiniOps 的公开工厂检查，通用执行器不维护 RMSNorm 等算子的专用兜底。
-
-正式构建使用已提交的 InfiniOps、InfiniRT 引用；开发阶段可通过 `INFINIOPS_ROOT` 和 `INFINIRT_ROOT` 指向独立安装前缀，验证候选组件，无需为每次试验更新依赖引用。应记录实际源码和二进制摘要。启用昇腾 ATen provider 时，启动 Python 前设置 `TASK_QUEUE_ENABLE=0` 和 `INFINIOPS_PROVIDER_MODULES=torch_npu`，确保与原生 runtime stream 的提交顺序一致。
-
-安装后可在仓库外执行安装目录中的 `check_install.py`，或在仓库根目录运行：
-
-```bash
-python scripts/check_install.py --backend nvidia --device 0
-```
-
-`--backend cpu` 检查 NativeCpu，`--backend infini` 检查 SDK 默认设备，其他名称选择对应 InfiniRT 设备。
-脚本加载当前安装的 Python 扩展并执行实际矩阵乘法，导入、设备或算子错误均返回非零。
-该检查只验证基本安装，不代替模型级验收。昇腾的 Tensor 执行使用独立 InfiniRT stream，
-因此仍要求启动前设置 `TASK_QUEUE_ENABLE=0`；Ops 对 Torch 自有当前／默认 stream 的放宽不改变此要求。
+离线部署时，预先准备源码子模块、构建依赖、Python 包和模型文件，再将已安装组件及其运行库一起部署。`make install-python` 使用可编辑安装，运行目录需保留对应源码和扩展文件。
