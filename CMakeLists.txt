@@ -427,7 +427,7 @@ if(BUILD_TEST)
   add_compile_definitions(BUILD_TEST=1)
   enable_testing()
   add_test(NAME test_infiniops_binding_generator
-    COMMAND "${Python_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/tests/test_generate_infiniops_bindings.py")
+    COMMAND "${Python_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/pyinfinitensor/tests/test_generate_infiniops_bindings.py")
   if(USE_TRACE)
     build_test(test/trace/*.cc)
   endif()

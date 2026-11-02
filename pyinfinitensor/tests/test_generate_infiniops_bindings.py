@@ -6,7 +6,7 @@ import tempfile
 import unittest
 
 spec = importlib.util.spec_from_file_location(
-    "bindings", Path(__file__).resolve().parents[1] / "generate_infiniops_bindings.py"
+    "bindings", Path(__file__).resolve().parents[2] / "scripts/generate_infiniops_bindings.py"
 )
 bindings = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(bindings)

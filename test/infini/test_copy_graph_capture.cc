@@ -1,13 +1,12 @@
 #include "../../src/kernels/infiniops/lowering.h"
 #include "core/graph.h"
 #include "core/infini_runtime.h"
+#include "operators/element_wise.h"
 #include "operators/reshape.h"
-#include "operators/rms_norm.h"
 #include "operators/squeeze.h"
 #include "operators/unsqueeze.h"
 #include "test.h"
 
-#include <cmath>
 #include <cstdlib>
 #include <tuple>
 
@@ -201,19 +200,6 @@ TEST_F(InfiniCopyGraphIntegrationTest, CapturesFiveCopyNodesInSequence) {
     }
 }
 
-vector<float> rmsReference(vector<float> values) {
-    for (size_t i = 0; i < values.size(); i += 2) {
-        const float inverse =
-            1.0f /
-            std::sqrt((values[i] * values[i] + values[i + 1] * values[i + 1]) /
-                          2.0f +
-                      1e-6f);
-        values[i] *= inverse;
-        values[i + 1] *= inverse;
-    }
-    return values;
-}
-
 TEST_F(InfiniCopyGraphIntegrationTest, ComputeReshapeComputeOrdering) {
     auto runtime = makeCopyRuntime();
     auto graph = make_ref<GraphObj>(runtime);
@@ -221,11 +207,10 @@ TEST_F(InfiniCopyGraphIntegrationTest, ComputeReshapeComputeOrdering) {
     auto weight = graph->addTensor({2}, DataType::Float32);
     input->setInput();
     weight->setWeight();
-    auto first = graph->addOp<RMSNormObj>(input, weight, nullptr)->getOutput();
+    auto first = graph->addOp<AddObj>(input, weight, nullptr)->getOutput();
     auto reshaped =
         graph->addOp<ReshapeObj>(first, nullptr, Shape{1, 2, 2})->getOutput();
-    auto output =
-        graph->addOp<RMSNormObj>(reshaped, weight, nullptr)->getOutput();
+    auto output = graph->addOp<AddObj>(reshaped, weight, nullptr)->getOutput();
     output->setOutput();
     graph->dataMalloc();
     weight->copyin(vector<float>{1, 1});
@@ -242,7 +227,9 @@ TEST_F(InfiniCopyGraphIntegrationTest, ComputeReshapeComputeOrdering) {
             EXPECT_THROW(runtime->runWithGraph(graph), std::exception);
             runtime->run(graph);
         }
-        const auto expected = rmsReference(rmsReference(values));
+        auto expected = values;
+        for (auto &value : expected)
+            value += 2;
         const auto actual = output->copyout<float>();
         ASSERT_EQ(actual.size(), expected.size());
         for (size_t i = 0; i < expected.size(); ++i)

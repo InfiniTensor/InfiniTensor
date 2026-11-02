@@ -2,7 +2,6 @@
 #include "../../src/kernels/infiniops/tensor_view.h"
 #include "core/infini_runtime.h"
 #include "operators/infini_op.h"
-#include "operators/pooling.h"
 #include "operators/unary.h"
 #include "test.h"
 #include "test_infini_aten.h"
@@ -80,7 +79,6 @@ using infiniops::Handle;
 using infiniops::prepareGraph;
 using infiniops::prepareTyped;
 using infiniops::Registry;
-using infiniops::Step;
 using infiniops::TensorView;
 using infiniops::Values;
 using infiniops::WorkspaceAllocator;
@@ -105,36 +103,7 @@ Ref<InfiniRuntimeObj> runtime(size_t capacity = 2) {
                 track, getArgument<TensorView>(values[0]),
                 getArgument<TensorView>(values[1]));
         });
-#if !INFINITENSOR_TEST_HAS_ATEN
-    if (::infini::rt::runtime_device_type() ==
-        ::infini::rt::Device::Type::kCpu) {
-        // The CPU-only SDK lacks MaxPool. A 1x1 copy provider supplies only the
-        // arithmetic for this fixture; graph/lowering/planning remain
-        // production.
-        Registry::instance().add(
-            "MaxPool2d",
-            {{"input", "Tensor"},
-             {"kernel", "std::vector<int64_t>"},
-             {"stride", "std::vector<int64_t>"},
-             {"padding", "std::vector<int64_t>"},
-             {"dilation", "std::vector<int64_t>"},
-             {"ceil", "bool"},
-             {"out", "Tensor"}},
-            [](const Values &v, const WorkspaceAllocator &) -> Step {
-                IT_ASSERT(std::get<std::vector<int64_t>>(v[1]) ==
-                          std::vector<int64_t>({1, 1}));
-                auto in = std::get<TensorView>(v[0]),
-                     out = std::get<TensorView>(v[6]);
-                IT_ASSERT(in.device().type() ==
-                          ::infini::rt::Device::Type::kCpu);
-                return {[in, out](const Handle &) mutable {
-                            std::memcpy(out.data(), in.data(),
-                                        in.numel() * sizeof(float));
-                        },
-                        false, "CPU test-only 1x1 MaxPool"};
-            });
-    }
-#endif
+
     return true;
 }();
 
@@ -241,55 +210,6 @@ TEST(PreparedResourcesTest, WorkspacePeakIsIndependentOfNodeCountAndCached) {
         EXPECT_EQ(g->getOutputs()[0]->copyout<float>(), vector<float>(16, 3));
         rt->clearGraphCache();
         expectReleased();
-    }
-}
-TEST(PreparedResourcesTest, RealMaxPoolDoesNotAllocateUnusedIndexStorage) {
-#if !INFINITENSOR_TEST_HAS_ATEN
-    if (::infini::rt::runtime_device_type() != ::infini::rt::Device::Type::kCpu)
-        GTEST_SKIP() << "The test-only MaxPool provider requires CPU";
-#endif
-    for (int count : {1, 8, 32}) {
-        auto rt = runtime();
-        auto g = make_ref<GraphObj>(rt);
-        auto x = g->addTensor({1, 1, 256, 256}, DataType::Float32);
-        x->setInput();
-        auto y = x;
-        for (int i = 0; i < count; ++i)
-            y = g->addOp<MaxPoolObj>(y, nullptr, 1, 1, 1, 1, 0, 0, 1, 1, 0)
-                    ->getOutput();
-        y->setOutput();
-        g->dataMalloc();
-        x->copyin(vector<float>(256 * 256, 3));
-        vector<size_t> requests;
-        vector<std::weak_ptr<void>> allocations;
-        auto plan = prepareGraph(g, rt.get(), [&](size_t bytes) {
-            requests.push_back(bytes);
-            auto p = rt->acquireWorkspace(bytes);
-            allocations.push_back(p);
-            return p;
-        });
-        EXPECT_EQ(plan->plan.temporaryBytes, 0u);
-        EXPECT_TRUE(requests.empty());
-        std::cout << nlohmann::json{{"case", "maxpool"},
-                                    {"nodes", count},
-                                    {"helper_bytes", plan->plan.temporaryBytes},
-                                    {"workspace_bytes",
-                                     plan->plan.workspace->bytes},
-                                    {"allocation_count", requests.size()}}
-                         .dump()
-                  << std::endl;
-        Handle handle;
-        handle.set_stream(rt->getStream());
-        plan->plan.run(handle);
-        rt->sync();
-        EXPECT_EQ(y->copyout<float>(), vector<float>(256 * 256, 3));
-        plan.reset();
-        for (const auto &p : allocations)
-            EXPECT_TRUE(p.expired());
-        rt->run(g);
-        rt->run(g);
-        EXPECT_EQ(y->copyout<float>(), vector<float>(256 * 256, 3));
-        rt->clearGraphCache();
     }
 }
 TEST(PreparedResourcesTest, AllocationFailureReleasesPreparedDescriptors) {

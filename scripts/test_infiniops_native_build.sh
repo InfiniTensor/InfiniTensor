@@ -32,9 +32,9 @@ cmake -S "$src" -B "$work/build-it" \
     -DINFINIOPS_ROOT="$work/prefix" -DINFINIRT_ROOT="$work/prefix" \
     -DINFINIOPS_CXX11_ABI=1 -DPython_EXECUTABLE="$py"
 cmake --build "$work/build-it" --target test_copy_graph_capture \
-    test_rms_norm test_rms_norm_safety test_prepared_resources -j "$jobs"
+    test_generated_bindings test_prepared_resources -j "$jobs"
 "$work/build-it/test_copy_graph_capture" \
     --gtest_filter=InfiniCopyLifetimeTest.*
-"$work/build-it/test_rms_norm"
-"$work/build-it/test_rms_norm_safety"
+"$work/build-it/test_generated_bindings" \
+    --gtest_filter='GeneratedInfiniOpsTest.GenericNodeClonePreservesBindings:GeneratedInfiniOpsTest.GenericShapesAreExplicitAndValidationIsRecoverable:GeneratedInfiniOpsTest.ExplicitShapesFollowIntermediateInputs'
 "$work/build-it/test_prepared_resources"

@@ -232,7 +232,7 @@ RMSNorm 在形状推导及调用前检查非标量输入、正的末维、权重
 回归命令：
 
 ```bash
-python scripts/tests/test_generate_infiniops_bindings.py
+python pyinfinitensor/tests/test_generate_infiniops_bindings.py
 # SDK 需包含 RmsNorm、Cat、Softmax、Abs、Erf；缺少能力直接失败。
 python pyinfinitensor/tests/test_infiniops_bindings.py
 # 加速设备 ATen SDK 还需包含 ScaledDotProductAttention，验证普通执行的跨 stream 顺序。
