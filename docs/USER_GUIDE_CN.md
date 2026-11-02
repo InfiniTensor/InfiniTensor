@@ -238,3 +238,18 @@ python pyinfinitensor/tests/test_infiniops_bindings.py
 # 加速设备 ATen SDK 还需包含 ScaledDotProductAttention，验证普通执行的跨 stream 顺序。
 python pyinfinitensor/tests/test_infiniops_stream.py
 ```
+
+### ATen 设备 CI
+
+`.github/workflows/infiniops-aten-cuda.yml` 为上述跨 stream 测试提供独立 CUDA 任务。
+仓库管理员配置带 `self-hosted`、`linux`、`x64`、`cuda` 标签的 runner，并设置仓库变量
+`INFINITENSOR_ATEN_CUDA_CI=true` 后，同仓库 PR、master 推送和手工触发会运行该任务。
+未启用时任务不会执行，不能把普通 CPU／无 ATen CI 的通过作为此项的通过证据。
+fork PR 继续运行托管的 CPU／native CI；设备任务可在审核后的同仓库分支上执行。
+
+runner 需提供 CMake 3.24+、C++ 编译器、CUDA toolkit（`nvcc` 在 PATH 中）、驱动和
+CUDA 版 PyTorch。可通过仓库变量 `INFINITENSOR_CUDA_PYTHON` 指定已有 PyTorch 的
+Python 3.10–3.12 解释器。任务将构建用 Python 依赖安装到独立临时目录，从当前 gitlink 固定的 RT／Ops
+重新构建，只启用 ATen SDPA，然后构建 InfiniTensor 并运行测试；缺少设备、算子或
+执行失败均使任务失败。构建日志、组件 SHA、Python 版本清单和 CMake 配置作为 artifact 保存。
+本任务验证三维 SDPA 的普通执行顺序，不覆盖 Graph 捕获，也不代表 MLU／NPU 自动 CI 已启用。
