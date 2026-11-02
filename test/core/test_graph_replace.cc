@@ -214,7 +214,7 @@ TEST(MatchGraph, multi_output) {
         auto relu0 = subg0->addOp<ReluObj>(conv0->getOutput(0), nullptr);
 
         auto avgpool = subg0->addOp<AvgPoolObj>(maxpool->getOutput(0), nullptr,
-                                                3, 3, 0, 0, 0, 0, 1, 1, 0);
+                                                3, 3, 1, 1, 1, 1, 1, 1, 0);
         subg0->setOutputs(
             TensorVec{relu0->getOutput(0), avgpool->getOutput(0)});
     }

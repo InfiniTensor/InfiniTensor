@@ -1,0 +1,90 @@
+name: InfiniOps ATen CUDA stream regression
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stream:
+    # Enable only after provisioning this runner. Fork PRs use the hosted CI.
+    if: >-
+      vars.INFINITENSOR_ATEN_CUDA_CI == 'true' &&
+      (github.event_name != 'pull_request' ||
+       github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: [self-hosted, linux, x64, cuda]
+    timeout-minutes: 45
+    env:
+      CUDA_PYTHON: ${{ vars.INFINITENSOR_CUDA_PYTHON || 'python3' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - name: Build pinned components and run the ATen stream test
+        shell: bash
+        run: |
+          set -euo pipefail
+          work=$(mktemp -d "$RUNNER_TEMP/infinitensor-aten.XXXXXX")
+          echo "ATEN_WORK=$work" >> "$GITHUB_ENV"
+          exec > >(tee "$work/regression.log") 2>&1
+          unset PYTHONPATH INFINIOPS_PROVIDER_MODULES
+          py=$(command -v "$CUDA_PYTHON")
+          "$py" -m pip install --target "$work/python-deps" libclang==18.1.1 PyYAML==6.0.2 numpy==1.26.4
+          export PYTHONPATH="$work/python-deps"
+          "$py" -c 'import torch; assert torch.cuda.is_available(); print(torch.__version__, torch.version.cuda, torch.cuda.get_device_name(0))'
+          "$py" -m pip freeze > "$work/python-packages.txt"
+          git rev-parse HEAD
+          git submodule status --recursive
+          nvidia-smi
+          nvcc --version
+          abi=$("$py" -c 'import torch; print(int(torch._C._GLIBCXX_USE_CXX11_ABI))')
+          torch_lib=$("$py" -c 'from pathlib import Path; import torch; print(Path(torch.__file__).parent / "lib")')
+          mkdir "$work/rt" "$work/ops"
+          git -C 3rd-party/InfiniRT archive HEAD | tar -x -C "$work/rt"
+          git -C 3rd-party/InfiniOps archive HEAD | tar -x -C "$work/ops"
+          cmake -S "$work/rt" -B "$work/build-rt" \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$work/prefix" \
+            -DWITH_CPU=OFF -DWITH_NVIDIA=ON -DPython_EXECUTABLE="$py"
+          cmake --build "$work/build-rt" -j2
+          cmake --install "$work/build-rt"
+          printf '%s\n' '{"scaled_dot_product_attention":{"implementations":[1]}}' > "$work/operators.json"
+          cmake -S "$work/ops" -B "$work/build-ops" \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$work/prefix" \
+            -DWITH_CPU=OFF -DWITH_NVIDIA=ON -DWITH_TORCH=ON \
+            -DCMAKE_CUDA_ARCHITECTURES=native -DGENERATE_PYTHON_BINDINGS=OFF \
+            -DINFINI_RT_ROOT="$work/prefix" -DINFINI_OPS_OPS="$work/operators.json" \
+            -DPython_EXECUTABLE="$py"
+          cmake --build "$work/build-ops" -j2
+          cmake --install "$work/build-ops"
+          cmake -S . -B "$work/build-it" \
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_TEST=OFF -DUSE_BACKTRACE=OFF \
+            -DUSE_INFINIOPS_KERNELS=ON -DUSE_INFINIOPS_ATEN_KERNELS=ON \
+            -DINFINIOPS_ROOT="$work/prefix" -DINFINIRT_ROOT="$work/prefix" \
+            -DINFINIOPS_CXX11_ABI="$abi" -DPython_EXECUTABLE="$py"
+          cmake --build "$work/build-it" --target backend -j2
+          cp "$work/build-it/"backend*.so "$work/build-it/libInfiniTensor.so" pyinfinitensor/src/pyinfinitensor/
+          export LD_LIBRARY_PATH="$work/build-it:$work/prefix/lib:$torch_lib:${LD_LIBRARY_PATH:-}"
+          export PYTHONPATH="$GITHUB_WORKSPACE/pyinfinitensor/src:$work/python-deps"
+          "$py" pyinfinitensor/tests/test_infiniops_stream.py -v
+      - name: Save build and regression evidence
+        if: always() && env.ATEN_WORK != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: aten-cuda-stream-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ env.ATEN_WORK }}/regression.log
+            ${{ env.ATEN_WORK }}/python-packages.txt
+            ${{ env.ATEN_WORK }}/build-*/CMakeCache.txt
+          if-no-files-found: error
+      - name: Remove this job's temporary build
+        if: always() && env.ATEN_WORK != ''
+        shell: bash
+        run: |
+          case "$ATEN_WORK" in
+            "$RUNNER_TEMP"/infinitensor-aten.*) rm -rf -- "$ATEN_WORK" ;;
+            *) exit 1 ;;
+          esac

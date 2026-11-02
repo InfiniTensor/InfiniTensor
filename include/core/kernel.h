@@ -43,6 +43,7 @@ class Kernel {
   public:
     Kernel() {}
     virtual ~Kernel() {}
+    virtual bool captureSafe() const { return false; }
     /**
      * @param op The operator to be executed.
      * @param record The parameters for kernel execution. If extra parameters

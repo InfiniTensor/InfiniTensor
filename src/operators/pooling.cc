@@ -16,18 +16,31 @@ PoolingObj::PoolingObj(GraphObj *graph, OpType optype, Tensor input,
 
 optional<vector<Shape>> PoolingObj::inferShape(const TensorVec &inputs) {
     const auto &input = inputs[0];
-    int oh, ow;
-    if (ceilMode) {
-        oh = ceil(((float)(h + 2 * ph - dh * (kh - 1) - 1)) / sh + 1);
-        ow = ceil(((float)(w + 2 * pw - dw * (kw - 1) - 1)) / sw + 1);
-    } else {
-        oh = floor(((float)(h + 2 * ph - dh * (kh - 1) - 1)) / sh + 1);
-        ow = floor(((float)(w + 2 * pw - dw * (kw - 1) - 1)) / sw + 1);
-    }
+    const auto &dims = input->getDims();
+    IT_ASSERT(dims.size() == 3 || dims.size() == 4);
+    n = dims[0];
+    c = dims[1];
+    h = dims.size() == 3 ? 1 : dims[2];
+    w = dims.back();
+    const auto outputSize = [&](int length, int kernel, int dilation,
+                                int padding, int stride) {
+        IT_ASSERT(kernel > 0 && dilation > 0 && stride > 0 && padding >= 0);
+        const double size = (int64_t(length) + 2LL * padding -
+                             int64_t(dilation) * (kernel - 1) - 1) /
+                                double(stride) +
+                            1;
+        int result = ceilMode ? std::ceil(size) : std::floor(size);
+        if (ceilMode &&
+            int64_t(result - 1) * stride >= int64_t(length) + padding)
+            --result;
+        IT_ASSERT(result > 0, "Pooling output dimensions must be positive");
+        return result;
+    };
+    const int ow = outputSize(w, kw, dw, pw, sw);
 
     auto ret = input->getDims();
     if (input->getRank() == 4) {
-        ret[input->getRank() - 2] = oh;
+        ret[input->getRank() - 2] = outputSize(h, kh, dh, ph, sh);
     }
     ret[input->getRank() - 1] = ow;
     return {{ret}};

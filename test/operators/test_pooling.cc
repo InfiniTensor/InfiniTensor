@@ -26,6 +26,39 @@ TEST(MaxPool, ShapeInference) {
     }
 }
 
+TEST(MaxPool, DynamicSpatialShapeAndCeilBoundary) {
+    for (bool ceilMode : {false, true}) {
+        auto graph = make_ref<GraphObj>(NativeCpuRuntimeObj::getInstance());
+        auto x = graph->addTensor({1, 2, 4, 6}, DataType::Float32);
+        auto pool = graph->addOp<MaxPoolObj>(x, nullptr, 1, 1, 1, 1, 0, 0, 2, 2,
+                                             ceilMode);
+        for (const auto &shape : vector<Shape>{
+                 {1, 2, 4, 6}, {3, 5, 8, 10}, {1, 2, 2, 2}, {1, 2, 4, 6}}) {
+            x->setShape(shape);
+            graph->shape_infer();
+            EXPECT_EQ(pool->getOutput()->getDims(),
+                      (Shape{shape[0], shape[1], shape[2] / 2, shape[3] / 2}));
+            const auto [n, c, h, w, kh, kw] = pool->getNCHWRS();
+            EXPECT_EQ((Shape{n, c, h, w}), shape);
+        }
+    }
+}
+
+TEST(MaxPool, ThreeDimensionalShapeInference) {
+    for (bool ceilMode : {false, true}) {
+        auto graph = make_ref<GraphObj>(NativeCpuRuntimeObj::getInstance());
+        auto x = graph->addTensor({1, 2, 6}, DataType::Float32);
+        auto pool = graph->addOp<MaxPoolObj>(x, nullptr, 3, 3, 1, 1, 0, 0, 2, 2,
+                                             ceilMode);
+        for (int length : {6, 10, 4, 6}) {
+            x->setShape({1, 2, length});
+            graph->shape_infer();
+            EXPECT_EQ(pool->getOutput()->getDims(),
+                      (Shape{1, 2, length / 2 - (ceilMode ? 0 : 1)}));
+        }
+    }
+}
+
 TEST(MaxPool, NaiveCPU) {
     Runtime cpuRuntime = NativeCpuRuntimeObj::getInstance();
     Graph g = make_ref<GraphObj>(cpuRuntime);

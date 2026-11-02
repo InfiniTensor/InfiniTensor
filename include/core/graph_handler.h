@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include <map>
 
 #include "core/graph.h"
 #include "core/operator.h"
@@ -16,6 +17,11 @@ class GraphHandlerObj {
         : g(make_ref<GraphObj>(std::move(runtime))) {}
 
     Tensor tensor(Shape dims, int dtype);
+
+    Operator infiniOp(const std::string &name,
+                      const std::map<std::string, TensorVec> &inputs,
+                      const std::map<std::string, TensorVec> &outputs,
+                      const std::string &attributes);
 
     //------ operators
 
