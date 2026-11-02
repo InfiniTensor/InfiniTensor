@@ -35,6 +35,5 @@ cmake --build "$work/build-it" --target test_copy_graph_capture \
     test_generated_bindings test_prepared_resources -j "$jobs"
 "$work/build-it/test_copy_graph_capture" \
     --gtest_filter=InfiniCopyLifetimeTest.*
-"$work/build-it/test_generated_bindings" \
-    --gtest_filter='GeneratedInfiniOpsTest.GenericNodeClonePreservesBindings:GeneratedInfiniOpsTest.GenericShapesAreExplicitAndValidationIsRecoverable:GeneratedInfiniOpsTest.ExplicitShapesFollowIntermediateInputs'
+"$work/build-it/test_generated_bindings"
 "$work/build-it/test_prepared_resources"

@@ -1,4 +1,3 @@
-#include "../../src/kernels/infiniops/execution.h"
 #include "core/graph.h"
 #include "core/infini_runtime.h"
 #include "operators/infini_op.h"

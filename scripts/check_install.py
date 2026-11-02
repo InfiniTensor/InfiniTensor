@@ -1,4 +1,4 @@
-"""Verify the installed extension and one real matrix operation."""
+"""Verify the installed extension and one real elementwise addition."""
 
 import argparse
 import os
@@ -30,20 +30,18 @@ def main():
     )
     handler = backend.GraphHandler(runtime)
     a = handler.tensor([2, 3], 1)
-    b = handler.tensor([3, 2], 1)
+    b = handler.tensor([2, 3], 1)
     a.set_input()
     b.set_input()
-    y = handler.matmul(
-        a, b, None, False, False, None, backend.ActType.Linear, "default"
-    )
+    y = handler.add(a, b, None)
     y.set_output()
     handler.data_malloc()
     av = np.arange(6, dtype=np.float32).reshape(2, 3)
-    bv = np.arange(6, dtype=np.float32).reshape(3, 2)
+    bv = np.full((2, 3), 2, dtype=np.float32)
     a.copyin_numpy(av)
     b.copyin_numpy(bv)
     handler.run()
-    np.testing.assert_allclose(y.copyout_numpy(), av @ bv, atol=1e-5, rtol=1e-5)
+    np.testing.assert_allclose(y.copyout_numpy(), av + bv, atol=1e-5, rtol=1e-5)
     print("Installation check passed: {} device {}".format(args.backend, args.device))
 
 

@@ -50,7 +50,7 @@ make install-python INFINI=ON ATEN=OFF \
   CHECK_BACKEND=infini PYTHON="$(command -v python3)"
 ```
 
-加速设备同样按此顺序安装，设备选项、架构参数及算子选择由组件的构建配置决定。InfiniTensor 从 InfiniOps SDK 的公开头文件生成绑定，需在构建 Python 环境中安装 `libclang` 和 `PyYAML`。
+加速设备同样按此顺序安装，设备选项、架构参数及算子选择由组件的构建配置决定。下层组件的构建依赖按各自文档安装；InfiniTensor 使用 Python 标准库解析已安装 SDK 的公开声明并生成绑定。
 
 使用已经安装好的 ATen provider：
 
@@ -90,7 +90,7 @@ python scripts/check_install.py --backend cpu
 python scripts/check_install.py --backend infini --device 0
 ```
 
-也可将 `--backend` 设为 InfiniRT 提供的具体设备名称。脚本加载已安装的扩展并执行矩阵乘法；导入、设备创建和执行失败都会返回非零。检查通过后，按[使用指南](USER_GUIDE_CN.md)运行应用模型。
+也可将 `--backend` 设为 InfiniRT 提供的具体设备名称。脚本加载已安装的扩展并在所选设备上执行 FP32 加法；导入、设备创建和执行失败都会返回非零。检查通过后，按[使用指南](USER_GUIDE_CN.md)运行应用模型。
 
 ## 常用构建参数
 
