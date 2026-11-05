@@ -14,8 +14,14 @@ typedef struct {
 namespace infini {
 void resize_kernel_nearest(float *in, float *out, const MetaData &metaData,
                            size_t num, int coordinateMode, int nearestMode);
+void resize_kernel_nearest(half *in, half *out, const MetaData &metaData,
+                           size_t num, int coordinateMode, int nearestMode);
 void resize_kernel_linear(float *in, float *out, const MetaData &metaData,
                           size_t num, int coordinateMode);
+void resize_kernel_linear(half *in, half *out, const MetaData &metaData,
+                          size_t num, int coordinateMode);
 void resize_kernel_cubic(float *in, float *out, const MetaData &metaData,
+                         size_t num, int coordinateMode);
+void resize_kernel_cubic(half *in, half *out, const MetaData &metaData,
                          size_t num, int coordinateMode);
 } // namespace infini

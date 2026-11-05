@@ -1,17 +1,63 @@
 #include "cuda/cuda_common.h"
+#include <cuda_fp16.h>
 #include <cub/cub.cuh>
-struct __align__(8) DataMaxSum { // update the global max and sum, store the
-                                 // output at max_tmp and sum_tmp
-    float max_tmp;               // store max
-    float sum_tmp;               // store sum
+#include <cfloat>
+template <typename T> struct __align__(8) DataMaxSum {
+    float max_tmp;
+    float sum_tmp;
 };
-__device__ __forceinline__ DataMaxSum reduce_dms_op(DataMaxSum a,
-                                                    DataMaxSum b) {
+
+template <typename T> struct SoftmaxScalar;
+
+template <> struct SoftmaxScalar<float> {
+    __device__ __forceinline__ static float exp(float x) { return __expf(x); }
+    __device__ __forceinline__ static float neg_inf() { return -FLT_MAX; }
+    __device__ __forceinline__ static float zero() { return 0.0f; }
+    __device__ __forceinline__ static float one() { return 1.0f; }
+};
+
+template <> struct SoftmaxScalar<half> {
+    __device__ __forceinline__ static half exp(half x) { return hexp(x); }
+    __device__ __forceinline__ static half neg_inf() {
+        return __float2half(-FLT_MAX);
+    }
+    __device__ __forceinline__ static half zero() {
+        return __float2half(0.0f);
+    }
+    __device__ __forceinline__ static half one() {
+        return __float2half(1.0f);
+    }
+};
+
+template <typename T>
+__device__ __forceinline__ T softmax_exp(T x) {
+    return SoftmaxScalar<T>::exp(x);
+}
+
+template <typename T>
+__device__ __forceinline__ T softmax_neg_inf() {
+    return SoftmaxScalar<T>::neg_inf();
+}
+
+template <typename T>
+__device__ __forceinline__ T softmax_zero() {
+    return SoftmaxScalar<T>::zero();
+}
+
+template <typename T>
+__device__ __forceinline__ T softmax_one() {
+    return SoftmaxScalar<T>::one();
+}
+
+template <typename T>
+__device__ __forceinline__ DataMaxSum<T> reduce_dms_op(DataMaxSum<T> a,
+                                                       DataMaxSum<T> b) {
     bool a_bigger = (a.max_tmp > b.max_tmp);
-    DataMaxSum bigger = a_bigger ? a : b;
-    DataMaxSum smaller = a_bigger ? b : a;
+    DataMaxSum<T> bigger = a_bigger ? a : b;
+    DataMaxSum<T> smaller = a_bigger ? b : a;
     bigger.sum_tmp = bigger.sum_tmp +
-                     smaller.sum_tmp * __expf(smaller.max_tmp - bigger.max_tmp);
+                     smaller.sum_tmp *
+                         softmax_exp<float>(smaller.max_tmp - bigger.max_tmp);
 
     return bigger;
 }
@@ -28,10 +74,10 @@ __launch_bounds__(BLOCK_DIM) __global__ void _blockSoftmaxKernel(
         blockIdx.x % stride + (blockIdx.x - blockIdx.x % stride) *
                                   dimsize; // now, tid = i(JKS) + k(S) + s;
 
-    DataMaxSum dms_partial;
-    dms_partial.max_tmp = -__FLT_MAX__;
-    dms_partial.sum_tmp = 0.0f;
-    DataMaxSum dms_input;
+    DataMaxSum<T> dms_partial;
+    dms_partial.max_tmp = softmax_neg_inf<float>();
+    dms_partial.sum_tmp = softmax_zero<float>();
+    DataMaxSum<T> dms_input;
     int remain = dimsize % BLOCK_DIM;
     int step = (dimsize - remain) / BLOCK_DIM + 1; // step <= numPerThread
 
@@ -40,10 +86,10 @@ __launch_bounds__(BLOCK_DIM) __global__ void _blockSoftmaxKernel(
             dms_input.max_tmp =
                 input[tid + (threadIdx.x * step + ind) * stride];
 
-            dms_input.sum_tmp = 1.0f;
+            dms_input.sum_tmp = softmax_one<float>();
             dms_partial =
-                reduce_dms_op(dms_partial,
-                              dms_input); // reduce the data to one block
+                reduce_dms_op<T>(dms_partial,
+                                 dms_input); // reduce the data to one block
         }
     } else {
         for (int ind = 0; ind < step - 1; ind++) {
@@ -52,18 +98,18 @@ __launch_bounds__(BLOCK_DIM) __global__ void _blockSoftmaxKernel(
                              (threadIdx.x - remain) * (step - 1) + ind) *
                                 stride];
 
-            dms_input.sum_tmp = 1.0f;
+            dms_input.sum_tmp = softmax_one<float>();
             dms_partial =
-                reduce_dms_op(dms_partial,
-                              dms_input); // reduce the data to one block
+                reduce_dms_op<T>(dms_partial,
+                                 dms_input); // reduce the data to one block
         }
     }
 
-    typedef cub::BlockReduce<DataMaxSum, BLOCK_DIM> BlockReduce;
+    typedef cub::BlockReduce<DataMaxSum<T>, BLOCK_DIM> BlockReduce;
     __shared__ typename BlockReduce::TempStorage temp_storage;
-    __shared__ DataMaxSum dms_total;
-    DataMaxSum dms_block =
-        BlockReduce(temp_storage).Reduce(dms_partial, reduce_dms_op);
+    __shared__ DataMaxSum<T> dms_total;
+    DataMaxSum<T> dms_block =
+        BlockReduce(temp_storage).Reduce(dms_partial, reduce_dms_op<T>);
     if (threadIdx.x ==
         0) { // must set threadIdx.x = 0 write the output to memory
         dms_total = dms_block;
@@ -74,10 +120,11 @@ __launch_bounds__(BLOCK_DIM) __global__ void _blockSoftmaxKernel(
         for (int ind = 0; ind < step; ind++) {
 
             output[tid + (threadIdx.x * step + ind) * stride] =
-                __expf(static_cast<float>(
-                           input[tid + (threadIdx.x * step + ind) * stride]) -
-                       dms_total.max_tmp) *
-                __fdividef(1.0F, dms_total.sum_tmp);
+                softmax_exp<float>(
+                    static_cast<float>(input[tid +
+                        (threadIdx.x * step + ind) * stride]) -
+                    dms_total.max_tmp) /
+                dms_total.sum_tmp;
         }
     } else {
         for (int ind = 0; ind < step - 1; ind++) {
@@ -85,13 +132,13 @@ __launch_bounds__(BLOCK_DIM) __global__ void _blockSoftmaxKernel(
             output[tid +
                    (remain * step + (threadIdx.x - remain) * (step - 1) + ind) *
                        stride] =
-                __expf(static_cast<float>(
-                           input[tid +
-                                 (remain * step +
-                                  (threadIdx.x - remain) * (step - 1) + ind) *
-                                     stride]) -
-                       dms_total.max_tmp) *
-                __fdividef(1.0F, dms_total.sum_tmp);
+                softmax_exp<float>(
+                    static_cast<float>(input[tid +
+                          (remain * step +
+                           (threadIdx.x - remain) * (step - 1) + ind) *
+                              stride]) -
+                    dms_total.max_tmp) /
+                dms_total.sum_tmp;
         }
     }
 }
@@ -113,19 +160,19 @@ _blockSoftmaxKernel(T *__restrict input, T *__restrict output, int size,
     int step = (dimsize - remain) / BLOCK_DIM + 1; // step <= numPerThread
     float dataPerThread[numPerThread];
 
-    DataMaxSum dms_partial;
-    dms_partial.max_tmp = -__FLT_MAX__;
-    dms_partial.sum_tmp = 0.0f;
-    DataMaxSum dms_input;
+    DataMaxSum<T> dms_partial;
+    dms_partial.max_tmp = softmax_neg_inf<float>();
+    dms_partial.sum_tmp = softmax_zero<float>();
+    DataMaxSum<T> dms_input;
     if (threadIdx.x < remain) {
         for (int ind = 0; ind < step; ind++) {
             dataPerThread[ind] =
                 input[tid + (threadIdx.x * step + ind) * stride];
             dms_input.max_tmp = dataPerThread[ind];
-            dms_input.sum_tmp = 1.0f;
+            dms_input.sum_tmp = softmax_one<float>();
             dms_partial =
-                reduce_dms_op(dms_partial,
-                              dms_input); // reduce the data to one block
+                reduce_dms_op<T>(dms_partial,
+                                 dms_input); // reduce the data to one block
         }
     } else {
         for (int ind = 0; ind < step - 1; ind++) {
@@ -134,18 +181,18 @@ _blockSoftmaxKernel(T *__restrict input, T *__restrict output, int size,
                              (threadIdx.x - remain) * (step - 1) + ind) *
                                 stride];
             dms_input.max_tmp = dataPerThread[ind];
-            dms_input.sum_tmp = 1.0f;
+            dms_input.sum_tmp = softmax_one<float>();
             dms_partial =
-                reduce_dms_op(dms_partial,
-                              dms_input); // reduce the data to one block
+                reduce_dms_op<T>(dms_partial,
+                                 dms_input); // reduce the data to one block
         }
     }
 
-    typedef cub::BlockReduce<DataMaxSum, BLOCK_DIM> BlockReduce;
+    typedef cub::BlockReduce<DataMaxSum<T>, BLOCK_DIM> BlockReduce;
     __shared__ typename BlockReduce::TempStorage temp_storage;
-    __shared__ DataMaxSum dms_total;
-    DataMaxSum dms_block =
-        BlockReduce(temp_storage).Reduce(dms_partial, reduce_dms_op);
+    __shared__ DataMaxSum<T> dms_total;
+    DataMaxSum<T> dms_block =
+        BlockReduce(temp_storage).Reduce(dms_partial, reduce_dms_op<T>);
     if (threadIdx.x ==
         0) { // must set threadIdx.x = 0 write the output to memory
         dms_total = dms_block;
@@ -155,16 +202,16 @@ _blockSoftmaxKernel(T *__restrict input, T *__restrict output, int size,
     if (threadIdx.x < remain) {
         for (int ind = 0; ind < step; ind++) {
             output[tid + (threadIdx.x * step + ind) * stride] =
-                __expf(dataPerThread[ind] - dms_total.max_tmp) *
-                __fdividef(1.0F, dms_total.sum_tmp);
+                softmax_exp<float>(dataPerThread[ind] - dms_total.max_tmp) /
+                dms_total.sum_tmp;
         }
     } else {
         for (int ind = 0; ind < step - 1; ind++) {
             output[tid +
                    (remain * step + (threadIdx.x - remain) * (step - 1) + ind) *
                        stride] =
-                __expf(dataPerThread[ind] - dms_total.max_tmp) *
-                __fdividef(1.0F, dms_total.sum_tmp);
+                softmax_exp<float>(dataPerThread[ind] - dms_total.max_tmp) /
+                dms_total.sum_tmp;
         }
     }
 }
@@ -177,7 +224,7 @@ template <typename T> struct SumOp {
 
 template <typename T> struct MaxOp {
     __device__ __forceinline__ T operator()(const T &a, const T &b) const {
-        return max(a, b);
+        return a > b ? a : b;
     }
 };
 template <template <typename> class ReductionOp, typename T,
@@ -185,6 +232,18 @@ template <template <typename> class ReductionOp, typename T,
 __inline__ __device__ T WarpAllReduce(T val) {
     for (int mask = thread_group_width / 2; mask > 0; mask /= 2) {
         val = ReductionOp<T>()(val, __shfl_xor_sync(0xffffffff, val, mask));
+    }
+    return val;
+}
+
+template <template <typename> class ReductionOp, int thread_group_width>
+__inline__ __device__ half WarpAllReduce(half val) {
+    for (int mask = thread_group_width / 2; mask > 0; mask /= 2) {
+        unsigned short bits = __half_as_ushort(val);
+        unsigned int other_bits =
+            __shfl_xor_sync(0xffffffff, static_cast<unsigned int>(bits), mask);
+        unsigned short other_bits_short = static_cast<unsigned short>(other_bits);
+        val = ReductionOp<half>()(val, __ushort_as_half(other_bits_short));
     }
     return val;
 }
@@ -200,25 +259,25 @@ __global__ void _warpSoftmaxKernel(T *__restrict input, T *__restrict output,
 
         __shared__ float max_total[BLOCK_DIM_y];
         __shared__ float sum_total[BLOCK_DIM_y];
-        float max_data = -__FLT_MAX__;
+        float max_data = softmax_neg_inf<float>();
 
         for (int ph = 0; threadIdx.x + ph * BLOCK_DIM_x < dimsize; ph++) {
             dataPerThreadx[ph] =
                 input[tid + (threadIdx.x + ph * BLOCK_DIM_x) * stride];
-            max_data = max(max_data, dataPerThreadx[ph]);
+            max_data = max_data > dataPerThreadx[ph] ? max_data
+                                                     : dataPerThreadx[ph];
         }
 
         max_data = WarpAllReduce<MaxOp, float, BLOCK_DIM_x>(max_data);
 
         if (threadIdx.x == 0)
             max_total[threadIdx.y] = max_data;
-
         //--------------------------------------------
-        float sum_data = 0.0f;
+        float sum_data = softmax_zero<float>();
 
         for (int ph = 0; threadIdx.x + ph * BLOCK_DIM_x < dimsize; ph++) {
             dataPerThreadx[ph] =
-                __expf(dataPerThreadx[ph] - max_total[threadIdx.y]);
+                softmax_exp<float>(dataPerThreadx[ph] - max_total[threadIdx.y]);
             sum_data += dataPerThreadx[ph];
         }
 
@@ -226,12 +285,11 @@ __global__ void _warpSoftmaxKernel(T *__restrict input, T *__restrict output,
 
         if (threadIdx.x == 0)
             sum_total[threadIdx.y] = sum_data;
-
         //--------------------------------------------
 
         for (int ph = 0; threadIdx.x + ph * BLOCK_DIM_x < dimsize; ph++) {
             output[tid + (threadIdx.x + ph * BLOCK_DIM_x) * stride] =
-                dataPerThreadx[ph] * __fdividef(1.0F, sum_total[threadIdx.y]);
+                dataPerThreadx[ph] / sum_total[threadIdx.y];
         }
     }
 }

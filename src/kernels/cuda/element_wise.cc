@@ -1,10 +1,13 @@
 #include "operators/element_wise.h"
 #include "cuda/cuda_element_wise.h"
-#include "cuda/cuda_kernel_wihtout_config.h"
+#include "cuda/cuda_kernel_without_config.h"
 #include "cuda/cuda_runtime.h"
 #include "cuda/cuda_utility.h"
 
 namespace infini {
+static void computeElementWiseCuda(const Operator &op,
+                                   const RuntimeObj *context);
+
 class ElementWiseCudnn : public CudaKernelWithoutConfig {
     virtual cudnnOpTensorOp_t getOpType() const = 0;
     virtual tuple<float, float, float> getAlphBeta() const {
@@ -12,6 +15,20 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
     }
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
+        // Share FP16/FP32; retain CoreX's existing custom path for other
+        // binary dtypes and the existing Min/Max registrations below.
+        bool fp = _op->getDType() == DataType::Float16 ||
+                       _op->getDType() == DataType::Float32;
+
+        if ( fp &&
+            (_op->getOpType() == OpType::Add ||
+             _op->getOpType() == OpType::Sub ||
+             _op->getOpType() == OpType::Mul ||
+             _op->getOpType() == OpType::Div ||
+             _op->getOpType() == OpType::Pow )){
+            computeElementWiseCuda(_op, _context);
+            return;
+        }
         auto op = as<ElementWiseObj>(_op);
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
 
@@ -19,7 +36,7 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
         auto bTensor = op->getInputs(1);
         auto cTensor = op->getOutput();
 
-        // cudnnOpTensor only allows B to be broadcasted.
+        // cudnnOpTensor 仅允许对输入 B 进行广播。
         if (aTensor->getDims() != cTensor->getDims()) {
             swap(aTensor, bTensor);
         }
@@ -47,7 +64,7 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
         std::copy(c_dim.begin(), c_dim.end(), c + (4 - c_dim.size()));
 
         auto cudnnDataType = cudnnDataTypeConvert(op->getDType());
-        // get inputs
+        // 获取输入。
         checkCudnnError(cudnnCreateTensorDescriptor(&aDesc));
         checkCudnnError(cudnnSetTensor4dDescriptor(
             aDesc, CUDNN_TENSOR_NCHW, cudnnDataType, a[0], a[1], a[2], a[3]));
@@ -56,25 +73,25 @@ class ElementWiseCudnn : public CudaKernelWithoutConfig {
         checkCudnnError(cudnnSetTensor4dDescriptor(
             bDesc, CUDNN_TENSOR_NCHW, cudnnDataType, b[0], b[1], b[2], b[3]));
 
-        // get outputs
+        // 获取输出。
         checkCudnnError(cudnnCreateTensorDescriptor(&cDesc));
         checkCudnnError(cudnnSetTensor4dDescriptor(
             cDesc, CUDNN_TENSOR_NCHW, cudnnDataType, c[0], c[1], c[2], c[3]));
 
-        // get op descriptor
+        // 获取算子描述符。
         cudnnOpTensorDescriptor_t opDesc;
         checkCudnnError(cudnnCreateOpTensorDescriptor(&opDesc));
         checkCudnnError(cudnnSetOpTensorDescriptor(
-            opDesc, getOpType(), CUDNN_DATA_FLOAT, CUDNN_NOT_PROPAGATE_NAN));
+            opDesc, getOpType(),
+            op->getDType() == DataType::Float16 ? CUDNN_DATA_FLOAT : cudnnDataType,
+            CUDNN_NOT_PROPAGATE_NAN));
 
         auto [aAlpha, bAlpha, beta] = getAlphBeta();
 
-        checkCudnnError(cudnnOpTensor(context->cudnnHandle(), opDesc, &aAlpha,
-                                      aDesc, aData, &bAlpha, bDesc, bData,
-                                      &beta, cDesc, cData));
+        checkCudnnError(cudnnOpTensor(context->cudnnHandle(), opDesc,
+                                      &aAlpha, aDesc, aData, &bAlpha,
+                                      bDesc, bData, &beta, cDesc, cData));
 
-        // Destories in CUDA does not require sync. But cuDNN does not state
-        // whether sync is required before destories.
         checkCudnnError(cudnnDestroyTensorDescriptor(aDesc));
         checkCudnnError(cudnnDestroyTensorDescriptor(bDesc));
         checkCudnnError(cudnnDestroyTensorDescriptor(cDesc));
@@ -132,7 +149,6 @@ class ElementWiseCuda : public CudaKernelWithoutConfig {
         auto c_dim = op->getOutput()->getDims();
         const int dType = _op->getDType().getIndex();
 
-        // Use optimized kernel if b is constant
         if (b_dim.size() == 0) {
             if (op->getOpType() == OpType::Div) {
                 div_const_kernel(dType, aData, bData, cData,
@@ -162,6 +178,18 @@ class ElementWiseCuda : public CudaKernelWithoutConfig {
         } else if (op->getOpType() == OpType::Add) {
             add_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
                        b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
+        } else if (op->getOpType() == OpType::Sub) {
+            sub_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
+                       b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
+        } else if (op->getOpType() == OpType::Mul) {
+            mul_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
+                       b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
+        } else if (op->getOpType() == OpType::Min) {
+            min_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
+                       b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
+        } else if (op->getOpType() == OpType::Max) {
+            max_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
+                       b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
         } else if (op->getOpType() == OpType::Pow) {
             pow_kernel(dType, aData, bData, cData, a[0], a[1], a[2], a[3], b[0],
                        b[1], b[2], b[3], c[0], c[1], c[2], c[3]);
@@ -174,9 +202,16 @@ class ElementWiseCuda : public CudaKernelWithoutConfig {
     }
 };
 
-REGISTER_KERNEL(Device::CUDA, OpType::Add, AddCudnn, "Add_cuDNN_CUDA");
-REGISTER_KERNEL(Device::CUDA, OpType::Sub, SubCudnn, "Sub_cuDNN_CUDA");
-REGISTER_KERNEL(Device::CUDA, OpType::Mul, MulCudnn, "Mul_cuDNN_CUDA");
+static void computeElementWiseCuda(const Operator &op,
+                                   const RuntimeObj *context) {
+    static const ElementWiseCuda kernel;
+    static_cast<const Kernel &>(kernel).compute(op, context);
+}
+
+REGISTER_KERNEL(Device::CUDA, OpType::Add, AddCudnn, "Add_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Sub, SubCudnn, "Sub_CUDA");
+REGISTER_KERNEL(Device::CUDA, OpType::Mul, MulCudnn, "Mul_CUDA");
+
 REGISTER_KERNEL(Device::CUDA, OpType::Min, MinCudnn, "Min_cuDNN_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Max, MaxCudnn, "Max_cuDNN_CUDA");
 
@@ -184,4 +219,4 @@ REGISTER_KERNEL(Device::CUDA, OpType::Div, ElementWiseCuda, "Div_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Pow, ElementWiseCuda, "Pow_CUDA");
 REGISTER_KERNEL(Device::CUDA, OpType::Less, ElementWiseCuda, "Less_CUDA");
 
-}; // namespace infini
+};

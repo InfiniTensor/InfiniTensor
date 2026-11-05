@@ -105,7 +105,8 @@ class Conv3dCudnn : public Kernel {
         // TODO: CUDNN_CONVOLUTION is a tunable argument
         checkCudnnError(cudnnSetConvolutionNdDescriptor(
             convDesc, numDim - 2, pad, stride, dilation, MODES[record->mode],
-            cudnnDataType));
+            op->getDType() == DataType::Float16 ? CUDNN_DATA_FLOAT
+                                                : cudnnDataType));
         if (g > 1) {
             checkCudnnError(cudnnSetConvolutionGroupCount(convDesc, g));
         }
@@ -206,7 +207,10 @@ class Conv3dCudnn : public Kernel {
         const auto &[inData, knData, outData, inDesc, knDesc, biasDesc,
                      convDesc, actDesc, outDesc] =
             createCuDNNDescriptor(op, record);
-        size_t wsSize = record->workspaceSize;
+        size_t wsSize = 0;
+        checkCudnnError(cudnnGetConvolutionForwardWorkspaceSize(
+            context->cudnnHandle(), inDesc, knDesc, convDesc, outDesc,
+            ALGOS[record->algo], &wsSize));
         CudaPtr wsData = context->getWorkspace(wsSize);
         float alpha = 1.f, beta = 0.f;
 
@@ -215,6 +219,12 @@ class Conv3dCudnn : public Kernel {
                                        ALGOS[record->algo], wsData, wsSize,
                                        &beta, outDesc, outData);
         if (stat != CUDNN_STATUS_SUCCESS) {
+            checkCudnnError(cudnnDestroyTensorDescriptor(outDesc));
+            checkCudnnError(cudnnDestroyActivationDescriptor(actDesc));
+            checkCudnnError(cudnnDestroyConvolutionDescriptor(convDesc));
+            checkCudnnError(cudnnDestroyTensorDescriptor(biasDesc));
+            checkCudnnError(cudnnDestroyFilterDescriptor(knDesc));
+            checkCudnnError(cudnnDestroyTensorDescriptor(inDesc));
             return false;
         }
         checkCudnnError(cudnnDestroyTensorDescriptor(outDesc));

@@ -5,6 +5,13 @@
 #include "cuda/cuda_utility.h"
 #include "utils/small_array.h"
 
+// 枚举名称不同
+#ifdef USE_COREX
+using CUBLASComputeType = cudaDataType;
+#else
+using CUBLASComputeType = cublasComputeType_t;
+#endif
+
 namespace infini {
 
 struct MatmulCublasPerfRecordObj : public PerfRecordObj {
@@ -34,9 +41,22 @@ constexpr cublasGemmAlgo_t ALGOS[N_ALGO] = {
     CUBLAS_GEMM_ALGO21, CUBLAS_GEMM_ALGO22, CUBLAS_GEMM_ALGO23,
 };
 
-cublasComputeType_t cuDataType2ComputeType(cudaDataType_t cuDataType) {
+CUBLASComputeType cuDataType2ComputeType(cudaDataType_t cuDataType) {
+#ifdef USE_COREX
     if (cuDataType == CUDA_R_16F) {
-        return CUBLAS_COMPUTE_32F_FAST_16F;
+        return CUDA_R_16F;
+    } else if (cuDataType == CUDA_R_16BF) {
+        return CUDA_R_16BF;
+    } else if (cuDataType == CUDA_R_32F) {
+        return CUDA_R_32F;
+    } else if (cuDataType == CUDA_R_64F) {
+        return CUDA_R_64F;
+    } else {
+        IT_TODO_HALT();
+    }
+#else
+    if (cuDataType == CUDA_R_16F) {
+        return CUBLAS_COMPUTE_32F;
     } else if (cuDataType == CUDA_R_16BF) {
         return CUBLAS_COMPUTE_32F_FAST_16BF;
     } else if (cuDataType == CUDA_R_32F) {
@@ -46,16 +66,31 @@ cublasComputeType_t cuDataType2ComputeType(cudaDataType_t cuDataType) {
     } else {
         IT_TODO_HALT();
     }
+#endif
 }
 
-cublasComputeType_t getCuComputeType(std::string computeTypeStr,
+
+CUBLASComputeType getCuComputeType(std::string computeTypeStr,
                                      cudaDataType_t cuDataType) {
     if (computeTypeStr == "tf32") {
+#ifdef USE_COREX
+        return CUDA_R_32F;                // Corex 不支持 TF32，回退为 FP32
+#else
         return CUBLAS_COMPUTE_32F_FAST_TF32;
+#endif
     } else if (computeTypeStr == "bf16") {
+#ifdef USE_COREX
+        return CUDA_R_16BF;
+#else
         return CUBLAS_COMPUTE_32F_FAST_16BF;
+#endif
     } else if (computeTypeStr == "fp16") {
-        return CUBLAS_COMPUTE_32F_FAST_16F;
+#ifdef USE_COREX
+        return CUDA_R_16F;
+#else
+        return cuDataType == CUDA_R_16F ? CUBLAS_COMPUTE_32F
+                                        : CUBLAS_COMPUTE_32F_FAST_16F;
+#endif
     } else if (computeTypeStr == "default") {
         return cuDataType2ComputeType(cuDataType);
     } else {
@@ -120,6 +155,11 @@ class matmulCublas : public Kernel {
         cublasStatus_t stat;
         std::string computeTypeStr = op->getComputeType();
         auto cuComputeType = getCuComputeType(computeTypeStr, cuDataType);
+#ifndef USE_COREX
+        // Half matrices use FP32 accumulation regardless of a fast-math hint.
+        if (dataType == DataType::Float16)
+            cuComputeType = CUBLAS_COMPUTE_32F;
+#endif
 
         if (b > 1) {
             // Support batch broadcast with zero stride
@@ -136,6 +176,7 @@ class matmulCublas : public Kernel {
                     ? 0 // Broadcast the batch dimension if batch size is 1
                     : n * k;
             if (dataType == DataType::Float16) {
+#ifdef USE_COREX
                 half alpha_half = static_cast<half>(alpha_naive);
                 half beta_half = static_cast<half>(beta_naive);
                 stat = cublasGemmStridedBatchedEx(
@@ -143,7 +184,13 @@ class matmulCublas : public Kernel {
                     inBData, cuDataType, ldb, strideB, inAData, cuDataType, lda,
                     strideA, &beta_half, outData, cuDataType, ldc, m * n, b,
                     cuComputeType, (cublasGemmAlgo_t)record->algo);
-
+#else
+                stat = cublasGemmStridedBatchedEx(
+                    context->cublasHandle(), opB, opA, n, m, k, &alpha_naive,
+                    inBData, cuDataType, ldb, strideB, inAData, cuDataType, lda,
+                    strideA, &beta_naive, outData, cuDataType, ldc, m * n, b,
+                    cuComputeType, (cublasGemmAlgo_t)record->algo);
+#endif
             } else {
                 stat = cublasGemmStridedBatchedEx(
                     context->cublasHandle(), opB, opA, n, m, k, &alpha_naive,
@@ -153,6 +200,7 @@ class matmulCublas : public Kernel {
             }
         } else {
             if (dataType == DataType::Float16) {
+#ifdef USE_COREX
                 half alpha_half = static_cast<half>(alpha_naive);
                 half beta_half = static_cast<half>(beta_naive);
                 stat = cublasGemmEx(context->cublasHandle(), opB, opA, n, m, k,
@@ -160,6 +208,13 @@ class matmulCublas : public Kernel {
                                     inAData, cuDataType, lda, &beta_half,
                                     outData, cuDataType, ldc, cuComputeType,
                                     (cublasGemmAlgo_t)record->algo);
+#else
+                stat = cublasGemmEx(context->cublasHandle(), opB, opA, n, m, k,
+                                    &alpha_naive, inBData, cuDataType, ldb,
+                                    inAData, cuDataType, lda, &beta_naive,
+                                    outData, cuDataType, ldc, cuComputeType,
+                                    (cublasGemmAlgo_t)record->algo);
+#endif
             } else {
                 stat = cublasGemmEx(context->cublasHandle(), opB, opA, n, m, k,
                                     &alpha_naive, inBData, cuDataType, ldb,

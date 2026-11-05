@@ -52,19 +52,33 @@ Tensor GraphHandlerObj::tensor(Shape dims, int dtype) {
     return g->addTensor(std::move(dims), dtype_repr_convert(dtype));
 }
 
+#ifdef USE_CUDA
 Tensor GraphHandlerObj::conv(Tensor input, Tensor weight, Tensor output, int ph,
-                             int pw, int sh, int sw, int dh, int dw) {
+                             int pw, int sh, int sw, int dh, int dw, Tensor bias) {
+    if (output) {
+        g->addOpWithOutputs<ConvObj>(std::move(input), std::move(weight),
+                                     output, ph, pw, sh, sw, dh, dw, std::move(bias));
+        return output;
+    } else {
+        return g
+            ->addOp<ConvObj>(std::move(input), std::move(weight), output, ph,
+                             pw, sh, sw, dh, dw, std::move(bias))
+            ->getOutput();
+    }
+}
+#else
+Tensor GraphHandlerObj::conv(Tensor input, Tensor weight, Tensor output,
+                             int ph, int pw, int sh, int sw, int dh, int dw) {
     if (output) {
         g->addOpWithOutputs<ConvObj>(std::move(input), std::move(weight),
                                      output, ph, pw, sh, sw, dh, dw);
         return output;
     } else {
-        return g
-            ->addOp<ConvObj>(std::move(input), std::move(weight), output, ph,
-                             pw, sh, sw, dh, dw)
-            ->getOutput();
+        return g->addOp<ConvObj>(std::move(input), std::move(weight), output,
+                                 ph, pw, sh, sw, dh, dw)->getOutput();
     }
 }
+#endif
 
 Tensor GraphHandlerObj::convTransposed2d(Tensor input, Tensor weight,
                                          Tensor output, int ph, int pw, int sh,

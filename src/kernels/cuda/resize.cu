@@ -83,17 +83,52 @@ __device__ int nearestCoordinateTrans(int dOffset, MetaData metaData,
     return sOffset;
 }
 
-__global__ void _resize_kernel_nearest(float *in, float *out, MetaData metaData,
+template <typename T>
+__global__ void _resize_kernel_nearest(T *in, T *out, MetaData metaData,
                                        size_t num, int coordinateMode,
                                        int nearestMode) {
     auto tid = threadIdx.x + blockIdx.x * blockDim.x;
     auto stride = blockDim.x * gridDim.x;
 
     while (tid < num) {
+
+#ifdef USE_COREX   // Corex 适配：直接调用，不用函数指针
+        int dOffset = tid;
+        int sOffset = 0;
+        for (int i = metaData.nDims - 1; i >= 0; --i) {
+            int dIdx = dOffset % metaData.oDims[i];
+            dOffset = dOffset / metaData.oDims[i];
+            if (metaData.inDims[i] == metaData.oDims[i]) {
+                sOffset += dIdx * metaData.inStride[i];
+            } else {
+                float sIdx;
+                switch (coordinateMode) {
+                    case 0: sIdx = half_pixel(dIdx, metaData, i); break;
+                    case 1: sIdx = pytorch_half_pixel(dIdx, metaData, i); break;
+                    case 2: sIdx = align_corners(dIdx, metaData, i); break;
+                    case 3: sIdx = asymmetric(dIdx, metaData, i); break;
+                    case 4: sIdx = tf_crop_and_resize(dIdx, metaData, i); break;
+                }
+                int sIdx_int;
+                switch (nearestMode) {
+                    case 0: sIdx_int = round_prefer_floor(sIdx); break;
+                    case 1: sIdx_int = round_prefer_ceil(sIdx); break;
+                    case 2: sIdx_int = prefer_floor(sIdx); break;
+                    case 3: sIdx_int = prefer_ceil(sIdx); break;
+                }
+                if (sIdx_int > metaData.inDims[i] - 1) sIdx_int = metaData.inDims[i] - 1;
+                else if (sIdx_int < 0) sIdx_int = 0;
+                sOffset += sIdx_int * metaData.inStride[i];
+            }
+        }
+        out[tid] = in[sOffset];
+#else   // CUDA 保留原实现
         int offset = nearestCoordinateTrans(
             tid, metaData, p_cooridnate_trans_mode_func[coordinateMode],
             p_nearest_mode_fun[nearestMode]);
         out[tid] = in[offset];
+#endif
+
         tid += stride;
     }
 }
@@ -133,8 +168,8 @@ __device__ void getCubicCoef(float ratio, float *coeffs) {
 using get_coef_func_t = void (*)(float, float *);
 
 // N is neighbor number at each dim
-template <int N, int totalNeighborNum>
-__device__ void _resize_kernel_coeff(float *in, float *out, MetaData metaData,
+template <int N, int totalNeighborNum, typename T>
+__device__ void _resize_kernel_coeff(T *in, T *out, MetaData metaData,
                                      size_t num,
                                      coordinate_trans_mod_func_t coTransFunc,
                                      get_coef_func_t getCoefFunc) {
@@ -149,7 +184,7 @@ __device__ void _resize_kernel_coeff(float *in, float *out, MetaData metaData,
 
         for (size_t i = 0; i < totalNeighborNum; ++i) {
             offsetList[i] = 0;
-            powerList[i] = 1;
+            powerList[i] = 1.0f;
         }
         for (int i = metaData.nDims - 1; i >= 0; --i) {
             int dIdx = dOffset % metaData.oDims[i];
@@ -179,27 +214,81 @@ __device__ void _resize_kernel_coeff(float *in, float *out, MetaData metaData,
             dOffset = dOffset / metaData.oDims[i];
         }
 
-        float val = 0;
+        float val = 0.0f;
         for (int i = 0; i < neighborCnt; ++i) {
-            val += in[offsetList[i]] * powerList[i];
+            val += static_cast<float>(in[offsetList[i]]) * powerList[i];
         }
         out[tid] = val;
         tid += stride;
     }
 }
 
-__global__ void _resize_kernel_linear_coeff(float *in, float *out,
+template <typename T>
+__global__ void _resize_kernel_linear_coeff(T *in, T *out,
                                             MetaData metaData, size_t num,
                                             int coordinateMode) {
+
+#ifdef USE_COREX   // Corex 适配：展开循环，switch 调用
+    auto tid = threadIdx.x + blockIdx.x * blockDim.x;
+    auto stride = blockDim.x * gridDim.x;
+
+    while (tid < num) {
+        auto dOffset = tid;
+        int neighborCnt = 1;
+        int offsetList[16] = {0}, offsetListOld[16];
+        float powerList[16] = {1.0f}, powerListOld[16];
+
+        for (int i = metaData.nDims - 1; i >= 0; --i) {
+            int dIdx = dOffset % metaData.oDims[i];
+            float sIdx;
+            switch (coordinateMode) {
+                case 0: sIdx = half_pixel(dIdx, metaData, i); break;
+                case 1: sIdx = pytorch_half_pixel(dIdx, metaData, i); break;
+                case 2: sIdx = align_corners(dIdx, metaData, i); break;
+                case 3: sIdx = asymmetric(dIdx, metaData, i); break;
+                case 4: sIdx = tf_crop_and_resize(dIdx, metaData, i); break;
+            }
+            int idx = std::floor(sIdx);
+            float power[2];
+            getLinearCoef(sIdx - idx, power);  // 直接调用
+            int neighbors[2];
+            getEvenNeighbors<2>(sIdx, metaData.inDims[i] - 1, neighbors);
+
+            for (int n = 0; n < neighborCnt; ++n) {
+                offsetListOld[n] = offsetList[n];
+                powerListOld[n] = powerList[n];
+            }
+            for (int n = 0; n < 2; ++n) {
+                for (int k = 0; k < neighborCnt; ++k) {
+                    offsetList[k + n * neighborCnt] =
+                        offsetListOld[k] + neighbors[n] * metaData.inStride[i];
+                    powerList[k + n * neighborCnt] =
+                        powerListOld[k] * static_cast<float>(power[n]);
+                }
+            }
+            neighborCnt *= 2;
+            dOffset /= metaData.oDims[i];
+        }
+
+        float val = static_cast<float>(0);
+        for (int i = 0; i < neighborCnt; ++i)
+            val += static_cast<float>(in[offsetList[i]]) * powerList[i];
+        out[tid] = val;
+        tid += stride;
+    }
+#else   // CUDA 保留原实现
     _resize_kernel_coeff<2, 16>(in, out, metaData, num,
                                 p_cooridnate_trans_mode_func[coordinateMode],
                                 getLinearCoef);
+#endif
+
 }
 
 #ifdef USE_METAX
 // Cubic: MACA rejects the generic kernel's large per-thread stack
 // (mcErrorMemoryValueTooLarge). Low-stack path with identical math.
-__global__ void _resize_kernel_cubic_coeff(float *in, float *out,
+template <typename T>
+__global__ void _resize_kernel_cubic_coeff(T *in, T *out,
                                            MetaData metaData, size_t num,
                                            int coordinateMode) {
     coordinate_trans_mod_func_t coTransFunc =
@@ -224,7 +313,7 @@ __global__ void _resize_kernel_cubic_coeff(float *in, float *out,
             getEvenNeighbors<4>(sIdx, metaData.inDims[dim] - 1, neighbors);
             for (int t = 0; t < 4; ++t) {
                 neighbors_cache[dim][t] = neighbors[t];
-                power_cache[dim][t] = power[t];
+                power_cache[dim][t] = static_cast<float>(power[t]);
             }
         }
 
@@ -233,30 +322,89 @@ __global__ void _resize_kernel_cubic_coeff(float *in, float *out,
             totalCombos *= 4;
         }
 
-        float val = 0.f;
+        float val = static_cast<float>(0);
         for (int c = 0; c < totalCombos; ++c) {
             int combo = c;
             int offset = 0;
-            float w = 1.f;
+            float w = static_cast<float>(1);
             for (int dim = metaData.nDims - 1; dim >= 0; --dim) {
                 int pick = combo & 3;
                 combo >>= 2;
                 offset += neighbors_cache[dim][pick] * metaData.inStride[dim];
                 w *= power_cache[dim][pick];
             }
-            val += in[offset] * w;
+            val += static_cast<float>(in[offset]) * w;
         }
         out[tid] = val;
         tid += stride;
     }
 }
 #else
-__global__ void _resize_kernel_cubic_coeff(float *in, float *out,
+template <typename T>
+__global__ void _resize_kernel_cubic_coeff(T *in, T *out,
                                            MetaData metaData, size_t num,
                                            int coordinateMode) {
+
+#ifdef USE_COREX
+    auto tid = threadIdx.x + blockIdx.x * blockDim.x;
+    auto stride = blockDim.x * gridDim.x;
+
+    while (tid < num) {
+        int neighbors_cache[4][4];
+        float power_cache[4][4];
+
+        size_t dOffsetSz = tid;
+        for (int dim = metaData.nDims - 1; dim >= 0; --dim) {
+            int dIdx = static_cast<int>(dOffsetSz % metaData.oDims[dim]);
+            dOffsetSz /= metaData.oDims[dim];
+
+            float sIdx;
+            // 直接 switch 替换原来的函数指针调用
+            switch (coordinateMode) {
+                case 0: sIdx = half_pixel(dIdx, metaData, dim); break;
+                case 1: sIdx = pytorch_half_pixel(dIdx, metaData, dim); break;
+                case 2: sIdx = align_corners(dIdx, metaData, dim); break;
+                case 3: sIdx = asymmetric(dIdx, metaData, dim); break;
+                case 4: sIdx = tf_crop_and_resize(dIdx, metaData, dim); break;
+            }
+
+            int base = std::floor(sIdx);
+            float power[4];
+            getCubicCoef(sIdx - static_cast<float>(base), power);
+            int neighbors[4];
+            getEvenNeighbors<4>(sIdx, metaData.inDims[dim] - 1, neighbors);
+            for (int t = 0; t < 4; ++t) {
+                neighbors_cache[dim][t] = neighbors[t];
+                power_cache[dim][t] = static_cast<float>(power[t]);
+            }
+        }
+
+        int totalCombos = 1;
+        for (int dim = 0; dim < metaData.nDims; ++dim)
+            totalCombos *= 4;
+
+        float val = static_cast<float>(0);
+        for (int c = 0; c < totalCombos; ++c) {
+            int combo = c;
+            int offset = 0;
+            float w = static_cast<float>(1);
+            for (int dim = metaData.nDims - 1; dim >= 0; --dim) {
+                int pick = combo & 3;
+                combo >>= 2;
+                offset += neighbors_cache[dim][pick] * metaData.inStride[dim];
+                w *= power_cache[dim][pick];
+            }
+            val += static_cast<float>(in[offset]) * w;
+        }
+        out[tid] = val;
+        tid += stride;
+    }
+#else   // CUDA 保留原实现
     _resize_kernel_coeff<4, 256>(in, out, metaData, num,
                                  p_cooridnate_trans_mode_func[coordinateMode],
                                  getCubicCoef);
+#endif
+
 }
 #endif
 
@@ -269,8 +417,21 @@ void resize_kernel_nearest(float *in, float *out, const MetaData &metaData,
                                    sizeof(p_cooridnate_trans_mode_func[0]));
     IT_ASSERT(nearestMode <
               sizeof(p_nearest_mode_fun) / sizeof(p_nearest_mode_fun[0]));
-    _resize_kernel_nearest<<<gridsize, blocksize, 0,
-                             CUDAStream::getCurrentStream()>>>(
+    _resize_kernel_nearest<float><<<gridsize, blocksize, 0,
+                                   CUDAStream::getCurrentStream()>>>(
+        in, out, metaData, num, coordinateMode, nearestMode);
+}
+
+void resize_kernel_nearest(half *in, half *out, const MetaData &metaData,
+                           size_t num, int coordinateMode, int nearestMode) {
+    int blocksize = 32 * 16;
+    auto gridsize = (num + blocksize - 1) / blocksize;
+    IT_ASSERT(coordinateMode < sizeof(p_cooridnate_trans_mode_func) /
+                                   sizeof(p_cooridnate_trans_mode_func[0]));
+    IT_ASSERT(nearestMode <
+              sizeof(p_nearest_mode_fun) / sizeof(p_nearest_mode_fun[0]));
+    _resize_kernel_nearest<half><<<gridsize, blocksize, 0,
+                                  CUDAStream::getCurrentStream()>>>(
         in, out, metaData, num, coordinateMode, nearestMode);
 }
 
@@ -280,8 +441,19 @@ void resize_kernel_linear(float *in, float *out, const MetaData &metaData,
     auto gridsize = (num + blocksize - 1) / blocksize;
     IT_ASSERT(coordinateMode < sizeof(p_cooridnate_trans_mode_func) /
                                    sizeof(p_cooridnate_trans_mode_func[0]));
-    _resize_kernel_linear_coeff<<<gridsize, blocksize, 0,
-                                  CUDAStream::getCurrentStream()>>>(
+    _resize_kernel_linear_coeff<float><<<gridsize, blocksize, 0,
+                                        CUDAStream::getCurrentStream()>>>(
+        in, out, metaData, num, coordinateMode);
+}
+
+void resize_kernel_linear(half *in, half *out, const MetaData &metaData,
+                          size_t num, int coordinateMode) {
+    int blocksize = 32 * 16;
+    auto gridsize = (num + blocksize - 1) / blocksize;
+    IT_ASSERT(coordinateMode < sizeof(p_cooridnate_trans_mode_func) /
+                                   sizeof(p_cooridnate_trans_mode_func[0]));
+    _resize_kernel_linear_coeff<half><<<gridsize, blocksize, 0,
+                                       CUDAStream::getCurrentStream()>>>(
         in, out, metaData, num, coordinateMode);
 }
 
@@ -291,8 +463,19 @@ void resize_kernel_cubic(float *in, float *out, const MetaData &metaData,
     auto gridsize = (num + blocksize - 1) / blocksize;
     IT_ASSERT(coordinateMode < sizeof(p_cooridnate_trans_mode_func) /
                                    sizeof(p_cooridnate_trans_mode_func[0]));
-    _resize_kernel_cubic_coeff<<<gridsize, blocksize, 0,
-                                 CUDAStream::getCurrentStream()>>>(
+    _resize_kernel_cubic_coeff<float><<<gridsize, blocksize, 0,
+                                       CUDAStream::getCurrentStream()>>>(
+        in, out, metaData, num, coordinateMode);
+}
+
+void resize_kernel_cubic(half *in, half *out, const MetaData &metaData,
+                         size_t num, int coordinateMode) {
+    int blocksize = 32 * 16;
+    auto gridsize = (num + blocksize - 1) / blocksize;
+    IT_ASSERT(coordinateMode < sizeof(p_cooridnate_trans_mode_func) /
+                                   sizeof(p_cooridnate_trans_mode_func[0]));
+    _resize_kernel_cubic_coeff<half><<<gridsize, blocksize, 0,
+                                      CUDAStream::getCurrentStream()>>>(
         in, out, metaData, num, coordinateMode);
 }
 } // namespace infini

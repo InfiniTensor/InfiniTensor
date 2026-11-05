@@ -1,5 +1,5 @@
 #include "operators/unary.h"
-#include "cuda/cuda_kernel_wihtout_config.h"
+#include "cuda/cuda_kernel_without_config.h"
 #include "cuda/cuda_runtime.h"
 #include "cuda/cuda_unary.h"
 #include "cuda/cuda_utility.h"
@@ -22,8 +22,14 @@ class EluCuda : public CudaKernelWithoutConfig {
         void *const outputData = (op->getOutput()->getRawDataPtr<void *>());
 
         size_t size = op->getInputs(0)->size();
-        elu_kernel((float *)inputData, (float *)outputData, size,
-                   op->getAlpha());
+        if (op->getDType() == DataType::Float16)
+            elu_kernel((half *)inputData, (half *)outputData, size,
+                       op->getAlpha());
+        else if (op->getDType() == DataType::Float32)
+            elu_kernel((float *)inputData, (float *)outputData, size,
+                       op->getAlpha());
+        else
+            IT_TODO_HALT();
     }
 };
 
@@ -110,8 +116,7 @@ class ActivationCudnn : public CudaKernelWithoutConfig {
         cudnnStatus_t stat = cudnnActivationForward(
             context->cudnnHandle(), activationDesc, &alpha, inputDesc,
             inputData, &beta, outputDesc, outputData);
-        if (stat != CUDNN_STATUS_SUCCESS)
-            return;
+        checkCudnnError(stat);
 
         // Destories in CUDA does not require sync. But cuDNN does not state
         // whether sync is required before destories.
@@ -159,8 +164,7 @@ class SoftmaxCudnn : public CudaKernelWithoutConfig {
         cudnnStatus_t stat = cudnnSoftmaxForward(
             context->cudnnHandle(), getAlgorithmType(), getModeType(), &alpha,
             inputDesc, inputData, &beta, outputDesc, outputData);
-        if (stat != CUDNN_STATUS_SUCCESS)
-            return;
+        checkCudnnError(stat);
 
         // Destories in CUDA does not require sync. But cuDNN does not state
         // whether sync is required before destories.
@@ -180,6 +184,9 @@ class LeakyReluCuda : public CudaKernelWithoutConfig {
         if (op->getDType() == DataType::Float32) {
             leaky_relu_kernel<float>((float *)inputData, (float *)outputData,
                                      size, alphaValue);
+        } else if (op->getDType() == DataType::Float16) {
+            leaky_relu_kernel<half>((half *)inputData, (half *)outputData,
+                                    size, alphaValue);
         } else {
             IT_TODO_HALT();
         }

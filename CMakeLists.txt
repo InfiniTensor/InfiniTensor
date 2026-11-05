@@ -1,6 +1,7 @@
 # Do not change these options in this file. Use cmake.config, cmake -DOPTION=VALUE, or ccmake to specify them.
 option(USE_CUDA "Support CUDA GPU" OFF)
 option(USE_METAX "Support MetaX GPU via MACA cu-bridge (mutually exclusive with USE_CUDA)" OFF)
+option(USE_COREX "Support COREX GPU" OFF)
 option(USE_BANG "Support BANG MLU" OFF)
 option(USE_KUNLUN "Support KUNLUN XPU" OFF)
 option(USE_ASCEND "Support HUAWEI ASCEND" OFF)
@@ -11,10 +12,10 @@ option(BUILD_NNET "Build nnet" OFF)
 option(BUILD_DIST "Build project for distributed running" OFF)
 option(BUILD_TEST "Build tests" OFF)
 
-if(USE_CUDA OR USE_METAX)
-    cmake_minimum_required(VERSION 3.18)
+if(USE_CUDA OR USE_METAX OR USE_COREX)
+  cmake_minimum_required(VERSION 3.18)
 else()
-    cmake_minimum_required(VERSION 3.17)
+  cmake_minimum_required(VERSION 3.17)
 endif()
 
 # CMake 4.x: allow older bundled third-party CMakeLists (e.g. nlohmann_json fetchcontent).
@@ -61,11 +62,15 @@ else()
   endif()
 endif()
 
+# c++17 特性
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF) # -std=gnu++11 when on, -std=c++11 when off
+set(CMAKE_CUDA_STANDARD 17)
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 add_compile_options(-Wno-error=unused-variable)
 
-# REF: 
+# REF:
 # 1. https://gcc.gnu.org/bugzilla/show_bug.cgi?id=107852
 # 2. https://github.com/assimp/assimp/pull/5577
 if(((CMAKE_C_COMPILER_ID MATCHES "GNU") AND NOT MINGW AND NOT HAIKU) AND CMAKE_CXX_COMPILER_VERSION GREATER_EQUAL 13)
@@ -154,7 +159,7 @@ if(BUILD_NNET)
   set_source_files_properties(src/nnet/test.cc PROPERTIES COMPILE_OPTIONS "-DINFINI_PROJECT_HOME=${CMAKE_CURRENT_SOURCE_DIR}")
 endif()
 
-if(USE_CUDA OR USE_METAX)
+if(USE_CUDA OR USE_METAX OR USE_COREX)
   file(GLOB_RECURSE SRC_CUDA src/cuda/*.cc src/cuda/*.cu src/kernels/cuda/*.cc src/kernels/cuda/*.cu)
   list (APPEND SRC ${SRC_CUDA})
 endif()
@@ -162,6 +167,11 @@ endif()
 if(USE_METAX)
   file(GLOB_RECURSE SRC_METAX src/metax/*.cc)
   list(APPEND SRC ${SRC_METAX})
+endif()
+
+if(USE_COREX)
+  file(GLOB_RECURSE SRC_COREX src/corex/*.cc)
+  list(APPEND SRC ${SRC_COREX})
 endif()
 
 if(USE_BANG)
@@ -402,6 +412,52 @@ exec "$CUCC" "$@"
     $<$<COMPILE_LANGUAGE:CXX>:-Wno-error=deprecated-declarations>)
 endif()
 
+if(USE_COREX)
+  if(BUILD_DIST)
+    message(FATAL_ERROR "USE_COREX does not support BUILD_DIST (NCCL) in this configuration.")
+  endif()
+  add_compile_definitions(USE_CUDA=1 USE_COREX=1)
+
+  if((NOT DEFINED COREX_PATH) AND (NOT DEFINED ENV{COREX_PATH}))
+    set(COREX_PATH "/usr/local/corex" CACHE PATH "CoreX install prefix")
+  elseif(DEFINED COREX_PATH)
+    set(COREX_PATH "${COREX_PATH}" CACHE PATH "CoreX install prefix")
+  else()
+    set(COREX_PATH "$ENV{COREX_PATH}" CACHE PATH "CoreX install prefix")
+  endif()
+  message(STATUS "COREX_PATH: ${COREX_PATH}")
+
+
+  #指定 CoreX 的 CUDA 编译器（根据实际路径调整）
+  set(CMAKE_CUDA_COMPILER "${COREX_PATH}/bin/clang++" CACHE FILEPATH "CoreX CUDA compiler")
+  set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
+  set(CMAKE_CUDA_STANDARD 17)
+  set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+  enable_language(CUDA)
+  #set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --offload-arch=ivcore20")
+  set_target_properties(InfiniTensor PROPERTIES CUDA_ARCHITECTURES "ivcore20") ## 有用
+  ## set(CMAKE_CUDA_ARCHITECTURES "ivcore20") ##
+
+
+  # find_package(CUDA 8 REQUIRED)
+  include_directories(${COREX_PATH}/include)
+  link_directories(${COREX_PATH}/lib64)
+
+  find_library(COREX_CUDA_RUNTIME cudart PATHS "${COREX_PATH}/lib" NO_DEFAULT_PATH REQUIRED)
+  find_library(COREX_CUDNN cudnn PATHS "${COREX_PATH}/lib" NO_DEFAULT_PATH REQUIRED)
+  find_library(COREX_CUBLAS cublas PATHS "${COREX_PATH}/lib" NO_DEFAULT_PATH REQUIRED)
+  find_library(COREX_CURAND curand PATHS "${COREX_PATH}/lib" NO_DEFAULT_PATH REQUIRED)
+  find_library(COREX_CUDA cuda PATHS "${COREX_PATH}/lib" NO_DEFAULT_PATH REQUIRED)
+  target_link_libraries(
+    InfiniTensor
+    ${COREX_CUDA_RUNTIME}
+    ${COREX_CUDNN}
+    ${COREX_CUBLAS}
+    ${COREX_CURAND}
+    ${COREX_CUDA})
+
+endif()
+
 if(USE_BANG)
   add_compile_definitions(USE_BANG=1)
   include_directories(src/kernels/mlu/include)
@@ -546,7 +602,7 @@ if(BUILD_TEST)
     build_test(test/core/*.cc)
     build_test(test/operators/*.cc)
     build_test(test/kernels/nativecpu/*.cc)
-    if(USE_CUDA OR USE_METAX)
+    if(USE_CUDA OR USE_METAX OR USE_COREX)
       build_test(test/kernels/cuda/*.cc)
       build_test(test/cuda/*.cc)
     endif()

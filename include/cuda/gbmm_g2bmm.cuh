@@ -14,8 +14,8 @@ using uint64_t = unsigned long long;
 #define uint unsigned int
 #define uchar unsigned char
 #define ushort unsigned short
-#define int64_t long long
-#define uint64_t unsigned long long
+//#define int64_t long long
+//#define uint64_t unsigned long long
 #endif
 
 __global__ void __launch_bounds__(58)

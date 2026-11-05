@@ -1,5 +1,6 @@
 #pragma once
 #include "core/runtime.h"
+#include "cuda/conv_nhwc_cache.h"
 #include "cuda/cuda_common.h"
 #ifdef INFINI_USE_NCCL
 #include "cuda/nccl_communicator.h"
@@ -17,6 +18,7 @@ class CudaRuntimeObj : public RuntimeObj {
     bool isCudaGraphCreated;
     cudaGraph_t cudaGraph;
     cudaGraphExec_t cudaGraphInstance;
+    mutable std::unique_ptr<ConvNhwcCache> convNhwcCache;
 
   public:
     explicit CudaRuntimeObj(int deviceId = 0, Device dev = Device::CUDA)
@@ -45,6 +47,7 @@ class CudaRuntimeObj : public RuntimeObj {
                 checkCudaError(cudaGraphDestroy(cudaGraph));
                 CUDAStream::destroyStream();
             }
+            convNhwcCache.reset();
             dealloc(workspace);
             checkCudnnError(cudnnDestroy(cudnn));
             checkCublasError(cublasDestroy(cublas));
@@ -74,6 +77,27 @@ class CudaRuntimeObj : public RuntimeObj {
         return workspace;
     }
 
+    ConvNhwcCache &getConvNhwcCache() const {
+        if (!convNhwcCache)
+            convNhwcCache = std::make_unique<ConvNhwcCache>(getDeviceId());
+        return *convNhwcCache;
+    }
+
+    ConvNhwcCacheStats getConvNhwcCacheStats() const {
+        return convNhwcCache ? convNhwcCache->stats() : ConvNhwcCacheStats{};
+    }
+
+    bool hasCapturedCudaGraph() const { return isCudaGraphCreated; }
+
+    // Pointer/Blob changes are detected automatically. In-place weight writes
+    // require explicit invalidation before the next inference.
+    void invalidateConvNhwcCache() {
+        IT_ASSERT(!isCudaGraphCreated,
+                  "Recreate runtime after changing weights used by CUDA Graph");
+        sync();
+        convNhwcCache.reset();
+    }
+
     void copyBlobFromCPU(void *dst, const void *src,
                          size_t bytes) const override {
         checkCudaError(cudaMemcpy(dst, src, bytes, cudaMemcpyHostToDevice));
@@ -89,7 +113,7 @@ class CudaRuntimeObj : public RuntimeObj {
         checkCudaError(cudaMemcpy(dst, src, bytes, cudaMemcpyDeviceToDevice));
     }
 
-    void runWithoutSync(const Graph &graph) const;
+    void runWithoutSync(const Graph &graph, bool profiling = false) const;
 
     void runWithCudaGraph(const Graph &graph);
 

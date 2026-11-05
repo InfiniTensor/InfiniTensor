@@ -3,6 +3,7 @@
 #include "cuda/cuda_utility.h"
 #include <cstdio>
 
+
 __global__ void cudaPrintFloatImpl(float *x, int len) {
     int start = threadIdx.x + blockDim.x * blockIdx.x;
     if (start == 0) {
@@ -51,7 +52,11 @@ cudnnDataType_t cudnnDataTypeConvert(DataType dataType) {
         return CUDNN_DATA_INT64;
     }
     if (dataType == DataType::Bool) {
+    #ifdef USE_COREX
+        return CUDNN_DATA_INT8;
+    #else
         return CUDNN_DATA_BOOLEAN;
+    #endif
     }
     IT_ASSERT(false, "Unsupported data type");
 }

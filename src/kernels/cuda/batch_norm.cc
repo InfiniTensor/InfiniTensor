@@ -1,7 +1,11 @@
 #include "operators/batch_norm.h"
 #include "core/kernel.h"
-#include "cuda/cuda_kernel_wihtout_config.h"
+#include "cuda/cuda_kernel_without_config.h"
 #include "cuda/cuda_runtime.h"
+#include "cuda/cuda_utility.h"
+#include "cuda/cuda_unary.h"
+#include <iostream>
+#include <vector>
 
 namespace infini {
 class BatchNormCudnn : public CudaKernelWithoutConfig {
@@ -10,13 +14,55 @@ class BatchNormCudnn : public CudaKernelWithoutConfig {
         auto op = as<BatchNormObj>(_op);
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         cudnnStatus_t stat;
-        IT_ASSERT(op->getDType() == DataType::Float32);
+        IT_ASSERT(op->getDType() == DataType::Float16 ||
+                  op->getDType() == DataType::Float32);
+        auto cudnnDataType = cudnnDataTypeConvert(op->getDType());
         void *const inData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const outData = (op->getOutput()->getRawDataPtr<void *>());
-        void *const meanData = (op->getInputs(1)->getRawDataPtr<void *>());
-        void *const varData = (op->getInputs(2)->getRawDataPtr<void *>());
-        void *const scaleData = (op->getInputs(3)->getRawDataPtr<void *>());
-        void *const biasData = (op->getInputs(4)->getRawDataPtr<void *>());
+        const size_t channels = op->getInputs(1)->size();
+        float *workspace = static_cast<float *>(
+            context->getWorkspace(4 * channels * sizeof(float)));
+        auto parameterAsFloat = [&](size_t index) -> const float * {
+            auto parameter = op->getInputs(index);
+            if (parameter->getDType() == DataType::Float32)
+                return parameter->getRawDataPtr<float *>();
+            IT_ASSERT(parameter->getDType() == DataType::Float16);
+            float *converted = workspace + (index - 1) * channels;
+            cast_kernel<half, float>(parameter->getRawDataPtr<half *>(),
+                                     converted, channels);
+            return converted;
+        };
+        const float *meanData = parameterAsFloat(1);
+        const float *varData = parameterAsFloat(2);
+        const float *scaleData = parameterAsFloat(3);
+        const float *biasData = parameterAsFloat(4);
+
+        // Debug: copy data to CPU and print
+        // std::vector<float> inDebug(12);
+        // std::vector<float> meanDebug(3);
+        // std::vector<float> varDebug(3);
+        // std::vector<float> ScaleDebug(3);
+        // std::vector<float> biasDebug(3);
+        // context->copyBlobToCPU(inDebug.data(), inData, 12 * sizeof(float));
+        // context->copyBlobToCPU(meanDebug.data(), meanData, 3 * sizeof(float));
+        // context->copyBlobToCPU(varDebug.data(), varData, 3 * sizeof(float));
+        // context->copyBlobToCPU(ScaleDebug.data(), scaleData, 3 * sizeof(float));
+        // context->copyBlobToCPU(biasDebug.data(), biasData, 3 * sizeof(float));
+        // std::cout << "Input data: ";
+        // for (int i = 0; i < 12; i++) std::cout << inDebug[i] << " ";
+        // std::cout << std::endl;
+        // std::cout << "Mean data: ";
+        // for (int i = 0; i < 3; i++) std::cout << meanDebug[i] << " ";
+        // std::cout << std::endl;
+        // std::cout << "Var data: ";
+        // for (int i = 0; i < 3; i++) std::cout << varDebug[i] << " ";
+        // std::cout << std::endl;
+        // std::cout << "Scale data: ";
+        // for (int i = 0; i < 3; i++) std::cout << ScaleDebug[i] << " ";
+        // std::cout << std::endl;
+        // std::cout << "Bias data: ";
+        // for (int i = 0; i < 3; i++) std::cout << biasDebug[i] << " ";
+        // std::cout << std::endl;
 
         // Only 4D and 5D tensors are supported by
         // cudnnBatchNormalizationForwardInference
@@ -43,7 +89,7 @@ class BatchNormCudnn : public CudaKernelWithoutConfig {
         cudnnTensorDescriptor_t inDesc;
         checkCudnnError(cudnnCreateTensorDescriptor(&inDesc));
         checkCudnnError(cudnnSetTensorNdDescriptor(
-            inDesc, CUDNN_DATA_FLOAT, dims.size(), dimArray, strideArray));
+            inDesc, cudnnDataType, dims.size(), dimArray, strideArray));
 
         // get bnScaleBiasMeanVarDesc
         cudnnTensorDescriptor_t paraDesc;
@@ -57,8 +103,7 @@ class BatchNormCudnn : public CudaKernelWithoutConfig {
             context->cudnnHandle(), CUDNN_BATCHNORM_SPATIAL, &alpha, &beta,
             inDesc, inData, inDesc, outData, paraDesc, scaleData, biasData,
             meanData, varData, op->getEps());
-        if (stat != CUDNN_STATUS_SUCCESS)
-            return;
+        checkCudnnError(stat);
 
         // Destories in CUDA does not require sync. But cuDNN does not state
         // whether sync is required before destories.

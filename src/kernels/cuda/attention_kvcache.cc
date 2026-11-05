@@ -1,6 +1,6 @@
 #include "operators/attention_kvcache.h"
 #include "cuda/cuda_attention_kvcache.h"
-#include "cuda/cuda_kernel_wihtout_config.h"
+#include "cuda/cuda_kernel_without_config.h"
 #include <functional>
 
 namespace infini {

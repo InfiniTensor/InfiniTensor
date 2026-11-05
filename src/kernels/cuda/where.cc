@@ -1,5 +1,5 @@
 #include "operators/where.h"
-#include "cuda/cuda_kernel_wihtout_config.h"
+#include "cuda/cuda_kernel_without_config.h"
 #include "cuda/cuda_runtime.h"
 #include "cuda/cuda_where.h"
 #include "utils/operator_utils.h"

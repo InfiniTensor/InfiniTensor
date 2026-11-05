@@ -29,11 +29,10 @@ optional<vector<Shape>> BatchNormObj::inferShape(const TensorVec &inputs) {
 
 vector<DataType> BatchNormObj::inferDataType(const TensorVec &inputs) const {
     IT_ASSERT(inputs.size() == 5);
-    auto index = inputs[1];
-    IT_ASSERT(inputs[1]->getDType() == DataType::Float32);
-    IT_ASSERT(inputs[2]->getDType() == DataType::Float32);
-    IT_ASSERT(inputs[3]->getDType() == DataType::Float32);
-    IT_ASSERT(inputs[4]->getDType() == DataType::Float32);
+    for (size_t i = 1; i < inputs.size(); ++i)
+        IT_ASSERT(inputs[i]->getDType() == DataType::Float32 ||
+                  (inputs[0]->getDType() == DataType::Float16 &&
+                   inputs[i]->getDType() == DataType::Float16));
     return {inputs[0]->getDType()};
 }
 

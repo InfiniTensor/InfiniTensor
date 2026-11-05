@@ -25,8 +25,13 @@ class GraphHandlerObj {
 
     inline OpVec operators() { return g->getOperators(); }
 
+#ifdef USE_CUDA
+    Tensor conv(Tensor input, Tensor weight, Tensor output, int ph, int pw,
+                int sh, int sw, int dh, int dw, Tensor bias = nullptr);
+#else
     Tensor conv(Tensor input, Tensor weight, Tensor output, int ph, int pw,
                 int sh, int sw, int dh, int dw);
+#endif
     Tensor convTransposed2d(Tensor input, Tensor weight, Tensor output, int ph,
                             int pw, int sh, int sw, int dh, int dw, int oph,
                             int opw);
@@ -127,7 +132,7 @@ class GraphHandlerObj {
 
     inline bool topo_sort() { return g->topo_sort(); }
 
-    inline void optimize() { g->optimize(); }
+    inline void optimize(int maxFusions) { g->optimize(maxFusions); }
 
     inline void shape_infer() { g->shape_infer(); }
 
@@ -145,6 +150,8 @@ class GraphHandlerObj {
 
     inline void tune() { g->getRuntime()->run(g, true); }
 
+    inline void run_with_profiling() { g->getRuntime()->run(g, false, true); }
+
     inline void run() { g->getRuntime()->run(g); }
 
     inline double get_perf_time() { return g->getRuntime()->getPerfTime(g); }
@@ -156,6 +163,11 @@ class GraphHandlerObj {
 #endif
 #if defined(USE_METAX)
     inline void run_with_metaxgraph() {
+        (as<CudaRuntimeObj>(g->getRuntime()))->runWithCudaGraph(g);
+    }
+#endif
+#if defined(USE_COREX)
+    inline void run_with_corexgraph() {
         (as<CudaRuntimeObj>(g->getRuntime()))->runWithCudaGraph(g);
     }
 #endif

@@ -1,6 +1,6 @@
 #ifdef INFINI_USE_NCCL
 #include "operators/recv.h"
-#include "cuda/cuda_kernel_wihtout_config.h"
+#include "cuda/cuda_kernel_without_config.h"
 #include "cuda/cuda_runtime.h"
 #include "cuda/nccl_communicator.h"
 
@@ -13,13 +13,16 @@ class RecvNCCL : public CudaKernelWithoutConfig {
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
 
         void *output = op->getOutput(0)->getRawDataPtr<void *>();
-        IT_ASSERT(op->getDType() == DataType::Float32);
+        IT_ASSERT(op->getDType() == DataType::Float32 ||
+                  op->getDType() == DataType::Float16);
         const auto shape = op->getShape();
         int nDims = shape.size();
         int outputCount = 1;
         for (int i = 0; i < nDims; i++) {
             outputCount *= shape[i];
         }
+        ncclDataType_t ncclType = op->getDType() == DataType::Float16
+                                      ? ncclFloat16 : ncclFloat;
 
         ncclComm_t comm =
             dynamic_cast<NcclCommunicatorObj &>(context->getCommunicator())
@@ -35,7 +38,8 @@ class RecvNCCL : public CudaKernelWithoutConfig {
         if (rank == destination) {
 
             checkNcclError(
-                ncclRecv(output, outputCount, ncclFloat, source, comm, 0));
+                ncclRecv(output, outputCount, ncclType, source, comm,
+                         CUDAStream::getCurrentStream()));
         }
     }
 };

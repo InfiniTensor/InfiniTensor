@@ -95,7 +95,11 @@ class ConvBaseObj : public OperatorObj {
                 ActType act = ActType::None);
 
     std::string toString() const override;
+#ifdef USE_CUDA
+    int numInputs() const override { return inputs.size(); }
+#else
     int numInputs() const override { return 2; }
+#endif
     int numOutputs() const override { return 1; }
 
     Tensor getBias() const { return inputs[2]; }

@@ -159,14 +159,14 @@ class KernelRegistry {
         if (it != kernels.end()) {
             return std::get<0>(it->second);
         }
-#if defined(USE_METAX)
-        if (std::get<0>(kernelAttrs) == Device::METAX) {
+#if defined(USE_METAX) || defined(USE_COREX)
+        if (std::get<0>(kernelAttrs) == Device::METAX || std::get<0>(kernelAttrs) == Device::COREX) {
             KernelAttrs cudaAttrs{Device::CUDA, std::get<1>(kernelAttrs)};
             it = kernels.find(cudaAttrs);
             IT_ASSERT(it != kernels.end(),
                       "Kernel not found for key {" +
                           get_kernel_attrs_str(kernelAttrs) +
-                          "} (METAX fallback)");
+                          "} (fallback to CUDA)");
             return std::get<0>(it->second);
         }
 #endif

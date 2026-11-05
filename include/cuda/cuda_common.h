@@ -109,7 +109,7 @@ inline const char *curandGetErrorString(curandStatus_t error) {
         return "CURAND_STATUS_INTERNAL_ERROR";
 #if defined(USE_METAX)
     case MCRAND_STATUS_NOT_IMPLEMENTED:
-        return "MCRAND_STATUS_NOT_IMPLEMENTED";
+        return "HCRAND_STATUS_NOT_IMPLEMENTED";
 #endif
     }
     return "<unknown>";

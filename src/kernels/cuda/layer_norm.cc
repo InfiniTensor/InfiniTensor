@@ -1,5 +1,5 @@
 #include "operators/layer_norm.h"
-#include "cuda/cuda_kernel_wihtout_config.h"
+#include "cuda/cuda_kernel_without_config.h"
 #include "cuda/cuda_layernorm.h"
 #include "cuda/cuda_runtime.h"
 

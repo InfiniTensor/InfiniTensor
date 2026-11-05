@@ -1,5 +1,5 @@
 #include "operators/G2BMM.h"
-#include "cuda/cuda_kernel_wihtout_config.h"
+#include "cuda/cuda_kernel_without_config.h"
 #include "cuda/cuda_runtime.h"
 #include "cuda/gbmm_g2bmm.h"
 #include <chrono>
@@ -11,16 +11,21 @@ class G2BMMCudnn : public CudaKernelWithoutConfig {
 
     bool g2bmmKernel(const Ref<G2BMMObj> &op,
                      const CudaRuntimeObj *context) const {
-        float *const inAData = (op->getInputs(0)->getRawDataPtr<float *>());
-        float *const inBData = (op->getInputs(1)->getRawDataPtr<float *>());
         if (op->getInputs().size() > 2)
             IT_TODO_HALT();
 
-        float *const outData = (op->getOutput()->getRawDataPtr<float *>());
-
         const auto [b, n, m, width, dilation] = op->getBMKWD();
 
-        _sg2bmm(inAData, inBData, outData, b, n, m, width, dilation);
+        if (op->getDType() == DataType::Float16)
+            _sg2bmm(op->getInputs(0)->getRawDataPtr<half *>(),
+                    op->getInputs(1)->getRawDataPtr<half *>(),
+                    op->getOutput()->getRawDataPtr<half *>(), b, n, m, width,
+                    dilation);
+        else
+            _sg2bmm(op->getInputs(0)->getRawDataPtr<float *>(),
+                    op->getInputs(1)->getRawDataPtr<float *>(),
+                    op->getOutput()->getRawDataPtr<float *>(), b, n, m, width,
+                    dilation);
         // checkCudaError(cudaDeviceSynchronize());
         return true;
     }
@@ -48,7 +53,9 @@ class G2BMMCudnn : public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<G2BMMObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
+        IT_ASSERT(op->getDType() == DataType::Float32 ||
+                  op->getDType() == DataType::Float16);
+        IT_ASSERT(op->getInputs(1)->getDType() == op->getDType());
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         bool success = g2bmmKernel(op, context);
         IT_ASSERT(success);

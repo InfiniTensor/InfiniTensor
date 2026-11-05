@@ -136,6 +136,7 @@ class TensorObj : public TensorBaseObj {
         obj->freeData();
         obj->targets.clear();
         obj->source.reset();
+        // std::cout << "Clone: hasData()=" << hasData() << ", size=" << size() << std::endl;
         if (hasData()) {
             obj->dataMalloc();
             obj->copyData(this);

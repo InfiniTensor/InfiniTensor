@@ -108,6 +108,8 @@ std::string device_to_str(Device device) {
         return "ASCEND";
     case Device::METAX:
         return "METAX";
+    case Device::COREX:
+        return "COREX";
     default:
         IT_TODO_HALT();
     }

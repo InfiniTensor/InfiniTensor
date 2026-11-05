@@ -1,5 +1,5 @@
 #include "operators/reduce.h"
-#include "cuda/cuda_kernel_wihtout_config.h"
+#include "cuda/cuda_kernel_without_config.h"
 #include "cuda/cuda_runtime.h"
 #include "cuda/cuda_utility.h"
 
@@ -74,7 +74,9 @@ class ReduceCudnnBase : public CudaKernelWithoutConfig {
         cudnnReduceTensorDescriptor_t reduceDesc;
         checkCudnnError(cudnnCreateReduceTensorDescriptor(&reduceDesc));
         checkCudnnError(cudnnSetReduceTensorDescriptor(
-            reduceDesc, getReduceOp(), cudnnDataType, CUDNN_NOT_PROPAGATE_NAN,
+            reduceDesc, getReduceOp(),
+            op->getDType() == DataType::Float16 ? CUDNN_DATA_FLOAT : cudnnDataType,
+            CUDNN_NOT_PROPAGATE_NAN,
             CUDNN_REDUCE_TENSOR_NO_INDICES, CUDNN_32BIT_INDICES));
 
         // get workspace

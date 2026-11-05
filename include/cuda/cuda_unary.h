@@ -6,6 +6,9 @@ namespace infini {
 template <typename T> void softmax_kernel(T *input, T *output, size_t num);
 template <typename T> void relu_kernel(T *input, T *output, size_t num);
 template <typename T> void silu_kernel(T *input, T *output, size_t num);
+// Region execution uses the cuDNN stream, including CUDA Graph capture.
+void silu_kernel_fp16(const void *input, void *output, size_t num,
+                      cudaStream_t stream);
 template <typename T> void sigmoid_kernel(T *input, T *output, size_t num);
 template <typename T> void tanh_kernel(T *input, T *output, size_t num);
 template <typename T> void abs_kernel(T *input, T *output, size_t num);
@@ -19,7 +22,8 @@ template <typename T>
 void leaky_relu_kernel(T *input, T *output, size_t num, float alpha);
 template <typename INPUT, typename OUTPUT>
 void cast_kernel(INPUT *input, OUTPUT *output, size_t num);
-void elu_kernel(const float *input, float *output, size_t size, float alpha);
+template <typename T>
+void elu_kernel(const T *input, T *output, size_t size, float alpha);
 void unary_kernel(const Operator &_op);
 
 }; // namespace infini

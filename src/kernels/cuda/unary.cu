@@ -32,7 +32,7 @@ __global__ void _relu_kernel(T *input, T *output, size_t n) {
     size_t index = threadIdx.x + blockIdx.x * blockDim.x;
     size_t stride = blockDim.x * gridDim.x;
     for (size_t i = index; i < n; i += stride) {
-        output[i] = max(input[i], float(0));
+        output[i] = fmaxf(static_cast<float>(input[i]), 0.0f);
     }
 }
 template <typename T>
@@ -40,7 +40,7 @@ __global__ void _sigmoid_kernel(T *input, T *output, size_t n) {
     size_t index = threadIdx.x + blockIdx.x * blockDim.x;
     size_t stride = blockDim.x * gridDim.x;
     for (size_t i = index; i < n; i += stride) {
-        output[i] = 1 / (1 + pow(E_CONSTANT, -input[i]));
+        output[i] = 1.0f / (1.0f + expf(-static_cast<float>(input[i])));
     }
 }
 template <typename T>
@@ -48,7 +48,8 @@ __global__ void _hard_sigmoid_kernel(T *input, T *output, size_t n) {
     size_t index = threadIdx.x + blockIdx.x * blockDim.x;
     size_t stride = blockDim.x * gridDim.x;
     for (size_t i = index; i < n; i += stride) {
-        output[i] = max(0.0f, min(1.0f, 0.2f * input[i] + 0.5f));
+        output[i] = fmaxf(0.0f, fminf(1.0f,
+                                    0.2f * static_cast<float>(input[i]) + 0.5f));
     }
 }
 template <typename T>
@@ -56,8 +57,8 @@ __global__ void _hard_swish_kernel(T *input, T *output, size_t n) {
     size_t index = threadIdx.x + blockIdx.x * blockDim.x;
     size_t stride = blockDim.x * gridDim.x;
     for (size_t i = index; i < n; i += stride) {
-        output[i] =
-            input[i] * max(0.f, min(1.f, (1.f / 6.f) * input[i] + 0.5f));
+        float x = static_cast<float>(input[i]);
+        output[i] = x * fmaxf(0.f, fminf(1.f, x / 6.f + 0.5f));
     }
 }
 template <typename T>
@@ -65,8 +66,7 @@ __global__ void _tanh_kernel(T *input, T *output, size_t n) {
     size_t index = threadIdx.x + blockIdx.x * blockDim.x;
     size_t stride = blockDim.x * gridDim.x;
     for (size_t i = index; i < n; i += stride) {
-        output[i] = (pow(E_CONSTANT, input[i]) - pow(E_CONSTANT, -input[i])) /
-                    (pow(E_CONSTANT, input[i]) + pow(E_CONSTANT, -input[i]));
+        output[i] = tanhf(static_cast<float>(input[i]));
     }
 }
 template <typename T>
@@ -74,7 +74,7 @@ __global__ void _abs_kernel(T *input, T *output, size_t n) {
     size_t index = threadIdx.x + blockIdx.x * blockDim.x;
     size_t stride = blockDim.x * gridDim.x;
     for (size_t i = index; i < n; i += stride) {
-        output[i] = input[i] < 0 ? -input[i] : input[i];
+        output[i] = fabsf(static_cast<float>(input[i]));
     }
 }
 
@@ -94,12 +94,13 @@ __global__ void _sqrt_kernel(half *input, half *output, size_t n) {
     }
 }
 
-__global__ void _elu_kernel(const float *input, float *output, size_t size,
+template <typename T>
+__global__ void _elu_kernel(const T *input, T *output, size_t size,
                             float alpha) {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (index < size) {
-        float x = input[index];
+        float x = static_cast<float>(input[index]);
         output[index] = (x >= 0) ? x : alpha * (expf(x) - 1);
     }
 }
@@ -115,7 +116,7 @@ __global__ void _gelu_kernel(T *input, T *output, size_t n) {
 }
 
 template <typename T>
-__global__ void _silu_kernel(T *input, T *output, size_t n) {
+__global__ void _silu_kernel(const T *input, T *output, size_t n) {
     int index = threadIdx.x + blockIdx.x * blockDim.x;
     int stride = blockDim.x * gridDim.x;
     for (int i = index; i < n; i += stride) {
@@ -129,7 +130,7 @@ __global__ void _erf_kernel(T *input, T *output, size_t n) {
     size_t index = threadIdx.x + blockIdx.x * blockDim.x;
     size_t stride = blockDim.x * gridDim.x;
     for (int i = index; i < n; i += stride) {
-        output[i] = erf(input[i]);
+        output[i] = erff(static_cast<float>(input[i]));
     }
 }
 
@@ -159,7 +160,8 @@ __global__ void _leaky_relu_kernel(T *input, T *output, size_t n,
     size_t index = threadIdx.x + blockIdx.x * blockDim.x;
     size_t stride = blockDim.x * gridDim.x;
     for (size_t i = index; i < n; i += stride) {
-        output[i] = (input[i] > 0) ? input[i] : alphaValue * input[i];
+        float value = static_cast<float>(input[i]);
+        output[i] = value > 0.0f ? value : alphaValue * value;
     }
 }
 
@@ -244,6 +246,14 @@ template <typename T> void silu_kernel(T *input, T *output, size_t num) {
         input, output, num);
 }
 
+void silu_kernel_fp16(const void *input, void *output, size_t num,
+                      cudaStream_t stream) {
+    const int blocksize = block_work_size();
+    const int gridsize = (num + blocksize - 1) / blocksize;
+    _silu_kernel<half><<<gridsize, blocksize, 0, stream>>>(
+        static_cast<const half *>(input), static_cast<half *>(output), num);
+}
+
 template <typename T> void erf_kernel(T *input, T *output, size_t num) {
 
     int blocksize = block_work_size();
@@ -274,12 +284,16 @@ void unary_kernel(const Operator &_op) {
     } else if (op->getOpType() == OpType::Relu) {
         if (_op->getDType() == DataType::Float32) {
             relu_kernel<float>((float *)inputData, (float *)outputData, num);
+        } else if (_op->getDType() == DataType::Float16) {
+            relu_kernel<half>((half *)inputData, (half *)outputData, num);
         } else {
             IT_TODO_HALT();
         }
     } else if (op->getOpType() == OpType::Sigmoid) {
         if (_op->getDType() == DataType::Float32) {
             sigmoid_kernel<float>((float *)inputData, (float *)outputData, num);
+        } else if (_op->getDType() == DataType::Float16) {
+            sigmoid_kernel<half>((half *)inputData, (half *)outputData, num);
         } else {
             IT_TODO_HALT();
         }
@@ -287,6 +301,9 @@ void unary_kernel(const Operator &_op) {
         if (_op->getDType() == DataType::Float32) {
             hard_sigmoid_kernel<float>((float *)inputData, (float *)outputData,
                                        num);
+        } else if (_op->getDType() == DataType::Float16) {
+            hard_sigmoid_kernel<half>((half *)inputData, (half *)outputData,
+                                      num);
         } else {
             IT_TODO_HALT();
         }
@@ -294,18 +311,25 @@ void unary_kernel(const Operator &_op) {
         if (_op->getDType() == DataType::Float32) {
             hard_swish_kernel<float>((float *)inputData, (float *)outputData,
                                      num);
+        } else if (_op->getDType() == DataType::Float16) {
+            hard_swish_kernel<half>((half *)inputData, (half *)outputData,
+                                    num);
         } else {
             IT_TODO_HALT();
         }
     } else if (op->getOpType() == OpType::Tanh) {
         if (_op->getDType() == DataType::Float32) {
             tanh_kernel<float>((float *)inputData, (float *)outputData, num);
+        } else if (_op->getDType() == DataType::Float16) {
+            tanh_kernel<half>((half *)inputData, (half *)outputData, num);
         } else {
             IT_TODO_HALT();
         }
     } else if (op->getOpType() == OpType::Abs) {
         if (_op->getDType() == DataType::Float32) {
             abs_kernel<float>((float *)inputData, (float *)outputData, num);
+        } else if (_op->getDType() == DataType::Float16) {
+            abs_kernel<half>((half *)inputData, (half *)outputData, num);
         } else {
             IT_TODO_HALT();
         }
@@ -320,6 +344,8 @@ void unary_kernel(const Operator &_op) {
     } else if (op->getOpType() == OpType::Gelu) {
         if (_op->getDType() == DataType::Float32) {
             gelu_kernel<float>((float *)inputData, (float *)outputData, num);
+        } else if (_op->getDType() == DataType::Float16) {
+            gelu_kernel<half>((half *)inputData, (half *)outputData, num);
         } else {
             IT_TODO_HALT();
         }
@@ -344,6 +370,8 @@ void unary_kernel(const Operator &_op) {
     else if (op->getOpType() == OpType::Erf) {
         if (_op->getDType() == DataType::Float32) {
             erf_kernel<float>((float *)inputData, (float *)outputData, num);
+        } else if (_op->getDType() == DataType::Float16) {
+            erf_kernel<half>((half *)inputData, (half *)outputData, num);
         } else {
             IT_TODO_HALT();
         }
@@ -370,10 +398,12 @@ void leaky_relu_kernel(T *input, T *output, size_t num, float alphaValue) {
                                                            alphaValue);
 }
 
-void elu_kernel(const float *input, float *output, size_t size, float alpha) {
+template <typename T>
+void elu_kernel(const T *input, T *output, size_t size, float alpha) {
     int blocksize = 32 * 16;
     int gridsize = (size + blocksize - 1) / blocksize;
-    _elu_kernel<<<gridsize, blocksize>>>(input, output, size, alpha);
+    _elu_kernel<T><<<gridsize, blocksize, 0, CUDAStream::getCurrentStream()>>>(
+        input, output, size, alpha);
 }
 
 template void cast_kernel<float, half>(float *input, half *output, size_t num);
@@ -386,4 +416,10 @@ template void cast_kernel<int8_t, float>(int8_t *input, float *output,
                                          size_t num);
 template void leaky_relu_kernel<float>(float *input, float *output, size_t num,
                                        float alpha);
+template void leaky_relu_kernel<half>(half *input, half *output, size_t num,
+                                      float alpha);
+template void elu_kernel<float>(const float *input, float *output, size_t size,
+                                float alpha);
+template void elu_kernel<half>(const half *input, half *output, size_t size,
+                               float alpha);
 }; // namespace infini

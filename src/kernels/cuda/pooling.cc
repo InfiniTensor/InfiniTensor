@@ -1,6 +1,7 @@
 #include "operators/pooling.h"
-#include "cuda/cuda_kernel_wihtout_config.h"
+#include "cuda/cuda_kernel_without_config.h"
 #include "cuda/cuda_runtime.h"
+#include "cuda/cuda_utility.h"
 
 namespace infini {
 class poolingCudnn : public CudaKernelWithoutConfig {
@@ -8,7 +9,7 @@ class poolingCudnn : public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<PoolingObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
+        auto cudnnDataType = cudnnDataTypeConvert(op->getDType());
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         void *const inData = (op->getInputs(0)->getRawDataPtr<void *>());
         void *const outData = (op->getOutput()->getRawDataPtr<void *>());
@@ -22,7 +23,7 @@ class poolingCudnn : public CudaKernelWithoutConfig {
         cudnnTensorDescriptor_t inDesc;
         checkCudnnError(cudnnCreateTensorDescriptor(&inDesc));
         checkCudnnError(cudnnSetTensor4dDescriptor(
-            inDesc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, n, c, h, w));
+            inDesc, CUDNN_TENSOR_NCHW, cudnnDataType, n, c, h, w));
 
         // Get outputs
         int outn = outDims.at(0), outc = outDims.at(1),
@@ -45,7 +46,7 @@ class poolingCudnn : public CudaKernelWithoutConfig {
         cudnnTensorDescriptor_t outDesc;
         checkCudnnError(cudnnCreateTensorDescriptor(&outDesc));
         checkCudnnError(cudnnSetTensor4dDescriptor(outDesc, CUDNN_TENSOR_NCHW,
-                                                   CUDNN_DATA_FLOAT, outn, outc,
+                                                   cudnnDataType, outn, outc,
                                                    outh, outw));
 
         // Create and set pooling descriptor for average pooling

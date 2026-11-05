@@ -1,5 +1,5 @@
 #include "operators/softmax.h"
-#include "cuda/cuda_kernel_wihtout_config.h"
+#include "cuda/cuda_kernel_without_config.h"
 #include "cuda/cuda_runtime.h"
 #include "cuda/cuda_softmax.h"
 
@@ -9,9 +9,8 @@ class SoftmaxCuda : public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<SoftmaxObj>(_op);
-        auto input = op->getInputs(0)->getRawDataPtr<float *>();
-        auto output = op->getOutput(0)->getRawDataPtr<float *>();
-        const auto &inShape = op->getInputs(0)->getDims(); // input shape
+        auto input = op->getInputs(0)->getRawDataPtr<void *>();
+        auto output = op->getOutput(0)->getRawDataPtr<void *>();
         auto dims = op->getInputs(0)->getDims();
 
         int size; // size = i(JKS) + j(KS) + k(S) + s

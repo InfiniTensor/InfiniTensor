@@ -1,8 +1,15 @@
 #include "core/graph.h"
 #include "operators/reshape.h"
+#include "operators/batch_norm.h"
+#include "operators/conv.h"
+#include "core/graph_optimize.h"
+#if defined(USE_CUDA) || defined(USE_METAX) || defined(USE_COREX)
+#include "cuda/cuda_runtime.h"
+#endif
 #include <algorithm>
 #include <numeric>
 #include <queue>
+#include <cmath>
 
 namespace infini {
 
@@ -65,6 +72,27 @@ void GraphObj::addOperatorAndConnect(const Operator &op) {
     }
 }
 
+void GraphObj::replaceOperator(Operator op, Operator replacement) {
+    const auto it = std::find(ops.begin(), ops.end(), op);
+    IT_ASSERT(it != ops.end());
+    IT_ASSERT(std::find(ops.begin(), ops.end(), replacement) == ops.end());
+    IT_ASSERT(op->getOutputs() == replacement->getOutputs());
+    const auto index = std::distance(ops.begin(), it);
+    const auto &inputs = op->getInputs();
+    for (const auto &input :
+         std::unordered_set<Tensor>(inputs.begin(), inputs.end()))
+        deleteConnection(input, op);
+    for (const auto &output : op->getOutputs())
+        for (const auto &consumer : output->getTargets())
+            consumer->removePredecessors(op);
+    op->predecessors.clear();
+    op->successors.clear();
+
+    addOperatorAndConnect(replacement);
+    ops[index] = ops.back();
+    ops.pop_back();
+}
+
 string GraphObj::toString() const {
     std::ostringstream oss;
     oss << "Graph Tensors:\n";
@@ -118,13 +146,33 @@ bool GraphObj::topo_sort() {
     return this->sorted = true;
 }
 
-void GraphObj::optimize() {
-    for (auto &op : ops) {
-        switch (op->getOpType().underlying()) {
-        default:
-            break;
-        }
+void GraphObj::optimize(int maxFusions) {
+    printf("optimizing graph...\n");
+    if (maxFusions == 0)
+        return;
+#if defined(USE_CUDA) || defined(USE_METAX) || defined(USE_COREX)
+    if (runtime->isCuda()) {
+        const auto cuda = as<CudaRuntimeObj>(runtime);
+        IT_ASSERT(!cuda->hasCapturedCudaGraph(),
+                  "Optimize before CUDA Graph capture; recreate the runtime");
+        cuda->sync();
     }
+#endif
+    const bool allocated =
+        std::any_of(tensors.begin(), tensors.end(), [](const Tensor &t) {
+            return !t->isWeight() && t->hasData();
+        });
+    bool changed = optimizeGraph(this, maxFusions);
+    IT_ASSERT(topo_sort(), "Optimize produced an invalid graph");
+#if defined(USE_CUDA) || defined(USE_METAX) || defined(USE_COREX)
+    if (runtime->isCuda() && scheduleConvNhwcRegions(ops)) {
+        sorted = false;
+        IT_ASSERT(topo_sort(), "NHWC region scheduling produced an invalid graph");
+        changed = true;
+    }
+#endif
+    if (changed && allocated)
+        dataMalloc(naiveAllocator);
 }
 
 Tensor GraphObj::getTensor(int fuid) const {
@@ -159,6 +207,7 @@ void GraphObj::dataMalloc(bool useNaiveAllocator, size_t memPoolSize) {
     // topological sorting first
 
     IT_ASSERT(topo_sort() == true);
+    naiveAllocator = useNaiveAllocator;
     if (useNaiveAllocator) {
         // can not set memory pool when use naive allocator
         IT_ASSERT(memPoolSize == 0);
@@ -317,9 +366,8 @@ OpVec GraphObj::getComputeOps() const {
 
 void GraphObj::deleteConnection(Tensor tensor, Operator op) {
     // if op is target
-    IT_ASSERT(std::find(tensor->getTargets().begin(),
-                        tensor->getTargets().end(),
-                        op) != tensor->getTargets().end());
+    const auto targets = tensor->getTargets();
+    IT_ASSERT(std::find(targets.begin(), targets.end(), op) != targets.end());
     tensor->removeTarget(op);
     if (tensor->getSource()) {
         tensor->getSource()->removeSuccessors(op);
