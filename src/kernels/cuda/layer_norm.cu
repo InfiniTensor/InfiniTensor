@@ -16,7 +16,7 @@ __launch_bounds__(BLOCK_DIM) __global__
     typedef cub::BlockReduce<T, BLOCK_DIM> BlockReduce;
     __shared__ typename BlockReduce::TempStorage temp_storage;
     __shared__ T mu;
-    T muBlock = BlockReduce(temp_storage).Reduce(muPartial, cub::Sum());
+    T muBlock = BlockReduce(temp_storage).Sum(muPartial);
     if (threadIdx.x ==
         0) { // must set threadIdx.x = 0 write the output to memory
         mu = muBlock * static_cast<T>(__fdividef(1.0F, dimsize));
@@ -32,7 +32,7 @@ __launch_bounds__(BLOCK_DIM) __global__
     typedef cub::BlockReduce<T, BLOCK_DIM> BlockReduce;
 
     __shared__ T sigma2;
-    T sigma2Block = BlockReduce(temp_storage).Reduce(sigma2Partial, cub::Sum());
+    T sigma2Block = BlockReduce(temp_storage).Sum(sigma2Partial);
     if (threadIdx.x ==
         0) { // must set threadIdx.x = 0 write the output to memory
         sigma2 = sigma2Block * static_cast<T>(__fdividef(1.0F, dimsize));
@@ -104,7 +104,7 @@ __launch_bounds__(BLOCK_DIM) __global__
     typedef cub::BlockReduce<T, BLOCK_DIM> BlockReduce;
     __shared__ typename BlockReduce::TempStorage temp_storage;
     __shared__ T mu;
-    T muBlock = BlockReduce(temp_storage).Reduce(muPartial, cub::Sum());
+    T muBlock = BlockReduce(temp_storage).Sum(muPartial);
     if (threadIdx.x ==
         0) { // must set threadIdx.x = 0 write the output to memory
         mu = muBlock * static_cast<T>(__fdividef(1.0F, dimsize));
@@ -120,7 +120,7 @@ __launch_bounds__(BLOCK_DIM) __global__
     typedef cub::BlockReduce<T, BLOCK_DIM> BlockReduce;
 
     __shared__ T sigma2;
-    T sigma2Block = BlockReduce(temp_storage).Reduce(sigma2Partial, cub::Sum());
+    T sigma2Block = BlockReduce(temp_storage).Sum(sigma2Partial);
     if (threadIdx.x ==
         0) { // must set threadIdx.x = 0 write the output to memory
         sigma2 = sigma2Block * static_cast<T>(__fdividef(1.0F, dimsize));
@@ -446,113 +446,59 @@ void LaynormKernel(const float *input, const float *scale, const float eps,
     }
 }
 //-----------------
-void LaynormKernel(const half *input, const half *scale, const half eps,
-                   int size, int scaleSize, const int dimsize, const int stride,
-                   half *output, const half *bias, int biasSize) {
-    int num_block = size / dimsize;
-    if (dimsize > 1024) {
-        int BLOCK_DIM = 1024;
+// FP16 storage with FP32 statistics and affine arithmetic.
+__global__ void halfLayerNormFp32(const half *input, const half *scale,
+                                  float eps, int dimsize, int stride,
+                                  half *output, int scaleSize,
+                                  const half *bias, int biasSize) {
+    constexpr int BLOCK = 256;
+    const int outer = blockIdx.x;
+    const int offset = outer % stride + (outer - outer % stride) * dimsize;
+    using Reduce = cub::BlockReduce<float, BLOCK>;
+    __shared__ typename Reduce::TempStorage storage;
+    __shared__ float mean, variance;
 
-        blockLaynormKernel<half, 1024>
-            <<<num_block, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>
-            (input, scale, dimsize, stride, output, eps, scaleSize, bias, biasSize);
-    } else if (dimsize > 31) {
-        int BLOCK_DIM_x = 32;
-        int BLOCK_DIM_y = 32;
-        int num_block_x = (num_block + BLOCK_DIM_y - 1) / BLOCK_DIM_y;
-        dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
-        dim3 grid_dim(num_block_x, 1, 1);
+    float partial = 0.f;
+    for (int i = threadIdx.x; i < dimsize; i += BLOCK)
+        partial += __half2float(input[offset + i * stride]);
+    float sum = Reduce(storage).Sum(partial);
+    if (threadIdx.x == 0)
+        mean = sum / dimsize;
+    __syncthreads();
 
-        warpLaynormKernel<half, 32, 32>
-            <<<grid_dim, block_dim, 0, CUDAStream::getCurrentStream()>>>
-            (input, scale, dimsize, stride, output, eps, scaleSize, num_block,
-            bias, biasSize);
-    } else if (dimsize > 15) {
-        int BLOCK_DIM_x = 16;
-        int BLOCK_DIM_y = 64;
-        int num_block_x = (num_block + BLOCK_DIM_y - 1) / BLOCK_DIM_y;
-        dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
-        dim3 grid_dim(num_block_x, 1, 1);
+    partial = 0.f;
+    for (int i = threadIdx.x; i < dimsize; i += BLOCK) {
+        float delta = __half2float(input[offset + i * stride]) - mean;
+        partial += delta * delta;
+    }
+    sum = Reduce(storage).Sum(partial);
+    if (threadIdx.x == 0)
+        variance = sum / dimsize;
+    __syncthreads();
 
-        warpLaynormKernel<half, 16, 64>
-            <<<grid_dim, block_dim, 0, CUDAStream::getCurrentStream()>>>
-            (input, scale, dimsize, stride, output, eps, scaleSize, num_block,
-            bias, biasSize);
-    } else if (dimsize > 7) {
-        int BLOCK_DIM_x = 8;
-        int BLOCK_DIM_y = 128;
-        int num_block_x = (num_block + BLOCK_DIM_y - 1) / BLOCK_DIM_y;
-        dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
-        dim3 grid_dim(num_block_x, 1, 1);
-
-        warpLaynormKernel<half, 8, 128>
-            <<<grid_dim, block_dim, 0, CUDAStream::getCurrentStream()>>>
-            (input, scale, dimsize, stride, output, eps, scaleSize, num_block,
-            bias, biasSize);
-    } else {
-        int BLOCK_DIM_x = 4;
-        int BLOCK_DIM_y = 256;
-        int num_block_x = (num_block + BLOCK_DIM_y - 1) / BLOCK_DIM_y;
-        dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
-        dim3 grid_dim(num_block_x, 1, 1);
-
-        warpLaynormKernel<half, 4, 256>
-            <<<grid_dim, block_dim, 0, CUDAStream::getCurrentStream()>>>
-            (input, scale, dimsize, stride, output, eps, scaleSize, num_block,
-            bias, biasSize);
+    float invStd = rsqrtf(variance + eps);
+    for (int i = threadIdx.x; i < dimsize; i += BLOCK) {
+        float value = (__half2float(input[offset + i * stride]) - mean) * invStd;
+        value *= __half2float(scale[scaleSize == dimsize ? i : 0]);
+        if (bias != nullptr)
+            value += __half2float(bias[biasSize == dimsize ? i : 0]);
+        output[offset + i * stride] = __float2half(value);
     }
 }
 
-void LaynormKernel(const half *input, const half *scale, const half eps,
+void LaynormKernel(const half *input, const half *scale, const float eps,
+                   int size, int scaleSize, const int dimsize, const int stride,
+                   half *output, const half *bias, int biasSize) {
+    const int numBlock = size / dimsize;
+    halfLayerNormFp32<<<numBlock, 256, 0, CUDAStream::getCurrentStream()>>>(
+        input, scale, eps, dimsize, stride, output, scaleSize, bias, biasSize);
+}
+
+void LaynormKernel(const half *input, const half *scale, const float eps,
                    int size, int scaleSize, const int dimsize, const int stride,
                    half *output) {
-    int num_block = size / dimsize;
-    if (dimsize > 1024) {
-        int BLOCK_DIM = 1024;
-
-        blockLaynormKernel<half, 1024>
-            <<<num_block, BLOCK_DIM, 0, CUDAStream::getCurrentStream()>>>
-            (input, scale, dimsize, stride, output, eps, scaleSize);
-    } else if (dimsize > 31) {
-        int BLOCK_DIM_x = 32;
-        int BLOCK_DIM_y = 32;
-        int num_block_x = (num_block + BLOCK_DIM_y - 1) / BLOCK_DIM_y;
-        dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
-        dim3 grid_dim(num_block_x, 1, 1);
-
-        warpLaynormKernel<half, 32, 32>
-            <<<grid_dim, block_dim, 0, CUDAStream::getCurrentStream()>>>
-            (input, scale, dimsize, stride, output, eps, scaleSize, num_block);
-    } else if (dimsize > 15) {
-        int BLOCK_DIM_x = 16;
-        int BLOCK_DIM_y = 64;
-        int num_block_x = (num_block + BLOCK_DIM_y - 1) / BLOCK_DIM_y;
-        dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
-        dim3 grid_dim(num_block_x, 1, 1);
-
-        warpLaynormKernel<half, 16, 64>
-            <<<grid_dim, block_dim, 0, CUDAStream::getCurrentStream()>>>
-            (input, scale, dimsize, stride, output, eps, scaleSize, num_block);
-    } else if (dimsize > 7) {
-        int BLOCK_DIM_x = 8;
-        int BLOCK_DIM_y = 128;
-        int num_block_x = (num_block + BLOCK_DIM_y - 1) / BLOCK_DIM_y;
-        dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
-        dim3 grid_dim(num_block_x, 1, 1);
-
-        warpLaynormKernel<half, 8, 128>
-            <<<grid_dim, block_dim, 0, CUDAStream::getCurrentStream()>>>
-            (input, scale, dimsize, stride, output, eps, scaleSize, num_block);
-    } else {
-        int BLOCK_DIM_x = 4;
-        int BLOCK_DIM_y = 256;
-        int num_block_x = (num_block + BLOCK_DIM_y - 1) / BLOCK_DIM_y;
-        dim3 block_dim(BLOCK_DIM_x, BLOCK_DIM_y, 1);
-        dim3 grid_dim(num_block_x, 1, 1);
-
-        warpLaynormKernel<half, 4, 256>
-            <<<grid_dim, block_dim, 0, CUDAStream::getCurrentStream()>>>
-            (input, scale, dimsize, stride, output, eps, scaleSize, num_block);
-    }
+    const int numBlock = size / dimsize;
+    halfLayerNormFp32<<<numBlock, 256, 0, CUDAStream::getCurrentStream()>>>(
+        input, scale, eps, dimsize, stride, output, scaleSize, nullptr, 0);
 }
 } // namespace infini

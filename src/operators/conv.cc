@@ -21,9 +21,12 @@ string ConvBaseObj::toString() const {
     std::ostringstream os;
     os << type.toString() << "[" << getGuid() << "]";
     os << "(";
-    if (inputs.size() == 2) {
+    if (inputs.size() >= 2) {
         os << vecToString(inputs[0]->getDims()) << ",";
         os << vecToString(inputs[1]->getDims()) << ",";
+        if (inputs.size() > 2) {
+            os << vecToString(inputs[2]->getDims()) << ",";
+        }
     }
     os << "p=[" << ph << "," << pw << "],";
     os << "s=[" << sh << "," << sw << "],";
@@ -60,6 +63,30 @@ void ConvObj::setAuxilaryAttributes(PaddingMode mode) {
     }
 }
 
+
+#ifdef USE_CUDA
+ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
+                 int ph, int pw, int sh, int sw, int dh, int dw, Tensor bias,
+                 ActType act)
+    : ConvBaseObj(OpType::Conv,
+                  bias ? TensorVec{input, weight, bias}
+                       : TensorVec{input, weight},
+                  output, ph, pw, sh, sw, dh, dw, input, weight, act) {
+    setAuxilaryAttributes(PaddingMode::Other);
+    IT_ASSERT(checkValid(graph));
+}
+
+ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
+                 PaddingMode mode, int sh, int sw, int dh, int dw, Tensor bias,
+                 ActType act)
+    : ConvBaseObj(OpType::Conv,
+                  bias ? TensorVec{input, weight, bias}
+                       : TensorVec{input, weight},
+                  output, mode, sh, sw, dh, dw, input, weight, act) {
+    setAuxilaryAttributes(mode);
+    IT_ASSERT(checkValid(graph));
+}
+#else
 ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
                  int ph, int pw, int sh, int sw, int dh, int dw, Tensor bias,
                  ActType act)
@@ -81,6 +108,8 @@ ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
     setAuxilaryAttributes(mode);
     IT_ASSERT(checkValid(graph));
 }
+#endif
+
 
 optional<vector<Shape>> ConvObj::inferShape(const TensorVec &inputs) {
     const auto &input = inputs[0], &weight = inputs[1];

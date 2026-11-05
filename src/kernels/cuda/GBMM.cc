@@ -1,5 +1,5 @@
 #include "operators/GBMM.h"
-#include "cuda/cuda_kernel_wihtout_config.h"
+#include "cuda/cuda_kernel_without_config.h"
 #include "cuda/cuda_runtime.h"
 #include "cuda/gbmm_g2bmm.h"
 #include <chrono>
@@ -12,16 +12,21 @@ class GBMMCudnn : public CudaKernelWithoutConfig {
 
     bool gbmmKernel(const Ref<GBMMObj> &op,
                     const CudaRuntimeObj *context) const {
-        float *const inAData = (op->getInputs(0)->getRawDataPtr<float *>());
-        float *const inBData = (op->getInputs(1)->getRawDataPtr<float *>());
         if (op->getInputs().size() > 2)
             IT_TODO_HALT();
 
-        float *const outData = (op->getOutput()->getRawDataPtr<float *>());
-
         const auto [b, m, w, n, dilation] = op->getBMWND();
         // printf("%d %d %d %d %d\n", b, m, n, w, dilation);
-        _sgbmml(inAData, inBData, outData, b, m, n, w, dilation);
+        if (op->getDType() == DataType::Float16)
+            _sgbmml(op->getInputs(0)->getRawDataPtr<half *>(),
+                    op->getInputs(1)->getRawDataPtr<half *>(),
+                    op->getOutput()->getRawDataPtr<half *>(), b, m, n, w,
+                    dilation);
+        else
+            _sgbmml(op->getInputs(0)->getRawDataPtr<float *>(),
+                    op->getInputs(1)->getRawDataPtr<float *>(),
+                    op->getOutput()->getRawDataPtr<float *>(), b, m, n, w,
+                    dilation);
         // checkCudaError(cudaDeviceSynchronize());
         return true;
     }
@@ -49,7 +54,9 @@ class GBMMCudnn : public CudaKernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *_context) const override {
         auto op = as<GBMMObj>(_op);
-        IT_ASSERT(op->getDType() == DataType::Float32);
+        IT_ASSERT(op->getDType() == DataType::Float32 ||
+                  op->getDType() == DataType::Float16);
+        IT_ASSERT(op->getInputs(1)->getDType() == op->getDType());
         auto context = dynamic_cast<const CudaRuntimeObj *>(_context);
         bool success = gbmmKernel(op, context);
         IT_ASSERT(success);

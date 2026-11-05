@@ -32,7 +32,7 @@ using OpLists = list<Operator>;
 
 using VType = uint32_t;
 
-enum class Device { CPU = 1, CUDA, BANG, INTELCPU, KUNLUN, ASCEND, METAX };
+enum class Device { CPU = 1, CUDA, BANG, INTELCPU, KUNLUN, ASCEND, METAX, COREX };
 /***************** Forward declaration end *****************/
 
 class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
@@ -73,7 +73,7 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
         return device == Device::CPU || device == Device::INTELCPU;
     }
     bool isCuda() const {
-        return device == Device::CUDA || device == Device::METAX;
+        return device == Device::CUDA || device == Device::METAX || device == Device::COREX;
     }
     bool isBang() const { return device == Device::BANG; }
     bool isKUNLUN() const { return device == Device::KUNLUN; }

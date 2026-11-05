@@ -1,5 +1,6 @@
 #include "core/kernel.h"
 #include "cuda/cuda_runtime.h"
+#include "cuda/cuda_utility.h"
 #include "operators/conv.h"
 #include <chrono>
 #include <functional>
@@ -56,6 +57,9 @@ class convBackwardDataCudnn : public Kernel {
         // void *const biasData = (op->getInputs(2)->getRawDataPtr<void
         // *>());
         void *const outData = (op->getOutput()->getRawDataPtr<void *>());
+        IT_ASSERT(op->getDType() == DataType::Float16 ||
+                  op->getDType() == DataType::Float32);
+        auto cudnnDataType = cudnnDataTypeConvert(op->getDType());
 
         const auto [n, c, h, w, f, r, s] = op->getNCHWFRS();
         const int channelsPerGrp = op->getChannelPerGroup();
@@ -72,18 +76,18 @@ class convBackwardDataCudnn : public Kernel {
         cudnnTensorDescriptor_t inDesc;
         checkCudnnError(cudnnCreateTensorDescriptor(&inDesc));
         checkCudnnError(cudnnSetTensor4dDescriptor(
-            inDesc, tensorFormat, CUDNN_DATA_FLOAT, n, f, h, w));
+            inDesc, tensorFormat, cudnnDataType, n, f, h, w));
 
         // get kernels
         cudnnFilterDescriptor_t knDesc;
         checkCudnnError(cudnnCreateFilterDescriptor(&knDesc));
         checkCudnnError(cudnnSetFilter4dDescriptor(
-            knDesc, CUDNN_DATA_FLOAT, tensorFormat, f, channelsPerGrp, r, s));
+            knDesc, cudnnDataType, tensorFormat, f, channelsPerGrp, r, s));
         // get bias
         cudnnTensorDescriptor_t biasDesc;
         checkCudnnError(cudnnCreateTensorDescriptor(&biasDesc));
         checkCudnnError(cudnnSetTensor4dDescriptor(
-            biasDesc, tensorFormat, CUDNN_DATA_FLOAT, 1, f, 1, 1));
+            biasDesc, tensorFormat, cudnnDataType, 1, f, 1, 1));
 
         // get convlution descriptor
         cudnnConvolutionDescriptor_t convDesc;
@@ -135,7 +139,7 @@ class convBackwardDataCudnn : public Kernel {
         cudnnTensorDescriptor_t outDesc;
         checkCudnnError(cudnnCreateTensorDescriptor(&outDesc));
         checkCudnnError(cudnnSetTensor4dDescriptor(
-            outDesc, tensorFormat, CUDNN_DATA_FLOAT, on, oc, oh, ow));
+            outDesc, tensorFormat, cudnnDataType, on, oc, oh, ow));
         return tuple(inData, knData, outData, inDesc, knDesc, biasDesc,
                      convDesc, actDesc, outDesc);
     }
@@ -148,7 +152,10 @@ class convBackwardDataCudnn : public Kernel {
         const auto &[inData, knData, outData, inDesc, knDesc, biasDesc,
                      convDesc, actDesc, outDesc] =
             createCuDNNDescriptor(op, record);
-        size_t wsSize = record.workspaceSize;
+        size_t wsSize = 0;
+        checkCudnnError(cudnnGetConvolutionBackwardDataWorkspaceSize(
+            context->cudnnHandle(), knDesc, inDesc, convDesc, outDesc,
+            ALGOS[record.algo], &wsSize));
         CudaPtr wsData = context->getWorkspace(wsSize);
         float alpha = 1.f, beta = 0.f;
 
@@ -156,8 +163,15 @@ class convBackwardDataCudnn : public Kernel {
             context->cudnnHandle(), &alpha, knDesc, knData, inDesc, inData,
             convDesc, ALGOS[record.algo], wsData, wsSize, &beta, outDesc,
             outData);
-        if (stat != CUDNN_STATUS_SUCCESS)
+        if (stat != CUDNN_STATUS_SUCCESS) {
+            checkCudnnError(cudnnDestroyTensorDescriptor(outDesc));
+            checkCudnnError(cudnnDestroyActivationDescriptor(actDesc));
+            checkCudnnError(cudnnDestroyConvolutionDescriptor(convDesc));
+            checkCudnnError(cudnnDestroyTensorDescriptor(biasDesc));
+            checkCudnnError(cudnnDestroyFilterDescriptor(knDesc));
+            checkCudnnError(cudnnDestroyTensorDescriptor(inDesc));
             return false;
+        }
         // TODO:
         // // bias
         // if (bias != nullptr) {
@@ -219,7 +233,6 @@ class convBackwardDataCudnn : public Kernel {
     void compute(const Operator &op, const RuntimeObj *context) const override {
         // with paramters in default ctor
         auto record = make_ref<ConvTransposedCuDnnPerfRecordObj>();
-        IT_ASSERT(op->getDType() == DataType::Float32);
         compute(op, record, context);
     }
 

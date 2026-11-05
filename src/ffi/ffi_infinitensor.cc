@@ -17,6 +17,7 @@
 #include "operators/unary.h"
 #include "operators/unsqueeze.h"
 #include <algorithm>
+#include <cstring>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -26,6 +27,9 @@
 #endif
 #ifdef USE_METAX
 #include "metax/metax_runtime.h"
+#endif
+#ifdef USE_COREX
+#include "corex/corex_runtime.h"
 #endif
 #ifdef USE_BANG
 #include "bang/bang_runtime.h"
@@ -109,6 +113,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, BatchNormalization)
         .VALUE(OpType, Softmax)
         .VALUE(OpType, Relu)
+        .VALUE(OpType, Silu)
         .VALUE(OpType, LeakyRelu)
         .VALUE(OpType, Gelu)
         .VALUE(OpType, PRelu)
@@ -177,6 +182,12 @@ static int tensor_dtype(Tensor t) {
 #ifdef USE_METAX
 static Ref<MetaxRuntimeObj> metax_runtime() {
     return make_ref<MetaxRuntimeObj>(0);
+}
+#endif
+
+#ifdef USE_COREX
+static Ref<CorexRuntimeObj> corex_runtime() {
+    return make_ref<CorexRuntimeObj>(0);
 }
 #endif
 
@@ -364,6 +375,9 @@ void export_functions(py::module &m) {
 #ifdef USE_METAX
         .def("metax_runtime", metax_runtime)
 #endif
+#ifdef USE_COREX
+        .def("corex_runtime", corex_runtime)
+#endif
 #ifdef USE_INTELCPU
         .def("intelcpu_runtime", intelcpu_runtime)
 #endif
@@ -441,6 +455,22 @@ static std::string getFormat(DataType type) {
     return format;
 }
 
+#ifdef USE_CUDA
+static py::dict conv_nhwc_cache_stats(const CudaRuntimeObj &runtime) {
+    const auto stats = runtime.getConvNhwcCacheStats();
+    py::dict result;
+    result["plans"] = stats.plans;
+    result["weight_prepacks"] = stats.weightPrepacks;
+    result["submissions"] = stats.submissions;
+    result["regions"] = stats.regions;
+    result["region_conv_submissions"] = stats.regionConvSubmissions;
+    result["region_silu_submissions"] = stats.regionSiluSubmissions;
+    result["input_transforms"] = stats.inputTransforms;
+    result["output_transforms"] = stats.outputTransforms;
+    return result;
+}
+#endif
+
 void init_graph_builder(py::module &m) {
     using Handler = GraphHandlerObj;
 
@@ -451,12 +481,33 @@ void init_graph_builder(py::module &m) {
     py::class_<CudaRuntimeObj, std::shared_ptr<CudaRuntimeObj>, RuntimeObj>(
         m, "CudaRuntime")
         .def(py::init<int>(), py::arg("device") = 0)
+        .def("invalidate_conv_nhwc_cache",
+             &CudaRuntimeObj::invalidateConvNhwcCache)
+        .def("conv_nhwc_cache_stats", conv_nhwc_cache_stats)
         .def("init_comm", &CudaRuntimeObj::initComm);
 #endif
 #ifdef USE_METAX
     py::class_<MetaxRuntimeObj, std::shared_ptr<MetaxRuntimeObj>, RuntimeObj>(
         m, "MetaxRuntime")
         .def(py::init<int>(), py::arg("device") = 0)
+        .def("invalidate_conv_nhwc_cache", [](MetaxRuntimeObj &runtime) {
+            runtime.invalidateConvNhwcCache();
+        })
+        .def("conv_nhwc_cache_stats", [](const MetaxRuntimeObj &runtime) {
+            return conv_nhwc_cache_stats(runtime);
+        })
+        .def("init_comm", &CudaRuntimeObj::initComm);
+#endif
+#ifdef USE_COREX
+    py::class_<CorexRuntimeObj, std::shared_ptr<CorexRuntimeObj>, RuntimeObj>(
+        m, "CorexRuntime")
+        .def(py::init<int>(), py::arg("device") = 0)
+        .def("invalidate_conv_nhwc_cache", [](CorexRuntimeObj &runtime) {
+            runtime.invalidateConvNhwcCache();
+        })
+        .def("conv_nhwc_cache_stats", [](const CorexRuntimeObj &runtime) {
+            return conv_nhwc_cache_stats(runtime);
+        })
         .def("init_comm", &CudaRuntimeObj::initComm);
 #endif
 #ifdef USE_BANG
@@ -502,16 +553,41 @@ void init_graph_builder(py::module &m) {
         // Copy data from a Numpy array
         .def("copyin_numpy",
              [](TensorObj &self, py::buffer buf) {
-                 py::buffer_info buf_info = buf.request();
-                 void *data_np = buf_info.ptr;
+                 py::array numpy_array =
+                     py::array::ensure(buf, py::array::c_style);
+                 IT_ASSERT(numpy_array,
+                           "copyin_numpy: expected a C-contiguous array");
+                 py::buffer_info buf_info = numpy_array.request();
+                 const auto dims = self.getDims();
                  size_t itemsize = buf_info.itemsize;
                  size_t size = buf_info.size;
                  IT_ASSERT(itemsize == self.getDType().getSize());
-                 IT_ASSERT(size == self.size());
-                 for (size_t i = 0; i < self.getRank(); i++) {
-                     IT_ASSERT(self.getDims()[i] == buf_info.shape[i]);
+                 IT_ASSERT(static_cast<size_t>(buf_info.ndim) == dims.size(),
+                           "copyin_numpy: tensor rank mismatch");
+
+                 // Only graph inputs may supply a smaller leading batch.
+                 const bool pad_batch =
+                     self.isInput() && !dims.empty() && buf_info.shape[0] > 0 &&
+                     buf_info.shape[0] < dims[0];
+                 for (size_t i = 0; i < dims.size(); i++) {
+                     if (i == 0 && pad_batch) {
+                         continue;
+                     }
+                     IT_ASSERT(dims[i] == buf_info.shape[i],
+                               "copyin_numpy: tensor shape mismatch");
                  }
-                 self.copyin(data_np, self.getBytes());
+
+                 if (pad_batch) {
+                     IT_ASSERT(size <= self.size());
+
+                     vector<uint8_t> padded_data(self.getBytes(), 0); // 构造全零buffer
+                     std::memcpy(padded_data.data(), buf_info.ptr,
+                                 size * itemsize); // 数据拷贝到buffer前面
+                     self.copyin(padded_data.data(), padded_data.size());
+                 } else {
+                     IT_ASSERT(size == self.size());
+                     self.copyin(buf_info.ptr, self.getBytes());
+                 }
              })
         // Return a Numpy array which copies the values of this tensor
         .def("copyout_numpy",
@@ -548,7 +624,15 @@ void init_graph_builder(py::module &m) {
         .def(py::init<Runtime>())
         .def("elu", &Handler::elu, policy::move)
         .def("tensor", &Handler::tensor, policy::move)
-        .def("conv", &Handler::conv, policy::move)
+        //.def("conv", &Handler::conv, policy::move)
+        .def("conv", &Handler::conv,
+            py::arg("input"), py::arg("weight"), py::arg("output"),
+            py::arg("ph"), py::arg("pw"), py::arg("sh"), py::arg("sw"),
+            py::arg("dh"), py::arg("dw"),
+#ifdef USE_CUDA
+            py::arg("bias") = nullptr,
+#endif
+            policy::move)
         .def("convTransposed2d", &Handler::convTransposed2d, policy::move)
         .def("matmul", &Handler::matmul, policy::move)
         .def("batchNormalization", &Handler::batchNormalization, policy::move)
@@ -614,7 +698,10 @@ void init_graph_builder(py::module &m) {
         .def("where", &Handler::where, policy::move)
         .def("lrn", &Handler::lrn, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)
-        .def("optimize", &Handler::optimize, policy::automatic)
+        // .def("optimize", &Handler::optimize, policy::automatic)
+        .def("optimize", &Handler::optimize,
+            py::arg("maxFusions") = -1,
+            policy::automatic)
         .def("operators", &Handler::operators, policy::move)
         .def("data_malloc", &Handler::data_malloc,
              py::arg("useNaiveAllocator") = false, py::arg("memPoolSize") = 0,
@@ -624,12 +711,17 @@ void init_graph_builder(py::module &m) {
         .def("get_perf_time", &Handler::get_perf_time, policy::automatic)
         .def("tune", &Handler::tune, policy::automatic)
         .def("run", &Handler::run, policy::automatic)
+        .def("run_with_profiling", &Handler::run_with_profiling, policy::automatic)
 #ifdef USE_CUDA
         .def("run_with_cudagraph", &Handler::run_with_cudagraph,
              policy::automatic)
 #endif
 #if defined(USE_METAX)
         .def("run_with_metaxgraph", &Handler::run_with_metaxgraph,
+             policy::automatic)
+#endif
+#if defined(USE_COREX)
+        .def("run_with_corexgraph", &Handler::run_with_corexgraph,
              policy::automatic)
 #endif
         .def("shape_infer", &Handler::shape_infer, policy::automatic)

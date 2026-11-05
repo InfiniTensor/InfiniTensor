@@ -36,6 +36,9 @@ class GraphObj : public Object {
             ops.erase(it);
     }
 
+    // Replace an operator in place, retaining its output tensors and consumers.
+    void replaceOperator(Operator op, Operator replacement);
+
     void removeTensor(Tensor tensor) {
         auto it = std::find(tensors.begin(), tensors.end(), tensor);
         if (it != tensors.end())
@@ -65,11 +68,13 @@ class GraphObj : public Object {
      */
     bool topo_sort();
 
-    void optimize();
+    // Replans allocated non-weight storage; copy inputs after optimization.
+    void optimize(int maxFusions = -1);
 
     void shape_infer();
 
     void dataMalloc(bool useNaiveAllocator = false, size_t memPoolSize = 0);
+    bool usesNaiveAllocator() const { return naiveAllocator; }
 
     Tensor cloneKV(Tensor &tensor);
 
@@ -134,6 +139,8 @@ class GraphObj : public Object {
      * @brief If the weight tensors are allocated.
      */
     bool weightAllocated = false;
+    // Without pooled allocation, callers may inspect every intermediate.
+    bool naiveAllocator = true;
 };
 
 } // namespace infini

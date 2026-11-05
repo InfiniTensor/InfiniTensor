@@ -1,6 +1,6 @@
 #ifdef INFINI_USE_NCCL
 #include "operators/all_gather.h"
-#include "cuda/cuda_kernel_wihtout_config.h"
+#include "cuda/cuda_kernel_without_config.h"
 #include "cuda/cuda_runtime.h"
 #include "cuda/nccl_communicator.h"
 
@@ -19,22 +19,26 @@ class AllGatherNCCL : public CudaKernelWithoutConfig {
         CudaPtr output_temp =
             context->getWorkspace(op->getInputs(0)->getBytes() * world_size);
         // void *output = op->getOutput()->getRawDataPtr<void *>();
-        IT_ASSERT(op->getDType() == DataType::Float32);
+        IT_ASSERT(op->getDType() == DataType::Float32 ||
+                  op->getDType() == DataType::Float16);
         size_t bytes = op->getInputs(0)->getBytes();
         size_t count = bytes / op->getDType().getSize();
+        ncclDataType_t ncclType = op->getDType() == DataType::Float16
+                                      ? ncclFloat16 : ncclFloat;
 
         ncclComm_t comm =
             dynamic_cast<NcclCommunicatorObj &>(context->getCommunicator())
                 .getNcclComm();
         // TODO: Using default stream 0 for now.
         checkNcclError(
-            ncclAllGather(input, output_temp, count, ncclFloat, comm, 0));
+            ncclAllGather(input, output_temp, count, ncclType, comm,
+                          CUDAStream::getCurrentStream()));
 
         for (int i = 0; i < world_size; ++i) {
             Tensor output = op->getOutput(i);
             context->copyBlobInsideRuntime(
-                output->getRawDataPtr<float *>(),
-                static_cast<float *>(output_temp) + i * count, bytes);
+                output->getRawDataPtr<void *>(),
+                static_cast<char *>(output_temp) + i * bytes, bytes);
         }
     }
 };

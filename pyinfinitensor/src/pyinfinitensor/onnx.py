@@ -137,37 +137,44 @@ class OnnxStub:
                     adapt = node.input[0]
 
                 if len(node.input) > 2:
-                    bias = "{}-bias".format(node.output[0])
-                    reshape = "{}-reshape".format(node.output[0])
-                    tensors[bias] = self.handler.conv(
+                    tensors[node.output[0]] = self.handler.conv(
                         tensors[adapt],
                         tensors[node.input[1]],
-                        None,
-                        p[0],
-                        p[1],
-                        s[0],
-                        s[1],
-                        d[0],
-                        d[1],
-                    )
-                    tensors[reshape] = self.handler.reshape(
-                        tensors[node.input[2]],
-                        None,
-                        [
-                            1,
-                            reduce(
-                                lambda acc, x: acc * x,
-                                tensors[node.input[2]].shape(),
-                            ),
-                            1,
-                            1,
-                        ],
-                    )
-                    tensors[node.output[0]] = self.handler.add(
-                        tensors[bias],
-                        tensors[reshape],
                         tensors.get(node.output[0]),
+                        p[0], p[1], s[0], s[1], d[0], d[1],
+                        tensors[node.input[2]],          # ← 直接把 bias 传给 conv
                     )
+                    #bias = "{}-bias".format(node.output[0])
+                    #reshape = "{}-reshape".format(node.output[0])
+                    #tensors[bias] = self.handler.conv(
+                    #    tensors[adapt],
+                    #    tensors[node.input[1]],
+                    #    None,
+                    #    p[0],
+                    #    p[1],
+                    #    s[0],
+                    #    s[1],
+                    #    d[0],
+                    #    d[1],
+                    #)
+                    #tensors[reshape] = self.handler.reshape(
+                    #    tensors[node.input[2]],
+                    #    None,
+                    #    [
+                    #        1,
+                    #        reduce(
+                    #            lambda acc, x: acc * x,
+                    #            tensors[node.input[2]].shape(),
+                    #        ),
+                    #        1,
+                    #        1,
+                    #    ],
+                    #)
+                    #tensors[node.output[0]] = self.handler.add(
+                    #    tensors[bias],
+                    #    tensors[reshape],
+                    #    tensors.get(node.output[0]),
+                    #)
                 else:
                     tensors[node.output[0]] = self.handler.conv(
                         tensors[adapt],
@@ -1474,8 +1481,8 @@ class OnnxStub:
     def init(self) -> None:
         self.handler.data_malloc(self.use_naive_allocator)
 
-    def optimize(self) -> None:
-        self.handler.optimize()
+    def optimize(self, maxFusions: int = -1) -> None:
+        self.handler.optimize(maxFusions)
 
     def clone_KV(self, tensor: backend.Tensor) -> backend.Tensor:
         return self.handler.clone_KV(tensor)
@@ -1502,6 +1509,9 @@ class OnnxStub:
 
     def run(self) -> None:
         self.handler.run()
+
+    def run_with_profiling(self) -> None:
+        self.handler.run_with_profiling()
 
     def run_with_cudagraph(self) -> None:
         self.handler.run_with_cudagraph()
