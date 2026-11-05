@@ -14,6 +14,12 @@ optional<vector<Shape>> ElementWiseObj::inferShape(const TensorVec &inputs) {
     return {{res}};
 }
 
+vector<DataType> ElementWiseObj::inferDataType(const TensorVec &inputs) const {
+    if (type == OpType::Equal || type == OpType::Less || type == OpType::GreaterOrEqual)
+        return {DataType::Bool};
+    return OperatorObj::inferDataType(inputs);
+}
+
 std::string ElementWiseObj::toString() const {
     std::ostringstream os;
     os << type.toString() << "[" << getGuid() << "]";

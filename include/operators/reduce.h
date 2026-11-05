@@ -52,4 +52,36 @@ class ReduceSumObj : public ReduceBaseObj {
     ReduceSumObj(GraphObj *graph, Tensor input, Tensor output,
                  const optional<vector<int>> &axes, bool keepDims = true);
 };
+
+class ReduceL2Obj : public ReduceBaseObj {
+  public:
+    ReduceL2Obj(GraphObj *graph, Tensor input, Tensor output,
+                const optional<vector<int>> &axes, bool keepDims);
+    OP_CLONE(ReduceL2Obj);
+};
+
+class ReduceMaxObj : public ReduceBaseObj {
+  public:
+    ReduceMaxObj(GraphObj *graph, Tensor input, Tensor output,
+                 const optional<vector<int>> &axes, bool keepDims);
+    OP_CLONE(ReduceMaxObj);
+};
+
+class ArgMaxObj : public OperatorObj {
+    int axis;
+    bool keepDims;
+
+  public:
+    ArgMaxObj(GraphObj *graph, Tensor input, Tensor output, int axis, bool keepDims);
+    OP_CLONE(ArgMaxObj);
+    optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
+    vector<DataType> inferDataType(const TensorVec &) const override;
+    std::string toString() const override;
+    int numInputs() const override { return 1; }
+    int numOutputs() const override { return 1; }
+    int getAxis() const { return axis; }
+    bool getKeepDims() const { return keepDims; }
+    vector<int> getWorkloadVector() const override;
+    vector<int> getOpAttrVector() const override;
+};
 } // namespace infini

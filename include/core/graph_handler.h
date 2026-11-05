@@ -22,7 +22,12 @@ class GraphHandlerObj {
     inline OpVec operators() { return g->getOperators(); }
 
     Tensor conv(Tensor input, Tensor weight, Tensor output, int ph, int pw,
-                int sh, int sw, int dh, int dw);
+                int sh, int sw, int dh, int dw, Tensor bias = nullptr,
+                bool channelsLast = false);
+    bool supportsConvBias() const;
+    bool supportsChannelsLastConv() const;
+    Tensor conv3d(Tensor input, Tensor weight, Tensor output, int pd, int ph,
+                  int pw, int sd, int sh, int sw, int dd, int dh, int dw);
     Tensor convTransposed2d(Tensor input, Tensor weight, Tensor output, int ph,
                             int pw, int sh, int sw, int dh, int dw, int oph,
                             int opw);
@@ -36,7 +41,7 @@ class GraphHandlerObj {
                               Tensor bias, float eps, int axis, int stash_type);
     Tensor instanceNormalization(Tensor input, Tensor output, Tensor scale,
                                  Tensor bias, float eps);
-    Tensor rmsNorm(Tensor input, Tensor weight, Tensor output);
+    Tensor rmsNorm(Tensor input, Tensor weight, Tensor output, float epsilon = 1e-6f);
 
     Tensor maxPool(Tensor input, Tensor output, int kh, int kw, int dh, int dw,
                    int ph, int pw, int sh, int sw, int ceilMode);
@@ -61,10 +66,16 @@ class GraphHandlerObj {
     Tensor hardSwish(Tensor x, Tensor y);
     Tensor tanh(Tensor x, Tensor y);
     Tensor erf(Tensor x, Tensor y);
+    Tensor sin(Tensor x, Tensor y);
+    Tensor cos(Tensor x, Tensor y);
     Tensor softmax(Tensor x, Tensor y, int axis);
     Tensor abs(Tensor x, Tensor y);
+    Tensor sign(Tensor x, Tensor y);
+    Tensor rsqrt(Tensor x, Tensor y);
+    Tensor log(Tensor x, Tensor y);
     Tensor sqrt(Tensor x, Tensor y);
     Tensor neg(Tensor x, Tensor y);
+    Tensor logicalNot(Tensor x, Tensor y);
     Tensor shape(Tensor x, Tensor y);
     Tensor identity(Tensor x, Tensor y);
     Tensor flatten(Tensor s, Tensor y, int axis);
@@ -73,6 +84,19 @@ class GraphHandlerObj {
     Tensor clip(Tensor x, Tensor y, std::optional<float> min,
                 std::optional<float> max);
     Tensor transpose(Tensor data, Tensor transposed, Shape perm);
+    Tensor tile(Tensor data, Tensor output, Shape repeats);
+    Tensor equal(Tensor lhs, Tensor rhs, Tensor output);
+    Tensor less(Tensor lhs, Tensor rhs, Tensor output);
+    Tensor greaterEqual(Tensor lhs, Tensor rhs, Tensor output);
+    Tensor gridSample(Tensor data, Tensor grid, Tensor output, bool nearest,
+                      bool reflection, bool alignCorners);
+    Tensor roiAlign(Tensor data, Tensor boxes, Tensor batchIndices, Tensor output,
+                    int height, int width, int samplingRatio, float spatialScale, bool aligned);
+    Tensor scatterNd(Tensor data, Tensor indices, Tensor updates, Tensor output,
+                     bool add);
+    Tensor maskedScatter(Tensor data, Tensor mask, Tensor source, Tensor output);
+    Tensor scatterElements(Tensor data, Tensor indices, Tensor updates, Tensor output,
+                           int axis, std::string reduction);
     Tensor reshape(Tensor data, Tensor reshaped, Shape shape);
     Tensor resize(Tensor input, Tensor output,
                   const std::optional<vector<int>> &axes, Tensor sizes,
@@ -91,6 +115,11 @@ class GraphHandlerObj {
                     std::variant<int, vector<int>> numOrRatio);
     Tensor gather(Tensor data, Tensor indices, Tensor output, int axis);
     Tensor gatherElements(Tensor data, Tensor indices, Tensor output, int axis);
+    Tensor argmax(Tensor data, Tensor output, int axis, bool keepdims);
+    Tensor reduceMax(Tensor data, Tensor output,
+                     const std::optional<vector<int>> &axes, bool keepDims);
+    Tensor reduceL2(Tensor data, Tensor output,
+                    const optional<vector<int>> &axes, bool keepdims);
     Tensor reduceMean(Tensor data, Tensor reduced,
                       const optional<vector<int>> &axes, bool keepdims);
     Tensor reduceSum(Tensor data, Tensor reduced,

@@ -12,6 +12,9 @@ namespace infini {
 namespace infiniops {
 
 inline ::infini::rt::DataType toInfiniOpsDataType(const DataType &dtype) {
+    if (dtype == DataType::Bool) {
+        return ::infini::rt::DataType::kBool;
+    }
     if (dtype == DataType::Float32) {
         return ::infini::rt::DataType::kFloat32;
     }

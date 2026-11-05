@@ -28,7 +28,7 @@ class RMSNormInfiniOps : public infiniops::KernelWithoutConfig {
         auto config =
             infiniops::makeInfiniOpsConfig<::infini::ops::RmsNorm>(context);
         infiniops::dispatch::callRmsNorm(handle, config, inputView, weightView,
-                                         1e-6f, outputView);
+                                         op->getEpsilon(), outputView);
     }
 };
 

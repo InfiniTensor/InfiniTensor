@@ -85,6 +85,7 @@ void TensorObj::setShape(Shape shape_) {
     const auto size = getTensorSize(shape_, dtype);
     if (shape == shape_)
         return;
+    IT_ASSERT(!sharedWeightStorage, "Cannot reshape a shared weight");
     shape = std::move(shape_);
     _size = size;
     notifyCaptureState(false);
@@ -200,6 +201,7 @@ void TensorObj::dataMalloc() {
 }
 
 void TensorObj::copyData(const TensorObj *src) {
+    IT_ASSERT(!sharedWeightStorage, "Cannot overwrite shared weight storage");
     IT_ASSERT(dtype == src->getDType());
     IT_ASSERT(size() == src->size());
     runtime->copyBlob(this, src);
@@ -207,6 +209,7 @@ void TensorObj::copyData(const TensorObj *src) {
 
 void TensorObj::setData(
     const std::function<void(void *, size_t, DataType)> &generator) const {
+    IT_ASSERT(!sharedWeightStorage, "Cannot overwrite shared weight storage");
     IT_ASSERT(data != nullptr);
     if (runtime->isCpu()) {
         generator(getRawDataPtr<void *>(), size(), dtype);
@@ -219,6 +222,22 @@ void TensorObj::setData(
         runtime->copyBlobFromCPU(getRawDataPtr<void *>(),
                                  buffer->getPtr<void *>(), nBytes);
     }
+}
+
+void TensorObj::shareWeightStorage(TensorObj &source) {
+    IT_ASSERT(isWeight() && source.isWeight() && !getSource() &&
+                  !source.getSource(),
+              "Only initializer weights may share storage");
+    IT_ASSERT(runtime == source.runtime && shape == source.shape &&
+                  dtype == source.dtype,
+              "Shared weights require the same runtime, shape and dtype");
+    IT_ASSERT(source.hasData() && source.data->getBytes() == getBytes(),
+              "Shared weight source must be allocated");
+    IT_ASSERT(!hasData() || data == source.data,
+              "Cannot replace an allocated tensor with shared weight storage");
+    setDataBlob(source.data);
+    sharedWeightStorage = true;
+    source.sharedWeightStorage = true;
 }
 
 void TensorObj::setDataBlob(const Blob &blob) {

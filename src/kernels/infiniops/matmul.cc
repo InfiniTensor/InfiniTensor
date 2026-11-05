@@ -2,10 +2,8 @@
 #include "infiniops_common.h"
 #include "infiniops_dispatch.h"
 
-#ifdef USE_INFINIOPS_ATEN_KERNELS
 #include <base/add.h>
 #include <base/matmul.h>
-#endif
 
 namespace infini {
 namespace {
@@ -21,6 +19,7 @@ size_t leadingProduct(const Shape &dims) {
     }
     return product;
 }
+#endif
 
 ::infini::ops::Tensor makeMatmulInputView(const Tensor &tensor, size_t batch,
                                           bool transposed,
@@ -78,6 +77,7 @@ size_t leadingProduct(const Shape &dims) {
         infiniops::toInfiniOpsDataType(tensor->getDType()), context, strides);
 }
 
+#ifdef USE_INFINIOPS_ATEN_KERNELS
 ::infini::ops::Tensor makeMatmulOutputView(const Tensor &tensor, size_t batch,
                                            const RuntimeObj *context) {
     const auto dims = tensor->getDims();
@@ -107,6 +107,7 @@ Shape flattenedOutputDims(const MatmulObj &op) {
     (void)k;
     return batch > 1 ? Shape{batch, m, n} : Shape{m, n};
 }
+#endif
 
 class MatmulInfiniOps : public infiniops::KernelWithoutConfig {
     void compute(const Operator &_op,
@@ -124,15 +125,29 @@ class MatmulInfiniOps : public infiniops::KernelWithoutConfig {
                                           op->getTransA(), context);
         auto inputB = makeMatmulInputView(op->getInputs(1), batchSize,
                                           op->getTransB(), context);
-        auto output = makeMatmulOutputView(op->getOutput(), batchSize, context);
         auto handle = infiniops::makeInfiniOpsHandle(context);
+#ifdef USE_INFINIOPS_ATEN_KERNELS
+        auto output = makeMatmulOutputView(op->getOutput(), batchSize, context);
+        auto outputDims = flattenedOutputDims(*op);
         auto config =
             infiniops::makeInfiniOpsAtenConfig<::infini::ops::Matmul>(context);
+#else
+        IT_ASSERT(op->getComputeType() == "default",
+                  "Native InfiniOps MatMul only supports default compute type");
+        auto output = infiniops::toInfiniOpsTensor(op->getOutput(), context);
+        auto outputDims = op->getOutput()->getDims();
+        auto config =
+            infiniops::makeInfiniOpsConfig<::infini::ops::Matmul>(context);
+#endif
 
         infiniops::dispatch::callMatmul(handle, config, inputA, inputB, output);
         if (op->getBias()) {
-            auto bias = infiniops::toInfiniOpsBroadcastTensor(
-                op->getBias(), flattenedOutputDims(*op), context);
+            // CNNL broadcasts singleton dimensions; an expanded zero-stride
+            // view would unnecessarily select the general strided Add kernel.
+            auto bias = output.device().type() == ::infini::ops::Device::Type::kCambricon
+                            ? infiniops::toInfiniOpsTensor(op->getBias(), context)
+                            : infiniops::toInfiniOpsBroadcastTensor(
+                                  op->getBias(), outputDims, context);
             auto addConfig =
                 infiniops::makeInfiniOpsConfig<::infini::ops::Add>(context);
             infiniops::dispatch::callAdd(handle, addConfig, output, bias, 1.0,
@@ -140,13 +155,10 @@ class MatmulInfiniOps : public infiniops::KernelWithoutConfig {
         }
     }
 };
-#endif
 
 } // namespace
 
-#ifdef USE_INFINIOPS_ATEN_KERNELS
 REGISTER_KERNEL(ExecutionProvider::Infini, OpType::MatMul, MatmulInfiniOps,
                 "Matmul_InfiniOps");
-#endif
 
 } // namespace infini

@@ -66,8 +66,10 @@ vector<int> ReshapeObj::getOpAttrVector() const {
 
 FlattenObj::FlattenObj(GraphObj *graph, Tensor input, Tensor output, int _axis)
     : OperatorObj(OpType::Flatten, {input}, {output}) {
-    int rank = input->getRank();
-    axis = get_real_axis(_axis, rank);
+    const int rank = input->getRank();
+    IT_ASSERT(_axis >= -rank && _axis <= rank,
+              "Flatten axis must be between -rank and rank");
+    axis = _axis < 0 ? _axis + rank : _axis;
     IT_ASSERT(checkValid(graph));
 }
 

@@ -1,9 +1,13 @@
 #include "operators/rms_norm.h"
 
+#include <cmath>
+#include <cstring>
+
 namespace infini {
 RMSNormObj::RMSNormObj(GraphObj *graph, Tensor input, Tensor weight,
-                       Tensor output)
-    : OperatorObj(OpType::RMSNorm, {input, weight}, {output}) {
+                       Tensor output, float epsilon)
+    : OperatorObj(OpType::RMSNorm, {input, weight}, {output}), epsilon(epsilon) {
+    IT_ASSERT(std::isfinite(epsilon) && epsilon >= 0);
     IT_ASSERT(checkValid(graph));
 }
 
@@ -25,12 +29,17 @@ std::string RMSNormObj::toString() const {
 }
 
 vector<int> RMSNormObj::getWorkloadVector() const {
-    vector<int> ret{type.underlying()};
+    auto ret = getOpAttrVector();
     const Shape shape = outputs[0]->getDims();
     ret.insert(ret.end(), shape.begin(), shape.end());
     return ret;
 }
 
-vector<int> RMSNormObj::getOpAttrVector() const { return {type.underlying()}; }
+vector<int> RMSNormObj::getOpAttrVector() const {
+    static_assert(sizeof(int) == sizeof(float));
+    int bits = 0;
+    std::memcpy(&bits, &epsilon, sizeof(bits));
+    return {type.underlying(), bits};
+}
 
 }; // namespace infini

@@ -18,6 +18,7 @@ class TensorObj : public TensorBaseObj {
     Fuid fuid;    // Cloned tensors share the same id. Tensors constructed from
                   // scratch have a new id.
     TensorType tensorType = TensorType::others;
+    bool sharedWeightStorage = false;
 
   public:
     TensorObj(Shape shape, DataType dtype, Runtime runtime);
@@ -35,6 +36,8 @@ class TensorObj : public TensorBaseObj {
     void dataMalloc();
     UidBaseType getFuid() const { return fuid; }
     bool isWeight() const { return tensorType == TensorType::weight; }
+    bool hasSharedWeightStorage() const { return sharedWeightStorage; }
+    void shareWeightStorage(TensorObj &source);
     bool isInput() const { return tensorType == TensorType::input; }
     bool isOutput() const { return tensorType == TensorType::output; }
     bool isOthers() const { return tensorType == TensorType::others; }
@@ -74,6 +77,7 @@ class TensorObj : public TensorBaseObj {
     void save(std::string file_path);
 
     void copyin(const void *ptr, size_t size) {
+        IT_ASSERT(!sharedWeightStorage, "Cannot overwrite shared weight storage");
         runtime->copyBlobFromCPU(getRawDataPtr<void *>(), ptr, size);
     }
     void copyout(void *ptr, size_t size) const {
@@ -119,6 +123,7 @@ class TensorObj : public TensorBaseObj {
 
     Tensor clone() const {
         auto obj = make_ref<TensorObj>(*this);
+        obj->sharedWeightStorage = false;
         obj->clearCaptureStates();
         obj->freeData();
         obj->targets.clear();
@@ -127,6 +132,7 @@ class TensorObj : public TensorBaseObj {
     }
     Tensor clone(Runtime runtime) const {
         auto obj = make_ref<TensorObj>(*this);
+        obj->sharedWeightStorage = false;
         obj->clearCaptureStates();
         obj->runtime = runtime;
         obj->freeData();

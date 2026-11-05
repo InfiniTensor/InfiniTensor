@@ -81,6 +81,7 @@ void export_values(py::module &m) {
         .VALUE(OpType, Gelu)
         .VALUE(OpType, PRelu)
         .VALUE(OpType, Sigmoid)
+        .VALUE(OpType, Silu)
         .VALUE(OpType, Tanh)
         .VALUE(OpType, HardSigmoid)
         .VALUE(OpType, HardSwish)
@@ -161,6 +162,11 @@ static std::tuple<int, int, int, int, int, int> conv_attrs_of(Operator op) {
     auto conv = dynamic_cast<const ConvObj *>(op.get());
     return std::make_tuple(conv->getPh(), conv->getPw(), conv->getDh(),
                            conv->getDw(), conv->getSh(), conv->getSw());
+}
+
+static bool conv_channels_last_of(const Operator &op) {
+    IT_ASSERT(op->getOpType() == OpType::Conv);
+    return static_cast<const ConvObj *>(op.get())->isChannelsLast();
 }
 
 static std::tuple<int, int, int, int, int, int, int, int>
@@ -330,6 +336,7 @@ void export_functions(py::module &m) {
         .def("default_infini_device", defaultInfiniDevice)
 #endif
         .FUNCTION(conv_attrs_of)
+        .FUNCTION(conv_channels_last_of)
         .FUNCTION(conv_trans_attrs_of)
         .FUNCTION(matmul_attrs_of)
         .FUNCTION(batch_norm_attrs_of)
@@ -415,6 +422,7 @@ void init_graph_builder(py::module &m) {
         .def("set_weight", &TensorObj::setWeight, policy::move)
         .def("set_input", &TensorObj::setInput, policy::move)
         .def("set_output", &TensorObj::setOutput, policy::move)
+        .def("share_weight_data", &TensorObj::shareWeightStorage)
         .def("dtype", &TensorObj::getDTypeIndex, policy::automatic)
         .def("copyin_float", &TensorObj::copyin<float>, policy::move)
         .def("copyin_int32", &TensorObj::copyin<int32_t>, policy::move)
@@ -428,6 +436,17 @@ void init_graph_builder(py::module &m) {
         .def("copyout_int8", &TensorObj::copyout<int8_t>, policy::move)
         .def("copyout_uint8", &TensorObj::copyout<uint8_t>, policy::move)
         .def("copyout_float16", &TensorObj::copyout<uint16_t>, policy::move)
+        .def("copy_from",
+             [](TensorObj &destination, const TensorObj &source) {
+                 IT_ASSERT(destination.getDims() == source.getDims() &&
+                               destination.getDType() == source.getDType(),
+                           "Tensor copy requires matching shape and dtype");
+                 IT_ASSERT(destination.getRuntime() == source.getRuntime(),
+                           "Tensor copy requires the same runtime");
+                 if (destination.getBytes() &&
+                     destination.getRawDataPtr<void *>() != source.getRawDataPtr<void *>())
+                     destination.copyData(&source);
+             })
         // Copy data from a Numpy array
         .def("copyin_numpy",
              [](TensorObj &self, py::buffer buf) {
@@ -483,14 +502,30 @@ void init_graph_builder(py::module &m) {
         .def(py::init<Runtime>())
         .def("elu", &Handler::elu, policy::move)
         .def("tensor", &Handler::tensor, policy::move)
-        .def("conv", &Handler::conv, policy::move)
+        .def("conv", &Handler::conv, policy::move, py::arg("input"),
+             py::arg("weight"), py::arg("output"), py::arg("ph"), py::arg("pw"),
+             py::arg("sh"), py::arg("sw"), py::arg("dh"), py::arg("dw"),
+             py::arg("bias") = nullptr, py::arg("channels_last") = false)
+        .def("supports_conv_bias", &Handler::supportsConvBias)
+        .def("supports_channels_last_conv", &Handler::supportsChannelsLastConv)
+        .def("conv3d", &Handler::conv3d, policy::move)
+        .def("gridSample", &Handler::gridSample, policy::move)
+        .def("roiAlign", &Handler::roiAlign, policy::move)
+        .def("scatterNd", &Handler::scatterNd, policy::move)
+        .def("maskedScatter", &Handler::maskedScatter, policy::move)
+        .def("scatterElements", &Handler::scatterElements, policy::move)
+        .def("tile", &Handler::tile, policy::move)
+        .def("equal", &Handler::equal, policy::move)
+        .def("less", &Handler::less, policy::move)
+        .def("greaterEqual", &Handler::greaterEqual, policy::move)
         .def("convTransposed2d", &Handler::convTransposed2d, policy::move)
         .def("matmul", &Handler::matmul, policy::move)
         .def("batchNormalization", &Handler::batchNormalization, policy::move)
         .def("layerNormalization", &Handler::layerNormalization, policy::move)
         .def("instanceNormalization", &Handler::instanceNormalization,
              policy::move)
-        .def("RMSNorm", &Handler::rmsNorm, policy::move)
+        .def("RMSNorm", &Handler::rmsNorm, py::arg("input"), py::arg("weight"),
+             py::arg("output"), py::arg("epsilon") = 1e-6f, policy::move)
         .def("maxPool", &Handler::maxPool, policy::move)
         .def("avgPool", &Handler::avgPool, policy::move)
         .def("add", &Handler::add, policy::move)
@@ -512,8 +547,12 @@ void init_graph_builder(py::module &m) {
         .def("hardSwish", &Handler::hardSwish, policy::move)
         .def("softmax", &Handler::softmax, policy::move)
         .def("abs", &Handler::abs, policy::move)
+        .def("sign", &Handler::sign, policy::move)
+        .def("rsqrt", &Handler::rsqrt, policy::move)
+        .def("log", &Handler::log, policy::move)
         .def("sqrt", &Handler::sqrt, policy::move)
         .def("neg", &Handler::neg, policy::move)
+        .def("logicalNot", &Handler::logicalNot, policy::move)
         .def("shape", &Handler::shape, policy::move)
         .def("identity", &Handler::identity, policy::move)
         .def("flatten", &Handler::flatten, policy::move)
@@ -532,6 +571,9 @@ void init_graph_builder(py::module &m) {
         .def("gather", &Handler::gather, policy::move)
         .def("gatherElements", &Handler::gatherElements, policy::move)
         .def("reduceMean", &Handler::reduceMean, policy::move)
+        .def("argmax", &Handler::argmax, policy::move)
+        .def("reduceL2", &Handler::reduceL2, policy::move)
+        .def("reduceMax", &Handler::reduceMax, policy::move)
         .def("reduceSum", &Handler::reduceSum, policy::move)
         .def("slice", &Handler::slice, policy::move)
         .def("pad", &Handler::pad, policy::move)
@@ -547,6 +589,8 @@ void init_graph_builder(py::module &m) {
         .def("cast", &Handler::cast, policy::move)
         .def("expand", &Handler::expand, policy::move)
         .def("erf", &Handler::erf, policy::move)
+        .def("sin", &Handler::sin, policy::move)
+        .def("cos", &Handler::cos, policy::move)
         .def("where", &Handler::where, policy::move)
         .def("lrn", &Handler::lrn, policy::move)
         .def("topo_sort", &Handler::topo_sort, policy::automatic)
@@ -571,6 +615,13 @@ void init_graph_builder(py::module &m) {
 } // namespace infini
 
 PYBIND11_MODULE(backend, m) {
+    using namespace infini;
+    m.def("copy_tensor_batch", [](const vector<std::pair<Tensor, Tensor>> &pairs) {
+        if (pairs.empty())
+            return;
+        IT_ASSERT(pairs.front().first, "Batch tensor copy requires a destination");
+        pairs.front().first->getRuntime()->copyTensorBatch(pairs);
+    });
     infini::export_values(m);
     infini::export_functions(m);
     infini::init_graph_builder(m);

@@ -123,6 +123,8 @@ class InfiniRuntimeObj final : public RuntimeObj {
     string toString() const override;
 
   private:
+    void copyBlobsInsideRuntime(const TensorCopy *copies,
+                                size_t count) const override;
     void activateDevice() const;
     void ensureExecutionStream() const;
     void runWithoutSyncImpl(const Graph &graph, bool validate) const;

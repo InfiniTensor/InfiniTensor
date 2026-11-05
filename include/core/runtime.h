@@ -75,6 +75,7 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
     bool isInfini() const { return provider == ExecutionProvider::Infini; }
     ExecutionProvider getExecutionProvider() const { return provider; }
     void copyBlob(const TensorObj *dst, const TensorObj *src) const;
+    void copyTensorBatch(const vector<std::pair<Tensor, Tensor>> &pairs) const;
     void copyBlobInside(void *dst, const void *src, size_t bytes) const {
         copyBlobInsideRuntime(dst, src, bytes);
     }
@@ -96,6 +97,13 @@ class RuntimeObj : public std::enable_shared_from_this<RuntimeObj> {
     virtual size_t getGraphCaptureCount() const { return 0; }
 
   protected:
+    struct TensorCopy {
+        void *destination;
+        const void *source;
+        size_t bytes;
+    };
+    virtual void copyBlobsInsideRuntime(const TensorCopy *copies,
+                                        size_t count) const;
     void printProfilingData(double totTime,
                             const std::map<OpType, double> &opTime,
                             const std::map<OpType, int> &opCnt) const;

@@ -167,6 +167,40 @@ void RuntimeObj::copyBlob(const TensorObj *dst, const TensorObj *src) const {
         IT_TODO_HALT();
 }
 
+void RuntimeObj::copyTensorBatch(const vector<std::pair<Tensor, Tensor>> &pairs) const {
+    vector<TensorCopy> copies;
+    copies.reserve(pairs.size());
+    for (const auto &[dst, src] : pairs) {
+        IT_ASSERT(dst && src && dst->getRuntime().get() == this &&
+                      src->getRuntime().get() == this,
+                  "Batch tensor copy requires a single runtime");
+        IT_ASSERT(dst->getDims() == src->getDims() &&
+                      dst->getDType() == src->getDType(),
+                  "Batch tensor copy shape or dtype mismatch");
+        IT_ASSERT(dst->hasData() && src->hasData() &&
+                      dst->getDataBlob()->getBytes() >= dst->getBytes() &&
+                      src->getDataBlob()->getBytes() >= src->getBytes(),
+                  "Batch tensor copy requires allocated tensors");
+        const auto bytes = dst->getBytes();
+        auto destination = dst->getRawDataPtr<void *>();
+        auto source = src->getRawDataPtr<const void *>();
+        if (bytes && destination != source) {
+            IT_ASSERT(!dst->hasSharedWeightStorage(),
+                      "Cannot overwrite shared weight storage");
+            copies.push_back({destination, source, bytes});
+        }
+    }
+    if (!copies.empty())
+        copyBlobsInsideRuntime(copies.data(), copies.size());
+}
+
+void RuntimeObj::copyBlobsInsideRuntime(const TensorCopy *copies, size_t count) const {
+    for (size_t i = 0; i < count; ++i) {
+        const auto &copy = copies[i];
+        copyBlobInsideRuntime(copy.destination, copy.source, copy.bytes);
+    }
+}
+
 void CpuRuntimeObj::copyBlobFromCPU(void *dst, const void *src,
                                     size_t bytes) const {
     copyBlobInsideRuntime(dst, src, bytes);
