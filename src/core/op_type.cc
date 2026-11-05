@@ -144,6 +144,7 @@ const char *OpType::toString() const {
         CASE(ReduceSumSquare);
         CASE(Relu);
         CASE(Gelu);
+        CASE(Silu);
         CASE(Reshape);
         CASE(Resize);
         CASE(ReverseSequence);
@@ -224,6 +225,7 @@ const char *OpType::toString() const {
         CASE(AllReduceMax);
         CASE(AllReduceAvg);
         CASE(AllGather);
+        CASE(MaskedScatter);
         CASE(Broadcast);
     default:
         return "Unknown";
@@ -236,7 +238,7 @@ bool OpType::isUnary() const {
     static const std::unordered_set<decltype(type)> set{
         Abs,  Acos, Acosh, Asin,    Asinh, Atan,  Atanh, Cast, Ceil,
         Clip, Cos,  Cosh,  Erf,     Exp,   Floor, Log,   Neg,  Not,
-        Relu, Gelu, Round, Sigmoid, Sin,   Sinh,  Sqrt,  Tan,  Tanh,
+        Relu, Gelu, Round, Sigmoid, Silu,  Sin,   Sinh,  Sqrt,  Tan,  Tanh,
     };
 
     return set.find(type) != set.end();

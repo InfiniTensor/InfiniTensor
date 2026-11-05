@@ -177,6 +177,12 @@ enum class CastType {
     Float162Float,
     BFloat162Float,
     Float2Float,
+    ToBool,
+    Bool2Float,
+    Bool2Float16,
+    Bool2BFloat16,
+    Bool2Int32,
+    Bool2Int64,
 };
 
 class CastObj : public OperatorObj {
@@ -334,7 +340,10 @@ DEFINE_UNARY_OBJ(Floor, OpType::Floor)
 DEFINE_UNARY_OBJ(Erf, OpType::Erf)
 DEFINE_UNARY_OBJ(Exp, OpType::Exp)
 DEFINE_UNARY_OBJ(Neg, OpType::Neg)
+DEFINE_UNARY_OBJ(LogicalNot, OpType::Not)
 DEFINE_UNARY_OBJ(Reciprocal, OpType::Reciprocal)
 DEFINE_UNARY_OBJ(Sqrt, OpType::Sqrt)
+DEFINE_UNARY_OBJ(Sign, OpType::Sign)
+DEFINE_UNARY_OBJ(Rsqrt, OpType::Rsqrt)
 DEFINE_UNARY_OBJ(Round, OpType::Round)
 }; // namespace infini

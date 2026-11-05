@@ -7,7 +7,8 @@ namespace infini {
  *
  */
 class RMSNormObj : public OperatorObj {
-    int dim;
+    int dim = 0;
+    float epsilon;
 
   public:
     /**
@@ -17,7 +18,8 @@ class RMSNormObj : public OperatorObj {
      * @param input The input tensor.
      * @param output The output tensor.
      */
-    RMSNormObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output);
+    RMSNormObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
+               float epsilon = 1e-6f);
     OP_CLONE(RMSNormObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
@@ -26,6 +28,7 @@ class RMSNormObj : public OperatorObj {
     int numInputs() const override { return 2; }
     int numOutputs() const override { return 1; }
     int getDim() const { return dim; }
+    float getEpsilon() const { return epsilon; }
 
   private:
     vector<int> getWorkloadVector() const override;

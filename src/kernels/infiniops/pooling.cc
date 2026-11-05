@@ -2,6 +2,7 @@
 #include "infiniops_common.h"
 #include "infiniops_dispatch.h"
 
+#include <base/max_pool2d.h>
 #ifdef USE_INFINIOPS_ATEN_KERNELS
 #include <base/avg_pool2d.h>
 #include <base/max_pool2d_with_indices.h>
@@ -18,8 +19,9 @@ namespace {
 std::vector<int64_t> poolingValues(int first, int second) {
     return {static_cast<int64_t>(first), static_cast<int64_t>(second)};
 }
+#endif
 
-class PoolingAtenInfiniOps : public infiniops::KernelWithoutConfig {
+class PoolingInfiniOps : public infiniops::KernelWithoutConfig {
     void compute(const Operator &_op,
                  const RuntimeObj *context) const override {
         auto op = as<PoolingObj>(_op);
@@ -27,6 +29,14 @@ class PoolingAtenInfiniOps : public infiniops::KernelWithoutConfig {
         auto output = infiniops::toInfiniOpsTensor(op->getOutput(), context);
         const auto [ph, pw, sh, sw, dh, dw] = op->getPadStrideDilation();
         auto handle = infiniops::makeInfiniOpsHandle(context);
+        if (op->getOpType() == OpType::MaxPool && dh == 1 && dw == 1 &&
+            input.device().type() == ::infini::ops::Device::Type::kCambricon) {
+            auto config = infiniops::makeInfiniOpsConfig<::infini::ops::MaxPool2d>(context);
+            infiniops::dispatch::callMaxPool2d(handle, config, input, op->getKh(),
+                op->getKw(), sh, sw, ph, pw, op->getCeilMode() != 0, output);
+            return;
+        }
+#ifdef USE_INFINIOPS_ATEN_KERNELS
         if (op->getOpType() == OpType::AveragePool) {
             auto config =
                 infiniops::makeInfiniOpsAtenConfig<::infini::ops::AvgPool2d>(
@@ -65,17 +75,19 @@ class PoolingAtenInfiniOps : public infiniops::KernelWithoutConfig {
             handle, config, input, poolingValues(op->getKh(), op->getKw()),
             poolingValues(sh, sw), poolingValues(ph, pw), poolingValues(dh, dw),
             op->getCeilMode() != 0, output, indices);
+#else
+        IT_ASSERT(false, "Native MaxPool requires Cambricon and unit dilation");
+#endif
     }
 };
-#endif
 
 } // namespace
 
 #ifdef USE_INFINIOPS_ATEN_KERNELS
 REGISTER_KERNEL(ExecutionProvider::Infini, OpType::AveragePool,
-                PoolingAtenInfiniOps, "AveragePool_InfiniOps");
-REGISTER_KERNEL(ExecutionProvider::Infini, OpType::MaxPool,
-                PoolingAtenInfiniOps, "MaxPool_InfiniOps");
+                PoolingInfiniOps, "AveragePool_InfiniOps");
 #endif
+REGISTER_KERNEL(ExecutionProvider::Infini, OpType::MaxPool,
+                PoolingInfiniOps, "MaxPool_InfiniOps");
 
 } // namespace infini

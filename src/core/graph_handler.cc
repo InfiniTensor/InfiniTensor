@@ -1,4 +1,11 @@
 #include "core/graph_handler.h"
+#ifdef USE_INFINIOPS_KERNELS
+#include "core/infini_runtime.h"
+#if __has_include(<infini/convolution_layout.h>)
+#include <infini/convolution_layout.h>
+#define INFINITENSOR_HAS_CONVOLUTION_LAYOUT 1
+#endif
+#endif
 #include "operators/all_gather.h"
 #include "operators/all_reduce.h"
 #include "operators/attention_kvcache.h"
@@ -9,9 +16,11 @@
 #include "operators/element_wise.h"
 #include "operators/expand.h"
 #include "operators/gather.h"
+#include "operators/grid_sample.h"
 #include "operators/instance_norm.h"
 #include "operators/layer_norm.h"
 #include "operators/lrn.h"
+#include "operators/masked_scatter.h"
 #include "operators/matmul.h"
 #include "operators/pad.h"
 #include "operators/pooling.h"
@@ -20,12 +29,16 @@
 #include "operators/reshape.h"
 #include "operators/resize.h"
 #include "operators/rms_norm.h"
+#include "operators/roi_align.h"
 #include "operators/rope.h"
+#include "operators/scatter_nd.h"
+#include "operators/scatter_elements.h"
 #include "operators/send.h"
 #include "operators/slice.h"
 #include "operators/softmax.h"
 #include "operators/split.h"
 #include "operators/squeeze.h"
+#include "operators/tile.h"
 #include "operators/transpose.h"
 #include "operators/unary.h"
 #include "operators/unsqueeze.h"
@@ -53,17 +66,56 @@ Tensor GraphHandlerObj::tensor(Shape dims, int dtype) {
 }
 
 Tensor GraphHandlerObj::conv(Tensor input, Tensor weight, Tensor output, int ph,
-                             int pw, int sh, int sw, int dh, int dw) {
+                             int pw, int sh, int sw, int dh, int dw, Tensor bias,
+                             bool channelsLast) {
+    IT_ASSERT(!bias || supportsConvBias(), "Conv bias is unsupported by this runtime");
+    IT_ASSERT(!channelsLast || supportsChannelsLastConv(),
+              "Channels-last Conv is unsupported by this runtime");
     if (output) {
         g->addOpWithOutputs<ConvObj>(std::move(input), std::move(weight),
-                                     output, ph, pw, sh, sw, dh, dw);
+                                     output, ph, pw, sh, sw, dh, dw, std::move(bias),
+                                     ActType::None, channelsLast);
         return output;
     } else {
         return g
             ->addOp<ConvObj>(std::move(input), std::move(weight), output, ph,
-                             pw, sh, sw, dh, dw)
+                            pw, sh, sw, dh, dw, std::move(bias), ActType::None,
+                            channelsLast)
             ->getOutput();
     }
+}
+
+bool GraphHandlerObj::supportsConvBias() const {
+    const auto runtime = g->getRuntime();
+    if (runtime->isCpu())
+        return true;
+#ifdef USE_INFINIOPS_KERNELS
+    const auto *infini = dynamic_cast<const InfiniRuntimeObj *>(runtime.get());
+    if (infini)
+        return infini->getInfiniDevice().type() == ::infini::rt::Device::Type::kCambricon;
+#endif
+    return false;
+}
+
+bool GraphHandlerObj::supportsChannelsLastConv() const {
+#ifdef INFINITENSOR_HAS_CONVOLUTION_LAYOUT
+    const auto *runtime = dynamic_cast<const InfiniRuntimeObj *>(g->getRuntime().get());
+    return runtime && ::infini::ops::SupportsConvolutionChannelsLast(runtime->getInfiniDevice());
+#else
+    return false;
+#endif
+}
+
+Tensor GraphHandlerObj::conv3d(Tensor input, Tensor weight, Tensor output,
+                              int pd, int ph, int pw, int sd, int sh, int sw,
+                              int dd, int dh, int dw) {
+    if (output) {
+        g->addOpWithOutputs<Conv3dObj>(std::move(input), std::move(weight),
+                                     output, pd, ph, pw, sd, sh, sw, dd, dh, dw);
+        return output;
+    }
+    return g->addOp<Conv3dObj>(std::move(input), std::move(weight), output, pd,
+                              ph, pw, sd, sh, sw, dd, dh, dw)->getOutput();
 }
 
 Tensor GraphHandlerObj::convTransposed2d(Tensor input, Tensor weight,
@@ -151,13 +203,13 @@ Tensor GraphHandlerObj::instanceNormalization(Tensor input, Tensor output,
     }
 }
 
-Tensor GraphHandlerObj::rmsNorm(Tensor input, Tensor weight, Tensor output) {
+Tensor GraphHandlerObj::rmsNorm(Tensor input, Tensor weight, Tensor output, float epsilon) {
     if (output) {
         g->addOpWithOutputs<RMSNormObj>(std::move(input), std::move(weight),
-                                        output);
+                                        output, epsilon);
         return output;
     } else {
-        return g->addOp<RMSNormObj>(std::move(input), std::move(weight), output)
+        return g->addOp<RMSNormObj>(std::move(input), std::move(weight), output, epsilon)
             ->getOutput();
     }
 }
@@ -208,6 +260,9 @@ DEFINE_ELEMENT_WISE_METHOD(sub, Sub)
 DEFINE_ELEMENT_WISE_METHOD(mul, Mul)
 DEFINE_ELEMENT_WISE_METHOD(div, Div)
 DEFINE_ELEMENT_WISE_METHOD(pow, Pow)
+DEFINE_ELEMENT_WISE_METHOD(equal, Equal)
+DEFINE_ELEMENT_WISE_METHOD(less, LessThan)
+DEFINE_ELEMENT_WISE_METHOD(greaterEqual, GreaterEqual)
 DEFINE_ELEMENT_WISE_METHOD(min, Minimum)
 DEFINE_ELEMENT_WISE_METHOD(max, Maximum)
 
@@ -239,10 +294,15 @@ Tensor GraphHandlerObj::hardSigmoid(Tensor x, Tensor y, double alpha,
 }
 DEFINE_UNARY_METHOD(hardSwish, HardSwish)
 DEFINE_UNARY_METHOD(abs, Abs)
+DEFINE_UNARY_METHOD(sign, Sign)
+DEFINE_UNARY_METHOD(rsqrt, Rsqrt)
 DEFINE_UNARY_METHOD(sqrt, Sqrt)
 DEFINE_UNARY_METHOD(neg, Neg)
+DEFINE_UNARY_METHOD(logicalNot, LogicalNot)
 DEFINE_UNARY_METHOD(shape, Shape)
 DEFINE_UNARY_METHOD(erf, Erf)
+DEFINE_UNARY_METHOD(sin, Sin)
+DEFINE_UNARY_METHOD(cos, Cos)
 
 // see operators/reshape.h
 DEFINE_UNARY_METHOD(identity, Identity)
@@ -294,6 +354,79 @@ Tensor GraphHandlerObj::flatten(Tensor input, Tensor output, int axis) {
         return g->addOp<FlattenObj>(std::move(input), output, axis)
             ->getOutput();
     }
+}
+
+Tensor GraphHandlerObj::log(Tensor input, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<LogObj>(std::move(input), output, LogObj::LogE);
+        return output;
+    }
+    return g->addOp<LogObj>(std::move(input), output, LogObj::LogE)->getOutput();
+}
+
+Tensor GraphHandlerObj::tile(Tensor data, Tensor output, Shape repeats) {
+    if (output) {
+        g->addOpWithOutputs<TileObj>(std::move(data), output, std::move(repeats));
+        return output;
+    }
+    return g->addOp<TileObj>(std::move(data), output, std::move(repeats))->getOutput();
+}
+
+Tensor GraphHandlerObj::scatterElements(Tensor data, Tensor indices, Tensor updates,
+                                         Tensor output, int axis, std::string reduction) {
+    if (output) {
+        g->addOpWithOutputs<ScatterElementsObj>(std::move(data), std::move(indices),
+                                                std::move(updates), output, axis, std::move(reduction));
+        return output;
+    }
+    return g->addOp<ScatterElementsObj>(std::move(data), std::move(indices), std::move(updates),
+                                        output, axis, std::move(reduction))->getOutput();
+}
+
+Tensor GraphHandlerObj::maskedScatter(Tensor data, Tensor mask, Tensor source, Tensor output) {
+    if (output) {
+        g->addOpWithOutputs<MaskedScatterObj>(std::move(data), std::move(mask),
+                                              std::move(source), output);
+        return output;
+    }
+    return g->addOp<MaskedScatterObj>(std::move(data), std::move(mask),
+                                      std::move(source), output)->getOutput();
+}
+
+Tensor GraphHandlerObj::scatterNd(Tensor data, Tensor indices, Tensor updates,
+                                   Tensor output, bool add) {
+    if (output) {
+        g->addOpWithOutputs<ScatterNdObj>(std::move(data), std::move(indices),
+                                          std::move(updates), output, add);
+        return output;
+    }
+    return g->addOp<ScatterNdObj>(std::move(data), std::move(indices),
+                                  std::move(updates), output, add)->getOutput();
+}
+
+Tensor GraphHandlerObj::roiAlign(Tensor data, Tensor boxes, Tensor batchIndices,
+                                  Tensor output, int height, int width,
+                                  int samplingRatio, float spatialScale, bool aligned) {
+    IT_ASSERT(data->getRank() == 4 && boxes->getRank() == 2 && batchIndices->getRank() == 1);
+    const auto dataType = data->getDType();
+    IT_ASSERT(dataType == DataType::Float32 || dataType == DataType::Float16);
+    auto batch = cast(std::move(batchIndices), nullptr, dataType == DataType::Float32 ? 1 : 10);
+    batch = reshape(batch, nullptr, {-1, 1});
+    auto packed = concat({batch, std::move(boxes)}, nullptr, 1);
+    auto input = transpose(std::move(data), nullptr, {0, 2, 3, 1});
+    auto pooled = g->addOp<RoiAlignObj>(input, packed, nullptr, height, width,
+                                        samplingRatio, spatialScale, aligned)->getOutput();
+    return transpose(pooled, std::move(output), {0, 3, 1, 2});
+}
+
+Tensor GraphHandlerObj::gridSample(Tensor data, Tensor grid, Tensor output,
+                                   bool nearest, bool reflection,
+                                   bool alignCorners) {
+    auto input = transpose(std::move(data), nullptr, {0, 2, 3, 1});
+    auto sampled = g->addOp<GridSampleObj>(input, std::move(grid), nullptr,
+                                            nearest, reflection, alignCorners)
+                       ->getOutput();
+    return transpose(sampled, std::move(output), {0, 3, 1, 2});
 }
 
 Tensor GraphHandlerObj::transpose(Tensor data, Tensor transposed, Shape perm) {
@@ -487,6 +620,16 @@ Tensor GraphHandlerObj::gatherElements(Tensor data, Tensor indices,
     }
 DEFINE_REDUCE_METHOD(reduceMean, ReduceMean)
 DEFINE_REDUCE_METHOD(reduceSum, ReduceSum)
+DEFINE_REDUCE_METHOD(reduceL2, ReduceL2)
+DEFINE_REDUCE_METHOD(reduceMax, ReduceMax)
+
+Tensor GraphHandlerObj::argmax(Tensor data, Tensor output, int axis, bool keepdims) {
+    if (output) {
+        g->addOpWithOutputs<ArgMaxObj>(std::move(data), output, axis, keepdims);
+        return output;
+    }
+    return g->addOp<ArgMaxObj>(std::move(data), output, axis, keepdims)->getOutput();
+}
 
 Tensor GraphHandlerObj::slice(Tensor input, Tensor output,
                               const vector<int> &starts,
@@ -618,13 +761,15 @@ Tensor GraphHandlerObj::recv(Tensor output, int source, int destination,
 }
 
 Tensor GraphHandlerObj::cast(Tensor input, Tensor output, int to) {
+    if (input->getDType() == dtype_repr_convert(to))
+        return identity(std::move(input), std::move(output));
+    const auto castType = inferCastType(input, to);
     if (output) {
-        g->addOpWithOutputs<CastObj>(std::move(input), output,
-                                     inferCastType(input, to));
+        g->addOpWithOutputs<CastObj>(std::move(input), output, castType);
         return output;
     } else {
         return g
-            ->addOp<CastObj>(std::move(input), output, inferCastType(input, to))
+            ->addOp<CastObj>(std::move(input), output, castType)
             ->getOutput();
     }
 }
@@ -705,6 +850,18 @@ Tensor GraphHandlerObj::unsqueeze(Tensor input, Tensor output, Shape axes) {
 static CastType inferCastType(Tensor input, int to) {
     auto iType = input->getDType();
     auto oType = DataType(to);
+    if (oType == DataType::Bool &&
+        (iType == DataType::Float32 || iType == DataType::Float16 ||
+         iType == DataType::BFloat16 || iType == DataType::Int32 ||
+         iType == DataType::Int64 || iType == DataType::Bool))
+        return CastType::ToBool;
+    if (iType == DataType::Bool) {
+        if (oType == DataType::Float32) return CastType::Bool2Float;
+        if (oType == DataType::Float16) return CastType::Bool2Float16;
+        if (oType == DataType::BFloat16) return CastType::Bool2BFloat16;
+        if (oType == DataType::Int32) return CastType::Bool2Int32;
+        if (oType == DataType::Int64) return CastType::Bool2Int64;
+    }
     if (iType == DataType::Float32 && oType == DataType::Float16) {
         return CastType::Float2Float16;
     } else if (iType == DataType::Float32 && oType == DataType::Int64) {

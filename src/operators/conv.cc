@@ -21,7 +21,7 @@ string ConvBaseObj::toString() const {
     std::ostringstream os;
     os << type.toString() << "[" << getGuid() << "]";
     os << "(";
-    if (inputs.size() == 2) {
+    if (inputs.size() >= 2) {
         os << vecToString(inputs[0]->getDims()) << ",";
         os << vecToString(inputs[1]->getDims()) << ",";
     }
@@ -36,20 +36,30 @@ string ConvBaseObj::toString() const {
 }
 
 vector<int> ConvBaseObj::getWorkloadVector() const {
-    return {type.underlying(), n, c, h, w, f, r, s, ph, pw, sh, sw, dh, dw};
+    auto key = vector<int>{type.underlying(), n, c, h, w, f, r, s, ph, pw, sh, sw, dh, dw};
+    if (getBias())
+        key.push_back(1);
+    if (type == OpType::Conv && static_cast<const ConvObj *>(this)->isChannelsLast())
+        key.push_back(2);
+    return key;
 }
 
 vector<int> ConvBaseObj::getOpAttrVector() const {
     // IT_TODO_HALT(); // should padding mode / ph+pw be in attrs?
-    return {type.underlying(), c, f, r, s, ph, pw, sh, sw, dh, dw};
+    auto key = vector<int>{type.underlying(), c, f, r, s, ph, pw, sh, sw, dh, dw};
+    if (getBias())
+        key.push_back(1);
+    if (type == OpType::Conv && static_cast<const ConvObj *>(this)->isChannelsLast())
+        key.push_back(2);
+    return key;
 }
 
 void ConvObj::setAuxilaryAttributes(PaddingMode mode) {
-    const Tensor &input = inputs[0];
-    const Tensor &weight = inputs[1];
-    n = input->getDims()[0], c = input->getDims()[1], h = input->getDims()[2],
-    w = input->getDims()[3], f = weight->getDims()[0], r = weight->getDims()[2],
-    s = weight->getDims()[3];
+    const auto input = inputs[0]->getDims(), weight = inputs[1]->getDims();
+    n = input[0], c = input[channelsLast ? 3 : 1],
+    h = input[channelsLast ? 1 : 2], w = input[channelsLast ? 2 : 3],
+    f = weight[0], r = weight[channelsLast ? 1 : 2],
+    s = weight[channelsLast ? 2 : 3];
     if (mode == PaddingMode::Same) {
         int oh = h / sh;
         int ow = w / sw;
@@ -62,11 +72,10 @@ void ConvObj::setAuxilaryAttributes(PaddingMode mode) {
 
 ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
                  int ph, int pw, int sh, int sw, int dh, int dw, Tensor bias,
-                 ActType act)
-    : ConvBaseObj(OpType::Conv, {input, weight}, output, ph, pw, sh, sw, dh, dw,
-                  input, weight, act) {
-    if (bias)
-        IT_TODO_HALT();
+                 ActType act, bool channelsLast)
+    : ConvBaseObj(OpType::Conv, bias ? TensorVec{input, weight, bias} : TensorVec{input, weight},
+                  output, ph, pw, sh, sw, dh, dw,
+                  input, weight, act), channelsLast(channelsLast) {
     setAuxilaryAttributes(PaddingMode::Other);
     IT_ASSERT(checkValid(graph));
 }
@@ -74,10 +83,9 @@ ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
 ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
                  PaddingMode mode, int sh, int sw, int dh, int dw, Tensor bias,
                  ActType act)
-    : ConvBaseObj(OpType::Conv, {input, weight}, output, mode, sh, sw, dh, dw,
+    : ConvBaseObj(OpType::Conv, bias ? TensorVec{input, weight, bias} : TensorVec{input, weight},
+                  output, mode, sh, sw, dh, dw,
                   input, weight, act) {
-    if (bias)
-        IT_TODO_HALT();
     setAuxilaryAttributes(mode);
     IT_ASSERT(checkValid(graph));
 }
@@ -85,16 +93,22 @@ ConvObj::ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
 optional<vector<Shape>> ConvObj::inferShape(const TensorVec &inputs) {
     const auto &input = inputs[0], &weight = inputs[1];
     n = input->getDims()[0];
-    c = input->getDims()[1];
-    h = input->getDims()[2];
-    w = input->getDims()[3];
+    c = input->getDims()[channelsLast ? 3 : 1];
+    h = input->getDims()[channelsLast ? 1 : 2];
+    w = input->getDims()[channelsLast ? 2 : 3];
     f = weight->getDims()[0];
-    r = weight->getDims()[2];
-    s = weight->getDims()[3];
+    if (inputs.size() == 3) {
+        const auto &bias = inputs[2];
+        if (bias->getDims() != Shape{f} || !(bias->getDType() == input->getDType()))
+            return std::nullopt;
+    }
+    r = weight->getDims()[channelsLast ? 1 : 2];
+    s = weight->getDims()[channelsLast ? 2 : 3];
     int on = n, oc = f;
     int oh = 0, ow = 0;
     // For NCHW+FCRS layout, C of input is divisable by C of weight
-    IT_ASSERT(input->getDims()[1] % weight->getDims()[1] == 0);
+    const int channelsPerGroup = weight->getDims()[channelsLast ? 3 : 1];
+    IT_ASSERT(channelsPerGroup > 0 && c % channelsPerGroup == 0);
     // Set padding size
     if (padding == PaddingMode::Other) {
         oh = (h - (r - sh) * dh + ph * 2) / sh;
@@ -110,7 +124,8 @@ optional<vector<Shape>> ConvObj::inferShape(const TensorVec &inputs) {
         oh = (h - (r - sh) * dh + ph * 2) / sh;
         ow = (w - (s - sw) * dw + pw * 2) / sw;
     }
-    return {{{on, oc, oh, ow}}};
+    return {vector<Shape>{channelsLast ? Shape{on, oh, ow, oc}
+                                       : Shape{on, oc, oh, ow}}};
 }
 
 void Conv3dObj::setAuxilaryAttributes(PaddingMode mode) {

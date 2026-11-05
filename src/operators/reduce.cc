@@ -37,10 +37,7 @@ optional<vector<Shape>> ReduceBaseObj::inferShape(const TensorVec &inputs) {
             if (!isReduced(i))
                 ret.emplace_back(dims[i]);
         }
-        if (ret.empty())
-            return {{{1}}};
-        else
-            return {{ret}};
+        return vector<Shape>{ret};
     }
 }
 
@@ -88,4 +85,51 @@ ReduceMeanObj::ReduceMeanObj(GraphObj *graph, Tensor input, Tensor output,
 ReduceSumObj::ReduceSumObj(GraphObj *graph, Tensor input, Tensor output,
                            const optional<vector<int>> &_axes, bool keepDims)
     : ReduceBaseObj(graph, OpType::ReduceSum, input, output, _axes, keepDims) {}
+
+ReduceMaxObj::ReduceMaxObj(GraphObj *graph, Tensor input, Tensor output,
+                           const optional<vector<int>> &axes, bool keepDims)
+    : ReduceBaseObj(graph, OpType::ReduceMax, input, output, axes, keepDims) {}
+
+ReduceL2Obj::ReduceL2Obj(GraphObj *graph, Tensor input, Tensor output,
+                        const optional<vector<int>> &axes, bool keepDims)
+    : ReduceBaseObj(graph, OpType::ReduceL2, input, output, axes, keepDims) {}
+
+ArgMaxObj::ArgMaxObj(GraphObj *graph, Tensor input, Tensor output, int axis,
+                     bool keepDims)
+    : OperatorObj(OpType::ArgMax, {input}, {output}),
+      axis(get_real_axis(axis, input->getRank())), keepDims(keepDims) {
+    IT_ASSERT(!output || output->getDType() == DataType::Int64);
+    IT_ASSERT(checkValid(graph));
+}
+
+optional<vector<Shape>> ArgMaxObj::inferShape(const TensorVec &inputs) {
+    auto shape = inputs[0]->getDims();
+    IT_ASSERT(axis >= 0 && static_cast<size_t>(axis) < shape.size());
+    IT_ASSERT(shape[axis] > 0, "ArgMax reduction axis must not be empty");
+    if (keepDims)
+        shape[axis] = 1;
+    else
+        shape.erase(shape.begin() + axis);
+    return vector<Shape>{shape};
+}
+
+vector<DataType> ArgMaxObj::inferDataType(const TensorVec &) const {
+    return {DataType::Int64};
+}
+
+std::string ArgMaxObj::toString() const {
+    return "ArgMax[" + std::to_string(getGuid()) + "](axis=" +
+           std::to_string(axis) + ",keepDims=" + std::to_string(keepDims) + ")";
+}
+
+vector<int> ArgMaxObj::getOpAttrVector() const {
+    return {type.underlying(), axis, static_cast<int>(keepDims)};
+}
+
+vector<int> ArgMaxObj::getWorkloadVector() const {
+    auto workload = getOpAttrVector();
+    const auto dims = inputs[0]->getDims();
+    workload.insert(workload.end(), dims.begin(), dims.end());
+    return workload;
+}
 } // namespace infini

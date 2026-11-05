@@ -31,7 +31,7 @@ template <typename ReduceObjT> void testShapeInference() {
         Graph g = make_ref<GraphObj>(runtime);
         Tensor i = g->addTensor({2, 3, 3, 4}, DataType::Float32);
         auto op = g->addOp<ReduceObjT>(i, nullptr, std::nullopt, false);
-        EXPECT_EQ(op->getOutput()->getDims(), (Shape{1}));
+        EXPECT_EQ(op->getOutput()->getDims(), (Shape{}));
     }
     {
         Graph g = make_ref<GraphObj>(runtime);
@@ -50,6 +50,7 @@ template <typename ReduceObjT> void testShapeInference() {
 TEST(ReduceMean, ShapeInference) {
     testShapeInference<ReduceMeanObj>();
     testShapeInference<ReduceSumObj>();
+    testShapeInference<ReduceL2Obj>();
 }
 
 } // namespace infini

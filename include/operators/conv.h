@@ -98,7 +98,7 @@ class ConvBaseObj : public OperatorObj {
     int numInputs() const override { return 2; }
     int numOutputs() const override { return 1; }
 
-    Tensor getBias() const { return inputs[2]; }
+    Tensor getBias() const { return inputs.size() > 2 ? inputs[2] : nullptr; }
     PaddingMode getPaddingMode() const { return padding; }
     pair<int, int> inferPaddingSize() const;
 
@@ -131,10 +131,13 @@ class ConvBaseObj : public OperatorObj {
 };
 
 class ConvObj : public ConvBaseObj {
+    bool channelsLast = false;
+
   public:
     ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output, int ph,
             int pw, int sh = 1, int sw = 1, int dh = 1, int dw = 1,
-            Tensor bias = nullptr, ActType act = ActType::None);
+            Tensor bias = nullptr, ActType act = ActType::None,
+            bool channelsLast = false);
     // Constructors for setting padding mode
     ConvObj(GraphObj *graph, Tensor input, Tensor weight, Tensor output,
             PaddingMode mode = PaddingMode::Same, int sh = 1, int sw = 1,
@@ -143,7 +146,11 @@ class ConvObj : public ConvBaseObj {
     OP_CLONE(ConvObj);
 
     optional<vector<Shape>> inferShape(const TensorVec &inputs) override;
-    int getNumGroups() const override { return c / getChannelPerGroup(); }
+    int numInputs() const override { return inputs.size(); }
+    bool isChannelsLast() const { return channelsLast; }
+    int getNumGroups() const override {
+        return c / inputs[1]->getDims()[channelsLast ? 3 : 1];
+    }
 
   private:
     void setAuxilaryAttributes(PaddingMode mode) override;

@@ -239,6 +239,7 @@ struct OpType {
         Broadcast,
         Send,
         Recv,
+        MaskedScatter,
     } type;
 
     constexpr OpType(decltype(type) t) : type(t) {}

@@ -1,12 +1,18 @@
+import os
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import Mock, patch
 
 import numpy as np
-from onnx import TensorProto, checker, helper, numpy_helper
+from onnx import TensorProto, checker, helper, numpy_helper, save_model
+from onnx.external_data_helper import set_external_data, uses_external_data
 
 from pyinfinitensor import backend
 from pyinfinitensor import onnx as onnx_frontend
-from pyinfinitensor.onnx import OnnxStub, _parse_attribute
+from pyinfinitensor.external_weights import read_external_array
+from pyinfinitensor.onnx import OnnxStub, OnnxWeightStore, _parse_attribute
+from pyinfinitensor.onnx_rewrites import fuse_fp32_erf_gelu, fuse_fp32_rms_norm, fuse_masked_scatter
 
 
 def make_model(nodes, inputs, outputs, initializers=(), check=True):
@@ -46,6 +52,485 @@ def node_attribute(node, name):
 
 
 class TestOnnxStubImport(unittest.TestCase):
+    def _check_live_conv_bias(self, runtime, np_dtype, onnx_dtype):
+        data_shape = [1, 2, 2, 2]
+        model = make_model(
+            [helper.make_node("Conv", ["x", "w", "b"], ["y"], group=2)],
+            [value_info("x", data_shape, onnx_dtype), value_info("b", [2], onnx_dtype)],
+            [value_info("y", data_shape, onnx_dtype)],
+            [initializer("w", np.array([2, -1], dtype=np_dtype).reshape(2, 1, 1, 1))],
+        )
+        stub = import_model(model, runtime=runtime)
+        ops = stub.handler.operators()
+        expected_ops = [backend.OpTypeId.Conv]
+        if onnx_dtype == TensorProto.FLOAT16:
+            expected_ops.extend((backend.OpTypeId.Reshape, backend.OpTypeId.Add))
+        self.assertEqual([op.op_type().id() for op in ops], expected_ops)
+        self.assertEqual(len(ops[0].inputs()), 2 if onnx_dtype == TensorProto.FLOAT16 else 3)
+        data = np.arange(8, dtype=np_dtype).reshape(data_shape)
+        scale = np.array([2, -1], dtype=np_dtype).reshape(1, 2, 1, 1)
+        stub.inputs["x"].copyin_numpy(data)
+        for offsets in ([4, 7], [-3, 1]):
+            bias = np.array(offsets, dtype=np_dtype)
+            stub.inputs["b"].copyin_numpy(bias)
+            stub.run()
+            np.testing.assert_array_equal(
+                stub.outputs["y"].copyout_numpy(), data * scale + bias.reshape(1, 2, 1, 1)
+            )
+        exported = stub.to_onnx("conv_with_bias")
+        checker.check_model(exported)
+        self.assertEqual([len(node.input) for node in exported.graph.node if node.op_type == "Conv"],
+                         [2 if onnx_dtype == TensorProto.FLOAT16 else 3])
+
+    def test_cpu_conv_keeps_live_bias(self):
+        self._check_live_conv_bias(backend.cpu_runtime(), np.float32, TensorProto.FLOAT)
+
+    def test_cambricon_conv_keeps_live_bias(self):
+        try:
+            runtime = backend.runtime("cambricon", 0)
+        except (RuntimeError, AttributeError) as error:
+            self.skipTest(str(error))
+        for np_dtype, onnx_dtype in (
+            (np.float32, TensorProto.FLOAT), (np.float16, TensorProto.FLOAT16),
+        ):
+            with self.subTest(dtype=np_dtype):
+                self._check_live_conv_bias(runtime, np_dtype, onnx_dtype)
+
+    def test_cambricon_fp16_conv_preshapes_only_constant_bias(self):
+        try:
+            runtime = backend.runtime("cambricon", 0)
+        except (RuntimeError, AttributeError) as error:
+            self.skipTest(str(error))
+        shape = [1, 2, 2, 2]
+        model = make_model(
+            [helper.make_node("Conv", ["x", "w", "b"], ["y"], group=2)],
+            [value_info("x", shape, TensorProto.FLOAT16)],
+            [value_info("y", shape, TensorProto.FLOAT16)],
+            [initializer("w", np.array([2, -1], np.float16).reshape(2, 1, 1, 1)),
+             initializer("b", [4, 7], np.float16)],
+        )
+        stub = import_model(model, runtime=runtime)
+        self.assertEqual([op.op_type().id() for op in stub.handler.operators()],
+                         [backend.OpTypeId.Conv, backend.OpTypeId.Add])
+        data = np.arange(8, dtype=np.float16).reshape(shape)
+        stub.inputs["x"].copyin_numpy(data)
+        stub.run()
+        expected = data * np.array([2, -1], np.float16).reshape(1, 2, 1, 1)
+        expected += np.array([4, 7], np.float16).reshape(1, 2, 1, 1)
+        np.testing.assert_array_equal(stub.outputs["y"].copyout_numpy(), expected)
+        checker.check_model(stub.to_onnx("conv_with_constant_fp16_bias"))
+
+    def test_cambricon_conv_layout_preserves_live_inputs_and_public_outputs(self):
+        try:
+            runtime = backend.runtime("cambricon", 0)
+        except (RuntimeError, AttributeError) as error:
+            self.skipTest(str(error))
+        if not backend.GraphHandler(runtime).supports_channels_last_conv():
+            self.skipTest("Requires the channels-last Cambricon backend")
+
+        for dtype, np_dtype in ((TensorProto.FLOAT, np.float32), (TensorProto.FLOAT16, np.float16)):
+            with self.subTest(dtype=dtype):
+                shape = [2, 4, 3, 5]
+                model = make_model(
+                    [helper.make_node("Conv", ["x", "w", "b"], ["conv"], group=2),
+                     helper.make_node("Sigmoid", ["conv"], ["gate"]),
+                     helper.make_node("Mul", ["gate", "conv"], ["act"]),
+                     helper.make_node("Conv", ["act", "w"], ["y"], group=2)],
+                    [value_info("x", shape, dtype), value_info("b", [4], dtype)],
+                    [value_info("conv", shape, dtype), value_info("y", shape, dtype)],
+                    [initializer("w", np.linspace(-.4, .5, 8).reshape(4, 2, 1, 1), np_dtype)],
+                )
+                baseline = OnnxStub(model, runtime, simplify_model=False)
+                configurations = [("channels_last", False), ("channels_last_silu", False)]
+                if dtype == TensorProto.FLOAT16:
+                    configurations.append(("channels_last_silu", True))
+                for mode, fused_bias in configurations:
+                    optimized = OnnxStub(model, runtime, simplify_model=False,
+                                         conv_layout=mode, fuse_fp16_conv_bias=fused_bias)
+                    checker.check_model(optimized.to_onnx("layout_round_trip"))
+                    ops = optimized.handler.operators()
+                    convs = [op for op in ops if op.op_type().id() == backend.OpTypeId.Conv]
+                    self.assertTrue(all(backend.conv_channels_last_of(op) for op in convs))
+                    self.assertEqual(len(convs), 2)
+                    self.assertEqual(len(convs[0].inputs()), 3 if fused_bias or dtype == TensorProto.FLOAT else 2)
+                    self.assertEqual(sum(op.op_type().id() == backend.OpTypeId.Silu for op in ops),
+                                     int(mode.endswith("_silu")))
+                    for step in (0, 1):
+                        pixels = np.linspace(-2, 3 + step, np.prod(shape)).reshape(shape).astype(np_dtype)
+                        bias = np.array([.1, -.2, .3, .4 + step], dtype=np_dtype)
+                        for stub in (baseline, optimized):
+                            stub.inputs["x"].copyin_numpy(pixels)
+                            stub.inputs["b"].copyin_numpy(bias)
+                            stub.run_with_graph() if stub is optimized else stub.run()
+                        for name in ("conv", "y"):
+                            actual = optimized.outputs[name].copyout_numpy()
+                            expected = baseline.outputs[name].copyout_numpy()
+                            if mode == "channels_last":
+                                np.testing.assert_array_equal(actual, expected)
+                            elif dtype == TensorProto.FLOAT16:
+                                np.testing.assert_allclose(actual, expected, rtol=1e-3, atol=2e-3)
+                            else:
+                                np.testing.assert_allclose(actual, expected, atol=2e-6)
+
+    def test_weight_store_reuses_only_identical_immutable_initializers(self):
+        runtime = backend.cpu_runtime()
+        store = OnnxWeightStore(runtime)
+        def build(values, naive=False):
+            model = make_model(
+                [helper.make_node("Add", ["x", "weight"], ["y"])],
+                [value_info("x", ["batch", 2])], [value_info("y", ["batch", 2])],
+                [initializer("weight", values, np.float32)],
+            )
+            return OnnxStub(model, runtime, simplify_model=False, weight_store=store,
+                            input_shapes={"x": [2, 2]}, use_naive_allocator=naive)
+
+        first = build([1, 2])
+        same = build([1, 2], naive=True)
+        different = build([3, 4])
+        self.assertEqual(same.shared_weight_names, {"weight"})
+        self.assertEqual(same.shared_weight_bytes, 8)
+        self.assertEqual(different.shared_weight_names, set())
+        with self.assertRaisesRegex(RuntimeError, "overwrite shared weight"):
+            first.tensors["weight"].copyin_numpy(np.zeros(2, np.float32))
+        del first, store
+        same.init()
+        for stub, values in ((same, [1, 2]), (different, [3, 4])):
+            stub.inputs["x"].copyin_numpy(np.zeros((2, 2), np.float32))
+            stub.run()
+            np.testing.assert_array_equal(stub.outputs["y"].copyout_numpy(), [values, values])
+
+    def test_batch_copy_validates_all_pairs_before_writing(self):
+        try:
+            runtime = backend.runtime("cambricon", 0)
+        except (RuntimeError, AttributeError):
+            runtime = backend.cpu_runtime()
+        handler = backend.GraphHandler(runtime)
+        left, right, first, second = [handler.tensor([2], TensorProto.FLOAT) for _ in range(4)]
+        wrong = handler.tensor([1], TensorProto.FLOAT)
+        handler.data_malloc()
+        for tensor, values in ((left, [1, 2]), (right, [3, 4]),
+                               (first, [0, 0]), (second, [0, 0]), (wrong, [8])):
+            tensor.copyin_numpy(np.asarray(values, dtype=np.float32))
+        with self.assertRaisesRegex(RuntimeError, "shape or dtype mismatch"):
+            backend.copy_tensor_batch([(first, left), (second, wrong)])
+        np.testing.assert_array_equal(first.copyout_numpy(), [0, 0])
+        backend.copy_tensor_batch([(first, left), (second, right), (left, left)])
+        np.testing.assert_array_equal(first.copyout_numpy(), [1, 2])
+        np.testing.assert_array_equal(second.copyout_numpy(), [3, 4])
+
+    def test_flatten_accepts_axis_equal_to_rank_and_scalar(self):
+        for shape, axis, output_shape in (
+            ([2, 3], 2, [6, 1]), ([2, 3], -2, [1, 6]), ([], 0, [1, 1]),
+        ):
+            with self.subTest(shape=shape, axis=axis):
+                model = make_model(
+                    [helper.make_node("Flatten", ["x"], ["y"], axis=axis)],
+                    [value_info("x", shape)], [value_info("y", output_shape)],
+                )
+                stub = OnnxStub(model, backend.cpu_runtime(), simplify_model=False)
+                values = np.arange(max(1, int(np.prod(shape))), dtype=np.float32).reshape(shape)
+                stub.inputs["x"].copyin_numpy(values)
+                stub.run()
+                np.testing.assert_array_equal(
+                    stub.outputs["y"].copyout_numpy(), values.reshape(output_shape)
+                )
+
+    def test_gather_wraps_live_negative_indices_on_cambricon(self):
+        try:
+            runtime = backend.runtime("cambricon", 0)
+        except (RuntimeError, AttributeError) as error:
+            self.skipTest(str(error))
+        for dtype, shape, onnx_dtype, index_cases in (
+            (np.int32, [], TensorProto.INT32, (-1, -3, 1)),
+            (np.int64, [2, 2], TensorProto.INT64,
+             ([[-3, -1], [0, 2]], [[2, -2], [-1, 1]])),
+        ):
+            with self.subTest(index_dtype=dtype, index_shape=shape):
+                model = make_model(
+                    [helper.make_node("Gather", ["x", "indices"], ["y"], axis=-1)],
+                    [value_info("x", [2, 3]), value_info("indices", shape, onnx_dtype)],
+                    [value_info("y", [2, *shape])],
+                )
+                stub = OnnxStub(model, runtime, simplify_model=False)
+                values = np.arange(6, dtype=np.float32).reshape(2, 3)
+                stub.inputs["x"].copyin_numpy(values)
+                for index in index_cases:
+                    index = np.asarray(index, dtype=dtype)
+                    stub.inputs["indices"].copyin_numpy(index)
+                    stub.run()
+                    np.testing.assert_array_equal(
+                        stub.outputs["y"].copyout_numpy(), np.take(values, index, axis=-1)
+                    )
+
+    def test_copy_from_reuses_tensor_data_without_numpy(self):
+        try:
+            runtime = backend.runtime("cambricon", 0)
+        except (RuntimeError, AttributeError):
+            runtime = backend.cpu_runtime()
+        model = make_model(
+            [helper.make_node("Identity", ["x"], ["y"])],
+            [value_info("x", [2, 3])], [value_info("y", [2, 3])],
+        )
+        first = OnnxStub(model, runtime, simplify_model=False)
+        second = OnnxStub(model, runtime, simplify_model=False)
+        values = np.arange(6, dtype=np.float32).reshape(2, 3)
+        first.inputs["x"].copyin_numpy(values)
+        first.run()
+        kept = first.clone_KV(first.outputs["y"])
+        del first
+        second.inputs["x"].copy_from(kept)
+        second.run()
+        np.testing.assert_array_equal(second.outputs["y"].copyout_numpy(), values)
+
+    def test_stable_half_rms_norm_does_not_overflow_large_inputs(self):
+        try:
+            runtime = backend.runtime("cambricon", 0)
+        except (RuntimeError, AttributeError) as error:
+            self.skipTest(str(error))
+        model = make_model(
+            [helper.make_node("RMSNorm", ["x", "weight"], ["y"], domain="infinitensor",
+                              epsilon=1e-6, stable_half=1)],
+            [value_info("x", [2, 4], TensorProto.FLOAT16)],
+            [value_info("y", [2, 4], TensorProto.FLOAT16)],
+            [initializer("weight", [1, 2, 1, 2], np.float16)], check=False,
+        )
+        model.opset_import.append(helper.make_opsetid("infinitensor", 1))
+        stub = OnnxStub(model, runtime, simplify_model=False)
+        values = np.array([[2048, -2048, 4096, -4096], [0, .01, -.02, .03]], np.float16)
+        stub.inputs["x"].copyin_numpy(values)
+        stub.run()
+        actual = stub.outputs["y"].copyout_numpy()
+        source = values.astype(np.float32)
+        expected = source / np.sqrt((source * source).mean(axis=-1, keepdims=True) + 1e-6)
+        expected *= np.array([1, 2, 1, 2], np.float32)
+        self.assertEqual(actual.dtype, np.float16)
+        self.assertTrue(np.isfinite(actual).all())
+        np.testing.assert_allclose(actual, expected, rtol=.003, atol=.003)
+
+    @staticmethod
+    def masked_scatter_model(start=0):
+        return make_model(
+            [
+                helper.make_node("NonZero", ["mask"], ["nonzero"]),
+                helper.make_node("Transpose", ["nonzero"], ["coords"], perm=[1, 0]),
+                helper.make_node("Shape", ["coords"], ["coords_shape"]),
+                helper.make_node("Gather", ["coords_shape", "zero_scalar"], ["count"]),
+                helper.make_node("Unsqueeze", ["count", "zero"], ["end"]),
+                helper.make_node("Reshape", ["source", "flat"], ["flattened"]),
+                helper.make_node("Slice", ["flattened", "start", "end", "zero"], ["updates"]),
+                helper.make_node("ScatterND", ["x", "coords", "updates"], ["y"]),
+            ],
+            [value_info("x", [2, 3]), value_info("mask", [2, 3], TensorProto.BOOL),
+             value_info("source", [2, 2])],
+            [value_info("y", [2, 3])],
+            [initializer("zero_scalar", 0, np.int64), initializer("zero", [0], np.int64),
+             initializer("flat", [-1], np.int64), initializer("start", [start], np.int64)],
+        )
+
+    def test_masked_scatter_fusion_checks_slice_and_preserves_shared_coordinates(self):
+        model = self.masked_scatter_model(start=1)
+        self.assertEqual(fuse_masked_scatter(model), 0)
+        model = self.masked_scatter_model()
+        model.graph.output.append(value_info("coords", ["count", 2], TensorProto.INT64))
+        self.assertEqual(fuse_masked_scatter(model), 1)
+        self.assertEqual([node.op_type for node in model.graph.node],
+                         ["NonZero", "Transpose", "MaskedScatter"])
+
+    def test_masked_scatter_runs_different_masks_on_cambricon(self):
+        try:
+            runtime = backend.runtime("cambricon", 0)
+        except (RuntimeError, AttributeError) as error:
+            self.skipTest(str(error))
+        stub = OnnxStub(self.masked_scatter_model(), runtime, simplify_model=False)
+        data = np.arange(6, dtype=np.float32).reshape(2, 3)
+        source = np.array([[9, 8], [7, 6]], np.float32)
+        for mask in (np.array([[True, False, True], [False, False, True]]),
+                     np.array([[False, False, False], [True, False, True]])):
+            expected = data.copy()
+            expected[mask] = source.reshape(-1)[:mask.sum()]
+            for name, array in {"x": data, "mask": mask, "source": source}.items():
+                stub.inputs[name].copyin_numpy(array)
+            stub.run()
+            np.testing.assert_array_equal(stub.outputs["y"].copyout_numpy(), expected)
+
+    def test_external_weights_remain_lazy_and_use_model_directory(self):
+        weight = np.arange(65537, dtype=np.float32)
+        model = make_model(
+            [helper.make_node("Add", ["x", "weight"], ["y"])],
+            [value_info("x", weight.shape)], [value_info("y", weight.shape)],
+            [initializer("weight", weight)],
+        )
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "model.onnx"
+            save_model(model, path, save_as_external_data=True,
+                       location=f"{path.parent.name}-weights.bin", size_threshold=0)
+            stub = OnnxStub(path, backend.cpu_runtime())
+            self.assertTrue(uses_external_data(stub._initializer_by_name["weight"]))
+            self.assertFalse(stub._initializer_by_name["weight"].HasField("raw_data"))
+            stub.inputs["x"].copyin_numpy(np.ones_like(weight))
+            stub.run()
+            np.testing.assert_array_equal(stub.outputs["y"].copyout_numpy(), weight + 1)
+
+    @unittest.skipUnless(hasattr(checker.C, "_resolve_external_data_location"),
+                         "ONNX external data resolver unavailable")
+    def test_external_array_reads_only_the_declared_range(self):
+        weight = np.arange(65537, dtype=np.float32)
+        tensor = initializer("weight", weight)
+        prefix = b"unrelated bytes"
+        with TemporaryDirectory() as directory:
+            folder = Path(directory)
+            payload = folder / "weights.bin"
+            payload.write_bytes(prefix + weight.tobytes() + b"other weights")
+            set_external_data(tensor, location=payload.name, offset=len(prefix),
+                              length=weight.nbytes)
+            tensor.ClearField("raw_data")
+            np.testing.assert_array_equal(read_external_array(tensor, directory), weight)
+            self.assertFalse(tensor.HasField("raw_data"))
+            payload.write_bytes(prefix + weight.tobytes()[:-1])
+            with self.assertRaisesRegex(ValueError, "offset or length"):
+                read_external_array(tensor, directory)
+
+    def test_rmsnorm_fusion_requires_last_axis_and_private_intermediates(self):
+        nodes = [
+            helper.make_node("Pow", ["x", "two"], ["square"]),
+            helper.make_node("ReduceMean", ["square", "axis"], ["mean"], keepdims=1),
+            helper.make_node("Add", ["mean", "eps"], ["shifted"]),
+            helper.make_node("Sqrt", ["shifted"], ["root"]),
+            helper.make_node("Div", ["one", "root"], ["inverse"]),
+            helper.make_node("Mul", ["x", "inverse"], ["normalized"]),
+            helper.make_node("Mul", ["normalized", "weight"], ["y"]),
+        ]
+        for axis, public_mean, expected in [(-1, False, 1), (0, False, 0), (-1, True, 0)]:
+            with self.subTest(axis=axis, public_mean=public_mean):
+                outputs = [value_info("y", [2, 3])]
+                if public_mean:
+                    outputs.append(value_info("mean", [2, 1]))
+                model = make_model(nodes, [value_info("x", [2, 3])], outputs, [
+                    initializer("two", 2, np.float32), initializer("one", 1, np.float32),
+                    initializer("eps", 1e-5, np.float32), initializer("axis", [axis], np.int64),
+                    initializer("weight", [1, 2, 3], np.float32),
+                ])
+                self.assertEqual(fuse_fp32_rms_norm(model), expected)
+                if expected:
+                    self.assertEqual([node.op_type for node in model.graph.node], ["RMSNorm"])
+                    self.assertEqual(list(model.graph.node[0].input), ["x", "weight"])
+
+    def test_exact_gelu_fusion_preserves_public_intermediate(self):
+        nodes = [
+            helper.make_node("Div", ["x", "sqrt_two"], ["scaled"]),
+            helper.make_node("Erf", ["scaled"], ["erf"]),
+            helper.make_node("Add", ["one", "erf"], ["gate"]),
+            helper.make_node("Mul", ["x", "gate"], ["product"]),
+            helper.make_node("Mul", ["half", "product"], ["y"]),
+        ]
+        constants = [initializer("sqrt_two", 2**.5, np.float32),
+                     initializer("one", 1, np.float32), initializer("half", .5, np.float32)]
+        for visible in (False, True):
+            outputs = [value_info("y", [2, 3])]
+            if visible:
+                outputs.append(value_info("erf", [2, 3]))
+            model = make_model(nodes, [value_info("x", [2, 3])], outputs, constants)
+            self.assertEqual(fuse_fp32_erf_gelu(model), 0 if visible else 1)
+            if not visible:
+                self.assertEqual([node.op_type for node in model.graph.node], ["Gelu"])
+
+    def test_static_shape_subgraph_keeps_tensor_input_live(self):
+        model = make_model(
+            [
+                helper.make_node("Shape", ["x"], ["dims"]),
+                helper.make_node("Gather", ["dims", "index"], ["selected"], axis=0),
+                helper.make_node("Concat", ["selected", "rest"], ["target"], axis=0),
+                helper.make_node("Reshape", ["x", "target"], ["y"]),
+            ],
+            [value_info("x", ["batch", 2, 2])],
+            [value_info("y", ["batch", 4])],
+            [initializer("index", [0], np.int64), initializer("rest", [4], np.int64)],
+        )
+        with self.assertRaisesRegex(ValueError, "concrete ONNX input"):
+            OnnxStub(model, backend.cpu_runtime(), simplify_model=False,
+                     fold_static_shapes=True)
+        for batch in (1, 3):
+            stub = OnnxStub(model, backend.cpu_runtime(), simplify_model=False,
+                            input_shapes={"x": [batch, 2, 2]}, fold_static_shapes=True)
+            for shift in (0, 10):
+                data = (np.arange(batch * 4, dtype=np.float32) + shift).reshape(batch, 2, 2)
+                stub.inputs["x"].copyin_numpy(data)
+                stub.run()
+                np.testing.assert_array_equal(stub.outputs["y"].copyout_numpy(),
+                                              data.reshape(batch, 4))
+            with self.assertRaisesRegex(ValueError, "Reimport"):
+                stub.set_input([[batch + 1, 2, 2]])
+
+    def test_internal_copies_are_elided_without_aliasing_public_outputs(self):
+        model = make_model([
+            helper.make_node("Identity", ["x"], ["internal"]),
+            helper.make_node("Cast", ["internal"], ["same_type"], to=TensorProto.FLOAT),
+            helper.make_node("Reshape", ["same_type", "same_shape"], ["reshaped"]),
+            helper.make_node("Identity", ["reshaped"], ["y"]),
+        ], [value_info("x", [2, 3])], [value_info("y", [2, 3])],
+           [initializer("same_shape", [2, 3], np.int64)])
+        stub = OnnxStub(model, backend.cpu_runtime(), simplify_model=False,
+                        fold_static_shapes=True, elide_internal_copies=True)
+        self.assertEqual(stub.elided_internal_copies, 3)
+        self.assertEqual(len(stub.handler.operators()), 1)
+        self.assertNotEqual(stub.inputs["x"].fuid(), stub.outputs["y"].fuid())
+        for shift in (0, 5):
+            value = np.arange(6, dtype=np.float32).reshape(2, 3) + shift
+            stub.inputs["x"].copyin_numpy(value)
+            stub.run()
+            np.testing.assert_array_equal(stub.outputs["y"].copyout_numpy(), value)
+
+    def test_concrete_input_shape_resolves_symbolic_batch(self):
+        model = make_model(
+            [helper.make_node("Relu", ["x"], ["y"])],
+            [value_info("x", ["batch", 2])],
+            [value_info("y", ["batch", 2])],
+        )
+        before = model.SerializeToString()
+        data = np.arange(6, dtype=np.float32).reshape(3, 2) - 2
+        stub = OnnxStub(model, backend.cpu_runtime(), simplify_model=False,
+                        input_shapes={"x": data.shape})
+        stub.inputs["x"].copyin_numpy(data)
+        stub.run()
+        np.testing.assert_array_equal(stub.outputs["y"].copyout_numpy(), np.maximum(data, 0))
+        self.assertEqual(model.SerializeToString(), before)
+        for bad in ({"missing": [3, 2]}, {"x": [3]}, {"x": [3, 4]},
+                    {"x": [-1, 2]}, {"x": [True, 2]}, {"x": [3.5, 2]}):
+            with self.subTest(input_shapes=bad), self.assertRaises(ValueError):
+                OnnxStub(model, backend.cpu_runtime(), simplify_model=False,
+                         input_shapes=bad)
+
+    def test_simplification_can_be_disabled_without_changing_results(self):
+        model = make_model(
+            [helper.make_node("Relu", ["x"], ["y"])],
+            [value_info("x", [2])],
+            [value_info("y", [2])],
+        )
+        original = model.SerializeToString()
+        inputs = np.array([-2.0, 3.0], dtype=np.float32)
+        for options, env in (({"simplify_model": False}, "0"), ({}, "1")):
+            with self.subTest(options=options), patch.dict(
+                os.environ, {"INFINITENSOR_SKIP_ONNXSIM": env}
+            ), patch.object(onnx_frontend, "simplify") as simplify:
+                stub = OnnxStub(model, backend.cpu_runtime(), **options)
+                simplify.assert_not_called()
+                stub.inputs["x"].copyin_numpy(inputs)
+                stub.run()
+                np.testing.assert_array_equal(stub.outputs["y"].copyout_float(), [0, 3])
+                self.assertEqual(model.SerializeToString(), original)
+
+    def test_explicit_simplification_overrides_environment(self):
+        model = make_model(
+            [helper.make_node("Relu", ["x"], ["y"])],
+            [value_info("x", [2])],
+            [value_info("y", [2])],
+        )
+        with patch.dict(os.environ, {"INFINITENSOR_SKIP_ONNXSIM": "1"}), patch.object(
+            onnx_frontend, "simplify", side_effect=lambda candidate: (candidate, True)
+        ) as simplify:
+            OnnxStub(model, backend.cpu_runtime(), simplify_model=True)
+            simplify.assert_called_once()
+
     def test_get_perf_time_returns_backend_value(self):
         stub = OnnxStub.__new__(OnnxStub)
         stub.handler = Mock()

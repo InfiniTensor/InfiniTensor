@@ -203,22 +203,45 @@ void InfiniRuntimeObj::copyBlobToCPU(void *dst, const void *src,
 
 void InfiniRuntimeObj::copyBlobInsideRuntime(void *dst, const void *src,
                                              size_t bytes) const {
+    const TensorCopy copy{dst, src, bytes};
+    copyBlobsInsideRuntime(&copy, 1);
+}
+
+void InfiniRuntimeObj::copyBlobsInsideRuntime(const TensorCopy *copies,
+                                             size_t count) const {
     std::lock_guard<std::recursive_mutex> lock(executionMutex);
     activateDevice();
     // The pinned CPU backend does not implement MemcpyAsync.
     if (runtimeDevice.type() == ::infini::rt::Device::Type::kCpu) {
-        checkInfiniRt(
-            ::infini::rt::runtime::Memcpy(
-                dst, src, bytes, ::infini::rt::runtime::kMemcpyDeviceToDevice),
-            "InfiniRT CPU device-to-device Memcpy");
+        for (size_t i = 0; i < count; ++i) {
+            const auto &copy = copies[i];
+            checkInfiniRt(::infini::rt::runtime::Memcpy(
+                             copy.destination, copy.source, copy.bytes,
+                             ::infini::rt::runtime::kMemcpyDeviceToDevice),
+                         "InfiniRT CPU device-to-device Memcpy");
+        }
         return;
     }
     ensureExecutionStream();
     // Keep graph copies ordered with kernels and visible to stream capture.
-    checkInfiniRt(::infini::rt::runtime::MemcpyAsync(
-                      dst, src, bytes,
-                      ::infini::rt::runtime::kMemcpyDeviceToDevice, stream),
-                  "InfiniRT device-to-device MemcpyAsync");
+    size_t submitted = 0;
+    try {
+        for (; submitted < count; ++submitted) {
+            const auto &copy = copies[submitted];
+            checkInfiniRt(::infini::rt::runtime::MemcpyAsync(
+                             copy.destination, copy.source, copy.bytes,
+                             ::infini::rt::runtime::kMemcpyDeviceToDevice, stream),
+                         "InfiniRT device-to-device MemcpyAsync");
+        }
+    } catch (...) {
+#if INFINITENSOR_INFINIRT_HAS_GRAPH_API
+        if (!streamCaptureActive)
+#endif
+            if (submitted)
+                logInfiniRtError("InfiniRT StreamSynchronize after partial copy",
+                                 ::infini::rt::runtime::StreamSynchronize(stream));
+        throw;
+    }
     // Outside capture, callers may immediately read the result or release
     // either allocation. Preserve the synchronous copy contract explicitly;
     // device Free/host copies need not synchronize this execution stream.

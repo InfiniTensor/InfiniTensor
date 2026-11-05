@@ -405,7 +405,7 @@ void GraphObj::dataMallocImplCore(bool useNaiveAllocator, size_t memPoolSize,
             // allocate memory for all weight tensors first, and this memory
             // will not be freed until the graph is destroyed
             weightTensors.insert(tensor.get());
-            if (!this->weightAllocated) {
+            if (!this->weightAllocated && !tensor->hasSharedWeightStorage()) {
                 tensorToOffset[tensor.get()] =
                     allocator.allocWeight(tensor->getBytes());
             }
@@ -437,6 +437,8 @@ void GraphObj::dataMallocImplCore(bool useNaiveAllocator, size_t memPoolSize,
         vector<std::pair<TensorObj *, Blob>> weightBlobs;
         weightBlobs.reserve(weightTensors.size());
         for (auto &tensor : weightTensors) {
+            if (tensor->hasSharedWeightStorage())
+                continue;
             IT_ASSERT(tensorToOffset.find(tensor) != tensorToOffset.end());
             if (tensor->hasData() &&
                 tensor->getDataBlob()->getBytes() != tensor->getBytes())

@@ -10,6 +10,8 @@ class NaiveConv : public CpuKernelWithoutConfig {
         T *iptr = op->getInputs(0)->getRawDataPtr<T *>();
         T *wptr = op->getInputs(1)->getRawDataPtr<T *>();
         T *optr = op->getOutput()->getRawDataPtr<T *>();
+        const auto bias = op->getBias();
+        const auto *biasPtr = bias ? bias->getRawDataPtr<const T *>() : nullptr;
         //  Clang will give an error of " reference to local binding 'sh'
         //  declared in enclosing function" if we write like this:
         //        auto [n, c, h, w, f, r, s] = op->getNCHWFRS();
@@ -45,7 +47,7 @@ class NaiveConv : public CpuKernelWithoutConfig {
                                 }
                         // TODO: check correctness, oh & ow or h & w?
                         auto oOffset = ww + ow * (hh + oh * (ff + f * nn));
-                        optr[oOffset] = val;
+                        optr[oOffset] = biasPtr ? val + biasPtr[ff] : val;
                     }
             }
         }
