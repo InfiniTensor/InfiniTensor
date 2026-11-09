@@ -172,6 +172,8 @@ endif()
 
 # Libraries
 add_library(InfiniTensor SHARED ${SRC})
+set_source_files_properties(src/kernels/cpu/motion.cc PROPERTIES
+  COMPILE_OPTIONS "-ffp-contract=off;-fno-fast-math")
 if(USE_PROTOBUF)
   target_link_libraries(InfiniTensor tensor_proto)
 endif()

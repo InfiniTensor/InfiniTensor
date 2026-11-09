@@ -55,8 +55,12 @@ class OnnxStub:
         # We use some user-defined operators for distributed inference
         try:
             # onnx simplifier performs inplace simplify
-            has_rvne = any(node.domain == "com.infinitensor.rvne" or
-                           node.op_type in ("LSMSequence", "MLP") for node in model.graph.node)
+            has_rvne = any(
+                node.domain == "com.infinitensor.rvne"
+                or node.op_type
+                in ("LSMSequence", "MLP", "MotionFeatures", "MotionReadout")
+                for node in model.graph.node
+            )
             if simplify_model and not has_rvne:
                 model_simp, check = simplify(copy.deepcopy(model))
                 if check:
@@ -145,6 +149,30 @@ class OnnxStub:
         for node_idx in sorted_nodes:
             node = model.graph.node[node_idx]
             if node.domain == "com.infinitensor.rvne":
+                if node.op_type in ("MotionFeatures", "MotionReadout"):
+                    features = node.op_type == "MotionFeatures"
+                    if len(node.input) != (8 if features else 7) or len(
+                        node.output
+                    ) != (4 if features else 1):
+                        raise ValueError(node.op_type + ": invalid input/output count")
+                    attrs = _parse_attribute(node, {"execution": b"qemu"})
+                    execution = attrs["execution"]
+                    if isinstance(execution, bytes):
+                        execution = execution.decode("utf-8")
+                    if execution not in ("qemu", "reference"):
+                        raise ValueError(
+                            node.op_type + ": execution must be qemu or reference"
+                        )
+                    args = [tensors[name] for name in node.input]
+                    if features:
+                        values = self.handler.motion_features(args, execution == "qemu")
+                    else:
+                        values = [
+                            self.handler.motion_readout(args, execution == "qemu")
+                        ]
+                    for name, value in zip(node.output, values):
+                        tensors[name] = value
+                    continue
                 if node.op_type == "MLP":
                     if len(node.input) != 5 or len(node.output) != 1:
                         raise ValueError("MLP requires five inputs and one output")
@@ -155,7 +183,8 @@ class OnnxStub:
                     if execution not in ("qemu", "reference"):
                         raise ValueError("MLP execution must be qemu or reference")
                     tensors[node.output[0]] = self.handler.mlp(
-                        *(tensors[name] for name in node.input), execution == "qemu")
+                        *(tensors[name] for name in node.input), execution == "qemu"
+                    )
                     continue
                 if node.op_type != "LSMSequence":
                     raise ValueError("Unsupported RVNE operator: " + node.op_type)
@@ -176,7 +205,7 @@ class OnnxStub:
                     execution == "qemu", bool(attrs["trace_all"]))
                 for name, value in zip(node.output, values):
                     tensors[name] = value
-            elif node.op_type in ("LSMSequence", "MLP"):
+            elif node.op_type in ("LSMSequence", "MLP", "MotionFeatures", "MotionReadout"):
                 raise ValueError(node.op_type + " requires domain com.infinitensor.rvne")
             elif node.op_type == "Conv":
                 attributes = _parse_attribute(

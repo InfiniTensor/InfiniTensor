@@ -10,7 +10,12 @@ namespace infini {
 namespace rvne {
 constexpr uint32_t RequestMagic = 0x52565131, ResponseMagic = 0x52565132;
 constexpr uint32_t ProtocolVersion = 2, MaxPayloadBytes = 256U * 1024U * 1024U;
-enum Command : uint32_t { LSMSequence = 1, MLP = 2 };
+enum Command : uint32_t {
+    LSMSequence = 1,
+    MLP = 2,
+    MotionFeatures = 3,
+    MotionReadout = 4
+};
 // Little endian, six uint32 words: magic, version, command, request id, bytes,
 // status.
 using Header = std::array<uint32_t, 6>;

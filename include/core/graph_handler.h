@@ -20,6 +20,8 @@ class GraphHandlerObj {
         : g(make_ref<GraphObj>(std::move(runtime))) {}
 
     Tensor tensor(Shape dims, int dtype);
+    TensorVec motionFeatures(TensorVec inputs, bool useQemu = true);
+    Tensor motionReadout(TensorVec inputs, bool useQemu = true);
 
     TensorVec lsmSequence(Tensor spikes, Tensor inputWeights,
                           Tensor recurrentWeights, Tensor stateIn,

@@ -9,6 +9,8 @@ const char *OpType::toString() const {
     switch (type) {
         CASE(MLP);
         CASE(LSMSequence);
+        CASE(MotionFeatures);
+        CASE(MotionReadout);
         CASE(Unknown);
         CASE(Abs);
         CASE(Acos);

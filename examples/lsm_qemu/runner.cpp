@@ -117,6 +117,7 @@ inline void lsm_compute(int t, int d, int n, const Parameters &p,
 } // namespace infini
 
 #include "utils/mlp_compute.h"
+#include "utils/motion_compute.h"
 #include "utils/rvne_session.h"
 #include <cstring>
 #include <iostream>
@@ -176,6 +177,50 @@ static void handleMlpRequest(std::istream &input, std::ostream &output) {
                              logits.data());
     write(output, logits.data(), logits.size());
 }
+static void handleMotionRequest(std::istream &input, std::ostream &output,
+                                bool features) {
+    uint32_t samples;
+    read(input, &samples, 1);
+    infini::motion::validateSamples(int(samples));
+    auto doubles = [&](size_t size) {
+        std::vector<double> values(size);
+        read(input, values.data(), values.size());
+        return values;
+    };
+    auto floats = [&](size_t size) {
+        std::vector<float> values(size);
+        read(input, values.data(), values.size());
+        return values;
+    };
+    if (features) {
+        auto raw = doubles(samples * 21), previous = doubles(21),
+             feedback = doubles(samples * 7), initial = doubles(3 * 113),
+             wi = doubles(42 * 113), wr = doubles(113 * 113),
+             mean = doubles(113), scale = doubles(113);
+        infini::rvne::end(input);
+        std::vector<float> result(samples * 120);
+        std::vector<double> state(3 * 113), last(21);
+        std::vector<int32_t> counts(samples * 113);
+        infini::motion::features(
+            samples, raw.data(), previous.data(), feedback.data(),
+            initial.data(), wi.data(), wr.data(), mean.data(), scale.data(),
+            result.data(), state.data(), last.data(), counts.data());
+        write(output, result.data(), result.size());
+        write(output, state.data(), state.size());
+        write(output, last.data(), last.size());
+        write(output, counts.data(), counts.size());
+    } else {
+        auto x = floats(samples * 120), w1 = floats(120 * 128),
+             b1 = floats(128), w2 = floats(128 * 7), b2 = floats(7);
+        auto mean = doubles(7), scale = doubles(7);
+        infini::rvne::end(input);
+        std::vector<double> result(samples * 7);
+        infini::motion::readout(samples, x.data(), w1.data(), b1.data(),
+                                w2.data(), b2.data(), mean.data(), scale.data(),
+                                result.data());
+        write(output, result.data(), result.size());
+    }
+}
 static void serve() {
     using namespace infini::rvne;
     std::ios::sync_with_stdio(false);
@@ -200,6 +245,10 @@ static void serve() {
                 handleLsmRequest(input, output);
             else if (request[2] == MLP)
                 handleMlpRequest(input, output);
+            else if (request[2] == MotionFeatures ||
+                     request[2] == MotionReadout)
+                handleMotionRequest(input, output,
+                                    request[2] == MotionFeatures);
             else
                 throw std::runtime_error("runner: unsupported command");
             payload = output.str();

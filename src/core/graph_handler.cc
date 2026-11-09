@@ -12,8 +12,8 @@
 #include "operators/instance_norm.h"
 #include "operators/layer_norm.h"
 #include "operators/lrn.h"
-#include "operators/rvne_ops.h"
 #include "operators/matmul.h"
+#include "operators/motion.h"
 #include "operators/pad.h"
 #include "operators/pooling.h"
 #include "operators/recv.h"
@@ -22,6 +22,7 @@
 #include "operators/resize.h"
 #include "operators/rms_norm.h"
 #include "operators/rope.h"
+#include "operators/rvne_ops.h"
 #include "operators/send.h"
 #include "operators/slice.h"
 #include "operators/softmax.h"
@@ -51,6 +52,16 @@ Tensor GraphHandlerObj::elu(Tensor input, Tensor output, float alpha) {
 
 Tensor GraphHandlerObj::tensor(Shape dims, int dtype) {
     return g->addTensor(std::move(dims), dtype_repr_convert(dtype));
+}
+TensorVec GraphHandlerObj::motionFeatures(TensorVec values, bool useQemu) {
+    return g
+        ->addOp<MotionObj>(OpType::MotionFeatures, std::move(values), useQemu)
+        ->getOutputs();
+}
+Tensor GraphHandlerObj::motionReadout(TensorVec values, bool useQemu) {
+    return g
+        ->addOp<MotionObj>(OpType::MotionReadout, std::move(values), useQemu)
+        ->getOutput();
 }
 
 Tensor GraphHandlerObj::mlp(Tensor x, Tensor w1, Tensor b1, Tensor w2,

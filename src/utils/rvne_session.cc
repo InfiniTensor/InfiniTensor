@@ -213,7 +213,10 @@ class Session {
                       ++requestId,  uint32_t(request.size()), 0};
         requests.push_back(
             {{"id", requestId},
-             {"command", command == LSMSequence ? "LSMSequence" : "MLP"}});
+             {"command", command == LSMSequence      ? "LSMSequence"
+                         : command == MLP            ? "MLP"
+                         : command == MotionFeatures ? "MotionFeatures"
+                                                     : "MotionReadout"}});
         try {
             transfer(header.data(), sizeof(header), true, deadline);
             transfer(const_cast<char *>(request.data()), request.size(), true,

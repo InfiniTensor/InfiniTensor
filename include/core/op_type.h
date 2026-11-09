@@ -241,6 +241,8 @@ struct OpType {
         Recv,
         MLP,
         LSMSequence,
+        MotionFeatures,
+        MotionReadout,
     } type;
 
     constexpr OpType(decltype(type) t) : type(t) {}
