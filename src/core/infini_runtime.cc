@@ -185,6 +185,23 @@ void InfiniRuntimeObj::copyBlobFromCPU(void *dst, const void *src,
                                        size_t bytes) const {
     std::lock_guard<std::recursive_mutex> lock(executionMutex);
     activateDevice();
+    // Keep the blocking public upload contract while ordering this copy on
+    // the same stream as this runtime's kernels. Other backends, zero-sized
+    // copies and active capture retain the original implementation.
+    if (runtimeDevice.type() == ::infini::rt::Device::Type::kIluvatar &&
+        bytes != 0
+#if INFINITENSOR_INFINIRT_HAS_GRAPH_API
+        && !streamCaptureActive
+#endif
+    ) {
+        ensureExecutionStream();
+        checkInfiniRt(::infini::rt::runtime::MemcpyAsync(
+                          dst, src, bytes,
+                          ::infini::rt::runtime::kMemcpyHostToDevice, stream),
+                      "InfiniRT host-to-device MemcpyAsync");
+        syncImpl();
+        return;
+    }
     checkInfiniRt(
         ::infini::rt::runtime::Memcpy(
             dst, src, bytes, ::infini::rt::runtime::kMemcpyHostToDevice),
